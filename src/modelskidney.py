@@ -7,7 +7,7 @@ import dcmri
 from curvefit import CurveFit
 
 
-class AortaOneShotOneScan(CurveFit):
+class Aorta(CurveFit):
 
     xname = 'Time'
     xunit = 'sec'
@@ -157,7 +157,7 @@ class AortaOneShotOneScan(CurveFit):
             plt.close()
 
 
-class LiverOneShotOneScan(CurveFit):
+class Kidney(CurveFit):
 
     def function(self, x, p):
 
@@ -170,11 +170,11 @@ class LiverOneShotOneScan(CurveFit):
         return [
             ['S0', "Signal amplitude S0", 1200, "a.u.", 0, np.inf, False, 4],
             ['FA', "Flip angle", self.aorta.FA, "deg", 0, 180, False, 4],
-            ['Ktrans', "Blood transfer rate Ktrans", self.Ktrans, 'mL/sec/mL', 0, np.inf, True, 5],
-            ['Th', "Hepatocellular mean transit time", 20*60., 'sec', 0, np.inf, True, 5],
-            ['FpTe', "Apparent liver extracellular volume", self.veL, 'mL/mL', 0, 1, True, 3],
-            ['TTDgut', "Gut transit time dispersion", 31.0, 'sec', 0, np.inf, True, 3],
-            ['MTTgut', "Gut mean transit time", 43.0, 'sec', 0, np.inf, True, 3],
+            ['Fp', "Renal Plasma Flow", 0.55*2.5/60, 'mL/sec/mL', 0, np.inf, True, 5],
+            ['E', "Glomerular Extraction Fraction", 0.15, '', 0, 1, True, 5],
+            ['MTTp', "Plasma mean transit time", 8.0, 'sec', 0, np.inf, True, 5],
+            ['MTTt', "Tubular mean transit time", 120, 'sec', 0, np.inf, True, 3],
+            ['MTTa', "Arterial transit time", 2.0, 'sec', 0, np.inf, True, 3],
         ]
 
     def __init__(self, aorta):
@@ -183,12 +183,10 @@ class LiverOneShotOneScan(CurveFit):
         self.aorta.signal_smooth()
         super().__init__()
 
-    # Liver parameters
-    Fb = 1.3/60         # Blood flow (mL/sec/mL)
-                        # 130 mL/min/100mL  
-    E = 0.04            # Gadoxetate extraction fraction
-    veL = 0.230         # Liver extracellular volume (mL/mL)
-    vh = 0.722          # Hepatocellular volume fraction (mL/mL)
+    # Kidney constants parameters
+    vp = 0.15         # Kidney plasma volume (mL/mL)
+    vt = 0.60         # Kidney tubular volume (mL/mL)
+    f = 0.99        # reabsorption fraction
 
     @property
     def R10lit(self):
@@ -202,53 +200,25 @@ class LiverOneShotOneScan(CurveFit):
     def R1(self):
 
         p = self.p.value
-        cv = dcmri.propagate_dd(
-            self.aorta.t, self.aorta.cb, p.MTTgut, p.TTDgut)
-        self.cb = cv
+        ca = dcmri.propagate_delay(self.aorta.t, self.aorta.cb, p.MTTa)
+        
+        ca = ca/self.aorta.Hct
+        cp = dcmri.propagate_compartment(self.aorta.t, ca, p.MTTp)
+        ct = dcmri.propagate_compartment(self.aorta.t, cp, p.MTTt)
+        np = cp*p.MTTp*p.Fp
+        nt = ct*p.MTTt*p.Fp*p.E
 
+        self.ca = ca
+        self.cp = np/self.vp
+        self.ct = nt/self.vt
+        self.ck = (np+nt)/(self.vp+self.vt)
 
-        cp = self.cb/self.aorta.Hct
-        ne, nh = dcmri.residue_high_flow_2cfm(self.aorta.t, cp, p.Ktrans, p.Th, p.FpTe)
-
-        self.ce = (1-p.Ktrans/self.Fp)*cp
-        self.ch = nh/self.vh
-        self.cl = ne + nh
-
-        return self.R10 + self.aorta.rp*ne + self.rh*nh
+        return self.R10 + self.aorta.rp*(np + nt)
 
     def signal_smooth(self):
 
         R1 = self.R1()
         return dcmri.signalSPGRESS(self.aorta.TR, self.p.value.FA, R1, self.p.value.S0)
-
-    @property
-    def rh(self):
-        field = math.floor(self.aorta.field_strength)
-        if field == 1.5: return 14.6     # relaxivity of hepatocytes in Hz/mM
-        if field == 3.0: return 9.8     # relaxivity of hepatocytes in Hz/mM
-        if field == 4.0: return 7.6     # relaxivity of hepatocytes in Hz/mM
-        if field == 7.0: return 6.0     # relaxivity of hepatocytes in Hz/mM
-        if field == 9.0: return 6.1     # relaxivity of hepatocytes in Hz/mM
-
-    @property
-    def Fp(self):
-        return (1-self.aorta.Hct) * self.Fb
-
-    @property
-    def khe(self):
-        return self.E*self.Fp/(1-self.E)
-
-    @property
-    def Ktrans(self):
-        return self.E * self.Fp 
-
-    @property
-    def Te(self):
-        return self.veL*(1-self.E)/self.Fp
-
-    @property
-    def ve_app(self):
-        return (1-self.E)*self.veL
 
     def set_R10(self, t, R1):
         self.R10 = R1
@@ -307,9 +277,9 @@ class LiverOneShotOneScan(CurveFit):
         ax2.set_title('Reconstructed concentration')
         ax2.set(xlabel=self.xlabel, ylabel='Concentration (mM)')
         ax2.plot(self.aorta.t[ti], 0*self.aorta.t[ti], color='black')
-        ax2.plot(self.aorta.t[ti], self.cl[ti], 'b-', label='liver')
-        ax2.plot(self.aorta.t[ti], self.ce[ti], 'r-', label='extracellular')
-        ax2.plot(self.aorta.t[ti], self.ch[ti], 'g-', label='hepatocyte')
+        ax2.plot(self.aorta.t[ti], self.ck[ti], 'b-', label='kidney')
+        ax2.plot(self.aorta.t[ti], self.cp[ti], 'r-', label='plasma')
+        ax2.plot(self.aorta.t[ti], self.ct[ti], 'g-', label='tubuli')
         if legend:
             ax2.legend()
         if save:          

@@ -4,19 +4,16 @@ import pandas as pd
 
 import datakidney
 
-from modelskidney import ( 
-    AortaOneShotOneScan, 
-    LiverOneShotOneScan, 
-)
+from modelskidney import Aorta, Kidney
 
 
-def oneshot_onescan(subj, path, show):
+def fitdata(subj, path, show):
 
-    (time1, fa1, aorta1, liver1, 
-        T1time1, T1aorta1, T1liver1, 
+    (time1, fa1, aorta1, kidney, 
+        T1time1, T1aorta1, T1kidney, 
         weight, dose1) = datakidney.oneshot_onescan(subj)
 
-    aorta = AortaOneShotOneScan()
+    aorta = Aorta()
     aorta.weight = weight
     aorta.dose = dose1
     aorta.set_xy(time1, aorta1)
@@ -26,10 +23,10 @@ def oneshot_onescan(subj, path, show):
     aorta.plot_fit(save=True, show=show, path=path)
     aorta.export_p(path=path)
 
-    liver = LiverOneShotOneScan(aorta)
+    liver = Kidney(aorta)
     
-    liver.set_xy(time1, liver1)
-    liver.set_R10(T1time1, 1000.0/T1liver1)
+    liver.set_xy(time1, kidney)
+    liver.set_R10(T1time1, 1000.0/T1kidney)
     liver.estimate_p()
     liver.fit_p()
     liver.plot_fit(save=True, show=show, path=path)
@@ -49,4 +46,4 @@ if __name__ == "__main__":
 
         subj = os.path.join(filepath, 'sourcedata', s+'.xlsx')
         path = os.path.join(filepath, 'results', s)
-        _, _ = oneshot_onescan(subj, path, show)
+        _, _ = fitdata(subj, path, show)
