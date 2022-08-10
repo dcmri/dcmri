@@ -26,7 +26,7 @@ class Aorta(CurveFit):
     def parameters(self):
 
         return [ 
-            ['S0', "Signal amplitude S0", 20, "a.u.", 0, np.inf, False, 4],
+            ['S0', "Signal amplitude S0", 1200, "a.u.", 0, np.inf, False, 4],
             ['FA', "Flip angle", self.FA, "deg", 0, 180, False, 4],
             ['BAT', "Bolus arrival time", 60, "sec", 0, np.inf, True, 3],
             ['CO', "Cardiac output", 3000.0/60.0, "mL/sec", 0, np.inf, True, 3],
