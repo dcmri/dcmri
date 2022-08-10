@@ -349,11 +349,9 @@ def signal_genflash(TR, R1, S0, a, A):
     E = np.exp(-a*TR*R1)
     return S0 * (1-E) / (1-A*E)
 
-def signal_genflash_with_sat(TR, FA, R1, S0):
+def signal_genflash_with_sat(TI, Tsat, TR, FA, R1, S0):
     """Flash pulse seq. with saturation pulse
     """
-    TI = 85/1000 
-    Tsat = 25.5/1000
     T1 = 1/R1
 
     FA_rad = FA/360*(2*np.pi)
@@ -365,10 +363,9 @@ def signal_genflash_with_sat(TR, FA, R1, S0):
 
     return M 
 
-def signal_monoExp_aorta(R1, S0):
+def signal_monoExp_aorta(TI, R1, S0):
     """Free Recovery
     """
-    TI = 85/1000 
 
     return S0*(1-np.exp(-TI*R1))
 
