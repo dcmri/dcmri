@@ -334,6 +334,7 @@ def injection_gv(t, weight, conc, dose, rate, start1, start2=None, dispersion=0.
 
 def signalSPGRESS(TR, FA, R1, S0):
 
+
     E = np.exp(-TR*R1)
     cFA = np.cos(FA*math.pi/180)
     return S0 * (1-E) / (1-cFA*E)
@@ -347,6 +348,30 @@ def signal_genflash(TR, R1, S0, a, A):
     """
     E = np.exp(-a*TR*R1)
     return S0 * (1-E) / (1-A*E)
+
+def signal_genflash_with_sat(TR, FA, R1, S0):
+    """Flash pulse seq. with saturation pulse
+    """
+    TI = 85/1000 
+    Tsat = 25.5/1000
+    T1 = 1/R1
+
+    FA_rad = FA/360*(2*np.pi)
+    M_afterSat = S0 * (1-np.exp(-Tsat*R1))
+    T1_app = (T1*TR)/(TR-T1*np.log(np.cos(FA_rad)))
+    M_apparent = S0 * (1-np.exp(-TR*R1))/(1-np.cos(FA_rad)*np.exp(-TR*R1))
+
+    M = M_apparent * (1-np.exp(-(TI-Tsat)/T1_app)) + M_afterSat * np.exp(-(TI-Tsat)/T1_app)
+
+    return M 
+
+def signal_monoExp_aorta(R1, S0):
+    """Free Recovery
+    """
+    TI = 85/1000 
+
+    return S0*(1-np.exp(-TI*R1))
+
 
 def signal_hyper(TR, R1, S0, a, b):
     """
