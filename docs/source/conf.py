@@ -30,6 +30,7 @@ extensions = ['sphinx.ext.napoleon', # parsing of NumPy and Google style docstri
                 'sphinx.ext.viewcode', # viewing source code
                 'sphinx.ext.intersphinx', # generate links to the documentation of objects in external projects
                 'sphinx_rtd_theme', # ReadTheDocs theme
+                'myst_parser', # parser for markdown language
                 ]
 # Add any paths that contain templates here, relative to this directory
 templates_path = ['_templates']
@@ -60,3 +61,6 @@ html_theme = 'sphinx_rtd_theme'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css"
 html_static_path = ['_static']
+
+# The suffix(es) of source filenames.
+source_suffix = ['.rst', '.md']
