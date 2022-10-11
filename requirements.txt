@@ -1,0 +1,7 @@
+pandas
+numpy
+statistics
+matplotlib
+scipy
+wezel
+sphinx
