@@ -31,7 +31,9 @@ extensions = ['sphinx.ext.napoleon', # parsing of NumPy and Google style docstri
                 'sphinx.ext.intersphinx', # generate links to the documentation of objects in external projects
                 'sphinx_rtd_theme', # ReadTheDocs theme
                 'myst_parser', # parser for markdown language
-                ]
+                'sphinx_copybutton', # copy button for code blocks
+                'sphinx_remove_toctrees'] # selectively remove toctree objects from pages
+
 # Add any paths that contain templates here, relative to this directory
 templates_path = ['_templates']
 
@@ -64,3 +66,7 @@ html_static_path = ['_static']
 
 # The suffix(es) of source filenames.
 source_suffix = ['.rst', '.md']
+
+# The name of an image file (relative to this directory) to place at the top
+# of the sidebar.
+html_logo = 'images/sheffield-logo.jpg'
