@@ -18,7 +18,7 @@ Helloooo, I'm testing gh-actions
 
 .. toctree::
    :maxdepth: 1
-   :caption: My contents are better than your contents:
+   :caption: Contents:
 
    mynewsection
    modules
