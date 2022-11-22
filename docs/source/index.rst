@@ -6,6 +6,8 @@
 Welcome to dcmri's documentation!
 ==================================
 
+
+
 ``dcmri`` is a Python interface for reading and writing DICOM databases. 
 
 .. warning::
