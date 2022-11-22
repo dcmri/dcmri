@@ -1,9 +1,13 @@
 name: Docs
 run-name: "Updating Docs as ${{ github.actor }} has pushed changes to repo"
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+    branches: 
+    - main
 jobs:
   docs:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
     steps:
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
       - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
@@ -30,7 +34,6 @@ jobs:
 
       - name: Publish to gh-pages
         uses: peaceiris/actions-gh-pages@v3
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages  # default: gh-pages
