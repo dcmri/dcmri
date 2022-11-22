@@ -1,9 +1,11 @@
 name: Docs
-run-name: "Updating Docs as ${{ github.actor }} has pushed changes to repo"
+run-name: "Updating Docs as ${{ github.actor }} has pushed changes to main"
 on:
   push:
     branches: 
     - main
+  workflow_dispatch:
+  
 jobs:
   docs:
     runs-on: ubuntu-latest
