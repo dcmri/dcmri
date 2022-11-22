@@ -4,9 +4,7 @@
    contain the root `toctree` directive.
 
 Welcome to dcmri's documentation!
-=================================
-
-Testing GitHub actions.
+==================================
 
 ``dcmri`` is a Python interface for reading and writing DICOM databases. 
 
@@ -18,9 +16,9 @@ Testing GitHub actions.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Contents:
+   :caption: My contents are better than your contents:
 
-   readme
+   mynewsection
    modules
 
 
