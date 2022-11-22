@@ -4,9 +4,9 @@
    contain the root `toctree` directive.
 
 Welcome to dcmri's documentation!
-=================================
+==================================
 
-Testing GitHub actions.
+Helloooo, I'm testing gh-actions
 
 ``dcmri`` is a Python interface for reading and writing DICOM databases. 
 
@@ -20,7 +20,7 @@ Testing GitHub actions.
    :maxdepth: 1
    :caption: Contents:
 
-   readme
+   mynewsection
    modules
 
 
