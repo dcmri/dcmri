@@ -29,7 +29,7 @@ jobs:
 
       - name: Publish to gh-pages
         uses: peaceiris/actions-gh-pages@v3
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/gh-actions-practice' }}
+        if: ${{ github.event_name == 'pull' && github.ref == 'refs/heads/gh-actions-practice' }}
         with:
           publish_branch: gh-pages  # default: gh-pages
           github_token: ${{ secrets.GITHUB_TOKEN }}
