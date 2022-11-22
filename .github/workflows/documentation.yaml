@@ -23,18 +23,18 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Update Sphinx build
+      - name: Update Sphinx htmls
         run: |
-          sphinx-build docs/source _build
+          make html
+        working-directory: docs
 
       - name: Publish to gh-pages
         uses: peaceiris/actions-gh-pages@v3
-        if: ${{ github.event_name == 'pull' && github.ref == 'refs/heads/gh-actions-practice' }}
+        #if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/gh-actions-practice' }}
         with:
-          publish_branch: gh-pages  # default: gh-pages
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: _build/
-          force_orphan: true
+          publish_branch: gh-pages  # default: gh-pages
+          publish_dir: docs/build/html/
 
       - run: echo "Status of job = ${{ job.status }}."
       
