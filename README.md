@@ -1,4 +1,4 @@
-`osipi` is the authorative python package for perfusion MRI. 
+`dcmri` is the authorative python package for perfusion MRI. 
 
 For more detail please see the [documentation](https://osipi.github.io/pypi/).
 
