@@ -2,18 +2,18 @@
 # minimal required information
 
 [project]
-name = "osipi"
-version = "0.1.2"
+name = "dcmri"
+version = "0.0.0"
 dependencies = [ 
   "numpy",
 ]
 
 # optional information
 
-description = "The authorative python package for perfusion MRI"
+description = "A collection of functins for DCE-MRI and DSC-MRI"
 readme = "README.md"
 authors = [
-  { name = "Luis Torres", email = "luistorres@flywheel.io" }, 
+  { name = "Ebony Gunwhy", email = "e.gunwhy@sheffield.ac.uk" }, 
   { name = "Steven Sourbron", email = "s.sourbron@sheffield.ac.uk" },
   ]
 license = { file = "LICENSE" }
@@ -39,7 +39,7 @@ keywords = ['python', "medical imaging", "perfusion", "MRI"]
 requires-python = ">=3.6"
 
 [project.urls]
-"Homepage" = "https://osipi.github.io/pypi"
+"Homepage" = "https://qib-sheffield.github.io/dcmri"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -47,7 +47,6 @@ where = ["src"]
 [project.optional-dependencies]
 tests = [
   "pytest",
-  "matplotlib",
 ]
 docs = [
     "sphinx",
