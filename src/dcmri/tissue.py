@@ -53,7 +53,7 @@ def trapz(t, f):
 
 def prop_plug(t, J, K):
     if K==0:
-        return J
+        return np.zeros(len(t))
     return np.interp(t-1/K, t, J, left=0) 
 
 def prop_comp(t, J, K):
@@ -63,7 +63,7 @@ def prop_comp(t, J, K):
 
 def res_plug(t, J, K):
     if K==0:
-        return J
+        return trapz(t, J)
     Jo = prop_plug(t, J, 1/K)
     return trapz(t, J-Jo)
 
