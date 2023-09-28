@@ -5,10 +5,10 @@
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
-project = 'osipi'
-copyright = '2022, OSIPI'
-author = 'OSIPI'
-release = '0.1.1'
+project = 'dcmri'
+copyright = '2023, dcmri maintainers'
+author = 'dcmri maintainers'
+release = '0.0.0'
 
 # -- Path setup --------------------------------------------------------------
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -50,7 +50,7 @@ sphinx_gallery_conf = {
     'backreferences_dir': 'generated/backreferences',
 
     # Modules for which function/class level galleries are created. 
-    'doc_module': ('osipi', ),
+    'doc_module': ('dcmri', ),
 
     # objects to exclude from implicit backreferences. The default option
     # is an empty set, i.e. exclude nothing.
