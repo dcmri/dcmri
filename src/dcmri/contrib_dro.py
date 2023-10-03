@@ -3,7 +3,14 @@ Digital reference objects
 """
 
 import numpy as np
-from contrib_aux import quad
+import matplotlib.pyplot as plt
+
+import contrib_aux as aux
+import contrib_syst as syst
+import aif
+
+
+
 
 
 def sample(t, S, ts, dts): 
@@ -17,7 +24,7 @@ def sample(t, S, ts, dts):
 
 def step_inject(t, weight=70, conc=0.5, dose=0.2, rate=2, start=0):
     """
-    Injected flux as a steo function
+    Injected flux into the body as a step function
 
     weight (kg)
     conc (mmol/mL)
@@ -33,12 +40,44 @@ def step_inject(t, weight=70, conc=0.5, dose=0.2, rate=2, start=0):
     J[np.nonzero(t_inject)[0]] = Jmax
     return J
 
+def step_input(t, weight=70, dose=0.1, conc=0.1, flow=100, start=0):
+    """
+    Injected flux into an organ
+
+    weight (kg)
+    dose (mmol/kg)
+    conc (mM)
+    flow (mL/sec) = cardiac output for AIF = 100mL/sec = 6L/min
+    with these defaults: 
+        the injected dose is 0.1 mmol (weight*dose)
+        the injected volume is 1000mL (weight*dose/conc) # 0.1 mmol/(0.1 mmol/L) = 1L
+        the injection duration is 10 sec (1000mL/100mL/sec = 10). 
+    returns flux injected per unit time (mmol/sec)"""
+
+    N = weight*dose # mmol - total amount of tracer injected.
+    V = N/conc # mL - total volume injected
+    T = V/flow # sec - duration of injection
+    J = flow*conc # mmol/sec - flux
+
+    t_inject = (t > start) & (t < start+T)
+    Jt = np.zeros(t.size)
+    Jt[np.nonzero(t_inject)[0]] = J
+    return Jt
+
+
+def step_conc(t, conc=1, start=0, duration=15):
+    # 1 mM * 15 sec
+    t_inject = (t > start) & (t < start+duration)
+    ct = np.zeros(t.size)
+    ct[np.nonzero(t_inject)[0]] = conc
+    return ct
+
 
 def flow_organ_1d(
         length = 25,    # cm
-        nr = 25,        # Nr of voxels
-        vmax = 20,      # cm/sec
-        vmin = 5,       # cm/sec
+        nr = 20,        # Nr of voxels
+        umin = 5,       # cm/sec
+        umax = 20,      # cm/sec
         flow = 4,       # mL/sec/cm^2
         ):
     dx = length/nr
@@ -47,22 +86,67 @@ def flow_organ_1d(
     # voxel boundaries
     b = np.arange(0, length+dx, dx)
     # velocity = f/v
-    u = quad(b, [vmax,vmin,vmax])
+    u = aux.quad(b, [umax,umin,umax])
     # volume fractions
     v = flow/u
     v = (v[1:]+v[:-1])/2
-    return {
-        'voxel centers (cm)': c,
-        'voxel boundaries (cm)': b,
-        'velocity (cm/sec)': u,
-        'volume fraction': v,
-        }
+    return c, b, u, v
 
-def organ_perf_1d(
-        length = 25,
-        nr = 30,
-        ):
-    pass
+
+def organ_perf_1d(step=True):
+    # area = volume/length/2
+    # flow (mL/sec/cm^2) = perf*volume/area = perf*length/2
+    # Flow (mL/sec) = perf*volume/2
+    # Flux (mmol/sec) = conc*perf*volume /2
+    # flux (mmol/sec/cm^2) = conc*perf*length/2
+    # dflux (mmol/sec/mL) = conc*perf*length/2/dx
+    # vel = flow/v
+    # VC1(t+dt) = VC1(t) + dt*flux*A - dt*vel_r*A*C1(t) - dt*perf*V*C1(t)   # mmol
+    # C1(t+dt) = C1(t) + dt*flux/dx - dt*vel_r*C1(t)/dx - dt*perf*C1(t)  # mmol
+    # C2(t+dt) = C2(t) + dt*vel_l*C1(t)/dx - dt*vel_r*C2(t)/dx - dt*perf*C2(t)  # mmol
+    # Geometry
+    length = 30 #cm
+    tmax = 25 # sec
+    nvox = 128 # nr of measured voxels
+    nt = 90 # nr of time points
+    # Tissue paramaters
+    perf = 0.04 # mL/sec/mL
+    flow = 0 # total flow mL/sec/cm^2
+    vamin = 0.02 # cm/sec
+    vvmin = 0.04 # cm/sec
+    vamax = 0.1 # cm/sec
+    vvmax = 0.3 # cm/sec
+    # Create inputs
+    fa0 = perf*length/2  # mL/sec/cm^2 
+    tb = np.linspace(0, tmax, nt)
+    # AIF parameters
+    start = 5 # sec
+    if step:
+        conc = 2 # mM - average in blood
+        duration = 10 # sec
+        cb = step_conc(tb, conc, start, duration)
+    else:
+        cb = 0.55*aif.aif_parker(tb, start)
+    jpa = fa0*cb # flux in mmol/sec/cm^2
+    jna = fa0*cb # flux in mmol/sec/cm^2
+    # Create tissue
+    xb = np.linspace(0, length, 1+nvox)
+    F = aux.gaussian(xb, length/2, length/8)
+    F = perf*length*F/np.trapz(F, xb) # normalize so that int(F)/2 = perf*length/2 = fa0
+    fa = fa0 - aux.trapz(xb, F)
+    fv = flow-fa
+    va = aux.gaussian(xb, length/2, length/6)
+    va = vamax-(vamax-vamin)*(va-np.amin(va))/(np.amax(va)-np.amin(va))
+    vv = aux.gaussian(xb, length/2, length/6)
+    vv = vvmax-(vvmax-vvmin)*(vv-np.amin(vv))/(np.amax(vv)-np.amin(vv))
+    ua = fa/va
+    uv = fv/vv
+    Kva = F/va
+    dim = [tmax, length]
+    mat = [nt, nvox] # acquisition matrix
+    system = syst.Perf1D(dim, mat, jna, jpa, ua, uv, Kva, nx=200)
+    #system = syst.Perf1D(dim, mat, jna, jpa, ua, uv, Kva, nx=200)
+    return system
 
 
 
@@ -87,4 +171,5 @@ def test_step_inject():
 
 if __name__ == "__main__":
 
-    test_step_inject()
+    #test_step_inject()
+    organ_perf_1d()

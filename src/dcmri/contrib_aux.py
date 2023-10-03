@@ -3,6 +3,20 @@ Helper functions
 """
 
 import math
+import numpy as np
+
+def trapz(t, f):
+    n = len(f)
+    g = np.empty(n)
+    g[0] = 0
+    for i in range(n-1):
+        g[i+1] = g[i] + (t[i+1]-t[i]) * (f[i+1]+f[i]) / 2
+    return g
+
+def gaussian(x, mu, sig):
+    return (
+        1.0 / (np.sqrt(2.0 * np.pi) * sig) * np.exp(-np.power((x - mu) / sig, 2.0) / 2)
+    )
 
 def quad(t, K):
     nt = len(t)
