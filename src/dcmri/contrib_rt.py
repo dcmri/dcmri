@@ -4,6 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import contrib_sig as sig
 
+# report warnings as errors
+import warnings
+warnings.filterwarnings("error")
+
 
 def plot_Ct_1d(t, x, C, Cmeas=None, rows=5, cols=4):
     fontsize=8
@@ -91,6 +95,8 @@ def plot_Ct_1d2c(t, x, C1, C2, rows=5, cols=4):
     xi = np.linspace(x[0], x[-1], rows*cols)
     nt = len(t)
     Cmax = np.amax(C1+C2)
+    if Cmax==0:
+        Cmax=1
     i=0
     for r in range(rows):
         for c in range(cols):
@@ -117,6 +123,7 @@ def plot_Ct_1d2c(t, x, C1, C2, rows=5, cols=4):
     plt.show()
     plt.close()
 
+
 def plot_Cx_1d2c(t, x, C1, C2, rows=5, cols=4):
     # Plot concentrations vs position
     fontsize=8
@@ -126,6 +133,8 @@ def plot_Cx_1d2c(t, x, C1, C2, rows=5, cols=4):
     ti = np.linspace(t[0], t[-1], rows*cols)
     nx = len(x)
     Cmax = np.amax(C1+C2)
+    if Cmax==0:
+        Cmax=1
     i=0
     for r in range(rows):
         for c in range(cols):
@@ -226,6 +235,23 @@ def K_flowdiff_1d(dx, u, D):
     Kn = Ku[1] + Kd[1]
     return Kp, Kn
 
+def F_flow_1d(U, u): 
+    # U=dx/dt with dx=voxel width and dt=time step
+    nc = len(u)-1
+    # Calculate Kn
+    Fn = np.zeros(nc)
+    un = u[:-1]
+    neg = np.where(un < 0)
+    Fn[neg] = -un[neg]/U
+    # Calculate Kp
+    Fp = np.zeros(nc)
+    up = u[1:]
+    pos = np.where(up > 0)
+    Fp[pos] = up[pos]/U     
+    return Fp, Fn
+
+
+
 def conc_1d1c(t, Jp, Jn, Kp, Kn):
     """Concentration in a spatial 1-compartment model in 1D"""
     nt = len(Jp)
@@ -248,6 +274,8 @@ def conc_1d1c(t, Jp, Jn, Kp, Kn):
 
 def dt_1d2cf(dx, umax, K21max):
     Kmax = umax/dx + K21max
+    if Kmax == 0:
+        return 1
     MTTmin = 1/Kmax
     return 0.9*MTTmin
 

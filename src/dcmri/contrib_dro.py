@@ -93,7 +93,9 @@ def flow_organ_1d(
     return c, b, u, v
 
 
-def organ_perf_1d(step=True):
+def organ_perf_1d(step=True, 
+        tmax=30, # sec
+    ):
     # area = volume/length/2
     # flow (mL/sec/cm^2) = perf*volume/area = perf*length/2
     # Flow (mL/sec) = perf*volume/2
@@ -106,7 +108,6 @@ def organ_perf_1d(step=True):
     # C2(t+dt) = C2(t) + dt*vel_l*C1(t)/dx - dt*vel_r*C2(t)/dx - dt*perf*C2(t)  # mmol
     # Geometry
     length = 30 #cm
-    tmax = 25 # sec
     nvox = 128 # nr of measured voxels
     nt = 90 # nr of time points
     # Tissue paramaters
@@ -145,8 +146,60 @@ def organ_perf_1d(step=True):
     dim = [tmax, length]
     mat = [nt, nvox] # acquisition matrix
     system = syst.Perf1D(dim, mat, jna, jpa, ua, uv, Kva, nx=200)
-    #system = syst.Perf1D(dim, mat, jna, jpa, ua, uv, Kva, nx=200)
     return system
+
+
+def organ_perf_1d_fpic(step=True):
+    # Geometry
+    length = 30 #cm
+    tmax = 25 # sec
+    nvox = 128 # nr of measured voxels
+    nt = 90 # nr of time points
+    # Tissue paramaters
+    perf = 0.04 # mL/sec/mL
+    flow = 0 # total flow mL/sec/cm^2
+    vamin = 0.02 # cm/sec
+    vvmin = 0.04 # cm/sec
+    vamax = 0.1 # cm/sec
+    vvmax = 0.3 # cm/sec
+    # Create inputs
+    fa0 = perf*length/2  # mL/sec/cm^2 
+    tb = np.linspace(0, tmax, nt)
+    # AIF parameters
+    start = 5 # sec
+    if step:
+        conc = 2 # mM - average in blood
+        duration = 10 # sec
+        cb = step_conc(tb, conc, start, duration)
+    else:
+        cb = 0.55*aif.aif_parker(tb, start)
+    # Create tissue
+    xb = np.linspace(0, length, 1+nvox)
+    F = aux.gaussian(xb, length/2, length/8)
+    va = aux.gaussian(xb, length/2, length/6)
+    va = vamax-(vamax-vamin)*(va-np.amin(va))/(np.amax(va)-np.amin(va))
+    vv = aux.gaussian(xb, length/2, length/6)
+    vv = vvmax-(vvmax-vvmin)*(vv-np.amin(vv))/(np.amax(vv)-np.amin(vv))
+    return syst.Perf1D_fpic(
+        dim = [tmax, length], 
+        mat = [nt, nvox], 
+        Jna = fa0*cb, 
+        Jpa = fa0*cb,
+        af = va/(va+vv), 
+        v = va+vv, 
+        F = perf*length*F/np.trapz(F, xb), # normalize so that int(F)/2 = perf*length/2 = fa0, 
+        faL = fa0, 
+        f = flow, 
+        nx = 200, 
+        fmax = 30,          # maximum flow (mL/sec/cm^2) 
+        Jmax = 10,          # maximum influx (mmol/sec/cm^2)
+        Fmax = 1,           # maximum perfusion (mL/sec/mL)
+        vmin = 0.01,         # minimum volume fraction
+        vmax = 1.0,         # maximum volume fraction
+        afmin = 0.05,         # minimum afterial volume fraction
+        afmax = 0.95,         # minimum afterial volume fraction
+    )
+
 
 
 
@@ -172,4 +225,5 @@ def test_step_inject():
 if __name__ == "__main__":
 
     #test_step_inject()
-    organ_perf_1d()
+    #organ_perf_1d()
+    organ_perf_1d_fpic()

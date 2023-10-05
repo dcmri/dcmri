@@ -1,4 +1,4 @@
-import time
+import time, os
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -6,44 +6,66 @@ import contrib_dro as dro
 import contrib_rt as rt
 import contrib_syst as syst
 
+def fit_perf_system_1d_fpic():
 
-def fit_perf_system_1d():
-
-    truth = dro.organ_perf_1d()
+    truth = dro.organ_perf_1d_fpic(step=True)
     truth.calc_conc(split=True)
     #truth.plot_pars()
     #truth.plot_split_conc()
 
     # Reconstruct
-    res = (2, 2)
+    rec = syst.Perf1D_fpic(
+        dim=truth.dim, 
+        mat=truth.mat,
+        nx=truth.mat[1])
+    #rec.plot_pars()
+    #rec.calc_conc(split=True)
+    #rec.plot_split_conc()
+
+    rec.mres_fit_to(truth.C, xtol=1e-4, mxtol=1e-2, export_path=os.path.dirname(__file__))
+
+
+def plot_perf_system_1d_fpic():
+
+    truth = dro.organ_perf_1d_fpic(step=True)
+    truth.calc_conc(split=True)
+    truth.plot_pars()
+    truth.plot_split_conc()
+
+
+def fit_perf_system_1d():
+
+    truth = dro.organ_perf_1d(step=False, tmax=45)
+    truth.calc_conc(split=True)
+    truth.plot_pars()
+    truth.plot_split_conc()
+
+    # Reconstruct
     rec = syst.Perf1D(
         dim=truth.dim, mat=truth.mat,
-        Jpa=2*np.ones(res[0]), Jna=2*np.ones(res[0]), 
-        ua=np.ones(res[1]), uv=np.ones(res[1]), 
-        Kva = np.zeros(res[1]),
-        nx=truth.nx, umax=20, Jmax=5, Kmax=10, 
+        Jpa=[1,1], Jna=[1,1], 
+        ua=[1,1], uv=[1,1], 
+        Kva = [1,1],
+        nx=truth.nx, umax=30, Jmax=5, Kmax=10, 
         )
-    #rec.plot_conc()
-    start = time.time()
-    p, pcov, pcorr = rec.fit_to(truth.C, xtol=1e-3)
-    print('Calculation time (mins): ', (time.time()-start)/60)
-    print('Parameter correction (%): ', 100*pcorr)
-    rec.plot_conc(data=truth.C)
-    rec.plot_pars(truth=truth)
+    
+    # start = time.time()
+    # p, pcov, pcorr = rec.fit_to(truth.C, xtol=1e-1)
+    # print('Calculation time (mins): ', (time.time()-start)/60)
+    # print('Parameter correction (%): ', 100*pcorr)
+    # rec.plot_conc(data=truth.C)
+    # rec.plot_pars(truth=truth)
 
-    start = time.time()
-    rec.resample((2,2))
-    p, pcov, pcorr = rec.fit_to(truth.C, xtol=1e-3)
-    print('Calculation time (mins): ', (time.time()-start)/60)
-    print('Parameter correction (%): ', 100*pcorr)
-    rec.plot_conc(data=truth.C)
-    rec.plot_pars(truth=truth)
+    # start = time.time()
+    # rec.resample((2,2))
+    # p, pcov, pcorr = rec.fit_to(truth.C, xtol=1e-1)
+    # print('Calculation time (mins): ', (time.time()-start)/60)
+    # print('Parameter correction (%): ', 100*pcorr)
+    # rec.plot_conc(data=truth.C)
+    # rec.plot_pars(truth=truth)
 
-    start = time.time()
-    rec.resample((2,2))
-    p, pcov, pcorr = rec.fit_to(truth.C, xtol=1e-3)
-    print('Calculation time (mins): ', (time.time()-start)/60)
-    print('Parameter correction (%): ', 100*pcorr)
+    path = os.path.join(os.path.dirname(__file__), 'results')
+    rec.mres_fit_to(truth.C, xtol=1e-4, mxtol=1e-2, export_path=path)
     rec.plot_conc(data=truth.C)
     rec.plot_pars(truth=truth)
 
@@ -170,4 +192,6 @@ if __name__ == "__main__":
     #fit_flow_system_1d()
     #plot_perf_system_1d()
     fit_perf_system_1d()
+    #plot_perf_system_1d_fpic()
+    #fit_perf_system_1d_fpic()
     
