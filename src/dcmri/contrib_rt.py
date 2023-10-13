@@ -254,6 +254,10 @@ def F_flow_1d(U, u):
 
 def conc_1d1c(t, Jp, Jn, Kp, Kn):
     """Concentration in a spatial 1-compartment model in 1D"""
+    # t in sec
+    # J in mmol/sec/mL
+    # K in 1/sec
+    # returns C in mmol/mL
     nt = len(Jp)
     nc = len(Kp)
     K = Kp + Kn
@@ -272,12 +276,24 @@ def conc_1d1c(t, Jp, Jn, Kp, Kn):
         C[k+1,1:] += dt*Kp[:-1]*C[k,:-1]
     return C
 
+
+def dt_1d2cf_pix(dx, u1, u2, K21):
+    K1 = u1/dx + K21
+    K2 = u2/dx
+    Kmax = np.amax(np.concatenate([K1,K2]))
+    if Kmax == 0:
+        return 1
+    MTTmin = 1/Kmax
+    return 0.99*MTTmin
+
+
 def dt_1d2cf(dx, umax, K21max):
     Kmax = umax/dx + K21max
     if Kmax == 0:
         return 1
     MTTmin = 1/Kmax
     return 0.9*MTTmin
+
 
 def conc_1d2cf(t, Jp1, Jn1, Kp1, Kn1, Kp2, Kn2, K21):
     """Concentration in a spatial 2-compartment filtration model in 1D"""

@@ -2,9 +2,12 @@ import time, os
 import numpy as np
 import matplotlib.pyplot as plt
 
+import contrib_dist as dist
 import contrib_dro as dro
 import contrib_rt as rt
 import contrib_syst as syst
+import contrib_pk as pk
+import aif
 
 def fit_perf_system_1d_fpic():
 
@@ -55,6 +58,7 @@ def fit_perf_system_1d():
     # print('Parameter correction (%): ', 100*pcorr)
     # rec.plot_conc(data=truth.C)
     # rec.plot_pars(truth=truth)
+
 
     # start = time.time()
     # rec.resample((2,2))
@@ -183,6 +187,29 @@ def plot_step_inject():
     ax.plot(t,J)
     plt.show()
 
+def plot_nephc():
+
+    # Tissue constants
+    vt = 0.7 # tubular volume fraction (mL/mL)
+    Ft = 30/6000 # plasma flow (mL/sec/mL)
+    r = 0.90 # reabsorption fraction
+    dr = 1e-5 # diffusion rate (1/sec)
+    Tp = 5.0 # plasma MTT (sec)
+
+    # Input function
+    dt = 1.0 # sec
+    tmax = 40*60 # sec
+    start = 5 # sec
+    nt = 1 + np.ceil(tmax/dt).astype(np.int32)
+    t = np.linspace(0,tmax,nt)
+    cp = aif.aif_parker(t, start)
+    Ct = dist.conc_nephc(t, Ft*cp, r, Ft/vt, dr/vt, n=30)
+    vp = 1-vt
+    Fp = vp/Tp
+    Cp = pk.conc_comp(t, Fp*cp, 1/Tp)
+    plt.plot(t, Cp+Ct)
+    plt.show()
+
 
 if __name__ == "__main__":
     #plot_flow_organ_1d()
@@ -191,7 +218,8 @@ if __name__ == "__main__":
     #plot_flow_system_1d()
     #fit_flow_system_1d()
     #plot_perf_system_1d()
-    fit_perf_system_1d()
+    #fit_perf_system_1d()
     #plot_perf_system_1d_fpic()
     #fit_perf_system_1d_fpic()
+    plot_nephc()
     

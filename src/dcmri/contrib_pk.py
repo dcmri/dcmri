@@ -133,6 +133,12 @@ def conc_nscomp(t, J, K, C0=0):
 ######### PACKAGE INTERFACE ##########
 # These functions are exposed to the package user and need to be fully covered by tests, documentation and examples.
 
+def conc_trap(t, J):
+    return trapz(t, J)
+
+def flux_trap(t, J):
+    return J*0
+
 def conc_comp(t, J, K, C0=0):
     """Concentration in a compartment"""
     if np.isscalar(K):

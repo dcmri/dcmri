@@ -69,4 +69,8 @@ def test_sample_loc_1d():
     print(loc[0,:]) # all positions for time = 0
 
 if __name__ == "__main__":
-    test_sample_loc_1d()
+    v = np.array([109, 110, 125])
+    print(100*np.std(v)/np.mean(v))
+    v = np.array([104, 101, 101])
+    print(100*np.std(v)/np.mean(v))
+    #test_sample_loc_1d()

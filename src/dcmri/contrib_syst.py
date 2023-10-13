@@ -219,7 +219,6 @@ class Perf1D():
             plt.savefig(fname=file)
         plt.close()
 
-
     def precompute(self):
         self.xl = np.linspace(0, self.dim[1], len(self.ua))
         self.tl = np.linspace(0, self.dim[0], len(self.Jpa))
@@ -234,7 +233,6 @@ class Perf1D():
         self.th = np.linspace(0, self.dim[0], nth)           
         # Locations of sample points
         self.tx = sig.sample_loc_1d((nth,self.nx), self.mat)
-
 
     def calc_conc(self, split=False):
         dx = self.xh[1]
@@ -256,7 +254,6 @@ class Perf1D():
             self.C = self.Ca + self.Cv
         else:
             self.C = sig.sample_1d(Ca+Cv, self.mat, loc=self.tx)
-
 
     def plot_conc(self, time=False, data=None):
         Dx = self.dim[1]/self.mat[1]                    
@@ -319,36 +316,6 @@ class Perf1D():
         self.calc_conc()
         return self.C.ravel()
     
-    def fit_fast_to(self, Cmeas, umax=None, Jmax=None, Kmax=None, xtol=1e-8, ftol=1e-8, gtol=1e-8):
-        if umax is not None:
-            self.umax=umax
-        if Jmax is not None:
-            self.Jmax=Jmax
-        if Kmax is not None:
-            self.Kmax=Kmax
-        # Downsample measurement concentrations to parameter resolution
-        scale = 2
-        self.mat = [
-            np.amin([scale*len(self.Jpa), Cmeas.shape[0]]), 
-            np.amin([scale*len(self.ua), Cmeas.shape[1]]), 
-        ]
-        Cmeas_lowres = sig.sample_1d(Cmeas, self.mat)
-        nx_orig = self.nx
-        self.nx = self.mat[1]
-        # Perform the fit
-        self.precompute()
-        p0 = self.fitpars()
-        bounds = self.fitbounds()
-        p, pcov = curve_fit(self.fit_func, None, Cmeas_lowres.ravel(), p0=p0, bounds=bounds, xtol=xtol, ftol=ftol, gtol=gtol) 
-        pcorr = np.linalg.norm(p-p0)/np.linalg.norm(p0)
-        # Return to origonal measurement resolution and create predictions
-        self.nx = nx_orig
-        self.mat = Cmeas.shape
-        self.precompute()
-        self.set_fitpars(p) 
-        self.calc_conc() 
-        return p, pcov, pcorr
-    
     def fit_to(self, Cmeas, umax=None, Jmax=None, Kmax=None, xtol=1e-8, ftol=1e-8, gtol=1e-8):
         if umax is not None:
             self.umax=umax
@@ -405,9 +372,328 @@ class Perf1D():
         self.set_fitpars(p) 
         self.calc_conc() 
         return p, pcov
+    
+    def _fit_fast_to(self, Cmeas, umax=None, Jmax=None, Kmax=None, xtol=1e-8, ftol=1e-8, gtol=1e-8):
+        #fast but does not seem to work very well. Keep to original resolution
+        if umax is not None:
+            self.umax=umax
+        if Jmax is not None:
+            self.Jmax=Jmax
+        if Kmax is not None:
+            self.Kmax=Kmax
+        # Downsample measurement concentrations to parameter resolution
+        scale = 2
+        self.mat = [
+            np.amin([scale*len(self.Jpa), Cmeas.shape[0]]), 
+            np.amin([scale*len(self.ua), Cmeas.shape[1]]), 
+        ]
+        Cmeas_lowres = sig.sample_1d(Cmeas, self.mat)
+        nx_orig = self.nx
+        self.nx = self.mat[1]
+        # Perform the fit
+        self.precompute()
+        p0 = self.fitpars()
+        bounds = self.fitbounds()
+        p, pcov = curve_fit(self.fit_func, None, Cmeas_lowres.ravel(), p0=p0, bounds=bounds, xtol=xtol, ftol=ftol, gtol=gtol) 
+        pcorr = np.linalg.norm(p-p0)/np.linalg.norm(p0)
+        # Return to origonal measurement resolution and create predictions
+        self.nx = nx_orig
+        self.mat = Cmeas.shape
+        self.precompute()
+        self.set_fitpars(p) 
+        self.calc_conc() 
+        return p, pcov, pcorr
+
+    def _calc_flow(self):
+        pass
+    # Kva Ca = Kva va ca = F ca
+        # fa = ua * va
+        # fv = uv * vv
+        # fa + fv = f (const)
+        # F = Kva * va
+        # 0 = ua * va + uv * vv
+        # -fa' = Kva * va = -ua' * va - ua * va'
+        # 0 = (Kva+ua')va + ua va'
 
 
-    def calc_flow(self):
+# variable dth - does not seem to work as well but needs more testing
+class _Perf1D():
+
+    def __init__(self, 
+            dim = [5, 25],       # system dimensions (sec, cm)
+            mat = [60, 20],      # sampling matrix (time, space)  
+            Jna = [1,1],    # low-res influx right (mmol/sec/cm^2)
+            Jpa = [1,1],    # low-res influx left (mmol/sec/cm^2)
+            ua = [10,-10],      # low-res velocities (cm/sec)  
+            uv = [-5,+5],      # low-res velocities (cm/sec) 
+            Kva = [0,0],     # perfusion
+            nx = None,           # high-res nr of voxels
+            umax = None,         # maximal velocity (cm/sec) 
+            Jmax = None,
+            Kmax = None,
+            ):
+        # Defaults
+        if nx is None: 
+            nx = mat[1]
+        if umax is None:
+            umax = 2*np.amax(ua)
+        if Jmax is None:
+            Jmax = 2*np.amax(np.concatenate([Jpa, Jna]))
+        if Kmax is None:
+            Kmax = 2*np.amax(Kva)
+        if nx < mat[1]:
+            msg = 'Numerical voxel size must be smaller than measured voxel size.'
+            raise ValueError(msg)
+        # Variables
+        self.ua = np.array(ua) 
+        self.uv = np.array(uv)
+        self.Kva = np.array(Kva)
+        self.Jpa = np.array(Jpa) 
+        self.Jna = np.array(Jna) 
+        # Constants
+        self.dim = np.array(dim)  
+        self.mat = np.array(mat) 
+        self.nx = nx    
+        self.umax = umax  
+        self.Jmax = Jmax  
+        self.Kmax = Kmax
+        # Concentrations
+        self.precompute()
+        self.calc_conc()
+
+    def plot_pars(self, truth=None, file=None):
+        xl = np.linspace(0, self.dim[1], len(self.ua))
+        tl = np.linspace(0, self.dim[0], len(self.Jpa))
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2,2,figsize=(8.27,11.69))
+        fig.suptitle('1D 2C flow parameters', fontsize=12)
+        fig.subplots_adjust(left=0.1, right=0.9, bottom=0.2, top=0.8, wspace=0.2)
+        # Plot left influx
+        ax1.set_xlabel('Time (sec)')
+        ax1.set_ylabel('Left arterial influx (mmol/sec/cm^2)')
+        ax1.plot(tl, self.Jpa, 'r--')
+        ax1.set_xlim(tl[0], tl[-1])
+        # Plot right influx
+        ax2.set_xlabel('Time (sec)')
+        ax2.set_ylabel('Right arterial influx (mmol/sec/cm^2)')
+        ax2.plot(tl, self.Jna, 'r--')  
+        ax2.set_xlim(tl[0], tl[-1])
+        # Plot velocity
+        ax3.set_xlabel('Position (cm)')
+        ax3.set_ylabel('Velocity (cm/sec)')
+        ax3.plot(xl, self.ua, 'r--', label='Arterial')
+        ax3.plot(xl, self.uv, 'b--', label='Venous')
+        ax3.set_xlim(xl[0], xl[-1])
+        # Plot perfusion
+        ax4.set_xlabel('Position (cm)')
+        ax4.set_ylabel('Transfer constant (1/sec)')
+        ax4.plot(xl, self.Kva, 'm--')
+        ax4.set_xlim(xl[0], xl[-1])
+        # Plot ground truths
+        if truth is not None:
+            xl = np.linspace(0, truth.dim[1], len(truth.ua))
+            tl = np.linspace(0, truth.dim[0], len(truth.Jpa))
+            ax1.plot(tl, truth.Jpa, 'r-')
+            ax2.plot(tl, truth.Jna, 'r-')
+            ax3.plot(xl, truth.ua, 'r-')
+            ax3.plot(xl, truth.uv, 'b-')
+            ax4.plot(xl, truth.Kva, 'm-')
+        ax3.legend()
+        if file is None:   
+            plt.show()
+        else:
+            path = os.path.dirname(file)
+            if not os.path.exists(path):
+                os.makedirs(path)       
+            plt.savefig(fname=file)
+        plt.close()
+
+
+    def precompute(self):
+        self.xl = np.linspace(0, self.dim[1], len(self.ua))
+        self.tl = np.linspace(0, self.dim[0], len(self.Jpa))
+        # Locations of low and high-res velocities  
+        self.xh = np.linspace(0, self.dim[1], self.nx+1)  
+        dxh = self.xh[1]
+        self.xv = np.linspace(dxh/2, self.dim[1]-dxh/2, self.nx)     
+
+
+    def calc_conc(self, split=False):
+        # Locations of high-res influx
+        dxh = self.xh[1]
+        dth = rt.dt_1d2cf_pix(dxh, self.ua, self.uv, self.Kva)
+        nth = np.ceil(1 + self.dim[0]/dth).astype(np.int32)
+        self.th = np.linspace(0, self.dim[0], nth)           
+        self.tx = sig.sample_loc_1d((nth,self.nx), self.mat)
+        # Upsample parameter fields
+        ua = np.interp(self.xh, self.xl, self.ua)  
+        uv = np.interp(self.xh, self.xl, self.uv)
+        Kva = np.interp(self.xv, self.xl, self.Kva)
+        Jpa = np.interp(self.th, self.tl, self.Jpa)
+        Jna = np.interp(self.th, self.tl, self.Jna)  
+        # Calculate concentrations
+        Kpa, Kna = rt.K_flow_1d(dxh, ua) 
+        Kpv, Knv = rt.K_flow_1d(dxh, uv) 
+        jpa, jna = Jpa/dxh, Jna/dxh
+        Ca, Cv = rt.conc_1d2cf(self.th, jpa, jna, Kpa, Kna, Kpv, Knv, Kva)
+        # Downsample concentrations
+        if split:
+            self.Ca = sig.sample_1d(Ca, self.mat, loc=self.tx)
+            self.Cv = sig.sample_1d(Cv, self.mat, loc=self.tx)
+            self.C = self.Ca + self.Cv
+        else:
+            self.C = sig.sample_1d(Ca+Cv, self.mat, loc=self.tx)
+
+
+    def plot_conc(self, time=False, data=None):
+        Dx = self.dim[1]/self.mat[1]                    
+        Dt = self.dim[0]/self.mat[0]         
+        xv = np.arange(Dx/2, self.dim[1]+Dx/2, Dx) 
+        tv = np.arange(Dt/2, self.dim[0]+Dt/2, Dt) 
+        if time:
+            rt.plot_Ct_1d(tv, xv, self.C, Cmeas=data, rows=6, cols=6)
+        else:
+            rt.plot_Cx_1d(tv, xv, self.C, Cmeas=data, rows=6, cols=6)
+
+
+    def plot_split_conc(self, time=False):
+        Dx = self.dim[1]/self.mat[1]  
+        Dt = self.dim[0]/self.mat[0]  
+        xv = np.arange(Dx/2, self.dim[1]+Dx/2, Dx) 
+        tv = np.arange(Dt/2, self.dim[0]+Dt/2, Dt) 
+        if time:
+            rt.plot_Ct_1d2c(tv, xv, self.Ca, self.Cv, rows=6, cols=6)
+        else:
+            rt.plot_Cx_1d2c(tv, xv, self.Ca, self.Cv, rows=6, cols=6)
+
+    def fitpars(self):
+        p = [
+            self.ua/self.umax, 
+            self.uv/self.umax,
+            self.Jpa/self.Jmax, 
+            self.Jna/self.Jmax,
+            self.Kva/self.Kmax,
+        ]
+        return np.concatenate(p)
+
+    def set_fitpars(self, p):
+        nu = len(self.ua)
+        nj = len(self.Jpa)
+        self.ua = p[:nu]*self.umax
+        self.uv = p[nu:2*nu]*self.umax
+        self.Jpa = p[2*nu:2*nu+nj]*self.Jmax
+        self.Jna = p[2*nu+nj:2*nu+2*nj]*self.Jmax
+        self.Kva = p[2*nu+2*nj:]*self.Kmax
+
+    def fitbounds(self):
+        # Parameter bounds (normalized parameters)
+        u1 = np.ones(2*len(self.ua))
+        u0 = -u1
+        J1 = np.ones(2*len(self.Jpa))
+        J0 = np.zeros(2*len(self.Jpa))
+        # K1 = np.ones(len(self.Kva)-2)
+        # K0 = np.zeros(len(self.Kva)-2)
+        K1 = np.ones(len(self.Kva))
+        K0 = np.zeros(len(self.Kva))
+        upper = np.concatenate([u1, J1, K1])
+        lower = np.concatenate([u0, J0, K0])
+        return (lower, upper)
+
+    def fit_func(self, _, *p):
+        p = np.array(p)
+        self.set_fitpars(p)
+        self.calc_conc()
+        return self.C.ravel()
+    
+    def fit_to(self, Cmeas, umax=None, Jmax=None, Kmax=None, xtol=1e-8, ftol=1e-8, gtol=1e-8):
+        if umax is not None:
+            self.umax=umax
+        if Jmax is not None:
+            self.Jmax=Jmax
+        if Kmax is not None:
+            self.Kmax=Kmax
+        # get parameters and initial values
+        self.precompute()
+        p0 = self.fitpars()
+        bounds = self.fitbounds()
+        # Fit parameters
+        p, pcov = curve_fit(self.fit_func, None, Cmeas.ravel(), p0=p0, bounds=bounds, xtol=xtol, ftol=ftol, gtol=gtol) 
+        pcorr = np.linalg.norm(p-p0)/np.linalg.norm(p0)
+        # Create predictions
+        self.set_fitpars(p) 
+        self.calc_conc() 
+        return p, pcov, pcorr
+    
+    def resample(self, scl):
+        nt = np.ceil(scl[0]*len(self.tl)).astype(np.uint32)
+        nx = np.ceil(scl[1]*len(self.xl)).astype(np.uint32)
+        nt = np.amax([nt,2])
+        nx = np.amax([nx,2])
+        tl = np.linspace(0, self.dim[0], nt)
+        xl = np.linspace(0, self.dim[1], nx)
+        self.ua = np.interp(xl, self.xl, self.ua)          
+        self.uv = np.interp(xl, self.xl, self.uv)
+        self.Kva = np.interp(xl, self.xl, self.Kva)
+        self.Jpa = np.interp(tl, self.tl, self.Jpa)       
+        self.Jna = np.interp(tl, self.tl, self.Jna)   
+        self.precompute()
+
+    def mres_fit_to(self, Cmeas, umax=None, Jmax=None, Kmax=None, xtol=1e-3, ftol=1e-3, gtol=1e-3, mxtol=1e-2, export_path=None, filename='mres'):
+        it, start, start_mres = 0, time.time(), time.time()
+        print('mres level: ', it)
+        p, pcov, pcorr = self.fit_to(Cmeas, umax, Jmax, Kmax, xtol, ftol, gtol)
+        print('>> calculation time (mins): ', (time.time()-start)/60)
+        print('>> parameter correction (%): ', 100*pcorr)
+        if export_path is not None:
+            file = os.path.join(export_path, filename+'_'+str(it)+'.png')
+            self.plot_pars(file=file)
+        while pcorr > mxtol:
+            self.resample((2,2))
+            it, start = it+1, time.time()
+            print('mres level: ', it)
+            p, pcov, pcorr = self.fit_to(Cmeas, umax, Jmax, Kmax, xtol, ftol, gtol)
+            print('>> calculation time (mins): ', (time.time()-start)/60)
+            print('>> parameter correction (%): ', 100*pcorr)
+            if export_path is not None:
+                file = os.path.join(export_path, filename+'_'+str(it)+'.png')
+                self.plot_pars(file=file)
+        print('Multi-resolution calculation time (mins): ', (time.time()-start_mres)/60)
+        self.set_fitpars(p) 
+        self.calc_conc() 
+        return p, pcov
+    
+    def _fit_fast_to(self, Cmeas, umax=None, Jmax=None, Kmax=None, xtol=1e-8, ftol=1e-8, gtol=1e-8):
+        #fast but does not seem to work very well. Keep to original resolution
+        if umax is not None:
+            self.umax=umax
+        if Jmax is not None:
+            self.Jmax=Jmax
+        if Kmax is not None:
+            self.Kmax=Kmax
+        # Downsample measurement concentrations to parameter resolution
+        scale = 2
+        self.mat = [
+            np.amin([scale*len(self.Jpa), Cmeas.shape[0]]), 
+            np.amin([scale*len(self.ua), Cmeas.shape[1]]), 
+        ]
+        Cmeas_lowres = sig.sample_1d(Cmeas, self.mat)
+        nx_orig = self.nx
+        self.nx = self.mat[1]
+        # Perform the fit
+        self.precompute()
+        p0 = self.fitpars()
+        bounds = self.fitbounds()
+        p, pcov = curve_fit(self.fit_func, None, Cmeas_lowres.ravel(), p0=p0, bounds=bounds, xtol=xtol, ftol=ftol, gtol=gtol) 
+        pcorr = np.linalg.norm(p-p0)/np.linalg.norm(p0)
+        # Return to origonal measurement resolution and create predictions
+        self.nx = nx_orig
+        self.mat = Cmeas.shape
+        self.precompute()
+        self.set_fitpars(p) 
+        self.calc_conc() 
+        return p, pcov, pcorr
+    
+
+    def _calc_flow(self):
         pass
     # Kva Ca = Kva va ca = F ca
         # fa = ua * va
