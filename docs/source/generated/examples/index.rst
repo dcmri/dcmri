@@ -4,7 +4,7 @@
 Examples
 ########
 
-Illustrating common use cases of osipi.
+Illustrating common use cases of dcmri.
 
 
 

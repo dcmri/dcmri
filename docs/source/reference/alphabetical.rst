@@ -1,9 +1,9 @@
 Index
 ^^^^^
 
-Alphabetic list of all currently available `osipi` code snippets.
+Alphabetic list of all currently available `dcmri` code snippets.
 
-.. currentmodule:: osipi
+.. currentmodule:: dcmri
 
 
 .. autosummary::
@@ -13,6 +13,3 @@ Alphabetic list of all currently available `osipi` code snippets.
    aif_parker
    aif_georgiou
    aif_weinmann
-
-
-
