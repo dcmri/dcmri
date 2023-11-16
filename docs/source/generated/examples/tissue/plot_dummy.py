@@ -8,7 +8,7 @@ Dummy script to show the examples structure.
 
 import numpy as np
 import matplotlib.pyplot as plt
-import osipi
+import dcmri
 
 # %%
 # Generate synthetic AIF with default settings and plot the result.
@@ -17,7 +17,7 @@ import osipi
 t = np.arange(0, 6*60, 0.5)
 
 # Create an AIF with default settings
-ca = osipi.aif_parker(t)
+ca = dcmri.aif_parker(t)
 
 # Plot the AIF over the full range
 plt.plot(t, ca)

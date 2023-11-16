@@ -1,13 +1,12 @@
 import numpy as np
 
 
-def aif_parker(t:np.ndarray, BAT:float=30.0, Hct:float=0.0)->np.ndarray:
+def aif_parker(t:np.ndarray, BAT:float=30.0)->np.ndarray:
     """AIF model as defined by Parker et al (2005)
 
     Args:
         t (np.ndarray): array of time points in units of sec. [OSIPI code Q.GE1.004]
         BAT (float, optional): Time in seconds before the bolus arrives. Defaults to 30sec. [OSIPI code Q.BA1.001]
-        Hct (float, optional): Hematocrit. Defaults to 0.0. [OSIPI code Q.PH1.012]
 
     Returns:
         np.ndarray: Concentrations in mM for each time point in t.
@@ -62,8 +61,7 @@ def aif_parker(t:np.ndarray, BAT:float=30.0, Hct:float=0.0)->np.ndarray:
     # alpha = 1.064, beta = 0.166, s = 37.772, tau = 0.482
     sigmoid = 1.050 * np.exp(-0.1685 * t_offset) / (1.0 + np.exp(-38.078 * (t_offset - 0.483)))
 
-    pop_aif = ((gaussian1 + gaussian2 + sigmoid)) / \
-        (1.0 - Hct)
+    pop_aif = gaussian1 + gaussian2 + sigmoid
     
     return pop_aif
 

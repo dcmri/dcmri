@@ -1,7 +1,7 @@
 AIF models
 ^^^^^^^^^^
 
-.. currentmodule:: osipi
+.. currentmodule:: dcmri
 
 
 Population AIFs
@@ -14,6 +14,3 @@ Population AIFs
    aif_parker
    aif_georgiou
    aif_weinmann
-
-
-

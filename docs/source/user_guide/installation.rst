@@ -1,12 +1,9 @@
 ****************
-Installing osipi
+Installing dcmri
 ****************
 
-``osipi`` can be installed using pip:
+``dcmri`` can be installed using pip:
 
 .. code-block:: console
 
-   pip install osipi
-
-
-   
+   pip install dcmri

@@ -12,6 +12,3 @@ General
    general.optimization
    general.segmentation
    general.uncertainty
-   
-   
-   

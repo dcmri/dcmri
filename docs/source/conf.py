@@ -5,10 +5,10 @@
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
-project = 'osipi'
-copyright = '2022, OSIPI'
-author = 'OSIPI'
-release = '0.1.1'
+project = 'dcmri'
+copyright = '2023, dcmri maintainers'
+author = 'dcmri maintainers'
+release = '0.0.0'
 
 # -- Path setup --------------------------------------------------------------
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -50,14 +50,14 @@ sphinx_gallery_conf = {
     'backreferences_dir': 'generated/backreferences',
 
     # Modules for which function/class level galleries are created. 
-    'doc_module': ('osipi', ),
+    'doc_module': ('dcmri', ),
 
     # objects to exclude from implicit backreferences. The default option
     # is an empty set, i.e. exclude nothing.
     'exclude_implicit_doc': {},
 
     # thumbnail for examples that do not generate any plot
-    'default_thumb_file': '_static/osipi.png',
+    #'default_thumb_file': '_static/osipi.png',
 
     # Disabling download button of all scripts
     'download_all_examples': False,
@@ -101,7 +101,7 @@ remove_from_toctrees = ["_autosummary/*"]
 html_theme = 'pydata_sphinx_theme'
 
 html_theme_options = {
-    "github_url": "https://osipi.github.io/pypi",
+    "github_url": "https://dcmri.github.io/pypi",
     "collapse_navigation": True,
     }
 
@@ -113,4 +113,4 @@ source_suffix = ['.rst', '.md']
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = '_static/osipi.png'
+#html_logo = '_static/osipi.png'
