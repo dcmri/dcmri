@@ -217,9 +217,9 @@ if __name__ == "__main__":
     #plot_flow_organ_conc_1d()
     #plot_flow_system_1d()
     #fit_flow_system_1d()
-    #plot_perf_system_1d()
+    plot_perf_system_1d()
     #fit_perf_system_1d()
     #plot_perf_system_1d_fpic()
     #fit_perf_system_1d_fpic()
-    plot_nephc()
+    #plot_nephc()
     
