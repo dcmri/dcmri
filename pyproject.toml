@@ -3,7 +3,7 @@
 
 [tool.poetry]
 name = "dcmri"
-version = "0.1.0"
+version = "0.1.1"
 description = "A collection of functins for DCE-MRI and DSC-MRI"
 authors = ["Ebony Gunwhy <e.gunwhy@sheffield.ac.uk>", "Steven Sourbron <s.sourbron@sheffield.ac.uk>"]
 readme = "README.md"
@@ -44,6 +44,7 @@ pytest = "^5.2"
 
 [tool.poetry.group.docs.dependencies]
 sphinx = "4.5.0"
+matplotlib = "^3.8.2"
 
 [build-system]
 requires = ["poetry-core"]
