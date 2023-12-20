@@ -57,7 +57,7 @@ sphinx_gallery_conf = {
     'exclude_implicit_doc': {},
 
     # thumbnail for examples that do not generate any plot
-    'default_thumb_file': '_static/osipi.png',
+    #'default_thumb_file': '_static/osipi.png',
 
     # Disabling download button of all scripts
     'download_all_examples': False,
@@ -101,7 +101,7 @@ remove_from_toctrees = ["_autosummary/*"]
 html_theme = 'pydata_sphinx_theme'
 
 html_theme_options = {
-    "github_url": "https://osipi.github.io/pypi",
+    "github_url": "https://dcmri.github.io/pypi",
     "collapse_navigation": True,
     }
 
@@ -113,4 +113,4 @@ source_suffix = ['.rst', '.md']
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = '_static/osipi.png'
+#html_logo = '_static/osipi.png'

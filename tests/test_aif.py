@@ -1,10 +1,10 @@
 import numpy as np
-import osipi
+import dcmri
 
 def test_aif_parker():
 
     t = np.arange(0, 6*60, 1)
-    ca = osipi.aif_parker(t)
+    ca = dcmri.aif_parker(t)
 
     # Test that this generates values in the right range
     assert np.round(np.amax(ca)) == 6
@@ -14,7 +14,7 @@ def test_aif_georgiou():
     # Not implemented yet so need to raise an error
     t = np.arange(0, 6*60, 1)
     try:
-        ca = osipi.aif_georgiou(t)
+        ca = dcmri.aif_georgiou(t)
     except:
         assert True
     else:
@@ -25,7 +25,7 @@ def test_aif_weinmann():
     # Not implemented yet so need to raise an error
     t = np.arange(0, 6*60, 1)
     try:
-        ca = osipi.aif_weinmann(t)
+        ca = dcmri.aif_weinmann(t)
     except:
         assert True
     else:
