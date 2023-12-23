@@ -30,12 +30,16 @@ jobs:
         run: echo "${HOME}/.poetry/bin" >> $GITHUB_PATH      
 
       - name: Install dependencies
-        run: poetry install
+        run: |
+          poetry add `cat docs/requirements.txt`
+          poetry lock
+          poetry install
 
       - name: Update Sphinx htmls
         run: |
           make html
         working-directory: docs
+        
 
       - name: Publish to gh-pages
         uses: peaceiris/actions-gh-pages@v3
