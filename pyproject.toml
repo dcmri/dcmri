@@ -1,22 +1,16 @@
 # https://python-poetry.org/docs/pyproject
 # minimal required information
 
-[project]
+[tool.poetry]
 name = "dcmri"
-version = "0.0.0"
-dependencies = [ 
-  "numpy",
-]
+version = "0.1.1"
+description = "A collection of functions for DCE-MRI and DSC-MRI"
+authors = ["Ebony Gunwhy <e.gunwhy@sheffield.ac.uk>", "Steven Sourbron <s.sourbron@sheffield.ac.uk>"]
+readme = "README.md"
+packages = [{include = "dcmri", from = "src"}]
 
 # optional information
-
-description = "A collection of functins for DCE-MRI and DSC-MRI"
-readme = "README.md"
-authors = [
-  { name = "Ebony Gunwhy", email = "e.gunwhy@sheffield.ac.uk" }, 
-  { name = "Steven Sourbron", email = "s.sourbron@sheffield.ac.uk" },
-  ]
-license = { file = "LICENSE" }
+license = "Apache-2.0"
 classifiers = [
   # How mature is this project? Common values are
   #   3 - Alpha
@@ -36,40 +30,44 @@ classifiers = [
 ]
 keywords = ['python', "medical imaging", "perfusion", "MRI"]
 
-requires-python = ">=3.6"
-
 [project.urls]
 "Homepage" = "https://qib-sheffield.github.io/dcmri"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.poetry.dependencies]
+python = "^3.9"
+numpy = "1.22.4"
 
-[project.optional-dependencies]
-tests = [
-  "pytest",
+[tool.poetry.group.dev.dependencies]
+bumpver = "^2023.1129"
+
+[tool.poetry.group.test.dependencies]
+pytest = "^5.2"
+
+[tool.poetry.group.docs.dependencies]
+sphinx = "4.5.0"
+matplotlib = "^3.8.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.bumpver]
+current_version = "0.1.1"
+version_pattern = "MAJOR.MINOR.PATCH"
+commit_message = "bump version {old_version} -> {new_version}"
+tag_message = "{new_version}"
+tag_scope = "default"
+pre_commit_hook = ""
+post_commit_hook = ""
+commit = true
+tag = true
+push = true
+
+[tool.bumpver.file_patterns]
+"pyproject.toml" = [
+    'current_version = "{version}"',
+    'version = "{version}"'
 ]
-docs = [
-    "sphinx",
-    "pydata-sphinx-theme",
-    "myst-parser", 
-    "sphinx-copybutton",
-    "sphinx-design",
-    "sphinx-remove-toctrees",
-    "autodocsumm",
-    "docutils",
-    "sphinxcontrib-applehelp",
-    "sphinxcontrib-devhelp",
-    "sphinxcontrib-htmlhelp",
-    "sphinxcontrib-jsmath",
-    "sphinxcontrib-qthelp",
-    "sphinxcontrib-serializinghtml",
-    "sphinx-gallery",
-    "matplotlib"
-]
-
-
-
-
-
-
-
+"src/dcmri/__init__.py" = ["{version}"]
+"tests/test_dcmri.py" = ["{version}"]
+#"docs/source/conf.py" = ['release = "{version}"']

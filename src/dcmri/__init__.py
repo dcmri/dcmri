@@ -1,3 +1,6 @@
+# dcmri/__init__.py
+
+__version__ = "0.1.1"
 
 from .aif import (
     aif_parker,
