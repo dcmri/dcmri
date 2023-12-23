@@ -1,9 +1,10 @@
-name: Build Poetry distribution
-run-name: "Building Poetry distribution as ${{ github.actor }} has pushed changes to test-build"
+name: Creating prerelease
+run-name: "Creating prerelease as bumped version detected"
 on:
   push:
-    branches: 
-    - test-build
+    # Sequence of patterns matched against refs/tags
+    tags:
+      - '*.*.*' # Push events to matching version *, i.e. 1.0, 20.15.10
 
 jobs:
   build:
@@ -32,6 +33,15 @@ jobs:
 
       - name: Install dependencies
         run: poetry install
+
+      #- name: GitHub Release
+       # env:
+        #  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        #run: >-
+         # gh release create ${{ github.ref_name }}
+         # --generate-notes
+         # --title "Version ${{ github.ref_name }}"
+         # --prerelease
 
       - name: Build and publish to TestPyPI
         run: |
