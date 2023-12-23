@@ -44,8 +44,22 @@ bumpver = "^2023.1129"
 pytest = "^5.2"
 
 [tool.poetry.group.docs.dependencies]
-sphinx = "4.5.0"
+sphinx = ">=6,<8"
 matplotlib = "^3.8.2"
+autodocsumm = "^0.2.11"
+docutils = "^0.20.1"
+myst-parser = "^2.0.0"
+pydata-sphinx-theme = "^0.14.4"
+sphinx-copybutton = "^0.5.2"
+sphinx-design = "^0.5.0"
+sphinx-remove-toctrees = "^0.0.3"
+sphinxcontrib-applehelp = "^1.0.7"
+sphinxcontrib-devhelp = "^1.0.5"
+sphinxcontrib-htmlhelp = "^2.0.4"
+sphinxcontrib-jsmath = "^1.0.1"
+sphinxcontrib-qthelp = "^1.0.6"
+sphinxcontrib-serializinghtml = "^1.1.9"
+sphinx-gallery = "^0.15.0"
 
 [build-system]
 requires = ["poetry-core"]
