@@ -44,7 +44,7 @@ jobs:
         run: |
           mkdir CloneTemp
           cd CloneTemp
-          git clone https://github.com/EbonyGunwhy/dummy_ERG.git .
+          git clone https://github.com/QIB-Sheffield/dcmri.git .
           TAG=$(git describe HEAD --tags --abbrev=0)
           echo $TAG
           echo $PROJECT_VERSION
