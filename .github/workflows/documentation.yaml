@@ -34,7 +34,7 @@ jobs:
 
       - name: Update Sphinx htmls
         run: |
-          make html
+          poetry run make html
         working-directory: docs
         
 
