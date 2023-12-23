@@ -324,6 +324,33 @@ def conc_1d2cf(t, Jp1, Jn1, Kp1, Kn1, Kp2, Kn2, K21):
         C2[k+1,:] += dt*K21*C1[k,:]
     return C1, C2
 
+def conc_1d2cx(t, Jp1, Jn1, Kp1, Kn1, K12, K21):
+    """Concentration in a spatial 2-compartment exchange model in 1D"""
+    nt = len(Jp1)
+    nc = len(Kp1)
+    K1 = Kp1 + Kn1 + K21
+    K2 = K12
+    C1 = np.zeros((nt,nc))
+    C2 = np.zeros((nt,nc))
+    for k in range(nt-1):
+        dt = t[k+1]-t[k]
+        # Initialise at current concentration
+        C1[k+1,:] = C1[k,:]
+        C2[k+1,:] = C2[k,:]
+        # Add influxes at the boundaries:
+        C1[k+1,0] += dt*Jp1[k]
+        C1[k+1,-1] += dt*Jn1[k]
+        # Remove outflux to the neigbours:
+        C1[k+1,:] -= dt*K1*C1[k,:]
+        C2[k+1,:] -= dt*K2*C2[k,:]
+        # Add influx from the neighbours:
+        C1[k+1,:-1] += dt*Kn1[1:]*C1[k,1:]
+        C1[k+1,1:] += dt*Kp1[:-1]*C1[k,:-1]
+        # Add influx at the same location
+        C2[k+1,:] += dt*K21*C1[k,:]
+        C1[k+1,:] += dt*K12*C2[k,:]
+    return C1, C2
+
 
 def conc_2d1c(t, Jpx, Jnx, Jpy, Jny, Kpx, Knx, Kpy, Kny):
     """Concentration in a spatial 1-compartment model in 2D"""
