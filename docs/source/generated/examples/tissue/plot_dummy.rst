@@ -18,20 +18,20 @@
 .. _sphx_glr_generated_examples_tissue_plot_dummy.py:
 
 
-====================
-Dummy script as demo
-====================
+=====================
+High flow model error
+=====================
 
-Dummy script to show the examples structure. 
+Simulate the systematic error caused by the high-flow assumption in the modified Tofts model. 
 
 .. GENERATED FROM PYTHON SOURCE LINES 8-13
 
-.. code-block:: default
+.. code-block:: Python
 
 
     import numpy as np
     import matplotlib.pyplot as plt
-    import osipi
+    import dcmri
 
 
 
@@ -42,33 +42,24 @@ Dummy script to show the examples structure.
 
 .. GENERATED FROM PYTHON SOURCE LINES 14-15
 
-Generate synthetic AIF with default settings and plot the result.
+Generate a synthetic AIF (Parker)
 
-.. GENERATED FROM PYTHON SOURCE LINES 15-29
+.. GENERATED FROM PYTHON SOURCE LINES 15-25
 
-.. code-block:: default
+.. code-block:: Python
 
 
-    # Define time points in units of seconds - in this case we use a time resolution of 0.5 sec and a total duration of 6 minutes.
-    t = np.arange(0, 6*60, 0.5)
+    # Simulate concentrations with a 2CXM
 
-    # Create an AIF with default settings
-    ca = osipi.aif_parker(t)
+    # Downsample to measurement temporal resolution
 
-    # Plot the AIF over the full range
-    plt.plot(t, ca)
-    plt.show()
+    # Fit with a modified Tofts model
 
 
     # Choose the last image as a thumbnail for the gallery
     # sphinx_gallery_thumbnail_number = -1
 
 
-
-.. image-sg:: /generated/examples/tissue/images/sphx_glr_plot_dummy_001.png
-   :alt: plot dummy
-   :srcset: /generated/examples/tissue/images/sphx_glr_plot_dummy_001.png
-   :class: sphx-glr-single-img
 
 
 
@@ -77,7 +68,7 @@ Generate synthetic AIF with default settings and plot the result.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  0.134 seconds)
+   **Total running time of the script:** (0 minutes 0.001 seconds)
 
 
 .. _sphx_glr_download_generated_examples_tissue_plot_dummy.py:
@@ -86,16 +77,13 @@ Generate synthetic AIF with default settings and plot the result.
 
   .. container:: sphx-glr-footer sphx-glr-footer-example
 
+    .. container:: sphx-glr-download sphx-glr-download-jupyter
 
-
+      :download:`Download Jupyter notebook: plot_dummy.ipynb <plot_dummy.ipynb>`
 
     .. container:: sphx-glr-download sphx-glr-download-python
 
       :download:`Download Python source code: plot_dummy.py <plot_dummy.py>`
-
-    .. container:: sphx-glr-download sphx-glr-download-jupyter
-
-      :download:`Download Jupyter notebook: plot_dummy.ipynb <plot_dummy.ipynb>`
 
 
 .. only:: html

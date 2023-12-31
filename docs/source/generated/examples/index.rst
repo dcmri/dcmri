@@ -8,8 +8,6 @@ Illustrating common use cases of dcmri.
 
 
 
-
-
 .. raw:: html
 
     <div class="sphx-glr-thumbnails">
@@ -34,23 +32,6 @@ Arterial Input Functions
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="Simulating a Parker AIF with different settings. ">
-
-.. only:: html
-
-  .. image:: /generated/examples/aif/images/thumb/sphx_glr_plot_aif_parker_thumb.png
-    :alt:
-
-  :ref:`sphx_glr_generated_examples_aif_plot_aif_parker.py`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">The Parker AIF - a play with variables</div>
-    </div>
-
-
-.. raw:: html
-
     <div class="sphx-glr-thumbcontainer" tooltip="Dummy script to illustrate structure of examples folder ">
 
 .. only:: html
@@ -63,6 +44,23 @@ Arterial Input Functions
 .. raw:: html
 
       <div class="sphx-glr-thumbnail-title">A dummy script</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Simulating a Parker AIF with different settings. ">
+
+.. only:: html
+
+  .. image:: /generated/examples/aif/images/thumb/sphx_glr_plot_aif_parker_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_generated_examples_aif_plot_aif_parker.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">The Parker AIF - a play with variables</div>
     </div>
 
 
@@ -85,7 +83,7 @@ Tissue concentrations
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="Dummy script to show the examples structure. ">
+    <div class="sphx-glr-thumbcontainer" tooltip="Simulate the systematic error caused by the high-flow assumption in the modified Tofts model. ">
 
 .. only:: html
 
@@ -96,7 +94,7 @@ Tissue concentrations
 
 .. raw:: html
 
-      <div class="sphx-glr-thumbnail-title">Dummy script as demo</div>
+      <div class="sphx-glr-thumbnail-title">High flow model error</div>
     </div>
 
 

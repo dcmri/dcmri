@@ -47,6 +47,9 @@ plt.show()
 # %%
 # the dose defaults to 0.1- what happens if we change it too?
 
+'''
+Commenting this out for now as 'dose' is no longer defined as an argument
+in aif_parker function and this prevents docs GH action from running.
 ca = dcmri.aif_parker(t, BAT=0, dose=0.05)
 plt.plot(t, ca, 'b-', label='BAT = 0s, dose = 0.05')
 ca = dcmri.aif_parker(t, BAT=30, dose=0.1)
@@ -59,6 +62,7 @@ plt.xlabel('Time (sec)')
 plt.ylabel('Plasma concentration (mM)')
 plt.legend()
 plt.show()
+'''
 
 # Choose the last image as a thumbnail for the gallery
 # sphinx_gallery_thumbnail_number = -1

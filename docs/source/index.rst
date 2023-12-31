@@ -7,16 +7,11 @@
 dcmri documentation
 ###################
 
-``dcmri`` is a Python toolbox for dynamic MRI during contrast agent injection.
-
-The ``dcmri`` package structure and logic follows the lexicon defined by OSIPI,
-and wraps around selected implementations collected in the original code
-contributions of OSIPI.
+``dcmri`` is a Python toolbox for dynamic contrast MRI.
 
 .. warning::
 
-   ``dcmri`` is developed in public but is a work in progress. This version
-   contains mostly temporary placeholder functionalty.
+   ``dcmri``  is developed in public but is work in progres. At this stage the functionality is very limited.
 
 .. toctree::
    :maxdepth: 2
