@@ -1,12 +1,12 @@
 
 :orphan:
 
-.. _sphx_glr_generated_examples_tissue_sg_execution_times:
+.. _sphx_glr_sg_execution_times:
 
 
 Computation times
 =================
-**00:00.001** total execution time for 1 file **from generated\examples\tissue**:
+**00:00.621** total execution time for 3 files **from all galleries**:
 
 .. container::
 
@@ -32,6 +32,12 @@ Computation times
    * - Example
      - Time
      - Mem (MB)
-   * - :ref:`sphx_glr_generated_examples_tissue_plot_dummy.py` (``plot_dummy.py``)
+   * - :ref:`sphx_glr_generated_examples_aif_plot_dummy.py` (``..\examples\aif\plot_dummy.py``)
+     - 00:00.353
+     - 0.0
+   * - :ref:`sphx_glr_generated_examples_aif_plot_aif_parker.py` (``..\examples\aif\plot_aif_parker.py``)
+     - 00:00.267
+     - 0.0
+   * - :ref:`sphx_glr_generated_examples_tissue_plot_dummy.py` (``..\examples\tissue\plot_dummy.py``)
      - 00:00.001
      - 0.0

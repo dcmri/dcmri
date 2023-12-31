@@ -1,7 +1,8 @@
-Index
-^^^^^
+************************
+Arterial input functions
+************************
 
-Alphabetic list of all currently available `dcmri` code snippets.
+AIFs available in `dcmri`.
 
 .. currentmodule:: dcmri
 

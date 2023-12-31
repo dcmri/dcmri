@@ -12,16 +12,6 @@ import aif
 
 
 
-
-def sample(t, S, ts, dts): 
-    """Sample the signal"""
-    Ss = np.empty(len(ts)) 
-    for k, tk in enumerate(ts):
-        tacq = (t > tk) & (t < tk+dts)
-        Ss[k] = np.average(S[np.nonzero(tacq)[0]])
-    return Ss 
-
-
 def step_inject(t, weight=70, conc=0.5, dose=0.2, rate=2, start=0):
     """
     Injected flux into the body as a step function

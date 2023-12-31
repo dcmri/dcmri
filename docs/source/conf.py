@@ -57,7 +57,7 @@ sphinx_gallery_conf = {
     'exclude_implicit_doc': {},
 
     # thumbnail for examples that do not generate any plot
-    #'default_thumb_file': '_static/osipi.png',
+    #'default_thumb_file': '_static/tristan-logo.jpg',
 
     # Disabling download button of all scripts
     'download_all_examples': False,
@@ -113,4 +113,4 @@ source_suffix = ['.rst', '.md']
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-#html_logo = '_static/osipi.png'
+html_logo = '_static/tristan-logo.jpg'

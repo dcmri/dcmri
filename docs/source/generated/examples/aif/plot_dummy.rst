@@ -30,11 +30,11 @@ Import necessary packages
 
 .. GENERATED FROM PYTHON SOURCE LINES 11-15
 
-.. code-block:: default
+.. code-block:: Python
 
     import numpy as np
     import matplotlib.pyplot as plt
-    import osipi
+    import dcmri
 
 
 
@@ -49,14 +49,14 @@ Generate synthetic AIF with default settings and plot the result.
 
 .. GENERATED FROM PYTHON SOURCE LINES 17-31
 
-.. code-block:: default
+.. code-block:: Python
 
 
     # Define time points in units of seconds - in this case we use a time resolution of 0.5 sec and a total duration of 6 minutes.
     t = np.arange(0, 6*60, 0.5)
 
     # Create an AIF with default settings
-    ca = osipi.aif_parker(t)
+    ca = dcmri.aif_parker(t)
 
     # Plot the AIF over the full range
     plt.plot(t, ca, 'r-')
@@ -83,16 +83,16 @@ The bolus arrival time (BAT) defaults to 30s. What happens if we change it? Let'
 
 .. GENERATED FROM PYTHON SOURCE LINES 33-47
 
-.. code-block:: default
+.. code-block:: Python
 
 
-    ca = osipi.aif_parker(t, BAT=0)
+    ca = dcmri.aif_parker(t, BAT=0)
     plt.plot(t, ca, 'b-', label='BAT = 0s')
-    ca = osipi.aif_parker(t, BAT=30)
+    ca = dcmri.aif_parker(t, BAT=30)
     plt.plot(t, ca, 'r-', label='BAT = 30s')
-    ca = osipi.aif_parker(t, BAT=60)
+    ca = dcmri.aif_parker(t, BAT=60)
     plt.plot(t, ca, 'g-', label='BAT = 60s')
-    ca = osipi.aif_parker(t, BAT=90)
+    ca = dcmri.aif_parker(t, BAT=90)
     plt.plot(t, ca, 'm-', label='BAT = 90s')
     plt.xlabel('Time (sec)')
     plt.ylabel('Plasma concentration (mM)')
@@ -115,42 +115,47 @@ The bolus arrival time (BAT) defaults to 30s. What happens if we change it? Let'
 
 the dose defaults to 0.1- what happens if we change it too?
 
-.. GENERATED FROM PYTHON SOURCE LINES 49-65
+.. GENERATED FROM PYTHON SOURCE LINES 49-69
 
-.. code-block:: default
+.. code-block:: Python
 
 
-    ca = osipi.aif_parker(t, BAT=0, dose=0.05)
+    '''
+    Commenting this out for now as 'dose' is no longer defined as an argument
+    in aif_parker function and this prevents docs GH action from running.
+    ca = dcmri.aif_parker(t, BAT=0, dose=0.05)
     plt.plot(t, ca, 'b-', label='BAT = 0s, dose = 0.05')
-    ca = osipi.aif_parker(t, BAT=30, dose=0.1)
+    ca = dcmri.aif_parker(t, BAT=30, dose=0.1)
     plt.plot(t, ca, 'r-', label='BAT = 30s, dose = 0.1')
-    ca = osipi.aif_parker(t, BAT=60, dose=0.2)
+    ca = dcmri.aif_parker(t, BAT=60, dose=0.2)
     plt.plot(t, ca, 'g-', label='BAT = 60s, dose = 0.2')
-    ca = osipi.aif_parker(t, BAT=90, dose=0.3)
+    ca = dcmri.aif_parker(t, BAT=90, dose=0.3)
     plt.plot(t, ca, 'm-', label='BAT = 90s, dose = 0.3')
     plt.xlabel('Time (sec)')
     plt.ylabel('Plasma concentration (mM)')
     plt.legend()
     plt.show()
+    '''
 
     # Choose the last image as a thumbnail for the gallery
     # sphinx_gallery_thumbnail_number = -1
 
 
 
-.. image-sg:: /generated/examples/aif/images/sphx_glr_plot_dummy_003.png
-   :alt: plot dummy
-   :srcset: /generated/examples/aif/images/sphx_glr_plot_dummy_003.png
-   :class: sphx-glr-single-img
+
+.. rst-class:: sphx-glr-script-out
+
+ .. code-block:: none
 
 
+    "\nCommenting this out for now as 'dose' is no longer defined as an argument\nin aif_parker function and this prevents docs GH action from running.\nca = dcmri.aif_parker(t, BAT=0, dose=0.05)\nplt.plot(t, ca, 'b-', label='BAT = 0s, dose = 0.05')\nca = dcmri.aif_parker(t, BAT=30, dose=0.1)\nplt.plot(t, ca, 'r-', label='BAT = 30s, dose = 0.1')\nca = dcmri.aif_parker(t, BAT=60, dose=0.2)\nplt.plot(t, ca, 'g-', label='BAT = 60s, dose = 0.2')\nca = dcmri.aif_parker(t, BAT=90, dose=0.3)\nplt.plot(t, ca, 'm-', label='BAT = 90s, dose = 0.3')\nplt.xlabel('Time (sec)')\nplt.ylabel('Plasma concentration (mM)')\nplt.legend()\nplt.show()\n"
 
 
 
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  0.638 seconds)
+   **Total running time of the script:** (0 minutes 0.353 seconds)
 
 
 .. _sphx_glr_download_generated_examples_aif_plot_dummy.py:
@@ -159,16 +164,13 @@ the dose defaults to 0.1- what happens if we change it too?
 
   .. container:: sphx-glr-footer sphx-glr-footer-example
 
+    .. container:: sphx-glr-download sphx-glr-download-jupyter
 
-
+      :download:`Download Jupyter notebook: plot_dummy.ipynb <plot_dummy.ipynb>`
 
     .. container:: sphx-glr-download sphx-glr-download-python
 
       :download:`Download Python source code: plot_dummy.py <plot_dummy.py>`
-
-    .. container:: sphx-glr-download sphx-glr-download-jupyter
-
-      :download:`Download Jupyter notebook: plot_dummy.ipynb <plot_dummy.ipynb>`
 
 
 .. only:: html

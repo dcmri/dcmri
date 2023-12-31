@@ -17,7 +17,7 @@ Tissue concentrations
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="Dummy script to show the examples structure. ">
+    <div class="sphx-glr-thumbcontainer" tooltip="Simulate the systematic error caused by the high-flow assumption in the modified Tofts model. ">
 
 .. only:: html
 
@@ -28,7 +28,7 @@ Tissue concentrations
 
 .. raw:: html
 
-      <div class="sphx-glr-thumbnail-title">Dummy script as demo</div>
+      <div class="sphx-glr-thumbnail-title">High flow model error</div>
     </div>
 
 
