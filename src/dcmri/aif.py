@@ -9,7 +9,7 @@ def aif_parker(t:np.ndarray, BAT:float=30.0)->np.ndarray:
         BAT (float, optional): Time in seconds before the bolus arrives. Defaults to 30sec. 
 
     Returns:
-        np.ndarray: Concentrations in mM for each time point in t.
+        np.ndarray: Concentrations in M for each time point in t.
 
     Example:
 
@@ -18,12 +18,12 @@ def aif_parker(t:np.ndarray, BAT:float=30.0)->np.ndarray:
         Import packages:
 
         >>> import matplotlib.pyplot as plt
-        >>> import osipi
+        >>> import dcmri
 
         Calculate AIF and plot
 
         >>> t = np.arange(0, 6*60, 0.1)
-        >>> ca = osipi.aif_parker(t)
+        >>> ca = dcmri.aif_parker(t)
         >>> plt.plot(t,ca)
         >>> plt.show()
     """
@@ -53,6 +53,6 @@ def aif_parker(t:np.ndarray, BAT:float=30.0)->np.ndarray:
 
     pop_aif = gaussian1 + gaussian2 + sigmoid
     
-    return pop_aif
+    return pop_aif/1000 # convert to M
 
 
