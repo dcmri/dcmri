@@ -1,16 +1,16 @@
 import numpy as np
 
 
-def aif_parker(t:np.ndarray, BAT:float=30.0)->np.ndarray:
-    """AIF model as defined by Parker et al (2005)
+def aif_parker(t, BAT:float=0.0)->np.ndarray:
+    """Population AIF model as defined by `Parker et al (2006) <https://onlinelibrary.wiley.com/doi/full/10.1002/mrm.21066>`_
 
     Args:
-        t (np.ndarray): array of time points in units of sec. 
-        BAT (float, optional): Time in seconds before the bolus arrives. Defaults to 30sec. 
+        t (array_like): time points in units of sec. 
+        BAT (float, optional): Time in seconds before the bolus arrives. Defaults to 0 sec (no delay). 
 
     Returns:
-        np.ndarray: Concentrations in M for each time point in t.
-
+        np.ndarray: Concentrations in M for each time point in t. If t is a scalar, the return value is a scalar too.
+        
     Example:
 
         Create an array of time points covering 6min in steps of 1sec, calculate the Parker AIF at these time points and plot the results.
@@ -28,11 +28,12 @@ def aif_parker(t:np.ndarray, BAT:float=30.0)->np.ndarray:
         >>> plt.show()
     """
 
-    # Convert from OSIPI units (sec) to units used internally (mins)
-    t_min = t/60
-    bat_min = BAT/60
+    # Check input types
+    if not np.isscalar(BAT):
+        raise ValueError('BAT must be a scalar')
 
-    t_offset = t_min - bat_min
+    # Convert from secs to units used internally (mins)
+    t_offset = np.array(t)/60 - BAT/60
 
     #A1/(SD1*sqrt(2*PI)) * exp(-(t_offset-m1)^2/(2*var1))
     #A1 = 0.833, SD1 = 0.055, m1 = 0.171
