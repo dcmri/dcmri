@@ -9,11 +9,11 @@ self-contained example code that demonstrates basic usage of the function.
 
 .. warning::
 
-    ``dcmri`` is in development and this reference guide currently contains mainly
-    empty placeholder entries.
+    ``dcmri`` is currently under development.
 
 .. toctree::
    :maxdepth: 2
 
    alphabetical
-   aif
+   lib
+   tools

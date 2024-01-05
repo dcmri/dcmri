@@ -1,7 +1,7 @@
-Index
-^^^^^
+Alphabetical list of functions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Alphabetic list of all currently available `dcmri` code snippets.
+Alphabetic list of all currently available `dcmri` functions.
 
 .. currentmodule:: dcmri
 
@@ -11,3 +11,8 @@ Alphabetic list of all currently available `dcmri` code snippets.
    :template: autosummary.rst
 
    aif_parker
+   biexpconv
+   conv
+   expconv
+   nexpconv
+
