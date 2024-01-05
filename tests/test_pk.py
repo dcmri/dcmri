@@ -69,6 +69,56 @@ def test_flux_pass():
     Jo0 = tools.conv(pk.prop_pass(T,t), J, t)
     assert np.linalg.norm(Jo[1:]-Jo0[1:])/np.linalg.norm(Jo[1:]) < 1e-12
 
+
+def test_res_comp():
+    T = 25
+    t = np.linspace(0, 150, 20)
+    r = pk.res_comp(T, t)
+    assert np.round(np.trapz(r,t)) == T
+    t = [0,5,15,30,60,90,150]
+    r = pk.res_comp(T, t)
+    assert (np.trapz(r,t)-T)**2/T**2 < 1e-2
+
+def test_prop_comp():
+    T = 25
+    t = np.linspace(0, 150, 20)
+    h = pk.prop_comp(T, t)
+    assert np.round(np.trapz(h,t)) == 1
+    t = [0,5,15,30,60,90,150]
+    h = pk.prop_comp(T, t)
+    assert (np.trapz(h,t)-1)**2 < 1e-2
+
+def test_conc_comp():
+    T = 25
+    t = np.linspace(0, 150, 20)
+    J = np.ones(len(t))
+    C0 = tools.conv(pk.res_comp(T,t), J, t)
+    C = pk.conc_comp(J, T, t)
+    assert np.linalg.norm(C[1:]-C0[1:])/np.linalg.norm(C0[1:]) < 1e-2
+    C = pk.conc_comp(J, T, dt=t[1])
+    assert np.linalg.norm(C[1:]-C0[1:])/np.linalg.norm(C0[1:]) < 1e-2
+    t = [0,5,15,30,60,90,150]
+    J = np.ones(len(t))
+    C0 = tools.conv(pk.res_comp(T,t), J, t)
+    C = pk.conc_comp(J, T, t)
+    assert np.linalg.norm(C[1:]-C0[1:])/np.linalg.norm(C0[1:]) < 1e-1
+
+def test_flux_comp():
+    T = 25
+    t = np.linspace(0, 150, 20)
+    J = np.ones(len(t))
+    J0 = tools.conv(pk.prop_comp(T,t), J, t)
+    Jo = pk.flux_comp(J, T, t)
+    assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-2
+    Jo = pk.flux_comp(J, T, dt=t[1])
+    assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-2
+    t = [0,5,15,30,60,90,150]
+    J = np.ones(len(t))
+    J0 = tools.conv(pk.prop_comp(T,t), J, t)
+    Jo = pk.flux_comp(J, T, t)
+    assert np.linalg.norm(J0-Jo)/np.linalg.norm(J0) < 1e-1
+    
+
 if __name__ == "__main__":
 
     test_conc_trap()
@@ -80,5 +130,10 @@ if __name__ == "__main__":
     test_flux_pass()
     test_res_pass()
     test_prop_pass()
+
+    test_conc_comp()
+    test_flux_comp()
+    test_res_comp()
+    test_prop_comp()
 
     print('All pk tests passed!!')

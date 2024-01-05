@@ -7,9 +7,11 @@ A collection of basic models that can be assembled to more complex models.
 .. currentmodule:: dcmri
 
 
+No-parameter models
 ===================
-No=parameter models
-===================
+
+**Trap**
+--------
 
 .. autosummary::
    :toctree: ../generated/api/
@@ -21,9 +23,11 @@ No=parameter models
    flux_trap
 
 
-====================
 One-parameter models
 ====================
+
+**Pass**
+--------
 
 .. autosummary::
    :toctree: ../generated/api/
@@ -33,3 +37,20 @@ One-parameter models
    prop_pass
    conc_pass
    flux_pass
+
+
+**Compartment**
+---------------
+
+.. autosummary::
+   :toctree: ../generated/api/
+   :template: autosummary.rst
+
+   res_comp
+   prop_comp
+   conc_comp
+   flux_comp
+
+
+Two-parameter models
+====================

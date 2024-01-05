@@ -175,7 +175,7 @@ def conc_pass(J, T):
     A pass is a space where the concentration is proportional to the input. In practice it is used to model tissues where the transit times are shorter than the temporal sampling interval. Under these conditions any bolus broadening is not detectable. 
 
     Args:
-        J (array_like): the indicator flux entering the trap.
+        J (array_like): the indicator flux entering the pass.
         T (float): transit time of the pass.
 
     Returns:
@@ -198,7 +198,7 @@ def flux_pass(J):
     A pass is a space where the concentration is proportional to the input. In practice it is used to model tissues where the transit times are shorter than the temporal sampling interval. Under these conditions any bolus broadening is not detectable. 
 
     Args:
-        J (array_like): the indicator flux entering the trap.
+        J (array_like): the indicator flux entering the pass.
 
     Returns:
         numpy.ndarray: outflux as a 1D array.
@@ -220,29 +220,123 @@ def flux_pass(J):
 
 # Compartment
 
-def conc_comp(J, T, t=None, dt=1.0):
-    if T == np.inf:
-        return conc_trap(J, t=t, dt=dt)
-    return T*tools.expconv(J, T, t=t, dt=dt)
-
-def flux_comp(J, T, t=None, dt=1.0):
-    if T == np.inf:
-        return flux_trap(J, t=t, dt=dt)
-    return tools.expconv(J, T, t=t, dt=dt)
-
 def res_comp(T, t):
+    """Residue function of a compartment.
+
+    A compartment is a space with a uniform concentration everywhere - also known as a well-mixed space. The residue function of a compartment is a mono-exponentially decaying function.
+
+    Args:
+        T (float): mean transit time of the compartment. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
+        t (array_like): time points where the residue function is calculated, in the same units as T.
+
+    Returns:
+        numpy.ndarray: residue function of the compartment as a 1D array.
+
+    See Also:
+        `prop_comp`, `conc_comp`, `flux_comp`
+        
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,3,4,6]
+        >>> dc.res_comp(5,t)
+        array([1.        , 0.54881164, 0.44932896, 0.30119421])  
+    """
     if T == np.inf:
         return res_trap(t)
     if T == 0:
         return tools.res_ddelta(t)
-    return np.exp(-t/T)
+    return np.exp(-np.array(t)/T)
 
 def prop_comp(T, t):
+    """Propagator or transit time distribution of a compartment.
+
+    A compartment is a space with a uniform concentration everywhere - also known as a well-mixed space. The propagator of a compartment is a mono-exponentially decaying function. 
+
+    Args:
+        T (float): mean transit time of the compartment. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
+        t (array_like): time points where the residue function is calculated, in the same units as T.
+
+    Returns:
+        numpy.ndarray: propagator as a 1D array.
+
+    See Also:
+        `res_comp`, `conc_comp`, `flux_comp`
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,3,4,6]
+        >>> dc.prop_comp(5,t)
+        array([0.2       , 0.10976233, 0.08986579, 0.06023884])  
+    """
     if T == np.inf:
         return prop_trap(t)
     if T == 0:
         return tools.prop_ddelta(t)
-    return np.exp(-t/T)/T
+    return np.exp(-np.array(t)/T)/T
+
+
+def conc_comp(J, T, t=None, dt=1.0):
+    """Indicator concentration inside a compartment.
+
+    A compartment is a space with a uniform concentration everywhere - also known as a well-mixed space. 
+
+    Args:
+        J (array_like): the indicator flux entering the compartment.
+        T (float): mean transit time of the compartment. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
+        t (array_like, optional): the time points of the indicator flux J, in the same units as T. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as T. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+
+    Returns:
+        numpy.ndarray: Concentration as a 1D array.
+
+    See Also:
+        `res_comp`, `prop_comp`, `flux_comp`
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,5,15,30,60]
+        >>> J = [1,2,3,3,2]
+        >>> dc.conc_comp(J, 5, t)
+        array([ 0.        ,  5.        , 12.16166179, 14.85868746, 10.83091743])
+    """
+    if T == np.inf:
+        return conc_trap(J, t=t, dt=dt)
+    return T*tools.expconv(J, T, t=t, dt=dt)
+
+
+def flux_comp(J, T, t=None, dt=1.0):
+    """Indicator flux out of a compartment.
+
+    A compartment is a space with a uniform concentration everywhere - also known as a well-mixed space. 
+
+    Args:
+        J (array_like): the indicator flux entering the compartment.
+        T (float): mean transit time of the compartment. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
+        t (array_like, optional): the time points of the indicator flux J, in the same units as T. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as T. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+
+    Returns:
+        numpy.ndarray: outflux as a 1D array.
+
+    See Also:
+        `res_comp`, `conc_comp`, `prop_comp`
+
+    Example:
+        >>> import dcmri as dc
+        >>> import dcmri as dc
+        >>> t = [0,5,15,30,60]
+        >>> J = [1,2,3,3,2]
+        >>> dc.flux_comp(J, 5, t)
+        array([0.        , 1.        , 2.43233236, 2.97173749, 2.16618349]) 
+    """
+    if T == np.inf:
+        return flux_trap(J, t=t, dt=dt)
+    return tools.expconv(J, T, t=t, dt=dt)
+
+
+
+
+
 
 # Plug flow
 

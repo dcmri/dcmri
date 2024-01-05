@@ -18,12 +18,25 @@ from .lib import (
     aif_parker,
 )
 from .pk import (
+
+    # Trap
+
     res_trap,
     flux_trap,
     conc_trap,
     prop_trap,
+
+    # Pass
+
     res_pass,
     flux_pass,
     conc_pass,
     prop_pass,
+
+    # Compartment
+    
+    res_comp,
+    flux_comp,
+    conc_comp,
+    prop_comp,
 )
