@@ -99,7 +99,7 @@ def conv(f, h, t=None, dt=1.0):
         numpy.ndarray: a 1D numpy array of the same length as f and h.
 
     See Also:
-        `expconv`, `biexpconv`, `nexpconv`
+        `expconv`, `biexpconv`, `nexpconv`, `stepconv`
 
     Notes: 
         The convolution product :math:`f(t)\\otimes h(t)` implemented by `conv` is explicitly defined as:
@@ -151,6 +151,68 @@ def conv(f, h, t=None, dt=1.0):
     return g
 
 
+def inttrap(f, t, t0, t1):
+    # Helper function: integrate f from t0 to t1
+    ti = t[(t0<t)*(t<t1)]
+    ti = np.concatenate(([t0],ti,[t1]))
+    fi = np.interp(ti, t, f, left=0, right=0)
+    return np.trapz(fi,ti)
+
+
+def stepconv(f, T, D, t=None, dt=1.0):
+    """Convolve a 1D-array with a normalised step function.
+
+    Args:
+        f (array_like): the 1D array to be convolved.
+        T (float): the central time point of the step function. 
+        D (float): half-width of the step function, as a fraction of T. D must be less or equal to 1.
+        t (array_like, optional): the time points where the values of f are defined, in the same units as T. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+
+    Raises:
+        ValueError: if D > 1.
+
+    Returns:
+        numpy.ndarray: a 1D numpy array of the same length as f.
+
+    See Also:
+        `conv`, `expconv`, `biexpconv`, `nexpconv`
+
+    Notes: 
+        `stepconv` implements the same convolution product as `conv`, but is more accurate and faster in the special case where one of the factors is known to be a step function.
+
+    Example:
+        Import package, create a vector f and an array of time points:
+
+        >>> import dcmri as dc
+        >>> f = [5,4,3,6]
+        >>> t = [0,2,4,7]
+
+        Convolve f with a step function that is centered on t=3 with a half width of 1.5 = 0.5*3: 
+
+        >>> dc.stepconv(f, 3, 0.5, t)
+        array([0.        , 0.8125    , 3.64583333, 3.5625    ])
+    """
+    if D>1:
+        raise ValueError('The dispersion factor D must be <= 1')
+    TW = D*T      # Half width of step
+    T0 = T-TW     # Initial time point of step
+    T1 = T+TW
+    n = len(f)
+    t = tarray(n, t=t, dt=dt)
+    g = np.zeros(n)
+    k = len(t[t<T0])
+    ti = t[(T0<=t)*(t<=T1)]
+    for tk in ti:
+        g[k] = inttrap(f, t, 0, tk-T0)
+        k+=1
+    ti = t[T1<t]
+    for tk in ti:
+        g[k] = inttrap(f, t, tk-T1, tk-T0)
+        k+=1
+    return g/(2*TW)
+
+
 def expconv(f, T, t=None, dt=1.0):
     """Convolve a 1D-array with a normalised exponential.
 
@@ -166,7 +228,7 @@ def expconv(f, T, t=None, dt=1.0):
         numpy.ndarray: a 1D numpy array of the same length as f.
 
     See Also:
-        `conv`, `biexpconv`, `nexpconv`
+        `conv`, `biexpconv`, `nexpconv`, `stepconv`
 
     Notes: 
         `expconv` implements the same convolution product as `conv`, but is more accurate and faster in the special case where one of the factors is known to be an exponential:
@@ -193,18 +255,18 @@ def expconv(f, T, t=None, dt=1.0):
 
         Calculate :math:`g(t) = f(t) \\otimes \\exp(-t/3)/3` over a uniformly sampled grid of time points with spacing dt=1:
 
-        >>> g = dc.expconv(f, 3)
+        >>> dc.expconv(f, 3)
         array([0.        , 1.26774952, 1.89266305, 2.6553402 ])
 
         Calculate the same convolution over a grid of time points with spacing dt=2:
 
-        >>> g = dc.expconv(f, 3, dt=2)
+        >>> dc.expconv(f, 3, dt=2)
         array([0.        , 2.16278873, 2.7866186 , 3.70082337])
 
         Calculate the same convolution over a non-uniform grid of time points:
 
         >>> t = [0,1,3,7]
-        >>> g = dc.expconv(f, 3, t)
+        >>> dc.expconv(f, 3, t)
         array([0.        , 1.26774952, 2.32709015, 4.16571645])
     """
 
@@ -237,7 +299,7 @@ def biexpconv(T1, T2, t):
         numpy.ndarray: The result of the convolution as a 1D array.
 
     See Also:
-        `conv`, `expconv`, `nexpconv`
+        `conv`, `expconv`, `nexpconv`, `stepconv`
 
     Notes: 
         `biexpconv` returns the exact analytical result of the following convolution:
@@ -285,7 +347,7 @@ def nexpconv(n, T, t):
         numpy.ndarray: The result of the convolution as a 1D array.
 
     See Also:
-        `conv`, `expconv`, `biexpconv`
+        `conv`, `expconv`, `biexpconv`, `stepconv`
 
     Notes: 
         `nexpconv` returns the exact analytical result of the following n convolutions:
@@ -316,4 +378,5 @@ def nexpconv(n, T, t):
 
     
 if __name__ == "__main__":
+    
     print('All tools tests passed!!')

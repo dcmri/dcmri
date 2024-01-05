@@ -15,4 +15,5 @@ Alphabetic list of all currently available `dcmri` functions.
    conv
    expconv
    nexpconv
+   stepconv
 
