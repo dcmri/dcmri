@@ -119,8 +119,38 @@ plt.legend()
 plt.show()
 
 # %%
-# As the number of exponentials increases, the convolution converges to a delta function positioned on t=MTT. This is because the system models a bolus transit through n identical compartments, which become increasing smaller at higher n and thus allow less bolus dispersion. A system like this is referred to as a chain in `~dcmri` which has the compartment (n=1) and the plug flow system (n=infty) as special cases.
+# As the number of exponentials increases, the convolution converges to a delta function positioned on t=MTT. 
+
+# %%
+# `dcmri` also provides a dedicated function `~dcmri.stepconv` for convolution with a step function. We illustrate this function here and compare against `~dcmri.conv`:
+n = 15
+t = np.linspace(0, 120, n)
+f = norm.pdf(t, 30, 10)
+T, D = 45, 0.5
+# Construct a step function explicitly and use `~dcmri.conv`
+T0, T1 = T-D*T, T+D*T
+h = np.zeros(n)
+h[(t>=T0)*(t<=T1)] = 1/(T1-T0)
+g0 = dc.conv(h, f, t)
+# Convolve with a step function directly using `~dcmri.stepconv`
+g1 = dc.stepconv(f, T, D, t)
+# Compare results
+plt.plot(t, f, 'r-', label='f(t)')
+plt.plot(t, g0, 'k-', label='conv()')
+plt.plot(t, g1, color='gray', linestyle='-', label='stepconv()')
+plt.title('Comparison of conv() and stepconv()')
+plt.legend()
+plt.show()
 
 
-# Choose the last image as a thumbnail for the gallery
-# sphinx_gallery_thumbnail_number = -1
+# %%
+# As with `~dcmri.expconv` the difference between `~dcmri.stepconv` and `~dcmri.conv` is relatively small even for coarse time grids such as the above, but there is a more substantial gain in computation time: 
+start = time.time()
+for _ in range(500):
+    dc.conv(h, f, t)
+print('Computation time for conv(): ', time.time()-start, 'sec')
+start = time.time()
+for _ in range(500):
+    dc.stepconv(f, T, D, t)
+print('Computation time for stepconv(): ', time.time()-start, 'sec')
+

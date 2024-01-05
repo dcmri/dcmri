@@ -135,8 +135,8 @@ However, `~dcmri.expconv` comes with a major improvement in computation time com
 
  .. code-block:: none
 
-    Computation time for conv():  5.179182052612305 sec
-    Computation time for expconv():  0.01562190055847168 sec
+    Computation time for conv():  4.043155908584595 sec
+    Computation time for expconv():  0.016954421997070312 sec
 
 
 
@@ -162,7 +162,7 @@ Incidentally since the time array in this case is uniform, `~dcmri.conv` can be 
 
  .. code-block:: none
 
-    Computation time for conv() with uniform times:  1.8759734630584717 sec
+    Computation time for conv() with uniform times:  1.773855209350586 sec
 
 
 
@@ -226,7 +226,7 @@ If both functions are exponentials, convolution can be accelerated further with 
 
  .. code-block:: none
 
-    Computation time for expconv():  0.03247356414794922 sec
+    Computation time for expconv():  0.036897897720336914 sec
     Computation time for biexpconv():  0.0 sec
 
 
@@ -297,19 +297,75 @@ The final convolution function `~dcmri.nexpconv` convolves n indentical exponent
 
 .. GENERATED FROM PYTHON SOURCE LINES 122-123
 
-As the number of exponentials increases, the convolution converges to a delta function positioned on t=MTT. This is because the system models a bolus transit through n identical compartments, which become increasing smaller at higher n and thus allow less bolus dispersion. A system like this is referred to as a chain in `~dcmri` which has the compartment (n=1) and the plug flow system (n=infty) as special cases.
+As the number of exponentials increases, the convolution converges to a delta function positioned on t=MTT. 
 
-.. GENERATED FROM PYTHON SOURCE LINES 123-127
+.. GENERATED FROM PYTHON SOURCE LINES 125-126
+
+`dcmri` also provides a dedicated function `~dcmri.stepconv` for convolution with a step function. We illustrate this function here and compare against `~dcmri.conv`:
+
+.. GENERATED FROM PYTHON SOURCE LINES 126-146
 
 .. code-block:: Python
 
+    n = 15
+    t = np.linspace(0, 120, n)
+    f = norm.pdf(t, 30, 10)
+    T, D = 45, 0.5
+    # Construct a step function explicitly and use `~dcmri.conv`
+    T0, T1 = T-D*T, T+D*T
+    h = np.zeros(n)
+    h[(t>=T0)*(t<=T1)] = 1/(T1-T0)
+    g0 = dc.conv(h, f, t)
+    # Convolve with a step function directly using `~dcmri.stepconv`
+    g1 = dc.stepconv(f, T, D, t)
+    # Compare results
+    plt.plot(t, f, 'r-', label='f(t)')
+    plt.plot(t, g0, 'k-', label='conv()')
+    plt.plot(t, g1, color='gray', linestyle='-', label='stepconv()')
+    plt.title('Comparison of conv() and stepconv()')
+    plt.legend()
+    plt.show()
 
 
-    # Choose the last image as a thumbnail for the gallery
-    # sphinx_gallery_thumbnail_number = -1
 
 
 
+.. image-sg:: /generated/examples/tools/images/sphx_glr_plot_convolution_006.png
+   :alt: Comparison of conv() and stepconv()
+   :srcset: /generated/examples/tools/images/sphx_glr_plot_convolution_006.png
+   :class: sphx-glr-single-img
+
+
+
+
+
+.. GENERATED FROM PYTHON SOURCE LINES 147-148
+
+As with `~dcmri.expconv` the difference between `~dcmri.stepconv` and `~dcmri.conv` is relatively small even for coarse time grids such as the above, but there is a more substantial gain in computation time: 
+
+.. GENERATED FROM PYTHON SOURCE LINES 148-157
+
+.. code-block:: Python
+
+    start = time.time()
+    for _ in range(500):
+        dc.conv(h, f, t)
+    print('Computation time for conv(): ', time.time()-start, 'sec')
+    start = time.time()
+    for _ in range(500):
+        dc.stepconv(f, T, D, t)
+    print('Computation time for stepconv(): ', time.time()-start, 'sec')
+
+
+
+
+
+.. rst-class:: sphx-glr-script-out
+
+ .. code-block:: none
+
+    Computation time for conv():  0.5944099426269531 sec
+    Computation time for stepconv():  0.17253684997558594 sec
 
 
 
@@ -317,7 +373,7 @@ As the number of exponentials increases, the convolution converges to a delta fu
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 8.466 seconds)
+   **Total running time of the script:** (0 minutes 8.062 seconds)
 
 
 .. _sphx_glr_download_generated_examples_tools_plot_convolution.py:

@@ -53,6 +53,26 @@ def test_expconv():
         g0 = (Tf*f-Th*h)/(Tf-Th)
         assert np.linalg.norm(g-g0)/np.linalg.norm(g0) < prec[i]
 
+def test_inttrap():
+    t=np.array([0,1,2,3])
+    f=[1,1,1,1]
+    assert tools.inttrap(f,t,0.5,1.5) == 1
+
+def test_stepconv():
+    T = 3.5
+    D = 0.5
+    T0 = T-D*T
+    T1 = T+D*T
+    # Check against conv at high res
+    prec = [0.04, 0.02, 0.002]
+    for k, n in enumerate([10,100,1000]):
+        t = np.linspace(0,10,n) 
+        h = np.zeros(n)
+        h[(t>=T0)*(t<=T1)] = 1/(T1-T0)
+        f = np.sqrt(t)
+        g = tools.stepconv(f, T, D, dt=t[1])
+        g0 = tools.conv(f, h, dt=t[1])
+        assert np.linalg.norm(g-g0)/np.linalg.norm(g0) < prec[k]
 
 def test_intprod():
     # Non-uniform time interval: compare to numerical integration.
@@ -238,6 +258,8 @@ if __name__ == "__main__":
 
     test_trapz()
     test_expconv()
+    test_inttrap()
+    test_stepconv()
     test_intprod()
     test_uconv()
     test_conv()

@@ -15,3 +15,4 @@ A collection of helper functions available in `dcmri`.
    expconv
    biexpconv
    nexpconv
+   stepconv

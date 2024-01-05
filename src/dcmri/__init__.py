@@ -7,6 +7,7 @@ from . import tools
 
 # Functions exposed to package users
 from .tools import (
+    stepconv,
     nexpconv,
     biexpconv,
     expconv,
