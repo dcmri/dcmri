@@ -14,6 +14,7 @@ self-contained example code that demonstrates basic usage of the function.
 .. toctree::
    :maxdepth: 2
 
-   alphabetical
+   pk
    lib
    tools
+   

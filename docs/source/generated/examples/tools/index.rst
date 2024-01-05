@@ -17,7 +17,7 @@ DC-MRI tools
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="Using the convolution functions ~dcmri.conv, ~dcmri.expconv, ~dcmri.biexpconv and ~dcmri.nexpco...">
+    <div class="sphx-glr-thumbcontainer" tooltip="Using the convolution functions ~dcmri.conv, ~dcmri.expconv, ~dcmri.stepconv, ~dcmri.biexpconv ...">
 
 .. only:: html
 

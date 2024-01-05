@@ -1,64 +1,342 @@
 import math
 import numpy as np
 from scipy.special import gamma
-from scipy.stats import rv_histogram
+from scipy.stats import rv_histogram, norm
 
 import dcmri.tools as tools
 
+# 0 Parameters
+
 # Trap
 
-def conc_trap(J, t=None, dt=1.0):
-    return tools.trapz(J, t=t, dt=dt)
-
-def flux_trap(J, t=None, dt=1.0):
-    n = len(J)
-    return np.zeros(n)
-
 def res_trap(t):
+    """Residue function of a trap.
+
+    A trap is a space where all indicator that enters is trapped forever. In practice it is used to model tissues where the transit times are much longer than the acquisition window. 
+
+    Args:
+        t (array_like): Time points where the residue function is calculated.
+
+    Returns:
+        numpy.ndarray: residue function as a 1D array.
+
+    See Also:
+        `prop_trap`, `conc_trap`, `flux_trap`
+
+    Notes: 
+        The residue function of a trap is a function with a constant value of 1 everywhere, and can therefore easily be generated using the standard numpy function `numpy.ones`. The function is nevertheless included in the `dcmri` package for consistency and completeness. 
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,1,2,3,4]
+        >>> dc.res_trap(t)
+        array([1., 1., 1., 1., 1.])  
+    """
     return np.ones(len(t))
 
+
 def prop_trap(t):
+    """Propagator or transit time distribution of a trap.
+
+    A trap is a space where all indicator that enters is trapped forever. In practice it is used to model tissues where the transit times are much longer than the acquisition window. 
+
+    Args:
+        t (array_like): Time points where the residue function is calculated.
+
+    Returns:
+        numpy.ndarray: propagator as a 1D array.
+
+    See Also:
+        `res_trap`, `conc_trap`, `flux_trap`
+
+    Notes: 
+        The propagator of a trap is a function with a constant value of 0 everywhere, and can therefore easily be generated using the standard numpy function `numpy.zeros`. The function is nevertheless included in the `dcmri` package for consistency and completeness. 
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,1,2,3,4]
+        >>> dc.prop_trap(t)
+        array([0., 0., 0., 0., 0.])  
+    """
     return np.zeros(len(t))
+
+def conc_trap(J, t=None, dt=1.0):
+    """Indicator concentration inside a trap.
+
+    A trap is a space where all indicator that enters is trapped forever. In practice it is used to model tissues where the transit times are much longer than the acquisition window. 
+
+    Args:
+        J (array_like): the indicator flux entering the trap.
+        t (array_like, optional): the time points of the indicator flux J. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+
+    Returns:
+        numpy.ndarray: Concentration as a 1D array.
+
+    See Also:
+        `res_trap`, `prop_trap`, `flux_trap`
+
+    Notes: 
+        The concentration inside a trap is the time-integral of the influx, here calculated using trapezoidal integration.
+
+    Example:
+        >>> import dcmri as dc
+        >>> J = [1,2,3,3,2]
+        >>> dc.conc_trap(J, dt=2.0)
+        array([ 0.,  3.,  8., 14., 19.])
+    """
+    return tools.trapz(J, t=t, dt=dt)
+
+def flux_trap(J):
+    """Indicator flux out of a trap.
+
+    A trap is a space where all indicator that enters is trapped forever. In practice it is used to model tissues where the transit times are much longer than the acquisition window. 
+
+    Args:
+        J (array_like): the indicator flux entering the trap.
+
+    Returns:
+        numpy.ndarray: outflux as a 1D array.
+
+    See Also:
+        `res_trap`, `conc_trap`, `prop_trap`
+
+    Notes: 
+        The outflux out of a trap is always zero, and can therefore easily be generated using the standard numpy function `numpy.zeros`. The function is nevertheless included in the `dcmri` package for consistency and completeness. 
+
+    Example:
+        >>> import dcmri as dc
+        >>> J = [1,2,3,3,2]
+        >>> dc.flux_trap(J, dt=2.0)
+        array([0., 0., 0., 0., 0.])  
+    """
+    return np.zeros(len(J))
+
+
+# 1 Parameter
 
 # Pass (no dispersion)
 
-def conc_pass(J, T, t=None, dt=1.0):
-    return T*np.array(J)
-
-def flux_pass(J, T=None, t=None, dt=1.0):
-    return np.array(J)
-
 def res_pass(T, t):
-    return T*tools.res_ddelta(t)
+    """Residue function of a pass.
+
+    A pass is a space where the concentration is proportional to the input. In practice it is used to model tissues where the transit times are shorter than the temporal sampling interval. Under these conditions any bolus broadening is not detectable. 
+
+    Args:
+        T (float): transit time of the pass.
+        t (array_like): Time points where the residue function is calculated.
+
+    Returns:
+        numpy.ndarray: residue function of the pass as a 1D array.
+
+    See Also:
+        `prop_pass`, `conc_pass`, `flux_pass`
+
+    Notes: 
+        The residue function of a pass is a delta function and therefore can only be approximated numerically. The numerical approximation becomes accurate only at very short sampling intervals.
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,3,4,6]
+        >>> dc.res_pass(5,t)
+        array([3.33333333, 0.        , 0.        , 0.        ])  
+    """
+    return T*tools.prop_ddelta(t)
 
 def prop_pass(t):
+    """Propagator or transit time distribution of a pass.
+
+    A pass is a space where the concentration is proportional to the input. In practice it is used to model tissues where the transit times are shorter than the temporal sampling interval. Under these conditions any bolus broadening is not detectable. 
+
+    Args:
+        t (array_like): Time points where the residue function is calculated.
+
+    Returns:
+        numpy.ndarray: propagator as a 1D array.
+
+    See Also:
+        `res_pass`, `conc_pass`, `flux_pass`
+
+    Notes: 
+        The propagator of a pass is a delta function and therefore can only be approximated numerically. The numerical approximation becomes accurate only at very short sampling intervals. 
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,3,4,6]
+        >>> dc.prop_pass(t)
+        array([0.66666667, 0.        , 0.        , 0.        ])  
+    """
     return tools.prop_ddelta(t)
+
+
+def conc_pass(J, T):
+    """Indicator concentration inside a pass.
+
+    A pass is a space where the concentration is proportional to the input. In practice it is used to model tissues where the transit times are shorter than the temporal sampling interval. Under these conditions any bolus broadening is not detectable. 
+
+    Args:
+        J (array_like): the indicator flux entering the pass.
+        T (float): transit time of the pass.
+
+    Returns:
+        numpy.ndarray: Concentration as a 1D array.
+
+    See Also:
+        `res_pass`, `prop_pass`, `flux_pass`
+
+    Example:
+        >>> import dcmri as dc
+        >>> J = [1,2,3,3,2]
+        >>> dc.conc_pass(J, 5)
+        array([ 5, 10, 15, 15, 10])
+    """
+    return T*np.array(J)
+
+def flux_pass(J):
+    """Indicator flux out of a pass.
+
+    A pass is a space where the concentration is proportional to the input. In practice it is used to model tissues where the transit times are shorter than the temporal sampling interval. Under these conditions any bolus broadening is not detectable. 
+
+    Args:
+        J (array_like): the indicator flux entering the pass.
+
+    Returns:
+        numpy.ndarray: outflux as a 1D array.
+
+    See Also:
+        `res_pass`, `conc_pass`, `prop_pass`
+
+    Notes: 
+        The outflux out of a pass is always the same as the influx, and therefore this function is an identity. It is nevertheless included in the `dcmri` package for consistency with other functionality. 
+
+    Example:
+        >>> import dcmri as dc
+        >>> J = [1,2,3,3,2]
+        >>> dc.flux_pass(J)
+        array([1, 2, 3, 3, 2]) 
+    """
+    return np.array(J)
+
 
 # Compartment
 
-def conc_comp(J, T, t=None, dt=1.0):
-    if T == np.inf:
-        return conc_trap(J, t=t, dt=dt)
-    return T*tools.expconv(J, T, t=t, dt=dt)
-
-def flux_comp(J, T, t=None, dt=1.0):
-    if T == np.inf:
-        return flux_trap(J, t=t, dt=dt)
-    return tools.expconv(J, T, t=t, dt=dt)
-
 def res_comp(T, t):
+    """Residue function of a compartment.
+
+    A compartment is a space with a uniform concentration everywhere - also known as a well-mixed space. The residue function of a compartment is a mono-exponentially decaying function.
+
+    Args:
+        T (float): mean transit time of the compartment. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
+        t (array_like): time points where the residue function is calculated, in the same units as T.
+
+    Returns:
+        numpy.ndarray: residue function of the compartment as a 1D array.
+
+    See Also:
+        `prop_comp`, `conc_comp`, `flux_comp`
+        
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,3,4,6]
+        >>> dc.res_comp(5,t)
+        array([1.        , 0.54881164, 0.44932896, 0.30119421])  
+    """
     if T == np.inf:
         return res_trap(t)
     if T == 0:
         return tools.res_ddelta(t)
-    return np.exp(-t/T)
+    return np.exp(-np.array(t)/T)
 
 def prop_comp(T, t):
+    """Propagator or transit time distribution of a compartment.
+
+    A compartment is a space with a uniform concentration everywhere - also known as a well-mixed space. The propagator of a compartment is a mono-exponentially decaying function. 
+
+    Args:
+        T (float): mean transit time of the compartment. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
+        t (array_like): time points where the residue function is calculated, in the same units as T.
+
+    Returns:
+        numpy.ndarray: propagator as a 1D array.
+
+    See Also:
+        `res_comp`, `conc_comp`, `flux_comp`
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,3,4,6]
+        >>> dc.prop_comp(5,t)
+        array([0.2       , 0.10976233, 0.08986579, 0.06023884])  
+    """
     if T == np.inf:
         return prop_trap(t)
     if T == 0:
         return tools.prop_ddelta(t)
-    return np.exp(-t/T)/T
+    return np.exp(-np.array(t)/T)/T
+
+
+def conc_comp(J, T, t=None, dt=1.0):
+    """Indicator concentration inside a compartment.
+
+    A compartment is a space with a uniform concentration everywhere - also known as a well-mixed space. 
+
+    Args:
+        J (array_like): the indicator flux entering the compartment.
+        T (float): mean transit time of the compartment. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
+        t (array_like, optional): the time points of the indicator flux J, in the same units as T. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as T. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+
+    Returns:
+        numpy.ndarray: Concentration as a 1D array.
+
+    See Also:
+        `res_comp`, `prop_comp`, `flux_comp`
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,5,15,30,60]
+        >>> J = [1,2,3,3,2]
+        >>> dc.conc_comp(J, 5, t)
+        array([ 0.        ,  5.        , 12.16166179, 14.85868746, 10.83091743])
+    """
+    if T == np.inf:
+        return conc_trap(J, t=t, dt=dt)
+    return T*tools.expconv(J, T, t=t, dt=dt)
+
+
+def flux_comp(J, T, t=None, dt=1.0):
+    """Indicator flux out of a compartment.
+
+    A compartment is a space with a uniform concentration everywhere - also known as a well-mixed space. 
+
+    Args:
+        J (array_like): the indicator flux entering the compartment.
+        T (float): mean transit time of the compartment. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
+        t (array_like, optional): the time points of the indicator flux J, in the same units as T. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as T. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+
+    Returns:
+        numpy.ndarray: outflux as a 1D array.
+
+    See Also:
+        `res_comp`, `conc_comp`, `prop_comp`
+
+    Example:
+        >>> import dcmri as dc
+        >>> import dcmri as dc
+        >>> t = [0,5,15,30,60]
+        >>> J = [1,2,3,3,2]
+        >>> dc.flux_comp(J, 5, t)
+        array([0.        , 1.        , 2.43233236, 2.97173749, 2.16618349]) 
+    """
+    if T == np.inf:
+        return flux_trap(J, t=t, dt=dt)
+    return tools.expconv(J, T, t=t, dt=dt)
+
+
+
+
+
 
 # Plug flow
 
@@ -87,6 +365,8 @@ def res_plug(T, t):
 def prop_plug(T, t):
     h = tools.prop_ddelta(t)
     return np.interp(t-T, t, h, left=0)
+
+# 2 Parameters
 
 # Chain
 
@@ -144,6 +424,39 @@ def prop_chain(T, D, t):
     if n_notfin > 0:
         raise ValueError('A chain model is not numerically stable with these parameters. Consider restricting the minimal dispersion allowed.')
     return g
+
+# Step
+
+def conc_step(J, T, D, t=None, dt=1.0):
+    if D==0 or D>1:
+        raise ValueError('D must be strictly positive and no larger than 1.')
+    t = tools.tarray(len(J), t=t, dt=dt)
+    h = res_step(T, D, t)
+    return tools.conv(r, J, t)
+
+def flux_step(J, T, D, t=None, dt=1.0):
+    if D==0 or D>1:
+        raise ValueError('D must be strictly positive and no larger than 1.')
+    t = tools.tarray(len(J), t=t, dt=dt)
+    h = prop_step(T, D, t)
+    return tools.conv(h, J, t)
+
+def res_step(T, D, t):
+    h = prop_step(T, D, t)
+    c = np.ones(len(t))
+    # Integration is convolution with a constant
+    return 1 - tools.conv(c, h, t)
+
+def prop_step(T, D, t): 
+    if D==0 or D>1:
+        raise ValueError('D must be strictly positive and no larger than 1.')
+    T0 = T-D*T
+    T1 = T+D*T
+    h = np.zeros(len(t))
+    h[(t>=T0)*(t<=T1)] = 1/(T1-T0)
+    return h
+
+# N parameters
 
 # Free
 
@@ -407,10 +720,6 @@ def flux_2cxm(J, T, E, t=None, dt=1.0):
     return J0
 
 def res_2cxm(T, E, t):
-    """Concentration in a 2-compartment exchange model system.
-
-    E is the scalar extraction fraction E10
-    """
     K0 = 1/T[0]
     K1 = 1/T[1]
     K10 = E/T[0]
@@ -512,5 +821,10 @@ def conc_nscomp(J, T, t=None, dt=1.0):
 def flux_nscomp(J, T, t=None, dt=1.0):
     C = conc_nscomp(J, T, t=t, dt=dt)
     return C/T
+
+
+if __name__ == "__main__":
+
+    print('All pk tests passed!!')
 
 
