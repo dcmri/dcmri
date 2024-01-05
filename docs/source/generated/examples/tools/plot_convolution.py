@@ -3,7 +3,7 @@
 A comparison of convolution functions
 =====================================
 
-Using the convolution functions `~dcmri.conv`, `~dcmri.expconv`, `~dcmri.biexpconv` and `~dcmri.nexpconv`. 
+Using the convolution functions `~dcmri.conv`, `~dcmri.expconv`, `~dcmri.stepconv`, `~dcmri.biexpconv` and `~dcmri.nexpconv`. 
 """
 
 # %%
@@ -14,6 +14,8 @@ import matplotlib.pyplot as plt
 import dcmri as dc
 
 # %%
+# Convolving any two functions
+# ----------------------------
 # Generate two normalized gaussian distributions f(t) and h(t) and use `~dcmri.conv` to convolve them. Compare the result to `numpy.convolve`:
 t = np.linspace(0, 100, 50)
 f = norm.pdf(t, 30, 5)
@@ -33,6 +35,8 @@ plt.show()
 
 
 # %%
+# Convolution with an exponential
+# -------------------------------
 # In the special case where one of the factors is an exponential function, the function `~dcmri.expconv` is more accurate than `~dcmri.conv`, though the difference is small at this time resolution:
 Tf = 20
 f = np.exp(-t/Tf)/Tf
@@ -47,7 +51,7 @@ plt.legend()
 plt.show()
 
 # %%
-# However, `~dcmri.expconv` comes with a major improvement in computation time compared to `~dcmri.conv`, showing the that `~dcmri.expconv` should be used whenever applicable. We illustrate the effect by applying the functions 500 times and measuring the total computation time in each case:
+# However, `~dcmri.expconv` comes with a major improvement in computation time compared to `~dcmri.conv`. Hence `~dcmri.expconv` should be used instead of `~dcmri.conv` whenever applicable. We illustrate the effect by applying the functions 500 times and measuring the total computation time in each case. The acceleration is alomst 3 orders of magnitude:
 start = time.time()
 for _ in range(500):
     dc.conv(h, f, t)
@@ -80,6 +84,8 @@ plt.legend()
 plt.show()
 
 # %%
+# Convolving two or more exponentials
+# -----------------------------------
 # If both functions are exponentials, convolution can be accelerated further with `~dcmri.biexpconv`, which uses an analytical formula to calculate the convolution: 
 Th = 10
 start = time.time()
@@ -92,7 +98,7 @@ for i in range(1000):
 print('Computation time for biexpconv(): ', time.time()-start, 'sec')
 
 # %%
-# Using an analytical formula also comes with some improvements in accuracy, which is apparent at lower time resolution:
+# The difference in computation time is small in this case, but using an analytical formula also comes with some improvements in accuracy. This is apparent at lower time resolution:
 h = np.exp(-t/Th)/Th
 g0 = dc.expconv(h, Tf, t)
 g1 = dc.biexpconv(Th, Tf, t)
@@ -105,7 +111,7 @@ plt.legend()
 plt.show()
 
 # %%
-# The final convolution function `~dcmri.nexpconv` convolves n indentical exponentials with mean transit time T analytically. We illustrate the result by keeping the total mean transit time MTT=nT constant, and increasing n from 1 to 100:
+# The final convolution function `~dcmri.nexpconv` convolves n indentical exponentials with mean transit time T analytically. We illustrate the result by keeping the total mean transit time MTT=nT constant, and increasing n from 1 to 100. As the number of exponentials increases, the convolution converges to a delta function positioned on t=MTT:
 MTT = 30
 t = np.linspace(0, 120, 500)
 g1 = dc.nexpconv(1, MTT/1, t)
@@ -117,11 +123,11 @@ plt.plot(t, g100, 'b-', label='100 exponentials')
 plt.title('Convolutions of identical gaussian distributions')
 plt.legend()
 plt.show()
+ 
 
 # %%
-# As the number of exponentials increases, the convolution converges to a delta function positioned on t=MTT. 
-
-# %%
+# Convolution with a step function
+# --------------------------------
 # `dcmri` also provides a dedicated function `~dcmri.stepconv` for convolution with a step function. We illustrate this function here and compare against `~dcmri.conv`:
 n = 15
 t = np.linspace(0, 120, n)

@@ -1,24 +1,121 @@
 import math
 import numpy as np
 from scipy.special import gamma
-from scipy.stats import rv_histogram
+from scipy.stats import rv_histogram, norm
 
 import dcmri.tools as tools
 
+# 0 Parameters
+
 # Trap
 
+def res_trap(t):
+    """Residue function of a trap.
+
+    A trap is a space where all indicator that enters is trapped forever. In practice it is used to model tissues where the transit times are much longer than the acquisition window. 
+
+    Args:
+        t (array_like): Time points where the residue function is calculated.
+
+    Returns:
+        numpy.ndarray: residue function as a 1D array.
+
+    See Also:
+        `prop_trap`, `conc_trap`, `flux_trap`
+
+    Notes: 
+        The residue function of a trap is a function with a constant value of 1 everywhere, and can therefore easily be generated using the standard numpy function `numpy.ones`. The function is nevertheless included in the `dcmri` package for consistency and completeness. 
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,1,2,3,4]
+        >>> dc.res_trap(t)
+        array([1., 1., 1., 1., 1.])  
+    """
+    return np.ones(len(t))
+
+
+def prop_trap(t):
+    """Propagator or transit time distribution of a trap.
+
+    A trap is a space where all indicator that enters is trapped forever. In practice it is used to model tissues where the transit times are much longer than the acquisition window. 
+
+    Args:
+        t (array_like): Time points where the residue function is calculated.
+
+    Returns:
+        numpy.ndarray: propagator as a 1D array.
+
+    See Also:
+        `res_trap`, `conc_trap`, `flux_trap`
+
+    Notes: 
+        The propagator of a trap is a function with a constant value of 0 everywhere, and can therefore easily be generated using the standard numpy function `numpy.zeros`. The function is nevertheless included in the `dcmri` package for consistency and completeness. 
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,1,2,3,4]
+        >>> dc.prop_trap(t)
+        array([0., 0., 0., 0., 0.])  
+    """
+    return np.zeros(len(t))
+
 def conc_trap(J, t=None, dt=1.0):
+    """Indicator concentration inside a trap.
+
+    A trap is a space where all indicator that enters is trapped forever. In practice it is used to model tissues where the transit times are much longer than the acquisition window. 
+
+    Args:
+        J (array_like): the indicator flux entering the trap.
+        t (array_like, optional): the time points of the indicator flux J. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+
+    Returns:
+        numpy.ndarray: Concentration as a 1D array.
+
+    See Also:
+        `res_trap`, `prop_trap`, `flux_trap`
+
+    Notes: 
+        The concentration inside a trap is the time-integral of the influx, here calculated using trapezoidal integration.
+
+    Example:
+        >>> import dcmri as dc
+        >>> J = [1,2,3,3,2]
+        >>> dc.conc_trap(J, dt=2.0)
+        array([ 0.,  3.,  8., 14., 19.])
+    """
     return tools.trapz(J, t=t, dt=dt)
 
 def flux_trap(J, t=None, dt=1.0):
-    n = len(J)
-    return np.zeros(n)
+    """Indicator flux out of a trap.
 
-def res_trap(t):
-    return np.ones(len(t))
+    A trap is a space where all indicator that enters is trapped forever. In practice it is used to model tissues where the transit times are much longer than the acquisition window. 
 
-def prop_trap(t):
-    return np.zeros(len(t))
+    Args:
+        J (array_like): the indicator flux entering the trap.
+        t (array_like, optional): the time points of the indicator flux J. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+
+    Returns:
+        numpy.ndarray: outflux as a 1D array.
+
+    See Also:
+        `res_trap`, `conc_trap`, `prop_trap`
+
+    Notes: 
+        The outflux out of a trap is always zero, and can therefore easily be generated using the standard numpy function `numpy.zeros`. The function is nevertheless included in the `dcmri` package for consistency and completeness. 
+
+    Example:
+        >>> import dcmri as dc
+        >>> J = [1,2,3,3,2]
+        >>> dc.flux_trap(J, dt=2.0)
+        array([0., 0., 0., 0., 0.])  
+    """
+    return np.zeros(len(J))
+
+
+# 1 Parameter
 
 # Pass (no dispersion)
 
@@ -88,6 +185,8 @@ def prop_plug(T, t):
     h = tools.prop_ddelta(t)
     return np.interp(t-T, t, h, left=0)
 
+# 2 Parameters
+
 # Chain
 
 def conc_chain(J, T, D, t=None, dt=1.0):
@@ -144,6 +243,39 @@ def prop_chain(T, D, t):
     if n_notfin > 0:
         raise ValueError('A chain model is not numerically stable with these parameters. Consider restricting the minimal dispersion allowed.')
     return g
+
+# Step
+
+def conc_step(J, T, D, t=None, dt=1.0):
+    if D==0 or D>1:
+        raise ValueError('D must be strictly positive and no larger than 1.')
+    t = tools.tarray(len(J), t=t, dt=dt)
+    h = res_step(T, D, t)
+    return tools.conv(r, J, t)
+
+def flux_step(J, T, D, t=None, dt=1.0):
+    if D==0 or D>1:
+        raise ValueError('D must be strictly positive and no larger than 1.')
+    t = tools.tarray(len(J), t=t, dt=dt)
+    h = prop_step(T, D, t)
+    return tools.conv(h, J, t)
+
+def res_step(T, D, t):
+    h = prop_step(T, D, t)
+    c = np.ones(len(t))
+    # Integration is convolution with a constant
+    return 1 - tools.conv(c, h, t)
+
+def prop_step(T, D, t): 
+    if D==0 or D>1:
+        raise ValueError('D must be strictly positive and no larger than 1.')
+    T0 = T-D*T
+    T1 = T+D*T
+    h = np.zeros(len(t))
+    h[(t>=T0)*(t<=T1)] = 1/(T1-T0)
+    return h
+
+# N parameters
 
 # Free
 
@@ -512,5 +644,11 @@ def conc_nscomp(J, T, t=None, dt=1.0):
 def flux_nscomp(J, T, t=None, dt=1.0):
     C = conc_nscomp(J, T, t=t, dt=dt)
     return C/T
+
+
+if __name__ == "__main__":
+
+
+    print('All pk tests passed!!')
 
 

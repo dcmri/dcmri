@@ -155,7 +155,7 @@ the dose defaults to 0.1- what happens if we change it too?
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 0.413 seconds)
+   **Total running time of the script:** (0 minutes 0.289 seconds)
 
 
 .. _sphx_glr_download_generated_examples_lib_plot_dummy.py:

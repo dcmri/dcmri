@@ -247,7 +247,6 @@ def expconv(f, T, t=None, dt=1.0):
         `expconv` can calculate a convolution between two exponential factors, but in that case an analytical formula can be used which is faster and more accurate. It is implemented in the function `biexpconv`.
 
     Example:
-
         Import package and create a vector f:
 
         >>> import dcmri as dc
