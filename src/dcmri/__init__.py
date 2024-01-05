@@ -22,4 +22,8 @@ from .pk import (
     flux_trap,
     conc_trap,
     prop_trap,
+    res_pass,
+    flux_pass,
+    conc_pass,
+    prop_pass,
 )

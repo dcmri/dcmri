@@ -87,15 +87,13 @@ def conc_trap(J, t=None, dt=1.0):
     """
     return tools.trapz(J, t=t, dt=dt)
 
-def flux_trap(J, t=None, dt=1.0):
+def flux_trap(J):
     """Indicator flux out of a trap.
 
     A trap is a space where all indicator that enters is trapped forever. In practice it is used to model tissues where the transit times are much longer than the acquisition window. 
 
     Args:
         J (array_like): the indicator flux entering the trap.
-        t (array_like, optional): the time points of the indicator flux J. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
-        dt (float, optional): spacing between time points for uniformly spaced time points. This parameter is ignored if t is explicity provided. Defaults to 1.0.
 
     Returns:
         numpy.ndarray: outflux as a 1D array.
@@ -119,17 +117,106 @@ def flux_trap(J, t=None, dt=1.0):
 
 # Pass (no dispersion)
 
-def conc_pass(J, T, t=None, dt=1.0):
-    return T*np.array(J)
-
-def flux_pass(J, T=None, t=None, dt=1.0):
-    return np.array(J)
-
 def res_pass(T, t):
-    return T*tools.res_ddelta(t)
+    """Residue function of a pass.
+
+    A pass is a space where the concentration is proportional to the input. In practice it is used to model tissues where the transit times are shorter than the temporal sampling interval. Under these conditions any bolus broadening is not detectable. 
+
+    Args:
+        T (float): transit time of the pass.
+        t (array_like): Time points where the residue function is calculated.
+
+    Returns:
+        numpy.ndarray: residue function of the pass as a 1D array.
+
+    See Also:
+        `prop_pass`, `conc_pass`, `flux_pass`
+
+    Notes: 
+        The residue function of a pass is a delta function and therefore can only be approximated numerically. The numerical approximation becomes accurate only at very short sampling intervals.
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,3,4,6]
+        >>> dc.res_pass(5,t)
+        array([3.33333333, 0.        , 0.        , 0.        ])  
+    """
+    return T*tools.prop_ddelta(t)
 
 def prop_pass(t):
+    """Propagator or transit time distribution of a pass.
+
+    A pass is a space where the concentration is proportional to the input. In practice it is used to model tissues where the transit times are shorter than the temporal sampling interval. Under these conditions any bolus broadening is not detectable. 
+
+    Args:
+        t (array_like): Time points where the residue function is calculated.
+
+    Returns:
+        numpy.ndarray: propagator as a 1D array.
+
+    See Also:
+        `res_pass`, `conc_pass`, `flux_pass`
+
+    Notes: 
+        The propagator of a pass is a delta function and therefore can only be approximated numerically. The numerical approximation becomes accurate only at very short sampling intervals. 
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,3,4,6]
+        >>> dc.prop_pass(t)
+        array([0.66666667, 0.        , 0.        , 0.        ])  
+    """
     return tools.prop_ddelta(t)
+
+
+def conc_pass(J, T):
+    """Indicator concentration inside a pass.
+
+    A pass is a space where the concentration is proportional to the input. In practice it is used to model tissues where the transit times are shorter than the temporal sampling interval. Under these conditions any bolus broadening is not detectable. 
+
+    Args:
+        J (array_like): the indicator flux entering the trap.
+        T (float): transit time of the pass.
+
+    Returns:
+        numpy.ndarray: Concentration as a 1D array.
+
+    See Also:
+        `res_pass`, `prop_pass`, `flux_pass`
+
+    Example:
+        >>> import dcmri as dc
+        >>> J = [1,2,3,3,2]
+        >>> dc.conc_pass(J, 5)
+        array([ 5, 10, 15, 15, 10])
+    """
+    return T*np.array(J)
+
+def flux_pass(J):
+    """Indicator flux out of a pass.
+
+    A pass is a space where the concentration is proportional to the input. In practice it is used to model tissues where the transit times are shorter than the temporal sampling interval. Under these conditions any bolus broadening is not detectable. 
+
+    Args:
+        J (array_like): the indicator flux entering the trap.
+
+    Returns:
+        numpy.ndarray: outflux as a 1D array.
+
+    See Also:
+        `res_pass`, `conc_pass`, `prop_pass`
+
+    Notes: 
+        The outflux out of a pass is always the same as the influx, and therefore this function is an identity. It is nevertheless included in the `dcmri` package for consistency with other functionality. 
+
+    Example:
+        >>> import dcmri as dc
+        >>> J = [1,2,3,3,2]
+        >>> dc.flux_pass(J)
+        array([1, 2, 3, 3, 2]) 
+    """
+    return np.array(J)
+
 
 # Compartment
 
@@ -539,10 +626,6 @@ def flux_2cxm(J, T, E, t=None, dt=1.0):
     return J0
 
 def res_2cxm(T, E, t):
-    """Concentration in a 2-compartment exchange model system.
-
-    E is the scalar extraction fraction E10
-    """
     K0 = 1/T[0]
     K1 = 1/T[1]
     K10 = E/T[0]
@@ -647,7 +730,6 @@ def flux_nscomp(J, T, t=None, dt=1.0):
 
 
 if __name__ == "__main__":
-
 
     print('All pk tests passed!!')
 
