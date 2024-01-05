@@ -2,8 +2,16 @@
 
 __version__ = "0.1.2"
 
+# Helper functions imported for testing but not exposed to package user
 from . import tools
 
-from .aif import (
+# Functions exposed to package users
+from .tools import (
+    nexpconv,
+    biexpconv,
+    expconv,
+    conv,
+)
+from .lib import (
     aif_parker,
 )

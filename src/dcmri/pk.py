@@ -67,7 +67,7 @@ def conc_plug(J, T, t=None, dt=1.0):
         return conc_trap(J, t=t, dt=dt)
     if T==0:
         return 0*J
-    t = tools.tarray(J, t=t, dt=dt)
+    t = tools.tarray(len(J), t=t, dt=dt)
     Jo = np.interp(t-T, t, J, left=0)
     return tools.trapz(t, J-Jo)
 
@@ -76,7 +76,7 @@ def flux_plug(J, T, t=None, dt=1.0):
         return flux_trap(J, t=t, dt=dt)
     if T==0:
         return J
-    t = tools.tarray(J, t=t, dt=dt)
+    t = tools.tarray(len(J), t=t, dt=dt)
     return np.interp(t-T, t, J, left=0) 
 
 def res_plug(T, t):
@@ -95,7 +95,7 @@ def conc_chain(J, T, D, t=None, dt=1.0):
         return conc_plug(J, T, t=t, dt=dt)
     if D == 100:
         return conc_comp(J, T, t=t, dt=dt)
-    t = tools.tarray(J, t=t, dt=dt)
+    t = tools.tarray(len(J), t=t, dt=dt)
     r = res_chain(T, D, t)
     return tools.conv(r, J, t)
 
@@ -104,7 +104,7 @@ def flux_chain(J, T, D, t=None, dt=1.0):
         return prop_plug(J, T, t=t, dt=dt)
     if D == 100:
         return prop_comp(J, T, t=t, dt=dt)
-    t = tools.tarray(J, t=t, dt=dt)
+    t = tools.tarray(len(J), t=t, dt=dt)
     h = prop_chain(T, D, t)
     return tools.conv(h, J, t)
 
@@ -138,9 +138,7 @@ def prop_chain(T, D, t):
     if D==100: 
         return prop_comp(T, t)
     n = 100/D
-    Tx = T/n
-    u = t/Tx
-    g = u**(n-1) * np.exp(-u)/Tx/gamma(n)
+    g = tools.nexpconv(n, T/n, t)
     gfin = np.isfinite(g)
     n_notfin = g.size - np.count_nonzero(gfin)
     if n_notfin > 0:
@@ -150,12 +148,12 @@ def prop_chain(T, D, t):
 # Free
 
 def conc_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
-    u = tools.tarray(J, t=t, dt=dt)
+    u = tools.tarray(len(J), t=t, dt=dt)
     r = res_free(H, u, TT=TT, TTmin=TTmin, TTmax=TTmax)
     return tools.conv(r, J, t=t, dt=dt)
 
 def flux_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
-    u = tools.tarray(J, t=t, dt=dt)
+    u = tools.tarray(len(J), t=t, dt=dt)
     h = prop_free(H, u, TT=TT, TTmin=TTmin, TTmax=TTmax)
     return tools.conv(h, J, t=t, dt=dt)
 
@@ -234,7 +232,7 @@ def conc_ncomp(J, T, E, t=None, dt=1.0):
     - if sum_j Eji < 1 then compartment i contains a trap.
     - if sum_j Eji > 1 then compartment i produces indicator.
     """
-    t = tools.tarray(J[:,0], t=t, dt=dt)
+    t = tools.tarray(len(J[:,0]), t=t, dt=dt)
     K = K_ncomp(T, E)
     Kmax = K.diagonal().max()
     nc = len(T)
@@ -261,7 +259,7 @@ def flux_ncomp(J, T, E, t=None, dt=1.0):
     """Flux out of a general n-compartment model.
     """
     C = conc_ncomp(J, T, E, t=t, dt=dt)
-    t = tools.tarray(J[:,0], t=t, dt=dt)
+    t = tools.tarray(len(J[:,0]), t=t, dt=dt)
     K = Ko_ncomp(T, E)
     Jo = np.zeros(C.shape)
     for k in range(C.shape[0]):
@@ -299,7 +297,7 @@ def conc_2comp(J, T, E, t=None, dt=1.0):
     """
     if np.amin(T) <= 0:
         raise ValueError('T must be strictly positive.')
-    t = tools.tarray(J[:,0], t=t, dt=dt)
+    t = tools.tarray(len(J[:,0]), t=t, dt=dt)
     K0 = (E[0,0]+E[1,0])/T[0]
     K1 = (E[0,1]+E[1,1])/T[1]
     K10 = E[1,0]/T[0]
@@ -326,7 +324,7 @@ def flux_2comp(J, T, E, t=None, dt=1.0):
     """Concentration in a general 2-compartment system
     """
     C = conc_2comp(J, T, E, t=t, dt=dt)
-    t = tools.tarray(J[:,0], t=t, dt=dt)
+    t = tools.tarray(len(J[:,0]), t=t, dt=dt)
     K0 = (E[0,0]+E[1,0])/T[0]
     K1 = (E[0,1]+E[1,1])/T[1]
     J0 = K0*C[:,0]
@@ -381,7 +379,7 @@ def conc_2cxm(J, T, E, t=None, dt=1.0):
     """
     if np.amin(T) <= 0:
         raise ValueError('T must be strictly positive.')
-    t = tools.tarray(J, t=t, dt=dt)
+    t = tools.tarray(len(J), t=t, dt=dt)
     K0 = 1/T[0]
     K1 = 1/T[1]
     K10 = E/T[0]
@@ -404,7 +402,7 @@ def conc_2cxm(J, T, E, t=None, dt=1.0):
 
 def flux_2cxm(J, T, E, t=None, dt=1.0):
     C = conc_2cxm(J, T, E, t=t, dt=dt)
-    t = tools.tarray(J, t=t, dt=dt)
+    t = tools.tarray(len(J), t=t, dt=dt)
     J0 = C[:,0]*(1-E)/T[0]
     return J0
 
@@ -443,7 +441,7 @@ def prop_2cxm(T, E, t):
 
 
 def conc_2cfm(J, T, E, t=None, dt=1.0):
-    t = tools.tarray(J, t=t, dt=dt)
+    t = tools.tarray(len(J), t=t, dt=dt)
     C0 = conc_comp(J, T[0], t)
     if E==0:
         C1 = np.zeros(len(t))
@@ -454,7 +452,7 @@ def conc_2cfm(J, T, E, t=None, dt=1.0):
     return np.stack((C0, C1), axis=-1)
 
 def flux_2cfm(J, T, E, t=None, dt=1.0):
-    t = tools.tarray(J, t=t, dt=dt)
+    t = tools.tarray(len(J), t=t, dt=dt)
     J0 = flux_comp(J, T[0], t)
     if E==0:
         J1 = np.zeros(len(t))
@@ -490,7 +488,7 @@ def conc_nscomp(J, T, t=None, dt=1.0):
         raise ValueError('T and J must have the same length.')
     if np.amin(T) <= 0:
         raise ValueError('T must be strictly positive.')
-    t = tools.tarray(J, t=t, dt=dt)
+    t = tools.tarray(len(J), t=t, dt=dt)
     Dt = t[1:]-t[:-1]
     Tt = (T[1:]+T[:-1])/2
     Jt = (J[1:]+J[:-1])/2

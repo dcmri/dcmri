@@ -1,10 +1,13 @@
 
 
-Examples using ``dcmri.aif_parker``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _sphx_glr_generated_examples_lib:
+
+*******************************
+Constants and special functions
+*******************************
 
 
-.. start-sphx-glr-thumbnails
+
 
 
 .. raw:: html
@@ -29,10 +32,6 @@ Examples using ``dcmri.aif_parker``
     </div>
 
 
-.. only:: not html
-
- * :ref:`sphx_glr_generated_examples_lib_plot_aif_parker.py`
-
 .. raw:: html
 
     <div class="sphx-glr-thumbcontainer" tooltip="Dummy script to illustrate structure of examples folder ">
@@ -50,11 +49,14 @@ Examples using ``dcmri.aif_parker``
     </div>
 
 
-.. only:: not html
-
- * :ref:`sphx_glr_generated_examples_lib_plot_dummy.py`
-
 .. raw:: html
 
     </div>
+
+
+.. toctree::
+   :hidden:
+
+   /generated/examples/lib/plot_aif_parker
+   /generated/examples/lib/plot_dummy
 

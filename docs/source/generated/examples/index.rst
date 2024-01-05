@@ -17,9 +17,9 @@ Illustrating common use cases of dcmri.
 
     </div>
 
-************************
-Arterial Input Functions
-************************
+*******************************
+Constants and special functions
+*******************************
 
 
 
@@ -36,10 +36,10 @@ Arterial Input Functions
 
 .. only:: html
 
-  .. image:: /generated/examples/aif/images/thumb/sphx_glr_plot_aif_parker_thumb.png
+  .. image:: /generated/examples/lib/images/thumb/sphx_glr_plot_aif_parker_thumb.png
     :alt:
 
-  :ref:`sphx_glr_generated_examples_aif_plot_aif_parker.py`
+  :ref:`sphx_glr_generated_examples_lib_plot_aif_parker.py`
 
 .. raw:: html
 
@@ -53,10 +53,10 @@ Arterial Input Functions
 
 .. only:: html
 
-  .. image:: /generated/examples/aif/images/thumb/sphx_glr_plot_dummy_thumb.png
+  .. image:: /generated/examples/lib/images/thumb/sphx_glr_plot_dummy_thumb.png
     :alt:
 
-  :ref:`sphx_glr_generated_examples_aif_plot_dummy.py`
+  :ref:`sphx_glr_generated_examples_lib_plot_dummy.py`
 
 .. raw:: html
 
@@ -68,9 +68,9 @@ Arterial Input Functions
 
     </div>
 
-*********************
-Tissue concentrations
-*********************
+************
+DC-MRI tools
+************
 
 
 
@@ -83,18 +83,18 @@ Tissue concentrations
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="Simulate the systematic error caused by the high-flow assumption in the modified Tofts model. ">
+    <div class="sphx-glr-thumbcontainer" tooltip="Using the convolution functions ~dcmri.conv, ~dcmri.expconv, ~dcmri.biexpconv and ~dcmri.nexpco...">
 
 .. only:: html
 
-  .. image:: /generated/examples/tissue/images/thumb/sphx_glr_plot_dummy_thumb.png
+  .. image:: /generated/examples/tools/images/thumb/sphx_glr_plot_convolution_thumb.png
     :alt:
 
-  :ref:`sphx_glr_generated_examples_tissue_plot_dummy.py`
+  :ref:`sphx_glr_generated_examples_tools_plot_convolution.py`
 
 .. raw:: html
 
-      <div class="sphx-glr-thumbnail-title">High flow model error</div>
+      <div class="sphx-glr-thumbnail-title">A comparison of convolution functions</div>
     </div>
 
 
@@ -108,8 +108,8 @@ Tissue concentrations
    :includehidden:
 
 
-   /generated/examples/aif/index.rst
-   /generated/examples/tissue/index.rst
+   /generated/examples/lib/index.rst
+   /generated/examples/tools/index.rst
 
 
 

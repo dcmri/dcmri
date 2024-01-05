@@ -1,12 +1,12 @@
 
 :orphan:
 
-.. _sphx_glr_sg_execution_times:
+.. _sphx_glr_generated_examples_tools_sg_execution_times:
 
 
 Computation times
 =================
-**00:08.466** total execution time for 3 files **from all galleries**:
+**00:08.466** total execution time for 1 file **from generated\examples\tools**:
 
 .. container::
 
@@ -32,12 +32,6 @@ Computation times
    * - Example
      - Time
      - Mem (MB)
-   * - :ref:`sphx_glr_generated_examples_tools_plot_convolution.py` (``..\examples\tools\plot_convolution.py``)
+   * - :ref:`sphx_glr_generated_examples_tools_plot_convolution.py` (``plot_convolution.py``)
      - 00:08.466
-     - 0.0
-   * - :ref:`sphx_glr_generated_examples_lib_plot_aif_parker.py` (``..\examples\lib\plot_aif_parker.py``)
-     - 00:00.000
-     - 0.0
-   * - :ref:`sphx_glr_generated_examples_lib_plot_dummy.py` (``..\examples\lib\plot_dummy.py``)
-     - 00:00.000
      - 0.0
