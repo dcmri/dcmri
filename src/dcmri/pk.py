@@ -141,7 +141,7 @@ def res_pass(T, t):
         >>> dc.res_pass(5,t)
         array([3.33333333, 0.        , 0.        , 0.        ])  
     """
-    return T*tools.prop_ddelta(t)
+    return T*tools.ddelta(t)
 
 def prop_pass(t):
     """Propagator or transit time distribution of a pass.
@@ -166,7 +166,7 @@ def prop_pass(t):
         >>> dc.prop_pass(t)
         array([0.66666667, 0.        , 0.        , 0.        ])  
     """
-    return tools.prop_ddelta(t)
+    return tools.ddelta(t)
 
 
 def conc_pass(J, T):
@@ -244,7 +244,9 @@ def res_comp(T, t):
     if T == np.inf:
         return res_trap(t)
     if T == 0:
-        return tools.res_ddelta(t)
+        r = np.zeros(len())
+        r[0] = 1
+        return r
     return np.exp(-np.array(t)/T)
 
 def prop_comp(T, t):
@@ -271,7 +273,7 @@ def prop_comp(T, t):
     if T == np.inf:
         return prop_trap(t)
     if T == 0:
-        return tools.prop_ddelta(t)
+        return tools.ddelta(t)
     return np.exp(-np.array(t)/T)/T
 
 
@@ -323,7 +325,6 @@ def flux_comp(J, T, t=None, dt=1.0):
 
     Example:
         >>> import dcmri as dc
-        >>> import dcmri as dc
         >>> t = [0,5,15,30,60]
         >>> J = [1,2,3,3,2]
         >>> dc.flux_comp(J, 5, t)
@@ -334,22 +335,115 @@ def flux_comp(J, T, t=None, dt=1.0):
     return tools.expconv(J, T, t=t, dt=dt)
 
 
-
-
-
-
 # Plug flow
 
+
+def res_plug(T, t):
+    """Residue function of a plug flow system.
+
+    A plug flow system is a space with a constant velocity. The residue function of a plug flow system is a step function.
+
+    Args:
+        T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the system is a trap.
+        t (array_like): time points where the residue function is calculated, in the same units as T.
+
+    Returns:
+        numpy.ndarray: residue function as a 1D array.
+
+    See Also:
+        `prop_plug`, `conc_plug`, `flux_plug`
+        
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,3,4,6]
+        >>> dc.res_plug(5,t)
+        array([1., 1., 1., 0.])  
+    """
+    if not isinstance(t, np.ndarray):
+        t = np.array(t)
+    g = np.ones(len(t))
+    g[t>T] = 0
+    return g
+
+def prop_plug(T, t):
+    """Propagator or transit time distribution of a plug flow system.
+
+    A plug flow system is a space with a constant velocity. The propagator of a plug flow system is a (discrete) delta function. 
+
+    Args:
+        T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the system is a trap.
+        t (array_like): time points where the residue function is calculated, in the same units as T.
+
+    Returns:
+        numpy.ndarray: propagator as a 1D array.
+
+    See Also:
+        `res_plug`, `conc_plug`, `flux_plug`
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,3,4,6]
+        >>> dc.prop_plug(5,t)
+        array([0.        , 0.        , 0.33333333, 0.5       ])  
+    """
+    return tools.ddelta(T, t)
+
 def conc_plug(J, T, t=None, dt=1.0):
+    """Indicator concentration inside a plug flow system.
+
+    A plug flow system is a space with a constant velocity. 
+
+    Args:
+        J (array_like): the indicator flux entering the system.
+        T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
+        t (array_like, optional): the time points of the indicator flux J, in the same units as T. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as T. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+
+    Returns:
+        numpy.ndarray: Concentration as a 1D array.
+
+    See Also:
+        `res_plug`, `prop_plug`, `flux_plug`
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,5,15,30,60]
+        >>> J = [1,2,3,3,2]
+        >>> dc.conc_plug(J, 5, t)
+        array([ 0.  ,  5.  , 12.5 , 16.25, 13.75])
+    """
     if T==np.inf:
         return conc_trap(J, t=t, dt=dt)
     if T==0:
         return 0*J
     t = tools.tarray(len(J), t=t, dt=dt)
     Jo = np.interp(t-T, t, J, left=0)
-    return tools.trapz(t, J-Jo)
+    return tools.trapz(J-Jo, t)
 
 def flux_plug(J, T, t=None, dt=1.0):
+    """Indicator flux out of a plug flow system.
+
+    A plug flow system is a space with a constant velocity. 
+
+    Args:
+        J (array_like): the indicator flux entering the system.
+        T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the system is a trap.
+        t (array_like, optional): the time points of the indicator flux J, in the same units as T. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as T. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+
+    Returns:
+        numpy.ndarray: outflux as a 1D array.
+
+    See Also:
+        `res_plug`, `conc_plug`, `prop_plug`
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,5,15,30,60]
+        >>> J = [1,2,3,3,2]
+        >>> dc.flux_plug(J, 5, t)
+        array([0.        , 1.        , 2.5       , 3.        , 2.16666667]) 
+    """
     if T==np.inf:
         return flux_trap(J, t=t, dt=dt)
     if T==0:
@@ -357,14 +451,9 @@ def flux_plug(J, T, t=None, dt=1.0):
     t = tools.tarray(len(J), t=t, dt=dt)
     return np.interp(t-T, t, J, left=0) 
 
-def res_plug(T, t):
-    g = np.ones(len(t))
-    g[np.where(t>T)] = 0
-    return g
 
-def prop_plug(T, t):
-    h = tools.prop_ddelta(t)
-    return np.interp(t-T, t, h, left=0)
+
+
 
 # 2 Parameters
 
@@ -824,6 +913,7 @@ def flux_nscomp(J, T, t=None, dt=1.0):
 
 
 if __name__ == "__main__":
+
 
     print('All pk tests passed!!')
 

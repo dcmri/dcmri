@@ -26,22 +26,34 @@ def trapz(f, t=None, dt=1.0):
     return g
 
 
-def prop_ddelta(t):
+def ddelta(T, t):
     # Helper function - discrete delta
-    h = np.zeros(len(t))
-    if t[0] != 0:
+    if not isinstance(t, np.ndarray):
+        t=np.array(t)
+    n = len(t)
+    h = np.zeros(n)
+    if T<t[0]:
         return h
-    h[0] = 2/t[1]
+    if T>t[-1]:
+        return h
+    if T==t[0]:
+        h[0]=2/(t[1]-t[0])
+        return h
+    if T==t[-1]:
+        h[-1]=2/(t[-1]-t[-2])
+        return h
+    i = np.where(T>=t)[0][-1]
+    u = (T-t[i])/(t[i+1]-t[i])
+    if i==0:
+        h[i] = (1-u)*2/(t[i+1]-t[i])
+    else:
+        h[i] = (1-u)*2/(t[i+1]-t[i-1])
+    if i==n-2:
+        h[i+1] = u*2/(t[i+1]-t[i])
+    else:
+        h[i+1] = u*2/(t[i+2]-t[i])
     return h
 
-
-def res_ddelta(t):
-    # Helper function - residue function for discrete delta.
-    h = np.zeros(len(t))
-    if t[0] != 0:
-        return h
-    h[0] = 1
-    return h
 
 
 def intprod(f, h, t=None, dt=1.0):
@@ -377,5 +389,7 @@ def nexpconv(n, T, t):
 
     
 if __name__ == "__main__":
+
+    test_ddelta()
     
     print('All tools tests passed!!')

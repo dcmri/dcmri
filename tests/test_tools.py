@@ -220,38 +220,28 @@ def test_biexpconv():
     g0 = (np.exp(-t/Tf)-np.exp(-t/Th))/(Tf-Th)
     assert np.linalg.norm(g-g0) == 0
 
-def test_prop_ddelta():
-    t = [0,1,2,3]
-    h = tools.prop_ddelta(t)
-    assert np.array_equal(h, [2,0,0,0])
-    assert np.trapz(h,t) == 1
+def test_ddelta():
     t = [0,2,3,4]
-    h = tools.prop_ddelta(t)
+    h = tools.ddelta(-1, t)
+    assert np.array_equal(h, [0,0,0,0])
+    h = tools.ddelta(0, t)
     assert np.array_equal(h, [1,0,0,0])
     assert np.trapz(h,t) == 1
-    t = [1,2,3,4]
-    h = tools.prop_ddelta(t)
-    assert np.array_equal(h, [0,0,0,0])
-    assert np.trapz(h,t) == 0
+    h = tools.ddelta(1, t)
+    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    h = tools.ddelta(2, t)
+    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    h = tools.ddelta(3.5, t)
+    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    h = tools.ddelta(4, t)
+    assert np.abs(np.trapz(h,t)-1) < 1e-12
 
     # Check that this is a unit for the convolution.
     t = tfib(10, 30)
-    h = tools.prop_ddelta(t)
+    h = tools.ddelta(0,t)
     f = np.exp(-t/30)/30
     g = tools.conv(f, h, t)
     assert np.linalg.norm(g[1:]-f[1:])/np.linalg.norm(f[1:]) < 1e-2
-
-
-def test_res_ddelta():
-    t = [0,1,2,3]
-    r = tools.res_ddelta(t)
-    assert np.array_equal(r, [1,0,0,0])
-    t = [0,2,3,4]
-    r = tools.res_ddelta(t)
-    assert np.array_equal(r, [1,0,0,0])
-    t = [1,2,3,4]
-    r = tools.res_ddelta(t)
-    assert np.array_equal(r, [0,0,0,0])
 
 
 if __name__ == "__main__":
@@ -264,7 +254,6 @@ if __name__ == "__main__":
     test_uconv()
     test_conv()
     test_tarray()
-    test_res_ddelta()
-    test_prop_ddelta()
+    test_ddelta()
 
     print('All tools tests passed!!')
