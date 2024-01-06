@@ -141,7 +141,7 @@ def res_pass(T, t):
         >>> dc.res_pass(5,t)
         array([3.33333333, 0.        , 0.        , 0.        ])  
     """
-    return T*tools.ddelta(t)
+    return T*tools.ddelta(0, t)
 
 def prop_pass(t):
     """Propagator or transit time distribution of a pass.
@@ -166,7 +166,7 @@ def prop_pass(t):
         >>> dc.prop_pass(t)
         array([0.66666667, 0.        , 0.        , 0.        ])  
     """
-    return tools.ddelta(t)
+    return tools.ddelta(0,t)
 
 
 def conc_pass(J, T):

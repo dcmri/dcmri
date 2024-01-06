@@ -26,9 +26,7 @@ def test_conc_trap():
 def test_flux_trap():
     t = np.linspace(0, 100, 20)
     J = np.ones(len(t))
-    Jo = pk.flux_trap(J, t)
-    assert np.linalg.norm(Jo) == 0
-    Jo = pk.flux_trap(J, dt=t[0])
+    Jo = pk.flux_trap(J)
     assert np.linalg.norm(Jo) == 0
     Jo0 = tools.conv(pk.prop_trap(t), J, t)
     assert np.linalg.norm(Jo-Jo0) == 0
@@ -51,9 +49,7 @@ def test_conc_pass():
     T = 30
     t = np.linspace(0, 100, 20)
     J = np.ones(len(t))
-    C = pk.conc_pass(J, T, t)
-    assert np.unique(C)[0] == T
-    C = pk.conc_pass(J, T, dt=t[1])
+    C = pk.conc_pass(J, T)
     assert np.unique(C)[0] == T
     C0 = tools.conv(pk.res_pass(T,t), J, t)
     assert np.linalg.norm(C[1:]-C0[1:])/np.linalg.norm(C0[1:]) < 1e-12
@@ -62,11 +58,9 @@ def test_flux_pass():
     T = 30
     t = np.linspace(0, 100, 20)
     J = np.ones(len(t))
-    Jo = pk.flux_pass(J, t)
+    Jo = pk.flux_pass(J)
     assert np.linalg.norm(J-Jo)/np.linalg.norm(J) < 1e-12
-    Jo = pk.flux_pass(J, dt=t[0])
-    assert np.linalg.norm(J-Jo)/np.linalg.norm(J) < 1e-12
-    Jo0 = tools.conv(pk.prop_pass(T,t), J, t)
+    Jo0 = tools.conv(pk.prop_pass(t), J, t)
     assert np.linalg.norm(Jo[1:]-Jo0[1:])/np.linalg.norm(Jo[1:]) < 1e-12
 
 
@@ -121,10 +115,10 @@ def test_flux_comp():
 def test_res_plug():
     T = 25
     t = np.linspace(0, 150, 20)
-    r = tools.res_plug(T, t)
+    r = pk.res_plug(T, t)
     assert (np.trapz(r,t)-T)**2/T**2 < 0.02
     t = [0,5,15,30,60,90,150]
-    r = tools.res_plug(T, t)
+    r = pk.res_plug(T, t)
     assert (np.trapz(r,t)-T)**2/T**2 < 0.02
 
 def test_prop_plug():
