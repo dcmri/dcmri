@@ -34,9 +34,16 @@ from .pk import (
     prop_pass,
 
     # Compartment
-    
+
     res_comp,
     flux_comp,
     conc_comp,
     prop_comp,
+
+    # Plug flow
+    
+    res_plug,
+    flux_plug,
+    conc_plug,
+    prop_plug,
 )

@@ -51,6 +51,18 @@ One-parameter models
    conc_comp
    flux_comp
 
+**Plug flow**
+-------------
+
+.. autosummary::
+   :toctree: ../generated/api/
+   :template: autosummary.rst
+
+   res_plug
+   prop_plug
+   conc_plug
+   flux_plug
+
 
 Two-parameter models
 ====================
