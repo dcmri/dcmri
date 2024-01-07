@@ -453,29 +453,28 @@ def flux_plug(J, T, t=None, dt=1.0):
 
 
 
-
-
 # 2 Parameters
 
 # Chain
 
-def conc_chain(J, T, D, t=None, dt=1.0):
-    if D == 0:
-        return conc_plug(J, T, t=t, dt=dt)
-    if D == 100:
-        return conc_comp(J, T, t=t, dt=dt)
-    t = tools.tarray(len(J), t=t, dt=dt)
-    r = res_chain(T, D, t)
-    return tools.conv(r, J, t)
-
-def flux_chain(J, T, D, t=None, dt=1.0):
-    if D == 0:
-        return prop_plug(J, T, t=t, dt=dt)
-    if D == 100:
-        return prop_comp(J, T, t=t, dt=dt)
-    t = tools.tarray(len(J), t=t, dt=dt)
-    h = prop_chain(T, D, t)
-    return tools.conv(h, J, t)
+def prop_chain(T, D, t): 
+    if T<0:
+        raise ValueError('T cannot be negative')
+    if D<0:
+        raise ValueError('D cannot be negative')
+    if D>1:
+        raise ValueError('D cannot be larger than 1')
+    if D==0: 
+        return prop_plug(T, t)
+    if D==1: 
+        return prop_comp(T, t)
+    n = 1/D
+    g = tools.nexpconv(n, T/n, t)
+    gfin = np.isfinite(g)
+    n_notfin = g.size - np.count_nonzero(gfin)
+    if n_notfin > 0:
+        raise ValueError('A chain model is not numerically stable with these parameters. Consider restricting the minimal dispersion allowed.')
+    return g
 
 def res_chain(T, D, t):
     if D==0: 
@@ -501,18 +500,74 @@ def res_chain(T, D, t):
         g[i+1] = g[i] + (t[i+1]-t[i]) * (fnext+fi) / 2
     return 1-g
 
-def prop_chain(T, D, t): 
-    if D==0: 
-        return prop_plug(T, t)
-    if D==100: 
-        return prop_comp(T, t)
-    n = 100/D
-    g = tools.nexpconv(n, T/n, t)
-    gfin = np.isfinite(g)
-    n_notfin = g.size - np.count_nonzero(gfin)
-    if n_notfin > 0:
-        raise ValueError('A chain model is not numerically stable with these parameters. Consider restricting the minimal dispersion allowed.')
-    return g
+def conc_chain(J, T, D, t=None, dt=1.0):
+    if D == 0:
+        return conc_plug(J, T, t=t, dt=dt)
+    if D == 100:
+        return conc_comp(J, T, t=t, dt=dt)
+    t = tools.tarray(len(J), t=t, dt=dt)
+    r = res_chain(T, D, t)
+    return tools.conv(r, J, t)
+
+def flux_chain(J, T, D, t=None, dt=1.0):
+    if D == 0:
+        return prop_plug(J, T, t=t, dt=dt)
+    if D == 100:
+        return prop_comp(J, T, t=t, dt=dt)
+    t = tools.tarray(len(J), t=t, dt=dt)
+    h = prop_chain(T, D, t)
+    return tools.conv(h, J, t)
+
+
+
+
+def test_prop_chain():
+    T = 25
+    t = np.linspace(0, 150, 500)
+    h = prop_chain(T, t)
+    assert np.abs((np.trapz(h,t)-1)) < 1e-12
+    t = [0,5,15,30,60,90,150]
+    h = prop_chain(T, t)
+    assert np.abs((np.trapz(h,t)-1)) < 1e-12
+
+def test_res_chain():
+    T = 25
+    t = np.linspace(0, 150, 20)
+    r = res_chain(T, t)
+    assert (np.trapz(r,t)-T)**2/T**2 < 0.02
+    t = [0,5,15,30,60,90,150]
+    r = res_chain(T, t)
+    assert (np.trapz(r,t)-T)**2/T**2 < 0.02
+
+def test_conc_chain():
+    T = 25
+    t = np.linspace(0, 150, 20)
+    J = np.ones(len(t))
+    C0 = tools.conv(res_chain(T,t), J, t)
+    C = conc_chain(J, T, t)
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
+    C = conc_chain(J, T, dt=t[1])
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
+    t = [0,5,15,30,60,90,150]
+    J = np.ones(len(t))
+    C0 = tools.conv(res_chain(T,t), J, t)
+    C = conc_chain(J, T, t)
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
+
+def test_flux_chain():
+    T = 25
+    t = np.linspace(0, 150, 20)
+    J = np.ones(len(t))
+    J0 = tools.conv(prop_chain(T,t), J, t)
+    Jo = flux_chain(J, T, t)
+    assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 0.2
+    Jo = flux_chain(J, T, dt=t[1])
+    assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 0.2
+    t = [0,5,15,30,60,90,150]
+    J = np.ones(len(t))
+    J0 = tools.conv(prop_chain(T,t), J, t)
+    Jo = flux_chain(J, T, t)
+    assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 0.3
 
 # Step
 
@@ -520,7 +575,7 @@ def conc_step(J, T, D, t=None, dt=1.0):
     if D==0 or D>1:
         raise ValueError('D must be strictly positive and no larger than 1.')
     t = tools.tarray(len(J), t=t, dt=dt)
-    h = res_step(T, D, t)
+    r = res_step(T, D, t)
     return tools.conv(r, J, t)
 
 def flux_step(J, T, D, t=None, dt=1.0):
@@ -914,6 +969,10 @@ def flux_nscomp(J, T, t=None, dt=1.0):
 
 if __name__ == "__main__":
 
+    test_conc_chain()
+    test_flux_chain()
+    test_prop_chain()
+    test_res_chain()
 
     print('All pk tests passed!!')
 
