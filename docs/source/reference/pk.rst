@@ -79,3 +79,16 @@ Two-parameter models
    prop_chain
    conc_chain
    flux_chain
+
+
+**Step**
+--------
+
+.. autosummary::
+   :toctree: ../generated/api/
+   :template: autosummary.rst
+
+   res_step
+   prop_step
+   conc_step
+   flux_step

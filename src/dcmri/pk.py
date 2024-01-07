@@ -589,34 +589,153 @@ def flux_chain(J, T, D, t=None, dt=1.0):
 
 # Step
 
+def prop_step(T, D, t): 
+    """Propagator or transit time distribution of a step system.
+
+    Args:
+        T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the system is a trap.
+        D (float): dispersion of the system, or half-width of the step given as a fraction of T. Values must be between 0 (no dispersion) and 1 (maximal dispersion).
+        t (array_like): time points where the residue function is calculated, in the same units as T.
+
+    Returns:
+        numpy.ndarray: propagator as a 1D array.
+
+    Raises:
+        ValueError: if one of the parameters is out of bounds.
+
+    See Also:
+        `res_step`, `conc_step`, `flux_step`
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,3,4,6]
+        >>> dc.prop_step(5, 0.5, t)
+        array([0.03508772, 0.21052632, 0.21052632, 0.21052632])  
+    """
+    if not isinstance(t, np.ndarray):
+        t = np.array(t)
+    if T<0:
+        raise ValueError('T must be non-negative')
+    if D<0:
+        raise ValueError('D cannot be negative')
+    if D>1:
+        raise ValueError('D cannot be larger than 1')
+    if T==np.inf:
+        return prop_trap(t)
+    if D==0: 
+        return prop_plug(T, t)
+    T0 = T-D*T
+    T1 = T+D*T
+    n = len(t)
+    i = np.where((t>T0)*(t<T1))[0]
+    if len(i)==0:
+        return tools.ddelta(T, t)
+    i0, i1 = i[0], i[-1]
+    t0, t1 = t[i0], t[i1]
+    hi = 0
+    if i0>0:
+        u0 = (t0-T0)/(t0-t[i0-1])
+        hi += 0.5*(1+u0)*(t0-t[i0-1])
+        if i0>1:
+            hi += 0.5*u0*(t[i0-1]-t[i0-2])   
+    hi += t1-t0
+    if i1<n-1:
+        u1 = (T1-t1)/(t[i1+1]-t1)
+        hi += 0.5*(1+u1)*(t[i1+1]-t1)
+        if i1<n-2:
+            hi += 0.5*u1*(t[i1+2]-t[i1+1])
+    h = np.zeros(n)
+    h[i] = 1/hi
+    if i0>0:
+        h[i0-1] = u0/hi
+    if i1<n-1:
+        h[i1+1] = u1/hi
+    return h
+
+def res_step(T, D, t):
+    """Residue function of a step system.
+
+    Args:
+        T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the system is a trap.
+        D (float): dispersion of the system, or half-width of the step given as a fraction of T. Values must be between 0 (no dispersion) and 1 (maximal dispersion).
+        t (array_like): time points where the residue function is calculated, in the same units as T.
+
+    Returns:
+        numpy.ndarray: propagator as a 1D array.
+
+    See Also:
+        `prop_step`, `conc_step`, `flux_step`
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,3,4,6]
+        >>> dc.res_step(5, 0.5, t)
+        array([1.        , 0.63157895, 0.42105263, 0.        ])  
+    """
+    h = prop_step(T, D, t)
+    return 1-tools.trapz(h,t)
+
 def conc_step(J, T, D, t=None, dt=1.0):
-    if D==0 or D>1:
-        raise ValueError('D must be strictly positive and no larger than 1.')
+    """Indicator concentration inside a step system.
+
+    Args:
+        J (array_like): the indicator flux entering the system.
+        T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
+        D (float): dispersion of the system, or half-width of the step given as a fraction of T. Values must be between 0 (no dispersion) and 1 (maximal dispersion).
+        t (array_like, optional): the time points of the indicator flux J, in the same units as T. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as T. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+
+    Returns:
+        numpy.ndarray: Concentration as a 1D array.
+
+    See Also:
+        `res_step`, `prop_step`, `flux_step`
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,5,15,30,60]
+        >>> J = [1,2,3,3,2]
+        >>> dc.conc_step(J, 5, 0.5, t)
+        array([ 0.        ,  6.44736842, 20.19736842, 28.20175439, 21.58625731])
+    """
+    if D == 0:
+        return conc_plug(J, T, t=t, dt=dt)
     t = tools.tarray(len(J), t=t, dt=dt)
     r = res_step(T, D, t)
     return tools.conv(r, J, t)
 
 def flux_step(J, T, D, t=None, dt=1.0):
-    if D==0 or D>1:
-        raise ValueError('D must be strictly positive and no larger than 1.')
+    """Indicator flux out of a step system.
+
+    Args:
+        J (array_like): the indicator flux entering the system.
+        T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
+        D (float): dispersion of the system, or half-width of the step given as a fraction of T. Values must be between 0 (no dispersion) and 1 (maximal dispersion).
+        t (array_like, optional): the time points of the indicator flux J, in the same units as T. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as T. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+
+    Returns:
+        numpy.ndarray: Outflux as a 1D array.
+
+    See Also:
+        `res_step`, `prop_step`, `conc_step`
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,5,15,30,60]
+        >>> J = [1,2,3,3,2]
+        >>> dc.flux_step(J, 5, 0.5, t)
+        array([0.        , 0.45614035, 1.9254386 , 2.91812865, 2.29239766])
+    """
+    if D == 0:
+        return flux_plug(J, T, t=t, dt=dt)
     t = tools.tarray(len(J), t=t, dt=dt)
     h = prop_step(T, D, t)
     return tools.conv(h, J, t)
 
-def res_step(T, D, t):
-    h = prop_step(T, D, t)
-    c = np.ones(len(t))
-    # Integration is convolution with a constant
-    return 1 - tools.conv(c, h, t)
 
-def prop_step(T, D, t): 
-    if D==0 or D>1:
-        raise ValueError('D must be strictly positive and no larger than 1.')
-    T0 = T-D*T
-    T1 = T+D*T
-    h = np.zeros(len(t))
-    h[(t>=T0)*(t<=T1)] = 1/(T1-T0)
-    return h
+
+
 
 # N parameters
 

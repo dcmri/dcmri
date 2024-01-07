@@ -214,6 +214,61 @@ def test_flux_chain():
     Jo = pk.flux_chain(J, T, D, t)
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
 
+def test_prop_step():
+    T, D = 25, 0.5
+    t = np.linspace(0, 150, 100)
+    h = pk.prop_step(T, D, t)
+    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    assert np.abs(np.trapz(t*h,t)-T) < 1e-12
+    h = pk.prop_step(T, 1, t)
+    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    h = pk.prop_step(120, 0.5, t)
+    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    h = pk.prop_step(120, 0.5, t)
+    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    
+    t = [0,5,15,30,60,90,150]
+    h = pk.prop_step(T, D, t)
+    assert np.abs(np.trapz(h,t)-1) < 1e-12
+
+def test_res_step():
+    T, D = 25, 0.5
+    t = np.linspace(0, 150, 500)
+    h = pk.res_step(T, D, t)
+    assert (np.trapz(h,t)-T)**2/T**2 < 1e-9
+    t = [0,5,15,30,60,90,150]
+    h = pk.res_step(T, D, t)
+    assert (np.trapz(h,t)-T)**2/T**2 < 0.5
+
+def test_conc_step():
+    T, D = 25, 0.5
+    t = np.linspace(0, 150, 20)
+    J = np.ones(len(t))
+    C0 = tools.conv(pk.res_step(T,D,t), J, t)
+    C = pk.conc_step(J, T, D, t)
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
+    C = pk.conc_step(J, T, D, dt=t[1])
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
+    t = [0,5,15,30,60,90,150]
+    J = np.ones(len(t))
+    C0 = tools.conv(pk.res_step(T,D,t), J, t)
+    C = pk.conc_step(J, T, D, t)
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
+
+def test_flux_step():
+    T, D = 25, 0.5
+    t = np.linspace(0, 150, 20)
+    J = np.ones(len(t))
+    J0 = tools.conv(pk.prop_step(T,D,t), J, t)
+    Jo = pk.flux_step(J, T, D, t)
+    assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
+    Jo = pk.flux_step(J, T, D, dt=t[1])
+    assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
+    t = [0,5,15,30,60,90,150]
+    J = np.ones(len(t))
+    J0 = tools.conv(pk.prop_step(T,D,t), J, t)
+    Jo = pk.flux_step(J, T, D, t)
+    assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
 
 if __name__ == "__main__":
 
@@ -241,5 +296,10 @@ if __name__ == "__main__":
     test_flux_chain()
     test_prop_chain()
     test_res_chain()
+
+    test_conc_step()
+    test_flux_step()
+    test_prop_step()
+    test_res_step()
 
     print('All pk tests passed!!')
