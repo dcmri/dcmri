@@ -5,7 +5,7 @@ pydata-sphinx-theme
 sphinx
 sphinx-copybutton
 sphinx-design
-sphinx-remove-toctrees
+#sphinx-remove-toctrees
 sphinxcontrib-applehelp
 sphinxcontrib-devhelp
 sphinxcontrib-htmlhelp

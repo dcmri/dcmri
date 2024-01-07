@@ -33,7 +33,7 @@ extensions = [
     'myst_parser', # parser for markdown language
     'sphinx_copybutton', # copy button for code blocks
     'sphinx_design', # sphinx web design components
-    'sphinx_remove_toctrees', # selectively remove toctree objects from pages
+    #'sphinx_remove_toctrees', # selectively remove toctree objects from pages
     'sphinx_gallery.gen_gallery', # thumbnail galleries
 ]
 
@@ -92,7 +92,7 @@ autosummary_generate = True # enable autosummary extension
 always_document_param_types = True
 
 # Remove auto-generated API docs from sidebars.
-remove_from_toctrees = ["_autosummary/*"]
+#remove_from_toctrees = ["_autosummary/*"]
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
