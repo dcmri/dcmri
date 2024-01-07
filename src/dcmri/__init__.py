@@ -46,4 +46,11 @@ from .pk import (
     flux_plug,
     conc_plug,
     prop_plug,
+
+    # Chain
+    
+    res_chain,
+    flux_chain,
+    conc_chain,
+    prop_chain,
 )

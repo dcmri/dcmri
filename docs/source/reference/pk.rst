@@ -66,3 +66,16 @@ One-parameter models
 
 Two-parameter models
 ====================
+
+
+**Chain**
+---------
+
+.. autosummary::
+   :toctree: ../generated/api/
+   :template: autosummary.rst
+
+   res_chain
+   prop_chain
+   conc_chain
+   flux_chain

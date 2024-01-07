@@ -392,6 +392,8 @@ def nexpconv(n, T, t):
         raise ValueError('T must be non-negative')
     if n<1:
         raise ValueError('n cannot be smaller than 1')
+    if not isinstance(t, np.ndarray):
+        t = np.array(t)
     try:
         u = t/T
         g = u**(n-1) * np.exp(-u)/T/gamma(n)
