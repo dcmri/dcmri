@@ -205,20 +205,51 @@ def test_conv():
     else:
         assert False
 
-def test_nexpconv():
-    T = 20
-    t = np.array([0,1,2,3,5,8,13,21,34])
-    g = tools.nexpconv(2, T, t)
-    g0 = (t/T) * np.exp(-t/T)/T
-    assert np.linalg.norm(g-g0) == 0
-
 def test_biexpconv():
     Tf = 20
     Th = 30
     t = np.array([0,1,2,3,5,8,13,21,34])
     g = tools.biexpconv(Tf, Th, t)
     g0 = (np.exp(-t/Tf)-np.exp(-t/Th))/(Tf-Th)
+    assert np.linalg.norm(g-g0) == 0#
+
+def test_nexpconv():
+    MTT = 20
+
+    # High-res pseudocontinuous
+    # Uniform time interval
+    t = np.linspace(0, 10*MTT, 1000)
+
+    n=2
+    T=MTT/n
+    g = tools.nexpconv(n, T, t)
+    # Check against analytical
+    g0 = (t/T) * np.exp(-t/T)/T
     assert np.linalg.norm(g-g0) == 0
+    # Check against expconv
+    g0 = tools.expconv(np.exp(-t/T)/T, T, t)
+    assert np.linalg.norm(g-g0) < 1e-4
+    # Check area = 1
+    assert np.abs(np.trapz(g,t)-1) < 1e-3
+    # Check MTT
+    assert np.abs(np.trapz(t*g,t)-MTT) < 1e-5
+    
+    n=20
+    T=MTT/n
+    g = tools.nexpconv(n, T, t)
+    # Check area = 1
+    assert np.abs(np.trapz(g,t)-1) < 1e-12
+    # Check MTT
+    assert np.abs(np.trapz(t*g,t)-MTT) < 1e-12
+
+    # In this case the numerical approximation is used
+    n=200
+    T=MTT/n
+    g = tools.nexpconv(n, T, t)
+    # Check area = 1
+    assert np.abs(np.trapz(g,t)-1) < 1e-12
+    # Check MTT
+    assert np.abs(np.trapz(t*g,t)-MTT) < 0.1
 
 def test_ddelta():
     t = [0,2,3,4]
@@ -255,5 +286,7 @@ if __name__ == "__main__":
     test_conv()
     test_tarray()
     test_ddelta()
+    test_nexpconv()
+    test_biexpconv()
 
     print('All tools tests passed!!')
