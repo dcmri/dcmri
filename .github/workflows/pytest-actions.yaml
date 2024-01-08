@@ -32,8 +32,7 @@ jobs:
         run: poetry install --with dev,test,docs
 
       - name: Test with pytest
-        run: |
-          poetry run pytest --junitxml=junit/test-results.xml --cov=dummyproject tests/
+        run: poetry run pytest --junitxml=junit/test-results.xml --cov=dummyproject tests/
 
       - name: Upload coverage to Codecov
         if: runner.os == 'Windows'
