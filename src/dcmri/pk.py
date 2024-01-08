@@ -628,33 +628,7 @@ def prop_step(T, D, t):
         return prop_trap(t)
     if D==0: 
         return prop_plug(T, t)
-    T0 = T-D*T
-    T1 = T+D*T
-    n = len(t)
-    i = np.where((t>T0)*(t<T1))[0]
-    if len(i)==0:
-        return tools.ddelta(T, t)
-    i0, i1 = i[0], i[-1]
-    t0, t1 = t[i0], t[i1]
-    hi = 0
-    if i0>0:
-        u0 = (t0-T0)/(t0-t[i0-1])
-        hi += 0.5*(1+u0)*(t0-t[i0-1])
-        if i0>1:
-            hi += 0.5*u0*(t[i0-1]-t[i0-2])   
-    hi += t1-t0
-    if i1<n-1:
-        u1 = (T1-t1)/(t[i1+1]-t1)
-        hi += 0.5*(1+u1)*(t[i1+1]-t1)
-        if i1<n-2:
-            hi += 0.5*u1*(t[i1+2]-t[i1+1])
-    h = np.zeros(n)
-    h[i] = 1/hi
-    if i0>0:
-        h[i0-1] = u0/hi
-    if i1<n-1:
-        h[i1+1] = u1/hi
-    return h
+    return tools.dstep(T-D*T, T+D*T, t)
 
 def res_step(T, D, t):
     """Residue function of a step system.
@@ -745,6 +719,37 @@ def flux_step(J, T, D, t=None, dt=1.0):
 
 # Free
 
+
+def prop_free(H, t, TT=None, TTmin=0, TTmax=None):
+    nTT = len(H)
+    if TT is None:
+        if TTmax is None:
+            TTmax = np.amax(t)
+        TT = np.linspace(TTmin, TTmax, nTT+1)
+    else:
+        if len(TT) != nTT+1:
+            msg = 'The array of transit time boundaries needs to have length N+1, '
+            msg += '\n with N the size of the transit time distribution H.'
+            raise ValueError(msg)
+    H = np.array(H)
+    dist = rv_histogram((H,TT), density=True)
+    return dist.pdf(t)
+
+def res_free(H, t, TT=None, TTmin=0, TTmax=None):
+    nTT = len(H)
+    if TT is None:
+        if TTmax is None:
+            TTmax = np.amax(t)
+        TT = np.linspace(TTmin, TTmax, nTT+1)
+    else:
+        if len(TT) != nTT+1:
+            msg = 'The array of transit time boundaries needs to have length N+1, '
+            msg += '\n with N the size of the transit time distribution H.'
+            raise ValueError(msg)
+    H = np.array(H)
+    dist = rv_histogram((H,TT), density=True)
+    return 1 - dist.cdf(t)
+
 def conc_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
     u = tools.tarray(len(J), t=t, dt=dt)
     r = res_free(H, u, TT=TT, TTmin=TTmin, TTmax=TTmax)
@@ -755,35 +760,8 @@ def flux_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
     h = prop_free(H, u, TT=TT, TTmin=TTmin, TTmax=TTmax)
     return tools.conv(h, J, t=t, dt=dt)
 
-def res_free(H, t, TT=None, TTmin=0, TTmax=None):
-    H = np.array(H)
-    nTT = len(H)
-    if TT is None:
-        if TTmax is None:
-            TTmax = np.amax(t)
-        TT = np.linspace(TTmin, TTmax, nTT+1)
-    else:
-        if len(TT) != nTT+1:
-            msg = 'The array of transit time boundaries needs to have length N+1, '
-            msg += '\n with N the size of the transit time distribution H.'
-            raise ValueError(msg)
-    dist = rv_histogram((H,TT), density=True)
-    return 1 - dist.cdf(t)
 
-def prop_free(H, t, TT=None, TTmin=0, TTmax=None):
-    H = np.array(H)
-    nTT = len(H)
-    if TT is None:
-        if TTmax is None:
-            TTmax = np.amax(t)
-        TT = np.linspace(TTmin, TTmax, nTT+1)
-    else:
-        if len(TT) != nTT+1:
-            msg = 'The array of transit time boundaries needs to have length N+1, '
-            msg += '\n with N the size of the transit time distribution H.'
-            raise ValueError(msg)
-    dist = rv_histogram((H,TT), density=True)
-    return dist.pdf(t)
+
 
 
 # N compartments
