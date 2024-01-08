@@ -20,7 +20,12 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install Poetry
+      - name: Install Poetry on Windows
+        if: runner.os == 'Windows'
+        run: pipx install poetry==1.6.1
+
+      - name: Install Poetry on mac & ubuntu
+        if: runner.os == ['Linux', 'macOS']
         uses: snok/install-poetry@v1
 
       - name: Install dependencies
