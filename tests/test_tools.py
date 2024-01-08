@@ -274,6 +274,18 @@ def test_ddelta():
     g = tools.conv(f, h, t)
     assert np.linalg.norm(g[1:]-f[1:])/np.linalg.norm(f[1:]) < 1e-2
 
+def test_dstep():
+    t = [0,2,3,4]
+    h = tools.dstep(0, 4, t)
+    assert np.array_equal(h, [0.25,0.25,0.25,0.25])
+    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    h = tools.dstep(0.5, 3.5, t)
+    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    t = [0,1,2,3]
+    h = tools.dstep(0.5, 2.5, t)
+    assert np.array_equal(h, [0.2,0.4,0.4,0.2])
+    assert np.abs(np.trapz(h,t)-1) < 1e-12
+
 
 if __name__ == "__main__":
 
@@ -286,6 +298,7 @@ if __name__ == "__main__":
     test_conv()
     test_tarray()
     test_ddelta()
+    test_dstep()
     test_nexpconv()
     test_biexpconv()
 

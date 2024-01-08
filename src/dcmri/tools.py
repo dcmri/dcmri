@@ -58,6 +58,36 @@ def ddelta(T, t):
     return h
 
 
+def dstep(T0, T1, t):
+    # Helper function - discrete step
+    if not isinstance(t, np.ndarray):
+        t=np.array(t)
+    n = len(t)
+    i = np.where((t>T0)*(t<T1))[0]
+    if len(i)==0:
+        return ddelta((T0+T1)/2, t)
+    i0, i1 = i[0], i[-1]
+    t0, t1 = t[i0], t[i1]
+    hi = 0
+    if i0>0:
+        u0 = (t0-T0)/(t0-t[i0-1])
+        hi += 0.5*(1+u0)*(t0-t[i0-1])
+        if i0>1:
+            hi += 0.5*u0*(t[i0-1]-t[i0-2])   
+    hi += t1-t0
+    if i1<n-1:
+        u1 = (T1-t1)/(t[i1+1]-t1)
+        hi += 0.5*(1+u1)*(t[i1+1]-t1)
+        if i1<n-2:
+            hi += 0.5*u1*(t[i1+2]-t[i1+1])
+    h = np.zeros(n)
+    h[i] = 1/hi
+    if i0>0:
+        h[i0-1] = u0/hi
+    if i1<n-1:
+        h[i1+1] = u1/hi
+    return h
+
 
 def intprod(f, h, t=None, dt=1.0):
     # Helper function
