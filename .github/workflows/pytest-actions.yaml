@@ -24,8 +24,12 @@ jobs:
         if: runner.os == 'Windows'
         run: pipx install poetry==1.6.1
 
-      - name: Install Poetry on mac & ubuntu
-        if: runner.os == ['Linux', 'macOS']
+      - name: Install Poetry on mac
+        if: runner.os == 'macOS'
+        uses: snok/install-poetry@v1
+        
+      - name: Install Poetry on ubuntu
+        if: runner.os == 'Linux'
         uses: snok/install-poetry@v1
 
       - name: Install dependencies
