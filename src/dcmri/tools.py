@@ -1,9 +1,6 @@
-import warnings
+
 import numpy as np
 from scipy.special import gamma
-
-# Handle warnings as errors
-warnings.filterwarnings("error")
 
 
 def tarray(n, t=None, dt=1.0):
@@ -432,10 +429,9 @@ def nexpconv(n, T, t):
         raise ValueError('n cannot be smaller than 1')
     if not isinstance(t, np.ndarray):
         t = np.array(t)
-    try:
-        u = t/T
-        g = u**(n-1) * np.exp(-u)/T/gamma(n)
-    except RuntimeWarning:
+    u = t/T
+    g = u**(n-1) * np.exp(-u)/T/gamma(n)
+    if False in np.isfinite(g):
         # At large n the analytical formula runs into overflow
         # use numerical calculation in this case (slower and less accurate)
         g = np.exp(-t/T)/T
@@ -448,7 +444,6 @@ def nexpconv(n, T, t):
             u = n-n0
             g = g*u + g1*(1-u)
     return g
-
 
 
 if __name__ == "__main__":
