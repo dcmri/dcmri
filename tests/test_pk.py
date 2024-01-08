@@ -270,6 +270,61 @@ def test_flux_step():
     Jo = pk.flux_step(J, T, D, t)
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
 
+
+def test_prop_free():
+    t = np.linspace(0, 150, 100)
+    h = pk.prop_free([1,1], t, TT=[30,60,90])
+    T = 60
+    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    assert (np.trapz(t*h,t)-T)**2/T**2 < 1e-9
+    h = pk.prop_free([2,2], t, TT=[30,60,90])
+    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    assert (np.trapz(t*h,t)-T)**2/T**2 < 1e-9
+    h = pk.prop_free([2,5], t, TT=[30,60,90])
+    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    h = pk.prop_free([2,5], t, TT=[30,60,120])
+    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    h = pk.prop_free([2,5], t, TT=[30.5,60.5,120.5])
+    assert np.abs(np.trapz(h,t)-1) < 1e-12
+
+def test_res_free():
+    t = np.linspace(0, 150, 100)
+    h = pk.res_free([1,1], t, TT=[30,60,90])
+    T = 60
+    assert (np.trapz(h,t)-T)**2/T**2 < 1e-9
+
+def test_conc_free():
+    H = [1,1]
+    TT = [30,60,90]
+    t = np.linspace(0, 150, 20)
+    J = np.ones(len(t))
+    C0 = tools.conv(pk.res_free(H,t,TT), J, t)
+    C = pk.conc_free(J, H, t, TT=TT)
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
+    C = pk.conc_free(J, H, t, dt=t[1], TT=TT)
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
+    t = [0,5,15,30,60,90,150]
+    J = np.ones(len(t))
+    C0 = tools.conv(pk.res_free(H,t,TT=TT), J, t)
+    C = pk.conc_free(J, H, t, TT=TT)
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
+
+def test_flux_free():
+    H = [1,1]
+    TT = [30,60,90]
+    t = np.linspace(0, 150, 20)
+    J = np.ones(len(t))
+    J0 = tools.conv(pk.prop_free(H,t,TT), J, t)
+    Jo = pk.flux_free(J, H, t, TT=TT)
+    assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
+    Jo = pk.flux_free(J, H, t, dt=t[1], TT=TT)
+    assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
+    t = [0,5,15,30,60,90,150]
+    J = np.ones(len(t))
+    J0 = tools.conv(pk.prop_free(H,t,TT=TT), J, t)
+    Jo = pk.flux_free(J, H, t, TT=TT)
+    assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
+
 if __name__ == "__main__":
 
     test_conc_trap()
@@ -301,5 +356,10 @@ if __name__ == "__main__":
     test_flux_step()
     test_prop_step()
     test_res_step()
+
+    test_conc_free()
+    test_flux_free()
+    test_prop_free()
+    test_res_free()
 
     print('All pk tests passed!!')
