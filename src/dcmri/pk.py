@@ -337,34 +337,6 @@ def flux_comp(J, T, t=None, dt=1.0):
 
 # Plug flow
 
-
-def res_plug(T, t):
-    """Residue function of a plug flow system.
-
-    A plug flow system is a space with a constant velocity. The residue function of a plug flow system is a step function.
-
-    Args:
-        T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the system is a trap.
-        t (array_like): time points where the residue function is calculated, in the same units as T.
-
-    Returns:
-        numpy.ndarray: residue function as a 1D array.
-
-    See Also:
-        `prop_plug`, `conc_plug`, `flux_plug`
-        
-    Example:
-        >>> import dcmri as dc
-        >>> t = [0,3,4,6]
-        >>> dc.res_plug(5,t)
-        array([1., 1., 1., 0.])  
-    """
-    if not isinstance(t, np.ndarray):
-        t = np.array(t)
-    g = np.ones(len(t))
-    g[t>T] = 0
-    return g
-
 def prop_plug(T, t):
     """Propagator or transit time distribution of a plug flow system.
 
@@ -388,6 +360,32 @@ def prop_plug(T, t):
     """
     return tools.ddelta(T, t)
 
+
+def res_plug(T, t):
+    """Residue function of a plug flow system.
+
+    A plug flow system is a space with a constant velocity. The residue function of a plug flow system is a step function.
+
+    Args:
+        T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the system is a trap.
+        t (array_like): time points where the residue function is calculated, in the same units as T.
+
+    Returns:
+        numpy.ndarray: residue function as a 1D array.
+
+    See Also:
+        `prop_plug`, `conc_plug`, `flux_plug`
+        
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,3,4,6]
+        >>> dc.res_plug(5,t)
+        array([1.00000000e+00, 1.00000000e+00, 8.33333333e-01, 1.11022302e-16])  
+    """
+    h = prop_plug(T,t)
+    return 1-tools.trapz(h,t)
+
+
 def conc_plug(J, T, t=None, dt=1.0):
     """Indicator concentration inside a plug flow system.
 
@@ -410,15 +408,18 @@ def conc_plug(J, T, t=None, dt=1.0):
         >>> t = [0,5,15,30,60]
         >>> J = [1,2,3,3,2]
         >>> dc.conc_plug(J, 5, t)
-        array([ 0.  ,  5.  , 12.5 , 16.25, 13.75])
+        array([ 0.        ,  6.38888889, 18.61111111, 22.5       , 16.25      ])
     """
     if T==np.inf:
         return conc_trap(J, t=t, dt=dt)
     if T==0:
         return 0*J
     t = tools.tarray(len(J), t=t, dt=dt)
-    Jo = np.interp(t-T, t, J, left=0)
-    return tools.trapz(J-Jo, t)
+    r = res_plug(T, t)
+    return tools.conv(r, J, t=t, dt=dt)
+    # t = tools.tarray(len(J), t=t, dt=dt)
+    # Jo = np.interp(t-T, t, J, left=0)
+    # return tools.trapz(J-Jo, t)
 
 def flux_plug(J, T, t=None, dt=1.0):
     """Indicator flux out of a plug flow system.
@@ -442,14 +443,17 @@ def flux_plug(J, T, t=None, dt=1.0):
         >>> t = [0,5,15,30,60]
         >>> J = [1,2,3,3,2]
         >>> dc.flux_plug(J, 5, t)
-        array([0.        , 1.        , 2.5       , 3.        , 2.16666667]) 
+        array([0.        , 0.44444444, 2.30555556, 3.        , 2.22222222]) 
     """
     if T==np.inf:
         return flux_trap(J, t=t, dt=dt)
     if T==0:
         return J
     t = tools.tarray(len(J), t=t, dt=dt)
-    return np.interp(t-T, t, J, left=0) 
+    h = prop_plug(T, t)
+    return tools.conv(h, J, t=t, dt=dt)
+    #t = tools.tarray(len(J), t=t, dt=dt)
+    #return np.interp(t-T, t, J, left=0) 
 
 
 

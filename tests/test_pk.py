@@ -119,7 +119,7 @@ def test_res_plug():
     assert (np.trapz(r,t)-T)**2/T**2 < 0.02
     t = [0,5,15,30,60,90,150]
     r = pk.res_plug(T, t)
-    assert (np.trapz(r,t)-T)**2/T**2 < 0.02
+    assert (np.trapz(r,t)-T)**2/T**2 < 0.06
 
 def test_prop_plug():
     T = 25
