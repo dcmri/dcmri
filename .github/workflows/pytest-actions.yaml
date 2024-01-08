@@ -21,7 +21,7 @@ jobs:
           python-version: '3.10'
 
       - name: Install Poetry
-        run: pipx install poetry==1.6.1
+        run: pipx install poetry==1.7.0
 
       - name: Install dependencies
         run: |
