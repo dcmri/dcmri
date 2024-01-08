@@ -1,7 +1,6 @@
 import math
 import numpy as np
-from scipy.special import gamma
-from scipy.stats import rv_histogram, norm
+#from scipy.stats import rv_histogram
 
 import dcmri.tools as tools
 
@@ -41,7 +40,7 @@ def prop_trap(t):
     A trap is a space where all indicator that enters is trapped forever. In practice it is used to model tissues where the transit times are much longer than the acquisition window. 
 
     Args:
-        t (array_like): Time points where the residue function is calculated.
+        t (array_like): Time points where the propagator is calculated.
 
     Returns:
         numpy.ndarray: propagator as a 1D array.
@@ -149,7 +148,7 @@ def prop_pass(t):
     A pass is a space where the concentration is proportional to the input. In practice it is used to model tissues where the transit times are shorter than the temporal sampling interval. Under these conditions any bolus broadening is not detectable. 
 
     Args:
-        t (array_like): Time points where the residue function is calculated.
+        t (array_like): Time points where the propagator is calculated.
 
     Returns:
         numpy.ndarray: propagator as a 1D array.
@@ -256,7 +255,7 @@ def prop_comp(T, t):
 
     Args:
         T (float): mean transit time of the compartment. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
-        t (array_like): time points where the residue function is calculated, in the same units as T.
+        t (array_like): time points where the propagator is calculated, in the same units as T.
 
     Returns:
         numpy.ndarray: propagator as a 1D array.
@@ -344,7 +343,7 @@ def prop_plug(T, t):
 
     Args:
         T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the system is a trap.
-        t (array_like): time points where the residue function is calculated, in the same units as T.
+        t (array_like): time points where the propagator is calculated, in the same units as T.
 
     Returns:
         numpy.ndarray: propagator as a 1D array.
@@ -467,7 +466,7 @@ def prop_chain(T, D, t):
     Args:
         T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the system is a trap.
         D (float): dispersion of the system. Values must be between 0 (no dispersion) and 1 (maximal dispersion).
-        t (array_like): time points where the residue function is calculated, in the same units as T.
+        t (array_like): time points where the propagator is calculated, in the same units as T.
 
     Returns:
         numpy.ndarray: propagator as a 1D array.
@@ -599,7 +598,7 @@ def prop_step(T, D, t):
     Args:
         T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the system is a trap.
         D (float): dispersion of the system, or half-width of the step given as a fraction of T. Values must be between 0 (no dispersion) and 1 (maximal dispersion).
-        t (array_like): time points where the residue function is calculated, in the same units as T.
+        t (array_like): time points where the propagator is calculated, in the same units as T.
 
     Returns:
         numpy.ndarray: propagator as a 1D array.
@@ -712,15 +711,49 @@ def flux_step(J, T, D, t=None, dt=1.0):
     return tools.conv(h, J, t)
 
 
-
-
-
 # N parameters
 
 # Free
 
 
 def prop_free(H, t, TT=None, TTmin=0, TTmax=None):
+    """Propagator or transit time distribution of a free system.
+
+    Args:
+        H (array_like): frequencies of the transit time histogram in each transit time bin. These do not have to be normalized - the function normalizes to unit area by default.
+        t (array_like): time points where the propagator is calculated, in the same units as T.
+        TT (array_like): boundaries of the transit time histogram bins. The number of elements in this array must be one more than the number of elements in H. If TT is not provided, the boundaries are equally distributed between TTmin and TTmax. Defaults to None.
+        TTmin (float): Minimal transit time to be considered. If TT is provided, this argument is ignored. Defaults to 0.
+        TTmax (float): Maximal transit time to be considered. If TT is provided, this argument is ignored. Defaults to the maximum of t.
+
+    Returns:
+        numpy.ndarray: propagator as a 1D array.
+
+    Raises:
+        ValueError: if the array of transit times has the incorrect length.
+
+    See Also:
+        `res_free`, `conc_free`, `flux_free`
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,1,2,3]
+    
+        Assume the transit time histogram is provided by two equally sized bins covering the entire time interval, with frequencies 2 and 1, respectively:
+
+        >>> dc.prop_free([2,1], t)
+        array([0.33333333, 0.41666667, 0.33333333, 0.16666667]) 
+
+        Assume the transit time has two equally sized bins, but between the values [0.5, 2.5]: 
+
+        >>> dc.prop_free([2,1], t, TTmin=0.5, TTmax=2.5)
+        array([0.19047619, 0.47619048, 0.38095238, 0.0952381 ])
+
+        Assume the transit time histogram is provided by two bins in the same range, but with different sizes: one from 0.5 to 1 and the other from 1 to 2.5. The frequencies in the bins are the same as in the previous example:
+
+        >>> dc.prop_free([2,1], t, TT=[0.5,1.0,2.5])
+        array([0.33333333, 0.64814815, 0.14814815, 0.07407407]) 
+    """
     nTT = len(H)
     if TT is None:
         if TTmax is None:
@@ -731,36 +764,161 @@ def prop_free(H, t, TT=None, TTmin=0, TTmax=None):
             msg = 'The array of transit time boundaries needs to have length N+1, '
             msg += '\n with N the size of the transit time distribution H.'
             raise ValueError(msg)
-    H = np.array(H)
-    dist = rv_histogram((H,TT), density=True)
-    return dist.pdf(t)
+    h = tools.ddist(H, TT, t)
+    return h/np.trapz(h,t)
+    # Old approach with histogram
+    # dist = rv_histogram((H,TT), density=True)
+    # return dist.pdf(t)
 
 def res_free(H, t, TT=None, TTmin=0, TTmax=None):
-    nTT = len(H)
-    if TT is None:
-        if TTmax is None:
-            TTmax = np.amax(t)
-        TT = np.linspace(TTmin, TTmax, nTT+1)
-    else:
-        if len(TT) != nTT+1:
-            msg = 'The array of transit time boundaries needs to have length N+1, '
-            msg += '\n with N the size of the transit time distribution H.'
-            raise ValueError(msg)
-    H = np.array(H)
-    dist = rv_histogram((H,TT), density=True)
-    return 1 - dist.cdf(t)
+    """Residue function of a free system.
+
+    Args:
+        H (array_like): frequencies of the transit time histogram in each transit time bin. These do not have to be normalized - the function normalizes to unit area by default.
+        t (array_like): time points where the residue function is calculated, in the same units as T.
+        TT (array_like): boundaries of the transit time histogram bins. The number of elements in this array must be one more than the number of elements in H. If TT is not provided, the boundaries are equally distributed between TTmin and TTmax. Defaults to None.
+        TTmin (float): Minimal transit time to be considered. If TT is provided, this argument is ignored. Defaults to 0.
+        TTmax (float): Maximal transit time to be considered. If TT is provided, this argument is ignored. Defaults to the maximum of t.
+
+    Returns:
+        numpy.ndarray: residue function as a 1D array.
+
+    Raises:
+        ValueError: if the array of transit times has the incorrect length.
+
+    See Also:
+        `prop_free`, `conc_free`, `flux_free`
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,1,2,3]
+    
+        Assume the transit time histogram is provided by two equally sized bins covering the entire time interval, with frequencies 2 and 1, respectively:
+
+        >>> dc.res_free([2,1], t)
+        array([1.   , 0.625, 0.25 , 0.   ]) 
+
+        Assume the transit time has two equally sized bins, but between the values [0.5, 2.5]: 
+
+        >>> dc.res_free([2,1], t, TTmin=0.5, TTmax=2.5)
+        array([1.00000000e+00, 6.66666667e-01, 2.38095238e-01, 2.22044605e-16])
+
+        Assume the transit time histogram is provided by two bins in the same range, but with different sizes: one from 0.5 to 1 and the other from 1 to 2.5. The frequencies in the bins are the same as in the previous example:
+
+        >>> dc.res_free([2,1], t, TT=[0.5,1.0,2.5])
+        array([1.00000000e+00, 5.09259259e-01, 1.11111111e-01, 2.22044605e-16])
+    """
+    h = prop_free(H, t, TT=TT, TTmin=TTmin, TTmax=TTmax)
+    r = 1 - tools.trapz(h, t)
+    r[r<0] = 0
+    return r
+    # Old approach with histogram
+    # dist = rv_histogram((H,TT), density=True)
+    # return 1 - dist.cdf(t)
 
 def conc_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
+    """Indicator concentration inside a free system.
+
+    Args:
+        J (array_like): the indicator flux entering the system.
+        H (array_like): frequencies of the transit time histogram in each transit time bin. These do not have to be normalized - the function normalizes to unit area by default.
+        t (array_like, optional): the time points of the indicator flux J, in the same units as T. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as T. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+        TT (array_like): boundaries of the transit time histogram bins. The number of elements in this array must be one more than the number of elements in H. If TT is not provided, the boundaries are equally distributed between TTmin and TTmax. Defaults to None.
+        TTmin (float): Minimal transit time to be considered. If TT is provided, this argument is ignored. Defaults to 0.
+        TTmax (float): Maximal transit time to be considered. If TT is provided, this argument is ignored. Defaults to the maximum of t.
+
+    Returns:
+        numpy.ndarray: Concentration as a 1D array.
+
+    See Also:
+        `res_free`, `prop_free`, `flux_free`
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,5,15,30,60]
+        >>> J = [1,2,3,3,2]
+
+        Assume the transit time histogram is provided by two equally sized bins covering the entire time interval, with frequencies 2 and 1, respectively:
+
+        >>> dc.conc_free(J, [2,1], t)
+        array([ 0.        ,  7.25308642, 29.41358025, 61.41975309, 77.56944444])
+
+        Assume the transit time has two equally sized bins, but between the values [0.5, 2.5]: 
+
+        >>> dc.conc_free(J, [2,1], t, TTmin=0.5, TTmax=2.5)
+        array([ 0.        ,  4.75925926, 10.15740741, 11.5       ,  8.10185185])
+
+        Assume the transit time histogram is provided by two bins in the same range, but with different sizes: one from 0.5 to 1 and the other from 1 to 2.5. The frequencies in the bins are the same as in the previous example:
+
+        >>> dc.conc_free(J, [2,1], t, TT=[0.5,1.0,2.5])
+        array([ 0.        ,  4.64814815,  9.58101852, 10.75      ,  7.5462963 ])
+
+        If the time array is not provided, the function assumes uniform time resolution with time step = 1:
+
+        >>> dc.conc_free(J, [2,1], TT=[0.5,1.0,2.5])
+        array([0.        , 1.17777778, 2.45555556, 3.25277778, 3.075     ])
+
+        If the time step is different from 1, it needs to be provided explicitly:
+
+        >>> dc.conc_free(J, [2,1], dt=2.0, TT=[0.5,1.0,2.5])
+        array([0.        , 2.05555556, 3.87037037, 4.76388889, 4.14351852])
+    """
     u = tools.tarray(len(J), t=t, dt=dt)
     r = res_free(H, u, TT=TT, TTmin=TTmin, TTmax=TTmax)
     return tools.conv(r, J, t=t, dt=dt)
 
 def flux_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
+    """Indicator flux out of a free system.
+
+    Args:
+        J (array_like): the indicator flux entering the system.
+        H (array_like): frequencies of the transit time histogram in each transit time bin. These do not have to be normalized - the function normalizes to unit area by default.
+        t (array_like, optional): the time points of the indicator flux J, in the same units as T. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as T. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+        TT (array_like): boundaries of the transit time histogram bins. The number of elements in this array must be one more than the number of elements in H. If TT is not provided, the boundaries are equally distributed between TTmin and TTmax. Defaults to None.
+        TTmin (float): Minimal transit time to be considered. If TT is provided, this argument is ignored. Defaults to 0.
+        TTmax (float): Maximal transit time to be considered. If TT is provided, this argument is ignored. Defaults to the maximum of t.
+
+    Returns:
+        numpy.ndarray: Outflux as a 1D array.
+
+    See Also:
+        `res_free`, `prop_free`, `conc_free`
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,5,15,30,60]
+        >>> J = [1,2,3,3,2]
+
+        Assume the transit time histogram is provided by two equally sized bins covering the entire time interval, with frequencies 2 and 1, respectively:
+
+        >>> dc.flux_free(J, [2,1], t)
+        array([0.        , 0.11111111, 0.48148148, 1.25102881, 2.60802469])
+
+        Assume the transit time has two equally sized bins, but between the values [0.5, 2.5]: 
+
+        >>> dc.flux_free(J, [2,1], t, TTmin=0.5, TTmax=2.5)
+        array([0.        , 1.34074074, 2.69259259, 3.        , 2.1       ])
+
+        Assume the transit time histogram is provided by two bins in the same range, but with different sizes: one from 0.5 to 1 and the other from 1 to 2.5. The frequencies in the bins are the same as in the previous example:
+
+        >>> dc.flux_free(J, [2,1], t, TT=[0.5,1.0,2.5])
+        array([0.        , 1.40185185, 2.71898148, 3.        , 2.09166667])
+
+        If the time array is not provided, the function assumes uniform time resolution with time step = 1:
+
+        >>> dc.flux_free(J, [2,1], TT=[0.5,1.0,2.5])
+        array([0.        , 0.7       , 1.8       , 2.60555556, 2.69444444])
+
+        If the time step is different from 1, it needs to be provided explicitly:
+
+        >>> dc.flux_free(J, [2,1], dt=2.0, TT=[0.5,1.0,2.5])
+        array([0.        , 1.10185185, 2.24074074, 2.86574074, 2.59722222])
+    """
     u = tools.tarray(len(J), t=t, dt=dt)
     h = prop_free(H, u, TT=TT, TTmin=TTmin, TTmax=TTmax)
     return tools.conv(h, J, t=t, dt=dt)
-
-
 
 
 
