@@ -286,6 +286,17 @@ def test_dstep():
     assert np.array_equal(h, [0.2,0.4,0.4,0.2])
     assert np.abs(np.trapz(h,t)-1) < 1e-12
 
+def test_ddist():
+    t = [0,2,3,4]
+    h = tools.ddist([1/3,1/3,1/3], [0,2,3,4], t)
+    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    t = [0,1,2,3]
+    h = tools.ddist([1/3,1/3,1/3], [0,1,2,3], t)
+    assert np.array_equal(h, [1/3,1/3,1/3,1/3])
+    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    h = tools.ddist([0.25,0.5,0.25], [0,1,2,3], t)
+    assert np.abs(np.trapz(h,t)-1) < 1e-12
+
 
 if __name__ == "__main__":
 
@@ -299,6 +310,7 @@ if __name__ == "__main__":
     test_tarray()
     test_ddelta()
     test_dstep()
+    test_ddist()
     test_nexpconv()
     test_biexpconv()
 
