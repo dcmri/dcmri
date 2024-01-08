@@ -92,3 +92,20 @@ Two-parameter models
    prop_step
    conc_step
    flux_step
+
+
+N-parameter models
+==================
+
+
+**Free**
+--------
+
+.. autosummary::
+   :toctree: ../generated/api/
+   :template: autosummary.rst
+
+   res_free
+   prop_free
+   conc_free
+   flux_free

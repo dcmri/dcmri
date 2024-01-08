@@ -60,4 +60,11 @@ from .pk import (
     flux_step,
     conc_step,
     prop_step,
+
+    # Free
+    
+    res_free,
+    flux_free,
+    conc_free,
+    prop_free,
 )
