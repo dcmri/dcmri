@@ -89,6 +89,14 @@ def dstep(T0, T1, t):
     return h
 
 
+def ddist(H, T, t):
+    # discrete distribution - T is an array of times with the boundaries of the histogram bins
+    h = np.zeros(len(t))
+    for k in range(len(T)-1):
+        h += H[k]*dstep(T[k], T[k+1], t)
+    return h
+
+
 def intprod(f, h, t=None, dt=1.0):
     # Helper function
     # Integrate the product of two piecewise linear functions
@@ -443,8 +451,6 @@ def nexpconv(n, T, t):
 
 
 
-
-
 if __name__ == "__main__":
-    
+
     print('All tools tests passed!!')
