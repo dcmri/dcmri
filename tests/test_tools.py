@@ -205,20 +205,51 @@ def test_conv():
     else:
         assert False
 
-def test_nexpconv():
-    T = 20
-    t = np.array([0,1,2,3,5,8,13,21,34])
-    g = tools.nexpconv(2, T, t)
-    g0 = (t/T) * np.exp(-t/T)/T
-    assert np.linalg.norm(g-g0) == 0
-
 def test_biexpconv():
     Tf = 20
     Th = 30
     t = np.array([0,1,2,3,5,8,13,21,34])
     g = tools.biexpconv(Tf, Th, t)
     g0 = (np.exp(-t/Tf)-np.exp(-t/Th))/(Tf-Th)
+    assert np.linalg.norm(g-g0) == 0#
+
+def test_nexpconv():
+    MTT = 20
+
+    # High-res pseudocontinuous
+    # Uniform time interval
+    t = np.linspace(0, 10*MTT, 1000)
+
+    n=2
+    T=MTT/n
+    g = tools.nexpconv(n, T, t)
+    # Check against analytical
+    g0 = (t/T) * np.exp(-t/T)/T
     assert np.linalg.norm(g-g0) == 0
+    # Check against expconv
+    g0 = tools.expconv(np.exp(-t/T)/T, T, t)
+    assert np.linalg.norm(g-g0) < 1e-4
+    # Check area = 1
+    assert np.abs(np.trapz(g,t)-1) < 1e-3
+    # Check MTT
+    assert np.abs(np.trapz(t*g,t)-MTT) < 1e-5
+    
+    n=20
+    T=MTT/n
+    g = tools.nexpconv(n, T, t)
+    # Check area = 1
+    assert np.abs(np.trapz(g,t)-1) < 1e-12
+    # Check MTT
+    assert np.abs(np.trapz(t*g,t)-MTT) < 1e-12
+
+    # In this case the numerical approximation is used
+    n=200
+    T=MTT/n
+    g = tools.nexpconv(n, T, t)
+    # Check area = 1
+    assert np.abs(np.trapz(g,t)-1) < 1e-12
+    # Check MTT
+    assert np.abs(np.trapz(t*g,t)-MTT) < 0.1
 
 def test_ddelta():
     t = [0,2,3,4]
@@ -243,6 +274,29 @@ def test_ddelta():
     g = tools.conv(f, h, t)
     assert np.linalg.norm(g[1:]-f[1:])/np.linalg.norm(f[1:]) < 1e-2
 
+def test_dstep():
+    t = [0,2,3,4]
+    h = tools.dstep(0, 4, t)
+    assert np.array_equal(h, [0.25,0.25,0.25,0.25])
+    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    h = tools.dstep(0.5, 3.5, t)
+    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    t = [0,1,2,3]
+    h = tools.dstep(0.5, 2.5, t)
+    assert np.array_equal(h, [0.2,0.4,0.4,0.2])
+    assert np.abs(np.trapz(h,t)-1) < 1e-12
+
+def test_ddist():
+    t = [0,2,3,4]
+    h = tools.ddist([1/3,1/3,1/3], [0,2,3,4], t)
+    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    t = [0,1,2,3]
+    h = tools.ddist([1/3,1/3,1/3], [0,1,2,3], t)
+    assert np.array_equal(h, [1/3,1/3,1/3,1/3])
+    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    h = tools.ddist([0.25,0.5,0.25], [0,1,2,3], t)
+    assert np.abs(np.trapz(h,t)-1) < 1e-12
+
 
 if __name__ == "__main__":
 
@@ -255,5 +309,9 @@ if __name__ == "__main__":
     test_conv()
     test_tarray()
     test_ddelta()
+    test_dstep()
+    test_ddist()
+    test_nexpconv()
+    test_biexpconv()
 
     print('All tools tests passed!!')

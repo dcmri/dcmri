@@ -337,34 +337,6 @@ def flux_comp(J, T, t=None, dt=1.0):
 
 # Plug flow
 
-
-def res_plug(T, t):
-    """Residue function of a plug flow system.
-
-    A plug flow system is a space with a constant velocity. The residue function of a plug flow system is a step function.
-
-    Args:
-        T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the system is a trap.
-        t (array_like): time points where the residue function is calculated, in the same units as T.
-
-    Returns:
-        numpy.ndarray: residue function as a 1D array.
-
-    See Also:
-        `prop_plug`, `conc_plug`, `flux_plug`
-        
-    Example:
-        >>> import dcmri as dc
-        >>> t = [0,3,4,6]
-        >>> dc.res_plug(5,t)
-        array([1., 1., 1., 0.])  
-    """
-    if not isinstance(t, np.ndarray):
-        t = np.array(t)
-    g = np.ones(len(t))
-    g[t>T] = 0
-    return g
-
 def prop_plug(T, t):
     """Propagator or transit time distribution of a plug flow system.
 
@@ -388,6 +360,32 @@ def prop_plug(T, t):
     """
     return tools.ddelta(T, t)
 
+
+def res_plug(T, t):
+    """Residue function of a plug flow system.
+
+    A plug flow system is a space with a constant velocity. The residue function of a plug flow system is a step function.
+
+    Args:
+        T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the system is a trap.
+        t (array_like): time points where the residue function is calculated, in the same units as T.
+
+    Returns:
+        numpy.ndarray: residue function as a 1D array.
+
+    See Also:
+        `prop_plug`, `conc_plug`, `flux_plug`
+        
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,3,4,6]
+        >>> dc.res_plug(5,t)
+        array([1.00000000e+00, 1.00000000e+00, 8.33333333e-01, 1.11022302e-16])  
+    """
+    h = prop_plug(T,t)
+    return 1-tools.trapz(h,t)
+
+
 def conc_plug(J, T, t=None, dt=1.0):
     """Indicator concentration inside a plug flow system.
 
@@ -410,15 +408,18 @@ def conc_plug(J, T, t=None, dt=1.0):
         >>> t = [0,5,15,30,60]
         >>> J = [1,2,3,3,2]
         >>> dc.conc_plug(J, 5, t)
-        array([ 0.  ,  5.  , 12.5 , 16.25, 13.75])
+        array([ 0.        ,  6.38888889, 18.61111111, 22.5       , 16.25      ])
     """
     if T==np.inf:
         return conc_trap(J, t=t, dt=dt)
     if T==0:
         return 0*J
     t = tools.tarray(len(J), t=t, dt=dt)
-    Jo = np.interp(t-T, t, J, left=0)
-    return tools.trapz(J-Jo, t)
+    r = res_plug(T, t)
+    return tools.conv(r, J, t=t, dt=dt)
+    # t = tools.tarray(len(J), t=t, dt=dt)
+    # Jo = np.interp(t-T, t, J, left=0)
+    # return tools.trapz(J-Jo, t)
 
 def flux_plug(J, T, t=None, dt=1.0):
     """Indicator flux out of a plug flow system.
@@ -442,16 +443,17 @@ def flux_plug(J, T, t=None, dt=1.0):
         >>> t = [0,5,15,30,60]
         >>> J = [1,2,3,3,2]
         >>> dc.flux_plug(J, 5, t)
-        array([0.        , 1.        , 2.5       , 3.        , 2.16666667]) 
+        array([0.        , 0.44444444, 2.30555556, 3.        , 2.22222222]) 
     """
     if T==np.inf:
         return flux_trap(J, t=t, dt=dt)
     if T==0:
         return J
     t = tools.tarray(len(J), t=t, dt=dt)
-    return np.interp(t-T, t, J, left=0) 
-
-
+    h = prop_plug(T, t)
+    return tools.conv(h, J, t=t, dt=dt)
+    #t = tools.tarray(len(J), t=t, dt=dt)
+    #return np.interp(t-T, t, J, left=0) 
 
 
 
@@ -459,7 +461,95 @@ def flux_plug(J, T, t=None, dt=1.0):
 
 # Chain
 
+def prop_chain(T, D, t): 
+    """Propagator or transit time distribution of a chain system.
+
+    Args:
+        T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the system is a trap.
+        D (float): dispersion of the system. Values must be between 0 (no dispersion) and 1 (maximal dispersion).
+        t (array_like): time points where the residue function is calculated, in the same units as T.
+
+    Returns:
+        numpy.ndarray: propagator as a 1D array.
+
+    Raises:
+        ValueError: if one of the parameters is out of bounds.
+
+    See Also:
+        `res_chain`, `conc_chain`, `flux_chain`
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,3,4,6]
+        >>> dc.prop_chain(5, 0.5, t)
+        array([0.        , 0.14457322, 0.12921377, 0.08708924])  
+    """
+    if T<0:
+        raise ValueError('T must be non-negative')
+    if D<0:
+        raise ValueError('D cannot be negative')
+    if D>1:
+        raise ValueError('D cannot be larger than 1')
+    if D==0: 
+        return prop_plug(T, t)
+    if D==1: 
+        return prop_comp(T, t)
+    n = 1/D
+    g = tools.nexpconv(n, T/n, t)
+    return g
+
+
+def res_chain(T, D, t):
+    """Residue function of a chain system.
+
+    Args:
+        T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the system is a trap.
+        D (float): dispersion of the system. Values must be between 0 (no dispersion) and 1 (maximal dispersion).
+        t (array_like): time points where the residue function is calculated, in the same units as T.
+
+    Returns:
+        numpy.ndarray: propagator as a 1D array.
+
+    See Also:
+        `prop_chain`, `conc_chain`, `flux_chain`
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,3,4,6]
+        >>> dc.res_chain(5, 0.5, t)
+        array([1.        , 0.78314017, 0.64624667, 0.42994366])  
+    """
+    if D==0: 
+        return res_plug(T, t)
+    if D==1: 
+        return res_comp(T, t)
+    h = prop_chain(T, D, t)
+    return 1-tools.trapz(h,t)
+
+
 def conc_chain(J, T, D, t=None, dt=1.0):
+    """Indicator concentration inside a chain system.
+
+    Args:
+        J (array_like): the indicator flux entering the system.
+        T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
+        D (float): dispersion of the system. Values must be between 0 (no dispersion) and 1 (maximal dispersion).
+        t (array_like, optional): the time points of the indicator flux J, in the same units as T. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as T. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+
+    Returns:
+        numpy.ndarray: Concentration as a 1D array.
+
+    See Also:
+        `res_chain`, `prop_chain`, `flux_chain`
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,5,15,30,60]
+        >>> J = [1,2,3,3,2]
+        >>> dc.conc_chain(J, 5, 0.5, t)
+        array([ 0.        ,  6.59776478, 20.98038139, 30.80370764, 33.53283379])
+    """
     if D == 0:
         return conc_plug(J, T, t=t, dt=dt)
     if D == 100:
@@ -468,7 +558,30 @@ def conc_chain(J, T, D, t=None, dt=1.0):
     r = res_chain(T, D, t)
     return tools.conv(r, J, t)
 
+
 def flux_chain(J, T, D, t=None, dt=1.0):
+    """Indicator flux out of a chain system.
+
+    Args:
+        J (array_like): the indicator flux entering the system.
+        T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
+        D (float): dispersion of the system. Values must be between 0 (no dispersion) and 1 (maximal dispersion).
+        t (array_like, optional): the time points of the indicator flux J, in the same units as T. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as T. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+
+    Returns:
+        numpy.ndarray: Outflux as a 1D array.
+
+    See Also:
+        `res_chain`, `prop_chain`, `conc_chain`
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,5,15,30,60]
+        >>> J = [1,2,3,3,2]
+        >>> dc.flux_chain(J, 5, 0.5, t)
+        array([0.        , 0.36089409, 1.92047375, 2.63639739, 1.99640464])
+    """
     if D == 0:
         return prop_plug(J, T, t=t, dt=dt)
     if D == 100:
@@ -477,77 +590,165 @@ def flux_chain(J, T, D, t=None, dt=1.0):
     h = prop_chain(T, D, t)
     return tools.conv(h, J, t)
 
-def res_chain(T, D, t):
-    if D==0: 
-        return res_plug(T, t)
-    if D==100: 
-        return res_comp(T, t)
-    n = 100/D
-    Tx = T/n
-    norm = Tx*gamma(n)
-    if norm == np.inf:
-        raise ValueError('A chain model is not numerically stable with these parameters. Consider restricting the minimal dispersion allowed.')
-    u = t/Tx  
-    nt = len(t)
-    g = np.ones(nt)
-    g[0] = 0
-    fnext = u[0]**(n-1)*np.exp(-u[0])/norm
-    for i in range(nt-1):
-        fi = fnext
-        pow = u[i+1]**(n-1)
-        if pow == np.inf:
-            raise ValueError('A chain model is not numerically stable with these parameters. Consider restricting the minimal dispersion allowed.')
-        fnext = pow * np.exp(-u[i+1])/norm
-        g[i+1] = g[i] + (t[i+1]-t[i]) * (fnext+fi) / 2
-    return 1-g
-
-def prop_chain(T, D, t): 
-    if D==0: 
-        return prop_plug(T, t)
-    if D==100: 
-        return prop_comp(T, t)
-    n = 100/D
-    g = tools.nexpconv(n, T/n, t)
-    gfin = np.isfinite(g)
-    n_notfin = g.size - np.count_nonzero(gfin)
-    if n_notfin > 0:
-        raise ValueError('A chain model is not numerically stable with these parameters. Consider restricting the minimal dispersion allowed.')
-    return g
 
 # Step
 
+def prop_step(T, D, t): 
+    """Propagator or transit time distribution of a step system.
+
+    Args:
+        T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the system is a trap.
+        D (float): dispersion of the system, or half-width of the step given as a fraction of T. Values must be between 0 (no dispersion) and 1 (maximal dispersion).
+        t (array_like): time points where the residue function is calculated, in the same units as T.
+
+    Returns:
+        numpy.ndarray: propagator as a 1D array.
+
+    Raises:
+        ValueError: if one of the parameters is out of bounds.
+
+    See Also:
+        `res_step`, `conc_step`, `flux_step`
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,3,4,6]
+        >>> dc.prop_step(5, 0.5, t)
+        array([0.03508772, 0.21052632, 0.21052632, 0.21052632])  
+    """
+    if not isinstance(t, np.ndarray):
+        t = np.array(t)
+    if T<0:
+        raise ValueError('T must be non-negative')
+    if D<0:
+        raise ValueError('D cannot be negative')
+    if D>1:
+        raise ValueError('D cannot be larger than 1')
+    if T==np.inf:
+        return prop_trap(t)
+    if D==0: 
+        return prop_plug(T, t)
+    return tools.dstep(T-D*T, T+D*T, t)
+
+def res_step(T, D, t):
+    """Residue function of a step system.
+
+    Args:
+        T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the system is a trap.
+        D (float): dispersion of the system, or half-width of the step given as a fraction of T. Values must be between 0 (no dispersion) and 1 (maximal dispersion).
+        t (array_like): time points where the residue function is calculated, in the same units as T.
+
+    Returns:
+        numpy.ndarray: propagator as a 1D array.
+
+    See Also:
+        `prop_step`, `conc_step`, `flux_step`
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,3,4,6]
+        >>> dc.res_step(5, 0.5, t)
+        array([1.        , 0.63157895, 0.42105263, 0.        ])  
+    """
+    h = prop_step(T, D, t)
+    return 1-tools.trapz(h,t)
+
 def conc_step(J, T, D, t=None, dt=1.0):
-    if D==0 or D>1:
-        raise ValueError('D must be strictly positive and no larger than 1.')
+    """Indicator concentration inside a step system.
+
+    Args:
+        J (array_like): the indicator flux entering the system.
+        T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
+        D (float): dispersion of the system, or half-width of the step given as a fraction of T. Values must be between 0 (no dispersion) and 1 (maximal dispersion).
+        t (array_like, optional): the time points of the indicator flux J, in the same units as T. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as T. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+
+    Returns:
+        numpy.ndarray: Concentration as a 1D array.
+
+    See Also:
+        `res_step`, `prop_step`, `flux_step`
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,5,15,30,60]
+        >>> J = [1,2,3,3,2]
+        >>> dc.conc_step(J, 5, 0.5, t)
+        array([ 0.        ,  6.44736842, 20.19736842, 28.20175439, 21.58625731])
+    """
+    if D == 0:
+        return conc_plug(J, T, t=t, dt=dt)
     t = tools.tarray(len(J), t=t, dt=dt)
-    h = res_step(T, D, t)
+    r = res_step(T, D, t)
     return tools.conv(r, J, t)
 
 def flux_step(J, T, D, t=None, dt=1.0):
-    if D==0 or D>1:
-        raise ValueError('D must be strictly positive and no larger than 1.')
+    """Indicator flux out of a step system.
+
+    Args:
+        J (array_like): the indicator flux entering the system.
+        T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
+        D (float): dispersion of the system, or half-width of the step given as a fraction of T. Values must be between 0 (no dispersion) and 1 (maximal dispersion).
+        t (array_like, optional): the time points of the indicator flux J, in the same units as T. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as T. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+
+    Returns:
+        numpy.ndarray: Outflux as a 1D array.
+
+    See Also:
+        `res_step`, `prop_step`, `conc_step`
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,5,15,30,60]
+        >>> J = [1,2,3,3,2]
+        >>> dc.flux_step(J, 5, 0.5, t)
+        array([0.        , 0.45614035, 1.9254386 , 2.91812865, 2.29239766])
+    """
+    if D == 0:
+        return flux_plug(J, T, t=t, dt=dt)
     t = tools.tarray(len(J), t=t, dt=dt)
     h = prop_step(T, D, t)
     return tools.conv(h, J, t)
 
-def res_step(T, D, t):
-    h = prop_step(T, D, t)
-    c = np.ones(len(t))
-    # Integration is convolution with a constant
-    return 1 - tools.conv(c, h, t)
 
-def prop_step(T, D, t): 
-    if D==0 or D>1:
-        raise ValueError('D must be strictly positive and no larger than 1.')
-    T0 = T-D*T
-    T1 = T+D*T
-    h = np.zeros(len(t))
-    h[(t>=T0)*(t<=T1)] = 1/(T1-T0)
-    return h
+
+
 
 # N parameters
 
 # Free
+
+
+def prop_free(H, t, TT=None, TTmin=0, TTmax=None):
+    nTT = len(H)
+    if TT is None:
+        if TTmax is None:
+            TTmax = np.amax(t)
+        TT = np.linspace(TTmin, TTmax, nTT+1)
+    else:
+        if len(TT) != nTT+1:
+            msg = 'The array of transit time boundaries needs to have length N+1, '
+            msg += '\n with N the size of the transit time distribution H.'
+            raise ValueError(msg)
+    H = np.array(H)
+    dist = rv_histogram((H,TT), density=True)
+    return dist.pdf(t)
+
+def res_free(H, t, TT=None, TTmin=0, TTmax=None):
+    nTT = len(H)
+    if TT is None:
+        if TTmax is None:
+            TTmax = np.amax(t)
+        TT = np.linspace(TTmin, TTmax, nTT+1)
+    else:
+        if len(TT) != nTT+1:
+            msg = 'The array of transit time boundaries needs to have length N+1, '
+            msg += '\n with N the size of the transit time distribution H.'
+            raise ValueError(msg)
+    H = np.array(H)
+    dist = rv_histogram((H,TT), density=True)
+    return 1 - dist.cdf(t)
 
 def conc_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
     u = tools.tarray(len(J), t=t, dt=dt)
@@ -559,35 +760,8 @@ def flux_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
     h = prop_free(H, u, TT=TT, TTmin=TTmin, TTmax=TTmax)
     return tools.conv(h, J, t=t, dt=dt)
 
-def res_free(H, t, TT=None, TTmin=0, TTmax=None):
-    H = np.array(H)
-    nTT = len(H)
-    if TT is None:
-        if TTmax is None:
-            TTmax = np.amax(t)
-        TT = np.linspace(TTmin, TTmax, nTT+1)
-    else:
-        if len(TT) != nTT+1:
-            msg = 'The array of transit time boundaries needs to have length N+1, '
-            msg += '\n with N the size of the transit time distribution H.'
-            raise ValueError(msg)
-    dist = rv_histogram((H,TT), density=True)
-    return 1 - dist.cdf(t)
 
-def prop_free(H, t, TT=None, TTmin=0, TTmax=None):
-    H = np.array(H)
-    nTT = len(H)
-    if TT is None:
-        if TTmax is None:
-            TTmax = np.amax(t)
-        TT = np.linspace(TTmin, TTmax, nTT+1)
-    else:
-        if len(TT) != nTT+1:
-            msg = 'The array of transit time boundaries needs to have length N+1, '
-            msg += '\n with N the size of the transit time distribution H.'
-            raise ValueError(msg)
-    dist = rv_histogram((H,TT), density=True)
-    return dist.pdf(t)
+
 
 
 # N compartments
@@ -913,7 +1087,6 @@ def flux_nscomp(J, T, t=None, dt=1.0):
 
 
 if __name__ == "__main__":
-
 
     print('All pk tests passed!!')
 

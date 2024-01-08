@@ -1,6 +1,9 @@
+import warnings
 import numpy as np
 from scipy.special import gamma
 
+# Handle warnings as errors
+warnings.filterwarnings("error")
 
 
 def tarray(n, t=None, dt=1.0):
@@ -54,6 +57,44 @@ def ddelta(T, t):
         h[i+1] = u*2/(t[i+2]-t[i])
     return h
 
+
+def dstep(T0, T1, t):
+    # Helper function - discrete step
+    if not isinstance(t, np.ndarray):
+        t=np.array(t)
+    n = len(t)
+    i = np.where((t>T0)*(t<T1))[0]
+    if len(i)==0:
+        return ddelta((T0+T1)/2, t)
+    i0, i1 = i[0], i[-1]
+    t0, t1 = t[i0], t[i1]
+    hi = 0
+    if i0>0:
+        u0 = (t0-T0)/(t0-t[i0-1])
+        hi += 0.5*(1+u0)*(t0-t[i0-1])
+        if i0>1:
+            hi += 0.5*u0*(t[i0-1]-t[i0-2])   
+    hi += t1-t0
+    if i1<n-1:
+        u1 = (T1-t1)/(t[i1+1]-t1)
+        hi += 0.5*(1+u1)*(t[i1+1]-t1)
+        if i1<n-2:
+            hi += 0.5*u1*(t[i1+2]-t[i1+1])
+    h = np.zeros(n)
+    h[i] = 1/hi
+    if i0>0:
+        h[i0-1] = u0/hi
+    if i1<n-1:
+        h[i1+1] = u1/hi
+    return h
+
+
+def ddist(H, T, t):
+    # discrete distribution - T is an array of times with the boundaries of the histogram bins
+    h = np.zeros(len(t))
+    for k in range(len(T)-1):
+        h += H[k]*dstep(T[k], T[k+1], t)
+    return h
 
 
 def intprod(f, h, t=None, dt=1.0):
@@ -304,7 +345,7 @@ def biexpconv(T1, T2, t):
     Args:
         T1 (float): the characteristic time of the first exponential function. 
         T2 (float): the characteristic time of the second exponential function, in the same units as T1. 
-        t (array_like): the time points where the result is needed, in the same units as T1 and T2.
+        t (array_like, optional): the time points where the values of f are defined, in the same units as T. 
 
     Returns:
         numpy.ndarray: The result of the convolution as a 1D array.
@@ -350,12 +391,15 @@ def nexpconv(n, T, t):
     """Convolve n identical normalised exponentials analytically.
 
     Args:
-        n (int): number of exponentials. 
+        n (float): number of exponentials. Since an analytical formula is used this can also be non-integer.
         T (float): the characteristic time of the exponential. 
-        t (array_like): the time points where the result is needed, in the same units as T.
+        t (array_like, optional): the time points where the values of f are defined, in the same units as T. 
 
     Returns:
         numpy.ndarray: The result of the convolution as a 1D array.
+
+    Raises:
+        ValueError: if n<1 and if T<0
 
     See Also:
         `conv`, `expconv`, `biexpconv`, `stepconv`
@@ -382,14 +426,31 @@ def nexpconv(n, T, t):
         >>> g = dc.nexpconv(4, 5, t)
         array([0.        , 0.01226265, 0.03608941, 0.04480836])
     """
-    u = t/T
-    g = u**(n-1) * np.exp(-u)/T/gamma(n)
+    if T<0:
+        raise ValueError('T must be non-negative')
+    if n<1:
+        raise ValueError('n cannot be smaller than 1')
+    if not isinstance(t, np.ndarray):
+        t = np.array(t)
+    try:
+        u = t/T
+        g = u**(n-1) * np.exp(-u)/T/gamma(n)
+    except RuntimeWarning:
+        # At large n the analytical formula runs into overflow
+        # use numerical calculation in this case (slower and less accurate)
+        g = np.exp(-t/T)/T
+        n0 = int(np.floor(n))
+        for _ in range(n0-1):
+            g = expconv(g, T, t)
+        if n!=n0:
+            # Interpolate between n0 and n0+1
+            g1 = expconv(g, T, t)
+            u = n-n0
+            g = g*u + g1*(1-u)
     return g
 
 
-    
+
 if __name__ == "__main__":
 
-    test_ddelta()
-    
     print('All tools tests passed!!')
