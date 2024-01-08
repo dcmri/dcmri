@@ -5,14 +5,12 @@ on: [push]
 
 jobs:
   build:
-
     strategy:
       matrix:
-         os: [windows-latest, macos-latest, ubuntu-latest]
+        os: [windows-latest, macos-latest, ubuntu-latest]
       fail-fast: false
 
     runs-on: ${{ matrix.os }}
-
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
@@ -23,16 +21,13 @@ jobs:
           python-version: '3.10'
 
       - name: Install Poetry
-        run: curl -sSL https://install.python-poetry.org | python3 -
-      
-      - name: Add Poetry to path
-        run: echo "${HOME}/.poetry/bin" >> $GITHUB_PATH
-
-      - name: Test Poetry install
-        run: poetry -v
+        run: pipx install poetry==1.6.1
 
       - name: Install dependencies
-        run: poetry install --with dev,test,docs
+        run: |
+          poetry update
+          poetry lock
+          poetry install --with dev,test,docs
 
       - name: Test with pytest
         run: poetry run pytest --junitxml=junit/test-results.xml --cov=dummyproject tests/

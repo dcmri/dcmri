@@ -42,7 +42,7 @@ scipy = "^1.11.4"
 bumpver = "^2023.1129"
 
 [tool.poetry.group.test.dependencies]
-pytest = "^5.2"
+pytest = "^6.2.5"
 pytest-cov = "^4.1.0"
 
 [tool.poetry.group.docs.dependencies]
