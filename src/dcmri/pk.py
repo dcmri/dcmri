@@ -868,6 +868,7 @@ def conc_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
     r = res_free(H, u, TT=TT, TTmin=TTmin, TTmax=TTmax)
     return tools.conv(r, J, t=t, dt=dt)
 
+
 def flux_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
     """Indicator flux out of a free system.
 
@@ -925,39 +926,83 @@ def flux_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
 # N compartments
 
 def K_ncomp(T, E):
+    if not isinstance(T, np.ndarray):
+        T = np.array(T)
+    if not isinstance(E, np.ndarray):
+        E = np.array(E)
+    # Helper function
     if np.amin(E) < 0:
         raise ValueError('Extraction fractions cannot be negative.')
-    nc = T.size
-    K = np.zeros((nc,nc))
-    for i in range(nc):
-        Ei = np.sum(E[:,i])
-        if Ei==0:
-            K[i,i] = 0
-        else:
-            K[i,i] = Ei/T[i]
-        for j in range(nc):
-            if j!=i:
+    n = T.size
+    K = np.zeros((n,n))
+    for i in range(n):
+        for j in range(n):
+            if j==i:
+                # Diagonal elements
+                # sum of column i
+                Ei = np.sum(E[:,i]) 
+                if Ei==0:
+                    K[i,i] = 0
+                else:
+                    K[i,i] = Ei/T[i]
+            else:
+                # Off-diagonal elements
                 if E[j,i]==0:
                     K[j,i] = 0
                 else:
                     K[j,i] = -E[j,i]/T[i]
     return K
 
+# Helper function
+def conc_ncomp_prop(J, T, E, t=None, dt=1.0, dt_prop=None):
+    t = tools.tarray(len(J[0,:]), t=t, dt=dt)
+    K = K_ncomp(T, E)
+    nt, nc = len(t), len(T)
+    C = np.zeros((nc,nt))
+    Kmax = K.diagonal().max()
+    for k in range(nt-1):
+        # Dk/nk <= 1/Kmax
+        # Dk*Kmax <= nk
+        Dk = t[k+1]-t[k]
+        SJk = (J[:,k+1]-J[:,k])/Dk
+        nk = int(np.ceil(Dk*Kmax))
+        if dt_prop is not None:
+            nk = np.amax([int(np.ceil(Dk/dt_prop)), nk])
+        dk = Dk/nk
+        Jk = J[:,k]
+        Ck = C[:,k]
+        for _ in range(nk):
+            Jk_next = Jk + dk*SJk
+            Ck_in = dk*(Jk+Jk_next)/2
+            Ck = Ck + Ck_in - dk*np.matmul(K, Ck)
+            Jk = Jk_next
+        C[:,k+1] = Ck
+    return C
 
-def Ko_ncomp(T, E):
-    if np.amin(E) < 0:
-        raise ValueError('Extraction fractions cannot be negative.')
-    nc = T.size
-    K = np.zeros(nc)
-    for i in range(nc):
-        if E[i,i]==0:
-            K[i] = 0
-        else:
-            K[i] = E[i,i]/T[i]
-    return K
+# Helper function
+def conc_ncomp_diag(J, T, E, t=None, dt=1.0):
+    t = tools.tarray(J.shape[1], t=t, dt=dt)
+    # Calculate system matrix, eigenvalues and eigenvectors
+    K = K_ncomp(T, E)
+    K, Q = np.linalg.eig(K)
+    Qi = np.linalg.inv(Q)
+    # Initialize concentration-time array
+    nc, nt = len(T), len(t) 
+    C = np.zeros((nc,nt)) 
+    Ei = np.empty((nc,nt))
+    # Loop over the inlets
+    for i in range(nc): 
+        # Loop over the eigenvalues
+        for d in range(nc):
+            # Calculate elements of diagonal matrix
+            Ei[d,:] = conc_comp(J[i,:], 1/K[d], t)
+            # Right-multiply with inverse eigenvector matrix
+            Ei[d,:] *= Qi[d,i]
+        # Left-multiply with eigenvector matrix
+        C += np.matmul(Q, Ei)
+    return C
 
-
-def conc_ncomp(J, T, E, t=None, dt=1.0):
+def conc_ncomp(J, T, E, t=None, dt=1.0, solver='prop', dt_prop=None):
     """Concentration in a general n-compartment model.
 
     T is an n-element array with MTTs for each compartment.
@@ -966,209 +1011,226 @@ def conc_ncomp(J, T, E, t=None, dt=1.0):
     - if sum_j Eji < 1 then compartment i contains a trap.
     - if sum_j Eji > 1 then compartment i produces indicator.
     """
-    t = tools.tarray(len(J[:,0]), t=t, dt=dt)
-    K = K_ncomp(T, E)
-    Kmax = K.diagonal().max()
-    nc = len(T)
-    nt = len(t)
-    C = np.zeros((nt,nc))
-    for k in range(nt-1):
-        Dk = t[k+1]-t[k]
-        Jk = (J[k+1,:]+J[k,:])/2
-        if Dk*Kmax <= 1:
-            C[k+1,:] = C[k,:] + Dk*Jk - Dk*np.matmul(K, C[k,:])  
-        else:
-            # Dk/nk <= 1/Kmax
-            # Dk*Kmax <= nk
-            nk = np.ceil(Dk*Kmax)
-            Dk = Dk/nk
-            Jk = Jk/nk
-            Ck = C[k,:]
-            for _ in range(nk):
-                Ck = Ck + Dk*Jk - Dk*np.matmul(K, Ck)
-            C[k+1,:] = Ck
-    return C
+    if solver=='prop':
+        return conc_ncomp_prop(J, T, E, t=t, dt=dt, dt_prop=dt_prop)
+    if solver=='diag':
+        return conc_ncomp_diag(J, T, E, t=t, dt=dt)
 
-def flux_ncomp(J, T, E, t=None, dt=1.0):
-    """Flux out of a general n-compartment model.
-    """
-    C = conc_ncomp(J, T, E, t=t, dt=dt)
-    t = tools.tarray(len(J[:,0]), t=t, dt=dt)
-    K = Ko_ncomp(T, E)
+
+def flux_ncomp(J, T, E, t=None, dt=1.0, solver='prop', dt_prop=None):
+    C = conc_ncomp(J, T, E, t=t, dt=dt, solver=solver, dt_prop=dt_prop)
+    K = K_ncomp(T, E)
     Jo = np.zeros(C.shape)
-    for k in range(C.shape[0]):
-        Jo[k,:] = K*C[k,:]
+    for c in range(C.shape[0]):
+        # Flux to outside only
+        Koc = np.sum(K[:,c])
+        Jo[c,:] = Koc*C[c,:]
     return Jo
 
+
 def res_ncomp(T, E, t):
-    nc = len(T)
-    nt = len(t)
-    J = np.zeros((nt, nc))
-    r = np.zeros((nt, nc, nc))
-    for c in range(nc):
-        J[0,c] = 1
-        r[:,:,c] = conc_ncomp(J, T, E, t)
-        J[0,c] = 0
-    return r
+    # Calculate system matrix, eigenvalues and eigenvectors
+    K = K_ncomp(T, E)
+    K, Q = np.linalg.eig(K)
+    Qi = np.linalg.inv(Q)
+    # Initialize concentration-time array
+    nc, nt = len(T), len(t) 
+    R = np.zeros((nc,nc,nt)) 
+    Ei = np.empty((nc,nt))
+    # Loop over the inlets
+    for i in range(nc): 
+        # Loop over the eigenvalues
+        for d in range(nc):
+            # Calculate elements of diagonal matrix
+            Ei[d,:] = np.exp(-t*K[d])
+            # Right-multiply with inverse eigenvector matrix
+            Ei[d,:] *= Qi[d,i]
+        # Left-multiply with eigenvector matrix
+        R[i,:,:] = np.matmul(Q, Ei)
+    return R
+
 
 def prop_ncomp(T, E, t):
-    nc = len(T)
-    nt = len(t)
-    J = np.zeros((nt, nc))
-    h = np.zeros((nt, nc, nc))
-    for c in range(nc):
-        J[0,c] = 1
-        h[:,:,c] = flux_ncomp(J, T, E, t)
-        J[0,c] = 0
-    return h
-
+    R = res_ncomp(T, E, t)
+    K = K_ncomp(T, E)
+    Ho = np.zeros(R.shape)
+    for c in range(R.shape[0]):
+        # Flux to outside only
+        Koc = np.sum(K[:,c])
+        Ho[:,c,:] = Koc*R[:,c,:]
+    return Ho
 
 
 # 2 compartments (analytical)
 
+# Helper function
+def K_2comp(T,E):
+    K = K_ncomp(T, E)
+    # Calculate the eigenvalues Ke
+    D = math.sqrt((K[0,0]-K[1,1])**2 + 4*K[0,1]*K[1,0])
+    Ke = [0.5*(K[0,0]+K[1,1]+D),
+         0.5*(K[0,0]+K[1,1]-D)]
+    # Build the matrix of eigenvectors (one per column)
+    Q = np.array([
+        [K[1,1]-Ke[0], -K[0,1]],
+        [-K[1,0], K[0,0]-Ke[1]],
+    ])
+    # Build the inverse of the eigenvector matrix
+    Qi = np.array([
+        [K[0,0]-Ke[1], K[0,1]],
+        [K[1,0], K[1,1]-Ke[0]]
+    ]) 
+    N = (K[0,0]-Ke[1])*(K[1,1]-Ke[0]) - K[0,1]*K[1,0] 
+    Qi /= N
+    return Q, Ke, Qi
+
+
 def conc_2comp(J, T, E, t=None, dt=1.0):
-    """Concentration in a general 2-compartment system.
-    """
+    # Check input parameters
     if np.amin(T) <= 0:
         raise ValueError('T must be strictly positive.')
-    t = tools.tarray(len(J[:,0]), t=t, dt=dt)
-    K0 = (E[0,0]+E[1,0])/T[0]
-    K1 = (E[0,1]+E[1,1])/T[1]
-    K10 = E[1,0]/T[0]
-    K01 = E[0,1]/T[1]
-    Dsq = (K0-K1)**2 + 4*K01*K10
-    D = math.sqrt(D)
-    Kp = (K0+K1+Dsq)/2
-    Kn = (K0+K1-Dsq)/2
-    Np = K01*(Kp+K1) + K10*(Kp+K0)
-    Nn = K01*(Kn+K1) + K10*(Kn+K0)
-    Ap = math.sqrt(K01*(Kp+K1)/Np)
-    An = math.sqrt(K01*(Kn+K1)/Nn)
-    Bp = math.sqrt(K10*(Kp+K0)/Np)
-    Bn = math.sqrt(K10*(Kn+K0)/Nn)
-    E0p = conc_comp(J[:,0], 1/Kp, t)
-    E0n = conc_comp(J[:,0], 1/Kn, t)
-    E1p = conc_comp(J[:,1], 1/Kp, t)
-    E1n = conc_comp(J[:,1], 1/Kn, t)
-    C0 = Ap*Ap*E0p + An*An*E0n + Ap*Bp*E1p + An*Bn*E1n
-    C1 = Ap*Bp*E0p + An*Bn*E0n + Bp*Bp*E1p + Bn*Bn*E1n
-    return np.stack((C0, C1), axis=-1)
+    if not isinstance(J, np.ndarray):
+        J = np.array(J)
+    if not isinstance(T, np.ndarray):
+        T = np.array(T)
+    if not isinstance(E, np.ndarray):
+        E = np.array(E)
+    # Build the system matrix K
+    Q, K, Qi = K_2comp(T, E)
+    # Initialize concentration-time array
+    t = tools.tarray(len(J[0,:]), t=t, dt=dt)
+    C = np.zeros((2,len(t)))
+    Ei = np.empty((2,len(t)))
+    # Loop over the inlets
+    for i in [0,1]: 
+        # Loop over th eigenvalues
+        for d in [0,1]:
+            # Calculate elements of diagonal matrix
+            Ei[d,:] = conc_comp(J[i,:], 1/K[d], t)
+            # Right-multiply with inverse eigenvector matrix
+            Ei[d,:] *= Qi[d,i]
+        # Left-multiply with eigenvector matrix
+        C += np.matmul(Q, Ei)
+    return C
+
 
 def flux_2comp(J, T, E, t=None, dt=1.0):
-    """Concentration in a general 2-compartment system
-    """
     C = conc_2comp(J, T, E, t=t, dt=dt)
-    t = tools.tarray(len(J[:,0]), t=t, dt=dt)
-    K0 = (E[0,0]+E[1,0])/T[0]
-    K1 = (E[0,1]+E[1,1])/T[1]
-    J0 = K0*C[:,0]
-    J1 = K1*C[:,1]
-    return np.stack((J0, J1), axis=-1)
+    K = K_ncomp(T, E)
+    Jo = np.zeros(C.shape)
+    for c in range(C.shape[0]):
+        # Flux to outside only
+        Koc = np.sum(K[:,c])
+        Jo[c,:] = Koc*C[c,:]
+    return Jo
+
 
 def res_2comp(T, E, t):
-    if np.amin(T) <= 0:
-        raise ValueError('T must be strictly positive.')
-    K0 = (E[0,0]+E[1,0])/T[0]
-    K1 = (E[0,1]+E[1,1])/T[1]
-    K10 = E[1,0]/T[0]
-    K01 = E[0,1]/T[1]
-    Dsq = (K0-K1)**2 + 4*K01*K10
-    D = math.sqrt(D)
-    Kp = (K0+K1+Dsq)/2
-    Kn = (K0+K1-Dsq)/2
-    Np = K01*(Kp+K1) + K10*(Kp+K0)
-    Nn = K01*(Kn+K1) + K10*(Kn+K0)
-    Ap = math.sqrt(K01*(Kp+K1)/Np)
-    An = math.sqrt(K01*(Kn+K1)/Nn)
-    Bp = math.sqrt(K10*(Kp+K0)/Np)
-    Bn = math.sqrt(K10*(Kn+K0)/Nn)
-    Ep = res_comp(t, 1/Kp)
-    En = res_comp(t, 1/Kn)
-    # Residue for injection in 0
-    r00 = Ap*Ap*Ep + An*An*En
-    r10 = Ap*Bp*Ep + An*Bn*En
-    r_0 = np.stack((r00, r10), axis=-1)
-    # Residue for injection in 1
-    r01 = Ap*Bp*Ep + An*Bn*En
-    r11 = Bp*Bp*Ep + Bn*Bn*En
-    r_1 = np.stack((r01, r11), axis=-1)
-    # Residue for the system
-    return np.stack((r_0, r_1), axis=-1)
+    # Calculate system matrix, eigenvalues and eigenvectors
+    Q, K, Qi = K_2comp(T, E)
+    # Initialize concentration-time array
+    nc, nt = len(T), len(t) 
+    R = np.zeros((nc,nc,nt)) 
+    Ei = np.empty((nc,nt))
+    # Loop over the inlets
+    for i in range(nc): 
+        # Loop over the eigenvalues
+        for d in range(nc):
+            # Calculate elements of diagonal matrix
+            Ei[d,:] = np.exp(-t*K[d])
+            # Right-multiply with inverse eigenvector matrix
+            Ei[d,:] *= Qi[d,i]
+        # Left-multiply with eigenvector matrix
+        R[i,:,:] = np.matmul(Q, Ei)
+    return R
+
 
 def prop_2comp(T, E, t):
-    r = res_2comp(T, E, t)
-    K0 = (E[0,0]+E[1,0])/T[0]
-    K1 = (E[0,1]+E[1,1])/T[1]
-    r[:,0,:] = K0*r[:,0,:]
-    r[:,1,:] = K1*r[:,1,:]
-    return r
+    R = res_2comp(T, E, t)
+    K = K_ncomp(T, E)
+    Ho = np.zeros(R.shape)
+    for c in range(R.shape[0]):
+        # Flux to outside only
+        Koc = np.sum(K[:,c])
+        Ho[:,c,:] = Koc*R[:,c,:]
+    return Ho
 
 
 # 2 compartment exchange (analytical)
 
 def conc_2cxm(J, T, E, t=None, dt=1.0):
-    """Concentration in a 2-compartment exchange model system.
-
-    E is the scalar extraction fraction E10
-    """
+    # Check input parameters
     if np.amin(T) <= 0:
         raise ValueError('T must be strictly positive.')
-    t = tools.tarray(len(J), t=t, dt=dt)
-    K0 = 1/T[0]
-    K1 = 1/T[1]
-    K10 = E/T[0]
-    K01 = 1/T[1]
-    Dsq = (K0-K1)**2 + 4*K01*K10
-    D = math.sqrt(D)
-    Kp = (K0+K1+Dsq)/2
-    Kn = (K0+K1-Dsq)/2
-    Np = K01*(Kp+K1) + K10*(Kp+K0)
-    Nn = K01*(Kn+K1) + K10*(Kn+K0)
-    Ap = math.sqrt(K01*(Kp+K1)/Np)
-    An = math.sqrt(K01*(Kn+K1)/Nn)
-    Bp = math.sqrt(K10*(Kp+K0)/Np)
-    Bn = math.sqrt(K10*(Kn+K0)/Nn)
-    E0p = conc_comp(J, 1/Kp, t)
-    E0n = conc_comp(J, 1/Kn, t)
-    C0 = Ap*Ap*E0p + An*An*E0n 
-    C1 = Ap*Bp*E0p + An*Bn*E0n 
-    return np.stack((C0, C1), axis=-1)
+    if not isinstance(J, np.ndarray):
+        J = np.array(J)
+    if not isinstance(T, np.ndarray):
+        T = np.array(T)
+    # Build the system matrix K
+    E = [
+        [1-E, 1],
+        [E,   1],
+    ]
+    Q, K, Qi = K_2comp(T, E)
+    # Initialize concentration-time array
+    nc, nt = 2, len(J)
+    t = tools.tarray(nt, t=t, dt=dt)
+    Ei = np.empty((nc,nt))
+    # Loop over the eigenvalues
+    for d in [0,1]:
+        # Calculate elements of diagonal matrix
+        Ei[d,:] = conc_comp(J, 1/K[d], t)
+        # Right-multiply with inverse eigenvector matrix
+        Ei[d,:] *= Qi[d,0]
+    # Left-multiply with eigenvector matrix
+    C = np.matmul(Q, Ei)
+    return C
+
 
 def flux_2cxm(J, T, E, t=None, dt=1.0):
     C = conc_2cxm(J, T, E, t=t, dt=dt)
-    t = tools.tarray(len(J), t=t, dt=dt)
-    J0 = C[:,0]*(1-E)/T[0]
-    return J0
+    Emat = np.array([[1-E,1],[E,1]])
+    K = K_ncomp(T, Emat)
+    # Flux to outside only
+    Koc = np.sum(K[:,0])
+    Jo = Koc*C[0,:]
+    return Jo
 
 def res_2cxm(T, E, t):
-    K0 = 1/T[0]
-    K1 = 1/T[1]
-    K10 = E/T[0]
-    K01 = 1/T[1]
-    Dsq = (K0-K1)**2 + 4*K01*K10
-    D = math.sqrt(D)
-    Kp = (K0+K1+Dsq)/2
-    Kn = (K0+K1-Dsq)/2
-    Np = K01*(Kp+K1) + K10*(Kp+K0)
-    Nn = K01*(Kn+K1) + K10*(Kn+K0)
-    Ap = math.sqrt(K01*(Kp+K1)/Np)
-    An = math.sqrt(K01*(Kn+K1)/Nn)
-    Bp = math.sqrt(K10*(Kp+K0)/Np)
-    Bn = math.sqrt(K10*(Kn+K0)/Nn)
-    E0p = res_comp(t, 1/Kp)
-    E0n = res_comp(t, 1/Kn)
-    C0 = Ap*Ap*E0p + An*An*E0n 
-    C1 = Ap*Bp*E0p + An*Bn*E0n 
-    return np.stack((C0, C1), axis=-1)
+    E = [
+        [1-E, 1],
+        [E,   1],
+    ]
+    # Calculate system matrix, eigenvalues and eigenvectors
+    Q, K, Qi = K_2comp(T, E)
+    # Initialize concentration-time array
+    nc, nt = len(T), len(t)
+    Ei = np.empty((nc,nt))
+    # Loop over the eigenvalues
+    for d in range(nc):
+        # Calculate elements of diagonal matrix
+        Ei[d,:] = np.exp(-t*K[d])
+        # Right-multiply with inverse eigenvector matrix
+        Ei[d,:] *= Qi[d,0]
+    # Left-multiply with eigenvector matrix
+    R = np.matmul(Q, Ei)
+    return R
+
 
 def prop_2cxm(T, E, t):
-    r = res_2cxm(T, E, t)
-    h0 = r[:,0]*(1-E)/T[0]
-    return h0
+    R = res_2cxm(T, E, t)
+    E = [
+        [1-E, 1],
+        [E,   1],
+    ]
+    K = K_ncomp(T, E)
+    # Flux to outside only
+    Ko0 = np.sum(K[:,0])
+    Ho = Ko0*R[0,:]
+    return Ho
 
 
 # 2 compartment filtration model
-
 
 def conc_2cfm(J, T, E, t=None, dt=1.0):
     t = tools.tarray(len(J), t=t, dt=dt)
@@ -1176,19 +1238,25 @@ def conc_2cfm(J, T, E, t=None, dt=1.0):
     if E==0:
         C1 = np.zeros(len(t))
     elif T[0]==0:
-        C1 = conc_comp(E*J, T[1], t)
+        J10 = E*J
+        C1 = conc_comp(J10, T[1], t)
     else:
-        C1 = conc_comp(C0*E/T[0], T[1], t)
-    return np.stack((C0, C1), axis=-1)
+        J10 = C0*E/T[0]
+        C1 = conc_comp(J10, T[1], t)
+    return np.stack((C0, C1))
+
 
 def flux_2cfm(J, T, E, t=None, dt=1.0):
     t = tools.tarray(len(J), t=t, dt=dt)
     J0 = flux_comp(J, T[0], t)
     if E==0:
-        J1 = np.zeros(len(t))
+        Jo1 = np.zeros(len(t))
     else:    
-        J1 = flux_comp(E*J0, T[1], t)
-    return np.stack(((1-E)*J0, J1), axis=-1)
+        J10 = E*J0
+        Jo1 = flux_comp(J10, T[1], t)
+    Jo0 = (1-E)*J0
+    return np.stack((Jo0, Jo1))
+
 
 def res_2cfm(T, E, t):
     C0 = res_comp(T[0], t)
@@ -1198,15 +1266,18 @@ def res_2cfm(T, E, t):
         C1 = E*res_comp(T[1], t)
     else:
         C1 = conc_comp(C0*E/T[0], T[1], t)
-    return np.stack((C0, C1), axis=-1)
+    return np.stack((C0, C1))
+
 
 def prop_2cfm(T, E, t):
     J0 = prop_comp(T[0], t)
     if E==0:
-        J1 = np.zeros(len(t))
+        Jo1 = np.zeros(len(t))
     else:    
-        J1 = flux_comp(E*J0, T[1], t)
-    return np.stack(((1-E)*J0, J1), axis=-1)
+        J10 = E*J0
+        Jo1 = flux_comp(J10, T[1], t)
+    Jo0 = (1-E)*J0
+    return np.stack((Jo0, Jo1))
 
 
 # Non-stationary compartment
