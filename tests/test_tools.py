@@ -73,6 +73,10 @@ def test_stepconv():
         g = tools.stepconv(f, T, D, dt=t[1])
         g0 = tools.conv(f, h, dt=t[1])
         assert np.linalg.norm(g-g0)/np.linalg.norm(g0) < prec[k]
+    try:
+        tools.stepconv(f, T, 2, dt=t[1])
+    except:
+        assert True
 
 def test_intprod():
     # Non-uniform time interval: compare to numerical integration.
@@ -211,7 +215,11 @@ def test_biexpconv():
     t = np.array([0,1,2,3,5,8,13,21,34])
     g = tools.biexpconv(Tf, Th, t)
     g0 = (np.exp(-t/Tf)-np.exp(-t/Th))/(Tf-Th)
-    assert np.linalg.norm(g-g0) == 0#
+    assert np.linalg.norm(g-g0) == 0
+    g = tools.biexpconv(Th, Th, t)
+    g0 = (t/Th) * np.exp(-t/Th)/Th
+    assert np.linalg.norm(g-g0) == 0
+
 
 def test_nexpconv():
     MTT = 20
@@ -250,10 +258,25 @@ def test_nexpconv():
     assert np.abs(np.trapz(g,t)-1) < 1e-12
     # Check MTT
     assert np.abs(np.trapz(t*g,t)-MTT) < 0.1
+    # Check case of non-integer n
+    g = tools.nexpconv(200.5, T, t)
+    assert np.abs(np.trapz(g,t)-1) < 1e-12
+
+    # Test exceptions
+    try:
+        tools.nexpconv(n, -1, t)
+    except:
+        assert True
+    try:
+        tools.nexpconv(0.5, T, t)
+    except:
+        assert True
 
 def test_ddelta():
     t = [0,2,3,4]
     h = tools.ddelta(-1, t)
+    assert np.array_equal(h, [0,0,0,0])
+    h = tools.ddelta(5, t)
     assert np.array_equal(h, [0,0,0,0])
     h = tools.ddelta(0, t)
     assert np.array_equal(h, [1,0,0,0])

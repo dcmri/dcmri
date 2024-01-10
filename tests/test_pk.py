@@ -72,6 +72,10 @@ def test_res_comp():
     t = [0,5,15,30,60,90,150]
     r = pk.res_comp(T, t)
     assert (np.trapz(r,t)-T)**2/T**2 < 1e-2
+    r = pk.res_comp(np.inf, t)
+    assert np.sum(np.unique(r))== 1
+    r = pk.res_comp(0, t)
+    assert np.sum(r) == 1
 
 def test_prop_comp():
     T = 25
@@ -80,6 +84,10 @@ def test_prop_comp():
     assert np.round(np.trapz(h,t)) == 1
     t = [0,5,15,30,60,90,150]
     h = pk.prop_comp(T, t)
+    assert (np.trapz(h,t)-1)**2 < 1e-2
+    h = pk.prop_comp(np.inf, t)
+    assert np.linalg.norm(h)==0
+    h = pk.prop_comp(0, t)
     assert (np.trapz(h,t)-1)**2 < 1e-2
 
 def test_conc_comp():
@@ -96,6 +104,9 @@ def test_conc_comp():
     C0 = tools.conv(pk.res_comp(T,t), J, t)
     C = pk.conc_comp(J, T, t)
     assert np.linalg.norm(C[1:]-C0[1:])/np.linalg.norm(C0[1:]) < 1e-1
+    C = pk.conc_comp(J, np.inf, t)
+    C0 = pk.conc_trap(J,t)
+    assert np.linalg.norm(C[1:]-C0[1:])/np.linalg.norm(C0[1:]) < 1e-1
 
 def test_flux_comp():
     T = 25
@@ -111,6 +122,8 @@ def test_flux_comp():
     J0 = tools.conv(pk.prop_comp(T,t), J, t)
     Jo = pk.flux_comp(J, T, t)
     assert np.linalg.norm(J0-Jo)/np.linalg.norm(J0) < 1e-1
+    Jo = pk.flux_comp(J, np.inf, t)
+    assert np.linalg.norm(Jo) == 0
 
 def test_res_plug():
     T = 25
@@ -144,6 +157,11 @@ def test_conc_plug():
     C0 = tools.conv(pk.res_plug(T,t), J, t)
     C = pk.conc_plug(J, T, t)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
+    C = pk.conc_plug(J, np.inf, t)
+    C0 = pk.conc_trap(J)
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
+    C = pk.conc_plug(J, 0, t)
+    assert np.linalg.norm(C) == 0
 
 def test_flux_plug():
     T = 25
@@ -159,6 +177,10 @@ def test_flux_plug():
     J0 = tools.conv(pk.prop_plug(T,t), J, t)
     Jo = pk.flux_plug(J, T, t)
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 0.3
+    Jo = pk.flux_plug(J, np.inf, t)
+    assert np.linalg.norm(Jo) == 0
+    Jo = pk.flux_plug(J, 0, t)
+    assert np.linalg.norm(Jo-J) == 0
 
 def test_prop_chain():
     T = 25
@@ -171,6 +193,31 @@ def test_prop_chain():
     h = pk.prop_chain(T, D, t)
     assert np.abs(np.trapz(h,t)-1) < 0.03
     assert np.abs(np.trapz(t*h,t)-T) < 0.5
+    try:
+        h = pk.prop_chain(-1, D, t)
+    except:
+        assert True
+    else:
+        assert False
+    try:
+        h = pk.prop_chain(T, -1, t)
+    except:
+        assert True
+    else:
+        assert False
+    try:
+        h = pk.prop_chain(T, 2, t)
+    except:
+        assert True
+    else:
+        assert False
+    h = pk.prop_chain(T, 0, t)
+    h0 = pk.prop_plug(T,t)
+    assert np.linalg.norm(h-h0)==0
+    h = pk.prop_chain(T, 1, t)
+    h0 = pk.prop_comp(T, t)
+    assert np.linalg.norm(h-h0)==0
+
 
 def test_res_chain():
     T = 25
@@ -181,6 +228,12 @@ def test_res_chain():
     t = [0,5,15,30,60,90,150]
     h = pk.res_chain(T, D, t)
     assert (np.trapz(h,t)-T)**2/T**2 < 1e-3
+    h = pk.res_chain(T, 0, t)
+    h0 = pk.res_plug(T,t)
+    assert np.linalg.norm(h-h0)==0
+    h = pk.res_chain(T, 1, t)
+    h0 = pk.res_comp(T, t)
+    assert np.linalg.norm(h-h0)==0
 
 def test_conc_chain():
     T = 25
@@ -197,6 +250,12 @@ def test_conc_chain():
     C0 = tools.conv(pk.res_chain(T,D,t), J, t)
     C = pk.conc_chain(J, T, D, t)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
+    h = pk.conc_chain(J, T, 0, t)
+    h0 = pk.conc_plug(J, T,t)
+    assert np.linalg.norm(h-h0)==0
+    h = pk.conc_chain(J, T, 1, t)
+    h0 = pk.conc_comp(J, T, t)
+    assert np.linalg.norm(h-h0)==0
 
 def test_flux_chain():
     T = 25
@@ -213,6 +272,12 @@ def test_flux_chain():
     J0 = tools.conv(pk.prop_chain(T,D,t), J, t)
     Jo = pk.flux_chain(J, T, D, t)
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
+    h = pk.flux_chain(J, T, 0, t)
+    h0 = pk.flux_plug(J, T,t)
+    assert np.linalg.norm(h-h0)==0
+    h = pk.flux_chain(J, T, 1, t)
+    h0 = pk.flux_comp(J, T, t)
+    assert np.linalg.norm(h-h0)==0
 
 def test_prop_step():
     T, D = 25, 0.5
@@ -226,10 +291,32 @@ def test_prop_step():
     assert np.abs(np.trapz(h,t)-1) < 1e-12
     h = pk.prop_step(120, 0.5, t)
     assert np.abs(np.trapz(h,t)-1) < 1e-12
-    
     t = [0,5,15,30,60,90,150]
     h = pk.prop_step(T, D, t)
     assert np.abs(np.trapz(h,t)-1) < 1e-12
+    try:
+        h = pk.prop_step(-1, D, t)
+    except:
+        assert True
+    else:
+        assert False
+    try:
+        h = pk.prop_step(T, -1, t)
+    except:
+        assert True
+    else:
+        assert False
+    try:
+        h = pk.prop_step(T, 2, t)
+    except:
+        assert True
+    else:
+        assert False
+    h = pk.prop_step(np.inf, D, t)
+    assert np.linalg.norm(h)==0
+    h = pk.prop_step(T, 0, t)
+    h0 = pk.prop_plug(T, t)
+    assert np.linalg.norm(h-h0)==0
 
 def test_res_step():
     T, D = 25, 0.5
@@ -254,6 +341,10 @@ def test_conc_step():
     C0 = tools.conv(pk.res_step(T,D,t), J, t)
     C = pk.conc_step(J, T, D, t)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
+    C = pk.conc_step(J, T, 0, t)
+    C0 = pk.conc_plug(J, T, t)
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
+
 
 def test_flux_step():
     T, D = 25, 0.5
@@ -268,6 +359,9 @@ def test_flux_step():
     J = np.ones(len(t))
     J0 = tools.conv(pk.prop_step(T,D,t), J, t)
     Jo = pk.flux_step(J, T, D, t)
+    assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
+    Jo = pk.flux_step(J, T, 0, t)
+    J0 = pk.flux_plug(J, T, t)
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
 
 
@@ -286,6 +380,16 @@ def test_prop_free():
     assert np.abs(np.trapz(h,t)-1) < 1e-12
     h = pk.prop_free([2,5], t, TT=[30.5,60.5,120.5])
     assert np.abs(np.trapz(h,t)-1) < 1e-12
+    h = pk.prop_free([1,1], t)
+    h0 = pk.prop_free([1,1], t, TTmax=np.amax(t))
+    assert np.linalg.norm(h-h0)/np.linalg.norm(h0) < 1e-12
+    try:
+        h = pk.prop_free([1,1,1], t, TT=[30,60,90])
+    except:
+        assert True
+    else:
+        assert False
+
 
 def test_res_free():
     t = np.linspace(0, 150, 100)
@@ -336,6 +440,14 @@ def test_K_ncomp():
     assert np.array_equal(np.matmul(K, [0,1]), [-E12/T2,(E12+E22)/T2])
     assert np.array_equal(np.matmul(K, [1,0]), K[:,0]) # col 0
     assert np.array_equal(np.matmul(K, [0,1]), K[:,1]) # col 1
+    try:
+        pk.K_ncomp([T1,T2], [[E11,-1],[E21,E22]])
+    except:
+        assert True
+    else:
+        assert False
+    K = pk.K_ncomp([T1,T2], [[0,E12],[0,E22]])
+    assert K[0,0] == 0
 
 def test_J_ncomp():
     T = [1,2]
@@ -487,6 +599,15 @@ def test_conc_2comp():
     C1 = pk.conc_comp(J[1,:], T[1], t)
     assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 1e-12
     assert np.linalg.norm(C[1,:]-C1)/np.linalg.norm(C1) < 1e-12
+    try:
+        pk.conc_2comp(J, [6,0], E, t)
+    except:
+        assert True
+    else:
+        assert False
+    C = pk.conc_2comp([[1,1],[1,1]], [1,1], [[1,0],[0,1]])
+    assert C[0,0]==0
+
 
 def test_flux_2comp():
     # Compare a decoupled system against analytical 1-comp model solutions
@@ -561,6 +682,15 @@ def test_conc_2cxm():
     C0 = pk.conc_2cxm(J[0,:], T, E, t) 
     C = pk.conc_2comp(J, T, Emat, t)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C) < 1e-3
+    try:
+        pk.conc_2cxm(J, [0,12], Emat, t)
+    except:
+        assert True
+    else:
+        assert False
+    C = pk.conc_2cxm([1,1], [1,1], 0.5)
+    assert C[0,0]==0
+
 
 def test_flux_2cxm():
     # Compare against general 2comp solution
@@ -611,6 +741,11 @@ def test_conc_2cfm():
         [E  , 1]]
     C = pk.conc_2comp(J, T, Emat, t)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C) < 1e-2
+    C = pk.conc_2cfm(J[0,:], T, 0, t)
+    C0 = pk.conc_comp(J[0,:], 6, t)
+    assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 1e-12
+    C = pk.conc_2cfm(J[0,:], [0,12], 1, t)
+    assert np.linalg.norm(C[0,:]) == 0
 
 def test_flux_2cfm():
     # Compare against general 2comp solution
@@ -637,6 +772,11 @@ def test_res_2cfm():
         [E  , 1]]
     R = pk.res_2comp(T, Emat, t)
     assert np.linalg.norm(R[0,:,:]-R0)/np.linalg.norm(R0) < 1e-2
+    R = pk.res_2cfm(T, 0, t)
+    R0 = pk.res_comp(6, t)
+    assert np.linalg.norm(R[0,:]-R0)/np.linalg.norm(R0) < 1e-12
+    R = pk.res_2cfm([0,12], 1, t)
+    assert np.sum(R[0,:]) == 1
 
 def test_prop_2cfm():
     # Compare against general 2comp solution

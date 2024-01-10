@@ -7,11 +7,11 @@ A collection of basic models that can be assembled to more complex models.
 .. currentmodule:: dcmri
 
 
-No-parameter models
-===================
+**No-parameter models**
+=======================
 
-**Trap**
---------
+*Trap*
+------
 
 .. autosummary::
    :toctree: ../generated/api/
@@ -23,11 +23,11 @@ No-parameter models
    flux_trap
 
 
-One-parameter models
-====================
+**One-parameter models**
+========================
 
-**Pass**
---------
+*Pass*
+------
 
 .. autosummary::
    :toctree: ../generated/api/
@@ -39,8 +39,8 @@ One-parameter models
    flux_pass
 
 
-**Compartment**
----------------
+*Compartment*
+-------------
 
 .. autosummary::
    :toctree: ../generated/api/
@@ -51,8 +51,8 @@ One-parameter models
    conc_comp
    flux_comp
 
-**Plug flow**
--------------
+*Plug flow*
+-----------
 
 .. autosummary::
    :toctree: ../generated/api/
@@ -64,12 +64,12 @@ One-parameter models
    flux_plug
 
 
-Two-parameter models
-====================
+**Two-parameter models**
+========================
 
 
-**Chain**
----------
+*Chain*
+-------
 
 .. autosummary::
    :toctree: ../generated/api/
@@ -81,8 +81,8 @@ Two-parameter models
    flux_chain
 
 
-**Step**
---------
+*Step*
+------
 
 .. autosummary::
    :toctree: ../generated/api/
@@ -94,11 +94,11 @@ Two-parameter models
    flux_step
 
 
-Three-parameter models
-======================
+**Three-parameter models**
+==========================
 
-**Two-compartment exchange model**
-----------------------------------
+*Two-compartment exchange model*
+--------------------------------
 
 .. autosummary::
    :toctree: ../generated/api/
@@ -110,8 +110,8 @@ Three-parameter models
    flux_2cxm
 
 
-**Two-compartment filtration model**
-------------------------------------
+*Two-compartment filtration model*
+----------------------------------
 
 .. autosummary::
    :toctree: ../generated/api/
@@ -122,11 +122,11 @@ Three-parameter models
    conc_2cfm
    flux_2cfm
 
-Six-parameter models
-====================
+**Six-parameter models**
+========================
 
-**2-compartment model**
------------------------
+*2-compartment model*
+---------------------
 
 .. autosummary::
    :toctree: ../generated/api/
@@ -138,12 +138,12 @@ Six-parameter models
    flux_2comp
 
 
-N-parameter models
-==================
+**N-parameter models**
+======================
 
 
-**Free**
---------
+*Free*
+------
 
 .. autosummary::
    :toctree: ../generated/api/
@@ -155,8 +155,8 @@ N-parameter models
    flux_free
 
 
-**N-compartment models**
-------------------------
+*N-compartment models*
+----------------------
 
 .. autosummary::
    :toctree: ../generated/api/
