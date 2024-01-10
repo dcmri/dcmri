@@ -10,22 +10,25 @@ def aif_parker(t, BAT:float=0.0)->np.ndarray:
 
     Returns:
         np.ndarray: Concentrations in M for each time point in t. If t is a scalar, the return value is a scalar too.
+
+    References:
+        Adapted from a contribution by the QBI lab of the University of Manchester to the `OSIPI code repository <https://github.com/OSIPI/DCE-DSC-MRI_CodeCollection>`_. 
         
     Example:
 
-        Create an array of time points covering 6min in steps of 1sec, calculate the Parker AIF at these time points and plot the results.
+        >>> import numpy as np
+        >>> import dcmri as dc
 
-        Import packages:
+        Create an array of time points covering 20sec in steps of 1.5sec, which rougly corresponds to the first pass of the Paeker AIF:
 
-        >>> import matplotlib.pyplot as plt
-        >>> import dcmri
+        >>> t = np.arange(0, 20, 1.5)
 
-        Calculate AIF and plot
+        Calculate the Parker AIF at these time points, and output the result in units of mM:
 
-        >>> t = np.arange(0, 6*60, 0.1)
-        >>> ca = dcmri.aif_parker(t)
-        >>> plt.plot(t,ca)
-        >>> plt.show()
+        >>> 1000*dc.aif_parker(t)
+        array([0.08038467, 0.23977987, 0.63896354, 1.45093969, 
+        2.75255937, 4.32881325, 5.6309778 , 6.06793854, 5.45203828,
+        4.1540079 , 2.79568217, 1.81335784, 1.29063036, 1.08751679])
     """
 
     # Check input types
