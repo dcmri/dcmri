@@ -243,7 +243,7 @@ def res_comp(T, t):
     if T == np.inf:
         return res_trap(t)
     if T == 0:
-        r = np.zeros(len())
+        r = np.zeros(len(t))
         r[0] = 1
         return r
     return np.exp(-np.array(t)/T)
@@ -272,7 +272,7 @@ def prop_comp(T, t):
     if T == np.inf:
         return prop_trap(t)
     if T == 0:
-        return tools.ddelta(t)
+        return tools.ddelta(T, t)
     return np.exp(-np.array(t)/T)/T
 
 
@@ -330,7 +330,7 @@ def flux_comp(J, T, t=None, dt=1.0):
         array([0.        , 1.        , 2.43233236, 2.97173749, 2.16618349]) 
     """
     if T == np.inf:
-        return flux_trap(J, t=t, dt=dt)
+        return flux_trap(J)
     return tools.expconv(J, T, t=t, dt=dt)
 
 
@@ -410,7 +410,7 @@ def conc_plug(J, T, t=None, dt=1.0):
         array([ 0.        ,  6.38888889, 18.61111111, 22.5       , 16.25      ])
     """
     if T==np.inf:
-        return conc_trap(J, t=t, dt=dt)
+        return conc_trap(J)
     if T==0:
         return 0*J
     t = tools.tarray(len(J), t=t, dt=dt)
@@ -445,14 +445,12 @@ def flux_plug(J, T, t=None, dt=1.0):
         array([0.        , 0.44444444, 2.30555556, 3.        , 2.22222222]) 
     """
     if T==np.inf:
-        return flux_trap(J, t=t, dt=dt)
+        return flux_trap(J)
     if T==0:
         return J
     t = tools.tarray(len(J), t=t, dt=dt)
     h = prop_plug(T, t)
     return tools.conv(h, J, t=t, dt=dt)
-    #t = tools.tarray(len(J), t=t, dt=dt)
-    #return np.interp(t-T, t, J, left=0) 
 
 
 
@@ -551,7 +549,7 @@ def conc_chain(J, T, D, t=None, dt=1.0):
     """
     if D == 0:
         return conc_plug(J, T, t=t, dt=dt)
-    if D == 100:
+    if D == 1:
         return conc_comp(J, T, t=t, dt=dt)
     t = tools.tarray(len(J), t=t, dt=dt)
     r = res_chain(T, D, t)
@@ -582,9 +580,9 @@ def flux_chain(J, T, D, t=None, dt=1.0):
         array([0.        , 0.36089409, 1.92047375, 2.63639739, 1.99640464])
     """
     if D == 0:
-        return prop_plug(J, T, t=t, dt=dt)
-    if D == 100:
-        return prop_comp(J, T, t=t, dt=dt)
+        return flux_plug(J, T, t=t, dt=dt)
+    if D == 1:
+        return flux_comp(J, T, t=t, dt=dt)
     t = tools.tarray(len(J), t=t, dt=dt)
     h = prop_chain(T, D, t)
     return tools.conv(h, J, t)
@@ -766,9 +764,7 @@ def prop_free(H, t, TT=None, TTmin=0, TTmax=None):
             raise ValueError(msg)
     h = tools.ddist(H, TT, t)
     return h/np.trapz(h,t)
-    # Old approach with histogram
-    # dist = rv_histogram((H,TT), density=True)
-    # return dist.pdf(t)
+
 
 def res_free(H, t, TT=None, TTmin=0, TTmax=None):
     """Residue function of a free system.
@@ -812,9 +808,7 @@ def res_free(H, t, TT=None, TTmin=0, TTmax=None):
     r = 1 - tools.trapz(h, t)
     r[r<0] = 0
     return r
-    # Old approach with histogram
-    # dist = rv_histogram((H,TT), density=True)
-    # return 1 - dist.cdf(t)
+
 
 def conc_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
     """Indicator concentration inside a free system.
@@ -1110,7 +1104,7 @@ def flux_ncomp(J, T, E, t=None, dt=1.0, solver='prop', dt_prop=None):
         dt_prop (float, optional): internal time resolution for the forward propagation when `solver = 'prop'`. This must be in the same units as *T*. If *dt_prop* is not provided, it defaults to the sampling interval, or the smallest time step needed for stable results (whichever is smaller). This argument is ignored when `solver = 'diag'`. Defaults to None. 
 
     Returns:
-        numpy.ndarray: Outflux out of each compartment, and at each time point, as a 3D array with dimensions *(n,n,k)*, where *n* is the number of compartments and *k* is the number of time points in *J*. Encoding of the first two indices as the same as for *E*: *J[j,i,:]* is the flux from compartment *i* to *j*, and *J[i,i,:]* is the flux from *i* directly to the outside.
+        numpy.ndarray: Outflux out of each compartment, and at each time point, as a 3D array with dimensions *(n,n,k)*, where *n* is the number of compartments and *k* is the number of time points in *J*. Encoding of the first two indices is the same as for *E*: *J[j,i,:]* is the flux from compartment *i* to *j*, and *J[i,i,:]* is the flux from *i* directly to the outside.
 
     See Also:
         `res_ncomp`, `prop_ncomp`, `conc_ncomp`
@@ -1273,7 +1267,9 @@ def prop_ncomp(T, E, t):
 # Helper function
 def K_2comp(T,E):
     K = K_ncomp(T, E)
-    # Calculate the eigenvalues Ke
+    if np.array_equal(K, np.identity(2)):
+        return K, np.ones(2), K
+    # Calculate the eigenvalues Ke  
     D = math.sqrt((K[0,0]-K[1,1])**2 + 4*K[0,1]*K[1,0])
     Ke = [0.5*(K[0,0]+K[1,1]+D),
          0.5*(K[0,0]+K[1,1]-D)]
@@ -1382,7 +1378,7 @@ def flux_2comp(J, T, E, t=None, dt=1.0):
         dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as *T*. This parameter is ignored if t is explicity provided. Defaults to 1.0. 
 
     Returns:
-        numpy.ndarray: Outflux out of each compartment, and at each time point, as a 3D array with dimensions *(2,2,k)*, where *2* is the number of compartments and *k* is the number of time points in *J*. Encoding of the first two indices as the same as for *E*: *J[j,i,:]* is the flux from compartment *i* to *j*, and *J[i,i,:]* is the flux from *i* directly to the outside.
+        numpy.ndarray: Outflux out of each compartment, and at each time point, as a 3D array with dimensions *(2,2,k)*, where *2* is the number of compartments and *k* is the number of time points in *J*. Encoding of the first two indices is the same as for *E*: *J[j,i,:]* is the flux from compartment *i* to *j*, and *J[i,i,:]* is the flux from *i* directly to the outside.
 
     See Also:
         `res_2comp`, `prop_2comp`, `conc_2comp`
@@ -2020,41 +2016,37 @@ def prop_2cfm(T, E, t):
 
 # Non-stationary compartment
 
-def conc_nscomp(J, T, t=None, dt=1.0):
-    if np.isscalar(T):
-        raise ValueError('T must be an array of the same length as J.')
-    if len(T) != len(J):
-        raise ValueError('T and J must have the same length.')
-    if np.amin(T) <= 0:
-        raise ValueError('T must be strictly positive.')
-    t = tools.tarray(len(J), t=t, dt=dt)
-    Dt = t[1:]-t[:-1]
-    Tt = (T[1:]+T[:-1])/2
-    Jt = (J[1:]+J[:-1])/2
-    n = len(t)
-    C = np.zeros(n)
-    for i in range(n-1):
-        # Dt/T <= 1 or Dt <= T
-        if Dt[i] <= Tt[i]:
-            C[i+1] = C[i] + Dt[i]*Jt[i] - C[i]*Dt[i]/Tt[i]
-        else:
-            # Dt[i]/nk <= T[i]
-            # Dt[i]/T[i] <= nk
-            nk = np.ceil(Dt[i]/Tt[i])
-            Dk = Dt[i]/nk
-            Ck = C[i]
-            for _ in range(nk):
-                Ck = Ck + Dk*Jt[i]/nk - Ck*Dk/Tt[i]
-            C[i+1] = Ck
-    return C
+# Commenting out until included and tested
 
-def flux_nscomp(J, T, t=None, dt=1.0):
-    C = conc_nscomp(J, T, t=t, dt=dt)
-    return C/T
+# def conc_nscomp(J, T, t=None, dt=1.0):
+#     if np.isscalar(T):
+#         raise ValueError('T must be an array of the same length as J.')
+#     if len(T) != len(J):
+#         raise ValueError('T and J must have the same length.')
+#     if np.amin(T) <= 0:
+#         raise ValueError('T must be strictly positive.')
+#     t = tools.tarray(len(J), t=t, dt=dt)
+#     Dt = t[1:]-t[:-1]
+#     Tt = (T[1:]+T[:-1])/2
+#     Jt = (J[1:]+J[:-1])/2
+#     n = len(t)
+#     C = np.zeros(n)
+#     for i in range(n-1):
+#         # Dt/T <= 1 or Dt <= T
+#         if Dt[i] <= Tt[i]:
+#             C[i+1] = C[i] + Dt[i]*Jt[i] - C[i]*Dt[i]/Tt[i]
+#         else:
+#             # Dt[i]/nk <= T[i]
+#             # Dt[i]/T[i] <= nk
+#             nk = np.ceil(Dt[i]/Tt[i])
+#             Dk = Dt[i]/nk
+#             Ck = C[i]
+#             for _ in range(nk):
+#                 Ck = Ck + Dk*Jt[i]/nk - Ck*Dk/Tt[i]
+#             C[i+1] = Ck
+#     return C
 
 
-if __name__ == "__main__":
-
-    print('All pk tests passed!!')
-
-
+# def flux_nscomp(J, T, t=None, dt=1.0):
+#     C = conc_nscomp(J, T, t=t, dt=dt)
+#     return C/T

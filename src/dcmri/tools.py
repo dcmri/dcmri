@@ -445,7 +445,3 @@ def nexpconv(n, T, t):
             g = g*u + g1*(1-u)
     return g
 
-
-if __name__ == "__main__":
-
-    print('All tools tests passed!!')
