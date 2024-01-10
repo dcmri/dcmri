@@ -2,9 +2,14 @@
 About
 #####
 
-``dcmri`` is a Python toolbox for dynamic contrast MRI, developed by the section medical imaging of the University of Sheffield.
+.. note::
 
-Scope
-^^^^^
+   ``dcmri`` is under construction. Please check back later for more comprehensive functionality and documentation.
+   
 
-`dcmri` is developed in public, but is work in progress. Currently the functionality is very limited.
+``dcmri`` is developed by the medical imaging group of the University of Sheffield, UK (`homepage <https://www.sheffield.ac.uk/smph/research/themes/imaging>`_). 
+
+..
+    This works but does not format properly.
+    .. include:: teams.inc
+

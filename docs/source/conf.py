@@ -79,11 +79,12 @@ exclude_patterns = []
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
     'numpy': ('https://numpy.org/doc/stable/', None),
-    'matplotlib': ('https://matplotlib.org/stable/', None),
-    'pydicom': ('https://pydicom.github.io/pydicom/stable/', None),
-    'nibabel': ('https://nipy.org/nibabel/', None),
-    'pandas': ('https://pandas.pydata.org/docs/', None),
-    'skimage': ('https://scikit-image.org/docs/stable/', None),
+    #'matplotlib': ('https://matplotlib.org/stable/', None),
+    #'pydicom': ('https://pydicom.github.io/pydicom/stable/', None),
+    #'nibabel': ('https://nipy.org/nibabel/', None),
+    #'pandas': ('https://pandas.pydata.org/docs/', None),
+    #'skimage': ('https://scikit-image.org/docs/stable/', None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/", None),
 }
 
 autosummary_generate = True # enable autosummary extension
@@ -99,9 +100,8 @@ always_document_param_types = True
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for a list of builtin themes
 html_theme = 'pydata_sphinx_theme'
-
 html_theme_options = {
-    "github_url": "https://dcmri.github.io/pypi",
+    "github_url": "https://github.com/QIB-Sheffield/dcmri",
     "collapse_navigation": True,
     }
 
@@ -114,3 +114,9 @@ source_suffix = ['.rst', '.md']
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
 html_logo = '_static/tristan-logo.jpg'
+
+# The base URL which points to the root of the HTML documentation. 
+# It is used to indicate the location of document
+#html_baseurl = "https://qib-sheffield.github.io/dcmri/"
+
+
