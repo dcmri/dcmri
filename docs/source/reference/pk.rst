@@ -94,6 +94,50 @@ Two-parameter models
    flux_step
 
 
+Three-parameter models
+======================
+
+**Two-compartment exchange model**
+----------------------------------
+
+.. autosummary::
+   :toctree: ../generated/api/
+   :template: autosummary.rst
+
+   res_2cxm
+   prop_2cxm
+   conc_2cxm
+   flux_2cxm
+
+
+**Two-compartment filtration model**
+------------------------------------
+
+.. autosummary::
+   :toctree: ../generated/api/
+   :template: autosummary.rst
+
+   res_2cfm
+   prop_2cfm
+   conc_2cfm
+   flux_2cfm
+
+Six-parameter models
+====================
+
+**2-compartment model**
+-----------------------
+
+.. autosummary::
+   :toctree: ../generated/api/
+   :template: autosummary.rst
+
+   res_2comp
+   prop_2comp
+   conc_2comp
+   flux_2comp
+
+
 N-parameter models
 ==================
 
@@ -109,3 +153,16 @@ N-parameter models
    prop_free
    conc_free
    flux_free
+
+
+**N-compartment models**
+------------------------
+
+.. autosummary::
+   :toctree: ../generated/api/
+   :template: autosummary.rst
+
+   res_ncomp
+   prop_ncomp
+   conc_ncomp
+   flux_ncomp
