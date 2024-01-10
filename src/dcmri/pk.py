@@ -868,6 +868,7 @@ def conc_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
     r = res_free(H, u, TT=TT, TTmin=TTmin, TTmax=TTmax)
     return tools.conv(r, J, t=t, dt=dt)
 
+
 def flux_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
     """Indicator flux out of a free system.
 
@@ -925,272 +926,1037 @@ def flux_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
 # N compartments
 
 def K_ncomp(T, E):
+    if not isinstance(T, np.ndarray):
+        T = np.array(T)
+    if not isinstance(E, np.ndarray):
+        E = np.array(E)
+    # Helper function
     if np.amin(E) < 0:
         raise ValueError('Extraction fractions cannot be negative.')
-    nc = T.size
-    K = np.zeros((nc,nc))
-    for i in range(nc):
-        Ei = np.sum(E[:,i])
-        if Ei==0:
-            K[i,i] = 0
-        else:
-            K[i,i] = Ei/T[i]
-        for j in range(nc):
-            if j!=i:
+    n = T.size
+    K = np.zeros((n,n))
+    for i in range(n):
+        for j in range(n):
+            if j==i:
+                # Diagonal elements
+                # sum of column i
+                Ei = np.sum(E[:,i]) 
+                if Ei==0:
+                    K[i,i] = 0
+                else:
+                    K[i,i] = Ei/T[i]
+            else:
+                # Off-diagonal elements
                 if E[j,i]==0:
                     K[j,i] = 0
                 else:
                     K[j,i] = -E[j,i]/T[i]
     return K
 
-
-def Ko_ncomp(T, E):
-    if np.amin(E) < 0:
-        raise ValueError('Extraction fractions cannot be negative.')
-    nc = T.size
-    K = np.zeros(nc)
-    for i in range(nc):
-        if E[i,i]==0:
-            K[i] = 0
-        else:
-            K[i] = E[i,i]/T[i]
-    return K
-
-
-def conc_ncomp(J, T, E, t=None, dt=1.0):
-    """Concentration in a general n-compartment model.
-
-    T is an n-element array with MTTs for each compartment.
-    E is the nxn system matrix with E[j,i] = Eji (if j!=i) and E[i,i] = Eoi.
-    Note:
-    - if sum_j Eji < 1 then compartment i contains a trap.
-    - if sum_j Eji > 1 then compartment i produces indicator.
-    """
-    t = tools.tarray(len(J[:,0]), t=t, dt=dt)
+def J_ncomp(C, T, E):
     K = K_ncomp(T, E)
+    nc, nt = C.shape[0], C.shape[1]
+    J = np.zeros((nc,nc,nt))
+    for i in range(C.shape[0]):
+        for j in range(C.shape[0]):
+            if i==j:
+                # Flux to outside
+                Kii = np.sum(K[:,i])
+                J[i,i,:] = Kii*C[i,:]
+            else:
+                # Flux to other compartments
+                J[j,i,:] = -K[j,i]*C[i,:]
+    return J
+
+# Helper function
+def conc_ncomp_prop(J, T, E, t=None, dt=1.0, dt_prop=None):
+    t = tools.tarray(len(J[0,:]), t=t, dt=dt)
+    K = K_ncomp(T, E)
+    nt, nc = len(t), len(T)
+    C = np.zeros((nc,nt))
     Kmax = K.diagonal().max()
-    nc = len(T)
-    nt = len(t)
-    C = np.zeros((nt,nc))
     for k in range(nt-1):
+        # Dk/nk <= 1/Kmax
+        # Dk*Kmax <= nk
         Dk = t[k+1]-t[k]
-        Jk = (J[k+1,:]+J[k,:])/2
-        if Dk*Kmax <= 1:
-            C[k+1,:] = C[k,:] + Dk*Jk - Dk*np.matmul(K, C[k,:])  
-        else:
-            # Dk/nk <= 1/Kmax
-            # Dk*Kmax <= nk
-            nk = np.ceil(Dk*Kmax)
-            Dk = Dk/nk
-            Jk = Jk/nk
-            Ck = C[k,:]
-            for _ in range(nk):
-                Ck = Ck + Dk*Jk - Dk*np.matmul(K, Ck)
-            C[k+1,:] = Ck
+        SJk = (J[:,k+1]-J[:,k])/Dk
+        nk = int(np.ceil(Dk*Kmax))
+        if dt_prop is not None:
+            nk = np.amax([int(np.ceil(Dk/dt_prop)), nk])
+        dk = Dk/nk
+        Jk = J[:,k]
+        Ck = C[:,k]
+        for _ in range(nk):
+            Jk_next = Jk + dk*SJk
+            Ck_in = dk*(Jk+Jk_next)/2
+            Ck = Ck + Ck_in - dk*np.matmul(K, Ck)
+            Jk = Jk_next
+        C[:,k+1] = Ck
     return C
 
-def flux_ncomp(J, T, E, t=None, dt=1.0):
-    """Flux out of a general n-compartment model.
+# Helper function
+def conc_ncomp_diag(J, T, E, t=None, dt=1.0):
+    t = tools.tarray(J.shape[1], t=t, dt=dt)
+    # Calculate system matrix, eigenvalues and eigenvectors
+    K = K_ncomp(T, E)
+    K, Q = np.linalg.eig(K)
+    Qi = np.linalg.inv(Q)
+    # Initialize concentration-time array
+    nc, nt = len(T), len(t) 
+    C = np.zeros((nc,nt)) 
+    Ei = np.empty((nc,nt))
+    # Loop over the inlets
+    for i in range(nc): 
+        # Loop over the eigenvalues
+        for d in range(nc):
+            # Calculate elements of diagonal matrix
+            Ei[d,:] = conc_comp(J[i,:], 1/K[d], t)
+            # Right-multiply with inverse eigenvector matrix
+            Ei[d,:] *= Qi[d,i]
+        # Left-multiply with eigenvector matrix
+        C += np.matmul(Q, Ei)
+    return C
+
+def conc_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
+    """Concentration in a linear and stationary n-compartment system.
+
+    Args:
+        J (array_like): the indicator flux entering the system, as a rectangular 2D array with dimensions *(n,k)*, where *n* is the number of compartments and *k* is the number of time points in *J*. 
+        T (array_like): n-element array with mean transit times of each compartment.
+        E (array_like): dimensionless and square *n x n* matrix. An off-diagonal element *E[j,i]* is the extraction fraction from compartment *i* to compartment *j*. A diagonal element *E[i,i]* is the extraction fraction from compartment *i* to the outside. 
+        t (array_like, optional): the time points of the indicator flux *J*, in the same units as *T*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as *T*. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+        solver (str, optional): A string specifying the numerical method for solving the system. Two options are available: with `solver = 'diag'` the system is solved by diagonalising the system matrix, with `solver = 'prop'` the system is solved by forward propagation. The default is `'diag'`.
+        dt_prop (float, optional): internal time resolution for the forward propagation when `solver = 'prop'`. This must be in the same units as *T*. If *dt_prop* is not provided, it defaults to the sampling interval, or the smallest time step needed for stable results (whichever is smaller). This argument is ignored when `solver = 'diag'`. Defaults to None. 
+
+    Returns:
+        numpy.ndarray: Concentration in each compartment, and at each time point, as a 2D array with dimensions *(n,k)*, where *n* is the number of compartments and *k* is the number of time points in *J*. 
+
+    See Also:
+        `res_ncomp`, `prop_ncomp`, `flux_ncomp`
+
+    Note:
+        1. In practice the extraction fractions *E[:,i]* for any compartment *i* will usually add up to 1, but this is not required by the function. Physically, if the sum of all *E[:,i]* is less than one, this models a situation where the compartment *i* traps some of the incoming indicator. Conversely, if the sum of all *E[:,i]* is larger than 1, this models a situation where indicator is created inside the compartment. This is unphysical in common applications of `dcmri` but the function allows for the possibility and leaves it up to the user to impose suitable constraints.
+
+        2. The default solver `'diag'` should be most accurate and fastest, but currently does not allow for compartments that trap the tracer. It relies on matrix diagonalization which may be more problematic in very large systems, such as spatiotemporal models. The alternative solver `'prop'` is simple and robust and is a suitable alternative in such cases. It is slower and less accurate, though the accuracy can be improved at the cost of larger computation times by setting a smaller *dt_prop*. 
+
+    Example:
+        >>> import numpy as np
+        >>> import dcmri as dc
+
+        Consider a measurement with 10 time points from 0 to 20s, and a 2-compartment system with a constant influx in each compartment. The influx in compartment 1 is twice a large than in compartment 0:
+
+        >>> t = np.linspace(0, 20, 10)
+        >>> J = np.zeros((2, t.size))
+        >>> J[0,:] = 1
+        >>> J[1,:] = 2
+
+        The transit times are 6s for compartment 0 and 12s for compartment 1. 
+        
+        >>> T = [6,12]
+        
+        The extraction fraction from compartment 0 to compartment 1 is 0.3 and the extraction fraction from 1 to 0 is 0.8. These are the off-diagonal elements of *E*. No indicator is trapped or created inside the system so the extraction fractions for each compartment must add up to 1. The extraction fractions to the outside are therefore 0.7 and 0.2 for compartment 0 and 1, respectively. These are the diagonal elements of *E*:
+
+        >>> E = [
+        ...  [0.7, 0.8],
+        ...  [0.3, 0.2]]
+
+        Calculate the concentrations in both compartments of the system:
+
+        >>> C = dc.conc_ncomp(J, T, E, t)
+        
+        The concentrations in compartment 0 are:
+
+        >>> C[0,:]
+        array([ 0.        ,  2.13668993,  4.09491578,  5.87276879,  7.47633644,
+        8.91605167, 10.20442515, 11.3546615 , 12.37983769, 13.29243667])
+
+        The concentrations in compartment 1 are:
+        
+        >>> C[1,:]
+        array([ 0.        ,  4.170364  ,  7.84318653, 11.0842876 , 13.94862323, 
+        16.48272778, 18.72645063, 20.71421877, 22.47597717, 24.03790679])
+
+        Solving by forward propagation produces a different result because of the relatively low time resolution:
+
+        >>> C = dc.conc_ncomp(J, T, E, t, solver='prop')
+        >>> C[1,:]
+        array([ 0.        ,  4.44444444,  8.3127572 , 11.69333943, 14.65551209,
+        17.25550803, 19.54012974, 21.54905722, 23.31636527, 24.87156916])
+
+        But the difference can be made arbitrarily small by choosing a smaller *dt_prop* (at the cost of some computation time). In this case the results become very close with `dt_prop = 0.01`:
+
+        >>> C = dc.conc_ncomp(J, T, E, t, solver='prop', dt_prop=0.01)
+        >>> C[1,:]
+        array([ 0.        ,  4.17147736,  7.84511918, 11.08681805, 13.95158088,
+        16.48597905, 18.72988986, 20.71776196, 22.47955758, 24.04147164])
     """
-    C = conc_ncomp(J, T, E, t=t, dt=dt)
-    t = tools.tarray(len(J[:,0]), t=t, dt=dt)
-    K = Ko_ncomp(T, E)
-    Jo = np.zeros(C.shape)
-    for k in range(C.shape[0]):
-        Jo[k,:] = K*C[k,:]
-    return Jo
+    if solver=='prop':
+        return conc_ncomp_prop(J, T, E, t=t, dt=dt, dt_prop=dt_prop)
+    if solver=='diag':
+        return conc_ncomp_diag(J, T, E, t=t, dt=dt)
+
+
+def flux_ncomp(J, T, E, t=None, dt=1.0, solver='prop', dt_prop=None):
+    """Outfluxes out of a linear and stationary n-compartment system.
+
+    Args:
+        J (array_like): the indicator flux entering the system, as a rectangular 2D array with dimensions *(n,k)*, where *n* is the number of compartments and *k* is the number of time points in *J*.
+        T (array_like): n-element array with mean transit times of each compartment.
+        E (array_like): dimensionless and square *n x n* matrix. An off-diagonal element *E[j,i]* is the extraction fraction from compartment *i* to compartment *j*. A diagonal element *E[i,i]* is the extraction fraction from compartment *i* to the outside. 
+        t (array_like, optional): the time points of the indicator flux *J*, in the same units as *T*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as *T*. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+        solver (str, optional): A string specifying the numerical method for solving the system. Two options are available: with `solver = 'diag'` the system is solved by diagonalising the system matrix, with `solver = 'prop'` the system is solved by forward propagation. The default is `'diag'`.
+        dt_prop (float, optional): internal time resolution for the forward propagation when `solver = 'prop'`. This must be in the same units as *T*. If *dt_prop* is not provided, it defaults to the sampling interval, or the smallest time step needed for stable results (whichever is smaller). This argument is ignored when `solver = 'diag'`. Defaults to None. 
+
+    Returns:
+        numpy.ndarray: Outflux out of each compartment, and at each time point, as a 3D array with dimensions *(n,n,k)*, where *n* is the number of compartments and *k* is the number of time points in *J*. Encoding of the first two indices as the same as for *E*: *J[j,i,:]* is the flux from compartment *i* to *j*, and *J[i,i,:]* is the flux from *i* directly to the outside.
+
+    See Also:
+        `res_ncomp`, `prop_ncomp`, `conc_ncomp`
+
+    Note:
+        See the documentation of the similar function `conc_ncomp` for some more detail on parameters and options.
+
+    Example:
+        >>> import numpy as np
+        >>> import dcmri as dc
+
+        Consider a measurement with 10 time points from 0 to 20s, and a 2-compartment system with a constant influx in each compartment. The influx in compartment 1 is twice a large than in compartment 0:
+
+        >>> t = np.linspace(0, 20, 10)
+        >>> J = np.zeros((2, t.size))
+        >>> J[0,:] = 1
+        >>> J[1,:] = 2
+
+        The transit times are 6s for compartment 0 and 12s for compartment 1. 
+        
+        >>> T = [6,12]
+        
+        The extraction fraction from compartment 0 to compartment 1 is 0.3 and the extraction fraction from 1 to 0 is 0.8. These are the off-diagonal elements of *E*. No indicator is trapped or created inside the system so the extraction fractions for each compartment must add up to 1. The extraction fractions to the outside are therefore 0.7 and 0.2 for compartment 0 and 1, respectively. These are the diagonal elements of *E*:
+
+        >>> E = [
+        ...  [0.7, 0.8],
+        ...  [0.3, 0.2]]
+
+        Calculate the outflux out of both compartments:
+
+        >>> J = dc.flux_ncomp(J, T, E, t)
+        
+        The indicator flux out of compartment 0 to the outside is:
+
+        >>> J[0,0,:]
+        array([0.        , 0.25925926, 0.49931413, 0.71731951, 0.91301198,
+        1.0874238 , 1.24217685, 1.37910125, 1.50003511, 1.60672472])
+
+        The indicator flux from compartment 1 to 0 is:
+        
+        >>> J[1,0,:]
+        array([0.        , 0.11111111, 0.21399177, 0.30742265, 0.39129085,
+        0.46603877, 0.53236151, 0.59104339, 0.64287219, 0.68859631])
+    """
+    C = conc_ncomp(J, T, E, t=t, dt=dt, solver=solver, dt_prop=dt_prop)
+    return J_ncomp(C, T, E)
+
 
 def res_ncomp(T, E, t):
-    nc = len(T)
-    nt = len(t)
-    J = np.zeros((nt, nc))
-    r = np.zeros((nt, nc, nc))
-    for c in range(nc):
-        J[0,c] = 1
-        r[:,:,c] = conc_ncomp(J, T, E, t)
-        J[0,c] = 0
-    return r
+    """Residue function of an n-compartment system.
+
+    Args:
+        T (array_like): n-element array with mean transit times of each compartment.
+        E (array_like): dimensionless and square *n x n* matrix. An off-diagonal element *E[j,i]* is the extraction fraction from compartment *i* to compartment *j*. A diagonal element *E[i,i]* is the extraction fraction from compartment *i* to the outside. 
+        t (array_like): the time points of the indicator flux *J*, in the same units as *T*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
+
+    Returns:
+        numpy.ndarray: Residue in each compartment, and at each time point, as a 3D array with dimensions *(n,n,k)*, where *n* is the number of compartments and *k* is the number of time points in *t*. Encoding of the first two indices is as follows: *R[j,i,:]* is the residue in compartment *i* from an impulse injected into compartment *J*.
+
+    See Also:
+        `flux_ncomp`, `prop_ncomp`, `conc_ncomp`
+
+    Example:
+        >>> import numpy as np
+        >>> import dcmri as dc
+
+        Consider a measurement with 10 time points from 0 to 20s, and a 2-compartment system defined by *T* and *E* as follows:
+
+        >>> t = np.linspace(0, 20, 10)
+        >>> T = [20,2]
+        >>> E = [[0.7, 0.9], [0.3, 0.1]]
+
+        Calculate the residue in both compartments:
+
+        >>> R = dc.res_ncomp(T, E, t)
+        
+        Given an impulse in compartment 1 at time *t=0*, the residue in compartment 1 is strictly decreasing: 
+
+        >>> R[1,1,:]
+        array([1.        , 0.337098  , 0.12441734, 0.05534255, 0.03213718,
+        0.02364203, 0.01991879, 0.01779349, 0.01624864, 0.01495455])
+
+        Given an impulse in compartment 1 at time *t=0*, the residue in compartment 0 is zero initially and peaks at a later time:
+
+        >>> R[1,0,:]
+        array([0.        , 0.01895809, 0.02356375, 0.02370372, 0.02252098,
+        0.02100968, 0.01947964, 0.01802307, 0.01666336, 0.0154024 ])
+    """
+    # Calculate system matrix, eigenvalues and eigenvectors
+    K = K_ncomp(T, E)
+    K, Q = np.linalg.eig(K)
+    Qi = np.linalg.inv(Q)
+    # Initialize concentration-time array
+    nc, nt = len(T), len(t) 
+    R = np.zeros((nc,nc,nt)) 
+    Ei = np.empty((nc,nt))
+    # Loop over the inlets
+    for i in range(nc): 
+        # Loop over the eigenvalues
+        for d in range(nc):
+            # Calculate elements of diagonal matrix
+            Ei[d,:] = np.exp(-t*K[d])
+            # Right-multiply with inverse eigenvector matrix
+            Ei[d,:] *= Qi[d,i]
+        # Left-multiply with eigenvector matrix
+        R[i,:,:] = np.matmul(Q, Ei)
+    return R
+
 
 def prop_ncomp(T, E, t):
-    nc = len(T)
-    nt = len(t)
-    J = np.zeros((nt, nc))
-    h = np.zeros((nt, nc, nc))
-    for c in range(nc):
-        J[0,c] = 1
-        h[:,:,c] = flux_ncomp(J, T, E, t)
-        J[0,c] = 0
-    return h
+    """Propagator of an n-compartment system.
 
+    Args:
+        T (array_like): n-element array with mean transit times of each compartment.
+        E (array_like): dimensionless and square *n x n* matrix. An off-diagonal element *E[j,i]* is the extraction fraction from compartment *i* to compartment *j*. A diagonal element *E[i,i]* is the extraction fraction from compartment *i* to the outside. 
+        t (array_like): the time points of the indicator flux *J*, in the same units as *T*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
+
+    Returns:
+        numpy.ndarray: Propagator for each arrow as a 4D array with dimensions *(n,n,n,k)*, where *n* is the number of compartments and *k* is the number of time points in *t*. Encoding of the first indices is as follows: *H[i,k,j,:]* is the propagator from the inlet at compartment *i* to the outlet from *j* to *k*. The diagonal element *H[i,j,j,:]* is the propagator from the inlet at *i* to the outlet of *j* to the environment.
+
+    See Also:
+        `flux_ncomp`, `res_ncomp`, `conc_ncomp`
+
+    Example:
+        >>> import numpy as np
+        >>> import dcmri as dc
+
+        Consider a measurement with 10 time points from 0 to 20s, and a 2-compartment system defined by *T* and *E* as follows:
+
+        >>> t = np.linspace(0, 20, 10)
+        >>> T = [20,2]
+        >>> E = [[0.7, 0.9], [0.3, 0.1]]
+
+        Calculate the propagator for the system:
+
+        >>> H = dc.prop_ncomp(T, E, t)
+        
+        The propagator from the inlet at 1 (first index = 1) to the outlet of compartment 0 is: 
+
+        >>> H[1,0,0,:]
+        array([0.        , 0.019906  , 0.02474194, 0.0248889 , 0.02364703,
+        0.02206017, 0.02045362, 0.01892422, 0.01749653, 0.01617252])
+        
+        The propagator from the inlet at 1 (first index = 1) to the outlet from 0 to 1 is:
+
+        >>> H[1,1,0,:]
+        array([0.        , 0.00853114, 0.01060369, 0.01066667, 0.01013444,
+        0.00945436, 0.00876584, 0.00811038, 0.00749851, 0.00693108])
+    """
+    R = res_ncomp(T, E, t)
+    nc, nt = len(T), len(t)
+    H = np.zeros((nc,nc,nc,nt))
+    for i in range(nc):
+        H[i,:,:,:] = J_ncomp(R[i,:,:], T, E)
+    return H
 
 
 # 2 compartments (analytical)
 
+# Helper function
+def K_2comp(T,E):
+    K = K_ncomp(T, E)
+    # Calculate the eigenvalues Ke
+    D = math.sqrt((K[0,0]-K[1,1])**2 + 4*K[0,1]*K[1,0])
+    Ke = [0.5*(K[0,0]+K[1,1]+D),
+         0.5*(K[0,0]+K[1,1]-D)]
+    # Build the matrix of eigenvectors (one per column)
+    Q = np.array([
+        [K[1,1]-Ke[0], -K[0,1]],
+        [-K[1,0], K[0,0]-Ke[1]],
+    ])
+    # Build the inverse of the eigenvector matrix
+    Qi = np.array([
+        [K[0,0]-Ke[1], K[0,1]],
+        [K[1,0], K[1,1]-Ke[0]]
+    ]) 
+    N = (K[0,0]-Ke[1])*(K[1,1]-Ke[0]) - K[0,1]*K[1,0] 
+    Qi /= N
+    return Q, Ke, Qi
+
+
 def conc_2comp(J, T, E, t=None, dt=1.0):
-    """Concentration in a general 2-compartment system.
+    """Concentration in a linear and stationary 2-compartment system.
+
+    Args:
+        J (array_like): the indicator flux entering the system, as a rectangular 2D array with dimensions *(2,k)*, where 2 is the number of compartments and *k* is the number of time points in *J*. 
+        T (array_like): 2-element array with mean transit times of each compartment.
+        E (array_like): dimensionless and square *2 x 2* matrix. An off-diagonal element *E[j,i]* is the extraction fraction from compartment *i* to compartment *j*. A diagonal element *E[i,i]* is the extraction fraction from compartment *i* to the outside. 
+        t (array_like, optional): the time points of the indicator flux *J*, in the same units as *T*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as *T*. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+
+    Returns:
+        numpy.ndarray: Concentration in each compartment, and at each time point, as a 2D array with dimensions *(2,k)*, where 2 is the number of compartments and *k* is the number of time points in *J*. 
+
+    See Also:
+        `res_2comp`, `prop_2comp`, `flux_2comp`
+
+    Note:
+        The more general function `conc_ncomp` can also be used to calculate the same results. The only difference is that `conc_2comp` uses an analytical solution which may have some benefit in terms of computation speed, for instance in pixel-wise model-fitting where the function is evaluated many times. This should not affect the accuracy.
+
+    Example:
+        >>> import numpy as np
+        >>> import dcmri as dc
+
+        Consider a measurement with 10 time points from 0 to 20s, and a 2-compartment system with a constant influx in each compartment. The influx in compartment 1 is twice a large than in compartment 0:
+
+        >>> t = np.linspace(0, 20, 10)
+        >>> J = np.zeros((2, t.size))
+        >>> J[0,:] = 1
+        >>> J[1,:] = 2
+
+        The transit times and extraction fractions for the system are as follows (see example in `conc_ncomp` for some more detail): 
+        
+        >>> T = [6,12]
+        >>> E = [
+        ...  [0.7, 0.8],
+        ...  [0.3, 0.2]]
+
+        Calculate the concentrations in both compartments of the system and print the concentration in compartment 0:
+
+        >>> C = dc.conc_2comp(J, T, E, t)
+        >>> C[0,:]
+        array([ 0.        ,  2.13668993,  4.09491578,  5.87276879,  7.47633644,
+        8.91605167, 10.20442515, 11.3546615 , 12.37983769, 13.29243667])
+
+        Compare this to the result from the more general function `conc_ncomp`, which is identical in this case:
+
+        >>> C = dc.conc_ncomp(J, T, E, t)
+        >>> C[0,:]
+        array([ 0.        ,  2.13668993,  4.09491578,  5.87276879,  7.47633644,
+        8.91605167, 10.20442515, 11.3546615 , 12.37983769, 13.29243667])
     """
+    # Check input parameters
     if np.amin(T) <= 0:
         raise ValueError('T must be strictly positive.')
-    t = tools.tarray(len(J[:,0]), t=t, dt=dt)
-    K0 = (E[0,0]+E[1,0])/T[0]
-    K1 = (E[0,1]+E[1,1])/T[1]
-    K10 = E[1,0]/T[0]
-    K01 = E[0,1]/T[1]
-    Dsq = (K0-K1)**2 + 4*K01*K10
-    D = math.sqrt(D)
-    Kp = (K0+K1+Dsq)/2
-    Kn = (K0+K1-Dsq)/2
-    Np = K01*(Kp+K1) + K10*(Kp+K0)
-    Nn = K01*(Kn+K1) + K10*(Kn+K0)
-    Ap = math.sqrt(K01*(Kp+K1)/Np)
-    An = math.sqrt(K01*(Kn+K1)/Nn)
-    Bp = math.sqrt(K10*(Kp+K0)/Np)
-    Bn = math.sqrt(K10*(Kn+K0)/Nn)
-    E0p = conc_comp(J[:,0], 1/Kp, t)
-    E0n = conc_comp(J[:,0], 1/Kn, t)
-    E1p = conc_comp(J[:,1], 1/Kp, t)
-    E1n = conc_comp(J[:,1], 1/Kn, t)
-    C0 = Ap*Ap*E0p + An*An*E0n + Ap*Bp*E1p + An*Bn*E1n
-    C1 = Ap*Bp*E0p + An*Bn*E0n + Bp*Bp*E1p + Bn*Bn*E1n
-    return np.stack((C0, C1), axis=-1)
+    if not isinstance(J, np.ndarray):
+        J = np.array(J)
+    if not isinstance(T, np.ndarray):
+        T = np.array(T)
+    if not isinstance(E, np.ndarray):
+        E = np.array(E)
+    # Build the system matrix K
+    Q, K, Qi = K_2comp(T, E)
+    # Initialize concentration-time array
+    t = tools.tarray(len(J[0,:]), t=t, dt=dt)
+    C = np.zeros((2,len(t)))
+    Ei = np.empty((2,len(t)))
+    # Loop over the inlets
+    for i in [0,1]: 
+        # Loop over th eigenvalues
+        for d in [0,1]:
+            # Calculate elements of diagonal matrix
+            Ei[d,:] = conc_comp(J[i,:], 1/K[d], t)
+            # Right-multiply with inverse eigenvector matrix
+            Ei[d,:] *= Qi[d,i]
+        # Left-multiply with eigenvector matrix
+        C += np.matmul(Q, Ei)
+    return C
+
 
 def flux_2comp(J, T, E, t=None, dt=1.0):
-    """Concentration in a general 2-compartment system
+    """Outfluxes out of a linear and stationary 2-compartment system.
+
+    Args:
+        J (array_like): the indicator flux entering the system, as a rectangular 2D array with dimensions *(2,k)*, where *2* is the number of compartments and *k* is the number of time points in *J*.
+        T (array_like): n-element array with mean transit times of each compartment.
+        E (array_like): dimensionless and square *2 x 2* matrix. An off-diagonal element *E[j,i]* is the extraction fraction from compartment *i* to compartment *j*. A diagonal element *E[i,i]* is the extraction fraction from compartment *i* to the outside. 
+        t (array_like, optional): the time points of the indicator flux *J*, in the same units as *T*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as *T*. This parameter is ignored if t is explicity provided. Defaults to 1.0. 
+
+    Returns:
+        numpy.ndarray: Outflux out of each compartment, and at each time point, as a 3D array with dimensions *(2,2,k)*, where *2* is the number of compartments and *k* is the number of time points in *J*. Encoding of the first two indices as the same as for *E*: *J[j,i,:]* is the flux from compartment *i* to *j*, and *J[i,i,:]* is the flux from *i* directly to the outside.
+
+    See Also:
+        `res_2comp`, `prop_2comp`, `conc_2comp`
+
+    Note:
+        This uses an analytical solution of the model, as opposed to the more general function `flux_2comp` which uses a numerical solution. This may have some benefits in terms of computation time but should not affect the accuracy of the result.
+
+    Example:
+        >>> import numpy as np
+        >>> import dcmri as dc
+
+        Consider a measurement with 10 time points from 0 to 20s, and a 2-compartment system with a constant influx in each compartment. The influx in compartment 1 is twice a large than in compartment 0:
+
+        >>> t = np.linspace(0, 20, 10)
+        >>> J = np.zeros((2, t.size))
+        >>> J[0,:] = 1
+        >>> J[1,:] = 2
+
+        The transit times and extraction fractions are as follows: 
+        
+        >>> T = [6,12]
+        >>> E = [
+        ...  [0.7, 0.8],
+        ...  [0.3, 0.2]]
+
+        Calculate the outflux out of both compartments:
+
+        >>> J = dc.flux_2comp(J, T, E, t)
+        
+        The indicator flux out of compartment 0 to the outside is:
+
+        >>> J[0,0,:]
+        array([0.        , 0.25925926, 0.49931413, 0.71731951, 0.91301198,
+        1.0874238 , 1.24217685, 1.37910125, 1.50003511, 1.60672472])
+
+        The indicator flux from compartment 1 to 0 is:
+        
+        >>> J[1,0,:]
+        array([0.        , 0.11111111, 0.21399177, 0.30742265, 0.39129085,
+        0.46603877, 0.53236151, 0.59104339, 0.64287219, 0.68859631])
     """
     C = conc_2comp(J, T, E, t=t, dt=dt)
-    t = tools.tarray(len(J[:,0]), t=t, dt=dt)
-    K0 = (E[0,0]+E[1,0])/T[0]
-    K1 = (E[0,1]+E[1,1])/T[1]
-    J0 = K0*C[:,0]
-    J1 = K1*C[:,1]
-    return np.stack((J0, J1), axis=-1)
+    return J_ncomp(C, T, E)
+
+
 
 def res_2comp(T, E, t):
-    if np.amin(T) <= 0:
-        raise ValueError('T must be strictly positive.')
-    K0 = (E[0,0]+E[1,0])/T[0]
-    K1 = (E[0,1]+E[1,1])/T[1]
-    K10 = E[1,0]/T[0]
-    K01 = E[0,1]/T[1]
-    Dsq = (K0-K1)**2 + 4*K01*K10
-    D = math.sqrt(D)
-    Kp = (K0+K1+Dsq)/2
-    Kn = (K0+K1-Dsq)/2
-    Np = K01*(Kp+K1) + K10*(Kp+K0)
-    Nn = K01*(Kn+K1) + K10*(Kn+K0)
-    Ap = math.sqrt(K01*(Kp+K1)/Np)
-    An = math.sqrt(K01*(Kn+K1)/Nn)
-    Bp = math.sqrt(K10*(Kp+K0)/Np)
-    Bn = math.sqrt(K10*(Kn+K0)/Nn)
-    Ep = res_comp(t, 1/Kp)
-    En = res_comp(t, 1/Kn)
-    # Residue for injection in 0
-    r00 = Ap*Ap*Ep + An*An*En
-    r10 = Ap*Bp*Ep + An*Bn*En
-    r_0 = np.stack((r00, r10), axis=-1)
-    # Residue for injection in 1
-    r01 = Ap*Bp*Ep + An*Bn*En
-    r11 = Bp*Bp*Ep + Bn*Bn*En
-    r_1 = np.stack((r01, r11), axis=-1)
-    # Residue for the system
-    return np.stack((r_0, r_1), axis=-1)
+    """Residue function of a 2-compartment system.
+
+    Args:
+        T (array_like): 2-element array with mean transit times of each compartment.
+        E (array_like): dimensionless and square *2 x 2* matrix. An off-diagonal element *E[j,i]* is the extraction fraction from compartment *i* to compartment *j*. A diagonal element *E[i,i]* is the extraction fraction from compartment *i* to the outside. 
+        t (array_like): the time points of the indicator flux *J*, in the same units as *T*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
+
+    Returns:
+        numpy.ndarray: Residue in each compartment, and at each time point, as a 3D array with dimensions *(2,2,k)*, where 2 is the number of compartments and *k* is the number of time points in *t*. Encoding of the first two indices is as follows: *R[j,i,:]* is the residue in compartment *i* from an impulse injected into compartment *J*.
+
+    See Also:
+        `flux_2comp`, `prop_2comp`, `conc_2comp`
+
+    Example:
+        >>> import numpy as np
+        >>> import dcmri as dc
+
+        Consider a measurement with 10 time points from 0 to 20s, and a 2-compartment system defined by *T* and *E* as follows:
+
+        >>> t = np.linspace(0, 20, 10)
+        >>> T = [20,2]
+        >>> E = [[0.7, 0.9], [0.3, 0.1]]
+
+        Calculate the residue in both compartments:
+
+        >>> R = dc.res_2comp(T, E, t)
+        
+        Given an impulse in compartment 1 at time *t=0*, the residue in compartment 1 is strictly decreasing: 
+
+        >>> R[1,1,:]
+        array([1.        , 0.337098  , 0.12441734, 0.05534255, 0.03213718,
+        0.02364203, 0.01991879, 0.01779349, 0.01624864, 0.01495455])
+
+        Given an impulse in compartment 1 at time *t=0*, the residue in compartment 0 is zero initially and peaks at a later time:
+
+        >>> R[1,0,:]
+        array([0.        , 0.01895809, 0.02356375, 0.02370372, 0.02252098,
+        0.02100968, 0.01947964, 0.01802307, 0.01666336, 0.0154024 ])
+    """
+    # Calculate system matrix, eigenvalues and eigenvectors
+    Q, K, Qi = K_2comp(T, E)
+    # Initialize concentration-time array
+    nc, nt = len(T), len(t) 
+    R = np.zeros((nc,nc,nt)) 
+    Ei = np.empty((nc,nt))
+    # Loop over the inlets
+    for i in range(nc): 
+        # Loop over the eigenvalues
+        for d in range(nc):
+            # Calculate elements of diagonal matrix
+            Ei[d,:] = np.exp(-t*K[d])
+            # Right-multiply with inverse eigenvector matrix
+            Ei[d,:] *= Qi[d,i]
+        # Left-multiply with eigenvector matrix
+        R[i,:,:] = np.matmul(Q, Ei)
+    return R
+
 
 def prop_2comp(T, E, t):
-    r = res_2comp(T, E, t)
-    K0 = (E[0,0]+E[1,0])/T[0]
-    K1 = (E[0,1]+E[1,1])/T[1]
-    r[:,0,:] = K0*r[:,0,:]
-    r[:,1,:] = K1*r[:,1,:]
-    return r
+    """Propagator of a 2-compartment system.
+
+    Args:
+        T (array_like): 2-element array with mean transit times of each compartment.
+        E (array_like): dimensionless and square *2 x 2* matrix. An off-diagonal element *E[j,i]* is the extraction fraction from compartment *i* to compartment *j*. A diagonal element *E[i,i]* is the extraction fraction from compartment *i* to the outside. 
+        t (array_like): the time points of the indicator flux *J*, in the same units as *T*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
+
+    Returns:
+        numpy.ndarray: Propagator for each arrow as a 4D array with dimensions *(2,2,2,k)*, where 2 is the number of compartments and *k* is the number of time points in *t*. Encoding of the first indices is as follows: *H[i,k,j,:]* is the propagator from the inlet at compartment *i* to the outlet from *j* to *k*. The diagonal element *H[i,j,j,:]* is the propagator from the inlet at *i* to the outlet of *j* to the environment.
+
+    See Also:
+        `flux_2comp`, `res_2comp`, `conc_2comp`
+
+    Example:
+        >>> import numpy as np
+        >>> import dcmri as dc
+
+        Consider a measurement with 10 time points from 0 to 20s, and a 2-compartment system defined by *T* and *E* as follows:
+
+        >>> t = np.linspace(0, 20, 10)
+        >>> T = [20,2]
+        >>> E = [[0.7, 0.9], [0.3, 0.1]]
+
+        Calculate the propagator for the system:
+
+        >>> H = dc.prop_2comp(T, E, t)
+        
+        The propagator from the inlet at 1 (first index = 1) to the outlet of compartment 0 is: 
+
+        >>> H[1,0,0,:]
+        array([0.        , 0.019906  , 0.02474194, 0.0248889 , 0.02364703,
+        0.02206017, 0.02045362, 0.01892422, 0.01749653, 0.01617252])
+        
+        The propagator from the inlet at 1 (first index = 1) to the outlet from 0 to 1 is:
+
+        >>> H[1,1,0,:]
+        array([0.        , 0.00853114, 0.01060369, 0.01066667, 0.01013444,
+        0.00945436, 0.00876584, 0.00811038, 0.00749851, 0.00693108])
+    """
+    R = res_2comp(T, E, t)
+    nc, nt = len(T), len(t)
+    H = np.zeros((nc,nc,nc,nt))
+    for i in range(nc):
+        H[i,:,:,:] = J_ncomp(R[i,:,:], T, E)
+    return H
 
 
 # 2 compartment exchange (analytical)
 
 def conc_2cxm(J, T, E, t=None, dt=1.0):
-    """Concentration in a 2-compartment exchange model system.
+    """Concentration in a two-compartment exchange model.
 
-    E is the scalar extraction fraction E10
+    Args:
+        J (array_like): the indicator flux entering the system, as a 1D array. 
+        T (array_like): 2-element array with mean transit times of each compartment.
+        E (float): Extraction fraction from the central compartment to the peripheral compartment. 
+        t (array_like, optional): the time points of the indicator flux *J*, in the same units as *T*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as *T*. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+
+    Returns:
+        numpy.ndarray: Concentration in each compartment, and at each time point, as a 2D array with dimensions *(2,k)*, where 2 is the number of compartments and *k* is the number of time points in *J*. 
+
+    See Also:
+        `res_2cxm`, `prop_2cxm`, `flux_2cxm`
+
+    Note:
+        The more general function `conc_2comp` can also be used to calculate the same results. The only fundamental difference is that `conc_2cxm` has only a single inlet, which may come at a significant benefit in terms of computation time for pixel-wise analyses. `conc_2cxm` is also more convenient to use as only a single scalar *E* needs to be specified, and a 1D input function.
+
+    Example:
+        >>> import numpy as np
+        >>> import dcmri as dc
+
+        Consider a measurement with 10 time points from 0 to 20s, and a 2-compartment exchange model with a constant influx:
+
+        >>> t = np.linspace(0, 20, 10)
+        >>> J = np.ones(t.size)
+
+        The transit times of the compartments are 6s and 12s, respectively, and the extraction fraction is 0.3:
+
+        >>> T = [6,12]
+        >>> E = 0.3
+
+        Calculate the concentrations:
+        
+        >>> C = dc.conc_2cxm(J, T, E, t)
+
+        The concentration in the central compartment:
+
+        >>> C[0,:]
+        array([0.        , 1.86319523, 3.17833316, 4.13076927, 4.84015935,
+        5.3840736 , 5.81308947, 6.16044151, 6.4481944 , 6.6911945 ])
+
+        And in the peripheral compartment:
+
+        >>> C[1,:]
+        array([0.        , 0.10304987, 0.34708426, 0.66305546, 1.00870774,
+       1.35870775, 1.69836088, 2.01961568, 2.31852761, 2.59365324])
     """
+    # Check input parameters
     if np.amin(T) <= 0:
         raise ValueError('T must be strictly positive.')
-    t = tools.tarray(len(J), t=t, dt=dt)
-    K0 = 1/T[0]
-    K1 = 1/T[1]
-    K10 = E/T[0]
-    K01 = 1/T[1]
-    Dsq = (K0-K1)**2 + 4*K01*K10
-    D = math.sqrt(D)
-    Kp = (K0+K1+Dsq)/2
-    Kn = (K0+K1-Dsq)/2
-    Np = K01*(Kp+K1) + K10*(Kp+K0)
-    Nn = K01*(Kn+K1) + K10*(Kn+K0)
-    Ap = math.sqrt(K01*(Kp+K1)/Np)
-    An = math.sqrt(K01*(Kn+K1)/Nn)
-    Bp = math.sqrt(K10*(Kp+K0)/Np)
-    Bn = math.sqrt(K10*(Kn+K0)/Nn)
-    E0p = conc_comp(J, 1/Kp, t)
-    E0n = conc_comp(J, 1/Kn, t)
-    C0 = Ap*Ap*E0p + An*An*E0n 
-    C1 = Ap*Bp*E0p + An*Bn*E0n 
-    return np.stack((C0, C1), axis=-1)
+    if not isinstance(J, np.ndarray):
+        J = np.array(J)
+    if not isinstance(T, np.ndarray):
+        T = np.array(T)
+    # Build the system matrix K
+    E = [
+        [1-E, 1],
+        [E,   0],
+    ]
+    Q, K, Qi = K_2comp(T, E)
+    # Initialize concentration-time array
+    nc, nt = 2, len(J)
+    t = tools.tarray(nt, t=t, dt=dt)
+    Ei = np.empty((nc,nt))
+    # Loop over the eigenvalues
+    for d in [0,1]:
+        # Calculate elements of diagonal matrix
+        Ei[d,:] = conc_comp(J, 1/K[d], t)
+        # Right-multiply with inverse eigenvector matrix
+        Ei[d,:] *= Qi[d,0]
+    # Left-multiply with eigenvector matrix
+    C = np.matmul(Q, Ei)
+    return C
+
 
 def flux_2cxm(J, T, E, t=None, dt=1.0):
+    """Outfluxes out of a 2-compartment exchange model.
+
+    Args:
+        J (array_like): the indicator flux entering the system, as a 1D array. 
+        T (array_like): 2-element array with mean transit times of each compartment.
+        E (float): Extraction fraction from the central compartment to the peripheral compartment. 
+        t (array_like, optional): the time points of the indicator flux *J*, in the same units as *T*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as *T*. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+
+    Returns:
+        numpy.ndarray: Outflux out of each compartment, and at each time point, as a 3D array with dimensions *(2,2,k)*, where *2* is the number of compartments and *k* is the number of time points in *J*. Encoding of the first two indices is the same as for *E*: *J[j,i,:]* is the flux from compartment *i* to *j*, and *J[i,i,:]* is the flux from *i* directly to the outside. 
+
+    See Also:
+        `res_2cxm`, `prop_2cxm`, `conc_2cxm`
+
+    Note:
+        In the two-compartment exchange model, the outflux 'J[1,1,:]' from the peripheral compartment to the outside is always 0.
+
+        >>> import numpy as np
+        >>> import dcmri as dc
+
+        Consider a measurement with 10 time points from 0 to 20s, and a 2-compartment exchange model with a constant influx:
+
+        >>> t = np.linspace(0, 20, 10)
+        >>> J = np.ones(t.size)
+
+        The transit times of the compartments are 6s and 12s, respectively, and the extraction fraction is 0.3:
+
+        >>> T = [6,12]
+        >>> E = 0.3
+
+        Calculate the outfluxes:
+        
+        >>> J = dc.flux_2cxm(J, T, E, t)
+
+        The flux out of the central compartment:
+
+        >>> J[0,0,:]
+        array([0.        , 0.21737278, 0.37080553, 0.48192308, 0.56468526, 
+        0.62814192, 0.67819377, 0.71871818, 0.75228935, 0.78063936])
+
+        The backflux from the peripheral compartment to the central compartment:
+
+        >>> J[0,1,:]
+        array([0.        , 0.00858749, 0.02892369, 0.05525462, 0.08405898,
+        0.11322565, 0.14153007, 0.16830131, 0.19321063, 0.21613777])
+
+        And we can verify that there is no leakage from 1 to the environment:
+
+        >>> J[1,1,:]
+        array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
+    """
     C = conc_2cxm(J, T, E, t=t, dt=dt)
-    t = tools.tarray(len(J), t=t, dt=dt)
-    J0 = C[:,0]*(1-E)/T[0]
-    return J0
+    Emat = np.array([[1-E,1],[E,0]])
+    return J_ncomp(C, T, Emat)
 
 def res_2cxm(T, E, t):
-    K0 = 1/T[0]
-    K1 = 1/T[1]
-    K10 = E/T[0]
-    K01 = 1/T[1]
-    Dsq = (K0-K1)**2 + 4*K01*K10
-    D = math.sqrt(D)
-    Kp = (K0+K1+Dsq)/2
-    Kn = (K0+K1-Dsq)/2
-    Np = K01*(Kp+K1) + K10*(Kp+K0)
-    Nn = K01*(Kn+K1) + K10*(Kn+K0)
-    Ap = math.sqrt(K01*(Kp+K1)/Np)
-    An = math.sqrt(K01*(Kn+K1)/Nn)
-    Bp = math.sqrt(K10*(Kp+K0)/Np)
-    Bn = math.sqrt(K10*(Kn+K0)/Nn)
-    E0p = res_comp(t, 1/Kp)
-    E0n = res_comp(t, 1/Kn)
-    C0 = Ap*Ap*E0p + An*An*E0n 
-    C1 = Ap*Bp*E0p + An*Bn*E0n 
-    return np.stack((C0, C1), axis=-1)
+    """Residue function of a 2-compartment exchange model.
+
+    Args:
+        T (array_like): 2-element array with mean transit times of each compartment.
+        E (float): Extraction fraction from the central compartment to the peripheral compartment. 
+        t (array_like, optional): the time points of the indicator flux *J*, in the same units as *T*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
+
+    Returns:
+        numpy.ndarray: Residue in each compartment, and at each time point, as a 2D array with dimensions *(2,k)*, where 2 is the number of compartments and *k* is the number of time points in *t*. *R[i,:]* is the residue in compartment *i*.
+
+    See Also:
+        `flux_2cxm`, `prop_2cxm`, `conc_2cxm`
+
+    Example:
+        >>> import numpy as np
+        >>> import dcmri as dc
+
+        Consider a measurement with 10 time points from 0 to 20s:
+
+        >>> t = np.linspace(0, 20, 10)
+
+        The transit times of the compartments are 6s and 12s, respectively, and the extraction fraction is 0.3:
+
+        >>> T = [6,12]
+        >>> E = 0.3
+
+        Calculate the residue in both compartments:
+
+        >>> R = dc.res_2cxm(T, E, t)
+        
+        The residue in compartment 0 is strictly decreasing: 
+
+        >>> R[0,:]
+        array([1.        , 0.69805495, 0.4992015 , 0.36679308, 0.27736575,
+        0.21588005, 0.17268183, 0.14156105, 0.11851157, 0.10093869])
+        
+        The residue in compartment 1 is zero initially and peaks at a later time:
+
+        >>> R[1,:]
+        array([4.98242410e-17, 8.45722726e-02, 1.29992969e-01, 1.51283842e-01,
+        1.57948989e-01, 1.55978034e-01, 1.49124400e-01, 1.39720769e-01,
+        1.29199086e-01, 1.18421955e-01])
+    """
+    E = [
+        [1-E, 1],
+        [E,   0],
+    ]
+    # Calculate system matrix, eigenvalues and eigenvectors
+    Q, K, Qi = K_2comp(T, E)
+    # Initialize concentration-time array
+    nc, nt = len(T), len(t)
+    Ei = np.empty((nc,nt))
+    # Loop over the eigenvalues
+    for d in range(nc):
+        # Calculate elements of diagonal matrix
+        Ei[d,:] = np.exp(-t*K[d])
+        # Right-multiply with inverse eigenvector matrix
+        Ei[d,:] *= Qi[d,0]
+    # Left-multiply with eigenvector matrix
+    R = np.matmul(Q, Ei)
+    return R
+
 
 def prop_2cxm(T, E, t):
-    r = res_2cxm(T, E, t)
-    h0 = r[:,0]*(1-E)/T[0]
-    return h0
+    """Propagator of a 2-compartment exchange model.
+
+    Args:
+        T (array_like): 2-element array with mean transit times of each compartment.
+        E (float): Extraction fraction from the central compartment to the peripheral compartment. 
+        t (array_like, optional): the time points of the indicator flux *J*, in the same units as *T*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
+
+    Returns:
+        numpy.ndarray: Propagator for each arrow as a 3D array with dimensions *(2,2,k)*, where 2 is the number of compartments and *k* is the number of time points in *t*. *H[k,j,:]* is the propagator to the outlet from *j* to *k*, and the diagonal element *H[j,j,:]* is the propagator to the external outlet of *j*.
+
+    See Also:
+        `flux_2cxm`, `res_2cxm`, `conc_2cxm`
+
+    Example:
+        >>> import numpy as np
+        >>> import dcmri as dc
+
+        Consider a measurement with 10 time points from 0 to 20s:
+
+        >>> t = np.linspace(0, 20, 10)
+
+        The transit times of the compartments are 6s and 12s, respectively, and the extraction fraction is 0.3:
+
+        >>> T = [6,12]
+        >>> E = 0.3
+
+        Calculate the residue in both compartments:
+
+        >>> H = dc.prop_2cxm(T, E, t)
+        
+        The propagator to the outlet of the system is: 
+
+        >>> H[0,0,:]
+        array([0.11666667, 0.08143974, 0.05824017, 0.04279253, 0.03235934,
+        0.02518601, 0.02014621, 0.01651546, 0.01382635, 0.01177618])
+        
+        By definition the peripheral compartment has no external outlet:
+
+        >>> H[1,1,:]
+        array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
+
+        The propagators to the internal outlets are in the off-diagonal elements, e.g. the propagator to the outlet from 1 to 0:
+
+        >>> H[0,1,:]
+        array([4.15202008e-18, 7.04768938e-03, 1.08327474e-02, 1.26069868e-02,
+        1.31624158e-02, 1.29981695e-02, 1.24270333e-02, 1.16433974e-02,
+        1.07665905e-02, 9.86849624e-03])
+    """
+    R = res_2cxm(T, E, t)
+    Emat = [
+        [1-E, 1],
+        [E,   0],
+    ]
+    return J_ncomp(R, T, Emat)
 
 
 # 2 compartment filtration model
 
-
 def conc_2cfm(J, T, E, t=None, dt=1.0):
+    """Concentration in a two-compartment filtration model.
+
+    Args:
+        J (array_like): the indicator flux entering the system, as a 1D array. 
+        T (array_like): 2-element array with mean transit times of each compartment.
+        E (float): Extraction fraction from the central compartment to the peripheral compartment. 
+        t (array_like, optional): the time points of the indicator flux *J*, in the same units as *T*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as *T*. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+
+    Returns:
+        numpy.ndarray: Concentration in each compartment, and at each time point, as a 2D array with dimensions *(2,k)*, where 2 is the number of compartments and *k* is the number of time points in *J*. 
+
+    See Also:
+        `res_2cfm`, `prop_2cfm`, `flux_2cfm`
+
+    Note:
+        The more general function `conc_2comp` can also be used to calculate the same results. The only fundamental difference is that `conc_2cfm` has only a single inlet, which may come at a significant benefit in terms of computation time for pixel-wise analyses. `conc_2cfm` is also more convenient to use as only a single scalar *E* needs to be specified, and a 1D input function.
+
+    Example:
+        >>> import numpy as np
+        >>> import dcmri as dc
+
+        Consider a measurement with 10 time points from 0 to 20s, and a 2-compartment exchange model with a constant influx:
+
+        >>> t = np.linspace(0, 20, 10)
+        >>> J = np.ones(t.size)
+
+        The transit times of the compartments are 6s and 12s, respectively, and the extraction fraction is 0.3:
+
+        >>> T = [6,12]
+        >>> E = 0.3
+
+        Calculate the concentrations:
+        
+        >>> C = dc.conc_2cfm(J, T, E, t)
+
+        The concentration in the central compartment:
+
+        >>> C[0,:]
+        array([0.        , 1.8571287 , 3.13943623, 4.02484207, 4.63619582,
+        5.05832247, 5.34979186, 5.55104523, 5.69000636, 5.78595604])
+
+        And in the peripheral compartment:
+
+        >>> C[1,:]
+        array([0.        , 0.09708932, 0.33608263, 0.64398864, 0.97532253,
+        1.30276136, 1.61083233, 1.89167127, 2.14219098, 2.36220662])
+    """
     t = tools.tarray(len(J), t=t, dt=dt)
     C0 = conc_comp(J, T[0], t)
     if E==0:
         C1 = np.zeros(len(t))
     elif T[0]==0:
-        C1 = conc_comp(E*J, T[1], t)
+        J10 = E*J
+        C1 = conc_comp(J10, T[1], t)
     else:
-        C1 = conc_comp(C0*E/T[0], T[1], t)
-    return np.stack((C0, C1), axis=-1)
+        J10 = C0*E/T[0]
+        C1 = conc_comp(J10, T[1], t)
+    return np.stack((C0, C1))
+
 
 def flux_2cfm(J, T, E, t=None, dt=1.0):
+    """Outfluxes out of a 2-compartment filtration model.
+
+    Args:
+        J (array_like): the indicator flux entering the system, as a 1D array. 
+        T (array_like): 2-element array with mean transit times of each compartment.
+        E (float): Extraction fraction from the central compartment to the peripheral compartment. 
+        t (array_like, optional): the time points of the indicator flux *J*, in the same units as *T*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as *T*. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+
+    Returns:
+        numpy.ndarray: Outflux out of each compartment, and at each time point, as a 3D array with dimensions *(2,2,k)*, where *2* is the number of compartments and *k* is the number of time points in *J*. Encoding of the first two indices is the same as for *E*: *J[j,i,:]* is the flux from compartment *i* to *j*, and *J[i,i,:]* is the flux from *i* directly to the outside. 
+
+    See Also:
+        `res_2cfm`, `prop_2cfm`, `conc_2cfm`
+
+    Note:
+        In the two-compartment filtration model, the backflux 'J[0,1,:]' from the peripheral compartment to the central compartment is always 0.
+
+        >>> import numpy as np
+        >>> import dcmri as dc
+
+        Consider a measurement with 10 time points from 0 to 20s, and a 2-compartment exchange model with a constant influx:
+
+        >>> t = np.linspace(0, 20, 10)
+        >>> J = np.ones(t.size)
+
+        The transit times of the compartments are 6s and 12s, respectively, and the extraction fraction is 0.3:
+
+        >>> T = [6,12]
+        >>> E = 0.3
+
+        Calculate the outfluxes:
+        
+        >>> J = dc.flux_2cfm(J, T, E, t)
+
+        The flux out of the central compartment:
+
+        >>> J[0,0,:]
+        array([0.        , 0.21666501, 0.36626756, 0.46956491, 0.54088951,
+        0.59013762, 0.62414238, 0.64762194, 0.66383408, 0.6750282 ])
+
+        And we can verify that the backflux from the peripheral compartment to the central compartment is zero:
+
+        >>> J[0,1,:]
+        array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
+    """
     t = tools.tarray(len(J), t=t, dt=dt)
-    J0 = flux_comp(J, T[0], t)
-    if E==0:
-        J1 = np.zeros(len(t))
-    else:    
-        J1 = flux_comp(E*J0, T[1], t)
-    return np.stack(((1-E)*J0, J1), axis=-1)
+    Jo = np.zeros((2,2,len(t)))
+    J0 = flux_comp(J, T[0], t)   
+    J10 = E*J0
+    Jo[1,0,:] = J10
+    Jo[1,1,:] = flux_comp(J10, T[1], t)
+    Jo[0,0,:] = (1-E)*J0
+    return Jo
+
 
 def res_2cfm(T, E, t):
+    """Residue function of a 2-compartment filtration model.
+
+    Args:
+        T (array_like): 2-element array with mean transit times of each compartment.
+        E (float): Extraction fraction from the central compartment to the peripheral compartment. 
+        t (array_like, optional): the time points of the indicator flux *J*, in the same units as *T*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
+
+    Returns:
+        numpy.ndarray: Residue in each compartment, and at each time point, as a 2D array with dimensions *(2,k)*, where 2 is the number of compartments and *k* is the number of time points in *t*. *R[i,:]* is the residue in compartment *i*.
+
+    See Also:
+        `flux_2cfm`, `prop_2cfm`, `conc_2cfm`
+
+    Example:
+        >>> import numpy as np
+        >>> import dcmri as dc
+
+        Consider a measurement with 10 time points from 0 to 20s:
+
+        >>> t = np.linspace(0, 20, 10)
+
+        The transit times of the compartments are 6s and 12s, respectively, and the extraction fraction is 0.3:
+
+        >>> T = [6,12]
+        >>> E = 0.3
+
+        Calculate the residue in both compartments:
+
+        >>> R = dc.res_2cfm(T, E, t)
+        
+        The residue in compartment 0 is strictly decreasing: 
+
+        >>> R[0,:]
+        array([1.        , 0.69047855, 0.47676063, 0.32919299, 0.2273007 ,
+        0.15694626, 0.10836802, 0.0748258 , 0.05166561, 0.03567399])
+        
+        The residue in compartment 1 is zero initially and peaks at a later time:
+
+        >>> R[1,:]
+        array([0.        , 0.08524821, 0.1296991 , 0.14841651, 0.15138987,
+        0.14517445, 0.13401215, 0.12059563, 0.10658775, 0.09297353])
+    """
     C0 = res_comp(T[0], t)
     if E==0:
         C1 = np.zeros(len(t))
@@ -1198,15 +1964,58 @@ def res_2cfm(T, E, t):
         C1 = E*res_comp(T[1], t)
     else:
         C1 = conc_comp(C0*E/T[0], T[1], t)
-    return np.stack((C0, C1), axis=-1)
+    return np.stack((C0, C1))
+
 
 def prop_2cfm(T, E, t):
-    J0 = prop_comp(T[0], t)
-    if E==0:
-        J1 = np.zeros(len(t))
-    else:    
-        J1 = flux_comp(E*J0, T[1], t)
-    return np.stack(((1-E)*J0, J1), axis=-1)
+    """Propagator of a 2-compartment filtration model.
+
+    Args:
+        T (array_like): 2-element array with mean transit times of each compartment.
+        E (float): Extraction fraction from the central compartment to the peripheral compartment. 
+        t (array_like, optional): the time points of the indicator flux *J*, in the same units as *T*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
+
+    Returns:
+        numpy.ndarray: Propagator for each arrow as a 3D array with dimensions *(2,2,k)*, where 2 is the number of compartments and *k* is the number of time points in *t*. *H[k,j,:]* is the propagator to the outlet from *j* to *k*, and the diagonal element *H[j,j,:]* is the propagator to the external outlet of *j*.
+
+    See Also:
+        `flux_2cfm`, `res_2cfm`, `conc_2cfm`
+
+    Example:
+        >>> import numpy as np
+        >>> import dcmri as dc
+
+        Consider a measurement with 10 time points from 0 to 20s:
+
+        >>> t = np.linspace(0, 20, 10)
+
+        The transit times of the compartments are 6s and 12s, respectively, and the extraction fraction is 0.3:
+
+        >>> T = [6,12]
+        >>> E = 0.3
+
+        Calculate the residue in both compartments:
+
+        >>> H = dc.prop_2cfm(T, E, t)
+        
+        The propagator to the outlet of the system is: 
+
+        >>> H[0,0,:]
+        array([0.11666667, 0.08055583, 0.05562207, 0.03840585, 0.02651841,
+       0.0183104 , 0.01264294, 0.00872968, 0.00602765, 0.00416197])
+        
+        By definition the peripheral compartment 1 has no outlet back into the central compartment 0:
+
+        >>> H[0,1,:]
+        array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
+    """
+    Jo = np.zeros((2,2,len(t)))
+    J0 = prop_comp(T[0], t)   
+    J10 = E*J0
+    Jo[1,0,:] = J10
+    Jo[1,1,:] = flux_comp(J10, T[1], t)
+    Jo[0,0,:] = (1-E)*J0
+    return Jo
 
 
 # Non-stationary compartment

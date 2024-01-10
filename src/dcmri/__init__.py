@@ -2,7 +2,7 @@
 
 __version__ = "0.1.2"
 
-# Helper functions imported for testing but not exposed to package user
+# Helper functions imported for testing but not exposed to package users
 from . import tools
 from . import pk
 
@@ -14,9 +14,11 @@ from .tools import (
     expconv,
     conv,
 )
+
 from .lib import (
     aif_parker,
 )
+
 from .pk import (
 
     # Trap
@@ -67,4 +69,32 @@ from .pk import (
     flux_free,
     conc_free,
     prop_free,
+
+    # N-comp
+
+    conc_ncomp,
+    flux_ncomp,
+    res_ncomp,
+    prop_ncomp,
+
+    # 2-comp
+
+    conc_2comp,
+    flux_2comp,
+    res_2comp,
+    prop_2comp,
+
+    # 2cxm
+
+    conc_2cxm,
+    flux_2cxm,
+    res_2cxm,
+    prop_2cxm,
+
+    # 2cfm
+
+    conc_2cfm,
+    flux_2cfm,
+    res_2cfm,
+    prop_2cfm,
 )

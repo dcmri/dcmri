@@ -325,6 +325,332 @@ def test_flux_free():
     Jo = pk.flux_free(J, H, t, TT=TT)
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
 
+
+def test_K_ncomp():
+    T1, T2 = 2, 7
+    E11, E12, E21, E22 = 1, 3, 9, 2
+    K = pk.K_ncomp([T1,T2], [[E11,E12],[E21,E22]])
+    K0 = [[(E11+E21)/T1, -E12/T2],[-E21/T1, (E12+E22)/T2]]
+    assert np.array_equal(K, K0)
+    assert np.array_equal(np.matmul(K, [1,0]), [(E11+E21)/T1,-E21/T1])
+    assert np.array_equal(np.matmul(K, [0,1]), [-E12/T2,(E12+E22)/T2])
+    assert np.array_equal(np.matmul(K, [1,0]), K[:,0]) # col 0
+    assert np.array_equal(np.matmul(K, [0,1]), K[:,1]) # col 1
+
+def test_J_ncomp():
+    T = [1,2]
+    E = [[1,0],[0,1]]
+    C = [[1],
+         [3]]
+    J = pk.J_ncomp(np.array(C), T, E)
+    assert J[0,0,:] == 1
+    assert J[0,1,:] == 0
+    assert J[1,0,:] == 0
+    assert J[1,1,:] == 1.5
+
+def test_conc_ncomp_prop():
+    # Compare a decoupled system against analytical 1-comp model solutions
+    t = np.linspace(0, 20, 10)
+    J = np.ones((2,len(t)))
+    J[1,:] = 2
+    T = [6,12]
+    E = [[1,0],[0,1]]
+    C0 = pk.conc_comp(J[0,:], T[0], t)
+    C1 = pk.conc_comp(J[1,:], T[1], t)
+    prec = [1e-1, 1e-2, 1e-3]
+    for i, dt_prop in enumerate([None, 0.1, 0.01]):
+        C = pk.conc_ncomp_prop(J, T, E, t, dt_prop=dt_prop)
+        assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < prec[i]
+        assert np.linalg.norm(C[1,:]-C1)/np.linalg.norm(C1) < prec[i]
+
+def test_conc_ncomp_diag():
+    # Compare a decoupled system against analytical 1-comp model solutions
+    t = np.linspace(0, 20, 10)
+    J = np.ones((2,len(t)))
+    J[1,:] = 2
+    T = [6,12]
+    E = [[1,0],[0,1]]
+    C0 = pk.conc_comp(J[0,:], T[0], t)
+    C1 = pk.conc_comp(J[1,:], T[1], t)
+    C = pk.conc_ncomp_diag(J, T, E, t)
+    assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 1e-12
+    assert np.linalg.norm(C[1,:]-C1)/np.linalg.norm(C1) < 1e-12
+
+def test_conc_ncomp():
+    # Compare a decoupled system against analytical 1-comp model solutions
+    t = np.linspace(0, 20, 10)
+    J = np.ones((2,len(t)))
+    J[1,:] = 2
+    T = [6,12]
+    E = [[1,0],[0,1]]
+    C0 = pk.conc_comp(J[0,:], T[0], t)
+    C1 = pk.conc_comp(J[1,:], T[1], t)
+    prec = [1e-1, 1e-2, 1e-3]
+    for i, dt_prop in enumerate([None, 0.1, 0.01]):
+        C = pk.conc_ncomp(J, T, E, t, dt_prop=dt_prop)
+        assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < prec[i]
+        assert np.linalg.norm(C[1,:]-C1)/np.linalg.norm(C1) < prec[i]
+    # Compare both solvers for a coupled system
+    E = [[1,0.5],[0.5,1]]
+    C = pk.conc_ncomp(J, T, E, t, solver='prop', dt_prop=0.01)
+    C0 = pk.conc_ncomp(J, T, E, t, solver='diag')
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C) < 1e-3
+
+def test_flux_ncomp():
+    # Compare a decoupled system against analytical 1-comp model solutions
+    t = np.linspace(0, 20, 10)
+    J = np.ones((2,len(t)))
+    J[1,:] = 2
+    T = [6,12]
+    E = [[1,0],[0,1]]
+    J0 = pk.conc_comp(J[0,:], T[0], t) / T[0]
+    J1 = pk.conc_comp(J[1,:], T[1], t) / T[1]
+    J = pk.flux_ncomp(J, T, E, t, dt_prop=0.01)
+    assert np.linalg.norm(J[0,0,:]-J0)/np.linalg.norm(J0) < 1e-3
+    assert np.linalg.norm(J[1,1,:]-J1)/np.linalg.norm(J1) < 1e-3
+    assert np.linalg.norm(J[1,0,:]) == 0
+    assert np.linalg.norm(J[0,1,:]) == 0
+
+def test_res_ncomp():
+    # Compare a decoupled system against analytical 1-comp model solutions.
+    t = np.linspace(0, 20, 10)
+    T = [6,12]
+    E = [[1,0],[0,1]]
+    R0 = pk.res_comp(T[0], t)
+    R1 = pk.res_comp(T[1], t)
+    R = pk.res_ncomp(T, E, t)
+    assert np.linalg.norm(R[0,0,:]-R0)/np.linalg.norm(R0) < 1e-12
+    assert np.linalg.norm(R[1,1,:]-R1)/np.linalg.norm(R1) < 1e-12
+    assert np.linalg.norm(R[1,0,:]) == 0
+    assert np.linalg.norm(R[0,1,:]) == 0
+    # Compare against convolution on a coupled system.
+    J = np.ones((2,len(t)))
+    J[1,:] = 2
+    E = [[1,0.5],[0.5,1]]
+    C = pk.conc_ncomp(J, T, E, t, solver='prop', dt_prop=0.01)
+    R = pk.res_ncomp(T, E, t)
+    C0 = tools.conv(R[0,0,:], J[0,:], t) + tools.conv(R[1,0,:], J[1,:], t)
+    C1 = tools.conv(R[0,1,:], J[0,:], t) + tools.conv(R[1,1,:], J[1,:], t)
+    assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 0.1
+    assert np.linalg.norm(C[1,:]-C1)/np.linalg.norm(C1) < 0.01
+
+def test_prop_ncomp():
+    # Compare a decoupled system against analytical 1-comp model solutions
+    t = np.linspace(0, 20, 10)
+    T = [6,12]
+    E = [[1,0],[0,1]]
+    H0 = pk.prop_comp(T[0], t) 
+    H1 = pk.prop_comp(T[1], t)
+    H = pk.prop_ncomp(T, E, t)
+    assert np.linalg.norm(H[0,0,0,:]-H0)/np.linalg.norm(H0) < 1e-12
+    assert np.linalg.norm(H[1,1,1,:]-H1)/np.linalg.norm(H1) < 1e-12
+    assert np.linalg.norm(H[:,1,0,:]) == 0
+    assert np.linalg.norm(H[:,0,1,:]) == 0
+    # Compare against convolution on a coupled system
+    J = np.ones((2,len(t)))
+    J[1,:] = 2
+    E = [[1,0.5],[0.5,1]]
+    Jo = pk.flux_ncomp(J, T, E, t, solver='prop', dt_prop=0.01)
+    H = pk.prop_ncomp(T, E, t)
+    Jo0 = tools.conv(H[0,0,0,:], J[0,:], t) + tools.conv(H[1,0,0,:], J[1,:], t)
+    Jo1 = tools.conv(H[0,1,1,:], J[0,:], t) + tools.conv(H[1,1,1,:], J[1,:], t)
+    assert np.linalg.norm(Jo[0,0,:]-Jo0)/np.linalg.norm(Jo0) < 0.1
+    assert np.linalg.norm(Jo[1,1,:]-Jo1)/np.linalg.norm(Jo1) < 0.01
+
+
+def test_K_2comp():
+    # Compare against numerical computation
+    T = [6,12]
+    E = [[1,0.5],[0.5,1]]
+    # Analytical
+    _, K, _ = pk.K_2comp(T,E)
+    # Numerical
+    Knum = pk.K_ncomp(T, E)
+    Knum, _ = np.linalg.eig(Knum)
+    assert np.linalg.norm(K-Knum)/np.linalg.norm(Knum) < 1e-12
+
+def test_conc_2comp():
+    # Compare a coupled system against numerical solutions
+    t = np.linspace(0, 20, 10)
+    J = np.ones((2,len(t)))
+    J[1,:] = 2
+    T = [6,12]
+    E = [[1,0.5],[0.5,1]]
+    C0 = pk.conc_2comp(J, T, E, t) 
+    C = pk.conc_ncomp(J, T, E, t, dt_prop=0.1)
+    assert np.linalg.norm(C[0,:]-C0[0,:])/np.linalg.norm(C[0,:]) < 1e-2
+    assert np.linalg.norm(C[1,:]-C0[1,:])/np.linalg.norm(C[1,:]) < 1e-2
+    # Compare a decoupled system against individual solutions
+    E = [[1,0],[0,1]]
+    C = pk.conc_2comp(J, T, E, t)
+    C0 = pk.conc_comp(J[0,:], T[0], t)
+    C1 = pk.conc_comp(J[1,:], T[1], t)
+    assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 1e-12
+    assert np.linalg.norm(C[1,:]-C1)/np.linalg.norm(C1) < 1e-12
+
+def test_flux_2comp():
+    # Compare a decoupled system against analytical 1-comp model solutions
+    t = np.linspace(0, 20, 10)
+    J = np.ones((2,len(t)))
+    J[1,:] = 2
+    T = [6,12]
+    E = [[1,0],[0,1]]
+    J0 = pk.conc_comp(J[0,:], T[0], t) / T[0]
+    J1 = pk.conc_comp(J[1,:], T[1], t) / T[1]
+    J = pk.flux_2comp(J, T, E, t)
+    assert np.linalg.norm(J[0,0,:]-J0)/np.linalg.norm(J0) < 1e-3
+    assert np.linalg.norm(J[1,1,:]-J1)/np.linalg.norm(J1) < 1e-3
+    assert np.linalg.norm(J[1,0,:]) == 0
+    assert np.linalg.norm(J[0,1,:]) == 0
+
+def test_res_2comp():
+    # Compare a decoupled system against analytical 1-comp model solutions.
+    t = np.linspace(0, 20, 10)
+    T = [6,12]
+    E = [[1,0],[0,1]]
+    R0 = pk.res_comp(T[0], t)
+    R1 = pk.res_comp(T[1], t)
+    R = pk.res_2comp(T, E, t)
+    assert np.linalg.norm(R[0,0,:]-R0)/np.linalg.norm(R0) < 1e-12
+    assert np.linalg.norm(R[1,1,:]-R1)/np.linalg.norm(R1) < 1e-12
+    assert np.linalg.norm(R[1,0,:]) == 0
+    assert np.linalg.norm(R[0,1,:]) == 0
+    # Compare against convolution on a coupled system.
+    J = np.ones((2,len(t)))
+    J[1,:] = 2
+    E = [[1,0.5],[0.5,1]]
+    C = pk.conc_2comp(J, T, E, t)
+    R = pk.res_2comp(T, E, t)
+    C0 = tools.conv(R[0,0,:], J[0,:], t) + tools.conv(R[1,0,:], J[1,:], t)
+    C1 = tools.conv(R[0,1,:], J[0,:], t) + tools.conv(R[1,1,:], J[1,:], t)
+    assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 0.1
+    assert np.linalg.norm(C[1,:]-C1)/np.linalg.norm(C1) < 0.01
+
+def test_prop_2comp():
+    # Compare a decoupled system against analytical 1-comp model solutions
+    t = np.linspace(0, 20, 10)
+    T = [6,12]
+    E = [[1,0],[0,1]]
+    H0 = pk.prop_comp(T[0], t) 
+    H1 = pk.prop_comp(T[1], t)
+    H = pk.prop_2comp(T, E, t)
+    assert np.linalg.norm(H[0,0,0,:]-H0)/np.linalg.norm(H0) < 1e-12
+    assert np.linalg.norm(H[1,1,1,:]-H1)/np.linalg.norm(H1) < 1e-12
+    assert np.linalg.norm(H[:,1,0,:]) == 0
+    assert np.linalg.norm(H[:,0,1,:]) == 0
+    # Compare against convolution on a coupled system
+    J = np.ones((2,len(t)))
+    J[1,:] = 2
+    E = [[1,0.5],[0.5,1]]
+    Jo = pk.flux_2comp(J, T, E, t)
+    H = pk.prop_2comp(T, E, t)
+    Jo0 = tools.conv(H[0,0,0,:], J[0,:], t) + tools.conv(H[1,0,0,:], J[1,:], t)
+    Jo1 = tools.conv(H[0,1,1,:], J[0,:], t) + tools.conv(H[1,1,1,:], J[1,:], t)
+    assert np.linalg.norm(Jo[0,0,:]-Jo0)/np.linalg.norm(Jo0) < 0.1
+    assert np.linalg.norm(Jo[1,1,:]-Jo1)/np.linalg.norm(Jo1) < 0.01
+
+
+def test_conc_2cxm():
+    # Compare against general 2comp solution
+    t = np.linspace(0, 20, 10)
+    J = np.ones((2,len(t)))
+    J[1,:] = 0 # No inlet in 2nd compartment
+    T = [6,12]
+    E = 0.2
+    Emat = [[1-E,1],[E,0]]
+    C0 = pk.conc_2cxm(J[0,:], T, E, t) 
+    C = pk.conc_2comp(J, T, Emat, t)
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C) < 1e-3
+
+def test_flux_2cxm():
+    # Compare against general 2comp solution
+    t = np.linspace(0, 20, 10)
+    J = np.ones((2,len(t)))
+    J[1,:] = 0 # No inlet in 2nd compartment
+    T = [6,12]
+    E = 0.2
+    Emat = [[1-E,1],[E,0]]
+    Jo0 = pk.flux_2cxm(J[0,:], T, E, t) 
+    Jo = pk.flux_2comp(J, T, Emat, t)
+    assert np.linalg.norm(Jo-Jo0)/np.linalg.norm(Jo) < 1e-3
+
+def test_res_2cxm():
+    # Compare against convolution on a coupled system.
+    t = np.linspace(0, 20, 10)
+    T = [6,12]
+    E = 0.2
+    J = np.ones(len(t))
+    C = pk.conc_2cxm(J, T, E, t)
+    R = pk.res_2cxm(T, E, t)
+    C0 = tools.conv(R[0,:], J, t) 
+    C1 = tools.conv(R[1,:], J, t) 
+    assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 0.1
+    assert np.linalg.norm(C[1,:]-C1)/np.linalg.norm(C1) < 0.1
+
+def test_prop_2cxm():
+    # Compare against convolution on a coupled system
+    t = np.linspace(0, 20, 100)
+    T = [6,12]
+    E = 0.2
+    J = np.ones(len(t))
+    Jo = pk.flux_2cxm(J, T, E, t)
+    H = pk.prop_2cxm(T, E, t)
+    Jo0 = tools.conv(H[0,0,:], J, t) 
+    assert np.linalg.norm(Jo[0,0,:]-Jo0)/np.linalg.norm(Jo0) < 1e-3
+
+def test_conc_2cfm():
+    # Compare against general 2comp solution
+    t = np.linspace(0, 20, 10)
+    J = np.ones((2,len(t)))
+    J[1,:] = 0 # No inlet in 2nd compartment
+    T = [6,12]
+    E = 0.2
+    C0 = pk.conc_2cfm(J[0,:], T, E, t) 
+    Emat = [
+        [1-E, 0],
+        [E  , 1]]
+    C = pk.conc_2comp(J, T, Emat, t)
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C) < 1e-2
+
+def test_flux_2cfm():
+    # Compare against general 2comp solution
+    t = np.linspace(0, 20, 10)
+    J = np.ones((2,len(t)))
+    J[1,:] = 0 # No inlet in 2nd compartment
+    T = [6,12]
+    E = 0.2
+    Jo0 = pk.flux_2cfm(J[0,:], T, E, t) 
+    Emat = [
+        [1-E, 0],
+        [E  , 1]]
+    Jo = pk.flux_2comp(J, T, Emat, t)
+    assert np.linalg.norm(Jo-Jo0)/np.linalg.norm(Jo) < 1e-3
+
+def test_res_2cfm():
+    # Compare against general 2comp solution
+    t = np.linspace(0, 20, 10)
+    T = [6,12]
+    E = 0.2
+    R0 = pk.res_2cfm(T, E, t) 
+    Emat = [
+        [1-E, 0],
+        [E  , 1]]
+    R = pk.res_2comp(T, Emat, t)
+    assert np.linalg.norm(R[0,:,:]-R0)/np.linalg.norm(R0) < 1e-2
+
+def test_prop_2cfm():
+    # Compare against general 2comp solution
+    t = np.linspace(0, 20, 10)
+    T = [6,12]
+    E = 0.2
+    H0 = pk.prop_2cfm(T, E, t) 
+    Emat = [
+        [1-E, 0],
+        [E  , 1]]
+    H = pk.prop_2comp(T, Emat, t)
+    assert np.linalg.norm(H[0,:,:,:]-H0)/np.linalg.norm(H0) < 1e-2
+
+
 if __name__ == "__main__":
 
     test_conc_trap()
@@ -361,5 +687,31 @@ if __name__ == "__main__":
     test_flux_free()
     test_prop_free()
     test_res_free()
+
+    test_K_2comp()
+    test_K_ncomp()
+    test_J_ncomp()
+    test_conc_ncomp_prop()
+    test_conc_ncomp_diag()
+
+    test_conc_ncomp()
+    test_flux_ncomp()
+    test_res_ncomp()
+    test_prop_ncomp()
+
+    test_conc_2comp()
+    test_flux_2comp()
+    test_res_2comp()
+    test_prop_2comp()
+
+    test_conc_2cxm()
+    test_flux_2cxm()
+    test_res_2cxm()
+    test_prop_2cxm()
+
+    test_conc_2cfm()
+    test_flux_2cfm()
+    test_res_2cfm()
+    test_prop_2cfm()
 
     print('All pk tests passed!!')
