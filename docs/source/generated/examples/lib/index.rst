@@ -17,7 +17,7 @@ Constants and special functions
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="Simulating a Parker AIF with different settings. ">
+    <div class="sphx-glr-thumbcontainer" tooltip="Use ~dcmri.aif_parker to generate a Parker AIF with different settings. ">
 
 .. only:: html
 
