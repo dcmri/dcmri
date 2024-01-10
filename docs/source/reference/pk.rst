@@ -7,8 +7,8 @@ A collection of basic models that can be assembled to more complex models.
 .. currentmodule:: dcmri
 
 
-**No-parameter models**
-=======================
+No-parameter models
+===================
 
 *Trap*
 ------
@@ -23,8 +23,8 @@ A collection of basic models that can be assembled to more complex models.
    flux_trap
 
 
-**One-parameter models**
-========================
+One-parameter models
+====================
 
 *Pass*
 ------
@@ -64,8 +64,8 @@ A collection of basic models that can be assembled to more complex models.
    flux_plug
 
 
-**Two-parameter models**
-========================
+Two-parameter models
+====================
 
 
 *Chain*
@@ -94,8 +94,8 @@ A collection of basic models that can be assembled to more complex models.
    flux_step
 
 
-**Three-parameter models**
-==========================
+Three-parameter models
+======================
 
 *Two-compartment exchange model*
 --------------------------------
@@ -122,8 +122,8 @@ A collection of basic models that can be assembled to more complex models.
    conc_2cfm
    flux_2cfm
 
-**Six-parameter models**
-========================
+Six-parameter models
+====================
 
 *2-compartment model*
 ---------------------
@@ -138,8 +138,8 @@ A collection of basic models that can be assembled to more complex models.
    flux_2comp
 
 
-**N-parameter models**
-======================
+N-parameter models
+==================
 
 
 *Free*
