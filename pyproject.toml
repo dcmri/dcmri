@@ -3,7 +3,7 @@
 
 [tool.poetry]
 name = "dcmri"
-version = "0.3.1"
+version = "0.6.0"
 description = "A collection of functions for DCE-MRI and DSC-MRI"
 authors = ["Ebony Gunwhy <e.gunwhy@sheffield.ac.uk>", "Steven Sourbron <s.sourbron@sheffield.ac.uk>"]
 readme = "README.md"
