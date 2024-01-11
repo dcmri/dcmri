@@ -1,6 +1,6 @@
 # dcmri/__init__.py
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 # Helper functions imported for testing but not exposed to package users
 from . import tools
