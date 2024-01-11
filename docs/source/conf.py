@@ -35,7 +35,10 @@ extensions = [
     'sphinx_design', # sphinx web design components
     #'sphinx_remove_toctrees', # selectively remove toctree objects from pages
     'sphinx_gallery.gen_gallery', # thumbnail galleries
+    "sphinx_github_changelog", # To build the releases pages from github release notes
 ]
+
+
 
 # Settings for sphinx-gallery, see
 # https://sphinx-gallery.github.io/stable/getting_started.html#create-simple-gallery
@@ -119,4 +122,6 @@ html_logo = '_static/tristan-logo.jpg'
 # It is used to indicate the location of document
 #html_baseurl = "https://qib-sheffield.github.io/dcmri/"
 
-
+# Get the Github token that gives the sphinx_github_changelog plugin access to the github releases. 
+# Note - set it first, on windows powershell: $Env:CHANGELOG_GITHUB_TOKEN = "<paste token here>"
+changelog_github_token = os.environ.get("SPHINX_GITHUB_CHANGELOG_TOKEN")
