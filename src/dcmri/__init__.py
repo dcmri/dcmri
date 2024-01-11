@@ -102,4 +102,9 @@ from .pk import (
 
     conc_nscomp,
     flux_nscomp,
+
+    # mmcomp
+
+    conc_mmcomp,
+    flux_mmcomp,
 )

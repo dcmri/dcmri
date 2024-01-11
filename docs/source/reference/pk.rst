@@ -17,10 +17,10 @@ No-parameter models
    :toctree: ../generated/api/
    :template: autosummary.rst
 
-   res_trap
-   prop_trap
    conc_trap
    flux_trap
+   res_trap
+   prop_trap
 
 
 One-parameter models
@@ -33,10 +33,10 @@ One-parameter models
    :toctree: ../generated/api/
    :template: autosummary.rst
 
-   res_pass
-   prop_pass
    conc_pass
    flux_pass
+   res_pass
+   prop_pass
 
 
 *Compartment*
@@ -46,10 +46,11 @@ One-parameter models
    :toctree: ../generated/api/
    :template: autosummary.rst
 
-   res_comp
-   prop_comp
    conc_comp
    flux_comp
+   res_comp
+   prop_comp
+
 
 *Plug flow*
 -----------
@@ -58,10 +59,10 @@ One-parameter models
    :toctree: ../generated/api/
    :template: autosummary.rst
 
-   res_plug
-   prop_plug
    conc_plug
    flux_plug
+   res_plug
+   prop_plug
 
 
 Two-parameter models
@@ -75,10 +76,10 @@ Two-parameter models
    :toctree: ../generated/api/
    :template: autosummary.rst
 
-   res_chain
-   prop_chain
    conc_chain
    flux_chain
+   res_chain
+   prop_chain
 
 
 *Step*
@@ -88,10 +89,21 @@ Two-parameter models
    :toctree: ../generated/api/
    :template: autosummary.rst
 
-   res_step
-   prop_step
    conc_step
    flux_step
+   res_step
+   prop_step
+
+
+*Michaelis-Menten compartment*
+------------------------------
+
+.. autosummary::
+   :toctree: ../generated/api/
+   :template: autosummary.rst
+
+   conc_mmcomp
+   flux_mmcomp
 
 
 Three-parameter models
@@ -104,10 +116,11 @@ Three-parameter models
    :toctree: ../generated/api/
    :template: autosummary.rst
 
-   res_2cxm
-   prop_2cxm
    conc_2cxm
    flux_2cxm
+   res_2cxm
+   prop_2cxm
+
 
 
 *Two-compartment filtration model*
@@ -117,10 +130,11 @@ Three-parameter models
    :toctree: ../generated/api/
    :template: autosummary.rst
 
-   res_2cfm
-   prop_2cfm
    conc_2cfm
    flux_2cfm
+   res_2cfm
+   prop_2cfm
+
 
 Six-parameter models
 ====================
@@ -132,10 +146,10 @@ Six-parameter models
    :toctree: ../generated/api/
    :template: autosummary.rst
 
-   res_2comp
-   prop_2comp
    conc_2comp
    flux_2comp
+   res_2comp
+   prop_2comp
 
 
 N-parameter models
@@ -149,10 +163,10 @@ N-parameter models
    :toctree: ../generated/api/
    :template: autosummary.rst
 
-   res_free
-   prop_free
    conc_free
    flux_free
+   res_free
+   prop_free
 
 
 *N-compartment models*
@@ -162,10 +176,10 @@ N-parameter models
    :toctree: ../generated/api/
    :template: autosummary.rst
 
-   res_ncomp
-   prop_ncomp
    conc_ncomp
    flux_ncomp
+   res_ncomp
+   prop_ncomp
 
 
 *Non-stationary compartment*
