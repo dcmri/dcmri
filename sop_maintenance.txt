@@ -1,6 +1,23 @@
 SOPs for maintainers
 ********************
 
+Adding dependencies
+-------------------
+
+- update requirements.txt
+- update pyproject.toml
+- generate a new poetry.lock file. On the terminal, run
+
+poetry lock
+
+Check test coverage
+-------------------
+
+cd to /dcmri top folder
+
+pytest --cov=dcmri --cov-report term-missing
+
+
 Documentation build
 -------------------
 
@@ -15,6 +32,8 @@ Creating a new release
 ----------------------
 
 - Update the version number everywhere in the code.
+
+
 
 - Merge the dev branch with the main branch.
 
