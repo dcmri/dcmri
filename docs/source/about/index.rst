@@ -2,20 +2,14 @@
 About
 #####
 
-``dcmri`` is a Python toolbox containing a collection of functions for
-DCE-MRI and DSC-MRI.
+.. note::
 
-The ``dcmri`` package structure and logic follows the
-`lexicon <https://osipi.github.io/OSIPI_CAPLEX/>`_ defined by the Open Source
-Initiative for Perfusion Imaging `OSIPI <https://osipi.github.io/>`_, an
-initiative of the perfusion study group of the International Society for
-Magnetic Resonance in Medicine `ISMRM <https://www.ismrm.org>`_.,
-and wraps around selected implementations collected in the
-`code contributions <https://github.com/OSIPI/DCE-DSC-MRI_CodeCollection>`_
-of OSIPI.
+   ``dcmri`` is under construction. Please check back later for more comprehensive functionality and documentation.
 
-Scope
-^^^^^
 
-`dcmri` is developed in public, however it is a work in progress and not yet
-sufficiently stable for wider use.
+``dcmri`` is developed by `Ebony Gunwhy <https://github.com/EbonyGunwhy>`_ and `Steven Sourbron <https://github.com/plaresmedima>`_, from the `medical imaging group <https://www.sheffield.ac.uk/smph/research/themes/imaging>`_ at the University of Sheffield, UK. 
+
+..
+    This works but does not format properly.
+    .. include:: teams.inc
+

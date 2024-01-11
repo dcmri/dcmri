@@ -8,8 +8,6 @@ Illustrating common use cases of dcmri.
 
 
 
-
-
 .. raw:: html
 
     <div class="sphx-glr-thumbnails">
@@ -19,60 +17,9 @@ Illustrating common use cases of dcmri.
 
     </div>
 
-************************
-Arterial Input Functions
-************************
-
-
-
-
-
-.. raw:: html
-
-    <div class="sphx-glr-thumbnails">
-
-
-.. raw:: html
-
-    <div class="sphx-glr-thumbcontainer" tooltip="Simulating a Parker AIF with different settings. ">
-
-.. only:: html
-
-  .. image:: /generated/examples/aif/images/thumb/sphx_glr_plot_aif_parker_thumb.png
-    :alt:
-
-  :ref:`sphx_glr_generated_examples_aif_plot_aif_parker.py`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">The Parker AIF - a play with variables</div>
-    </div>
-
-
-.. raw:: html
-
-    <div class="sphx-glr-thumbcontainer" tooltip="Dummy script to illustrate structure of examples folder ">
-
-.. only:: html
-
-  .. image:: /generated/examples/aif/images/thumb/sphx_glr_plot_dummy_thumb.png
-    :alt:
-
-  :ref:`sphx_glr_generated_examples_aif_plot_dummy.py`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">A dummy script</div>
-    </div>
-
-
-.. raw:: html
-
-    </div>
-
-*********************
-Tissue concentrations
-*********************
+*******************************
+Constants and special functions
+*******************************
 
 
 
@@ -85,18 +32,52 @@ Tissue concentrations
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="Dummy script to show the examples structure. ">
+    <div class="sphx-glr-thumbcontainer" tooltip="Use ~dcmri.aif_parker to generate a Parker AIF with different settings. ">
 
 .. only:: html
 
-  .. image:: /generated/examples/tissue/images/thumb/sphx_glr_plot_dummy_thumb.png
+  .. image:: /generated/examples/lib/images/thumb/sphx_glr_plot_aif_parker_thumb.png
     :alt:
 
-  :ref:`sphx_glr_generated_examples_tissue_plot_dummy.py`
+  :ref:`sphx_glr_generated_examples_lib_plot_aif_parker.py`
 
 .. raw:: html
 
-      <div class="sphx-glr-thumbnail-title">Dummy script as demo</div>
+      <div class="sphx-glr-thumbnail-title">The Parker AIF</div>
+    </div>
+
+
+.. raw:: html
+
+    </div>
+
+************
+DC-MRI tools
+************
+
+
+
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Using the convolution functions ~dcmri.conv, ~dcmri.expconv, ~dcmri.stepconv, ~dcmri.biexpconv ...">
+
+.. only:: html
+
+  .. image:: /generated/examples/tools/images/thumb/sphx_glr_plot_convolution_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_generated_examples_tools_plot_convolution.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">A comparison of convolution functions</div>
     </div>
 
 
@@ -110,8 +91,8 @@ Tissue concentrations
    :includehidden:
 
 
-   /generated/examples/aif/index.rst
-   /generated/examples/tissue/index.rst
+   /generated/examples/lib/index.rst
+   /generated/examples/tools/index.rst
 
 
 
