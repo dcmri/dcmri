@@ -1,6 +1,6 @@
 import math
 import numpy as np
-#from scipy.stats import rv_histogram
+from scipy.special import lambertw
 
 import dcmri.tools as tools
 
@@ -2016,37 +2016,220 @@ def prop_2cfm(T, E, t):
 
 # Non-stationary compartment
 
-# Commenting out until included and tested
 
-# def conc_nscomp(J, T, t=None, dt=1.0):
-#     if np.isscalar(T):
-#         raise ValueError('T must be an array of the same length as J.')
-#     if len(T) != len(J):
-#         raise ValueError('T and J must have the same length.')
-#     if np.amin(T) <= 0:
-#         raise ValueError('T must be strictly positive.')
-#     t = tools.tarray(len(J), t=t, dt=dt)
-#     Dt = t[1:]-t[:-1]
-#     Tt = (T[1:]+T[:-1])/2
-#     Jt = (J[1:]+J[:-1])/2
-#     n = len(t)
-#     C = np.zeros(n)
-#     for i in range(n-1):
-#         # Dt/T <= 1 or Dt <= T
-#         if Dt[i] <= Tt[i]:
-#             C[i+1] = C[i] + Dt[i]*Jt[i] - C[i]*Dt[i]/Tt[i]
-#         else:
-#             # Dt[i]/nk <= T[i]
-#             # Dt[i]/T[i] <= nk
-#             nk = np.ceil(Dt[i]/Tt[i])
-#             Dk = Dt[i]/nk
-#             Ck = C[i]
-#             for _ in range(nk):
-#                 Ck = Ck + Dk*Jt[i]/nk - Ck*Dk/Tt[i]
-#             C[i+1] = Ck
-#     return C
+def conc_nscomp(J, T, t=None, dt=1.0):
+    """Indicator concentration inside a non-stationary compartment.
+
+    Args:
+        J (array_like): the indicator flux entering the compartment.
+        T (array_like): array with the mean transit time as a function of time, with the same length as *J*. Only finite and strictly positive values are allowed.
+        t (array_like, optional): the time points of the indicator flux J, in the same units as T. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as T. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+
+    Returns:
+        numpy.ndarray: Concentration as a 1D array.
+
+    Raises:
+        ValueError: if one of the parameters is out of bounds.
+
+    See Also:
+        `flux_nscomp`
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,5,15,30,60]
+        >>> J = [1,2,3,3,2]
+        >>> T = [1,2,3,4,5]
+        >>> dc.conc_nscomp(J, T, t)
+        array([ 0.        ,  3.09885687,  7.96130923, 11.53123615, 10.28639254])
+    """
+    if np.isscalar(T):
+        raise ValueError('T must be an array of the same length as J.')
+    if len(T) != len(J):
+        raise ValueError('T and J must have the same length.')
+    if np.amin(T) <= 0:
+        raise ValueError('T must be strictly positive.')
+    t = tools.tarray(len(J), t=t, dt=dt)
+    n = len(t)
+    C = np.zeros(n)
+    for k in range(n-1):
+        Dk = t[k+1]-t[k]
+        STk = (T[k+1]-T[k])/Dk
+        SJk = (J[k+1]-J[k])/Dk
+        Jk = J[k]
+        Tk = T[k]
+        Ck = C[k]
+        nk = int(np.ceil(Dk/np.min(T[k:k+1])))
+        dk = Dk/nk
+        for _ in range(nk):
+            Jk_next = Jk + dk*SJk
+            Tk_next = Tk + dk*STk
+            Jk_curr = (Jk+Jk_next)/2
+            Tk_curr = (Tk+Tk_next)/2
+            Ck = Ck + dk*Jk_curr - dk*Ck/Tk_curr
+            Jk = Jk_next
+            Tk = Tk_next
+        C[k+1] = Ck
+    return C
 
 
-# def flux_nscomp(J, T, t=None, dt=1.0):
-#     C = conc_nscomp(J, T, t=t, dt=dt)
-#     return C/T
+def flux_nscomp(J, T, t=None, dt=1.0):
+    """Indicator flux out of a non-stationary compartment.
+
+    A compartment is a space with a uniform concentration everywhere - also known as a well-mixed space. 
+
+    Args:
+        J (array_like): the indicator flux entering the compartment.
+        T (float): mean transit time of the compartment. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
+        t (array_like, optional): the time points of the indicator flux J, in the same units as T. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as T. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+
+    Returns:
+        numpy.ndarray: outflux as a 1D array.
+
+    See Also:
+        `conc_nscomp`
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,5,15,30,60]
+        >>> J = [1,2,3,3,2]
+        >>> T = [1,2,3,4,5]
+        >>> dc.flux_nscomp(J, T, t)
+        array([0.        , 1.54942844, 2.65376974, 2.88280904, 2.05727851])
+    """
+    C = conc_nscomp(J, T, t=t, dt=dt)
+    return C/T
+
+
+# Michaelis-Menten compartment
+
+# Helper function
+def mmcomp_anal(J, Vmax, Km, t):
+    #Schnell-Mendoza
+    n = len(t)
+    C = np.zeros(n)
+    for k in range(n-1):
+        Dk = t[k+1]-t[k]
+        Jk = (J[k]+J[k+1])/2
+        u = (C[k]/Km) * np.exp( (C[k]-Vmax*Dk)/Km )
+        C[k+1] = Jk*Dk + Km*lambertw(u)
+    return C
+
+# Helper function
+def mmcomp_prop(J, Vmax, Km, t):
+    n = len(t)
+    C = np.zeros(n)
+    for k in range(n-1):
+        Dk = t[k+1]-t[k]
+        SJk = (J[k+1]-J[k])/Dk
+        Jk = J[k]
+        Ck = C[k]
+        Tk = (Km+Ck)/Vmax
+        nk = int(np.ceil(Dk/Tk))
+        dk = Dk/nk
+        for _ in range(nk):
+            Jk_next = Jk + dk*SJk
+            Jk_curr = (Jk+Jk_next)/2
+            Ck = Ck + dk*Jk_curr - dk*Ck*Vmax/(Km+Ck)
+            Jk = Jk_next
+            Ck = np.amax([Ck,0])
+        C[k+1] = Ck
+    return C
+
+def conc_mmcomp(J, Vmax, Km, t=None, dt=1.0, solver='SM'):
+    """Indicator concentration inside a Michaelis-Menten compartment.
+
+    Args:
+        J (array_like): the indicator flux entering the compartment.
+        Vmax (float): Limiting rate in the same units as J. Must be non-negative.
+        Km (float): Michaelis-Menten constant in units of concentration (or flux x time). Must be non-negative.
+        t (array_like, optional): the time points of the indicator flux J, in the same units as Km/Vmax. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as Km/Vmax. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+        solver (str, optional): choose which solver to use. The options are 'SM' for the analytical solution derived by `Schnell and Mendoza <https://www.sciencedirect.com/science/article/pii/S0022519397904252>`_, or 'prop' for a numerical solution by forward propagation. Defaults to 'SM'.
+
+    Returns:
+        numpy.ndarray: Concentration as a 1D array.
+
+    Raises:
+        ValueError: if one of the parameters is out of bounds.
+
+    See Also:
+        `flux_mmcomp`
+
+    Note:
+        The Michaelis-Menten compartment is an example of a non-linear one-compartment model where the rate constant :math:`K(C)` is a function of the concentration itself:
+
+        .. math::
+            \\frac{dC}{dt} = -K(C) C
+
+        In the Michaelis-Menten model the rate constant is given by:
+
+        .. math::
+            K(C) = \\frac{V_\max}{K_m+C}
+
+        For small enough concentrations :math:`C << K_m` this reduces to a standard linear compartment with :math:`K=V_\max/K_m`. 
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,5,15,30,60]
+        >>> J = [1,2,3,3,2]
+        >>> Vmax, Km = 1, 12
+        >>> dc.conc_mmcomp(J, Vmax, Km, t)
+        array([  0.        ,   7.5       ,  29.26723718,  64.27756059,
+        114.97656637])
+    """
+    if Vmax < 0:
+        raise ValueError('Vmax must be non-negative.')
+    if Km < 0:
+        raise ValueError('Km must be non-negative.')
+    t = tools.tarray(len(J), t=t, dt=dt)
+    if solver=='SM':
+        return mmcomp_anal(J, Vmax, Km, t)
+    if solver == 'prop':
+        return mmcomp_prop(J, Vmax, Km, t)
+
+    
+def flux_mmcomp(J, Vmax, Km, t=None, solver='SM', dt=1.0):
+    """Indicator flux out of a Michaelis-Menten compartment.
+
+    Args:
+        J (array_like): the indicator flux entering the compartment.
+        Vmax (float): Limiting rate in the same units as J. Must be non-negative.
+        Km (float): Michaelis-Menten constant in units of concentration (or flux x time). Must be non-negative.
+        t (array_like, optional): the time points of the indicator flux J, in the same units as Km/Vmax. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as Km/Vmax. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+        solver (str, optional): choose which solver to use. The options are 'SM' for the analytical solution derived by `Schnell and Mendoza <https://www.sciencedirect.com/science/article/pii/S0022519397904252>`_, or 'prop' for a numerical solution by forward propagation. Defaults to 'SM'.
+
+    Returns:
+        numpy.ndarray: Outflux as a 1D array.
+
+    Raises:
+        ValueError: if one of the parameters is out of bounds.
+
+    See Also:
+        `conc_mmcomp`
+
+    Note:
+        The Michaelis-Menten compartment is an example of a non-linear one-compartment model where the rate constant :math:`K(C)` is a function of the concentration itself:
+
+        .. math::
+            \\frac{dC}{dt} = -K(C) C
+
+        In the Michaelis-Menten model the rate constant is given by:
+
+        .. math::
+            K(C) = \\frac{V_\max}{K_m+C}
+
+        For small enough concentrations :math:`C << K_m` this reduces to a standard linear compartment with :math:`K=V_\max/K_m`. 
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,5,15,30,60]
+        >>> J = [1,2,3,3,2]
+        >>> Vmax, Km = 1, 12
+        >>> dc.flux_mmcomp(J, Vmax, Km, t)
+        array([0.        , 0.38461538, 0.70921242, 0.84267981, 0.90549437])
+    """
+    C = conc_mmcomp(J, Vmax, Km, t=t, solver=solver, dt=dt)
+    return C*Vmax/(Km+C)

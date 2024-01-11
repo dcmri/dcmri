@@ -790,6 +790,94 @@ def test_prop_2cfm():
     H = pk.prop_2comp(T, Emat, t)
     assert np.linalg.norm(H[0,:,:,:]-H0)/np.linalg.norm(H0) < 1e-2
 
+def test_conc_nscomp():
+
+    # Some inputs
+    T = 25
+    t = np.linspace(0, 150, 20)
+    J = np.ones(len(t))
+
+    # Test exceptions
+    try:
+        pk.conc_nscomp(J, T, t)
+    except:
+        assert True
+    try:
+        pk.conc_nscomp(J, [T,T], t)
+    except:
+        assert True
+    try:
+        pk.conc_nscomp(J, -T*np.ones(len(t)), t)
+    except:
+        assert True
+
+    # Test functionality
+    C = pk.conc_comp(J, T, t)
+    C0 = pk.conc_nscomp(J, T*np.ones(len(t)), t)
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.1
+    
+    t = [0,5,15,30,60,90,150]
+    J = np.ones(len(t))
+    C = pk.conc_comp(J, T, t)
+    C0 = pk.conc_nscomp(J, T*np.ones(len(t)), t)
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.1
+
+
+def test_flux_nscomp():
+
+    # Some inputs
+    T = 25
+    t = np.linspace(0, 150, 20)
+    J = np.ones(len(t))
+
+    # Test functionality
+    C = pk.flux_comp(J, T, t)
+    C0 = pk.flux_nscomp(J, T*np.ones(len(t)), t)
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.1
+    
+    t = [0,5,15,30,60,90,150]
+    J = np.ones(len(t))
+    C = pk.flux_comp(J, T, t)
+    C0 = pk.flux_nscomp(J, T*np.ones(len(t)), t)
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.1
+
+
+def test_conc_mmcomp():
+    T = 25
+    t = np.linspace(0, 150, 500)
+    J = np.ones(len(t))
+    C = pk.conc_comp(J, T, t)
+    Km = np.amax(C)/2
+    Vmax = np.amax(C)/np.amax(T)
+    print(Vmax, Km)
+    C = pk.conc_mmcomp(J, Vmax, Km, t, solver='SM')
+    C0 = pk.conc_mmcomp(J, Vmax, Km, t, solver='prop')
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-2
+
+    t = [0,5,15,30,60,90,150]
+    J = np.ones(len(t))
+    C = pk.conc_mmcomp(J, Vmax, Km, t, solver='SM')
+    C0 = pk.conc_mmcomp(J, Vmax, Km, t, solver='prop')
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.3
+
+def test_flux_mmcomp():
+    T = 25
+    t = np.linspace(0, 150, 500)
+    J = np.ones(len(t))
+    C = pk.conc_comp(J, T, t)
+    Km = np.amax(C)/2
+    Vmax = np.amax(C)/np.amax(T)
+    C = pk.flux_mmcomp(J, Vmax, Km, t, solver='SM')
+    C0 = pk.flux_mmcomp(J, Vmax, Km, t, solver='prop')
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-2
+
+    t = [0,5,15,30,60,90,150]
+    J = np.ones(len(t))
+    C = pk.flux_mmcomp(J, Vmax, Km, t, solver='SM')
+    C0 = pk.flux_mmcomp(J, Vmax, Km, t, solver='prop')
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.3
+
+
 
 if __name__ == "__main__":
 
@@ -853,5 +941,11 @@ if __name__ == "__main__":
     test_flux_2cfm()
     test_res_2cfm()
     test_prop_2cfm()
+
+    test_conc_nscomp()
+    test_flux_nscomp()
+
+    test_conc_mmcomp()
+    test_flux_mmcomp()
 
     print('All pk tests passed!!')
