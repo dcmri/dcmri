@@ -166,3 +166,14 @@ N-parameter models
    prop_ncomp
    conc_ncomp
    flux_ncomp
+
+
+*Non-stationary compartment*
+----------------------------
+
+.. autosummary::
+   :toctree: ../generated/api/
+   :template: autosummary.rst
+
+   conc_nscomp
+   flux_nscomp

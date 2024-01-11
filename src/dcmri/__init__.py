@@ -97,4 +97,9 @@ from .pk import (
     flux_2cfm,
     res_2cfm,
     prop_2cfm,
+
+    # nscomp
+
+    conc_nscomp,
+    flux_nscomp,
 )
