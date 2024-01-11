@@ -18,4 +18,11 @@
    reference/index
    generated/examples/index
    contribute/index
+   releases/index
    about/index
+
+
+.. changelog::
+    :changelog-url: https://qib-sheffield.github.io/dcmri/releases/index.html
+    :github: https://github.com/QIB-Sheffield/dcmri/releases/
+    :pypi: https://pypi.org/project/dcmri/
