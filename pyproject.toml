@@ -3,8 +3,8 @@
 
 [tool.poetry]
 name = "dcmri"
-version = "0.6.1"
-description = "A collection of functions for DCE-MRI and DSC-MRI"
+version = "0.6.2"
+description = "Tools for dynamic contrast magnetic resonance imaging"
 authors = ["Ebony Gunwhy <e.gunwhy@sheffield.ac.uk>", "Steven Sourbron <s.sourbron@sheffield.ac.uk>"]
 readme = "README.md"
 packages = [{include = "dcmri", from = "src"}]
@@ -62,14 +62,13 @@ sphinxcontrib-jsmath = "^1.0.1"
 sphinxcontrib-qthelp = "^1.0.6"
 sphinxcontrib-serializinghtml = "^1.1.9"
 sphinx-gallery = "^0.15.0"
-sphinx-github-changelog = "^1.2.1"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.bumpver]
-current_version = "0.6.1"
+current_version = "0.6.2"
 version_pattern = "MAJOR.MINOR.PATCH"
 commit_message = "bump version {old_version} -> {new_version}"
 tag_message = "{new_version}"

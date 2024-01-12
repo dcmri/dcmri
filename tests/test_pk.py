@@ -849,7 +849,6 @@ def test_conc_mmcomp():
     C = pk.conc_comp(J, T, t)
     Km = np.amax(C)/2
     Vmax = np.amax(C)/np.amax(T)
-    print(Vmax, Km)
     C = pk.conc_mmcomp(J, Vmax, Km, t, solver='SM')
     C0 = pk.conc_mmcomp(J, Vmax, Km, t, solver='prop')
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-2
@@ -859,6 +858,15 @@ def test_conc_mmcomp():
     C = pk.conc_mmcomp(J, Vmax, Km, t, solver='SM')
     C0 = pk.conc_mmcomp(J, Vmax, Km, t, solver='prop')
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.3
+
+    try:
+        C = pk.conc_mmcomp(J, -Vmax, Km, t, solver='SM')
+    except:
+        True
+    try:
+        C = pk.conc_mmcomp(J, Vmax, -Km, t, solver='SM')
+    except:
+        True
 
 def test_flux_mmcomp():
     T = 25

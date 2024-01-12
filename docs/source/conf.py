@@ -8,7 +8,7 @@
 project = 'dcmri'
 copyright = '2023, dcmri maintainers'
 author = 'dcmri maintainers'
-release = '0.0.0'
+release = '0.6.2'
 
 # -- Path setup --------------------------------------------------------------
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -35,7 +35,6 @@ extensions = [
     'sphinx_design', # sphinx web design components
     #'sphinx_remove_toctrees', # selectively remove toctree objects from pages
     'sphinx_gallery.gen_gallery', # thumbnail galleries
-    "sphinx_github_changelog", # To build the releases pages from github release notes
 ]
 
 
@@ -121,7 +120,3 @@ html_logo = '_static/tristan-logo.jpg'
 # The base URL which points to the root of the HTML documentation. 
 # It is used to indicate the location of document
 #html_baseurl = "https://qib-sheffield.github.io/dcmri/"
-
-# Get the Github token that gives the sphinx_github_changelog plugin access to the github releases. 
-# Note - set it first, on windows powershell: $Env:CHANGELOG_GITHUB_TOKEN = "<paste token here>"
-changelog_github_token = os.environ.get("CHANGELOG_GITHUB_TOKEN")
