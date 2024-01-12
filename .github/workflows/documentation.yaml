@@ -33,6 +33,8 @@ jobs:
         run: poetry install --with docs
 
       - name: Update Sphinx htmls
+        env:
+          CHANGELOG_GITHUB_TOKEN: ${{ secrets.CHANGELOG_GITHUB_TOKEN }}
         run: |
           poetry run make html
         working-directory: docs
