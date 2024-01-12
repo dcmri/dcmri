@@ -34,7 +34,7 @@ jobs:
 
       - name: Update Sphinx htmls
         env:
-          CHANGELOG_GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+          CHANGELOG_GITHUB_TOKEN: ${{ secrets.CHANGELOG_GITHUB_TOKEN }}
         run: |
           poetry run make html
         working-directory: docs
