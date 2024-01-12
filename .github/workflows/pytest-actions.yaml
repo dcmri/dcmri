@@ -13,40 +13,23 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Python 3.10
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-
-      - name: Install Poetry on Windows
-        if: runner.os == 'Windows'
-        run: pipx install poetry==1.6.1
-
-      - name: Install Poetry on mac
-        if: runner.os == 'macOS'
-        uses: snok/install-poetry@v1
-        
-      - name: Install Poetry on ubuntu
-        if: runner.os == 'Linux'
-        uses: snok/install-poetry@v1
-
-      - name: Install dependencies
-        run: |
-          poetry update
-          poetry lock
-          poetry install --with dev,test,docs
 
       - name: Install packages
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r tests/requirements.txt
+          pip install .
+          pip list
 
       - name: Test with pytest
-        #run: poetry run pytest --junitxml=junit/test-results.xml --cov=dummyproject tests/
-        run: pytest --cov=dcmri --cov-report=xml
+        run: pytest --cov=dcmri --cov-report=xml --pyargs dcmri
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
