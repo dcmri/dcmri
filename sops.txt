@@ -31,7 +31,7 @@ Build release notes
 - Get a personal token on https://github.com/settings/tokens (does not need any permissions)
 - Save the token in the environment variable GH_TOKEN. On windows:
 >>> $env:GH_TOKEN='token'
-- Build the changelog from version cuurent version to current dev. For instance:
+- Build the changelog from current version to current dev. For instance:
 >>> changelist QIB-Sheffield/dcmri 0.2.0 dev –-format rst
 - Copy-paste the terminal output in an .rst file and save it in docs/source/releases
 - Add an entry in the index of docs/source/releases
