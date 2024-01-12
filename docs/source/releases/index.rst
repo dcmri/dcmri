@@ -10,6 +10,7 @@ Releases
 .. toctree::
    :maxdepth: 2
 
-   release_0.6.1
    release_0.6.2
+   release_0.6.1
+   
 
