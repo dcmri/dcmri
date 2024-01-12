@@ -1,3 +1,5 @@
+.. _PK blocks:
+
 *******************************
 Pharmacokinetic building blocks
 *******************************
