@@ -7,6 +7,12 @@ dcMRI
 .. image:: https://codecov.io/gh/plaresmedima/dcmri/graph/badge.svg?token=DLVVTWQ0HA 
   :target: https://codecov.io/gh/plaresmedima/dcmri
 
+.. image:: https://img.shields.io/pypi/v/dcmri?label=pypi%20package 
+  :target: https://pypi.org/project/dcmri/
+
+.. image:: https://img.shields.io/pypi/dm/dcmri
+  :target: https://pypistats.org/packages/dcmri
+
 
 **Note:** *dcMRI is under construction. Please check back later for more comprehensive functionality and documentation.*
 
@@ -29,7 +35,7 @@ Install the latest version of dcMRI::
 License
 -------
 
-Released under the Apache 2.0 license (see `LICENSE.txt`)::
+Released under the Apache 2.0 license (see `LICENSE`)::
 
    Copyright (C) 2023 dcMRI developers
    Steven Sourbron <s.sourbron@sheffield.ac.uk>
