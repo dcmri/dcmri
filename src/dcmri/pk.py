@@ -416,9 +416,7 @@ def conc_plug(J, T, t=None, dt=1.0):
     t = tools.tarray(len(J), t=t, dt=dt)
     r = res_plug(T, t)
     return tools.conv(r, J, t=t, dt=dt)
-    # t = tools.tarray(len(J), t=t, dt=dt)
-    # Jo = np.interp(t-T, t, J, left=0)
-    # return tools.trapz(J-Jo, t)
+
 
 def flux_plug(J, T, t=None, dt=1.0):
     """Indicator flux out of a plug flow system.
