@@ -41,8 +41,8 @@ jobs:
       - name: Install packages
         run: |
           pip install --upgrade pip
-          pip install pytest
-          pip install pytest-cov
+          pip install -r requirements.txt
+          pip install -r tests/requirements.txt
 
       - name: Test with pytest
         #run: poetry run pytest --junitxml=junit/test-results.xml --cov=dummyproject tests/
