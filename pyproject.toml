@@ -6,7 +6,7 @@ name = "dcmri"
 version = "0.6.2"
 description = "A python toolbox for dynamic contrast MRI"
 authors = ["Ebony Gunwhy <e.gunwhy@sheffield.ac.uk>", "Steven Sourbron <s.sourbron@sheffield.ac.uk>"]
-readme = "README.md"
+readme = "README.rst"
 packages = [{include = "dcmri", from = "src"}]
 
 # optional information
