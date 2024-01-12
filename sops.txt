@@ -51,3 +51,5 @@ Check test coverage
 
 cd to /dcmri top folder
 >>> pytest --cov=dcmri --cov-report term-missing
+
+
