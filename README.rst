@@ -1,6 +1,10 @@
 dcMRI
 =====
 
+.. image:: https://codecov.io/gh/plaresmedima/dcmri/graph/badge.svg?token=DLVVTWQ0HA 
+  :target: https://codecov.io/gh/plaresmedima/dcmri
+
+
 .. note::
 
    dcMRI is under construction. Please check back later for more comprehensive functionality and documentation.
