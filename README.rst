@@ -5,9 +5,7 @@ dcMRI
   :target: https://codecov.io/gh/plaresmedima/dcmri
 
 
-.. note::
-
-   dcMRI is under construction. Please check back later for more comprehensive functionality and documentation.
+**Note:** *dcMRI is under construction. Please check back later for more comprehensive functionality and documentation.*
 
 
 dcMRI is a python toolbox for dynamic contrast MRI.
