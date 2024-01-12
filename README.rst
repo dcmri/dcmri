@@ -1,6 +1,9 @@
 dcMRI
 =====
 
+.. image:: https://github.com/QIB-Sheffield/dcmri/actions/workflows/pytest-actions.yaml/badge.svg?branch=dev
+  :target: https://github.com/QIB-Sheffield/dcmri/actions/workflows/pytest-actions.yaml
+
 .. image:: https://codecov.io/gh/plaresmedima/dcmri/graph/badge.svg?token=DLVVTWQ0HA 
   :target: https://codecov.io/gh/plaresmedima/dcmri
 
