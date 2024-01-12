@@ -1412,22 +1412,6 @@ show-api-usage = ["graphviz"]
 show-memory = ["memory-profiler"]
 
 [[package]]
-name = "sphinx-github-changelog"
-version = "1.2.1"
-description = "Build a sphinx changelog from GitHub Releases"
-optional = false
-python-versions = ">=3.7,<4.0"
-files = [
-    {file = "sphinx_github_changelog-1.2.1-py3-none-any.whl", hash = "sha256:27b8906220c8010f116b61c90980f84d12f9446fb144f7c575c124e9c92e6c46"},
-    {file = "sphinx_github_changelog-1.2.1.tar.gz", hash = "sha256:20affb353bf02c89b868c2e5b9c61693dd22f3d2b2e134063c49f9e0d69352a5"},
-]
-
-[package.dependencies]
-docutils = "*"
-requests = "*"
-Sphinx = "*"
-
-[[package]]
 name = "sphinxcontrib-applehelp"
 version = "1.0.7"
 description = "sphinxcontrib-applehelp is a Sphinx extension which outputs Apple help books"
@@ -1598,4 +1582,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "edbc16f7615ed3212bd96439cb09f0f090ffa1920f77a6a1d3da58ea75508459"
+content-hash = "9d29811e1298814b8fe11237be1c418ae8639bf12e8935b878e702c5ee1a32c8"
