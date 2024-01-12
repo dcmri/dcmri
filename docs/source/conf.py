@@ -124,4 +124,4 @@ html_logo = '_static/tristan-logo.jpg'
 
 # Get the Github token that gives the sphinx_github_changelog plugin access to the github releases. 
 # Note - set it first, on windows powershell: $Env:CHANGELOG_GITHUB_TOKEN = "<paste token here>"
-changelog_github_token = os.environ.get("GITHUB_TOKEN")
+changelog_github_token = os.environ.get("CHANGELOG_GITHUB_TOKEN")
