@@ -4,10 +4,10 @@ Reference
 
 .. note::
 
-   ``dcmri`` is under construction. Please check back later for more comprehensive functionality and documentation.
+   dcMRI is under construction. Please check back later for more comprehensive functionality and documentation.
 
 
-This reference manual details all functions included in ``dcmri``, describing
+This reference manual details all functions included in dcMRI, describing
 what they are and what they do.  
 
 
