@@ -4,13 +4,23 @@ SOPs for maintainers
 Creating a new release
 ----------------------
 
-- Check test coverage is 100%
-- Update the version number everywhere in the code and push to dev.
+- Check test coverage is 100% (see below)
+- Update the version number in the following locations and push to dev.
+    - pyproject.toml
+    - __init__.py
+    - docs/conf.py
+    - tests/test_dcmri.py
 - Create a release on github
-= Build release notes (see below) and push changes to dev
+- Build release notes (see below) and push changes to dev
 - Merge the dev branch with the main branch.
 - Create a release on PyPI (see below)
 - Create a release on Zenodo (v1.0 and onwards) 
+
+Check test coverage
+-------------------
+
+cd to /dcmri top folder
+>>> pytest --cov=dcmri --cov-report term-missing
 
 
 Creating a PyPi release
@@ -46,10 +56,6 @@ Changing dependencies
 >>> poetry lock
 
 
-Check test coverage
--------------------
 
-cd to /dcmri top folder
->>> pytest --cov=dcmri --cov-report term-missing
 
 
