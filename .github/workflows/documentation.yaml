@@ -33,7 +33,7 @@ jobs:
 
       - name: Build Sphinx htmls
         run: |
-          ./make html
+          make html
         working-directory: docs
         
       - name: Publish to gh-pages
