@@ -28,6 +28,10 @@ jobs:
           pip install .
           pip list
 
+      - name: Install dcmri
+        run: |
+          pip install -e .[extensions]
+
       - name: Test with pytest
         run: pytest --cov=dcmri --cov-report=xml
 

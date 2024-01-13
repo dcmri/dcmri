@@ -1,15 +1,13 @@
 SOPs for maintainers
 ********************
 
-Creating a new release
-----------------------
+Creating a new release (from a fork)
+------------------------------------
 
 - Check test coverage is 100% (see below)
-- Update the version number in the following locations, push to dev and check that the test action passes.
+- Update the version number in the below locations, push and check that the test action passes. If it passes, make a pull-request to push to dev.
     - pyproject.toml
-    - __init__.py
-    - docs/conf.py
-    - tests/test_dcmri.py
+    - docs/source/conf.py
 - Create a release on github.
 - Build release notes (see below) and push changes to dev
 - Merge the dev branch with the main branch.
