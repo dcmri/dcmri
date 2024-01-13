@@ -1,3 +1,5 @@
+# https://packaging.python.org/en/latest/specifications/pyproject-toml/#pyproject-toml-spec
+
 [build-system]
 build-backend = 'setuptools.build_meta'
 requires = ['setuptools>=61.2']
@@ -16,7 +18,7 @@ authors = [
   { name = "Steven Sourbron", email = "s.sourbron@sheffield.ac.uk" },
   { name = "Ebony Gunwhy", email = "e.gunwhy@sheffield.ac.uk" },
 ]
-license = "Apache-2.0"
+license = {text = "Apache-2.0"}
 classifiers = [
   # How mature is this project? Common values are
   #   3 - Alpha
