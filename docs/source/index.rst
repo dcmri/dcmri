@@ -1,14 +1,14 @@
-#####################
-`dcmri` documentation
-#####################
+###################
+dcMRI documentation
+###################
 
 .. note::
 
-   ``dcmri`` is under construction. Please check back later for more comprehensive functionality and documentation.
+   dcMRI is under construction. Please check back later for more comprehensive functionality and documentation.
 
 
 
-``dcmri`` is a Python toolbox for dynamic contrast MRI.
+dcMRI is a Python toolbox for dynamic contrast MRI.
 
 
 .. toctree::
