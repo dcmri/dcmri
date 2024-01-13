@@ -38,7 +38,7 @@ Install the latest version of dcMRI::
 License
 -------
 
-Released under the `Apache 2.0 <https://opensource.org/licenses/Apache-2.0>`_` license::
+Released under the Apache 2.0 license (https://opensource.org/licenses/Apache-2.0)::
 
    Copyright (C) 2023-2024 dcMRI developers
    Ebony Gunwhy <e.gunwhy@sheffield.ac.uk>

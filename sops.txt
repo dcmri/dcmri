@@ -10,8 +10,8 @@ Creating a new release (from a fork)
     - docs/source/conf.py
 - Merge the dev branch with the main branch. Check that the documentation builds OK.
 - Create a release on github, with the main branch as target
-- Build release notes (see below) and push changes to dev and main
-- Create a release on PyPI (see below)
+- Build release notes (see below) and push changes to dev and main. 
+- Check docs, actions, and badges on README. if everything has passed, create a release on PyPI (see below)
 - Create a release on Zenodo (v1.0 and onwards) 
 
 Check test coverage
