@@ -1,16 +1,34 @@
 SOPs for maintainers
 ********************
 
-Creating a new release
-----------------------
+Creating a new release (from a fork)
+------------------------------------
 
-- Check test coverage is 100%
-- Update the version number everywhere in the code and push to dev.
-- Create a release on github
-= Build release notes (see below) and push changes to dev
+- Check test coverage is 100% (see below)
+- Update the version number in the below locations, push and check that the test action passes. If it passes, make a pull-request to push to dev.
+    - pyproject.toml
+    - docs/source/conf.py
+- Create a release on github.
+- Build release notes (see below) and push changes to dev
 - Merge the dev branch with the main branch.
 - Create a release on PyPI (see below)
 - Create a release on Zenodo (v1.0 and onwards) 
+
+Check test coverage
+-------------------
+
+cd to /dcmri top folder
+>>> pytest --cov=dcmri --cov-report term-missing
+
+Build release notes
+-------------------
+- Get a personal token on https://github.com/settings/tokens (does not need any permissions)
+- Save the token in the environment variable GH_TOKEN. On windows:
+>>> $env:GH_TOKEN='token'
+- Build the changelog from current version to current dev. For instance:
+>>> changelist QIB-Sheffield/dcmri 0.2.0 dev –-format rst
+- Copy-paste the terminal output in an .rst file and save it in docs/source/releases
+- Add an entry in the index of docs/source/releases
 
 
 Creating a PyPi release
@@ -26,15 +44,7 @@ When prompted for user name, enter __token__
 As password paste the API token generated in PyPi (repository settings). Note: Paste with Ctrl-V does not work in Windows. Use Edit > Paste via the menu.
 
 
-Build release notes
--------------------
-- Get a personal token on https://github.com/settings/tokens (does not need any permissions)
-- Save the token in the environment variable GH_TOKEN. On windows:
->>> $env:GH_TOKEN='token'
-- Build the changelog from current version to current dev. For instance:
->>> changelist QIB-Sheffield/dcmri 0.2.0 dev –-format rst
-- Copy-paste the terminal output in an .rst file and save it in docs/source/releases
-- Add an entry in the index of docs/source/releases
+
 
 
 Changing dependencies
@@ -46,10 +56,6 @@ Changing dependencies
 >>> poetry lock
 
 
-Check test coverage
--------------------
 
-cd to /dcmri top folder
->>> pytest --cov=dcmri --cov-report term-missing
 
 

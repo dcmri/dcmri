@@ -1,16 +1,24 @@
-# https://python-poetry.org/docs/pyproject
-# minimal required information
+# https://packaging.python.org/en/latest/specifications/pyproject-toml/#pyproject-toml-spec
 
-[tool.poetry]
+[build-system]
+build-backend = 'setuptools.build_meta'
+requires = ['setuptools>=61.2']
+
+[project]
 name = "dcmri"
-version = "0.6.2"
-description = "A python toolbox for dynamic contrast MRI"
-authors = ["Ebony Gunwhy <e.gunwhy@sheffield.ac.uk>", "Steven Sourbron <s.sourbron@sheffield.ac.uk>"]
-readme = "README.rst"
-packages = [{include = "dcmri", from = "src"}]
-
+version = "0.6.3"
+dependencies = [
+  'numpy',
+  'scipy',
+]
 # optional information
-license = "Apache-2.0"
+description = "A python toolbox for dynamic contrast MRI"
+readme = "README.rst"
+authors = [
+  { name = "Steven Sourbron", email = "s.sourbron@sheffield.ac.uk" },
+  { name = "Ebony Gunwhy", email = "e.gunwhy@sheffield.ac.uk" },
+]
+license = {text = "Apache-2.0"}
 classifiers = [
   # How mature is this project? Common values are
   #   3 - Alpha
@@ -28,62 +36,44 @@ classifiers = [
   "Programming Language :: Python",
   "Programming Language :: Python :: 3"
 ]
-keywords = ['python', "medical imaging", "perfusion", "MRI"]
+keywords = [
+  'python', 
+  "medical imaging", 
+  "perfusion", 
+  "MRI",
+]
+requires-python = ">=3.10"
+
 
 [project.urls]
 "Homepage" = "https://qib-sheffield.github.io/dcmri"
+"Source Code" = 'https://github.com/QIB-Sheffield/dcmri'
 
-[tool.poetry.dependencies]
-python = "^3.9"
-numpy = "1.22.4"
-scipy = "^1.11.4"
+[tool.setuptools.packages.find]
+where = ["src"]
 
-[tool.poetry.group.dev.dependencies]
-bumpver = "^2023.1129"
-
-[tool.poetry.group.test.dependencies]
-pytest = "^6.2.5"
-pytest-cov = "^4.1.0"
-
-[tool.poetry.group.docs.dependencies]
-sphinx = ">=6,<8"
-matplotlib = "^3.8.2"
-autodocsumm = "^0.2.11"
-docutils = "^0.20.1"
-myst-parser = "^2.0.0"
-pydata-sphinx-theme = "^0.14.4"
-sphinx-copybutton = "^0.5.2"
-sphinx-design = "^0.5.0"
-#sphinx-remove-toctrees = "^0.0.3"
-sphinxcontrib-applehelp = "^1.0.7"
-sphinxcontrib-devhelp = "^1.0.5"
-sphinxcontrib-htmlhelp = "^2.0.4"
-sphinxcontrib-jsmath = "^1.0.1"
-sphinxcontrib-qthelp = "^1.0.6"
-sphinxcontrib-serializinghtml = "^1.1.9"
-sphinx-gallery = "^0.15.0"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.bumpver]
-current_version = "0.6.2"
-version_pattern = "MAJOR.MINOR.PATCH"
-commit_message = "bump version {old_version} -> {new_version}"
-tag_message = "{new_version}"
-tag_scope = "default"
-pre_commit_hook = ""
-post_commit_hook = ""
-commit = true
-tag = true
-push = true
-
-[tool.bumpver.file_patterns]
-"pyproject.toml" = [
-    'current_version = "{version}"',
-    'version = "{version}"'
+[project.optional-dependencies]
+dev = [
+  'changelist==0.4',
 ]
-"src/dcmri/__init__.py" = ["{version}"]
-"tests/test_dcmri.py" = ["{version}"]
-#"docs/source/conf.py" = ['release = "{version}"']
+test = [
+  "pytest",
+  "pytest-cov",
+]
+docs = [
+  "sphinx",
+  "matplotlib",
+  "autodocsumm",
+  "docutils",
+  "myst-parser",
+  "pydata-sphinx-theme",
+  "sphinx-copybutton",
+  "sphinx-design",
+  "sphinxcontrib-applehelp",
+  "sphinxcontrib-devhelp",
+  "sphinxcontrib-htmlhelp",
+  "sphinxcontrib-jsmath",
+  "sphinxcontrib-qthelp",
+  "sphinxcontrib-serializinghtml",
+  "sphinx-gallery",
+]
