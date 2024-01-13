@@ -7,9 +7,7 @@ Creating a new release
 - Check test coverage is 100% (see below)
 - Update the version number in the following locations, push to dev and check that the test action passes.
     - pyproject.toml
-    - __init__.py
-    - docs/conf.py
-    - tests/test_dcmri.py
+    - docs/source/conf.py
 - Create a release on github.
 - Build release notes (see below) and push changes to dev
 - Merge the dev branch with the main branch.

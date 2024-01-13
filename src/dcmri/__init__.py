@@ -1,8 +1,3 @@
-# dcmri/__init__.py
-
-__version__ = "0.6.3"
-
-import dcmri
 
 from dcmri import tools
 from dcmri.tools import *
