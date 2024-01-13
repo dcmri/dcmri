@@ -8,9 +8,9 @@ Creating a new release (from a fork)
 - Update the version number in the below locations, push and check that the test action passes. If it passes, make a pull-request to push to dev.
     - pyproject.toml
     - docs/source/conf.py
-- Create a release on github.
-- Build release notes (see below) and push changes to dev
-- Merge the dev branch with the main branch.
+- Merge the dev branch with the main branch. Check that the documentation builds OK.
+- Create a release on github, with the main branch as target
+- Build release notes (see below) and push changes to dev and main
 - Create a release on PyPI (see below)
 - Create a release on Zenodo (v1.0 and onwards) 
 
@@ -25,8 +25,8 @@ Build release notes
 - Get a personal token on https://github.com/settings/tokens (does not need any permissions)
 - Save the token in the environment variable GH_TOKEN. On windows:
 >>> $env:GH_TOKEN='token'
-- Build the changelog from current version to current dev. For instance:
->>> changelist QIB-Sheffield/dcmri 0.2.0 dev –-format rst
+- Build the changelog from current version to current main. For instance:
+>>> changelist QIB-Sheffield/dcmri 0.6.2 main --format rst
 - Copy-paste the terminal output in an .rst file and save it in docs/source/releases
 - Add an entry in the index of docs/source/releases
 
