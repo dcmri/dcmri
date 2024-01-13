@@ -22,7 +22,7 @@ jobs:
 
       - name: Install packages
         run: |
-          python -c "import src.dcmri"
+          python -c "import dcmri"
           pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r tests/requirements.txt
