@@ -1,6 +1,78 @@
 
+import math
 import numpy as np
 from scipy.special import gamma
+from scipy.interpolate import CubicSpline
+from scipy.stats import rv_histogram
+
+
+def res_free_desc(tmax, H:np.ndarray, TT=None, TTmin=0, TTmax=None):
+    # rewrite this with ddist instead of rv_histogram
+    if np.isscalar(H):
+        H = [H]
+    nTT = len(H)
+    if TT is None:
+        if TTmax is None:
+            TTmax = tmax
+        TT = np.linspace(TTmin, TTmax, nTT+1)
+    else:
+        if len(TT) != nTT+1:
+            msg = 'The array of transit time boundaries needs to have length N+1, '
+            msg += '\n with N the size of the transit time distribution H.'
+            raise ValueError(msg)
+    dist = rv_histogram((H,TT), density=True)
+    return {
+        'mean': dist.mean(),
+        'median': dist.median(),
+        'stdev': dist.std(),
+        }
+
+def interp(x,y, pos=False, floor=False):
+    # Interpolate y on x, assuming y-values are uniformly distributed over the x-range
+    if np.isscalar(y):
+        yi = y*np.ones(len(x))
+    elif len(y)==1:
+        yi = y[0]*np.ones(len(x))
+    elif len(y)==2:
+        yi = lin(x,y)
+    elif len(y)==3:
+        yi = quad(x,y)
+    else:
+        x_y = np.linspace(np.amin(x), np.amax(x), len(y))
+        yi = CubicSpline(x_y, y)(x)
+    if pos:
+        yi[yi<0] = 0
+    if floor:
+        y0 = np.amin(y)
+        yi[yi<y0] = y0
+    return yi
+
+def quad(t, K):
+    # Helper
+    nt = len(t)
+    mid = math.floor(nt/2)
+    return quadratic(t, t[0], t[mid], t[-1], K[0], K[1], K[2])
+
+def lin(t, K):
+    # Helper
+    return linear(t, t[0], t[-1], K[0], K[1])
+
+def linear(x, x1, x2, y1, y2):
+    # Helper
+    #returns a linear function of x 
+    #that goes through the two points (xi, yi)
+    L1 = (x2-x)/(x2-x1)
+    L2 = (x-x1)/(x2-x1)
+    return y1*L1 + y2*L2
+
+def quadratic(x, x0, x1, x2, y0, y1, y2):
+    # Helper
+    #returns a quadratic function of x 
+    #that goes through the three points (xi, yi)
+    L0 = (x-x1)*(x-x2)/((x0-x1)*(x0-x2))
+    L1 = (x-x0)*(x-x2)/((x1-x0)*(x1-x2))
+    L2 = (x-x0)*(x-x1)/((x2-x0)*(x2-x1))
+    return y0*L0 + y1*L1 + y2*L2
 
 
 def tarray(n, t=None, dt=1.0):
@@ -8,7 +80,8 @@ def tarray(n, t=None, dt=1.0):
     if t is None:
         t = dt*np.arange(n)
     else:
-        t = np.array(t)
+        if not isinstance(t, np.ndarray):
+            t = np.array(t)
         if len(t) != n:
             raise ValueError('Time array must have same length as the input.')   
     return t
@@ -16,6 +89,7 @@ def tarray(n, t=None, dt=1.0):
 
 def trapz(f, t=None, dt=1.0):
     # Helper function - perform trapezoidal integration.
+    # Replace by scipy.integrate.trapezoid
     f = np.array(f)
     n = len(f)
     t = tarray(n, t=t, dt=dt)
