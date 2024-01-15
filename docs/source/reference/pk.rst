@@ -4,7 +4,7 @@
 Pharmacokinetic building blocks
 *******************************
 
-A collection of basic models that can be assembled to more complex models.
+A collection of basic pharmacokinetic models that can be assembled to build more complex models.
 
 .. currentmodule:: dcmri
 
@@ -106,36 +106,6 @@ Two-parameter models
 
    conc_mmcomp
    flux_mmcomp
-
-
-Three-parameter models
-======================
-
-*Two-compartment exchange model*
---------------------------------
-
-.. autosummary::
-   :toctree: ../generated/api/
-   :template: autosummary.rst
-
-   conc_2cxm
-   flux_2cxm
-   res_2cxm
-   prop_2cxm
-
-
-
-*Two-compartment filtration model*
-----------------------------------
-
-.. autosummary::
-   :toctree: ../generated/api/
-   :template: autosummary.rst
-
-   conc_2cfm
-   flux_2cfm
-   res_2cfm
-   prop_2cfm
 
 
 Six-parameter models

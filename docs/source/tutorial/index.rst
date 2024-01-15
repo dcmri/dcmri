@@ -4,7 +4,7 @@ Tutorial
 
 .. note::
 
-   ``dcmri`` is under construction. Please check back later for more comprehensive functionality and documentation.
+   dcMRI is under construction. The first stable version with more comprehensive functionality and documentation will be v1.0.0. Before that the API may still change and features may be deprecated without warning.
 
 
 .. toctree::

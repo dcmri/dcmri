@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**00:00.172** total execution time for 1 file **from generated\examples\lib**:
+**00:00.218** total execution time for 1 file **from generated\examples\lib**:
 
 .. container::
 
@@ -33,5 +33,5 @@ Computation times
      - Time
      - Mem (MB)
    * - :ref:`sphx_glr_generated_examples_lib_plot_aif_parker.py` (``plot_aif_parker.py``)
-     - 00:00.172
+     - 00:00.218
      - 0.0

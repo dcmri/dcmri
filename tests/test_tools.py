@@ -1,5 +1,6 @@
 import numpy as np
 import dcmri.tools as tools
+import dcmri
 
 def test_tarray():
     n = 4
@@ -321,7 +322,28 @@ def test_ddist():
     assert np.abs(np.trapz(h,t)-1) < 1e-12
 
 
+def test_res_free_desc():
+    dcmri.res_free_desc(1, 1, TT=None, TTmin=0, TTmax=None)
+    dcmri.res_free_desc(1, np.arange(2), TT=None, TTmin=0, TTmax=None)
+    dcmri.res_free_desc(1, np.arange(2), TT=[1,2,3])
+    try:
+        dcmri.res_free_desc(1, np.arange(2), TT=[1,2])
+    except:
+        assert True
+
+def test_interp():
+    dcmri.interp(np.arange(3), 3, pos=False, floor=False)
+    dcmri.interp(np.arange(3), [3], pos=False, floor=False)
+    dcmri.interp(np.arange(3), [3,4], pos=False, floor=False)
+    dcmri.interp(np.arange(3), [3,4,5], pos=False, floor=False)
+    dcmri.interp(np.arange(3), np.arange(5), pos=False, floor=False)
+    dcmri.interp(np.arange(3), np.arange(5), pos=True, floor=True)
+
+
 if __name__ == "__main__":
+
+    test_res_free_desc()
+    test_interp()
 
     test_trapz()
     test_expconv()
