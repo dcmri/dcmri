@@ -1,6 +1,24 @@
 SOPs for maintainers
 ********************
 
+Building a virtual environment
+------------------------------
+
+On windows:
+>>> py -3 -m venv .venv           # create virtual environment
+>>> .venv/Scripts/activate        # activate virtual environment
+
+Then select the Python interpreter in the .venv folder. In VSCode:
+View > Command Palette > Python select interpreter -> enter interpreter path (.venv/Scripts/python.exe)
+
+Then install requirements
+
+>>> pip install -r requirements.txt
+
+To leave:
+>>> deactivate
+
+
 Creating a new release (from a fork)
 ------------------------------------
 
@@ -9,8 +27,8 @@ Creating a new release (from a fork)
     - pyproject.toml
     - docs/source/conf.py
 - Merge the dev branch with the main branch. Check that the documentation builds OK.
+- Build release notes (see below) and push changes to dev and main. Check docs, actions, and badges on README.
 - Create a release on github, with the main branch as target
-- Build release notes (see below) and push changes to dev and main
 - Create a release on PyPI (see below)
 - Create a release on Zenodo (v1.0 and onwards) 
 

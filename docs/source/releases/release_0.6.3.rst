@@ -4,21 +4,12 @@ We're happy to announce the release of dcmri 0.6.3!
 
 Summary
 --------
-Test is a dummy release to test the release process. 
+A release without change in functionality to test the release process, after simplifying some of the steps.
 
 
 Changes
 -------
-
-- 0.6.1 (`#58 <https://github.com/QIB-Sheffield/dcmri/pull/58>`_).
-- Changelog in documentation (`#59 <https://github.com/QIB-Sheffield/dcmri/pull/59>`_).
-- update sphinx dependencies (`#62 <https://github.com/QIB-Sheffield/dcmri/pull/62>`_).
-- Update poetry.lock (`#64 <https://github.com/QIB-Sheffield/dcmri/pull/64>`_).
-- Moved changelog to releases page (`#66 <https://github.com/QIB-Sheffield/dcmri/pull/66>`_).
-- Build release notes (`#71 <https://github.com/QIB-Sheffield/dcmri/pull/71>`_).
-- Create version 0.6.2 (`#72 <https://github.com/QIB-Sheffield/dcmri/pull/72>`_).
-- Added 0.6.2 release page to index (`#73 <https://github.com/QIB-Sheffield/dcmri/pull/73>`_).
-- Added 0.6.2 release notes to the Releases page (`#74 <https://github.com/QIB-Sheffield/dcmri/pull/74>`_).     
+   
 - Add code coverage upload (`#75 <https://github.com/QIB-Sheffield/dcmri/pull/75>`_).
 - update README file extension in toml file (`#77 <https://github.com/QIB-Sheffield/dcmri/pull/77>`_).
 - dummy test codecov upload (`#78 <https://github.com/QIB-Sheffield/dcmri/pull/78>`_).
