@@ -17,7 +17,7 @@ dcMRI
   :target: https://opensource.org/licenses/Apache-2.0
 
 
-**Note:** *dcMRI is under construction. Please check back later for more comprehensive functionality and documentation.*
+**Note:** *dcMRI is under construction. The first stable version with more comprehensive functionality and documentation will be v1.0.0. Before that the API may still change and features may be deprecated without warning.*
 
 
 dcMRI is a python toolbox for dynamic contrast MRI.
