@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**00:06.791** total execution time for 1 file **from generated\examples\tools**:
+**00:07.628** total execution time for 1 file **from generated\examples\tools**:
 
 .. container::
 
@@ -33,5 +33,5 @@ Computation times
      - Time
      - Mem (MB)
    * - :ref:`sphx_glr_generated_examples_tools_plot_convolution.py` (``plot_convolution.py``)
-     - 00:06.791
+     - 00:07.628
      - 0.0

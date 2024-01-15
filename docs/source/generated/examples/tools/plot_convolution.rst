@@ -155,8 +155,8 @@ However, `~dcmri.expconv` comes with a major improvement in computation time com
 
  .. code-block:: none
 
-    Computation time for conv():  3.5543596744537354 sec
-    Computation time for expconv():  0.015656709671020508 sec
+    Computation time for conv():  4.5798304080963135 sec
+    Computation time for expconv():  0.01561880111694336 sec
 
 
 
@@ -184,7 +184,7 @@ Incidentally since the time array in this case is uniform, `~dcmri.conv` can be 
 
  .. code-block:: none
 
-    Computation time for conv() with uniform times:  1.7059245109558105 sec
+    Computation time for conv() with uniform times:  1.759671688079834 sec
 
 
 
@@ -263,7 +263,7 @@ If both functions are exponentials, convolution can be accelerated further with 
 
  .. code-block:: none
 
-    Computation time for expconv():  0.015580892562866211 sec
+    Computation time for expconv():  0.015625715255737305 sec
     Computation time for biexpconv():  0.0 sec
 
 
@@ -420,8 +420,8 @@ As with `~dcmri.expconv` the difference between `~dcmri.stepconv` and `~dcmri.co
 
  .. code-block:: none
 
-    Computation time for conv():  0.4229097366333008 sec
-    Computation time for stepconv():  0.1562492847442627 sec
+    Computation time for conv():  0.46698665618896484 sec
+    Computation time for stepconv():  0.18287944793701172 sec
 
 
 
@@ -429,7 +429,7 @@ As with `~dcmri.expconv` the difference between `~dcmri.stepconv` and `~dcmri.co
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 6.791 seconds)
+   **Total running time of the script:** (0 minutes 7.628 seconds)
 
 
 .. _sphx_glr_download_generated_examples_tools_plot_convolution.py:

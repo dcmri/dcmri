@@ -122,7 +122,7 @@ The bolus arrival time (BAT) defaults to 0s. What happens if we change it? Let's
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 0.172 seconds)
+   **Total running time of the script:** (0 minutes 0.218 seconds)
 
 
 .. _sphx_glr_download_generated_examples_lib_plot_aif_parker.py:
