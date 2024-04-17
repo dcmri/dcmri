@@ -444,7 +444,7 @@ def flux_plug(J, T, t=None, dt=1.0, solver='conv'):
         >>> t = [0,5,15,30,60]
         >>> J = [1,2,3,3,2]
         >>> dc.flux_plug(J, 5, t)
-        array([0.        , 0.44444444, 2.30555556, 3.        , 2.22222222]) 
+        array([0.        , 0.44444444, 23.0555556, 3.        , 2.22222222]) 
     """
     if T==np.inf:
         return flux_trap(J)
@@ -456,6 +456,8 @@ def flux_plug(J, T, t=None, dt=1.0, solver='conv'):
         return tools.conv(h, J, t=t, dt=dt)
     elif solver=='interp':
         return np.interp(t-T, t, J, left=0)
+    else:
+        raise ValueError('Solver ' + solver + ' does not exist.')
 
 
 
@@ -529,7 +531,7 @@ def res_chain(T, D, t):
     return 1-tools.trapz(h,t)
 
 
-def conc_chain(J, T, D, t=None, dt=1.0):
+def conc_chain(J, T, D, t=None, dt=1.0, solver='trap'):
     """Indicator concentration inside a chain system.
 
     Args:
@@ -556,12 +558,12 @@ def conc_chain(J, T, D, t=None, dt=1.0):
         return conc_plug(J, T, t=t, dt=dt)
     if D == 1:
         return conc_comp(J, T, t=t, dt=dt)
-    t = tools.tarray(len(J), t=t, dt=dt)
-    r = res_chain(T, D, t)
-    return tools.conv(r, J, t)
+    tr = tools.tarray(len(J), t=t, dt=dt)
+    r = res_chain(T, D, tr)
+    return tools.conv(r, J, t=t, dt=dt, solver=solver)
 
 
-def flux_chain(J, T, D, t=None, dt=1.0):
+def flux_chain(J, T, D, t=None, dt=1.0, solver='trap'):
     """Indicator flux out of a chain system.
 
     Args:
@@ -588,9 +590,9 @@ def flux_chain(J, T, D, t=None, dt=1.0):
         return flux_plug(J, T, t=t, dt=dt)
     if D == 1:
         return flux_comp(J, T, t=t, dt=dt)
-    t = tools.tarray(len(J), t=t, dt=dt)
-    h = prop_chain(T, D, t)
-    return tools.conv(h, J, t)
+    th = tools.tarray(len(J), t=t, dt=dt)
+    h = prop_chain(T, D, th)
+    return tools.conv(h, J, t=t, dt=dt, solver=solver)
 
 
 # Step
@@ -815,7 +817,7 @@ def res_free(H, t, TT=None, TTmin=0, TTmax=None):
     return r
 
 
-def conc_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
+def conc_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None, solver='trap'):
     """Indicator concentration inside a free system.
 
     Args:
@@ -865,7 +867,7 @@ def conc_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
     """
     u = tools.tarray(len(J), t=t, dt=dt)
     r = res_free(H, u, TT=TT, TTmin=TTmin, TTmax=TTmax)
-    return tools.conv(r, J, t=t, dt=dt)
+    return tools.conv(r, J, t=t, dt=dt, solver=solver)
 
 
 def flux_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
@@ -1631,6 +1633,18 @@ def flux_nscomp(J, T, t=None, dt=1.0):
     """
     C = conc_nscomp(J, T, t=t, dt=dt)
     return C/T
+
+
+def flux_pfcomp(J, T, D, t=None, dt=1.0, solver='conv'):
+    if D == 0:
+        return flux_plug(J, T, t=t, dt=dt, solver=solver)
+    if D == 1:
+        return flux_comp(J, T, t=t, dt=dt)
+    Tc = D*T
+    Tp = (1-D)*T
+    J = flux_comp(J, Tc, t=t, dt=dt)
+    J = flux_plug(J, Tp, t=t, dt=dt, solver=solver)
+    return J
 
 
 # Michaelis-Menten compartment
