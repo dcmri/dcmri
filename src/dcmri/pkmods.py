@@ -159,6 +159,7 @@ def flux_1cm(ca, Fp, v, t=None, dt=1.0):
         return np.zeros(len(ca))
     return pk.flux_comp(Fp*ca, v/Fp, t=t, dt=dt)
 
+#Use ve instead of kep for consistency with other definitions
 def conc_tofts(ca, Ktrans, kep, t=None, dt=1.0, sum=True):
     """Concentration in a Tofts model.
 
@@ -212,6 +213,7 @@ def conc_tofts(ca, Ktrans, kep, t=None, dt=1.0, sum=True):
     else:
         return np.stack((Cp,Ce))
 
+#Use ve instead of kep for consistency with other definitions
 def flux_tofts(ca, Ktrans, kep, t=None, dt=1.0):
     """Outfluxes out of a Tofts model.
 
@@ -314,7 +316,7 @@ def conc_patlak(ca, vp, Ktrans, t=None, dt=1.0, sum=True):
         return np.stack((Cp,Ce))
 
 def flux_patlak(ca, vp, Ktrans, t=None, dt=1.0):
-    """Outfluxes out of a 2-compartment uptake model.
+    """Outfluxes out of a Patlak model.
 
     Args:
         ca (array_like): the indicator concentration in the plasma of the feeding artery, as a 1D array, in units of M. 
@@ -370,8 +372,9 @@ def flux_patlak(ca, vp, Ktrans, t=None, dt=1.0):
     J[1,0,:] = Ktrans*ca
     return J
 
+#Use ve instead of kep for consistency with other definitions
 def conc_etofts(ca, vp, Ktrans, kep, t=None, dt=1.0, sum=True):
-    """Concentration in a two-compartment uptake model.
+    """Concentration in an extended Tofts model.
 
     Args:
         ca (array_like): the indicator concentration in the plasma of the feeding artery, as a 1D array, in units of M.
@@ -426,6 +429,7 @@ def conc_etofts(ca, vp, Ktrans, kep, t=None, dt=1.0, sum=True):
     else:
         return np.stack((Cp,Ce))
 
+#Use ve instead of kep for consistency with other definitions
 def flux_etofts(ca, vp, Ktrans, kep, t=None, dt=1.0):
     """Outfluxes out of an extended Tofts model.
 

@@ -18,7 +18,7 @@ authors = [
   { name = "Steven Sourbron", email = "s.sourbron@sheffield.ac.uk" },
   { name = "Ebony Gunwhy", email = "e.gunwhy@sheffield.ac.uk" },
 ]
-license = {text = "Apache-2.0"}
+# license = "Apache-2.0" # This creates a problem for pip install somehow
 classifiers = [
   # How mature is this project? Common values are
   #   3 - Alpha
