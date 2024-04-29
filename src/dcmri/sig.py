@@ -47,9 +47,12 @@ def signal_sr(R1, S0, TI):
 def sample(t, S, ts, dts): 
     """Sample the signal assuming sample times are at the start of the acquisition"""
 
-    Ss = np.empty(len(ts)) 
+    Ss = np.zeros(len(ts)) 
     for k, tk in enumerate(ts):
-        tacq = (t >= tk) & (t < tk+dts)
-        data = S[np.nonzero(tacq)[0]]
-        Ss[k] = np.average(data)
+        #tacq = (t >= tk) & (t < tk+dts)
+        #data = S[np.nonzero(tacq)[0]]
+        #Ss[k] = np.average(data)
+        data = S[(t >= tk) & (t < tk+dts)]
+        if data.size > 0:
+            Ss[k] = np.mean(data)
     return Ss 

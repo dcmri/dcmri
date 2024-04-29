@@ -34,3 +34,6 @@ from dcmri.sig_mods import *
 
 from dcmri import fit
 from dcmri.fit import *
+
+from dcmri import mods
+from dcmri.mods import *

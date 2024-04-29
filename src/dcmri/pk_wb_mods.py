@@ -86,7 +86,7 @@ def aorta_flux_6b(J_lungs,
         T_lh, D_lh,
         E_organs, Tp_organs, Te_organs,
         E_extr,
-        t=None, dt=1.0, tol = 0.001):
+        t=None, dt=1.0, tol = 0.001, solver='step'):
     E_o = [[1-E_organs,1],[E_organs,0]]
     dose0 = np.trapz(J_lungs, x=t, dx=dt)
     dose = dose0
@@ -94,7 +94,7 @@ def aorta_flux_6b(J_lungs,
     J_lungs_total = J_lungs
     while dose > min_dose:
         # Propagate through the lungs and heart
-        J_aorta = dcmri.flux_chain(J_lungs, T_lh, D_lh, t=t, dt=dt, solver='step')
+        J_aorta = dcmri.flux_chain(J_lungs, T_lh, D_lh, t=t, dt=dt, solver=solver)
         # Propagate through the other organs
         J_aorta = np.stack((J_aorta, np.zeros(J_aorta.size)))
         J_lungs = (1-E_extr)*dcmri.flux_2comp(J_aorta, [Tp_organs, Te_organs], E_o, t=t, dt=dt)[0,0,:]
@@ -103,7 +103,7 @@ def aorta_flux_6b(J_lungs,
         # Get residual dose
         dose = np.trapz(J_lungs, x=t, dx=dt)
     # Propagate total flux through lungs
-    J_aorta_total = dcmri.flux_chain(J_lungs_total, T_lh, D_lh, t=t, dt=dt, solver='step')
+    J_aorta_total = dcmri.flux_chain(J_lungs_total, T_lh, D_lh, t=t, dt=dt, solver=solver)
     # Return total flux into aorta
     return J_aorta_total
 
