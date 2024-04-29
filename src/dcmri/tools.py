@@ -1,3 +1,5 @@
+import os
+import multiprocessing
 import warnings
 import math
 import numpy as np
@@ -6,6 +8,109 @@ from scipy.interpolate import CubicSpline
 from scipy.stats import rv_histogram
 from scipy.optimize import curve_fit as scipy_curve_fit
 
+
+try: 
+    num_workers = int(len(os.sched_getaffinity(0)))
+except: 
+    num_workers = int(os.cpu_count())
+
+
+class Model:
+
+    pars = np.array([])
+
+    def predict(self, xdata, **kwargs):
+        msg = 'Problem: no output method defined.' 
+        raise NotImplementedError(msg)
+    
+    def pars0(self, *args, **kwargs):
+        return np.zeros(len(self.pars))
+    
+    def bounds(self, *args, **kwargs):
+        return (-np.inf, np.inf)
+
+    def initialize(self, *args, **kwargs):
+        self.pars = self.pars0(*args, **kwargs)
+        return self
+    
+    def pretrain(self,  *args, **kwargs):
+        return
+    
+    def train(self, xdata, ydata, p0=None,
+            bounds=(-np.inf,+np.inf),
+            pfix=None, xrange=None, xvalid=None, 
+            **kwargs):
+
+        if isinstance(bounds, str):
+            bounds = self.bounds(bounds)
+        if p0 is None:
+            p0 = self.pars
+
+        def fit_func(xdata, *p):
+            self.pars = p
+            return self.predict(xdata)
+
+        self.pars, pcov = curve_fit(
+            fit_func, xdata, ydata, p0, 
+            pfix=pfix, xrange=xrange, xvalid=xvalid,
+            bounds=bounds, **kwargs)
+         
+        return self.pars, pcov
+    
+    def cost(self, xdata, ydata, xrange=None, xvalid=None):
+        # Predict data at all xvalues
+        y = self.predict(xdata)
+        # Identify x- and y-values that are fitted
+        xf = xfit(xdata, xrange, xvalid)
+        # Calclulate the loss at the fitted values
+        loss = np.linalg.norm(y[xf] - ydata[xf])/np.linalg.norm(ydata[xf])
+        return 100*loss
+
+    def pfree(self, units='standard'):
+        # Short name, full name, value, units.
+        n = len(self.pars0())
+        pars = []
+        for p in range(n):
+            pars.append(['Par '+str(p), 'Par '+str(p)+' name', self.pars[p], 'Par '+str(p)+' unit'])
+        return pars
+
+    def pdep(self, units='standard'):   
+        return []
+
+    # rename to train_array
+    def fit_image(self, imgs:np.ndarray, xdata=None, xtol=1e-3, bounds=False, parallel=True, **kwargs):
+        """Fit a single-pixel model pixel-by-pixel to a 2D or 3D image"""
+        
+        # Reshape to (x,t)
+        shape = imgs.shape
+        imgs = imgs.reshape((-1,shape[-1]))
+        
+        # Perform the fit pixelwise
+        if parallel:
+            args = [(xdata, imgs[x,:], xtol, bounds, kwargs) for x in range(imgs.shape[0])]
+            pool = multiprocessing.Pool(processes=num_workers)
+            fit_pars = pool.map(self.train, args)
+            pool.close()
+            pool.join()
+        else: # for debugging
+            fit_pars = [self.train((xdata, imgs[x,:], xtol, bounds, kwargs)) for x in range(imgs.shape[0])]
+
+        # Create output arrays
+        npars = len(fit_pars[0])
+        fit = np.empty(imgs.shape)
+        par = np.empty((imgs.shape[0], npars))
+        for x, p in enumerate(fit_pars):
+            fit[x,:] = self.predict(xdata, *p)
+            par[x,:] = p
+
+        # Return in original shape
+        fit = fit.reshape(shape)
+        par = par.reshape(shape[:-1] + (npars,))
+        
+        return fit, par
+    
+
+    
 
 def xfit(xdata, xrange=None, xvalid=None):
     # Identify x- and y-values that are fitted
@@ -623,4 +728,25 @@ def nexpconv(n, T, t):
             u = n-n0
             g = g*u + g1*(1-u)
     return g
+
+
+def test_curve_fit():
+    def third_order(x, a, b, c, d, add=2):
+        return a + b*x + c*x**2 + (d+add)*x**3
+    nx = 5
+    x = np.linspace(0,1,nx)
+    y = third_order(x, 2, 3, 4, 5, add=5)
+    p0 = [1,1,1,1]
+    p, pcov = curve_fit(third_order, x, y, 
+        p0, 
+        kwargs = {'add':5},
+        pfix = [0,0,0,0],
+        xrange = [0,1.0], # with nx=5 and xrange = [0.3,1.0] this runs into RuntimeError
+        xvalid = [1,1,0,0,1],
+        bounds = (
+            [0,0,0,0],
+            [6,6,6,6],
+        ), 
+    )
+    print(p)
 
