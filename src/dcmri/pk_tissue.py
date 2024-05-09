@@ -2,10 +2,8 @@
 
 import numpy as np
 import dcmri.pk as pk
-import dcmri.tools as tools
+import dcmri.utils as utils
 
-
-# Classic tissue models
 
 def conc_1cum(ca, Fp, t=None, dt=1.0):
     """Concentration in a one-compartment uptake model.
@@ -373,14 +371,14 @@ def flux_patlak(ca, vp, Ktrans, t=None, dt=1.0):
     return J
 
 #Use ve instead of kep for consistency with other definitions
-def conc_etofts(ca, vp, Ktrans, kep, t=None, dt=1.0, sum=True):
+def conc_etofts(ca, vp, Ktrans, ve, t=None, dt=1.0, sum=True):
     """Concentration in an extended Tofts model.
 
     Args:
         ca (array_like): the indicator concentration in the plasma of the feeding artery, as a 1D array, in units of M.
         vp (float): Dimensionless plasma volume fraction of tissue, with values between 0 and 1.
         Ktrans (float): Transcapillary transfer constant, in units of mL plasma per sec and per mL tissue (mL/sec/mL or 1/sec). Physically PS is the volume of arterial plasma fully cleared of indicator per unit of time by a unit of tissue.
-        kep (float): Excretion rate of the extravascular extracellular space, or 1/(mean transit time), in units of 1/sec.
+        ve (float): Extravascular extracellular volume fraction.
         t (array_like, optional): the time points in sec of the input function *ca*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
         dt (float, optional): spacing in seconds between time points for uniformly spaced time points. This parameter is ignored if *t* is explicity provided. Defaults to 1.0.
         sum (bool, optional): if set to True, the total concentration is returned. If set to False, the concentration in the compartments is returned separately. Defaults to True.
@@ -402,11 +400,11 @@ def conc_etofts(ca, vp, Ktrans, kep, t=None, dt=1.0, sum=True):
 
         The tissue is characterized by Ktrans = 0.1 mL/min/mL, vp = 0.1, kep = 0.1/min. In the correct units:
 
-        >>> vp, Ktrans, kep = 0.1, 1/60, 0.1/60
+        >>> vp, Ktrans, ve = 0.1, 1/60, 0.2
 
         Calculate the concentrations in units of mM:
         
-        >>> C = 1000*dc.conc_etofts(ca, vp, Ktrans, kep, t, sum=False)
+        >>> C = 1000*dc.conc_etofts(ca, vp, Ktrans, ve, t, sum=False)
 
         The concentration in the plasma compartment, in units of mM:
 
@@ -416,28 +414,29 @@ def conc_etofts(ca, vp, Ktrans, kep, t=None, dt=1.0, sum=True):
         And in the extracellular, extracellular compartment compartment (mM):
 
         >>> C[1,:]
-        array([0.        , 0.03696853, 0.0738004 , 0.11049611, 0.14705615,
-       0.18348104, 0.21977128, 0.25592735, 0.29194976, 0.327839  ])
+        array([0.        , 0.03380992, 0.06190429, 0.08524932, 0.10464787,
+               0.12076711, 0.1341614 , 0.14529139, 0.15453986, 0.16222488])
+        
     """
     Cp = vp*ca
-    if kep ==0:
-        Ce = pk.conc_trap(Ktrans*ca, t=t, dt=dt)
+    if Ktrans==0:
+        Ce = 0*ca
     else:
-        Ce = pk.conc_comp(Ktrans*ca, 1/kep, t=t, dt=dt)
+        Ce = pk.conc_comp(Ktrans*ca, ve/Ktrans, t=t, dt=dt)
     if sum:
         return Cp+Ce
     else:
         return np.stack((Cp,Ce))
 
 #Use ve instead of kep for consistency with other definitions
-def flux_etofts(ca, vp, Ktrans, kep, t=None, dt=1.0):
+def flux_etofts(ca, vp, Ktrans, ve, t=None, dt=1.0):
     """Outfluxes out of an extended Tofts model.
 
     Args:
         ca (array_like): the indicator concentration in the plasma of the feeding artery, as a 1D array, in units of M.
         vp (float): Dimensionless plasma volume fraction of tissue, with values between 0 and 1.
         Ktrans (float): Transcapillary transfer constant, in units of mL plasma per sec and per mL tissue (mL/sec/mL or 1/sec). Physically PS is the volume of arterial plasma fully cleared of indicator per unit of time by a unit of tissue.
-        kep (float): Excretion rate of the extravascular extracellular space, or 1/(mean transit time), in units of 1/sec.
+        ve (float): Extravascular extracellular volume fraction.
         t (array_like, optional): the time points in sec of the input function *ca*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
         dt (float, optional): spacing in seconds between time points for uniformly spaced time points. This parameter is ignored if *t* is explicity provided. Defaults to 1.0.
 
@@ -458,18 +457,18 @@ def flux_etofts(ca, vp, Ktrans, kep, t=None, dt=1.0):
 
         The tissue is characterized by Ktrans = 0.1 mL/min/mL, vp = 0.1, kep = 0.1/min. In the correct units:
 
-        >>> vp, Ktrans, kep = 0.1, 1/60, 0.1/60
+        >>> vp, Ktrans, ve = 0.1, 1/60, 0.2
 
         Calculate the outflux in units of mM/sec:
         
-        >>> J = 1000*dc.flux_etofts(ca, vp, Ktrans, kep, t)
+        >>> J = 1000*dc.flux_etofts(ca, vp, Ktrans, ve, t)
 
         The flux from the plasma to the extravascular space:
 
         >>> J[1,0,:]
         array([0.01666667, 0.01666667, 0.01666667, 0.01666667, 0.01666667,
-        0.01666667, 0.01666667, 0.01666667, 0.01666667, 0.01666667])
-
+               0.01666667, 0.01666667, 0.01666667, 0.01666667, 0.01666667])
+        
         Note the venous outflux out of the plasma compartment is undetermined because the Extended Tofts model does not depend on the plasma flow:
 
         >>> J[0,0,:]
@@ -478,10 +477,10 @@ def flux_etofts(ca, vp, Ktrans, kep, t=None, dt=1.0):
     J = np.zeros(((2,2,len(ca))))
     J[0,0,:] = np.nan
     J[1,0,:] = Ktrans*ca
-    if kep==0:
-        J[0,1,:] = pk.flux_trap(Ktrans*ca)
+    if Ktrans==0:
+        J[0,1,:] = 0*ca
     else:
-        J[0,1,:] = pk.flux_comp(Ktrans*ca, 1/kep, t=t, dt=dt)
+        J[0,1,:] = pk.flux_comp(Ktrans*ca, ve/Ktrans, t=t, dt=dt)
     return J
 
 def conc_2cum(ca, Fp, vp, PS, t=None, dt=1.0, sum=True):
@@ -684,7 +683,7 @@ def conc_2cxm(ca, Fp, vp, PS, ve, t=None, dt=1.0, sum=True):
     Q, K, Qi = pk.K_2comp(T, E)
     # Initialize concentration-time array
     nc, nt = 2, len(J)
-    t = tools.tarray(nt, t=t, dt=dt)
+    t = utils.tarray(nt, t=t, dt=dt)
     Ei = np.empty((nc,nt))
     # Loop over the eigenvalues
     for d in [0,1]:
@@ -843,7 +842,7 @@ def conc_2cfm(ca, Fp, vp, PS, Te, t=None, dt=1.0, sum=True):
     J = Fp*ca
     T = [Tp, Te]
     # Solve the system explicitly
-    t = tools.tarray(len(J), t=t, dt=dt)
+    t = utils.tarray(len(J), t=t, dt=dt)
     C0 = pk.conc_comp(J, T[0], t)
     if E==0:
         C1 = np.zeros(len(t))
@@ -915,7 +914,7 @@ def flux_2cfm(ca, Fp, vp, PS, Te, t=None, dt=1.0):
     J = Fp*ca
     T = [Tp, Te]
     # Solve the system explicitly
-    t = tools.tarray(len(J), t=t, dt=dt)
+    t = utils.tarray(len(J), t=t, dt=dt)
     Jo = np.zeros((2,2,len(t)))
     J0 = pk.flux_comp(J, T[0], t)   
     J10 = E*J0
@@ -923,8 +922,5 @@ def flux_2cfm(ca, Fp, vp, PS, Te, t=None, dt=1.0):
     Jo[1,1,:] = pk.flux_comp(J10, T[1], t)
     Jo[0,0,:] = (1-E)*J0
     return Jo
-
-
-# Whole body models
 
 

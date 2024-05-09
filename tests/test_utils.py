@@ -1,18 +1,29 @@
 import numpy as np
-import dcmri.tools as tools
-import dcmri
+import dcmri as dc
+
+def test_model():
+
+    mod = dc.Model()
+    try:
+        mod.predict(None)
+    except:
+        assert True
+    else:
+        assert False
+    
+
 
 def test_tarray():
     n = 4
     J = np.zeros(n)
-    t = tools.tarray(len(J))
+    t = dc.tarray(len(J))
     assert np.array_equal(t, [0,1,2,3])
-    t = tools.tarray(len(J), dt=2)
+    t = dc.tarray(len(J), dt=2)
     assert np.array_equal(t, [0,2,4,6])
-    t = tools.tarray(len(J), [1,2,3,9])
+    t = dc.tarray(len(J), [1,2,3,9])
     assert np.array_equal(t, [1,2,3,9])
     try:
-        t = tools.tarray(len(J), [1,2,3])
+        t = dc.tarray(len(J), [1,2,3])
     except:
         assert True
     else:
@@ -22,7 +33,7 @@ def test_tarray():
 def test_trapz():
     t = np.arange(0, 60, 10)
     ca = (t/np.amax(t))**2
-    c = tools.trapz(ca, t)
+    c = dc.trapz(ca, t)
     assert c[1] == 0.20000000000000004
 
 
@@ -39,7 +50,7 @@ def test_expconv():
         t = np.arange(0,tmax,dt)
         f = np.exp(-t/Tf)/Tf
         h = np.exp(-t/Th)/Th
-        g = tools.expconv(f, Th, dt=dt)
+        g = dc.expconv(f, Th, dt=dt)
         g0 = (Tf*f-Th*h)/(Tf-Th)
         assert np.linalg.norm(g-g0)/np.linalg.norm(g0) < prec[i]
 
@@ -50,14 +61,14 @@ def test_expconv():
         t = dt0*t0
         f = np.exp(-t/Tf)/Tf
         h = np.exp(-t/Th)/Th
-        g = tools.expconv(f, Th, t)
+        g = dc.expconv(f, Th, t)
         g0 = (Tf*f-Th*h)/(Tf-Th)
         assert np.linalg.norm(g-g0)/np.linalg.norm(g0) < prec[i]
 
 def test_inttrap():
     t=np.array([0,1,2,3])
     f=[1,1,1,1]
-    assert tools.inttrap(f,t,0.5,1.5) == 1
+    assert dc.inttrap(f,t,0.5,1.5) == 1
 
 def test_stepconv():
     T = 3.5
@@ -71,11 +82,11 @@ def test_stepconv():
         h = np.zeros(n)
         h[(t>=T0)*(t<=T1)] = 1/(T1-T0)
         f = np.sqrt(t)
-        g = tools.stepconv(f, T, D, dt=t[1])
-        g0 = tools.conv(f, h, dt=t[1])
+        g = dc.stepconv(f, T, D, dt=t[1])
+        g0 = dc.conv(f, h, dt=t[1])
         assert np.linalg.norm(g-g0)/np.linalg.norm(g0) < prec[k]
     try:
-        tools.stepconv(f, T, 2, dt=t[1])
+        dc.stepconv(f, T, 2, dt=t[1])
     except:
         assert True
 
@@ -84,15 +95,15 @@ def test_intprod():
     t = [0,2,6]
     f = [1,10,3]
     h = [5,1,7]
-    i = tools.intprod(f, h, t)
+    i = dc.intprod(f, h, t)
     n = 1000
     t1 = np.linspace(t[0],t[1],n)
-    f1 = np.interp(t1, t[0:2], f[0:2])
-    h1 = np.interp(t1, t[0:2], h[0:2])
+    f1 = np.interp(t[0:2], t1, f[0:2])
+    h1 = np.interp(t[0:2], t1, h[0:2])
     i1 = np.trapz(f1*h1, t1)
     t2 = np.linspace(t[1],t[2],n)
-    f2 = np.interp(t2, t[1:3], f[1:3])
-    h2 = np.interp(t2, t[1:3], h[1:3])
+    f2 = np.interp(t[1:3], t2, f[1:3])
+    h2 = np.interp(t[1:3], t2, h[1:3])
     i2 = np.trapz(f2*h2, t2)
     assert (i-(i1+i2))**2/(i1+i2)**2 < 1e-12
 
@@ -101,15 +112,15 @@ def test_intprod():
     t = dt*np.arange(3)
     f = [1,10,3]
     h = [5,1,7]
-    i = tools.intprod(f, h, dt=dt)
+    i = dc.intprod(f, h, dt=dt)
     n = 1000
     t1 = np.linspace(t[0],t[1],n)
-    f1 = np.interp(t1, t[0:2], f[0:2])
-    h1 = np.interp(t1, t[0:2], h[0:2])
+    f1 = np.interp(t[0:2], t1, f[0:2])
+    h1 = np.interp(t[0:2], t1, h[0:2])
     i1 = np.trapz(f1*h1, t1)
     t2 = np.linspace(t[1],t[2],n)
-    f2 = np.interp(t2, t[1:3], f[1:3])
-    h2 = np.interp(t2, t[1:3], h[1:3])
+    f2 = np.interp(t[1:3], t2, f[1:3])
+    h2 = np.interp(t[1:3], t2, h[1:3])
     i2 = np.trapz(f2*h2, t2)
     assert (i-(i1+i2))**2/(i1+i2)**2 < 1e-12
 
@@ -127,7 +138,7 @@ def test_uconv():
         t = np.arange(0,tmax,dt)
         f = np.exp(-t/Tf)/Tf
         h = np.exp(-t/Th)/Th
-        g = tools.uconv(f, h, dt)
+        g = dc.uconv(f, h, dt)
         g0 = (Tf*f-Th*h)/(Tf-Th)
         assert np.linalg.norm(g-g0)/np.linalg.norm(g0) < prec[i]
 
@@ -156,7 +167,7 @@ def test_conv():
         t = np.arange(0,tmax,dt)
         f = np.exp(-t/Tf)/Tf
         h = np.exp(-t/Th)/Th
-        g = tools.conv(f, h, dt=dt)
+        g = dc.conv(f, h, dt=dt)
         g0 = (Tf*f-Th*h)/(Tf-Th)
         assert np.linalg.norm(g-g0)/np.linalg.norm(g0) < prec[i]
 
@@ -167,7 +178,7 @@ def test_conv():
         t = dt0*t0
         f = np.exp(-t/Tf)/Tf
         h = np.exp(-t/Th)/Th
-        g = tools.conv(f, h, t)
+        g = dc.conv(f, h, t)
         g0 = (Tf*f-Th*h)/(Tf-Th)
         assert np.linalg.norm(g-g0)/np.linalg.norm(g0) < prec[i]
 
@@ -182,8 +193,8 @@ def test_conv():
         f = np.exp(-t/10)
         h = np.exp(-((t-30)/15)**2)
         area = np.trapz(f,t)*np.trapz(h,t)
-        g0 = tools.conv(f, h, dt=dt)
-        g1 = tools.conv(h, f, dt=dt)
+        g0 = dc.conv(f, h, dt=dt)
+        g1 = dc.conv(h, f, dt=dt)
         assert (np.trapz(g0,t)-area)**2/area**2 < prec_area[i]
         assert np.linalg.norm(g0-g1)/np.linalg.norm(g0)  < prec_symm
 
@@ -197,14 +208,14 @@ def test_conv():
         f = np.exp(-t/10)
         h = np.exp(-((t-30)/15)**2)
         area = np.trapz(f,t)*np.trapz(h,t)
-        g0 = tools.conv(f, h, t)
-        g1 = tools.conv(h, f, t)
+        g0 = dc.conv(f, h, t)
+        g1 = dc.conv(h, f, t)
         assert (np.trapz(g0,t)-area)**2/area**2 < prec_area
         assert np.linalg.norm(g0-g1)/np.linalg.norm(g0)  < prec_symm
 
     # Check error handling
     try:
-        tools.conv([1,2,3], [1,2])
+        dc.conv([1,2,3], [1,2])
     except:
         assert True
     else:
@@ -214,10 +225,10 @@ def test_biexpconv():
     Tf = 20
     Th = 30
     t = np.array([0,1,2,3,5,8,13,21,34])
-    g = tools.biexpconv(Tf, Th, t)
+    g = dc.biexpconv(Tf, Th, t)
     g0 = (np.exp(-t/Tf)-np.exp(-t/Th))/(Tf-Th)
     assert np.linalg.norm(g-g0) == 0
-    g = tools.biexpconv(Th, Th, t)
+    g = dc.biexpconv(Th, Th, t)
     g0 = (t/Th) * np.exp(-t/Th)/Th
     assert np.linalg.norm(g-g0) == 0
 
@@ -231,12 +242,12 @@ def test_nexpconv():
 
     n=2
     T=MTT/n
-    g = tools.nexpconv(n, T, t)
+    g = dc.nexpconv(n, T, t)
     # Check against analytical
     g0 = (t/T) * np.exp(-t/T)/T
     assert np.linalg.norm(g-g0) == 0
     # Check against expconv
-    g0 = tools.expconv(np.exp(-t/T)/T, T, t)
+    g0 = dc.expconv(np.exp(-t/T)/T, T, t)
     assert np.linalg.norm(g-g0) < 1e-4
     # Check area = 1
     assert np.abs(np.trapz(g,t)-1) < 1e-3
@@ -245,7 +256,7 @@ def test_nexpconv():
     
     n=20
     T=MTT/n
-    g = tools.nexpconv(n, T, t)
+    g = dc.nexpconv(n, T, t)
     # Check area = 1
     assert np.abs(np.trapz(g,t)-1) < 1e-12
     # Check MTT
@@ -254,93 +265,96 @@ def test_nexpconv():
     # In this case the numerical approximation is used
     n=200
     T=MTT/n
-    g = tools.nexpconv(n, T, t)
+    g = dc.nexpconv(n, T, t)
     # Check area = 1
     assert np.abs(np.trapz(g,t)-1) < 1e-12
     # Check MTT
     assert np.abs(np.trapz(t*g,t)-MTT) < 0.1
     # Check case of non-integer n
-    g = tools.nexpconv(200.5, T, t)
+    g = dc.nexpconv(200.5, T, t)
     assert np.abs(np.trapz(g,t)-1) < 1e-12
 
     # Test exceptions
     try:
-        tools.nexpconv(n, -1, t)
+        dc.nexpconv(n, -1, t)
     except:
         assert True
     try:
-        tools.nexpconv(0.5, T, t)
+        dc.nexpconv(0.5, T, t)
     except:
         assert True
 
 def test_ddelta():
     t = [0,2,3,4]
-    h = tools.ddelta(-1, t)
+    h = dc.ddelta(-1, t)
     assert np.array_equal(h, [0,0,0,0])
-    h = tools.ddelta(5, t)
+    h = dc.ddelta(5, t)
     assert np.array_equal(h, [0,0,0,0])
-    h = tools.ddelta(0, t)
+    h = dc.ddelta(0, t)
     assert np.array_equal(h, [1,0,0,0])
     assert np.trapz(h,t) == 1
-    h = tools.ddelta(1, t)
+    h = dc.ddelta(1, t)
     assert np.abs(np.trapz(h,t)-1) < 1e-12
-    h = tools.ddelta(2, t)
+    h = dc.ddelta(2, t)
     assert np.abs(np.trapz(h,t)-1) < 1e-12
-    h = tools.ddelta(3.5, t)
+    h = dc.ddelta(3.5, t)
     assert np.abs(np.trapz(h,t)-1) < 1e-12
-    h = tools.ddelta(4, t)
+    h = dc.ddelta(4, t)
     assert np.abs(np.trapz(h,t)-1) < 1e-12
 
     # Check that this is a unit for the convolution.
     t = tfib(10, 30)
-    h = tools.ddelta(0,t)
+    h = dc.ddelta(0,t)
     f = np.exp(-t/30)/30
-    g = tools.conv(f, h, t)
+    g = dc.conv(f, h, t)
     assert np.linalg.norm(g[1:]-f[1:])/np.linalg.norm(f[1:]) < 1e-2
 
 def test_dstep():
     t = [0,2,3,4]
-    h = tools.dstep(0, 4, t)
+    h = dc.dstep(0, 4, t)
     assert np.array_equal(h, [0.25,0.25,0.25,0.25])
     assert np.abs(np.trapz(h,t)-1) < 1e-12
-    h = tools.dstep(0.5, 3.5, t)
+    h = dc.dstep(0.5, 3.5, t)
     assert np.abs(np.trapz(h,t)-1) < 1e-12
     t = [0,1,2,3]
-    h = tools.dstep(0.5, 2.5, t)
+    h = dc.dstep(0.5, 2.5, t)
     assert np.array_equal(h, [0.2,0.4,0.4,0.2])
     assert np.abs(np.trapz(h,t)-1) < 1e-12
 
 def test_ddist():
     t = [0,2,3,4]
-    h = tools.ddist([1/3,1/3,1/3], [0,2,3,4], t)
+    h = dc.ddist([1/3,1/3,1/3], [0,2,3,4], t)
     assert np.abs(np.trapz(h,t)-1) < 1e-12
     t = [0,1,2,3]
-    h = tools.ddist([1/3,1/3,1/3], [0,1,2,3], t)
+    h = dc.ddist([1/3,1/3,1/3], [0,1,2,3], t)
     assert np.array_equal(h, [1/3,1/3,1/3,1/3])
     assert np.abs(np.trapz(h,t)-1) < 1e-12
-    h = tools.ddist([0.25,0.5,0.25], [0,1,2,3], t)
+    h = dc.ddist([0.25,0.5,0.25], [0,1,2,3], t)
     assert np.abs(np.trapz(h,t)-1) < 1e-12
 
 
 def test_res_free_desc():
-    dcmri.res_free_desc(1, 1, TT=None, TTmin=0, TTmax=None)
-    dcmri.res_free_desc(1, np.arange(2), TT=None, TTmin=0, TTmax=None)
-    dcmri.res_free_desc(1, np.arange(2), TT=[1,2,3])
+    dc.res_free_desc(1, 1, TT=None, TTmin=0, TTmax=None)
+    dc.res_free_desc(1, np.arange(2), TT=None, TTmin=0, TTmax=None)
+    dc.res_free_desc(1, np.arange(2), TT=[1,2,3])
     try:
-        dcmri.res_free_desc(1, np.arange(2), TT=[1,2])
+        dc.res_free_desc(1, np.arange(2), TT=[1,2])
     except:
         assert True
 
 def test_interp():
-    dcmri.interp(np.arange(3), 3, pos=False, floor=False)
-    dcmri.interp(np.arange(3), [3], pos=False, floor=False)
-    dcmri.interp(np.arange(3), [3,4], pos=False, floor=False)
-    dcmri.interp(np.arange(3), [3,4,5], pos=False, floor=False)
-    dcmri.interp(np.arange(3), np.arange(5), pos=False, floor=False)
-    dcmri.interp(np.arange(3), np.arange(5), pos=True, floor=True)
+    x = np.arange(3)
+    assert np.array_equal(dc.interp(3, x, pos=False, floor=False), [3,3,3])
+    assert np.array_equal(dc.interp([3], x, pos=False, floor=False), [3,3,3])
+    assert np.array_equal(dc.interp([3,4], x, pos=False, floor=False), [3,3.5,4])
+    assert np.array_equal(dc.interp([3,4,5], x, pos=False, floor=False), [3,4,5])
+    assert np.array_equal(dc.interp(np.arange(5), x, pos=False, floor=False), [0,2,4])
+    assert np.array_equal(dc.interp(np.arange(5), x, pos=True, floor=True), [0,2,4])
 
 
 if __name__ == "__main__":
+
+    test_model()
 
     test_res_free_desc()
     test_interp()

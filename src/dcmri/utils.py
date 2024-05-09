@@ -16,28 +16,45 @@ except:
 
 
 class Model:
+    """Base class for end-to-end models.
+
+    This class contains generic functionality such as curve fitting with extended options 
+    fitting pixel-based data using parallel processing, and more..
+
+    Raises:
+        NotImplementedError: if a require method is not implemented.
+
+    Returns:
+        Model: instance of the Model class.
+    """
 
     pars = np.array([])
+    pcov = None
+
+    def __init__(self, pars='default', **const):
+        if isinstance(pars, str):
+            self.pars = self.pars0(pars)
+        else:
+            self.pars = pars
+        for attr in const:
+            self.__dict__[attr] = const[attr] 
 
     def predict(self, xdata, **kwargs):
         msg = 'Problem: no output method defined.' 
         raise NotImplementedError(msg)
     
-    def pars0(self, *args, **kwargs):
+    def pars0(self, settings='default'):
         return np.zeros(len(self.pars))
     
-    def bounds(self, *args, **kwargs):
+    def bounds(self, settings='default'):
         return (-np.inf, np.inf)
 
     def initialize(self, *args, **kwargs):
         self.pars = self.pars0(*args, **kwargs)
         return self
     
-    def pretrain(self,  *args, **kwargs):
-        return
-    
     def train(self, xdata, ydata, p0=None,
-            bounds=(-np.inf,+np.inf),
+            bounds='default',
             pfix=None, xrange=None, xvalid=None, 
             **kwargs):
 
@@ -50,21 +67,26 @@ class Model:
             self.pars = p
             return self.predict(xdata)
 
-        self.pars, pcov = curve_fit(
+        self.pars, self.pcov = curve_fit(
             fit_func, xdata, ydata, p0, 
             pfix=pfix, xrange=xrange, xvalid=xvalid,
             bounds=bounds, **kwargs)
          
-        return self.pars, pcov
+        return self
     
-    def cost(self, xdata, ydata, xrange=None, xvalid=None):
+    def cost(self, xdata, ydata, xrange=None, xvalid=None, metric='NRMS'):
         # Predict data at all xvalues
         y = self.predict(xdata)
         # Identify x- and y-values that are fitted
         xf = xfit(xdata, xrange, xvalid)
         # Calclulate the loss at the fitted values
-        loss = np.linalg.norm(y[xf] - ydata[xf])/np.linalg.norm(ydata[xf])
-        return 100*loss
+        if metric == 'NRMS':
+            loss = 100*np.linalg.norm(y[xf] - ydata[xf])/np.linalg.norm(ydata[xf])
+        elif metric == 'AIC':
+            return
+        elif metric == 'BIC':
+            return
+        return loss
 
     def pfree(self, units='standard'):
         # Short name, full name, value, units.
@@ -225,16 +247,39 @@ def res_free_desc(tmax, H:np.ndarray, TT=None, TTmin=0, TTmax=None):
         'stdev': dist.std(),
         }
 
-def interp(x,y, pos=False, floor=False):
+def interp(y, x, pos=False, floor=False)->np.ndarray:
+    """Interpolate uniformly sampled data. 
+
+    This function is a convenience wrapper for standard interpolation, used in dcmri for instance to parametrize non-stationat models.
+
+    Args:
+        y (array-like): List of values to interpolate. These are assumed to be uniformly distributed over x.
+        x (array-like): Interpolate y at these locations.
+        pos (bool, optional): return only positive values. Defaults to False.
+        floor (bool, optional): Return only results higher than the lowest value in y. Defaults to False.
+
+    Returns:
+        np.ndarray: array of the same length as x, containing the values of y interpolated on x.
+
+    Notes:
+        The function uses linear interpolate when y has length 2, quadratic when y has length 3, and cubic spline interpolation otherwise.
+
+    Example:
+        >>> import dcmri as dc
+        >>> dc.interp([1,3,2], np.arange(10))
+        array([1.        , 1.68888889, 2.23333333, 2.63333333, 2.88888889,
+               3.        , 2.96666667, 2.78888889, 2.46666667, 2.        ])
+    """
+
     # Interpolate y on x, assuming y-values are uniformly distributed over the x-range
     if np.isscalar(y):
         yi = y*np.ones(len(x))
     elif len(y)==1:
         yi = y[0]*np.ones(len(x))
     elif len(y)==2:
-        yi = lin(x,y)
+        yi = _lin(x,y)
     elif len(y)==3:
-        yi = quad(x,y)
+        yi = _quad(x,y)
     else:
         x_y = np.linspace(np.amin(x), np.amax(x), len(y))
         yi = CubicSpline(x_y, y)(x)
@@ -245,17 +290,17 @@ def interp(x,y, pos=False, floor=False):
         yi[yi<y0] = y0
     return yi
 
-def quad(t, K):
+def _quad(t, K):
     # Helper
     nt = len(t)
     mid = math.floor(nt/2)
-    return quadratic(t, t[0], t[mid], t[-1], K[0], K[1], K[2])
+    return _quadratic(t, t[0], t[mid], t[-1], K[0], K[1], K[2])
 
-def lin(t, K):
+def _lin(t, K):
     # Helper
-    return linear(t, t[0], t[-1], K[0], K[1])
+    return _linear(t, t[0], t[-1], K[0], K[1])
 
-def linear(x, x1, x2, y1, y2):
+def _linear(x, x1, x2, y1, y2):
     # Helper
     #returns a linear function of x 
     #that goes through the two points (xi, yi)
@@ -263,7 +308,7 @@ def linear(x, x1, x2, y1, y2):
     L2 = (x-x1)/(x2-x1)
     return y1*L1 + y2*L2
 
-def quadratic(x, x0, x1, x2, y0, y1, y2):
+def _quadratic(x, x0, x1, x2, y0, y1, y2):
     # Helper
     #returns a quadratic function of x 
     #that goes through the three points (xi, yi)
@@ -366,7 +411,7 @@ def ddist(H, T, t):
     return h
 
 
-def intprod(f, h, t=None, dt=1.0):
+def _intprod(f, h, t=None, dt=1.0):
     # Helper function
     # Integrate the product of two piecewise linear functions
     # by analytical integration over each interval.
@@ -392,23 +437,23 @@ def intprod(f, h, t=None, dt=1.0):
         g += sh*sf*dt**3/3
     return g
 
-def intstep(f, h, t=None, dt=1.0):
+def _intstep(f, h, t=None, dt=1.0):
     g = f*h
     if t is None:
         return 0.5*np.sum(g[1:]+g[:-1])*dt
     else:
         return 0.5*np.sum((g[1:]+g[:-1])*(t[1:]-t[:-1]) )
 
-def uconv(f, h, dt=1.0, solver='trap'):
+def _uconv(f, h, dt=1.0, solver='trap'):
     # Helper function: convolution over uniformly sampled grid.
     n = len(f) 
     g = np.zeros(n)
     h = np.flip(h)
     for k in range(1, n):
         if solver=='trap':
-            g[k] = intprod(f[:k+1], h[-(k+1):], dt=dt)
+            g[k] = _intprod(f[:k+1], h[-(k+1):], dt=dt)
         elif solver=='step':
-            g[k] = intstep(f[:k+1], h[-(k+1):], dt=dt)
+            g[k] = _intstep(f[:k+1], h[-(k+1):], dt=dt)
     return g
 
 
@@ -468,7 +513,7 @@ def conv(f, h, t=None, dt=1.0, solver='trap'):
     if len(f) != len(h):
         raise ValueError('f and h must have the same length.')
     if t is None:
-        return uconv(f, h, dt, solver=solver)
+        return _uconv(f, h, dt, solver=solver)
     n = len(t)
     g = np.zeros(n)
     tf = np.flip(t)
@@ -476,12 +521,12 @@ def conv(f, h, t=None, dt=1.0, solver='trap'):
     for k in range(1, n):
         tkf = t[k]-tf[-(k+1):]
         tk = np.unique(np.concatenate((t[:k+1], tkf)))
-        fk = np.interp(tk, tkf, f[-(k+1):], left=0, right=0)
-        hk = np.interp(tk, t[:k+1], h[:k+1], left=0, right=0)
+        fk = np.interp(tkf, tk, f[-(k+1):], left=0, right=0)
+        hk = np.interp(t[:k+1], tk, h[:k+1], left=0, right=0)
         if solver=='trap':
-            g[k] = intprod(fk, hk, tk)
+            g[k] = _intprod(fk, hk, tk)
         elif solver=='step':
-            g[k] = intstep(fk, hk, tk)
+            g[k] = _intstep(fk, hk, tk)
     return g
 
 
@@ -489,7 +534,7 @@ def inttrap(f, t, t0, t1):
     # Helper function: integrate f from t0 to t1
     ti = t[(t0<t)*(t<t1)]
     ti = np.concatenate(([t0],ti,[t1]))
-    fi = np.interp(ti, t, f, left=0, right=0)
+    fi = np.interp(t, ti, f, left=0, right=0)
     return np.trapz(fi,ti)
 
 

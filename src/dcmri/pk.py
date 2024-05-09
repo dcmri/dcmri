@@ -2,7 +2,7 @@ import math
 import numpy as np
 from scipy.special import lambertw
 
-import dcmri.tools as tools
+import dcmri.utils as utils
 
 # 0 Parameters
 
@@ -84,7 +84,7 @@ def conc_trap(J, t=None, dt=1.0):
         >>> dc.conc_trap(J, dt=2.0)
         array([ 0.,  3.,  8., 14., 19.])
     """
-    return tools.trapz(J, t=t, dt=dt)
+    return utils.trapz(J, t=t, dt=dt)
 
 def flux_trap(J):
     """Indicator flux out of a trap.
@@ -140,7 +140,7 @@ def res_pass(T, t):
         >>> dc.res_pass(5,t)
         array([3.33333333, 0.        , 0.        , 0.        ])  
     """
-    return T*tools.ddelta(0, t)
+    return T*utils.ddelta(0, t)
 
 def prop_pass(t):
     """Propagator or transit time distribution of a pass.
@@ -165,7 +165,7 @@ def prop_pass(t):
         >>> dc.prop_pass(t)
         array([0.66666667, 0.        , 0.        , 0.        ])  
     """
-    return tools.ddelta(0,t)
+    return utils.ddelta(0,t)
 
 
 def conc_pass(J, T):
@@ -272,7 +272,7 @@ def prop_comp(T, t):
     if T == np.inf:
         return prop_trap(t)
     if T == 0:
-        return tools.ddelta(T, t)
+        return utils.ddelta(T, t)
     return np.exp(-np.array(t)/T)/T
 
 
@@ -302,7 +302,7 @@ def conc_comp(J, T, t=None, dt=1.0):
     """
     if T == np.inf:
         return conc_trap(J, t=t, dt=dt)
-    return T*tools.expconv(J, T, t=t, dt=dt)
+    return T*utils.expconv(J, T, t=t, dt=dt)
 
 
 def flux_comp(J, T, t=None, dt=1.0):
@@ -331,7 +331,7 @@ def flux_comp(J, T, t=None, dt=1.0):
     """
     if T == np.inf:
         return flux_trap(J)
-    return tools.expconv(J, T, t=t, dt=dt)
+    return utils.expconv(J, T, t=t, dt=dt)
 
 
 # Plug flow
@@ -357,7 +357,7 @@ def prop_plug(T, t):
         >>> dc.prop_plug(5,t)
         array([0.        , 0.        , 0.33333333, 0.5       ])  
     """
-    return tools.ddelta(T, t)
+    return utils.ddelta(T, t)
 
 
 def res_plug(T, t):
@@ -382,7 +382,7 @@ def res_plug(T, t):
         array([1.00000000e+00, 1.00000000e+00, 8.33333333e-01, 1.11022302e-16])  
     """
     h = prop_plug(T,t)
-    return 1-tools.trapz(h,t)
+    return 1-utils.trapz(h,t)
 
 
 def conc_plug(J, T, t=None, dt=1.0, solver='conv'):
@@ -413,13 +413,13 @@ def conc_plug(J, T, t=None, dt=1.0, solver='conv'):
         return conc_trap(J)
     if T==0:
         return 0*J
-    t = tools.tarray(len(J), t=t, dt=dt)
+    t = utils.tarray(len(J), t=t, dt=dt)
     if solver=='conv':
         r = res_plug(T, t)
-        return tools.conv(r, J, t=t, dt=dt)
+        return utils.conv(r, J, t=t, dt=dt)
     elif solver=='interp':
-        Jo = np.interp(t-T, t, J, left=0)
-        return tools.trapz(J-Jo, t)
+        Jo = np.interp(t, t-T, J, left=0)
+        return utils.trapz(J-Jo, t)
 
 
 def flux_plug(J, T, t=None, dt=1.0, solver='conv'):
@@ -450,12 +450,12 @@ def flux_plug(J, T, t=None, dt=1.0, solver='conv'):
         return flux_trap(J)
     if T==0:
         return J
-    t = tools.tarray(len(J), t=t, dt=dt)
+    t = utils.tarray(len(J), t=t, dt=dt)
     if solver=='conv':
         h = prop_plug(T, t)
-        return tools.conv(h, J, t=t, dt=dt)
+        return utils.conv(h, J, t=t, dt=dt)
     elif solver=='interp':
-        return np.interp(t-T, t, J, left=0)
+        return np.interp(t, t-T, J, left=0)
     else:
         raise ValueError('Solver ' + solver + ' does not exist.')
 
@@ -499,7 +499,7 @@ def prop_chain(T, D, t):
     if D==1: 
         return prop_comp(T, t)
     n = 1/D
-    g = tools.nexpconv(n, T/n, t)
+    g = utils.nexpconv(n, T/n, t)
     return g
 
 
@@ -528,7 +528,7 @@ def res_chain(T, D, t):
     if D==1: 
         return res_comp(T, t)
     h = prop_chain(T, D, t)
-    return 1-tools.trapz(h,t)
+    return 1-utils.trapz(h,t)
 
 
 def conc_chain(J, T, D, t=None, dt=1.0, solver='trap'):
@@ -558,9 +558,9 @@ def conc_chain(J, T, D, t=None, dt=1.0, solver='trap'):
         return conc_plug(J, T, t=t, dt=dt)
     if D == 1:
         return conc_comp(J, T, t=t, dt=dt)
-    tr = tools.tarray(len(J), t=t, dt=dt)
+    tr = utils.tarray(len(J), t=t, dt=dt)
     r = res_chain(T, D, tr)
-    return tools.conv(r, J, t=t, dt=dt, solver=solver)
+    return utils.conv(r, J, t=t, dt=dt, solver=solver)
 
 
 def flux_chain(J, T, D, t=None, dt=1.0, solver='trap'):
@@ -590,9 +590,9 @@ def flux_chain(J, T, D, t=None, dt=1.0, solver='trap'):
         return flux_plug(J, T, t=t, dt=dt)
     if D == 1:
         return flux_comp(J, T, t=t, dt=dt)
-    th = tools.tarray(len(J), t=t, dt=dt)
+    th = utils.tarray(len(J), t=t, dt=dt)
     h = prop_chain(T, D, th)
-    return tools.conv(h, J, t=t, dt=dt, solver=solver)
+    return utils.conv(h, J, t=t, dt=dt, solver=solver)
 
 
 # Step
@@ -632,7 +632,7 @@ def prop_step(T, D, t):
         return prop_trap(t)
     if D==0: 
         return prop_plug(T, t)
-    return tools.dstep(T-D*T, T+D*T, t)
+    return utils.dstep(T-D*T, T+D*T, t)
 
 def res_step(T, D, t):
     """Residue function of a step system.
@@ -655,7 +655,7 @@ def res_step(T, D, t):
         array([1.        , 0.63157895, 0.42105263, 0.        ])  
     """
     h = prop_step(T, D, t)
-    return 1-tools.trapz(h,t)
+    return 1-utils.trapz(h,t)
 
 def conc_step(J, T, D, t=None, dt=1.0):
     """Indicator concentration inside a step system.
@@ -682,9 +682,9 @@ def conc_step(J, T, D, t=None, dt=1.0):
     """
     if D == 0:
         return conc_plug(J, T, t=t, dt=dt)
-    t = tools.tarray(len(J), t=t, dt=dt)
+    t = utils.tarray(len(J), t=t, dt=dt)
     r = res_step(T, D, t)
-    return tools.conv(r, J, t)
+    return utils.conv(r, J, t)
 
 def flux_step(J, T, D, t=None, dt=1.0):
     """Indicator flux out of a step system.
@@ -711,9 +711,9 @@ def flux_step(J, T, D, t=None, dt=1.0):
     """
     if D == 0:
         return flux_plug(J, T, t=t, dt=dt)
-    t = tools.tarray(len(J), t=t, dt=dt)
+    t = utils.tarray(len(J), t=t, dt=dt)
     h = prop_step(T, D, t)
-    return tools.conv(h, J, t)
+    return utils.conv(h, J, t)
 
 
 # N parameters
@@ -769,7 +769,7 @@ def prop_free(H, t, TT=None, TTmin=0, TTmax=None):
             msg = 'The array of transit time boundaries needs to have length N+1, '
             msg += '\n with N the size of the transit time distribution H.'
             raise ValueError(msg)
-    h = tools.ddist(H, TT, t)
+    h = utils.ddist(H, TT, t)
     return h/np.trapz(h,t)
 
 
@@ -812,7 +812,7 @@ def res_free(H, t, TT=None, TTmin=0, TTmax=None):
         array([1.00000000e+00, 5.09259259e-01, 1.11111111e-01, 2.22044605e-16])
     """
     h = prop_free(H, t, TT=TT, TTmin=TTmin, TTmax=TTmax)
-    r = 1 - tools.trapz(h, t)
+    r = 1 - utils.trapz(h, t)
     r[r<0] = 0
     return r
 
@@ -865,9 +865,9 @@ def conc_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None, solver='trap')
         >>> dc.conc_free(J, [2,1], dt=2.0, TT=[0.5,1.0,2.5])
         array([0.        , 2.05555556, 3.87037037, 4.76388889, 4.14351852])
     """
-    u = tools.tarray(len(J), t=t, dt=dt)
+    u = utils.tarray(len(J), t=t, dt=dt)
     r = res_free(H, u, TT=TT, TTmin=TTmin, TTmax=TTmax)
-    return tools.conv(r, J, t=t, dt=dt, solver=solver)
+    return utils.conv(r, J, t=t, dt=dt, solver=solver)
 
 
 def flux_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
@@ -918,15 +918,19 @@ def flux_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
         >>> dc.flux_free(J, [2,1], dt=2.0, TT=[0.5,1.0,2.5])
         array([0.        , 1.10185185, 2.24074074, 2.86574074, 2.59722222])
     """
-    u = tools.tarray(len(J), t=t, dt=dt)
+    u = utils.tarray(len(J), t=t, dt=dt)
     h = prop_free(H, u, TT=TT, TTmin=TTmin, TTmax=TTmax)
-    return tools.conv(h, J, t=t, dt=dt)
+    return utils.conv(h, J, t=t, dt=dt)
 
 
 
 # N compartments
 
+# TODO: check that the sum of E's for a compartment = 1. Is it true that it can be something else? No sure..
+# Maybe trapping and creation needs to be modelled with extra constants?
+# The amounts trapped or created are not proportional to the amount inside.
 def K_ncomp(T, E):
+    # dC/dt = J - KC 
     if not isinstance(T, np.ndarray):
         T = np.array(T)
     if not isinstance(E, np.ndarray):
@@ -971,7 +975,7 @@ def J_ncomp(C, T, E):
 
 # Helper function
 def conc_ncomp_prop(J, T, E, t=None, dt=1.0, dt_prop=None):
-    t = tools.tarray(len(J[0,:]), t=t, dt=dt)
+    t = utils.tarray(len(J[0,:]), t=t, dt=dt)
     K = K_ncomp(T, E)
     nt, nc = len(t), len(T)
     C = np.zeros((nc,nt))
@@ -997,9 +1001,10 @@ def conc_ncomp_prop(J, T, E, t=None, dt=1.0, dt_prop=None):
 
 # Helper function
 def conc_ncomp_diag(J, T, E, t=None, dt=1.0):
-    t = tools.tarray(J.shape[1], t=t, dt=dt)
+    t = utils.tarray(J.shape[1], t=t, dt=dt)
     # Calculate system matrix, eigenvalues and eigenvectors
     K = K_ncomp(T, E)
+    # From here, create generic function that solves n-comp system
     K, Q = np.linalg.eig(K)
     Qi = np.linalg.inv(Q)
     # Initialize concentration-time array
@@ -1358,7 +1363,7 @@ def conc_2comp(J, T, E, t=None, dt=1.0):
     # Build the system matrix K
     Q, K, Qi = K_2comp(T, E)
     # Initialize concentration-time array
-    t = tools.tarray(len(J[0,:]), t=t, dt=dt)
+    t = utils.tarray(len(J[0,:]), t=t, dt=dt)
     C = np.zeros((2,len(t)))
     Ei = np.empty((2,len(t)))
     # Loop over the inlets
@@ -1576,7 +1581,7 @@ def conc_nscomp(J, T, t=None, dt=1.0):
         raise ValueError('T and J must have the same length.')
     if np.amin(T) <= 0:
         raise ValueError('T must be strictly positive.')
-    t = tools.tarray(len(J), t=t, dt=dt)
+    t = utils.tarray(len(J), t=t, dt=dt)
     n = len(t)
     C = np.zeros(n)
     for k in range(n-1):
@@ -1650,7 +1655,7 @@ def flux_pfcomp(J, T, D, t=None, dt=1.0, solver='conv'):
 # Michaelis-Menten compartment
 
 # Helper function
-def mmcomp_anal(J, Vmax, Km, t):
+def mmcomp_solve(J, Vmax, Km, t):
     #Schnell-Mendoza
     n = len(t)
     C = np.zeros(n)
@@ -1728,9 +1733,9 @@ def conc_mmcomp(J, Vmax, Km, t=None, dt=1.0, solver='SM'):
         raise ValueError('Vmax must be non-negative.')
     if Km < 0:
         raise ValueError('Km must be non-negative.')
-    t = tools.tarray(len(J), t=t, dt=dt)
+    t = utils.tarray(len(J), t=t, dt=dt)
     if solver=='SM':
-        return mmcomp_anal(J, Vmax, Km, t)
+        return mmcomp_solve(J, Vmax, Km, t)
     if solver == 'prop':
         return mmcomp_prop(J, Vmax, Km, t)
 

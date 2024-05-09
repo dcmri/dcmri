@@ -1,12 +1,12 @@
 
 :orphan:
 
-.. _sphx_glr_sg_execution_times:
+.. _sphx_glr_generated_examples_e2e_sg_execution_times:
 
 
 Computation times
 =================
-**01:52.495** total execution time for 3 files **from all galleries**:
+**01:52.495** total execution time for 1 file **from generated\examples\e2e**:
 
 .. container::
 
@@ -32,12 +32,6 @@ Computation times
    * - Example
      - Time
      - Mem (MB)
-   * - :ref:`sphx_glr_generated_examples_e2e_plot_wex.py` (``..\examples\e2e\plot_wex.py``)
+   * - :ref:`sphx_glr_generated_examples_e2e_plot_wex.py` (``plot_wex.py``)
      - 01:52.495
-     - 0.0
-   * - :ref:`sphx_glr_generated_examples_lib_plot_aif_parker.py` (``..\examples\lib\plot_aif_parker.py``)
-     - 00:00.000
-     - 0.0
-   * - :ref:`sphx_glr_generated_examples_tools_plot_convolution.py` (``..\examples\tools\plot_convolution.py``)
-     - 00:00.000
      - 0.0

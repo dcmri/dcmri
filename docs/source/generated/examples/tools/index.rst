@@ -2,9 +2,9 @@
 
 .. _sphx_glr_generated_examples_tools:
 
-************
-DC-MRI tools
-************
+*********
+Utilities
+*********
 
 
 

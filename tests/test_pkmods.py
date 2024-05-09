@@ -111,15 +111,15 @@ def test_conc_etofts():
     Ta = 10
     vp = 0.3
     Ktrans = 2
-    kep = 5
+    ve = 0.2
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    C = dc.conc_etofts(ca, vp, Ktrans, kep, t, sum=False)
+    C = dc.conc_etofts(ca, vp, Ktrans, ve, t, sum=False)
     C0 = vp*ca
-    C1 = Ktrans*dc.biexpconv(Ta, 1/kep, t)/kep
+    C1 = Ktrans*dc.biexpconv(Ta, ve/Ktrans, t)*ve/Ktrans
     assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 0.01
     assert np.linalg.norm(C[1,:]-C1)/np.linalg.norm(C1) < 0.01
-    C = dc.conc_etofts(ca, vp, Ktrans, kep, t, sum=True)
+    C = dc.conc_etofts(ca, vp, Ktrans, ve, t, sum=True)
     C0 = C0+C1
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.01
     C = dc.conc_etofts(ca, vp, Ktrans, 0, t, sum=False)
