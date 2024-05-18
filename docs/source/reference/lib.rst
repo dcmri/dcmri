@@ -14,7 +14,7 @@ Digital reference objects
    :toctree: ../generated/api/
    :template: autosummary.rst
 
-   synth_1
+   make_tissue_1
 
 
 

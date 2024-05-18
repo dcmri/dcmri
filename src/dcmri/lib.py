@@ -256,7 +256,9 @@ def relaxivity(field_strength=3.0, tissue='plasma', agent='gadoxetate', type='T1
 
 
 def T1(field_strength=3.0, tissue='blood', Hct=0.45)->float:
-    """T1 value of selected tissue types
+    """T1 value of selected tissue types.
+
+    Values are taken from literature, mostly from `Stanisz et al 2005 <https://doi.org/10.1002/mrm.20605>`_
 
     Args:
         field_strength (float, optional): Field strength in Tesla. Defaults to 3.0.
@@ -276,26 +278,54 @@ def T1(field_strength=3.0, tissue='blood', Hct=0.45)->float:
         The T1 of liver at 1.5T is 602.0 msec
     """    
     T1val = {
+        'muscle':{
+            1.5: 1.008,
+            3.0: 1.412,  
+        },
+        'heart':{
+            1.5: 1.030,
+            3.0: 1.471,  
+        },
+        'cartilage':{
+            1.5: 1.024,
+            3.0: 1.168,  
+        },
+        'white matter':{
+            1.5: 0.884,
+            3.0: 1.084,  
+        },
+        'gray matter':{
+            1.5: 1.124,
+            3.0: 1.820,  
+        },
+        'optic nerve':{
+            1.5: 0.815,
+            3.0: 1.083,  
+        },
+        'spinal cord':{
+            1.5: 0.745,
+            3.0: 0.993,  
+        },
         'blood':{
-            1.0: 1.480,
+            1.5: 1.441,
             3.0: 1/(0.52 * Hct + 0.38),  # Lu MRM 2004
         },
         'liver':{
-            1.0: 0.602, # liver R1 in 1/sec (Waterton 2021)
+            1.5: 0.602, # liver R1 in 1/sec (Waterton 2021)
             3.0: 0.752, # liver R1 in 1/sec (Waterton 2021)
-            4.0: 1/1.281, # liver R1 in 1/sec (Changed from 1.285 on 06/08/2020)
+            4.7: 1/1.281, # liver R1 in 1/sec (Changed from 1.285 on 06/08/2020)
             7.0: 1/1.109,  # liver R1 in 1/sec (Changed from 0.8350 on 06/08/2020)
             9.0: 1/0.920, # per sec - liver R1 (https://doi.org/10.1007/s10334-021-00928-x)
         },
         'kidney':{
             # Reference values average over cortext and medulla from Cox et al
             # https://academic.oup.com/ndt/article/33/suppl_2/ii41/5078406
-            1.0: ((1024+1272)/2) / 1000,
-            3.0: ((1399+1685)/2) / 1000,
+            1.5: (1.024+1.272)/2,
+            3.0: (1.399+1.685)/2,
         },
     }  
     try:
-        return T1val[tissue][math.floor(field_strength)]
+        return T1val[tissue][field_strength]
     except:
         msg = 'No T1 values for ' + tissue + ' at ' + str(field_strength) + ' T.'
         raise ValueError(msg)

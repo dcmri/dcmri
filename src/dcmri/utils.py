@@ -174,7 +174,7 @@ class Model:
             else:
                 v = round(p[2], round_to)
                 verr = round(perr[i], round_to)
-            print(p[1] + ': ' + str(v) + ' (' + str(verr) + ') ' + p[3])
+            print(p[1] + ' ('+p[0]+'): ' + str(v) + ' (' + str(verr) + ') ' + p[3])
         pars = self.pdep(units=units)
         if pars == []:
             return
@@ -186,7 +186,7 @@ class Model:
                 v = p[2]
             else:
                 v = round(p[2], round_to)
-            print(p[1] + ': ' + str(v) + ' ' + p[3])
+            print(p[1] + ' ('+p[0]+'): ' + str(v) + ' ' + p[3])
 
     # rename to train_array
     def _fit_image(self, imgs:np.ndarray, xdata=None, xtol=1e-3, bounds=False, parallel=True, **kwargs):
@@ -307,10 +307,20 @@ def curve_fit(f, xdata, ydata, p0,
     
     # Return parameter array in original length
     p0c[pfit] = p[0]
-    if full_output:
-        return (p0c,) + (p[1],) + p[2:]
+    # If some parameters are fixed, enlarge cov matrix
+    if np.sum(pfit) < p0.size:
+        pcov = np.zeros((p0.size, p0.size))
+        ifit = np.where(pfit)[0]
+        for i in range(ifit.size):
+            for j in range(ifit.size):
+                pcov[ifit[i],ifit[j]] = p[1][i,j]
     else:
-        return p0c, p[1]
+        pcov = p[1]
+    
+    if full_output:
+        return (p0c,) + (pcov,) + p[2:]
+    else:
+        return p0c, pcov
 
 
 def res_free_desc(tmax, H:np.ndarray, TT=None, TTmin=0, TTmax=None):

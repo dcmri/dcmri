@@ -2,105 +2,50 @@
 Getting started
 ***************
 
-For standard analysis tasks, ``dcmri`` includes a collection of :ref:`end-to-end models <end-to-end models>` that provide an easy way to fit data. 
+``dcmri`` includes a collection of end-to-end models that provide an easy way to fit DC-MRI data. To illustrate how these work, let's start by importing the package::
 
-To illustrate how these work, we generate some synthetic data using one of the built-in functions `dcmri.synth_1`. The following code shows how to fit this to a standard extended Tofts model, and print out the results.
+    >>> import dcmri as dc
+    
+Generate some synthetic data using one of the built-in functions `dcmri.make_tissue_1`::
 
-.. exec_code::
+    >>> time, aif, roi, _ = dc.make_tissue_1()
 
-    import dcmri as dc
+Here *time* is an array of time points, *aif* is a signal-time curve measured in a feeding artery at those times, and *roi* is a signal-time curve measured in a region of interest. 
 
-    # Generate synthetic data: 
-    #   time: an array of time points
-    #   aif: MRI signals vs time measured in a feeding artery
-    #   roi: MRI signals vs time measured in a region of interest.
-    #   gt: a dictionary with ground-truth values for reference
-    time, aif, roi, gt = dc.synth_1(CNR=50)
+Next we find a suitable model from the :ref:`model zoo <end-to-end models>` and initialize it::
 
-    # Build a tissue model and set all the constants to the correct value:
-    model = dc.TissueSignal3c(aif,
-        dt = time[1],
-        Hct = 0.45, 
-        agent = 'gadodiamide',
-        field_strength = 3.0,
-        TR = 0.005,
-        FA = 20,
-        R10 = 1.0,
-        R10a = 1/dc.T1(3.0,'blood'),
-        t0 = 15,
-    )
+    >>> model = dc.TissueSignal4(aif,
+    >>>    dt = time[1],
+    >>>    agent = 'gadodiamide',
+    >>>    field_strength = 3.0,
+    >>>    TR = 0.005,
+    >>>    FA = 20,
+    >>>    Hct = 0.45, 
+    >>>    R10 = 1/dc.T1(3.0,'muscle'),
+    >>>    R10b = 1/dc.T1(3.0,'blood'),
+    >>>    t0 = 15,
+    >>> )
 
-    # Train the model on the ROI data:
-    model.train(time, roi)
+Train the model on the ROI data::
+    
+    >>> model.train(time, roi)
 
-    # Display the optimized model parameters:
-    model.print(round_to=2)
+And that's it. We can now display the fitted model parameters::
 
-To visualise this in more detail we can plot the fits against data:
+    >>> model.print(round_to=2)
+    -----------------------------------------
+    Free parameters with their errors (stdev)
+    -----------------------------------------
+    Plasma volume (vp): 0.05 (0.0) mL/mL
+    Volume transfer constant (Ktrans): 0.003 (0.0) 1/sec
+    Extravascular extracellular volume (ve): 0.3 (0.0) mL/mL
+    Signal scaling factor (S0): 150.007 (0.02) a.u.
+    ------------------
+    Derived parameters
+    ------------------
+    Extracellular mean transit time (Te): 99.771 sec
+    Extravascular transfer constant (kep): 0.01 1/sec
+    Extracellular volume (v): 0.35 mL/mL
 
-.. code-block:: python
-
-    import matplotlib.pyplot as plt
-
-    fig, (ax0, ax1) = plt.subplots(1,2,figsize=(12,5))
-    #
-    ax0.set_title('Prediction of the MRI signals.')
-    ax0.plot(time/60, roi, marker='o', linestyle='None', color='cornflowerblue', label='Data')
-    ax0.plot(time/60, model.predict(time), linestyle='-', linewidth=3.0, color='darkblue', label='Prediction')
-    ax0.set_xlabel('Time (min)')
-    ax0.set_ylabel('MRI signal (a.u.)')
-    ax0.legend()
-    #
-    ax1.set_title('Reconstruction of concentrations.')
-    ax1.plot(gt['t']/60, 1000*gt['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-    ax1.plot(time/60, 1000*model.predict(time, return_conc=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
-    ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-    ax1.plot(time/60, 1000*model.aif_conc(), linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
-    ax1.set_xlabel('Time (min)')
-    ax1.set_ylabel('Concentration (mM)')
-    ax1.legend()
-    #
-    plt.show()
-
-.. plot::
-
-    import matplotlib.pyplot as plt
-    import dcmri as dc
-
-    time, aif, roi, gt = dc.synth_1(CNR=50)
-
-    model = dc.TissueSignal3c(aif,
-        dt = time[1],
-        Hct = 0.45, 
-        agent = 'gadodiamide',
-        field_strength = 3.0,
-        TR = 0.005,
-        FA = 20,
-        R10 = 1.0,
-        R10a = 1/dc.T1(3.0,'blood'),
-        t0 = 15,
-    )
-    model.train(time, roi)
-    model.print(round_to=2)
-
-    fig, (ax0, ax1) = plt.subplots(1,2,figsize=(12,5))
-    #
-    ax0.set_title('Prediction of the MRI signals.')
-    ax0.plot(time/60, roi, marker='o', linestyle='None', color='cornflowerblue', label='Data')
-    ax0.plot(time/60, model.predict(time), linestyle='-', linewidth=3.0, color='darkblue', label='Prediction')
-    ax0.set_xlabel('Time (min)')
-    ax0.set_ylabel('MRI signal (a.u.)')
-    ax0.legend()
-    #
-    ax1.set_title('Reconstruction of concentrations.')
-    ax1.plot(gt['t']/60, 1000*gt['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-    ax1.plot(time/60, 1000*model.predict(time, return_conc=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
-    ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-    ax1.plot(time/60, 1000*model.aif_conc(), linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
-    ax1.set_xlabel('Time (min)')
-    ax1.set_ylabel('Concentration (mM)')
-    ax1.legend()
-    #
-    plt.show()
 
 

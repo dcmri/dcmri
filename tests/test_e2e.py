@@ -1,23 +1,25 @@
 
 import matplotlib.pyplot as plt
 import dcmri as dc
+import numpy as np
+
 #
 # Use `dro_aif_2` to generate synthetic test data from experimentally-derived concentrations:
 #
-time, aif, roi, gt = dc.synth_1(CNR=50)
+time, aif, roi, gt = dc.make_tissue_1()
 #
 # Build a tissue model with the appropriate constants:
 #
-model = dc.TissueSignal3c(aif,
+model = dc.TissueSignal5c(aif,
     dt = time[1],
     Hct = 0.45, 
     agent = 'gadodiamide',
     field_strength = 3.0,
     TR = 0.005,
     FA = 20.0,
-    R10 = 1.0,
-    R10a = 1/dc.T1(3.0, 'blood'),
-    t0 = 15,
+    R10 = 1/dc.T1(3.0,'muscle'),
+    R10b = 1/dc.T1(3.0, 'blood'),
+    t0 = 10,
 )
 #
 # Train the model on the data, and predict concentrations:
@@ -44,5 +46,6 @@ ax1.legend()
 plt.show()
 
 
-model.print(round_to=2, units='custom')
-    
+model.print(round_to=3)
+
+

@@ -1,8 +1,8 @@
 .. _end-to-end models:
 
-*****************
-End-to-end models
-*****************
+*********
+Model zoo
+*********
 
 An overview of all end-to-end models built into `dcmri`. 
 End-to-end models relate tissue parameters directly to measured data 
@@ -16,21 +16,49 @@ Tissue models
 
 This is a collection of models for generic tissue types.
 
+Fast water exchange
+-------------------
+
 .. autosummary::
    :toctree: ../generated/api/
    :template: custom-class-template.rst
    :recursive:
 
    TissueSignal3
+   TissueSignal4
+   TissueSignal5b
+
+No water exchange
+-----------------
+
+.. autosummary::
+   :toctree: ../generated/api/
+   :template: custom-class-template.rst
+   :recursive:
+
    TissueSignal3b
-   TissueSignal3c
+
+
+Intermediate water exchange
+---------------------------
+
+.. autosummary::
+   :toctree: ../generated/api/
+   :template: custom-class-template.rst
+   :recursive:
+
    TissueSignal5
+   TissueSignal5c
+   TissueSignal7
 
 
 Aorta models
 ============
 
 This is a collection of models for aorta data.
+
+Steady-state sequence
+---------------------
 
 .. autosummary::
    :toctree: ../generated/api/
@@ -40,7 +68,27 @@ This is a collection of models for aorta data.
    AortaSignal6
    AortaSignal8
    AortaSignal8b
+
+
+Saturation-recovery sequence
+----------------------------
+
+.. autosummary::
+   :toctree: ../generated/api/
+   :template: custom-class-template.rst
+   :recursive:
+
    AortaSignal8c
+
+
+Two-scan acquisition
+--------------------
+
+.. autosummary::
+   :toctree: ../generated/api/
+   :template: custom-class-template.rst
+   :recursive:
+
    AortaSignal10
 
 
