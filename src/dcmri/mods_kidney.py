@@ -5,6 +5,9 @@ import dcmri as dc
 
 
 class KidneySignal6(dc.Model):
+    """ 
+    Two-compartment filtration model with fast water exchange acquired with a steady-state spoiled gradient echo sequence.
+    """
 
     pars = np.zeros(6)
 
@@ -103,6 +106,9 @@ class KidneySignal6(dc.Model):
 
 
 class KidneySignal9(dc.Model):
+    """ 
+    Plug flow plasma compartment with model-free nephron in fast water exchange acquired with a steady-state spoiled gradient echo sequence.
+    """
 
     pars = np.zeros(9)
 
@@ -210,7 +216,10 @@ class KidneySignal9(dc.Model):
     
 
 class KidneyCMSignal9(dc.Model):
+    """ 
+    Corticomedullary multi-compartment model in fast water exchange acquired with a steady-state spoiled gradient echo sequence.
 
+    """
     pars = np.zeros(9)
 
     R10c = 1

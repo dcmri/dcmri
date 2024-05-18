@@ -84,6 +84,16 @@ Two-parameter models
    prop_chain
 
 
+*Plug-flow compartment*
+-----------------------
+
+.. autosummary::
+   :toctree: ../generated/api/
+   :template: autosummary.rst
+
+   flux_pfcomp
+
+
 *Step*
 ------
 

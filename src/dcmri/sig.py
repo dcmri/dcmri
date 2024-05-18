@@ -1,3 +1,4 @@
+import math
 from scipy.linalg import expm
 import numpy as np
 import dcmri as dc
@@ -9,6 +10,31 @@ def signal_spgress(R1, S0, TR, FA):
     E = np.exp(-np.multiply(TR,R1))
     cFA = np.cos(FA*np.pi/180)
     return S0 * (1-E) / (1-cFA*E)
+
+def conc_spgress(S, TR=0.005, FA=20, T10=1, r1=0.005, n0=1):
+    """
+    Calculates the tracer concentration from a spoiled gradient-echo signal.
+
+    Arguments
+    ---------
+        S: Signal S(C) at concentration C
+        S0: Precontrast signal S(C=0)
+        FA: Flip angle in degrees
+        TR: Repetition time TR in sec (=time between two pulses)
+        T10: Precontrast T10 in sec
+        r1: Relaxivity in Hz/M
+
+    Returns
+    -------
+        Concentration in mM
+    """
+    Sb = np.mean(S[:n0])
+    E = math.exp(-TR/T10)
+    c = math.cos(FA*math.pi/180)
+    Sn = (S/Sb)*(1-E)/(1-c*E)	#normalized signal
+    R1 = -np.log((1-Sn)/(1-c*Sn))/TR	#relaxation rate in 1/msec
+    return (R1 - 1/T10)/r1 
+
 
 def signal_spgress_fex(v, R1, S0, TR, FA):
     R1 = np.sum(np.multiply(v,R1))
@@ -85,6 +111,8 @@ def signal_srspgre(R1, S0, TR, FA, Tsat, TI):
 
     return S_ss*(1-E_center) + S_sat*E_center
 
+
+
 def signal_eqspgre(R1, S0, TR, FA, TI):
     """Selective FLASH readout from equilibrium (inflow model)"""
     #TI is the residence time in the slab
@@ -105,6 +133,30 @@ def signal_sr(R1, S0, TI):
     return S0 * (1-E)
 
 
+def signal_lin(R1, S0):
+    return S0 * R1
+
+def conc_lin(S, T10, r1, n0=1):
+    """
+    Calculates the tracer concentration from a signal that is linear in the concentration.
+
+    Arguments
+    ---------
+        S: Signal S(C) at concentration C
+        S0: Precontrast signal S(C=0)
+        T10: Precontrast T10 in msec
+        r1: Relaxivity in Hz/mM
+
+    Returns
+    -------
+        Concentration in mM
+    """
+    Sb = np.mean(S[:n0])
+    R10 = 1/T10
+    R1 = R10*S/Sb	#relaxation rate in 1/msec
+    return 1000*(R1 - R10)/r1 
+
+
 def sample(t, S, ts, dts): 
     """Sample the signal assuming sample times are at the start of the acquisition"""
 
@@ -117,3 +169,9 @@ def sample(t, S, ts, dts):
         if data.size > 0:
             Ss[k] = np.mean(data)
     return Ss 
+
+def add_noise(signal, sdev):
+    noise_x = np.random.normal(0, sdev, signal.size)
+    noise_y = np.random.normal(0, sdev, signal.size)
+    signal = np.sqrt((signal+noise_x)**2 + noise_y**2)
+    return signal

@@ -422,7 +422,7 @@ def conc_plug(J, T, t=None, dt=1.0, solver='conv'):
         return utils.trapz(J-Jo, t)
 
 
-def flux_plug(J, T, t=None, dt=1.0, solver='conv'):
+def flux_plug(J, T, t=None, dt=1.0, solver='interp'):
     """Indicator flux out of a plug flow system.
 
     A plug flow system is a space with a constant velocity. 
@@ -432,6 +432,7 @@ def flux_plug(J, T, t=None, dt=1.0, solver='conv'):
         T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the system is a trap.
         t (array_like, optional): the time points of the indicator flux J, in the same units as T. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
         dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as T. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+        solver (str, optional): solver for the system, either 'conv' for explicit convolution with a discrete impulse response (slow) or 'interp' for interpolation (fast). Defaults to 'interp'.
 
     Returns:
         numpy.ndarray: outflux as a 1D array.
@@ -1640,7 +1641,20 @@ def flux_nscomp(J, T, t=None, dt=1.0):
     return C/T
 
 
-def flux_pfcomp(J, T, D, t=None, dt=1.0, solver='conv'):
+def flux_pfcomp(J, T, D, t=None, dt=1.0, solver='interp'):
+    """Indicator flux out of a serial arrangement of a plug flow system and a compartment.
+
+    Args:
+        J (array_like): the indicator flux entering the compartment (mmol/sec).
+        T (float): mean transit time of the compartment (sec). Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
+        D (float): Dispersion of the systemd defined as the ratio of the compartmental mean transit time versus the total mean transit time.
+        t (array_like, optional): the time points of the indicator flux J (sec). If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points (sec). This parameter is ignored if t is explicity provided. Defaults to 1.0.
+        solver (str, optional): solver for the system, either 'conv' for explicit convolution with a discrete impulse response (slow) or 'interp' for interpolation (fast). Defaults to 'interp'.
+
+    Returns:
+        np.ndarrayx: Outflux in mmol/sec
+    """
     if D == 0:
         return flux_plug(J, T, t=t, dt=dt, solver=solver)
     if D == 1:

@@ -1,6 +1,6 @@
-****************
-Helper functions
-****************
+*********
+Utilities
+*********
 
 A collection of helper functions available in `dcmri`.
 
@@ -25,8 +25,8 @@ also some faster functions for use in special cases where one or both of the fac
    stepconv
 
 
-Helpers
-=======
+Helper functions
+================
 
 `dcmri` includes a number of convenient wrapper functions useful for building novel models.
 

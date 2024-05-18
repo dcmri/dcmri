@@ -13,4 +13,5 @@ sphinxcontrib-qthelp
 sphinxcontrib-serializinghtml
 sphinx-gallery
 matplotlib
+sphinx-exec-code
 

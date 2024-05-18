@@ -275,3 +275,8 @@ print('PSc:', round(model.pars[4],0), 'mL/sec/mL')
 
 # %%
 # The result is almost exactly the same as before, which indicates that the model has indeed converged and the residual bias is likely due to numerical error. This is plausible, since the general water exchange model is implemented using linear algebra involving operations such as matrix exponentials and numerical matrix inversion, which are likely to come with some numerical error. The exercise here verifies that the impact of these errors on the measurements of the kinetic parameters is negligible - as it should be.  
+
+# %% 
+# Bias versus precision
+# ---------------------
+# 

@@ -26,8 +26,8 @@ from dcmri.wex import *
 from dcmri import sig
 from dcmri.sig import *
 
-from dcmri import sig_inv
-from dcmri.sig_inv import *
+from dcmri import dro
+from dcmri.dro import *
 
 from dcmri import mods_aorta
 from dcmri.mods_aorta import *

@@ -476,14 +476,19 @@ Any remaining bias is smaller than 0.01%, which shows that temporal undersamplin
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 277-277
+.. GENERATED FROM PYTHON SOURCE LINES 277-278
 
 The result is almost exactly the same as before, which indicates that the model has indeed converged and the residual bias is likely due to numerical error. This is plausible, since the general water exchange model is implemented using linear algebra involving operations such as matrix exponentials and numerical matrix inversion, which are likely to come with some numerical error. The exercise here verifies that the impact of these errors on the measurements of the kinetic parameters is negligible - as it should be.  
+
+.. GENERATED FROM PYTHON SOURCE LINES 280-282
+
+Bias versus precision
+---------------------
 
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (1 minutes 52.495 seconds)
+   **Total running time of the script:** (1 minutes 38.240 seconds)
 
 
 .. _sphx_glr_download_generated_examples_e2e_plot_wex.py:

@@ -16,48 +16,75 @@ except:
 
 
 class Model:
-    """Base class for end-to-end models.
+    # Abstract base class for end-to-end models.
 
-    This class contains generic functionality such as curve fitting with extended options 
-    fitting pixel-based data using parallel processing, and more..
+    pars = None     #: Free model parameters.
+    pcov = None     #: Covariance matrix of the free model parameters.
 
-    Raises:
-        NotImplementedError: if a require method is not implemented.
-
-    Returns:
-        Model: instance of the Model class.
-    """
-
-    pars = np.array([])
-    pcov = None
-
-    def __init__(self, pars='default', **const):
+    def __init__(self, pars='default', **attr):
         if isinstance(pars, str):
             self.pars = self.pars0(pars)
         else:
             self.pars = pars
-        for attr in const:
-            self.__dict__[attr] = const[attr] 
+        self.pcov = np.zeros((len(self.pars),len(self.pars)))
+        for a in attr:
+            self.__dict__[a] = attr[a] 
 
-    def predict(self, xdata, **kwargs):
-        msg = 'Problem: no output method defined.' 
+    def predict(self, xdata)->np.ndarray:
+        """Use the model to predict ydata for given xdata.
+
+        Args:
+            xdata (array-like): time points where the ydata are to be calculated.
+        
+        Returns:
+            np.ndarray: array with predicted values, same length as xdata. 
+        """
+        msg = 'No predict method defined.' 
         raise NotImplementedError(msg)
     
-    def pars0(self, settings='default'):
+    def pars0(self, settings='default')->np.ndarray:
+        """Values for the free parameters.
+
+        Args:
+            settings (str or array-like, optional):Either a string to specify which parameters to set, or an explicit array of values. Defaults to 'default'.
+
+        Returns:
+            np.ndarray: Array with parameter values. 
+        """
         return np.zeros(len(self.pars))
     
-    def bounds(self, settings='default'):
-        return (-np.inf, np.inf)
+    def bounds(self, settings='default')->tuple:
+        """Reasonable bounds for the free parameters.
 
-    def initialize(self, *args, **kwargs):
-        self.pars = self.pars0(*args, **kwargs)
-        return self
+        Args:
+            settings (str or tuple, optional): A string describing which set of initial values to use. Defaults to 'default'.
+
+        Returns:
+            tuple: 2-element tuple (lb, up) where each element is either an array with values (one for each parameter) or a single value (when each parameter has the same bound).
+        """
+        return (-np.inf, np.inf)
     
     def train(self, xdata, ydata, p0=None,
             bounds='default',
             pfix=None, xrange=None, xvalid=None, 
             **kwargs):
+        """Train the free parameters of the model using the data provided.
 
+        After training, the attribute ``pars`` will contain the updated parameter values, and ``popt`` contains the covariance matrix. The function uses the scipy function `scipy.optimize.curve_fit`, but has some additional keywords for convenience during model prototyping. 
+
+        Args:
+            xdata (array-like): Array with x-data (time points).
+            ydata (array-like): Array with y-data (signal data)
+            p0 (array-like, optional): Initial values for the free parameters. Defaults to None.
+            bounds (str or tuple, optional): String or tuple defining the parameter bounds to be used whil training. The tuple must have 2 elements where each element is either an array with values (one for each parameter) or a single value (when each parameter has the same bound). Defaults to 'default'.
+            pfix (array-like, optional): Binary array defining which parameters should be held fixed during training (value=1) or which to fit (value=0). If not provided, all free parameters are fitted. Defaults to None.
+            xrange (array-like, optional): tuple of two values [xmin, xmax] showing lower and upper x-values to use for fitting. This parameters is useful to exclude particular ranges to be used in the training. If not provided, all x-values are used for training. Defaults to None.
+            xvalid (array-like, optional): Binary array defining which xdata to use for training, with avlues of either 1 (use) or 0 (don't use). This parameter is useful to exclude individual x-values from the fit, e.g. because the data are corrupted. If not provided, all x-values are used for training. Defaults to None.
+            kwargs: any keyword parameters accepted by `scipy.optimize.curve_fit`.
+
+        Returns:
+            Model: A reference to the model instance.
+        """
         if isinstance(bounds, str):
             bounds = self.bounds(bounds)
         if p0 is None:
@@ -74,7 +101,19 @@ class Model:
          
         return self
     
-    def cost(self, xdata, ydata, xrange=None, xvalid=None, metric='NRMS'):
+    def cost(self, xdata, ydata, xrange=None, xvalid=None, metric='NRMS')->float:
+        """Goodness-of-fit value.
+
+        Args:
+            xdata (array-like): Array with x-data (time points).
+            ydata (array-like): Array with y-data (signal values)
+            xrange (array-like, optional): tuple of two values [xmin, xmax] showing lower and upper x-values to use for fitting. This parameters is useful to exclude particular ranges to be used in the training. If not provided, all x-values are used for training. Defaults to None.
+            xvalid (array-like, optional): Binary array defining which xdata to use for training, with avlues of either 1 (use) or 0 (don't use). This parameter is useful to exclude individual x-values from the fit, e.g. because the data are corrupted. If not provided, all x-values are used for training. Defaults to None.
+            metric (str, optional): Which metric to use - options are 'NRMS' (Normalized root-mean-square), 'AIC' (Akaike information criterion) or 'BIC' (Baysian information criterion). Defaults to 'NRMS'.
+
+        Returns:
+            float: goodness of fit.
+        """
         # Predict data at all xvalues
         y = self.predict(xdata)
         # Identify x- and y-values that are fitted
@@ -88,7 +127,15 @@ class Model:
             return
         return loss
 
-    def pfree(self, units='standard'):
+    def pfree(self, units='standard')->list:
+        """Free parameters with descriptions.
+
+        Args:
+            units (str, optional): Which unit system to use in the return values. Defaults to 'standard'.
+
+        Returns:
+            list: list with one element for each free parameter. The elements are lists themselves providing, for each parameter, [short name, long name, value, unit].
+        """
         # Short name, full name, value, units.
         n = len(self.pars0())
         pars = []
@@ -96,11 +143,53 @@ class Model:
             pars.append(['Par '+str(p), 'Par '+str(p)+' name', self.pars[p], 'Par '+str(p)+' unit'])
         return pars
 
-    def pdep(self, units='standard'):   
+    def pdep(self, units='standard')->list: 
+        """Dependent parameters with descriptions.
+
+        These are parameters that can be derived from free parameters and constants.
+
+        Args:
+            units (str, optional): Which unit system to use in the return values. Defaults to 'standard'.
+
+        Returns:
+            np.ndarray: list with one element for each free parameter. The elements are lists themselves providing, for each parameter, [short name, long name, value, unit].
+        """  
         return []
+    
+    def print(self, round_to=None, units='standard'):
+        """Print a summary of the model parameters and their uncertainties.
+
+        Args:
+            rount_to (int, optional): Round to how many digits. If this is not provided, the values are not rounded. Defaults to None.
+            units (str, optional): Which unit system to use in the return values. Defaults to 'standard'.
+        """
+        print('-----------------------------------------')
+        print('Free parameters with their errors (stdev)')
+        print('-----------------------------------------')
+        perr = np.sqrt(np.diag(self.pcov))
+        for i, p in enumerate(self.pfree(units=units)):
+            if round_to is None:
+                v = p[2]
+                verr = perr[i]
+            else:
+                v = round(p[2], round_to)
+                verr = round(perr[i], round_to)
+            print(p[1] + ': ' + str(v) + ' (' + str(verr) + ') ' + p[3])
+        pars = self.pdep(units=units)
+        if pars == []:
+            return
+        print('------------------')
+        print('Derived parameters')
+        print('------------------')
+        for i, p in enumerate(pars):
+            if round_to is None:
+                v = p[2]
+            else:
+                v = round(p[2], round_to)
+            print(p[1] + ': ' + str(v) + ' ' + p[3])
 
     # rename to train_array
-    def fit_image(self, imgs:np.ndarray, xdata=None, xtol=1e-3, bounds=False, parallel=True, **kwargs):
+    def _fit_image(self, imgs:np.ndarray, xdata=None, xtol=1e-3, bounds=False, parallel=True, **kwargs):
         """Fit a single-pixel model pixel-by-pixel to a 2D or 3D image"""
         
         # Reshape to (x,t)
@@ -130,8 +219,6 @@ class Model:
         par = par.reshape(shape[:-1] + (npars,))
         
         return fit, par
-    
-
     
 
 def xfit(xdata, xrange=None, xvalid=None):

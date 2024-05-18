@@ -3,6 +3,9 @@ import dcmri as dc
 
 
 class LiverSignal5(dc.Model):
+    """ 
+    Plug-flow two-compartment filtration model in fast wwater exchange acquired with a steady-state spoiled gradient echo sequence in steady state.
+    """
 
     pars = np.zeros(5)
 
@@ -101,6 +104,9 @@ class LiverSignal5(dc.Model):
        
 
 class LiverSignal9(dc.Model):
+    """ 
+    Serial arrangement of a plug-flow system and a compartment for the extracellular space with a non-stationary compartment for the hepatocytes, fast water exchange and a two-scan spoiled gradient echo acquisition in steady-state.
+    """
 
     pars = np.zeros(9)
 

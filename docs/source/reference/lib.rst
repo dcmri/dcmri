@@ -7,6 +7,17 @@ Constants and special functions available in `dcmri`.
 .. currentmodule:: dcmri
 
 
+Digital reference objects
+=========================
+
+.. autosummary::
+   :toctree: ../generated/api/
+   :template: autosummary.rst
+
+   synth_1
+
+
+
 Special functions
 =================
 
@@ -14,7 +25,6 @@ Special functions
 .. autosummary::
    :toctree: ../generated/api/
    :template: autosummary.rst
-
 
    influx_step
    aif_parker
