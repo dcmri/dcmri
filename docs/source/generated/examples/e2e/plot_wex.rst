@@ -30,7 +30,7 @@ The three tissue compartments involved are the blood, interstitium and tissue ce
 
 Simulation setup
 ----------------
-First we set up the simulation by importing the necessary packages and defining the constants that will be fixed throughout. The script uses the models `~dcmri.AortaSignal8b` (arterial input function), `~dcmri.TissueSignal3` (fast water exchange), `~dcmri.TissueSignal3b` (no water exchange) and `~dcmri.TissueSignal5` (any water exchange). The models are renamed at import for code readability, using a naming convention that is unambiguous within the scope of this script. 
+First we set up the simulation by importing the necessary packages and defining the constants that will be fixed throughout. The script uses the models `~dcmri.AortaSignal8b` (arterial input function), `~dcmri.EToftsFXSSC` (fast water exchange), `~dcmri.EToftsNXSSC` (no water exchange) and `~dcmri.EToftsSSC` (any water exchange). The models are renamed at import for code readability, using a naming convention that is unambiguous within the scope of this script. 
 
 .. GENERATED FROM PYTHON SOURCE LINES 17-52
 
@@ -42,9 +42,9 @@ First we set up the simulation by importing the necessary packages and defining 
 
     # Renaming the models for code clarity
     from dcmri import AortaSignal8b as AIF      # Arterial input function
-    from dcmri import TissueSignal3 as FWX      # Fast water exchange
-    from dcmri import TissueSignal3b as NWX     # No water exchange
-    from dcmri import TissueSignal5 as AWX      # Any water exchange
+    from dcmri import EToftsFXSSC as FWX      # Fast water exchange
+    from dcmri import EToftsNXSSC as NWX     # No water exchange
+    from dcmri import EToftsSSC as AWX      # Any water exchange
 
     # The constants defining the signal model and simulation settings
     const = {
@@ -53,7 +53,6 @@ First we set up the simulation by importing the necessary packages and defining 
         'dt': 0.5,                  # Pseudo-continuous time interval (sec)
         'agent': 'gadoxetate',      # Contrast agent
         'field_strength': 3.0,      # Magnetic field strength (T)
-        'S0': 100,                  # Signal scaling factor (a.u.)
     }
 
     # Time axes for the acquisition and forward simulations
@@ -62,10 +61,11 @@ First we set up the simulation by importing the necessary packages and defining 
 
     # A population-based AIF derived from the TRISTAN healthy volunteer population
     aorta = AIF('TRISTAN', R10=1/dc.T1(3,'blood'), **const)
-    const['cb'] = aorta.predict(tsim, return_conc=True)
+    cb = aorta.predict(tsim, return_conc=True)
 
     # The ground-truth kinetic parameters of the extended Tofts model
     ptruth = np.array([
+        1,        # S0 (a.u.)
         0.05,       # vp (mL/mL)
         0.3/60,     # Ktrans (mL/sec/mL)
         0.3,        # ve (mL/mL)
@@ -90,10 +90,10 @@ We'll start by exploring how the level of water exchange affects the measured si
 
 
     # Signal in the fast water exchange limit (all barriers fully transparent to water)
-    ffx = FWX(ptruth, **const).predict(tacq)
+    ffx = FWX(cb, ptruth, **const).predict(tacq)
 
     # Signal in the no water exchange limit (all barriers impermeable to water)
-    nnx = NWX(ptruth, **const).predict(tacq)
+    nnx = NWX(cb, ptruth, **const).predict(tacq)
 
 
 
@@ -115,7 +115,7 @@ In the first instance we consider a (hypothetical) tissue without transendotheli
 
     # Signal without transendothelial water exchange, but fast transcytolemmal water exchange
     PSe, PSc = 0, 1000
-    nfx = AWX(list(ptruth)+[PSe,PSc], **const).predict(tacq) 
+    nfx = AWX(cb, list(ptruth)+[PSe,PSc], **const).predict(tacq) 
 
 
 
@@ -135,7 +135,7 @@ Next we consider the alternative scenario where the endothelium is transparent t
 
     # Signal with fast transendothelial water exchange, but without transcytolemmal water exchange
     PSe, PSc = 1000, 0
-    fnx = AWX(list(ptruth)+[PSe,PSc], **const).predict(tacq)
+    fnx = AWX(cb, list(ptruth)+[PSe,PSc], **const).predict(tacq)
 
 
 
@@ -155,7 +155,7 @@ An intermediate situation arises if neither of the water permeabilities is eithe
 
     # Signal with intermediate transendothelial and transcytolemmal water exchange
     PSe, PSc = 1, 2
-    iix = AWX(list(ptruth)+[PSe,PSc], **const).predict(tacq)
+    iix = AWX(cb, list(ptruth)+[PSe,PSc], **const).predict(tacq)
 
 
 
@@ -240,7 +240,7 @@ One way to explore the scale of the water exchange bias is by generating data fo
 
 
     # Launch a no-exchange model with default settings for the free parameters
-    model = NWX(**const)
+    model = NWX(cb, **const)
 
     # Predict the signal using the untrained model as a reference
     nnx0 = model.predict(tacq)
@@ -268,9 +268,9 @@ One way to explore the scale of the water exchange bias is by generating data fo
     # Print the parameter bias
     print('Bias in kinetic model parameters')
     print('--------------------------------')
-    print('vp error:', round(bias[0],1), '%')
-    print('ve error:', round(bias[2],1), '%')
-    print('Ktrans error:', round(bias[1],1), '%')
+    print('vp error:', round(bias[1],1), '%')
+    print('ve error:', round(bias[3],1), '%')
+    print('Ktrans error:', round(bias[2],1), '%')
 
 
 
@@ -287,9 +287,9 @@ One way to explore the scale of the water exchange bias is by generating data fo
 
     Bias in kinetic model parameters
     --------------------------------
-    vp error: 19.1 %
-    ve error: 3.6 %
-    Ktrans error: 2.1 %
+    vp error: 19.5 %
+    ve error: 3.9 %
+    Ktrans error: 2.3 %
 
 
 
@@ -310,7 +310,7 @@ The model bias can be removed by generalizing the model to allow for any level o
 
 
     # Launch a general water exchange model with default settings for all free parameters
-    model = AWX(**const)
+    model = AWX(cb, **const)
 
     # Predict the signal using the untrained model as a reference
     iix0 = model.predict(tacq)
@@ -320,7 +320,7 @@ The model bias can be removed by generalizing the model to allow for any level o
     iix1 = model.train(tacq, ffx, xtol=1e-2).predict(tacq)
 
     # Calculate the bias in the fitted parameters
-    bias = 100*(model.pars[:3]-ptruth)/ptruth
+    bias = 100*(model.pars[:4]-ptruth)/ptruth
 
     # Plot the model fits
     fig, ax0 = plt.subplots(1,1,figsize=(6,5))
@@ -336,16 +336,16 @@ The model bias can be removed by generalizing the model to allow for any level o
     # Print the parameter bias
     print('Bias in kinetic model parameters')
     print('--------------------------------')
-    print('vp error:', round(bias[0],2), '%')
-    print('ve error:', round(bias[2],2), '%')
-    print('Ktrans error:', round(bias[1],2), '%')
+    print('vp error:', round(bias[1],2), '%')
+    print('ve error:', round(bias[3],2), '%')
+    print('Ktrans error:', round(bias[2],2), '%')
 
     # Print the water permeability estimates
     print('')
     print('Water permeability estimates')
     print('----------------------------')
-    print('PSe:', round(model.pars[3],0), 'mL/sec/mL')
-    print('PSc:', round(model.pars[4],0), 'mL/sec/mL')
+    print('PSe:', round(model.pars[4],0), 'mL/sec/mL')
+    print('PSc:', round(model.pars[5],0), 'mL/sec/mL')
 
 
 
@@ -364,12 +364,12 @@ The model bias can be removed by generalizing the model to allow for any level o
     --------------------------------
     vp error: 0.18 %
     ve error: 0.03 %
-    Ktrans error: 0.02 %
+    Ktrans error: 0.03 %
 
     Water permeability estimates
     ----------------------------
-    PSe: 106.0 mL/sec/mL
-    PSc: 227.0 mL/sec/mL
+    PSe: 105.0 mL/sec/mL
+    PSc: 207.0 mL/sec/mL
 
 
 
@@ -396,17 +396,17 @@ We can get some insight by fitting the data with an unbiased model, i.e. fitting
 
 
     # Train a fast-exchange model on the fast exchange data
-    model = FWX(**const).train(tacq, ffx)
+    model = FWX(cb, **const).train(tacq, ffx)
 
     # Calculate the bias relative to the ground truth
-    bias = (model.pars[:3]-ptruth)/ptruth
+    bias = (model.pars[:4]-ptruth)/ptruth
 
     # Print the bias for each kinetic parameter
     print('Bias in kinetic model parameters')
     print('--------------------------------')
-    print('vp error:', round(bias[0],2), '%')
-    print('ve error:', round(bias[2],2), '%')
-    print('Ktrans error:', round(bias[1],2), '%')
+    print('vp error:', round(bias[1],2), '%')
+    print('ve error:', round(bias[3],2), '%')
+    print('Ktrans error:', round(bias[2],2), '%')
 
 
 
@@ -419,8 +419,8 @@ We can get some insight by fitting the data with an unbiased model, i.e. fitting
     Bias in kinetic model parameters
     --------------------------------
     vp error: 0.0 %
-    ve error: 0.0 %
-    Ktrans error: 0.0 %
+    ve error: -0.0 %
+    Ktrans error: -0.0 %
 
 
 
@@ -435,24 +435,24 @@ Any remaining bias is smaller than 0.01%, which shows that temporal undersamplin
 
 
     # Train a general water exchange model to fast exchange data:
-    model = AWX(**const).train(tacq, ffx, xtol=1e-9)
+    model = AWX(cb, **const).train(tacq, ffx, xtol=1e-9)
 
     # Calculate the bias in the fitted parameters
-    bias = 100*(model.pars[:3]-ptruth)/ptruth
+    bias = 100*(model.pars[:4]-ptruth)/ptruth
 
     # Print the parameter bias
     print('Bias in kinetic model parameters')
     print('--------------------------------')
-    print('vp error:', round(bias[0],2), '%')
-    print('ve error:', round(bias[2],2), '%')
-    print('Ktrans error:', round(bias[1],2), '%')
+    print('vp error:', round(bias[1],2), '%')
+    print('ve error:', round(bias[3],2), '%')
+    print('Ktrans error:', round(bias[2],2), '%')
 
     # Print the water permeability estimates
     print('')
     print('Water permeability estimates')
     print('----------------------------')
-    print('PSe:', round(model.pars[3],0), 'mL/sec/mL')
-    print('PSc:', round(model.pars[4],0), 'mL/sec/mL')
+    print('PSe:', round(model.pars[4],0), 'mL/sec/mL')
+    print('PSc:', round(model.pars[5],0), 'mL/sec/mL')
 
 
 
@@ -464,14 +464,14 @@ Any remaining bias is smaller than 0.01%, which shows that temporal undersamplin
 
     Bias in kinetic model parameters
     --------------------------------
-    vp error: 0.17 %
+    vp error: 0.18 %
     ve error: 0.03 %
-    Ktrans error: 0.02 %
+    Ktrans error: 0.03 %
 
     Water permeability estimates
     ----------------------------
-    PSe: 107.0 mL/sec/mL
-    PSc: 227.0 mL/sec/mL
+    PSe: 105.0 mL/sec/mL
+    PSc: 207.0 mL/sec/mL
 
 
 
@@ -488,7 +488,7 @@ Bias versus precision
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (1 minutes 38.240 seconds)
+   **Total running time of the script:** (0 minutes 54.925 seconds)
 
 
 .. _sphx_glr_download_generated_examples_e2e_plot_wex.py:

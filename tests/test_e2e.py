@@ -6,11 +6,11 @@ import numpy as np
 #
 # Use `dro_aif_2` to generate synthetic test data from experimentally-derived concentrations:
 #
-time, aif, roi, gt = dc.make_tissue_1()
+time, aif, roi, gt = dc.make_tissue_2cm()
 #
 # Build a tissue model with the appropriate constants:
 #
-model = dc.TissueSignal5c(aif,
+model = dc.ToftsSS(aif,
     dt = time[1],
     Hct = 0.45, 
     agent = 'gadodiamide',

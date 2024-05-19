@@ -1,7 +1,7 @@
 import numpy as np
 import dcmri as dc
 
-def make_tissue_1(
+def make_tissue_2cm(
         tacq = 180, 
         dt = 1.5,
         BAT = 20,

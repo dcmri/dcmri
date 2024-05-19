@@ -1,8 +1,8 @@
 .. _end-to-end models:
 
-*********
-Model zoo
-*********
+***************
+Model catalogue
+***************
 
 An overview of all end-to-end models built into `dcmri`. 
 End-to-end models relate tissue parameters directly to measured data 
@@ -11,10 +11,11 @@ and have in-built functionality to fit the models to the data.
 .. currentmodule:: dcmri
 
 
-Tissue models
-=============
+Tissue models - measured input
+==============================
 
-This is a collection of models for generic tissue types.
+Models for generic 2-site exchange tissues where the AIF is measured and available as signal-time curves.
+
 
 Fast water exchange
 -------------------
@@ -24,9 +25,13 @@ Fast water exchange
    :template: custom-class-template.rst
    :recursive:
 
-   TissueSignal3
-   TissueSignal4
-   TissueSignal5b
+   OneCompFXSS
+   PatlakFXSS
+   ToftsFXSS
+   EToftsFXSS
+   TwoCompUptSS
+   TwoCompExchFXSS
+
 
 No water exchange
 -----------------
@@ -36,26 +41,50 @@ No water exchange
    :template: custom-class-template.rst
    :recursive:
 
-   TissueSignal3b
+   OneCompNXSS
+   PatlakNXSS
+   ToftsNXSS
+   EToftsNXSS
+   TwoCompUptNXSS
+   TwoCompExchNXSS
 
 
-Intermediate water exchange
----------------------------
+Any water exchange
+------------------
 
 .. autosummary::
    :toctree: ../generated/api/
    :template: custom-class-template.rst
    :recursive:
 
-   TissueSignal5
-   TissueSignal5c
-   TissueSignal7
+   UptSS
+   OneCompSS
+   PatlakSS
+   ToftsSS
+   EToftsSS
+   TwoCompUptSS
+   TwoCompExchSS
+
+
+Tissue models - known input
+===========================
+
+Models for generic 2-site exchange tissues where the concentrations at the inlet are known, such as when population-average input concentrations are used, or when the concentration at the inlet has been derived from data by a separate procedure.
+
+.. autosummary::
+   :toctree: ../generated/api/
+   :template: custom-class-template.rst
+   :recursive:
+
+   EToftsFXSSC
+   EToftsNXSSC
+   EToftsSSC
 
 
 Aorta models
 ============
 
-This is a collection of models for aorta data.
+Whole-body models for arterial signals.
 
 Steady-state sequence
 ---------------------
@@ -95,7 +124,7 @@ Two-scan acquisition
 Kidney models
 =============
 
-This is a collection of models for kidney data.
+Models for kidney signals.
 
 .. autosummary::
    :toctree: ../generated/api/
@@ -110,7 +139,7 @@ This is a collection of models for kidney data.
 Liver models
 ============
 
-This is a collection of models for liver data.
+Models for liver signals.
 
 .. autosummary::
    :toctree: ../generated/api/

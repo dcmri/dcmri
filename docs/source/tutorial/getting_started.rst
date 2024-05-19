@@ -2,19 +2,19 @@
 Getting started
 ***************
 
-``dcmri`` includes a collection of end-to-end models that provide an easy way to fit DC-MRI data. To illustrate how these work, let's start by importing the package::
+``dcmri`` includes a catalogue of end-to-end models that provide an easy way to fit DC-MRI data. To illustrate how these work, let's start by importing the package::
 
     >>> import dcmri as dc
     
-Generate some synthetic data using one of the built-in functions `dcmri.make_tissue_1`::
+Generate some synthetic data using one of the built-in functions `dcmri.make_tissue_2cm`::
 
-    >>> time, aif, roi, _ = dc.make_tissue_1()
+    >>> time, aif, roi, _ = dc.make_tissue_2cm()
 
 Here *time* is an array of time points, *aif* is a signal-time curve measured in a feeding artery at those times, and *roi* is a signal-time curve measured in a region of interest. 
 
-Next we find a suitable model from the :ref:`model zoo <end-to-end models>` and initialize it::
+Next we find a suitable model from the :ref:`model catalogue <end-to-end models>` and initialize it::
 
-    >>> model = dc.TissueSignal4(aif,
+    >>> model = dc.EToftsFXSS(aif,
     >>>    dt = time[1],
     >>>    agent = 'gadodiamide',
     >>>    field_strength = 3.0,
