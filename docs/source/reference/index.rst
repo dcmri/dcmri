@@ -16,6 +16,7 @@ This reference manual details all functions included in dcMRI, describing what t
    e2e
    sig
    pkmods
+   wbmods
    pk
    lib
    tools

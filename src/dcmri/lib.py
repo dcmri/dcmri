@@ -78,9 +78,14 @@ def ca_conc(agent:str)->float:
 
     Example:
 
-        >>> import dcmri as dc
-        >>> print('gadobutrol is available in a solution of', dc.ca_conc('gadobutrol'), 'M')
-        gadobutrol is available in a solution of 1.0 M
+        Print the concentration of the agents gadobutrol and gadoterate:
+
+    .. exec_code::
+
+        import dcmri as dc
+
+        print('gadobutrol is available in a solution of', dc.ca_conc('gadobutrol'), 'M')
+        print('gadoterate is available in a solution of', dc.ca_conc('gadoterate'), 'M')
     """    
     if agent == 'gadoxetate':
         return 0.25     # mmol/mL

@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import dcmri as dc
 
 # Renaming the models for code clarity
-from dcmri import AortaSignal8b as AIF      # Arterial input function
+from dcmri import AortaSignal8 as AIF      # Arterial input function
 from dcmri import EToftsFXSSC as FWX      # Fast water exchange
 from dcmri import EToftsNXSSC as NWX     # No water exchange
 from dcmri import EToftsSSC as AWX      # Any water exchange

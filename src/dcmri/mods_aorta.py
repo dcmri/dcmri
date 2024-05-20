@@ -123,7 +123,7 @@ class AortaSignal6(dc.Model):
         t = np.arange(0, max(xdata)+xdata[1]+self.dt, self.dt)
         conc = dc.ca_conc(self.agent)
         Ji = dc.influx_step(t, self.weight, conc, self.dose, self.rate, BAT) 
-        Jb = dc.aorta_flux_chc(Ji, 
+        _, Jb = dc.body_flux_chc(Ji, 
                 T_hl, D_hl,
                 Tp_o,
                 E_b, 
@@ -310,7 +310,7 @@ class AortaSignal8(dc.Model):
         t = np.arange(0, max(xdata)+xdata[1]+self.dt, self.dt)
         conc = dc.ca_conc(self.agent)
         Ji = dc.influx_step(t, self.weight, conc, self.dose, self.rate, BAT) 
-        Jb = dc.aorta_flux_ch2c(Ji, 
+        _, Jb = dc.body_flux_ch2c(Ji, 
                 T_hl, D_hl,
                 E_o, Tp_o, Te_o,
                 E_b, 
@@ -503,7 +503,7 @@ class AortaSignal8b(dc.Model):
         t = np.arange(0, max(xdata)+xdata[1]+self.dt, self.dt)
         conc = dc.ca_conc(self.agent)
         Ji = dc.influx_step(t, self.weight, conc, self.dose, self.rate, BAT) 
-        Jb = dc.aorta_flux_ch2c(Ji, 
+        _, Jb = dc.body_flux_ch2c(Ji, 
                 T_hl, D_hl,
                 E_o, Tp_o, Te_o,
                 E_b, 
@@ -699,7 +699,7 @@ class AortaSignal10(dc.Model):
         conc = dc.ca_conc(self.agent)
         J1 = dc.influx_step(t, self.weight, conc, self.dose[0], self.rate, BAT1)
         J2 = dc.influx_step(t, self.weight, conc, self.dose[1], self.rate, BAT2)
-        Jb = dc.aorta_flux_ch2c(J1 + J2,
+        _, Jb = dc.body_flux_ch2c(J1 + J2,
                 T_hl, D_hl,
                 E_o, Tp_o, Te_o,
                 E_b, 

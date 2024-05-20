@@ -41,7 +41,7 @@ First we set up the simulation by importing the necessary packages and defining 
     import dcmri as dc
 
     # Renaming the models for code clarity
-    from dcmri import AortaSignal8b as AIF      # Arterial input function
+    from dcmri import AortaSignal8 as AIF      # Arterial input function
     from dcmri import EToftsFXSSC as FWX      # Fast water exchange
     from dcmri import EToftsNXSSC as NWX     # No water exchange
     from dcmri import EToftsSSC as AWX      # Any water exchange
@@ -362,14 +362,14 @@ The model bias can be removed by generalizing the model to allow for any level o
 
     Bias in kinetic model parameters
     --------------------------------
-    vp error: 0.18 %
-    ve error: 0.03 %
-    Ktrans error: 0.03 %
+    vp error: 0.22 %
+    ve error: 0.04 %
+    Ktrans error: 0.04 %
 
     Water permeability estimates
     ----------------------------
-    PSe: 105.0 mL/sec/mL
-    PSc: 207.0 mL/sec/mL
+    PSe: 89.0 mL/sec/mL
+    PSc: 160.0 mL/sec/mL
 
 
 
@@ -464,14 +464,14 @@ Any remaining bias is smaller than 0.01%, which shows that temporal undersamplin
 
     Bias in kinetic model parameters
     --------------------------------
-    vp error: 0.18 %
-    ve error: 0.03 %
-    Ktrans error: 0.03 %
+    vp error: 0.22 %
+    ve error: 0.04 %
+    Ktrans error: 0.04 %
 
     Water permeability estimates
     ----------------------------
-    PSe: 105.0 mL/sec/mL
-    PSc: 207.0 mL/sec/mL
+    PSe: 89.0 mL/sec/mL
+    PSc: 160.0 mL/sec/mL
 
 
 
@@ -488,7 +488,7 @@ Bias versus precision
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 54.925 seconds)
+   **Total running time of the script:** (0 minutes 32.180 seconds)
 
 
 .. _sphx_glr_download_generated_examples_e2e_plot_wex.py:

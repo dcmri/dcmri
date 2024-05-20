@@ -175,31 +175,40 @@ def conc_tofts(ca, Ktrans, ve, t=None, dt=1.0, sum=True):
         `flux_tofts`
 
     Note:
-        The concentration 'C[0,:]' in the plasma compartment of a Tofts model is always zero by definition.
+        The concentration C[0,:] in the plasma compartment of a Tofts model is always zero by definition.
 
     Example:
-        >>> import numpy as np
-        >>> import dcmri as dc
 
-        Consider a measurement with 10 time points from 0 to 20s, and a constant input concentration of 1mM:
+        Generate a tissue concentration-time curve using the Tofts model:
 
-        >>> t = np.linspace(0, 20, 10)
-        >>> ca = 0.001*np.ones(t.size)
+    .. plot::
+        :include-source:
 
-        The tissue is characterized by Ktrans = 0.1 mL/min/mL, kep = 0.1/min. In the correct units:
+        import matplotlib.pyplot as plt
+        import dcmri as dc
 
-        >>> Ktrans, ve = 0.003, 0.3
+        # Generate a population-average AIF over 120 sec with a 2 sec time step:
+        t = np.arange(0, 120, 2)
+        ca = dc.aif_parker(t, BAT=20)
 
-        Calculate the concentrations in units of mM:
-        
-        >>> C = 1000*dc.conc_tofts(ca, Ktrans, ve, t, sum=False)
+        # The tissue is characterized by Ktrans=0.003 mL/sec/mL, ve=0.3:
+        Ktrans, ve = 0.003, 0.3
 
-        The concentration in the extravascular compartment:
+        # Calculate the concentrations in units of M:
+        C = dc.conc_tofts(ca, Ktrans, ve, t)
 
-        >>> C[1,:]
-        array([0.        , 0.00659314, 0.01304138, 0.0193479 , 0.02551583,
-        0.0315482 , 0.037448  , 0.04321814, 0.04886147, 0.05438077])
+        # The concentration in the extravascular compartment:
+        plt.plot(t/60, 1000*ca, 'r-', label='AIF')
+        plt.plot(t/60, 1000*C, 'b-', label='Tissue')
+        plt.xlabel('Time (min)')
+        plt.ylabel('Plasma concentration (mM)')
+        plt.legend()
+        plt.show()
+
     """
+
+
+    
     Cp = np.zeros(len(ca))
     if Ktrans==0:
         Ce = np.zeros(len(ca))

@@ -1,8 +1,8 @@
 .. _PK mods:
 
-******************************
-Classic pharmacokinetic models
-******************************
+****************
+Tissue PK models
+****************
 
 A collection of common pharmacokinetic models in DC-MRI.
 

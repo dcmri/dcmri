@@ -1,6 +1,6 @@
-***************************
-Signal models and utilities
-***************************
+*****************
+MRI signal models
+*****************
 
 MRI signal models available in `dcmri`, as well as their inverses and some utilities such as sampling and adding noise.
 
