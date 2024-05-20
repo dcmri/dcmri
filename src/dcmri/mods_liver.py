@@ -36,16 +36,16 @@ class LiverSignal5(dc.Model):
         t = self.dt*np.arange(len(self.cb))
         if return_conc:
             return (
-                dc.sample(t, Ce, tacq, tacq[2]-tacq[1]),
-                dc.sample(t, Ch, tacq, tacq[2]-tacq[1]))
+                dc.sample(tacq, t, Ce, tacq[2]-tacq[1]),
+                dc.sample(tacq, t, Ch, tacq[2]-tacq[1]))
         # Return R
         rp = dc.relaxivity(self.field_strength, 'plasma', self.agent)
         rh = dc.relaxivity(self.field_strength, 'hepatocytes', self.agent)
         R1 = self.R10 + rp*Ce + rh*Ch
         if return_rel:
-            return dc.sample(t, R1, tacq, tacq[2]-tacq[1])
-        signal = dc.signal_spgress(R1, self.S0, self.TR, self.FA)
-        return dc.sample(t, signal, tacq, tacq[1]-tacq[0])
+            return dc.sample(tacq, t, R1, tacq[2]-tacq[1])
+        signal = dc.signal_ss(R1, self.S0, self.TR, self.FA)
+        return dc.sample(tacq, t, signal, tacq[1]-tacq[0])
     
     def pars0(self, settings=None):
         if settings == 'TRISTAN':
@@ -68,7 +68,7 @@ class LiverSignal5(dc.Model):
             BAT = time[np.argmax(signal)]-20
         baseline = time[time <= BAT].size
         baseline = max([baseline, 1])
-        Sref = dc.signal_spgress(self.R10, 1, self.TR, self.FA)
+        Sref = dc.signal_ss(self.R10, 1, self.TR, self.FA)
         self.S0 = np.mean(signal[:baseline]) / Sref
 
     def pfree(self, units='standard'):
@@ -141,18 +141,18 @@ class LiverSignal9(dc.Model):
         Ch = dc.conc_nscomp(k_he*ca, 1/Kbh, t)
         if return_conc:
             return (
-                dc.sample(t, Ce, xdata, xdata[2]-xdata[1]),
-                dc.sample(t, Ch, xdata, xdata[2]-xdata[1]))
+                dc.sample(xdata, t, Ce, xdata[2]-xdata[1]),
+                dc.sample(xdata, t, Ch, xdata[2]-xdata[1]))
         # Return R
         rp = dc.relaxivity(self.field_strength, 'plasma', self.agent)
         rh = dc.relaxivity(self.field_strength, 'hepatocytes', self.agent)
         R1 = self.R10 + rp*Ce + rh*Ch
         if return_rel:
-            return dc.sample(t, R1, xdata, xdata[2]-xdata[1])
-        signal = dc.signal_spgress(R1, S01, self.TR, self.FA)
+            return dc.sample(xdata, t, R1, xdata[2]-xdata[1])
+        signal = dc.signal_ss(R1, S01, self.TR, self.FA)
         t2 = (t >= self.tR12)
-        signal[t2] = dc.signal_spgress(R1[t2], S02, self.TR, self.FA)
-        return dc.sample(t, signal, xdata, xdata[1]-xdata[0])
+        signal[t2] = dc.signal_ss(R1[t2], S02, self.TR, self.FA)
+        return dc.sample(xdata, t, signal, xdata[1]-xdata[0])
     
     def pretrain(self, xdata, ydata):
 
@@ -167,12 +167,12 @@ class LiverSignal9(dc.Model):
         # Estimate S01 from data
         baseline = tdce1[tdce1 <= self.BAT1]
         baseline = max([baseline.size, 1])
-        Sref = dc.signal_spgress(self.R10, 1, self.TR, self.FA)
+        Sref = dc.signal_ss(self.R10, 1, self.TR, self.FA)
         S01 = np.mean(Sdce1[:baseline]) / Sref
 
         # Estimate S02 from data
         baseline = int(np.floor(60/(tdce2[1]-tdce2[0])))
-        Sref = dc.signal_spgress(self.R12, 1, self.TR, self.FA)
+        Sref = dc.signal_ss(self.R12, 1, self.TR, self.FA)
         S02 = np.mean(Sdce2[:baseline]) / Sref
 
         self.pars[-2] = S01

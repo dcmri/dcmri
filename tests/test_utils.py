@@ -98,12 +98,12 @@ def test_intprod():
     i = dc.intprod(f, h, t)
     n = 1000
     t1 = np.linspace(t[0],t[1],n)
-    f1 = np.interp(t[0:2], t1, f[0:2])
-    h1 = np.interp(t[0:2], t1, h[0:2])
+    f1 = np.interp(t1, t[0:2], f[0:2])
+    h1 = np.interp(t1, t[0:2], h[0:2])
     i1 = np.trapz(f1*h1, t1)
     t2 = np.linspace(t[1],t[2],n)
-    f2 = np.interp(t[1:3], t2, f[1:3])
-    h2 = np.interp(t[1:3], t2, h[1:3])
+    f2 = np.interp(t2, t[1:3], f[1:3])
+    h2 = np.interp(t2, t[1:3],h[1:3])
     i2 = np.trapz(f2*h2, t2)
     assert (i-(i1+i2))**2/(i1+i2)**2 < 1e-12
 
@@ -115,12 +115,12 @@ def test_intprod():
     i = dc.intprod(f, h, dt=dt)
     n = 1000
     t1 = np.linspace(t[0],t[1],n)
-    f1 = np.interp(t[0:2], t1, f[0:2])
-    h1 = np.interp(t[0:2], t1, h[0:2])
+    f1 = np.interp(t1, t[0:2], f[0:2])
+    h1 = np.interp(t1, t[0:2], h[0:2])
     i1 = np.trapz(f1*h1, t1)
     t2 = np.linspace(t[1],t[2],n)
-    f2 = np.interp(t[1:3], t2, f[1:3])
-    h2 = np.interp(t[1:3], t2, h[1:3])
+    f2 = np.interp(t2, t[1:3], f[1:3])
+    h2 = np.interp(t2, t[1:3], h[1:3])
     i2 = np.trapz(f2*h2, t2)
     assert (i-(i1+i2))**2/(i1+i2)**2 < 1e-12
 
@@ -373,4 +373,4 @@ if __name__ == "__main__":
     test_nexpconv()
     test_biexpconv()
 
-    print('All tools tests passed!!')
+    print('All utils tests passed!!')

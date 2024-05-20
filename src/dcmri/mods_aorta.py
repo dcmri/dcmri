@@ -123,20 +123,20 @@ class AortaSignal6(dc.Model):
         t = np.arange(0, max(xdata)+xdata[1]+self.dt, self.dt)
         conc = dc.ca_conc(self.agent)
         Ji = dc.influx_step(t, self.weight, conc, self.dose, self.rate, BAT) 
-        Jb = dc.aorta_flux_4(Ji, 
+        Jb = dc.aorta_flux_chc(Ji, 
                 T_hl, D_hl,
                 Tp_o,
                 E_b, 
                 dt=self.dt, tol=self.dose_tolerance)
         cb = Jb/CO 
         if return_conc:
-            return dc.sample(t, cb, xdata, xdata[2]-xdata[1])
+            return dc.sample(xdata, t, cb, xdata[2]-xdata[1])
         rp = dc.relaxivity(self.field_strength, 'plasma', self.agent)
         R1 = self.R10 + rp*cb
         if return_rel:
-            return dc.sample(t, R1, xdata, xdata[2]-xdata[1])
-        signal = dc.signal_spgress(R1, self.S0, self.TR, self.FA)
-        return dc.sample(t, signal, xdata, xdata[2]-xdata[1])
+            return dc.sample(xdata, t, R1, xdata[2]-xdata[1])
+        signal = dc.signal_ss(R1, self.S0, self.TR, self.FA)
+        return dc.sample(xdata, t, signal, xdata[2]-xdata[1])
 
     def pars0(self, settings=None):
         if settings == 'TRISTAN':
@@ -163,7 +163,7 @@ class AortaSignal6(dc.Model):
         # Estimate S0 from data
         baseline = xdata[xdata <= BAT-20].size
         baseline = max([baseline, 1])
-        Sref = dc.signal_spgress(self.R10, 1, self.TR, self.FA)
+        Sref = dc.signal_ss(self.R10, 1, self.TR, self.FA)
         self.S0 = np.mean(ydata[:baseline]) / Sref
 
         super().train(xdata, ydata, **kwargs)
@@ -310,20 +310,20 @@ class AortaSignal8(dc.Model):
         t = np.arange(0, max(xdata)+xdata[1]+self.dt, self.dt)
         conc = dc.ca_conc(self.agent)
         Ji = dc.influx_step(t, self.weight, conc, self.dose, self.rate, BAT) 
-        Jb = dc.aorta_flux_6(Ji, 
+        Jb = dc.aorta_flux_ch2c(Ji, 
                 T_hl, D_hl,
                 E_o, Tp_o, Te_o,
                 E_b, 
                 dt=self.dt, tol=self.dose_tolerance)
         cb = Jb/CO 
         if return_conc:
-            return dc.sample(t, cb, xdata, xdata[2]-xdata[1])
+            return dc.sample(xdata, t, cb, xdata[2]-xdata[1])
         rp = dc.relaxivity(self.field_strength, 'plasma', self.agent)
         R1 = self.R10 + rp*cb
         if return_rel:
-            return dc.sample(t, R1, xdata, xdata[2]-xdata[1])
-        signal = dc.signal_spgress(R1, self.S0, self.TR, self.FA)
-        return dc.sample(t, signal, xdata, xdata[2]-xdata[1])
+            return dc.sample(xdata, t, R1, xdata[2]-xdata[1])
+        signal = dc.signal_ss(R1, self.S0, self.TR, self.FA)
+        return dc.sample(xdata, t, signal, xdata[2]-xdata[1])
 
     def pars0(self, settings=None):
         if settings == 'TRISTAN':
@@ -350,7 +350,7 @@ class AortaSignal8(dc.Model):
         # Estimate S0 from data
         baseline = xdata[xdata <= BAT-20].size
         baseline = max([baseline, 1])
-        Sref = dc.signal_spgress(self.R10, 1, self.TR, self.FA)
+        Sref = dc.signal_ss(self.R10, 1, self.TR, self.FA)
         self.S0 = np.mean(ydata[:baseline]) / Sref
 
         super().train(xdata, ydata, **kwargs)
@@ -378,11 +378,10 @@ class AortaSignal8(dc.Model):
             ['Tc', "Mean circulation time", self.pars[5]+self.pars[6], 'sec'],
         ]
     
-  
-class AortaSignal8b(AortaSignal8):
-    """Whole-body aorta model acquired with a spoiled gradient echo sequence in steady-state - suitable for rapidly sampled data with longer acquisition times.
+class AortaSignal8b(dc.Model):
+    """Whole-body aorta model acquired with a spoiled gradient echo sequence in steady-state - suitable for slowly sampled data with longer acquisition times.
 
-    The model represents the body as a leaky loop with a heart-lung system and an organ system. The heart-lung system is modelled as a chain using (`flux_chain`) and the organs are modelled as a two-compartment exchange model using (`flux_2comp`). Bolus injection into the system is modelled as a step function.
+    The model represents the body as a leaky loop with a heart-lung system and an organ system. The heart-lung system is modelled as a plug-flow compartment (`flux_pfcomp`) and the organs are modelled as a two-compartment exchange model (`flux_2comp`). Bolus injection into the system is modelled as a step function.
     
     The 8 free model parameters are:
 
@@ -400,10 +399,7 @@ class AortaSignal8b(AortaSignal8):
         attr: provide values for any attributes as keyword arguments. 
 
     See Also:
-        `AortaSignal6`, `AortaSignal8`, `AortaSignal8c`, `AortaSignal10`
-
-    Note:
-        `AortaSignal8b` is identical to `AortaSignal8` except for the modelling of the heart-lung system, which is a chain in `AortaSignal8b` and a plug-flow compartment in `AortaSignal8`. The rationale for having both alternatives is that the chain model is possibly more realistic, but it also takes longer to train and may be numerically less stable. 
+        `AortaSignal6`, `AortaSignal8b`, `AortaSignal8c`, `AortaSignal10`
 
     Example:
 
@@ -470,150 +466,16 @@ class AortaSignal8b(AortaSignal8):
         Free parameters with their errors (stdev)
         -----------------------------------------
         Bolus arrival time: 22.0 (0.0) sec
-        Cardiac output: 16.02 (5.63) L/min
-        Heart-lung mean transit time: 6.84 (0.12) sec
-        Heart-lung transit time dispersion: 26.66 (0.01) %
-        Extracellular extraction fraction: 20.78 (0.94) %
-        Organs mean transit time: 31.71 (6.73) sec
-        Extracellular mean transit time: 152.33 (1220.28) sec
-        Body extraction fraction: 0.0 (1.31) %
+        Cardiac output: 43.09 (346.04) L/min
+        Heart-lung mean transit time: 3.58 (15.43) sec
+        Heart-lung transit time dispersion: 100.0 (0.24) %
+        Extracellular extraction fraction: 29.49 (37031.3) %
+        Organs mean transit time: 0.0 (20.97) sec
+        Extracellular mean transit time: 43.74 (5491451.89) sec
+        Body extraction fraction: 0.93 (52034.08) %
 
-        *Note*: The training has improved the predictions and provides a good prediction of the measured AIF with parameters values that are mostly realistic. The cardiac output is high but this is a known problem with the experimentally derived AIF used in this example (`Yang et al. 2009 <https://doi.org/10.1002/mrm.21912>`_). The acquisition time is too short to estimate leakage effects, as shown by the high error in extracellular transit time and body extraction fraction.
-    """   
-    def predict(self, xdata, return_conc=False, return_rel= False):
-        """Use the model to predict ydata for given xdata.
-
-        Args:
-            xdata (array-like): time points where the ydata are to be calculated.
-            return_conc (bool, optional): If True, return the concentrations instead of the signal. Defaults to False.
-            return_rel (bool, optional): If True, return the relaxation rate instead of the signal. Defaults to False.
-
-        Returns:
-            np.ndarray: array with predicted values, same length as xdata.
-        """
-        BAT, CO, T_hl, D_hl, E_o, Tp_o, Te_o, E_b = self.pars
-        t = np.arange(0, max(xdata)+xdata[1]+self.dt, self.dt)
-        conc = dc.ca_conc(self.agent)
-        Ji = dc.influx_step(t, self.weight, conc, self.dose, self.rate, BAT) #mmol/sec
-        Jb = dc.aorta_flux_6b(Ji, # mmol/sec
-                T_hl, D_hl,
-                E_o, Tp_o, Te_o,
-                E_b, 
-                dt=self.dt, tol=self.dose_tolerance)
-        cb = Jb/CO  # M = (mmol/sec) / (mL/sec) 
-        if return_conc:
-            return dc.sample(t, cb, xdata, xdata[2]-xdata[1])
-        rp = dc.relaxivity(self.field_strength, 'plasma', self.agent)
-        R1 = self.R10 + rp*cb
-        if return_rel:
-            return dc.sample(t, R1, xdata, xdata[2]-xdata[1])
-        signal = dc.signal_spgress(R1, self.S0, self.TR, self.FA)
-        return dc.sample(t, signal, xdata, xdata[2]-xdata[1])
-    
-
-class AortaSignal8c(dc.Model):
-    """Whole-body aorta model acquired with a saturation-prepared spoiled gradient echo sequence - suitable for rapidly sampled data with longer acquisition times.
-
-    The model represents the body as a leaky loop with a heart-lung system and an organ system. The heart-lung system is modelled as a chain using (`flux_chain`) and the organs are modelled as a two-compartment exchange model using (`flux_2comp`). Bolus injection into the system is modelled as a step function. 
-    
-    The signal model assumes free recovery after a non-selective saturation prepulse, ignoring the effect of read-out pulses. This models the signal in rapidly flowing blood in a slice-selective readout perpendicular to the direction of blood flow.
-    
-    The 8 free model parameters are:
-
-    - *Bolus arrival time* (sec): time point where the indicator first arrives in the body. 
-    - *Cardiac output* (mL/sec): Blood flow through the loop.
-    - *Heart-lung mean transit time* (sec): average time to travel through heart and lungs.
-    - *Heart-lung transit time dispersion*: the transit time through the heart-lung compartment as a fraction of the total transit time through the heart-lung system.
-    - *Extracellular extraction fraction*: Fraction of indicator entoring the organs which is extracted from the blood pool.
-    - *Organs mean blood transit time* (sec): average time to travel through the organ's vasculature.
-    - *Extravascular mean transit time* (sec): average time to travel through the organs extravascular space. 
-    - *Body extraction fraction*: fraction of indicator extracted from the body in a single pass. 
-
-    Args:
-        pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
-
-    See Also:
-        `AortaSignal6`, `AortaSignal8`, `AortaSignal8b`, `AortaSignal10`
-
-    Note:
-        `AortaSignal8c` is identical to `AortaSignal8b` except for the signal model, which is a steady-state model for `AortaSignal8b` and a free recovery model for `AortaSignal8c`. 
-
-    Example:
-
-        Use the model to reconstruct concentrations from experimentally derived signals.
-
-    .. plot::
-        :include-source:
-        :context: close-figs
-    
-        >>> import matplotlib.pyplot as plt
-        >>> import dcmri as dc
-
-        Use `dro_aif_2` to generate synthetic test data from experimentally-derived concentrations:
-
-        >>> time, aif, cb = dc.dro_aif_2()
-        
-        Build an aorta model and set weight, contrast agent, dose and rate to match the conditions of the original experiment (`Parker et al 2006 <https://doi.org/10.1002/mrm.21066>`_):
-
-        >>> aorta = dc.AortaSignal8c(
-        ...     weight = 70,
-        ...     agent = 'gadodiamide',
-        ...     dose = 0.2,
-        ...     rate = 3,
-        ...     field_strength = 3.0,
-        ...     TD = 0.180,
-        ...     R10 = 1/dc.T1(3.0,'blood'),
-        ... )
-
-        Predict concentrations with default parameters, train the model on the data, and predict concentrations again:
-
-        >>> aif0 = aorta.predict(time)
-        >>> cb0 = aorta.predict(time, return_conc=True)
-        >>> aorta.train(time, aif)
-        >>> aif1 = aorta.predict(time)
-        >>> cb1 = aorta.predict(time, return_conc=True)
-
-        Plot the reconstructed signals and concentrations and compare against the experimentally derived data:
-
-        >>> fig, (ax0, ax1) = plt.subplots(1,2,figsize=(12,5))
-        >>> # 
-        >>> ax0.set_title('Prediction of the MRI signals.')
-        >>> ax0.plot(time/60, aif, 'ro', label='Measurement')
-        >>> ax0.plot(time/60, aif0, 'b--', label='Prediction (before training)')
-        >>> ax0.plot(time/60, aif1, 'b-', label='Prediction (after training)')
-        >>> ax0.set_xlabel('Time (min)')
-        >>> ax0.set_ylabel('MRI signal (a.u.)')
-        >>> ax0.legend()
-        >>> # 
-        >>> ax1.set_title('Prediction of the concentrations.')
-        >>> ax1.plot(time/60, 1000*cb, 'ro', label='Measurement')
-        >>> ax1.plot(time/60, 1000*cb0, 'b--', label='Prediction (before training)')
-        >>> ax1.plot(time/60, 1000*cb1, 'b-', label='Prediction (after training)')
-        >>> ax1.set_ylim(0,5)
-        >>> ax1.set_xlabel('Time (min)')
-        >>> ax1.set_ylabel('Blood concentration (mM)')
-        >>> ax1.legend()
-        >>> plt.show()
-
-        We can also have a look at the model parameters after training:
-
-        >>> aorta.print(round_to=2, units='custom')
-        -----------------------------------------
-        Free parameters with their errors (stdev)
-        -----------------------------------------
-        Bolus arrival time: 22.0 (0.0) sec
-        Cardiac output: 16.01 (7.59) L/min
-        Heart-lung mean transit time: 6.62 (0.14) sec
-        Heart-lung transit time dispersion: 28.4 (0.02) %
-        Extracellular extraction fraction: 21.34 (0.72) %
-        Organs mean transit time: 31.42 (6.23) sec
-        Extracellular mean transit time: 142.45 (896.9) sec
-        Body extraction fraction: 0.0 (1.02) %
-
-        *Note*: Results are practically identical as for `AortaSignal8b` because the kinetics are the same and the only difference lies in the signal model.
-    """   
-
+        *Note*: the model provides a poor fit in the first pass, indicating that a compartment model does not adequately model the bolus dispersion through heart and lungs. A simple model of this type may be more useful in data that are sampled at lower temporal resolution, in which case the detailed structure is not visible and the model is more robust than more sophisticated heart-lung models.
+    """         
     dt = 0.5                #: Pseudocontinuous time resolution of the simulation in sec.
     dose_tolerance = 0.1    #: Stopping criterion in the forward simulation of the arterial fluxes.
     weight = 70.0           #: Subject weight in kg.
@@ -621,11 +483,11 @@ class AortaSignal8c(dc.Model):
     dose = 0.025            #: Injected contrast agent dose in mL per kg bodyweight.
     rate = 1                #: Contrast agent injection rate in mL per sec.
     field_strength = 3.0    #: Magnetic field strength in T.
-    TD = 0.180              #: Delay time between prepulse and readout of k-space center, in sec.
+    TC = 0.180              #: To to the center of k-space, in sec.
     R10 = 1.0               #: Precontrast relaxation rate (1/sec).
     S0 = 1                  #: Signal scaling factor in arbitrary units.
 
-    def predict(self, xdata, return_conc=False, return_rel=False):
+    def predict(self, xdata, return_conc=False, return_rel=False) ->np.ndarray:
         """Use the model to predict ydata for given xdata.
 
         Args:
@@ -636,25 +498,26 @@ class AortaSignal8c(dc.Model):
         Returns:
             np.ndarray: array with predicted values, same length as xdata.
         """
+        
         BAT, CO, T_hl, D_hl, E_o, Tp_o, Te_o, E_b = self.pars
         t = np.arange(0, max(xdata)+xdata[1]+self.dt, self.dt)
         conc = dc.ca_conc(self.agent)
         Ji = dc.influx_step(t, self.weight, conc, self.dose, self.rate, BAT) 
-        Jb = dc.aorta_flux_6b(Ji, 
+        Jb = dc.aorta_flux_ch2c(Ji, 
                 T_hl, D_hl,
                 E_o, Tp_o, Te_o,
                 E_b, 
                 dt=self.dt, tol=self.dose_tolerance)
-        cb = Jb/CO
+        cb = Jb/CO 
         if return_conc:
-            return dc.sample(t, cb, xdata, xdata[2]-xdata[1])
+            return dc.sample(xdata, t, cb, xdata[2]-xdata[1])
         rp = dc.relaxivity(self.field_strength, 'plasma', self.agent)
         R1 = self.R10 + rp*cb
         if return_rel:
-            return dc.sample(t, R1, xdata, xdata[2]-xdata[1])
-        signal = dc.signal_sr(R1, self.S0, self.TD)
-        return dc.sample(t, signal, xdata, xdata[2]-xdata[1])
-    
+            return dc.sample(xdata, t, R1, xdata[2]-xdata[1])
+        signal = dc.signal_src(R1, self.S0, self.TC)
+        return dc.sample(xdata, t, signal, xdata[2]-xdata[1])
+
     def pars0(self, settings=None):
         if settings == 'TRISTAN':
             return np.array([60, 100, 10, 0.2, 0.15, 20, 120, 0.05])
@@ -669,7 +532,7 @@ class AortaSignal8c(dc.Model):
             ub = [np.inf, np.inf, np.inf, 1.0, 1.0, np.inf, np.inf, 1.0]
             lb = [0, 0, 0, 0, 0, 0, 0, 0.0]
         return (lb, ub)
-    
+
     def train(self, xdata, ydata, **kwargs):
 
         # Estimate BAT from data
@@ -680,7 +543,7 @@ class AortaSignal8c(dc.Model):
         # Estimate S0 from data
         baseline = xdata[xdata <= BAT-20].size
         baseline = max([baseline, 1])
-        Sref = dc.signal_sr(self.R10, 1, self.TD)
+        Sref = dc.signal_src(self.R10, 1, self.TC)
         self.S0 = np.mean(ydata[:baseline]) / Sref
 
         super().train(xdata, ydata, **kwargs)
@@ -836,22 +699,22 @@ class AortaSignal10(dc.Model):
         conc = dc.ca_conc(self.agent)
         J1 = dc.influx_step(t, self.weight, conc, self.dose[0], self.rate, BAT1)
         J2 = dc.influx_step(t, self.weight, conc, self.dose[1], self.rate, BAT2)
-        Jb = dc.aorta_flux_6b(J1 + J2,
+        Jb = dc.aorta_flux_ch2c(J1 + J2,
                 T_hl, D_hl,
                 E_o, Tp_o, Te_o,
                 E_b, 
                 dt=self.dt, tol=self.dose_tolerance)
         cb = Jb/CO
         if return_conc:
-            return dc.sample(t, cb, xdata, xdata[2]-xdata[1])
+            return dc.sample(xdata, t, cb, xdata[2]-xdata[1])
         rp = dc.relaxivity(self.field_strength, 'plasma', self.agent)
         R1 = self.R10 + rp*cb
         if return_rel:
-            return dc.sample(t, R1, xdata, xdata[2]-xdata[1])
-        signal = dc.signal_spgress(R1, self.S0, self.TR, self.FA)
+            return dc.sample(xdata, t, R1, xdata[2]-xdata[1])
+        signal = dc.signal_ss(R1, self.S0, self.TR, self.FA)
         k = (t >= self.t1)
-        signal[k] = dc.signal_spgress(R1[k], S02, self.TR, self.FA)
-        return dc.sample(t, signal, xdata, xdata[2]-xdata[1])
+        signal[k] = dc.signal_ss(R1[k], S02, self.TR, self.FA)
+        return dc.sample(xdata, t, signal, xdata[2]-xdata[1])
 
     def pars0(self, settings=None):
         if settings == 'TRISTAN':
@@ -878,7 +741,7 @@ class AortaSignal10(dc.Model):
         BAT1 = x[np.argmax(y)] - (1-D)*T
         baseline = x[x <= BAT1-20]
         baseline = max([baseline.size,1])
-        Sref = dc.signal_spgress(self.R10, 1, self.TR, self.FA)
+        Sref = dc.signal_ss(self.R10, 1, self.TR, self.FA)
         self.S0 = np.mean(y[:baseline]) / Sref
         self.pars[0] = BAT1
 
@@ -888,7 +751,7 @@ class AortaSignal10(dc.Model):
         BAT2 = x[np.argmax(y)] - (1-D)*T
         baseline = x[x <= BAT2-20]
         baseline = max([baseline.size,1])
-        Sref = dc.signal_spgress(self.R11, 1, self.TR, self.FA)
+        Sref = dc.signal_ss(self.R11, 1, self.TR, self.FA)
         self.pars[-1] = np.mean(y[:baseline]) / Sref
         self.pars[1] = BAT2
 

@@ -100,7 +100,7 @@ class UptSS(dc.Model):
         # Calculate constants
         self._n0 = max([round(self.t0/self.dt),1])
         self._r1 = dc.relaxivity(self.field_strength, 'blood', self.agent)
-        cb = dc.conc_spgress(aif, self.TR, self.FA, 1/self.R10b, self._r1, self._n0)
+        cb = dc.conc_ss(aif, self.TR, self.FA, 1/self.R10b, self._r1, self._n0)
         self._ca = cb/(1-self.Hct)
         self._t = self.dt*np.arange(np.size(aif))
 
@@ -113,13 +113,13 @@ class UptSS(dc.Model):
         S0, Fp = self.pars
         C = dc.conc_1cum(self._ca, Fp, dt=self.dt)
         if return_conc:
-            return dc.sample(self._t, C, xdata, xdata[2]-xdata[1])
+            return dc.sample(xdata, self._t, C, xdata[2]-xdata[1])
         R1 = self.R10 + self._r1*C
-        ydata = dc.signal_spgress(R1, S0, self.TR, self.FA)
-        return dc.sample(self._t, ydata, xdata, xdata[2]-xdata[1])
+        ydata = dc.signal_ss(R1, S0, self.TR, self.FA)
+        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
     
     def train(self, xdata, ydata, **kwargs):
-        Sref = dc.signal_spgress(self.R10, 1, self.TR, self.FA)
+        Sref = dc.signal_ss(self.R10, 1, self.TR, self.FA)
         self.pars[0] = np.mean(ydata[:self._n0]) / Sref
         return super().train(xdata, ydata, **kwargs)
     
@@ -248,10 +248,10 @@ class OneCompFXSS(UptSS):
         S0, Fp, v = self.pars
         C = dc.conc_1cm(self._ca, Fp, v, dt=self.dt)
         if return_conc:
-            return dc.sample(self._t, C, xdata, xdata[2]-xdata[1])
+            return dc.sample(xdata, self._t, C, xdata[2]-xdata[1])
         R1 = self.R10 + self._r1*C
-        ydata = dc.signal_spgress(R1, S0, self.TR, self.FA)
-        return dc.sample(self._t, ydata, xdata, xdata[2]-xdata[1])
+        ydata = dc.signal_ss(R1, S0, self.TR, self.FA)
+        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
     
     def pars0(self, settings='default'):
         if settings == 'default':
@@ -482,10 +482,10 @@ class PatlakFXSS(UptSS):
         S0, vp, Ktrans = self.pars
         C = dc.conc_patlak(self._ca, vp, Ktrans, dt=self.dt)
         if return_conc:
-            return dc.sample(self._t, C, xdata, xdata[2]-xdata[1])
+            return dc.sample(xdata, self._t, C, xdata[2]-xdata[1])
         R1 = self.R10 + self._r1*C
-        ydata = dc.signal_spgress(R1, S0, self.TR, self.FA)
-        return dc.sample(self._t, ydata, xdata, xdata[2]-xdata[1])
+        ydata = dc.signal_ss(R1, S0, self.TR, self.FA)
+        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
     
     def pars0(self, settings='default'):
         if settings == 'default':
@@ -612,10 +612,10 @@ class EToftsFXSS(UptSS):
         S0, vp, Ktrans, ve = self.pars
         C = dc.conc_etofts(self._ca, vp, Ktrans, ve, dt=self.dt)
         if return_conc:
-            return dc.sample(self._t, C, xdata, xdata[2]-xdata[1])
+            return dc.sample(xdata, self._t, C, xdata[2]-xdata[1])
         R1 = self.R10 + self._r1*C
-        ydata = dc.signal_spgress(R1, S0, self.TR, self.FA)
-        return dc.sample(self._t, ydata, xdata, xdata[2]-xdata[1])
+        ydata = dc.signal_ss(R1, S0, self.TR, self.FA)
+        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
     
     def pars0(self, settings='default'):
         if settings == 'default':
@@ -654,7 +654,7 @@ class EToftsFXSS(UptSS):
         return pars
     
 
-class TwoCompUptSS(UptSS):
+class TwoCompUptFXSS(UptSS):
     """Two-compartment uptake model (2CUM) in fast water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
     The free model parameters are:
@@ -754,10 +754,10 @@ class TwoCompUptSS(UptSS):
         S0, Fp, vp, PS = self.pars
         C = dc.conc_2cum(self._ca, Fp, vp, PS, dt=self.dt)
         if return_conc:
-            return dc.sample(self._t, C, xdata, xdata[2]-xdata[1])
+            return dc.sample(xdata, self._t, C, xdata[2]-xdata[1])
         R1 = self.R10 + self._r1*C
-        ydata = dc.signal_spgress(R1, S0, self.TR, self.FA)
-        return dc.sample(self._t, ydata, xdata, xdata[2]-xdata[1])
+        ydata = dc.signal_ss(R1, S0, self.TR, self.FA)
+        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
     
     def pars0(self, settings='default'):
         if settings == 'default':
@@ -901,10 +901,10 @@ class TwoCompExchFXSS(UptSS):
         S0, Fp, vp, PS, ve = self.pars
         C = dc.conc_2cxm(self._ca, Fp, vp, PS, ve, dt=self.dt)
         if return_conc:
-            return dc.sample(self._t, C, xdata, xdata[2]-xdata[1])
+            return dc.sample(xdata, self._t, C, xdata[2]-xdata[1])
         R1 = self.R10 + self._r1*C
-        ydata = dc.signal_spgress(R1, S0, self.TR, self.FA)
-        return dc.sample(self._t, ydata, xdata, xdata[2]-xdata[1])
+        ydata = dc.signal_ss(R1, S0, self.TR, self.FA)
+        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
     
     def pars0(self, settings='default'):
         if settings == 'default':
@@ -1046,13 +1046,13 @@ class OneCompNXSS(OneCompFXSS):
         S0, Fp, v = self.pars
         C = dc.conc_1cm(self._ca, Fp, v, dt=self.dt)
         if return_conc:
-            return dc.sample(self._t, C, xdata, xdata[2]-xdata[1])
+            return dc.sample(xdata, self._t, C, xdata[2]-xdata[1])
         R1e = self.R10 + self._r1*C/v
         R1c = self.R10 + np.zeros(C.size)
         v = [v, 1-v]
         R1 = np.stack((R1e, R1c))
-        ydata = dc.signal_spgress_nex(v, R1, S0, self.TR, self.FA)
-        return dc.sample(self._t, ydata, xdata, xdata[2]-xdata[1])
+        ydata = dc.signal_ss_nex(v, R1, S0, self.TR, self.FA)
+        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
 
 
 class ToftsNXSS(OneCompNXSS):
@@ -1257,14 +1257,14 @@ class PatlakNXSS(PatlakFXSS):
         S0, vp, Ktrans = self.pars
         C = dc.conc_patlak(self._ca, vp, Ktrans, dt=self.dt, sum=False)
         if return_conc:
-            return dc.sample(self._t, C[0,:]+C[1,:], xdata, xdata[2]-xdata[1])
+            return dc.sample(xdata, self._t, C[0,:]+C[1,:], xdata[2]-xdata[1])
         vb = vp/(1-self.Hct)
         R1b = self.R10b + self._r1*C[0,:]/vb
         R1e = self.R10 + self._r1*C[1,:]/(1-vb)
         v = [vb, 1-vb]
         R1 = np.stack((R1b, R1e))
-        ydata = dc.signal_spgress_nex(v, R1, S0, self.TR, self.FA)
-        return dc.sample(self._t, ydata, xdata, xdata[2]-xdata[1])
+        ydata = dc.signal_ss_nex(v, R1, S0, self.TR, self.FA)
+        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
 
 
 class EToftsNXSS(EToftsFXSS):
@@ -1369,18 +1369,18 @@ class EToftsNXSS(EToftsFXSS):
         S0, vp, Ktrans, ve = self.pars
         C = dc.conc_etofts(self._ca, vp, Ktrans, ve, dt=self.dt, sum=False)
         if return_conc:
-            return dc.sample(self._t, C[0,:]+C[1,:], xdata, xdata[2]-xdata[1])
+            return dc.sample(xdata, self._t, C[0,:]+C[1,:], xdata[2]-xdata[1])
         vb = vp/(1-self.Hct)
         R1b = self.R10b + self._r1*C[0,:]/vb
         R1e = self.R10 + self._r1*C[1,:]/ve
         R1c = self.R10 + np.zeros(C.shape[1])
         v = [vb, ve, 1-vb-ve]
         R1 = np.stack((R1b, R1e, R1c))
-        ydata = dc.signal_spgress_nex(v, R1, S0, self.TR, self.FA)
-        return dc.sample(self._t, ydata, xdata, xdata[2]-xdata[1])
+        ydata = dc.signal_ss_nex(v, R1, S0, self.TR, self.FA)
+        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
     
 
-class TwoCompUptNXSS(TwoCompUptSS):
+class TwoCompUptNXSS(TwoCompUptFXSS):
     """Two-compartment uptake model (2CUM) without water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
     The free model parameters are:
@@ -1479,14 +1479,14 @@ class TwoCompUptNXSS(TwoCompUptSS):
         S0, Fp, vp, PS = self.pars
         C = dc.conc_2cum(self._ca, Fp, vp, PS, dt=self.dt, sum=False)
         if return_conc:
-            return dc.sample(self._t, C[0,:]+C[1,:], xdata, xdata[2]-xdata[1])
+            return dc.sample(xdata, self._t, C[0,:]+C[1,:], xdata[2]-xdata[1])
         vb = vp/(1-self.Hct)
         R1b = self.R10b + self._r1*C[0,:]/vb
         R1e = self.R10 + self._r1*C[1,:]/(1-vb)
         v = [vb, 1-vb]
         R1 = np.stack((R1b, R1e))
-        ydata = dc.signal_spgress_nex(v, R1, S0, self.TR, self.FA)
-        return dc.sample(self._t, ydata, xdata, xdata[2]-xdata[1])
+        ydata = dc.signal_ss_nex(v, R1, S0, self.TR, self.FA)
+        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
 
 
 class TwoCompExchNXSS(TwoCompExchFXSS):
@@ -1593,21 +1593,21 @@ class TwoCompExchNXSS(TwoCompExchFXSS):
         S0, Fp, vp, PS, ve = self.pars
         C = dc.conc_2cxm(self._ca, Fp, vp, PS, ve, dt=self.dt, sum=False)
         if return_conc:
-            return dc.sample(self._t, C[0,:]+C[1,:], xdata, xdata[2]-xdata[1])
+            return dc.sample(xdata, self._t, C[0,:]+C[1,:], xdata[2]-xdata[1])
         vb = vp/(1-self.Hct)
         R1b = self.R10b + self._r1*C[0,:]/vb
         R1e = self.R10 + self._r1*C[1,:]/ve
         R1c = self.R10 + np.zeros(C.shape[1])
         v = [vb, ve, 1-vb-ve]
         R1 = np.stack((R1b, R1e, R1c))
-        ydata = dc.signal_spgress_nex(v, R1, S0, self.TR, self.FA)
-        return dc.sample(self._t, ydata, xdata, xdata[2]-xdata[1])
+        ydata = dc.signal_ss_nex(v, R1, S0, self.TR, self.FA)
+        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
 
 
 # Intermediate water exchange
 
 
-class OneCompSS(OneCompFXSS):
+class OneCompSS(UptSS):
     """One-compartment tissue in intermediate water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
     The free model parameters are:
@@ -1705,14 +1705,14 @@ class OneCompSS(OneCompFXSS):
         S0, Fp, v, PSw = self.pars
         C = dc.conc_1cm(self._ca, Fp, v, dt=self.dt)
         if return_conc:
-            return dc.sample(self._t, C, xdata, xdata[2]-xdata[1])
+            return dc.sample(xdata, self._t, C, xdata[2]-xdata[1])
         R1e = self.R10 + self._r1*C/v
         R1c = self.R10 + np.zeros(C.size)
         PS = np.array([[0,PSw],[PSw,0]])
         v = [v, 1-v]
         R1 = np.stack((R1e, R1c))
-        ydata = dc.signal_spgress_wex(PS, v, R1, S0, self.TR, self.FA)
-        return dc.sample(self._t, ydata, xdata, xdata[2]-xdata[1])
+        ydata = dc.signal_ss_iex(PS, v, R1, S0, self.TR, self.FA)
+        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
     
     def pars0(self, settings='default'):
         if settings == 'default':
@@ -1743,147 +1743,6 @@ class OneCompSS(OneCompFXSS):
         pars = [
             ['Twe', 'Extracompartmental water mean transit time', (1-p[2])/p[3], 'sec'],
             ['Twb', 'Intracompartmental water mean transit time', p[2]/p[3], 'sec'],
-        ]
-        return pars
-
-
-class PatlakSS(PatlakFXSS):
-    """Patlak tissue with intermediate exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
-
-    The free model parameters are:
-
-    - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
-    - **vp** (Plasma volume, mL/mL): Volume fraction of the plasma compartment. 
-    - **Ktrans** (Vascular transfer constant, mL/sec/mL): clearance of the plasma compartment per unit tissue.
-    - **PSe** (Transendothelial water permeability-surface area product, mL/sec/mL): PS for water across the endothelium.
-
-    Args:
-        aif (array-like): MRI signals measured in the arterial input.
-        pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
-
-    See Also:
-        `PatlakNXSS`, `PatlakFXSS`.
-
-    Example:
-
-        Derive model parameters from data.
-
-    .. plot::
-        :include-source:
-        :context: close-figs
-    
-        >>> import matplotlib.pyplot as plt
-        >>> import dcmri as dc
-
-        Use `make_tissue_2cm` to generate synthetic test data:
-
-        >>> time, aif, roi, gt = dc.make_tissue_2cm(CNR=50)
-        
-        Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
-
-        >>> model = dc.PatlakSS(aif,
-        ...     dt = time[1],
-        ...     Hct = 0.45, 
-        ...     agent = 'gadodiamide',
-        ...     field_strength = 3.0,
-        ...     TR = 0.005,
-        ...     FA = 20,
-        ...     R10 = 1/dc.T1(3.0,'muscle'),
-        ...     R10b = 1/dc.T1(3.0,'blood'),
-        ...     t0 = 15,
-        ... )
-
-        Train the model on the ROI data:
-
-        >>> model.train(time, roi)
-
-        Plot the reconstructed signals (left) and concentrations (right) and compare the concentrations against the noise-free ground truth:
-
-        >>> fig, (ax0, ax1) = plt.subplots(1,2,figsize=(12,5))
-        >>> #
-        >>> ax0.set_title('Prediction of the MRI signals.')
-        >>> ax0.plot(time/60, roi, marker='o', linestyle='None', color='cornflowerblue', label='Data')
-        >>> ax0.plot(time/60, model.predict(time), linestyle='-', linewidth=3.0, color='darkblue', label='Prediction')
-        >>> ax0.set_xlabel('Time (min)')
-        >>> ax0.set_ylabel('MRI signal (a.u.)')
-        >>> ax0.legend()
-        >>> #
-        >>> ax1.set_title('Reconstruction of concentrations.')
-        >>> ax1.plot(gt['t']/60, 1000*gt['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-        >>> ax1.plot(time/60, 1000*model.predict(time, return_conc=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
-        >>> ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-        >>> ax1.plot(time/60, 1000*model.aif_conc(), linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
-        >>> ax1.set_xlabel('Time (min)')
-        >>> ax1.set_ylabel('Concentration (mM)')
-        >>> ax1.legend()
-        >>> #
-        >>> plt.show()
-
-        We can also have a look at the model parameters after training:
-
-        >>> model.print(round_to=3)
-        -----------------------------------------
-        Free parameters with their errors (stdev)
-        -----------------------------------------
-        Signal scaling factor (S0): 165.529 (5.377) a.u.
-        Plasma volume (vp): 0.091 (0.014) mL/mL
-        Volume transfer constant (Ktrans): 0.001 (0.0) 1/sec
-        Transendothelial water PS (PSe): 0.0 (0.666) mL/sec/mL
-        ------------------
-        Derived parameters
-        ------------------
-        Extravascular water mean transit time (Twe): 4803607269928.271 sec
-        Intravascular water mean transit time (Twb): 950667689299.263 sec
-    """         
-    def predict(self, xdata:np.ndarray, return_conc=False)->np.ndarray:
-
-        if np.amax(self._t) < np.amax(xdata):
-            msg = 'The acquisition window is longer than the duration of the AIF. \n'
-            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
-            raise ValueError(msg)
-        S0, vp, Ktrans, PSe = self.pars
-        C = dc.conc_patlak(self._ca, vp, Ktrans, dt=self.dt, sum=False)
-        if return_conc:
-            return dc.sample(self._t, C[0,:]+C[1,:], xdata, xdata[2]-xdata[1])
-        vb = vp/(1-self.Hct)
-        R1b = self.R10b + self._r1*C[0,:]/vb
-        R1e = self.R10 + self._r1*C[1,:]/(1-vb)
-        PS = np.array([[0,PSe],[PSe,0]])
-        v = [vb, 1-vb]
-        R1 = np.stack((R1b, R1e))
-        ydata = dc.signal_spgress_wex(PS, v, R1, S0, self.TR, self.FA)
-        return dc.sample(self._t, ydata, xdata, xdata[2]-xdata[1])
-    
-    def pars0(self, settings='default'):
-        if settings == 'default':
-            return np.array([1, 0.05, 0.003, 10])
-        else:
-            return np.zeros(4)
-
-    def bounds(self, settings='default'):
-        ub = [np.inf, 1, np.inf, np.inf]
-        lb = 0
-        return (lb, ub)
-
-    def pfree(self, units='standard'):
-        pars = [
-            ['S0','Signal scaling factor',self.pars[0],'a.u.'],
-            ['vp','Plasma volume',self.pars[1],'mL/mL'],
-            ['Ktrans','Volume transfer constant',self.pars[2],'1/sec'],
-            ['PSe','Transendothelial water PS',self.pars[3],'mL/sec/mL'],
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]*100, 'mL/100mL']
-            pars[2][2:] = [pars[2][2]*6000, 'mL/min/100mL']
-        return pars
-    
-    def pdep(self, units='standard'):
-        p = self.pars
-        vb = p[1]/(1-self.Hct)
-        pars = [
-            ['Twe', 'Extravascular water mean transit time', (1-vb)/p[3], 'sec'],
-            ['Twb', 'Intravascular water mean transit time', vb/p[3], 'sec'],
         ]
         return pars
 
@@ -2005,7 +1864,149 @@ class ToftsSS(OneCompSS):
             pars[2][2:] = [pars[2][2]*6000, 'mL/min/100mL']
         return pars
 
-class EToftsSS(EToftsFXSS):
+
+class PatlakSS(UptSS):
+    """Patlak tissue with intermediate exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
+
+    The free model parameters are:
+
+    - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
+    - **vp** (Plasma volume, mL/mL): Volume fraction of the plasma compartment. 
+    - **Ktrans** (Vascular transfer constant, mL/sec/mL): clearance of the plasma compartment per unit tissue.
+    - **PSe** (Transendothelial water permeability-surface area product, mL/sec/mL): PS for water across the endothelium.
+
+    Args:
+        aif (array-like): MRI signals measured in the arterial input.
+        pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
+        attr: provide values for any attributes as keyword arguments. 
+
+    See Also:
+        `PatlakNXSS`, `PatlakFXSS`.
+
+    Example:
+
+        Derive model parameters from data.
+
+    .. plot::
+        :include-source:
+        :context: close-figs
+    
+        >>> import matplotlib.pyplot as plt
+        >>> import dcmri as dc
+
+        Use `make_tissue_2cm` to generate synthetic test data:
+
+        >>> time, aif, roi, gt = dc.make_tissue_2cm(CNR=50)
+        
+        Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
+
+        >>> model = dc.PatlakSS(aif,
+        ...     dt = time[1],
+        ...     Hct = 0.45, 
+        ...     agent = 'gadodiamide',
+        ...     field_strength = 3.0,
+        ...     TR = 0.005,
+        ...     FA = 20,
+        ...     R10 = 1/dc.T1(3.0,'muscle'),
+        ...     R10b = 1/dc.T1(3.0,'blood'),
+        ...     t0 = 15,
+        ... )
+
+        Train the model on the ROI data:
+
+        >>> model.train(time, roi)
+
+        Plot the reconstructed signals (left) and concentrations (right) and compare the concentrations against the noise-free ground truth:
+
+        >>> fig, (ax0, ax1) = plt.subplots(1,2,figsize=(12,5))
+        >>> #
+        >>> ax0.set_title('Prediction of the MRI signals.')
+        >>> ax0.plot(time/60, roi, marker='o', linestyle='None', color='cornflowerblue', label='Data')
+        >>> ax0.plot(time/60, model.predict(time), linestyle='-', linewidth=3.0, color='darkblue', label='Prediction')
+        >>> ax0.set_xlabel('Time (min)')
+        >>> ax0.set_ylabel('MRI signal (a.u.)')
+        >>> ax0.legend()
+        >>> #
+        >>> ax1.set_title('Reconstruction of concentrations.')
+        >>> ax1.plot(gt['t']/60, 1000*gt['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
+        >>> ax1.plot(time/60, 1000*model.predict(time, return_conc=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
+        >>> ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
+        >>> ax1.plot(time/60, 1000*model.aif_conc(), linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
+        >>> ax1.set_xlabel('Time (min)')
+        >>> ax1.set_ylabel('Concentration (mM)')
+        >>> ax1.legend()
+        >>> #
+        >>> plt.show()
+
+        We can also have a look at the model parameters after training:
+
+        >>> model.print(round_to=3)
+        -----------------------------------------
+        Free parameters with their errors (stdev)
+        -----------------------------------------
+        Signal scaling factor (S0): 165.529 (5.377) a.u.
+        Plasma volume (vp): 0.091 (0.014) mL/mL
+        Volume transfer constant (Ktrans): 0.001 (0.0) 1/sec
+        Transendothelial water PS (PSe): 0.0 (0.666) mL/sec/mL
+        ------------------
+        Derived parameters
+        ------------------
+        Extravascular water mean transit time (Twe): 4803607269928.271 sec
+        Intravascular water mean transit time (Twb): 950667689299.263 sec
+    """         
+    def predict(self, xdata:np.ndarray, return_conc=False)->np.ndarray:
+
+        if np.amax(self._t) < np.amax(xdata):
+            msg = 'The acquisition window is longer than the duration of the AIF. \n'
+            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
+            raise ValueError(msg)
+        S0, vp, Ktrans, PSe = self.pars
+        C = dc.conc_patlak(self._ca, vp, Ktrans, dt=self.dt, sum=False)
+        if return_conc:
+            return dc.sample(xdata, self._t, C[0,:]+C[1,:], xdata[2]-xdata[1])
+        vb = vp/(1-self.Hct)
+        R1b = self.R10b + self._r1*C[0,:]/vb
+        R1e = self.R10 + self._r1*C[1,:]/(1-vb)
+        PS = np.array([[0,PSe],[PSe,0]])
+        v = [vb, 1-vb]
+        R1 = np.stack((R1b, R1e))
+        ydata = dc.signal_ss_iex(PS, v, R1, S0, self.TR, self.FA)
+        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
+    
+    def pars0(self, settings='default'):
+        if settings == 'default':
+            return np.array([1, 0.05, 0.003, 10])
+        else:
+            return np.zeros(4)
+
+    def bounds(self, settings='default'):
+        ub = [np.inf, 1, np.inf, np.inf]
+        lb = 0
+        return (lb, ub)
+
+    def pfree(self, units='standard'):
+        pars = [
+            ['S0','Signal scaling factor',self.pars[0],'a.u.'],
+            ['vp','Plasma volume',self.pars[1],'mL/mL'],
+            ['Ktrans','Volume transfer constant',self.pars[2],'1/sec'],
+            ['PSe','Transendothelial water PS',self.pars[3],'mL/sec/mL'],
+        ]
+        if units == 'custom':
+            pars[1][2:] = [pars[1][2]*100, 'mL/100mL']
+            pars[2][2:] = [pars[2][2]*6000, 'mL/min/100mL']
+        return pars
+    
+    def pdep(self, units='standard'):
+        p = self.pars
+        vb = p[1]/(1-self.Hct)
+        pars = [
+            ['Twe', 'Extravascular water mean transit time', (1-vb)/p[3], 'sec'],
+            ['Twb', 'Intravascular water mean transit time', vb/p[3], 'sec'],
+        ]
+        return pars
+
+
+class EToftsSS(UptSS):
     """Extended Tofts tissue with intermediate exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
     Probably the most common modelling approach for generic tissues. The arterial concentrations are calculated by direct analytical inversion of the arterial signal 
@@ -2114,7 +2115,7 @@ class EToftsSS(EToftsFXSS):
         S0, vp, Ktrans, ve, PSe, PSc = self.pars
         C = dc.conc_etofts(self._ca, vp, Ktrans, ve, dt=self.dt, sum=False)
         if return_conc:
-            return dc.sample(self._t, C[0,:]+C[1,:], xdata, xdata[2]-xdata[1])
+            return dc.sample(xdata, self._t, C[0,:]+C[1,:], xdata[2]-xdata[1])
         vb = vp/(1-self.Hct)
         R1b = self.R10b + self._r1*C[0,:]/vb
         R1e = self.R10 + self._r1*C[1,:]/ve
@@ -2122,8 +2123,8 @@ class EToftsSS(EToftsFXSS):
         PS = np.array([[0,PSe,0],[PSe,0,PSc],[0,PSc,0]])
         v = [vb, ve, 1-vb-ve]
         R1 = np.stack((R1b, R1e, R1c))
-        ydata = dc.signal_spgress_wex(PS, v, R1, S0, self.TR, self.FA)
-        return dc.sample(self._t, ydata, xdata, xdata[2]-xdata[1])
+        ydata = dc.signal_ss_iex(PS, v, R1, S0, self.TR, self.FA)
+        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
     
     def pars0(self, settings='default'):
         if settings == 'default':
@@ -2276,14 +2277,14 @@ class TwoCompUptSS(UptSS):
         vb = vp/(1-self.Hct)
         C = dc.conc_2cum(self._ca, Fp, vp, PS, dt=self.dt, sum=False)
         if return_conc:
-            return dc.sample(self._t, C[0,:]+C[1,:], xdata, xdata[2]-xdata[1])
+            return dc.sample(xdata, self._t, C[0,:]+C[1,:], xdata[2]-xdata[1])
         R1b = self.R10b + self._r1*C[0,:]/vb
         R1e = self.R10 + self._r1*C[1,:]/(1-vb)
         PS = np.array([[0,PSe],[PSe,0]])
         v = [vb, 1-vb]
         R1 = np.stack((R1b, R1e))        
-        ydata = dc.signal_spgress_wex(PS, v, R1, S0, self.TR, self.FA)
-        return dc.sample(self._t, ydata, xdata, xdata[2]-xdata[1])
+        ydata = dc.signal_ss_iex(PS, v, R1, S0, self.TR, self.FA)
+        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
     
     def pars0(self, settings='default'):
         if settings == 'default':
@@ -2441,15 +2442,15 @@ class TwoCompExchSS(UptSS):
         vb = vp/(1-self.Hct)
         C = dc.conc_2cxm(self._ca, Fp, vp, PS, ve, dt=self.dt, sum=False)
         if return_conc:
-            return dc.sample(self._t, C[0,:]+C[1,:], xdata, xdata[2]-xdata[1])
+            return dc.sample(xdata, self._t, C[0,:]+C[1,:], xdata[2]-xdata[1])
         R1b = self.R10b + self._r1*C[0,:]/vb
         R1e = self.R10 + self._r1*C[1,:]/ve
         R1c = self.R10 + np.zeros(C.shape[1])
         PS = np.array([[0,PSe,0],[PSe,0,PSc],[0,PSc,0]])
         v = [vb, ve, 1-vb-ve]
         R1 = np.stack((R1b, R1e, R1c))        
-        ydata = dc.signal_spgress_wex(PS, v, R1, S0, self.TR, self.FA)
-        return dc.sample(self._t, ydata, xdata, xdata[2]-xdata[1])
+        ydata = dc.signal_ss_iex(PS, v, R1, S0, self.TR, self.FA)
+        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
     
     def pars0(self, settings='default'):
         if settings == 'default':

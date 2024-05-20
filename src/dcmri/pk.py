@@ -418,7 +418,7 @@ def conc_plug(J, T, t=None, dt=1.0, solver='conv'):
         r = res_plug(T, t)
         return utils.conv(r, J, t=t, dt=dt)
     elif solver=='interp':
-        Jo = np.interp(t, t-T, J, left=0)
+        Jo = np.interp(t-T, t, J, left=0)
         return utils.trapz(J-Jo, t)
 
 
@@ -456,7 +456,7 @@ def flux_plug(J, T, t=None, dt=1.0, solver='interp'):
         h = prop_plug(T, t)
         return utils.conv(h, J, t=t, dt=dt)
     elif solver=='interp':
-        return np.interp(t, t-T, J, left=0)
+        return np.interp(t-T, t, J, left=0)
     else:
         raise ValueError('Solver ' + solver + ' does not exist.')
 

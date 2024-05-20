@@ -53,16 +53,17 @@ def test_conc_tofts():
     Ta = 10
     Ktrans = 2
     kep = 5
+    ve = Ktrans/kep
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    C = dc.conc_tofts(ca, Ktrans, kep, t)
+    C = dc.conc_tofts(ca, Ktrans, ve, t)
     C0 = Ktrans*dc.biexpconv(Ta, 1/kep, t)/kep
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.01
-    C = dc.conc_tofts(ca, Ktrans, 0, t)
-    C0 = dc.conc_trap(Ktrans*ca, t)
-    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.01
-    C = dc.conc_tofts(ca, Ktrans, 0, t, sum=False)
-    assert np.linalg.norm(C[1,:]-C0)/np.linalg.norm(C0) < 0.01
+    C = dc.conc_tofts(ca, 0, ve, t)
+    C0 = np.zeros(len(C))
+    assert np.linalg.norm(C-C0) == 0
+    C = dc.conc_tofts(ca, 0, ve, t, sum=False)
+    assert np.linalg.norm(C[1,:]-C0) == 0
     
 
 def test_flux_tofts():
@@ -70,13 +71,14 @@ def test_flux_tofts():
     Ta = 10
     Ktrans = 2
     kep = 5
+    ve = Ktrans/kep
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    J = dc.flux_tofts(ca, Ktrans, kep, t)
+    J = dc.flux_tofts(ca, Ktrans, ve, t)
     J0 = Ktrans*dc.biexpconv(Ta, 1/kep, t)
     assert np.linalg.norm(J[0,1,:]-J0)/np.linalg.norm(J0) < 0.01
-    J = dc.flux_tofts(ca, Ktrans, 0, t)
-    assert np.linalg.norm(J[0,1,:]) < 0.01
+    J = dc.flux_tofts(ca, 0, ve, t)
+    assert np.linalg.norm(J[0,1,:]) == 0
     
 
 def test_conc_patlak():
@@ -124,9 +126,9 @@ def test_conc_etofts():
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.01
     C = dc.conc_etofts(ca, vp, Ktrans, 0, t, sum=False)
     C0 = vp*ca
-    C1 = Ktrans*cumulative_trapezoid(ca,t,initial=0)
+    C1 = np.zeros(len(ca))
     assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 0.01
-    assert np.linalg.norm(C[1,:]-C1)/np.linalg.norm(C1) < 0.01
+    assert np.linalg.norm(C[1,:]-C1) == 0
 
 def test_flux_etofts():
     n = 10
@@ -134,13 +136,12 @@ def test_flux_etofts():
     vp = 0.3
     Ktrans = 2
     kep = 5
+    ve = Ktrans/kep
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    J = dc.flux_etofts(ca, vp, Ktrans, kep, t)
+    J = dc.flux_etofts(ca, vp, Ktrans, ve, t)
     J0 = kep*Ktrans*dc.biexpconv(Ta, 1/kep, t)/kep
     assert np.linalg.norm(J[0,1,:]-J0)/np.linalg.norm(J0) < 0.01
-    J = dc.flux_etofts(ca, vp, Ktrans, 0, t)
-    assert np.linalg.norm(J[0,1,:]) == 0
 
 def test_conc_2cum():
     n = 10

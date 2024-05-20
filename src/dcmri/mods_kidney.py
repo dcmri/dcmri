@@ -37,12 +37,12 @@ class KidneySignal6(dc.Model):
         Ct = dc.conc_comp(Ft*cp, Tt, t)
         if return_conc:
             return (
-                dc.sample(t, Cp, xdata, xdata[2]-xdata[1]),
-                dc.sample(t, Ct, xdata, xdata[2]-xdata[1]))
+                dc.sample(xdata, t, Cp, xdata[2]-xdata[1]),
+                dc.sample(xdata, t, Ct, xdata[2]-xdata[1]))
         rp = dc.relaxivity(self.field_strength, 'plasma', self.agent)
         R1 = self.R10 + rp*Cp + rp*Ct
-        signal = dc.signal_srspgre(R1, S0, self.TR, self.FA, self.Tsat, self.TD)
-        return dc.sample(t, signal, xdata, xdata[1]-xdata[0])
+        signal = dc.signal_sr(R1, S0, self.TR, self.FA, self.TD, self.Tsat)
+        return dc.sample(xdata, t, signal, xdata[1]-xdata[0])
     
     def pars0(self, settings=None):
         if settings == 'iBEAt':
@@ -65,7 +65,7 @@ class KidneySignal6(dc.Model):
         t = self.dt*np.arange(len(self.cb))
         TTP = t[np.argmax(self.cb)]
         n0 = max([time[time<=TTP-30].size, 1])
-        Sref = dc.signal_srspgre(self.R10, 1, self.TR, self.FA, self.Tsat, self.TD)
+        Sref = dc.signal_sr(self.R10, 1, self.TR, self.FA, self.TD, self.Tsat)
         self.pars[5] = np.mean(signal[:n0]) / Sref
 
     def pfree(self, units='standard'):
@@ -143,13 +143,13 @@ class KidneySignal9(dc.Model):
         Ct = Nt/self.kidney_volume # mM
         if return_conc:
             return (
-                dc.sample(t, Cp, xdata, xdata[2]-xdata[1]),
-                dc.sample(t, Ct, xdata, xdata[2]-xdata[1]))
+                dc.sample(xdata, t, Cp, xdata[2]-xdata[1]),
+                dc.sample(xdata, t, Ct, xdata[2]-xdata[1]))
         # Return R
         rp = dc.relaxivity(self.field_strength, 'plasma', self.agent)
         R1 = self.R10 + rp*Cp + rp*Ct
-        signal = dc.signal_spgress(R1, self.S0, self.TR, self.FA)
-        return dc.sample(t, signal, xdata, xdata[1]-xdata[0])
+        signal = dc.signal_ss(R1, self.S0, self.TR, self.FA)
+        return dc.sample(xdata, t, signal, xdata[1]-xdata[0])
     
     def pars0(self, settings=None):
         if settings == 'Amber':
@@ -211,7 +211,7 @@ class KidneySignal9(dc.Model):
         # Estimate S0 from data
         baseline = xdata[xdata <= self.BAT]
         baseline = max([baseline.size, 1])
-        Sref = dc.signal_spgress(self.R10, 1, self.TR, self.FA)
+        Sref = dc.signal_ss(self.R10, 1, self.TR, self.FA)
         self.S0 = np.mean(ydata[:baseline]) / Sref
     
 
@@ -247,16 +247,16 @@ class KidneyCMSignal9(dc.Model):
             ca, Fp, Eg, fc, Tg, Tv, Tpt, Tlh, Tdt, Tcd, dt=self.dt)
         if return_conc:
             return (
-                dc.sample(t, Cc, tacq, tacq[2]-tacq[1]),
-                dc.sample(t, Cm, tacq, tacq[2]-tacq[1]))
+                dc.sample(tacq, t, Cc, tacq[2]-tacq[1]),
+                dc.sample(tacq, t, Cm, tacq[2]-tacq[1]))
         rp = dc.relaxivity(self.field_strength, 'plasma', self.agent)
         R1c = self.R10c + rp*Cc
         R1m = self.R10m + rp*Cm
-        Sc = dc.signal_srspgre(R1c, self.S0c, self.TR, self.FAc, self.Tsat, self.TD)
-        Sm = dc.signal_srspgre(R1m, self.S0m, self.TR, self.FAm, self.Tsat, self.TD)
+        Sc = dc.signal_sr(R1c, self.S0c, self.TR, self.FAc, self.TD, self.Tsat)
+        Sm = dc.signal_sr(R1m, self.S0m, self.TR, self.FAm, self.TD, self.Tsat)
         nt = int(len(tacq)/2)
-        Sc = dc.sample(t, Sc, tacq[:nt], tacq[2]-tacq[1])
-        Sm = dc.sample(t, Sm, tacq[nt:], tacq[2]-tacq[1])
+        Sc = dc.sample(tacq[:nt], t, Sc, tacq[2]-tacq[1])
+        Sm = dc.sample(tacq[nt:], t, Sm, tacq[2]-tacq[1])
         return np.concatenate((Sc, Sm))
     
     def pars0(self, settings=None):
@@ -283,8 +283,8 @@ class KidneyCMSignal9(dc.Model):
         BAT = t[np.argmax(self.cb)]
         baseline = time[time <= BAT-20]
         n0 = max([baseline.size,1])
-        Scref = dc.signal_srspgre(self.R10c, 1, self.TR, self.FAc, 0, self.TD)
-        Smref = dc.signal_srspgre(self.R10m, 1, self.TR, self.FAm, 0, self.TD)
+        Scref = dc.signal_sr(self.R10c, 1, self.TR, self.FAc, self.TD)
+        Smref = dc.signal_sr(self.R10m, 1, self.TR, self.FAm, self.TD)
         self.S0c = np.mean(Sc[:n0]) / Scref
         self.S0m = np.mean(Sm[:n0]) / Smref
 

@@ -57,11 +57,11 @@ def make_tissue_2cm(
     rp = dc.relaxivity(field_strength, 'plasma', agent)
     R1b = R10b + rp*cp*(1-Hct)
     R1 = R10 + rp*C
-    aif = dc.signal_spgress(R1b, S0b, TR, FA)
-    roi = dc.signal_spgress(R1, S0, TR, FA)
+    aif = dc.signal_ss(R1b, S0b, TR, FA)
+    roi = dc.signal_ss(R1, S0, TR, FA)
     time = np.arange(0, tacq, dt)
-    aif = dc.sample(t, aif, time, dt)
-    roi = dc.sample(t, roi, time, dt)
+    aif = dc.sample(time, t, aif, dt)
+    roi = dc.sample(time, t, roi, dt)
     sdev = (np.amax(aif)-aif[0])/CNR
     aif = dc.add_noise(aif, sdev)
     roi = dc.add_noise(roi, sdev)
@@ -86,7 +86,7 @@ def dro_aif_1(
     cb = dc.aif_parker(t, BAT)*(1-0.45)
     rp = dc.relaxivity(field_strength, 'plasma', agent)
     R1 = 1/dc.T1(field_strength, 'blood') + rp*cb
-    signal = dc.signal_spgress(R1, S0, TR, FA)
+    signal = dc.signal_ss(R1, S0, TR, FA)
     sdev = (np.amax(signal)-signal[0])/CNR
     signal = dc.add_noise(signal, sdev)
     return t, signal, cb
@@ -106,7 +106,7 @@ def dro_aif_2(
     cb = dc.aif_parker(t, BAT)*(1-0.45)
     rp = dc.relaxivity(field_strength, 'plasma', agent)
     R1 = 1/dc.T1(field_strength, 'blood') + rp*cb
-    signal = dc.signal_sr(R1, S0, TD)
+    signal = dc.signal_src(R1, S0, TD)
     sdev = (np.amax(signal)-signal[0])/CNR
     signal = dc.add_noise(signal, sdev)
     return t, signal, cb
@@ -131,7 +131,7 @@ def dro_aif_3(
     t1 = np.arange(0, tacq, dt)
     cb1 = dc.aif_parker(t1, BAT)*(1-0.45) 
     R1 = R10 + rp*cb1
-    S = dc.signal_spgress(R1, S01, TR, FA)
+    S = dc.signal_ss(R1, S01, TR, FA)
     sdev = (np.amax(S)-S[0])/CNR
     S1 = dc.add_noise(S, sdev)
 
@@ -139,7 +139,7 @@ def dro_aif_3(
     cb2 = dc.aif_parker(t2, BAT)*(1-0.45)
     cb2 += dc.aif_parker(t2, tacq+tbreak+BAT)*(1-0.45)
     R1 = R10 + rp*cb2
-    S = dc.signal_spgress(R1, S02, TR, FA)
+    S = dc.signal_ss(R1, S02, TR, FA)
     sdev = (np.amax(S)-S[0])/CNR
     S2 = dc.add_noise(S, sdev)
     

@@ -14,6 +14,7 @@ This reference manual details all functions included in dcMRI, describing what t
    :maxdepth: 2
 
    e2e
+   sig
    pkmods
    pk
    lib

@@ -29,7 +29,7 @@ Fast water exchange
    PatlakFXSS
    ToftsFXSS
    EToftsFXSS
-   TwoCompUptSS
+   TwoCompUptFXSS
    TwoCompExchFXSS
 
 
@@ -96,7 +96,6 @@ Steady-state sequence
 
    AortaSignal6
    AortaSignal8
-   AortaSignal8b
 
 
 Saturation-recovery sequence
@@ -107,7 +106,7 @@ Saturation-recovery sequence
    :template: custom-class-template.rst
    :recursive:
 
-   AortaSignal8c
+   AortaSignal8b
 
 
 Two-scan acquisition

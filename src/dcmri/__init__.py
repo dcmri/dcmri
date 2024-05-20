@@ -1,5 +1,5 @@
 
-from dcmri import utils
+from . import utils
 from dcmri.utils import *
 
 from dcmri import lib

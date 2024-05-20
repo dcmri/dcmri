@@ -157,14 +157,13 @@ def flux_1cm(ca, Fp, v, t=None, dt=1.0):
         return np.zeros(len(ca))
     return pk.flux_comp(Fp*ca, v/Fp, t=t, dt=dt)
 
-#Use ve instead of kep for consistency with other definitions
-def conc_tofts(ca, Ktrans, kep, t=None, dt=1.0, sum=True):
+def conc_tofts(ca, Ktrans, ve, t=None, dt=1.0, sum=True):
     """Concentration in a Tofts model.
 
     Args:
         ca (array_like): the indicator concentration in the plasma of the feeding artery, as a 1D array, in units of M.
         Ktrans (float): Transcapillary transfer constant, in units of mL plasma per sec and per mL tissue (mL/sec/mL or 1/sec). Physically PS is the volume of arterial plasma fully cleared of indicator per unit of time by a unit of tissue.
-        kep (float): Excretion rate of the extravascular extracellular space, or 1/(mean transit time), in units of 1/sec.
+        ve (float): Extravascular, extracellular volume, in units of mL/mL.
         t (array_like, optional): the time points in sec of the input function *ca*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
         dt (float, optional): spacing in seconds between time points for uniformly spaced time points. This parameter is ignored if *t* is explicity provided. Defaults to 1.0.
         sum (bool, optional): if set to True, the total concentration is returned. If set to False, the concentration in the compartments is returned separately. Defaults to True.
@@ -189,36 +188,36 @@ def conc_tofts(ca, Ktrans, kep, t=None, dt=1.0, sum=True):
 
         The tissue is characterized by Ktrans = 0.1 mL/min/mL, kep = 0.1/min. In the correct units:
 
-        >>> Ktrans, kep = 1/60, 0.1/60
+        >>> Ktrans, ve = 0.003, 0.3
 
         Calculate the concentrations in units of mM:
         
-        >>> C = 1000*dc.conc_tofts(ca, Ktrans, kep, t, sum=False)
+        >>> C = 1000*dc.conc_tofts(ca, Ktrans, ve, t, sum=False)
 
         The concentration in the extravascular compartment:
 
         >>> C[1,:]
-        array([0.        , 0.03696853, 0.0738004 , 0.11049611, 0.14705615,
-        0.18348104, 0.21977128, 0.25592735, 0.29194976, 0.327839  ])
+        array([0.        , 0.00659314, 0.01304138, 0.0193479 , 0.02551583,
+        0.0315482 , 0.037448  , 0.04321814, 0.04886147, 0.05438077])
     """
     Cp = np.zeros(len(ca))
-    if kep==0:
-        Ce = pk.conc_trap(Ktrans*ca, t=t, dt=dt)
+    if Ktrans==0:
+        Ce = np.zeros(len(ca))
     else:
-        Ce = pk.conc_comp(Ktrans*ca, 1/kep, t=t, dt=dt)
+        Ce = pk.conc_comp(Ktrans*ca, ve/Ktrans, t=t, dt=dt)
     if sum:
         return Cp+Ce
     else:
         return np.stack((Cp,Ce))
 
-#Use ve instead of kep for consistency with other definitions
-def flux_tofts(ca, Ktrans, kep, t=None, dt=1.0):
+
+def flux_tofts(ca, Ktrans, ve, t=None, dt=1.0):
     """Outfluxes out of a Tofts model.
 
     Args:
         ca (array_like): the indicator concentration in the plasma of the feeding artery, as a 1D array, in units of M.
         Ktrans (float): Transcapillary transfer constant, in units of mL plasma per sec and per mL tissue (mL/sec/mL or 1/sec). Physically PS is the volume of arterial plasma fully cleared of indicator per unit of time by a unit of tissue.
-        kep (float): Excretion rate of the extravascular extracellular space, or 1/(mean transit time), in units of 1/sec.
+        ve (float): Extravascular, extracellular volume, in units of mL/mL.
         t (array_like, optional): the time points in sec of the input function *ca*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
         dt (float, optional): spacing in seconds between time points for uniformly spaced time points. This parameter is ignored if *t* is explicity provided. Defaults to 1.0.
 
@@ -239,26 +238,24 @@ def flux_tofts(ca, Ktrans, kep, t=None, dt=1.0):
 
         The tissue is characterized by Ktrans = 0.1 mL/min/mL, kep = 0.1/min. In the correct units:
 
-        >>> Ktrans, kep = 1/60, 0.1/60
+        >>> Ktrans, ve = 0.003, 0.3
 
         Calculate the outflux in units of mM/sec:
         
-        >>> J = 1000*dc.flux_tofts(ca, Ktrans, kep, t)
+        >>> J = 1000*dc.flux_tofts(ca, Ktrans, ve, t)
 
         The flux into the extravascular space:
 
         >>> J[1,0,:]
-        array([0.01666667, 0.01666667, 0.01666667, 0.01666667, 0.01666667,
-        0.01666667, 0.01666667, 0.01666667, 0.01666667, 0.01666667])
+        array([0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.003,
+        0.003])
         
     """
     J = np.zeros(((2,2,len(ca))))
     J[0,0,:] = np.nan
     J[1,0,:] = Ktrans*ca
-    if kep==0:
-        J[0,1,:] = pk.flux_trap(Ktrans*ca)
-    else:
-        J[0,1,:] = pk.flux_comp(Ktrans*ca, 1/kep, t=t, dt=dt)
+    if Ktrans!=0:
+        J[0,1,:] = pk.flux_comp(Ktrans*ca, ve/Ktrans, t=t, dt=dt)
     return J
 
 def conc_patlak(ca, vp, Ktrans, t=None, dt=1.0, sum=True):

@@ -51,7 +51,7 @@ class Model:
         Returns:
             np.ndarray: Array with parameter values. 
         """
-        return np.zeros(len(self.pars))
+        return np.zeros(0)
     
     def bounds(self, settings='default')->tuple:
         """Reasonable bounds for the free parameters.
@@ -508,7 +508,7 @@ def ddist(H, T, t):
     return h
 
 
-def _intprod(f, h, t=None, dt=1.0):
+def intprod(f, h, t=None, dt=1.0):
     # Helper function
     # Integrate the product of two piecewise linear functions
     # by analytical integration over each interval.
@@ -541,14 +541,14 @@ def _intstep(f, h, t=None, dt=1.0):
     else:
         return 0.5*np.sum((g[1:]+g[:-1])*(t[1:]-t[:-1]) )
 
-def _uconv(f, h, dt=1.0, solver='trap'):
+def uconv(f, h, dt=1.0, solver='trap'):
     # Helper function: convolution over uniformly sampled grid.
     n = len(f) 
     g = np.zeros(n)
     h = np.flip(h)
     for k in range(1, n):
         if solver=='trap':
-            g[k] = _intprod(f[:k+1], h[-(k+1):], dt=dt)
+            g[k] = intprod(f[:k+1], h[-(k+1):], dt=dt)
         elif solver=='step':
             g[k] = _intstep(f[:k+1], h[-(k+1):], dt=dt)
     return g
@@ -610,7 +610,7 @@ def conv(f, h, t=None, dt=1.0, solver='trap'):
     if len(f) != len(h):
         raise ValueError('f and h must have the same length.')
     if t is None:
-        return _uconv(f, h, dt, solver=solver)
+        return uconv(f, h, dt, solver=solver)
     n = len(t)
     g = np.zeros(n)
     tf = np.flip(t)
@@ -618,10 +618,10 @@ def conv(f, h, t=None, dt=1.0, solver='trap'):
     for k in range(1, n):
         tkf = t[k]-tf[-(k+1):]
         tk = np.unique(np.concatenate((t[:k+1], tkf)))
-        fk = np.interp(tkf, tk, f[-(k+1):], left=0, right=0)
-        hk = np.interp(t[:k+1], tk, h[:k+1], left=0, right=0)
+        fk = np.interp(tk, tkf, f[-(k+1):], left=0, right=0)
+        hk = np.interp(tk, t[:k+1], h[:k+1], left=0, right=0)
         if solver=='trap':
-            g[k] = _intprod(fk, hk, tk)
+            g[k] = intprod(fk, hk, tk)
         elif solver=='step':
             g[k] = _intstep(fk, hk, tk)
     return g
@@ -631,7 +631,7 @@ def inttrap(f, t, t0, t1):
     # Helper function: integrate f from t0 to t1
     ti = t[(t0<t)*(t<t1)]
     ti = np.concatenate(([t0],ti,[t1]))
-    fi = np.interp(t, ti, f, left=0, right=0)
+    fi = np.interp(ti, t, f, left=0, right=0)
     return np.trapz(fi,ti)
 
 
