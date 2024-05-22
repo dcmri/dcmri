@@ -1,5 +1,8 @@
 import math
 import numpy as np
+import dcmri.utils as utils
+
+
 
 
 def influx_step(t:np.ndarray, weight:float, conc:float, dose:float, rate:float, t0:float)->np.ndarray:
@@ -393,5 +396,139 @@ def aif_parker(t, BAT:float=0.0)->np.ndarray:
     pop_aif = gaussian1 + gaussian2 + sigmoid
     
     return pop_aif/1000 # convert to M
+
+
+# TODO: replace by conc_2cxm(), or use in conc_2cxm()
+def _propagate_2cxm(t: np.ndarray,
+                   ca: np.ndarray,
+                   KP: float,
+                   KE: float,
+                   KB: float
+                   ) -> tuple[np.ndarray, np.ndarray]:
+    """Calculates propagators for individual compartments in the 2CXM.
+
+    For details and notations see appendix of Sourbron et al. Magn Reson Med 62:672–681 (2009).
+
+    Args:
+        t: time points (sec) where the input function is defined
+        ca: input function (mmol/mL)
+        KP: inverse plasma MTT (sec) = VP/(FP+PS)
+        KE: inverse extracellular MTT (sec) = VE/PS
+        KB: inverse blood MTT (sec) = VP/FP
+
+    Returns:
+        A tuple (cp, ce), where cp is the concentration in the plasma
+        compartment, and ce is the concentration in the extracellular
+        compartment. Both are in mmol/mL.
+    """
+    KT = KP + KE
+    sqrt = math.sqrt(KT**2-4*KE*KB)
+
+    Kpos = 0.5*(KT + sqrt)
+    Kneg = 0.5*(KT - sqrt)
+
+    cpos = utils.expconv(ca, 1/Kpos, t) # normalized
+    cneg = utils.expconv(ca, 1/Kneg, t)
+
+    Eneg = (Kpos - KB)/(Kpos - Kneg)
+
+    cp = (1-Eneg)*cpos + Eneg*cneg
+    ce = (cneg*Kpos - cpos*Kneg) / (Kpos - Kneg)
+
+    return cp, ce
+
+
+def aif_tristan_rat(t, BAT=4.6*60) -> np.ndarray:
+    """Population AIF model for rats measured with a standard dose of gadoxetate. 
+
+    Args:
+        t (array_like): time points in units of sec. 
+        BAT (float, optional): Time in seconds before the bolus arrives. Defaults to 4.6 min. 
+
+    Returns:
+        np.ndarray: Concentrations in M for each time point in t. If t is a scalar, the return value is a scalar too.
+
+    References: 
+
+        - Melillo N, Scotcher D, Kenna JG, Green C, Hines CDG, Laitinen I, et al. Use of In Vivo Imaging and Physiologically-Based Kinetic Modelling to Predict Hepatic Transporter Mediated Drug-Drug Interactions in Rats. `Pharmaceutics 2023;15(3):896 <https://doi.org/10.3390/pharmaceutics15030896>`_.
+
+        - Gunwhy, E. R., & Sourbron, S. (2023). TRISTAN-RAT (v3.0.0). `Zenodo <https://doi.org/10.5281/zenodo.8372595>`_
+        
+    Example:
+
+    .. plot::
+        :include-source:
+
+        >>> import matplotlib.pyplot as plt
+        >>> import numpy as np
+        >>> import dcmri as dc
+
+        Create an array of time points over 30 minutes
+
+        >>> t = np.arange(0, 30*60, 0.1)
+
+        Generate the rat input function for these time points:
+
+        >>> cp = dc.aif_tristan_rat(t)
+
+        Plot the result:
+
+        >>> plt.plot(t/60, 1000*cp, 'r-')
+        >>> plt.title('TRISTAN rat AIF')
+        >>> plt.xlabel('Time (min)')
+        >>> plt.ylabel('Plasma concentration (mM)')
+        >>> plt.show()
+    """
+    # Constants
+    duration = 30   # sec
+    dose = 0.0075   # mmol
+
+    Fb = 2.27/60  # https://doi.org/10.1021/acs.molpharmaceut.1c00206
+                  # (Changed from 3.61/60 on 07/03/2022)
+                  # From Brown the cardiac output of rats is
+                  # 110.4 mL/min (table 3-1) ~ 6.62L/h
+                  # From table 3-4, sum of hepatic artery and portal vein
+                  # blood flow is 17.4% of total cardiac output ~ 1.152 L/h
+                  # Mass of liver is 9.15g, with density of 1.08 kg/L,
+                  # therefore ~8.47mL
+                  #  9.18g refers to the whole liver, i.e. intracellular tissue
+                  # + extracellular space + blood
+                  # Dividing 1.152L/h for 8.47mL we obtain ~2.27 mL/h/mL liver
+                  # Calculation done with values in Table S2 of our article
+                  # lead to the same results
+    Hct = 0.418  # Cremer et al, J Cereb Blood Flow Metab 3, 254-256 (1983)
+    VL = 8.47    # Scotcher et al 2021, DOI: 10.1021/acs.molpharmaceut.1c00206
+                 # Supplementary material, Table S2
+    GFR = 0.023  # https://doi.org/10.1152/ajprenal.1985.248.5.F734
+    P = 0.172    # Estimated from rat repro study data using PBPK model
+                 # Table 3 in Scotcher et al 2021
+                 # DOI: 10.1021/acs.molpharmaceut.1c00206
+    VB = 15.8    # 0.06 X BW + 0.77, Assuming body weight (BW) = 250 g
+                 # Lee and Blaufox. Blood volume in the rat.
+                 # J Nucl Med. 1985 Jan;26(1):72-6.
+    VE = 30      # All tissues, including liver.
+                 # Derived from Supplementary material, Table S2
+                 # Scotcher et al 2021
+                 # DOI: 10.1021/acs.molpharmaceut.1c00206
+    E = 0.4      # Liver extraction fraction, estimated from TRISTAN data.
+
+    # Derived constants
+    VP = (1-Hct)*VB
+    Fp = (1-Hct) * Fb
+    K = GFR + E*Fp*VL
+    
+    # Model parameters
+    KP = (K + P)/VP
+    KE = P/VE
+    KB = K/VP
+
+    # Influx in mmol/sec
+    J = np.zeros(np.size(t))
+    Jmax = dose/duration
+    J[(t > BAT) & (t < BAT + duration)] = Jmax
+
+    cp, ce = _propagate_2cxm(t, J/K, KP, KE, KB)
+
+    return cp
 
 

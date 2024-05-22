@@ -6,15 +6,15 @@ Getting started
 
     >>> import dcmri as dc
     
-Generate some synthetic data using one of the built-in functions `dcmri.make_tissue_2cm`::
+Generate some synthetic data using one of the built-in functions `dcmri.make_tissue_2cm_ss`::
 
-    >>> time, aif, roi, _ = dc.make_tissue_2cm()
+    >>> time, aif, roi, _ = dc.make_tissue_2cm_ss()
 
 Here *time* is an array of time points, *aif* is a signal-time curve measured in a feeding artery at those times, and *roi* is a signal-time curve measured in a region of interest. 
 
 Next we find a suitable model from the :ref:`model catalogue <end-to-end models>` and initialize it::
 
-    >>> model = dc.EToftsFXSS(aif,
+    >>> model = dc.EToftsSS(aif,
     >>>    dt = time[1],
     >>>    agent = 'gadodiamide',
     >>>    field_strength = 3.0,

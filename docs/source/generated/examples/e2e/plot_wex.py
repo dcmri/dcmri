@@ -11,43 +11,34 @@ The three tissue compartments involved are the blood, interstitium and tissue ce
 # %%
 # Simulation setup
 # ----------------
-# First we set up the simulation by importing the necessary packages and defining the constants that will be fixed throughout. The script uses the models `~dcmri.AortaSignal8b` (arterial input function), `~dcmri.EToftsFXSSC` (fast water exchange), `~dcmri.EToftsNXSSC` (no water exchange) and `~dcmri.EToftsSSC` (any water exchange). The models are renamed at import for code readability, using a naming convention that is unambiguous within the scope of this script. 
+# First we set up the simulation by importing the necessary packages and defining the constants that will be fixed throughout. The script uses the models `~dcmri.AortaChCSS` (arterial input function), `~dcmri.EToftsSSC` (no and fast water exchange) and `~dcmri.EToftsWXSS` (any water exchange). The models are renamed at import for code readability, using a naming convention that is unambiguous within the scope of this script. 
 
 # %%
 import numpy as np
 import matplotlib.pyplot as plt
 import dcmri as dc
 
-# Renaming the models for code clarity
-from dcmri import AortaSignal8 as AIF      # Arterial input function
-from dcmri import EToftsFXSSC as FWX      # Fast water exchange
-from dcmri import EToftsNXSSC as NWX     # No water exchange
-from dcmri import EToftsSSC as AWX      # Any water exchange
-
 # The constants defining the signal model and simulation settings
 const = {
     'TR': 0.005,                # Repetition time (sec)
     'FA': 15.0,                 # Flip angle (deg)
-    'dt': 0.5,                  # Pseudo-continuous time interval (sec)
+    'dt': 0.1,                  # Pseudo-continuous time interval (sec)
     'agent': 'gadoxetate',      # Contrast agent
     'field_strength': 3.0,      # Magnetic field strength (T)
+    'R10': 1/dc.T1(3.0, 'muscle'),
+    'R10b': 1/dc.T1(3.0, 'blood'), 
 }
 
-# Time axes for the acquisition and forward simulations
-tacq = np.arange(0, 300, 1.5)
-tsim = np.arange(0, np.amax(tacq)+tacq[1], const['dt'])
-
-# A population-based AIF derived from the TRISTAN healthy volunteer population
-aorta = AIF('TRISTAN', R10=1/dc.T1(3,'blood'), **const)
-cb = aorta.predict(tsim, return_conc=True)
+tacq, aif, _, _ = dc.make_tissue_2cm_ss(tacq=300, **const)
 
 # The ground-truth kinetic parameters of the extended Tofts model
 ptruth = np.array([
     1,        # S0 (a.u.)
     0.05,       # vp (mL/mL)
-    0.3/60,     # Ktrans (mL/sec/mL)
+    0.1/60,     # Ktrans (mL/sec/mL)
     0.3,        # ve (mL/mL)
 ]) 
+
 
 # %% 
 # Visualising water exchange effects
@@ -57,10 +48,10 @@ ptruth = np.array([
 # %% 
 
 # Signal in the fast water exchange limit (all barriers fully transparent to water)
-ffx = FWX(cb, ptruth, **const).predict(tacq)
+ffx = dc.EToftsSS(aif, ptruth, **const).predict(tacq)
 
 # Signal in the no water exchange limit (all barriers impermeable to water)
-nnx = NWX(cb, ptruth, **const).predict(tacq)
+nnx = dc.EToftsSS(aif, ptruth, water_exchange=False, **const).predict(tacq)
 
 # %% 
 # In order to simulate intermediate regimes, we need the more general model (AWX) that allows us to vary the values of the water permeabilities ``PSe`` and ``PSc`` across the endothelium and the membrane of the tissue cells, respectively. 
@@ -71,7 +62,7 @@ nnx = NWX(cb, ptruth, **const).predict(tacq)
 
 # Signal without transendothelial water exchange, but fast transcytolemmal water exchange
 PSe, PSc = 0, 1000
-nfx = AWX(cb, list(ptruth)+[PSe,PSc], **const).predict(tacq) 
+nfx = dc.EToftsWXSS(aif, list(ptruth)+[PSe,PSc], **const).predict(tacq) 
 
 # %% 
 # Next we consider the alternative scenario where the endothelium is transparent to water (``PSe = np.inf``, approximated as ``PSe = 1000``) and the cell membrane is impermeable (``PSc = 0``):
@@ -80,7 +71,7 @@ nfx = AWX(cb, list(ptruth)+[PSe,PSc], **const).predict(tacq)
 
 # Signal with fast transendothelial water exchange, but without transcytolemmal water exchange
 PSe, PSc = 1000, 0
-fnx = AWX(cb, list(ptruth)+[PSe,PSc], **const).predict(tacq)
+fnx = dc.EToftsWXSS(aif, list(ptruth)+[PSe,PSc], **const).predict(tacq)
 
 # %%
 # An intermediate situation arises if neither of the water permeabilities is either very high or close to zero. Trial and error shows that a choice of ``PSe = 1`` mL/sec/mL and ``PSc = 2`` mL/sec/mL produces a curve that lies in between the extremes:
@@ -89,7 +80,7 @@ fnx = AWX(cb, list(ptruth)+[PSe,PSc], **const).predict(tacq)
 
 # Signal with intermediate transendothelial and transcytolemmal water exchange
 PSe, PSc = 1, 2
-iix = AWX(cb, list(ptruth)+[PSe,PSc], **const).predict(tacq)
+iix = dc.EToftsWXSS(aif, list(ptruth)+[PSe,PSc], **const).predict(tacq)
 
 # %%
 # We now plot the different results, using fast- and no-exchange limits for visual reference:
@@ -145,7 +136,7 @@ plt.show()
 # One way to explore the scale of the water exchange bias is by generating data for a tissue in the fast exchange limit and analysing them making the opposite assumption that water exchange is negligible:
 
 # Launch a no-exchange model with default settings for the free parameters
-model = NWX(cb, **const)
+model = dc.EToftsSS(aif, water_exchange=False, **const)
 
 # Predict the signal using the untrained model as a reference
 nnx0 = model.predict(tacq)
@@ -178,7 +169,7 @@ print('ve error:', round(bias[3],1), '%')
 print('Ktrans error:', round(bias[2],1), '%')
 
 # %%
-# The plot shows that the trained model predicts the data with high accuracy, despite the inaccurate assumption of no water exchange. However the false assumption does lead to fitted parameters that are 2-20% overestimated.
+# The plot shows that the trained model predicts the data with high accuracy, despite the inaccurate assumption of no water exchange. However the false assumption does lead to fitted parameters that are severely biased.
 
 # %% 
 # Removing water exchange bias
@@ -186,7 +177,7 @@ print('Ktrans error:', round(bias[2],1), '%')
 # The model bias can be removed by generalizing the model to allow for any level of water exchange, avoiding the risk of making a false assumption on this point:
 
 # Launch a general water exchange model with default settings for all free parameters
-model = AWX(cb, **const)
+model = dc.EToftsWXSS(aif, **const)
 
 # Predict the signal using the untrained model as a reference
 iix0 = model.predict(tacq)
@@ -223,6 +214,7 @@ print('----------------------------')
 print('PSe:', round(model.pars[4],0), 'mL/sec/mL')
 print('PSc:', round(model.pars[5],0), 'mL/sec/mL')
 
+
 # %%
 # Plotting the results now shows a practically perfect fit to the data, and the measurements of the kinetic parameters are effectively unbiased. 
 # 
@@ -238,7 +230,7 @@ print('PSc:', round(model.pars[5],0), 'mL/sec/mL')
 # We can get some insight by fitting the data with an unbiased model, i.e. fitting the data with the same model that was used to generate it. This is a simple model that is likely to be much less susceptible to convergence or numerical bias, so this analysis exposes the sampling bias (alternatively we can generate data with much smaller temporal sampling intervals):
 
 # Train a fast-exchange model on the fast exchange data
-model = FWX(cb, **const).train(tacq, ffx)
+model = dc.EToftsSS(aif, **const).train(tacq, ffx)
 
 # Calculate the bias relative to the ground truth
 bias = (model.pars[:4]-ptruth)/ptruth
@@ -254,7 +246,7 @@ print('Ktrans error:', round(bias[2],2), '%')
 # Any remaining bias is smaller than 0.01%, which shows that temporal undersampling in this case only causes a minor error, and the residual errors observed with the more general model are due to imperfect convergence or numerical error. We can test for convergence bias by retraining the model with tighter convergence criteria: 
 
 # Train a general water exchange model to fast exchange data:
-model = AWX(cb, **const).train(tacq, ffx, xtol=1e-9)
+model = dc.EToftsWXSS(aif, **const).train(tacq, ffx, xtol=1e-9)
 
 # Calculate the bias in the fitted parameters
 bias = 100*(model.pars[:4]-ptruth)/ptruth

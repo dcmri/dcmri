@@ -24,6 +24,7 @@
       ~PatlakSS.pars
       ~PatlakSS.pcov
       ~PatlakSS.t0
+      ~PatlakSS.water_exchange
    
    
 

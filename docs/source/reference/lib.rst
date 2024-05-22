@@ -14,8 +14,9 @@ Digital reference objects
    :toctree: ../generated/api/
    :template: autosummary.rst
 
-   make_tissue_2cm
-
+   make_tissue_2cm_ss
+   make_tissue_2cm_sr
+   make_tissue_2cm_2ss
 
 
 Special functions
@@ -28,6 +29,7 @@ Special functions
 
    influx_step
    aif_parker
+   aif_tristan_rat
 
 
 Useful constants

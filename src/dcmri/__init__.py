@@ -20,9 +20,6 @@ from dcmri.pk_kidney import *
 from dcmri import pk_inv
 from dcmri.pk_inv import *
 
-from dcmri import wex
-from dcmri.wex import *
-
 from dcmri import sig
 from dcmri.sig import *
 

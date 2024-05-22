@@ -333,15 +333,6 @@ def test_ddist():
     assert np.abs(np.trapz(h,t)-1) < 1e-12
 
 
-def test_res_free_desc():
-    dc.res_free_desc(1, 1, TT=None, TTmin=0, TTmax=None)
-    dc.res_free_desc(1, np.arange(2), TT=None, TTmin=0, TTmax=None)
-    dc.res_free_desc(1, np.arange(2), TT=[1,2,3])
-    try:
-        dc.res_free_desc(1, np.arange(2), TT=[1,2])
-    except:
-        assert True
-
 def test_interp():
     x = np.arange(3)
     assert np.array_equal(dc.interp(3, x, pos=False, floor=False), [3,3,3])
@@ -356,7 +347,6 @@ if __name__ == "__main__":
 
     test_model()
 
-    test_res_free_desc()
     test_interp()
 
     test_trapz()

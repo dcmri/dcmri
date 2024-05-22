@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**00:32.180** total execution time for 3 files **from all galleries**:
+**28:28.375** total execution time for 3 files **from all galleries**:
 
 .. container::
 
@@ -33,7 +33,7 @@ Computation times
      - Time
      - Mem (MB)
    * - :ref:`sphx_glr_generated_examples_e2e_plot_wex.py` (``..\examples\e2e\plot_wex.py``)
-     - 00:32.180
+     - 28:28.375
      - 0.0
    * - :ref:`sphx_glr_generated_examples_lib_plot_aif_parker.py` (``..\examples\lib\plot_aif_parker.py``)
      - 00:00.000

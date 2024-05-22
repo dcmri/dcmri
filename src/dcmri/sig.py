@@ -326,6 +326,69 @@ def signal_src(R1, S0, TC):
     E = np.exp(-TC*R1)
     return S0 * (1-E)
 
+def conc_src(S, TC:float, T10:float, r1=0.005, n0=1)->np.ndarray:
+    """Concentration of a saturation-recovery sequence with a center-encoded readout.
+
+    Args:
+        S (array-like): Signal in arbitrary units.
+        TC (float): Time (sec) between the saturation pulse and the acquisition of the k-space center.
+        T10 (float): baseline T1 value in sec.
+        r1 (float, optional): Longitudinal relaxivity in Hz/M. Defaults to 0.005.
+        n0 (int, optional): Baseline length. Defaults to 1.
+
+    Returns:
+        np.ndarray: Concentration in M, same length as S.
+
+    Example:
+
+        We generate some signals from ground-truth concentrations, then reconstruct the concentrations and check against the ground truth:
+
+    .. plot::
+        :include-source:
+
+        >>> import matplotlib.pyplot as plt
+        >>> import numpy as np
+        >>> import dcmri as dc
+
+        First define some constants:
+
+        >>> T10 = 1         # sec
+        >>> TC = 0.2        # sec
+        >>> r1 = 0.005      # Hz/M
+
+        Generate ground truth concentrations and signal data:
+
+        >>> t = np.arange(0, 5*60, 0.1)     # sec
+        >>> C = 0.003*(1-np.exp(-t/60))     # M
+        >>> R1 = 1/T10 + r1*C               # Hz
+        >>> S = dc.signal_src(R1, 100, TC)  # au
+
+        Reconstruct the concentrations from the signal data:
+
+        >>> Crec = dc.conc_src(S, TC, T10, r1)
+
+        Check results by plotting ground truth against reconstruction:
+
+        >>> plt.plot(t/60, 1000*C, 'ro', label='Ground truth')
+        >>> plt.plot(t/60, 1000*Crec, 'b-', label='Reconstructed')
+        >>> plt.title('SRC signal inverse')
+        >>> plt.xlabel('Time (min)')
+        >>> plt.ylabel('Concentration (mM)')
+        >>> plt.legend()
+        >>> plt.show()
+
+    """
+    # S = S0*(1-exp(-TC*R1))
+    # S/Sb = (1-exp(-TC*R1))/(1-exp(-TC*R10))
+    # (1-exp(-TC*R10))*S/Sb = 1-exp(-TC*R1)
+    # 1-(1-exp(-TC*R10))*S/Sb = exp(-TC*R1)
+    # ln(1-(1-exp(-TC*R10))*S/Sb) = -TC*R1
+    # -ln(1-(1-exp(-TC*R10))*S/Sb)/TC = R1
+    Sb = np.mean(S[:n0])
+    E = math.exp(-TC/T10)
+    R1 = -np.log(1-(1-E)*S/Sb)/TC	
+    return (R1 - 1/T10)/r1 
+
 
 def signal_lin(R1, S0:float)->np.ndarray:
     """Signal for any sequence operating in the linear regime.

@@ -11,53 +11,21 @@ and have in-built functionality to fit the models to the data.
 .. currentmodule:: dcmri
 
 
-Tissue models - measured input
-==============================
+Tissue models
+=============
 
 Models for generic 2-site exchange tissues where the AIF is measured and available as signal-time curves.
 
+Fast/no water exchange
+----------------------
 
-Fast water exchange
--------------------
-
-.. autosummary::
-   :toctree: ../generated/api/
-   :template: custom-class-template.rst
-   :recursive:
-
-   OneCompFXSS
-   PatlakFXSS
-   ToftsFXSS
-   EToftsFXSS
-   TwoCompUptFXSS
-   TwoCompExchFXSS
-
-
-No water exchange
------------------
+Models that assume either very fast water exchange (``water_exchange=True``) or none at all (``water_exchange=False``).
 
 .. autosummary::
    :toctree: ../generated/api/
    :template: custom-class-template.rst
    :recursive:
 
-   OneCompNXSS
-   PatlakNXSS
-   ToftsNXSS
-   EToftsNXSS
-   TwoCompUptNXSS
-   TwoCompExchNXSS
-
-
-Any water exchange
-------------------
-
-.. autosummary::
-   :toctree: ../generated/api/
-   :template: custom-class-template.rst
-   :recursive:
-
-   UptSS
    OneCompSS
    PatlakSS
    ToftsSS
@@ -66,19 +34,23 @@ Any water exchange
    TwoCompExchSS
 
 
-Tissue models - known input
-===========================
+Any water exchange
+------------------
 
-Models for generic 2-site exchange tissues where the concentrations at the inlet are known, such as when population-average input concentrations are used, or when the concentration at the inlet has been derived from data by a separate procedure.
+Tissue models that allow for any intermediate level of water exchange.
 
 .. autosummary::
    :toctree: ../generated/api/
    :template: custom-class-template.rst
    :recursive:
 
-   EToftsFXSSC
-   EToftsNXSSC
-   EToftsSSC
+   UptSS
+   OneCompWXSS
+   PatlakWXSS
+   ToftsWXSS
+   EToftsWXSS
+   TwoCompUptWXSS
+   TwoCompExchWXSS
 
 
 Aorta models
@@ -94,8 +66,9 @@ Steady-state sequence
    :template: custom-class-template.rst
    :recursive:
 
-   AortaSignal6
-   AortaSignal8
+   AortaChCSS
+   AortaCh2CSS
+   AortaCh2C2SS
 
 
 Saturation-recovery sequence
@@ -106,18 +79,8 @@ Saturation-recovery sequence
    :template: custom-class-template.rst
    :recursive:
 
-   AortaSignal8b
+   AortaCh2CSRC
 
-
-Two-scan acquisition
---------------------
-
-.. autosummary::
-   :toctree: ../generated/api/
-   :template: custom-class-template.rst
-   :recursive:
-
-   AortaSignal10
 
 
 Kidney models
@@ -130,9 +93,10 @@ Models for kidney signals.
    :template: custom-class-template.rst
    :recursive:
 
-   KidneySignal6
-   KidneySignal9
-   KidneyCMSignal9
+   Kidney2CFXSR
+   Kidney2CFXSS
+   KidneyPFFXSS
+   KidneyCortMedSR
 
 
 Liver models

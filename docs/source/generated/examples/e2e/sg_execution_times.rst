@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**00:32.180** total execution time for 1 file **from generated\examples\e2e**:
+**28:28.375** total execution time for 1 file **from generated\examples\e2e**:
 
 .. container::
 
@@ -33,5 +33,5 @@ Computation times
      - Time
      - Mem (MB)
    * - :ref:`sphx_glr_generated_examples_e2e_plot_wex.py` (``plot_wex.py``)
-     - 00:32.180
+     - 28:28.375
      - 0.0

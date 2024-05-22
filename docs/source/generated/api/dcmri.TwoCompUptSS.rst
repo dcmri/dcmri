@@ -24,6 +24,7 @@
       ~TwoCompUptSS.pars
       ~TwoCompUptSS.pcov
       ~TwoCompUptSS.t0
+      ~TwoCompUptSS.water_exchange
    
    
 

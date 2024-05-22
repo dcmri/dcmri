@@ -385,7 +385,7 @@ def res_plug(T, t):
     return 1-utils.trapz(h,t)
 
 
-def conc_plug(J, T, t=None, dt=1.0, solver='conv'):
+def conc_plug(J, T, t=None, dt=1.0, solver='interp'):
     """Indicator concentration inside a plug flow system.
 
     A plug flow system is a space with a constant velocity. 
@@ -395,7 +395,8 @@ def conc_plug(J, T, t=None, dt=1.0, solver='conv'):
         T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
         t (array_like, optional): the time points of the indicator flux J, in the same units as T. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
         dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as T. This parameter is ignored if t is explicity provided. Defaults to 1.0.
-
+        solver (str, optional): solver for the system, either 'conv' for explicit convolution with a discrete impulse response (slow) or 'interp' for interpolation (fast). Defaults to 'interp'.
+        
     Returns:
         numpy.ndarray: Concentration as a 1D array.
 

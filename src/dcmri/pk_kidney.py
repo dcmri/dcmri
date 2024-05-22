@@ -1,8 +1,24 @@
 import numpy as np
 
-import dcmri
+import dcmri as dc
 
-def kidney_conc_9(
+def kidney_conc_pf(
+        ca, # Arterial plasma concentration (mmol/mL) 
+        Fp,
+        Tp,
+        Ft,
+        h,
+        TT = [15,30,60,90,150,300,600],
+        t=None, dt=1.0):
+
+    Cp = dc.conc_plug(Fp*ca, Tp, t=t, dt=dt) 
+    vp = Tp*(Fp+Ft)
+    cp = Cp/vp
+    Ct = dc.conc_free(Ft*cp, h, dt=dt, TT=TT, solver='step')   
+    return Cp, Ct
+
+
+def kidney_conc_cm9(
         ca, # Arterial plasma concentration (mmol/mL)
         Fp, # Arterial plasma flow (mL/sec or mL/sec/mL)
         Eg, # Glomerular extraction fraction
@@ -16,22 +32,22 @@ def kidney_conc_9(
         t=None, dt=1.0):
     
     # Flux out of the glomeruli and arterial tree
-    Jg = dcmri.flux_comp(Fp*ca, Tg, t=t, dt=dt)
+    Jg = dc.flux_comp(Fp*ca, Tg, t=t, dt=dt)
 
     # Flux out of the peritubular capillaries and venous system
-    Jv = dcmri.flux_comp((1-Eg)*Jg, Tv, t=t, dt=dt)
+    Jv = dc.flux_comp((1-Eg)*Jg, Tv, t=t, dt=dt)
 
     # Flux out of the proximal tubuli
-    Jpt = dcmri.flux_comp(Eg*Jg, Tpt, t=t, dt=dt)
+    Jpt = dc.flux_comp(Eg*Jg, Tpt, t=t, dt=dt)
 
     # Flux out of the lis of Henle
-    Jlh = dcmri.flux_comp(Jpt, Tlh, t=t, dt=dt)
+    Jlh = dc.flux_comp(Jpt, Tlh, t=t, dt=dt)
 
     # Flux out of the distal tubuli
-    Jdt = dcmri.flux_comp(Jlh, Tdt, t=t, dt=dt)
+    Jdt = dc.flux_comp(Jlh, Tdt, t=t, dt=dt)
 
     # Flux out of the collecting ducts
-    Jcd = dcmri.flux_comp(Jdt, Tcd, t=t, dt=dt)
+    Jcd = dc.flux_comp(Jdt, Tcd, t=t, dt=dt)
 
     # Cortex = arteries/glomeruli 
     # + part of the peritubular capillaries

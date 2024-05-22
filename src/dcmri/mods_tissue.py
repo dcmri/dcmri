@@ -17,7 +17,7 @@ class UptSS(dc.Model):
         attr: provide values for any attributes as keyword arguments. 
 
     See Also:
-        `OneCompFXSS`, `PatlakFXSS`, `ToftsFXSS`, `EToftsFXSS`, `TwoCompUptSS`, `TwoCompExchFXSS`
+        `OneCompSS`, `PatlakSS`, `ToftsSS`, `EToftsSS`, `TwoCompUptWXSS`, `TwoCompExchSS`
 
     Example:
 
@@ -30,9 +30,9 @@ class UptSS(dc.Model):
         >>> import matplotlib.pyplot as plt
         >>> import dcmri as dc
 
-        Use `make_tissue_2cm` to generate synthetic test data:
+        Use `make_tissue_2cm_ss` to generate synthetic test data:
 
-        >>> time, aif, roi, gt = dc.make_tissue_2cm(CNR=50)
+        >>> time, aif, roi, gt = dc.make_tissue_2cm_ss(CNR=50)
         
         Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
 
@@ -83,7 +83,6 @@ class UptSS(dc.Model):
         Signal scaling factor (S0): 229.188 (8.902) a.u.
         Plasma flow (Fp): 0.001 (0.0) 1/sec
     """         
-
     dt = 0.5                #: Sampling interval of the AIF in sec. 
     Hct = 0.45              #: Hematocrit. 
     agent = 'gadoterate'    #: Contrast agent generic name.
@@ -98,9 +97,9 @@ class UptSS(dc.Model):
         super().__init__(pars, **attr)
 
         # Calculate constants
-        self._n0 = max([round(self.t0/self.dt),1])
+        n0 = max([round(self.t0/self.dt),1])
         self._r1 = dc.relaxivity(self.field_strength, 'blood', self.agent)
-        cb = dc.conc_ss(aif, self.TR, self.FA, 1/self.R10b, self._r1, self._n0)
+        cb = dc.conc_ss(aif, self.TR, self.FA, 1/self.R10b, self._r1, n0)
         self._ca = cb/(1-self.Hct)
         self._t = self.dt*np.arange(np.size(aif))
 
@@ -120,7 +119,8 @@ class UptSS(dc.Model):
     
     def train(self, xdata, ydata, **kwargs):
         Sref = dc.signal_ss(self.R10, 1, self.TR, self.FA)
-        self.pars[0] = np.mean(ydata[:self._n0]) / Sref
+        n0 = max([np.sum(xdata<self.t0), 1])
+        self.pars[0] = np.mean(ydata[:n0]) / Sref
         return super().train(xdata, ydata, **kwargs)
     
     def pars0(self, settings='default'):
@@ -153,10 +153,10 @@ class UptSS(dc.Model):
         return self._ca
     
 
-# Fast water exchange
+# Fast/no water exchange
     
 
-class OneCompFXSS(UptSS):
+class OneCompSS(UptSS):
     """One-compartment tissue, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
     The free model parameters are:
@@ -171,7 +171,7 @@ class OneCompFXSS(UptSS):
         attr: provide values for any attributes as keyword arguments. 
 
     See Also:
-        `UptSS`, `PatlakFXSS`, `ToftsFXSS`, `EToftsFXSS`, `TwoCompUptSS`, `TwoCompExchFXSS`
+        `UptSS`, `PatlakSS`, `ToftsSS`, `EToftsSS`, `TwoCompUptWXSS`, `TwoCompExchSS`
 
     Example:
 
@@ -184,13 +184,13 @@ class OneCompFXSS(UptSS):
         >>> import matplotlib.pyplot as plt
         >>> import dcmri as dc
 
-        Use `make_tissue_2cm` to generate synthetic test data:
+        Use `make_tissue_2cm_ss` to generate synthetic test data:
 
-        >>> time, aif, roi, gt = dc.make_tissue_2cm(CNR=50)
+        >>> time, aif, roi, gt = dc.make_tissue_2cm_ss(CNR=50)
         
         Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
 
-        >>> model = dc.OneCompFXSS(aif,
+        >>> model = dc.OneCompSS(aif,
         ...     dt = time[1],
         ...     Hct = 0.45, 
         ...     agent = 'gadodiamide',
@@ -237,7 +237,9 @@ class OneCompFXSS(UptSS):
         Signal scaling factor (S0): 175.126 (6.654) a.u.
         Plasma flow (Fp): 0.004 (0.0) 1/sec
         Volume of distribution (v): 0.004 (0.015) mL/mL 
-    """         
+    """ 
+
+    water_exchange = True       #: Assume fast water exchange (True) or no water exchange (False). Default is True.
 
     def predict(self, xdata:np.ndarray, return_conc=False)->np.ndarray:
 
@@ -249,8 +251,15 @@ class OneCompFXSS(UptSS):
         C = dc.conc_1cm(self._ca, Fp, v, dt=self.dt)
         if return_conc:
             return dc.sample(xdata, self._t, C, xdata[2]-xdata[1])
-        R1 = self.R10 + self._r1*C
-        ydata = dc.signal_ss(R1, S0, self.TR, self.FA)
+        if self.water_exchange:
+            R1 = self.R10 + self._r1*C
+            ydata = dc.signal_ss(R1, S0, self.TR, self.FA)
+        else:
+            R1e = self.R10 + self._r1*C/v
+            R1c = self.R10 + np.zeros(C.size)
+            v = [v, 1-v]
+            R1 = np.stack((R1e, R1c))
+            ydata = dc.signal_ss_nex(v, R1, S0, self.TR, self.FA)
         return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
     
     def pars0(self, settings='default'):
@@ -278,7 +287,7 @@ class OneCompFXSS(UptSS):
         return pars
 
 
-class ToftsFXSS(OneCompFXSS):
+class ToftsSS(OneCompSS):
     """Tofts tissue, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
     The free model parameters are:
@@ -293,7 +302,7 @@ class ToftsFXSS(OneCompFXSS):
         attr: provide values for any attributes as keyword arguments. 
 
     See Also:
-        `UptSS`, `OneCompFXSS`, `PatlakFXSS`, `EToftsFXSS`, `TwoCompUptSS`, `TwoCompExchFXSS`
+        `UptSS`, `OneCompSS`, `PatlakSS`, `EToftsSS`, `TwoCompUptWXSS`, `TwoCompExchSS`
 
     Example:
 
@@ -306,13 +315,13 @@ class ToftsFXSS(OneCompFXSS):
         >>> import matplotlib.pyplot as plt
         >>> import dcmri as dc
 
-        Use `make_tissue_2cm` to generate synthetic test data:
+        Use `make_tissue_2cm_ss` to generate synthetic test data:
 
-        >>> time, aif, roi, gt = dc.make_tissue_2cm(CNR=50)
+        >>> time, aif, roi, gt = dc.make_tissue_2cm_ss(CNR=50)
         
         Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
 
-        >>> model = dc.ToftsFXSS(aif,
+        >>> model = dc.ToftsSS(aif,
         ...     dt = time[1],
         ...     Hct = 0.45, 
         ...     agent = 'gadodiamide',
@@ -390,7 +399,7 @@ class ToftsFXSS(OneCompFXSS):
         return pars
 
     
-class PatlakFXSS(UptSS):
+class PatlakSS(UptSS):
     """Patlak tissue in fast water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
     The free model parameters are:
@@ -405,7 +414,7 @@ class PatlakFXSS(UptSS):
         attr: provide values for any attributes as keyword arguments. 
 
     See Also:
-        `UptSS`, `OneCompFXSS`, `ToftsFXSS`, `EToftsFXSS`, `TwoCompUptSS`, `TwoCompExchFXSS`
+        `UptSS`, `OneCompSS`, `ToftsSS`, `EToftsSS`, `TwoCompUptWXSS`, `TwoCompExchSS`
 
     Example:
 
@@ -418,13 +427,13 @@ class PatlakFXSS(UptSS):
         >>> import matplotlib.pyplot as plt
         >>> import dcmri as dc
 
-        Use `make_tissue_2cm` to generate synthetic test data:
+        Use `make_tissue_2cm_ss` to generate synthetic test data:
 
-        >>> time, aif, roi, gt = dc.make_tissue_2cm(CNR=50)
+        >>> time, aif, roi, gt = dc.make_tissue_2cm_ss(CNR=50)
         
         Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
 
-        >>> model = dc.PatlakFXSS(aif,
+        >>> model = dc.PatlakSS(aif,
         ...     dt = time[1],
         ...     Hct = 0.45, 
         ...     agent = 'gadodiamide',
@@ -471,7 +480,9 @@ class PatlakFXSS(UptSS):
         Signal scaling factor (S0): 174.415 (5.95) a.u.
         Plasma volume (vp): 0.049 (0.004) mL/mL
         Volume transfer constant (Ktrans): 0.001 (0.0) 1/sec
-    """         
+    """ 
+
+    water_exchange = True       #: Assume fast water exchange (True) or no water exchange (False). Default is True.        
 
     def predict(self, xdata:np.ndarray, return_conc=False)->np.ndarray:
 
@@ -480,11 +491,19 @@ class PatlakFXSS(UptSS):
             msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
             raise ValueError(msg)
         S0, vp, Ktrans = self.pars
-        C = dc.conc_patlak(self._ca, vp, Ktrans, dt=self.dt)
+        C = dc.conc_patlak(self._ca, vp, Ktrans, dt=self.dt, sum=False)
         if return_conc:
-            return dc.sample(xdata, self._t, C, xdata[2]-xdata[1])
-        R1 = self.R10 + self._r1*C
-        ydata = dc.signal_ss(R1, S0, self.TR, self.FA)
+            return dc.sample(xdata, self._t, C[0,:]+C[1,:], xdata[2]-xdata[1])
+        if self.water_exchange:
+            R1 = self.R10 + self._r1*(C[0,:]+C[1,:])
+            ydata = dc.signal_ss(R1, S0, self.TR, self.FA)
+        else:
+            vb = vp/(1-self.Hct)
+            R1b = self.R10b + self._r1*C[0,:]/vb
+            R1e = self.R10 + self._r1*C[1,:]/(1-vb)
+            v = [vb, 1-vb]
+            R1 = np.stack((R1b, R1e))
+            ydata = dc.signal_ss_nex(v, R1, S0, self.TR, self.FA)
         return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
     
     def pars0(self, settings='default'):
@@ -510,7 +529,7 @@ class PatlakFXSS(UptSS):
         return pars
 
 
-class EToftsFXSS(UptSS):
+class EToftsSS(UptSS):
     """Extended Tofts tissue in fast water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
     Probably the most common modelling approach for generic tissues. The arterial concentrations are calculated by direct analytical inversion of the arterial signal 
@@ -528,7 +547,7 @@ class EToftsFXSS(UptSS):
         attr: provide values for any attributes as keyword arguments. 
 
     See Also:
-        `UptSS`, `OneCompFXSS`, `PatlakFXSS`, `ToftsFXSS`, `TwoCompUptSS`, `TwoCompExchFXSS`
+        `UptSS`, `OneCompSS`, `PatlakSS`, `ToftsSS`, `TwoCompUptWXSS`, `TwoCompExchSS`
 
     Example:
 
@@ -541,13 +560,13 @@ class EToftsFXSS(UptSS):
         >>> import matplotlib.pyplot as plt
         >>> import dcmri as dc
 
-        Use `make_tissue_2cm` to generate synthetic test data:
+        Use `make_tissue_2cm_ss` to generate synthetic test data:
 
-        >>> time, aif, roi, gt = dc.make_tissue_2cm(CNR=50)
+        >>> time, aif, roi, gt = dc.make_tissue_2cm_ss(CNR=50)
         
         Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
 
-        >>> model = dc.EToftsFXSS(aif,
+        >>> model = dc.EToftsSS(aif,
         ...     dt = time[1],
         ...     Hct = 0.45, 
         ...     agent = 'gadodiamide',
@@ -601,7 +620,9 @@ class EToftsFXSS(UptSS):
         Extracellular mean transit time (Te): 65.935 sec
         Extravascular transfer constant (kep): 0.015 1/sec
         Extracellular volume (v): 0.254 mL/mL
-    """         
+    """  
+
+    water_exchange = True       #: Assume fast water exchange (True) or no water exchange (False). Default is True.       
 
     def predict(self, xdata:np.ndarray, return_conc=False)->np.ndarray:
 
@@ -610,11 +631,20 @@ class EToftsFXSS(UptSS):
             msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
             raise ValueError(msg)
         S0, vp, Ktrans, ve = self.pars
-        C = dc.conc_etofts(self._ca, vp, Ktrans, ve, dt=self.dt)
+        C = dc.conc_etofts(self._ca, vp, Ktrans, ve, dt=self.dt, sum=False)
         if return_conc:
-            return dc.sample(xdata, self._t, C, xdata[2]-xdata[1])
-        R1 = self.R10 + self._r1*C
-        ydata = dc.signal_ss(R1, S0, self.TR, self.FA)
+            return dc.sample(xdata, self._t, C[0,:]+C[1,:], xdata[2]-xdata[1])
+        if self.water_exchange:
+            R1 = self.R10 + self._r1*(C[0,:]+C[1,:])
+            ydata = dc.signal_ss(R1, S0, self.TR, self.FA)
+        else:
+            vb = vp/(1-self.Hct)
+            R1b = self.R10b + self._r1*C[0,:]/vb
+            R1e = self.R10 + self._r1*C[1,:]/ve
+            R1c = self.R10 + np.zeros(C.shape[1])
+            v = [vb, ve, 1-vb-ve]
+            R1 = np.stack((R1b, R1e, R1c))
+            ydata = dc.signal_ss_nex(v, R1, S0, self.TR, self.FA)
         return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
     
     def pars0(self, settings='default'):
@@ -654,7 +684,7 @@ class EToftsFXSS(UptSS):
         return pars
     
 
-class TwoCompUptFXSS(UptSS):
+class TwoCompUptSS(UptSS):
     """Two-compartment uptake model (2CUM) in fast water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
     The free model parameters are:
@@ -670,7 +700,7 @@ class TwoCompUptFXSS(UptSS):
         attr: provide values for any attributes as keyword arguments. 
 
     See Also:
-        `UptSS`, `OneCompFXSS`, `PatlakFXSS`, `ToftsFXSS`, `EToftsFXSS`, `TwoCompExchFXSS`
+        `UptSS`, `OneCompSS`, `PatlakSS`, `ToftsSS`, `EToftsSS`, `TwoCompExchSS`
 
     Example:
 
@@ -683,13 +713,13 @@ class TwoCompUptFXSS(UptSS):
         >>> import matplotlib.pyplot as plt
         >>> import dcmri as dc
 
-        Use `make_tissue_2cm` to generate synthetic test data:
+        Use `make_tissue_2cm_ss` to generate synthetic test data:
 
-        >>> time, aif, roi, gt = dc.make_tissue_2cm(CNR=50)
+        >>> time, aif, roi, gt = dc.make_tissue_2cm_ss(CNR=50)
         
         Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
 
-        >>> model = dc.TwoCompUptSS(aif,
+        >>> model = dc.TwoCompUptWXSS(aif,
         ...     dt = time[1],
         ...     Hct = 0.45, 
         ...     agent = 'gadodiamide',
@@ -745,6 +775,8 @@ class TwoCompUptFXSS(UptSS):
         Plasma mean transit time (Tp): 2.88 sec
     """         
 
+    water_exchange = True       #: Assume fast water exchange (True) or no water exchange (False). Default is True.
+
     def predict(self, xdata:np.ndarray, return_conc=False)->np.ndarray:
 
         if np.amax(self._t) < np.amax(xdata):
@@ -752,11 +784,19 @@ class TwoCompUptFXSS(UptSS):
             msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
             raise ValueError(msg)
         S0, Fp, vp, PS = self.pars
-        C = dc.conc_2cum(self._ca, Fp, vp, PS, dt=self.dt)
+        C = dc.conc_2cum(self._ca, Fp, vp, PS, dt=self.dt, sum=False)
         if return_conc:
-            return dc.sample(xdata, self._t, C, xdata[2]-xdata[1])
-        R1 = self.R10 + self._r1*C
-        ydata = dc.signal_ss(R1, S0, self.TR, self.FA)
+            return dc.sample(xdata, self._t, C[0,:]+C[1,:], xdata[2]-xdata[1])
+        if self.water_exchange:
+            R1 = self.R10 + self._r1*(C[0,:]+C[1,:])
+            ydata = dc.signal_ss(R1, S0, self.TR, self.FA)
+        else:
+            vb = vp/(1-self.Hct)
+            R1b = self.R10b + self._r1*C[0,:]/vb
+            R1e = self.R10 + self._r1*C[1,:]/(1-vb)
+            v = [vb, 1-vb]
+            R1 = np.stack((R1b, R1e))
+            ydata = dc.signal_ss_nex(v, R1, S0, self.TR, self.FA)
         return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
     
     def pars0(self, settings='default'):
@@ -796,7 +836,7 @@ class TwoCompUptFXSS(UptSS):
         return pars
 
 
-class TwoCompExchFXSS(UptSS):
+class TwoCompExchSS(UptSS):
     """Two-compartment exchange model (2CXM) in fast water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
     The free model parameters are:
@@ -813,7 +853,7 @@ class TwoCompExchFXSS(UptSS):
         attr: provide values for any attributes as keyword arguments. 
 
     See Also:
-        `UptSS`, `OneCompFXSS`, `PatlakFXSS`, `ToftsFXSS`, `EToftsFXSS`, `TwoCompUptSS`
+        `UptSS`, `OneCompSS`, `PatlakSS`, `ToftsSS`, `EToftsSS`, `TwoCompUptWXSS`
 
     Example:
 
@@ -826,13 +866,13 @@ class TwoCompExchFXSS(UptSS):
         >>> import matplotlib.pyplot as plt
         >>> import dcmri as dc
 
-        Use `make_tissue_2cm` to generate synthetic test data:
+        Use `make_tissue_2cm_ss` to generate synthetic test data:
 
-        >>> time, aif, roi, gt = dc.make_tissue_2cm(CNR=50)
+        >>> time, aif, roi, gt = dc.make_tissue_2cm_ss(CNR=50)
         
         Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
 
-        >>> model = dc.TwoCompExchFXSS(aif,
+        >>> model = dc.TwoCompExchSS(aif,
         ...     dt = time[1],
         ...     Hct = 0.45, 
         ...     agent = 'gadodiamide',
@@ -892,6 +932,8 @@ class TwoCompExchFXSS(UptSS):
         Mean transit time (T): 0.002 sec
     """         
 
+    water_exchange = True       #: Assume fast water exchange (True) or no water exchange (False). Default is True.
+
     def predict(self, xdata:np.ndarray, return_conc=False)->np.ndarray:
 
         if np.amax(self._t) < np.amax(xdata):
@@ -899,11 +941,20 @@ class TwoCompExchFXSS(UptSS):
             msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
             raise ValueError(msg)
         S0, Fp, vp, PS, ve = self.pars
-        C = dc.conc_2cxm(self._ca, Fp, vp, PS, ve, dt=self.dt)
+        C = dc.conc_2cxm(self._ca, Fp, vp, PS, ve, dt=self.dt, sum=False)
         if return_conc:
-            return dc.sample(xdata, self._t, C, xdata[2]-xdata[1])
-        R1 = self.R10 + self._r1*C
-        ydata = dc.signal_ss(R1, S0, self.TR, self.FA)
+            return dc.sample(xdata, self._t, C[0,:]+C[1,:], xdata[2]-xdata[1])
+        if self.water_exchange:
+            R1 = self.R10 + self._r1*(C[0,:]+C[1,:])
+            ydata = dc.signal_ss(R1, S0, self.TR, self.FA)
+        else:
+            vb = vp/(1-self.Hct)
+            R1b = self.R10b + self._r1*C[0,:]/vb
+            R1e = self.R10 + self._r1*C[1,:]/ve
+            R1c = self.R10 + np.zeros(C.shape[1])
+            v = [vb, ve, 1-vb-ve]
+            R1 = np.stack((R1b, R1e, R1c))
+            ydata = dc.signal_ss_nex(v, R1, S0, self.TR, self.FA)
         return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
     
     def pars0(self, settings='default'):
@@ -950,664 +1001,10 @@ class TwoCompExchFXSS(UptSS):
         return pars
 
 
-
-# No water exchange
-
-
-
-class OneCompNXSS(OneCompFXSS):
-    """One-compartment tissue, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
-
-    The free model parameters are:
-
-    - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
-    - **Fp** (Plasma flow, mL/sec/mL): Plasma flow into the compartment per unit tissue.
-    - **v** (Volume of distribution, mL/mL): Volume fraction of the compartment. 
-    
-    Args:
-        aif (array-like): MRI signals measured in the arterial input.
-        pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
-
-    See Also:
-        `PatlakNXSS`, `ToftsNXSS`, `EToftsNXSS`, `TwoCompUptNXSS`, `TwoCompExchNXSS`
-
-    Example:
-
-        Derive model parameters from data.
-
-    .. plot::
-        :include-source:
-        :context: close-figs
-    
-        >>> import matplotlib.pyplot as plt
-        >>> import dcmri as dc
-
-        Use `make_tissue_2cm` to generate synthetic test data:
-
-        >>> time, aif, roi, gt = dc.make_tissue_2cm(CNR=50)
-        
-        Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
-
-        >>> model = dc.OneCompNXSS(aif,
-        ...     dt = time[1],
-        ...     Hct = 0.45, 
-        ...     agent = 'gadodiamide',
-        ...     field_strength = 3.0,
-        ...     TR = 0.005,
-        ...     FA = 20,
-        ...     R10 = 1/dc.T1(3.0,'muscle'),
-        ...     R10b = 1/dc.T1(3.0,'blood'),
-        ...     t0 = 15,
-        ... )
-
-        Train the model on the ROI data:
-
-        >>> model.train(time, roi)
-
-        Plot the reconstructed signals (left) and concentrations (right) and compare the concentrations against the noise-free ground truth:
-
-        >>> fig, (ax0, ax1) = plt.subplots(1,2,figsize=(12,5))
-        >>> #
-        >>> ax0.set_title('Prediction of the MRI signals.')
-        >>> ax0.plot(time/60, roi, marker='o', linestyle='None', color='cornflowerblue', label='Data')
-        >>> ax0.plot(time/60, model.predict(time), linestyle='-', linewidth=3.0, color='darkblue', label='Prediction')
-        >>> ax0.set_xlabel('Time (min)')
-        >>> ax0.set_ylabel('MRI signal (a.u.)')
-        >>> ax0.legend()
-        >>> #
-        >>> ax1.set_title('Reconstruction of concentrations.')
-        >>> ax1.plot(gt['t']/60, 1000*gt['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-        >>> ax1.plot(time/60, 1000*model.predict(time, return_conc=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
-        >>> ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-        >>> ax1.plot(time/60, 1000*model.aif_conc(), linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
-        >>> ax1.set_xlabel('Time (min)')
-        >>> ax1.set_ylabel('Concentration (mM)')
-        >>> ax1.legend()
-        >>> #
-        >>> plt.show()
-
-        We can also have a look at the model parameters after training:
-
-        >>> model.print(round_to=3)
-        -----------------------------------------
-        Free parameters with their errors (stdev)
-        -----------------------------------------
-        Signal scaling factor (S0): 172.679 (6.163) a.u.
-        Plasma flow (Fp): 0.006 (0.001) 1/sec
-        Volume of distribution (v): 0.006 (0.017) mL/mL
-    """         
-    def predict(self, xdata:np.ndarray, return_conc=False)->np.ndarray:
-
-        if np.amax(self._t) < np.amax(xdata):
-            msg = 'The acquisition window is longer than the duration of the AIF. \n'
-            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
-            raise ValueError(msg)
-        S0, Fp, v = self.pars
-        C = dc.conc_1cm(self._ca, Fp, v, dt=self.dt)
-        if return_conc:
-            return dc.sample(xdata, self._t, C, xdata[2]-xdata[1])
-        R1e = self.R10 + self._r1*C/v
-        R1c = self.R10 + np.zeros(C.size)
-        v = [v, 1-v]
-        R1 = np.stack((R1e, R1c))
-        ydata = dc.signal_ss_nex(v, R1, S0, self.TR, self.FA)
-        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
-
-
-class ToftsNXSS(OneCompNXSS):
-    """Tofts tissue, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
-
-    The free model parameters are:
-
-    - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
-    - **Ktrans** (Vascular transfer constant, mL/sec/mL): clearance of the plasma compartment per unit tissue.
-    - **ve** (Extravascular, extracellular volume, mL/mL): Volume fraction of the interstitial compartment.
-    
-    Args:
-        aif (array-like): MRI signals measured in the arterial input.
-        pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
-
-    See Also:
-        `OneCompNXSS`, `PatlakNXSS`, `EToftsNXSS`, `TwoCompUptNXSS`, `TwoCompExchNXSS`
-
-    Example:
-
-        Derive model parameters from data.
-
-    .. plot::
-        :include-source:
-        :context: close-figs
-    
-        >>> import matplotlib.pyplot as plt
-        >>> import dcmri as dc
-
-        Use `make_tissue_2cm` to generate synthetic test data:
-
-        >>> time, aif, roi, gt = dc.make_tissue_2cm(CNR=50)
-        
-        Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
-
-        >>> model = dc.ToftsNXSS(aif,
-        ...     dt = time[1],
-        ...     Hct = 0.45, 
-        ...     agent = 'gadodiamide',
-        ...     field_strength = 3.0,
-        ...     TR = 0.005,
-        ...     FA = 20,
-        ...     R10 = 1/dc.T1(3.0,'muscle'),
-        ...     R10b = 1/dc.T1(3.0,'blood'),
-        ...     t0 = 15,
-        ... )
-
-        Train the model on the ROI data:
-
-        >>> model.train(time, roi)
-
-        Plot the reconstructed signals (left) and concentrations (right) and compare the concentrations against the noise-free ground truth:
-
-        >>> fig, (ax0, ax1) = plt.subplots(1,2,figsize=(12,5))
-        >>> #
-        >>> ax0.set_title('Prediction of the MRI signals.')
-        >>> ax0.plot(time/60, roi, marker='o', linestyle='None', color='cornflowerblue', label='Data')
-        >>> ax0.plot(time/60, model.predict(time), linestyle='-', linewidth=3.0, color='darkblue', label='Prediction')
-        >>> ax0.set_xlabel('Time (min)')
-        >>> ax0.set_ylabel('MRI signal (a.u.)')
-        >>> ax0.legend()
-        >>> #
-        >>> ax1.set_title('Reconstruction of concentrations.')
-        >>> ax1.plot(gt['t']/60, 1000*gt['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-        >>> ax1.plot(time/60, 1000*model.predict(time, return_conc=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
-        >>> ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-        >>> ax1.plot(time/60, 1000*model.aif_conc(), linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
-        >>> ax1.set_xlabel('Time (min)')
-        >>> ax1.set_ylabel('Concentration (mM)')
-        >>> ax1.legend()
-        >>> #
-        >>> plt.show()
-
-        We can also have a look at the model parameters after training:
-
-        >>> model.print(round_to=3)
-        -----------------------------------------
-        Free parameters with their errors (stdev)
-        -----------------------------------------
-        Signal scaling factor (S0): 172.679 (6.163) a.u.
-        Volume transfer constant (Ktrans): 0.006 (0.001) 1/sec
-        Extravascular, extracellular volume (ve): 0.195 (0.017) mL/mL
-        ------------------
-        Derived parameters
-        ------------------
-        Extracellular mean transit time (Te): 33.026 sec
-        Extravascular transfer constant (kep): 0.03 1/sec
-    """         
-
-    def pfree(self, units='standard'):
-        pars = [
-            ['S0','Signal scaling factor',self.pars[0],'a.u.'],
-            ['Ktrans','Volume transfer constant',self.pars[1],'1/sec'],
-            ['ve','Extravascular, extracellular volume',self.pars[2],'mL/mL'],
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]*6000, 'mL/min/100mL']
-            pars[2][2:] = [pars[2][2]*100, 'mL/100mL']
-            
-        return pars
-    
-    def pdep(self, units='standard'):
-        pars = [
-            ['Te','Extracellular mean transit time',self.pars[2]/self.pars[1],'sec'],
-            ['kep','Extravascular transfer constant',self.pars[1]/self.pars[2],'1/sec'],
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]/60, 'min']
-            pars[2][2:] = [pars[2][2]*6000, 'mL/min/100mL']
-        return pars
-
-    
-class PatlakNXSS(PatlakFXSS):
-    """Patlak tissue without water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
-
-    The free model parameters are:
-
-    - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
-    - **vp** (Plasma volume, mL/mL): Volume fraction of the plasma compartment. 
-    - **Ktrans** (Vascular transfer constant, mL/sec/mL): clearance of the plasma compartment per unit tissue.
-
-    Args:
-        aif (array-like): MRI signals measured in the arterial input.
-        pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
-
-    See Also:
-        `OneCompNXSS`, `ToftsNXSS`, `EToftsNXSS`, `TwoCompUptNXSS`, `TwoCompExchNXSS`
-
-    Example:
-
-        Derive model parameters from data.
-
-    .. plot::
-        :include-source:
-        :context: close-figs
-    
-        >>> import matplotlib.pyplot as plt
-        >>> import dcmri as dc
-
-        Use `make_tissue_2cm` to generate synthetic test data:
-
-        >>> time, aif, roi, gt = dc.make_tissue_2cm(CNR=50)
-        
-        Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
-
-        >>> model = dc.PatlakNXSS(aif,
-        ...     dt = time[1],
-        ...     Hct = 0.45, 
-        ...     agent = 'gadodiamide',
-        ...     field_strength = 3.0,
-        ...     TR = 0.005,
-        ...     FA = 20,
-        ...     R10 = 1/dc.T1(3.0,'muscle'),
-        ...     R10b = 1/dc.T1(3.0,'blood'),
-        ...     t0 = 15,
-        ... )
-
-        Train the model on the ROI data:
-
-        >>> model.train(time, roi)
-
-        Plot the reconstructed signals (left) and concentrations (right) and compare the concentrations against the noise-free ground truth:
-
-        >>> fig, (ax0, ax1) = plt.subplots(1,2,figsize=(12,5))
-        >>> #
-        >>> ax0.set_title('Prediction of the MRI signals.')
-        >>> ax0.plot(time/60, roi, marker='o', linestyle='None', color='cornflowerblue', label='Data')
-        >>> ax0.plot(time/60, model.predict(time), linestyle='-', linewidth=3.0, color='darkblue', label='Prediction')
-        >>> ax0.set_xlabel('Time (min)')
-        >>> ax0.set_ylabel('MRI signal (a.u.)')
-        >>> ax0.legend()
-        >>> #
-        >>> ax1.set_title('Reconstruction of concentrations.')
-        >>> ax1.plot(gt['t']/60, 1000*gt['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-        >>> ax1.plot(time/60, 1000*model.predict(time, return_conc=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
-        >>> ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-        >>> ax1.plot(time/60, 1000*model.aif_conc(), linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
-        >>> ax1.set_xlabel('Time (min)')
-        >>> ax1.set_ylabel('Concentration (mM)')
-        >>> ax1.legend()
-        >>> #
-        >>> plt.show()
-
-        We can also have a look at the model parameters after training:
-
-        >>> model.print(round_to=3)
-        -----------------------------------------
-        Free parameters with their errors (stdev)
-        -----------------------------------------
-        Signal scaling factor (S0): 165.529 (5.004) a.u.
-        Plasma volume (vp): 0.091 (0.006) mL/mL
-        Volume transfer constant (Ktrans): 0.001 (0.0) 1/sec
-    """         
-    def predict(self, xdata:np.ndarray, return_conc=False)->np.ndarray:
-
-        if np.amax(self._t) < np.amax(xdata):
-            msg = 'The acquisition window is longer than the duration of the AIF. \n'
-            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
-            raise ValueError(msg)
-        S0, vp, Ktrans = self.pars
-        C = dc.conc_patlak(self._ca, vp, Ktrans, dt=self.dt, sum=False)
-        if return_conc:
-            return dc.sample(xdata, self._t, C[0,:]+C[1,:], xdata[2]-xdata[1])
-        vb = vp/(1-self.Hct)
-        R1b = self.R10b + self._r1*C[0,:]/vb
-        R1e = self.R10 + self._r1*C[1,:]/(1-vb)
-        v = [vb, 1-vb]
-        R1 = np.stack((R1b, R1e))
-        ydata = dc.signal_ss_nex(v, R1, S0, self.TR, self.FA)
-        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
-
-
-class EToftsNXSS(EToftsFXSS):
-    """Extended Tofts tissue without water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
-
-    Probably the most common modelling approach for generic tissues. The arterial concentrations are calculated by direct analytical inversion of the arterial signal 
-
-    The free model parameters are:
-
-    - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
-    - **vp** (Plasma volume, mL/mL): Volume fraction of the plasma compartment. 
-    - **Ktrans** (Vascular transfer constant, mL/sec/mL): clearance of the plasma compartment per unit tissue.
-    - **ve** (Extravascular, extracellular volume, mL/mL): Volume fraction of the interstitial compartment.
-
-    Args:
-        aif (array-like): MRI signals measured in the arterial input.
-        pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
-
-    See Also:
-         `OneCompNXSS`, `PatlakNXSS`, `ToftsNXSS`, `TwoCompUptNXSS`, `TwoCompExchNXSS`
-
-    Example:
-
-        Derive model parameters from data.
-
-    .. plot::
-        :include-source:
-        :context: close-figs
-    
-        >>> import matplotlib.pyplot as plt
-        >>> import dcmri as dc
-
-        Use `make_tissue_2cm` to generate synthetic test data:
-
-        >>> time, aif, roi, gt = dc.make_tissue_2cm(CNR=50)
-        
-        Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
-
-        >>> model = dc.EToftsNXSS(aif,
-        ...     dt = time[1],
-        ...     Hct = 0.45, 
-        ...     agent = 'gadodiamide',
-        ...     field_strength = 3.0,
-        ...     TR = 0.005,
-        ...     FA = 20,
-        ...     R10 = 1.0,
-        ...     R10b = 1/dc.T1(3.0,'blood'),
-        ...     t0 = 15,
-        ... )
-
-        Train the model on the ROI data:
-
-        >>> model.train(time, roi)
-
-        Plot the reconstructed signals (left) and concentrations (right) and compare the concentrations against the noise-free ground truth:
-
-        >>> fig, (ax0, ax1) = plt.subplots(1,2,figsize=(12,5))
-        >>> #
-        >>> ax0.set_title('Prediction of the MRI signals.')
-        >>> ax0.plot(time/60, roi, marker='o', linestyle='None', color='cornflowerblue', label='Data')
-        >>> ax0.plot(time/60, model.predict(time), linestyle='-', linewidth=3.0, color='darkblue', label='Prediction')
-        >>> ax0.set_xlabel('Time (min)')
-        >>> ax0.set_ylabel('MRI signal (a.u.)')
-        >>> ax0.legend()
-        >>> #
-        >>> ax1.set_title('Reconstruction of concentrations.')
-        >>> ax1.plot(gt['t']/60, 1000*gt['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-        >>> ax1.plot(time/60, 1000*model.predict(time, return_conc=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
-        >>> ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-        >>> ax1.plot(time/60, 1000*model.aif_conc(), linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
-        >>> ax1.set_xlabel('Time (min)')
-        >>> ax1.set_ylabel('Concentration (mM)')
-        >>> ax1.legend()
-        >>> #
-        >>> plt.show()
-
-        We can also have a look at the model parameters after training:
-
-        >>> model.print(round_to=3)
-        -----------------------------------------
-        Free parameters with their errors (stdev)
-        -----------------------------------------
-        Signal scaling factor (S0): 148.09 (1.324) a.u.
-        Plasma volume (vp): 0.077 (0.002) mL/mL
-        Volume transfer constant (Ktrans): 0.003 (0.0) 1/sec
-        Extravascular extracellular volume (ve): 0.224 (0.005) mL/mL
-        ------------------
-        Derived parameters
-        ------------------
-        Extracellular mean transit time (Te): 72.147 sec
-        Extravascular transfer constant (kep): 0.014 1/sec
-        Extracellular volume (v): 0.302 mL/mL
-    """         
-
-    def predict(self, xdata:np.ndarray, return_conc=False)->np.ndarray:
-
-        if np.amax(self._t) < np.amax(xdata):
-            msg = 'The acquisition window is longer than the duration of the AIF. \n'
-            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
-            raise ValueError(msg)
-        S0, vp, Ktrans, ve = self.pars
-        C = dc.conc_etofts(self._ca, vp, Ktrans, ve, dt=self.dt, sum=False)
-        if return_conc:
-            return dc.sample(xdata, self._t, C[0,:]+C[1,:], xdata[2]-xdata[1])
-        vb = vp/(1-self.Hct)
-        R1b = self.R10b + self._r1*C[0,:]/vb
-        R1e = self.R10 + self._r1*C[1,:]/ve
-        R1c = self.R10 + np.zeros(C.shape[1])
-        v = [vb, ve, 1-vb-ve]
-        R1 = np.stack((R1b, R1e, R1c))
-        ydata = dc.signal_ss_nex(v, R1, S0, self.TR, self.FA)
-        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
-    
-
-class TwoCompUptNXSS(TwoCompUptFXSS):
-    """Two-compartment uptake model (2CUM) without water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
-
-    The free model parameters are:
-
-    - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
-    - **Fp** (Plasma flow, mL/sec/mL): Flow of plasma into the plasma compartment.
-    - **vp** (Plasma volume, mL/mL): Volume fraction of the plasma compartment. 
-    - **PS** (Permeability-surface area product, mL/sec/mL): volume of plasma cleared of indicator per unit time and per unit tissue.
-    
-    Args:
-        aif (array-like): MRI signals measured in the arterial input.
-        pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
-
-    See Also:
-        `OneCompNXSS`, `PatlakNXSS`, `ToftsNXSS`, `EToftsNXSS`, `TwoCompExchNXSS`
-
-    Example:
-
-        Derive 2CUM model parameters from data.
-
-    .. plot::
-        :include-source:
-        :context: close-figs
-    
-        >>> import matplotlib.pyplot as plt
-        >>> import dcmri as dc
-
-        Use `make_tissue_2cm` to generate synthetic test data:
-
-        >>> time, aif, roi, gt = dc.make_tissue_2cm(CNR=50)
-        
-        Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
-
-        >>> model = dc.TwoCompUptNXSS(aif,
-        ...     dt = time[1],
-        ...     Hct = 0.45, 
-        ...     agent = 'gadodiamide',
-        ...     field_strength = 3.0,
-        ...     TR = 0.005,
-        ...     FA = 20,
-        ...     R10 = 1/dc.T1(3.0,'muscle'),
-        ...     R10b = 1/dc.T1(3.0,'blood'),
-        ...     t0 = 15,
-        ... )
-
-        Train the model on the ROI data:
-
-        >>> model.train(time, roi)
-
-        Plot the reconstructed signals (left) and concentrations (right) and compare the concentrations against the noise-free ground truth:
-
-        >>> fig, (ax0, ax1) = plt.subplots(1,2,figsize=(12,5))
-        >>> #
-        >>> ax0.set_title('Prediction of the MRI signals.')
-        >>> ax0.plot(time/60, roi, marker='o', linestyle='None', color='cornflowerblue', label='Data')
-        >>> ax0.plot(time/60, model.predict(time), linestyle='-', linewidth=3.0, color='darkblue', label='Prediction')
-        >>> ax0.set_xlabel('Time (min)')
-        >>> ax0.set_ylabel('MRI signal (a.u.)')
-        >>> ax0.legend()
-        >>> #
-        >>> ax1.set_title('Reconstruction of concentrations.')
-        >>> ax1.plot(gt['t']/60, 1000*gt['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-        >>> ax1.plot(time/60, 1000*model.predict(time, return_conc=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
-        >>> ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-        >>> ax1.plot(time/60, 1000*model.aif_conc(), linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
-        >>> ax1.set_xlabel('Time (min)')
-        >>> ax1.set_ylabel('Concentration (mM)')
-        >>> ax1.legend()
-        >>> #
-        >>> plt.show()
-
-        We can also have a look at the model parameters after training:
-
-        >>> model.print(round_to=3)
-        -----------------------------------------
-        Free parameters with their errors (stdev)
-        -----------------------------------------
-        Signal scaling factor (S0): 166.214 (4.036) a.u.
-        Plasma flow (Fp): 0.044 (0.006) mL/sec/mL
-        Plasma volume (vp): 0.1 (0.005) mL/mL
-        Permeability-surface area product (PS): 0.001 (0.0) mL/sec/mL
-        ------------------
-        Derived parameters
-        ------------------
-        Extraction fraction (E): 0.016 sec
-        Volume transfer constant (Ktrans): 0.001 mL/sec/mL
-        Plasma mean transit time (Tp): 2.249 sec
-    """         
-    def predict(self, xdata:np.ndarray, return_conc=False)->np.ndarray:
-
-        if np.amax(self._t) < np.amax(xdata):
-            msg = 'The acquisition window is longer than the duration of the AIF. \n'
-            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
-            raise ValueError(msg)
-        S0, Fp, vp, PS = self.pars
-        C = dc.conc_2cum(self._ca, Fp, vp, PS, dt=self.dt, sum=False)
-        if return_conc:
-            return dc.sample(xdata, self._t, C[0,:]+C[1,:], xdata[2]-xdata[1])
-        vb = vp/(1-self.Hct)
-        R1b = self.R10b + self._r1*C[0,:]/vb
-        R1e = self.R10 + self._r1*C[1,:]/(1-vb)
-        v = [vb, 1-vb]
-        R1 = np.stack((R1b, R1e))
-        ydata = dc.signal_ss_nex(v, R1, S0, self.TR, self.FA)
-        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
-
-
-class TwoCompExchNXSS(TwoCompExchFXSS):
-    """Two-compartment exchange model (2CXM) without water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
-
-    The free model parameters are:
-
-    - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
-    - **Fp** (Plasma flow, mL/sec/mL): Flow of plasma into the plasma compartment.
-    - **vp** (Plasma volume, mL/mL): Volume fraction of the plasma compartment. 
-    - **PS** (Permeability-surface area product, mL/sec/mL): volume of plasma cleared of indicator per unit time and per unit tissue.
-    - **ve** (Extravascular, extracellular volume, mL/mL): Volume fraction of the interstitial compartment.
-
-    Args:
-        aif (array-like): MRI signals measured in the arterial input.
-        pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
-
-    See Also:
-        `UptNXSS`, `OneCompNXSS`, `PatlakNXSS`, `ToftsNXSS`, `EToftsNXSS`, `TwoCompUptNXSS`
-
-    Example:
-
-        Derive 2CXM model parameters from data.
-
-    .. plot::
-        :include-source:
-        :context: close-figs
-    
-        >>> import matplotlib.pyplot as plt
-        >>> import dcmri as dc
-
-        Use `make_tissue_2cm` to generate synthetic test data:
-
-        >>> time, aif, roi, gt = dc.make_tissue_2cm(CNR=50)
-        
-        Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
-
-        >>> model = dc.TwoCompExchNXSS(aif,
-        ...     dt = time[1],
-        ...     Hct = 0.45, 
-        ...     agent = 'gadodiamide',
-        ...     field_strength = 3.0,
-        ...     TR = 0.005,
-        ...     FA = 20,
-        ...     R10 = 1/dc.T1(3.0,'muscle'),
-        ...     R10b = 1/dc.T1(3.0,'blood'),
-        ...     t0 = 15,
-        ... )
-
-        Train the model on the ROI data:
-
-        >>> model.train(time, roi)
-
-        Plot the reconstructed signals (left) and concentrations (right) and compare the concentrations against the noise-free ground truth:
-
-        >>> fig, (ax0, ax1) = plt.subplots(1,2,figsize=(12,5))
-        >>> #
-        >>> ax0.set_title('Prediction of the MRI signals.')
-        >>> ax0.plot(time/60, roi, marker='o', linestyle='None', color='cornflowerblue', label='Data')
-        >>> ax0.plot(time/60, model.predict(time), linestyle='-', linewidth=3.0, color='darkblue', label='Prediction')
-        >>> ax0.set_xlabel('Time (min)')
-        >>> ax0.set_ylabel('MRI signal (a.u.)')
-        >>> ax0.legend()
-        >>> #
-        >>> ax1.set_title('Reconstruction of concentrations.')
-        >>> ax1.plot(gt['t']/60, 1000*gt['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-        >>> ax1.plot(time/60, 1000*model.predict(time, return_conc=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
-        >>> ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-        >>> ax1.plot(time/60, 1000*model.aif_conc(), linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
-        >>> ax1.set_xlabel('Time (min)')
-        >>> ax1.set_ylabel('Concentration (mM)')
-        >>> ax1.legend()
-        >>> #
-        >>> plt.show()
-
-        We can also have a look at the model parameters after training:
-
-        >>> model.print(round_to=3)
-        -----------------------------------------
-        Free parameters with their errors (stdev)
-        -----------------------------------------
-        Signal scaling factor (S0): 150.094 (1.049) a.u.
-        Plasma flow (Fp): 0.135 (0.016) mL/sec/mL
-        Plasma volume (vp): 0.083 (0.001) mL/mL
-        Permeability-surface area product (PS): 0.003 (0.0) mL/sec/mL
-        Extravascular extracellular volume (ve): 0.215 (0.004) mL/mL
-        ------------------
-        Derived parameters
-        ------------------
-        Extraction fraction (E): 0.021 sec
-        Volume transfer constant (Ktrans): 0.003 mL/sec/mL
-        Plasma mean transit time (Tp): 0.604 sec
-        Extracellular mean transit time (Te): 76.233 sec
-        Extracellular volume (v): 0.298 mL/mL
-        Mean transit time (T): 0.002 sec
-    """         
-    def predict(self, xdata:np.ndarray, return_conc=False)->np.ndarray:
-
-        if np.amax(self._t) < np.amax(xdata):
-            msg = 'The acquisition window is longer than the duration of the AIF. \n'
-            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
-            raise ValueError(msg)
-        S0, Fp, vp, PS, ve = self.pars
-        C = dc.conc_2cxm(self._ca, Fp, vp, PS, ve, dt=self.dt, sum=False)
-        if return_conc:
-            return dc.sample(xdata, self._t, C[0,:]+C[1,:], xdata[2]-xdata[1])
-        vb = vp/(1-self.Hct)
-        R1b = self.R10b + self._r1*C[0,:]/vb
-        R1e = self.R10 + self._r1*C[1,:]/ve
-        R1c = self.R10 + np.zeros(C.shape[1])
-        v = [vb, ve, 1-vb-ve]
-        R1 = np.stack((R1b, R1e, R1c))
-        ydata = dc.signal_ss_nex(v, R1, S0, self.TR, self.FA)
-        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
-
-
 # Intermediate water exchange
 
 
-class OneCompSS(UptSS):
+class OneCompWXSS(UptSS):
     """One-compartment tissue in intermediate water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
     The free model parameters are:
@@ -1623,7 +1020,7 @@ class OneCompSS(UptSS):
         attr: provide values for any attributes as keyword arguments. 
 
     See Also:
-        `OneCompNXSS`, `OneCompFXSS`
+        `OneCompSS`
 
     Example:
 
@@ -1636,13 +1033,13 @@ class OneCompSS(UptSS):
         >>> import matplotlib.pyplot as plt
         >>> import dcmri as dc
 
-        Use `make_tissue_2cm` to generate synthetic test data:
+        Use `make_tissue_2cm_ss` to generate synthetic test data:
 
-        >>> time, aif, roi, gt = dc.make_tissue_2cm(CNR=50)
+        >>> time, aif, roi, gt = dc.make_tissue_2cm_ss(CNR=50)
         
         Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
 
-        >>> model = dc.OneCompSS(aif,
+        >>> model = dc.OneCompWXSS(aif,
         ...     dt = time[1],
         ...     Hct = 0.45, 
         ...     agent = 'gadodiamide',
@@ -1747,7 +1144,7 @@ class OneCompSS(UptSS):
         return pars
 
 
-class ToftsSS(OneCompSS):
+class ToftsWXSS(OneCompWXSS):
     """Tofts tissue with intermediate water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
     The free model parameters are:
@@ -1763,7 +1160,7 @@ class ToftsSS(OneCompSS):
         attr: provide values for any attributes as keyword arguments. 
 
     See Also:
-        `ToftsNXSS`, `ToftsSS`
+        `ToftsWXSS`
 
     Example:
 
@@ -1776,13 +1173,13 @@ class ToftsSS(OneCompSS):
         >>> import matplotlib.pyplot as plt
         >>> import dcmri as dc
 
-        Use `make_tissue_2cm` to generate synthetic test data:
+        Use `make_tissue_2cm_ss` to generate synthetic test data:
 
-        >>> time, aif, roi, gt = dc.make_tissue_2cm(CNR=50)
+        >>> time, aif, roi, gt = dc.make_tissue_2cm_ss(CNR=50)
         
         Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
 
-        >>> model = dc.ToftsSS(aif,
+        >>> model = dc.ToftsWXSS(aif,
         ...     dt = time[1],
         ...     Hct = 0.45, 
         ...     agent = 'gadodiamide',
@@ -1865,7 +1262,7 @@ class ToftsSS(OneCompSS):
         return pars
 
 
-class PatlakSS(UptSS):
+class PatlakWXSS(UptSS):
     """Patlak tissue with intermediate exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
     The free model parameters are:
@@ -1881,7 +1278,7 @@ class PatlakSS(UptSS):
         attr: provide values for any attributes as keyword arguments. 
 
     See Also:
-        `PatlakNXSS`, `PatlakFXSS`.
+        `PatlakSS`.
 
     Example:
 
@@ -1894,13 +1291,13 @@ class PatlakSS(UptSS):
         >>> import matplotlib.pyplot as plt
         >>> import dcmri as dc
 
-        Use `make_tissue_2cm` to generate synthetic test data:
+        Use `make_tissue_2cm_ss` to generate synthetic test data:
 
-        >>> time, aif, roi, gt = dc.make_tissue_2cm(CNR=50)
+        >>> time, aif, roi, gt = dc.make_tissue_2cm_ss(CNR=50)
         
         Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
 
-        >>> model = dc.PatlakSS(aif,
+        >>> model = dc.PatlakWXSS(aif,
         ...     dt = time[1],
         ...     Hct = 0.45, 
         ...     agent = 'gadodiamide',
@@ -2006,7 +1403,7 @@ class PatlakSS(UptSS):
         return pars
 
 
-class EToftsSS(UptSS):
+class EToftsWXSS(UptSS):
     """Extended Tofts tissue with intermediate exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
     Probably the most common modelling approach for generic tissues. The arterial concentrations are calculated by direct analytical inversion of the arterial signal 
@@ -2026,7 +1423,7 @@ class EToftsSS(UptSS):
         attr: provide values for any attributes as keyword arguments. 
 
     See Also:
-        `EToftsNXSS`, `EToftsFXSS`
+        `EToftsSS`
 
     Example:
 
@@ -2039,13 +1436,13 @@ class EToftsSS(UptSS):
         >>> import matplotlib.pyplot as plt
         >>> import dcmri as dc
 
-        Use `make_tissue_2cm` to generate synthetic test data:
+        Use `make_tissue_2cm_ss` to generate synthetic test data:
 
-        >>> time, aif, roi, gt = dc.make_tissue_2cm(CNR=50)
+        >>> time, aif, roi, gt = dc.make_tissue_2cm_ss(CNR=50)
         
         Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
 
-        >>> model = dc.EToftsSS(aif,
+        >>> model = dc.EToftsWXSS(aif,
         ...     dt = time[1],
         ...     Hct = 0.45, 
         ...     agent = 'gadodiamide',
@@ -2171,7 +1568,7 @@ class EToftsSS(UptSS):
         return pars
 
 
-class TwoCompUptSS(UptSS):
+class TwoCompUptWXSS(UptSS):
     """Two-compartment uptake model (2CUM) in intermediate water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
     The free model parameters are:
@@ -2188,7 +1585,7 @@ class TwoCompUptSS(UptSS):
         attr: provide values for any attributes as keyword arguments. 
 
     See Also:
-        `TwoCompUptSS`, `TwoCompUptNXSS`
+        `TwoCompUptWXSS`
 
     Example:
 
@@ -2201,13 +1598,13 @@ class TwoCompUptSS(UptSS):
         >>> import matplotlib.pyplot as plt
         >>> import dcmri as dc
 
-        Use `make_tissue_2cm` to generate synthetic test data:
+        Use `make_tissue_2cm_ss` to generate synthetic test data:
 
-        >>> time, aif, roi, gt = dc.make_tissue_2cm(CNR=50)
+        >>> time, aif, roi, gt = dc.make_tissue_2cm_ss(CNR=50)
         
         Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
 
-        >>> model = dc.TwoCompUptSS(aif,
+        >>> model = dc.TwoCompUptWXSS(aif,
         ...     dt = time[1],
         ...     Hct = 0.45, 
         ...     agent = 'gadodiamide',
@@ -2328,7 +1725,7 @@ class TwoCompUptSS(UptSS):
         return pars
 
 
-class TwoCompExchSS(UptSS):
+class TwoCompExchWXSS(UptSS):
     """Two-compartment exchange model (2CXM) in intermediate water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
     The free model parameters are:
@@ -2347,7 +1744,7 @@ class TwoCompExchSS(UptSS):
         attr: provide values for any attributes as keyword arguments. 
 
     See Also:
-        `TwoCompExchFXSS`, `TwoCompExchNXSS`
+        `TwoCompExchSS`
 
     Example:
 
@@ -2360,13 +1757,13 @@ class TwoCompExchSS(UptSS):
         >>> import matplotlib.pyplot as plt
         >>> import dcmri as dc
 
-        Use `make_tissue_2cm` to generate synthetic test data:
+        Use `make_tissue_2cm_ss` to generate synthetic test data:
 
-        >>> time, aif, roi, gt = dc.make_tissue_2cm(CNR=50)
+        >>> time, aif, roi, gt = dc.make_tissue_2cm_ss(CNR=50)
         
         Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
 
-        >>> model = dc.TwoCompExchSS(aif,
+        >>> model = dc.TwoCompExchWXSS(aif,
         ...     dt = time[1],
         ...     Hct = 0.45, 
         ...     agent = 'gadodiamide',
@@ -2502,73 +1899,3 @@ class TwoCompExchSS(UptSS):
             pars[5][2:] = [pars[5][2]*100, 'mL/100mL']
         return pars
 
-
-
-# Known concentration input
-
-class EToftsFXSSC(EToftsFXSS):
-    """Extended Tofts tissue in fast water exchange, acquired with a spoiled gradient echo sequence in steady state - known input concentration.
-    """
-    def __init__(self, cb, pars='default', **attr):
-
-        # Initialize
-        if isinstance(pars, str):
-            self.pars = self.pars0(pars)
-        else:
-            self.pars = pars
-        self.pcov = np.zeros((len(self.pars),len(self.pars)))
-        for a in attr:
-            self.__dict__[a] = attr[a] 
-
-        # Calculate constants
-        self._n0 = max([round(self.t0/self.dt),1])
-        self._r1 = dc.relaxivity(self.field_strength, 'blood', self.agent)
-        self._ca = cb/(1-self.Hct)
-        self._t = self.dt*np.arange(np.size(cb))
-    
-
-class EToftsNXSSC(EToftsNXSS):
-    """Extended Tofts tissue without water exchange, acquired with a spoiled gradient echo sequence in steady state.
-    """
-    def __init__(self, cb, pars='default', **attr):
-
-        # Initialize
-        if isinstance(pars, str):
-            self.pars = self.pars0(pars)
-        else:
-            self.pars = pars
-        self.pcov = np.zeros((len(self.pars),len(self.pars)))
-        for a in attr:
-            self.__dict__[a] = attr[a] 
-
-        # Calculate constants
-        self._n0 = max([round(self.t0/self.dt),1])
-        self._r1 = dc.relaxivity(self.field_strength, 'blood', self.agent)
-        self._ca = cb/(1-self.Hct)
-        self._t = self.dt*np.arange(np.size(cb))
-    
-
-class EToftsSSC(EToftsSS):
-    """Extended Tofts tissue with intermediate water exchange, acquired with a spoiled gradient echo sequence in steady state - known input concentration.
-    """
-
-    def __init__(self, cb, pars='default', **attr):
-        
-        # Initialize
-        if isinstance(pars, str):
-            self.pars = self.pars0(pars)
-        else:
-            self.pars = pars
-        self.pcov = np.zeros((len(self.pars),len(self.pars)))
-        for a in attr:
-            self.__dict__[a] = attr[a] 
-
-        # Calculate constants
-        self._n0 = max([round(self.t0/self.dt),1])
-        self._r1 = dc.relaxivity(self.field_strength, 'blood', self.agent)
-        self._ca = cb/(1-self.Hct)
-        self._t = self.dt*np.arange(np.size(cb))
-    
-
-
-    

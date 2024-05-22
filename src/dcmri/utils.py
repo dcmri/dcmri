@@ -79,7 +79,7 @@ class Model:
             bounds (str or tuple, optional): String or tuple defining the parameter bounds to be used whil training. The tuple must have 2 elements where each element is either an array with values (one for each parameter) or a single value (when each parameter has the same bound). Defaults to 'default'.
             pfix (array-like, optional): Binary array defining which parameters should be held fixed during training (value=1) or which to fit (value=0). If not provided, all free parameters are fitted. Defaults to None.
             xrange (array-like, optional): tuple of two values [xmin, xmax] showing lower and upper x-values to use for fitting. This parameters is useful to exclude particular ranges to be used in the training. If not provided, all x-values are used for training. Defaults to None.
-            xvalid (array-like, optional): Binary array defining which xdata to use for training, with avlues of either 1 (use) or 0 (don't use). This parameter is useful to exclude individual x-values from the fit, e.g. because the data are corrupted. If not provided, all x-values are used for training. Defaults to None.
+            xvalid (array-like, optional): Binary array defining which xdata to use for training, with values of either 1 (use) or 0 (don't use). This parameter is useful to exclude individual x-values from the fit, e.g. because the data are corrupted. If not provided, all x-values are used for training. Defaults to None.
             kwargs: any keyword parameters accepted by `scipy.optimize.curve_fit`.
 
         Returns:
@@ -322,27 +322,6 @@ def curve_fit(f, xdata, ydata, p0,
     else:
         return p0c, pcov
 
-
-def res_free_desc(tmax, H:np.ndarray, TT=None, TTmin=0, TTmax=None):
-    # rewrite this with ddist instead of rv_histogram
-    if np.isscalar(H):
-        H = [H]
-    nTT = len(H)
-    if TT is None:
-        if TTmax is None:
-            TTmax = tmax
-        TT = np.linspace(TTmin, TTmax, nTT+1)
-    else:
-        if len(TT) != nTT+1:
-            msg = 'The array of transit time boundaries needs to have length N+1, '
-            msg += '\n with N the size of the transit time distribution H.'
-            raise ValueError(msg)
-    dist = rv_histogram((H,TT), density=True)
-    return {
-        'mean': dist.mean(),
-        'median': dist.median(),
-        'stdev': dist.std(),
-        }
 
 def interp(y, x, pos=False, floor=False)->np.ndarray:
     """Interpolate uniformly sampled data. 

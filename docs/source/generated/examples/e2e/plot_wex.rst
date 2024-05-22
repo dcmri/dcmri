@@ -30,9 +30,9 @@ The three tissue compartments involved are the blood, interstitium and tissue ce
 
 Simulation setup
 ----------------
-First we set up the simulation by importing the necessary packages and defining the constants that will be fixed throughout. The script uses the models `~dcmri.AortaSignal8b` (arterial input function), `~dcmri.EToftsFXSSC` (fast water exchange), `~dcmri.EToftsNXSSC` (no water exchange) and `~dcmri.EToftsSSC` (any water exchange). The models are renamed at import for code readability, using a naming convention that is unambiguous within the scope of this script. 
+First we set up the simulation by importing the necessary packages and defining the constants that will be fixed throughout. The script uses the models `~dcmri.AortaChCSS` (arterial input function), `~dcmri.EToftsSSC` (no and fast water exchange) and `~dcmri.EToftsWXSS` (any water exchange). The models are renamed at import for code readability, using a naming convention that is unambiguous within the scope of this script. 
 
-.. GENERATED FROM PYTHON SOURCE LINES 17-52
+.. GENERATED FROM PYTHON SOURCE LINES 17-43
 
 .. code-block:: Python
 
@@ -40,34 +40,24 @@ First we set up the simulation by importing the necessary packages and defining 
     import matplotlib.pyplot as plt
     import dcmri as dc
 
-    # Renaming the models for code clarity
-    from dcmri import AortaSignal8 as AIF      # Arterial input function
-    from dcmri import EToftsFXSSC as FWX      # Fast water exchange
-    from dcmri import EToftsNXSSC as NWX     # No water exchange
-    from dcmri import EToftsSSC as AWX      # Any water exchange
-
     # The constants defining the signal model and simulation settings
     const = {
         'TR': 0.005,                # Repetition time (sec)
         'FA': 15.0,                 # Flip angle (deg)
-        'dt': 0.5,                  # Pseudo-continuous time interval (sec)
+        'dt': 0.1,                  # Pseudo-continuous time interval (sec)
         'agent': 'gadoxetate',      # Contrast agent
         'field_strength': 3.0,      # Magnetic field strength (T)
+        'R10': 1/dc.T1(3.0, 'muscle'),
+        'R10b': 1/dc.T1(3.0, 'blood'), 
     }
 
-    # Time axes for the acquisition and forward simulations
-    tacq = np.arange(0, 300, 1.5)
-    tsim = np.arange(0, np.amax(tacq)+tacq[1], const['dt'])
-
-    # A population-based AIF derived from the TRISTAN healthy volunteer population
-    aorta = AIF('TRISTAN', R10=1/dc.T1(3,'blood'), **const)
-    cb = aorta.predict(tsim, return_conc=True)
+    tacq, aif, _, _ = dc.make_tissue_2cm_ss(tacq=300, **const)
 
     # The ground-truth kinetic parameters of the extended Tofts model
     ptruth = np.array([
         1,        # S0 (a.u.)
         0.05,       # vp (mL/mL)
-        0.3/60,     # Ktrans (mL/sec/mL)
+        0.1/60,     # Ktrans (mL/sec/mL)
         0.3,        # ve (mL/mL)
     ]) 
 
@@ -78,22 +68,23 @@ First we set up the simulation by importing the necessary packages and defining 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 53-56
+
+.. GENERATED FROM PYTHON SOURCE LINES 44-47
 
 Visualising water exchange effects
 ----------------------------------
 We'll start by exploring how the level of water exchange affects the measured signal. As a point of reference we will predict signals using explicit models in the limits of fast water exchange and no water exchange:
 
-.. GENERATED FROM PYTHON SOURCE LINES 58-65
+.. GENERATED FROM PYTHON SOURCE LINES 49-56
 
 .. code-block:: Python
 
 
     # Signal in the fast water exchange limit (all barriers fully transparent to water)
-    ffx = FWX(cb, ptruth, **const).predict(tacq)
+    ffx = dc.EToftsSS(aif, ptruth, **const).predict(tacq)
 
     # Signal in the no water exchange limit (all barriers impermeable to water)
-    nnx = NWX(cb, ptruth, **const).predict(tacq)
+    nnx = dc.EToftsSS(aif, ptruth, water_exchange=False, **const).predict(tacq)
 
 
 
@@ -102,20 +93,40 @@ We'll start by exploring how the level of water exchange affects the measured si
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 66-69
+.. GENERATED FROM PYTHON SOURCE LINES 57-60
 
 In order to simulate intermediate regimes, we need the more general model (AWX) that allows us to vary the values of the water permeabilities ``PSe`` and ``PSc`` across the endothelium and the membrane of the tissue cells, respectively. 
 
 In the first instance we consider a (hypothetical) tissue without transendothelial water exchange, but fast transcytolemmal water exchange. In other words, the endothelium is impermeable to water (``PSe = 0``) and the cell membrane is fully transparent. The symbolic value ``PSc = np.inf`` is not allowed but we can set ``PSc`` to the very high value of 1000 mL water filtered per second by 1mL of tissue. This is indistinguishable from the fast water exchange limit ``PSc = np.inf`` (as could be verified by increasing the value even higher):
 
-.. GENERATED FROM PYTHON SOURCE LINES 71-76
+.. GENERATED FROM PYTHON SOURCE LINES 62-67
 
 .. code-block:: Python
 
 
     # Signal without transendothelial water exchange, but fast transcytolemmal water exchange
     PSe, PSc = 0, 1000
-    nfx = AWX(cb, list(ptruth)+[PSe,PSc], **const).predict(tacq) 
+    nfx = dc.EToftsWXSS(aif, list(ptruth)+[PSe,PSc], **const).predict(tacq) 
+
+
+
+
+
+
+
+
+.. GENERATED FROM PYTHON SOURCE LINES 68-69
+
+Next we consider the alternative scenario where the endothelium is transparent to water (``PSe = np.inf``, approximated as ``PSe = 1000``) and the cell membrane is impermeable (``PSc = 0``):
+
+.. GENERATED FROM PYTHON SOURCE LINES 71-76
+
+.. code-block:: Python
+
+
+    # Signal with fast transendothelial water exchange, but without transcytolemmal water exchange
+    PSe, PSc = 1000, 0
+    fnx = dc.EToftsWXSS(aif, list(ptruth)+[PSe,PSc], **const).predict(tacq)
 
 
 
@@ -126,16 +137,16 @@ In the first instance we consider a (hypothetical) tissue without transendotheli
 
 .. GENERATED FROM PYTHON SOURCE LINES 77-78
 
-Next we consider the alternative scenario where the endothelium is transparent to water (``PSe = np.inf``, approximated as ``PSe = 1000``) and the cell membrane is impermeable (``PSc = 0``):
+An intermediate situation arises if neither of the water permeabilities is either very high or close to zero. Trial and error shows that a choice of ``PSe = 1`` mL/sec/mL and ``PSc = 2`` mL/sec/mL produces a curve that lies in between the extremes:
 
 .. GENERATED FROM PYTHON SOURCE LINES 80-85
 
 .. code-block:: Python
 
 
-    # Signal with fast transendothelial water exchange, but without transcytolemmal water exchange
-    PSe, PSc = 1000, 0
-    fnx = AWX(cb, list(ptruth)+[PSe,PSc], **const).predict(tacq)
+    # Signal with intermediate transendothelial and transcytolemmal water exchange
+    PSe, PSc = 1, 2
+    iix = dc.EToftsWXSS(aif, list(ptruth)+[PSe,PSc], **const).predict(tacq)
 
 
 
@@ -146,29 +157,9 @@ Next we consider the alternative scenario where the endothelium is transparent t
 
 .. GENERATED FROM PYTHON SOURCE LINES 86-87
 
-An intermediate situation arises if neither of the water permeabilities is either very high or close to zero. Trial and error shows that a choice of ``PSe = 1`` mL/sec/mL and ``PSc = 2`` mL/sec/mL produces a curve that lies in between the extremes:
-
-.. GENERATED FROM PYTHON SOURCE LINES 89-94
-
-.. code-block:: Python
-
-
-    # Signal with intermediate transendothelial and transcytolemmal water exchange
-    PSe, PSc = 1, 2
-    iix = AWX(cb, list(ptruth)+[PSe,PSc], **const).predict(tacq)
-
-
-
-
-
-
-
-
-.. GENERATED FROM PYTHON SOURCE LINES 95-96
-
 We now plot the different results, using fast- and no-exchange limits for visual reference:
 
-.. GENERATED FROM PYTHON SOURCE LINES 98-126
+.. GENERATED FROM PYTHON SOURCE LINES 89-117
 
 .. code-block:: Python
 
@@ -212,7 +203,7 @@ We now plot the different results, using fast- and no-exchange limits for visual
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 127-138
+.. GENERATED FROM PYTHON SOURCE LINES 118-129
 
 These figures show the expected observations: 
 
@@ -226,7 +217,7 @@ These figures show the expected observations:
 
 **Note** while the effect of water exchange is detectable, it is comparatively small considering the difference between the blue and green curves represent the extremes of zero to maximal levels of water exchange. It is easily verified that changing kinetic parameters such as Ktrans over their entire range (zero to infinity) has a much larger impact on the signal. Water exchange is in that sense a second order effect.
 
-.. GENERATED FROM PYTHON SOURCE LINES 141-146
+.. GENERATED FROM PYTHON SOURCE LINES 132-137
 
 Understanding water exchange bias
 ---------------------------------
@@ -234,13 +225,13 @@ Since the level of water exchange affects the signal, making inaccurate assumpti
 
 One way to explore the scale of the water exchange bias is by generating data for a tissue in the fast exchange limit and analysing them making the opposite assumption that water exchange is negligible:
 
-.. GENERATED FROM PYTHON SOURCE LINES 146-180
+.. GENERATED FROM PYTHON SOURCE LINES 137-171
 
 .. code-block:: Python
 
 
     # Launch a no-exchange model with default settings for the free parameters
-    model = NWX(cb, **const)
+    model = dc.EToftsSS(aif, water_exchange=False, **const)
 
     # Predict the signal using the untrained model as a reference
     nnx0 = model.predict(tacq)
@@ -287,30 +278,30 @@ One way to explore the scale of the water exchange bias is by generating data fo
 
     Bias in kinetic model parameters
     --------------------------------
-    vp error: 19.5 %
-    ve error: 3.9 %
-    Ktrans error: 2.3 %
+    vp error: 164.5 %
+    ve error: 49.4 %
+    Ktrans error: -34.7 %
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 181-182
+.. GENERATED FROM PYTHON SOURCE LINES 172-173
 
-The plot shows that the trained model predicts the data with high accuracy, despite the inaccurate assumption of no water exchange. However the false assumption does lead to fitted parameters that are 2-20% overestimated.
+The plot shows that the trained model predicts the data with high accuracy, despite the inaccurate assumption of no water exchange. However the false assumption does lead to fitted parameters that are severely biased.
 
-.. GENERATED FROM PYTHON SOURCE LINES 184-187
+.. GENERATED FROM PYTHON SOURCE LINES 175-178
 
 Removing water exchange bias
 ----------------------------
 The model bias can be removed by generalizing the model to allow for any level of water exchange, avoiding the risk of making a false assumption on this point:
 
-.. GENERATED FROM PYTHON SOURCE LINES 187-226
+.. GENERATED FROM PYTHON SOURCE LINES 178-218
 
 .. code-block:: Python
 
 
     # Launch a general water exchange model with default settings for all free parameters
-    model = AWX(cb, **const)
+    model = dc.EToftsWXSS(aif, **const)
 
     # Predict the signal using the untrained model as a reference
     iix0 = model.predict(tacq)
@@ -350,6 +341,7 @@ The model bias can be removed by generalizing the model to allow for any level o
 
 
 
+
 .. image-sg:: /generated/examples/e2e/images/sphx_glr_plot_wex_003.png
    :alt: Water exchange bias
    :srcset: /generated/examples/e2e/images/sphx_glr_plot_wex_003.png
@@ -362,25 +354,25 @@ The model bias can be removed by generalizing the model to allow for any level o
 
     Bias in kinetic model parameters
     --------------------------------
-    vp error: 0.22 %
-    ve error: 0.04 %
-    Ktrans error: 0.04 %
+    vp error: -1.26 %
+    ve error: -1.38 %
+    Ktrans error: -1.4 %
 
     Water permeability estimates
     ----------------------------
-    PSe: 89.0 mL/sec/mL
-    PSc: 160.0 mL/sec/mL
+    PSe: 868.0 mL/sec/mL
+    PSc: 359.0 mL/sec/mL
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 227-230
+.. GENERATED FROM PYTHON SOURCE LINES 219-222
 
 Plotting the results now shows a practically perfect fit to the data, and the measurements of the kinetic parameters are effectively unbiased. 
 
 As a bonus the water-exchange sensitive model also estimates the water permeability, which as expected produces values in the fast-exchange range. As the actual PS-values are infinite the estimates can never approximate the ground truth, but at this level the predicted data are effectively indistinguishable from fast-exchange signals. 
 
-.. GENERATED FROM PYTHON SOURCE LINES 232-239
+.. GENERATED FROM PYTHON SOURCE LINES 224-231
 
 Additional sources of bias
 --------------------------
@@ -390,13 +382,13 @@ Any remaining bias must be due to one or more of the three remaining sources of 
 
 We can get some insight by fitting the data with an unbiased model, i.e. fitting the data with the same model that was used to generate it. This is a simple model that is likely to be much less susceptible to convergence or numerical bias, so this analysis exposes the sampling bias (alternatively we can generate data with much smaller temporal sampling intervals):
 
-.. GENERATED FROM PYTHON SOURCE LINES 239-253
+.. GENERATED FROM PYTHON SOURCE LINES 231-245
 
 .. code-block:: Python
 
 
     # Train a fast-exchange model on the fast exchange data
-    model = FWX(cb, **const).train(tacq, ffx)
+    model = dc.EToftsSS(aif, **const).train(tacq, ffx)
 
     # Calculate the bias relative to the ground truth
     bias = (model.pars[:4]-ptruth)/ptruth
@@ -418,24 +410,24 @@ We can get some insight by fitting the data with an unbiased model, i.e. fitting
 
     Bias in kinetic model parameters
     --------------------------------
-    vp error: 0.0 %
+    vp error: -0.0 %
     ve error: -0.0 %
     Ktrans error: -0.0 %
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 254-255
+.. GENERATED FROM PYTHON SOURCE LINES 246-247
 
 Any remaining bias is smaller than 0.01%, which shows that temporal undersampling in this case only causes a minor error, and the residual errors observed with the more general model are due to imperfect convergence or numerical error. We can test for convergence bias by retraining the model with tighter convergence criteria: 
 
-.. GENERATED FROM PYTHON SOURCE LINES 255-276
+.. GENERATED FROM PYTHON SOURCE LINES 247-268
 
 .. code-block:: Python
 
 
     # Train a general water exchange model to fast exchange data:
-    model = AWX(cb, **const).train(tacq, ffx, xtol=1e-9)
+    model = dc.EToftsWXSS(aif, **const).train(tacq, ffx, xtol=1e-9)
 
     # Calculate the bias in the fitted parameters
     bias = 100*(model.pars[:4]-ptruth)/ptruth
@@ -464,23 +456,23 @@ Any remaining bias is smaller than 0.01%, which shows that temporal undersamplin
 
     Bias in kinetic model parameters
     --------------------------------
-    vp error: 0.22 %
-    ve error: 0.04 %
-    Ktrans error: 0.04 %
+    vp error: -1.28 %
+    ve error: -1.35 %
+    Ktrans error: -1.36 %
 
     Water permeability estimates
     ----------------------------
-    PSe: 89.0 mL/sec/mL
-    PSc: 160.0 mL/sec/mL
+    PSe: 1545.0 mL/sec/mL
+    PSc: 295.0 mL/sec/mL
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 277-278
+.. GENERATED FROM PYTHON SOURCE LINES 269-270
 
 The result is almost exactly the same as before, which indicates that the model has indeed converged and the residual bias is likely due to numerical error. This is plausible, since the general water exchange model is implemented using linear algebra involving operations such as matrix exponentials and numerical matrix inversion, which are likely to come with some numerical error. The exercise here verifies that the impact of these errors on the measurements of the kinetic parameters is negligible - as it should be.  
 
-.. GENERATED FROM PYTHON SOURCE LINES 280-282
+.. GENERATED FROM PYTHON SOURCE LINES 272-274
 
 Bias versus precision
 ---------------------
@@ -488,7 +480,7 @@ Bias versus precision
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 32.180 seconds)
+   **Total running time of the script:** (28 minutes 28.375 seconds)
 
 
 .. _sphx_glr_download_generated_examples_e2e_plot_wex.py:
