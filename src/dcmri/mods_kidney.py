@@ -466,14 +466,14 @@ class KidneyPFFXSS(dc.Model):
         super().__init__(pars, **attr)
 
         # Calculate constants
-        self._n0 = max([round(self.t0/self.dt),1])
+        n0 = max([round(self.t0/self.dt),1])
         self._r1 = dc.relaxivity(self.field_strength, 'blood', self.agent)
-        cb = dc.conc_ss(aif, self.TR, self.FA, 1/self.R10b, self._r1, self._n0)
+        cb = dc.conc_ss(aif, self.TR, self.FA, 1/self.R10b, self._r1, n0)
         self._ca = cb/(1-self.Hct)
         self._t = self.dt*np.arange(np.size(aif))
         self._TT = [15,30,60,90,150,300,600]
 
-    def predict(self, xdata, return_conc = False):
+    def predict(self, xdata, return_conc=False):
         if np.amax(self._t) < np.amax(xdata):
             msg = 'The acquisition window is longer than the duration of the AIF. \n'
             msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
@@ -486,7 +486,6 @@ class KidneyPFFXSS(dc.Model):
         R1 = self.R10 + self._r1*C
         signal = dc.signal_ss(R1, S0, self.TR, self.FA)
         return dc.sample(xdata, self._t, signal, xdata[1]-xdata[0])
-    
 
     def train(self, xdata, ydata, pfix=[1]+9*[0], p0=None,
             bounds='default', xrange=None, xvalid=None, 
@@ -509,7 +508,8 @@ class KidneyPFFXSS(dc.Model):
             Model: A reference to the model instance.
         """
         Sref = dc.signal_ss(self.R10, 1, self.TR, self.FA)
-        self.pars[0] = np.mean(ydata[:self._n0]) / Sref
+        n0 = max([np.sum(xdata<self.t0), 1])
+        self.pars[0] = np.mean(ydata[:n0]) / Sref
         return super().train(xdata, ydata, pfix=pfix, p0=p0,
             bounds=bounds, xrange=xrange, xvalid=xvalid, 
             **kwargs)

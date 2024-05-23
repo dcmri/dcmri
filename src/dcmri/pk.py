@@ -1656,6 +1656,8 @@ def flux_pfcomp(J, T, D, t=None, dt=1.0, solver='interp'):
     Returns:
         np.ndarrayx: Outflux in mmol/sec
     """
+    if D<0 or D>1:
+        raise ValueError('Dispersion must be in the range [0,1]')
     if D == 0:
         return flux_plug(J, T, t=t, dt=dt, solver=solver)
     if D == 1:

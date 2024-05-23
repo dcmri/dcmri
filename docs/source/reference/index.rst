@@ -18,6 +18,7 @@ This reference manual details all functions included in dcMRI, describing what t
    pk_tissue
    pk_body
    pk_kidney
+   pk_liver
    pk
    lib
    utils

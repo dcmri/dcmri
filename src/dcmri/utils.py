@@ -21,6 +21,7 @@ class Model:
     pars = None     #: Free model parameters.
     pcov = None     #: Covariance matrix of the free model parameters.
 
+    # TODO: replace dfault by None , also in bounds
     def __init__(self, pars='default', **attr):
         if isinstance(pars, str):
             self.pars = self.pars0(pars)
@@ -353,11 +354,11 @@ def interp(y, x, pos=False, floor=False)->np.ndarray:
     # Interpolate y on x, assuming y-values are uniformly distributed over the x-range
     if np.isscalar(y):
         yi = y*np.ones(len(x))
-    elif len(y)==1:
+    elif np.size(y)==1:
         yi = y[0]*np.ones(len(x))
-    elif len(y)==2:
+    elif np.size(y)==2:
         yi = _lin(x,y)
-    elif len(y)==3:
+    elif np.size(y)==3:
         yi = _quad(x,y)
     else:
         x_y = np.linspace(np.amin(x), np.amax(x), len(y))

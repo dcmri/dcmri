@@ -109,7 +109,7 @@ Models for liver signals.
    :template: custom-class-template.rst
    :recursive:
 
-   LiverSignal5
-   LiverSignal9
+   LiverPCC
+   LiverPCCNS
 
 
