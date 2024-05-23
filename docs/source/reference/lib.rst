@@ -17,6 +17,7 @@ Digital reference objects
    make_tissue_2cm_ss
    make_tissue_2cm_sr
    make_tissue_2cm_2ss
+   make_kidney_cm_sr
 
 
 Special functions

@@ -1,8 +1,8 @@
 .. _PK blocks:
 
-******************
-PK building blocks
-******************
+**************************
+PK models: building blocks
+**************************
 
 A collection of basic pharmacokinetic models that can be assembled to build more complex models.
 

@@ -21,7 +21,7 @@ Signal models
    signal_ss_nex
    signal_ss_iex
    signal_sr
-   signal_sre
+   signal_er
    signal_src
    signal_lin
 

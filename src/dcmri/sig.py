@@ -285,7 +285,7 @@ def signal_sr(R1, S0:float, TR:float, FA:float, TC:float, TP=0.0)->np.ndarray:
     return S_ss*(1-E_center) + S_sat*E_center
 
 
-def signal_sre(R1, S0:float, TR:float, FA:float, TC:float)->np.ndarray:
+def signal_er(R1, S0:float, TR:float, FA:float, TC:float)->np.ndarray:
     """Signal model for a FLASH readout, starting from equilibrium (i.e. no preparation pulse).
 
     Args:

@@ -237,3 +237,91 @@ def make_tissue_2cm_2ss(
     return time, aif, roi, gt
 
 
+def make_kidney_cm_sr(
+        tacq = 180.0, 
+        dt = 1.5,
+        BAT = 20,
+        Fp = 0.03,
+        Eg = 0.15, 
+        fc = 0.8, 
+        Tg = 4, 
+        Tv = 10, 
+        Tpt = 60, 
+        Tlh = 60, 
+        Tdt = 30, 
+        Tcd = 30,
+        field_strength = 3.0,
+        agent = 'gadoterate', 
+        Hct = 0.45,
+        R10b = 1/dc.T1(3.0, 'blood'),
+        R10c = 1/dc.T1(3.0,'kidney'),
+        R10m = 1/dc.T1(3.0,'kidney'),
+        S0b = 100,
+        S0 = 150,
+        TC = 0.2,
+        TR = 0.005,
+        FA = 20,
+        CNR = np.inf,
+        dt_sim = 0.1,
+    ):
+    """Synthetic data generated using Parker's AIF, and a multicompartment kidney model.
+
+    Args:
+        tacq (float, optional): Duration of the acquisition in sec. Defaults to 180.
+        dt (float, optional): Sampling inteval in sec. Defaults to 1.5.
+        BAT (float, optional): Bolus arrival time in sec. Defaults to 20.
+        Fp (float, optional): Plasma flow in mL/sec/mL. Defaults to 0.03.
+        Eg (float, optional): Glomerular extraction fraction. Defaults to 0.15.
+        fc (float, optional): Cortical flow fraction. Defaults to 0.8.
+        Tg (float, optional): Glomerular mean transit time in sec. Defaults to 4.
+        Tv (float, optional): Peritubular & venous mean transit time in sec. Defaults to 10.
+        Tpt (float, optional): Proximal tubuli mean transit time in sec. Defaults to 60.
+        Tlh (float, optional): Lis of Henle mean transit time in sec. Defaults to 60.
+        Tdt (float, optional): Distal tubuli mean transit time in sec. Defaults to 30.
+        Tcd (float, optional): Collecting duct mean transit time in sec. Defaults to 30.
+        field_strength (float, optional): B0 field in T. Defaults to 3.0.
+        agent (str, optional): Contrast agent generic name. Defaults to 'gadodiamide'.
+        Hct (float, optional): Hematocrit. Defaults to 0.45.
+        R10b (float, optional): Precontrast relaxation rate for blood in 1/sec. Defaults to 1/dc.T1(3.0, 'blood').
+        R10c (float, optional): Precontrast relaxation rate for cortex in 1/sec. Defaults to 1.
+        R10m (float, optional): Precontrast relaxation rate for cortex in 1/sec. Defaults to 1.
+        S0b (float, optional): Signal scaling factor for blood (arbitrary units). Defaults to 100.
+        S0 (float, optional): Signal scaling factor for tissue (arbitrary units). Defaults to 150.
+        TC (float, optional): Time to readout of the k-space center in sec. Defaults to 0.2.
+        TR (float, optional): Repetition time in sec. Defaults to 0.005.
+        FA (float, optional): Flip angle. Defaults to 20.
+        CNR (float, optional): Contrast-to-noise ratio, define as the ratio of signal-enhancement in the AIF to noise. Defaults to np.inf.
+        dt_sim (float, optional): Sampling interval of the forward modelling in sec. Defaults to 0.1.
+
+    Returns: 
+        tuple: time, aif, roi, gt
+
+        - **time**: array of time points.
+        - **aif**: array of AIF signals.
+        - **roic**: array of cortex signals.
+        - **roim**: array of medulla signals.
+        - **gt**: dictionary with ground truth values for concentrations.
+    """
+    t = np.arange(0, tacq+dt, dt_sim)
+    cp = dc.aif_parker(t, BAT)
+    Cc, Cm = dc.kidney_conc_cm9(
+            cp, Fp, Eg, fc, Tg, Tv, Tpt, Tlh, Tdt, Tcd, dt=dt_sim)
+    rp = dc.relaxivity(field_strength, 'plasma', agent)
+    R1b = R10b + rp*cp*(1-Hct)
+    R1c = R10c + rp*Cc
+    R1m = R10m + rp*Cm
+    aif = dc.signal_src(R1b, S0b, TC)
+    roic = dc.signal_sr(R1c, S0, TR, FA, TC)
+    roim = dc.signal_sr(R1m, S0, TR, FA, TC)
+    time = np.arange(0, tacq, dt)
+    aif = dc.sample(time, t, aif, dt)
+    roic = dc.sample(time, t, roic, dt)
+    roim = dc.sample(time, t, roim, dt)
+    sdev = (np.amax(aif)-aif[0])/CNR
+    aif = dc.add_noise(aif, sdev)
+    roic = dc.add_noise(roic, sdev)
+    roim = dc.add_noise(roim, sdev)
+    gt = {'t':t, 'cp':cp, 'Cc':Cc, 'Cm':Cm, 'cb':cp*(1-Hct)}
+    return time, aif, roic, roim, gt
+
+

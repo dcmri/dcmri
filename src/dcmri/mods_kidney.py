@@ -108,15 +108,12 @@ class Kidney2CFXSR(dc.Model):
             msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
             raise ValueError(msg) 
         S0, Fp, Tp, Ft, Tt, Ta = self.pars
-        vp = Tp*(Fp+Ft)
         ca = dc.flux_plug(self._ca, Ta, self._t)
-        cp = dc.conc_comp(Fp*ca, Tp, self._t)
-        Cp = vp*cp
-        Ct = dc.conc_comp(Ft*cp, Tt, self._t)
+        C = dc.kidney_conc_2cm(ca, Fp, Tp, Ft, Tt, self._t)
         if return_conc:
-            return dc.sample(xdata, self._t, Cp+Ct, xdata[2]-xdata[1])
+            return dc.sample(xdata, self._t, C, xdata[2]-xdata[1])
         rp = dc.relaxivity(self.field_strength, 'plasma', self.agent)
-        R1 = self.R10 + rp*Cp + rp*Ct
+        R1 = self.R10 + rp*C
         signal = dc.signal_sr(R1, S0, self.TR, self.FA, self.TC, self.Tsat)
         return dc.sample(xdata, self._t, signal, xdata[1]-xdata[0])
     
@@ -294,14 +291,11 @@ class Kidney2CFXSS(dc.Model):
             msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
             raise ValueError(msg) 
         S0, Fp, Tp, Ft, Tt, Ta = self.pars
-        vp = Tp*(Fp+Ft)
-        ca = dc.flux_plug(self._ca, Ta, self._t)
-        Cp = dc.conc_comp(Fp*ca, Tp, self._t)
-        cp = Cp/vp
-        Ct = dc.conc_comp(Ft*cp, Tt, self._t)
+        ca = dc.flux_plug(self._ca, Ta, t=self._t, dt=self.dt)
+        C = dc.kidney_conc_2cm(ca, Fp, Tp, Ft, Tt, t=self._t, dt=self.dt)
         if return_conc:
-            return dc.sample(xdata, self._t, Cp+Ct, xdata[2]-xdata[1])
-        R1 = self.R10 + self._r1*Cp + self._r1*Ct
+            return dc.sample(xdata, self._t, C, xdata[2]-xdata[1])
+        R1 = self.R10 + self._r1*C
         signal = dc.signal_ss(R1, S0, self.TR, self.FA)
         return dc.sample(xdata, self._t, signal, xdata[1]-xdata[0])
     
@@ -479,7 +473,6 @@ class KidneyPFFXSS(dc.Model):
         self._t = self.dt*np.arange(np.size(aif))
         self._TT = [15,30,60,90,150,300,600]
 
-
     def predict(self, xdata, return_conc = False):
         if np.amax(self._t) < np.amax(xdata):
             msg = 'The acquisition window is longer than the duration of the AIF. \n'
@@ -487,10 +480,10 @@ class KidneyPFFXSS(dc.Model):
             raise ValueError(msg) 
         S0, Fp, Tp, Ft, h0,h1,h2,h3,h4,h5 = self.pars
         H = [h0,h1,h2,h3,h4,h5]
-        Cp, Ct = dc.kidney_conc_pf(self._ca, Fp, Tp, Ft, H, TT=self._TT, t=self._t, dt=self.dt)
+        C = dc.kidney_conc_pf(self._ca, Fp, Tp, Ft, H, TT=self._TT, t=self._t, dt=self.dt)
         if return_conc:
-            return dc.sample(xdata, self._t, Cp+Ct, xdata[2]-xdata[1])
-        R1 = self.R10 + self._r1*Cp + self._r1*Ct
+            return dc.sample(xdata, self._t, C, xdata[2]-xdata[1])
+        R1 = self.R10 + self._r1*C
         signal = dc.signal_ss(R1, S0, self.TR, self.FA)
         return dc.sample(xdata, self._t, signal, xdata[1]-xdata[0])
     
@@ -591,25 +584,109 @@ class KidneyPFFXSS(dc.Model):
     
 
 class KidneyCortMedSR(dc.Model):
-    """ 
-    Corticomedullary multi-compartment model in fast water exchange acquired with a steady-state spoiled gradient echo sequence.
-
     """
+    Corticomedullary multi-compartment model in fast water exchange acquired with a saturation-recovery sequence.
+
+    The free model parameters are:
+
+    - **Fp** Plasma flow in mL/sec/mL. Defaults to 0.03.
+    - **Eg** Glomerular extraction fraction. Defaults to 0.15.
+    - **fc** Cortical flow fraction. Defaults to 0.8.
+    - **Tg** Glomerular mean transit time in sec. Defaults to 4.
+    - **Tv** Peritubular & venous mean transit time in sec. Defaults to 10.
+    - **Tpt** Proximal tubuli mean transit time in sec. Defaults to 60.
+    - **Tlh** Lis of Henle mean transit time in sec. Defaults to 60.
+    - **Tdt** Distal tubuli mean transit time in sec. Defaults to 30.
+    - **Tcd** Collecting duct mean transit time in sec. Defaults to 30.
+
+    Args:
+        aif (array-like): MRI signals measured in the arterial input.
+        pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
+        attr: provide values for any attributes as keyword arguments. 
+
+    See Also:
+        `Kidney2CFXSR`, `Kidney2CFXSS`
+
+    Example:
+
+        Derive model parameters from simulated data:
+
+    .. plot::
+        :include-source:
+        :context: close-figs
+    
+        >>> import matplotlib.pyplot as plt
+        >>> import dcmri as dc
+
+        Use `make_tissue_2cm_sr` to generate synthetic test data:
+
+        >>> time, aif, roic, roim, gt = dc.make_kidney_cm_sr(CNR=100)
+        
+        Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
+
+        >>> model = dc.KidneyCortMedSR(aif,
+        ...     pars = 'iBEAt',
+        ...     dt = time[1],
+        ...     Hct = 0.45,
+        ...     agent = 'gadoterate',
+        ...     field_strength = 3.0,
+        ...     TR = 0.005,
+        ...     FA = 20,
+        ...     TC = 0.2,
+        ...     R10c = 1/dc.T1(3.0,'kidney'),
+        ...     R10m = 1/dc.T1(3.0,'kidney'),
+        ...     R10b = 1/dc.T1(3.0,'blood'),
+        ...     t0 = 15,
+        ...     )
+
+        Train the model on the ROI data and predict signals and concentrations:
+
+        >>> model.train(time, roic, roim)
+        >>> sig = model.predict(np.concatenate((time,time)))
+        >>> nt = int(sig.size/2)
+        >>> roic_pred, roim_pred = sig[:nt], sig[nt:]
+        >>> concc_pred, concm_pred = model.predict(np.concatenate((time,time)), return_conc=True)
+
+        Plot the reconstructed signals (left) and concentrations (right) and compare the concentrations against the noise-free ground truth:
+
+        >>> fig, (ax0, ax1) = plt.subplots(1,2,figsize=(12,5))
+
+        >>> ax0.set_title('Prediction of the MRI signals.')
+        >>> ax0.plot(time/60, roic, marker='o', linestyle='None', color='cornflowerblue', label='Cortex data')
+        >>> ax0.plot(time/60, roic_pred, linestyle='-', linewidth=3.0, color='darkblue', label='Cortex prediction')
+        >>> ax0.plot(time/60, roim, marker='x', linestyle='None', color='cornflowerblue', label='Medulla data')
+        >>> ax0.plot(time/60, roim_pred, linestyle='--', linewidth=3.0, color='darkblue', label='Medulla prediction')
+        >>> ax0.set_xlabel('Time (min)')
+        >>> ax0.set_ylabel('MRI signal (a.u.)')
+        >>> ax0.legend()
+
+        >>> ax1.set_title('Reconstruction of concentrations.')
+        >>> ax1.plot(gt['t']/60, 1000*gt['Cc'], marker='o', linestyle='None', color='cornflowerblue', label='Cortex ground truth')
+        >>> ax1.plot(time/60, 1000*concc_pred, linestyle='-', linewidth=3.0, color='darkblue', label='Cortex prediction')
+        >>> ax1.plot(gt['t']/60, 1000*gt['Cm'], marker='x', linestyle='None', color='cornflowerblue', label='Medulla ground truth')
+        >>> ax1.plot(time/60, 1000*concm_pred, linestyle='--', linewidth=3.0, color='darkblue', label='Medulla prediction')
+        >>> ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
+        >>> ax1.plot(time/60, 1000*model.aif_conc(), linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
+        >>> ax1.set_xlabel('Time (min)')
+        >>> ax1.set_ylabel('Concentration (mM)')
+        >>> ax1.legend()
+        >>> plt.show()
+    """ 
     dt = 0.5                #: Sampling interval of the AIF in sec. 
     Hct = 0.45              #: Hematocrit. 
     agent = 'gadoterate'    #: Contrast agent generic name.
     field_strength = 3.0    #: Magnetic field strength in T. 
-    TR = 5.0/1000.0         #: Repetition time, or time between excitation pulses, in sec. 
+    TR = 0.005              #: Repetition time, or time between excitation pulses, in sec. 
     FA = 15.0               #: Nominal flip angle in degrees.
-    Tsat = 0                #: time before start of readout
-    TC = 0.085              #: Time to the center of the readout pulse
+    Tsat = 0                #: time before start of readout.
+    TC = 0.085              #: Time to the center of the readout pulse.
     R10c = 1                #: Precontrast cortex relaxation rate in 1/sec. 
     R10m = 1                #: Precontrast medulla relaxation rate in 1/sec.
     R10b = 1                #: Precontrast blood relaxation rate in 1/sec.
-    S0c = 1                 #: Baseline signal cortex (a.u.)
-    S0m = 1                 #: Baseline signal medulla (a.u.)
-    t0 = 0                  #: Baseline length (sec)
-    vol = None              #: Kidney volume in mL (optional, used only to derive secondary parameters)
+    S0c = 1                 #: Baseline signal cortex (a.u.).
+    S0m = 1                 #: Baseline signal medulla (a.u.).
+    t0 = 0                  #: Baseline length (sec).
+    vol = None              #: Kidney volume in mL (optional, used only to derive secondary parameters).
 
     def __init__(self, aif, pars='default', **attr):
         super().__init__(pars, **attr)
@@ -621,27 +698,44 @@ class KidneyCortMedSR(dc.Model):
         self._ca = cb/(1-self.Hct)
         self._t = self.dt*np.arange(np.size(aif))
 
-    def predict(self, tacq, return_conc=False):
+    def _forward_model(self, tacq):
         Fp, Eg, fc, Tg, Tv, Tpt, Tlh, Tdt, Tcd = self.pars
         Cc, Cm = dc.kidney_conc_cm9(
             self._ca, Fp, Eg, fc, Tg, Tv, Tpt, Tlh, Tdt, Tcd, dt=self.dt)
-        if return_conc:
-            return (
-                dc.sample(tacq, self._t, Cc, tacq[2]-tacq[1]),
-                dc.sample(tacq, self._t, Cm, tacq[2]-tacq[1]))
-        rp = dc.relaxivity(self.field_strength, 'plasma', self.agent)
-        R1c = self.R10c + rp*Cc
-        R1m = self.R10m + rp*Cm
+        R1c = self.R10c + self._r1*Cc
+        R1m = self.R10m + self._r1*Cm
         Sc = dc.signal_sr(R1c, self.S0c, self.TR, self.FA, self.TC, self.Tsat)
         Sm = dc.signal_sr(R1m, self.S0m, self.TR, self.FA, self.TC, self.Tsat)
         nt = int(len(tacq)/2)
         Sc = dc.sample(tacq[:nt], self._t, Sc, tacq[2]-tacq[1])
         Sm = dc.sample(tacq[nt:], self._t, Sm, tacq[2]-tacq[1])
-        return np.concatenate((Sc, Sm))
+        return np.concatenate((Sc, Sm)) 
+
+    # TODO: modify train() to use _forward_model rather than predict
+    def predict(self, tacq, return_conc=False):
+        if return_conc:
+            Fp, Eg, fc, Tg, Tv, Tpt, Tlh, Tdt, Tcd = self.pars
+            Cc, Cm = dc.kidney_conc_cm9(
+                self._ca, Fp, Eg, fc, Tg, Tv, Tpt, Tlh, Tdt, Tcd, dt=self.dt)
+            nt = int(len(tacq)/2)
+            return (
+                dc.sample(tacq[:nt], self._t, Cc, tacq[2]-tacq[1]),
+                dc.sample(tacq[nt:], self._t, Cm, tacq[2]-tacq[1]))
+        return self._forward_model(tacq)
+    
+    def train(self, time, Sc, Sm, **kwargs):
+        n0 = max([np.sum(time<self.t0), 1])
+        Scref = dc.signal_sr(self.R10c, 1, self.TR, self.FA, self.TC)
+        Smref = dc.signal_sr(self.R10m, 1, self.TR, self.FA, self.TC)
+        self.S0c = np.mean(Sc[:n0]) / Scref
+        self.S0m = np.mean(Sm[:n0]) / Smref
+        xdata = np.concatenate((time, time))
+        ydata = np.concatenate((Sc, Sm))
+        super().train(xdata, ydata, **kwargs)
     
     def pars0(self, settings=None):
         if settings == 'iBEAt':
-            return np.array([200/6000, 0.15, 0.8, 4, 10, 60, 60, 30, 30])
+            return np.array([0.03, 0.15, 0.8, 4, 10, 60, 60, 30, 30])
         else:
             return np.zeros(9)
 
@@ -654,16 +748,6 @@ class KidneyCortMedSR(dc.Model):
             lb = 0
         return (lb, ub)
     
-    def train(self, time, Sc, Sm, **kwargs):
-        n0 = max([np.sum(time<self.t0), 1])
-        Scref = dc.signal_sr(self.R10c, 1, self.TR, self.FA, self.TC)
-        Smref = dc.signal_sr(self.R10m, 1, self.TR, self.FA, self.TC)
-        self.S0c = np.mean(Sc[:n0]) / Scref
-        self.S0m = np.mean(Sm[:n0]) / Smref
-        xdata = np.concatenate((time, time))
-        ydata = np.concatenate((Sc, Sm))
-        super().train(xdata, ydata, **kwargs)
-
     def pfree(self, units='standard'):
         pars = [
             ['Fp','Plasma flow',self.pars[0],'mL/sec/mL'], 
@@ -691,18 +775,35 @@ class KidneyCortMedSR(dc.Model):
         pars = [
             ['FF', 'Filtration fraction', p[1]/(1-p[1]), ''],
             ['Ft', 'Tubular flow', p[1]/(1-p[1])*p[0], 'mL/sec/mL'],
-            ['SKGFR','Single-kidney glomerular filtration rate', p[1]/(1-p[1])*p[0]*self.vol,'mL/sec'],
-            ['MBF','Medullary blood flow', p[2]*(1-p[1])*p[0]/(1-self.Hct), 'mL/sec/mL'],
-            ['SKBF', 'Single-kidney blood flow', self.vol*p[0]/(1-self.Hct), 'mL/sec'],
-            ['SKMBF', 'Single-kidney medullary blood flow', self.vol*p[2]*(1-p[1])*p[0]/(1-self.Hct), 'mL/sec'],
             ['CBF', 'Cortical blood flow', p[0]/(1-self.Hct), 'mL/sec/mL'],
+            ['MBF','Medullary blood flow', p[2]*(1-p[1])*p[0]/(1-self.Hct), 'mL/sec/mL'],
         ]
         if units=='custom':
             pars[0][2:] = [pars[0][2]*100, '%']
             pars[1][2:] = [pars[1][2]*100, '%']
-            pars[2][2:] = [pars[2][2]*60, 'mL/min']
+            pars[2][2:] = [pars[2][2]*6000, 'mL/min/100mL']
             pars[3][2:] = [pars[3][2]*6000, 'mL/min/100mL']
+
+        if self.vol is None:   
+            return pars
+        
+        pars += [
+            ['SKGFR','Single-kidney glomerular filtration rate', p[1]/(1-p[1])*p[0]*self.vol,'mL/sec'],
+            ['SKBF', 'Single-kidney blood flow', self.vol*p[0]/(1-self.Hct), 'mL/sec'],
+            ['SKMBF', 'Single-kidney medullary blood flow', self.vol*p[2]*(1-p[1])*p[0]/(1-self.Hct), 'mL/sec'],
+        ] 
+        if units=='custom':
             pars[4][2:] = [pars[4][2]*60, 'mL/min']
             pars[5][2:] = [pars[5][2]*60, 'mL/min']
-            pars[6][2:] = [pars[6][2]*6000, 'mL/min/100mL']
+            pars[6][2:] = [pars[6][2]*60, 'mL/min']
+
         return pars
+
+    
+    def aif_conc(self):
+        """Reconstructed plasma concentrations in the arterial input.
+
+        Returns:
+            np.ndarray: Concentrations in M.
+        """
+        return self._ca

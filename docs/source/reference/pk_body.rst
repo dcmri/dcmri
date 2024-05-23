@@ -1,8 +1,8 @@
 .. _WB mods:
 
-********************
-Whole-body PK models
-********************
+*********************
+PK models: whole body
+*********************
 
 Whole body models to parametrize concentrations in different organs..
 

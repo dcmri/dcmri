@@ -15,9 +15,10 @@ This reference manual details all functions included in dcMRI, describing what t
 
    e2e
    sig
-   pkmods
-   wbmods
+   pk_tissue
+   pk_body
+   pk_kidney
    pk
    lib
-   tools
+   utils
    

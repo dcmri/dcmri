@@ -30,6 +30,10 @@ class Model:
         for a in attr:
             self.__dict__[a] = attr[a] 
 
+    def _forward_model(self, xdata):
+        return NotImplementedError('No forward model defined')
+
+
     def predict(self, xdata)->np.ndarray:
         """Use the model to predict ydata for given xdata.
 
@@ -39,31 +43,9 @@ class Model:
         Returns:
             np.ndarray: array with predicted values, same length as xdata. 
         """
-        msg = 'No predict method defined.' 
-        raise NotImplementedError(msg)
-    
-    def pars0(self, settings='default')->np.ndarray:
-        """Values for the free parameters.
+        return self._forward_model(xdata)
 
-        Args:
-            settings (str or array-like, optional):Either a string to specify which parameters to set, or an explicit array of values. Defaults to 'default'.
 
-        Returns:
-            np.ndarray: Array with parameter values. 
-        """
-        return np.zeros(0)
-    
-    def bounds(self, settings='default')->tuple:
-        """Reasonable bounds for the free parameters.
-
-        Args:
-            settings (str or tuple, optional): A string describing which set of initial values to use. Defaults to 'default'.
-
-        Returns:
-            tuple: 2-element tuple (lb, up) where each element is either an array with values (one for each parameter) or a single value (when each parameter has the same bound).
-        """
-        return (-np.inf, np.inf)
-    
     def train(self, xdata, ydata, p0=None,
             bounds='default',
             pfix=None, xrange=None, xvalid=None, 
@@ -98,8 +80,29 @@ class Model:
             fit_func, xdata, ydata, p0, 
             pfix=pfix, xrange=xrange, xvalid=xvalid,
             bounds=bounds, **kwargs)
-         
         return self
+    
+    def pars0(self, settings='default')->np.ndarray:
+        """Values for the free parameters.
+
+        Args:
+            settings (str or array-like, optional):Either a string to specify which parameters to set, or an explicit array of values. Defaults to 'default'.
+
+        Returns:
+            np.ndarray: Array with parameter values. 
+        """
+        return np.zeros(0)
+    
+    def bounds(self, settings='default')->tuple:
+        """Reasonable bounds for the free parameters.
+
+        Args:
+            settings (str or tuple, optional): A string describing which set of initial values to use. Defaults to 'default'.
+
+        Returns:
+            tuple: 2-element tuple (lb, up) where each element is either an array with values (one for each parameter) or a single value (when each parameter has the same bound).
+        """
+        return (-np.inf, np.inf)
     
     def cost(self, xdata, ydata, xrange=None, xvalid=None, metric='NRMS')->float:
         """Goodness-of-fit value.

@@ -17,6 +17,9 @@ from dcmri.pk_aorta import *
 from dcmri import pk_kidney
 from dcmri.pk_kidney import *
 
+from dcmri import pk_liver
+from dcmri.pk_liver import *
+
 from dcmri import pk_inv
 from dcmri.pk_inv import *
 
