@@ -13,17 +13,9 @@
 
    .. autosummary::
    
-      ~OneCompWXSS.FA
-      ~OneCompWXSS.Hct
-      ~OneCompWXSS.R10
-      ~OneCompWXSS.R10b
-      ~OneCompWXSS.TR
-      ~OneCompWXSS.agent
-      ~OneCompWXSS.dt
-      ~OneCompWXSS.field_strength
       ~OneCompWXSS.pars
       ~OneCompWXSS.pcov
-      ~OneCompWXSS.t0
+      ~OneCompWXSS.ca
    
    
 
@@ -34,8 +26,8 @@
 
    .. autosummary::
    
-      ~OneCompWXSS.aif_conc
       ~OneCompWXSS.bounds
+      ~OneCompWXSS.conc
       ~OneCompWXSS.cost
       ~OneCompWXSS.pars0
       ~OneCompWXSS.pdep

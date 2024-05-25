@@ -13,18 +13,9 @@
 
    .. autosummary::
    
-      ~ToftsSS.FA
-      ~ToftsSS.Hct
-      ~ToftsSS.R10
-      ~ToftsSS.R10b
-      ~ToftsSS.TR
-      ~ToftsSS.agent
-      ~ToftsSS.dt
-      ~ToftsSS.field_strength
       ~ToftsSS.pars
       ~ToftsSS.pcov
-      ~ToftsSS.t0
-      ~ToftsSS.water_exchange
+      ~ToftsSS.ca
    
    
 
@@ -35,8 +26,8 @@
 
    .. autosummary::
    
-      ~ToftsSS.aif_conc
       ~ToftsSS.bounds
+      ~ToftsSS.conc
       ~ToftsSS.cost
       ~ToftsSS.pars0
       ~ToftsSS.pdep

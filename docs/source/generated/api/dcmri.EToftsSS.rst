@@ -13,18 +13,9 @@
 
    .. autosummary::
    
-      ~EToftsSS.FA
-      ~EToftsSS.Hct
-      ~EToftsSS.R10
-      ~EToftsSS.R10b
-      ~EToftsSS.TR
-      ~EToftsSS.agent
-      ~EToftsSS.dt
-      ~EToftsSS.field_strength
       ~EToftsSS.pars
       ~EToftsSS.pcov
-      ~EToftsSS.t0
-      ~EToftsSS.water_exchange
+      ~EToftsSS.ca
    
    
 
@@ -35,8 +26,8 @@
 
    .. autosummary::
    
-      ~EToftsSS.aif_conc
       ~EToftsSS.bounds
+      ~EToftsSS.conc
       ~EToftsSS.cost
       ~EToftsSS.pars0
       ~EToftsSS.pdep

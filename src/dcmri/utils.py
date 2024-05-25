@@ -21,21 +21,21 @@ class Model:
     pars = None     #: Free model parameters.
     pcov = None     #: Covariance matrix of the free model parameters.
 
-    # TODO: replace dfault by None , also in bounds
-    def __init__(self, pars='default', **attr):
-        if isinstance(pars, str):
-            self.pars = self.pars0(pars)
-        else:
-            self.pars = pars
-        self.pcov = np.zeros((len(self.pars),len(self.pars)))
-        for a in attr:
-            self.__dict__[a] = attr[a] 
+    # # TODO: replace dfault by None , also in bounds
+    # def __init__(self, pars='default', **attr):
+    #     if isinstance(pars, str):
+    #         self.pars = self.pars0(pars)
+    #     else:
+    #         self.pars = pars
+    #     self.pcov = np.zeros((len(self.pars),len(self.pars)))
+    #     for a in attr:
+    #         self.__dict__[a] = attr[a] 
 
     def _forward_model(self, xdata):
         return NotImplementedError('No forward model defined')
 
 
-    def predict(self, xdata)->np.ndarray:
+    def predict(self, xdata, **kwargs)->np.ndarray:
         """Use the model to predict ydata for given xdata.
 
         Args:
@@ -44,11 +44,11 @@ class Model:
         Returns:
             np.ndarray: array with predicted values, same length as xdata. 
         """
-        return self._forward_model(xdata)
+        return self._forward_model(xdata, **kwargs)
 
 
     def train(self, xdata, ydata, p0=None,
-            bounds='default',
+            bounds=None,
             pfix=None, xrange=None, xvalid=None, 
             **kwargs):
         """Train the free parameters of the model using the data provided.
@@ -68,14 +68,13 @@ class Model:
         Returns:
             Model: A reference to the model instance.
         """
-        if isinstance(bounds, str):
-            bounds = self.bounds(bounds)
+        bounds = self.bounds(bounds)
         if p0 is None:
             p0 = self.pars
 
         def fit_func(xdata, *p):
             self.pars = p
-            return self.predict(xdata)
+            return self._forward_model(xdata)
 
         self.pars, self.pcov = curve_fit(
             fit_func, xdata, ydata, p0, 
@@ -83,7 +82,7 @@ class Model:
             bounds=bounds, **kwargs)
         return self
     
-    def pars0(self, settings='default')->np.ndarray:
+    def pars0(self, settings=None)->np.ndarray:
         """Values for the free parameters.
 
         Args:
@@ -94,7 +93,7 @@ class Model:
         """
         return np.zeros(0)
     
-    def bounds(self, settings='default')->tuple:
+    def bounds(self, settings=None)->tuple:
         """Reasonable bounds for the free parameters.
 
         Args:
@@ -170,7 +169,10 @@ class Model:
         print('-----------------------------------------')
         print('Free parameters with their errors (stdev)')
         print('-----------------------------------------')
-        perr = np.sqrt(np.diag(self.pcov))
+        if self.pcov is None:
+            perr = np.zeros(np.size(self.pars))
+        else:
+            perr = np.sqrt(np.diag(self.pcov))
         for i, p in enumerate(self.pfree(units=units)):
             if round_to is None:
                 v = p[2]
@@ -290,6 +292,7 @@ def curve_fit(f, xdata, ydata, p0,
     xf = xfit(xdata, xrange, xvalid)
 
     # Apply curve_fit to restricted data
+
     try:
         p = scipy_curve_fit(
             fit_func, xdata[xf], ydata[xf], 
@@ -307,7 +310,8 @@ def curve_fit(f, xdata, ydata, p0,
         msg = 'Runtime error in curve_fit -- \n'
         msg += str(e) + ' Returning initial values.'
         warnings.warn(msg)
-        p = p0
+        pcov = np.zeros((np.sum(pfit),np.sum(pfit)))
+        p = (p0[pfit], pcov)
     
     # Return parameter array in original length
     p0c[pfit] = p[0]

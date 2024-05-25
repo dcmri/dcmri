@@ -6,19 +6,29 @@ class AortaChCSS(dc.Model):
 
     The model is intended for use in data where the acquisition time is sufficiently short so that backflux of indicator that has leaked out of the vasculature is negligible. It represents the body as a leaky loop with a heart-lung system and an organ system. The heart-lung system is modelled as a chain (`flux_chain`) and the organs are modelled as a leaky compartment (`flux_comp`) without backflux of filtered indicator. Bolus injection into the system is modelled as a step function.
 
-    The free model parameters are:
+        The free model parameters are:
 
-    - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
-    - **BAT** (Bolus arrival time, sec): time point where the indicator first arrives in the body. 
-    - **CO** (Cardiac output, mL/sec): Blood flow through the loop.
-    - **Thl** (Heart-lung mean transit time, sec): average time to travel through heart and lungs.
-    - **Dhl** (Heart-lung transit time dispersion): the transit time through the heart-lung compartment as a fraction of the total transit time through the heart-lung system.
-    - **To** (Organs mean blood transit time, sec): average time to travel through the organ's vasculature.
-    - **Eb** (Extraction fraction): fraction of indicator extracted from the vasculature in a single pass. 
+        - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
+        - **BAT** (Bolus arrival time, sec): time point where the indicator first arrives in the body. 
+        - **CO** (Cardiac output, mL/sec): Blood flow through the loop.
+        - **Thl** (Heart-lung mean transit time, sec): average time to travel through heart and lungs.
+        - **Dhl** (Heart-lung transit time dispersion): the transit time through the heart-lung compartment as a fraction of the total transit time through the heart-lung system.
+        - **To** (Organs mean blood transit time, sec): average time to travel through the organ's vasculature.
+        - **Eb** (Extraction fraction): fraction of indicator extracted from the vasculature in a single pass. 
 
     Args:
         pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
+        dt (float, optional): Sampling interval of the AIF in sec. 
+        dose_tolerance (float, optional): Stopping criterion in the forward simulation of the arterial fluxes.
+        weight (float, optional): Subject weight in kg.
+        agent (str, optional): Contrast agent generic name.
+        dose (float, optional): Injected contrast agent dose in mL per kg bodyweight.
+        rate (float, optional): Contrast agent injection rate in mL per sec.
+        field_strength (float, optional): Magnetic field strength in T. 
+        TR (float, optional): Repetition time, or time between excitation pulses, in sec. 
+        FA (float, optional): Nominal flip angle in degrees.
+        R10 (float, optional): Precontrast tissue relaxation rate in 1/sec. 
+
 
     See Also:
         `AortaCh2CSS`
@@ -54,10 +64,10 @@ class AortaChCSS(dc.Model):
         Predict data with default parameters, train the model on the data, and predict data again:
 
         >>> aif0 = aorta.predict(time)
-        >>> cb0 = aorta.predict(time, return_conc=True)
+        >>> cb0 = aorta.conc(gt['t'])
         >>> aorta.train(time, aif)
         >>> aif1 = aorta.predict(time)
-        >>> cb1 = aorta.predict(time, return_conc=True)
+        >>> cb1 = aorta.conc(gt['t'])
 
         Plot the reconstructed signals and concentrations and compare against the experimentally derived data:
 
@@ -73,8 +83,8 @@ class AortaChCSS(dc.Model):
         >>> # 
         >>> ax1.set_title('Prediction of the concentrations.')
         >>> ax1.plot(gt['t']/60, 1000*gt['cb'], 'ro', label='Measurement')
-        >>> ax1.plot(time/60, 1000*cb0, 'b--', label='Prediction (before training)')
-        >>> ax1.plot(time/60, 1000*cb1, 'b-', label='Prediction (after training)')
+        >>> ax1.plot(gt['t']/60, 1000*cb0, 'b--', label='Prediction (before training)')
+        >>> ax1.plot(gt['t']/60, 1000*cb1, 'b-', label='Prediction (after training)')
         >>> ax1.set_ylim(0,5)
         >>> ax1.set_xlabel('Time (min)')
         >>> ax1.set_ylabel('Blood concentration (mM)')
@@ -96,54 +106,64 @@ class AortaChCSS(dc.Model):
         Extraction fraction (E): 12.017 (0.01) %
 
         *Note*: while the model fits the synthetic MRI signals well, the concentrations show some mismatch. The parameter values all have relatively small error and realistic values, except that the cardiac output is high for a typical adult in rest. This is a known property of the experimentally derived AIF used in this example (`Yang et al. 2009 <https://doi.org/10.1002/mrm.21912>`_).
-    """         
-    dt = 0.5                #: Pseudocontinuous time resolution of the simulation in sec.
-    dose_tolerance = 0.1    #: Stopping criterion in the forward simulation of the arterial fluxes.
-    weight = 70.0           #: Subject weight in kg.
-    agent = 'gadoterate'    #: Contrast agent generic name.
-    dose = 0.025            #: Injected contrast agent dose in mL per kg bodyweight.
-    rate = 1                #: Contrast agent injection rate in mL per sec.
-    field_strength = 3.0    #: Magnetic field strength in T.
-    TR = 0.005              #: Repetition time, or time between excitation pulses, in sec.
-    FA = 15.0               #: Nominal flip angle in degrees.
-    R10 = 1.0               #: Precontrast relaxation rate (1/sec).
+    """      
+    def __init__(self,   
+            pars = None,
+            dt = 0.5,                
+            dose_tolerance = 0.1,    
+            weight = 70.0,           
+            agent = 'gadoterate',    
+            dose = 0.025, 
+            rate = 1,   
+            field_strength = 3.0, 
+            TR = 0.005, 
+            FA = 15.0, 
+            R10 = 1.0, 
+        ):
+        self.pars = self.pars0(pars)
+        self.dose_tolerance = dose_tolerance
+        self.weight = weight
+        self.agent = agent
+        self.dose = dose
+        self.rate = rate
+        self.dt = dt
+        self.TR = TR
+        self.FA = FA
+        self.R10 = R10
+        self.rp = dc.relaxivity(field_strength, 'plasma', agent)
 
-    def predict(self, xdata, return_conc=False, return_rel=False) ->np.ndarray:
-        """Use the model to predict ydata for given xdata.
-
-        Args:
-            xdata (array-like): time points where the ydata are to be calculated.
-            return_conc (bool, optional): If True, return the concentrations instead of the signal. Defaults to False.
-            return_rel (bool, optional): If True, return the relaxation rate instead of the signal. Defaults to False.
-
-        Returns:
-            np.ndarray: array with predicted values, same length as xdata.
-        """
-        
+    def _forward_model(self, xdata, return_conc=False) ->np.ndarray:
         S0, BAT, CO, Thl, Dhl, To, Eb = self.pars
         t = np.arange(0, max(xdata)+xdata[1]+self.dt, self.dt)
+        cb = self.conc(t)
+        R1 = self.R10 + self.rp*cb
+        signal = dc.signal_ss(R1, S0, self.TR, self.FA)
+        return dc.sample(xdata, t, signal, xdata[2]-xdata[1])
+    
+    def conc(self, t):
+        """Aorta blood concentration
+
+        Args:
+            t (array-like): Time points of the concentration (sec)
+
+        Returns:
+            numpy.ndarray: Concentration in M
+        """
+        S0, BAT, CO, Thl, Dhl, To, Eb = self.pars
         conc = dc.ca_conc(self.agent)
         Ji = dc.influx_step(t, self.weight, conc, self.dose, self.rate, BAT) 
         _, Jb = dc.body_flux_chc(Ji, Thl, Dhl, To, Eb, 
                 dt=self.dt, tol=self.dose_tolerance)
-        cb = Jb/CO 
-        if return_conc:
-            return dc.sample(xdata, t, cb, xdata[2]-xdata[1])
-        rp = dc.relaxivity(self.field_strength, 'plasma', self.agent)
-        R1 = self.R10 + rp*cb
-        if return_rel:
-            return dc.sample(xdata, t, R1, xdata[2]-xdata[1])
-        signal = dc.signal_ss(R1, S0, self.TR, self.FA)
-        return dc.sample(xdata, t, signal, xdata[2]-xdata[1])
+        return Jb/CO 
 
     def pars0(self, settings=None):
-        if settings == 'TRISTAN':
+        if settings == None:
             return np.array([1, 60, 100, 10, 0.2, 20, 0.05])
         else:
             return np.array([1, 30, 100, 10, 0.2, 20, 0.05])
 
     def bounds(self, settings=None):
-        if settings == 'TRISTAN':
+        if settings == None:
             ub = [np.inf, np.inf, np.inf, 30, 0.95, 60, 0.15]
             lb = [0, 0, 0, 0, 0.05, 0, 0.01]
         else:
@@ -163,7 +183,6 @@ class AortaChCSS(dc.Model):
         baseline = max([baseline, 1])
         Sref = dc.signal_ss(self.R10, 1, self.TR, self.FA)
         self.pars[0] = np.mean(ydata[:baseline]) / Sref
-
         super().train(xdata, ydata, **kwargs)
 
     def pfree(self, units='standard'):
@@ -183,26 +202,35 @@ class AortaChCSS(dc.Model):
         return pars
 
     
-class AortaCh2CSS(dc.Model):
+class AortaCh2CSS(AortaChCSS):
     """Whole-body aorta model acquired with a spoiled gradient echo sequence in steady-state - suitable for slowly sampled data with longer acquisition times.
 
     The model represents the body as a leaky loop with a heart-lung system and an organ system. The heart-lung system is modelled as a chain compartment (`flux_chain`) and the organs are modelled as a two-compartment exchange model (`flux_2comp`). Bolus injection into the system is modelled as a step function.
     
-    The free model parameters are:
+        The free model parameters are:
 
-    - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
-    - **BAT** (Bolus arrival time, sec): time point where the indicator first arrives in the body. 
-    - **CO** (Cardiac output, mL/sec): Blood flow through the body.
-    - **Thl** (Heart-lung mean transit time, sec): average time to travel through heart and lungs.
-    - **Dhl** (Heart-lung transit time dispersion): Dispersion through the heart-lung system, with a value in the range [0,1].
-    - **To** (Organs mean blood transit time, sec): average time to travel through the organ's vasculature.
-    - **Eb** (Extraction fraction): fraction of indicator extracted from the vasculature in a single pass. 
-    - **Eo** (Organs extraction fraction): Fraction of indicator entering the organs which is extracted from the blood pool.
-    - **Te** (Extravascular mean transit time, sec): average time to travel through the organs extravascular space.
+        - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
+        - **BAT** (Bolus arrival time, sec): time point where the indicator first arrives in the body. 
+        - **CO** (Cardiac output, mL/sec): Blood flow through the body.
+        - **Thl** (Heart-lung mean transit time, sec): average time to travel through heart and lungs.
+        - **Dhl** (Heart-lung transit time dispersion): Dispersion through the heart-lung system, with a value in the range [0,1].
+        - **To** (Organs mean blood transit time, sec): average time to travel through the organ's vasculature.
+        - **Eb** (Extraction fraction): fraction of indicator extracted from the vasculature in a single pass. 
+        - **Eo** (Organs extraction fraction): Fraction of indicator entering the organs which is extracted from the blood pool.
+        - **Te** (Extravascular mean transit time, sec): average time to travel through the organs extravascular space.
 
     Args:
         pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
+        dt (float, optional): Sampling interval of the AIF in sec. 
+        dose_tolerance (float, optional): Stopping criterion in the forward simulation of the arterial fluxes.
+        weight (float, optional): Subject weight in kg.
+        agent (str, optional): Contrast agent generic name.
+        dose (float, optional): Injected contrast agent dose in mL per kg bodyweight.
+        rate (float, optional): Contrast agent injection rate in mL per sec.
+        field_strength (float, optional): Magnetic field strength in T. 
+        TR (float, optional): Repetition time, or time between excitation pulses, in sec. 
+        FA (float, optional): Nominal flip angle in degrees.
+        R10 (float, optional): Precontrast tissue relaxation rate in 1/sec. 
 
     See Also:
         `AortaChCSS`
@@ -238,10 +266,10 @@ class AortaCh2CSS(dc.Model):
         Predict concentrations with default parameters, train the model on the data, and predict concentrations again:
 
         >>> aif0 = aorta.predict(time)
-        >>> cb0 = aorta.predict(time, return_conc=True)
+        >>> cb0 = aorta.conc(gt['t'])
         >>> aorta.train(time, aif)
         >>> aif1 = aorta.predict(time)
-        >>> cb1 = aorta.predict(time, return_conc=True)
+        >>> cb1 = aorta.conc(gt['t'])
 
         Plot the reconstructed signals and concentrations and compare against the experimentally derived data:
 
@@ -257,8 +285,8 @@ class AortaCh2CSS(dc.Model):
         >>> # 
         >>> ax1.set_title('Prediction of the concentrations.')
         >>> ax1.plot(gt['t']/60, 1000*gt['cb'], 'ro', label='Measurement')
-        >>> ax1.plot(time/60, 1000*cb0, 'b--', label='Prediction (before training)')
-        >>> ax1.plot(time/60, 1000*cb1, 'b-', label='Prediction (after training)')
+        >>> ax1.plot(gt['t']/60, 1000*cb0, 'b--', label='Prediction (before training)')
+        >>> ax1.plot(gt['t']/60, 1000*cb1, 'b-', label='Prediction (after training)')
         >>> ax1.set_ylim(0,5)
         >>> ax1.set_xlabel('Time (min)')
         >>> ax1.set_ylabel('Blood concentration (mM)')
@@ -288,55 +316,42 @@ class AortaCh2CSS(dc.Model):
         *Note*: The extracellular mean transit time has a high error, indicating that the acquisition time here is insufficient to resolve the transit through the leakage space.
 
     """         
-    dt = 0.5                #: Pseudocontinuous time resolution of the simulation in sec.
-    dose_tolerance = 0.1    #: Stopping criterion in the forward simulation of the arterial fluxes.
-    weight = 70.0           #: Subject weight in kg.
-    agent = 'gadoterate'    #: Contrast agent generic name.
-    dose = 0.025            #: Injected contrast agent dose in mL per kg bodyweight.
-    rate = 1                #: Contrast agent injection rate in mL per sec.
-    field_strength = 3.0    #: Magnetic field strength in T.
-    TR = 0.005              #: Repetition time, or time between excitation pulses, in sec.
-    FA = 15.0               #: Nominal flip angle in degrees.
-    R10 = 1.0               #: Precontrast relaxation rate (1/sec).
 
-    def predict(self, xdata, return_conc=False, return_rel=False)->np.ndarray:
-        """Use the model to predict ydata for given xdata.
-
-        Args:
-            xdata (array-like): time points where the ydata are to be calculated.
-            return_conc (bool, optional): If True, return the concentrations instead of the signal. Defaults to False.
-            return_rel (bool, optional): If True, return the relaxation rate instead of the signal. Defaults to False.
-
-        Returns:
-            np.ndarray: array with predicted values, same length as xdata.
-        """
+    def _forward_model(self, xdata)->np.ndarray:
         S0, BAT, CO, Thl, Dhl, To, Eb, Eo, Te = self.pars
         t = np.arange(0, max(xdata)+xdata[1]+self.dt, self.dt)
+        cb = self.conc(t)
+        R1 = self.R10 + self.rp*cb
+        signal = dc.signal_ss(R1, S0, self.TR, self.FA)
+        return dc.sample(xdata, t, signal, xdata[2]-xdata[1])
+    
+    def conc(self, t):
+        """Aorta blood concentration
+
+        Args:
+            t (array-like): Time points of the concentration (sec)
+
+        Returns:
+            numpy.ndarray: Concentration in M
+        """
+        S0, BAT, CO, Thl, Dhl, To, Eb, Eo, Te = self.pars
         conc = dc.ca_conc(self.agent)
         Ji = dc.influx_step(t, self.weight, conc, self.dose, self.rate, BAT) 
         _, Jb = dc.body_flux_ch2c(Ji, 
                 Thl, Dhl, Eo, To, Te, Eb, 
                 dt=self.dt, tol=self.dose_tolerance)
-        cb = Jb/CO 
-        if return_conc:
-            return dc.sample(xdata, t, cb, xdata[2]-xdata[1])
-        rp = dc.relaxivity(self.field_strength, 'plasma', self.agent)
-        R1 = self.R10 + rp*cb
-        if return_rel:
-            return dc.sample(xdata, t, R1, xdata[2]-xdata[1])
-        signal = dc.signal_ss(R1, S0, self.TR, self.FA)
-        return dc.sample(xdata, t, signal, xdata[2]-xdata[1])
+        return Jb/CO 
     
     def pars0(self, settings=None):
         # S0, BAT, CO, Thl, Dhl, To, Eb, Eo, Te
-        if settings == 'TRISTAN':
+        if settings == None:
             return np.array([1, 60, 100, 10, 0.2, 20, 0.05, 0.15, 120])
         else:
             return np.array([1, 30, 100, 10, 0.2, 20, 0.05, 0.15, 120])
         
     def bounds(self, settings=None):
         # S0, BAT, CO, Thl, Dhl, To, Eb, Eo, Te
-        if settings == 'TRISTAN':
+        if settings == None:
             ub = [np.inf, np.inf, np.inf, 30, 0.95, 60, 0.15, 0.5, 800]
             lb = [0, 0, 0, 0, 0.05, 0, 0.01, 0, 0]
         else:
@@ -385,25 +400,34 @@ class AortaCh2CSS(dc.Model):
     
 
 class AortaCh2CSRC(dc.Model):
-    """Whole-body aorta model acquired with a spoiled gradient echo sequence in steady-state - suitable for slowly sampled data with longer acquisition times.
+    """Whole-body aorta model acquired with a saturation-recovery sequence - suitable for slowly sampled data with longer acquisition times.
 
     The model represents the body as a leaky loop with a heart-lung system and an organ system. The heart-lung system is modelled as a chain compartment (`flux_chain`) and the organs are modelled as a two-compartment exchange model (`flux_2comp`). Bolus injection into the system is modelled as a step function.
     
-    The free model parameters are:
+        The free model parameters are:
 
-    - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
-    - **BAT** (Bolus arrival time, sec): time point where the indicator first arrives in the body. 
-    - **CO** (Cardiac output, mL/sec): Blood flow through the body.
-    - **Thl** (Heart-lung mean transit time, sec): average time to travel through heart and lungs.
-    - **Dhl** (Heart-lung transit time dispersion): Dispersion through the heart-lung system, with a value in the range [0,1].
-    - **To** (Organs mean blood transit time, sec): average time to travel through the organ's vasculature.
-    - **Eb** (Extraction fraction): fraction of indicator extracted from the vasculature in a single pass. 
-    - **Eo** (Organs extraction fraction): Fraction of indicator entering the organs which is extracted from the blood pool.
-    - **Te** (Extravascular mean transit time, sec): average time to travel through the organs extravascular space.
+        - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
+        - **BAT** (Bolus arrival time, sec): time point where the indicator first arrives in the body. 
+        - **CO** (Cardiac output, mL/sec): Blood flow through the body.
+        - **Thl** (Heart-lung mean transit time, sec): average time to travel through heart and lungs.
+        - **Dhl** (Heart-lung transit time dispersion): Dispersion through the heart-lung system, with a value in the range [0,1].
+        - **To** (Organs mean blood transit time, sec): average time to travel through the organ's vasculature.
+        - **Eb** (Extraction fraction): fraction of indicator extracted from the vasculature in a single pass. 
+        - **Eo** (Organs extraction fraction): Fraction of indicator entering the organs which is extracted from the blood pool.
+        - **Te** (Extravascular mean transit time, sec): average time to travel through the organs extravascular space.
 
     Args:
         pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
+        dt (float, optional): Sampling interval of the AIF in sec. 
+        dose_tolerance (float, optional): Stopping criterion in the forward simulation of the arterial fluxes.
+        weight (float, optional): Subject weight in kg.
+        agent (str, optional): Contrast agent generic name.
+        dose (float, optional): Injected contrast agent dose in mL per kg bodyweight.
+        rate (float, optional): Contrast agent injection rate in mL per sec.
+        field_strength (float, optional): Magnetic field strength in T. 
+        TC (float, optional): Time to the center of k-space, in sec. 
+        R10 (float, optional): Precontrast tissue relaxation rate in 1/sec. 
+
 
     See Also:
         `AortaChCSS`, `AortaCh2CSS`, `AortaCh2C2SS`
@@ -431,18 +455,17 @@ class AortaCh2CSRC(dc.Model):
         ...     dose = 0.2,
         ...     rate = 3,
         ...     field_strength = 3.0,
-        ...     TR = 0.005,
-        ...     FA = 20,
+        ...     TC = 0.180,
         ...     R10 = 1/dc.T1(3.0,'blood'),
         ... )
 
         Predict concentrations with default parameters, train the model on the data, and predict concentrations again:
 
         >>> aif0 = aorta.predict(time)
-        >>> cb0 = aorta.predict(time, return_conc=True)
+        >>> cb0 = aorta.conc(gt['t'])
         >>> aorta.train(time, aif)
         >>> aif1 = aorta.predict(time)
-        >>> cb1 = aorta.predict(time, return_conc=True)
+        >>> cb1 = aorta.conc(gt['t'])
 
         Plot the reconstructed signals and concentrations and compare against the experimentally derived data:
 
@@ -458,8 +481,8 @@ class AortaCh2CSRC(dc.Model):
         >>> # 
         >>> ax1.set_title('Prediction of the concentrations.')
         >>> ax1.plot(gt['t']/60, 1000*gt['cb'], 'ro', label='Measurement')
-        >>> ax1.plot(time/60, 1000*cb0, 'b--', label='Prediction (before training)')
-        >>> ax1.plot(time/60, 1000*cb1, 'b-', label='Prediction (after training)')
+        >>> ax1.plot(gt['t']/60, 1000*cb0, 'b--', label='Prediction (before training)')
+        >>> ax1.plot(gt['t']/60, 1000*cb1, 'b-', label='Prediction (after training)')
         >>> ax1.set_ylim(0,5)
         >>> ax1.set_xlabel('Time (min)')
         >>> ax1.set_ylabel('Blood concentration (mM)')
@@ -485,55 +508,66 @@ class AortaCh2CSRC(dc.Model):
         Derived parameters
         ------------------
         Mean circulation time (Tc): 29.39 sec
-
     """         
-    dt = 0.5                #: Pseudocontinuous time resolution of the simulation in sec.
-    dose_tolerance = 0.1    #: Stopping criterion in the forward simulation of the arterial fluxes.
-    weight = 70.0           #: Subject weight in kg.
-    agent = 'gadoterate'    #: Contrast agent generic name.
-    dose = 0.025            #: Injected contrast agent dose in mL per kg bodyweight.
-    rate = 1                #: Contrast agent injection rate in mL per sec.
-    field_strength = 3.0    #: Magnetic field strength in T.
-    TC = 0.180              #: Time to the center of k-space, in sec.
-    R10 = 1.0               #: Precontrast relaxation rate (1/sec).
 
-    def predict(self, xdata, return_conc=False, return_rel=False) ->np.ndarray:
-        """Use the model to predict ydata for given xdata.
+    def __init__(self, 
+            pars = None,  
+            dt = 0.5,                
+            dose_tolerance = 0.1,    
+            weight = 70.0,           
+            agent = 'gadoterate',    
+            dose = 0.025, 
+            rate = 1,   
+            field_strength = 3.0, 
+            TC = 0.180, 
+            R10 = 1.0, 
+        ):
+        self.pars = self.pars0(pars)
+        self.dose_tolerance = dose_tolerance
+        self.weight = weight
+        self.agent = agent
+        self.dose = dose
+        self.rate = rate
+        self.dt = dt
+        self.TC = TC
+        self.R10 = R10
+        self.rp = dc.relaxivity(field_strength, 'plasma', agent)
 
-        Args:
-            xdata (array-like): time points where the ydata are to be calculated.
-            return_conc (bool, optional): If True, return the concentrations instead of the signal. Defaults to False.
-            return_rel (bool, optional): If True, return the relaxation rate instead of the signal. Defaults to False.
-
-        Returns:
-            np.ndarray: array with predicted values, same length as xdata.
-        """
+    def _forward_model(self, xdata) ->np.ndarray:
         S0, BAT, CO, Thl, Dhl, To, Eb, Eo, Te = self.pars
         t = np.arange(0, max(xdata)+xdata[1]+self.dt, self.dt)
-        conc = dc.ca_conc(self.agent)
-        Ji = dc.influx_step(t, self.weight, conc, self.dose, self.rate, BAT) 
-        _, Jb = dc.body_flux_ch2c(Ji, Thl, Dhl, Eo, To, Te, Eb, 
-                dt=self.dt, tol=self.dose_tolerance)
-        cb = Jb/CO 
-        if return_conc:
-            return dc.sample(xdata, t, cb, xdata[2]-xdata[1])
-        rp = dc.relaxivity(self.field_strength, 'plasma', self.agent)
-        R1 = self.R10 + rp*cb
-        if return_rel:
-            return dc.sample(xdata, t, R1, xdata[2]-xdata[1])
+        cb = self.conc(t)
+        R1 = self.R10 + self.rp*cb
         signal = dc.signal_src(R1, S0, self.TC)
         return dc.sample(xdata, t, signal, xdata[2]-xdata[1])
+    
+    def conc(self, t):
+        """Aorta blood concentration
+
+        Args:
+            t (array-like): Time points of the concentration (sec)
+
+        Returns:
+            numpy.ndarray: Concentration in M
+        """
+        S0, BAT, CO, Thl, Dhl, To, Eb, Eo, Te = self.pars
+        conc = dc.ca_conc(self.agent)
+        Ji = dc.influx_step(t, self.weight, conc, self.dose, self.rate, BAT) 
+        _, Jb = dc.body_flux_ch2c(Ji, 
+                Thl, Dhl, Eo, To, Te, Eb, 
+                dt=self.dt, tol=self.dose_tolerance)
+        return Jb/CO 
 
     def pars0(self, settings=None):
         # S0, BAT, CO, Thl, Dhl, To, Eb, Eo, Te
-        if settings == 'TRISTAN':
+        if settings == None:
             return np.array([1, 60, 100, 10, 0.2, 20, 0.05, 0.15, 120])
         else:
             return np.array([1, 30, 100, 10, 0.2, 20, 0.05, 0.15, 120])
         
     def bounds(self, settings=None):
         # S0, BAT, CO, Thl, Dhl, To, Eb, Eo, Te
-        if settings == 'TRISTAN':
+        if settings == None:
             ub = [np.inf, np.inf, np.inf, 30, 0.95, 60, 0.15, 0.5, 800]
             lb = [0, 0, 0, 0, 0.05, 0, 0.01, 0, 0]
         else:
@@ -551,7 +585,7 @@ class AortaCh2CSRC(dc.Model):
         # Estimate S0 from data
         baseline = xdata[xdata <= BAT-20].size
         baseline = max([baseline, 1])
-        Sref = dc.signal_ss(self.R10, 1, self.TR, self.FA)
+        Sref = dc.dc.signal_src(self.R10, 1, self.TC)
         self.pars[0] = np.mean(ydata[:baseline]) / Sref
 
         super().train(xdata, ydata, **kwargs)
@@ -586,23 +620,34 @@ class AortaCh2C2SS(dc.Model):
 
     The kinetic model is the same as for `AortaCh2CSS`. It represents the body as a leaky loop with a heart-lung system and an organ system. Bolus injection into the system is modelled as a step function.
     
-    The 10 free model parameters are:
+        The free model parameters are:
 
-    - **S01** (Signal scaling factor 1, a.u.): scale factor for the first MR signal.
-    - **S02** (Signal scaling factor 2, a.u.): scale factor for the second MR signal.
-    - **BAT1** (Bolus arrival time 1, sec): time point where the indicator first arrives in the body.
-    - **BAT2** (Bolus arrival time 1, sec): time point when the second bolus injection first arrives in the body. 
-    - **CO** (Cardiac output, mL/sec): Blood flow through the body.
-    - **Thl** (Heart-lung mean transit time, sec): average time to travel through heart and lungs.
-    - **Dhl** (Heart-lung transit time dispersion): Dispersion through the heart-lung system, with a value in the range [0,1].
-    - **To** (Organs mean blood transit time, sec): average time to travel through the organ's vasculature.
-    - **Eb** (Extraction fraction): fraction of indicator extracted from the vasculature in a single pass. 
-    - **Eo** (Organs extraction fraction): Fraction of indicator entering the organs which is extracted from the blood pool.
-    - **Te** (Extravascular mean transit time, sec): average time to travel through the organs extravascular space.
+        - **S01** (Signal scaling factor 1, a.u.): scale factor for the first MR signal.
+        - **S02** (Signal scaling factor 2, a.u.): scale factor for the second MR signal.
+        - **BAT1** (Bolus arrival time 1, sec): time point where the indicator first arrives in the body.
+        - **BAT2** (Bolus arrival time 1, sec): time point when the second bolus injection first arrives in the body. 
+        - **CO** (Cardiac output, mL/sec): Blood flow through the body.
+        - **Thl** (Heart-lung mean transit time, sec): average time to travel through heart and lungs.
+        - **Dhl** (Heart-lung transit time dispersion): Dispersion through the heart-lung system, with a value in the range [0,1].
+        - **To** (Organs mean blood transit time, sec): average time to travel through the organ's vasculature.
+        - **Eb** (Extraction fraction): fraction of indicator extracted from the vasculature in a single pass. 
+        - **Eo** (Organs extraction fraction): Fraction of indicator entering the organs which is extracted from the blood pool.
+        - **Te** (Extravascular mean transit time, sec): average time to travel through the organs extravascular space.
 
     Args:
         pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
+        dt (float, optional): Sampling interval of the AIF in sec. 
+        dose_tolerance (float, optional): Stopping criterion in the forward simulation of the arterial fluxes.
+        weight (float, optional): Subject weight in kg.
+        agent (str, optional): Contrast agent generic name.
+        dose (array-like, optional): 2-element array with injected contrast agent doses for first and second scan in mL per kg bodyweight.
+        rate (float, optional): Contrast agent injection rate in mL per sec.
+        field_strength (float, optional): Magnetic field strength in T. 
+        TR (float, optional): Repetition time, or time between excitation pulses, in sec. 
+        FA (float, optional): Nominal flip angle in degrees.
+        R10 (float, optional): Precontrast tissue relaxation rate in 1/sec.
+        R11 (float, optional): Estimate of the relaxation time before the second injection (1/sec)
+        to (float, optional): Start of second acquisition (sec).
 
     See Also:
         `AortaChCSS`, `AortaCh2CSRC`
@@ -641,10 +686,10 @@ class AortaCh2C2SS(dc.Model):
         Predict concentrations with default parameters, train the model on the data, and predict concentrations again:
 
         >>> aif0 = aorta.predict(time)
-        >>> cb0 = aorta.predict(time, return_conc=True)
-        >>> aorta.train(time, aif)
+        >>> cb0 = aorta.conc(gt['t'])
+        >>> aorta.train(time, aif, pfix=[1,0,1,1]+7*[0])
         >>> aif1 = aorta.predict(time)
-        >>> cb1 = aorta.predict(time, return_conc=True)
+        >>> cb1 = aorta.conc(gt['t'])
 
         Plot the reconstructed signals and concentrations and compare against the experimentally derived data:
 
@@ -660,81 +705,81 @@ class AortaCh2C2SS(dc.Model):
         >>> # 
         >>> ax1.set_title('Prediction of the concentrations.')
         >>> ax1.plot(gt['t']/60, 1000*gt['cb'], 'ro', label='Measurement')
-        >>> ax1.plot(time/60, 1000*cb0, 'b--', label='Prediction (before training)')
-        >>> ax1.plot(time/60, 1000*cb1, 'b-', label='Prediction (after training)')
+        >>> ax1.plot(gt['t']/60, 1000*cb0, 'b--', label='Prediction (before training)')
+        >>> ax1.plot(gt['t']/60, 1000*cb1, 'b-', label='Prediction (after training)')
         >>> ax1.set_ylim(0,5)
         >>> ax1.set_xlabel('Time (min)')
         >>> ax1.set_ylabel('Blood concentration (mM)')
         >>> ax1.legend()
         >>> plt.show()
-
-        We can also have a look at the model parameters after training:
-
-        >>> aorta.print(round_to=2, units='custom')
-        -----------------------------------------
-        Free parameters with their errors (stdev)
-        -----------------------------------------
-        Signal amplitude S01 (S01): 167.815 (28.58) a.u.
-        Signal amplitude S02 (S02): 621.444 (177.108) a.u.
-        Bolus arrival time 1 (BAT1): 77.132 (0.0) sec
-        Bolus arrival time 2 (BAT2): 793.088 (0.0) sec
-        Cardiac output (CO): 115.01 (991.953) L/min
-        Heart-lung mean transit time (Thl): 9.125 (10.358) sec
-        Heart-lung transit time dispersion (Dhl): 98.3 (1.634) %
-        Organs mean transit time (To): 3.366 (22.975) sec
-        Body extraction fraction (Eb): 2.224 (0.128) %
-        Organs extraction fraction (Eo): 5.868 (1.486) %
-        Extracellular mean transit time (Te): 16.842 (321.081) sec
-        ------------------
-        Derived parameters
-        ------------------
-        Mean circulation time (Tc): 12.491 sec
     """  
 
-    dt = 0.5                #: Pseudocontinuous time resolution of the simulation in sec.
-    dose_tolerance = 0.1    #: Stopping criterion in the forward simulation of the arterial fluxes.
-    weight = 70.0           #: Subject weight in kg.
-    agent = 'gadoterate'    #: Contrast agent generic name.
-    dose = [0.025, 0.025]   #: Injected contrast agent doses for first and second scan in mL per kg bodyweight.
-    rate = 1                #: Contrast agent injection rate in mL per sec.
-    field_strength = 3.0    #: Magnetic field strength in T.
-    TR = 0.005              #: Repetition time, or time between excitation pulses, in sec.
-    FA = 15.0               #: Nominal flip angle in degrees.
-    R10 = 1.0               #: Precontrast relaxation rate (1/sec).
-    R11 = 1.0               #: Estimate of the relaxation time before the second injection (1/sec)
-    t1 = 1                  #: Start of second acquisition (sec).
+    def __init__(self, 
+            pars = None,  
+            dt = 0.5,                
+            dose_tolerance = 0.1,    
+            weight = 70.0,           
+            agent = 'gadoterate',    
+            dose = [0.025, 0.025], 
+            rate = 1,   
+            field_strength = 3.0, 
+            TR = 0.005, 
+            FA = 15.0, 
+            R10 = 1.0, 
+            R11 = 1.0,
+            t1 = 1,
+        ):
+        self.pars = self.pars0(pars)
+        self.dose_tolerance = dose_tolerance
+        self.weight = weight
+        self.agent = agent
+        self.dose = dose
+        self.rate = rate
+        self.dt = dt
+        self.TR = TR
+        self.FA = FA
+        self.R10 = R10
+        self.R11 = R11
+        self.t1 = t1
+        self.rp = dc.relaxivity(field_strength, 'plasma', agent)
 
-    def predict(self, xdata, return_conc=False, return_rel=False):
-
-        # S01, S02, BAT1, BAT2, CO, Thl, Dhl, E_o, To, Te_o, Eb = self.pars
+    def _forward_model(self, xdata):
         S01, S02, BAT1, BAT2, CO, Thl, Dhl, To, Eb, Eo, Te = self.pars
         t = np.arange(0, max(xdata)+xdata[1]+self.dt, self.dt)
+        cb = self.conc(t)
+        R1 = self.R10 + self.rp*cb
+        signal = dc.signal_ss(R1, S01, self.TR, self.FA)
+        k = (t >= self.t1)
+        signal[k] = dc.signal_ss(R1[k], S02, self.TR, self.FA)
+        return dc.sample(xdata, t, signal, xdata[2]-xdata[1])
+    
+    def conc(self, t):
+        """Aorta blood concentration
+
+        Args:
+            t (array-like): Time points of the concentration (sec)
+
+        Returns:
+            numpy.ndarray: Concentration in M
+        """
+        S01, S02, BAT1, BAT2, CO, Thl, Dhl, To, Eb, Eo, Te = self.pars
         conc = dc.ca_conc(self.agent)
         J1 = dc.influx_step(t, self.weight, conc, self.dose[0], self.rate, BAT1)
         J2 = dc.influx_step(t, self.weight, conc, self.dose[1], self.rate, BAT2)
         _, Jb = dc.body_flux_ch2c(J1 + J2, 
                 Thl, Dhl, Eo, To, Te, Eb, 
                 dt=self.dt, tol=self.dose_tolerance)
-        cb = Jb/CO
-        if return_conc:
-            return dc.sample(xdata, t, cb, xdata[2]-xdata[1])
-        rp = dc.relaxivity(self.field_strength, 'plasma', self.agent)
-        R1 = self.R10 + rp*cb
-        if return_rel:
-            return dc.sample(xdata, t, R1, xdata[2]-xdata[1])
-        signal = dc.signal_ss(R1, S01, self.TR, self.FA)
-        k = (t >= self.t1)
-        signal[k] = dc.signal_ss(R1[k], S02, self.TR, self.FA)
-        return dc.sample(xdata, t, signal, xdata[2]-xdata[1])
+        return Jb/CO
 
     def pars0(self, settings=None):
-        if settings == 'TRISTAN':
-            return np.array([1, 1, 60, 1200, 100, 10, 0.2, 20, 0.05, 0.15, 120])
+        if settings == None:
+            return np.array([1, 1, 60, 1200, 100, 10, 0.2, 20, 0.05, 0.01, 120])
         else:
-            return np.array([1, 1, 20, 120, 100, 10, 0.2, 20, 0.05, 0.15, 120])
+            #S01, S02, BAT1, BAT2, CO, Thl, Dhl, To, Eb, Eo, Te 
+            return np.array([1, 1, 20, 120, 200, 10, 0.2, 20, 0.1, 0.2, 120])
 
     def bounds(self, settings=None):
-        if settings == 'TRISTAN':
+        if settings == None:
             ub = [np.inf, np.inf, np.inf, np.inf, np.inf, 30, 0.95, 60, 0.15, 0.5, 800]
             lb = [0,0,0,0,0, 0, 0.05, 0, 0.01, 0, 0]
         else:
@@ -757,7 +802,7 @@ class AortaCh2C2SS(dc.Model):
         self.pars[2] = BAT1
 
         # Estimate BAT2 and S02 from data
-        k = xdata >= self.t1
+        k = xdata > self.t1
         x, y = xdata[k], ydata[k]
         BAT2 = x[np.argmax(y)] - (1-D)*T
         baseline = x[x <= BAT2-20]

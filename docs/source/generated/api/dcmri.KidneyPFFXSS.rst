@@ -13,18 +13,9 @@
 
    .. autosummary::
    
-      ~KidneyPFFXSS.FA
-      ~KidneyPFFXSS.Hct
-      ~KidneyPFFXSS.R10
-      ~KidneyPFFXSS.R10b
-      ~KidneyPFFXSS.TR
-      ~KidneyPFFXSS.agent
-      ~KidneyPFFXSS.dt
-      ~KidneyPFFXSS.field_strength
       ~KidneyPFFXSS.pars
       ~KidneyPFFXSS.pcov
-      ~KidneyPFFXSS.t0
-      ~KidneyPFFXSS.vol
+      ~KidneyPFFXSS.ca
    
    
 
@@ -35,8 +26,8 @@
 
    .. autosummary::
    
-      ~KidneyPFFXSS.aif_conc
       ~KidneyPFFXSS.bounds
+      ~KidneyPFFXSS.conc
       ~KidneyPFFXSS.cost
       ~KidneyPFFXSS.pars0
       ~KidneyPFFXSS.pdep

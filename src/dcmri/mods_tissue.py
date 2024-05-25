@@ -2,19 +2,26 @@ import numpy as np
 import dcmri as dc
 
 
-
 class UptSS(dc.Model):
     """One-compartment uptake tissue, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
-    The free model parameters are:
+        The free model parameters are:
 
-    - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
-    - **Fp** (Plasma flow, mL/sec/mL): Plasma flow into the compartment per unit tissue.
+        - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
+        - **Fp** (Plasma flow, mL/sec/mL): Plasma flow into the compartment per unit tissue.
     
     Args:
         aif (array-like): MRI signals measured in the arterial input.
         pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
+        dt (float, optional): Sampling interval of the AIF in sec. 
+        Hct (float, optional): Hematocrit. 
+        agent (str, optional): Contrast agent generic name.
+        field_strength (float, optional): Magnetic field strength in T. 
+        TR (float, optional): Repetition time, or time between excitation pulses, in sec. 
+        FA (float, optional): Nominal flip angle in degrees.
+        R10 (float, optional): Precontrast tissue relaxation rate in 1/sec. 
+        R10b (float, optional): Precontrast arterial relaxation rate in 1/sec. 
+        t0 (float, optional): Baseline length (sec).
 
     See Also:
         `OneCompSS`, `PatlakSS`, `ToftsSS`, `EToftsSS`, `TwoCompUptWXSS`, `TwoCompExchSS`
@@ -65,9 +72,9 @@ class UptSS(dc.Model):
         >>> #
         >>> ax1.set_title('Reconstruction of concentrations.')
         >>> ax1.plot(gt['t']/60, 1000*gt['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-        >>> ax1.plot(time/60, 1000*model.predict(time, return_conc=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
+        >>> ax1.plot(time/60, 1000*model.conc(), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
         >>> ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-        >>> ax1.plot(time/60, 1000*model.aif_conc(), linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
+        >>> ax1.plot(time/60, 1000*model.ca, linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
         >>> ax1.set_xlabel('Time (min)')
         >>> ax1.set_ylabel('Concentration (mM)')
         >>> ax1.legend()
@@ -83,53 +90,66 @@ class UptSS(dc.Model):
         Signal scaling factor (S0): 229.188 (8.902) a.u.
         Plasma flow (Fp): 0.001 (0.0) 1/sec
     """         
-    dt = 0.5                #: Sampling interval of the AIF in sec. 
-    Hct = 0.45              #: Hematocrit. 
-    agent = 'gadoterate'    #: Contrast agent generic name.
-    field_strength = 3.0    #: Magnetic field strength in T. 
-    TR = 5.0/1000.0         #: Repetition time, or time between excitation pulses, in sec. 
-    FA = 15.0               #: Nominal flip angle in degrees.
-    R10 = 1                 #: Precontrast tissue relaxation rate in 1/sec. 
-    R10b = 1                #: Precontrast arterial relaxation rate in 1/sec. 
-    t0 = 1                  #: Baseline length (sec).
 
-    def __init__(self, aif, pars='default', **attr):
-        super().__init__(pars, **attr)
+    def __init__(self, aif, 
+            pars = None,
+            dt = 0.5,                
+            Hct = 0.45,             
+            agent = 'gadoterate',    
+            field_strength = 3.0,    
+            TR = 5.0/1000.0,  
+            FA = 15.0,  
+            R10 = 1,                 
+            R10b = 1,                 
+            t0 = 1, 
+        ):
+        n0 = max([round(t0/dt),1])
+        r1 = dc.relaxivity(field_strength, 'blood', agent)
+        cb = dc.conc_ss(aif, TR, FA, 1/R10b, r1, n0)
+        self.pars = self.pars0(pars)
+        self.ca = cb/(1-Hct)                #: Arterial plasma concentration (M)
+        self._t = dt*np.arange(np.size(aif))
+        self._dt = dt
+        self._Hct = Hct
+        self._TR = TR
+        self._FA = FA
+        self._R10 = R10
+        self._R10b = R10b
+        self._r1 = r1
+        self._t0 = t0
 
-        # Calculate constants
-        n0 = max([round(self.t0/self.dt),1])
-        self._r1 = dc.relaxivity(self.field_strength, 'blood', self.agent)
-        cb = dc.conc_ss(aif, self.TR, self.FA, 1/self.R10b, self._r1, n0)
-        self._ca = cb/(1-self.Hct)
-        self._t = self.dt*np.arange(np.size(aif))
-
-    def predict(self, xdata:np.ndarray, return_conc=False)->np.ndarray:
-
+    def _forward_model(self, xdata:np.ndarray)->np.ndarray:
         if np.amax(self._t) < np.amax(xdata):
-            msg = 'The acquisition window is longer than the duration of the AIF. \n'
-            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
+            msg = 'The acquisition window is longer than the duration of the AIF.'
             raise ValueError(msg)
         S0, Fp = self.pars
-        C = dc.conc_1cum(self._ca, Fp, dt=self.dt)
-        if return_conc:
-            return dc.sample(xdata, self._t, C, xdata[2]-xdata[1])
-        R1 = self.R10 + self._r1*C
-        ydata = dc.signal_ss(R1, S0, self.TR, self.FA)
+        C = self.conc()
+        R1 = self._R10 + self._r1*C
+        ydata = dc.signal_ss(R1, S0, self._TR, self._FA)
         return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
+
+    def conc(self)->np.ndarray:
+        """Tissue concentration.
+
+        Returns:
+            np.ndarray: Concentration in M
+        """
+        S0, Fp = self.pars
+        return dc.conc_1cum(self.ca, Fp, dt=self._dt)
     
     def train(self, xdata, ydata, **kwargs):
-        Sref = dc.signal_ss(self.R10, 1, self.TR, self.FA)
-        n0 = max([np.sum(xdata<self.t0), 1])
+        Sref = dc.signal_ss(self._R10, 1, self._TR, self._FA)
+        n0 = max([np.sum(xdata<self._t0), 1])
         self.pars[0] = np.mean(ydata[:n0]) / Sref
         return super().train(xdata, ydata, **kwargs)
     
-    def pars0(self, settings='default'):
-        if settings == 'default':
+    def pars0(self, settings=None):
+        if settings == None:
             return np.array([1, 0.01])
         else:
             return np.zeros(2)
 
-    def bounds(self, settings='default'):
+    def bounds(self, settings=None):
         ub = [np.inf, np.inf]
         lb = [0, 0]
         return (lb, ub)
@@ -144,31 +164,33 @@ class UptSS(dc.Model):
             pars[1][2:] = [pars[1][2]*6000, 'mL/min/100mL']
         return pars
     
-    def aif_conc(self):
-        """Reconstructed plasma concentrations in the arterial input.
-
-        Returns:
-            np.ndarray: Concentrations in M.
-        """
-        return self._ca
     
 
 # Fast/no water exchange
     
 
-class OneCompSS(UptSS):
+class OneCompSS(dc.Model):
     """One-compartment tissue, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
-    The free model parameters are:
+        The free model parameters are:
 
-    - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
-    - **Fp** (Plasma flow, mL/sec/mL): Plasma flow into the compartment per unit tissue.
-    - **v** (Volume of distribution, mL/mL): Volume fraction of the compartment. 
+        - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
+        - **Fp** (Plasma flow, mL/sec/mL): Plasma flow into the compartment per unit tissue.
+        - **v** (Volume of distribution, mL/mL): Volume fraction of the compartment. 
     
     Args:
         aif (array-like): MRI signals measured in the arterial input.
         pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
+        dt (float, optional): Sampling interval of the AIF in sec. 
+        Hct (float, optional): Hematocrit. 
+        agent (str, optional): Contrast agent generic name.
+        field_strength (float, optional): Magnetic field strength in T. 
+        TR (float, optional): Repetition time, or time between excitation pulses, in sec. 
+        FA (float, optional): Nominal flip angle in degrees.
+        R10 (float, optional): Precontrast tissue relaxation rate in 1/sec. 
+        R10b (float, optional): Precontrast arterial relaxation rate in 1/sec. 
+        t0 (float, optional): Baseline length (sec).
+        water_exchange (bool, optional): assume fast water exchange (True) or no water exchange (False). 
 
     See Also:
         `UptSS`, `PatlakSS`, `ToftsSS`, `EToftsSS`, `TwoCompUptWXSS`, `TwoCompExchSS`
@@ -219,9 +241,9 @@ class OneCompSS(UptSS):
         >>> #
         >>> ax1.set_title('Reconstruction of concentrations.')
         >>> ax1.plot(gt['t']/60, 1000*gt['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-        >>> ax1.plot(time/60, 1000*model.predict(time, return_conc=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
+        >>> ax1.plot(time/60, 1000*model.conc(), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
         >>> ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-        >>> ax1.plot(time/60, 1000*model.aif_conc(), linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
+        >>> ax1.plot(time/60, 1000*model.ca, linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
         >>> ax1.set_xlabel('Time (min)')
         >>> ax1.set_ylabel('Concentration (mM)')
         >>> ax1.legend()
@@ -239,36 +261,76 @@ class OneCompSS(UptSS):
         Volume of distribution (v): 0.004 (0.015) mL/mL 
     """ 
 
-    water_exchange = True       #: Assume fast water exchange (True) or no water exchange (False). Default is True.
+    def __init__(self, aif, 
+            pars = None,
+            dt = 0.5,  
+            Hct = 0.45, 
+            agent = 'gadoterate', 
+            field_strength = 3.0, 
+            TR = 5.0/1000.0,  
+            FA = 15.0,    
+            R10 = 1,  
+            R10b = 1, 
+            t0 = 1,  
+            water_exchange = True,
+        ):
+        n0 = max([round(t0/dt),1])
+        r1 = dc.relaxivity(field_strength, 'blood', agent)
+        cb = dc.conc_ss(aif, TR, FA, 1/R10b, r1, n0)
+        self.pars = self.pars0(pars)
+        self.ca = cb/(1-Hct)                #: Arterial plasma concentration (M)
+        self._t = dt*np.arange(np.size(aif))
+        self._dt = dt
+        self._Hct = Hct
+        self._TR = TR
+        self._FA = FA
+        self._R10 = R10
+        self._R10b = R10b
+        self._r1 = r1
+        self._t0 = t0
+        self._water_exchange = water_exchange
 
-    def predict(self, xdata:np.ndarray, return_conc=False)->np.ndarray:
+    def _forward_model(self, xdata:np.ndarray)->np.ndarray:
 
         if np.amax(self._t) < np.amax(xdata):
             msg = 'The acquisition window is longer than the duration of the AIF. \n'
             msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
             raise ValueError(msg)
         S0, Fp, v = self.pars
-        C = dc.conc_1cm(self._ca, Fp, v, dt=self.dt)
-        if return_conc:
-            return dc.sample(xdata, self._t, C, xdata[2]-xdata[1])
-        if self.water_exchange:
-            R1 = self.R10 + self._r1*C
-            ydata = dc.signal_ss(R1, S0, self.TR, self.FA)
+        C = self.conc()
+        if self._water_exchange:
+            R1 = self._R10 + self._r1*C
+            ydata = dc.signal_ss(R1, S0, self._TR, self._FA)
         else:
-            R1e = self.R10 + self._r1*C/v
-            R1c = self.R10 + np.zeros(C.size)
+            R1e = self._R10 + self._r1*C/v
+            R1c = self._R10 + np.zeros(C.size)
             v = [v, 1-v]
             R1 = np.stack((R1e, R1c))
-            ydata = dc.signal_ss_nex(v, R1, S0, self.TR, self.FA)
+            ydata = dc.signal_ss_nex(v, R1, S0, self._TR, self._FA)
         return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
     
-    def pars0(self, settings='default'):
-        if settings == 'default':
+    def conc(self)->np.ndarray:
+        """Tissue concentration.
+
+        Returns:
+            np.ndarray: Concentration in M
+        """
+        S0, Fp, v = self.pars
+        return dc.conc_1cm(self.ca, Fp, v, dt=self._dt)
+    
+    def train(self, xdata, ydata, **kwargs):
+        Sref = dc.signal_ss(self._R10, 1, self._TR, self._FA)
+        n0 = max([np.sum(xdata<self._t0), 1])
+        self.pars[0] = np.mean(ydata[:n0]) / Sref
+        return super().train(xdata, ydata, **kwargs)
+    
+    def pars0(self, settings=None):
+        if settings == None:
             return np.array([1, 0.01, 0.05])
         else:
             return np.zeros(3)
 
-    def bounds(self, settings='default'):
+    def bounds(self, settings=None):
         ub = [np.inf, np.inf, 1]
         lb = [0, 0, 0]
         return (lb, ub)
@@ -290,16 +352,25 @@ class OneCompSS(UptSS):
 class ToftsSS(OneCompSS):
     """Tofts tissue, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
-    The free model parameters are:
+        The free model parameters are:
 
-    - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
-    - **Ktrans** (Vascular transfer constant, mL/sec/mL): clearance of the plasma compartment per unit tissue.
-    - **ve** (Extravascular, extracellular volume, mL/mL): Volume fraction of the interstitial compartment.
+        - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
+        - **Ktrans** (Vascular transfer constant, mL/sec/mL): clearance of the plasma compartment per unit tissue.
+        - **ve** (Extravascular, extracellular volume, mL/mL): Volume fraction of the interstitial compartment.
     
     Args:
         aif (array-like): MRI signals measured in the arterial input.
         pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
+        dt (float, optional): Sampling interval of the AIF in sec. 
+        Hct (float, optional): Hematocrit. 
+        agent (str, optional): Contrast agent generic name.
+        field_strength (float, optional): Magnetic field strength in T. 
+        TR (float, optional): Repetition time, or time between excitation pulses, in sec. 
+        FA (float, optional): Nominal flip angle in degrees.
+        R10 (float, optional): Precontrast tissue relaxation rate in 1/sec. 
+        R10b (float, optional): Precontrast arterial relaxation rate in 1/sec. 
+        t0 (float, optional): Baseline length (sec).
+        water_exchange (bool, optional): assume fast water exchange (True) or no water exchange (False). 
 
     See Also:
         `UptSS`, `OneCompSS`, `PatlakSS`, `EToftsSS`, `TwoCompUptWXSS`, `TwoCompExchSS`
@@ -350,9 +421,9 @@ class ToftsSS(OneCompSS):
         >>> #
         >>> ax1.set_title('Reconstruction of concentrations.')
         >>> ax1.plot(gt['t']/60, 1000*gt['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-        >>> ax1.plot(time/60, 1000*model.predict(time, return_conc=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
+        >>> ax1.plot(time/60, 1000*model.conc(), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
         >>> ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-        >>> ax1.plot(time/60, 1000*model.aif_conc(), linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
+        >>> ax1.plot(time/60, 1000*model.ca, linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
         >>> ax1.set_xlabel('Time (min)')
         >>> ax1.set_ylabel('Concentration (mM)')
         >>> ax1.legend()
@@ -399,19 +470,28 @@ class ToftsSS(OneCompSS):
         return pars
 
     
-class PatlakSS(UptSS):
+class PatlakSS(OneCompSS):
     """Patlak tissue in fast water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
-    The free model parameters are:
+        The free model parameters are:
 
-    - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
-    - **vp** (Plasma volume, mL/mL): Volume fraction of the plasma compartment. 
-    - **Ktrans** (Vascular transfer constant, mL/sec/mL): clearance of the plasma compartment per unit tissue.
+        - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
+        - **vp** (Plasma volume, mL/mL): Volume fraction of the plasma compartment. 
+        - **Ktrans** (Vascular transfer constant, mL/sec/mL): clearance of the plasma compartment per unit tissue.
 
     Args:
         aif (array-like): MRI signals measured in the arterial input.
         pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
+        dt (float, optional): Sampling interval of the AIF in sec. 
+        Hct (float, optional): Hematocrit. 
+        agent (str, optional): Contrast agent generic name.
+        field_strength (float, optional): Magnetic field strength in T. 
+        TR (float, optional): Repetition time, or time between excitation pulses, in sec. 
+        FA (float, optional): Nominal flip angle in degrees.
+        R10 (float, optional): Precontrast tissue relaxation rate in 1/sec. 
+        R10b (float, optional): Precontrast arterial relaxation rate in 1/sec. 
+        t0 (float, optional): Baseline length (sec).
+        water_exchange (bool, optional): assume fast water exchange (True) or no water exchange (False). 
 
     See Also:
         `UptSS`, `OneCompSS`, `ToftsSS`, `EToftsSS`, `TwoCompUptWXSS`, `TwoCompExchSS`
@@ -462,9 +542,9 @@ class PatlakSS(UptSS):
         >>> #
         >>> ax1.set_title('Reconstruction of concentrations.')
         >>> ax1.plot(gt['t']/60, 1000*gt['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-        >>> ax1.plot(time/60, 1000*model.predict(time, return_conc=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
+        >>> ax1.plot(time/60, 1000*model.conc(sum=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
         >>> ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-        >>> ax1.plot(time/60, 1000*model.aif_conc(), linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
+        >>> ax1.plot(time/60, 1000*model.ca, linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
         >>> ax1.set_xlabel('Time (min)')
         >>> ax1.set_ylabel('Concentration (mM)')
         >>> ax1.legend()
@@ -480,39 +560,47 @@ class PatlakSS(UptSS):
         Signal scaling factor (S0): 174.415 (5.95) a.u.
         Plasma volume (vp): 0.049 (0.004) mL/mL
         Volume transfer constant (Ktrans): 0.001 (0.0) 1/sec
-    """ 
+    """        
 
-    water_exchange = True       #: Assume fast water exchange (True) or no water exchange (False). Default is True.        
-
-    def predict(self, xdata:np.ndarray, return_conc=False)->np.ndarray:
+    def _forward_model(self, xdata:np.ndarray)->np.ndarray:
 
         if np.amax(self._t) < np.amax(xdata):
             msg = 'The acquisition window is longer than the duration of the AIF. \n'
             msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
             raise ValueError(msg)
         S0, vp, Ktrans = self.pars
-        C = dc.conc_patlak(self._ca, vp, Ktrans, dt=self.dt, sum=False)
-        if return_conc:
-            return dc.sample(xdata, self._t, C[0,:]+C[1,:], xdata[2]-xdata[1])
-        if self.water_exchange:
-            R1 = self.R10 + self._r1*(C[0,:]+C[1,:])
-            ydata = dc.signal_ss(R1, S0, self.TR, self.FA)
+        C = self.conc(sum=False)
+        if self._water_exchange:
+            R1 = self._R10 + self._r1*(C[0,:]+C[1,:])
+            ydata = dc.signal_ss(R1, S0, self._TR, self._FA)
         else:
-            vb = vp/(1-self.Hct)
-            R1b = self.R10b + self._r1*C[0,:]/vb
-            R1e = self.R10 + self._r1*C[1,:]/(1-vb)
+            vb = vp/(1-self._Hct)
+            R1b = self._R10b + self._r1*C[0,:]/vb
+            R1e = self._R10 + self._r1*C[1,:]/(1-vb)
             v = [vb, 1-vb]
             R1 = np.stack((R1b, R1e))
-            ydata = dc.signal_ss_nex(v, R1, S0, self.TR, self.FA)
+            ydata = dc.signal_ss_nex(v, R1, S0, self._TR, self._FA)
         return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
     
-    def pars0(self, settings='default'):
-        if settings == 'default':
+    def conc(self, sum=True):
+        """Tissue concentration.
+
+        Args:
+            sum (bool, optional): If True, returns the total concentrations. Else returns the concentration in the individual compartments. Defaults to True.
+
+        Returns:
+            np.ndarray: Concentration in M
+        """
+        S0, vp, Ktrans = self.pars
+        return dc.conc_patlak(self.ca, vp, Ktrans, dt=self._dt, sum=sum)
+
+    def pars0(self, settings=None):
+        if settings == None:
             return np.array([1, 0.05, 0.003])
         else:
             return np.zeros(3)
 
-    def bounds(self, settings='default'):
+    def bounds(self, settings=None):
         ub = [np.inf, 1, np.inf]
         lb = [0, 0, 0]
         return (lb, ub)
@@ -529,22 +617,31 @@ class PatlakSS(UptSS):
         return pars
 
 
-class EToftsSS(UptSS):
+class EToftsSS(OneCompSS):
     """Extended Tofts tissue in fast water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
     Probably the most common modelling approach for generic tissues. The arterial concentrations are calculated by direct analytical inversion of the arterial signal 
 
-    The free model parameters are:
+        The free model parameters are:
 
-    - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
-    - **vp** (Plasma volume, mL/mL): Volume fraction of the plasma compartment. 
-    - **Ktrans** (Vascular transfer constant, mL/sec/mL): clearance of the plasma compartment per unit tissue.
-    - **ve** (Extravascular, extracellular volume, mL/mL): Volume fraction of the interstitial compartment.
+        - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
+        - **vp** (Plasma volume, mL/mL): Volume fraction of the plasma compartment. 
+        - **Ktrans** (Vascular transfer constant, mL/sec/mL): clearance of the plasma compartment per unit tissue.
+        - **ve** (Extravascular, extracellular volume, mL/mL): Volume fraction of the interstitial compartment.
 
     Args:
         aif (array-like): MRI signals measured in the arterial input.
         pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
+        dt (float, optional): Sampling interval of the AIF in sec. 
+        Hct (float, optional): Hematocrit. 
+        agent (str, optional): Contrast agent generic name.
+        field_strength (float, optional): Magnetic field strength in T. 
+        TR (float, optional): Repetition time, or time between excitation pulses, in sec. 
+        FA (float, optional): Nominal flip angle in degrees.
+        R10 (float, optional): Precontrast tissue relaxation rate in 1/sec. 
+        R10b (float, optional): Precontrast arterial relaxation rate in 1/sec. 
+        t0 (float, optional): Baseline length (sec).
+        water_exchange (bool, optional): assume fast water exchange (True) or no water exchange (False). 
 
     See Also:
         `UptSS`, `OneCompSS`, `PatlakSS`, `ToftsSS`, `TwoCompUptWXSS`, `TwoCompExchSS`
@@ -595,9 +692,9 @@ class EToftsSS(UptSS):
         >>> #
         >>> ax1.set_title('Reconstruction of concentrations.')
         >>> ax1.plot(gt['t']/60, 1000*gt['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-        >>> ax1.plot(time/60, 1000*model.predict(time, return_conc=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
+        >>> ax1.plot(time/60, 1000*model.conc(sum=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
         >>> ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-        >>> ax1.plot(time/60, 1000*model.aif_conc(), linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
+        >>> ax1.plot(time/60, 1000*model.ca, linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
         >>> ax1.set_xlabel('Time (min)')
         >>> ax1.set_ylabel('Concentration (mM)')
         >>> ax1.legend()
@@ -620,40 +717,48 @@ class EToftsSS(UptSS):
         Extracellular mean transit time (Te): 65.935 sec
         Extravascular transfer constant (kep): 0.015 1/sec
         Extracellular volume (v): 0.254 mL/mL
-    """  
+    """        
 
-    water_exchange = True       #: Assume fast water exchange (True) or no water exchange (False). Default is True.       
-
-    def predict(self, xdata:np.ndarray, return_conc=False)->np.ndarray:
+    def _forward_model(self, xdata:np.ndarray)->np.ndarray:
 
         if np.amax(self._t) < np.amax(xdata):
             msg = 'The acquisition window is longer than the duration of the AIF. \n'
             msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
             raise ValueError(msg)
         S0, vp, Ktrans, ve = self.pars
-        C = dc.conc_etofts(self._ca, vp, Ktrans, ve, dt=self.dt, sum=False)
-        if return_conc:
-            return dc.sample(xdata, self._t, C[0,:]+C[1,:], xdata[2]-xdata[1])
-        if self.water_exchange:
-            R1 = self.R10 + self._r1*(C[0,:]+C[1,:])
-            ydata = dc.signal_ss(R1, S0, self.TR, self.FA)
+        C = self.conc(sum=False)
+        if self._water_exchange:
+            R1 = self._R10 + self._r1*(C[0,:]+C[1,:])
+            ydata = dc.signal_ss(R1, S0, self._TR, self._FA)
         else:
-            vb = vp/(1-self.Hct)
-            R1b = self.R10b + self._r1*C[0,:]/vb
-            R1e = self.R10 + self._r1*C[1,:]/ve
-            R1c = self.R10 + np.zeros(C.shape[1])
+            vb = vp/(1-self._Hct)
+            R1b = self._R10b + self._r1*C[0,:]/vb
+            R1e = self._R10 + self._r1*C[1,:]/ve
+            R1c = self._R10 + np.zeros(C.shape[1])
             v = [vb, ve, 1-vb-ve]
             R1 = np.stack((R1b, R1e, R1c))
-            ydata = dc.signal_ss_nex(v, R1, S0, self.TR, self.FA)
+            ydata = dc.signal_ss_nex(v, R1, S0, self._TR, self._FA)
         return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
     
-    def pars0(self, settings='default'):
-        if settings == 'default':
+    def conc(self, sum=True):
+        """Tissue concentration
+
+        Args:
+            sum (bool, optional): If True, returns the total concentrations. Else returns the concentration in the individual compartments. Defaults to True.
+
+        Returns:
+            np.ndarray: Concentration in M
+        """
+        S0, vp, Ktrans, ve = self.pars
+        return dc.conc_etofts(self.ca, vp, Ktrans, ve, dt=self._dt, sum=sum)
+    
+    def pars0(self, settings=None):
+        if settings == None:
             return np.array([1, 0.05, 0.003, 0.3])
         else:
             return np.zeros(4)
 
-    def bounds(self, settings='default'):
+    def bounds(self, settings=None):
         ub = [np.inf, 1, np.inf, 1]
         lb = [0, 0, 0, 0]
         return (lb, ub)
@@ -684,20 +789,29 @@ class EToftsSS(UptSS):
         return pars
     
 
-class TwoCompUptSS(UptSS):
+class TwoCompUptSS(OneCompSS):
     """Two-compartment uptake model (2CUM) in fast water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
-    The free model parameters are:
+        The free model parameters are:
 
-    - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
-    - **Fp** (Plasma flow, mL/sec/mL): Flow of plasma into the plasma compartment.
-    - **vp** (Plasma volume, mL/mL): Volume fraction of the plasma compartment. 
-    - **PS** (Permeability-surface area product, mL/sec/mL): volume of plasma cleared of indicator per unit time and per unit tissue.
+        - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
+        - **Fp** (Plasma flow, mL/sec/mL): Flow of plasma into the plasma compartment.
+        - **vp** (Plasma volume, mL/mL): Volume fraction of the plasma compartment. 
+        - **PS** (Permeability-surface area product, mL/sec/mL): volume of plasma cleared of indicator per unit time and per unit tissue.
     
     Args:
         aif (array-like): MRI signals measured in the arterial input.
         pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
+        dt (float, optional): Sampling interval of the AIF in sec. 
+        Hct (float, optional): Hematocrit. 
+        agent (str, optional): Contrast agent generic name.
+        field_strength (float, optional): Magnetic field strength in T. 
+        TR (float, optional): Repetition time, or time between excitation pulses, in sec. 
+        FA (float, optional): Nominal flip angle in degrees.
+        R10 (float, optional): Precontrast tissue relaxation rate in 1/sec. 
+        R10b (float, optional): Precontrast arterial relaxation rate in 1/sec. 
+        t0 (float, optional): Baseline length (sec).
+        water_exchange (bool, optional): assume fast water exchange (True) or no water exchange (False). 
 
     See Also:
         `UptSS`, `OneCompSS`, `PatlakSS`, `ToftsSS`, `EToftsSS`, `TwoCompExchSS`
@@ -719,7 +833,7 @@ class TwoCompUptSS(UptSS):
         
         Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
 
-        >>> model = dc.TwoCompUptWXSS(aif,
+        >>> model = dc.TwoCompUptSS(aif,
         ...     dt = time[1],
         ...     Hct = 0.45, 
         ...     agent = 'gadodiamide',
@@ -748,9 +862,9 @@ class TwoCompUptSS(UptSS):
         >>> #
         >>> ax1.set_title('Reconstruction of concentrations.')
         >>> ax1.plot(gt['t']/60, 1000*gt['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-        >>> ax1.plot(time/60, 1000*model.predict(time, return_conc=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
+        >>> ax1.plot(time/60, 1000*model.conc(sum=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
         >>> ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-        >>> ax1.plot(time/60, 1000*model.aif_conc(), linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
+        >>> ax1.plot(time/60, 1000*model.ca, linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
         >>> ax1.set_xlabel('Time (min)')
         >>> ax1.set_ylabel('Concentration (mM)')
         >>> ax1.legend()
@@ -775,37 +889,44 @@ class TwoCompUptSS(UptSS):
         Plasma mean transit time (Tp): 2.88 sec
     """         
 
-    water_exchange = True       #: Assume fast water exchange (True) or no water exchange (False). Default is True.
-
-    def predict(self, xdata:np.ndarray, return_conc=False)->np.ndarray:
-
+    def _forward_model(self, xdata:np.ndarray)->np.ndarray:
         if np.amax(self._t) < np.amax(xdata):
             msg = 'The acquisition window is longer than the duration of the AIF. \n'
             msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
             raise ValueError(msg)
         S0, Fp, vp, PS = self.pars
-        C = dc.conc_2cum(self._ca, Fp, vp, PS, dt=self.dt, sum=False)
-        if return_conc:
-            return dc.sample(xdata, self._t, C[0,:]+C[1,:], xdata[2]-xdata[1])
-        if self.water_exchange:
-            R1 = self.R10 + self._r1*(C[0,:]+C[1,:])
-            ydata = dc.signal_ss(R1, S0, self.TR, self.FA)
+        C = self.conc(sum=False)
+        if self._water_exchange:
+            R1 = self._R10 + self._r1*(C[0,:]+C[1,:])
+            ydata = dc.signal_ss(R1, S0, self._TR, self._FA)
         else:
-            vb = vp/(1-self.Hct)
-            R1b = self.R10b + self._r1*C[0,:]/vb
-            R1e = self.R10 + self._r1*C[1,:]/(1-vb)
+            vb = vp/(1-self._Hct)
+            R1b = self._R10b + self._r1*C[0,:]/vb
+            R1e = self._R10 + self._r1*C[1,:]/(1-vb)
             v = [vb, 1-vb]
             R1 = np.stack((R1b, R1e))
-            ydata = dc.signal_ss_nex(v, R1, S0, self.TR, self.FA)
+            ydata = dc.signal_ss_nex(v, R1, S0, self._TR, self._FA)
         return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
     
-    def pars0(self, settings='default'):
-        if settings == 'default':
+    def conc(self, sum=True):
+        """Tissue concentration
+
+        Args:
+            sum (bool, optional): If True, returns the total concentrations. Else returns the concentration in the individual compartments. Defaults to True.
+
+        Returns:
+            np.ndarray: Concentration in M
+        """
+        S0, Fp, vp, PS = self.pars
+        return dc.conc_2cum(self.ca, Fp, vp, PS, dt=self._dt, sum=sum)
+    
+    def pars0(self, settings=None):
+        if settings == None:
             return np.array([1, 0.1, 0.1, 0.003])
         else:
             return np.zeros(4)
 
-    def bounds(self, settings='default'):
+    def bounds(self, settings=None):
         ub = [np.inf, np.inf, 1, np.inf]
         lb = [0, 0, 0, 0]
         return (lb, ub)
@@ -836,21 +957,30 @@ class TwoCompUptSS(UptSS):
         return pars
 
 
-class TwoCompExchSS(UptSS):
+class TwoCompExchSS(OneCompSS):
     """Two-compartment exchange model (2CXM) in fast water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
-    The free model parameters are:
+        The free model parameters are:
 
-    - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
-    - **Fp** (Plasma flow, mL/sec/mL): Flow of plasma into the plasma compartment.
-    - **vp** (Plasma volume, mL/mL): Volume fraction of the plasma compartment. 
-    - **PS** (Permeability-surface area product, mL/sec/mL): volume of plasma cleared of indicator per unit time and per unit tissue.
-    - **ve** (Extravascular, extracellular volume, mL/mL): Volume fraction of the interstitial compartment.
+        - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
+        - **Fp** (Plasma flow, mL/sec/mL): Flow of plasma into the plasma compartment.
+        - **vp** (Plasma volume, mL/mL): Volume fraction of the plasma compartment. 
+        - **PS** (Permeability-surface area product, mL/sec/mL): volume of plasma cleared of indicator per unit time and per unit tissue.
+        - **ve** (Extravascular, extracellular volume, mL/mL): Volume fraction of the interstitial compartment.
 
     Args:
         aif (array-like): MRI signals measured in the arterial input.
         pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
+        dt (float, optional): Sampling interval of the AIF in sec. 
+        Hct (float, optional): Hematocrit. 
+        agent (str, optional): Contrast agent generic name.
+        field_strength (float, optional): Magnetic field strength in T. 
+        TR (float, optional): Repetition time, or time between excitation pulses, in sec. 
+        FA (float, optional): Nominal flip angle in degrees.
+        R10 (float, optional): Precontrast tissue relaxation rate in 1/sec. 
+        R10b (float, optional): Precontrast arterial relaxation rate in 1/sec. 
+        t0 (float, optional): Baseline length (sec).
+        water_exchange (bool, optional): assume fast water exchange (True) or no water exchange (False). 
 
     See Also:
         `UptSS`, `OneCompSS`, `PatlakSS`, `ToftsSS`, `EToftsSS`, `TwoCompUptWXSS`
@@ -901,9 +1031,9 @@ class TwoCompExchSS(UptSS):
         >>> #
         >>> ax1.set_title('Reconstruction of concentrations.')
         >>> ax1.plot(gt['t']/60, 1000*gt['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-        >>> ax1.plot(time/60, 1000*model.predict(time, return_conc=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
+        >>> ax1.plot(time/60, 1000*model.conc(sum=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
         >>> ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-        >>> ax1.plot(time/60, 1000*model.aif_conc(), linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
+        >>> ax1.plot(time/60, 1000*model.ca, linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
         >>> ax1.set_xlabel('Time (min)')
         >>> ax1.set_ylabel('Concentration (mM)')
         >>> ax1.legend()
@@ -932,38 +1062,46 @@ class TwoCompExchSS(UptSS):
         Mean transit time (T): 0.002 sec
     """         
 
-    water_exchange = True       #: Assume fast water exchange (True) or no water exchange (False). Default is True.
-
-    def predict(self, xdata:np.ndarray, return_conc=False)->np.ndarray:
+    def _forward_model(self, xdata:np.ndarray)->np.ndarray:
 
         if np.amax(self._t) < np.amax(xdata):
             msg = 'The acquisition window is longer than the duration of the AIF. \n'
             msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
             raise ValueError(msg)
         S0, Fp, vp, PS, ve = self.pars
-        C = dc.conc_2cxm(self._ca, Fp, vp, PS, ve, dt=self.dt, sum=False)
-        if return_conc:
-            return dc.sample(xdata, self._t, C[0,:]+C[1,:], xdata[2]-xdata[1])
-        if self.water_exchange:
-            R1 = self.R10 + self._r1*(C[0,:]+C[1,:])
-            ydata = dc.signal_ss(R1, S0, self.TR, self.FA)
+        C = self.conc(sum=False)
+        if self._water_exchange:
+            R1 = self._R10 + self._r1*(C[0,:]+C[1,:])
+            ydata = dc.signal_ss(R1, S0, self._TR, self._FA)
         else:
-            vb = vp/(1-self.Hct)
-            R1b = self.R10b + self._r1*C[0,:]/vb
-            R1e = self.R10 + self._r1*C[1,:]/ve
-            R1c = self.R10 + np.zeros(C.shape[1])
+            vb = vp/(1-self._Hct)
+            R1b = self._R10b + self._r1*C[0,:]/vb
+            R1e = self._R10 + self._r1*C[1,:]/ve
+            R1c = self._R10 + np.zeros(C.shape[1])
             v = [vb, ve, 1-vb-ve]
             R1 = np.stack((R1b, R1e, R1c))
-            ydata = dc.signal_ss_nex(v, R1, S0, self.TR, self.FA)
+            ydata = dc.signal_ss_nex(v, R1, S0, self._TR, self._FA)
         return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
     
-    def pars0(self, settings='default'):
-        if settings == 'default':
+    def conc(self, sum=True):
+        """Tissue concentration
+
+        Args:
+            sum (bool, optional): If True, returns the total concentrations. Else returns the concentration in the individual compartments. Defaults to True.
+
+        Returns:
+            np.ndarray: Concentration in M
+        """
+        S0, Fp, vp, PS, ve = self.pars
+        return dc.conc_2cxm(self.ca, Fp, vp, PS, ve, dt=self._dt, sum=sum)
+    
+    def pars0(self, settings=None):
+        if settings == None:
             return np.array([1, 0.1, 0.1, 0.003, 0.3])
         else:
             return np.zeros(5)
 
-    def bounds(self, settings='default'):
+    def bounds(self, settings=None):
         ub = [np.inf, np.inf, 1, np.inf, 1]
         lb = [0, 0, 0, 0, 0]
         return (lb, ub)
@@ -1007,17 +1145,25 @@ class TwoCompExchSS(UptSS):
 class OneCompWXSS(UptSS):
     """One-compartment tissue in intermediate water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
-    The free model parameters are:
+        The free model parameters are:
 
-    - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
-    - **Fp** (Plasma flow, mL/sec/mL): Plasma flow into the compartment per unit tissue.
-    - **v** (Volume of distribution, mL/mL): Volume fraction of the compartment. 
-    - **PSw** (Water permeability-surface area product, mL/sec/mL): PS for water across the compartment wall.
+        - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
+        - **Fp** (Plasma flow, mL/sec/mL): Plasma flow into the compartment per unit tissue.
+        - **v** (Volume of distribution, mL/mL): Volume fraction of the compartment. 
+        - **PSw** (Water permeability-surface area product, mL/sec/mL): PS for water across the compartment wall.
     
     Args:
         aif (array-like): MRI signals measured in the arterial input.
         pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
+        dt (float, optional): Sampling interval of the AIF in sec. 
+        Hct (float, optional): Hematocrit. 
+        agent (str, optional): Contrast agent generic name.
+        field_strength (float, optional): Magnetic field strength in T. 
+        TR (float, optional): Repetition time, or time between excitation pulses, in sec. 
+        FA (float, optional): Nominal flip angle in degrees.
+        R10 (float, optional): Precontrast tissue relaxation rate in 1/sec. 
+        R10b (float, optional): Precontrast arterial relaxation rate in 1/sec. 
+        t0 (float, optional): Baseline length (sec).
 
     See Also:
         `OneCompSS`
@@ -1068,9 +1214,9 @@ class OneCompWXSS(UptSS):
         >>> #
         >>> ax1.set_title('Reconstruction of concentrations.')
         >>> ax1.plot(gt['t']/60, 1000*gt['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-        >>> ax1.plot(time/60, 1000*model.predict(time, return_conc=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
+        >>> ax1.plot(time/60, 1000*model.conc(), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
         >>> ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-        >>> ax1.plot(time/60, 1000*model.aif_conc(), linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
+        >>> ax1.plot(time/60, 1000*model.ca, linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
         >>> ax1.set_xlabel('Time (min)')
         >>> ax1.set_ylabel('Concentration (mM)')
         >>> ax1.legend()
@@ -1093,31 +1239,38 @@ class OneCompWXSS(UptSS):
         Extracompartmental water mean transit time (Twe): 9.412177217600262e+32 sec
         Intracompartmental water mean transit time (Twb): 2.2783889577230225e+32 sec
     """         
-    def predict(self, xdata:np.ndarray, return_conc=False)->np.ndarray:
+    def _forward_model(self, xdata:np.ndarray)->np.ndarray:
 
         if np.amax(self._t) < np.amax(xdata):
             msg = 'The acquisition window is longer than the duration of the AIF. \n'
             msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
             raise ValueError(msg)
         S0, Fp, v, PSw = self.pars
-        C = dc.conc_1cm(self._ca, Fp, v, dt=self.dt)
-        if return_conc:
-            return dc.sample(xdata, self._t, C, xdata[2]-xdata[1])
-        R1e = self.R10 + self._r1*C/v
-        R1c = self.R10 + np.zeros(C.size)
+        C = self.conc()
+        R1e = self._R10 + self._r1*C/v
+        R1c = self._R10 + np.zeros(C.size)
         PS = np.array([[0,PSw],[PSw,0]])
         v = [v, 1-v]
         R1 = np.stack((R1e, R1c))
-        ydata = dc.signal_ss_iex(PS, v, R1, S0, self.TR, self.FA)
+        ydata = dc.signal_ss_iex(PS, v, R1, S0, self._TR, self._FA)
         return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
     
-    def pars0(self, settings='default'):
-        if settings == 'default':
+    def conc(self):
+        """Tissue concentration.
+
+        Returns:
+            np.ndarray: Concentration in M
+        """
+        S0, Fp, v, PSw = self.pars
+        return dc.conc_1cm(self.ca, Fp, v, dt=self._dt)
+    
+    def pars0(self, settings=None):
+        if settings == None:
             return np.array([1, 0.01, 0.05, 10])
         else:
             return np.zeros(4)
 
-    def bounds(self, settings='default'):
+    def bounds(self, settings=None):
         ub = [np.inf, np.inf, 1, np.inf]
         lb = 0
         return (lb, ub)
@@ -1147,17 +1300,25 @@ class OneCompWXSS(UptSS):
 class ToftsWXSS(OneCompWXSS):
     """Tofts tissue with intermediate water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
-    The free model parameters are:
+        The free model parameters are:
 
-    - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
-    - **Ktrans** (Vascular transfer constant, mL/sec/mL): clearance of the plasma compartment per unit tissue.
-    - **ve** (Extravascular, extracellular volume, mL/mL): Volume fraction of the interstitial compartment.
-    - **PSe** (Transendothelial water permeability-surface area product, mL/sec/mL): Permeability of water across the endothelium.
+        - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
+        - **Ktrans** (Vascular transfer constant, mL/sec/mL): clearance of the plasma compartment per unit tissue.
+        - **ve** (Extravascular, extracellular volume, mL/mL): Volume fraction of the interstitial compartment.
+        - **PSe** (Transendothelial water permeability-surface area product, mL/sec/mL): Permeability of water across the endothelium.
     
     Args:
         aif (array-like): MRI signals measured in the arterial input.
         pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
+        dt (float, optional): Sampling interval of the AIF in sec. 
+        Hct (float, optional): Hematocrit. 
+        agent (str, optional): Contrast agent generic name.
+        field_strength (float, optional): Magnetic field strength in T. 
+        TR (float, optional): Repetition time, or time between excitation pulses, in sec. 
+        FA (float, optional): Nominal flip angle in degrees.
+        R10 (float, optional): Precontrast tissue relaxation rate in 1/sec. 
+        R10b (float, optional): Precontrast arterial relaxation rate in 1/sec. 
+        t0 (float, optional): Baseline length (sec).
 
     See Also:
         `ToftsWXSS`
@@ -1208,9 +1369,9 @@ class ToftsWXSS(OneCompWXSS):
         >>> #
         >>> ax1.set_title('Reconstruction of concentrations.')
         >>> ax1.plot(gt['t']/60, 1000*gt['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-        >>> ax1.plot(time/60, 1000*model.predict(time, return_conc=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
+        >>> ax1.plot(time/60, 1000*model.conc(), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
         >>> ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-        >>> ax1.plot(time/60, 1000*model.aif_conc(), linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
+        >>> ax1.plot(time/60, 1000*model.ca, linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
         >>> ax1.set_xlabel('Time (min)')
         >>> ax1.set_ylabel('Concentration (mM)')
         >>> ax1.legend()
@@ -1265,17 +1426,25 @@ class ToftsWXSS(OneCompWXSS):
 class PatlakWXSS(UptSS):
     """Patlak tissue with intermediate exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
-    The free model parameters are:
+        The free model parameters are:
 
-    - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
-    - **vp** (Plasma volume, mL/mL): Volume fraction of the plasma compartment. 
-    - **Ktrans** (Vascular transfer constant, mL/sec/mL): clearance of the plasma compartment per unit tissue.
-    - **PSe** (Transendothelial water permeability-surface area product, mL/sec/mL): PS for water across the endothelium.
+        - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
+        - **vp** (Plasma volume, mL/mL): Volume fraction of the plasma compartment. 
+        - **Ktrans** (Vascular transfer constant, mL/sec/mL): clearance of the plasma compartment per unit tissue.
+        - **PSe** (Transendothelial water permeability-surface area product, mL/sec/mL): PS for water across the endothelium.
 
     Args:
         aif (array-like): MRI signals measured in the arterial input.
         pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
+        dt (float, optional): Sampling interval of the AIF in sec. 
+        Hct (float, optional): Hematocrit. 
+        agent (str, optional): Contrast agent generic name.
+        field_strength (float, optional): Magnetic field strength in T. 
+        TR (float, optional): Repetition time, or time between excitation pulses, in sec. 
+        FA (float, optional): Nominal flip angle in degrees.
+        R10 (float, optional): Precontrast tissue relaxation rate in 1/sec. 
+        R10b (float, optional): Precontrast arterial relaxation rate in 1/sec. 
+        t0 (float, optional): Baseline length (sec).
 
     See Also:
         `PatlakSS`.
@@ -1326,9 +1495,9 @@ class PatlakWXSS(UptSS):
         >>> #
         >>> ax1.set_title('Reconstruction of concentrations.')
         >>> ax1.plot(gt['t']/60, 1000*gt['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-        >>> ax1.plot(time/60, 1000*model.predict(time, return_conc=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
+        >>> ax1.plot(time/60, 1000*model.conc(), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
         >>> ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-        >>> ax1.plot(time/60, 1000*model.aif_conc(), linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
+        >>> ax1.plot(time/60, 1000*model.ca, linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
         >>> ax1.set_xlabel('Time (min)')
         >>> ax1.set_ylabel('Concentration (mM)')
         >>> ax1.legend()
@@ -1351,32 +1520,42 @@ class PatlakWXSS(UptSS):
         Extravascular water mean transit time (Twe): 4803607269928.271 sec
         Intravascular water mean transit time (Twb): 950667689299.263 sec
     """         
-    def predict(self, xdata:np.ndarray, return_conc=False)->np.ndarray:
+    def _forward_model(self, xdata:np.ndarray)->np.ndarray:
 
         if np.amax(self._t) < np.amax(xdata):
             msg = 'The acquisition window is longer than the duration of the AIF. \n'
             msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
             raise ValueError(msg)
         S0, vp, Ktrans, PSe = self.pars
-        C = dc.conc_patlak(self._ca, vp, Ktrans, dt=self.dt, sum=False)
-        if return_conc:
-            return dc.sample(xdata, self._t, C[0,:]+C[1,:], xdata[2]-xdata[1])
-        vb = vp/(1-self.Hct)
-        R1b = self.R10b + self._r1*C[0,:]/vb
-        R1e = self.R10 + self._r1*C[1,:]/(1-vb)
+        C = self.conc(sum=False)
+        vb = vp/(1-self._Hct)
+        R1b = self._R10b + self._r1*C[0,:]/vb
+        R1e = self._R10 + self._r1*C[1,:]/(1-vb)
         PS = np.array([[0,PSe],[PSe,0]])
         v = [vb, 1-vb]
         R1 = np.stack((R1b, R1e))
-        ydata = dc.signal_ss_iex(PS, v, R1, S0, self.TR, self.FA)
+        ydata = dc.signal_ss_iex(PS, v, R1, S0, self._TR, self._FA)
         return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
     
-    def pars0(self, settings='default'):
-        if settings == 'default':
+    def conc(self, sum=True):
+        """Tissue concentration.
+
+        Args:
+            sum (bool, optional): If True, returns the total concentrations. Else returns the concentration in the individual compartments. Defaults to True.
+
+        Returns:
+            np.ndarray: Concentration in M
+        """
+        S0, vp, Ktrans, PSe = self.pars
+        return dc.conc_patlak(self.ca, vp, Ktrans, dt=self._dt, sum=sum)
+    
+    def pars0(self, settings=None):
+        if settings == None:
             return np.array([1, 0.05, 0.003, 10])
         else:
             return np.zeros(4)
 
-    def bounds(self, settings='default'):
+    def bounds(self, settings=None):
         ub = [np.inf, 1, np.inf, np.inf]
         lb = 0
         return (lb, ub)
@@ -1395,7 +1574,7 @@ class PatlakWXSS(UptSS):
     
     def pdep(self, units='standard'):
         p = self.pars
-        vb = p[1]/(1-self.Hct)
+        vb = p[1]/(1-self._Hct)
         pars = [
             ['Twe', 'Extravascular water mean transit time', (1-vb)/p[3], 'sec'],
             ['Twb', 'Intravascular water mean transit time', vb/p[3], 'sec'],
@@ -1406,21 +1585,27 @@ class PatlakWXSS(UptSS):
 class EToftsWXSS(UptSS):
     """Extended Tofts tissue with intermediate exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
-    Probably the most common modelling approach for generic tissues. The arterial concentrations are calculated by direct analytical inversion of the arterial signal 
+        The free model parameters are:
 
-    The free model parameters are:
-
-    - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
-    - **vp** (Plasma volume, mL/mL): Volume fraction of the plasma compartment. 
-    - **Ktrans** (Vascular transfer constant, mL/sec/mL): clearance of the plasma compartment per unit tissue.
-    - **ve** (Extravascular, extracellular volume, mL/mL): Volume fraction of the interstitial compartment.
-    - **PSe** (Transendothelial water permeability-surface area product, mL/sec/mL): PS for water across the endothelium.
-    - **PSc** (Transcytolemmal water permeability-surface area product, mL/sec/mL): PS for water across the cell wall.
+        - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
+        - **vp** (Plasma volume, mL/mL): Volume fraction of the plasma compartment. 
+        - **Ktrans** (Vascular transfer constant, mL/sec/mL): clearance of the plasma compartment per unit tissue.
+        - **ve** (Extravascular, extracellular volume, mL/mL): Volume fraction of the interstitial compartment.
+        - **PSe** (Transendothelial water permeability-surface area product, mL/sec/mL): PS for water across the endothelium.
+        - **PSc** (Transcytolemmal water permeability-surface area product, mL/sec/mL): PS for water across the cell wall.
 
     Args:
         aif (array-like): MRI signals measured in the arterial input.
         pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
+        dt (float, optional): Sampling interval of the AIF in sec. 
+        Hct (float, optional): Hematocrit. 
+        agent (str, optional): Contrast agent generic name.
+        field_strength (float, optional): Magnetic field strength in T. 
+        TR (float, optional): Repetition time, or time between excitation pulses, in sec. 
+        FA (float, optional): Nominal flip angle in degrees.
+        R10 (float, optional): Precontrast tissue relaxation rate in 1/sec. 
+        R10b (float, optional): Precontrast arterial relaxation rate in 1/sec. 
+        t0 (float, optional): Baseline length (sec).
 
     See Also:
         `EToftsSS`
@@ -1471,9 +1656,9 @@ class EToftsWXSS(UptSS):
         >>> #
         >>> ax1.set_title('Reconstruction of concentrations.')
         >>> ax1.plot(gt['t']/60, 1000*gt['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-        >>> ax1.plot(time/60, 1000*model.predict(time, return_conc=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
+        >>> ax1.plot(time/60, 1000*model.conc(), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
         >>> ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-        >>> ax1.plot(time/60, 1000*model.aif_conc(), linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
+        >>> ax1.plot(time/60, 1000*model.ca, linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
         >>> ax1.set_xlabel('Time (min)')
         >>> ax1.set_ylabel('Concentration (mM)')
         >>> ax1.legend()
@@ -1503,33 +1688,43 @@ class EToftsWXSS(UptSS):
         Intravascular water mean transit time (Twb): 0.0 sec
     """         
 
-    def predict(self, xdata:np.ndarray, return_conc=False)->np.ndarray:
+    def _forward_model(self, xdata:np.ndarray)->np.ndarray:
 
         if np.amax(self._t) < np.amax(xdata):
             msg = 'The acquisition window is longer than the duration of the AIF. \n'
             msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
             raise ValueError(msg)
         S0, vp, Ktrans, ve, PSe, PSc = self.pars
-        C = dc.conc_etofts(self._ca, vp, Ktrans, ve, dt=self.dt, sum=False)
-        if return_conc:
-            return dc.sample(xdata, self._t, C[0,:]+C[1,:], xdata[2]-xdata[1])
-        vb = vp/(1-self.Hct)
-        R1b = self.R10b + self._r1*C[0,:]/vb
-        R1e = self.R10 + self._r1*C[1,:]/ve
-        R1c = self.R10 + np.zeros(C.shape[1])
+        C = self.conc(sum=False)
+        vb = vp/(1-self._Hct)
+        R1b = self._R10b + self._r1*C[0,:]/vb
+        R1e = self._R10 + self._r1*C[1,:]/ve
+        R1c = self._R10 + np.zeros(C.shape[1])
         PS = np.array([[0,PSe,0],[PSe,0,PSc],[0,PSc,0]])
         v = [vb, ve, 1-vb-ve]
         R1 = np.stack((R1b, R1e, R1c))
-        ydata = dc.signal_ss_iex(PS, v, R1, S0, self.TR, self.FA)
+        ydata = dc.signal_ss_iex(PS, v, R1, S0, self._TR, self._FA)
         return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
     
-    def pars0(self, settings='default'):
-        if settings == 'default':
+    def conc(self, sum=True):
+        """Tissue concentration.
+
+        Args:
+            sum (bool, optional): If True, returns the total concentrations. Else returns the concentration in the individual compartments. Defaults to True.
+
+        Returns:
+            np.ndarray: Concentration in M
+        """
+        S0, vp, Ktrans, ve, PSe, PSc = self.pars
+        return dc.conc_etofts(self.ca, vp, Ktrans, ve, dt=self._dt, sum=sum)
+    
+    def pars0(self, settings=None):
+        if settings == None:
             return np.array([1, 0.05, 0.003, 0.3, 10, 10])
         else:
             return np.zeros(6)
 
-    def bounds(self, settings='default'):
+    def bounds(self, settings=None):
         ub = [np.inf, 1, np.inf, 1, np.inf, np.inf]
         lb = 0
         return (lb, ub)
@@ -1551,7 +1746,7 @@ class EToftsWXSS(UptSS):
     
     def pdep(self, units='standard'):
         p = self.pars
-        vb = p[2]/(1-self.Hct)
+        vb = p[2]/(1-self._Hct)
         vc = 1-vb-p[3]
         pars = [
             ['Te','Extracellular mean transit time',self.pars[3]/self.pars[2],'sec'],
@@ -1571,18 +1766,26 @@ class EToftsWXSS(UptSS):
 class TwoCompUptWXSS(UptSS):
     """Two-compartment uptake model (2CUM) in intermediate water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
-    The free model parameters are:
+        The free model parameters are:
 
-    - **S0** (Signal scaling factor, a.u.): Scale factor for the MR signal.
-    - **Fp** (Plasma flow, mL/sec/mL): Flow of plasma into the plasma compartment.
-    - **vp** (Plasma volume): Volume fraction of the plasma compartment. 
-    - **PS** (Permeability-surface area product, mL/sec/mL): Volume of plasma cleared of indicator per unit time and per unit tissue.
-    - **PSe** (Transendothelial water permeability-surface area product, mL/sec/mL): PS for water across the endothelium.
+        - **S0** (Signal scaling factor, a.u.): Scale factor for the MR signal.
+        - **Fp** (Plasma flow, mL/sec/mL): Flow of plasma into the plasma compartment.
+        - **vp** (Plasma volume): Volume fraction of the plasma compartment. 
+        - **PS** (Permeability-surface area product, mL/sec/mL): Volume of plasma cleared of indicator per unit time and per unit tissue.
+        - **PSe** (Transendothelial water permeability-surface area product, mL/sec/mL): PS for water across the endothelium.
     
     Args:
         aif (array-like): MRI signals measured in the arterial input.
         pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
+        dt (float, optional): Sampling interval of the AIF in sec. 
+        Hct (float, optional): Hematocrit. 
+        agent (str, optional): Contrast agent generic name.
+        field_strength (float, optional): Magnetic field strength in T. 
+        TR (float, optional): Repetition time, or time between excitation pulses, in sec. 
+        FA (float, optional): Nominal flip angle in degrees.
+        R10 (float, optional): Precontrast tissue relaxation rate in 1/sec. 
+        R10b (float, optional): Precontrast arterial relaxation rate in 1/sec. 
+        t0 (float, optional): Baseline length (sec). 
 
     See Also:
         `TwoCompUptWXSS`
@@ -1633,9 +1836,9 @@ class TwoCompUptWXSS(UptSS):
         >>> #
         >>> ax1.set_title('Reconstruction of concentrations.')
         >>> ax1.plot(gt['t']/60, 1000*gt['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-        >>> ax1.plot(time/60, 1000*model.predict(time, return_conc=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
+        >>> ax1.plot(time/60, 1000*model.conc(), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
         >>> ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-        >>> ax1.plot(time/60, 1000*model.aif_conc(), linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
+        >>> ax1.plot(time/60, 1000*model.ca, linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
         >>> ax1.set_xlabel('Time (min)')
         >>> ax1.set_ylabel('Concentration (mM)')
         >>> ax1.legend()
@@ -1665,31 +1868,41 @@ class TwoCompUptWXSS(UptSS):
         **Note**: The model does not fit the data well because the no-washout assumption is invalid in this example.
     """         
 
-    def predict(self, xdata:np.ndarray, return_conc=False)->np.ndarray:
+    def _forward_model(self, xdata:np.ndarray)->np.ndarray:
         if np.amax(self._t) < np.amax(xdata):
             msg = 'The acquisition window is longer than the duration of the AIF. \n'
             msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
             raise ValueError(msg)
         S0, Fp, vp, PS, PSe = self.pars
-        vb = vp/(1-self.Hct)
-        C = dc.conc_2cum(self._ca, Fp, vp, PS, dt=self.dt, sum=False)
-        if return_conc:
-            return dc.sample(xdata, self._t, C[0,:]+C[1,:], xdata[2]-xdata[1])
-        R1b = self.R10b + self._r1*C[0,:]/vb
-        R1e = self.R10 + self._r1*C[1,:]/(1-vb)
+        C = self.conc(sum=False)
+        vb = vp/(1-self._Hct)
+        R1b = self._R10b + self._r1*C[0,:]/vb
+        R1e = self._R10 + self._r1*C[1,:]/(1-vb)
         PS = np.array([[0,PSe],[PSe,0]])
         v = [vb, 1-vb]
         R1 = np.stack((R1b, R1e))        
-        ydata = dc.signal_ss_iex(PS, v, R1, S0, self.TR, self.FA)
+        ydata = dc.signal_ss_iex(PS, v, R1, S0, self._TR, self._FA)
         return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
     
-    def pars0(self, settings='default'):
-        if settings == 'default':
+    def conc(self, sum=True):
+        """Tissue concentration.
+
+        Args:
+            sum (bool, optional): If True, returns the total concentrations. Else returns the concentration in the individual compartments. Defaults to True.
+
+        Returns:
+            np.ndarray: Concentration in M
+        """
+        S0, Fp, vp, PS, PSe = self.pars
+        return dc.conc_2cum(self.ca, Fp, vp, PS, dt=self._dt, sum=sum)
+    
+    def pars0(self, settings=None):
+        if settings == None:
             return np.array([1, 0.1, 0.1, 0.003, 10])
         else:
             return np.zeros(5)
 
-    def bounds(self, settings='default'):
+    def bounds(self, settings=None):
         ub = [np.inf, np.inf, 1, np.inf, np.inf]
         lb = [0, 0, 0, 0, 0]
         return (lb, ub)
@@ -1710,7 +1923,7 @@ class TwoCompUptWXSS(UptSS):
     
     def pdep(self, units='standard'):
         p = self.pars
-        vb = p[2]/(1-self.Hct)
+        vb = p[2]/(1-self._Hct)
         ve = 1-vb
         pars = [
             ['E','Extraction fraction',p[3]/(p[1]+p[3]),'sec'],
@@ -1728,20 +1941,28 @@ class TwoCompUptWXSS(UptSS):
 class TwoCompExchWXSS(UptSS):
     """Two-compartment exchange model (2CXM) in intermediate water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
-    The free model parameters are:
+        The free model parameters are:
 
-    - **S0** (Signal scaling factor, a.u.): Scale factor for the MR signal.
-    - **Fp** (Plasma flow, mL/sec/mL): Flow of plasma into the plasma compartment.
-    - **vp** (Plasma volume): Volume fraction of the plasma compartment. 
-    - **PS** (Permeability-surface area product, mL/sec/mL): Volume of plasma cleared of indicator per unit time and per unit tissue.
-    - **ve** (Extravascular, extracellular volume): Volume fraction of the interstitial compartment.
-    - **PSe** (Transendothelial water permeability-surface area product, mL/sec/mL): PS for water across the endothelium.
-    - **PSc** (Transcytolemmal water permeability-surface area product, mL/sec/mL): PS for water across the cell wall.
+        - **S0** (Signal scaling factor, a.u.): Scale factor for the MR signal.
+        - **Fp** (Plasma flow, mL/sec/mL): Flow of plasma into the plasma compartment.
+        - **vp** (Plasma volume): Volume fraction of the plasma compartment. 
+        - **PS** (Permeability-surface area product, mL/sec/mL): Volume of plasma cleared of indicator per unit time and per unit tissue.
+        - **ve** (Extravascular, extracellular volume): Volume fraction of the interstitial compartment.
+        - **PSe** (Transendothelial water permeability-surface area product, mL/sec/mL): PS for water across the endothelium.
+        - **PSc** (Transcytolemmal water permeability-surface area product, mL/sec/mL): PS for water across the cell wall.
     
     Args:
         aif (array-like): MRI signals measured in the arterial input.
         pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
+        dt (float, optional): Sampling interval of the AIF in sec. 
+        Hct (float, optional): Hematocrit. 
+        agent (str, optional): Contrast agent generic name.
+        field_strength (float, optional): Magnetic field strength in T. 
+        TR (float, optional): Repetition time, or time between excitation pulses, in sec. 
+        FA (float, optional): Nominal flip angle in degrees.
+        R10 (float, optional): Precontrast tissue relaxation rate in 1/sec. 
+        R10b (float, optional): Precontrast arterial relaxation rate in 1/sec. 
+        t0 (float, optional): Baseline length (sec).
 
     See Also:
         `TwoCompExchSS`
@@ -1792,9 +2013,9 @@ class TwoCompExchWXSS(UptSS):
         >>> #
         >>> ax1.set_title('Reconstruction of concentrations.')
         >>> ax1.plot(gt['t']/60, 1000*gt['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-        >>> ax1.plot(time/60, 1000*model.predict(time, return_conc=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
+        >>> ax1.plot(time/60, 1000*model.conc(), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
         >>> ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-        >>> ax1.plot(time/60, 1000*model.aif_conc(), linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
+        >>> ax1.plot(time/60, 1000*model.ca, linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
         >>> ax1.set_xlabel('Time (min)')
         >>> ax1.set_ylabel('Concentration (mM)')
         >>> ax1.legend()
@@ -1830,32 +2051,42 @@ class TwoCompExchWXSS(UptSS):
         **Note**: fitted water PS water values are high because the simulated data are in fast water exchange.
 
     """         
-    def predict(self, xdata:np.ndarray, return_conc=False)->np.ndarray:
+    def _forward_model(self, xdata:np.ndarray)->np.ndarray:
         if np.amax(self._t) < np.amax(xdata):
             msg = 'The acquisition window is longer than the duration of the AIF. \n'
             msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
             raise ValueError(msg)
         S0, Fp, vp, PS, ve, PSe, PSc = self.pars
-        vb = vp/(1-self.Hct)
-        C = dc.conc_2cxm(self._ca, Fp, vp, PS, ve, dt=self.dt, sum=False)
-        if return_conc:
-            return dc.sample(xdata, self._t, C[0,:]+C[1,:], xdata[2]-xdata[1])
-        R1b = self.R10b + self._r1*C[0,:]/vb
-        R1e = self.R10 + self._r1*C[1,:]/ve
-        R1c = self.R10 + np.zeros(C.shape[1])
+        C = self.conc(sum=False)
+        vb = vp/(1-self._Hct)
+        R1b = self._R10b + self._r1*C[0,:]/vb
+        R1e = self._R10 + self._r1*C[1,:]/ve
+        R1c = self._R10 + np.zeros(C.shape[1])
         PS = np.array([[0,PSe,0],[PSe,0,PSc],[0,PSc,0]])
         v = [vb, ve, 1-vb-ve]
         R1 = np.stack((R1b, R1e, R1c))        
-        ydata = dc.signal_ss_iex(PS, v, R1, S0, self.TR, self.FA)
+        ydata = dc.signal_ss_iex(PS, v, R1, S0, self._TR, self._FA)
         return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
     
-    def pars0(self, settings='default'):
-        if settings == 'default':
+    def conc(self, sum=True):
+        """Tissue concentration.
+
+        Args:
+            sum (bool, optional): If True, returns the total concentrations. Else returns the concentration in the individual compartments. Defaults to True.
+
+        Returns:
+            np.ndarray: Concentration in M
+        """
+        S0, Fp, vp, PS, ve, PSe, PSc = self.pars
+        return dc.conc_2cxm(self.ca, Fp, vp, PS, ve, dt=self._dt, sum=sum)
+    
+    def pars0(self, settings=None):
+        if settings == None:
             return np.array([1, 0.1, 0.1, 0.003, 0.3, 10, 10])
         else:
             return np.zeros(7)
 
-    def bounds(self, settings='default'):
+    def bounds(self, settings=None):
         ub = [np.inf, np.inf, 1, np.inf, 1, np.inf, np.inf]
         lb = [0, 0, 0, 0, 0, 0, 0]
         return (lb, ub)
@@ -1879,7 +2110,7 @@ class TwoCompExchWXSS(UptSS):
     
     def pdep(self, units='standard'):
         p = self.pars
-        vb = p[2]/(1-self.Hct)
+        vb = p[2]/(1-self._Hct)
         vc = 1-vb-p[4]
         pars = [
             ['E','Extraction fraction',p[3]/(p[1]+p[3]),'sec'],

@@ -13,17 +13,9 @@
 
    .. autosummary::
    
-      ~EToftsWXSS.FA
-      ~EToftsWXSS.Hct
-      ~EToftsWXSS.R10
-      ~EToftsWXSS.R10b
-      ~EToftsWXSS.TR
-      ~EToftsWXSS.agent
-      ~EToftsWXSS.dt
-      ~EToftsWXSS.field_strength
       ~EToftsWXSS.pars
       ~EToftsWXSS.pcov
-      ~EToftsWXSS.t0
+      ~EToftsWXSS.ca
    
    
 
@@ -34,8 +26,8 @@
 
    .. autosummary::
    
-      ~EToftsWXSS.aif_conc
       ~EToftsWXSS.bounds
+      ~EToftsWXSS.conc
       ~EToftsWXSS.cost
       ~EToftsWXSS.pars0
       ~EToftsWXSS.pdep

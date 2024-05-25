@@ -13,18 +13,9 @@
 
    .. autosummary::
    
-      ~Kidney2CFXSS.FA
-      ~Kidney2CFXSS.Hct
-      ~Kidney2CFXSS.R10
-      ~Kidney2CFXSS.R10b
-      ~Kidney2CFXSS.TR
-      ~Kidney2CFXSS.agent
-      ~Kidney2CFXSS.dt
-      ~Kidney2CFXSS.field_strength
       ~Kidney2CFXSS.pars
       ~Kidney2CFXSS.pcov
-      ~Kidney2CFXSS.t0
-      ~Kidney2CFXSS.vol
+      ~Kidney2CFXSS.ca
    
    
 
@@ -35,8 +26,8 @@
 
    .. autosummary::
    
-      ~Kidney2CFXSS.aif_conc
       ~Kidney2CFXSS.bounds
+      ~Kidney2CFXSS.conc
       ~Kidney2CFXSS.cost
       ~Kidney2CFXSS.pars0
       ~Kidney2CFXSS.pdep

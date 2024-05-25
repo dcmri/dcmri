@@ -437,7 +437,7 @@ def sample(t, tp, Sp, dt=None)->np.ndarray:
         return np.interp(t, tp, Sp, left=0, right=0)
     Ss = np.zeros(len(t)) 
     for k, tk in enumerate(t):
-        data = Sp[(tp >= tk-dt/2) & (tp < tk+dt/2)]
+        data = Sp[(tp >= tk) & (tp < tk+dt)]
         if data.size > 0:
             Ss[k] = np.mean(data)
     return Ss 

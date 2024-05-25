@@ -13,18 +13,9 @@
 
    .. autosummary::
    
-      ~PatlakSS.FA
-      ~PatlakSS.Hct
-      ~PatlakSS.R10
-      ~PatlakSS.R10b
-      ~PatlakSS.TR
-      ~PatlakSS.agent
-      ~PatlakSS.dt
-      ~PatlakSS.field_strength
       ~PatlakSS.pars
       ~PatlakSS.pcov
-      ~PatlakSS.t0
-      ~PatlakSS.water_exchange
+      ~PatlakSS.ca
    
    
 
@@ -35,8 +26,8 @@
 
    .. autosummary::
    
-      ~PatlakSS.aif_conc
       ~PatlakSS.bounds
+      ~PatlakSS.conc
       ~PatlakSS.cost
       ~PatlakSS.pars0
       ~PatlakSS.pdep

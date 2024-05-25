@@ -13,17 +13,9 @@
 
    .. autosummary::
    
-      ~TwoCompUptWXSS.FA
-      ~TwoCompUptWXSS.Hct
-      ~TwoCompUptWXSS.R10
-      ~TwoCompUptWXSS.R10b
-      ~TwoCompUptWXSS.TR
-      ~TwoCompUptWXSS.agent
-      ~TwoCompUptWXSS.dt
-      ~TwoCompUptWXSS.field_strength
       ~TwoCompUptWXSS.pars
       ~TwoCompUptWXSS.pcov
-      ~TwoCompUptWXSS.t0
+      ~TwoCompUptWXSS.ca
    
    
 
@@ -34,8 +26,8 @@
 
    .. autosummary::
    
-      ~TwoCompUptWXSS.aif_conc
       ~TwoCompUptWXSS.bounds
+      ~TwoCompUptWXSS.conc
       ~TwoCompUptWXSS.cost
       ~TwoCompUptWXSS.pars0
       ~TwoCompUptWXSS.pdep

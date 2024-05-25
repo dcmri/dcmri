@@ -5,21 +5,30 @@ import dcmri as dc
 class LiverPCC(dc.Model):
     """Single-inlet model for intracellular indicator measured with a steady-state sequence.
 
-    The free model parameters are:
+        The free model parameters are:
 
-    - **Te**: mean transit time of the extracellular space.
-    - **De**: Transit time dispersion of the extracellular space, in the range [0,1].
-    - **ve**: volume faction of the extracellular space.
-    - **khe**: rate constant for indicator transport from extracellular space to hepatocytes, in mL/sec/mL. 
-    - **Th**: mean transit time of the hepatocytes (sec).
+        - **Te**: mean transit time of the extracellular space.
+        - **De**: Transit time dispersion of the extracellular space, in the range [0,1].
+        - **ve**: volume faction of the extracellular space.
+        - **khe**: rate constant for indicator transport from extracellular space to hepatocytes, in mL/sec/mL. 
+        - **Th**: mean transit time of the hepatocytes (sec).
 
     Args:
-        cb (array-like): Arterial blood concentrations measured separately.
+        cb (array-like): MRI signals measured in the arterial input.
         pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
+        dt (float, optional): Sampling interval of the AIF in sec. 
+        Hct (float, optional): Hematocrit. 
+        agent (str, optional): Contrast agent generic name.
+        field_strength (float, optional): Magnetic field strength in T. 
+        TR (float, optional): Repetition time, or time between excitation pulses, in sec. 
+        FA (float, optional): Nominal flip angle in degrees.
+        R10 (float, optional): Precontrast tissue relaxation rate in 1/sec. 
+        S0 (float, optional): Signal scaling factor.
+        t0 (float, optional): Baseline length (sec).
+        vol (float, optional): Liver volume in mL.
 
     See Also:
-        `LiverSignalPCCNS`
+        `LiverPCCNS`
 
     Example:
 
@@ -66,58 +75,73 @@ class LiverPCC(dc.Model):
         >>> #
         >>> ax1.set_title('Reconstruction of concentrations.')
         >>> ax1.plot(gt['t']/60, 1000*gt['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-        >>> ax1.plot(time/60, 1000*model.predict(time, return_conc=True), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
+        >>> ax1.plot(gt['t']/60, 1000*model.conc(), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
         >>> ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-        >>> ax1.plot(gt['t']/60, 1000*model.aif_conc(), linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
+        >>> ax1.plot(gt['t']/60, 1000*model.ca, linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
         >>> ax1.set_xlabel('Time (min)')
         >>> ax1.set_ylabel('Concentration (mM)')
         >>> ax1.legend()
         >>> #
         >>> plt.show()
     """ 
-    dt = 0.5                #: Sampling interval of the AIF in sec. 
-    Hct = 0.45              #: Hematocrit. 
-    agent = 'gadoxetate'    #: Contrast agent generic name.
-    field_strength = 3.0    #: Magnetic field strength in T. 
-    TR = 0.005              #: Repetition time, or time between excitation pulses, in sec. 
-    FA = 15.0               #: Nominal flip angle in degrees.
-    R10 = 1                 #: Precontrast tissue relaxation rate in 1/sec. 
-    S0 = 1                  #: Signal scaling factor (a.u.).
-    t0 = 0                  #: Baseline length (sec).
-    vol = None              #: Liver volume in mL - optional constant only used to determine dependent parameters.
+    def __init__(self, cb, 
+            pars = None,
+            dt = 0.5,                
+            Hct = 0.45,             
+            agent = 'gadoxetate',    
+            field_strength = 3.0,    
+            TR = 0.005,  
+            FA = 15.0,  
+            R10 = 1,                 
+            S0 = 1,               
+            t0 = 1, 
+            vol = None,
+        ):
+        self.pars = self.pars0(pars)
+        self.ca = cb/(1-Hct)                #: Arterial plasma concentration (M)
+        self._rp = dc.relaxivity(field_strength, 'blood', agent)
+        self._rh = dc.relaxivity(field_strength, 'hepatocytes', agent)
+        self._t = dt*np.arange(np.size(cb))
+        self._dt = dt
+        self._Hct = Hct
+        self._TR = TR
+        self._FA = FA
+        self._R10 = R10
+        self.S0 = S0
+        self._t0 = t0
+        self._vol = vol
 
-    def __init__(self, cb, pars='default', **attr):
-        super().__init__(pars, **attr)
-        self._rp = dc.relaxivity(self.field_strength, 'blood', self.agent)
-        self._rh = dc.relaxivity(self.field_strength, 'hepatocytes', self.agent)
-        self._ca = cb/(1-self.Hct)
-        self._t = self.dt*np.arange(np.size(cb))
+    def conc(self, sum=True):
+        """Tissue concentrations
 
-    def predict(self, xdata, return_conc=False, return_rel=False): 
-        Te, De, ve, khe, Th = self.pars
-        C = dc.liver_conc_pcc(self._ca, Te, De, ve, khe, Th, dt=self.dt, sum=False)
-        if return_conc:
-            return dc.sample(xdata, self._t, C[0,:]+C[1,:], xdata[2]-xdata[1])
-        R1 = self.R10 + self._rp*C[0,:] + self._rh*C[1,:]
-        if return_rel:
-            return dc.sample(xdata, self._t, R1, xdata[2]-xdata[1])
-        signal = dc.signal_ss(R1, self.S0, self.TR, self.FA)
+        Args:
+            sum (bool, optional): If True, returns the total concentrations. If False, returns concentration in both compartments separately. Defaults to True.
+
+        Returns:
+            numpy.ndarray: Concentration in M
+        """
+        return dc.liver_conc_pcc(self.ca, *self.pars, dt=self._dt, sum=sum)
+
+    def _forward_model(self, xdata): 
+        C = self.conc(sum=False)
+        R1 = self._R10 + self._rp*C[0,:] + self._rh*C[1,:]
+        signal = dc.signal_ss(R1, self.S0, self._TR, self._FA)
         return dc.sample(xdata, self._t, signal, xdata[1]-xdata[0])
     
     def train(self, xdata, ydata, **kwargs):
-        Sref = dc.signal_ss(self.R10, 1, self.TR, self.FA)
-        n0 = max([np.sum(xdata<self.t0), 1])
+        Sref = dc.signal_ss(self._R10, 1, self._TR, self._FA)
+        n0 = max([np.sum(xdata<self._t0), 1])
         self.S0 = np.mean(ydata[:n0]) / Sref
-        super().train(xdata, ydata, **kwargs)
+        return super().train(xdata, ydata, **kwargs)
     
-    def pars0(self, settings='default'):
-        if settings == 'default':
+    def pars0(self, settings=None):
+        if settings == None:
             return np.array([30.0, 0.85, 0.3, 20/6000, 30*60])
         else:
             return np.zeros(5)
 
-    def bounds(self, settings='default'):
-        if settings == 'default':
+    def bounds(self, settings=None):
+        if settings == None:
             ub = [60, 1, 0.6, np.inf, 10*60*60]
             lb = [0.1, 0, 0.01, 0, 10*60]
         else:
@@ -153,46 +177,48 @@ class LiverPCC(dc.Model):
             pars[1][2:] = [pars[1][2]*6000, 'mL/min/100mL']
             pars[2][2:] = [pars[2][2]*6000, 'mL/min/100mL']
 
-        if self.vol is None:
+        if self._vol is None:
             return pars
         
         pars += [
-            ['CL', 'Liver blood clearance', self.pars[3]*self.vol, 'mL/sec'],
+            ['CL', 'Liver blood clearance', self.pars[3]*self._vol, 'mL/sec'],
         ]
         if units == 'custom':
             pars[3][2:] = [pars[3][2]*60, 'mL/min']
 
         return pars
-
-    def aif_conc(self):
-        """Reconstructed plasma concentrations in the arterial input.
-
-        Returns:
-            np.ndarray: Concentrations in M.
-        """
-        return self._ca
        
 
 class LiverPCCNS(dc.Model):
     """Steady-state acquistion over two scans, with a non-stationary two-compartment model..
 
-    The free model parameters are:
+        The free model parameters are:
 
-    - **Te**: mean transit time of the extracellular space.
-    - **De**: Transit time dispersion of the extracellular space, in the range [0,1].
-    - **ve**: volume faction of the extracellular space.
-    - **khe_i**: Initial rate constant for indicator transport from extracellular space to hepatocytes, in mL/sec/mL. 
-    - **khe_f**: Final rate constant for indicator transport from extracellular space to hepatocytes, in mL/sec/mL.
-    - **Th_i**: Initial mean transit time of the hepatocytes (sec).
-    - **Th_f**: Final mean transit time of the hepatocytes (sec).
+        - **Te**: mean transit time of the extracellular space.
+        - **De**: Transit time dispersion of the extracellular space, in the range [0,1].
+        - **ve**: volume faction of the extracellular space.
+        - **khe_i**: Initial rate constant for indicator transport from extracellular space to hepatocytes, in mL/sec/mL. 
+        - **khe_f**: Final rate constant for indicator transport from extracellular space to hepatocytes, in mL/sec/mL.
+        - **Th_i**: Initial mean transit time of the hepatocytes (sec).
+        - **Th_f**: Final mean transit time of the hepatocytes (sec).
 
     Args:
-        cb (array-like): Arterial blood concentrations measured separately.
+        aif (array-like): MRI signals measured in the arterial input.
         pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        attr: provide values for any attributes as keyword arguments. 
+        dt (float, optional): Sampling interval of the AIF in sec. 
+        Hct (float, optional): Hematocrit. 
+        agent (str, optional): Contrast agent generic name.
+        field_strength (float, optional): Magnetic field strength in T. 
+        TR (float, optional): Repetition time, or time between excitation pulses, in sec. 
+        FA (float, optional): Nominal flip angle in degrees.
+        R10 (float, optional): Precontrast tissue relaxation rate in 1/sec - first scan. 
+        R11 (float, optional): Precontrast tissue relaxation rate in 1/sec - second scan. 
+        t0 (float, optional): Baseline length (sec).
+        t1 (float, optional): Start of the sccond scan (sec).
+        vol (float, optional): Liver volume in mL.
 
     See Also:
-        `LiverSignalPCC`
+        `LiverPCC`
 
     Example:
 
@@ -231,7 +257,6 @@ class LiverPCCNS(dc.Model):
 
         >>> model.train(time1, roi1, time2, roi2, pfix=7*[0]+[1,0])
         >>> sig = model.predict(time)
-        >>> conc = model.predict(time, return_conc=True)
 
         Plot the reconstructed signals (left) and concentrations (right) and compare the concentrations against the noise-free ground truth:
 
@@ -246,77 +271,89 @@ class LiverPCCNS(dc.Model):
         >>> #
         >>> ax1.set_title('Reconstruction of concentrations.')
         >>> ax1.plot(gt['t']/60, 1000*gt['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-        >>> ax1.plot(time/60, 1000*conc, linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
+        >>> ax1.plot(gt['t']/60, 1000*model.conc(), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
         >>> ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-        >>> ax1.plot(gt['t']/60, 1000*model.aif_conc(), linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
+        >>> ax1.plot(gt['t']/60, 1000*model.ca, linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
         >>> ax1.set_xlabel('Time (min)')
         >>> ax1.set_ylabel('Concentration (mM)')
         >>> ax1.legend()
         >>> #
         >>> plt.show()
     """ 
-    dt = 0.5                #: Sampling interval of the AIF in sec. 
-    Hct = 0.45              #: Hematocrit. 
-    agent = 'gadoxetate'    #: Contrast agent generic name.
-    field_strength = 3.0    #: Magnetic field strength in T. 
-    TR = 0.005              #: Repetition time, or time between excitation pulses, in sec. 
-    FA = 15.0               #: Nominal flip angle in degrees.
-    R10 = 1                 #: Precontrast tissue relaxation rate in 1/sec. 
-    R11 = 1                 #: Second scan precontrast tissue relaxation rate in 1/sec.
-    t0 = 0                  #: Baseline length (sec)
-    t1 = 1                  #: Start of second scan (sec)
-    vol = None              #: Liver volume in mL - optional constant only used to determine dependent parameters.
 
-    def __init__(self, cb, pars='default', **attr):
-        super().__init__(pars, **attr)
-        self._rp = dc.relaxivity(self.field_strength, 'blood', self.agent)
-        self._rh = dc.relaxivity(self.field_strength, 'hepatocytes', self.agent)
-        self._ca = cb/(1-self.Hct)
-        self._t = self.dt*np.arange(np.size(cb))
+    def __init__(self, cb, 
+            pars = None,
+            dt = 0.5,                
+            Hct = 0.45,             
+            agent = 'gadoxetate',    
+            field_strength = 3.0,    
+            TR = 0.005,  
+            FA = 15.0,  
+            R10 = 1,  
+            R11 = 1,                
+            S0 = 1,               
+            t0 = 1, 
+            t1 = 1,
+            vol = None,
+        ):
+        self.pars = self.pars0(pars)
+        self.ca = cb/(1-Hct)                #: Arterial plasma concentration (M)
+        self._rp = dc.relaxivity(field_strength, 'blood', agent)
+        self._rh = dc.relaxivity(field_strength, 'hepatocytes', agent)
+        self._t = dt*np.arange(np.size(cb))
+        self._dt = dt
+        self._Hct = Hct
+        self._TR = TR
+        self._FA = FA
+        self._R10 = R10
+        self._R11 = R11
+        self.S0 = S0
+        self._t0 = t0
+        self._t1 = t1
+        self._vol = vol
+
+    def conc(self, sum=True):
+        Te, De, ve, k_he_i, k_he_f, Th_i, Th_f, S01, S02 = self.pars
+        khe = [k_he_i, k_he_f]
+        Th = [Th_i, Th_f]
+        return dc.liver_conc_pcc_ns(self.ca, Te, De, ve, khe, Th, t=self._t, dt=self._dt, sum=sum)   
     
-    def predict(self, xdata, return_conc=False, return_rel=False):
+    def _forward_model(self, xdata):
         # NOTE: Changed the parametrization here for consistency
         # from Kbh = [1/Th_i, 1/Th_f]
         # to Th = [Th_i, Th_f]
         # This creates a non-linear change in Kbh(t) over the time interval of the scan. THIS LIKELY HAS SOME EFFECT ON THE RESULTS IN TRISTAN EXP MED - CHECK!
         Te, De, ve, k_he_i, k_he_f, Th_i, Th_f, S01, S02 = self.pars
-        khe = [k_he_i, k_he_f]
-        Th = [Th_i, Th_f]
-        C = dc.liver_conc_pcc_ns(self._ca, Te, De, ve, khe, Th, t=self._t, dt=self.dt, sum=False)
-        if return_conc:
-            return dc.sample(xdata, self._t, C[0,:]+C[1,:], xdata[2]-xdata[1])
-        # Return R
-        R1 = self.R10 + self._rp*C[0,:] + self._rh*C[1,:]
-        if return_rel:
-            return dc.sample(xdata, self._t, R1, xdata[2]-xdata[1])
-        signal = dc.signal_ss(R1, S01, self.TR, self.FA)
-        t2 = (self._t >= self.t1 - (xdata[1]-xdata[0]))
-        signal[t2] = dc.signal_ss(R1[t2], S02, self.TR, self.FA)
+        C = self.conc(sum=False)
+        R1 = self._R10 + self._rp*C[0,:] + self._rh*C[1,:]
+        signal = dc.signal_ss(R1, S01, self._TR, self._FA)
+        t2 = (self._t >= self._t1 - (xdata[1]-xdata[0]))
+        signal[t2] = dc.signal_ss(R1[t2], S02, self._TR, self._FA)
         return dc.sample(xdata, self._t, signal, xdata[1]-xdata[0])
     
     def train(self, xdata1, ydata1, xdata2, ydata2, **kwargs):
-        n0 = max([np.sum(xdata1<self.t0), 1])
+        n0 = max([np.sum(xdata1<self._t0), 1])
 
         # Estimate S01 from data
-        Sref = dc.signal_ss(self.R10, 1, self.TR, self.FA)
+        Sref = dc.signal_ss(self._R10, 1, self._TR, self._FA)
         self.pars[-2] = np.mean(ydata1[:n0]) / Sref
 
         # Estimate S02 from data
-        Sref = dc.signal_ss(self.R11, 1, self.TR, self.FA)
+        Sref = dc.signal_ss(self._R11, 1, self._TR, self._FA)
         self.pars[-1] = np.mean(ydata2[:n0]) / Sref
 
         xdata = np.concatenate((xdata1, xdata2))
         ydata = np.concatenate((ydata1, ydata2))
         super().train(xdata, ydata, **kwargs)
 
-    def pars0(self, settings='default'):
-        if settings == 'default':
+    def pars0(self, settings=None):
+        if settings == None:
             return np.array([30, 0.85, 0.3, 20/6000, 20/6000, 30*60, 30*60, 1, 1])
         else:
             return np.zeros(9)
 
-    def bounds(self, settings='default'):
-        if settings == 'default':
+    def bounds(self, settings=None):
+        if settings == None:
             ub = [60, 1, 0.6, np.inf, np.inf, 10*60*60, 10*60*60, np.inf, np.inf]
             lb = [0, 0, 0.01, 0, 0, 10*60, 10*60, 0, 0]
         else: 
@@ -378,21 +415,13 @@ class LiverPCCNS(dc.Model):
             pars[7][2:] = [pars[7][2]*6000, 'mL/min/100mL']
             pars[8][2:] = [pars[8][2]/60, 'min']
             
-        if self.vol is None:
+        if self._vol is None:
             return pars
         
         pars += [
-            ['CL', 'Liver blood clearance', k_he_avr*self.vol, 'mL/sec'],
+            ['CL', 'Liver blood clearance', k_he_avr*self._vol, 'mL/sec'],
         ]
         if units=='custom': 
             pars[9][2:] = [pars[9][2]*60, 'mL/min']
 
         return pars
-    
-    def aif_conc(self):
-        """Reconstructed plasma concentrations in the arterial input.
-
-        Returns:
-            np.ndarray: Concentrations in M.
-        """
-        return self._ca

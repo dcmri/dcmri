@@ -13,19 +13,9 @@
 
    .. autosummary::
    
-      ~LiverPCCNS.FA
-      ~LiverPCCNS.Hct
-      ~LiverPCCNS.R10
-      ~LiverPCCNS.R11
-      ~LiverPCCNS.TR
-      ~LiverPCCNS.agent
-      ~LiverPCCNS.dt
-      ~LiverPCCNS.field_strength
       ~LiverPCCNS.pars
       ~LiverPCCNS.pcov
-      ~LiverPCCNS.t0
-      ~LiverPCCNS.t1
-      ~LiverPCCNS.vol
+      ~LiverPCCNS.ca
    
    
 
@@ -36,8 +26,8 @@
 
    .. autosummary::
    
-      ~LiverPCCNS.aif_conc
       ~LiverPCCNS.bounds
+      ~LiverPCCNS.conc
       ~LiverPCCNS.cost
       ~LiverPCCNS.pars0
       ~LiverPCCNS.pdep

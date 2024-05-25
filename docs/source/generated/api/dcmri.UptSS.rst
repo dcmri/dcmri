@@ -13,17 +13,9 @@
 
    .. autosummary::
    
-      ~UptSS.FA
-      ~UptSS.Hct
-      ~UptSS.R10
-      ~UptSS.R10b
-      ~UptSS.TR
-      ~UptSS.agent
-      ~UptSS.dt
-      ~UptSS.field_strength
       ~UptSS.pars
       ~UptSS.pcov
-      ~UptSS.t0
+      ~UptSS.ca
    
    
 
@@ -34,8 +26,8 @@
 
    .. autosummary::
    
-      ~UptSS.aif_conc
       ~UptSS.bounds
+      ~UptSS.conc
       ~UptSS.cost
       ~UptSS.pars0
       ~UptSS.pdep

@@ -13,18 +13,9 @@
 
    .. autosummary::
    
-      ~TwoCompUptSS.FA
-      ~TwoCompUptSS.Hct
-      ~TwoCompUptSS.R10
-      ~TwoCompUptSS.R10b
-      ~TwoCompUptSS.TR
-      ~TwoCompUptSS.agent
-      ~TwoCompUptSS.dt
-      ~TwoCompUptSS.field_strength
       ~TwoCompUptSS.pars
       ~TwoCompUptSS.pcov
-      ~TwoCompUptSS.t0
-      ~TwoCompUptSS.water_exchange
+      ~TwoCompUptSS.ca
    
    
 
@@ -35,8 +26,8 @@
 
    .. autosummary::
    
-      ~TwoCompUptSS.aif_conc
       ~TwoCompUptSS.bounds
+      ~TwoCompUptSS.conc
       ~TwoCompUptSS.cost
       ~TwoCompUptSS.pars0
       ~TwoCompUptSS.pdep

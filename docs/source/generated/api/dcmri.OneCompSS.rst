@@ -13,18 +13,9 @@
 
    .. autosummary::
    
-      ~OneCompSS.FA
-      ~OneCompSS.Hct
-      ~OneCompSS.R10
-      ~OneCompSS.R10b
-      ~OneCompSS.TR
-      ~OneCompSS.agent
-      ~OneCompSS.dt
-      ~OneCompSS.field_strength
       ~OneCompSS.pars
       ~OneCompSS.pcov
-      ~OneCompSS.t0
-      ~OneCompSS.water_exchange
+      ~OneCompSS.ca
    
    
 
@@ -35,8 +26,8 @@
 
    .. autosummary::
    
-      ~OneCompSS.aif_conc
       ~OneCompSS.bounds
+      ~OneCompSS.conc
       ~OneCompSS.cost
       ~OneCompSS.pars0
       ~OneCompSS.pdep

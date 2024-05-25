@@ -13,17 +13,9 @@
 
    .. autosummary::
    
-      ~PatlakWXSS.FA
-      ~PatlakWXSS.Hct
-      ~PatlakWXSS.R10
-      ~PatlakWXSS.R10b
-      ~PatlakWXSS.TR
-      ~PatlakWXSS.agent
-      ~PatlakWXSS.dt
-      ~PatlakWXSS.field_strength
       ~PatlakWXSS.pars
       ~PatlakWXSS.pcov
-      ~PatlakWXSS.t0
+      ~PatlakWXSS.ca
    
    
 
@@ -34,8 +26,8 @@
 
    .. autosummary::
    
-      ~PatlakWXSS.aif_conc
       ~PatlakWXSS.bounds
+      ~PatlakWXSS.conc
       ~PatlakWXSS.cost
       ~PatlakWXSS.pars0
       ~PatlakWXSS.pdep

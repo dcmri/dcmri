@@ -13,17 +13,8 @@
 
    .. autosummary::
    
-      ~AortaCh2CSRC.R10
-      ~AortaCh2CSRC.TC
-      ~AortaCh2CSRC.agent
-      ~AortaCh2CSRC.dose
-      ~AortaCh2CSRC.dose_tolerance
-      ~AortaCh2CSRC.dt
-      ~AortaCh2CSRC.field_strength
       ~AortaCh2CSRC.pars
       ~AortaCh2CSRC.pcov
-      ~AortaCh2CSRC.rate
-      ~AortaCh2CSRC.weight
    
    
 
@@ -35,6 +26,7 @@
    .. autosummary::
    
       ~AortaCh2CSRC.bounds
+      ~AortaCh2CSRC.conc
       ~AortaCh2CSRC.cost
       ~AortaCh2CSRC.pars0
       ~AortaCh2CSRC.pdep
