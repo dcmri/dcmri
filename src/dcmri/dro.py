@@ -193,9 +193,9 @@ def make_tissue_2cm_2ss(
     Returns: 
         tuple: time, aif, roi, gt
 
-        - **time**: array of time points.
-        - **aif**: array of AIF signals.
-        - **roi**: array of ROI signals.
+        - **time**: tuple with two arrays of time points.
+        - **aif**: tuple with tow arrays of AIF signals.
+        - **roi**: tuple with two arrays of ROI signals.
         - **gt**: dictionary with ground truth values for concentrations and tissue parameters.
     """
     # Simulate relaxation rates over the full time range
@@ -228,9 +228,9 @@ def make_tissue_2cm_2ss(
     roi2 = dc.add_noise(roi2, sdev)
 
     # Build return values
-    time = np.concatenate((time1, time2))
-    aif = np.concatenate((aif1, aif2))
-    roi = np.concatenate((roi1, roi2))
+    time = (time1, time2)
+    aif = (aif1, aif2)
+    roi = (roi1, roi2)
     gt = {'t':t, 'cp':cp, 'C':C, 'cb':cp*(1-Hct),
           'Fp':Fp, 'vp':vp, 'PS':PS, 've':ve, 
           'TR':TR, 'FA':FA, 'S01':S01, 'S02':S02}
@@ -298,8 +298,7 @@ def make_kidney_cm_sr(
 
         - **time**: array of time points.
         - **aif**: array of AIF signals.
-        - **roic**: array of cortex signals.
-        - **roim**: array of medulla signals.
+        - **roi**: tuple with arrays of cortex and medulla signals.
         - **gt**: dictionary with ground truth values for concentrations.
     """
     t = np.arange(0, tacq+dt, dt_sim)
@@ -322,6 +321,6 @@ def make_kidney_cm_sr(
     roic = dc.add_noise(roic, sdev)
     roim = dc.add_noise(roim, sdev)
     gt = {'t':t, 'cp':cp, 'Cc':Cc, 'Cm':Cm, 'cb':cp*(1-Hct)}
-    return time, aif, roic, roim, gt
+    return time, aif, (roic, roim), gt
 
 

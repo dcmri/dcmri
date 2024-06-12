@@ -10,6 +10,7 @@ version = "0.6.4"
 dependencies = [
   'numpy',
   'scipy',
+  'matplotlib',
 ]
 # optional information
 description = "A python toolbox for dynamic contrast MRI"

@@ -54,22 +54,26 @@ def conc_t2w(S, TE:float, r2=0.5, n0=1)->np.ndarray:
     C = -np.log(S/Sb)/TE/r2
     return C
 
-
-def signal_ss(R1, S0, TR, FA)->np.ndarray:
+def signal_ss(R1, S0, TR, FA, R10=None)->np.ndarray:
     """Signal of a spoiled gradient echo sequence applied in steady state.
 
     Args:
         R1 (array-like): Longitudinal relaxation rate in 1/sec.
         S0 (float): Signal scaling factor (arbitrary units).
-        TR (array-like): Repetition time, or time between successive selective excitations, in sec. If TR is an array, it must have the same size as R1.
-        FA (array-like): Flip angle in degrees.
+        TR (float): Repetition time, or time between successive selective excitations, in sec. 
+        FA (float): Flip angle in degrees.
+        R10 (float, optional): R1-value where S0 is defined. If not provided, S0 is the scaling factor corresponding to infinite R10. Defaults to None.
 
     Returns:
         np.ndarray: Signal in arbitrary units.
     """
-    E = np.exp(-np.multiply(TR,R1))
+    if R10 is None:
+        Sinf = S0
+    else:
+        Sinf = S0/signal_ss(R10, 1, TR, FA)
+    E = np.exp(-TR*R1)
     cFA = np.cos(FA*np.pi/180)
-    return S0 * (1-E) / (1-cFA*E)
+    return Sinf * (1-E) / (1-cFA*E)
 
 
 def conc_ss(S, TR:float, FA:float, T10:float, r1=0.005, n0=1)->np.ndarray:
@@ -251,7 +255,7 @@ def signal_ss_iex(PS, v, R1, S0, TR, FA):
     return Mag
 
 
-def signal_sr(R1, S0:float, TR:float, FA:float, TC:float, TP=0.0)->np.ndarray:
+def signal_sr(R1, S0:float, TR:float, FA:float, TC:float, TP=0.0, R10=None)->np.ndarray:
     """Signal model for a saturation-recovery sequence with a FLASH readout.
 
     Args:
@@ -268,6 +272,10 @@ def signal_sr(R1, S0:float, TR:float, FA:float, TC:float, TP=0.0)->np.ndarray:
     Returns:
         np.ndarray: Signal in arbitrary units, of the same length as R1.
     """
+    if R10 is None:
+        Sinf = S0
+    else:
+        Sinf = S0/signal_sr(R10, 1, TR, FA, TC, TP)
     if TP > TC:
         msg = 'Incorrect sequence parameters.'
         msg += 'Tsat must be smaller than TC.'
@@ -279,8 +287,8 @@ def signal_sr(R1, S0:float, TR:float, FA:float, TC:float, TP=0.0)->np.ndarray:
     E_sat = np.exp(-TP*R1)
     E_center = np.exp(-(TC-TP)/T1_app)
 
-    S_sat = S0 * (1-E_sat)
-    S_ss = S0 * (1-ER)/(1-cFA*ER)
+    S_sat = Sinf * (1-E_sat)
+    S_ss = Sinf * (1-ER)/(1-cFA*ER)
 
     return S_ss*(1-E_center) + S_sat*E_center
 
@@ -310,7 +318,7 @@ def signal_er(R1, S0:float, TR:float, FA:float, TC:float)->np.ndarray:
     return S_ss*(1-EI) + S0*EI
 
 
-def signal_src(R1, S0, TC):
+def signal_src(R1, S0, TC, R10=None):
     """Signal model for a saturation-recovery with a center-encoded readout.
 
     This can also be used with other encoding schemens whenever the effect of the readout pulses can be ignored, such as for fast flowing magnetization in arterial blood.
@@ -323,8 +331,13 @@ def signal_src(R1, S0, TC):
     Returns:
         np.ndarray: Signal in arbitrary units, of the same length as R1.
     """
+    if R10 is None:
+        Sinf = S0
+    else:
+        Sinf = S0/signal_src(R10, 1, TC)
     E = np.exp(-TC*R1)
-    return S0 * (1-E)
+    return Sinf * (1-E)
+
 
 def conc_src(S, TC:float, T10:float, r1=0.005, n0=1)->np.ndarray:
     """Concentration of a saturation-recovery sequence with a center-encoded readout.

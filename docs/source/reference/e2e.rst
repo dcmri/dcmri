@@ -56,31 +56,15 @@ Tissue models that allow for any intermediate level of water exchange.
 Aorta models
 ============
 
-Whole-body models for arterial signals.
-
-Steady-state sequence
----------------------
+Whole-body models for arterial signals
 
 .. autosummary::
    :toctree: ../generated/api/
    :template: custom-class-template.rst
    :recursive:
 
-   AortaChCSS
-   AortaCh2CSS
-   AortaCh2C2SS
-
-
-Saturation-recovery sequence
-----------------------------
-
-.. autosummary::
-   :toctree: ../generated/api/
-   :template: custom-class-template.rst
-   :recursive:
-
-   AortaCh2CSRC
-
+   Aorta
+   Aorta2scan
 
 
 Kidney models

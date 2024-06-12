@@ -57,8 +57,8 @@ def influx_step(t:np.ndarray, weight:float, conc:float, dose:float, rate:float, 
     # Build flux 
     Jmax = conc*rate                # mmol/sec = (mmol/ml) * (ml/sec)
     J = np.zeros(t.size)
-    J[(t0 < t) & (t < t0 + duration)] = Jmax
-    return J
+    J[(0 < t) & (t < duration)] = Jmax
+    return np.interp(t-t0, t, J, left=0)
 
 
 def ca_conc(agent:str)->float:

@@ -1,208 +1,8 @@
 import numpy as np
 import dcmri as dc
 
-class AortaChCSS(dc.Model):
-    """Whole-body aorta model acquired with a spoiled gradient echo sequence in steady-state - suitable for rapidly sampled data with shorter acquisition times.
 
-    The model is intended for use in data where the acquisition time is sufficiently short so that backflux of indicator that has leaked out of the vasculature is negligible. It represents the body as a leaky loop with a heart-lung system and an organ system. The heart-lung system is modelled as a chain (`flux_chain`) and the organs are modelled as a leaky compartment (`flux_comp`) without backflux of filtered indicator. Bolus injection into the system is modelled as a step function.
-
-        The free model parameters are:
-
-        - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
-        - **BAT** (Bolus arrival time, sec): time point where the indicator first arrives in the body. 
-        - **CO** (Cardiac output, mL/sec): Blood flow through the loop.
-        - **Thl** (Heart-lung mean transit time, sec): average time to travel through heart and lungs.
-        - **Dhl** (Heart-lung transit time dispersion): the transit time through the heart-lung compartment as a fraction of the total transit time through the heart-lung system.
-        - **To** (Organs mean blood transit time, sec): average time to travel through the organ's vasculature.
-        - **Eb** (Extraction fraction): fraction of indicator extracted from the vasculature in a single pass. 
-
-    Args:
-        pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        dt (float, optional): Sampling interval of the AIF in sec. 
-        dose_tolerance (float, optional): Stopping criterion in the forward simulation of the arterial fluxes.
-        weight (float, optional): Subject weight in kg.
-        agent (str, optional): Contrast agent generic name.
-        dose (float, optional): Injected contrast agent dose in mL per kg bodyweight.
-        rate (float, optional): Contrast agent injection rate in mL per sec.
-        field_strength (float, optional): Magnetic field strength in T. 
-        TR (float, optional): Repetition time, or time between excitation pulses, in sec. 
-        FA (float, optional): Nominal flip angle in degrees.
-        R10 (float, optional): Precontrast tissue relaxation rate in 1/sec. 
-
-
-    See Also:
-        `AortaCh2CSS`
-
-    Example:
-
-        Use the model to reconstruct concentrations from experimentally derived signals.
-
-    .. plot::
-        :include-source:
-        :context: close-figs
-    
-        >>> import matplotlib.pyplot as plt
-        >>> import dcmri as dc
-
-        Use `make_tissue_2cm_ss` to generate synthetic test data from experimentally-derived concentrations:
-
-        >>> time, aif, _, gt = dc.make_tissue_2cm_ss()
-        
-        Build an aorta model and set weight, contrast agent, dose and rate to match the conditions of the original experiment (`Parker et al 2006 <https://doi.org/10.1002/mrm.21066>`_):
-
-        >>> aorta = dc.AortaChCSS(
-        ...     weight = 70,
-        ...     agent = 'gadodiamide',
-        ...     dose = 0.2,
-        ...     rate = 3,
-        ...     field_strength = 3.0,
-        ...     TR = 0.005,
-        ...     FA = 20,
-        ...     R10 = 1/dc.T1(3.0,'blood'),
-        ... )
-
-        Predict data with default parameters, train the model on the data, and predict data again:
-
-        >>> aif0 = aorta.predict(time)
-        >>> cb0 = aorta.conc(gt['t'])
-        >>> aorta.train(time, aif)
-        >>> aif1 = aorta.predict(time)
-        >>> cb1 = aorta.conc(gt['t'])
-
-        Plot the reconstructed signals and concentrations and compare against the experimentally derived data:
-
-        >>> fig, (ax0, ax1) = plt.subplots(1,2,figsize=(12,5))
-        >>> # 
-        >>> ax0.set_title('Prediction of the MRI signals.')
-        >>> ax0.plot(time/60, aif, 'ro', label='Measurement')
-        >>> ax0.plot(time/60, aif0, 'b--', label='Prediction (before training)')
-        >>> ax0.plot(time/60, aif1, 'b-', label='Prediction (after training)')
-        >>> ax0.set_xlabel('Time (min)')
-        >>> ax0.set_ylabel('MRI signal (a.u.)')
-        >>> ax0.legend()
-        >>> # 
-        >>> ax1.set_title('Prediction of the concentrations.')
-        >>> ax1.plot(gt['t']/60, 1000*gt['cb'], 'ro', label='Measurement')
-        >>> ax1.plot(gt['t']/60, 1000*cb0, 'b--', label='Prediction (before training)')
-        >>> ax1.plot(gt['t']/60, 1000*cb1, 'b-', label='Prediction (after training)')
-        >>> ax1.set_ylim(0,5)
-        >>> ax1.set_xlabel('Time (min)')
-        >>> ax1.set_ylabel('Blood concentration (mM)')
-        >>> ax1.legend()
-        >>> plt.show()
-
-        We can also have a look at the model parameters after training:
-
-        >>> aorta.print(round_to=3, units='custom')
-        -----------------------------------------
-        Free parameters with their errors (stdev)
-        -----------------------------------------
-        Signal scale factor (S0): 114.382 (7.039) au
-        Bolus arrival time (BAT): 22.319 (0.0) sec
-        Cardiac output (CO): 17.929 (33.159) L/min
-        Heart-lung mean transit time (Thl): 6.508 (0.138) sec
-        Heart-lung transit time dispersion (Dhl): 33.773 (0.018) %
-        Organs mean transit time (To): 37.56 (1.729) sec
-        Extraction fraction (E): 12.017 (0.01) %
-
-        *Note*: while the model fits the synthetic MRI signals well, the concentrations show some mismatch. The parameter values all have relatively small error and realistic values, except that the cardiac output is high for a typical adult in rest. This is a known property of the experimentally derived AIF used in this example (`Yang et al. 2009 <https://doi.org/10.1002/mrm.21912>`_).
-    """      
-    def __init__(self,   
-            pars = None,
-            dt = 0.5,                
-            dose_tolerance = 0.1,    
-            weight = 70.0,           
-            agent = 'gadoterate',    
-            dose = 0.025, 
-            rate = 1,   
-            field_strength = 3.0, 
-            TR = 0.005, 
-            FA = 15.0, 
-            R10 = 1.0, 
-        ):
-        self.pars = self.pars0(pars)
-        self.dose_tolerance = dose_tolerance
-        self.weight = weight
-        self.agent = agent
-        self.dose = dose
-        self.rate = rate
-        self.dt = dt
-        self.TR = TR
-        self.FA = FA
-        self.R10 = R10
-        self.rp = dc.relaxivity(field_strength, 'plasma', agent)
-
-    def _forward_model(self, xdata, return_conc=False) ->np.ndarray:
-        S0, BAT, CO, Thl, Dhl, To, Eb = self.pars
-        t = np.arange(0, max(xdata)+xdata[1]+self.dt, self.dt)
-        cb = self.conc(t)
-        R1 = self.R10 + self.rp*cb
-        signal = dc.signal_ss(R1, S0, self.TR, self.FA)
-        return dc.sample(xdata, t, signal, xdata[2]-xdata[1])
-    
-    def conc(self, t):
-        """Aorta blood concentration
-
-        Args:
-            t (array-like): Time points of the concentration (sec)
-
-        Returns:
-            numpy.ndarray: Concentration in M
-        """
-        S0, BAT, CO, Thl, Dhl, To, Eb = self.pars
-        conc = dc.ca_conc(self.agent)
-        Ji = dc.influx_step(t, self.weight, conc, self.dose, self.rate, BAT) 
-        _, Jb = dc.body_flux_chc(Ji, Thl, Dhl, To, Eb, 
-                dt=self.dt, tol=self.dose_tolerance)
-        return Jb/CO 
-
-    def pars0(self, settings=None):
-        if settings == None:
-            return np.array([1, 60, 100, 10, 0.2, 20, 0.05])
-        else:
-            return np.array([1, 30, 100, 10, 0.2, 20, 0.05])
-
-    def bounds(self, settings=None):
-        if settings == None:
-            ub = [np.inf, np.inf, np.inf, 30, 0.95, 60, 0.15]
-            lb = [0, 0, 0, 0, 0.05, 0, 0.01]
-        else:
-            ub = [np.inf, np.inf, np.inf, np.inf, 1.0, np.inf, 1.0]
-            lb = 0
-        return (lb, ub)
-
-    def train(self, xdata, ydata, **kwargs):
-
-        # Estimate BAT from data
-        T, D = self.pars[3], self.pars[4]
-        BAT = xdata[np.argmax(ydata)] - (1-D)*T
-        self.pars[1] = BAT
-
-        # Estimate S0 from data
-        baseline = xdata[xdata <= BAT-20].size
-        baseline = max([baseline, 1])
-        Sref = dc.signal_ss(self.R10, 1, self.TR, self.FA)
-        self.pars[0] = np.mean(ydata[:baseline]) / Sref
-        super().train(xdata, ydata, **kwargs)
-
-    def pfree(self, units='standard'):
-        pars = [
-            ['S0', 'Signal scale factor', self.pars[0], "au"],
-            ['BAT', 'Bolus arrival time', self.pars[1], "sec"], 
-            ['CO', 'Cardiac output', self.pars[2], "mL/sec"], 
-            ['Thl', 'Heart-lung mean transit time', self.pars[3], "sec"],
-            ['Dhl', 'Heart-lung transit time dispersion', self.pars[4], ""],
-            ['To', "Organs mean transit time", self.pars[5], "sec"],
-            ['Eb', "Extraction fraction", self.pars[6], ""],
-        ]
-        if units == 'custom':
-            pars[2][2:] = [self.pars[2]*60/1000, 'L/min']
-            pars[4][2:] = [self.pars[4]*100, '%']
-            pars[6][2:] = [self.pars[6]*100, '%']
-        return pars
-
-    
-class AortaCh2CSS(AortaChCSS):
+class Aorta(dc.Model):
     """Whole-body aorta model acquired with a spoiled gradient echo sequence in steady-state - suitable for slowly sampled data with longer acquisition times.
 
     The model represents the body as a leaky loop with a heart-lung system and an organ system. The heart-lung system is modelled as a chain compartment (`flux_chain`) and the organs are modelled as a two-compartment exchange model (`flux_2comp`). Bolus injection into the system is modelled as a step function.
@@ -221,7 +21,7 @@ class AortaCh2CSS(AortaChCSS):
 
     Args:
         pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        dt (float, optional): Sampling interval of the AIF in sec. 
+        dt (float, optional): Internal time resolution of the AIF in sec. 
         dose_tolerance (float, optional): Stopping criterion in the forward simulation of the arterial fluxes.
         weight (float, optional): Subject weight in kg.
         agent (str, optional): Contrast agent generic name.
@@ -266,10 +66,10 @@ class AortaCh2CSS(AortaChCSS):
         Predict concentrations with default parameters, train the model on the data, and predict concentrations again:
 
         >>> aif0 = aorta.predict(time)
-        >>> cb0 = aorta.conc(gt['t'])
+        >>> t0, cb0 = aorta.conc()
         >>> aorta.train(time, aif)
         >>> aif1 = aorta.predict(time)
-        >>> cb1 = aorta.conc(gt['t'])
+        >>> t1, cb1 = aorta.conc()
 
         Plot the reconstructed signals and concentrations and compare against the experimentally derived data:
 
@@ -285,8 +85,8 @@ class AortaCh2CSS(AortaChCSS):
         >>> # 
         >>> ax1.set_title('Prediction of the concentrations.')
         >>> ax1.plot(gt['t']/60, 1000*gt['cb'], 'ro', label='Measurement')
-        >>> ax1.plot(gt['t']/60, 1000*cb0, 'b--', label='Prediction (before training)')
-        >>> ax1.plot(gt['t']/60, 1000*cb1, 'b-', label='Prediction (after training)')
+        >>> ax1.plot(t0/60, 1000*cb0, 'b--', label='Prediction (before training)')
+        >>> ax1.plot(t1/60, 1000*cb1, 'b-', label='Prediction (after training)')
         >>> ax1.set_ylim(0,5)
         >>> ax1.set_xlabel('Time (min)')
         >>> ax1.set_ylabel('Blood concentration (mM)')
@@ -295,7 +95,7 @@ class AortaCh2CSS(AortaChCSS):
 
         We can also have a look at the model parameters after training:
 
-        >>> aorta.print(round_to=3, units='custom')
+        >>> aorta.print(round_to=3)
         -----------------------------------------
         Free parameters with their errors (stdev)
         -----------------------------------------
@@ -314,18 +114,44 @@ class AortaCh2CSS(AortaChCSS):
         Mean circulation time (Tc): 35.753 sec
 
         *Note*: The extracellular mean transit time has a high error, indicating that the acquisition time here is insufficient to resolve the transit through the leakage space.
-
     """         
 
-    def _forward_model(self, xdata)->np.ndarray:
-        S0, BAT, CO, Thl, Dhl, To, Eb, Eo, Te = self.pars
-        t = np.arange(0, max(xdata)+xdata[1]+self.dt, self.dt)
-        cb = self.conc(t)
-        R1 = self.R10 + self.rp*cb
-        signal = dc.signal_ss(R1, S0, self.TR, self.FA)
-        return dc.sample(xdata, t, signal, xdata[2]-xdata[1])
-    
-    def conc(self, t):
+    def __init__(self, **attr):
+        self.dt = 0.5   
+        self.tmax = 120             
+        self.dose_tolerance = 0.1   
+        self.weight = 70.0          
+        self.agent = 'gadoterate'   
+        self.dose = dc.ca_std_dose('gadoterate') 
+        self.rate = 1  
+        self.field_strength = 3.0
+        self.R10 = 1/dc.T1(3.0, 'blood') 
+        self.t0 = 0
+
+        self.TR = 0.005 
+        self.FA = 15.0 
+        self.TC = 0.180
+
+        self.S0 = 1
+        self.BAT = 60.0
+        self.CO = 100
+        self.Thl = 10
+        self.Dhl = 0.2
+        self.To = 20
+        self.Eb = 0.05
+        self.Eo = 0.15
+        self.Te = 120
+
+        self.signal = 'SS'
+        self.organs = '2cxm'
+        self.free = ['BAT','CO','Thl','Dhl','To','Eb','Eo','Te']
+        self.bounds = [
+                [0, 0, 0, 0.05, 0, 0.01, 0, 0],
+                [np.inf, np.inf, 30, 0.95, 60, 0.15, 0.5, 800],
+            ]
+        dc.init(self, **attr)
+
+    def conc(self):
         """Aorta blood concentration
 
         Args:
@@ -334,215 +160,21 @@ class AortaCh2CSS(AortaChCSS):
         Returns:
             numpy.ndarray: Concentration in M
         """
-        S0, BAT, CO, Thl, Dhl, To, Eb, Eo, Te = self.pars
+        if self.organs == 'comp':
+            organs = ['comp', self.To]
+        else:
+            organs = ['2cxm', (self.To, self.Te, self.Eo)]
+        t = np.arange(0, self.tmax, self.dt)
         conc = dc.ca_conc(self.agent)
-        Ji = dc.influx_step(t, self.weight, conc, self.dose, self.rate, BAT) 
-        _, Jb = dc.body_flux_ch2c(Ji, 
-                Thl, Dhl, Eo, To, Te, Eb, 
-                dt=self.dt, tol=self.dose_tolerance)
-        return Jb/CO 
+        Ji = dc.influx_step(t, self.weight, 
+                conc, self.dose, self.rate, self.BAT) 
+        Jb = dc.flux_aorta(Ji, E=self.Eb,
+            heartlung = ['pfcomp', (self.Thl, self.Dhl)],
+            organs=organs, dt=self.dt, tol=self.dose_tolerance)
+        return t, Jb/self.CO
     
-    def pars0(self, settings=None):
-        # S0, BAT, CO, Thl, Dhl, To, Eb, Eo, Te
-        if settings == None:
-            return np.array([1, 60, 100, 10, 0.2, 20, 0.05, 0.15, 120])
-        else:
-            return np.array([1, 30, 100, 10, 0.2, 20, 0.05, 0.15, 120])
-        
-    def bounds(self, settings=None):
-        # S0, BAT, CO, Thl, Dhl, To, Eb, Eo, Te
-        if settings == None:
-            ub = [np.inf, np.inf, np.inf, 30, 0.95, 60, 0.15, 0.5, 800]
-            lb = [0, 0, 0, 0, 0.05, 0, 0.01, 0, 0]
-        else:
-            ub = [np.inf, np.inf, np.inf, np.inf, 1.0, np.inf, 1.0, 1.0, np.inf]
-            lb = 0
-        return (lb, ub)
-
-    def train(self, xdata, ydata, **kwargs):
-
-        # Estimate BAT from data
-        T, D = self.pars[3], self.pars[4]
-        BAT = xdata[np.argmax(ydata)] - (1-D)*T
-        self.pars[1] = BAT
-
-        # Estimate S0 from data
-        baseline = xdata[xdata <= BAT-20].size
-        baseline = max([baseline, 1])
-        Sref = dc.signal_ss(self.R10, 1, self.TR, self.FA)
-        self.pars[0] = np.mean(ydata[:baseline]) / Sref
-
-        super().train(xdata, ydata, **kwargs)
-
-    def pfree(self, units='standard'):
-        pars = [
-            ['S0', 'Signal scale factor', self.pars[0], "au"],
-            ['BAT', 'Bolus arrival time', self.pars[1], "sec"], 
-            ['CO', 'Cardiac output', self.pars[2], "mL/sec"], 
-            ['Thl', 'Heart-lung mean transit time', self.pars[3], "sec"],
-            ['Dhl', 'Heart-lung transit time dispersion', self.pars[4], ""],
-            ['To', "Organs mean transit time", self.pars[5], "sec"],
-            ['Eb', "Body extraction fraction", self.pars[6], ""],
-            ['Eo', "Organs extraction fraction", self.pars[7], ""],
-            ['Te', "Extracellular mean transit time", self.pars[8], "sec"],
-        ]
-        if units == 'custom':
-            pars[2][2:] = [self.pars[2]*60/1000, 'L/min']
-            pars[4][2:] = [self.pars[4]*100, '%']
-            pars[6][2:] = [self.pars[6]*100, '%']
-            pars[7][2:] = [self.pars[7]*100, '%']
-        return pars
-    
-    def pdep(self, units='standard'):
-        return [
-            ['Tc', "Mean circulation time", self.pars[3]+self.pars[5], 'sec'],
-        ]
-    
-
-class AortaCh2CSRC(dc.Model):
-    """Whole-body aorta model acquired with a saturation-recovery sequence - suitable for slowly sampled data with longer acquisition times.
-
-    The model represents the body as a leaky loop with a heart-lung system and an organ system. The heart-lung system is modelled as a chain compartment (`flux_chain`) and the organs are modelled as a two-compartment exchange model (`flux_2comp`). Bolus injection into the system is modelled as a step function.
-    
-        The free model parameters are:
-
-        - **S0** (Signal scaling factor, a.u.): scale factor for the MR signal.
-        - **BAT** (Bolus arrival time, sec): time point where the indicator first arrives in the body. 
-        - **CO** (Cardiac output, mL/sec): Blood flow through the body.
-        - **Thl** (Heart-lung mean transit time, sec): average time to travel through heart and lungs.
-        - **Dhl** (Heart-lung transit time dispersion): Dispersion through the heart-lung system, with a value in the range [0,1].
-        - **To** (Organs mean blood transit time, sec): average time to travel through the organ's vasculature.
-        - **Eb** (Extraction fraction): fraction of indicator extracted from the vasculature in a single pass. 
-        - **Eo** (Organs extraction fraction): Fraction of indicator entering the organs which is extracted from the blood pool.
-        - **Te** (Extravascular mean transit time, sec): average time to travel through the organs extravascular space.
-
-    Args:
-        pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        dt (float, optional): Sampling interval of the AIF in sec. 
-        dose_tolerance (float, optional): Stopping criterion in the forward simulation of the arterial fluxes.
-        weight (float, optional): Subject weight in kg.
-        agent (str, optional): Contrast agent generic name.
-        dose (float, optional): Injected contrast agent dose in mL per kg bodyweight.
-        rate (float, optional): Contrast agent injection rate in mL per sec.
-        field_strength (float, optional): Magnetic field strength in T. 
-        TC (float, optional): Time to the center of k-space, in sec. 
-        R10 (float, optional): Precontrast tissue relaxation rate in 1/sec. 
-
-
-    See Also:
-        `AortaChCSS`, `AortaCh2CSS`, `AortaCh2C2SS`
-
-    Example:
-
-        Use the model to reconstruct concentrations from experimentally derived signals.
-
-    .. plot::
-        :include-source:
-        :context: close-figs
-    
-        >>> import matplotlib.pyplot as plt
-        >>> import dcmri as dc
-
-        Use `make_tissue_2cm_sr` to generate synthetic test data from experimentally-derived concentrations:
-
-        >>> time, aif, _, gt = dc.make_tissue_2cm_sr()
-        
-        Build an aorta model and set weight, contrast agent, dose and rate to match the conditions of the original experiment (`Parker et al 2006 <https://doi.org/10.1002/mrm.21066>`_):
-
-        >>> aorta = dc.AortaCh2CSRC(
-        ...     weight = 70,
-        ...     agent = 'gadodiamide',
-        ...     dose = 0.2,
-        ...     rate = 3,
-        ...     field_strength = 3.0,
-        ...     TC = 0.180,
-        ...     R10 = 1/dc.T1(3.0,'blood'),
-        ... )
-
-        Predict concentrations with default parameters, train the model on the data, and predict concentrations again:
-
-        >>> aif0 = aorta.predict(time)
-        >>> cb0 = aorta.conc(gt['t'])
-        >>> aorta.train(time, aif)
-        >>> aif1 = aorta.predict(time)
-        >>> cb1 = aorta.conc(gt['t'])
-
-        Plot the reconstructed signals and concentrations and compare against the experimentally derived data:
-
-        >>> fig, (ax0, ax1) = plt.subplots(1,2,figsize=(12,5))
-        >>> # 
-        >>> ax0.set_title('Prediction of the MRI signals.')
-        >>> ax0.plot(time/60, aif, 'ro', label='Measurement')
-        >>> ax0.plot(time/60, aif0, 'b--', label='Prediction (before training)')
-        >>> ax0.plot(time/60, aif1, 'b-', label='Prediction (after training)')
-        >>> ax0.set_xlabel('Time (min)')
-        >>> ax0.set_ylabel('MRI signal (a.u.)')
-        >>> ax0.legend()
-        >>> # 
-        >>> ax1.set_title('Prediction of the concentrations.')
-        >>> ax1.plot(gt['t']/60, 1000*gt['cb'], 'ro', label='Measurement')
-        >>> ax1.plot(gt['t']/60, 1000*cb0, 'b--', label='Prediction (before training)')
-        >>> ax1.plot(gt['t']/60, 1000*cb1, 'b-', label='Prediction (after training)')
-        >>> ax1.set_ylim(0,5)
-        >>> ax1.set_xlabel('Time (min)')
-        >>> ax1.set_ylabel('Blood concentration (mM)')
-        >>> ax1.legend()
-        >>> plt.show()
-
-        We can also have a look at the model parameters after training:
-
-        >>> aorta.print(round_to=3, units='custom')
-        -----------------------------------------
-        Free parameters with their errors (stdev)
-        -----------------------------------------
-        Signal scale factor (S0): 263.691 (13.288) au
-        Bolus arrival time (BAT): 22.0 (0.0) sec
-        Cardiac output (CO): 27.653 (40.496) L/min
-        Heart-lung mean transit time (Thl): 7.164 (0.289) sec
-        Heart-lung transit time dispersion (Dhl): 44.786 (0.027) %
-        Organs mean transit time (To): 22.226 (5.579) sec
-        Body extraction fraction (Eb): 0.0 (0.291) %
-        Organs extraction fraction (Eo): 17.15 (0.161) %
-        Extracellular mean transit time (Te): 84.886 (282.258) sec
-        ------------------
-        Derived parameters
-        ------------------
-        Mean circulation time (Tc): 29.39 sec
-    """         
-
-    def __init__(self, 
-            pars = None,  
-            dt = 0.5,                
-            dose_tolerance = 0.1,    
-            weight = 70.0,           
-            agent = 'gadoterate',    
-            dose = 0.025, 
-            rate = 1,   
-            field_strength = 3.0, 
-            TC = 0.180, 
-            R10 = 1.0, 
-        ):
-        self.pars = self.pars0(pars)
-        self.dose_tolerance = dose_tolerance
-        self.weight = weight
-        self.agent = agent
-        self.dose = dose
-        self.rate = rate
-        self.dt = dt
-        self.TC = TC
-        self.R10 = R10
-        self.rp = dc.relaxivity(field_strength, 'plasma', agent)
-
-    def _forward_model(self, xdata) ->np.ndarray:
-        S0, BAT, CO, Thl, Dhl, To, Eb, Eo, Te = self.pars
-        t = np.arange(0, max(xdata)+xdata[1]+self.dt, self.dt)
-        cb = self.conc(t)
-        R1 = self.R10 + self.rp*cb
-        signal = dc.signal_src(R1, S0, self.TC)
-        return dc.sample(xdata, t, signal, xdata[2]-xdata[1])
-    
-    def conc(self, t):
-        """Aorta blood concentration
+    def relax(self):
+        """Aorta longitudinal relation rate
 
         Args:
             t (array-like): Time points of the concentration (sec)
@@ -550,72 +182,48 @@ class AortaCh2CSRC(dc.Model):
         Returns:
             numpy.ndarray: Concentration in M
         """
-        S0, BAT, CO, Thl, Dhl, To, Eb, Eo, Te = self.pars
-        conc = dc.ca_conc(self.agent)
-        Ji = dc.influx_step(t, self.weight, conc, self.dose, self.rate, BAT) 
-        _, Jb = dc.body_flux_ch2c(Ji, 
-                Thl, Dhl, Eo, To, Te, Eb, 
-                dt=self.dt, tol=self.dose_tolerance)
-        return Jb/CO 
+        t, cb = self.conc()
+        rp = dc.relaxivity(self.field_strength, 'plasma', self.agent)
+        return t, self.R10 + rp*cb
 
-    def pars0(self, settings=None):
-        # S0, BAT, CO, Thl, Dhl, To, Eb, Eo, Te
-        if settings == None:
-            return np.array([1, 60, 100, 10, 0.2, 20, 0.05, 0.15, 120])
+    def predict(self, xdata) -> np.ndarray:
+        self.tmax = max(xdata)+xdata[1]+self.dt
+        t, R1 = self.relax()
+        if self.signal == 'SR':
+            #signal = dc.signal_src(R1, self.S0, self.TC, R10=self.R10)
+            signal = dc.signal_src(R1, self.S0, self.TC)
         else:
-            return np.array([1, 30, 100, 10, 0.2, 20, 0.05, 0.15, 120])
-        
-    def bounds(self, settings=None):
-        # S0, BAT, CO, Thl, Dhl, To, Eb, Eo, Te
-        if settings == None:
-            ub = [np.inf, np.inf, np.inf, 30, 0.95, 60, 0.15, 0.5, 800]
-            lb = [0, 0, 0, 0, 0.05, 0, 0.01, 0, 0]
-        else:
-            ub = [np.inf, np.inf, np.inf, np.inf, 1.0, np.inf, 1.0, 1.0, np.inf]
-            lb = 0
-        return (lb, ub)
+            #signal = dc.signal_ss(R1, self.S0, self.TR, self.FA, R10=self.R10)
+            signal = dc.signal_ss(R1, self.S0, self.TR, self.FA)
+        return dc.sample(xdata, t, signal, xdata[2]-xdata[1])
 
     def train(self, xdata, ydata, **kwargs):
-
-        # Estimate BAT from data
-        T, D = self.pars[3], self.pars[4]
-        BAT = xdata[np.argmax(ydata)] - (1-D)*T
-        self.pars[1] = BAT
-
-        # Estimate S0 from data
-        baseline = xdata[xdata <= BAT-20].size
-        baseline = max([baseline, 1])
-        Sref = dc.dc.signal_src(self.R10, 1, self.TC)
-        self.pars[0] = np.mean(ydata[:baseline]) / Sref
-
-        super().train(xdata, ydata, **kwargs)
-
-    def pfree(self, units='standard'):
-        pars = [
-            ['S0', 'Signal scale factor', self.pars[0], "au"],
-            ['BAT', 'Bolus arrival time', self.pars[1], "sec"], 
-            ['CO', 'Cardiac output', self.pars[2], "mL/sec"], 
-            ['Thl', 'Heart-lung mean transit time', self.pars[3], "sec"],
-            ['Dhl', 'Heart-lung transit time dispersion', self.pars[4], ""],
-            ['To', "Organs mean transit time", self.pars[5], "sec"],
-            ['Eb', "Body extraction fraction", self.pars[6], ""],
-            ['Eo', "Organs extraction fraction", self.pars[7], ""],
-            ['Te', "Extracellular mean transit time", self.pars[8], "sec"],
-        ]
-        if units == 'custom':
-            pars[2][2:] = [self.pars[2]*60/1000, 'L/min']
-            pars[4][2:] = [self.pars[4]*100, '%']
-            pars[6][2:] = [self.pars[6]*100, '%']
-            pars[7][2:] = [self.pars[7]*100, '%']
-        return pars
+        n0 = max([np.sum(xdata<self.t0), 1])
+        self.BAT = xdata[np.argmax(ydata)] - (1-self.Dhl)*self.Thl
+        if self.signal == 'SR':
+            Sref = dc.signal_src(self.R10, 1, self.TC)
+        else:
+            Sref = dc.signal_ss(self.R10, 1, self.TR, self.FA)
+        self.S0 = np.mean(ydata[:n0]) / Sref
+        return dc.train(self, xdata, ydata, **kwargs)
     
-    def pdep(self, units='standard'):
-        return [
-            ['Tc', "Mean circulation time", self.pars[3]+self.pars[5], 'sec'],
-        ]
+    def pars(self):
+        pars = {}
+        pars['BAT']= ['Bolus arrival time', self.BAT, "sec"] 
+        pars['CO']= ['Cardiac output', self.CO, "mL/sec"]
+        pars['Thl']= ['Heart-lung mean transit time', self.Thl, "sec"]
+        pars['Dhl']= ['Heart-lung transit time dispersion', self.Dhl, ""]
+        pars['To']= ["Organs mean transit time", self.To, "sec"]
+        pars['Eb']= ["Extraction fraction", self.Eb, ""]
+        pars['Tc']= ["Mean circulation time", self.Thl+self.To, 'sec'] 
+        pars['Eo'] = ["Organs extraction fraction", self.Eo, ""]
+        pars['Te'] = ["Extracellular mean transit time", self.Te, "sec"]
+        #pars['S0'] = ["Baseline", self.S0, "au"]
+        return self.add_sdev(pars)
     
 
-class AortaCh2C2SS(dc.Model):
+
+class Aorta2scan(Aorta):
     """Whole-body aorta model acquired over 2 separate scans with a spoiled gradient echo sequence in steady-state - suitable when the tracer kinetics is so slow that data are acquired over two separate scan sessions. 
 
     The kinetic model is the same as for `AortaCh2CSS`. It represents the body as a leaky loop with a heart-lung system and an organ system. Bolus injection into the system is modelled as a step function.
@@ -636,7 +244,7 @@ class AortaCh2C2SS(dc.Model):
 
     Args:
         pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        dt (float, optional): Sampling interval of the AIF in sec. 
+        dt (float, optional): Internal time resolution of the AIF in sec. 
         dose_tolerance (float, optional): Stopping criterion in the forward simulation of the arterial fluxes.
         weight (float, optional): Subject weight in kg.
         agent (str, optional): Contrast agent generic name.
@@ -686,74 +294,46 @@ class AortaCh2C2SS(dc.Model):
         Predict concentrations with default parameters, train the model on the data, and predict concentrations again:
 
         >>> aif0 = aorta.predict(time)
-        >>> cb0 = aorta.conc(gt['t'])
-        >>> aorta.train(time, aif, pfix=[1,0,1,1]+7*[0])
+        >>> t0, cb0 = aorta.conc()
+        >>> aorta.train(time, aif)
         >>> aif1 = aorta.predict(time)
-        >>> cb1 = aorta.conc(gt['t'])
+        >>> t1, cb1 = aorta.conc()
 
         Plot the reconstructed signals and concentrations and compare against the experimentally derived data:
 
         >>> fig, (ax0, ax1) = plt.subplots(1,2,figsize=(12,5))
         >>> # 
         >>> ax0.set_title('Prediction of the MRI signals.')
-        >>> ax0.plot(time/60, aif, 'ro', label='Measurement')
-        >>> ax0.plot(time/60, aif0, 'b--', label='Prediction (before training)')
-        >>> ax0.plot(time/60, aif1, 'b-', label='Prediction (after training)')
+        >>> ax0.plot(np.concatenate(time)/60, np.concatenate(aif), 'ro', label='Measurement')
+        >>> ax0.plot(np.concatenate(time)/60, np.concatenate(aif0), 'b--', label='Prediction (before training)')
+        >>> ax0.plot(np.concatenate(time)/60, np.concatenate(aif1), aif1, 'b-', label='Prediction (after training)')
         >>> ax0.set_xlabel('Time (min)')
         >>> ax0.set_ylabel('MRI signal (a.u.)')
         >>> ax0.legend()
         >>> # 
         >>> ax1.set_title('Prediction of the concentrations.')
         >>> ax1.plot(gt['t']/60, 1000*gt['cb'], 'ro', label='Measurement')
-        >>> ax1.plot(gt['t']/60, 1000*cb0, 'b--', label='Prediction (before training)')
-        >>> ax1.plot(gt['t']/60, 1000*cb1, 'b-', label='Prediction (after training)')
+        >>> ax1.plot(t0/60, 1000*cb0, 'b--', label='Prediction (before training)')
+        >>> ax1.plot(t0/60, 1000*cb1, 'b-', label='Prediction (after training)')
         >>> ax1.set_ylim(0,5)
         >>> ax1.set_xlabel('Time (min)')
         >>> ax1.set_ylabel('Blood concentration (mM)')
         >>> ax1.legend()
         >>> plt.show()
     """  
+ 
+    def __init__(self, **attr):
+        super().__init__()
+        self.dose = [dc.ca_std_dose('gadoterate')/2, dc.ca_std_dose('gadoterate')/2] 
+        self.S02 = 1
+        self.BAT2 = 1200 
+        self.R102 = 1  
+        self.free += ['BAT2','S02']
+        self.bounds[0] += [0, 0]
+        self.bounds[1] += [np.inf, np.inf]
+        dc.init(self, **attr)
 
-    def __init__(self, 
-            pars = None,  
-            dt = 0.5,                
-            dose_tolerance = 0.1,    
-            weight = 70.0,           
-            agent = 'gadoterate',    
-            dose = [0.025, 0.025], 
-            rate = 1,   
-            field_strength = 3.0, 
-            TR = 0.005, 
-            FA = 15.0, 
-            R10 = 1.0, 
-            R11 = 1.0,
-            t1 = 1,
-        ):
-        self.pars = self.pars0(pars)
-        self.dose_tolerance = dose_tolerance
-        self.weight = weight
-        self.agent = agent
-        self.dose = dose
-        self.rate = rate
-        self.dt = dt
-        self.TR = TR
-        self.FA = FA
-        self.R10 = R10
-        self.R11 = R11
-        self.t1 = t1
-        self.rp = dc.relaxivity(field_strength, 'plasma', agent)
-
-    def _forward_model(self, xdata):
-        S01, S02, BAT1, BAT2, CO, Thl, Dhl, To, Eb, Eo, Te = self.pars
-        t = np.arange(0, max(xdata)+xdata[1]+self.dt, self.dt)
-        cb = self.conc(t)
-        R1 = self.R10 + self.rp*cb
-        signal = dc.signal_ss(R1, S01, self.TR, self.FA)
-        k = (t >= self.t1)
-        signal[k] = dc.signal_ss(R1[k], S02, self.TR, self.FA)
-        return dc.sample(xdata, t, signal, xdata[2]-xdata[1])
-    
-    def conc(self, t):
+    def conc(self):
         """Aorta blood concentration
 
         Args:
@@ -762,85 +342,60 @@ class AortaCh2C2SS(dc.Model):
         Returns:
             numpy.ndarray: Concentration in M
         """
-        S01, S02, BAT1, BAT2, CO, Thl, Dhl, To, Eb, Eo, Te = self.pars
+        if self.organs == 'comp':
+            organs = ['comp', self.To]
+        else:
+            organs = ['2cxm', (self.To, self.Te, self.Eo)]
+        t = np.arange(0, self.tmax, self.dt)
         conc = dc.ca_conc(self.agent)
-        J1 = dc.influx_step(t, self.weight, conc, self.dose[0], self.rate, BAT1)
-        J2 = dc.influx_step(t, self.weight, conc, self.dose[1], self.rate, BAT2)
-        _, Jb = dc.body_flux_ch2c(J1 + J2, 
-                Thl, Dhl, Eo, To, Te, Eb, 
-                dt=self.dt, tol=self.dose_tolerance)
-        return Jb/CO
+        J1 = dc.influx_step(t, self.weight, conc, self.dose[0], self.rate, self.BAT)
+        J2 = dc.influx_step(t, self.weight, conc, self.dose[1], self.rate, self.BAT2)
+        Jb = dc.flux_aorta(J1 + J2, E=self.Eb,
+            heartlung = ['pfcomp', (self.Thl, self.Dhl)],
+            organs=organs, dt=self.dt, tol=self.dose_tolerance)
+        return t, Jb/self.CO
+    
+    def predict(self, xdata:tuple[np.ndarray, np.ndarray]):
+        self.tmax = max(xdata[1])+xdata[0][1]+self.dt
+        t, R1 = self.relax()
 
-    def pars0(self, settings=None):
-        if settings == None:
-            return np.array([1, 1, 60, 1200, 100, 10, 0.2, 20, 0.05, 0.01, 120])
+        # predict first scan
+        t1 = t<=xdata[0][-1]
+        t2 = t>=xdata[1][0]
+        R11 = R1[t1]
+        R12 = R1[t2]
+        if self.signal == 'SR':
+            signal0 = dc.signal_src(R11, self.S0, self.TC)
+            signal1 = dc.signal_src(R12, self.S02, self.TC)
         else:
-            #S01, S02, BAT1, BAT2, CO, Thl, Dhl, To, Eb, Eo, Te 
-            return np.array([1, 1, 20, 120, 200, 10, 0.2, 20, 0.1, 0.2, 120])
+            signal0 = dc.signal_ss(R11, self.S0, self.TR, self.FA)
+            signal1 = dc.signal_ss(R12, self.S02, self.TR, self.FA)  
+        return (
+            dc.sample(xdata[0], t[t1], signal0, xdata[0][2]-xdata[0][1]),
+            dc.sample(xdata[1], t[t2], signal1, xdata[1][2]-xdata[1][1]),
+        )
 
-    def bounds(self, settings=None):
-        if settings == None:
-            ub = [np.inf, np.inf, np.inf, np.inf, np.inf, 30, 0.95, 60, 0.15, 0.5, 800]
-            lb = [0,0,0,0,0, 0, 0.05, 0, 0.01, 0, 0]
+    def train(self, 
+              xdata:tuple[np.ndarray, np.ndarray], 
+              ydata:tuple[np.ndarray, np.ndarray], **kwargs):
+
+        # Estimate BAT and S0 from data
+        T, D = self.Thl, self.Dhl
+        self.BAT = xdata[0][np.argmax(ydata[0])] - (1-D)*T
+        self.BAT2 = xdata[1][np.argmax(ydata[1])] - (1-D)*T
+        if self.signal == 'SR':
+            Sref0 = dc.signal_src(self.R10, 1, self.TC)
+            Sref1 = dc.signal_src(self.R102, 1, self.TC)
         else:
-            ub = [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, 1.0, np.inf, 1.0, 1.0, np.inf]
-            lb = 0
-        return (lb, ub)
-        
-    def train(self, xdata, ydata, pfix=None, **kwargs):
+            Sref0 = dc.signal_ss(self.R10, 1, self.TR, self.FA)
+            Sref1 = dc.signal_ss(self.R102, 1, self.TR, self.FA)
+        n0 = max([np.sum(xdata[0]<self.t0), 1])
+        self.S0 = np.mean(ydata[0][:n0]) / Sref0
+        self.S02 = np.mean(ydata[1][:n0]) / Sref1
+        return dc.train(self, xdata, ydata, **kwargs)
 
-        T, D = self.pars[5], self.pars[6]
-
-        # Estimate BAT1 and S01 from data
-        k = xdata < self.t1
-        x, y = xdata[k], ydata[k]
-        BAT1 = x[np.argmax(y)] - (1-D)*T
-        baseline = x[x <= BAT1-20]
-        baseline = max([baseline.size,1])
-        Sref = dc.signal_ss(self.R10, 1, self.TR, self.FA)
-        self.pars[0] = np.mean(y[:baseline]) / Sref
-        self.pars[2] = BAT1
-
-        # Estimate BAT2 and S02 from data
-        k = xdata > self.t1
-        x, y = xdata[k], ydata[k]
-        BAT2 = x[np.argmax(y)] - (1-D)*T
-        baseline = x[x <= BAT2-20]
-        baseline = max([baseline.size,1])
-        Sref = dc.signal_ss(self.R11, 1, self.TR, self.FA)
-        self.pars[1] = np.mean(y[:baseline]) / Sref
-        self.pars[3] = BAT2
-
-        # The default operation is to keep S01 fixed.
-        if pfix is None:
-            pfix = pfix=[1]+10*[0]
-
-        super().train(xdata, ydata, pfix=pfix, **kwargs)
-
-    def pfree(self, units='standard'):
-        pars = [
-            ['S01', "Signal amplitude S01", self.pars[0], "a.u."],
-            ['S02', "Signal amplitude S02", self.pars[1], "a.u."],
-            ['BAT1', "Bolus arrival time 1", self.pars[2], "sec"],
-            ['BAT2', "Bolus arrival time 2", self.pars[3], "sec"],
-            ['CO', 'Cardiac output', self.pars[4], "mL/sec"], 
-            ['Thl', 'Heart-lung mean transit time', self.pars[5], "sec"],
-            ['Dhl', 'Heart-lung transit time dispersion', self.pars[6], ""],
-            ['To', "Organs mean transit time", self.pars[7], "sec"],
-            ['Eb', "Body extraction fraction", self.pars[8], ""],
-            ['Eo', "Organs extraction fraction", self.pars[9], ""],
-            ['Te', "Extracellular mean transit time", self.pars[10], "sec"],
-        ]
-        if units=='custom':
-            pars[4][2:] = [pars[4][2]*60/1000, 'L/min']
-            pars[6][2:] = [pars[6][2]*100, '%']
-            pars[8][2:] = [pars[8][2]*100, '%']
-            pars[9][2:] = [pars[9][2]*100, '%']
-        return pars
-
-    def pdep(self, units='standard'):
-        return [
-            ['Tc', "Mean circulation time", self.pars[5]+self.pars[7], 'sec'],
-        ]
-
-
+    def pars(self):
+        pars = {}
+        pars['BAT2'] = ["Second bolus arrival time", self.BAT2, "sec"]
+        return self.add_sdev(pars) | super().pars()
+    

@@ -2,7 +2,37 @@ import numpy as np
 import dcmri as dc
 
 
-class UptSS(dc.Model):
+class SteadyState(dc.Model):
+    # Abstract base class to avoid some duplication in this module
+
+    dt = 0.5
+    Hct = 0.45
+    agent = 'gadoterate'
+    field_strength = 3.0
+    TR = 0.005
+    FA = 15
+    R10 = 1
+    R10b = 1
+    t0 = 1
+    S0 = 1 
+
+    def __init__(self, aif, **kwargs):
+        super().__init__(**kwargs)
+        n0 = max([round(self.t0/self.dt),1])
+        r1 = dc.relaxivity(self.field_strength, 'blood', self.agent)
+        cb = dc.conc_ss(aif, self.TR, self.FA, 1/self.R10b, r1, n0)
+        self.r1 = r1                                #: Relaxivity Hz/M
+        self.ca = cb/(1-self.Hct)                   #: Arterial plasma concentration (M)
+        self.t = self.dt*np.arange(np.size(aif))    #: Time points of the AIF (sec)
+
+    def train(self, xdata, ydata, **kwargs):
+        Sref = dc.signal_ss(self.R10, 1, self.TR, self.FA)
+        n0 = max([np.sum(xdata<self.t0), 1])
+        self.S0 = np.mean(ydata[:n0]) / Sref
+        return super().train(xdata, ydata, **kwargs)
+
+
+class UptSS(SteadyState):
     """One-compartment uptake tissue, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
         The free model parameters are:
@@ -89,44 +119,11 @@ class UptSS(dc.Model):
         -----------------------------------------
         Signal scaling factor (S0): 229.188 (8.902) a.u.
         Plasma flow (Fp): 0.001 (0.0) 1/sec
-    """         
+    """   
 
-    def __init__(self, aif, 
-            pars = None,
-            dt = 0.5,                
-            Hct = 0.45,             
-            agent = 'gadoterate',    
-            field_strength = 3.0,    
-            TR = 5.0/1000.0,  
-            FA = 15.0,  
-            R10 = 1,                 
-            R10b = 1,                 
-            t0 = 1, 
-        ):
-        n0 = max([round(t0/dt),1])
-        r1 = dc.relaxivity(field_strength, 'blood', agent)
-        cb = dc.conc_ss(aif, TR, FA, 1/R10b, r1, n0)
-        self.pars = self.pars0(pars)
-        self.ca = cb/(1-Hct)                #: Arterial plasma concentration (M)
-        self._t = dt*np.arange(np.size(aif))
-        self._dt = dt
-        self._Hct = Hct
-        self._TR = TR
-        self._FA = FA
-        self._R10 = R10
-        self._R10b = R10b
-        self._r1 = r1
-        self._t0 = t0
-
-    def _forward_model(self, xdata:np.ndarray)->np.ndarray:
-        if np.amax(self._t) < np.amax(xdata):
-            msg = 'The acquisition window is longer than the duration of the AIF.'
-            raise ValueError(msg)
-        S0, Fp = self.pars
-        C = self.conc()
-        R1 = self._R10 + self._r1*C
-        ydata = dc.signal_ss(R1, S0, self._TR, self._FA)
-        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
+    Fp = 0.01
+    free = ['Fp']
+    bounds = (0, np.inf)     
 
     def conc(self)->np.ndarray:
         """Tissue concentration.
@@ -134,42 +131,29 @@ class UptSS(dc.Model):
         Returns:
             np.ndarray: Concentration in M
         """
-        S0, Fp = self.pars
-        return dc.conc_1cum(self.ca, Fp, dt=self._dt)
-    
-    def train(self, xdata, ydata, **kwargs):
-        Sref = dc.signal_ss(self._R10, 1, self._TR, self._FA)
-        n0 = max([np.sum(xdata<self._t0), 1])
-        self.pars[0] = np.mean(ydata[:n0]) / Sref
-        return super().train(xdata, ydata, **kwargs)
-    
-    def pars0(self, settings=None):
-        if settings == None:
-            return np.array([1, 0.01])
-        else:
-            return np.zeros(2)
+        return dc.conc_1cum(self.ca, self.Fp, dt=self.dt)
 
-    def bounds(self, settings=None):
-        ub = [np.inf, np.inf]
-        lb = [0, 0]
-        return (lb, ub)
+    def predict(self, xdata:np.ndarray)->np.ndarray:
+        if np.amax(self.t) < np.amax(xdata):
+            msg = 'The acquisition window is longer than the duration of the AIF.'
+            raise ValueError(msg)
+        C = self.conc()
+        R1 = self.R10 + self.r1*C
+        ydata = dc.signal_ss(R1, self.S0, self.TR, self.FA)
+        return dc.sample(xdata, self.t, ydata, xdata[2]-xdata[1])
     
-    def pfree(self, units='standard'):
-        # vp, Ktrans, ve
-        pars = [
-            ['S0','Signal scaling factor',self.pars[0],'a.u.'],
-            ['Fp','Plasma flow',self.pars[1],'1/sec'],
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]*6000, 'mL/min/100mL']
-        return pars
+    def pars(self):
+        pars = {
+            'Fp': ['Plasma flow',self.Fp,'mL/sec/mL'],
+            'S0': ['Signal scaling factor',self.S0,'a.u.'],
+        }
+        return self.add_sdev(pars)
     
     
-
 # Fast/no water exchange
     
 
-class OneCompSS(dc.Model):
+class OneCompSS(SteadyState):
     """One-compartment tissue, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
         The free model parameters are:
@@ -260,96 +244,48 @@ class OneCompSS(dc.Model):
         Plasma flow (Fp): 0.004 (0.0) 1/sec
         Volume of distribution (v): 0.004 (0.015) mL/mL 
     """ 
+ 
+    Fp = 0.01
+    v = 0.05
+    free = ['Fp','v']
+    bounds = (0, [np.inf, 1])
+    water_exchange = True
 
-    def __init__(self, aif, 
-            pars = None,
-            dt = 0.5,  
-            Hct = 0.45, 
-            agent = 'gadoterate', 
-            field_strength = 3.0, 
-            TR = 5.0/1000.0,  
-            FA = 15.0,    
-            R10 = 1,  
-            R10b = 1, 
-            t0 = 1,  
-            water_exchange = True,
-        ):
-        n0 = max([round(t0/dt),1])
-        r1 = dc.relaxivity(field_strength, 'blood', agent)
-        cb = dc.conc_ss(aif, TR, FA, 1/R10b, r1, n0)
-        self.pars = self.pars0(pars)
-        self.ca = cb/(1-Hct)                #: Arterial plasma concentration (M)
-        self._t = dt*np.arange(np.size(aif))
-        self._dt = dt
-        self._Hct = Hct
-        self._TR = TR
-        self._FA = FA
-        self._R10 = R10
-        self._R10b = R10b
-        self._r1 = r1
-        self._t0 = t0
-        self._water_exchange = water_exchange
-
-    def _forward_model(self, xdata:np.ndarray)->np.ndarray:
-
-        if np.amax(self._t) < np.amax(xdata):
-            msg = 'The acquisition window is longer than the duration of the AIF. \n'
-            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
-            raise ValueError(msg)
-        S0, Fp, v = self.pars
-        C = self.conc()
-        if self._water_exchange:
-            R1 = self._R10 + self._r1*C
-            ydata = dc.signal_ss(R1, S0, self._TR, self._FA)
-        else:
-            R1e = self._R10 + self._r1*C/v
-            R1c = self._R10 + np.zeros(C.size)
-            v = [v, 1-v]
-            R1 = np.stack((R1e, R1c))
-            ydata = dc.signal_ss_nex(v, R1, S0, self._TR, self._FA)
-        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
-    
     def conc(self)->np.ndarray:
         """Tissue concentration.
 
         Returns:
             np.ndarray: Concentration in M
         """
-        S0, Fp, v = self.pars
-        return dc.conc_1cm(self.ca, Fp, v, dt=self._dt)
-    
-    def train(self, xdata, ydata, **kwargs):
-        Sref = dc.signal_ss(self._R10, 1, self._TR, self._FA)
-        n0 = max([np.sum(xdata<self._t0), 1])
-        self.pars[0] = np.mean(ydata[:n0]) / Sref
-        return super().train(xdata, ydata, **kwargs)
-    
-    def pars0(self, settings=None):
-        if settings == None:
-            return np.array([1, 0.01, 0.05])
+        return dc.conc_1cm(self.ca, self.Fp, self.v, dt=self.dt)
+
+    def predict(self, xdata:np.ndarray)->np.ndarray:
+        if np.amax(self.t) < np.amax(xdata):
+            msg = 'The acquisition window is longer than the duration of the AIF. \n'
+            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
+            raise ValueError(msg)
+        C = self.conc()
+        if self.water_exchange:
+            R1 = self.R10 + self.r1*C
+            ydata = dc.signal_ss(R1, self.S0, self.TR, self.FA)
         else:
-            return np.zeros(3)
+            R1e = self.R10 + self.r1*C/self.v
+            R1c = self.R10 + np.zeros(C.size)
+            v = [self.v, 1-self.v]
+            R1 = np.stack((R1e, R1c))
+            ydata = dc.signal_ss_nex(v, R1, self.S0, self.TR, self.FA)
+        return dc.sample(xdata, self.t, ydata, xdata[2]-xdata[1])
 
-    def bounds(self, settings=None):
-        ub = [np.inf, np.inf, 1]
-        lb = [0, 0, 0]
-        return (lb, ub)
-
-    def pfree(self, units='standard'):
-        # vp, Ktrans, ve
-        pars = [
-            ['S0','Signal scaling factor',self.pars[0],'a.u.'],
-            ['Fp','Plasma flow',self.pars[1],'1/sec'],
-            ['v','Volume of distribution',self.pars[2],'mL/mL'],
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]*6000, 'mL/min/100mL']
-            pars[2][2:] = [pars[2][2]*100, 'mL/100mL']
-            
-        return pars
+    def pars(self):
+        pars = {
+            'Fp': ['Plasma flow',self.Fp,'mL/sec/mL'],
+            'v': ['Volume of distribution',self.v,'mL/mL'],
+            'S0': ['Signal scaling factor',self.S0,'a.u.'],
+        }
+        return self.add_sdev(pars)
 
 
-class ToftsSS(OneCompSS):
+class ToftsSS(SteadyState):
     """Tofts tissue, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
         The free model parameters are:
@@ -446,31 +382,50 @@ class ToftsSS(OneCompSS):
         Extravascular transfer constant (kep): 0.025 1/sec
     """         
 
-    def pfree(self, units='standard'):
-        pars = [
-            ['S0','Signal scaling factor',self.pars[0],'a.u.'],
-            ['Ktrans','Volume transfer constant',self.pars[1],'1/sec'],
-            ['ve','Extravascular, extracellular volume',self.pars[2],'mL/mL'],
-            
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]*6000, 'mL/min/100mL']
-            pars[2][2:] = [pars[2][2]*100, 'mL/100mL']
-            
-        return pars
+    Ktrans = 0.003
+    ve = 0.2
+    water_exchange = True
+    free = ['Ktrans','ve']
+    bounds = (0, [np.inf, 1])
+
+    def conc(self)->np.ndarray:
+        """Tissue concentration.
+
+        Returns:
+            np.ndarray: Concentration in M
+        """
+        return dc.conc_1cm(self.ca, self.Ktrans, self.ve, dt=self.dt)
+
+    def predict(self, xdata:np.ndarray)->np.ndarray:
+        if np.amax(self.t) < np.amax(xdata):
+            msg = 'The acquisition window is longer than the duration of the AIF. \n'
+            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
+            raise ValueError(msg)
+        C = self.conc()
+        if self.water_exchange:
+            R1 = self.R10 + self.r1*C
+            ydata = dc.signal_ss(R1, self.S0, self.TR, self.FA)
+        else:
+            R1e = self.R10 + self.r1*C/self.ve
+            R1c = self.R10 + np.zeros(C.size)
+            v = [self.ve, 1-self.ve]
+            R1 = np.stack((R1e, R1c))
+            ydata = dc.signal_ss_nex(v, R1, self.S0, self.TR, self.FA)
+        return dc.sample(xdata, self.t, ydata, xdata[2]-xdata[1])
     
-    def pdep(self, units='standard'):
-        pars = [
-            ['Te','Extracellular mean transit time',self.pars[2]/self.pars[1],'sec'],
-            ['kep','Extravascular transfer constant',self.pars[1]/self.pars[2],'1/sec'],
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]/60, 'min']
-            pars[2][2:] = [pars[2][2]*6000, 'mL/min/100mL']
-        return pars
+    def pars(self):
+        pars = {
+            'Ktrans': ['Volume transfer constant',self.Ktrans,'mL/sec/mL'],
+            've': ['Extravascular, extracellular volume',self.ve,'mL/mL'],
+            'Te': ['Extracellular mean transit time',self.ve/self.Ktrans,'sec'],
+            'kep': ['Extravascular transfer constant',self.Ktrans/self.ve,'1/sec'],
+            'S0': ['Signal scaling factor',self.S0,'a.u.'],
+        }
+        return self.add_sdev(pars)
+
 
     
-class PatlakSS(OneCompSS):
+class PatlakSS(SteadyState):
     """Patlak tissue in fast water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
         The free model parameters are:
@@ -560,28 +515,14 @@ class PatlakSS(OneCompSS):
         Signal scaling factor (S0): 174.415 (5.95) a.u.
         Plasma volume (vp): 0.049 (0.004) mL/mL
         Volume transfer constant (Ktrans): 0.001 (0.0) 1/sec
-    """        
+    """ 
 
-    def _forward_model(self, xdata:np.ndarray)->np.ndarray:
+    Ktrans = 0.003
+    vb = 0.1
+    water_exchange = True
+    free = ['Ktrans','vp']
+    bounds = (0, [np.inf, 1])
 
-        if np.amax(self._t) < np.amax(xdata):
-            msg = 'The acquisition window is longer than the duration of the AIF. \n'
-            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
-            raise ValueError(msg)
-        S0, vp, Ktrans = self.pars
-        C = self.conc(sum=False)
-        if self._water_exchange:
-            R1 = self._R10 + self._r1*(C[0,:]+C[1,:])
-            ydata = dc.signal_ss(R1, S0, self._TR, self._FA)
-        else:
-            vb = vp/(1-self._Hct)
-            R1b = self._R10b + self._r1*C[0,:]/vb
-            R1e = self._R10 + self._r1*C[1,:]/(1-vb)
-            v = [vb, 1-vb]
-            R1 = np.stack((R1b, R1e))
-            ydata = dc.signal_ss_nex(v, R1, S0, self._TR, self._FA)
-        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
-    
     def conc(self, sum=True):
         """Tissue concentration.
 
@@ -591,33 +532,37 @@ class PatlakSS(OneCompSS):
         Returns:
             np.ndarray: Concentration in M
         """
-        S0, vp, Ktrans = self.pars
-        return dc.conc_patlak(self.ca, vp, Ktrans, dt=self._dt, sum=sum)
+        vp = self.vb*(1-self.Hct)
+        return dc.conc_patlak(self.ca, vp, self.Ktrans, dt=self.dt, sum=sum)       
 
-    def pars0(self, settings=None):
-        if settings == None:
-            return np.array([1, 0.05, 0.003])
+    def predict(self, xdata:np.ndarray)->np.ndarray:
+        if np.amax(self.t) < np.amax(xdata):
+            msg = 'The acquisition window is longer than the duration of the AIF. \n'
+            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
+            raise ValueError(msg)
+        C = self.conc(sum=False)
+        if self.water_exchange:
+            R1 = self.R10 + self.r1*(C[0,:]+C[1,:])
+            ydata = dc.signal_ss(R1, self.S0, self.TR, self.FA)
         else:
-            return np.zeros(3)
+            R1b = self.R10b + self.r1*C[0,:]/self.vb
+            R1e = self.R10 + self.r1*C[1,:]/(1-self.vb)
+            v = [self.vb, 1-self.vb]
+            R1 = np.stack((R1b, R1e))
+            ydata = dc.signal_ss_nex(v, R1, self.S0, self.TR, self.FA)
+        return dc.sample(xdata, self.t, ydata, xdata[2]-xdata[1])
 
-    def bounds(self, settings=None):
-        ub = [np.inf, 1, np.inf]
-        lb = [0, 0, 0]
-        return (lb, ub)
-
-    def pfree(self, units='standard'):
-        pars = [
-            ['S0','Signal scaling factor',self.pars[0],'a.u.'],
-            ['vp','Plasma volume',self.pars[1],'mL/mL'],
-            ['Ktrans','Volume transfer constant',self.pars[2],'1/sec'],
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]*100, 'mL/100mL']
-            pars[2][2:] = [pars[2][2]*6000, 'mL/min/100mL']
-        return pars
+    def pars(self):
+        pars = {
+            'vb': ['Blood volume',self.vb,'mL/mL'],
+            'vp': ['Plasma volume',self.vb*(1-self.Hct),'mL/mL'],
+            'Ktrans': ['Volume transfer constant',self.Ktrans,'1/sec'],
+            'S0': ['Signal scaling factor',self.S0,'a.u.'],
+        }
+        return self.add_sdev(pars)
 
 
-class EToftsSS(OneCompSS):
+class EToftsSS(SteadyState):
     """Extended Tofts tissue in fast water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
     Probably the most common modelling approach for generic tissues. The arterial concentrations are calculated by direct analytical inversion of the arterial signal 
@@ -719,27 +664,13 @@ class EToftsSS(OneCompSS):
         Extracellular volume (v): 0.254 mL/mL
     """        
 
-    def _forward_model(self, xdata:np.ndarray)->np.ndarray:
+    v = 0.6
+    Ktrans = 0.003
+    ub = 0.3
+    water_exchange = True
+    free = ['Ktrans','v','ub']
+    bounds = (0, [np.inf, 1, 1])
 
-        if np.amax(self._t) < np.amax(xdata):
-            msg = 'The acquisition window is longer than the duration of the AIF. \n'
-            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
-            raise ValueError(msg)
-        S0, vp, Ktrans, ve = self.pars
-        C = self.conc(sum=False)
-        if self._water_exchange:
-            R1 = self._R10 + self._r1*(C[0,:]+C[1,:])
-            ydata = dc.signal_ss(R1, S0, self._TR, self._FA)
-        else:
-            vb = vp/(1-self._Hct)
-            R1b = self._R10b + self._r1*C[0,:]/vb
-            R1e = self._R10 + self._r1*C[1,:]/ve
-            R1c = self._R10 + np.zeros(C.shape[1])
-            v = [vb, ve, 1-vb-ve]
-            R1 = np.stack((R1b, R1e, R1c))
-            ydata = dc.signal_ss_nex(v, R1, S0, self._TR, self._FA)
-        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
-    
     def conc(self, sum=True):
         """Tissue concentration
 
@@ -749,47 +680,50 @@ class EToftsSS(OneCompSS):
         Returns:
             np.ndarray: Concentration in M
         """
-        S0, vp, Ktrans, ve = self.pars
-        return dc.conc_etofts(self.ca, vp, Ktrans, ve, dt=self._dt, sum=sum)
-    
-    def pars0(self, settings=None):
-        if settings == None:
-            return np.array([1, 0.05, 0.003, 0.3])
+        ve = self.v*(1-self.ub)
+        vp = self.v*self.ub*(1-self.Hct)
+        return dc.conc_etofts(self.ca, vp, self.Ktrans, ve, dt=self.dt, sum=sum)
+
+    def predict(self, xdata:np.ndarray)->np.ndarray:
+        if np.amax(self.t) < np.amax(xdata):
+            msg = 'The acquisition window is longer than the duration of the AIF. \n'
+            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
+            raise ValueError(msg)
+        C = self.conc(sum=False)
+        if self.water_exchange:
+            R1 = self.R10 + self.r1*(C[0,:]+C[1,:])
+            ydata = dc.signal_ss(R1, self.S0, self.TR, self.FA)
         else:
-            return np.zeros(4)
+            ve = self.v*(1-self.ub)
+            vb = self.v*self.ub
+            R1b = self.R10b + self.r1*C[0,:]/vb
+            R1e = self.R10 + self.r1*C[1,:]/ve
+            R1c = self.R10 + np.zeros(C.shape[1])
+            v = [vb, ve, 1-vb-ve]
+            R1 = np.stack((R1b, R1e, R1c))
+            ydata = dc.signal_ss_nex(v, R1, self.S0, self.TR, self.FA)
+        return dc.sample(xdata, self.t, ydata, xdata[2]-xdata[1])
 
-    def bounds(self, settings=None):
-        ub = [np.inf, 1, np.inf, 1]
-        lb = [0, 0, 0, 0]
-        return (lb, ub)
+    def pars(self):
+        ve = self.v*(1-self.ub)
+        vb = self.v*self.ub
+        vp = self.v*self.ub*(1-self.Hct)
+        pars = {
+            'Ktrans': ['Volume transfer constant',self.Ktrans,'1/sec'],
+            'v': ['Volume of distribution',self.v,'mL/mL'],
+            'ub': ['Blood volume fraction',self.ub,''],
+            've': ['Extravascular extracellular volume',ve,'mL/mL'],
+            'vb': ['Blood volume',vb,'mL/mL'],
+            'vp': ['Plasma volume',vp,'mL/mL'],
+            'Te': ['Extracellular mean transit time',ve/self.Ktrans,'sec'],
+            'kep': ['Extravascular transfer constant',self.Ktrans/ve,'1/sec'],
+            'ECV': ['Extracellular volume',vp+ve,'mL/mL'],
+            'S0': ['Signal scaling factor',self.S0,'a.u.'],
+        }
+        return self.add_sdev(pars)
 
-    def pfree(self, units='standard'):
-        pars = [
-            ['S0','Signal scaling factor',self.pars[0],'a.u.'],
-            ['vp','Plasma volume',self.pars[1],'mL/mL'],
-            ['Ktrans','Volume transfer constant',self.pars[2],'1/sec'],
-            ['ve','Extravascular extracellular volume',self.pars[3],'mL/mL'],
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]*100, 'mL/100mL']
-            pars[2][2:] = [pars[2][2]*6000, 'mL/min/100mL']
-            pars[3][2:] = [pars[3][2]*100, 'mL/100mL']
-        return pars
     
-    def pdep(self, units='standard'):
-        pars = [
-            ['Te','Extracellular mean transit time',self.pars[3]/self.pars[2],'sec'],
-            ['kep','Extravascular transfer constant',self.pars[2]/self.pars[3],'1/sec'],
-            ['v','Extracellular volume',self.pars[1]+self.pars[3],'mL/mL'],
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]/60, 'min']
-            pars[2][2:] = [pars[2][2]*60, '1/min']
-            pars[3][2:] = [pars[3][2]*100, 'mL/100mL']
-        return pars
-    
-
-class TwoCompUptSS(OneCompSS):
+class TwoCompUptSS(SteadyState):
     """Two-compartment uptake model (2CUM) in fast water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
         The free model parameters are:
@@ -889,24 +823,12 @@ class TwoCompUptSS(OneCompSS):
         Plasma mean transit time (Tp): 2.88 sec
     """         
 
-    def _forward_model(self, xdata:np.ndarray)->np.ndarray:
-        if np.amax(self._t) < np.amax(xdata):
-            msg = 'The acquisition window is longer than the duration of the AIF. \n'
-            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
-            raise ValueError(msg)
-        S0, Fp, vp, PS = self.pars
-        C = self.conc(sum=False)
-        if self._water_exchange:
-            R1 = self._R10 + self._r1*(C[0,:]+C[1,:])
-            ydata = dc.signal_ss(R1, S0, self._TR, self._FA)
-        else:
-            vb = vp/(1-self._Hct)
-            R1b = self._R10b + self._r1*C[0,:]/vb
-            R1e = self._R10 + self._r1*C[1,:]/(1-vb)
-            v = [vb, 1-vb]
-            R1 = np.stack((R1b, R1e))
-            ydata = dc.signal_ss_nex(v, R1, S0, self._TR, self._FA)
-        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
+    Fp = 0.01
+    PS = 0.003
+    vb = 0.1
+    water_exchange = True
+    free = ['Fp','PS','vb']
+    bounds = (0, [np.inf, np.inf, 1])
     
     def conc(self, sum=True):
         """Tissue concentration
@@ -917,47 +839,43 @@ class TwoCompUptSS(OneCompSS):
         Returns:
             np.ndarray: Concentration in M
         """
-        S0, Fp, vp, PS = self.pars
-        return dc.conc_2cum(self.ca, Fp, vp, PS, dt=self._dt, sum=sum)
-    
-    def pars0(self, settings=None):
-        if settings == None:
-            return np.array([1, 0.1, 0.1, 0.003])
+        vp = self.vb*(1-self.Hct)
+        return dc.conc_2cum(self.ca, self.Fp, vp, self.PS, dt=self.dt, sum=sum)
+       
+    def predict(self, xdata:np.ndarray)->np.ndarray:
+        if np.amax(self.t) < np.amax(xdata):
+            msg = 'The acquisition window is longer than the duration of the AIF. \n'
+            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
+            raise ValueError(msg)
+        C = self.conc(sum=False)
+        if self.water_exchange:
+            R1 = self.R10 + self.r1*(C[0,:]+C[1,:])
+            ydata = dc.signal_ss(R1, self.S0, self.TR, self.FA)
         else:
-            return np.zeros(4)
+            R1b = self.R10b + self.r1*C[0,:]/self.vb
+            R1e = self.R10 + self.r1*C[1,:]/(1-self.vb)
+            v = [self.vb, 1-self.vb]
+            R1 = np.stack((R1b, R1e))
+            ydata = dc.signal_ss_nex(v, R1, self.S0, self.TR, self.FA)
+        return dc.sample(xdata, self.t, ydata, xdata[2]-xdata[1])
 
-    def bounds(self, settings=None):
-        ub = [np.inf, np.inf, 1, np.inf]
-        lb = [0, 0, 0, 0]
-        return (lb, ub)
-
-    def pfree(self, units='standard'):
-        pars = [
-            ['S0','Signal scaling factor',self.pars[0],'a.u.'],
-            ['Fp','Plasma flow',self.pars[1],'mL/sec/mL'],
-            ['vp','Plasma volume',self.pars[2],'mL/mL'],
-            ['PS','Permeability-surface area product',self.pars[3],'mL/sec/mL'],
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]*6000, 'mL/min/100mL']
-            pars[2][2:] = [pars[2][2]*100, 'mL/100mL']
-            pars[3][2:] = [pars[3][2]*6000, 'mL/min/100mL']
-        return pars
-    
-    def pdep(self, units='standard'):
-        p = self.pars
-        pars = [
-            ['E','Extraction fraction',p[3]/(p[1]+p[3]),'sec'],
-            ['Ktrans','Volume transfer constant',p[1]*p[3]/(p[1]+p[3]),'mL/sec/mL'],
-            ['Tp','Plasma mean transit time',p[2]/(p[1]+p[3]),'sec'],
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]*100, '%']
-            pars[2][2:] = [pars[2][2]*6000, 'mL/min/100mL']
-        return pars
+    def pars(self):
+        vp = self.vb*(1-self.Hct)
+        pars = {
+            'Fp':['Plasma flow',self.Fp,'mL/sec/mL'],
+            'PS':['Permeability-surface area product',self.PS,'mL/sec/mL'],
+            'vb':['Blood volume',self.vb,'mL/mL'], 
+            'vp':['Plasma volume',vp,'mL/mL'],
+            'E':['Extraction fraction',self.PS/(self.PS+self.Fp),''],
+            'Ktrans':['Volume transfer constant',self.PS*self.Fp/(self.PS+self.Fp),'mL/sec/mL'],
+            'Tp':['Plasma mean transit time',vp/(self.Fp+self.PS),'sec'],
+            'Tb':['Blood mean transit time',vp/self.Fp,'sec'],
+            'S0':['Signal scaling factor',self.S0,'a.u.'],
+        }           
+        return self.add_sdev(pars)
 
 
-class TwoCompExchSS(OneCompSS):
+class TwoCompExchSS(SteadyState):
     """Two-compartment exchange model (2CXM) in fast water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
         The free model parameters are:
@@ -1062,27 +980,14 @@ class TwoCompExchSS(OneCompSS):
         Mean transit time (T): 0.002 sec
     """         
 
-    def _forward_model(self, xdata:np.ndarray)->np.ndarray:
+    Fp = 0.01
+    PS = 0.003
+    v = 0.6
+    ub = 0.3
+    water_exchange = True
+    free = ['Fp','PS','v','ub']
+    bounds = (0, [np.inf, np.inf, 1, 1])
 
-        if np.amax(self._t) < np.amax(xdata):
-            msg = 'The acquisition window is longer than the duration of the AIF. \n'
-            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
-            raise ValueError(msg)
-        S0, Fp, vp, PS, ve = self.pars
-        C = self.conc(sum=False)
-        if self._water_exchange:
-            R1 = self._R10 + self._r1*(C[0,:]+C[1,:])
-            ydata = dc.signal_ss(R1, S0, self._TR, self._FA)
-        else:
-            vb = vp/(1-self._Hct)
-            R1b = self._R10b + self._r1*C[0,:]/vb
-            R1e = self._R10 + self._r1*C[1,:]/ve
-            R1c = self._R10 + np.zeros(C.shape[1])
-            v = [vb, ve, 1-vb-ve]
-            R1 = np.stack((R1b, R1e, R1c))
-            ydata = dc.signal_ss_nex(v, R1, S0, self._TR, self._FA)
-        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
-    
     def conc(self, sum=True):
         """Tissue concentration
 
@@ -1092,57 +997,59 @@ class TwoCompExchSS(OneCompSS):
         Returns:
             np.ndarray: Concentration in M
         """
-        S0, Fp, vp, PS, ve = self.pars
-        return dc.conc_2cxm(self.ca, Fp, vp, PS, ve, dt=self._dt, sum=sum)
-    
-    def pars0(self, settings=None):
-        if settings == None:
-            return np.array([1, 0.1, 0.1, 0.003, 0.3])
+        ve = self.v*(1-self.ub)
+        vp = self.v*self.ub*(1-self.Hct)
+        return dc.conc_2cxm(self.ca, self.Fp, vp, self.PS, ve, dt=self.dt, sum=sum)
+  
+    def predict(self, xdata:np.ndarray)->np.ndarray:
+        if np.amax(self.t) < np.amax(xdata):
+            msg = 'The acquisition window is longer than the duration of the AIF. \n'
+            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
+            raise ValueError(msg)
+        C = self.conc(sum=False)
+        if self.water_exchange:
+            R1 = self.R10 + self.r1*(C[0,:]+C[1,:])
+            ydata = dc.signal_ss(R1, self.S0, self.TR, self.FA)
         else:
-            return np.zeros(5)
+            vb = self.v*self.ub
+            ve = self.v*(1-self.ub)
+            R1b = self.R10b + self.r1*C[0,:]/vb
+            R1e = self.R10 + self.r1*C[1,:]/ve
+            R1c = self.R10 + np.zeros(C.shape[1])
+            v = [vb, ve, 1-vb-ve]
+            R1 = np.stack((R1b, R1e, R1c))
+            ydata = dc.signal_ss_nex(v, R1, self.S0, self.TR, self.FA)
+        return dc.sample(xdata, self.t, ydata, xdata[2]-xdata[1])
 
-    def bounds(self, settings=None):
-        ub = [np.inf, np.inf, 1, np.inf, 1]
-        lb = [0, 0, 0, 0, 0]
-        return (lb, ub)
-
-    def pfree(self, units='standard'):
-        pars = [
-            ['S0','Signal scaling factor',self.pars[0],'a.u.'],
-            ['Fp','Plasma flow',self.pars[1],'mL/sec/mL'],
-            ['vp','Plasma volume',self.pars[2],'mL/mL'],
-            ['PS','Permeability-surface area product',self.pars[3],'mL/sec/mL'],
-            ['ve','Extravascular extracellular volume',self.pars[4],'mL/mL'],
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]*6000, 'mL/min/100mL']
-            pars[2][2:] = [pars[2][2]*100, 'mL/100mL']
-            pars[3][2:] = [pars[3][2]*6000, 'mL/min/100mL']
-            pars[4][2:] = [pars[4][2]*100, 'mL/100mL']
-        return pars
-    
-    def pdep(self, units='standard'):
-        p = self.pars
-        pars = [
-            ['E','Extraction fraction',p[3]/(p[1]+p[3]),'sec'],
-            ['Ktrans','Volume transfer constant',p[1]*p[3]/(p[1]+p[3]),'mL/sec/mL'],
-            ['Tp','Plasma mean transit time',p[2]/(p[1]+p[3]),'sec'],
-            ['Te','Extracellular mean transit time',p[4]/p[3],'sec'],
-            ['v','Extracellular volume',p[2]+p[4],'mL/mL'],
-            ['T','Mean transit time',(p[2]+p[4])/p[0],'sec'],
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]*100, '%']
-            pars[2][2:] = [pars[2][2]*6000, 'mL/min/100mL']
-            pars[4][2:] = [pars[4][2]/60, 'min']
-            pars[5][2:] = [pars[5][2]*100, 'mL/100mL']
-        return pars
+    def pars(self):
+        ve = self.v*(1-self.ub)
+        vb = self.v*self.ub
+        vp = self.v*self.ub*(1-self.Hct)
+        pars = {
+            'Fp': ['Plasma flow',self.Fp,'mL/sec/mL'],
+            'PS': ['Permeability-surface area product',self.PS,'mL/sec/mL'],
+            'v': ['Volume of distribution',self.v,'mL/mL'],
+            'ub': ['Blood volume fraction',self.ub,''],
+            've': ['Extravascular extracellular volume',ve,'mL/mL'],
+            'vb': ['Blood volume',vb,'mL/mL'],
+            'vp': ['Plasma volume',vp,'mL/mL'],
+            'Te': ['Extracellular mean transit time',ve/self.PS,'sec'],
+            'kep': ['Extravascular transfer constant',self.PS/ve,'1/sec'],
+            'ECV': ['Extracellular volume',vp+ve,'mL/mL'],
+            'E': ['Extraction fraction',self.PS/(self.PS+self.Fp),''],
+            'Ktrans': ['Volume transfer constant',self.PS*self.Fp/(self.PS+self.Fp),'mL/sec/mL'],
+            'Tp': ['Plasma mean transit time',vp/(self.Fp+self.PS),'sec'],
+            'Tb': ['Blood mean transit time',vp/self.Fp,'sec'],
+            'T': ['Mean transit time',(vp+ve)/self.Fp,'sec'],
+            'S0': ['Signal scaling factor',self.S0,'a.u.'],
+        }
+        return self.add_sdev(pars)
 
 
 # Intermediate water exchange
 
 
-class OneCompWXSS(UptSS):
+class OneCompWXSS(SteadyState):
     """One-compartment tissue in intermediate water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
         The free model parameters are:
@@ -1239,65 +1146,48 @@ class OneCompWXSS(UptSS):
         Extracompartmental water mean transit time (Twe): 9.412177217600262e+32 sec
         Intracompartmental water mean transit time (Twb): 2.2783889577230225e+32 sec
     """         
-    def _forward_model(self, xdata:np.ndarray)->np.ndarray:
 
-        if np.amax(self._t) < np.amax(xdata):
-            msg = 'The acquisition window is longer than the duration of the AIF. \n'
-            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
-            raise ValueError(msg)
-        S0, Fp, v, PSw = self.pars
-        C = self.conc()
-        R1e = self._R10 + self._r1*C/v
-        R1c = self._R10 + np.zeros(C.size)
-        PS = np.array([[0,PSw],[PSw,0]])
-        v = [v, 1-v]
-        R1 = np.stack((R1e, R1c))
-        ydata = dc.signal_ss_iex(PS, v, R1, S0, self._TR, self._FA)
-        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
-    
-    def conc(self):
+    Fp = 0.01
+    v = 0.05
+    PSw = 10
+    free = ['Fp','v','PSw']
+    bounds = (0, [np.inf, 1, 'PSw'])
+
+    def conc(self)->np.ndarray:
         """Tissue concentration.
 
         Returns:
             np.ndarray: Concentration in M
         """
-        S0, Fp, v, PSw = self.pars
-        return dc.conc_1cm(self.ca, Fp, v, dt=self._dt)
+        return dc.conc_1cm(self.ca, self.Fp, self.v, dt=self.dt)
     
-    def pars0(self, settings=None):
-        if settings == None:
-            return np.array([1, 0.01, 0.05, 10])
-        else:
-            return np.zeros(4)
-
-    def bounds(self, settings=None):
-        ub = [np.inf, np.inf, 1, np.inf]
-        lb = 0
-        return (lb, ub)
-
-    def pfree(self, units='standard'):
-        pars = [
-            ['S0','Signal scaling factor',self.pars[0],'a.u.'],
-            ['Fp','Plasma flow',self.pars[1],'1/sec'],
-            ['v','Volume of distribution',self.pars[2],'mL/mL'],
-            ['PSw','Water permeability-surface area product',self.pars[3],'mL/mL'],
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]*6000, 'mL/min/100mL']
-            pars[2][2:] = [pars[2][2]*100, 'mL/100mL']
-            
-        return pars
+    def predict(self, xdata:np.ndarray)->np.ndarray:
+        if np.amax(self.t) < np.amax(xdata):
+            msg = 'The acquisition window is longer than the duration of the AIF. \n'
+            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
+            raise ValueError(msg)
+        C = self.conc()
+        R1e = self.R10 + self.r1*C/self.v
+        R1c = self.R10 + np.zeros(C.size)
+        PS = np.array([[0,self.PSw],[self.PSw,0]])
+        v = [self.v, 1-self.v]
+        R1 = np.stack((R1e, R1c))
+        ydata = dc.signal_ss_iex(PS, v, R1, self.S0, self.TR, self.FA)
+        return dc.sample(xdata, self.t, ydata, xdata[2]-xdata[1])
     
-    def pdep(self, units='standard'):
-        p = self.pars
-        pars = [
-            ['Twe', 'Extracompartmental water mean transit time', (1-p[2])/p[3], 'sec'],
-            ['Twb', 'Intracompartmental water mean transit time', p[2]/p[3], 'sec'],
-        ]
-        return pars
+    def pars(self):
+        pars = {
+            'Fp': ['Plasma flow',self.Fp,'mL/sec/mL'],
+            'v': ['Volume of distribution',self.v,'mL/mL'],
+            'PSw': ['Water permeability-surface area product',self.PSw,'mL/sec/mL'],
+            'Twe': ['Extracompartmental water mean transit time', (1-self.v)/self.PSw, 'sec'],
+            'Twb':  ['Intracompartmental water mean transit time', self.v/self.PSw, 'sec'],
+            'S0': ['Signal scaling factor',self.S0,'a.u.'],
+        }
+        return self.add_sdev(pars)
 
 
-class ToftsWXSS(OneCompWXSS):
+class ToftsWXSS(SteadyState):
     """Tofts tissue with intermediate water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
         The free model parameters are:
@@ -1397,33 +1287,49 @@ class ToftsWXSS(OneCompWXSS):
         Intravascular water mean transit time (Twb): 9.412177217600262e+32 sec
     """         
 
-    def pfree(self, units='standard'):
-        pars = [
-            ['S0','Signal scaling factor',self.pars[0],'a.u.'],
-            ['Ktrans','Volume transfer constant',self.pars[1],'1/sec'],
-            ['ve','Extravascular, extracellular volume',self.pars[2],'mL/mL'],
-            ['PSe','Transendothelial water PS',self.pars[3],'mL/sec/mL'],
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]*6000, 'mL/min/100mL']
-            pars[2][2:] = [pars[2][2]*100, 'mL/100mL']
-            
-        return pars
+    Ktrans = 0.003
+    ve = 0.2
+    PSw = 10
+    free = ['Ktrans','ve','PSw']
+    bounds = (0, [np.inf, 1, np.inf])
+
+    def conc(self)->np.ndarray:
+        """Tissue concentration.
+
+        Returns:
+            np.ndarray: Concentration in M
+        """
+        return dc.conc_1cm(self.ca, self.Ktrans, self.ve, dt=self.dt)
     
-    def pdep(self, units='standard'):
-        pars = [
-            ['Te','Extracellular mean transit time',self.pars[2]/self.pars[1],'sec'],
-            ['kep','Extravascular transfer constant',self.pars[1]/self.pars[2],'1/sec'],
-            ['Twe', 'Extravascular water mean transit time', self.pars[2]/self.pars[3], 'sec'],
-            ['Twb', 'Intravascular water mean transit time', (1-self.pars[2])/self.pars[3], 'sec'],
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]/60, 'min']
-            pars[2][2:] = [pars[2][2]*6000, 'mL/min/100mL']
-        return pars
+    def predict(self, xdata:np.ndarray)->np.ndarray:
+        if np.amax(self.t) < np.amax(xdata):
+            msg = 'The acquisition window is longer than the duration of the AIF. \n'
+            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
+            raise ValueError(msg)
+        C = self.conc()
+        R1e = self.R10 + self.r1*C/self.ve
+        R1c = self.R10 + np.zeros(C.size)
+        PS = np.array([[0,self.PSw],[self.PSw,0]])
+        v = [self.ve, 1-self.ve]
+        R1 = np.stack((R1e, R1c))
+        ydata = dc.signal_ss_iex(PS, v, R1, self.S0, self.TR, self.FA)
+        return dc.sample(xdata, self.t, ydata, xdata[2]-xdata[1])
+    
+    def pars(self):
+        pars = {
+            'Ktrans': ['Volume transfer constant',self.Ktrans,'mL/sec/mL'],
+            've': ['Extravascular, extracellular volume',self.ve,'mL/mL'],
+            'Te': ['Extracellular mean transit time',self.ve/self.Ktrans,'sec'],
+            'kep': ['Extravascular transfer constant',self.Ktrans/self.ve,'1/sec'],
+            'PSw': ['Transendothelial water PS',self.PSw,'mL/sec/mL'],
+            'Twe': ['Extravascular water mean transit time', self.ve/self.PSw, 'sec'],
+            'Twb': ['Intravascular water mean transit time', (1-self.ve)/self.PSw, 'sec'],
+            'S0': ['Signal scaling factor',self.S0,'a.u.'],
+        }
+        return self.add_sdev(pars)
 
 
-class PatlakWXSS(UptSS):
+class PatlakWXSS(SteadyState):
     """Patlak tissue with intermediate exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
         The free model parameters are:
@@ -1520,23 +1426,13 @@ class PatlakWXSS(UptSS):
         Extravascular water mean transit time (Twe): 4803607269928.271 sec
         Intravascular water mean transit time (Twb): 950667689299.263 sec
     """         
-    def _forward_model(self, xdata:np.ndarray)->np.ndarray:
 
-        if np.amax(self._t) < np.amax(xdata):
-            msg = 'The acquisition window is longer than the duration of the AIF. \n'
-            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
-            raise ValueError(msg)
-        S0, vp, Ktrans, PSe = self.pars
-        C = self.conc(sum=False)
-        vb = vp/(1-self._Hct)
-        R1b = self._R10b + self._r1*C[0,:]/vb
-        R1e = self._R10 + self._r1*C[1,:]/(1-vb)
-        PS = np.array([[0,PSe],[PSe,0]])
-        v = [vb, 1-vb]
-        R1 = np.stack((R1b, R1e))
-        ydata = dc.signal_ss_iex(PS, v, R1, S0, self._TR, self._FA)
-        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
-    
+    Ktrans = 0.003
+    vb = 0.05
+    PSe = 10
+    free = ['Ktrans','vb','PSe']
+    bounds = (0, [np.inf, 1, np.inf])
+
     def conc(self, sum=True):
         """Tissue concentration.
 
@@ -1546,43 +1442,38 @@ class PatlakWXSS(UptSS):
         Returns:
             np.ndarray: Concentration in M
         """
-        S0, vp, Ktrans, PSe = self.pars
-        return dc.conc_patlak(self.ca, vp, Ktrans, dt=self._dt, sum=sum)
+        vp = self.vb*(1-self.Hct)
+        return dc.conc_patlak(self.ca, vp, self.Ktrans, dt=self.dt, sum=sum)
     
-    def pars0(self, settings=None):
-        if settings == None:
-            return np.array([1, 0.05, 0.003, 10])
-        else:
-            return np.zeros(4)
-
-    def bounds(self, settings=None):
-        ub = [np.inf, 1, np.inf, np.inf]
-        lb = 0
-        return (lb, ub)
-
-    def pfree(self, units='standard'):
-        pars = [
-            ['S0','Signal scaling factor',self.pars[0],'a.u.'],
-            ['vp','Plasma volume',self.pars[1],'mL/mL'],
-            ['Ktrans','Volume transfer constant',self.pars[2],'1/sec'],
-            ['PSe','Transendothelial water PS',self.pars[3],'mL/sec/mL'],
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]*100, 'mL/100mL']
-            pars[2][2:] = [pars[2][2]*6000, 'mL/min/100mL']
-        return pars
+    def predict(self, xdata:np.ndarray)->np.ndarray:
+        if np.amax(self.t) < np.amax(xdata):
+            msg = 'The acquisition window is longer than the duration of the AIF. \n'
+            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
+            raise ValueError(msg)
+        C = self.conc(sum=False)
+        R1b = self.R10b + self.r1*C[0,:]/self.vb
+        R1e = self.R10 + self.r1*C[1,:]/(1-self.vb)
+        PS = np.array([[0,self.PSe],[self.PSe,0]])
+        v = [self.vb, 1-self.vb]
+        R1 = np.stack((R1b, R1e))
+        ydata = dc.signal_ss_iex(PS, v, R1, self.S0, self.TR, self.FA)
+        return dc.sample(xdata, self.t, ydata, xdata[2]-xdata[1])
     
-    def pdep(self, units='standard'):
-        p = self.pars
-        vb = p[1]/(1-self._Hct)
-        pars = [
-            ['Twe', 'Extravascular water mean transit time', (1-vb)/p[3], 'sec'],
-            ['Twb', 'Intravascular water mean transit time', vb/p[3], 'sec'],
-        ]
-        return pars
+    def pars(self):
+        pars = {
+            'vb': ['Blood volume',self.vb,'mL/mL'],
+            'vp': ['Plasma volume',self.vb*(1-self.Hct),'mL/mL'],
+            'Ktrans': ['Volume transfer constant',self.Ktrans,'1/sec'],
+            'PSe': ['Transendothelial water PS',self.PSe,'mL/sec/mL'],
+            'Twe': ['Extravascular water mean transit time', (1-self.vb)/self.PSe, 'sec'],
+            'Twb': ['Intravascular water mean transit time', self.vb/self.PSe, 'sec'],
+            'S0': ['Signal scaling factor',self.S0,'a.u.'],
+        }
+        return self.add_sdev(pars)
 
 
-class EToftsWXSS(UptSS):
+
+class EToftsWXSS(SteadyState):
     """Extended Tofts tissue with intermediate exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
         The free model parameters are:
@@ -1688,24 +1579,14 @@ class EToftsWXSS(UptSS):
         Intravascular water mean transit time (Twb): 0.0 sec
     """         
 
-    def _forward_model(self, xdata:np.ndarray)->np.ndarray:
+    v = 0.6
+    Ktrans = 0.003
+    ub = 0.3
+    PSe = 10
+    PSc = 10
+    free = ['Ktrans','v','ub','PSe','PSc']
+    bounds = (0, [np.inf, 1, 1,np.inf,np.inf])
 
-        if np.amax(self._t) < np.amax(xdata):
-            msg = 'The acquisition window is longer than the duration of the AIF. \n'
-            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
-            raise ValueError(msg)
-        S0, vp, Ktrans, ve, PSe, PSc = self.pars
-        C = self.conc(sum=False)
-        vb = vp/(1-self._Hct)
-        R1b = self._R10b + self._r1*C[0,:]/vb
-        R1e = self._R10 + self._r1*C[1,:]/ve
-        R1c = self._R10 + np.zeros(C.shape[1])
-        PS = np.array([[0,PSe,0],[PSe,0,PSc],[0,PSc,0]])
-        v = [vb, ve, 1-vb-ve]
-        R1 = np.stack((R1b, R1e, R1c))
-        ydata = dc.signal_ss_iex(PS, v, R1, S0, self._TR, self._FA)
-        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
-    
     def conc(self, sum=True):
         """Tissue concentration.
 
@@ -1715,55 +1596,52 @@ class EToftsWXSS(UptSS):
         Returns:
             np.ndarray: Concentration in M
         """
-        S0, vp, Ktrans, ve, PSe, PSc = self.pars
-        return dc.conc_etofts(self.ca, vp, Ktrans, ve, dt=self._dt, sum=sum)
+        ve = self.v*(1-self.ub)
+        vp = self.v*self.ub*(1-self.Hct)
+        return dc.conc_etofts(self.ca, vp, self.Ktrans, ve, dt=self.dt, sum=sum)
+
+    def predict(self, xdata:np.ndarray)->np.ndarray:
+        if np.amax(self.t) < np.amax(xdata):
+            msg = 'The acquisition window is longer than the duration of the AIF. \n'
+            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
+            raise ValueError(msg)
+        C = self.conc(sum=False)
+        ve = self.v*(1-self.ub)
+        vb = self.v*self.ub
+        R1b = self.R10b + self.r1*C[0,:]/vb
+        R1e = self.R10 + self.r1*C[1,:]/ve
+        R1c = self.R10 + np.zeros(C.shape[1])
+        PS = np.array([[0,self.PSe,0],[self.PSe,0,self.PSc],[0,self.PSc,0]])
+        v = [vb, ve, 1-vb-ve]
+        R1 = np.stack((R1b, R1e, R1c))
+        ydata = dc.signal_ss_iex(PS, v, R1, self.S0, self.TR, self.FA)
+        return dc.sample(xdata, self.t, ydata, xdata[2]-xdata[1])
     
-    def pars0(self, settings=None):
-        if settings == None:
-            return np.array([1, 0.05, 0.003, 0.3, 10, 10])
-        else:
-            return np.zeros(6)
-
-    def bounds(self, settings=None):
-        ub = [np.inf, 1, np.inf, 1, np.inf, np.inf]
-        lb = 0
-        return (lb, ub)
-
-    def pfree(self, units='standard'):
-        pars = [
-            ['S0','Signal scaling factor',self.pars[0],'a.u.'],
-            ['vp','Plasma volume',self.pars[1],'mL/mL'],
-            ['Ktrans','Volume transfer constant',self.pars[2],'1/sec'],
-            ['ve','Extravascular extracellular volume',self.pars[3],'mL/mL'],
-            ['PSe','Transendothelial water PS',self.pars[4],'mL/sec/mL'],
-            ['PSc','Transcytolemmal water PS',self.pars[5],'mL/sec/mL'],
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]*100, 'mL/100mL']
-            pars[2][2:] = [pars[2][2]*6000, 'mL/min/100mL']
-            pars[3][2:] = [pars[3][2]*100, 'mL/100mL']
-        return pars
-    
-    def pdep(self, units='standard'):
-        p = self.pars
-        vb = p[2]/(1-self._Hct)
-        vc = 1-vb-p[3]
-        pars = [
-            ['Te','Extracellular mean transit time',self.pars[3]/self.pars[2],'sec'],
-            ['kep','Extravascular transfer constant',self.pars[2]/self.pars[3],'1/sec'],
-            ['v','Extracellular volume',self.pars[1]+self.pars[3],'mL/mL'],
-            ['Twc', 'Intracellular water mean transit time', vc/p[5], 'sec'],
-            ['Twi', 'Interstitial water mean transit time', p[3]/(p[4]+p[5]), 'sec'],
-            ['Twb', 'Intravascular water mean transit time', vb/p[4], 'sec'],
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]/60, 'min']
-            pars[2][2:] = [pars[2][2]*60, '1/min']
-            pars[3][2:] = [pars[3][2]*100, 'mL/100mL']
-        return pars
+    def pars(self):
+        ve = self.v*(1-self.ub)
+        vb = self.v*self.ub
+        vp = self.v*self.ub*(1-self.Hct)
+        pars = {
+            'Ktrans': ['Volume transfer constant',self.Ktrans,'1/sec'],
+            'v': ['Volume of distribution',self.v,'mL/mL'],
+            'ub': ['Blood volume fraction',self.ub,''],
+            've': ['Extravascular extracellular volume',ve,'mL/mL'],
+            'vb': ['Blood volume',vb,'mL/mL'],
+            'vp': ['Plasma volume',vp,'mL/mL'],
+            'Te': ['Extracellular mean transit time',ve/self.Ktrans,'sec'],
+            'kep': ['Extravascular transfer constant',self.Ktrans/ve,'1/sec'],
+            'ECV': ['Extracellular volume',vp+ve,'mL/mL'],
+            'S0': ['Signal scaling factor',self.S0,'a.u.'],
+            'PSe': ['Transendothelial water PS',self.PSe,'mL/sec/mL'],
+            'PSc': ['Transcytolemmal water PS',self.PSc,'mL/sec/mL'],
+            'Twc': ['Intracellular water mean transit time', (1-vb-ve)/self.PSc, 'sec'],
+            'Twi': ['Interstitial water mean transit time', ve/(self.PSc+self.PSe), 'sec'],
+            'Twb': [ 'Intravascular water mean transit time', vb/self.PSe, 'sec'],
+        }
+        return self.add_sdev(pars)
 
 
-class TwoCompUptWXSS(UptSS):
+class TwoCompUptWXSS(SteadyState):
     """Two-compartment uptake model (2CUM) in intermediate water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
         The free model parameters are:
@@ -1868,22 +1746,13 @@ class TwoCompUptWXSS(UptSS):
         **Note**: The model does not fit the data well because the no-washout assumption is invalid in this example.
     """         
 
-    def _forward_model(self, xdata:np.ndarray)->np.ndarray:
-        if np.amax(self._t) < np.amax(xdata):
-            msg = 'The acquisition window is longer than the duration of the AIF. \n'
-            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
-            raise ValueError(msg)
-        S0, Fp, vp, PS, PSe = self.pars
-        C = self.conc(sum=False)
-        vb = vp/(1-self._Hct)
-        R1b = self._R10b + self._r1*C[0,:]/vb
-        R1e = self._R10 + self._r1*C[1,:]/(1-vb)
-        PS = np.array([[0,PSe],[PSe,0]])
-        v = [vb, 1-vb]
-        R1 = np.stack((R1b, R1e))        
-        ydata = dc.signal_ss_iex(PS, v, R1, S0, self._TR, self._FA)
-        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
-    
+    Fp = 0.01
+    PS = 0.003
+    vb = 0.1
+    PSe = 10
+    free = ['Fp','PS','vb','PSe']
+    bounds = (0, [np.inf, np.inf, 1, np.inf])
+
     def conc(self, sum=True):
         """Tissue concentration.
 
@@ -1893,52 +1762,43 @@ class TwoCompUptWXSS(UptSS):
         Returns:
             np.ndarray: Concentration in M
         """
-        S0, Fp, vp, PS, PSe = self.pars
-        return dc.conc_2cum(self.ca, Fp, vp, PS, dt=self._dt, sum=sum)
-    
-    def pars0(self, settings=None):
-        if settings == None:
-            return np.array([1, 0.1, 0.1, 0.003, 10])
-        else:
-            return np.zeros(5)
+        vp = self.vb*(1-self.Hct)
+        return dc.conc_2cum(self.ca, self.Fp, vp, self.PS, dt=self.dt, sum=sum)
 
-    def bounds(self, settings=None):
-        ub = [np.inf, np.inf, 1, np.inf, np.inf]
-        lb = [0, 0, 0, 0, 0]
-        return (lb, ub)
+    def predict(self, xdata:np.ndarray)->np.ndarray:
+        if np.amax(self.t) < np.amax(xdata):
+            msg = 'The acquisition window is longer than the duration of the AIF. \n'
+            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
+            raise ValueError(msg)
+        C = self.conc(sum=False)
+        R1b = self.R10b + self.r1*C[0,:]/self.vb
+        R1e = self.R10 + self.r1*C[1,:]/(1-self.vb)
+        PS = np.array([[0,self.PSe],[self.PSe,0]])
+        v = [self.vb, 1-self.vb]
+        R1 = np.stack((R1b, R1e))        
+        ydata = dc.signal_ss_iex(PS, v, R1, self.S0, self.TR, self.FA)
+        return dc.sample(xdata, self.t, ydata, xdata[2]-xdata[1])
 
-    def pfree(self, units='standard'):
-        pars = [
-            ['S0','Signal scaling factor',self.pars[0],'a.u.'],
-            ['Fp','Plasma flow',self.pars[1],'mL/sec/mL'],
-            ['vp','Plasma volume',self.pars[2],'mL/mL'],
-            ['PS','Permeability-surface area product',self.pars[3],'mL/sec/mL'],
-            ['PSe','Transendothelial water PS',self.pars[4],'mL/sec/mL'],
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]*6000, 'mL/min/100mL']
-            pars[2][2:] = [pars[2][2]*100, 'mL/100mL']
-            pars[3][2:] = [pars[3][2]*6000, 'mL/min/100mL']
-        return pars
-    
-    def pdep(self, units='standard'):
-        p = self.pars
-        vb = p[2]/(1-self._Hct)
-        ve = 1-vb
-        pars = [
-            ['E','Extraction fraction',p[3]/(p[1]+p[3]),'sec'],
-            ['Ktrans','Volume transfer constant',p[1]*p[3]/(p[1]+p[3]),'mL/sec/mL'],
-            ['Tp','Plasma mean transit time',p[2]/(p[1]+p[3]),'sec'],
-            ['Twe', 'Extravascular water mean transit time', ve/p[4], 'sec'],
-            ['Twb', 'Intravascular water mean transit time', vb/p[4], 'sec'],
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]*100, '%']
-            pars[2][2:] = [pars[2][2]*6000, 'mL/min/100mL']
-        return pars
+    def pars(self):
+        vp = self.vb*(1-self.Hct)
+        pars = {
+            'Fp':['Plasma flow',self.Fp,'mL/sec/mL'],
+            'PS':['Permeability-surface area product',self.PS,'mL/sec/mL'],
+            'vb':['Blood volume',self.vb,'mL/mL'], 
+            'vp':['Plasma volume',vp,'mL/mL'],
+            'E':['Extraction fraction',self.PS/(self.PS+self.Fp),''],
+            'Ktrans':['Volume transfer constant',self.PS*self.Fp/(self.PS+self.Fp),'mL/sec/mL'],
+            'Tp':['Plasma mean transit time',vp/(self.Fp+self.PS),'sec'],
+            'Tb':['Blood mean transit time',vp/self.Fp,'sec'],
+            'S0':['Signal scaling factor',self.S0,'a.u.'],
+            'PSe': ['Transendothelial water PS',self.PSe,'mL/sec/mL'],
+            'Twe': ['Extravascular water mean transit time', (1-self.vb)/self.PSe, 'sec'],
+            'Twb': ['Intravascular water mean transit time', self.vb/self.PSe, 'sec'],
+        }
+        return self.add_sdev(pars)  
 
 
-class TwoCompExchWXSS(UptSS):
+class TwoCompExchWXSS(SteadyState):
     """Two-compartment exchange model (2CXM) in intermediate water exchange, acquired with a spoiled gradient echo sequence in steady state and using a direct inversion of the AIF.
 
         The free model parameters are:
@@ -2051,23 +1911,16 @@ class TwoCompExchWXSS(UptSS):
         **Note**: fitted water PS water values are high because the simulated data are in fast water exchange.
 
     """         
-    def _forward_model(self, xdata:np.ndarray)->np.ndarray:
-        if np.amax(self._t) < np.amax(xdata):
-            msg = 'The acquisition window is longer than the duration of the AIF. \n'
-            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
-            raise ValueError(msg)
-        S0, Fp, vp, PS, ve, PSe, PSc = self.pars
-        C = self.conc(sum=False)
-        vb = vp/(1-self._Hct)
-        R1b = self._R10b + self._r1*C[0,:]/vb
-        R1e = self._R10 + self._r1*C[1,:]/ve
-        R1c = self._R10 + np.zeros(C.shape[1])
-        PS = np.array([[0,PSe,0],[PSe,0,PSc],[0,PSc,0]])
-        v = [vb, ve, 1-vb-ve]
-        R1 = np.stack((R1b, R1e, R1c))        
-        ydata = dc.signal_ss_iex(PS, v, R1, S0, self._TR, self._FA)
-        return dc.sample(xdata, self._t, ydata, xdata[2]-xdata[1])
-    
+
+    Fp = 0.01
+    PS = 0.003
+    v = 0.6
+    ub = 0.3
+    PSe = 10
+    PSc = 10
+    free = ['Fp','PS','v','ub','PSe','PSc']
+    bounds = (0, [np.inf, np.inf, 1, 1,np.inf,np.inf])
+
     def conc(self, sum=True):
         """Tissue concentration.
 
@@ -2077,56 +1930,52 @@ class TwoCompExchWXSS(UptSS):
         Returns:
             np.ndarray: Concentration in M
         """
-        S0, Fp, vp, PS, ve, PSe, PSc = self.pars
-        return dc.conc_2cxm(self.ca, Fp, vp, PS, ve, dt=self._dt, sum=sum)
+        ve = self.v*(1-self.ub)
+        vp = self.v*self.ub*(1-self.Hct)
+        return dc.conc_2cxm(self.ca, self.Fp, vp, self.PS, ve, dt=self.dt, sum=sum)
+
+    def predict(self, xdata:np.ndarray)->np.ndarray:
+        if np.amax(self.t) < np.amax(xdata):
+            msg = 'The acquisition window is longer than the duration of the AIF. \n'
+            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
+            raise ValueError(msg)
+        C = self.conc(sum=False)
+        vb = self.v*self.ub
+        ve = self.v*(1-self.ub)
+        R1b = self.R10b + self.r1*C[0,:]/vb
+        R1e = self.R10 + self.r1*C[1,:]/ve
+        R1c = self.R10 + np.zeros(C.shape[1])
+        PS = np.array([[0,self.PSe,0],[self.PSe,0,self.PSc],[0,self.PSc,0]])
+        v = [vb, ve, 1-vb-ve]
+        R1 = np.stack((R1b, R1e, R1c))        
+        ydata = dc.signal_ss_iex(PS, v, R1, self.S0, self.TR, self.FA)
+        return dc.sample(xdata, self.t, ydata, xdata[2]-xdata[1])
     
-    def pars0(self, settings=None):
-        if settings == None:
-            return np.array([1, 0.1, 0.1, 0.003, 0.3, 10, 10])
-        else:
-            return np.zeros(7)
-
-    def bounds(self, settings=None):
-        ub = [np.inf, np.inf, 1, np.inf, 1, np.inf, np.inf]
-        lb = [0, 0, 0, 0, 0, 0, 0]
-        return (lb, ub)
-
-    def pfree(self, units='standard'):
-        pars = [
-            ['S0','Signal scaling factor',self.pars[0],'a.u.'],
-            ['Fp','Plasma flow',self.pars[1],'mL/sec/mL'],
-            ['vp','Plasma volume',self.pars[2],'mL/mL'],
-            ['PS','Permeability-surface area product',self.pars[3],'mL/sec/mL'],
-            ['ve','Extravascular extracellular volume',self.pars[4],'mL/mL'],
-            ['PSe','Transendothelial water PS',self.pars[5],'mL/sec/mL'],
-            ['PSc','Transcytolemmal water PS',self.pars[6],'mL/sec/mL'],
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]*6000, 'mL/min/100mL']
-            pars[2][2:] = [pars[2][2]*100, 'mL/100mL']
-            pars[3][2:] = [pars[3][2]*6000, 'mL/min/100mL']
-            pars[4][2:] = [pars[4][2]*100, 'mL/100mL']
-        return pars
-    
-    def pdep(self, units='standard'):
-        p = self.pars
-        vb = p[2]/(1-self._Hct)
-        vc = 1-vb-p[4]
-        pars = [
-            ['E','Extraction fraction',p[3]/(p[1]+p[3]),'sec'],
-            ['Ktrans','Volume transfer constant',p[1]*p[3]/(p[1]+p[3]),'mL/sec/mL'],
-            ['Tp','Plasma mean transit time',p[2]/(p[1]+p[3]),'sec'],
-            ['Te','Extracellular mean transit time',p[4]/p[3],'sec'],
-            ['v','Extracellular volume',p[2]+p[4],'mL/mL'],
-            ['T','Mean transit time',(p[2]+p[4])/p[1],'sec'],
-            ['Twc', 'Intracellular water mean transit time', vc/p[6], 'sec'],
-            ['Twi', 'Interstitial water mean transit time', p[4]/(p[5]+p[6]), 'sec'],
-            ['Twb', 'Intravascular water mean transit time', vb/p[5], 'sec'],
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]*100, '%']
-            pars[2][2:] = [pars[2][2]*6000, 'mL/min/100mL']
-            pars[4][2:] = [pars[4][2]/60, 'min']
-            pars[5][2:] = [pars[5][2]*100, 'mL/100mL']
-        return pars
-
+    def pars(self):
+        ve = self.v*(1-self.ub)
+        vb = self.v*self.ub
+        vp = self.v*self.ub*(1-self.Hct)
+        pars = {
+            'Fp': ['Plasma flow',self.Fp,'mL/sec/mL'],
+            'PS': ['Permeability-surface area product',self.PS,'mL/sec/mL'],
+            'v': ['Volume of distribution',self.v,'mL/mL'],
+            'ub': ['Blood volume fraction',self.ub,''],
+            've': ['Extravascular extracellular volume',ve,'mL/mL'],
+            'vb': ['Blood volume',vb,'mL/mL'],
+            'vp': ['Plasma volume',vp,'mL/mL'],
+            'Te': ['Extracellular mean transit time',ve/self.PS,'sec'],
+            'kep': ['Extravascular transfer constant',self.PS/ve,'1/sec'],
+            'ECV': ['Extracellular volume',vp+ve,'mL/mL'],
+            'E': ['Extraction fraction',self.PS/(self.PS+self.Fp),''],
+            'Ktrans': ['Volume transfer constant',self.PS*self.Fp/(self.PS+self.Fp),'mL/sec/mL'],
+            'Tp': ['Plasma mean transit time',vp/(self.Fp+self.PS),'sec'],
+            'Tb': ['Blood mean transit time',vp/self.Fp,'sec'],
+            'T': ['Mean transit time',(vp+ve)/self.Fp,'sec'],
+            'S0': ['Signal scaling factor',self.S0,'a.u.'],
+            'PSe': ['Transendothelial water PS',self.PSe,'mL/sec/mL'],
+            'PSc': ['Transcytolemmal water PS',self.PSc,'mL/sec/mL'],
+            'Twc': ['Intracellular water mean transit time', (1-vb-ve)/self.PSc, 'sec'],
+            'Twi': ['Interstitial water mean transit time', ve/(self.PSc+self.PSe), 'sec'],
+            'Twb': [ 'Intravascular water mean transit time', vb/self.PSe, 'sec'],
+        }
+        return self.add_sdev(pars)

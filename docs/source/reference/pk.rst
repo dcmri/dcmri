@@ -9,6 +9,17 @@ A collection of basic pharmacokinetic models that can be assembled to build more
 .. currentmodule:: dcmri
 
 
+Any model
+=========
+
+.. autosummary::
+   :toctree: ../generated/api/
+   :template: autosummary.rst
+
+   conc
+   flux
+
+
 No-parameter models
 ===================
 

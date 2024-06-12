@@ -66,7 +66,7 @@ class Kidney2CFXSR(dc.Model):
 
         Train the model on the ROI data:
 
-        >>> model.train(time, roi, pfix=[1]+5*[0])
+        >>> model.train(time, roi)
 
         Plot the reconstructed signals (left) and concentrations (right) and compare the concentrations against the noise-free ground truth:
 
@@ -90,122 +90,83 @@ class Kidney2CFXSR(dc.Model):
         >>> #
         >>> plt.show()
     """ 
-    def __init__(self, aif, 
-            pars = None,
-            dt = 0.5, 
-            Hct = 0.45, 
-            agent = 'gadoterate',
-            field_strength = 3.0,
-            TR = 5.0/1000.0,  
-            FA = 15.0,
-            Tsat = 0,
-            TC = 0.085,
-            R10 = 1,  
-            R10b = 1,
-            t0 = 0,
-            vol = None, 
-        ):
-        n0 = max([round(t0/dt),1])
-        r1 = dc.relaxivity(field_strength, 'blood', agent)
-        cb = dc.conc_src(aif, TC, 1/R10b, r1, n0)
-        self._t = dt*np.arange(np.size(aif))
-        self._dt = dt
-        self._Hct = Hct
-        self._TR = TR
-        self._FA = FA
-        self._Tsat = Tsat
-        self._TC = TC
-        self._R10 = R10
-        self._R10b = R10b
-        self._r1 = r1
-        self._t0 = t0
-        self._vol = vol
-        self.pars = self.pars0(pars)
-        self.ca = cb/(1-Hct)        #: Arterial plasma concentration (M)
 
-    def _forward_model(self, xdata):
-        if np.amax(self._t) < np.amax(xdata):
-            msg = 'The acquisition window is longer than the duration of the AIF. \n'
-            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
-            raise ValueError(msg) 
-        S0, Fp, Tp, Ft, Tt, Ta = self.pars
-        C = self.conc()
-        R1 = self._R10 + self._r1*C
-        signal = dc.signal_sr(R1, S0, self._TR, self._FA, self._TC, self._Tsat)
-        return dc.sample(xdata, self._t, signal, xdata[1]-xdata[0])
-    
+    dt = 0.5 
+    Hct = 0.45 
+    agent = 'gadoterate'
+    field_strength = 3.0
+    R10 = 1  
+    R10b = 1
+    t0 = 0
+    vol = None
+
+    TR = 0.005  
+    FA = 15.0
+    Tsat = 0
+    TC = 0.085
+
+    S0 = 1
+    Fp = 200/6000
+    Tp = 5
+    Ft = 30/6000
+    Tt = 120
+    Ta = 0
+
+    free = ['Fp','Tp','Ft','Tt','Ta']
+    bounds = (
+        0,
+        [np.inf, 8, np.inf, np.inf, 3],
+    )
+
+    def __init__(self, aif, **kwargs):
+        super().__init__(**kwargs)
+        n0 = max([round(self.t0/self.dt),1])
+        self.r1 = dc.relaxivity(self.field_strength, 'blood', self.agent)
+        cb = dc.conc_src(aif, self.TC, 1/self.R10b, self.r1, n0)
+        self.t = self.dt*np.arange(np.size(aif))
+        self.ca = cb/(1-self.Hct)        #: Arterial plasma concentration (M)
+
     def conc(self):
         """Tissue concentration
 
         Returns:
             numpy.ndarray: Concentration in M
         """
-        S0, Fp, Tp, Ft, Tt, Ta = self.pars
-        ca = dc.flux_plug(self.ca, Ta, self._t)
-        return dc.kidney_conc_2cm(ca, Fp, Tp, Ft, Tt, self._t)
+        ca = dc.flux_plug(self.ca, self.Ta, dt=self.dt)
+        return dc.kidney_conc_2cm(ca, self.Fp, self.Tp, self.Ft, self.Tt, dt=self.dt)
+
+    def predict(self, xdata):
+        if np.amax(self.t) < np.amax(xdata):
+            msg = 'The acquisition window is longer than the duration of the AIF.'
+            raise ValueError(msg) 
+        C = self.conc()
+        R1 = self.R10 + self.r1*C
+        signal = dc.signal_sr(R1, self.S0, self.TR, self.FA, self.TC, self.Tsat)
+        return dc.sample(xdata, self.t, signal, xdata[1]-xdata[0])
     
     def train(self, xdata, ydata, **kwargs):
-        Sref = dc.signal_sr(self._R10, 1, self._TR, self._FA, self._TC, self._Tsat)
-        n0 = max([np.sum(xdata<self._t0), 1])
-        self.pars[0] = np.mean(ydata[:n0]) / Sref
+        Sref = dc.signal_sr(self.R10, 1, self.TR, self.FA, self.TC, self.Tsat)
+        n0 = max([np.sum(xdata<self.t0), 1])
+        self.S0 = np.mean(ydata[:n0]) / Sref
         return super().train(xdata, ydata, **kwargs)
-    
-    def pars0(self, settings=None):
-        if settings == None:
-            return np.array([1, 200/6000, 5, 30/6000, 120, 0])
-        else:
-            return np.zeros(6)
 
-    def bounds(self, settings=None):
-        if settings == None:
-            ub = [np.inf, np.inf, 8, np.inf, np.inf, 3]
-            lb = 0
-        else:
-            ub = np.inf
-            lb = 0
-        return (lb, ub)
-
-    def pfree(self, units='standard'):
-        # Fp, Tp, Ft, Tt, Ta, S0
-        pars = [
-            ['S0', 'Signal scaling factor', self.pars[0], 'a.u.'],
-            ['Fp', 'Plasma flow', self.pars[1], 'mL/sec/mL'],
-            ['Tp', 'Plasma mean transit time', self.pars[2], 'sec'],
-            ['Ft', 'Tubular flow', self.pars[3], 'mL/sec/mL'],
-            ['Tt', 'Tubular mean transit time', self.pars[4], 'sec'],
-            ['Ta', 'Arterial mean transit time', self.pars[5], 'sec'],
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]*6000, 'mL/min/100mL']
-            pars[3][2:] = [pars[3][2]*6000, 'mL/min/100mL']
-            pars[4][2:] = [pars[4][2]/60, 'min']
-        return pars
-    
-    def pdep(self, units='standard'):
-        pars = [
-            ['Fb','Blood flow',self.pars[1]/(1-self._Hct),'mL/sec/mL'],
-            ['ve', 'Extracellular volume', self.pars[1]*self.pars[2], ''],
-            ['FF', 'Filtration fraction', self.pars[3]/self.pars[1], ''],
-            ['E', 'Extraction fraction', self.pars[3]/(self.pars[1]+self.pars[3]), ''],
-        ]
-        if units == 'custom':
-            pars[0][2:] = [pars[0][2]*6000, 'mL/min/100mL']
-            pars[1][2:] = [pars[1][2]*100, 'mL/100mL']
-            pars[2][2:] = [pars[2][2]*100, '%']
-            pars[3][2:] = [pars[3][2]*100, '%']
-
-        if self._vol is None:
-            return pars
-        
-        pars += [
-            ['SK-GFR', 'Single-kidney glomerular filtration rate', self.pars[3]*self._vol, 'mL/sec'],
-            ['SK-RBF', 'Single-kidney renal blood flow', self.pars[1]*self._vol/(1-self._Hct), 'mL/sec'],
-        ]
-        if units == 'custom':
-            pars[4][2:] = [pars[4][2]*60, 'mL/min']
-            pars[5][2:] = [pars[5][2]*60, 'mL/min']
-
-        return pars
+    def pars(self):
+        pars = {}
+        pars['S0'] = ['Signal scaling factor', self.S0, 'a.u.']
+        pars['Fp'] = ['Plasma flow', self.Fp, 'mL/sec/mL']
+        pars['Tp'] = ['Plasma mean transit time', self.Tp, 'sec']
+        pars['Ft'] = ['Tubular flow', self.Ft, 'mL/sec/mL']
+        pars['Tt'] = ['Tubular mean transit time', self.Tt, 'sec']
+        pars['Ta'] = ['Arterial mean transit time', self.Ta, 'sec']
+        pars['Fb'] = ['Blood flow',self.Fp/(1-self.Hct),'mL/sec/mL']
+        pars['ve'] = ['Extracellular volume', self.Fp*self.Tp, '']
+        pars['FF'] = ['Filtration fraction', self.Ft/self.Fp, '']
+        pars['E'] = ['Extraction fraction', self.Ft/(self.Ft+self.Fp), '']
+        if self.vol is None:
+            return self.add_sdev(pars)
+        pars['SK-GFR'] = ['Single-kidney glomerular filtration rate', self.Ft*self.vol, 'mL/sec']
+        pars['SK-RBF'] = ['Single-kidney renal blood flow', self.Ft*self.vol/(1-self.Hct), 'mL/sec']
+        return self.add_sdev(pars)
 
 
 
@@ -294,45 +255,38 @@ class Kidney2CFXSS(dc.Model):
         >>> plt.show()
     """ 
 
-    def __init__(self, aif, 
-            pars = None,
-            dt = 0.5, 
-            Hct = 0.45, 
-            agent = 'gadoterate',
-            field_strength = 3.0,
-            TR = 5.0/1000.0,  
-            FA = 15.0,
-            R10 = 1,  
-            R10b = 1,
-            t0 = 0,
-            vol = None, 
-        ):
-        n0 = max([round(t0/dt),1])
-        r1 = dc.relaxivity(field_strength, 'blood', agent)
-        cb = dc.conc_ss(aif, TR, FA, 1/R10b, r1, n0)
-        self._t = dt*np.arange(np.size(aif))
-        self._dt = dt
-        self._Hct = Hct
-        self._TR = TR
-        self._FA = FA
-        self._R10 = R10
-        self._R10b = R10b
-        self._r1 = r1
-        self._t0 = t0
-        self._vol = vol
-        self.pars = self.pars0(pars)
-        self.ca = cb/(1-Hct)        #: Arterial plasma concentration (M)
+    dt = 0.5 
+    Hct = 0.45 
+    agent = 'gadoterate'
+    field_strength = 3.0
+    R10 = 1  
+    R10b = 1
+    t0 = 0
+    vol = None
 
-    def _forward_model(self, xdata):
-        if np.amax(self._t) < np.amax(xdata):
-            msg = 'The acquisition window is longer than the duration of the AIF. \n'
-            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
-            raise ValueError(msg) 
-        S0, Fp, Tp, Ft, Tt, Ta = self.pars
-        C = self.conc()
-        R1 = self._R10 + self._r1*C
-        signal = dc.signal_ss(R1, S0, self._TR, self._FA)
-        return dc.sample(xdata, self._t, signal, xdata[1]-xdata[0])
+    TR = 0.005  
+    FA = 15.0
+
+    S0 = 1
+    Fp = 200/6000
+    Tp = 5
+    Ft = 30/6000
+    Tt = 120
+    Ta = 0
+
+    free = ['Fp','Tp','Ft','Tt','Ta']
+    bounds = (
+        0,
+        [np.inf, 8, np.inf, np.inf, 3],
+    )
+
+    def __init__(self, aif, **kwargs):
+        super().__init__(**kwargs)
+        n0 = max([round(self.t0/self.dt),1])
+        self.r1 = dc.relaxivity(self.field_strength, 'blood', self.agent)
+        cb = dc.conc_ss(aif, self.TR, self.FA, 1/self.R10b, self.r1, n0)
+        self.t = self.dt*np.arange(np.size(aif))
+        self.ca = cb/(1-self.Hct)        #: Arterial plasma concentration (M)
 
     def conc(self):
         """Tissue concentration
@@ -340,72 +294,42 @@ class Kidney2CFXSS(dc.Model):
         Returns:
             numpy.ndarray: Concentration in M
         """
-        S0, Fp, Tp, Ft, Tt, Ta = self.pars
-        ca = dc.flux_plug(self.ca, Ta, t=self._t, dt=self._dt)
-        return dc.kidney_conc_2cm(ca, Fp, Tp, Ft, Tt, t=self._t, dt=self._dt)
-    
+        ca = dc.flux_plug(self.ca, self.Ta, dt=self.dt)
+        return dc.kidney_conc_2cm(ca, self.Fp, self.Tp, self.Ft, self.Tt, dt=self.dt)
+
+    def predict(self, xdata):
+        if np.amax(self.t) < np.amax(xdata):
+            msg = 'The acquisition window is longer than the duration of the AIF.'
+            raise ValueError(msg) 
+        C = self.conc()
+        R1 = self.R10 + self.r1*C
+        signal = dc.signal_ss(R1, self.S0, self.TR, self.FA)
+        return dc.sample(xdata, self.t, signal, xdata[1]-xdata[0])
+
     def train(self, xdata, ydata, **kwargs):
-        Sref = dc.signal_ss(self._R10, 1, self._TR, self._FA)
-        n0 = max([np.sum(xdata<self._t0), 1])
-        self.pars[0] = np.mean(ydata[:n0]) / Sref
+        Sref = dc.signal_ss(self.R10, 1, self.TR, self.FA)
+        n0 = max([np.sum(xdata<self.t0), 1])
+        self.S0 = np.mean(ydata[:n0]) / Sref
         return super().train(xdata, ydata, **kwargs)
-    
-    def pars0(self, settings=None):
-        if settings == None:
-            return np.array([1, 200/6000, 5, 30/6000, 120, 0])
-        else:
-            return np.zeros(6)
 
-    def bounds(self, settings=None):
-        if settings == None:
-            ub = [np.inf, np.inf, 8, np.inf, np.inf, 3]
-            lb = 0
-        else:
-            ub = np.inf
-            lb = 0
-        return (lb, ub)
+    def pars(self):
+        pars = {}
+        pars['S0'] = ['Signal scaling factor', self.S0, 'a.u.']
+        pars['Fp'] = ['Plasma flow', self.Fp, 'mL/sec/mL']
+        pars['Tp'] = ['Plasma mean transit time', self.Tp, 'sec']
+        pars['Ft'] = ['Tubular flow', self.Ft, 'mL/sec/mL']
+        pars['Tt'] = ['Tubular mean transit time', self.Tt, 'sec']
+        pars['Ta'] = ['Arterial mean transit time', self.Ta, 'sec']
+        pars['Fb'] = ['Blood flow',self.Fp/(1-self.Hct),'mL/sec/mL']
+        pars['ve'] = ['Extracellular volume', self.Fp*self.Tp, '']
+        pars['FF'] = ['Filtration fraction', self.Ft/self.Fp, '']
+        pars['E'] = ['Extraction fraction', self.Ft/(self.Ft+self.Fp), '']
+        if self.vol is None:
+            return self.add_sdev(pars)
+        pars['SK-GFR'] = ['Single-kidney glomerular filtration rate', self.Ft*self.vol, 'mL/sec']
+        pars['SK-RBF'] = ['Single-kidney renal blood flow', self.Ft*self.vol/(1-self.Hct), 'mL/sec']
+        return self.add_sdev(pars)
 
-    def pfree(self, units='standard'):
-        # Fp, Tp, Ft, Tt, Ta, S0
-        pars = [
-            ['S0', 'Signal scaling factor', self.pars[0], 'a.u.'],
-            ['Fp', 'Plasma flow', self.pars[1], 'mL/sec/mL'],
-            ['Tp', 'Plasma mean transit time', self.pars[2], 'sec'],
-            ['Ft', 'Tubular flow', self.pars[3], 'mL/sec/mL'],
-            ['Tt', 'Tubular mean transit time', self.pars[4], 'sec'],
-            ['Ta', 'Arterial mean transit time', self.pars[5], 'sec'],
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]*6000, 'mL/min/100mL']
-            pars[3][2:] = [pars[3][2]*6000, 'mL/min/100mL']
-            pars[4][2:] = [pars[4][2]/60, 'min']
-        return pars
-    
-    def pdep(self, units='standard'):
-        pars = [
-            ['Fb','Blood flow',self.pars[1]/(1-self._Hct),'mL/sec/mL'],
-            ['ve', 'Extracellular volume', self.pars[1]*self.pars[2], ''],
-            ['FF', 'Filtration fraction', self.pars[3]/self.pars[1], ''],
-            ['E', 'Extraction fraction', self.pars[3]/(self.pars[1]+self.pars[3]), ''],
-        ]
-        if units == 'custom':
-            pars[0][2:] = [pars[0][2]*6000, 'mL/min/100mL']
-            pars[1][2:] = [pars[1][2]*100, 'mL/100mL']
-            pars[2][2:] = [pars[2][2]*100, '%']
-            pars[3][2:] = [pars[3][2]*100, '%']
-
-        if self._vol is None:
-            return pars
-        
-        pars += [
-            ['SK-GFR', 'Single-kidney glomerular filtration rate', self.pars[3]*self._vol, 'mL/sec'],
-            ['SK-RBF', 'Single-kidney renal blood flow', self.pars[1]*self._vol/(1-self._Hct), 'mL/sec'],
-        ]
-        if units == 'custom':
-            pars[4][2:] = [pars[4][2]*60, 'mL/min']
-            pars[5][2:] = [pars[5][2]*60, 'mL/min']
-
-        return pars
 
 
 class KidneyPFFXSS(dc.Model):
@@ -497,146 +421,95 @@ class KidneyPFFXSS(dc.Model):
         >>> #
         >>> plt.show()
     """ 
+
+    dt = 0.5 
+    Hct = 0.45 
+    agent = 'gadoterate'
+    field_strength = 3.0
+    R10 = 1  
+    R10b = 1
+    t0 = 0
+    vol = None
+
+    TR = 0.005  
+    FA = 15.0
+
+    S0 = 1
+    Fp = 200/6000
+    Tp = 5
+    Ft = 30/6000
+    h0 = 1
+    h1 = 1
+    h2 = 1
+    h3 = 1
+    h4 = 1
+    h5 = 1
+    TT = [15,30,60,90,150,300,600]
+
+    free = ['Fp','Tp','Ft','h0','h1','h2','h3','h4','h5']
+    bounds = (
+        0,
+        [np.inf, 8, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf],
+    )
     
-    def __init__(self, aif, 
-            pars = None,
-            dt = 0.5, 
-            Hct = 0.45, 
-            agent = 'gadoterate',
-            field_strength = 3.0,
-            TR = 5.0/1000.0,  
-            FA = 15.0,
-            R10 = 1,  
-            R10b = 1,
-            t0 = 0,
-            TT = [15,30,60,90,150,300,600],
-            vol = None, 
-        ):
-        n0 = max([round(t0/dt),1])
-        r1 = dc.relaxivity(field_strength, 'blood', agent)
-        cb = dc.conc_ss(aif, TR, FA, 1/R10b, r1, n0)
-        self._t = dt*np.arange(np.size(aif))
-        self._dt = dt
-        self._Hct = Hct
-        self._TR = TR
-        self._FA = FA
-        self._R10 = R10
-        self._R10b = R10b
-        self._r1 = r1
-        self._t0 = t0
-        self._vol = vol
-        self._TT = TT
-        self.pars = self.pars0(pars)
-        self.ca = cb/(1-Hct)        #: Arterial plasma concentration (M)
-        
-    def _forward_model(self, xdata):
-        if np.amax(self._t) < np.amax(xdata):
-            msg = 'The acquisition window is longer than the duration of the AIF. \n'
-            msg += 'Possible solutions: (1) increase dt; (2) extend cb; (3) reduce xdata.'
-            raise ValueError(msg) 
-        S0, Fp, Tp, Ft, h0,h1,h2,h3,h4,h5 = self.pars
-        C = self.conc()
-        R1 = self._R10 + self._r1*C
-        signal = dc.signal_ss(R1, S0, self._TR, self._FA)
-        return dc.sample(xdata, self._t, signal, xdata[1]-xdata[0])
-    
+    def __init__(self, aif, **kwargs):
+        super().__init__(**kwargs)
+        n0 = max([round(self.t0/self.dt),1])
+        self.r1 = dc.relaxivity(self.field_strength, 'blood', self.agent)
+        cb = dc.conc_ss(aif, self.TR, self.FA, 1/self.R10b, self.r1, n0)
+        self.t = self.dt*np.arange(np.size(aif))
+        self.ca = cb/(1-self.Hct)
+
     def conc(self):
         """Tissue concentration
 
         Returns:
             numpy.ndarray: Concentration in M
         """
-        S0, Fp, Tp, Ft, h0,h1,h2,h3,h4,h5 = self.pars
-        H = [h0,h1,h2,h3,h4,h5]
-        return dc.kidney_conc_pf(self.ca, Fp, Tp, Ft, H, TT=self._TT, t=self._t, dt=self._dt)
+        H = [self.h0,self.h1,self.h2,self.h3,self.h4,self.h5]
+        return dc.kidney_conc_pf(self.ca, self.Fp, self.Tp, self.Ft, H, TT=self.TT, dt=self.dt)
 
-    def train(self, xdata, ydata, pfix=[1]+9*[0], p0=None,
-            bounds=None, xrange=None, xvalid=None, 
-            **kwargs):
-        """Train the free parameters of the model using the data provided.
-
-        After training, the attribute ``pars`` will contain the updated parameter values, and ``popt`` contains the covariance matrix. The function uses the scipy function `scipy.optimize.curve_fit`, but has some additional keywords for convenience during model prototyping. 
-
-        Args:
-            xdata (array-like): Array with x-data (time points).
-            ydata (array-like): Array with y-data (signal data)
-            p0 (array-like, optional): Initial values for the free parameters. Defaults to None.
-            bounds (str or tuple, optional): String or tuple defining the parameter bounds to be used whil training. The tuple must have 2 elements where each element is either an array with values (one for each parameter) or a single value (when each parameter has the same bound). Defaults to None.
-            pfix (array-like, optional): Binary array defining which parameters should be held fixed during training (value=1) or which to fit (value=0). If not provided, all free parameters are fitted. By default the baseline signal value S0 is not fixed.
-            xrange (array-like, optional): tuple of two values [xmin, xmax] showing lower and upper x-values to use for fitting. This parameters is useful to exclude particular ranges to be used in the training. If not provided, all x-values are used for training. Defaults to None.
-            xvalid (array-like, optional): Binary array defining which xdata to use for training, with values of either 1 (use) or 0 (don't use). This parameter is useful to exclude individual x-values from the fit, e.g. because the data are corrupted. If not provided, all x-values are used for training. Defaults to None.
-            kwargs: any keyword parameters accepted by `scipy.optimize.curve_fit`.
-
-        Returns:
-            Model: A reference to the model instance.
-        """
-        Sref = dc.signal_ss(self._R10, 1, self._TR, self._FA)
-        n0 = max([np.sum(xdata<self._t0), 1])
-        self.pars[0] = np.mean(ydata[:n0]) / Sref
-        return super().train(xdata, ydata, pfix=pfix, p0=p0,
-            bounds=bounds, xrange=xrange, xvalid=xvalid, 
-            **kwargs)
+    def predict(self, xdata):
+        if np.amax(self.t) < np.amax(xdata):
+            msg = 'The acquisition window is longer than the duration of the AIF.'
+            raise ValueError(msg) 
+        C = self.conc()
+        R1 = self.R10 + self.r1*C
+        signal = dc.signal_ss(R1, self.S0, self.TR, self.FA)
+        return dc.sample(xdata, self.t, signal, xdata[1]-xdata[0])
     
-    def pars0(self, settings=None):
-        if settings == None:
-            return np.array([1, 0.2, 0.1, 3.0, 1, 1, 1, 1, 1, 1])
-        else:
-            return np.zeros(10)
+    def train(self, xdata, ydata, **kwargs):
+        Sref = dc.signal_ss(self.R10, 1, self.TR, self.FA)
+        n0 = max([np.sum(xdata<self.t0), 1])
+        self.S0 = np.mean(ydata[:n0]) / Sref
+        return super().train(xdata, ydata, **kwargs)
 
-    def bounds(self, settings=None):
-        ub = +np.inf
-        lb = 0
-        return (lb, ub)
+    def pars(self):
+        H = [self.h0,self.h1,self.h2,self.h3,self.h4,self.h5]
+        TT = rv_histogram((H,self.TT), density=True)
+        pars = {}
+        pars['S0'] = ['Signal scaling factor', self.S0, 'a.u.']
+        pars['Fp'] = ['Plasma flow', self.Fp, 'mL/sec/mL']
+        pars['Tp'] = ['Plasma mean transit time', self.Tp, 'sec']
+        pars['Ft'] = ['Tubular flow', self.Ft, 'mL/sec/mL']
+        pars['h0'] = ["Transit time weight (15-30s)", self.h0, '1/sec']
+        pars['h1'] = ["Transit time weight (30-60s)", self.h1, '1/sec']
+        pars['h2'] = ["Transit time weight (60-90s)", self.h2, '1/sec']
+        pars['h3'] = ["Transit time weight (90-150s)", self.h3, '1/sec']
+        pars['h4'] = ["Transit time weight (150-300s)", self.h4, '1/sec']
+        pars['h5'] = ["Transit time weight (300-600s)", self.h5, '1/sec']
+        pars['Fb'] = ['Blood flow',self.Fp/(1-self.Hct),'mL/sec/mL']
+        pars['ve'] = ['Extracellular volume', self.Fp*self.Tp, '']
+        pars['FF'] = ['Filtration fraction', self.Ft/self.Fp, '']
+        pars['E'] = ['Extraction fraction', self.Ft/(self.Ft+self.Fp), '']
+        pars['Tt'] = ['Tubular mean transit time', TT.mean(), 'sec']
+        pars['Dt'] = ['Tubular transit time dispersion', TT.std()/TT.mean(), '']
+        if self.vol is None:
+            return self.add_sdev(pars)
+        pars['SK-GFR'] = ['Single-kidney glomerular filtration rate', self.Ft*self.vol, 'mL/sec']
+        pars['SK-RBF'] = ['Single-kidney renal blood flow', self.Ft*self.vol/(1-self.Hct), 'mL/sec']
+        return self.add_sdev(pars)
 
-    def pfree(self, units='standard'):
-        pars = [
-            ['S0', 'Signal scaling factor', self.pars[0], 'a.u.'],
-            ['Fp', 'Plasma flow', self.pars[1], 'mL/sec/mL'],
-            ['Tp', 'Plasma mean transit time', self.pars[2], 'sec'],
-            ['Ft', 'Tubular flow', self.pars[3], 'mL/sec/mL'],
-            ['h0', "Transit time weight (15-30s)", self.pars[4], '1/sec'],
-            ['h1', "Transit time weight (30-60s)", self.pars[5], '1/sec'],
-            ['h2', "Transit time weight (60-90s)", self.pars[6], '1/sec'],
-            ['h3', "Transit time weight (90-150s)", self.pars[7], '1/sec'],
-            ['h4', "Transit time weight (150-300s)", self.pars[8], '1/sec'],
-            ['h5', "Transit time weight (300-600s)", self.pars[9], '1/sec'],
-        ]
-        if units == 'custom':
-            pars[1][2:] = [pars[1][2]*6000, 'mL/min/100mL']
-            pars[3][2:] = [pars[3][2]*6000, 'mL/min/100mL']
-        return pars
-
-    def pdep(self, units='standard'):
-        TT = rv_histogram((self.pars[4:],self._TT), density=True)
-        pars = [
-            ['Fb','Blood flow',self.pars[1]/(1-self._Hct),'mL/sec/mL'],
-            ['ve', 'Extracellular volume', self.pars[1]*self.pars[2], ''],
-            ['FF', 'Filtration fraction', self.pars[3]/self.pars[1], ''],
-            ['E', 'Extraction fraction', self.pars[3]/(self.pars[1]+self.pars[3]), ''],
-            ['Tt', 'Tubular mean transit time', TT.mean(), 'sec'],
-            ['Dt', 'Tubular transit time dispersion', TT.std()/TT.mean(), ''],
-        ]
-        if units == 'custom':
-            pars[0][2:] = [pars[0][2]*6000, 'mL/min/100mL']
-            pars[1][2:] = [pars[1][2]*100, 'mL/100mL']
-            pars[2][2:] = [pars[2][2]*100, '%']
-            pars[3][2:] = [pars[3][2]*100, '%']
-            pars[4][2:] = [pars[4][2]/60, 'min']
-            pars[5][2:] = [pars[5][2]*100, '%']
-
-        if self._vol is None:
-            return pars
-        
-        pars += [
-            ['SK-GFR', 'Single-kidney glomerular filtration rate', self.pars[3]*self._vol, 'mL/sec'],
-            ['SK-RBF', 'Single-kidney renal blood flow', self.pars[1]*self._vol/(1-self._Hct), 'mL/sec'],
-        ]
-        if units == 'custom':
-            pars[6][2:] = [pars[6][2]*60, 'mL/min']
-            pars[7][2:] = [pars[7][2]*60, 'mL/min']
-        return pars
-
-    
 
 class KidneyCortMedSR(dc.Model):
     """
@@ -739,44 +612,45 @@ class KidneyCortMedSR(dc.Model):
         >>> plt.show()
     """ 
 
-    def __init__(self, aif, 
-            pars = None,
-            dt = 0.5, 
-            Hct = 0.45, 
-            agent = 'gadoterate',
-            field_strength = 3.0,
-            TR = 5.0/1000.0,  
-            FA = 15.0,
-            Tsat = 0,
-            TC = 0.085,
-            R10c = 1,
-            R10m = 1,  
-            R10b = 1,
-            S0c = 1,
-            S0m = 1,
-            t0 = 0,
-            vol = None, 
-        ):
-        n0 = max([round(t0/dt),1])
-        r1 = dc.relaxivity(field_strength, 'blood', agent)
-        cb = dc.conc_src(aif, TC, 1/R10b, r1, n0)
-        self.pars = self.pars0(pars)
-        self.ca = cb/(1-Hct)        #: Arterial plasma concentration (M)
-        self._t = dt*np.arange(np.size(aif))
-        self._r1 = r1
-        self._dt = dt
-        self._Hct = Hct
-        self._TR = TR
-        self._FA = FA
-        self._Tsat = Tsat
-        self._TC = TC
-        self._R10c = R10c
-        self._R10m = R10m
-        self._R10b = R10b
-        self._S0c = S0c
-        self._S0m = S0m
-        self._t0 = t0
-        self._vol = vol
+    dt = 0.5
+    Hct = 0.45 
+    agent = 'gadoterate'
+    field_strength = 3.0
+    TR = 0.005  
+    FA = 15.0
+    Tsat = 0
+    TC = 0.085
+    R10c = 1
+    R10m = 1  
+    R10b = 1
+    S0c = 1
+    S0m = 1
+    t0 = 0
+    vol = None
+
+    Fp = 0.03
+    Eg = 0.15
+    fc = 0.8
+    Tg = 4
+    Tv = 10
+    Tpt = 60
+    Tlh = 60
+    Tdt = 30
+    Tcd = 30
+
+    free = ['Fp','Eg','fc','Tg','Tv','Tpt','Tlh','Tdt','Tcd']
+    bounds = (
+        [0.01, 0, 0, 0, 0, 0, 0, 0, 0],
+        [1, 1, 1, 10, 30, np.inf, np.inf, np.inf, np.inf],
+    )
+
+    def __init__(self, aif, **kwargs):
+        super().__init__(**kwargs)
+        n0 = max([round(self.t0/self.dt),1])
+        self.r1 = dc.relaxivity(self.field_strength, 'blood', self.agent)
+        cb = dc.conc_src(aif, self.TC, 1/self.R10b, self.r1, n0)
+        self.t = self.dt*np.arange(np.size(aif))
+        self.ca = cb/(1-self.Hct)        #: Arterial plasma concentration (M)
 
     def conc(self):
         """Cortical and medullary concentration
@@ -784,113 +658,49 @@ class KidneyCortMedSR(dc.Model):
         Returns:
             tuple[numpy.ndarray, numpy.ndarray]: Concentration in cortex, concentration in medulla, in M
         """
-        return dc.kidney_conc_cm9(self.ca, *self.pars, dt=self._dt)
+        return dc.kidney_conc_cm9(self.ca, 
+            self.Fp, self.Eg, self.fc, self.Tg, self.Tv, 
+            self.Tpt, self.Tlh, self.Tdt, self.Tcd, dt=self.dt)
         
-    def _forward_model(self, xdata):
+    def predict(self, xdata:np.ndarray)->tuple[np.ndarray,np.ndarray]:
         Cc, Cm = self.conc()
-        R1c = self._R10c + self._r1*Cc
-        R1m = self._R10m + self._r1*Cm
-        Sc = dc.signal_sr(R1c, self.S0c, self._TR, self._FA, self._TC, self._Tsat)
-        Sm = dc.signal_sr(R1m, self.S0m, self._TR, self._FA, self._TC, self._Tsat)
-        nt = int(len(xdata)/2)
-        Sc = dc.sample(xdata[:nt], self._t, Sc, xdata[2]-xdata[1])
-        Sm = dc.sample(xdata[nt:], self._t, Sm, xdata[2]-xdata[1])
-        return np.concatenate((Sc, Sm)) 
-
-    def predict(self, time):
-        """Predict the data
-
-        Args:
-            time (array-like): Time points (sec) where signal is predicted
-
-        Returns:
-            tuple[numpy.ndarray, numpy.ndarray]: signal in cortex and medulla.
-        """
-        xdata = np.concatenate((time, time))
-        S = self._forward_model(xdata)
-        nt = int(len(xdata)/2)
-        return S[:nt], S[nt:]
+        R1c = self.R10c + self.r1*Cc
+        R1m = self.R10m + self.r1*Cm
+        Sc = dc.signal_sr(R1c, self.S0c, self.TR, self.FA, self.TC, self.Tsat)
+        Sm = dc.signal_sr(R1m, self.S0m, self.TR, self.FA, self.TC, self.Tsat)
+        return (
+            dc.sample(xdata, self.t, Sc, xdata[2]-xdata[1]), 
+            dc.sample(xdata, self.t, Sm, xdata[2]-xdata[1]),
+        ) 
     
-    def train(self, time, Sc, Sm, **kwargs):
-        """Train the model.
-
-        Args:
-            time (array-like): Time points 
-            Sc (array-like): signal in the cortex (same size as time)
-            Sm (array-like): signal in the medulla (same size as time)
-            kwargs: any other arguments accepted by `dc.Model.train`
-        """
-        n0 = max([np.sum(time<self._t0), 1])
-        Scref = dc.signal_sr(self._R10c, 1, self._TR, self._FA, self._TC, self._Tsat)
-        Smref = dc.signal_sr(self._R10m, 1, self._TR, self._FA, self._TC, self._Tsat)
-        self.S0c = np.mean(Sc[:n0]) / Scref
-        self.S0m = np.mean(Sm[:n0]) / Smref
-        xdata = np.concatenate((time, time))
-        ydata = np.concatenate((Sc, Sm))
+    def train(self, xdata, ydata, **kwargs):
+        n0 = max([np.sum(xdata<self.t0), 1])
+        Scref = dc.signal_sr(self.R10c, 1, self.TR, self.FA, self.TC, self.Tsat)
+        Smref = dc.signal_sr(self.R10m, 1, self.TR, self.FA, self.TC, self.Tsat)
+        self.S0c = np.mean(ydata[0][:n0]) / Scref
+        self.S0m = np.mean(ydata[1][:n0]) / Smref
         return super().train(xdata, ydata, **kwargs)
     
-    def pars0(self, settings=None):
-        if settings == None:
-            return np.array([0.03, 0.15, 0.8, 4, 10, 60, 60, 30, 30])
-        else:
-            return np.zeros(9)
+    def pars(self):
+        pars = {}
+        pars['Fp']=['Plasma flow',self.Fp,'mL/sec/mL']
+        pars['Eg']=['Glomerular extraction fraction',self.Eg,'']
+        pars['fc']=['Cortical flow fraction',self.fc,'']
+        pars['Tg']=['Glomerular mean transit time',self.Tg,'sec']
+        pars['Tv']=['Peritubular & venous mean transit time',self.Tv,'sec']
+        pars['Tpt']=['Proximal tubuli mean transit time',self.Tpt,'sec'] 
+        pars['Tlh']=['Lis of Henle mean transit time',self.Tlh,'sec'] 
+        pars['Tdt']=['Distal tubuli mean transit time',self.Tdt,'sec'] 
+        pars['Tcd']=['Collecting duct mean transit time',self.Tcd,'sec']
+        pars['FF']=['Filtration fraction', self.Eg/(1-self.Eg), '']
+        pars['Ft']=['Tubular flow', self.Fp*self.Eg/(1-self.Eg), 'mL/sec/mL']
+        pars['CBF']=['Cortical blood flow', self.Fp/(1-self.Hct), 'mL/sec/mL']
+        pars['MBF']=['Medullary blood flow', (1-self.fc)*(1-self.Eg)*self.Fp/(1-self.Hct), 'mL/sec/mL']
+        if self.vol is None:   
+            return self.add_sdev(pars)
+        pars['SKGFR']=['Single-kidney glomerular filtration rate', self.vol*self.Fp*self.Eg/(1-self.Eg),'mL/sec']
+        pars['SKBF']=['Single-kidney blood flow', self.vol*self.Fp/(1-self.Hct), 'mL/sec']
+        pars['SKMBF']=['Single-kidney medullary blood flow', self.vol*(1-self.fc)*(1-self.Eg)*self.Fp/(1-self.Hct), 'mL/sec']
 
-    def bounds(self, settings=None):
-        if settings == None:
-            ub = [1, 1, 1, 10, 30, np.inf, np.inf, np.inf, np.inf]
-            lb = [0.01, 0, 0, 0, 0, 0, 0, 0, 0] 
-        else:
-            ub = [np.inf, 1, 1, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf]
-            lb = 0
-        return (lb, ub)
+        return self.add_sdev(pars)
     
-    def pfree(self, units='standard'):
-        pars = [
-            ['Fp','Plasma flow',self.pars[0],'mL/sec/mL'], 
-            ['Eg','Glomerular extraction fraction',self.pars[1],''], 
-            ['fc','Cortical flow fraction',self.pars[2],''], 
-            ['Tg','Glomerular mean transit time',self.pars[3],'sec'], 
-            ['Tv','Peritubular & venous mean transit time',self.pars[4],'sec'], 
-            ['Tpt','Proximal tubuli mean transit time',self.pars[5],'sec'], 
-            ['Tlh','Lis of Henle mean transit time',self.pars[6],'sec'], 
-            ['Tdt','Distal tubuli mean transit time',self.pars[7],'sec'], 
-            ['Tcd','Collecting duct mean transit time',self.pars[8],'sec'],
-        ]
-        if units == 'custom':
-            pars[0][2:] = [pars[0][2]*6000, 'mL/min/100mL']
-            pars[1][2:] = [pars[1][2]*100, '%']
-            pars[2][2:] = [pars[2][2]*100, '%']
-            pars[5][2:] = [pars[5][2]/60, 'min']
-            pars[6][2:] = [pars[6][2]/60, 'min']
-            pars[7][2:] = [pars[7][2]/60, 'min']
-            pars[8][2:] = [pars[8][2]/60, 'min']
-        return pars
-    
-    def pdep(self, units='standard'):
-        p = self.pars
-        pars = [
-            ['FF', 'Filtration fraction', p[1]/(1-p[1]), ''],
-            ['Ft', 'Tubular flow', p[1]/(1-p[1])*p[0], 'mL/sec/mL'],
-            ['CBF', 'Cortical blood flow', p[0]/(1-self._Hct), 'mL/sec/mL'],
-            ['MBF','Medullary blood flow', p[2]*(1-p[1])*p[0]/(1-self._Hct), 'mL/sec/mL'],
-        ]
-        if units=='custom':
-            pars[0][2:] = [pars[0][2]*100, '%']
-            pars[1][2:] = [pars[1][2]*100, '%']
-            pars[2][2:] = [pars[2][2]*6000, 'mL/min/100mL']
-            pars[3][2:] = [pars[3][2]*6000, 'mL/min/100mL']
-
-        if self._vol is None:   
-            return pars
-        
-        pars += [
-            ['SKGFR','Single-kidney glomerular filtration rate', p[1]/(1-p[1])*p[0]*self._vol,'mL/sec'],
-            ['SKBF', 'Single-kidney blood flow', self._vol*p[0]/(1-self._Hct), 'mL/sec'],
-            ['SKMBF', 'Single-kidney medullary blood flow', self._vol*p[2]*(1-p[1])*p[0]/(1-self._Hct), 'mL/sec'],
-        ] 
-        if units=='custom':
-            pars[4][2:] = [pars[4][2]*60, 'mL/min']
-            pars[5][2:] = [pars[5][2]*60, 'mL/min']
-            pars[6][2:] = [pars[6][2]*60, 'mL/min']
-
-        return pars

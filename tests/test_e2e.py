@@ -44,7 +44,9 @@ plt.show()
 #
 # We can also have a look at the model parameters after training:
 #
-model.print(round_to=3)
+model.print(round_to=3, units='custom')
+
+print(model.pars(units='custom'))
 # Expected:
 ## -----------------------------------------
 ## Free parameters with their errors (stdev)
