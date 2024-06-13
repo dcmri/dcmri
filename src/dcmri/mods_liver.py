@@ -29,7 +29,7 @@ class Liver(dc.Model):
         vol (float, optional): Liver volume in mL.
 
     See Also:
-        `LiverPCCNS`
+        `Liver2scan`
 
     Example:
 
@@ -48,7 +48,7 @@ class Liver(dc.Model):
         
         Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
 
-        >>> model = dc.LiverPCC(gt['cb'],
+        >>> model = dc.Liver(gt['cb'],
         ...     dt = gt['t'][1],
         ...     Hct = 0.45, 
         ...     agent = 'gadoxetate',
@@ -219,139 +219,5 @@ class Liver(dc.Model):
 
 
     
-class Liver2scan(Liver):
 
-    """Steady-state acquistion over two scans, with a non-stationary two-compartment model..
-
-        The free model parameters are:
-
-        - **Te**: mean transit time of the extracellular space.
-        - **De**: Transit time dispersion of the extracellular space, in the range [0,1].
-        - **ve**: volume faction of the extracellular space.
-        - **khe_i**: Initial rate constant for indicator transport from extracellular space to hepatocytes, in mL/sec/mL. 
-        - **khe_f**: Final rate constant for indicator transport from extracellular space to hepatocytes, in mL/sec/mL.
-        - **Th_i**: Initial mean transit time of the hepatocytes (sec).
-        - **Th_f**: Final mean transit time of the hepatocytes (sec).
-
-    Args:
-        aif (array-like): MRI signals measured in the arterial input.
-        pars (str or array-like, optional): Either explicit array of values, or string specifying a predefined array (see the pars0 method for possible values). 
-        dt (float, optional): Sampling interval of the AIF in sec. 
-        Hct (float, optional): Hematocrit. 
-        agent (str, optional): Contrast agent generic name.
-        field_strength (float, optional): Magnetic field strength in T. 
-        TR (float, optional): Repetition time, or time between excitation pulses, in sec. 
-        FA (float, optional): Nominal flip angle in degrees.
-        R10 (float, optional): Precontrast tissue relaxation rate in 1/sec - first scan. 
-        R11 (float, optional): Precontrast tissue relaxation rate in 1/sec - second scan. 
-        t0 (float, optional): Baseline length (sec).
-        t1 (float, optional): Start of the sccond scan (sec).
-        vol (float, optional): Liver volume in mL.
-
-    See Also:
-        `LiverPCC`
-
-    Example:
-
-        Derive model parameters from simulated data:
-
-    .. plot::
-        :include-source:
-        :context: close-figs
-    
-        >>> import numpy as np
-        >>> import matplotlib.pyplot as plt
-        >>> import dcmri as dc
-
-        Use `make_tissue_2cm_2ss` to generate synthetic test data over 2 scans:
-
-        >>> time, _, roi, gt = dc.make_tissue_2cm_2ss(CNR=100, R10=1/dc.T1(3.0,'liver'))
-        
-        Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
-
-        >>> model = dc.LiverPCCNS(gt['cb'],
-        ...     dt = gt['t'][1],
-        ...     Hct = 0.45, 
-        ...     agent = 'gadoxetate',
-        ...     field_strength = 3.0,
-        ...     TR = 0.005,
-        ...     FA = 20,
-        ...     R10 = 1/dc.T1(3.0,'liver'),
-        ...     R11 = 1/dc.T1(3.0,'liver'),
-        ...     t0 = 15,
-        ... )
-
-        Train the model on the ROI data, fixing the baseline scaling factor, and predict the data:
-
-        >>> model.train(time, roi)
-        >>> sig = model.predict(time)
-
-        Plot the reconstructed signals (left) and concentrations (right) and compare the concentrations against the noise-free ground truth:
-
-        >>> fig, (ax0, ax1) = plt.subplots(1,2,figsize=(12,5))
-        >>> #
-        >>> ax0.set_title('Prediction of the MRI signals.')
-        >>> ax0.plot(np.concatenate(time)/60, np.concatenate(roi), marker='o', linestyle='None', color='cornflowerblue', label='Data')
-        >>> ax0.plot(np.concatenate(time)/60, np.concatenate(sig), marker='x', linestyle='None', color='darkblue', label='Prediction')
-        >>> ax0.set_xlabel('Time (min)')
-        >>> ax0.set_ylabel('MRI signal (a.u.)')
-        >>> ax0.legend()
-        >>> #
-        >>> ax1.set_title('Reconstruction of concentrations.')
-        >>> ax1.plot(gt['t']/60, 1000*gt['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-        >>> ax1.plot(gt['t']/60, 1000*model.conc(), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
-        >>> ax1.plot(gt['t']/60, 1000*gt['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-        >>> ax1.plot(gt['t']/60, 1000*model.ca, linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
-        >>> ax1.set_xlabel('Time (min)')
-        >>> ax1.set_ylabel('Concentration (mM)')
-        >>> ax1.legend()
-        >>> #
-        >>> plt.show()
-    """ 
-
-    def __init__(self, **attr):
-        # Set defaults
-        super().__init__()
-        self.S02 = 1
-        self.R102 = 1
-        self.free += ['S02']
-        self.bounds[0] += [0]
-        self.bounds[1] += [np.inf]
-        dc.init(self, **attr)     
-        # Precompute
-        self.ca = self.cb/(1-self.Hct)                #: Arterial plasma concentration (M)
-        self.t = self.dt*np.arange(np.size(self.cb))
-
-    def predict(self, xdata:tuple[np.ndarray, np.ndarray]):
-        t, R1 = self.relax()
-        t1 = t<=xdata[0][-1]
-        t2 = t>=xdata[1][0]
-        R11 = R1[t1]
-        R12 = R1[t2]
-        if self.signal == 'SR':
-            signal1 = dc.signal_sr(R11, self.S0, self.TR, self.FA, self.TC)
-            signal2 = dc.signal_sr(R12, self.S02, self.TR, self.FA, self.TC)
-        else:
-            signal1 = dc.signal_ss(R11, self.S0, self.TR, self.FA)
-            signal2 = dc.signal_ss(R12, self.S02, self.TR, self.FA)
-        return (
-            dc.sample(xdata[0], t[t1], signal1, xdata[0][1]-xdata[0][0]),
-            dc.sample(xdata[1], t[t2], signal2, xdata[1][1]-xdata[1][0]),
-        )
-    
-    def train(self, 
-              xdata:tuple[np.ndarray, np.ndarray], 
-              ydata:tuple[np.ndarray, np.ndarray], **kwargs):
-    
-        if self.signal == 'SR':
-            Sref1 = dc.signal_sr(self.R10, 1, self.TR, self.FA, self.TC)
-            Sref2 = dc.signal_sr(self.R102, 1, self.TR, self.FA, self.TC)
-        else:
-            Sref1 = dc.signal_ss(self.R10, 1, self.TR, self.FA)
-            Sref2 = dc.signal_ss(self.R102, 1, self.TR, self.FA)
-
-        n0 = max([np.sum(xdata[0]<self.t0), 2])
-        self.S0 = np.mean(ydata[0][1:n0]) / Sref1 
-        self.S02 = np.mean(ydata[1][1:n0]) / Sref2
-        return dc.train(self, xdata, ydata, **kwargs)
 

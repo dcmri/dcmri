@@ -13,9 +13,25 @@
 
    .. autosummary::
    
-      ~PatlakWXSS.pars
+      ~PatlakWXSS.FA
+      ~PatlakWXSS.Hct
+      ~PatlakWXSS.Ktrans
+      ~PatlakWXSS.PSe
+      ~PatlakWXSS.R10
+      ~PatlakWXSS.R10b
+      ~PatlakWXSS.S0
+      ~PatlakWXSS.TR
+      ~PatlakWXSS.agent
+      ~PatlakWXSS.bounds
+      ~PatlakWXSS.dt
+      ~PatlakWXSS.field_strength
+      ~PatlakWXSS.free
       ~PatlakWXSS.pcov
+      ~PatlakWXSS.t0
+      ~PatlakWXSS.vb
+      ~PatlakWXSS.r1
       ~PatlakWXSS.ca
+      ~PatlakWXSS.t
    
    
 
@@ -26,15 +42,16 @@
 
    .. autosummary::
    
-      ~PatlakWXSS.bounds
+      ~PatlakWXSS.add_sdev
       ~PatlakWXSS.conc
       ~PatlakWXSS.cost
-      ~PatlakWXSS.pars0
-      ~PatlakWXSS.pdep
-      ~PatlakWXSS.pfree
+      ~PatlakWXSS.pars
+      ~PatlakWXSS.plot
       ~PatlakWXSS.predict
       ~PatlakWXSS.print
+      ~PatlakWXSS.setattr
       ~PatlakWXSS.train
+      ~PatlakWXSS.x_scale
    
    
 

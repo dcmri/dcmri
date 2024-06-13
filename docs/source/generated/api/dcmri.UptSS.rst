@@ -13,9 +13,23 @@
 
    .. autosummary::
    
-      ~UptSS.pars
+      ~UptSS.FA
+      ~UptSS.Fp
+      ~UptSS.Hct
+      ~UptSS.R10
+      ~UptSS.R10b
+      ~UptSS.S0
+      ~UptSS.TR
+      ~UptSS.agent
+      ~UptSS.bounds
+      ~UptSS.dt
+      ~UptSS.field_strength
+      ~UptSS.free
       ~UptSS.pcov
+      ~UptSS.t0
+      ~UptSS.r1
       ~UptSS.ca
+      ~UptSS.t
    
    
 
@@ -26,15 +40,16 @@
 
    .. autosummary::
    
-      ~UptSS.bounds
+      ~UptSS.add_sdev
       ~UptSS.conc
       ~UptSS.cost
-      ~UptSS.pars0
-      ~UptSS.pdep
-      ~UptSS.pfree
+      ~UptSS.pars
+      ~UptSS.plot
       ~UptSS.predict
       ~UptSS.print
+      ~UptSS.setattr
       ~UptSS.train
+      ~UptSS.x_scale
    
    
 

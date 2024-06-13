@@ -13,9 +13,25 @@
 
    .. autosummary::
    
-      ~OneCompWXSS.pars
+      ~OneCompWXSS.FA
+      ~OneCompWXSS.Fp
+      ~OneCompWXSS.Hct
+      ~OneCompWXSS.PSw
+      ~OneCompWXSS.R10
+      ~OneCompWXSS.R10b
+      ~OneCompWXSS.S0
+      ~OneCompWXSS.TR
+      ~OneCompWXSS.agent
+      ~OneCompWXSS.bounds
+      ~OneCompWXSS.dt
+      ~OneCompWXSS.field_strength
+      ~OneCompWXSS.free
       ~OneCompWXSS.pcov
+      ~OneCompWXSS.t0
+      ~OneCompWXSS.v
+      ~OneCompWXSS.r1
       ~OneCompWXSS.ca
+      ~OneCompWXSS.t
    
    
 
@@ -26,15 +42,16 @@
 
    .. autosummary::
    
-      ~OneCompWXSS.bounds
+      ~OneCompWXSS.add_sdev
       ~OneCompWXSS.conc
       ~OneCompWXSS.cost
-      ~OneCompWXSS.pars0
-      ~OneCompWXSS.pdep
-      ~OneCompWXSS.pfree
+      ~OneCompWXSS.pars
+      ~OneCompWXSS.plot
       ~OneCompWXSS.predict
       ~OneCompWXSS.print
+      ~OneCompWXSS.setattr
       ~OneCompWXSS.train
+      ~OneCompWXSS.x_scale
    
    
 

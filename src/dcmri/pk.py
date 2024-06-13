@@ -9,7 +9,7 @@ import dcmri.utils as utils
 def flux(J:np.ndarray, t=None, dt=1.0, system=['comp', 10])->np.ndarray:
     """Flux out of an arbitrary pharmacokinetic system.
 
-    This is a wrapper function offering a standard interface to calculate the flux out of a specific system, with the system architecture specified in the dictionary. It offers a convenient way to build more complex models with variable configurations, such as `aorta_flux`.
+    This is a wrapper function offering a standard interface to calculate the flux out of a specific system, with the system architecture specified in the dictionary. It offers a convenient way to build more complex models with variable configurations, such as `flux_aorta`.
 
     Args:
         J (array_like): the indicator flux entering the trap.

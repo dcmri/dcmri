@@ -13,9 +13,26 @@
 
    .. autosummary::
    
-      ~EToftsSS.pars
+      ~EToftsSS.FA
+      ~EToftsSS.Hct
+      ~EToftsSS.Ktrans
+      ~EToftsSS.R10
+      ~EToftsSS.R10b
+      ~EToftsSS.S0
+      ~EToftsSS.TR
+      ~EToftsSS.agent
+      ~EToftsSS.bounds
+      ~EToftsSS.dt
+      ~EToftsSS.field_strength
+      ~EToftsSS.free
       ~EToftsSS.pcov
+      ~EToftsSS.t0
+      ~EToftsSS.ub
+      ~EToftsSS.v
+      ~EToftsSS.water_exchange
+      ~EToftsSS.r1
       ~EToftsSS.ca
+      ~EToftsSS.t
    
    
 
@@ -26,15 +43,16 @@
 
    .. autosummary::
    
-      ~EToftsSS.bounds
+      ~EToftsSS.add_sdev
       ~EToftsSS.conc
       ~EToftsSS.cost
-      ~EToftsSS.pars0
-      ~EToftsSS.pdep
-      ~EToftsSS.pfree
+      ~EToftsSS.pars
+      ~EToftsSS.plot
       ~EToftsSS.predict
       ~EToftsSS.print
+      ~EToftsSS.setattr
       ~EToftsSS.train
+      ~EToftsSS.x_scale
    
    
 

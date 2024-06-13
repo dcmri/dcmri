@@ -53,10 +53,10 @@ Tissue models that allow for any intermediate level of water exchange.
    TwoCompExchWXSS
 
 
-Aorta models
+Organ models
 ============
 
-Whole-body models for arterial signals
+Models for specific tissue types
 
 .. autosummary::
    :toctree: ../generated/api/
@@ -64,36 +64,23 @@ Whole-body models for arterial signals
    :recursive:
 
    Aorta
-   Aorta2scan
-
-
-Kidney models
-=============
-
-Models for kidney signals.
-
-.. autosummary::
-   :toctree: ../generated/api/
-   :template: custom-class-template.rst
-   :recursive:
-
+   Liver
+   AortaLiver
    Kidney2CFXSR
    Kidney2CFXSS
    KidneyPFFXSS
    KidneyCortMedSR
 
 
-Liver models
-============
-
-Models for liver signals.
+Special models
+==============
 
 .. autosummary::
    :toctree: ../generated/api/
    :template: custom-class-template.rst
    :recursive:
 
-   LiverPCC
-   LiverPCCNS
+   AortaLiver2scan
+   
 
 

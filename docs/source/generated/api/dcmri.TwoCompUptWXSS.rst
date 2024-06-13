@@ -13,9 +13,26 @@
 
    .. autosummary::
    
-      ~TwoCompUptWXSS.pars
+      ~TwoCompUptWXSS.FA
+      ~TwoCompUptWXSS.Fp
+      ~TwoCompUptWXSS.Hct
+      ~TwoCompUptWXSS.PS
+      ~TwoCompUptWXSS.PSe
+      ~TwoCompUptWXSS.R10
+      ~TwoCompUptWXSS.R10b
+      ~TwoCompUptWXSS.S0
+      ~TwoCompUptWXSS.TR
+      ~TwoCompUptWXSS.agent
+      ~TwoCompUptWXSS.bounds
+      ~TwoCompUptWXSS.dt
+      ~TwoCompUptWXSS.field_strength
+      ~TwoCompUptWXSS.free
       ~TwoCompUptWXSS.pcov
+      ~TwoCompUptWXSS.t0
+      ~TwoCompUptWXSS.vb
+      ~TwoCompUptWXSS.r1
       ~TwoCompUptWXSS.ca
+      ~TwoCompUptWXSS.t
    
    
 
@@ -26,15 +43,16 @@
 
    .. autosummary::
    
-      ~TwoCompUptWXSS.bounds
+      ~TwoCompUptWXSS.add_sdev
       ~TwoCompUptWXSS.conc
       ~TwoCompUptWXSS.cost
-      ~TwoCompUptWXSS.pars0
-      ~TwoCompUptWXSS.pdep
-      ~TwoCompUptWXSS.pfree
+      ~TwoCompUptWXSS.pars
+      ~TwoCompUptWXSS.plot
       ~TwoCompUptWXSS.predict
       ~TwoCompUptWXSS.print
+      ~TwoCompUptWXSS.setattr
       ~TwoCompUptWXSS.train
+      ~TwoCompUptWXSS.x_scale
    
    
 

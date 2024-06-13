@@ -13,7 +13,7 @@ Whole body models to parametrize concentrations in different organs..
    :toctree: ../generated/api/
    :template: autosummary.rst
 
-   aorta_flux
+   flux_aorta
 
 
 
