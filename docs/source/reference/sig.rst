@@ -17,9 +17,6 @@ Signal models
    signal_dsc
    signal_t2w
    signal_ss
-   signal_ss_fex
-   signal_ss_nex
-   signal_ss_iex
    signal_sr
    signal_er
    signal_src
@@ -38,15 +35,5 @@ Inverse signal models
    conc_src
    conc_lin
 
-
-Signal utilities
-================
-   
-.. autosummary::
-   :toctree: ../generated/api/
-   :template: autosummary.rst
-
-   sample
-   add_noise
 
    

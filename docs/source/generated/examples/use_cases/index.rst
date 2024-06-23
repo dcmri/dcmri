@@ -1,0 +1,44 @@
+
+
+.. _sphx_glr_generated_examples_use_cases:
+
+*********
+Use cases
+*********
+
+
+
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Use ~dcmri.aif_parker to generate a Parker AIF with different settings. ">
+
+.. only:: html
+
+  .. image:: /generated/examples/use_cases/images/thumb/sphx_glr_plot_aif_parker_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_generated_examples_use_cases_plot_aif_parker.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">The Parker AIF</div>
+    </div>
+
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /generated/examples/use_cases/plot_aif_parker
+

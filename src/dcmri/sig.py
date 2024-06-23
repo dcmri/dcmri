@@ -54,86 +54,24 @@ def conc_t2w(S, TE:float, r2=0.5, n0=1)->np.ndarray:
     C = -np.log(S/Sb)/TE/r2
     return C
 
-def signal_ss(R1, S0, TR, FA, R10=None)->np.ndarray:
-    """Signal of a spoiled gradient echo sequence applied in steady state.
 
-    Args:
-        R1 (array-like): Longitudinal relaxation rate in 1/sec.
-        S0 (float): Signal scaling factor (arbitrary units).
-        TR (float): Repetition time, or time between successive selective excitations, in sec. 
-        FA (float): Flip angle in degrees.
-        R10 (float, optional): R1-value where S0 is defined. If not provided, S0 is the scaling factor corresponding to infinite R10. Defaults to None.
 
-    Returns:
-        np.ndarray: Signal in arbitrary units.
-    """
-    if R10 is None:
-        Sinf = S0
-    else:
-        Sinf = S0/signal_ss(R10, 1, TR, FA)
+def _signal_ss(R1, Sinf, TR, FA)->np.ndarray:
     E = np.exp(-TR*R1)
     cFA = np.cos(FA*np.pi/180)
     return Sinf * (1-E) / (1-cFA*E)
 
-
-def conc_ss(S, TR:float, FA:float, T10:float, r1=0.005, n0=1)->np.ndarray:
-    """Concentration of a spoiled gradient echo sequence applied in steady state.
-
-    Args:
-        S (array-like): Signal in arbitrary units.
-        TR (float): Repetition time, or time between successive selective excitations, in sec.
-        FA (float): Flip angle in degrees.
-        T10 (float): baseline T1 value in sec.
-        r1 (float, optional): Longitudinal relaxivity in Hz/M. Defaults to 0.005.
-        n0 (int, optional): Baseline length. Defaults to 1.
-
-    Returns:
-        np.ndarray: Concentration in M, same length as S.
-    """
-    Sb = np.mean(S[:n0])
-    E = math.exp(-TR/T10)
-    c = math.cos(FA*math.pi/180)
-    Sn = (S/Sb)*(1-E)/(1-c*E)	        # normalized signal
-    R1 = -np.log((1-Sn)/(1-c*Sn))/TR	# relaxation rate in 1/msec
-    return (R1 - 1/T10)/r1 
-
-
-def signal_ss_fex(v, R1, S0:float, TR:float, FA:float):
-    """Signal of a spoiled gradient echo sequence applied in steady state, for a multi-compartmental tissue wit fast water exchange.
-
-    Args:
-        v (array-like): Volume fractions of the compartments. v is a numpy array with size nc, where nc is the number of compartments.
-        R1 (np.ndarray): Longitudinal relaxation rates of the compartments in 1/sec. R1 is a numpy array with dimensions (nc,) or (nc,nt), where nc is the number of compartments and nt is tne number of time points.
-        S0 (float): Signal scaling factor (arbitrary units).
-        TR (float): Repetition time, or time between successive selective excitations, in sec. 
-        FA (array-like): Flip angle in degrees.
-
-    Returns:
-        np.ndarray: Signal in arbitrary units. If R1 is two-dimensional, this returns an array with a signal value for each time point.
-    """
+def _signal_ss_fex(v, R1, S0:float, TR:float, FA:float):
     if np.size(R1) == np.size(v):
         R1 = np.sum(np.multiply(v,R1))
-        return signal_ss(R1, S0, TR, FA)
-    nc, nt = R1.shape
-    R1fex = np.zeros(nt)
+        return _signal_ss(R1, S0, TR, FA)
+    nc = R1.shape[0]
+    R1fex = np.zeros(R1.shape[1:])
     for c in range(nc):
-        R1fex += v[c]*R1[c,:]
-    return signal_ss(R1fex, S0, TR, FA)
+        R1fex += v[c]*R1[c,...]
+    return _signal_ss(R1fex, S0, TR, FA)
 
-
-def signal_ss_nex(v, R1:np.ndarray, S0:float, TR:float, FA:float):
-    """Signal of a spoiled gradient echo sequence applied in steady state, for a multi-compartmental tissue without water exchange.
-
-    Args:
-        v (array-like): Volume fractions of the compartments. v is a numpy array with size nc, where nc is the number of compartments.
-        R1 (np.ndarray): Longitudinal relaxation rates of the compartments in 1/sec. R1 is a numpy array with dimensions (nc,) or (nc,nt), where nc is the number of compartments and nt is tne number of time points.
-        S0 (float): Signal scaling factor (arbitrary units).
-        TR (float): Repetition time, or time between successive selective excitations, in sec. 
-        FA (array-like): Flip angle in degrees.
-
-    Returns:
-        np.ndarray: Signal in arbitrary units. If R1 is two-dimensional, this returns an array with a signal value for each time point.
-    """
+def _signal_ss_nex(v, R1:np.ndarray, S0:float, TR:float, FA:float):
     if np.size(R1) == np.size(v):
         S = signal_ss(R1, S0, TR, FA)
         return np.sum(np.multiply(v,S)) 
@@ -143,21 +81,7 @@ def signal_ss_nex(v, R1:np.ndarray, S0:float, TR:float, FA:float):
         S += v[c]*signal_ss(R1[c,:], S0, TR, FA)
     return S
 
-
-def signal_ss_iex(PS, v, R1, S0, TR, FA):
-    """Signal of a spoiled gradient echo sequence applied in steady state, for a multi-compartmental tissue with intermediate water exchange.
-
-    Args:
-        PS (np.ndarray): Water permeability-surface area product, in units of mL/sec/mL. PS is a numpy array with dimensions (nc, nc), where nc is the number of compartments. The off-diagnonal elements PS[j,i] represent the PS for the transfer from compartment i to j. The diagonal elements PS[i,i] quantify the rate of transfer from compartment i to the outside.
-        v (array-like): Volume fractions of the compartments. v is a numpy array with size nc, where nc is the number of compartments.
-        R1 (np.ndarray): Longitudinal relaxation rates of the compartments in 1/sec. R1 is a numpy array with dimensions (nc,) or (nc,nt), where nc is the number of compartments and nt is tne number of time points.
-        S0 (float): Signal scaling factor (arbitrary units).
-        TR (float): Repetition time, or time between successive selective excitations, in sec. 
-        FA (array-like): Flip angle in degrees.
-
-    Returns:
-        np.ndarray: Signal in arbitrary units. If R1 is two-dimensional, this returns an array with a signal value for each time point.
-    """
+def _signal_ss_aex(PS, v, R1, S0, TR, FA):
 
     # Mathematical notes on water exchange modelling
     # ---------------------------------------------
@@ -232,6 +156,11 @@ def signal_ss_iex(PS, v, R1, S0, TR, FA):
     # M = (1 - cosFA exp(-TR*K))^-1 (1-exp(-TR*K)) K^-1 J
     # M = [(1 - cosFA exp(-TR*K))K]^-1 (1-exp(-TR*K)) J
 
+    # reshape for convenience
+    n = np.shape(R1)
+    R1 = np.reshape(R1, (n[0],-1))
+    PS = np.array(PS)
+
     nc, nt = R1.shape
     J = np.empty((nc,nt))
     K = np.empty((nc,nc,nt))
@@ -252,7 +181,69 @@ def signal_ss_iex(PS, v, R1, S0, TR, FA):
         Vt = np.dot(Id-Et, J[:,t])
         Vt = np.dot(Mt, Vt)
         Mag[t] = np.sum(Vt)
-    return Mag
+
+    # Return in original shape
+    R1 = R1.reshape(n)
+    return Mag.reshape(n[1:])
+
+
+def signal_ss(R1, S0, TR, FA, v=None, PSw=np.inf, R10=None)->np.ndarray:
+    """Signal of a spoiled gradient echo sequence applied in steady state.
+
+    Args:
+        R1 (array-like): Longitudinal relaxation rates in 1/sec. For a tissue with n compartments, the first dimension of R1 must be n. For a tissue with a single compartment, R1 can have any shape.
+        S0 (float): Signal scaling factor (arbitrary units).
+        TR (float): Repetition time, or time between successive selective excitations, in sec. 
+        FA (float): Flip angle in degrees.
+        v (array-like, optional): volume fractions of each compartment. If v is not provided, the tissue will be treated as one-compartmental. If v is provided, the length must be same as the first dimension of R1 and values must add up to 1. Defaults to None.
+        PSw (array-like, optional): Water permeability-surface area products through the interfaces between the compartments, in units of mL/sec/mL. With PSw=np.inf (default), water exchange is in the fast-exchange limit. With PSw=0, there is no water exchange between the compartments. For any intermediate level of water exchange, PSw must be a nxn array, where n is the number of compartments, and PSw[j,i] is the permeability for water moving from compartment i into j. The diagonal elements PSw[i,i] quantify the flow of water from compartment i to outside. Defaults to np.inf.
+        R10 (float, optional): R1-value where S0 is defined. If not provided, S0 is the scaling factor corresponding to infinite R10. Defaults to None.
+
+    Returns:
+        np.ndarray: Signal in the same units as S0.
+    """
+    if R10 is None:
+        Sinf = S0
+    else:
+        Sinf = S0/signal_ss(R10, 1, TR, FA, v=v, PSw=PSw)
+    if v is None:
+        return _signal_ss(R1, Sinf, TR, FA)
+    if np.size(v) != np.shape(R1)[0]:
+        raise ValueError('v must have the same length as the first dimension of R1.')
+    if np.isscalar(PSw):
+        if PSw==np.inf:
+            return _signal_ss_fex(v, R1, Sinf, TR, FA)
+        elif PSw==0:
+            return _signal_ss_nex(v, R1, Sinf, TR, FA)
+    else:
+        if np.ndim(PSw) != 2:
+            raise ValueError("For intermediate water exchange, PSw must be a square array")
+        if np.shape(PSw)[0] != np.size(v):
+            raise ValueError("Dimensions of PSw and v do not match up.")
+        return _signal_ss_aex(PSw, v, R1, Sinf, TR, FA)
+
+
+def conc_ss(S, TR:float, FA:float, T10:float, r1=0.005, n0=1)->np.ndarray:
+    """Concentration of a spoiled gradient echo sequence applied in steady state.
+
+    Args:
+        S (array-like): Signal in arbitrary units.
+        TR (float): Repetition time, or time between successive selective excitations, in sec.
+        FA (float): Flip angle in degrees.
+        T10 (float): baseline T1 value in sec.
+        r1 (float, optional): Longitudinal relaxivity in Hz/M. Defaults to 0.005.
+        n0 (int, optional): Baseline length. Defaults to 1.
+
+    Returns:
+        np.ndarray: Concentration in M, same length as S.
+    """
+    Sb = np.mean(S[:n0])
+    E = math.exp(-TR/T10)
+    c = math.cos(FA*math.pi/180)
+    Sn = (S/Sb)*(1-E)/(1-c*E)	        # normalized signal
+    R1 = -np.log((1-Sn)/(1-c*Sn))/TR	# relaxation rate in 1/msec
+    return (R1 - 1/T10)/r1 
+
 
 
 def signal_sr(R1, S0:float, TR:float, FA:float, TC:float, TP=0.0, R10=None)->np.ndarray:
@@ -291,6 +282,56 @@ def signal_sr(R1, S0:float, TR:float, FA:float, TC:float, TP=0.0, R10=None)->np.
     S_ss = Sinf * (1-ER)/(1-cFA*ER)
 
     return S_ss*(1-E_center) + S_sat*E_center
+
+
+def signal_sr_fex(v, R1, S0:float, TR:float, FA:float, TC:float, TP=0.0):
+    """Signal of a spoiled gradient echo sequence applied after satration preparation, for a multi-compartmental tissue with fast water exchange.
+
+    Args:
+        v (array-like): Volume fractions of the compartments. v is a numpy array with size nc, where nc is the number of compartments.
+        R1 (np.ndarray): Longitudinal relaxation rates of the compartments in 1/sec. R1 is a numpy array with dimensions (nc,) or (nc,nt), where nc is the number of compartments and nt is tne number of time points.
+        S0 (float): Signal scaling factor (arbitrary units).
+        TR (float): Repetition time, or time between successive selective excitations, in sec. 
+        FA (array-like): Flip angle in degrees.
+        TC (float): Time (sec) between the saturation pulse and the acquisition of the k-space center.
+        TP (float, optional): Time (sec) between the saturation pre-pulse and the first readout pulse. Defaults to 0.
+
+    Returns:
+        np.ndarray: Signal in arbitrary units. If R1 is two-dimensional, this returns an array with a signal value for each time point.
+    """
+    if np.size(R1) == np.size(v):
+        R1 = np.sum(np.multiply(v,R1))
+        return signal_sr(R1, S0, TR, FA, TC, TP)
+    nc, nt = R1.shape
+    R1fex = np.zeros(nt)
+    for c in range(nc):
+        R1fex += v[c]*R1[c,:]
+    return signal_sr(R1fex, S0, TR, FA, TC, TP)
+
+
+def signal_sr_nex(v, R1, S0:float, TR:float, FA:float, TC:float, TP=0.0):
+    """Signal of a spoiled gradient echo sequence applied with saturation preparation, for a multi-compartmental tissue without water exchange.
+
+    Args:
+        v (array-like): Volume fractions of the compartments. v is a numpy array with size nc, where nc is the number of compartments.
+        R1 (np.ndarray): Longitudinal relaxation rates of the compartments in 1/sec. R1 is a numpy array with dimensions (nc,) or (nc,nt), where nc is the number of compartments and nt is tne number of time points.
+        S0 (float): Signal scaling factor (arbitrary units).
+        TR (float): Repetition time, or time between successive selective excitations, in sec. 
+        FA (array-like): Flip angle in degrees.
+        TC (float): Time (sec) between the saturation pulse and the acquisition of the k-space center.
+        TP (float, optional): Time (sec) between the saturation pre-pulse and the first readout pulse. Defaults to 0.
+
+    Returns:
+        np.ndarray: Signal in arbitrary units. If R1 is two-dimensional, this returns an array with a signal value for each time point.
+    """
+    if np.size(R1) == np.size(v):
+        S = signal_sr(R1, S0, TR, FA, TC, TP)
+        return np.sum(np.multiply(v,S)) 
+    nc, nt = R1.shape
+    S = np.zeros(nt)
+    for c in range(nc):
+        S += v[c]*signal_sr(R1[c,:], S0, TR, FA, TC, TP)
+    return S
 
 
 def signal_er(R1, S0:float, TR:float, FA:float, TC:float)->np.ndarray:
@@ -454,6 +495,7 @@ def sample(t, tp, Sp, dt=None)->np.ndarray:
         if data.size > 0:
             Ss[k] = np.mean(data)
     return Ss 
+
 
 def add_noise(signal, sdev:float)->np.ndarray:
     """Add noise to an MRI magnitude signal.

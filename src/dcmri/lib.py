@@ -246,15 +246,14 @@ def relaxivity(field_strength=3.0, tissue='plasma', agent='gadoxetate', type='T1
                 9.0: 6.1
             },
         },
-        'hepatocytes': {
-            'gadoxetate': {
-                1.5: 14.6,
-                3.0: 9.8,
-                4.7: 7.6,
-                7.0: 6.0,
-                9.0: 6.1,
-            },
-        },
+    }
+    rel['T1']['hepatocytes'] = rel['T1']['plasma']
+    rel['T1']['hepatocytes']['gadoxetate'] = {
+        1.5: 14.6,
+        3.0: 9.8,
+        4.7: 7.6,
+        7.0: 6.0,
+        9.0: 6.1,
     }
     try:
         return 1000*rel[type][tissue][agent][field_strength]
@@ -398,7 +397,7 @@ def aif_parker(t, BAT:float=0.0)->np.ndarray:
     return pop_aif/1000 # convert to M
 
 
-# TODO: replace by conc_2cxm(), or use in conc_2cxm()
+# TODO: replace by conc_tissue()
 def _propagate_2cxm(t: np.ndarray,
                    ca: np.ndarray,
                    KP: float,

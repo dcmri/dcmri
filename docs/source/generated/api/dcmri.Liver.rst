@@ -9,15 +9,6 @@
 
    
    
-   .. rubric:: Attributes
-
-   .. autosummary::
-   
-      ~Liver.bounds
-      ~Liver.free
-      ~Liver.pcov
-      ~Liver.ca
-   
    
 
 
@@ -27,17 +18,16 @@
 
    .. autosummary::
    
-      ~Liver.add_sdev
       ~Liver.conc
       ~Liver.cost
-      ~Liver.pars
+      ~Liver.export_params
+      ~Liver.get_params
       ~Liver.plot
       ~Liver.predict
-      ~Liver.print
+      ~Liver.print_params
       ~Liver.relax
-      ~Liver.setattr
+      ~Liver.time
       ~Liver.train
-      ~Liver.x_scale
    
    
 

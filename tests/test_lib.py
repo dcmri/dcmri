@@ -63,6 +63,8 @@ def test_relaxivity():
         assert True
     else:
         assert False
+    assert dc.relaxivity(3.0, 'hepatocytes', 'gadoxetate') == 9800
+    assert dc.relaxivity(3.0, 'hepatocytes', 'gadodiamide') == 4000
 
 def test_T1():
     assert dc.T1(4.7, 'liver') == 1/1.281

@@ -9,14 +9,6 @@
 
    
    
-   .. rubric:: Attributes
-
-   .. autosummary::
-   
-      ~Aorta.bounds
-      ~Aorta.free
-      ~Aorta.pcov
-   
    
 
 
@@ -26,17 +18,15 @@
 
    .. autosummary::
    
-      ~Aorta.add_sdev
       ~Aorta.conc
       ~Aorta.cost
-      ~Aorta.pars
+      ~Aorta.export_params
+      ~Aorta.get_params
       ~Aorta.plot
       ~Aorta.predict
-      ~Aorta.print
+      ~Aorta.print_params
       ~Aorta.relax
-      ~Aorta.setattr
       ~Aorta.train
-      ~Aorta.x_scale
    
    
 

@@ -6,15 +6,15 @@ Getting started
 
     >>> import dcmri as dc
     
-Generate some synthetic data using one of the built-in functions `dcmri.make_tissue_2cm_ss`::
+Generate some synthetic data using one of the built-in functions `dcmri.fake_tissue`::
 
-    >>> time, aif, roi, _ = dc.make_tissue_2cm_ss()
+    >>> time, aif, roi, _ = dc.fake_tissue()
 
 Here *time* is an array of time points, *aif* is a signal-time curve measured in a feeding artery at those times, and *roi* is a signal-time curve measured in a region of interest. 
 
 Next we find a suitable model from the :ref:`model catalogue <end-to-end models>` and initialize it::
 
-    >>> model = dc.EToftsSS(aif,
+    >>> model = dc.Tissue(aif,
     >>>    dt = time[1],
     >>>    agent = 'gadodiamide',
     >>>    field_strength = 3.0,
@@ -23,7 +23,7 @@ Next we find a suitable model from the :ref:`model catalogue <end-to-end models>
     >>>    Hct = 0.45, 
     >>>    R10 = 1/dc.T1(3.0,'muscle'),
     >>>    R10b = 1/dc.T1(3.0,'blood'),
-    >>>    t0 = 15,
+    >>>    n0 = 5,
     >>> )
 
 Train the model on the ROI data::

@@ -41,6 +41,3 @@ from dcmri.mods_kidney import *
 from dcmri import mods_liver
 from dcmri.mods_liver import *
 
-from dcmri import mods_aorta_tissue
-from dcmri.mods_aorta_tissue import *
-

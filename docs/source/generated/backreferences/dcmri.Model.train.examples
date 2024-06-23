@@ -18,10 +18,10 @@ Examples using ``dcmri.Model.train``
 
 .. only:: html
 
-  .. image:: /generated/examples/e2e/images/thumb/sphx_glr_plot_wex_thumb.png
+  .. image:: /generated/examples/tutorials/images/thumb/sphx_glr_plot_wex_thumb.png
     :alt:
 
-  :ref:`sphx_glr_generated_examples_e2e_plot_wex.py`
+  :ref:`sphx_glr_generated_examples_tutorials_plot_wex.py`
 
 .. raw:: html
 
@@ -31,7 +31,7 @@ Examples using ``dcmri.Model.train``
 
 .. only:: not html
 
- * :ref:`sphx_glr_generated_examples_e2e_plot_wex.py`
+ * :ref:`sphx_glr_generated_examples_tutorials_plot_wex.py`
 
 .. raw:: html
 

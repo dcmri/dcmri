@@ -5,7 +5,6 @@ import math
 import numpy as np
 from scipy.special import gamma
 from scipy.interpolate import CubicSpline
-from scipy.stats import rv_histogram
 from scipy.optimize import curve_fit as scipy_curve_fit
 
 
@@ -16,15 +15,12 @@ except:
 
 
 class Model:
-    # Abstract base class for end-to-end models.
+    # Abstract base class for end-to-end models.                  
 
-    free = []                       #: Free parameters
-    bounds = (-np.inf, +np.inf)     #: Bounds on the free parameters
-    pcov = None                     #: Covariance matrix of the free model parameters.
-
-    def __init__(self, **attr):
-        for k, v in attr.items():
-            setattr(self, k, v)
+    def __init__(self):
+        self.free = []
+        self.bounds = [-np.inf, np.inf]
+        self.pcov = None
 
     def predict(self, xdata):
         """Predict the data for given x-values.
@@ -40,8 +36,7 @@ class Model:
         """
         raise NotImplementedError('No predict function provided')
     
-    def train(self, xdata, ydata, p0=None,
-            bounds=None, **kwargs):
+    def train(self, xdata, ydata, **kwargs):
         """Train the free parameters of the model using the data provided.
 
         After training, the attribute ``pars`` will contain the updated parameter values, and ``popt`` contains the covariance matrix. The function uses the scipy function `scipy.optimize.curve_fit`, but has some additional keywords for convenience during model prototyping. 
@@ -49,17 +44,14 @@ class Model:
         Args:
             xdata (array-like): Array with x-data (time points)
             ydata (array-like): Array with y-data (signal data)
-            p0 (array-like, optional): Initial values for the free parameters. Defaults to None.
-            bounds (str or tuple, optional): String or tuple defining the parameter bounds to be used whil training. The tuple must have 2 elements where each element is either an array with values (one for each parameter) or a single value (when each parameter has the same bound). Defaults to 'default'.
             kwargs: any keyword parameters accepted by `scipy.optimize.curve_fit`.
 
         Returns:
             Model: A reference to the model instance.
         """
-        return train(self, xdata, ydata, p0=p0, bounds=bounds, **kwargs)
+        return train(self, xdata, ydata, **kwargs)
 
-    def plot(self, xdata, ydata, xlim=None, testdata=None, 
-                fname=None, show=True):
+    def plot(self, xdata, ydata, xlim=None, testdata=None, fname=None, show=True):
         """Plot the model fit against data.
 
         Args:
@@ -75,23 +67,6 @@ class Model:
         """
         raise NotImplementedError('No plot function implemented for model ' + self.__class__.__name__)
     
-    
-    def x_scale(self):
-        n = len(self.free)
-        xscale = np.ones(n)
-        for p in range(n):
-            if np.isscalar(self.bounds[0]):
-                lb = self.bounds[0]
-            else:
-                lb = self.bounds[0][p]
-            if np.isscalar(self.bounds[1]):
-                ub = self.bounds[1]
-            else:
-                ub = self.bounds[1][p]
-            if (not np.isinf(lb)) and (not np.isinf(ub)):
-                xscale[p] = ub-lb
-        return xscale
-
     
     def cost(self, xdata, ydata, metric='NRMS')->float:
         """Goodness-of-fit value.
@@ -119,7 +94,8 @@ class Model:
             return
         return loss
 
-    def pars(self)->list:
+
+    def export_params(self)->list:
         """Free parameters with descriptions.
 
         Returns:
@@ -128,48 +104,31 @@ class Model:
         # Short name, full name, value, units.
         pars = {}
         for p in self.free:
-            pars[p] = [p+' name', self.getattr(p), p+' unit']
-        return self.add_sdev(pars)
+            pars[p] = [p+' name', getattr(self, p), p+' unit']
+        return self._add_sdev(pars)
     
-    def add_sdev(self, pars):
-        for par in pars:
-            pars[par].append(0)
-        if self.pcov is None:
-            perr = np.zeros(np.size(self.free))
-        else:
-            perr = np.sqrt(np.diag(self.pcov))
-        for i, par in enumerate(self.free):
-            if par in pars:
-                pars[par][-1] = perr[i]
-        return pars
-    
-    def setattr(self, dataframe=None):
-        if dataframe is not None:
-            for par in dataframe.index.values:
-                if hasattr(self, par):
-                    setattr(self, par, dataframe.at[par,"value"])
 
-    
-    def print(self, round_to=None):
+    def print_params(self, round_to=None):
         """Print a summary of the model parameters and their uncertainties.
 
         Args:
             rount_to (int, optional): Round to how many digits. If this is not provided, the values are not rounded. Defaults to None.
             units (str, optional): Which unit system to use in the return values. Defaults to 'standard'.
         """
-        pars = self.pars()
+        pars = self.export_params()
         print('-----------------------------------------')
         print('Free parameters with their errors (stdev)')
         print('-----------------------------------------')
         for par in self.free:
-            p = pars[par]
-            if round_to is None:
-                v = p[1]
-                verr = p[3]
-            else:
-                v = round(p[1], round_to)
-                verr = round(p[3], round_to)
-            print(p[0] + ' ('+par+'): ' + str(v) + ' (' + str(verr) + ') ' + p[2])
+            if par in pars:
+                p = pars[par]
+                if round_to is None:
+                    v = p[1]
+                    verr = p[3]
+                else:
+                    v = round(p[1], round_to)
+                    verr = round(p[3], round_to)
+                print(p[0] + ' ('+par+'): ' + str(v) + ' (' + str(verr) + ') ' + p[2])
         print('------------------')
         print('Derived parameters')
         print('------------------')
@@ -181,6 +140,76 @@ class Model:
                 else:
                     v = round(p[1], round_to)
                 print(p[0] + ' ('+par+'): ' + str(v) + ' ' + p[2])
+
+
+    def get_params(self, *args):
+        """Get parameter values.
+
+        Args:
+            args (tuple): parameters to get
+
+        Returns:
+            list: values of parameter values
+        """
+        return [getattr(self, a) for a in args]
+    
+    
+    def _getflat(self, attr:np.ndarray=None)->np.ndarray:
+        if attr is None:
+            attr = self.free
+        vals = []
+        for a in attr:
+            v = getattr(self, a)
+            vals = np.append(vals, np.ravel(v))
+        return vals
+    
+
+    def _setflat(self, vals:np.ndarray, attr:np.ndarray=None):
+        if attr is None:
+            attr = self.free
+        i=0
+        for p in attr:
+            v = getattr(self, p)
+            if np.isscalar(v):
+                v = vals[i]
+                i+=1
+            else:
+                n = np.size(v)
+                v = np.reshape(vals[i:i+n], np.shape(v))
+                i+=n
+            setattr(self, p, v)
+
+     
+    def _x_scale(self):
+        n = len(self.free)
+        xscale = np.ones(n)
+        for p in range(n):
+            if np.isscalar(self.bounds[0]):
+                lb = self.bounds[0]
+            else:
+                lb = self.bounds[0][p]
+            if np.isscalar(self.bounds[1]):
+                ub = self.bounds[1]
+            else:
+                ub = self.bounds[1][p]
+            if (not np.isinf(lb)) and (not np.isinf(ub)):
+                xscale[p] = ub-lb
+        return xscale
+
+
+    def _add_sdev(self, pars):
+        for par in pars:
+            pars[par].append(0)
+        if self.pcov is None:
+            perr = np.zeros(np.size(self.free))
+        else:
+            perr = np.sqrt(np.diag(self.pcov))
+
+        for i, par in enumerate(self.free):
+            if par in pars:
+                pars[par][-1] = perr[i]
+        return pars
+
 
     # rename to train_array
     def _fit_image(self, imgs:np.ndarray, xdata=None, xtol=1e-3, bounds=False, parallel=True, **kwargs):
@@ -215,19 +244,8 @@ class Model:
         return fit, par
 
 
-def init(model:Model, **attr):
-    for k, v in attr.items():
-        setattr(model, k, v)  
 
-
-def train(model:Model, xdata, ydata, p0=None,
-        bounds=None, **kwargs):
-
-    if p0 is None:
-        p0 = [getattr(model, p) for p in model.free]
-
-    if bounds is None:
-        bounds = model.bounds
+def train(model:Model, xdata, ydata, **kwargs):
 
     if isinstance(ydata, tuple):
         y = np.concatenate(ydata)
@@ -235,135 +253,30 @@ def train(model:Model, xdata, ydata, p0=None,
         y = ydata
 
     def fit_func(_, *p):
-        for i, par in enumerate(model.free):
-            setattr(model, par, p[i])
+        model._setflat(p)
         yp = model.predict(xdata)
         if isinstance(yp, tuple):
             return np.concatenate(yp)
         else:
             return yp
 
+    p0 = model._getflat()
     try:
         pars, model.pcov = scipy_curve_fit(
             fit_func, None, y, p0, 
-            bounds=bounds, #x_scale=model.x_scale(),
+            bounds=model.bounds, #x_scale=model._x_scale(),
             **kwargs)
     except RuntimeError as e:
         msg = 'Runtime error in curve_fit -- \n'
         msg += str(e) + ' Returning initial values.'
         warnings.warn(msg)
         pars = p0
-        model.pcov = np.zeros((len(model.free), len(model.free)))
+        model.pcov = np.zeros((np.size(p0), np.size(p0)))
     
-    for i, p in enumerate(model.free):
-        setattr(model, p, pars[i])
+    model._setflat(pars)
     
     return model
     
-
-def xfit(xdata, xrange=None, xvalid=None):
-    # Identify x- and y-values that are fitted
-    if xrange is None:
-        xrange = [xdata.min(), xdata.max()]
-    if xvalid is None:
-        xvalid = np.ones(len(xdata), dtype=np.int32)
-    elif not isinstance(xvalid, np.ndarray):
-        xvalid = np.array(xvalid, dtype=np.int32)
-    xfit = xvalid * (xrange[0]<=xdata) * (xdata<=xrange[1])
-    return xfit==1
-
-
-# f(xdata, *pars, **kwargs)
-# wrapper for curve_fit except that p0 is REQUIRED
-def curve_fit(f, xdata, ydata, p0, 
-    vars={}, pfix=None, xrange=None, xvalid=None,  
-    #sigma=None, absolute_sigma=False, check_finite=None, 
-    bounds=(-np.inf, np.inf), 
-    #method=None, jac=None, 
-    full_output=False, 
-    #nan_policy=None, 
-    **kwargs):
-    
-    # Convert array_like to array
-    if not isinstance(p0, np.ndarray):
-        p0 = np.array(p0).astype(np.float64)
-
-    # Identify parameters that are fitted
-    if pfix is None:
-        pfit = np.full(len(p0), True)
-    else:
-        if not isinstance(pfix, np.ndarray):
-            pfix = np.array(pfix)
-        if np.sum(pfix) == pfix.size:
-            msg = 'All parameters are fixed -- returning initial values!!'
-            warnings.warn(msg)
-            if full_output:
-                return p0, None, None
-            else:
-                return p0, None
-        pfit = pfix==0
-        
-    # Select bounds for the parameters that are fitted
-
-    b0 = bounds[0]
-    if not np.isscalar(b0):
-        if not isinstance(b0, np.ndarray):
-            b0 = np.array(b0).astype(np.float64)
-        b0 = b0[pfit]  
-    b1 = bounds[1]
-    if not np.isscalar(b1):
-        if not isinstance(b1, np.ndarray):
-            b1 = np.array(b1).astype(np.float64)
-        b1 = b1[pfit]
-
-    # Define a fit function for the parameters that are fitted 
-    p0c = p0.copy()
-    def fit_func(x,*p):
-        p0c[pfit] = p
-        return f(x, *p0c, **vars)      
-
-    # Identify x- and y-values that are fitted
-    xf = xfit(xdata, xrange, xvalid)
-
-    # Apply curve_fit to restricted data
-
-    try:
-        p = scipy_curve_fit(
-            fit_func, xdata[xf], ydata[xf], 
-            p0 = p0[pfit], 
-            #sigma = sigma,
-            #absolute_sigma = absolute_sigma,
-            #check_finite = check_finite,
-            bounds = (b0,b1),
-            #method = method,
-            #jac = jac, 
-            full_output = full_output,
-            #nan_policy = nan_policy,
-            **kwargs)
-    except RuntimeError as e:
-        msg = 'Runtime error in curve_fit -- \n'
-        msg += str(e) + ' Returning initial values.'
-        warnings.warn(msg)
-        pcov = np.zeros((np.sum(pfit),np.sum(pfit)))
-        p = (p0[pfit], pcov)
-    
-    # Return parameter array in original length
-    p0c[pfit] = p[0]
-    # If some parameters are fixed, enlarge cov matrix
-    if np.sum(pfit) < p0.size:
-        pcov = np.zeros((p0.size, p0.size))
-        ifit = np.where(pfit)[0]
-        for i in range(ifit.size):
-            for j in range(ifit.size):
-                pcov[ifit[i],ifit[j]] = p[1][i,j]
-    else:
-        pcov = p[1]
-    
-    if full_output:
-        return (p0c,) + (pcov,) + p[2:]
-    else:
-        return p0c, pcov
-
 
 def interp(y, x, pos=False, floor=False)->np.ndarray:
     """Interpolate uniformly sampled data. 

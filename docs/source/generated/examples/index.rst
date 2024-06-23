@@ -22,76 +22,8 @@ Examples
 
     </div>
 
-*****************
-End-to-end models
-*****************
-
-
-
-
-
-.. raw:: html
-
-    <div class="sphx-glr-thumbnails">
-
-
-.. raw:: html
-
-    <div class="sphx-glr-thumbcontainer" tooltip="This example will explore the effect of water exchange in a standard two-compartmental tissue w...">
-
-.. only:: html
-
-  .. image:: /generated/examples/e2e/images/thumb/sphx_glr_plot_wex_thumb.png
-    :alt:
-
-  :ref:`sphx_glr_generated_examples_e2e_plot_wex.py`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">An exploration of water exchange effects</div>
-    </div>
-
-
-.. raw:: html
-
-    </div>
-
-*******************************
-Constants and special functions
-*******************************
-
-
-
-
-
-.. raw:: html
-
-    <div class="sphx-glr-thumbnails">
-
-
-.. raw:: html
-
-    <div class="sphx-glr-thumbcontainer" tooltip="Use ~dcmri.aif_parker to generate a Parker AIF with different settings. ">
-
-.. only:: html
-
-  .. image:: /generated/examples/lib/images/thumb/sphx_glr_plot_aif_parker_thumb.png
-    :alt:
-
-  :ref:`sphx_glr_generated_examples_lib_plot_aif_parker.py`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">The Parker AIF</div>
-    </div>
-
-
-.. raw:: html
-
-    </div>
-
 *********
-Utilities
+Tutorials
 *********
 
 
@@ -109,14 +41,65 @@ Utilities
 
 .. only:: html
 
-  .. image:: /generated/examples/tools/images/thumb/sphx_glr_plot_convolution_thumb.png
+  .. image:: /generated/examples/tutorials/images/thumb/sphx_glr_plot_convolution_thumb.png
     :alt:
 
-  :ref:`sphx_glr_generated_examples_tools_plot_convolution.py`
+  :ref:`sphx_glr_generated_examples_tutorials_plot_convolution.py`
 
 .. raw:: html
 
       <div class="sphx-glr-thumbnail-title">A comparison of convolution functions</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example will explore the effect of water exchange in a standard two-compartmental tissue w...">
+
+.. only:: html
+
+  .. image:: /generated/examples/tutorials/images/thumb/sphx_glr_plot_wex_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_generated_examples_tutorials_plot_wex.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">An exploration of water exchange effects</div>
+    </div>
+
+
+.. raw:: html
+
+    </div>
+
+*********
+Use cases
+*********
+
+
+
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Use ~dcmri.aif_parker to generate a Parker AIF with different settings. ">
+
+.. only:: html
+
+  .. image:: /generated/examples/use_cases/images/thumb/sphx_glr_plot_aif_parker_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_generated_examples_use_cases_plot_aif_parker.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">The Parker AIF</div>
     </div>
 
 
@@ -130,9 +113,8 @@ Utilities
    :includehidden:
 
 
-   /generated/examples/e2e/index.rst
-   /generated/examples/lib/index.rst
-   /generated/examples/tools/index.rst
+   /generated/examples/tutorials/index.rst
+   /generated/examples/use_cases/index.rst
 
 
 

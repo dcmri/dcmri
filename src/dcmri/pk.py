@@ -6,92 +6,102 @@ import dcmri.utils as utils
 
 # Wrappers
 
-def flux(J:np.ndarray, t=None, dt=1.0, system=['comp', 10])->np.ndarray:
+def flux(J:np.ndarray, *params, t=None, dt=1.0, kinetics='comp', **kwargs)->np.ndarray:
     """Flux out of an arbitrary pharmacokinetic system.
 
     This is a wrapper function offering a standard interface to calculate the flux out of a specific system, with the system architecture specified in the dictionary. It offers a convenient way to build more complex models with variable configurations, such as `flux_aorta`.
 
     Args:
         J (array_like): the indicator flux entering the trap.
+        params (tuple): model parameters.
         t (array_like, optional): the time points of the indicator flux J. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
         dt (float, optional): spacing between time points for uniformly spaced time points. This parameter is ignored if t is explicity provided. Defaults to 1.0.
-        system (dict, optional): Dictionary describing the system. Defaults to {'model':'comp', 'T':10}.
+        kinetics (str, optional): Model to use, options are 'trap', 'pass', 'comp', 'plug', 'chain', 'step', 'free', 'ncomp', '2comp', 'nscomp', 'pfcomp', 'mmcomp', '2cxm'. Defaults to 'comp'.
+        kwargs (dict): any optional parameters required by the model.
 
     Raises:
         ValueError: If a system is specified that is nto yet implemented.
 
     Returns:
         np.ndarray: Total outflux out of the system.
-    """
-    model = system[0]
-    if isinstance(system[1], tuple):
-        args = system[1]
-    else:
-        args = (system[1],)  
-    if len(system)==2:
-        kwargs = {}
-    else:
-        kwargs = system[2]
 
-    if model == 'chain':
-        return flux_chain(J, *args, t=t, dt=dt, **kwargs)
-    if model == 'pfcomp':
-        return flux_pfcomp(J, *args, t=t, dt=dt, **kwargs)
-    if model == 'comp':
-        return flux_comp(J, *args, t=t, dt=dt, **kwargs)
-    if model == 'nscomp':
-        return flux_nscomp(J, *args, t=t, dt=dt)
-    if model == '2cxm': # TODO: needs a function?
-        Tp, Te, E = args
-        T = [Tp, Te] 
-        E = [[1-E,1],[E,0]] 
-        J = np.stack((J, np.zeros(J.size)))
-        return flux_2comp(J, T, E, t=t, dt=dt)[0,0,:]
-    msg = 'Model ' + model + ' is not currently implemented.'
+    """
+
+    if kinetics=='trap':
+        return flux_trap(J)
+    if kinetics == 'pass':
+        return flux_pass(J)
+    if kinetics == 'comp':
+        return flux_comp(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == 'plug':
+        return flux_plug(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == 'chain':
+        return flux_chain(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == 'step':
+        return flux_step(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == 'free':
+        return flux_free(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == 'ncomp':
+        return flux_ncomp(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == '2comp':
+        return flux_2comp(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == 'nscomp':
+        return flux_nscomp(J, *params, t=t, dt=dt)
+    if kinetics == 'pfcomp':
+        return flux_pfcomp(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == 'mmcomp':
+        return flux_mmcomp(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == '2cxm': 
+        return flux_2cxm(J, *params, t=t, dt=dt, **kwargs)
+    msg = 'Model ' + kinetics + ' is not currently implemented.'
     raise ValueError(msg)
 
 
-def conc(J:np.ndarray, t=None, dt=1.0, system=['comp', 10])->np.ndarray:
+
+def conc(J:np.ndarray, *params, t=None, dt=1.0, kinetics='comp', **kwargs)->np.ndarray:
     """Concentration in an arbitrary pharmacokinetic system.
 
     Args:
         J (array_like): the indicator flux entering the trap.
+        params (tuple): model parameters.
         t (array_like, optional): the time points of the indicator flux J. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
         dt (float, optional): spacing between time points for uniformly spaced time points. This parameter is ignored if t is explicity provided. Defaults to 1.0.
-        system (dict, optional): Dictionary describing the system. Defaults to {'model':'comp', 'T':10}.
+        kinetics (str, optional): Model to use, options are 'trap', 'pass', 'comp', 'plug', 'chain', 'step', 'free', 'ncomp', '2comp', 'nscomp', 'mmcomp', '2cxm'. Defaults to 'comp'.
 
-    This is a wrapper function offering a standard interface to calculate the flux out of a specific system, with the system architecture specified in the dictionary. It offers a convenient way to build more complex models with variable configurations.
+    This is a wrapper function offering a standard interface to calculate the concentration in a specific system.
 
     Raises:
-        ValueError: If a system is specified that is nto yet implemented.
+        ValueError: If a system is specified that is not yet implemented.
 
     Returns:
         np.ndarray: Concentration in the system.
     """
-    model = system[0]
-    if isinstance(system[1], tuple):
-        args = system[1]
-    else:
-        args = (system[1],)  
-    if len(system)==2:
-        kwargs = {}
-    else:
-        kwargs = system[2]
 
-    if model == 'chain':
-        return conc_chain(J, *args, t=t, dt=dt, **kwargs)
-    if model == 'comp':
-        return conc_comp(J, *args, t=t, dt=dt, **kwargs)
-    if model == 'nscomp':
-        return conc_nscomp(J, *args, t=t, dt=dt)
-    if model == '2cxm': # TODO: needs a function?
-        Tp, Te, E = args
-        T = [Tp, Te] 
-        E = [[1-E,1],[E,0]] 
-        J = np.stack((J, np.zeros(J.size)))
-        C = conc_2comp(J, T, E, t=t, dt=dt)
-        return C[0,:] + C[1,:]
-    msg = 'Model ' + model + ' is not currently implemented.'
+    if kinetics=='trap':
+        return conc_trap(J, t=t, dt=dt)
+    if kinetics == 'pass':
+        return conc_pass(J, *params)
+    if kinetics == 'comp':
+        return conc_comp(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == 'plug':
+        return conc_plug(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == 'chain':
+        return conc_chain(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == 'step':
+        return conc_step(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == 'free':
+        return conc_free(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == 'ncomp':
+        return conc_ncomp(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == '2comp':
+        return conc_2comp(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == 'nscomp':
+        return conc_nscomp(J, *params, t=t, dt=dt)
+    if kinetics == 'mmcomp':
+        return conc_mmcomp(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == '2cxm':
+        return conc_2cxm(J, *params, t=t, dt=dt, **kwargs)
+    msg = 'Model ' + kinetics + ' is not currently implemented.'
     raise ValueError(msg)
 
 
@@ -123,7 +133,6 @@ def res_trap(t):
         array([1., 1., 1., 1., 1.])  
     """
     return np.ones(len(t))
-
 
 def prop_trap(t):
     """Propagator or transit time distribution of a trap.
@@ -258,7 +267,6 @@ def prop_pass(t):
     """
     return utils.ddelta(0,t)
 
-
 def conc_pass(J, T):
     """Indicator concentration inside a pass.
 
@@ -366,7 +374,6 @@ def prop_comp(T, t):
         return utils.ddelta(T, t)
     return np.exp(-np.array(t)/T)/T
 
-
 def conc_comp(J, T, t=None, dt=1.0):
     """Indicator concentration inside a compartment.
 
@@ -394,7 +401,6 @@ def conc_comp(J, T, t=None, dt=1.0):
     if T == np.inf:
         return conc_trap(J, t=t, dt=dt)
     return T*utils.expconv(J, T, t=t, dt=dt)
-
 
 def flux_comp(J, T, t=None, dt=1.0):
     """Indicator flux out of a compartment.
@@ -450,7 +456,6 @@ def prop_plug(T, t):
     """
     return utils.ddelta(T, t)
 
-
 def res_plug(T, t):
     """Residue function of a plug flow system.
 
@@ -474,7 +479,6 @@ def res_plug(T, t):
     """
     h = prop_plug(T,t)
     return 1-utils.trapz(h,t)
-
 
 def conc_plug(J, T, t=None, dt=1.0, solver='interp'):
     """Indicator concentration inside a plug flow system.
@@ -512,7 +516,6 @@ def conc_plug(J, T, t=None, dt=1.0, solver='interp'):
     elif solver=='interp':
         Jo = np.interp(t-T, t, J, left=0)
         return utils.trapz(J-Jo, t)
-
 
 def flux_plug(J, T, t=None, dt=1.0, solver='interp'):
     """Indicator flux out of a plug flow system.
@@ -595,7 +598,6 @@ def prop_chain(T, D, t):
     g = utils.nexpconv(n, T/n, t)
     return g
 
-
 def res_chain(T, D, t):
     """Residue function of a chain system.
 
@@ -622,7 +624,6 @@ def res_chain(T, D, t):
         return res_comp(T, t)
     h = prop_chain(T, D, t)
     return 1-utils.trapz(h,t)
-
 
 def conc_chain(J, T, D, t=None, dt=1.0, solver='step'):
     """Indicator concentration inside a chain system.
@@ -665,7 +666,6 @@ def conc_chain(J, T, D, t=None, dt=1.0, solver='step'):
     tr = utils.tarray(len(J), t=t, dt=dt)
     r = res_chain(T, D, tr)
     return utils.conv(r, J, t=t, dt=dt, solver=solver)
-
 
 def flux_chain(J, T, D, t=None, dt=1.0, solver='step'):
     """Indicator flux out of a chain system.
@@ -897,7 +897,6 @@ def prop_free(H, t, TT=None, TTmin=0, TTmax=None):
     h = utils.ddist(H, TT, t)
     return h/np.trapz(h,t)
 
-
 def res_free(H, t, TT=None, TTmin=0, TTmax=None):
     """Residue function of a free system.
 
@@ -940,7 +939,6 @@ def res_free(H, t, TT=None, TTmin=0, TTmax=None):
     r = 1 - utils.trapz(h, t)
     r[r<0] = 0
     return r
-
 
 def conc_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None, solver='trap'):
     """Indicator concentration inside a free system.
@@ -993,7 +991,6 @@ def conc_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None, solver='trap')
     u = utils.tarray(len(J), t=t, dt=dt)
     r = res_free(H, u, TT=TT, TTmin=TTmin, TTmax=TTmax)
     return utils.conv(r, J, t=t, dt=dt, solver=solver)
-
 
 def flux_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
     """Indicator flux out of a free system.
@@ -1227,7 +1224,6 @@ def conc_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
     if solver=='diag':
         return conc_ncomp_diag(J, T, E, t=t, dt=dt)
 
-
 def flux_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
     """Outfluxes out of a linear and stationary n-compartment system.
 
@@ -1289,7 +1285,6 @@ def flux_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
     C = conc_ncomp(J, T, E, t=t, dt=dt, solver=solver, dt_prop=dt_prop)
     return J_ncomp(C, T, E)
 
-
 def res_ncomp(T, E, t):
     """Residue function of an n-compartment system.
 
@@ -1349,7 +1344,6 @@ def res_ncomp(T, E, t):
         # Left-multiply with eigenvector matrix
         R[i,:,:] = np.matmul(Q, Ei)
     return R
-
 
 def prop_ncomp(T, E, t):
     """Propagator of an n-compartment system.
@@ -1423,7 +1417,6 @@ def K_2comp(T,E):
     N = (K[0,0]-Ke[1])*(K[1,1]-Ke[0]) - K[0,1]*K[1,0] 
     Qi /= N
     return Q, Ke, Qi
-
 
 def conc_2comp(J, T, E, t=None, dt=1.0):
     """Concentration in a linear and stationary 2-compartment system.
@@ -1503,7 +1496,6 @@ def conc_2comp(J, T, E, t=None, dt=1.0):
         C += np.matmul(Q, Ei)
     return C
 
-
 def flux_2comp(J, T, E, t=None, dt=1.0):
     """Outfluxes out of a linear and stationary 2-compartment system.
 
@@ -1559,8 +1551,6 @@ def flux_2comp(J, T, E, t=None, dt=1.0):
     """
     C = conc_2comp(J, T, E, t=t, dt=dt)
     return J_ncomp(C, T, E)
-
-
 
 def res_2comp(T, E, t):
     """Residue function of a 2-compartment system.
@@ -1619,7 +1609,6 @@ def res_2comp(T, E, t):
         # Left-multiply with eigenvector matrix
         R[i,:,:] = np.matmul(Q, Ei)
     return R
-
 
 def prop_2comp(T, E, t):
     """Propagator of a 2-compartment system.
@@ -1734,7 +1723,6 @@ def conc_nscomp(J, T, t=None, dt=1.0):
                 Tk = Tk_next
             C[k+1] = Ck
     return C
-
 
 def flux_nscomp(J, T, t=None, dt=1.0):
     """Indicator flux out of a non-stationary compartment.
@@ -1879,7 +1867,6 @@ def conc_mmcomp(J, Vmax, Km, t=None, dt=1.0, solver='SM'):
     if solver == 'prop':
         return mmcomp_prop(J, Vmax, Km, t)
 
-    
 def flux_mmcomp(J, Vmax, Km, t=None, solver='SM', dt=1.0):
     """Indicator flux out of a Michaelis-Menten compartment.
 
@@ -1923,3 +1910,44 @@ def flux_mmcomp(J, Vmax, Km, t=None, solver='SM', dt=1.0):
     """
     C = conc_mmcomp(J, Vmax, Km, t=t, solver=solver, dt=dt)
     return C*Vmax/(Km+C)
+
+
+
+def conc_2cxm(J, T, E, t=None, dt=1.0):
+    """Indicator flux out of a 2-compartment exchange model.
+
+    Args:
+        J (array_like): the indicator flux entering the compartment (mmol/sec).
+        T (array-like): 2-element array with mean transit times of plasma and extravascular compartment.
+        E (float): Extraction fraction out of the plasma compartment.
+        t (array_like, optional): the time points of the indicator flux J (sec). If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points (sec). This parameter is ignored if t is explicity provided. Defaults to 1.0.
+
+    Returns:
+        np.ndarray: Concentration in M.
+    """
+    # T= [ Tp, Te]
+    E = [[1-E,1],[E,0]] 
+    J = np.stack((J, np.zeros(J.size)))
+    C = conc_2comp(J, T, E, t=t, dt=dt)
+    return C[0,:] + C[1,:]
+
+
+def flux_2cxm(J, T, E, t=None, dt=1.0):
+    """Indicator flux out of a 2-compartment exchange model.
+
+    Args:
+        J (array_like): the indicator flux entering the compartment (mmol/sec).
+        T (array-like): 2-element array with mean transit times of plasma and extravascular compartment.
+        E (float): Extraction fraction out of the plasma compartment.
+        t (array_like, optional): the time points of the indicator flux J (sec). If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points (sec). This parameter is ignored if t is explicity provided. Defaults to 1.0.
+        solver (str, optional): solver for the system, either 'conv' for explicit convolution with a discrete impulse response (slow) or 'interp' for interpolation (fast). Defaults to 'interp'.
+
+    Returns:
+        np.ndarray: Outflux in mmol/sec 
+    """
+    # T= [ Tp, Te]
+    E = [[1-E,1],[E,0]] 
+    J = np.stack((J, np.zeros(J.size)))
+    return flux_2comp(J, T, E, t=t, dt=dt)[0,0,:]

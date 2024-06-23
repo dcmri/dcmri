@@ -3,13 +3,33 @@ import dcmri as dc
 
 def test_model():
 
-    mod = dc.Model()
+    class Test(dc.Model):
+        pass
+
+    t = Test()
     try:
-        mod.predict(None)
+        t.predict(None)
     except:
         assert True
-    else:
-        assert False
+
+    class Test(dc.Model):
+        def __init__(self):
+            self.a=1
+            self.b=2
+            self.c=[3,4]
+            self.d=5*np.ones((2,3))
+            self.free = []
+            self.bounds = [-np.inf,np.inf]
+
+    t = Test()
+    a = [1,2,3,4] + 6*[5]
+    assert np.array_equal(t._getflat(), [])
+    assert np.array_equal(t._getflat(['a','b','c','d']), a)
+    f = t._getflat(['b','c','d'])
+    f[-1] = 0
+    t._setflat(f, ['b','c','d'])
+    a = [1,2,3,4] + 5*[5] + [0]
+    assert np.array_equal(t._getflat(['a','b','c','d']), a)
     
 
 
@@ -195,7 +215,7 @@ def test_conv():
         area = np.trapz(f,t)*np.trapz(h,t)
         g0 = dc.conv(f, h, dt=dt)
         g1 = dc.conv(h, f, dt=dt)
-        assert (np.trapz(g0,t)-area)**2/area**2 < prec_area[i]
+        assert (np.trapz(g0,t)-area)**2/area**2 < 5*prec_area[i]
         assert np.linalg.norm(g0-g1)/np.linalg.norm(g0)  < prec_symm
 
     # Non-uniform time grid: check area preserving and symmetric

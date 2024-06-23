@@ -15,11 +15,7 @@ This reference manual details all functions included in dcMRI, describing what t
 
    e2e
    sig
-   pk_tissue
-   pk_body
-   pk_kidney
-   pk_liver
-   pk
-   lib
+   pk_models
+   pk_blocks
    utils
    
