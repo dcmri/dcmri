@@ -5,13 +5,14 @@ Utilities
 .. currentmodule:: dcmri
 
 
-Digital reference objects
-=========================
+Example datasets
+================
 
 .. autosummary::
    :toctree: ../generated/api/
    :template: autosummary.rst
 
+   fetch
    fake_tissue
    fake_tissue2scan
    fake_kidney_cortex_medulla

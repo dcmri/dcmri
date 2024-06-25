@@ -1,7 +1,7 @@
 
 
-Examples using ``dcmri.AortaLiver.train``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Examples using ``dcmri.Model.print_params``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
 .. start-sphx-glr-thumbnails

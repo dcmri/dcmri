@@ -481,6 +481,8 @@ class AortaLiver(dc.Model):
     def _predict_aorta(self, xdata:np.ndarray) -> np.ndarray:
         if self.tacq is None:
             tacq = xdata[1]-xdata[0]
+        else:
+            tacq = self.tacq
         self.tmax = max(xdata)+tacq+self.dt
         t, R1b = self._relax_aorta()
         if self.sequence == 'SR':
@@ -522,6 +524,8 @@ class AortaLiver(dc.Model):
     def _predict_liver(self, xdata:np.ndarray) -> np.ndarray:
         if self.tacq is None:
             tacq = xdata[1]-xdata[0]
+        else:
+            tacq = self.tacq
         t, R1l = self._relax_liver()
         if self.sequence == 'SR':
             #signal = dc.signal_sr(R1l, self.S0l, self.TR, self.FA, self.TC, R10=R1l[0])

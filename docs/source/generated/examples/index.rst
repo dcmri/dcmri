@@ -37,6 +37,23 @@ Tutorials
 
 .. raw:: html
 
+    <div class="sphx-glr-thumbcontainer" tooltip="Use ~dcmri.aif_parker to generate a Parker AIF with different settings. ">
+
+.. only:: html
+
+  .. image:: /generated/examples/tutorials/images/thumb/sphx_glr_plot_aif_parker_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_generated_examples_tutorials_plot_aif_parker.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">The Parker AIF</div>
+    </div>
+
+
+.. raw:: html
+
     <div class="sphx-glr-thumbcontainer" tooltip="Using the convolution functions ~dcmri.conv, ~dcmri.expconv, ~dcmri.stepconv, ~dcmri.biexpconv ...">
 
 .. only:: html
@@ -88,18 +105,35 @@ Use cases
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="Use ~dcmri.aif_parker to generate a Parker AIF with different settings. ">
+    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of ~dcmri.AortaLiver2scan for joint fitting of aorta and liver...">
 
 .. only:: html
 
-  .. image:: /generated/examples/use_cases/images/thumb/sphx_glr_plot_aif_parker_thumb.png
+  .. image:: /generated/examples/use_cases/images/thumb/sphx_glr_plot_tristan_volunteers_2scan_thumb.png
     :alt:
 
-  :ref:`sphx_glr_generated_examples_use_cases_plot_aif_parker.py`
+  :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers_2scan.py`
 
 .. raw:: html
 
-      <div class="sphx-glr-thumbnail-title">The Parker AIF</div>
+      <div class="sphx-glr-thumbnail-title">The TRISTAN experimental medicine study (2 scan protocol)</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of ~dcmri.AortaLiver for joint fitting of aorta and liver sign...">
+
+.. only:: html
+
+  .. image:: /generated/examples/use_cases/images/thumb/sphx_glr_plot_tristan_volunteers_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">The TRISTAN experimental medicine study (1 scan protocol)</div>
     </div>
 
 

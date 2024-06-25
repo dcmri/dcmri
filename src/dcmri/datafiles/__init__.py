@@ -1,0 +1,2 @@
+# Necessary?
+import dcmri.datafiles
