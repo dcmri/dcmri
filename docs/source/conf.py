@@ -78,7 +78,8 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path
 exclude_patterns = []
 
-
+# show syntax color coding for code samples
+#pygments_style = 'sphinx'
 
 # -- Extension configuration -------------------------------------------------
 # Map intersphinx to pre-existing documentation from other projects used in this project

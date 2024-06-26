@@ -155,8 +155,8 @@ However, `~dcmri.expconv` comes with a major improvement in computation time com
 
  .. code-block:: none
 
-    Computation time for conv():  1.4179983139038086 sec
-    Computation time for expconv():  0.031244277954101562 sec
+    Computation time for conv():  1.1428205966949463 sec
+    Computation time for expconv():  0.03563237190246582 sec
 
 
 
@@ -184,7 +184,7 @@ Incidentally since the time array in this case is uniform, `~dcmri.conv` can be 
 
  .. code-block:: none
 
-    Computation time for conv() with uniform times:  0.1874556541442871 sec
+    Computation time for conv() with uniform times:  0.35923123359680176 sec
 
 
 
@@ -263,8 +263,8 @@ If both functions are exponentials, convolution can be accelerated further with 
 
  .. code-block:: none
 
-    Computation time for expconv():  0.056571006774902344 sec
-    Computation time for biexpconv():  0.026928186416625977 sec
+    Computation time for expconv():  0.03809309005737305 sec
+    Computation time for biexpconv():  0.016726016998291016 sec
 
 
 
@@ -325,7 +325,7 @@ The final convolution function `~dcmri.nexpconv` convolves n indentical exponent
     plt.plot(t, g1, 'r-', label='1 exponential')
     plt.plot(t, g10, 'g-', label='10 exponentials')
     plt.plot(t, g100, 'b-', label='100 exponentials')
-    plt.title('Convolutions of identical gaussian distributions')
+    plt.title('Convolutions of identical exponentials')
     plt.legend()
     plt.show()
  
@@ -334,7 +334,7 @@ The final convolution function `~dcmri.nexpconv` convolves n indentical exponent
 
 
 .. image-sg:: /generated/examples/tutorials/images/sphx_glr_plot_convolution_005.png
-   :alt: Convolutions of identical gaussian distributions
+   :alt: Convolutions of identical exponentials
    :srcset: /generated/examples/tutorials/images/sphx_glr_plot_convolution_005.png
    :class: sphx-glr-single-img
 
@@ -420,8 +420,8 @@ As with `~dcmri.expconv` the difference between `~dcmri.stepconv` and `~dcmri.co
 
  .. code-block:: none
 
-    Computation time for conv():  0.6512596607208252 sec
-    Computation time for stepconv():  0.5355708599090576 sec
+    Computation time for conv():  0.6662440299987793 sec
+    Computation time for stepconv():  0.5251078605651855 sec
 
 
 
@@ -429,7 +429,7 @@ As with `~dcmri.expconv` the difference between `~dcmri.stepconv` and `~dcmri.co
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 3.941 seconds)
+   **Total running time of the script:** (0 minutes 3.952 seconds)
 
 
 .. _sphx_glr_download_generated_examples_tutorials_plot_convolution.py:

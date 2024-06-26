@@ -895,7 +895,7 @@ def prop_free(H, t, TT=None, TTmin=0, TTmax=None):
             msg += '\n with N the size of the transit time distribution H.'
             raise ValueError(msg)
     h = utils.ddist(H, TT, t)
-    return h/np.trapz(h,t)
+    return h/np.trapezoid(h,t)
 
 def res_free(H, t, TT=None, TTmin=0, TTmax=None):
     """Residue function of a free system.
