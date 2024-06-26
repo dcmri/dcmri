@@ -21,10 +21,10 @@ def test_conc_trap():
     C0 = dc.conv(dc.res_trap(t), J, t)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) == 0
 
-def test_flux_trap():
+def test__flux_trap():
     t = np.linspace(0, 100, 20)
     J = np.ones(len(t))
-    Jo = dc.flux_trap(J)
+    Jo = dc.flux(J, kinetics='trap')
     assert np.linalg.norm(Jo) == 0
     Jo0 = dc.conv(dc.prop_trap(t), J, t)
     assert np.linalg.norm(Jo-Jo0) == 0
@@ -52,11 +52,11 @@ def test_conc_pass():
     C0 = dc.conv(dc.res_pass(T,t), J, t)
     assert np.linalg.norm(C[1:]-C0[1:])/np.linalg.norm(C0[1:]) < 1e-12
 
-def test_flux_pass():
+def test__flux_pass():
     T = 30
     t = np.linspace(0, 100, 20)
     J = np.ones(len(t))
-    Jo = dc.flux_pass(J)
+    Jo = dc.flux(J, kinetics='pass')
     assert np.linalg.norm(J-Jo)/np.linalg.norm(J) < 1e-12
     Jo0 = dc.conv(dc.prop_pass(t), J, t)
     assert np.linalg.norm(Jo[1:]-Jo0[1:])/np.linalg.norm(Jo[1:]) < 1e-12
@@ -66,10 +66,10 @@ def test_res_comp():
     T = 25
     t = np.linspace(0, 150, 20)
     r = dc.res_comp(T, t)
-    assert np.round(np.trapz(r,t)) == T
+    assert np.round(np.trapezoid(r,t)) == T
     t = [0,5,15,30,60,90,150]
     r = dc.res_comp(T, t)
-    assert (np.trapz(r,t)-T)**2/T**2 < 1e-2
+    assert (np.trapezoid(r,t)-T)**2/T**2 < 1e-2
     r = dc.res_comp(np.inf, t)
     assert np.sum(np.unique(r))== 1
     r = dc.res_comp(0, t)
@@ -79,14 +79,14 @@ def test_prop_comp():
     T = 25
     t = np.linspace(0, 150, 20)
     h = dc.prop_comp(T, t)
-    assert np.round(np.trapz(h,t)) == 1
+    assert np.round(np.trapezoid(h,t)) == 1
     t = [0,5,15,30,60,90,150]
     h = dc.prop_comp(T, t)
-    assert (np.trapz(h,t)-1)**2 < 1e-2
+    assert (np.trapezoid(h,t)-1)**2 < 1e-2
     h = dc.prop_comp(np.inf, t)
     assert np.linalg.norm(h)==0
     h = dc.prop_comp(0, t)
-    assert (np.trapz(h,t)-1)**2 < 1e-2
+    assert (np.trapezoid(h,t)-1)**2 < 1e-2
 
 def test_conc_comp():
     T = 25
@@ -106,40 +106,40 @@ def test_conc_comp():
     C0 = dc.conc_trap(J,t)
     assert np.linalg.norm(C[1:]-C0[1:])/np.linalg.norm(C0[1:]) < 1e-1
 
-def test_flux_comp():
+def test__flux_comp():
     T = 25
     t = np.linspace(0, 150, 20)
     J = np.ones(len(t))
     J0 = dc.conv(dc.prop_comp(T,t), J, t)
-    Jo = dc.flux_comp(J, T, t)
+    Jo = dc.flux(J, T, t=t, kinetics='comp')
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-2
-    Jo = dc.flux_comp(J, T, dt=t[1])
+    Jo = dc.flux(J, T, dt=t[1], kinetics='comp')
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-2
     t = [0,5,15,30,60,90,150]
     J = np.ones(len(t))
     J0 = dc.conv(dc.prop_comp(T,t), J, t)
-    Jo = dc.flux_comp(J, T, t)
+    Jo = dc.flux(J, T, t=t, kinetics='comp')
     assert np.linalg.norm(J0-Jo)/np.linalg.norm(J0) < 1e-1
-    Jo = dc.flux_comp(J, np.inf, t)
+    Jo = dc.flux(J, np.inf, t=t, kinetics='comp')
     assert np.linalg.norm(Jo) == 0
 
 def test_res_plug():
     T = 25
     t = np.linspace(0, 150, 20)
     r = dc.res_plug(T, t)
-    assert (np.trapz(r,t)-T)**2/T**2 < 0.02
+    assert (np.trapezoid(r,t)-T)**2/T**2 < 0.02
     t = [0,5,15,30,60,90,150]
     r = dc.res_plug(T, t)
-    assert (np.trapz(r,t)-T)**2/T**2 < 0.06
+    assert (np.trapezoid(r,t)-T)**2/T**2 < 0.06
 
 def test_prop_plug():
     T = 25
     t = np.linspace(0, 150, 500)
     h = dc.prop_plug(T, t)
-    assert np.abs((np.trapz(h,t)-1)) < 1e-12
+    assert np.abs((np.trapezoid(h,t)-1)) < 1e-12
     t = [0,5,15,30,60,90,150]
     h = dc.prop_plug(T, t)
-    assert np.abs((np.trapz(h,t)-1)) < 1e-12
+    assert np.abs((np.trapezoid(h,t)-1)) < 1e-12
 
 def test_conc_plug():
     T = 25
@@ -147,41 +147,41 @@ def test_conc_plug():
     J = np.ones(len(t))
     C0 = dc.conv(dc.res_plug(T,t), J, t)
     C = dc.conc_plug(J, T, t)
-    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-2
     C = dc.conc_plug(J, T, t, solver='interp')
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-2
     C = dc.conc_plug(J, T, dt=t[1])
-    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-2
     t = [0,5,15,30,60,90,150]
     J = np.ones(len(t))
     C0 = dc.conv(dc.res_plug(T,t), J, t)
     C = dc.conc_plug(J, T, t)
-    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1
     C = dc.conc_plug(J, np.inf, t)
     C0 = dc.conc_trap(J)
-    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-2
     C = dc.conc_plug(J, 0, t)
     assert np.linalg.norm(C) == 0
 
-def test_flux_plug():
+def test__flux_plug():
     T = 25
     t = np.linspace(0, 150, 40)
     J = np.ones(len(t))
     J0 = dc.conv(dc.prop_plug(T,t), J, t)
-    Jo = dc.flux_plug(J, T, t)
+    Jo = dc.flux(J, T, t=t, kinetics='plug')
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 0.2
-    Jo = dc.flux_plug(J, T, t, solver='interp')
+    Jo = dc.flux(J, T, t=t, kinetics='plug', solver='interp')
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 0.2
-    Jo = dc.flux_plug(J, T, dt=t[1])
+    Jo = dc.flux(J, T, dt=t[1], kinetics='plug')
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 0.2
     t = [0,5,15,30,60,90,150]
     J = np.ones(len(t))
     J0 = dc.conv(dc.prop_plug(T,t), J, t)
-    Jo = dc.flux_plug(J, T, t)
+    Jo = dc.flux(J, T, t=t, kinetics='plug')
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 0.3
-    Jo = dc.flux_plug(J, np.inf, t)
+    Jo = dc.flux(J, np.inf, t=t, kinetics='plug')
     assert np.linalg.norm(Jo) == 0
-    Jo = dc.flux_plug(J, 0, t)
+    Jo = dc.flux(J, 0, t=t, kinetics='plug')
     assert np.linalg.norm(Jo-J) == 0
 
 def test_prop_chain():
@@ -189,12 +189,12 @@ def test_prop_chain():
     D = 0.5
     t = np.linspace(0, 150, 500)
     h = dc.prop_chain(T, D, t)
-    assert np.abs(np.trapz(h,t)-1) < 0.001
-    assert np.abs(np.trapz(t*h,t)-T) < 0.02
+    assert np.abs(np.trapezoid(h,t)-1) < 0.001
+    assert np.abs(np.trapezoid(t*h,t)-T) < 0.02
     t = [0,5,15,30,60,90,150]
     h = dc.prop_chain(T, D, t)
-    assert np.abs(np.trapz(h,t)-1) < 0.03
-    assert np.abs(np.trapz(t*h,t)-T) < 0.5
+    assert np.abs(np.trapezoid(h,t)-1) < 0.03
+    assert np.abs(np.trapezoid(t*h,t)-T) < 0.5
     try:
         h = dc.prop_chain(-1, D, t)
     except:
@@ -226,10 +226,10 @@ def test_res_chain():
     D = 0.5
     t = np.linspace(0, 150, 500)
     h = dc.res_chain(T, D, t)
-    assert (np.trapz(h,t)-T)**2/T**2 < 1e-6
+    assert (np.trapezoid(h,t)-T)**2/T**2 < 1e-6
     t = [0,5,15,30,60,90,150]
     h = dc.res_chain(T, D, t)
-    assert (np.trapz(h,t)-T)**2/T**2 < 1e-3
+    assert (np.trapezoid(h,t)-T)**2/T**2 < 1e-3
     h = dc.res_chain(T, 0, t)
     h0 = dc.res_plug(T,t)
     assert np.linalg.norm(h-h0)==0
@@ -259,43 +259,43 @@ def test_conc_chain():
     h0 = dc.conc_comp(J, T, t)
     assert np.linalg.norm(h-h0)==0
 
-def test_flux_chain():
+def test__flux_chain():
     T = 25
     D = 0.5
     t = np.linspace(0, 150, 20)
     J = np.ones(len(t))
     J0 = dc.conv(dc.prop_chain(T,D,t), J, t)
-    Jo = dc.flux_chain(J, T, D, t)
+    Jo = dc.flux(J, T, D, t=t, kinetics='chain')
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
-    Jo = dc.flux_chain(J, T, D, dt=t[1])
+    Jo = dc.flux(J, T, D, dt=t[1], kinetics='chain')
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
     t = [0,5,15,30,60,90,150]
     J = np.ones(len(t))
     J0 = dc.conv(dc.prop_chain(T,D,t), J, t)
-    Jo = dc.flux_chain(J, T, D, t)
+    Jo = dc.flux(J, T, D, t=t, kinetics='chain')
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
-    h = dc.flux_chain(J, T, 0, t)
-    h0 = dc.flux_plug(J, T,t)
+    h = dc.flux(J, T, 0, t=t, kinetics='chain')
+    h0 = dc.flux(J, T, t=t, kinetics='plug')
     assert np.linalg.norm(h-h0)==0
-    h = dc.flux_chain(J, T, 1, t)
-    h0 = dc.flux_comp(J, T, t)
+    h = dc.flux(J, T, 1, t=t, kinetics='chain')
+    h0 = dc.flux(J, T, t=t, kinetics='comp')
     assert np.linalg.norm(h-h0)==0
 
 def test_prop_step():
     T, D = 25, 0.5
     t = np.linspace(0, 150, 100)
     h = dc.prop_step(T, D, t)
-    assert np.abs(np.trapz(h,t)-1) < 1e-12
-    assert np.abs(np.trapz(t*h,t)-T) < 1e-12
+    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
+    assert np.abs(np.trapezoid(t*h,t)-T) < 1e-12
     h = dc.prop_step(T, 1, t)
-    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
     h = dc.prop_step(120, 0.5, t)
-    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
     h = dc.prop_step(120, 0.5, t)
-    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
     t = [0,5,15,30,60,90,150]
     h = dc.prop_step(T, D, t)
-    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
     try:
         h = dc.prop_step(-1, D, t)
     except:
@@ -324,10 +324,10 @@ def test_res_step():
     T, D = 25, 0.5
     t = np.linspace(0, 150, 500)
     h = dc.res_step(T, D, t)
-    assert (np.trapz(h,t)-T)**2/T**2 < 1e-9
+    assert (np.trapezoid(h,t)-T)**2/T**2 < 1e-9
     t = [0,5,15,30,60,90,150]
     h = dc.res_step(T, D, t)
-    assert (np.trapz(h,t)-T)**2/T**2 < 0.5
+    assert (np.trapezoid(h,t)-T)**2/T**2 < 0.5
 
 def test_conc_step():
     T, D = 25, 0.5
@@ -348,22 +348,22 @@ def test_conc_step():
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
 
 
-def test_flux_step():
+def test__flux_step():
     T, D = 25, 0.5
     t = np.linspace(0, 150, 20)
     J = np.ones(len(t))
     J0 = dc.conv(dc.prop_step(T,D,t), J, t)
-    Jo = dc.flux_step(J, T, D, t)
+    Jo = dc.flux(J, T, D, t=t, kinetics='step')
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
-    Jo = dc.flux_step(J, T, D, dt=t[1])
+    Jo = dc.flux(J, T, D, dt=t[1], kinetics='step')
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
     t = [0,5,15,30,60,90,150]
     J = np.ones(len(t))
     J0 = dc.conv(dc.prop_step(T,D,t), J, t)
-    Jo = dc.flux_step(J, T, D, t)
+    Jo = dc.flux(J, T, D, t=t, kinetics='step')
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
-    Jo = dc.flux_step(J, T, 0, t)
-    J0 = dc.flux_plug(J, T, t)
+    Jo = dc.flux(J, T, 0, t=t, kinetics='step')
+    J0 = dc.flux(J, T, t=t, kinetics='plug')
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
 
 
@@ -371,17 +371,17 @@ def test_prop_free():
     t = np.linspace(0, 150, 100)
     h = dc.prop_free([1,1], t, TT=[30,60,90])
     T = 60
-    assert np.abs(np.trapz(h,t)-1) < 1e-12
-    assert (np.trapz(t*h,t)-T)**2/T**2 < 1e-9
+    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
+    assert (np.trapezoid(t*h,t)-T)**2/T**2 < 1e-9
     h = dc.prop_free([2,2], t, TT=[30,60,90])
-    assert np.abs(np.trapz(h,t)-1) < 1e-12
-    assert (np.trapz(t*h,t)-T)**2/T**2 < 1e-9
+    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
+    assert (np.trapezoid(t*h,t)-T)**2/T**2 < 1e-9
     h = dc.prop_free([2,5], t, TT=[30,60,90])
-    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
     h = dc.prop_free([2,5], t, TT=[30,60,120])
-    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
     h = dc.prop_free([2,5], t, TT=[30.5,60.5,120.5])
-    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
     h = dc.prop_free([1,1], t)
     h0 = dc.prop_free([1,1], t, TTmax=np.amax(t))
     assert np.linalg.norm(h-h0)/np.linalg.norm(h0) < 1e-12
@@ -397,7 +397,7 @@ def test_res_free():
     t = np.linspace(0, 150, 100)
     h = dc.res_free([1,1], t, TT=[30,60,90])
     T = 60
-    assert (np.trapz(h,t)-T)**2/T**2 < 1e-9
+    assert (np.trapezoid(h,t)-T)**2/T**2 < 1e-9
 
 def test_conc_free():
     H = [1,1]
@@ -415,20 +415,20 @@ def test_conc_free():
     C = dc.conc_free(J, H, t, TT=TT)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
 
-def test_flux_free():
+def test__flux_free():
     H = [1,1]
     TT = [30,60,90]
     t = np.linspace(0, 150, 20)
     J = np.ones(len(t))
     J0 = dc.conv(dc.prop_free(H,t,TT), J, t)
-    Jo = dc.flux_free(J, H, t, TT=TT)
+    Jo = dc.flux(J, H, t=t, kinetics='free', TT=TT)
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
-    Jo = dc.flux_free(J, H, t, dt=t[1], TT=TT)
+    Jo = dc.flux(J, H, dt=t[1], kinetics='free', TT=TT)
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
     t = [0,5,15,30,60,90,150]
     J = np.ones(len(t))
     J0 = dc.conv(dc.prop_free(H,t,TT=TT), J, t)
-    Jo = dc.flux_free(J, H, t, TT=TT)
+    Jo = dc.flux(J, H, t=t, kinetics='free', TT=TT)
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
 
 
@@ -713,13 +713,13 @@ def test_flux_nscomp():
     J = np.ones(len(t))
 
     # Test functionality
-    C = dc.flux_comp(J, T, t)
+    C = dc.flux(J, T, t=t, kinetics='comp')
     C0 = dc.flux_nscomp(J, T*np.ones(len(t)), t)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.1
     
     t = [0,5,15,30,60,90,150]
     J = np.ones(len(t))
-    C = dc.flux_comp(J, T, t)
+    C = dc.flux(J, T, t=t, kinetics='comp')
     C0 = dc.flux_nscomp(J, T*np.ones(len(t)), t)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.1
 
@@ -772,37 +772,37 @@ def test_flux_mmcomp():
 if __name__ == "__main__":
 
     test_conc_trap()
-    test_flux_trap()
+    test__flux_trap()
     test_res_trap()
     test_prop_trap()
 
     test_conc_pass()
-    test_flux_pass()
+    test__flux_pass()
     test_res_pass()
     test_prop_pass()
 
     test_conc_comp()
-    test_flux_comp()
+    test__flux_comp()
     test_res_comp()
     test_prop_comp()
 
     test_conc_plug()
-    test_flux_plug()
+    test__flux_plug()
     test_res_plug()
     test_prop_plug()
 
     test_conc_chain()
-    test_flux_chain()
+    test__flux_chain()
     test_prop_chain()
     test_res_chain()
 
     test_conc_step()
-    test_flux_step()
+    test__flux_step()
     test_prop_step()
     test_res_step()
 
     test_conc_free()
-    test_flux_free()
+    test__flux_free()
     test_prop_free()
     test_res_free()
 

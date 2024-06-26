@@ -2,7 +2,108 @@ import math
 import numpy as np
 from scipy.special import lambertw
 
-import dcmri.tools as tools
+import dcmri.utils as utils
+
+# Wrappers
+
+def flux(J:np.ndarray, *params, t=None, dt=1.0, kinetics='comp', **kwargs)->np.ndarray:
+    """Flux out of an arbitrary pharmacokinetic system.
+
+    This is a wrapper function offering a standard interface to calculate the flux out of a specific system, with the system architecture specified in the dictionary. It offers a convenient way to build more complex models with variable configurations, such as `flux_aorta`.
+
+    Args:
+        J (array_like): the indicator flux entering the trap.
+        params (tuple): model parameters.
+        t (array_like, optional): the time points of the indicator flux J. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+        kinetics (str, optional): Model to use, options are 'trap', 'pass', 'comp', 'plug', 'chain', 'step', 'free', 'ncomp', '2comp', 'nscomp', 'pfcomp', 'mmcomp', '2cxm'. Defaults to 'comp'.
+        kwargs (dict): any optional parameters required by the model.
+
+    Raises:
+        ValueError: If a system is specified that is nto yet implemented.
+
+    Returns:
+        np.ndarray: Total outflux out of the system.
+
+    """
+
+    if kinetics=='trap':
+        return flux_trap(J)
+    if kinetics == 'pass':
+        return flux_pass(J)
+    if kinetics == 'comp':
+        return flux_comp(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == 'plug':
+        return flux_plug(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == 'chain':
+        return flux_chain(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == 'step':
+        return flux_step(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == 'free':
+        return flux_free(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == 'ncomp':
+        return flux_ncomp(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == '2comp':
+        return flux_2comp(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == 'nscomp':
+        return flux_nscomp(J, *params, t=t, dt=dt)
+    if kinetics == 'pfcomp':
+        return flux_pfcomp(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == 'mmcomp':
+        return flux_mmcomp(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == '2cxm': 
+        return flux_2cxm(J, *params, t=t, dt=dt, **kwargs)
+    msg = 'Model ' + kinetics + ' is not currently implemented.'
+    raise ValueError(msg)
+
+
+
+def conc(J:np.ndarray, *params, t=None, dt=1.0, kinetics='comp', **kwargs)->np.ndarray:
+    """Concentration in an arbitrary pharmacokinetic system.
+
+    Args:
+        J (array_like): the indicator flux entering the trap.
+        params (tuple): model parameters.
+        t (array_like, optional): the time points of the indicator flux J. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+        kinetics (str, optional): Model to use, options are 'trap', 'pass', 'comp', 'plug', 'chain', 'step', 'free', 'ncomp', '2comp', 'nscomp', 'mmcomp', '2cxm'. Defaults to 'comp'.
+
+    This is a wrapper function offering a standard interface to calculate the concentration in a specific system.
+
+    Raises:
+        ValueError: If a system is specified that is not yet implemented.
+
+    Returns:
+        np.ndarray: Concentration in the system.
+    """
+
+    if kinetics=='trap':
+        return conc_trap(J, t=t, dt=dt)
+    if kinetics == 'pass':
+        return conc_pass(J, *params)
+    if kinetics == 'comp':
+        return conc_comp(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == 'plug':
+        return conc_plug(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == 'chain':
+        return conc_chain(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == 'step':
+        return conc_step(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == 'free':
+        return conc_free(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == 'ncomp':
+        return conc_ncomp(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == '2comp':
+        return conc_2comp(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == 'nscomp':
+        return conc_nscomp(J, *params, t=t, dt=dt)
+    if kinetics == 'mmcomp':
+        return conc_mmcomp(J, *params, t=t, dt=dt, **kwargs)
+    if kinetics == '2cxm':
+        return conc_2cxm(J, *params, t=t, dt=dt, **kwargs)
+    msg = 'Model ' + kinetics + ' is not currently implemented.'
+    raise ValueError(msg)
+
 
 # 0 Parameters
 
@@ -32,7 +133,6 @@ def res_trap(t):
         array([1., 1., 1., 1., 1.])  
     """
     return np.ones(len(t))
-
 
 def prop_trap(t):
     """Propagator or transit time distribution of a trap.
@@ -84,7 +184,7 @@ def conc_trap(J, t=None, dt=1.0):
         >>> dc.conc_trap(J, dt=2.0)
         array([ 0.,  3.,  8., 14., 19.])
     """
-    return tools.trapz(J, t=t, dt=dt)
+    return utils.trapz(J, t=t, dt=dt)
 
 def flux_trap(J):
     """Indicator flux out of a trap.
@@ -140,7 +240,7 @@ def res_pass(T, t):
         >>> dc.res_pass(5,t)
         array([3.33333333, 0.        , 0.        , 0.        ])  
     """
-    return T*tools.ddelta(0, t)
+    return T*utils.ddelta(0, t)
 
 def prop_pass(t):
     """Propagator or transit time distribution of a pass.
@@ -165,8 +265,7 @@ def prop_pass(t):
         >>> dc.prop_pass(t)
         array([0.66666667, 0.        , 0.        , 0.        ])  
     """
-    return tools.ddelta(0,t)
-
+    return utils.ddelta(0,t)
 
 def conc_pass(J, T):
     """Indicator concentration inside a pass.
@@ -272,9 +371,8 @@ def prop_comp(T, t):
     if T == np.inf:
         return prop_trap(t)
     if T == 0:
-        return tools.ddelta(T, t)
+        return utils.ddelta(T, t)
     return np.exp(-np.array(t)/T)/T
-
 
 def conc_comp(J, T, t=None, dt=1.0):
     """Indicator concentration inside a compartment.
@@ -302,8 +400,7 @@ def conc_comp(J, T, t=None, dt=1.0):
     """
     if T == np.inf:
         return conc_trap(J, t=t, dt=dt)
-    return T*tools.expconv(J, T, t=t, dt=dt)
-
+    return T*utils.expconv(J, T, t=t, dt=dt)
 
 def flux_comp(J, T, t=None, dt=1.0):
     """Indicator flux out of a compartment.
@@ -331,7 +428,7 @@ def flux_comp(J, T, t=None, dt=1.0):
     """
     if T == np.inf:
         return flux_trap(J)
-    return tools.expconv(J, T, t=t, dt=dt)
+    return utils.expconv(J, T, t=t, dt=dt)
 
 
 # Plug flow
@@ -357,8 +454,7 @@ def prop_plug(T, t):
         >>> dc.prop_plug(5,t)
         array([0.        , 0.        , 0.33333333, 0.5       ])  
     """
-    return tools.ddelta(T, t)
-
+    return utils.ddelta(T, t)
 
 def res_plug(T, t):
     """Residue function of a plug flow system.
@@ -382,10 +478,9 @@ def res_plug(T, t):
         array([1.00000000e+00, 1.00000000e+00, 8.33333333e-01, 1.11022302e-16])  
     """
     h = prop_plug(T,t)
-    return 1-tools.trapz(h,t)
+    return 1-utils.trapz(h,t)
 
-
-def conc_plug(J, T, t=None, dt=1.0, solver='conv'):
+def conc_plug(J, T, t=None, dt=1.0, solver='interp'):
     """Indicator concentration inside a plug flow system.
 
     A plug flow system is a space with a constant velocity. 
@@ -395,7 +490,8 @@ def conc_plug(J, T, t=None, dt=1.0, solver='conv'):
         T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
         t (array_like, optional): the time points of the indicator flux J, in the same units as T. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
         dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as T. This parameter is ignored if t is explicity provided. Defaults to 1.0.
-
+        solver (str, optional): solver for the system, either 'conv' for explicit convolution with a discrete impulse response (slow) or 'interp' for interpolation (fast). Defaults to 'interp'.
+        
     Returns:
         numpy.ndarray: Concentration as a 1D array.
 
@@ -413,16 +509,15 @@ def conc_plug(J, T, t=None, dt=1.0, solver='conv'):
         return conc_trap(J)
     if T==0:
         return 0*J
-    t = tools.tarray(len(J), t=t, dt=dt)
+    t = utils.tarray(len(J), t=t, dt=dt)
     if solver=='conv':
         r = res_plug(T, t)
-        return tools.conv(r, J, t=t, dt=dt)
+        return utils.conv(r, J, t=t, dt=dt)
     elif solver=='interp':
         Jo = np.interp(t-T, t, J, left=0)
-        return tools.trapz(J-Jo, t)
+        return utils.trapz(J-Jo, t)
 
-
-def flux_plug(J, T, t=None, dt=1.0, solver='conv'):
+def flux_plug(J, T, t=None, dt=1.0, solver='interp'):
     """Indicator flux out of a plug flow system.
 
     A plug flow system is a space with a constant velocity. 
@@ -432,6 +527,7 @@ def flux_plug(J, T, t=None, dt=1.0, solver='conv'):
         T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the system is a trap.
         t (array_like, optional): the time points of the indicator flux J, in the same units as T. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
         dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as T. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+        solver (str, optional): solver for the system, either 'conv' for explicit convolution with a discrete impulse response (slow) or 'interp' for interpolation (fast). Defaults to 'interp'.
 
     Returns:
         numpy.ndarray: outflux as a 1D array.
@@ -444,18 +540,20 @@ def flux_plug(J, T, t=None, dt=1.0, solver='conv'):
         >>> t = [0,5,15,30,60]
         >>> J = [1,2,3,3,2]
         >>> dc.flux_plug(J, 5, t)
-        array([0.        , 0.44444444, 2.30555556, 3.        , 2.22222222]) 
+        array([0.        , 0.44444444, 23.0555556, 3.        , 2.22222222]) 
     """
     if T==np.inf:
         return flux_trap(J)
     if T==0:
         return J
-    t = tools.tarray(len(J), t=t, dt=dt)
+    t = utils.tarray(len(J), t=t, dt=dt)
     if solver=='conv':
         h = prop_plug(T, t)
-        return tools.conv(h, J, t=t, dt=dt)
+        return utils.conv(h, J, t=t, dt=dt)
     elif solver=='interp':
         return np.interp(t-T, t, J, left=0)
+    else:
+        raise ValueError('Solver ' + solver + ' does not exist.')
 
 
 
@@ -497,9 +595,8 @@ def prop_chain(T, D, t):
     if D==1: 
         return prop_comp(T, t)
     n = 1/D
-    g = tools.nexpconv(n, T/n, t)
+    g = utils.nexpconv(n, T/n, t)
     return g
-
 
 def res_chain(T, D, t):
     """Residue function of a chain system.
@@ -526,10 +623,9 @@ def res_chain(T, D, t):
     if D==1: 
         return res_comp(T, t)
     h = prop_chain(T, D, t)
-    return 1-tools.trapz(h,t)
+    return 1-utils.trapz(h,t)
 
-
-def conc_chain(J, T, D, t=None, dt=1.0):
+def conc_chain(J, T, D, t=None, dt=1.0, solver='step'):
     """Indicator concentration inside a chain system.
 
     Args:
@@ -556,12 +652,22 @@ def conc_chain(J, T, D, t=None, dt=1.0):
         return conc_plug(J, T, t=t, dt=dt)
     if D == 1:
         return conc_comp(J, T, t=t, dt=dt)
-    t = tools.tarray(len(J), t=t, dt=dt)
-    r = res_chain(T, D, t)
-    return tools.conv(r, J, t)
+    if solver=='diag':
+        n0 = np.floor(1/D)
+        Tc, Ec = _chain_ncomp(n0, T)
+        Ji = np.zeros((n0,len(J)))
+        Ji[0,:] = J
+        C = conc_ncomp(Ji, Tc, Ec, t=t, dt=dt).sum(axis=0)
+        if n0==1/D:
+            return C
+        Tc, Ec = _chain_ncomp(n0+1, T)
+        C += conc_ncomp(Ji, Tc, Ec, t=t, dt=dt).sum(axis=0)
+        return C/2
+    tr = utils.tarray(len(J), t=t, dt=dt)
+    r = res_chain(T, D, tr)
+    return utils.conv(r, J, t=t, dt=dt, solver=solver)
 
-
-def flux_chain(J, T, D, t=None, dt=1.0):
+def flux_chain(J, T, D, t=None, dt=1.0, solver='step'):
     """Indicator flux out of a chain system.
 
     Args:
@@ -588,9 +694,30 @@ def flux_chain(J, T, D, t=None, dt=1.0):
         return flux_plug(J, T, t=t, dt=dt)
     if D == 1:
         return flux_comp(J, T, t=t, dt=dt)
-    t = tools.tarray(len(J), t=t, dt=dt)
-    h = prop_chain(T, D, t)
-    return tools.conv(h, J, t)
+    if solver=='diag':
+        n0 = int(np.floor(1/D))
+        Tc, Ec = _chain_ncomp(n0, T)
+        Ji = np.zeros((n0,len(J)))
+        Ji[0,:] = J
+        Jo = flux_ncomp(Ji, Tc, Ec, t=t, dt=dt)[n0-1,n0-1,:]
+        if n0==1/D:
+            return Jo
+        Tc, Ec = _chain_ncomp(n0+1, T)
+        Jo += flux_ncomp(Ji, Tc, Ec, t=t, dt=dt)[n0,n0,:]
+        return Jo/2
+    th = utils.tarray(len(J), t=t, dt=dt)
+    h = prop_chain(T, D, th)
+    return utils.conv(h, J, t=t, dt=dt, solver=solver)
+
+def _chain_ncomp(n, T):
+    # Helper function
+    Tarr = np.full(n, T/n)
+    E = np.zeros((n,n))
+    for i in range(n-1):
+        E[i+1,i] = 1
+    E[n-1,n-1] = 1
+    return Tarr, E
+
 
 
 # Step
@@ -630,7 +757,7 @@ def prop_step(T, D, t):
         return prop_trap(t)
     if D==0: 
         return prop_plug(T, t)
-    return tools.dstep(T-D*T, T+D*T, t)
+    return utils.dstep(T-D*T, T+D*T, t)
 
 def res_step(T, D, t):
     """Residue function of a step system.
@@ -653,7 +780,7 @@ def res_step(T, D, t):
         array([1.        , 0.63157895, 0.42105263, 0.        ])  
     """
     h = prop_step(T, D, t)
-    return 1-tools.trapz(h,t)
+    return 1-utils.trapz(h,t)
 
 def conc_step(J, T, D, t=None, dt=1.0):
     """Indicator concentration inside a step system.
@@ -680,9 +807,9 @@ def conc_step(J, T, D, t=None, dt=1.0):
     """
     if D == 0:
         return conc_plug(J, T, t=t, dt=dt)
-    t = tools.tarray(len(J), t=t, dt=dt)
+    t = utils.tarray(len(J), t=t, dt=dt)
     r = res_step(T, D, t)
-    return tools.conv(r, J, t)
+    return utils.conv(r, J, t)
 
 def flux_step(J, T, D, t=None, dt=1.0):
     """Indicator flux out of a step system.
@@ -709,9 +836,9 @@ def flux_step(J, T, D, t=None, dt=1.0):
     """
     if D == 0:
         return flux_plug(J, T, t=t, dt=dt)
-    t = tools.tarray(len(J), t=t, dt=dt)
+    t = utils.tarray(len(J), t=t, dt=dt)
     h = prop_step(T, D, t)
-    return tools.conv(h, J, t)
+    return utils.conv(h, J, t)
 
 
 # N parameters
@@ -767,9 +894,8 @@ def prop_free(H, t, TT=None, TTmin=0, TTmax=None):
             msg = 'The array of transit time boundaries needs to have length N+1, '
             msg += '\n with N the size of the transit time distribution H.'
             raise ValueError(msg)
-    h = tools.ddist(H, TT, t)
-    return h/np.trapz(h,t)
-
+    h = utils.ddist(H, TT, t)
+    return h/np.trapezoid(h,t)
 
 def res_free(H, t, TT=None, TTmin=0, TTmax=None):
     """Residue function of a free system.
@@ -810,12 +936,11 @@ def res_free(H, t, TT=None, TTmin=0, TTmax=None):
         array([1.00000000e+00, 5.09259259e-01, 1.11111111e-01, 2.22044605e-16])
     """
     h = prop_free(H, t, TT=TT, TTmin=TTmin, TTmax=TTmax)
-    r = 1 - tools.trapz(h, t)
+    r = 1 - utils.trapz(h, t)
     r[r<0] = 0
     return r
 
-
-def conc_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
+def conc_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None, solver='trap'):
     """Indicator concentration inside a free system.
 
     Args:
@@ -863,10 +988,9 @@ def conc_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
         >>> dc.conc_free(J, [2,1], dt=2.0, TT=[0.5,1.0,2.5])
         array([0.        , 2.05555556, 3.87037037, 4.76388889, 4.14351852])
     """
-    u = tools.tarray(len(J), t=t, dt=dt)
+    u = utils.tarray(len(J), t=t, dt=dt)
     r = res_free(H, u, TT=TT, TTmin=TTmin, TTmax=TTmax)
-    return tools.conv(r, J, t=t, dt=dt)
-
+    return utils.conv(r, J, t=t, dt=dt, solver=solver)
 
 def flux_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
     """Indicator flux out of a free system.
@@ -916,15 +1040,19 @@ def flux_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
         >>> dc.flux_free(J, [2,1], dt=2.0, TT=[0.5,1.0,2.5])
         array([0.        , 1.10185185, 2.24074074, 2.86574074, 2.59722222])
     """
-    u = tools.tarray(len(J), t=t, dt=dt)
+    u = utils.tarray(len(J), t=t, dt=dt)
     h = prop_free(H, u, TT=TT, TTmin=TTmin, TTmax=TTmax)
-    return tools.conv(h, J, t=t, dt=dt)
+    return utils.conv(h, J, t=t, dt=dt)
 
 
 
 # N compartments
 
+# TODO: check that the sum of E's for a compartment = 1. Is it true that it can be something else? No sure..
+# Maybe trapping and creation needs to be modelled with extra constants?
+# The amounts trapped or created are not proportional to the amount inside.
 def K_ncomp(T, E):
+    # dC/dt = J - KC 
     if not isinstance(T, np.ndarray):
         T = np.array(T)
     if not isinstance(E, np.ndarray):
@@ -969,7 +1097,7 @@ def J_ncomp(C, T, E):
 
 # Helper function
 def conc_ncomp_prop(J, T, E, t=None, dt=1.0, dt_prop=None):
-    t = tools.tarray(len(J[0,:]), t=t, dt=dt)
+    t = utils.tarray(len(J[0,:]), t=t, dt=dt)
     K = K_ncomp(T, E)
     nt, nc = len(t), len(T)
     C = np.zeros((nc,nt))
@@ -995,9 +1123,10 @@ def conc_ncomp_prop(J, T, E, t=None, dt=1.0, dt_prop=None):
 
 # Helper function
 def conc_ncomp_diag(J, T, E, t=None, dt=1.0):
-    t = tools.tarray(J.shape[1], t=t, dt=dt)
+    t = utils.tarray(J.shape[1], t=t, dt=dt)
     # Calculate system matrix, eigenvalues and eigenvectors
     K = K_ncomp(T, E)
+    # From here, create generic function that solves n-comp system
     K, Q = np.linalg.eig(K)
     Qi = np.linalg.inv(Q)
     # Initialize concentration-time array
@@ -1095,8 +1224,7 @@ def conc_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
     if solver=='diag':
         return conc_ncomp_diag(J, T, E, t=t, dt=dt)
 
-
-def flux_ncomp(J, T, E, t=None, dt=1.0, solver='prop', dt_prop=None):
+def flux_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
     """Outfluxes out of a linear and stationary n-compartment system.
 
     Args:
@@ -1157,7 +1285,6 @@ def flux_ncomp(J, T, E, t=None, dt=1.0, solver='prop', dt_prop=None):
     C = conc_ncomp(J, T, E, t=t, dt=dt, solver=solver, dt_prop=dt_prop)
     return J_ncomp(C, T, E)
 
-
 def res_ncomp(T, E, t):
     """Residue function of an n-compartment system.
 
@@ -1217,7 +1344,6 @@ def res_ncomp(T, E, t):
         # Left-multiply with eigenvector matrix
         R[i,:,:] = np.matmul(Q, Ei)
     return R
-
 
 def prop_ncomp(T, E, t):
     """Propagator of an n-compartment system.
@@ -1292,7 +1418,6 @@ def K_2comp(T,E):
     Qi /= N
     return Q, Ke, Qi
 
-
 def conc_2comp(J, T, E, t=None, dt=1.0):
     """Concentration in a linear and stationary 2-compartment system.
 
@@ -1356,7 +1481,7 @@ def conc_2comp(J, T, E, t=None, dt=1.0):
     # Build the system matrix K
     Q, K, Qi = K_2comp(T, E)
     # Initialize concentration-time array
-    t = tools.tarray(len(J[0,:]), t=t, dt=dt)
+    t = utils.tarray(len(J[0,:]), t=t, dt=dt)
     C = np.zeros((2,len(t)))
     Ei = np.empty((2,len(t)))
     # Loop over the inlets
@@ -1370,7 +1495,6 @@ def conc_2comp(J, T, E, t=None, dt=1.0):
         # Left-multiply with eigenvector matrix
         C += np.matmul(Q, Ei)
     return C
-
 
 def flux_2comp(J, T, E, t=None, dt=1.0):
     """Outfluxes out of a linear and stationary 2-compartment system.
@@ -1427,8 +1551,6 @@ def flux_2comp(J, T, E, t=None, dt=1.0):
     """
     C = conc_2comp(J, T, E, t=t, dt=dt)
     return J_ncomp(C, T, E)
-
-
 
 def res_2comp(T, E, t):
     """Residue function of a 2-compartment system.
@@ -1487,7 +1609,6 @@ def res_2comp(T, E, t):
         # Left-multiply with eigenvector matrix
         R[i,:,:] = np.matmul(Q, Ei)
     return R
-
 
 def prop_2comp(T, E, t):
     """Propagator of a 2-compartment system.
@@ -1574,7 +1695,7 @@ def conc_nscomp(J, T, t=None, dt=1.0):
         raise ValueError('T and J must have the same length.')
     if np.amin(T) <= 0:
         raise ValueError('T must be strictly positive.')
-    t = tools.tarray(len(J), t=t, dt=dt)
+    t = utils.tarray(len(J), t=t, dt=dt)
     n = len(t)
     C = np.zeros(n)
     for k in range(n-1):
@@ -1603,7 +1724,6 @@ def conc_nscomp(J, T, t=None, dt=1.0):
             C[k+1] = Ck
     return C
 
-
 def flux_nscomp(J, T, t=None, dt=1.0):
     """Indicator flux out of a non-stationary compartment.
 
@@ -1611,7 +1731,7 @@ def flux_nscomp(J, T, t=None, dt=1.0):
 
     Args:
         J (array_like): the indicator flux entering the compartment.
-        T (float): mean transit time of the compartment. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
+        T (array_like): array with the mean transit time as a function of time, with the same length as *J*. Only finite and strictly positive values are allowed.
         t (array_like, optional): the time points of the indicator flux J, in the same units as T. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
         dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as T. This parameter is ignored if t is explicity provided. Defaults to 1.0.
 
@@ -1632,11 +1752,38 @@ def flux_nscomp(J, T, t=None, dt=1.0):
     C = conc_nscomp(J, T, t=t, dt=dt)
     return C/T
 
+# TODO: Defaults for solver to None - everywhere
+def flux_pfcomp(J, T, D, t=None, dt=1.0, solver='interp'):
+    """Indicator flux out of a serial arrangement of a plug flow system and a compartment.
+
+    Args:
+        J (array_like): the indicator flux entering the compartment (mmol/sec).
+        T (float): mean transit time of the compartment (sec). Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
+        D (float): Dispersion of the systemd defined as the ratio of the compartmental mean transit time versus the total mean transit time.
+        t (array_like, optional): the time points of the indicator flux J (sec). If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points (sec). This parameter is ignored if t is explicity provided. Defaults to 1.0.
+        solver (str, optional): solver for the system, either 'conv' for explicit convolution with a discrete impulse response (slow) or 'interp' for interpolation (fast). Defaults to 'interp'.
+
+    Returns:
+        np.ndarrayx: Outflux in mmol/sec
+    """
+    if D<0 or D>1:
+        raise ValueError('Dispersion must be in the range [0,1]')
+    if D == 0:
+        return flux_plug(J, T, t=t, dt=dt, solver=solver)
+    if D == 1:
+        return flux_comp(J, T, t=t, dt=dt)
+    Tc = D*T
+    Tp = (1-D)*T
+    J = flux_comp(J, Tc, t=t, dt=dt)
+    J = flux_plug(J, Tp, t=t, dt=dt, solver=solver)
+    return J
+
 
 # Michaelis-Menten compartment
 
 # Helper function
-def mmcomp_anal(J, Vmax, Km, t):
+def mmcomp_solve(J, Vmax, Km, t):
     #Schnell-Mendoza
     n = len(t)
     C = np.zeros(n)
@@ -1714,13 +1861,12 @@ def conc_mmcomp(J, Vmax, Km, t=None, dt=1.0, solver='SM'):
         raise ValueError('Vmax must be non-negative.')
     if Km < 0:
         raise ValueError('Km must be non-negative.')
-    t = tools.tarray(len(J), t=t, dt=dt)
+    t = utils.tarray(len(J), t=t, dt=dt)
     if solver=='SM':
-        return mmcomp_anal(J, Vmax, Km, t)
+        return mmcomp_solve(J, Vmax, Km, t)
     if solver == 'prop':
         return mmcomp_prop(J, Vmax, Km, t)
 
-    
 def flux_mmcomp(J, Vmax, Km, t=None, solver='SM', dt=1.0):
     """Indicator flux out of a Michaelis-Menten compartment.
 
@@ -1764,3 +1910,44 @@ def flux_mmcomp(J, Vmax, Km, t=None, solver='SM', dt=1.0):
     """
     C = conc_mmcomp(J, Vmax, Km, t=t, solver=solver, dt=dt)
     return C*Vmax/(Km+C)
+
+
+
+def conc_2cxm(J, T, E, t=None, dt=1.0):
+    """Indicator flux out of a 2-compartment exchange model.
+
+    Args:
+        J (array_like): the indicator flux entering the compartment (mmol/sec).
+        T (array-like): 2-element array with mean transit times of plasma and extravascular compartment.
+        E (float): Extraction fraction out of the plasma compartment.
+        t (array_like, optional): the time points of the indicator flux J (sec). If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points (sec). This parameter is ignored if t is explicity provided. Defaults to 1.0.
+
+    Returns:
+        np.ndarray: Concentration in M.
+    """
+    # T= [ Tp, Te]
+    E = [[1-E,1],[E,0]] 
+    J = np.stack((J, np.zeros(J.size)))
+    C = conc_2comp(J, T, E, t=t, dt=dt)
+    return C[0,:] + C[1,:]
+
+
+def flux_2cxm(J, T, E, t=None, dt=1.0):
+    """Indicator flux out of a 2-compartment exchange model.
+
+    Args:
+        J (array_like): the indicator flux entering the compartment (mmol/sec).
+        T (array-like): 2-element array with mean transit times of plasma and extravascular compartment.
+        E (float): Extraction fraction out of the plasma compartment.
+        t (array_like, optional): the time points of the indicator flux J (sec). If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points (sec). This parameter is ignored if t is explicity provided. Defaults to 1.0.
+        solver (str, optional): solver for the system, either 'conv' for explicit convolution with a discrete impulse response (slow) or 'interp' for interpolation (fast). Defaults to 'interp'.
+
+    Returns:
+        np.ndarray: Outflux in mmol/sec 
+    """
+    # T= [ Tp, Te]
+    E = [[1-E,1],[E,0]] 
+    J = np.stack((J, np.zeros(J.size)))
+    return flux_2comp(J, T, E, t=t, dt=dt)[0,0,:]
