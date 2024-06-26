@@ -6,10 +6,12 @@ requires = ['setuptools>=61.2']
 
 [project]
 name = "dcmri"
-version = "0.6.4"
+version = "0.6.5"
 dependencies = [
+  'importlib-resources>=1.1.0',
   'numpy',
   'scipy',
+  'matplotlib',
 ]
 # optional information
 description = "A python toolbox for dynamic contrast MRI"

@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**00:07.846** total execution time for 2 files **from all galleries**:
+**00:03.952** total execution time for 5 files **from all galleries**:
 
 .. container::
 
@@ -32,9 +32,18 @@ Computation times
    * - Example
      - Time
      - Mem (MB)
-   * - :ref:`sphx_glr_generated_examples_tools_plot_convolution.py` (``..\examples\tools\plot_convolution.py``)
-     - 00:07.628
+   * - :ref:`sphx_glr_generated_examples_tutorials_plot_convolution.py` (``..\examples\tutorials\plot_convolution.py``)
+     - 00:03.952
      - 0.0
-   * - :ref:`sphx_glr_generated_examples_lib_plot_aif_parker.py` (``..\examples\lib\plot_aif_parker.py``)
-     - 00:00.218
+   * - :ref:`sphx_glr_generated_examples_tutorials_plot_aif_parker.py` (``..\examples\tutorials\plot_aif_parker.py``)
+     - 00:00.000
+     - 0.0
+   * - :ref:`sphx_glr_generated_examples_tutorials_plot_wex.py` (``..\examples\tutorials\plot_wex.py``)
+     - 00:00.000
+     - 0.0
+   * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers.py` (``..\examples\use_cases\plot_tristan_volunteers.py``)
+     - 00:00.000
+     - 0.0
+   * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers_2scan.py` (``..\examples\use_cases\plot_tristan_volunteers_2scan.py``)
+     - 00:00.000
      - 0.0

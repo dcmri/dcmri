@@ -13,8 +13,9 @@ This reference manual details all functions included in dcMRI, describing what t
 .. toctree::
    :maxdepth: 2
 
-   pkmods
-   pk
-   lib
-   tools
+   e2e
+   sig
+   pk_models
+   pk_blocks
+   utils
    

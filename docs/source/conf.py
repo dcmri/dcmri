@@ -8,7 +8,7 @@
 project = 'dcmri'
 copyright = '2023, dcmri maintainers'
 author = 'dcmri maintainers'
-release = '0.6.4'
+release = '0.6.5'
 
 # -- Path setup --------------------------------------------------------------
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -35,6 +35,8 @@ extensions = [
     'sphinx_design', # sphinx web design components
     #'sphinx_remove_toctrees', # selectively remove toctree objects from pages
     'sphinx_gallery.gen_gallery', # thumbnail galleries
+    'matplotlib.sphinxext.plot_directive', # to show plots in docstrings
+    'sphinx_exec_code', # To execute code in rst files.
 ]
 
 
@@ -76,8 +78,11 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path
 exclude_patterns = []
 
+# show syntax color coding for code samples
+#pygments_style = 'sphinx'
+
 # -- Extension configuration -------------------------------------------------
-# Map intersphinx to pre-exisiting documentation from other projects used in this project
+# Map intersphinx to pre-existing documentation from other projects used in this project
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
     'numpy': ('https://numpy.org/doc/stable/', None),
@@ -86,7 +91,7 @@ intersphinx_mapping = {
     #'nibabel': ('https://nipy.org/nibabel/', None),
     #'pandas': ('https://pandas.pydata.org/docs/', None),
     #'skimage': ('https://scikit-image.org/docs/stable/', None),
-    "scipy": ("https://docs.scipy.org/doc/scipy/", None),
+    "scipy": ('https://docs.scipy.org/doc/scipy/', None),
 }
 
 autosummary_generate = True # enable autosummary extension
@@ -120,3 +125,18 @@ html_logo = '_static/tristan-logo.jpg'
 # The base URL which points to the root of the HTML documentation. 
 # It is used to indicate the location of document
 #html_baseurl = "https://qib-sheffield.github.io/dcmri/"
+
+# Autodoc configuration
+# autoclass_content = 'both'  # Direct autoclass to include both Class and __init__ doc strings 
+
+# Instruction to autoclass: do NOT document __init__
+autodoc_default_flags = ['members', 'private-members', 'special-members','show-inheritance']
+
+def autodoc_skip_member(app, what, name, obj, skip, options):
+    # Ref: https://stackoverflow.com/a/21449475/
+    # return True if (skip or exclude) else None  # Can interfere with subsequent skip functions.
+    exclude = ['__init__']
+    return True if name in exclude else None
+ 
+def setup(app):
+    app.connect('autodoc-skip-member', autodoc_skip_member)
