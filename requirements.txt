@@ -1,5 +1,4 @@
 importlib-resources>=1.1.0
-pickle
 numpy
 scipy
 matplotlib

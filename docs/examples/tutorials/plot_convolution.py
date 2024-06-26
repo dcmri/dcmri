@@ -160,7 +160,7 @@ g100 = dc.nexpconv(100, MTT/100, t)
 plt.plot(t, g1, 'r-', label='1 exponential')
 plt.plot(t, g10, 'g-', label='10 exponentials')
 plt.plot(t, g100, 'b-', label='100 exponentials')
-plt.title('Convolutions of identical gaussian distributions')
+plt.title('Convolutions of identical exponentials')
 plt.legend()
 plt.show()
  
