@@ -51,6 +51,13 @@ requires-python = ">=3.10"
 "Homepage" = "https://qib-sheffield.github.io/dcmri"
 "Source Code" = 'https://github.com/QIB-Sheffield/dcmri'
 
+[tool.setuptools]
+# ...
+# By default, include-package-data is true in pyproject.toml, so you do
+# NOT have to specify this line.
+include-package-data = true
+
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
