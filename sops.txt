@@ -30,7 +30,7 @@ Creating a new release (from a fork)
 - Build release notes (see below) and push changes to dev and main. Check docs, actions, and badges on README.
 - Create a release on github, with the main branch as target
 - Create a release on PyPI (see below)
-- Create a release on Zenodo (v1.0 and onwards) 
+- Create a release on Zenodo (v1.0 and onwards)
 
 Check test coverage
 -------------------
@@ -59,8 +59,7 @@ In the terminal, cd to the /dcmri directory, and:
 
 When prompted for user name, enter __token__
 
-As password paste the API token generated in PyPi (repository settings). Note: Paste with Ctrl-V does not work in Windows. Use Edit > Paste via the menu.
-
+As password paste the API token generated in PyPi dcmri repository settings (https://pypi.org/manage/project/dcmri/settings/). Note: Paste with Ctrl-V does not work in Windows. Use Edit > Paste via the menu.
 
 
 
