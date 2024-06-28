@@ -69,7 +69,7 @@ def flux_aorta(J_vena:np.ndarray,
         plt.show()
     """
 
-    dose = np.trapezoid(J_vena, x=t, dx=dt)
+    dose = np.trapz(J_vena, x=t, dx=dt)
     min_dose = tol*dose
 
     # Residuals of each pathway
@@ -96,7 +96,7 @@ def flux_aorta(J_vena:np.ndarray,
             J_vena += Rk*pk.flux(J_aorta, *kidneys[1], t=t, dt=dt, kinetics=kidneys[0])
 
         # Get residual dose in current pass
-        dose = np.trapezoid(J_vena, x=t, dx=dt)
+        dose = np.trapz(J_vena, x=t, dx=dt)
 
     return J_aorta_total
 

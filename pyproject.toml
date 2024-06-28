@@ -6,7 +6,7 @@ requires = ['setuptools>=61.2']
 
 [project]
 name = "dcmri"
-version = "0.6.5"
+version = "0.6.6"
 dependencies = [
   'importlib-resources>=1.1.0',
   'numpy',
@@ -50,6 +50,13 @@ requires-python = ">=3.10"
 [project.urls]
 "Homepage" = "https://qib-sheffield.github.io/dcmri"
 "Source Code" = 'https://github.com/QIB-Sheffield/dcmri'
+
+[tool.setuptools]
+# ...
+# By default, include-package-data is true in pyproject.toml, so you do
+# NOT have to specify this line.
+include-package-data = true
+
 
 [tool.setuptools.packages.find]
 where = ["src"]
