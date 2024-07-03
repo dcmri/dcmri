@@ -483,45 +483,6 @@ def aif_parker(t, BAT:float=0.0)->np.ndarray:
     return pop_aif/1000 # convert to M
 
 
-# TODO: replace by conc_tissue()
-def _propagate_2cxm(t: np.ndarray,
-                   ca: np.ndarray,
-                   KP: float,
-                   KE: float,
-                   KB: float
-                   ) -> tuple[np.ndarray, np.ndarray]:
-    """Calculates propagators for individual compartments in the 2CXM.
-
-    For details and notations see appendix of Sourbron et al. Magn Reson Med 62:672–681 (2009).
-
-    Args:
-        t: time points (sec) where the input function is defined
-        ca: input function (mmol/mL)
-        KP: inverse plasma MTT (sec) = VP/(FP+PS)
-        KE: inverse extracellular MTT (sec) = VE/PS
-        KB: inverse blood MTT (sec) = VP/FP
-
-    Returns:
-        A tuple (cp, ce), where cp is the concentration in the plasma
-        compartment, and ce is the concentration in the extracellular
-        compartment. Both are in mmol/mL.
-    """
-    KT = KP + KE
-    sqrt = math.sqrt(KT**2-4*KE*KB)
-
-    Kpos = 0.5*(KT + sqrt)
-    Kneg = 0.5*(KT - sqrt)
-
-    cpos = utils.expconv(ca, 1/Kpos, t) # normalized
-    cneg = utils.expconv(ca, 1/Kneg, t)
-
-    Eneg = (Kpos - KB)/(Kpos - Kneg)
-
-    cp = (1-Eneg)*cpos + Eneg*cneg
-    ce = (cneg*Kpos - cpos*Kneg) / (Kpos - Kneg)
-
-    return cp, ce
-
 
 def aif_tristan_rat(t, BAT=4.6*60) -> np.ndarray:
     """Population AIF model for rats measured with a standard dose of gadoxetate. 
@@ -615,5 +576,48 @@ def aif_tristan_rat(t, BAT=4.6*60) -> np.ndarray:
     cp, ce = _propagate_2cxm(t, J/K, KP, KE, KB)
 
     return cp
+
+
+# TODO: replace by conc_tissue()
+def _propagate_2cxm(t: np.ndarray,
+                   ca: np.ndarray,
+                   KP: float,
+                   KE: float,
+                   KB: float
+                   ) -> tuple[np.ndarray, np.ndarray]:
+    """Calculates propagators for individual compartments in the 2CXM.
+
+    For details and notations see appendix of Sourbron et al. Magn Reson Med 62:672–681 (2009).
+
+    Args:
+        t: time points (sec) where the input function is defined
+        ca: input function (mmol/mL)
+        KP: inverse plasma MTT (sec) = VP/(FP+PS)
+        KE: inverse extracellular MTT (sec) = VE/PS
+        KB: inverse blood MTT (sec) = VP/FP
+
+    Returns:
+        A tuple (cp, ce), where cp is the concentration in the plasma
+        compartment, and ce is the concentration in the extracellular
+        compartment. Both are in mmol/mL.
+    """
+    KT = KP + KE
+    sqrt = math.sqrt(KT**2-4*KE*KB)
+
+    Kpos = 0.5*(KT + sqrt)
+    Kneg = 0.5*(KT - sqrt)
+
+    cpos = utils.expconv(ca, 1/Kpos, t) # normalized
+    cneg = utils.expconv(ca, 1/Kneg, t)
+
+    Eneg = (Kpos - KB)/(Kpos - Kneg)
+
+    cp = (1-Eneg)*cpos + Eneg*cneg
+    ce = (cneg*Kpos - cpos*Kneg) / (Kpos - Kneg)
+
+    return cp, ce
+
+
+
 
 

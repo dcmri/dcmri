@@ -27,7 +27,18 @@ Special functions
    :template: autosummary.rst
 
    influx_step
+
+
+Population AIFs
+===============
+
+
+.. autosummary::
+   :toctree: ../generated/api/
+   :template: autosummary.rst
+
    aif_parker
+   aif_tristan
    aif_tristan_rat
 
 
