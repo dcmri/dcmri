@@ -145,7 +145,7 @@ def ca_std_dose(agent:str)->float:
             'gadoterate',
             'gadoteridol',
             ]:
-        return 0.2      # mL/kg
+        return 0.2      # mL/kg  # 0.5 mmol/mL = 0.1 mmol/kg
     raise ValueError('No dosage data for contrast agent ' + agent)
 
 
@@ -210,6 +210,7 @@ def relaxivity(field_strength=3.0, tissue='plasma', agent='gadoxetate', type='T1
             },
             'gadodiamide': { #Omniscan
                 0.47: 4.4, 
+                1.0: 4.35, # Interpolated
                 1.5: 4.3,
                 3.0: 4.0,
                 4.7: 3.9,
@@ -314,6 +315,7 @@ def T1(field_strength=3.0, tissue='blood', Hct=0.45)->float:
             3.0: 0.993,  
         },
         'blood':{
+            1.0: 1.378, # Extrapolated
             1.5: 1.441,
             3.0: 1/(0.52 * Hct + 0.38),  # Lu MRM 2004
         },
@@ -325,8 +327,9 @@ def T1(field_strength=3.0, tissue='blood', Hct=0.45)->float:
             9.0: 1/0.920, # per sec - liver R1 (https://doi.org/10.1007/s10334-021-00928-x)
         },
         'kidney':{
-            # Reference values average over cortext and medulla from Cox et al
+            # Reference values average over cortex and medulla from Cox et al
             # https://academic.oup.com/ndt/article/33/suppl_2/ii41/5078406
+            1.0: 1.017, # Extrapolated
             1.5: (1.024+1.272)/2,
             3.0: (1.399+1.685)/2,
         },
