@@ -3,7 +3,7 @@
 An exploration of water exchange effects
 ========================================
 
-This example will explore the effect of water exchange in a standard two-compartmental tissue with extended Tofts kinetics. Data acquisition is modelled using the steady-state model of a spoiled gradient echo sequence.
+This tutorial will explore the effect of water exchange in a standard two-compartmental tissue with extended Tofts kinetics. Data acquisition is modelled using the steady-state model of a spoiled gradient echo sequence.
 
 The three tissue compartments involved are the blood, interstitium and tissue cells. The effect of water exchange between blood and interstitium (**transendothelial** water exchange) and between intersitium and tissue cells (**transcytolemmal** water exchange) is separately investigated. The water exchange in the blood compartment, particularly between plasma and red blood cells, is assumed to be in the fast exhange limit throughout. 
 """

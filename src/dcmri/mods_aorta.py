@@ -34,6 +34,7 @@ class Aorta(dc.Model):
 
         **Whole body kinetic parameters**
 
+        - **heartlung** (str, default='pfcomp'): Kinetic model for the heart-lung system (either 'pfcomp' or 'chain').
         - **organs** (str, default='2cxm'): Kinetic model for the organs.
         - **BAT** (float, default=60): Bolus arrival time, i.e. time point where the indicator first arrives in the body. 
         - **BAT2** (float, default=1200): Bolus arrival time in the second scan, i.e. time point where the indicator first arrives in the body. 
@@ -146,6 +147,7 @@ class Aorta(dc.Model):
 
         self.sequence = 'SS'
         self.organs = '2cxm'
+        self.heartlung = 'pfcomp'
         self.free = ['BAT','CO','Thl','Dhl','To','Eb','Eo','Te']
         self.bounds = [
             [0, 0, 0, 0.05, 0, 0.01, 0, 0],
@@ -175,7 +177,7 @@ class Aorta(dc.Model):
         Ji = dc.influx_step(t, self.weight, 
                 conc, self.dose, self.rate, self.BAT) 
         Jb = dc.flux_aorta(Ji, E=self.Eb,
-            heartlung = ['pfcomp', (self.Thl, self.Dhl)],
+            heartlung = [self.heartlung, (self.Thl, self.Dhl)],
             organs=organs, dt=self.dt, tol=self.dose_tolerance)
         return t, Jb/self.CO
 

@@ -14,45 +14,24 @@ Examples using ``dcmri.Model``
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of ~dcmri.AortaLiver2scan for joint fitting of aorta and liver...">
+    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the role of the arterial input function (AIF) in DC-MRI analysis, in...">
 
 .. only:: html
 
-  .. image:: /generated/examples/use_cases/images/thumb/sphx_glr_plot_tristan_volunteers_2scan_thumb.png
+  .. image:: /generated/examples/tutorials/images/thumb/sphx_glr_plot_aif_thumb.png
     :alt:
 
-  :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers_2scan.py`
+  :ref:`sphx_glr_generated_examples_tutorials_plot_aif.py`
 
 .. raw:: html
 
-      <div class="sphx-glr-thumbnail-title">The TRISTAN experimental medicine study (2 scan protocol)</div>
+      <div class="sphx-glr-thumbnail-title">The role of Arterial Input Functions</div>
     </div>
 
 
 .. only:: not html
 
- * :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers_2scan.py`
-
-.. raw:: html
-
-    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of ~dcmri.AortaLiver for joint fitting of aorta and liver sign...">
-
-.. only:: html
-
-  .. image:: /generated/examples/use_cases/images/thumb/sphx_glr_plot_tristan_volunteers_thumb.png
-    :alt:
-
-  :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers.py`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">The TRISTAN experimental medicine study (1 scan protocol)</div>
-    </div>
-
-
-.. only:: not html
-
- * :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers.py`
+ * :ref:`sphx_glr_generated_examples_tutorials_plot_aif.py`
 
 .. raw:: html
 
