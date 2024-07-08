@@ -122,18 +122,28 @@ B = dc.Tissue(ca=ca_pop, t=t, kinetics='NX')
 A.train(t, sig_A)
 B.train(t, sig_B)
 
-# And lets have a look at the values for the measured parameters:
+# Check the fits:
+A.plot(t, sig_A)
+B.plot(t, sig_B)
+
+# Check the values for the measured parameters:
 print('Tissue parameters (subject A): ')
 print(A.get_params('vp', 'Fp', round_to=4))
 print('Tissue parameters (subject B): ')
 print(B.get_params('vp', 'Fp', round_to=4))
 
 # %%
-# The measurements of ``vp`` are not so far off the ground truth (``vp=0.03``): slightly underestimated for subject A (``vp=0.024``) and overestimated for subject B (``vp=0.036``). The estimates for the blood flow values are a factor 2.6 and 1.7 underestimated, respectively. 
+# The fit to the data is good and the measurements of ``vp`` are not so far off the ground truth (``vp=0.03``): underestimated for subject A (``vp=0.024``) and overestimated for subject B (``vp=0.036``). The estimates for the blood flow values are a factor 2.6 and 1.7 underestimated, respectively. The analysis leads to the (false) conclusion that the cerebral blood volume and -flow values of B are 50% higher than A. 
 # 
-# The experimental conditions under which the population-average AIF was derived are actually very similar to those used to derive the actual subject-specific AIF used in this example (standard dose and injection rate of a standard extracellular agent). So this error is mostly likely due to individual differences in systemic parameters such as cardiac output between the subjects analysed in this example and the subjects used to derive the population AIF. 
+# Hence, while a suitable chosen population AIF may produce values in the correct order of magnitude, it suffers from the same fundamental problem as descriptive or qualitative curve-type analyses that between subject differences in tissue curves are interpreted as reflecting tissue properties, even if in reality they are due to systemic differences (cardiac output in this example).
 # 
-# Indeed, plotting the population AIF against that of our subjects A and B suggests that the cardiac output of the population was, on average, higher than for subjects A and B:
+
+# %%
+# Choice of a population AIF
+# --------------------------
+# The relative accuracy of the absolute values reflects the fact that the experimental conditions under which the population-average AIF from Parker et al was derived are actually very similar to this example (standard dose and injection rate of a standard extracellular agent). 
+# 
+# Plotting the population AIF against that of our subjects A and B shows that they are indeed comparable:
 # 
 plt.plot(t, ca_A, 'r-', label='Arterial concentration (subject A)')
 plt.plot(t, ca_B, 'b-', label='Arterial concentration (subject B)')
@@ -144,7 +154,7 @@ plt.legend()
 plt.show()
 
 # %%
-# We can test this hypothesis more quantitatively by fitting the population AIF to an aorta model. Since the `Aorta` model predicts signals rather than concentrations, we need to first convert the concentrations to signals:
+# We can investigate this more quantitatively by fitting the population AIF to an aorta model. Since the `Aorta` model predicts signals rather than concentrations, we need to first convert the concentrations to signals:
 
 cb = (1-0.45)*ca_pop                        # Convert to blood concentration using standard Hct
 R10 = 1/dc.T1(3.0, 'blood')                 # Precontrast R1 for blood at 3T
@@ -153,7 +163,7 @@ R1 = R10 + r1*cb                            # Relaxation rate as a function of t
 sig_pop = dc.signal_ss(R1, 1, 0.005, 15)    # Signal as a function of time
 
 # %%
-# Now can train the Aorta model, setting the experimental parameters to match the conditions of the original paper (Parker et al 2005). We use a chain model for the heart-lung system, which is relatively slow but provides a better fit to high-resolution first pass data than the dwfault 'pfcomp'. The defaults for the other constants (field strength, flip angle etc) are correct so do not need to be provided explicitly:
+# Now we can train the Aorta model, setting the experimental parameters to match the conditions of the original paper (Parker et al 2005). We use a chain model for the heart-lung system, which is relatively slow but provides a better fit to high-resolution first pass data than the default 'pfcomp'. The defaults for the other constants (field strength, flip angle etc) are correct so do not need to be provided explicitly:
 
 aorta = dc.Aorta(rate=3, agent='gadodiamide', dose=0.2, heartlung='chain')
 
@@ -169,7 +179,7 @@ aorta.plot(t, sig_pop)
 aorta.print_params(round_to=2)
 
 # %%
-# As expected, the cardiac output of the populaton AIF is 220 mL/sec, substantially higher than the values for either subject A or B. This is consistent with the systematic error in the perfusion values observed.
+# The cardiac output of the populaton AIF is 220 mL/sec, substantially higher than the values for either subject A or B. This is consistent with the systematic underestimation in the blood flow values observed.
 
 # Choose the last image as a thumbnail for the gallery
 # sphinx_gallery_thumbnail_number = -1

@@ -229,7 +229,7 @@ Example using a population AIF
 ------------------------------
 To illustrate the implications of using a population-based AIF, lets analyse the data from our subjects A and B again, this time using a popular population-based AIF:
 
-.. GENERATED FROM PYTHON SOURCE LINES 115-131
+.. GENERATED FROM PYTHON SOURCE LINES 115-135
 
 .. code-block:: Python
 
@@ -243,7 +243,11 @@ To illustrate the implications of using a population-based AIF, lets analyse the
     A.train(t, sig_A)
     B.train(t, sig_B)
 
-    # And lets have a look at the values for the measured parameters:
+    # Check the fits:
+    A.plot(t, sig_A)
+    B.plot(t, sig_B)
+
+    # Check the values for the measured parameters:
     print('Tissue parameters (subject A): ')
     print(A.get_params('vp', 'Fp', round_to=4))
     print('Tissue parameters (subject B): ')
@@ -251,6 +255,23 @@ To illustrate the implications of using a population-based AIF, lets analyse the
 
 
 
+
+.. rst-class:: sphx-glr-horizontal
+
+
+    *
+
+      .. image-sg:: /generated/examples/tutorials/images/sphx_glr_plot_aif_002.png
+         :alt: Prediction of the MRI signals., Reconstruction of concentrations.
+         :srcset: /generated/examples/tutorials/images/sphx_glr_plot_aif_002.png
+         :class: sphx-glr-multi-img
+
+    *
+
+      .. image-sg:: /generated/examples/tutorials/images/sphx_glr_plot_aif_003.png
+         :alt: Prediction of the MRI signals., Reconstruction of concentrations.
+         :srcset: /generated/examples/tutorials/images/sphx_glr_plot_aif_003.png
+         :class: sphx-glr-multi-img
 
 
 .. rst-class:: sphx-glr-script-out
@@ -265,16 +286,23 @@ To illustrate the implications of using a population-based AIF, lets analyse the
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 132-138
+.. GENERATED FROM PYTHON SOURCE LINES 136-140
 
-The measurements of ``vp`` are not so far off the ground truth (``vp=0.03``): slightly underestimated for subject A (``vp=0.024``) and overestimated for subject B (``vp=0.036``). The estimates for the blood flow values are a factor 2.6 and 1.7 underestimated, respectively. 
+The fit to the data is good and the measurements of ``vp`` are not so far off the ground truth (``vp=0.03``): underestimated for subject A (``vp=0.024``) and overestimated for subject B (``vp=0.036``). The estimates for the blood flow values are a factor 2.6 and 1.7 underestimated, respectively. The analysis leads to the (false) conclusion that the cerebral blood volume and -flow values of B are 50% higher than A. 
 
-The experimental conditions under which the population-average AIF was derived are actually very similar to those used to derive the actual subject-specific AIF used in this example (standard dose and injection rate of a standard extracellular agent). So this error is mostly likely due to individual differences in systemic parameters such as cardiac output between the subjects analysed in this example and the subjects used to derive the population AIF. 
-
-Indeed, plotting the population AIF against that of our subjects A and B suggests that the cardiac output of the population was, on average, higher than for subjects A and B:
+Hence, while a suitable chosen population AIF may produce values in the correct order of magnitude, it suffers from the same fundamental problem as descriptive or qualitative curve-type analyses that between subject differences in tissue curves are interpreted as reflecting tissue properties, even if in reality they are due to systemic differences (cardiac output in this example).
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 138-146
+.. GENERATED FROM PYTHON SOURCE LINES 142-148
+
+Choice of a population AIF
+--------------------------
+The relative accuracy of the absolute values reflects the fact that the experimental conditions under which the population-average AIF from Parker et al was derived are actually very similar to this example (standard dose and injection rate of a standard extracellular agent). 
+
+Indeed, plotting the population AIF against that of our subjects A and B shows that they are indeed comparable:
+
+
+.. GENERATED FROM PYTHON SOURCE LINES 148-156
 
 .. code-block:: Python
 
@@ -289,20 +317,20 @@ Indeed, plotting the population AIF against that of our subjects A and B suggest
 
 
 
-.. image-sg:: /generated/examples/tutorials/images/sphx_glr_plot_aif_002.png
+.. image-sg:: /generated/examples/tutorials/images/sphx_glr_plot_aif_004.png
    :alt: plot aif
-   :srcset: /generated/examples/tutorials/images/sphx_glr_plot_aif_002.png
+   :srcset: /generated/examples/tutorials/images/sphx_glr_plot_aif_004.png
    :class: sphx-glr-single-img
 
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 147-148
+.. GENERATED FROM PYTHON SOURCE LINES 157-158
 
-We can test this hypothesis more quantitatively by fitting the population AIF to an aorta model. Since the Aorta model `Aorta` predicts signals rather than concentrations, we need to first convert the concentrations to signals:
+We can investigate this more quantitatively by fitting the population AIF to an aorta model. Since the `Aorta` model predicts signals rather than concentrations, we need to first convert the concentrations to signals:
 
-.. GENERATED FROM PYTHON SOURCE LINES 148-155
+.. GENERATED FROM PYTHON SOURCE LINES 158-165
 
 .. code-block:: Python
 
@@ -310,7 +338,7 @@ We can test this hypothesis more quantitatively by fitting the population AIF to
     cb = (1-0.45)*ca_pop                        # Convert to blood concentration using standard Hct
     R10 = 1/dc.T1(3.0, 'blood')                 # Precontrast R1 for blood at 3T
     r1 = dc.relaxivity(agent='gadodiamide')     # Relaxivity of the agent
-    R1 = R10+r1*cb                              # Relaxation rate as a function of time
+    R1 = R10 + r1*cb                            # Relaxation rate as a function of time
     sig_pop = dc.signal_ss(R1, 1, 0.005, 15)    # Signal as a function of time
 
 
@@ -320,11 +348,11 @@ We can test this hypothesis more quantitatively by fitting the population AIF to
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 156-157
+.. GENERATED FROM PYTHON SOURCE LINES 166-167
 
-Now can train the Aorta model, setting the experimental parameters to match the conditions of the original paper (Parker et al 2005). We use a chain model for the heart-lung system, which is relatively slow but provides a better fit to high-resolution first pass data than the dwfault 'pfcomp'. The defaults for the other constants (field strength, flip angle etc) are correct so do not need to be provided explicitly:
+Now we can train the Aorta model, setting the experimental parameters to match the conditions of the original paper (Parker et al 2005). We use a chain model for the heart-lung system, which is relatively slow but provides a better fit to high-resolution first pass data than the default 'pfcomp'. The defaults for the other constants (field strength, flip angle etc) are correct so do not need to be provided explicitly:
 
-.. GENERATED FROM PYTHON SOURCE LINES 157-166
+.. GENERATED FROM PYTHON SOURCE LINES 167-176
 
 .. code-block:: Python
 
@@ -340,20 +368,20 @@ Now can train the Aorta model, setting the experimental parameters to match the 
 
 
 
-.. image-sg:: /generated/examples/tutorials/images/sphx_glr_plot_aif_003.png
+.. image-sg:: /generated/examples/tutorials/images/sphx_glr_plot_aif_005.png
    :alt: Prediction of the MRI signals., Prediction of the concentrations.
-   :srcset: /generated/examples/tutorials/images/sphx_glr_plot_aif_003.png
+   :srcset: /generated/examples/tutorials/images/sphx_glr_plot_aif_005.png
    :class: sphx-glr-single-img
 
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 167-168
+.. GENERATED FROM PYTHON SOURCE LINES 177-178
 
 We can also have a look at the fitted parameters:
 
-.. GENERATED FROM PYTHON SOURCE LINES 168-171
+.. GENERATED FROM PYTHON SOURCE LINES 178-181
 
 .. code-block:: Python
 
@@ -387,11 +415,11 @@ We can also have a look at the fitted parameters:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 172-173
+.. GENERATED FROM PYTHON SOURCE LINES 182-183
 
-As expected, the cardiac output of the populaton AIF is 220 mL/sec, substantially higher than the values for either subject A or B. This is consistent with the systematic error in the perfusion values observed.
+The cardiac output of the populaton AIF is 220 mL/sec, substantially higher than the values for either subject A or B. This is consistent with the systematic underestimation in the blood flow values observed.
 
-.. GENERATED FROM PYTHON SOURCE LINES 173-177
+.. GENERATED FROM PYTHON SOURCE LINES 183-187
 
 .. code-block:: Python
 
@@ -409,7 +437,7 @@ As expected, the cardiac output of the populaton AIF is 220 mL/sec, substantiall
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 2.843 seconds)
+   **Total running time of the script:** (0 minutes 3.368 seconds)
 
 
 .. _sphx_glr_download_generated_examples_tutorials_plot_aif.py:
