@@ -14,24 +14,24 @@ Examples using ``dcmri.Model.print_params``
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the role of the arterial input function (AIF) in DC-MRI analysis, in...">
+    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of ~dcmri.Liver for fitting of signals measured in liver. The ...">
 
 .. only:: html
 
-  .. image:: /generated/examples/tutorials/images/thumb/sphx_glr_plot_aif_thumb.png
+  .. image:: /generated/examples/use_cases/images/thumb/sphx_glr_plot_tristan6drugs_thumb.png
     :alt:
 
-  :ref:`sphx_glr_generated_examples_tutorials_plot_aif.py`
+  :ref:`sphx_glr_generated_examples_use_cases_plot_tristan6drugs.py`
 
 .. raw:: html
 
-      <div class="sphx-glr-thumbnail-title">The role of Arterial Input Functions</div>
+      <div class="sphx-glr-thumbnail-title">The TRISTAN 6 compound study</div>
     </div>
 
 
 .. only:: not html
 
- * :ref:`sphx_glr_generated_examples_tutorials_plot_aif.py`
+ * :ref:`sphx_glr_generated_examples_use_cases_plot_tristan6drugs.py`
 
 .. raw:: html
 

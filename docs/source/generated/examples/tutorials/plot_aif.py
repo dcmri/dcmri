@@ -143,7 +143,7 @@ print(B.get_params('vp', 'Fp', round_to=4))
 # --------------------------
 # The relative accuracy of the absolute values reflects the fact that the experimental conditions under which the population-average AIF from Parker et al was derived are actually very similar to this example (standard dose and injection rate of a standard extracellular agent). 
 # 
-# Indeed, plotting the population AIF against that of our subjects A and B shows that they are indeed comparable:
+# Plotting the population AIF against that of our subjects A and B shows that they are indeed comparable:
 # 
 plt.plot(t, ca_A, 'r-', label='Arterial concentration (subject A)')
 plt.plot(t, ca_B, 'b-', label='Arterial concentration (subject B)')

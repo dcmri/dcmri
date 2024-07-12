@@ -299,7 +299,7 @@ Choice of a population AIF
 --------------------------
 The relative accuracy of the absolute values reflects the fact that the experimental conditions under which the population-average AIF from Parker et al was derived are actually very similar to this example (standard dose and injection rate of a standard extracellular agent). 
 
-Indeed, plotting the population AIF against that of our subjects A and B shows that they are indeed comparable:
+Plotting the population AIF against that of our subjects A and B shows that they are indeed comparable:
 
 
 .. GENERATED FROM PYTHON SOURCE LINES 148-156
@@ -437,7 +437,7 @@ The cardiac output of the populaton AIF is 220 mL/sec, substantially higher than
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 3.368 seconds)
+   **Total running time of the script:** (0 minutes 3.536 seconds)
 
 
 .. _sphx_glr_download_generated_examples_tutorials_plot_aif.py:
