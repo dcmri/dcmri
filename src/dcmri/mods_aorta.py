@@ -34,6 +34,7 @@ class Aorta(dc.Model):
 
         **Whole body kinetic parameters**
 
+        - **heartlung** (str, default='pfcomp'): Kinetic model for the heart-lung system (either 'pfcomp' or 'chain').
         - **organs** (str, default='2cxm'): Kinetic model for the organs.
         - **BAT** (float, default=60): Bolus arrival time, i.e. time point where the indicator first arrives in the body. 
         - **BAT2** (float, default=1200): Bolus arrival time in the second scan, i.e. time point where the indicator first arrives in the body. 
@@ -146,6 +147,7 @@ class Aorta(dc.Model):
 
         self.sequence = 'SS'
         self.organs = '2cxm'
+        self.heartlung = 'pfcomp'
         self.free = ['BAT','CO','Thl','Dhl','To','Eb','Eo','Te']
         self.bounds = [
             [0, 0, 0, 0.05, 0, 0.01, 0, 0],
@@ -175,7 +177,7 @@ class Aorta(dc.Model):
         Ji = dc.influx_step(t, self.weight, 
                 conc, self.dose, self.rate, self.BAT) 
         Jb = dc.flux_aorta(Ji, E=self.Eb,
-            heartlung = ['pfcomp', (self.Thl, self.Dhl)],
+            heartlung = [self.heartlung, (self.Thl, self.Dhl)],
             organs=organs, dt=self.dt, tol=self.dose_tolerance)
         return t, Jb/self.CO
 
@@ -688,6 +690,456 @@ class AortaLiver(dc.Model):
         return self._add_sdev(pars)
     
 
+
+class AortaKidneys(dc.Model):
+    """Joint model for aorta and kidneys signals.
+
+    The model represents the kidneys as a two-compartment filtration system and the body as a leaky loop with a heart-lung system and an organ system. The heart-lung system is modelled as a chain compartment and the organs are modelled as a compartment or a two-compartment exchange model. Bolus injection into the system is modelled as a step function.
+    
+        **Injection parameters**
+
+        - **weight** (float, default=70): Subject weight in kg.
+        - **agent** (str, default='gadoterate'): Contrast agent generic name.
+        - **dose** (float, default=0.2): Injected contrast agent dose in mL per kg bodyweight.
+        - **rate** (float, default=1): Contrast agent injection rate in mL per sec.
+
+        **Acquisition parameters**
+
+        - **sequence** (str, default='SS'): Signal model.
+        - **tmax** (float, default=120): Maximum acquisition time in sec.
+        - **tacq** (float, default=None): Time to acquire a single dynamic in the first scan (sec). If this is not provided, tacq is taken from the difference between the first two data points.
+        - **field_strength** (float, default=3.0): Magnetic field strength in T. 
+        - **n0** (float, default=1): Baseline length in nr of scans.
+        - **TR** (float, default=0.005): Repetition time, or time between excitation pulses, in sec. 
+        - **FA** (float, default=15): Nominal flip angle in degrees.
+        - **TC** (float, default=0.1): Time to the center of k-space in a saturation-recovery sequence.
+
+        **Signal parameters**
+
+        - **R10b** (float, default=1): Precontrast arterial relaxation rate in 1/sec. 
+        - **S0b** (float, default=1): scale factor for the arterial MR signal in the first scan. 
+        - **R10_lk** (float, default=1): Baseline R1 for the left kidney.
+        - **S0_lk** (float, default=1): Scale factor for the left kidney signal. 
+        - **R10_rk** (float, default=1): Baseline R1 for the right kidney.
+        - **S0_rk** (float, default=1): Scale factor for the right kidney signal.   
+
+        **Whole body kinetic parameters**
+
+        - **organs** (str, default='2cxm'): Kinetic model for the organs.
+        - **BAT** (float, default=60): Bolus arrival time, i.e. time point where the indicator first arrives in the body. 
+        - **BAT2** (float, default=1200): Bolus arrival time in the second scan, i.e. time point where the indicator first arrives in the body. 
+        - **CO** (float, default=100): Cardiac output in mL/sec.
+        - **Eb** (float, default=0.05): fraction of indicator extracted from the vasculature in a single pass. 
+        - **Thl** (float, default=10): Mean transit time through heart and lungs.
+        - **Dhl** (float, default=0.2): Dispersion through the heart-lung system, with a value in the range [0,1].
+        - **To** (float, default=20): average time to travel through the organ's vasculature.
+        - **Eo** (float, default=0.15): Fraction of indicator entering the organs which is extracted from the blood pool.
+        - **Teb** (float, default=120): Average time to travel through the organs extravascular space.
+
+        **Kidney kinetic parameters**
+
+        - **kinetics** (str, default='2CFM'). Kidney kinetic model (only one option at this stage).
+        - **Hct** (float, default=0.45): Hematocrit.
+        - **Fp_lk** (Plasma flow, mL/sec/mL): Flow of plasma into the plasma compartment (left kidney).
+        - **Tp_lk** (Plasma mean transit time, sec): Transit time of the plasma compartment (left kidney). 
+        - **Ft_lk** (Tubular flow, mL/sec/mL): Flow of fluid into the tubuli (left kidney).
+        - **Tt_lk** (Tubular mean transit time, sec): Transit time of the tubular compartment (left kidney).
+        - **Ta_lk** (Arterial delay time, sec): Transit time through the arterial compartment (left kidney). 
+        - **Fp_rk** (Plasma flow, mL/sec/mL): Flow of plasma into the plasma compartment (right kidney).
+        - **Tp_rk** (Plasma mean transit time, sec): Transit time of the plasma compartment (right kidney). 
+        - **Ft_rk** (Tubular flow, mL/sec/mL): Flow of fluid into the tubuli (right kidney).
+        - **Tt_rk** (Tubular mean transit time, sec): Transit time of the tubular compartment (right kidney).
+        - **Ta_rk** (Arterial delay time, sec): Transit time through the arterial compartment (right kidney). 
+
+        **Prediction and training parameters**
+
+        - **dt** (float, default=1): Internal time resolution of the AIF in sec. 
+        - **dose_tolerance** (fload, default=0.1): Stopping criterion for the whole-body model.
+        - **free** (array-like): list of free parameters. The default depends on the kinetics parameter.
+        - **bounds** (array-like): 2-element list with lower and upper bounds of the free parameters. The default depends on the kinetics parameter.
+
+        **Additional parameters**
+
+        - **vol_lk** (float, optional): Kidney volume in mL (left kidney).
+        - **vol_rk** (float, optional): Kidney volume in mL (right kidney).
+
+    Args:
+        params (dict, optional): override defaults for any of the parameters.
+
+    See Also:
+        `AortaLiver`
+
+    Example:
+
+        Use the model to reconstruct concentrations from experimentally derived signals.
+
+    .. plot::
+        :include-source:
+        :context: close-figs
+    
+        >>> import matplotlib.pyplot as plt
+        >>> import dcmri as dc
+
+        Use `fake_tissue` to generate synthetic test data from experimentally-derived concentrations:
+
+        >>> time, aif, roi, gt = dc.fake_tissue()
+        >>> xdata, ydata = (time,time,time), (aif,roi,roi)
+        
+        Build an aorta-kidney model and parameters to match the conditions of the fake tissue data:
+
+        >>> model = dc.AortaKidneys(
+        ...     dt = 0.5,
+        ...     tmax = 180,
+        ...     weight = 70,
+        ...     agent = 'gadodiamide',
+        ...     dose = 0.2,
+        ...     rate = 3,
+        ...     field_strength = 3.0,
+        ...     t0 = 10,
+        ...     TR = 0.005,
+        ...     FA = 20,
+        ... )
+
+        Train the model on the data:
+
+        >>> model.train(xdata, ydata, xtol=1e-3)
+
+        Plot the reconstructed signals and concentrations and compare against the experimentally derived data:
+
+        >>> model.plot(xdata, ydata)
+
+    """   
+    def __init__(self, **params):
+
+        # Constants
+        self.dt = 0.5   
+        self.tmax = 120 
+        self.tacq = None           
+        self.dose_tolerance = 0.1  
+        self.weight = 70.0          
+        self.agent = 'gadoterate'   
+        self.dose = 0.025
+        self.rate = 1  
+        self.field_strength = 3.0
+        self.n0 = 1   
+        self.TR = 0.005 
+        self.FA = 15.0
+        self.TC = 0.180
+        
+        # Aorta parameters
+        self.R10b = 1/dc.T1(3.0,'blood')
+        self.S0b = 1
+        self.BAT = 60
+        self.CO = 100
+        self.FF = 0.1
+        self.Thl = 20
+        self.Dhl = 0.2
+        self.To = 20
+        self.Eo = 0.15
+        self.Teb = 120
+        self.Hct = 0.45
+
+        # Kidneys
+        self.RPF = 10 # mL/sec
+        self.DRF = 0.5
+        self.DRPF = 0.5
+
+        # Left kidney parameters
+        self.R10_lk = 1/dc.T1(3.0,'kidney') 
+        self.S0_lk = 1 
+        self.Ta_lk = 0
+        self.vp_lk = 0.1
+        self.Tt_lk = 300
+        self.vol_lk = 150
+
+        # Right kidney parameters
+        self.R10_rk = 1/dc.T1(3.0,'kidney') 
+        self.S0_rk = 1 
+        self.Ta_rk = 0
+        self.vp_rk = 0.1
+        self.Tt_rk = 300
+        self.vol_rk = 150
+
+        # Configuration
+        self.sequence = 'SS'
+        self.organs = 'comp'
+        self.heartlung = 'pfcomp'
+        self.kidneys = '2CF'
+        self.free = [
+                'BAT','CO','Thl','Dhl','To', 'FF',
+                'RPF','DRPF', 'DRF',
+                'vp_lk','Tt_lk',#'Ta_lk',
+                'vp_rk','Tt_rk']#'Ta_rk']
+        self.bounds = [
+            [   0, 0, 0, 0.05, 0, 0.0,
+                0, 0, 0,
+                0.0, 0,
+                0.0, 0],
+            [   np.inf, 300, 30, 0.95, 60, 0.5,
+                np.inf, 1, 1,
+                1, np.inf, #5,
+                1, np.inf] #5],
+        ]
+
+        # Override defaults
+        for k, v in params.items():
+            setattr(self, k, v) 
+
+        # Internal flag
+        self._predict = None
+
+    def _conc_aorta(self) -> np.ndarray:
+        if self.organs == 'comp':
+            organs = ['comp', (self.To,)]
+        else:
+            organs = ['2cxm', ([self.To, self.Teb], self.Eo)]
+        if self.heartlung == 'comp':
+            heartlung = ['comp', (self.Thl,)]
+        elif self.heartlung == 'pfcomp':
+            heartlung = ['pfcomp', (self.Thl, self.Dhl)]
+        elif self.heartlung == 'chain':
+            heartlung = ['chain', (self.Thl, self.Dhl)]
+        self.t = np.arange(0, self.tmax, self.dt)
+        conc = dc.ca_conc(self.agent)
+        Ji = dc.influx_step(self.t, self.weight, 
+                conc, self.dose, self.rate, self.BAT)
+        Jb = dc.flux_aorta(Ji, E=self.FF/(1+self.FF),
+                heartlung=heartlung, organs=organs,
+                dt=self.dt, tol=self.dose_tolerance)
+        cb = Jb/self.CO
+        self.ca = cb/(1-self.Hct)
+        return self.t, cb
+    
+    def _relax_aorta(self) -> np.ndarray:
+        t, cb = self._conc_aorta()
+        rp = dc.relaxivity(self.field_strength, 'plasma', self.agent)
+        return t, self.R10b + rp*cb
+
+    def _predict_aorta(self, xdata:np.ndarray) -> np.ndarray:
+        if self.tacq is None:
+            tacq = xdata[1]-xdata[0]
+        else:
+            tacq = self.tacq
+        self.tmax = max(xdata)+tacq+self.dt
+        t, R1b = self._relax_aorta()
+        if self.sequence == 'SR':
+            #signal = dc.signal_src(R1b, self.S0b, self.TC, R10=self.R10b)
+            signal = dc.signal_src(R1b, self.S0b, self.TC)
+        else:
+            #signal = dc.signal_ss(R1b, self.S0b, self.TR, self.FA, R10=self.R10b)
+            signal = dc.signal_ss(R1b, self.S0b, self.TR, self.FA)
+        return dc.sample(xdata, t, signal, tacq)
+    
+    def _conc_kidneys(self, sum=True):
+        t = self.t
+        ca_lk = dc.flux(self.ca, self.Ta_lk, t=self.t, dt=self.dt, kinetics='plug')
+        ca_rk = dc.flux(self.ca, self.Ta_rk, t=self.t, dt=self.dt, kinetics='plug')
+        GFR = self.RPF * self.FF
+        GFR_lk = self.DRF*GFR
+        GFR_rk = (1-self.DRF)*GFR
+        if self.kidneys == '2CF':
+            RPF_lk = self.DRPF*self.RPF
+            RPF_rk = (1-self.DRPF)*self.RPF
+            Tp_lk = self.vp_lk*self.vol_lk/RPF_lk
+            Tp_rk = self.vp_rk*self.vol_rk/RPF_rk
+            # TODO reparametrize conc_kidney 2CF with vp instead of Tp
+            Nlk = dc.conc_kidney(ca_lk, RPF_lk, Tp_lk, GFR_lk, self.Tt_lk, t=self.t, dt=self.dt, sum=sum, kinetics='2CF')
+            Nrk = dc.conc_kidney(ca_rk, RPF_rk, Tp_rk, GFR_rk, self.Tt_rk, t=self.t, dt=self.dt, sum=sum, kinetics='2CF')
+        if self.kidneys == 'HF':
+            Nlk = dc.conc_kidney(ca_lk, self.vp_lk*self.vol_lk, GFR_lk, self.Tt_lk, t=self.t, dt=self.dt, sum=sum, kinetics='HF')
+            Nrk = dc.conc_kidney(ca_rk, self.vp_rk*self.vol_rk, GFR_rk, self.Tt_rk, t=self.t, dt=self.dt, sum=sum, kinetics='HF')
+        return t, Nlk/self.vol_rk, Nrk/self.vol_rk
+
+    
+    def _relax_kidneys(self):
+        t, Clk, Crk = self._conc_kidneys()
+        rp = dc.relaxivity(self.field_strength, 'plasma', self.agent)
+        return t, self.R10_lk + rp*Clk, self.R10_rk + rp*Crk
+    
+    def _predict_kidneys(self, xdata:tuple[np.ndarray, np.ndarray]) -> tuple[np.ndarray, np.ndarray]:
+        if self.tacq is None:
+            tacq = xdata[0][1]-xdata[0][0]
+        else:
+            tacq = self.tacq
+        t, R1_lk, R1_rk = self._relax_kidneys()
+        if self.sequence == 'SR':
+            signal_lk = dc.signal_sr(R1_lk, self.S0_lk, self.TR, self.FA, self.TC)
+            signal_rk = dc.signal_sr(R1_rk, self.S0_rk, self.TR, self.FA, self.TC)
+        else:
+            signal_lk = dc.signal_ss(R1_lk, self.S0_lk, self.TR, self.FA)
+            signal_rk = dc.signal_ss(R1_rk, self.S0_rk, self.TR, self.FA)
+        return (
+            dc.sample(xdata[0], t, signal_lk, tacq),
+            dc.sample(xdata[1], t, signal_rk, tacq))
+    
+    def conc(self, sum=True):
+        """Concentrations in aorta and kidney.
+
+        Args:
+            sum (bool, optional): If set to true, the liver concentrations are the sum over both compartments. If set to false, the compartmental concentrations are returned individually. Defaults to True.
+
+        Returns:
+            tuple: time points, aorta blood concentrations, kidney concentrations.
+        """
+        t, cb = self._conc_aorta()
+        t, Clk, Crk = self._conc_kidneys(sum=sum)
+        return t, cb, Clk, Crk
+    
+    def relax(self):
+        """Relaxation rates in aorta and kidney.
+
+        Returns:
+            tuple: time points, aorta blood concentrations, kidney concentrations.
+        """
+        t, R1b = self._relax_aorta()
+        t, R1_lk, R1_rk = self._relax_kidneys()
+        return t, R1b, R1_lk, R1_rk
+
+    def predict(self, xdata:tuple[np.ndarray, np.ndarray, np.ndarray])->tuple[np.ndarray, np.ndarray, np.ndarray]:
+        # Public interface
+        if self._predict is None:
+            signala = self._predict_aorta(xdata[0])
+            signal_lk, signal_rk = self._predict_kidneys((xdata[1],xdata[2]))
+            return signala, signal_lk, signal_rk
+        # Private interface with different input & output types
+        elif self._predict == 'aorta':
+            return self._predict_aorta(xdata)
+        elif self._predict == 'kidneys': 
+            return self._predict_kidneys(xdata)
+
+    def train(self, xdata:tuple[np.ndarray, np.ndarray, np.ndarray], 
+            ydata:tuple[np.ndarray, np.ndarray, np.ndarray], **kwargs):
+
+        # Estimate BAT and S0b from data
+        if self.sequence == 'SR':
+            Srefb = dc.signal_sr(self.R10b, 1, self.TR, self.FA, self.TC)
+            Sref_lk = dc.signal_sr(self.R10_lk, 1, self.TR, self.FA, self.TC)
+            Sref_rk = dc.signal_sr(self.R10_rk, 1, self.TR, self.FA, self.TC)
+        else:
+            Srefb = dc.signal_ss(self.R10b, 1, self.TR, self.FA)
+            Sref_lk = dc.signal_ss(self.R10_lk, 1, self.TR, self.FA)
+            Sref_rk = dc.signal_ss(self.R10_rk, 1, self.TR, self.FA)
+        self.S0b = np.mean(ydata[0][:self.n0]) / Srefb
+        self.S0_lk = np.mean(ydata[1][:self.n0]) / Sref_lk
+        self.S0_rk = np.mean(ydata[2][:self.n0]) / Sref_rk
+        self.BAT = xdata[0][np.argmax(ydata[0])] - (1-self.Dhl)*self.Thl
+        self.BAT = max([self.BAT, 0])
+
+        # Train free aorta parameters on aorta data
+        self._predict = 'aorta'
+        f, b = deepcopy(self.free), deepcopy(self.bounds)
+        sel = ['BAT','CO','Thl','Dhl','To','Eb','Eo','Teb']
+        isel = [i for i in range(len(f)) if f[i] in sel]
+        self.free = [f[i] for i in isel]
+        self.bounds = [[b[0][i] for i in isel], [b[1][i] for i in isel]]
+        dc.train(self, xdata[0], ydata[0], **kwargs)
+
+        # Train free kidney parameters on kidney data
+        self._predict = 'kidneys'
+        sel = [ 'RPF','DRPF', 'DRF',
+                'vp_lk','Tt_lk','Ta_lk',
+                'vp_rk','Tt_rk','Ta_rk']
+        isel = [i for i in range(len(f)) if f[i] in sel]
+        self.free = [f[i] for i in isel]
+        self.bounds = [[b[0][i] for i in isel], [b[1][i] for i in isel]]
+        dc.train(self, (xdata[1],xdata[2]), (ydata[1],ydata[2]), **kwargs)
+
+        # Train all parameters on all data
+        self._predict = None
+        self.free = f
+        self.bounds = b
+        return dc.train(self, xdata, ydata, **kwargs)
+    
+    def plot(self, 
+                xdata:tuple[np.ndarray, np.ndarray, np.ndarray], 
+                ydata:tuple[np.ndarray, np.ndarray, np.ndarray],  
+                xlim=None, testdata=None, 
+                fname=None, show=True):
+        t, cb, Clk, Crk = self.conc(sum=False)
+        sig = self.predict((t,t,t))
+        fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3,2,figsize=(10,12))
+        fig.subplots_adjust(wspace=0.3)
+        _plot_data1scan(t, sig[0], xdata[0], ydata[0], 
+                ax1, xlim, 
+                color=['lightcoral','darkred'], 
+                test=None if testdata is None else testdata[0])
+        _plot_data1scan(t, sig[1], xdata[1], ydata[1], 
+                ax3, xlim, 
+                color=['cornflowerblue','darkblue'], 
+                test=None if testdata is None else testdata[1])
+        _plot_data1scan(t, sig[2], xdata[2], ydata[2], 
+                ax5, xlim, 
+                color=['cornflowerblue','darkblue'], 
+                test=None if testdata is None else testdata[2])
+        _plot_conc_aorta(t, cb, ax2, xlim)
+        _plot_conc_kidney(t, Clk, ax4, xlim)
+        _plot_conc_kidney(t, Crk, ax6, xlim)
+        if fname is not None:  
+            plt.savefig(fname=fname)
+        if show:
+            plt.show()
+        else:
+            plt.close()
+
+    def export_params(self):
+        pars = {}
+
+        # Aorta
+        pars['T10b']=['Blood precontrast T1', 1/self.R10b, "sec"]
+        pars['rate']=['Injection rate', self.rate, "mL/sec"]
+        pars['BAT']=['Bolus arrival time', self.BAT, "sec"] 
+        pars['CO']=['Cardiac output', self.CO, "mL/sec"] 
+        pars['Thl']=['Heart-lung mean transit time', self.Thl, "sec"]
+        pars['Dhl']=['Heart-lung transit time dispersion', self.Dhl, ""]
+        pars['To']=["Organs mean transit time", self.To, "sec"]
+        pars['Tc']=["Mean circulation time", self.Thl+self.To, 'sec'] 
+        pars['Eb']=["Body extraction fraction", self.FF/(1+self.FF), ""]
+        pars['Eo']=["Organs extraction fraction", self.Eo, ""]
+        pars['Teb']=["Organs extracellular mean transit time", self.Teb, "sec"]
+
+        # Kidneys
+        GFR = self.RPF * self.FF
+        pars['GFR'] = ['Glomerular filtration rate', GFR, 'mL/sec']
+        pars['RPF'] = ['Renal plasma flow', self.RPF, 'mL/sec']
+        pars['DRPF'] = ['Differential renal plasma flow', self.DRPF, '']
+        pars['DRF'] = ['Differential renal function', self.DRF, '']
+        pars['FF'] = ['Filtration fraction', GFR/self.RPF, '']
+
+        # Kidney LK
+        RPF_lk = self.DRPF*self.RPF
+        GFR_lk = self.DRF*GFR
+        Tp_lk = self.vp_lk*self.vol_lk/RPF_lk
+        pars['LK-RPF'] = ['LK Single-kidney plasma flow', RPF_lk, 'mL/sec']
+        pars['LK-GFR'] = ['LK Single-kidney glomerular filtration rate', GFR_lk, 'mL/sec']
+        pars['LK-vol'] = ['LK Single-kidney volume', self.vol_lk, 'mL']
+        pars['LK-Fp'] = ['LK Plasma flow', RPF_lk/self.vol_lk, 'mL/sec/mL']
+        pars['LK-Tp'] = ['LK Plasma mean transit time', Tp_lk, 'sec']
+        pars['LK-Ft'] = ['LK Tubular flow', GFR_lk/self.vol_lk, 'mL/sec/mL']
+        pars['LK-ve'] = ['LK Extracellular volume', self.vp_lk, 'mL/mL']
+        pars['LK-FF'] = ['LK Filtration fraction', GFR_lk/RPF_lk, '']
+        pars['LK-E'] = ['LK Extraction fraction', GFR_lk/(GFR_lk+RPF_lk), '']
+        pars['LK-Tt'] = ['LK Tubular mean transit time', self.Tt_lk, 'sec']
+        pars['LK-Ta'] = ['LK Arterial mean transit time', self.Ta_lk, 'sec']
+
+        # Kidney RK
+        RPF_rk = (1-self.DRPF)*self.RPF
+        GFR_rk = (1-self.DRF)*GFR
+        Tp_rk = self.vp_rk*self.vol_rk/RPF_rk
+        pars['RK-RPF'] = ['RK Single-kidney plasma flow', RPF_rk, 'mL/sec']
+        pars['RK-GFR'] = ['RK Single-kidney glomerular filtration rate', GFR_rk, 'mL/sec']
+        pars['RK-vol'] = ['RK Single-kidney volume', self.vol_rk, 'mL']
+        pars['RK-Fp'] = ['RK Plasma flow', RPF_rk/self.vol_rk, 'mL/sec/mL']
+        pars['RK-Tp'] = ['RK Plasma mean transit time', Tp_rk, 'sec']
+        pars['RK-Ft'] = ['RK Tubular flow', GFR_rk/self.vol_rk, 'mL/sec/mL']
+        pars['RK-ve'] = ['RK Extracellular volume', self.vp_rk, 'mL/mL']
+        pars['RK-FF'] = ['RK Filtration fraction', GFR_rk/RPF_rk, '']
+        pars['RK-E'] = ['RK Extraction fraction', GFR_rk/(GFR_rk+RPF_rk), '']
+        pars['RK-Tt'] = ['RK Tubular mean transit time', self.Tt_rk, 'sec']
+        pars['RK-Ta'] = ['RK Arterial mean transit time', self.Ta_rk, 'sec']
+
+        return self._add_sdev(pars)
+    
+
 class AortaLiver2scan(AortaLiver):
     """Joint model for aorta and liver signals measured over 2 separate scans.
 
@@ -1090,7 +1542,7 @@ def _plot_conc_aorta(t:np.ndarray, cb:np.ndarray, ax, xlim=None):
         xlim = [t[0],t[-1]]
     ax.set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=np.array(xlim)/60)
     ax.plot(t/60, 0*t, color='gray')
-    ax.plot(t/60, 1000*cb, linestyle='-', color='darkred', linewidth=3.0, label='Aorta')
+    ax.plot(t/60, 1000*cb, linestyle='-', color='darkred', linewidth=2.0, label='Aorta')
     ax.legend()
 
 def _plot_conc_liver(t:np.ndarray, C:np.ndarray, ax, xlim=None):
@@ -1101,7 +1553,18 @@ def _plot_conc_liver(t:np.ndarray, C:np.ndarray, ax, xlim=None):
     ax.plot(t/60, 0*t, color='gray')
     ax.plot(t/60, 1000*C[0,:], linestyle='-.', color=color, linewidth=2.0, label='Extracellular')
     ax.plot(t/60, 1000*C[1,:], linestyle='--', color=color, linewidth=2.0, label='Hepatocytes')
-    ax.plot(t/60, 1000*(C[0,:]+C[1,:]), linestyle='-', color=color, linewidth=3.0, label='Tissue')
+    ax.plot(t/60, 1000*(C[0,:]+C[1,:]), linestyle='-', color=color, linewidth=2.0, label='Tissue')
+    ax.legend()
+
+def _plot_conc_kidney(t:np.ndarray, C:np.ndarray, ax, xlim=None):
+    color = 'darkblue'
+    if xlim is None:
+        xlim = [t[0],t[-1]]
+    ax.set(xlabel='Time (min)', ylabel='Tissue concentration (mM)', xlim=np.array(xlim)/60)
+    ax.plot(t/60, 0*t, color='gray')
+    ax.plot(t/60, 1000*C[0,:], linestyle='-.', color=color, linewidth=2.0, label='Plasma')
+    ax.plot(t/60, 1000*C[1,:], linestyle='--', color=color, linewidth=2.0, label='Tubuli')
+    ax.plot(t/60, 1000*(C[0,:]+C[1,:]), linestyle='-', color=color, linewidth=2.0, label='Tissue')
     ax.legend()
 
 def _plot_data2scan(t:tuple[np.ndarray, np.ndarray], sig:tuple[np.ndarray, np.ndarray], 

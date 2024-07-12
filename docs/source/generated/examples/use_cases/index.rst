@@ -51,6 +51,23 @@ Use cases
 
 .. raw:: html
 
+    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of ~dcmri.Liver for fitting of signals measured in liver. The ...">
+
+.. only:: html
+
+  .. image:: /generated/examples/use_cases/images/thumb/sphx_glr_plot_tristan6drugs_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_generated_examples_use_cases_plot_tristan6drugs.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">The TRISTAN 6 compound study</div>
+    </div>
+
+
+.. raw:: html
+
     </div>
 
 
@@ -59,4 +76,5 @@ Use cases
 
    /generated/examples/use_cases/plot_tristan_volunteers_2scan
    /generated/examples/use_cases/plot_tristan_volunteers
+   /generated/examples/use_cases/plot_tristan6drugs
 

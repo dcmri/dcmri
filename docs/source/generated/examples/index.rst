@@ -37,18 +37,18 @@ Tutorials
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="Use ~dcmri.aif_parker to generate a Parker AIF with different settings. ">
+    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the role of the arterial input function (AIF) in DC-MRI analysis, in...">
 
 .. only:: html
 
-  .. image:: /generated/examples/tutorials/images/thumb/sphx_glr_plot_aif_parker_thumb.png
+  .. image:: /generated/examples/tutorials/images/thumb/sphx_glr_plot_aif_thumb.png
     :alt:
 
-  :ref:`sphx_glr_generated_examples_tutorials_plot_aif_parker.py`
+  :ref:`sphx_glr_generated_examples_tutorials_plot_aif.py`
 
 .. raw:: html
 
-      <div class="sphx-glr-thumbnail-title">The Parker AIF</div>
+      <div class="sphx-glr-thumbnail-title">The role of Arterial Input Functions</div>
     </div>
 
 
@@ -71,7 +71,7 @@ Tutorials
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This example will explore the effect of water exchange in a standard two-compartmental tissue w...">
+    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the effect of water exchange in a standard two-compartmental tissue ...">
 
 .. only:: html
 
@@ -134,6 +134,23 @@ Use cases
 .. raw:: html
 
       <div class="sphx-glr-thumbnail-title">The TRISTAN experimental medicine study (1 scan protocol)</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of ~dcmri.Liver for fitting of signals measured in liver. The ...">
+
+.. only:: html
+
+  .. image:: /generated/examples/use_cases/images/thumb/sphx_glr_plot_tristan6drugs_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_generated_examples_use_cases_plot_tristan6drugs.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">The TRISTAN 6 compound study</div>
     </div>
 
 

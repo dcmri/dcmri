@@ -146,10 +146,10 @@ class Kidney(dc.Model):
         self.S0 = 1
 
         # Training parameters
-        self.free = ['Fp','Tp','Ft','Tt','Ta']
+        self.free = ['Fp','Tp','Ft','Tt']
         self.bounds = [
             0,
-            [np.inf, 8, np.inf, np.inf, 3],
+            [np.inf, np.inf, np.inf, np.inf],
         ]
         
         # Training parameters
@@ -205,6 +205,8 @@ class Kidney(dc.Model):
                 cb = dc.conc_src(self.aif, self.TC, 1/self.R10b, r1, self.n0)
             elif self.sequence == 'SS':
                 cb = dc.conc_ss(self.aif, self.TR, self.FA, 1/self.R10b, r1, self.n0)
+            elif self.sequence == 'lin':
+                cb = dc.conc_lin(self.aif, 1/self.R10b, r1, self.n0)
             else:
                 raise NotImplementedError('Signal model ' + self.sequence + 'is not (yet) supported.') 
             self.ca = cb/(1-self.Hct) 
@@ -236,8 +238,10 @@ class Kidney(dc.Model):
         R1 = self.relax()
         if self.sequence=='SR':
             return dc.signal_sr(R1, self.S0, self.TR, self.FA, self.TC, self.Tsat)
-        else:
+        elif self.sequence == 'SS':
             return dc.signal_ss(R1, self.S0, self.TR, self.FA)
+        elif self.sequence == 'lin':
+            return dc.signal_lin(R1, self.S0)
 
     def predict(self, xdata):
         t = self.time()
@@ -252,8 +256,10 @@ class Kidney(dc.Model):
     def train(self, xdata, ydata, **kwargs):
         if self.sequence=='SR':
             Sref = dc.signal_sr(self.R10, 1, self.TR, self.FA, self.TC, self.Tsat)
-        else:
+        elif self.sequence == 'SS':
             Sref = dc.signal_ss(self.R10, 1, self.TR, self.FA)
+        elif self.sequence == 'lin':
+            Sref = dc.signal_lin(self.R10, 1)
         self.S0 = np.mean(ydata[:self.n0]) / Sref
         return dc.train(self, xdata, ydata, **kwargs)
 
@@ -284,7 +290,8 @@ class Kidney(dc.Model):
         if self.vol is None:
             return self._add_sdev(pars)
         pars['SK-GFR'] = ['Single-kidney glomerular filtration rate', self.Ft*self.vol, 'mL/sec']
-        pars['SK-RBF'] = ['Single-kidney renal blood flow', self.Ft*self.vol/(1-self.Hct), 'mL/sec']
+        pars['SK-RBF'] = ['Single-kidney renal blood flow', self.Fp*self.vol/(1-self.Hct), 'mL/sec']
+        pars['SK-Vol'] = ['Single-kidney volume', self.vol, 'mL']
         return self._add_sdev(pars)
 
 

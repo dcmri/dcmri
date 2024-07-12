@@ -237,10 +237,22 @@ def conc_ss(S, TR:float, FA:float, T10:float, r1=0.005, n0=1)->np.ndarray:
     Returns:
         np.ndarray: Concentration in M, same length as S.
     """
+    # S = Sinf * (1-exp(-TR*R1)) / (1-cFA*exp(-TR*R1))
+    # Sb = Sinf * (1-exp(-TR*R10)) / (1-cFA*exp(-TR*R10))
+    # Sn = (1-exp(-TR*R1)) / (1-cFA*exp(-TR*R1))
+    # Sn * (1-cFA*exp(-TR*R1)) = 1-exp(-TR*R1)
+    # exp(-TR*R1) - Sn *cFA*exp(-TR*R1) = 1-Sn
+    # (1-Sn*cFA) * exp(-TR*R1) = 1-Sn
     Sb = np.mean(S[:n0])
-    E = math.exp(-TR/T10)
+    E0 = math.exp(-TR/T10)
     c = math.cos(FA*math.pi/180)
-    Sn = (S/Sb)*(1-E)/(1-c*E)	        # normalized signal
+    Sn = (S/Sb)*(1-E0)/(1-c*E0)	        # normalized signal
+    # Replace any Nan values by interpolating between nearest neighbours
+    outrange = Sn >= 1
+    if np.sum(outrange) > 0:
+        inrange = Sn < 1
+        x = np.arange(Sn.size)
+        Sn[outrange] = np.interp(x[outrange], x[inrange], Sn[inrange])
     R1 = -np.log((1-Sn)/(1-c*Sn))/TR	# relaxation rate in 1/msec
     return (R1 - 1/T10)/r1 
 
@@ -472,7 +484,7 @@ def conc_lin(S, T10, r1=0.005, n0=1):
     Sb = np.mean(S[:n0])
     R10 = 1/T10
     R1 = R10*S/Sb	#relaxation rate in 1/msec
-    return 1000*(R1 - R10)/r1 
+    return (R1 - R10)/r1 
 
 
 def sample(t, tp, Sp, dt=None)->np.ndarray: 

@@ -25,12 +25,14 @@ class Tissue(dc.Model):
 
         **Tracer-kinetic parameters**
 
-        - **kinetics** (str, default='HF'): Tracer-kinetic model.
+        - **kinetics** (str, default='HF'): Tracer-kinetic model (see below for options)
         - **Hct** (float, default=0.45): Hematocrit.
         - **Fp** (float, default=0.01): Plasma flow, or flow of plasma into the plasma compartment (mL/sec/mL).
         - **PS** (float, default=0.003): Permeability-surface area product: volume of plasma cleared of indicator per unit time and per unit tissue (mL/sec/mL).
         - **vp** (float, default=0.1): Plasma volume, or volume fraction of the plasma compartment (mL/mL). 
         - **ve** (float, default=0.5): Extravascular, extracellular volume: volume fraction of the interstitial compartment (mL/mL).
+        - **Ktrans** (float, default=0.0023): Volume transfer constant (mL/sec/mL).
+        - **v** (float, default=0.6): Extracellular volume fraction (mL/mL).
 
         **Water-kinetic parameters**
 
@@ -52,6 +54,19 @@ class Tissue(dc.Model):
 
     Args:
         params (dict, optional): override defaults for any of the parameters.
+
+    Notes:
+
+        Possible values for the **kinetics** argument, along with relevant parameters:: 
+        
+        - 'U': uptake tissue. Parameters: Fp
+        - 'NX': no tracer exchange tissue. Parameters: Fp, vp
+        - 'FX': fast tracer exchange tissue. Parameters: Fp, v
+        - 'WV': weakly vascularized tissue - also known as *Tofts model*.Parameters: Ktrans, ve
+        - 'HFU': high-flow uptake tissue - also known as *Patlak model*. Parameters: vp, PS
+        - 'HF': high-flow tissue - also known as *extended Tofts model*, *extended Patlak model* or *general kinetic model*. Params = (vp, PS, ve, )
+        - '2CUM': two-compartment uptake tissue. Parameters: Fp, vp, PS
+        - '2CXM': two-compartment exchange tissue. Parameters: Fp, vp, PS, ve
 
     See Also:
         `Liver`, `Kidney`
@@ -133,10 +148,10 @@ class Tissue(dc.Model):
 
         # Preset parameters
         if 'kinetics' in params:
-            if params['kinetics'] == '2CXM':
+            if params['kinetics'] == '2CXM': # TODO: change to 2CX
                 self.free = ['Fp','PS','vp','ve']
                 self.bounds = [0, [np.inf, np.inf, 1, 1]]
-            elif params['kinetics'] == '2CUM':
+            elif params['kinetics'] == '2CUM': # TODO: change to 2CU
                 self.free = ['Fp','PS','vp']
                 self.bounds = [0, [np.inf, np.inf, 1]]
             elif params['kinetics'] == 'HF':
@@ -172,8 +187,25 @@ class Tissue(dc.Model):
             raise ValueError('Please provide either an arterial sigal (aif) or an arterial concentration (ca).')  
         
         # Dependent parameters
-        self.Ktrans = self.PS*self.Fp/(self.PS+self.Fp)
-        self.v = self.vp+self.ve
+        if 'Ktrans' not in params.items():
+            self.Ktrans = self.PS*self.Fp/(self.PS+self.Fp)
+        if 'v' not in params.items():
+            self.v = self.vp+self.ve
+
+
+    def time(self):
+        """Array of time points.
+
+        Returns:
+            np.ndarray: time points in seconds.
+        """
+        if self.t is None:
+            if self.aif is None:
+                return self.dt*np.arange(np.size(self.ca))
+            else:
+                return self.dt*np.arange(np.size(self.aif))
+        else:
+            return self.t
 
 
     def conc(self, sum=True):
@@ -246,7 +278,10 @@ class Tissue(dc.Model):
         C = self.conc(sum=False)
         r1 = dc.relaxivity(self.field_strength, 'blood', self.agent)
         if self.water_exchange == 'fast':
-            R1 = self.R10 + r1*(C[0,:]+C[1,:])
+            if self.kinetics in ['FX', 'NX', 'U']:
+                R1 = self.R10 + r1*C
+            else:
+                R1 = self.R10 + r1*(C[0,:]+C[1,:])
         elif self.kinetics in ['2CXM', 'HF']:
             vb = self.vp/(1-self.Hct)
             R1b = self.R10b + r1*C[0,:]/vb
@@ -363,20 +398,7 @@ class Tissue(dc.Model):
                     return dc.signal_sr(R1, self.S0, self.TR, self.FA, self.TC, self.TP)
                 elif self.sequence == 'SS':
                     return dc.signal_ss(R1, self.S0, self.TR, self.FA)
-
-    def time(self):
-        """Array of time points.
-
-        Returns:
-            np.ndarray: time points in seconds.
-        """
-        if self.t is None:
-            if self.aif is None:
-                return self.dt*np.arange(np.size(self.ca))
-            else:
-                return self.dt*np.arange(np.size(self.aif))
-        else:
-            return self.t
+                
 
     def predict(self, xdata:np.ndarray)->np.ndarray:
         t = self.time()

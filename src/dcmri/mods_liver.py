@@ -15,6 +15,7 @@ class Liver(dc.Model):
         **Acquisition parameters**
 
         - **sequence** (str, default='SS'): imaging sequence.
+        - **t** (array-like, default=None): array of time points.
         - **dt** (float, optional): Sampling interval of the AIF in sec. 
         - **agent** (str, optional): Contrast agent generic name.
         - **field_strength** (float, optional): Magnetic field strength in T. 
@@ -204,6 +205,14 @@ class Liver(dc.Model):
             return t, dc.conc_liver(self.ca, 
                     self.ve, self.Te, self.De, khe, self.Th,
                     t=self.t, dt=self.dt, kinetics='IC', sum=sum)
+        
+        elif self.kinetics == 'IC-HF':
+            self.khe_f = self.khe
+            self.Th_f = self.Th
+            khe = self.khe*(1-self.Hct)
+            return t, dc.conc_liver(self.ca, 
+                self.ve, khe, self.Th,
+                t=self.t, dt=self.dt, kinetics='IC-HF', sum=sum)
 
     def relax(self):
         """Tissue relaxation rate
@@ -238,10 +247,18 @@ class Liver(dc.Model):
     
     def export_params(self):
         pars = {}
-        pars['Te']=["Extracellular transit time", self.Te, 'sec']
-        pars['De']=["Extracellular dispersion", self.De, '']
         pars['ve']=["Liver extracellular volume fraction", self.ve, 'mL/mL']
-        if self.kinetics=='stationary':
+        if self.kinetics=='IC-HF':
+            pars['khe']=["Hepatocellular uptake rate", self.khe, 'mL/sec/mL']
+            pars['Th']=["Hepatocellular transit time", self.Th, 'sec']
+            pars['kbh']=["Biliary excretion rate", (1-self.ve)/self.Th, 'mL/sec/mL']
+            pars['Khe']=["Hepatocellular tissue uptake rate", self.khe/self.ve, 'mL/sec/mL']
+            pars['Kbh']=["Biliary tissue excretion rate", 1/self.Th, 'mL/sec/mL']
+            if self.vol is not None:
+                pars['CL']=['Liver blood clearance', self.khe*self.vol, 'mL/sec']
+        elif self.kinetics=='stationary':
+            pars['Te']=["Extracellular transit time", self.Te, 'sec']
+            pars['De']=["Extracellular dispersion", self.De, '']
             pars['khe']=["Hepatocellular uptake rate", self.khe, 'mL/sec/mL']
             pars['Th']=["Hepatocellular transit time", self.Th, 'sec']
             pars['kbh']=["Biliary excretion rate", (1-self.ve)/self.Th, 'mL/sec/mL']
@@ -250,6 +267,8 @@ class Liver(dc.Model):
             if self.vol is not None:
                 pars['CL']=['Liver blood clearance', self.khe*self.vol, 'mL/sec']
         else:
+            pars['Te']=["Extracellular transit time", self.Te, 'sec']
+            pars['De']=["Extracellular dispersion", self.De, '']
             khe = [self.khe, self.khe_f]
             Kbh = [1/self.Th, 1/self.Th_f]
             khe_avr = np.mean(khe)
