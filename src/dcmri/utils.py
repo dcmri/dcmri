@@ -112,7 +112,7 @@ class Model:
         """Print a summary of the model parameters and their uncertainties.
 
         Args:
-            rount_to (int, optional): Round to how many digits. If this is not provided, the values are not rounded. Defaults to None.
+            round_to (int, optional): Round to how many digits. If this is not provided, the values are not rounded. Defaults to None.
             units (str, optional): Which unit system to use in the return values. Defaults to 'standard'.
         """
         pars = self.export_params()
@@ -142,16 +142,23 @@ class Model:
                 print(p[0] + ' ('+par+'): ' + str(v) + ' ' + p[2])
 
 
-    def get_params(self, *args):
+    def get_params(self, *args, round_to=None):
         """Get parameter values.
 
         Args:
             args (tuple): parameters to get
+            round_to (int, optional): Round to how many digits. If this is not provided, the values are not rounded. Defaults to None.
 
         Returns:
             list: values of parameter values
         """
-        return [getattr(self, a) for a in args]
+        pars = []
+        for a in args:
+            v = getattr(self, a)
+            if round_to is not None:
+                v = round(v, round_to)
+            pars.append(v)
+        return pars
     
     
     def _getflat(self, attr:np.ndarray=None)->np.ndarray:

@@ -1,6 +1,154 @@
 import math
+import sys
+import pickle
+
 import numpy as np
+
 import dcmri.utils as utils
+
+
+# filepaths need to be identified with importlib_resources
+# rather than __file__ as the latter does not work at runtime 
+# when the package is installed via pip install
+
+if sys.version_info < (3, 9):
+    # importlib.resources either doesn't exist or lacks the files()
+    # function, so use the PyPI version:
+    import importlib_resources
+else:
+    # importlib.resources has files(), so use that:
+    import importlib.resources as importlib_resources
+
+
+def fetch(dataset:str)->dict:
+    """Fetch a dataset included in dcmri
+
+    Args:
+        dataset (str): name of the dataset. See below for options.
+
+    Returns:
+        dict: Data as a dictionary. 
+
+    Notes:
+
+        The following datasets are currently available:
+
+        **tristan2scan**
+
+            **Background**: data are provided by the liver work package of the `TRISTAN project <https://www.imi-tristan.eu/liver>`_  which develops imaging biomarkers for drug safety assessment. The data and analysis was first presented at the ISMRM in 2024 (Min et al 2024, manuscript in press). 
+
+            The data were acquired in the aorta and liver of 10 healthy volunteers with dynamic gadoxetate-enhanced MRI, before and after administration of a drug (rifampicin) which is known to inhibit liver function. The assessments were done on two separate visits at least 2 weeks apart. On each visit, the volunteer had two scans each with a separate contrast agent injection of a quarter dose each. the scans were separated by a gap of about 1 hour to enable gadoxetate to clear from the liver. This design was deemed necessary for reliable measurement of excretion rate when liver function was inhibited.
+
+            The research question was to what extent rifampicin inhibits gadoxetate uptake rate from the extracellular space into the liver hepatocytes (khe, mL/min/100mL) and excretion rate from hepatocytes to bile (kbh, mL/100mL/min). 2 of the volunteers only had the baseline assessment, the other 8 volunteers completed the full study. The results showed consistent and strong inhibition of khe (95%) and kbh (40%) by rifampicin. This implies that rifampicin poses a risk of drug-drug interactions (DDI), meaning it can cause another drug to circulate in the body for far longer than expected, potentially causing harm or raising a need for dose adjustment.
+
+            **Data format**: a dictionary with two fields, one for each visit, labelled as 'baseline' and 'rifampicin'. Each of those is a dictionary with one field per subject, labelled as '001', '002' until '010'. Then for each visit and each subject the value is a dictionary containing xdata (tuple), ydata (tuple) and params (dictionary with experimental parameters such as sequence parameters and injection protocol). 
+
+            Please reference the following abstract when using these data:
+
+            Thazin Min, Marta Tibiletti, Paul Hockings, Aleksandra Galetin, Ebony Gunwhy, Gerry Kenna, Nicola Melillo, Geoff JM Parker, Gunnar Schuetz, Daniel Scotcher, John Waterton, Ian Rowe, and Steven Sourbron. *Measurement of liver function with dynamic gadoxetate-enhanced MRI: a validation study in healthy volunteers*. Proc Intl Soc Mag Reson Med, Singapore 2024.
+
+        **tristan1scan**
+
+            Data from the same study as those that produced **tristan2scan**, but this time only included the data from the first scan. These were used for a secondary objective to test if results are significantly improved by including the second scan.
+
+            Please reference the above abstract when using these data in publications.
+
+        **tristan6drugs**
+
+            **Background**: data are provided by the liver work package of the `TRISTAN project <https://www.imi-tristan.eu/liver>`_  which develops imaging biomarkers for drug safety assessment. The data and analysis were first published in Melillo et al (2023). 
+
+            The study presented here measured gadoxetate uptake and excretion in healthy rats before and after injection of 6 test drugs (up to 6 rats per drug). Studies were performed in preclinical MRI scanners at 3 different centers and 2 different field strengths. 
+            
+            Results demonstrated that two of the tested drugs (rifampicin and cyclosporine) showed strong inhibition of both uptake and excretion. One drug (ketoconazole) inhibited uptake but not excretion. Three drugs (pioglitazone, bosentan and asunaprevir) inhibited excretion but not uptake. 
+
+            **Data format**: The fetch function returns a list of dictionaries, one per scan. The dictionaries in the list contain the following items: 
+
+            - **time**: array of time points in sec
+            - **spleen**: array of spleen signals in arbitrary units
+            - **liver**: array of liver signals in arbitrary units.    
+            - **FA**: Flip angle in degrees
+            - **TR**: repretition time in sec
+            - **n0**: number of precontrast acquisitions        
+            - **study**: an integer identifying the substudy the scan was taken in
+            - **subject**: a study-specific identifier of the subject in the range 1-6.  
+            - **visit**: either 1 (baseline) or 2 (drug or vehicle/saline).
+            - **center**: center wehere the study was performed, either E, G or D.
+            - **field_strength**: B0-field of scanner on whuch the study was performed
+            - **substance**: what was injected, eg. saline, vehicle or drug name.
+            - **BAT**: Bolus arrival time
+            - **duration**: duration on the injection in sec.
+
+            Please reference the following paper when using these data:
+
+            Melillo N, Scotcher D, Kenna JG, Green C, Hines CDG, Laitinen I, Hockings PD, Ogungbenro K, Gunwhy ER, Sourbron S, et al. Use of In Vivo Imaging and Physiologically-Based Kinetic Modelling to Predict Hepatic Transporter Mediated Drug–Drug Interactions in Rats. Pharmaceutics. 2023; 15(3):896. `[DOI] <https://doi.org/10.3390/pharmaceutics15030896>`_ 
+
+            The data were first released as supplementary material in csv format with this paper on Zenodo. Use this DOI to reference the data themselves:
+
+            Gunwhy, E. R., & Sourbron, S. (2023). TRISTAN-RAT (v3.0.0). `Zenodo <https://doi.org/10.5281/zenodo.8372595>`_
+
+        **tristan_repro**
+
+            **Background**: data are provided by the liver work package of the `TRISTAN project <https://www.imi-tristan.eu/liver>`_  which develops imaging biomarkers for drug safety assessment. The data and analysis were first published in Gunwhy et al (2024). 
+
+            The study presented here aimed to determine the repreducibility and rpeatability of gadoxetate uptake and excretion measurements in healthy rats. Data were acquired in different centers and field strengths to identify contributing factors. Some of the studies involved repeat scans in the same subject. In some studies data on the second day were taken after adminstration of a drug (rifampicin) to test if effect sizes were reproducible.
+
+            **Data format**: The fetch function returns a list of dictionaries, one per scan. The dictionaries in the list contain the following items: 
+
+            - **time**: array of time points in sec
+            - **spleen**: array of spleen signals in arbitrary units
+            - **liver**: array of liver signals in arbitrary units.    
+            - **FA**: Flip angle in degrees
+            - **TR**: repretition time in sec
+            - **n0**: number of precontrast acquisitions        
+            - **study**: an integer identifying the substudy the scan was taken in
+            - **subject**: a study-specific identifier of the subject in the range 1-6.  
+            - **visit**: either 1 (baseline) or 2 (drug or vehicle/saline).
+            - **center**: center wehere the study was performed, either E, G or D.
+            - **field_strength**: B0-field of scanner on whuch the study was performed
+            - **substance**: what was injected, eg. saline, vehicle or drug name.
+            - **BAT**: Bolus arrival time
+            - **duration**: duration on the injection in sec.
+
+            Please reference the following paper when using these data:
+
+            Ebony R. Gunwhy, Catherine D. G. Hines, Claudia Green, Iina Laitinen, Sirisha Tadimalla, Paul D. Hockings, Gunnar Schütz, J. Gerry Kenna, Steven Sourbron, and John C. Waterton. Assessment of hepatic transporter function in rats using dynamic gadoxetate-enhanced MRI: A reproducibility study. In review.
+
+            The data were first released as supplementary material in csv format with this paper on Zenodo. Use this to reference the data themselves:
+
+            Gunwhy, E. R., Hines, C. D. G., Green, C., Laitinen, I., Tadimalla, S., Hockings, P. D., Schütz, G., Kenna, J. G., Sourbron, S., & Waterton, J. C. (2023). Rat gadoxetate MRI signal dataset for the IMI-WP2-TRISTAN Reproducibility study [Data set]. `Zenodo. <https://doi.org/10.5281/zenodo.7838397>`_
+
+
+    Example:
+
+    .. plot::
+        :include-source:
+        :context: close-figs
+
+        >>> import dcmri as dc
+
+        Use the AortaLiver model to fit the **tristan1scan** data:     
+
+        >>> data = dc.fetch('tristan1scan')
+
+        Fit the baseline visit for the first subject:
+
+        >>> data_subj = data['baseline']['001']
+        >>> model = dc.AortaLiver(**data_subj['params'])
+        >>> model.train(data_subj['xdata'], data_subj['ydata'], xtol=1e-3)
+
+        Plot the results to check that the model has fitted the data:
+
+        >>> model.plot(data_subj['xdata'], data_subj['ydata'])
+    """
+
+
+    f = importlib_resources.files('dcmri.datafiles')
+    datafile = str(f.joinpath(dataset + '.pkl'))
+
+    with open(datafile, 'rb') as fp:
+        data_dict = pickle.load(fp)
+
+    return data_dict
 
 
 
@@ -145,7 +293,7 @@ def ca_std_dose(agent:str)->float:
             'gadoterate',
             'gadoteridol',
             ]:
-        return 0.2      # mL/kg
+        return 0.2      # mL/kg  # 0.5 mmol/mL = 0.1 mmol/kg
     raise ValueError('No dosage data for contrast agent ' + agent)
 
 
@@ -210,6 +358,7 @@ def relaxivity(field_strength=3.0, tissue='plasma', agent='gadoxetate', type='T1
             },
             'gadodiamide': { #Omniscan
                 0.47: 4.4, 
+                1.0: 4.35, # Interpolated
                 1.5: 4.3,
                 3.0: 4.0,
                 4.7: 3.9,
@@ -314,8 +463,14 @@ def T1(field_strength=3.0, tissue='blood', Hct=0.45)->float:
             3.0: 0.993,  
         },
         'blood':{
+            1.0: 1.378, # Extrapolated
             1.5: 1.441,
             3.0: 1/(0.52 * Hct + 0.38),  # Lu MRM 2004
+        },
+        'spleen':{
+            4.7: 1/0.631,
+            7.0: 1/0.611,
+            9.0: 1/0.600,
         },
         'liver':{
             1.5: 0.602, # liver R1 in 1/sec (Waterton 2021)
@@ -325,8 +480,9 @@ def T1(field_strength=3.0, tissue='blood', Hct=0.45)->float:
             9.0: 1/0.920, # per sec - liver R1 (https://doi.org/10.1007/s10334-021-00928-x)
         },
         'kidney':{
-            # Reference values average over cortext and medulla from Cox et al
+            # Reference values average over cortex and medulla from Cox et al
             # https://academic.oup.com/ndt/article/33/suppl_2/ii41/5078406
+            1.0: 1.017, # Extrapolated
             1.5: (1.024+1.272)/2,
             3.0: (1.399+1.685)/2,
         },
@@ -397,52 +553,17 @@ def aif_parker(t, BAT:float=0.0)->np.ndarray:
     return pop_aif/1000 # convert to M
 
 
-# TODO: replace by conc_tissue()
-def _propagate_2cxm(t: np.ndarray,
-                   ca: np.ndarray,
-                   KP: float,
-                   KE: float,
-                   KB: float
-                   ) -> tuple[np.ndarray, np.ndarray]:
-    """Calculates propagators for individual compartments in the 2CXM.
 
-    For details and notations see appendix of Sourbron et al. Magn Reson Med 62:672–681 (2009).
-
-    Args:
-        t: time points (sec) where the input function is defined
-        ca: input function (mmol/mL)
-        KP: inverse plasma MTT (sec) = VP/(FP+PS)
-        KE: inverse extracellular MTT (sec) = VE/PS
-        KB: inverse blood MTT (sec) = VP/FP
-
-    Returns:
-        A tuple (cp, ce), where cp is the concentration in the plasma
-        compartment, and ce is the concentration in the extracellular
-        compartment. Both are in mmol/mL.
-    """
-    KT = KP + KE
-    sqrt = math.sqrt(KT**2-4*KE*KB)
-
-    Kpos = 0.5*(KT + sqrt)
-    Kneg = 0.5*(KT - sqrt)
-
-    cpos = utils.expconv(ca, 1/Kpos, t) # normalized
-    cneg = utils.expconv(ca, 1/Kneg, t)
-
-    Eneg = (Kpos - KB)/(Kpos - Kneg)
-
-    cp = (1-Eneg)*cpos + Eneg*cneg
-    ce = (cneg*Kpos - cpos*Kneg) / (Kpos - Kneg)
-
-    return cp, ce
-
-
-def aif_tristan_rat(t, BAT=4.6*60) -> np.ndarray:
+def aif_tristan_rat(t, 
+        BAT = 4.6*60,
+        duration = 30,   # sec
+    ) -> np.ndarray:
     """Population AIF model for rats measured with a standard dose of gadoxetate. 
 
     Args:
         t (array_like): time points in units of sec. 
         BAT (float, optional): Time in seconds before the bolus arrives. Defaults to 4.6 min. 
+        duration (float, optional): Duration of the injection. Defaults to 30s.
 
     Returns:
         np.ndarray: Concentrations in M for each time point in t. If t is a scalar, the return value is a scalar too.
@@ -479,7 +600,7 @@ def aif_tristan_rat(t, BAT=4.6*60) -> np.ndarray:
         >>> plt.show()
     """
     # Constants
-    duration = 30   # sec
+    
     dose = 0.0075   # mmol
 
     Fb = 2.27/60  # https://doi.org/10.1021/acs.molpharmaceut.1c00206
@@ -529,5 +650,48 @@ def aif_tristan_rat(t, BAT=4.6*60) -> np.ndarray:
     cp, ce = _propagate_2cxm(t, J/K, KP, KE, KB)
 
     return cp
+
+
+# TODO: replace by conc_tissue()
+def _propagate_2cxm(t: np.ndarray,
+                   ca: np.ndarray,
+                   KP: float,
+                   KE: float,
+                   KB: float
+                   ) -> tuple[np.ndarray, np.ndarray]:
+    """Calculates propagators for individual compartments in the 2CXM.
+
+    For details and notations see appendix of Sourbron et al. Magn Reson Med 62:672–681 (2009).
+
+    Args:
+        t: time points (sec) where the input function is defined
+        ca: input function (mmol/mL)
+        KP: inverse plasma MTT (sec) = VP/(FP+PS)
+        KE: inverse extracellular MTT (sec) = VE/PS
+        KB: inverse blood MTT (sec) = VP/FP
+
+    Returns:
+        A tuple (cp, ce), where cp is the concentration in the plasma
+        compartment, and ce is the concentration in the extracellular
+        compartment. Both are in mmol/mL.
+    """
+    KT = KP + KE
+    sqrt = math.sqrt(KT**2-4*KE*KB)
+
+    Kpos = 0.5*(KT + sqrt)
+    Kneg = 0.5*(KT - sqrt)
+
+    cpos = utils.expconv(ca, 1/Kpos, t) # normalized
+    cneg = utils.expconv(ca, 1/Kneg, t)
+
+    Eneg = (Kpos - KB)/(Kpos - Kneg)
+
+    cp = (1-Eneg)*cpos + Eneg*cneg
+    ce = (cneg*Kpos - cpos*Kneg) / (Kpos - Kneg)
+
+    return cp, ce
+
+
+
 
 

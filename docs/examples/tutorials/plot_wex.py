@@ -3,7 +3,7 @@
 An exploration of water exchange effects
 ========================================
 
-This example will explore the effect of water exchange in a standard two-compartmental tissue with extended Tofts kinetics. Data acquisition is modelled using the steady-state model of a spoiled gradient echo sequence.
+This tutorial will explore the effect of water exchange in a standard two-compartmental tissue with extended Tofts kinetics. Data acquisition is modelled using the steady-state model of a spoiled gradient echo sequence.
 
 The three tissue compartments involved are the blood, interstitium and tissue cells. The effect of water exchange between blood and interstitium (**transendothelial** water exchange) and between intersitium and tissue cells (**transcytolemmal** water exchange) is separately investigated. The water exchange in the blood compartment, particularly between plasma and red blood cells, is assumed to be in the fast exhange limit throughout. 
 """
@@ -53,7 +53,7 @@ ffx = dc.Tissue(aif=aif, t=tacq, **(const | ptruth)).predict(tacq)
 nnx = dc.Tissue(aif=aif, t=tacq, water_exchange='none', **(const | ptruth)).predict(tacq)
 
 # %% 
-# In order to simulate intermediate regimes, we need the more general model (AWX) that allows us to vary the values of the water permeabilities ``PSe`` and ``PSc`` across the endothelium and the membrane of the tissue cells, respectively. 
+# In order to simulate intermediate regimes, we need the more general model that allows us to vary the values of the water permeabilities ``PSe`` and ``PSc`` across the endothelium and the membrane of the tissue cells, respectively. 
 #
 # In the first instance we consider a (hypothetical) tissue without transendothelial water exchange, but fast transcytolemmal water exchange. In other words, the endothelium is impermeable to water (``PSe = 0``) and the cell membrane is fully transparent. The symbolic value ``PSc = np.inf`` is not allowed but we can set ``PSc`` to the very high value of 1000 mL water filtered per second by 1mL of tissue. This is indistinguishable from the fast water exchange limit ``PSc = np.inf`` (as could be verified by increasing the value even higher):
 
@@ -68,7 +68,6 @@ nfx = dc.Tissue(aif=aif, t=tacq, water_exchange='any', PSe=0, PSc=1000, **(const
 # %%
 
 # Signal with fast transendothelial water exchange, but without transcytolemmal water exchange
-PSe, PSc = 1000, 0
 fnx = dc.Tissue(aif=aif, t=tacq, water_exchange='any', PSe=1000, PSc=0, **(const | ptruth)).predict(tacq)
 
 # %%

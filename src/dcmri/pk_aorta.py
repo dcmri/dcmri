@@ -1,10 +1,87 @@
 import numpy as np
 import dcmri.pk as pk
+import dcmri.lib as lib
+
+
+def aif_tristan(
+        t:np.ndarray, 
+        agent = 'gadoterate',
+        dose = 0.2, 
+        rate = 3, 
+        BAT = 0, 
+        weight = 73, 
+        CO = 97, 
+        E = 0.07, 
+        Thl = 13,  
+        Dhl = 0.5,  
+        Tp = 25, 
+        Te = 350, 
+        Ee = 0.18, 
+        dtol = 0.01, 
+    )->np.ndarray:
+    """Arterial input function with default parameters for young healthy volunteers.
+
+    This AIF was measured in the TRISTAN project (Min et al 2024). The default values are for young healthy volunteers but since the AIF is built on a whole-body model of the circulation, they can be modified to generate virtual populations. 
+
+    Reference:
+    
+    Thazin Min, Marta Tibiletti, Paul Hockings, Aleksandra Galetin, Ebony Gunwhy, Gerry Kenna, Nicola Melillo, Geoff JM Parker, Gunnar Schuetz, Daniel Scotcher, John Waterton, Ian Rowe, and Steven Sourbron. *Measurement of liver function with dynamic gadoxetate-enhanced MRI: a validation study in healthy volunteers*. Proc Intl Soc Mag Reson Med, Singapore 2024.
+
+    Args:
+        t (np.ndarray): Array of time points
+        agent (str, optional): Contrast agent generic name. Defaults to 'gadoterate'.
+        dose (float, optional): Contrast agent dose in mL/kg. Defaults to 0.2.
+        rate (float, optional): Contrast agent injection rate in mL/sec. Defaults to 3.
+        BAT (float, optional): Bolus arrival time in sec. Defaults to 0.
+        weight (float, optional): Subject weight in kg. Defaults to 73.
+        CO (float, optional): Cardiac output in mL/sec. Defaults to 97.
+        E (float, optional): Body extraction fraction. Defaults to 0.07.
+        Thl (float, optional): Mean transit time of the heart-lung system in sec. Defaults to 13.
+        Dhl (float, optional): Transit time dispersion of the heart-lung systen. Defaults to 0.5.
+        Tp (float, optional): Plasma mean transit time in sec of the other organs. Defaults to 25.
+        Te (float, optional): Extravascular mean transit time in sec. Defaults to 350.
+        Ee (float, optional): Extraction fraction into the extravascular space. Defaults to 0.18.
+        dtol (float, optional): Dose tolerance. Defaults to 0.01.
+
+    Returns:
+        np.ndarray: Aorta concentrations in mmol/mL.
+
+    Example:
+
+        Generate AIFs with different levels of cardiac output:
+
+    .. plot::
+        :include-source:
+
+        import matplotlib.pyplot as plt
+        import dcmri as dc
+
+        # Time points in sec
+        t = np.arange(0, 180, 2.0)
+
+        # Plot aifs with different levels of cardiac output, including the default of 100mL/sec.
+        plt.plot(t/60, 1000*dc.aif_tristan(t, BAT=30), 'r-', label='AIF (default)')
+        plt.plot(t/60, 1000*dc.aif_tristan(t, BAT=30, CO=150), 'g-', label='AIF (increased cardiac output)')
+        plt.plot(t/60, 1000*dc.aif_tristan(t, BAT=30, CO=75), 'b-', label='AIF (reduced cardiac output)')
+        plt.xlabel('Time (min)')
+        plt.ylabel('Concentration (mmol/mL)')
+        plt.legend()
+        plt.show()    
+    """
+    conc = lib.ca_conc(agent)
+    Ji = lib.influx_step(t, weight, 
+            conc, dose, rate, BAT,
+    )
+    Jb = flux_aorta(Ji, t, E=E,
+            heartlung = ['chain', (Thl, Dhl)], 
+            organs=['2cxm', ([Tp, Te], Ee)],
+            tol=dtol,   
+    )
+    return Jb/CO
 
 
 
 def flux_aorta(J_vena:np.ndarray, 
-        
         t=None, dt=1.0, E=0.1, FFkl=0.0, FFk=0.5, 
         heartlung = ['pfcomp', (10, 0.2)],
         organs = ['2cxm', ([20, 120], 0.15)],

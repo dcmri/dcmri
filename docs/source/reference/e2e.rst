@@ -38,8 +38,8 @@ Multiple regions of interest
    :recursive:
 
    AortaLiver
+   AortaKidneys
    KidneyCortMed
-
 
 
 Two-scan data

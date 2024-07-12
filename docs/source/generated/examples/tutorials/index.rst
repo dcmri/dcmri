@@ -17,18 +17,18 @@ Tutorials
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="Use ~dcmri.aif_parker to generate a Parker AIF with different settings. ">
+    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the role of the arterial input function (AIF) in DC-MRI analysis, in...">
 
 .. only:: html
 
-  .. image:: /generated/examples/tutorials/images/thumb/sphx_glr_plot_aif_parker_thumb.png
+  .. image:: /generated/examples/tutorials/images/thumb/sphx_glr_plot_aif_thumb.png
     :alt:
 
-  :ref:`sphx_glr_generated_examples_tutorials_plot_aif_parker.py`
+  :ref:`sphx_glr_generated_examples_tutorials_plot_aif.py`
 
 .. raw:: html
 
-      <div class="sphx-glr-thumbnail-title">The Parker AIF</div>
+      <div class="sphx-glr-thumbnail-title">The role of Arterial Input Functions</div>
     </div>
 
 
@@ -51,7 +51,7 @@ Tutorials
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This example will explore the effect of water exchange in a standard two-compartmental tissue w...">
+    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the effect of water exchange in a standard two-compartmental tissue ...">
 
 .. only:: html
 
@@ -74,7 +74,7 @@ Tutorials
 .. toctree::
    :hidden:
 
-   /generated/examples/tutorials/plot_aif_parker
+   /generated/examples/tutorials/plot_aif
    /generated/examples/tutorials/plot_convolution
    /generated/examples/tutorials/plot_wex
 

@@ -89,6 +89,8 @@ def conc_kidney(ca:np.ndarray, *params, t=None, dt=1.0, sum=True, kinetics='2CF'
     """
     if kinetics == '2CF':
         return _conc_kidney_2cf(ca, *params, t=t, dt=dt, sum=sum)
+    elif kinetics == 'HF':
+        return _conc_kidney_hf(ca, *params, t=t, dt=dt, sum=sum)
     elif kinetics == 'FN':
         # TT = [15,30,60,90,150,300,600]
         return _conc_kidney_fn(ca, *params, t=t, dt=dt, sum=sum, **kwargs)
@@ -105,6 +107,15 @@ def _conc_kidney_2cf(ca, Fp, Tp, Ft, Tt, t=None, dt=1.0, sum=True):
         return Cp+Ct
     else:
         return np.stack((Cp,Ct))
+    
+def _conc_kidney_hf(ca, vp, Ft, Tt, t=None, dt=1.0, sum=True):
+    Cp = vp*ca
+    Ct = dc.conc_comp(Ft*ca, Tt, t=t, dt=dt)   
+    if sum:
+        return Cp+Ct
+    else:
+        return np.stack((Cp,Ct))
+
 
 
 def _conc_kidney_fn(ca, Fp, Tp, Ft, h, t=None, dt=1.0, sum=True, TT=None):

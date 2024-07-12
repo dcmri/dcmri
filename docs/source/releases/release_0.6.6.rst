@@ -21,5 +21,3 @@ Contributors
 1 reviewers added to this release (alphabetically):
 
 - Steven Sourbron (`@plaresmedima <https://github.com/plaresmedima>`_)
-
-_These lists are automatically generated, and may not be complete or may contain

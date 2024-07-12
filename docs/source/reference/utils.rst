@@ -4,6 +4,7 @@ Utilities
 
 .. currentmodule:: dcmri
 
+A collection of helper functions that may be useful for testing code, building examples, or to construct new models.
 
 Example datasets
 ================
@@ -27,7 +28,18 @@ Special functions
    :template: autosummary.rst
 
    influx_step
+
+
+Population AIFs
+===============
+
+
+.. autosummary::
+   :toctree: ../generated/api/
+   :template: autosummary.rst
+
    aif_parker
+   aif_tristan
    aif_tristan_rat
 
 
