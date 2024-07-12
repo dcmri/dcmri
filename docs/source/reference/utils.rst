@@ -4,6 +4,7 @@ Utilities
 
 .. currentmodule:: dcmri
 
+A collection of helper functions that may be useful for testing code, building examples, or to construct new models.
 
 Example datasets
 ================
