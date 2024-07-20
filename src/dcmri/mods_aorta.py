@@ -1190,7 +1190,7 @@ class AortaLiver2scan(AortaLiver):
 
         **Liver kinetic parameters**
 
-        - **kinetics** (str, default='stationary'). Liver kinetic model, either stationary or non-stationary.
+        - **kinetics** (str, default='non-stationary'). Liver kinetic model, either stationary or non-stationary.
         - **Hct** (float, default=0.45): Hematocrit.
         - **Tel** (float, default=30): Mean transit time for extracellular space of liver and gut.
         - **De** (float, default=0.85): Dispersion in the extracellular space of liver an gut, in the range [0,1].

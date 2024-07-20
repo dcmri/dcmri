@@ -33,7 +33,7 @@ def fetch(dataset:str)->dict:
 
         The following datasets are currently available:
 
-        **tristan2scan**
+        **tristan_rifampicin**
 
             **Background**: data are provided by the liver work package of the `TRISTAN project <https://www.imi-tristan.eu/liver>`_  which develops imaging biomarkers for drug safety assessment. The data and analysis was first presented at the ISMRM in 2024 (Min et al 2024, manuscript in press). 
 
@@ -41,17 +41,37 @@ def fetch(dataset:str)->dict:
 
             The research question was to what extent rifampicin inhibits gadoxetate uptake rate from the extracellular space into the liver hepatocytes (khe, mL/min/100mL) and excretion rate from hepatocytes to bile (kbh, mL/100mL/min). 2 of the volunteers only had the baseline assessment, the other 8 volunteers completed the full study. The results showed consistent and strong inhibition of khe (95%) and kbh (40%) by rifampicin. This implies that rifampicin poses a risk of drug-drug interactions (DDI), meaning it can cause another drug to circulate in the body for far longer than expected, potentially causing harm or raising a need for dose adjustment.
 
-            **Data format**: a dictionary with two fields, one for each visit, labelled as 'baseline' and 'rifampicin'. Each of those is a dictionary with one field per subject, labelled as '001', '002' until '010'. Then for each visit and each subject the value is a dictionary containing xdata (tuple), ydata (tuple) and params (dictionary with experimental parameters such as sequence parameters and injection protocol). 
+            **Data format**: The fetch function returns a list of dictionaries, one per subject visit. Each dictionary contains the following items: 
 
+            - **time1aorta**: array of signals in arbitrary units, for the aorta in the first scan.
+            - **time2aorta**: array of signals in arbitrary units, for the aorta in the second scan.
+            - **time1liver**: array of signals in arbitrary units, for the liver in the first scan.
+            - **time2liver**: array of signals in arbitrary units, for the liver in the second scan.
+            - **signal1aorta**: array of signals in arbitrary units, for the aorta in the first scan.
+            - **signal2aorta**: array of signals in arbitrary units, for the aorta in the second scan.
+            - **signal1liver**: array of signals in arbitrary units, for the liver in the first scan.
+            - **signal2liver**: array of signals in arbitrary units, for the liver in the second scan.  
+            - **weight**: subject weight in kg.
+            - **agent**: contrast agent generic name (str).
+            - **dose**: 2-element list with contrast agent doses of first scan and second scan in mL/kg.
+            - **rate**: contrast agent injection rate in mL/sec.
+            - **FA**: Flip angle in degrees
+            - **TR**: repretition time in sec
+            - **t0**: baseline length in subject       
+            - **subject**: Volunteer number. 
+            - **visit**: either 'baseline' or 'rifampicin'.
+            - **field_strength**: B0-field of scanner.
+            - **R10b**: precontrast R1 of blood (1st scan).
+            - **R10l**: precontrast R1 of liver (1st scan).
+            - **R102b**:  precontrast R1 of blood (2nd scan).
+            - **R102l**: precontrast R1 of liver (2nd scan).
+            - **Hct**: hematocrit.
+            - **vol**: liver volume in mL.
+        
             Please reference the following abstract when using these data:
 
             Thazin Min, Marta Tibiletti, Paul Hockings, Aleksandra Galetin, Ebony Gunwhy, Gerry Kenna, Nicola Melillo, Geoff JM Parker, Gunnar Schuetz, Daniel Scotcher, John Waterton, Ian Rowe, and Steven Sourbron. *Measurement of liver function with dynamic gadoxetate-enhanced MRI: a validation study in healthy volunteers*. Proc Intl Soc Mag Reson Med, Singapore 2024.
 
-        **tristan1scan**
-
-            Data from the same study as those that produced **tristan2scan**, but this time only included the data from the first scan. These were used for a secondary objective to test if results are significantly improved by including the second scan.
-
-            Please reference the above abstract when using these data in publications.
 
         **tristan6drugs**
 
@@ -61,7 +81,7 @@ def fetch(dataset:str)->dict:
             
             Results demonstrated that two of the tested drugs (rifampicin and cyclosporine) showed strong inhibition of both uptake and excretion. One drug (ketoconazole) inhibited uptake but not excretion. Three drugs (pioglitazone, bosentan and asunaprevir) inhibited excretion but not uptake. 
 
-            **Data format**: The fetch function returns a list of dictionaries, one per scan. The dictionaries in the list contain the following items: 
+            **Data format**: The fetch function returns a list of dictionaries, one per scan. Each dictionary contains the following items: 
 
             - **time**: array of time points in sec
             - **spleen**: array of spleen signals in arbitrary units
@@ -126,19 +146,41 @@ def fetch(dataset:str)->dict:
 
         >>> import dcmri as dc
 
-        Use the AortaLiver model to fit the **tristan1scan** data:     
+        Use the AortaLiver model to fit the **tristan_rifampicin** data:     
 
-        >>> data = dc.fetch('tristan1scan')
+        >>> data = dc.fetch('tristan_rifampicin')
 
-        Fit the baseline visit for the first subject:
+        Fit the first scan of the baseline visit for the first subject:
 
-        >>> data_subj = data['baseline']['001']
-        >>> model = dc.AortaLiver(**data_subj['params'])
-        >>> model.train(data_subj['xdata'], data_subj['ydata'], xtol=1e-3)
+        >>> data = data[0]
+
+        >>> model = dc.AortaLiver(
+        >>>     # Injection parameters
+        >>>     weight = data['weight'],
+        >>>     agent = data['agent'],
+        >>>     dose = data['dose'][0],
+        >>>     rate = data['rate'],
+        >>>     # Acquisition parameters
+        >>>     field_strength = data['field_strength'],
+        >>>     t0 = data['t0'],
+        >>>     TR = data['TR'],
+        >>>     FA = data['FA'],
+        >>>     # Signal parameters
+        >>>     R10b = data['R10b'],
+        >>>     R10l = data['R10l'],
+        >>>     # Tissue parameters
+        >>>     Hct = data['Hct'],
+        >>>     vol = data['vol'],
+        >>> )
+
+        >>> xdata = (data['time1aorta'], data['time1liver'])
+        >>> ydata = (data['signal1aorta'], data['signal1liver'])
+        
+        >>> model.train(xdata, ydata, xtol=1e-3)
 
         Plot the results to check that the model has fitted the data:
 
-        >>> model.plot(data_subj['xdata'], data_subj['ydata'])
+        >>> model.plot(xdata, ydata)
     """
 
 

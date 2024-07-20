@@ -17,23 +17,6 @@ Use cases
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of ~dcmri.AortaLiver2scan for joint fitting of aorta and liver...">
-
-.. only:: html
-
-  .. image:: /generated/examples/use_cases/images/thumb/sphx_glr_plot_tristan_volunteers_2scan_thumb.png
-    :alt:
-
-  :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers_2scan.py`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">The TRISTAN experimental medicine study (2 scan protocol)</div>
-    </div>
-
-
-.. raw:: html
-
     <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of ~dcmri.AortaLiver for joint fitting of aorta and liver sign...">
 
 .. only:: html
@@ -46,6 +29,23 @@ Use cases
 .. raw:: html
 
       <div class="sphx-glr-thumbnail-title">The TRISTAN experimental medicine study (1 scan protocol)</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of ~dcmri.AortaLiver2scan for joint fitting of aorta and liver...">
+
+.. only:: html
+
+  .. image:: /generated/examples/use_cases/images/thumb/sphx_glr_plot_tristan_volunteers_2scan_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers_2scan.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">The TRISTAN experimental medicine study (2 scan protocol)</div>
     </div>
 
 
@@ -74,7 +74,7 @@ Use cases
 .. toctree::
    :hidden:
 
-   /generated/examples/use_cases/plot_tristan_volunteers_2scan
    /generated/examples/use_cases/plot_tristan_volunteers
+   /generated/examples/use_cases/plot_tristan_volunteers_2scan
    /generated/examples/use_cases/plot_tristan6drugs
 

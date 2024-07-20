@@ -14,24 +14,24 @@ Examples using ``dcmri.Model.print_params``
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of ~dcmri.Liver for fitting of signals measured in liver. The ...">
+    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of ~dcmri.AortaLiver2scan for joint fitting of aorta and liver...">
 
 .. only:: html
 
-  .. image:: /generated/examples/use_cases/images/thumb/sphx_glr_plot_tristan6drugs_thumb.png
+  .. image:: /generated/examples/use_cases/images/thumb/sphx_glr_plot_tristan_volunteers_2scan_thumb.png
     :alt:
 
-  :ref:`sphx_glr_generated_examples_use_cases_plot_tristan6drugs.py`
+  :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers_2scan.py`
 
 .. raw:: html
 
-      <div class="sphx-glr-thumbnail-title">The TRISTAN 6 compound study</div>
+      <div class="sphx-glr-thumbnail-title">The TRISTAN experimental medicine study (2 scan protocol)</div>
     </div>
 
 
 .. only:: not html
 
- * :ref:`sphx_glr_generated_examples_use_cases_plot_tristan6drugs.py`
+ * :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers_2scan.py`
 
 .. raw:: html
 
