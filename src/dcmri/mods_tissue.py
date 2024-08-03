@@ -73,7 +73,7 @@ class Tissue(dc.Model):
 
     Example:
 
-        Fit extended Tofts model to data.
+        Single time-curve analysis: fit extended Tofts model to data.
 
     .. plot::
         :include-source:
@@ -399,7 +399,6 @@ class Tissue(dc.Model):
                 elif self.sequence == 'SS':
                     return dc.signal_ss(R1, self.S0, self.TR, self.FA)
                 
-
     def predict(self, xdata:np.ndarray)->np.ndarray:
         t = self.time()
         if np.amax(xdata) > np.amax(t):
@@ -418,7 +417,7 @@ class Tissue(dc.Model):
             raise NotImplementedError('Signal model ' + self.sequence + 'is not (yet) supported.') 
         self.S0 = np.mean(ydata[:self.n0]) / Sref
         return dc.train(self, xdata, ydata, **kwargs)
-    
+        
     def export_params(self):
         vb = self.vp/(1-self.Hct)
         pars = {

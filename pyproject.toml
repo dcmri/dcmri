@@ -9,6 +9,7 @@ name = "dcmri"
 version = "0.6.7"
 dependencies = [
   'importlib-resources>=1.1.0',
+  'tqdm',
   'numpy',
   'scipy',
   'matplotlib',

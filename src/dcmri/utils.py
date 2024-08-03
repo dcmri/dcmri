@@ -5,7 +5,7 @@ import math
 import numpy as np
 from scipy.special import gamma
 from scipy.interpolate import CubicSpline
-from scipy.optimize import curve_fit as scipy_curve_fit
+from scipy.optimize import curve_fit
 
 
 try: 
@@ -50,6 +50,7 @@ class Model:
             Model: A reference to the model instance.
         """
         return train(self, xdata, ydata, **kwargs)
+
 
     def plot(self, xdata, ydata, xlim=None, testdata=None, fname=None, show=True):
         """Plot the model fit against data.
@@ -185,8 +186,8 @@ class Model:
                 v = np.reshape(vals[i:i+n], np.shape(v))
                 i+=n
             setattr(self, p, v)
+                
 
-     
     def _x_scale(self):
         n = len(self.free)
         xscale = np.ones(n)
@@ -218,38 +219,57 @@ class Model:
         return pars
 
 
-    # rename to train_array
-    def _fit_image(self, imgs:np.ndarray, xdata=None, xtol=1e-3, bounds=False, parallel=True, **kwargs):
-        """Fit a single-pixel model pixel-by-pixel to a 2D or 3D image"""
-        
-        # Reshape to (x,t)
-        shape = imgs.shape
-        imgs = imgs.reshape((-1,shape[-1]))
-        
-        # Perform the fit pixelwise
-        if parallel:
-            args = [(xdata, imgs[x,:], xtol, bounds, kwargs) for x in range(imgs.shape[0])]
-            pool = multiprocessing.Pool(processes=num_workers)
-            fit_pars = pool.map(self.train, args)
-            pool.close()
-            pool.join()
-        else: # for debugging
-            fit_pars = [self.train((xdata, imgs[x,:], xtol, bounds, kwargs)) for x in range(imgs.shape[0])]
+def _fit_pixel(xdata, ydata, model, params, kwargs):
+    mdl = model(**params)
+    mdl.train(xdata, ydata, **kwargs)
+    return mdl.export_params()
 
-        # Create output arrays
-        npars = len(fit_pars[0])
-        fit = np.empty(imgs.shape)
-        par = np.empty((imgs.shape[0], npars))
-        for x, p in enumerate(fit_pars):
-            fit[x,:] = self.predict(xdata, *p)
-            par[x,:] = p
 
-        # Return in original shape
-        fit = fit.reshape(shape)
-        par = par.reshape(shape[:-1] + (npars,))
-        
-        return fit, par
+def fit(xdata, ydata, model, params=None, parallel=True, **kwargs):
+    
+    # Reshape to (x,t)
+    shape = ydata.shape
+    ydata = np.reshape(ydata, (-1,shape[-1]))
+    if np.size(xdata) == np.size(ydata):
+        xdata = np.reshape(xdata, (-1,shape[-1]))
+    
+    # Perform the fit pixelwise
+    if not parallel: # for debugging
+        par = []
+        for x in range(ydata.shape[0]):
+            if params is None:
+                params_x = {}
+            elif isinstance(params, dict):
+                params_x = params
+            else:
+                params_x = params[x]
+            args_x = (xdata[x,:], ydata[x,:], model, params_x, kwargs)
+            par_x = _fit_pixel(*args_x)
+            par.append(par_x)
+    else:
+        args = []
+        for x in range(ydata.shape[0]):
+            if params is None:
+                params_x = {}
+            elif isinstance(params, dict):
+                params_x = params
+            else:
+                params_x = params[x]
+            args_x = (xdata[x,:], ydata[x,:], model, params_x, kwargs)
+            args.append(args_x)
+        pool = multiprocessing.Pool(processes=num_workers)
+        par = pool.map(_fit_pixel, args)
+        pool.close()
+        pool.join()
 
+    # Create output arrays
+    pars = {}
+    sdev = {}
+    for p in par[0].keys():
+        pars[p] = np.array([par_x[p][1] for par_x in par]).reshape(shape[:-1])
+        sdev[p] = np.array([par_x[p][3] for par_x in par]).reshape(shape[:-1])
+    
+    return pars, sdev
 
 
 def train(model:Model, xdata, ydata, **kwargs):
@@ -269,7 +289,7 @@ def train(model:Model, xdata, ydata, **kwargs):
 
     p0 = model._getflat()
     try:
-        pars, model.pcov = scipy_curve_fit(
+        pars, model.pcov = curve_fit(
             fit_func, None, y, p0, 
             bounds=model.bounds, #x_scale=model._x_scale(),
             **kwargs)
@@ -812,24 +832,4 @@ def nexpconv(n, T, t):
             g = g*u + g1*(1-u)
     return g
 
-
-def test_curve_fit():
-    def third_order(x, a, b, c, d, add=2):
-        return a + b*x + c*x**2 + (d+add)*x**3
-    nx = 5
-    x = np.linspace(0,1,nx)
-    y = third_order(x, 2, 3, 4, 5, add=5)
-    p0 = [1,1,1,1]
-    p, pcov = curve_fit(third_order, x, y, 
-        p0, 
-        kwargs = {'add':5},
-        pfix = [0,0,0,0],
-        xrange = [0,1.0], # with nx=5 and xrange = [0.3,1.0] this runs into RuntimeError
-        xvalid = [1,1,0,0,1],
-        bounds = (
-            [0,0,0,0],
-            [6,6,6,6],
-        ), 
-    )
-    print(p)
 

@@ -2,8 +2,41 @@ import numpy as np
 import dcmri as dc
 
 
+def test_mods_tissue_pixel():
+
+    # Create data
+    n=64
+    time, signal, gt = dc.fake_brain(n=n, CNR=100)
+    aa = dc.shepp_logan(n=n)['anterior artery']
+    aif = [np.mean(signal[:,:,i][aa==1]) for i in range(time.size)]
+
+    # Define parameters for each pixel
+    params = [
+        {   'aif': aif,
+            'dt': time[1],
+            'agent': 'gadodiamide',
+            'TR': 0.005,
+            'FA': 20,
+            'n0': 15,
+            'kinetics': '2CXM',
+            'R10': 1/T1,      
+        } 
+        for T1 in np.nditer(gt['T1'])
+    ]
+    
+    # Perform fit
+    pars = dc.fit(time, signal, dc.Tissue, params, xtol=1e-3) 
+
+    #pars = dc.Tissue().fit_array(time, signal, params, xtol=1e-3)  
+
+
+
 def test_mods_tissue():
+
+    # Create data
     time, aif, roi, gt = dc.fake_tissue(CNR=50)
+
+    # Train model
     model = dc.Tissue(
         aif = aif,
         dt = time[1],
@@ -13,6 +46,8 @@ def test_mods_tissue():
         n0 = 15,
     )
     model.train(time, roi)
+
+    # Display results
     model.plot(time, roi, testdata=gt, show=False)
 
 
@@ -144,12 +179,13 @@ def test_mods_kidney_cort_med():
 
 if __name__ == "__main__":
 
-    test_mods_tissue()
-    test_mods_aorta()
-    test_mods_aorta_liver()
-    test_mods_aorta_liver2scan()
-    test_mods_liver()
-    test_mods_kidney()
-    test_mods_kidney_cort_med()
+    test_mods_tissue_pixel()
+    # test_mods_tissue()
+    # test_mods_aorta()
+    # test_mods_aorta_liver()
+    # test_mods_aorta_liver2scan()
+    # test_mods_liver()
+    # test_mods_kidney()
+    # test_mods_kidney_cort_med()
 
     print('All mods tests passed!!')

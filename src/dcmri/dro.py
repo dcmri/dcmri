@@ -1,5 +1,139 @@
+from tqdm import tqdm
 import numpy as np
 import dcmri as dc
+
+
+def fake_brain(
+        n = 192,
+        tacq = 180.0, 
+        dt = 1.5,
+        BAT = 20,
+        Tav = 8,
+        field_strength = 3.0,
+        agent = 'gadodiamide', 
+        Hct = 0.45,
+        R10b = 1/dc.T1(3.0,'blood'),
+        S0 = 150,
+        sequence = 'SS',    
+        TR = 0.005,
+        FA = 20,
+        TC = 0.2,
+        CNR = np.inf,
+        dt_sim = 0.1,
+    ):
+    """Synthetic brain images data generated using Parker's AIF, the Shepp-Logan phantom and a two-compartment exchange tissue.
+
+    Args:
+        n (int, optional): matrix size. Defaults to 192.
+        tacq (float, optional): Duration of the acquisition in sec. Defaults to 180.
+        dt (float, optional): Sampling inteval in sec. Defaults to 1.5.
+        BAT (int, optional): Bolus arrival time in sec. Defaults to 20.
+        Tav (float, optional): Arterio-venous transit time. Defaults to 8 sec.
+        field_strength (float, optional): B0 field in T. Defaults to 3.0.
+        agent (str, optional): Contrast agent generic name. Defaults to 'gadodiamide'.
+        Hct (float, optional): Hematocrit. Defaults to 0.45.
+        R10b (_type_, optional): Precontrast relaxation rate for blood in 1/sec. Defaults to 1/dc.T1(3.0, 'blood').
+        S0 (int, optional): Signal scaling factor for tissue (arbitrary units). Defaults to 150.
+        sequence (str, optional): Scanning sequences, either steady-state ('SS') or saturation-recovery ('SR')
+        TR (float, optional): Repetition time in sec. Defaults to 0.005.
+        FA (int, optional): Flip angle. Defaults to 20.
+        TC (float, optional): time to center of k-space in SR sequence. This is ignored when sequence='SS'. efaults to 0.2 sec.
+        CNR (float, optional): Contrast-to-noise ratio, define as the ratio of signal-enhancement in the AIF to noise. Defaults to np.inf.
+        dt_sim (float, optional): Sampling inteval of the forward modelling in sec. Defaults to 0.1.
+
+    Returns: 
+        tuple: time, signal, gt
+
+        - **time**: array of time points.
+        - **signal**: 3D array of pixel sigals, with dimensions (x,y,t).
+        - **gt**: dictionary with ground truth values for concentrations and tissue parameters.
+
+    Example:
+
+        >>> import matplotlib.pyplot as plt
+        >>> from matplotlib.animation import ArtistAnimation
+        >>> import dcmri as dc
+
+        Generate data:
+
+        >>> time, signal, gt = dc.fake_brain(n=64, CNR=100)
+
+        Display as animation:
+
+        >>> fig, ax = plt.subplots()
+        >>> ims = []
+        >>> for i in range(time.size):
+        >>>     im = ax.imshow(signal[:,:,i], cmap='magma', animated=True, vmin=0, vmax=30)
+        >>>     ims.append([im])
+        >>> ani = ArtistAnimation(
+        >>>     fig, ims, interval=50, blit=True,
+        >>>     repeat_delay=0)
+        >>> plt.show()
+
+        .. image:: ../../_static/animations/fake_brain.gif
+            :alt: Example animation
+        
+    """
+    # Parameter maps
+    roi = dc.shepp_logan(n=n)
+    im = dc.shepp_logan('T1', 'PD', 'BF', 'BV', 'PS', 'IV', n=n)
+
+    # Input
+    t = np.arange(0, tacq+dt, dt_sim)
+    cp = dc.aif_parker(t, BAT)
+
+    # Arterial signal
+    rp = dc.relaxivity(field_strength, 'plasma', agent)
+    R1b = R10b + rp*cp*(1-Hct)
+    if sequence=='SS':
+        aif = dc.signal_ss(R1b, S0, TR, FA)
+    elif sequence=='SR':
+        aif = dc.signal_src(R1b, S0, TC)
+    sdev = (np.amax(aif)-aif[0])/CNR
+    time = np.arange(0, tacq, dt)
+
+    # Output
+    conc = np.zeros((n,n,t.size))
+    signal = np.zeros((n,n,time.size))
+    
+    # Tissue signal
+    for i in tqdm(range(n)):
+        for j in range(n):
+
+            if roi['background'][i,j]:
+                continue
+
+            # Pixel concentration
+            if roi['anterior artery'][i,j]:
+                C = cp.copy()
+            elif roi['sagittal sinus'][i,j]:
+                C = dc.flux_comp(cp, Tav, dt=dt_sim)
+            else:
+                Fp = im['BF'][i,j]*(1-Hct)
+                vp = im['BV'][i,j]*(1-Hct)
+                PS = im['PS'][i,j]
+                ve = im['IV'][i,j]
+                C = dc.conc_tissue(cp, Fp, vp, PS, ve, dt=dt_sim, kinetics='2CX')
+
+            # Pixel signal
+            R1 = 1/im['T1'][i,j] + rp*C
+            if sequence=='SS':
+                sig = dc.signal_ss(R1, S0*im['PD'][i,j], TR, FA)
+            elif sequence=='SR':
+                sig = dc.signal_sr(R1, S0*im['PD'][i,j], TR, FA, TC)
+            sig = dc.sample(time, t, sig, dt)
+            sig = dc.add_noise(sig, sdev)
+                               
+            # Save results
+            conc[i,j,:] = C
+            signal[i,j,:] = sig
+
+    gt = {'t':t, 'cp':cp, 'C':conc, 'cb':cp*(1-Hct),
+          'Fp':im['BF']*(1-Hct), 'vp':im['BV']*(1-Hct), 
+          'PS':im['PS'], 've':im['IV'], 'T1':im['T1'],
+          'TR':TR, 'FA':FA, 'S0':S0}
+    
+    return time, signal, gt
 
 
 
@@ -280,5 +414,4 @@ def fake_kidney_cortex_medulla(
     roim = dc.add_noise(roim, sdev)
     gt = {'t':t, 'cp':cp, 'Cc':Cc, 'Cm':Cm, 'cb':cp*(1-Hct)}
     return time, aif, (roic, roim), gt
-
 

@@ -61,7 +61,7 @@ def _signal_ss(R1, Sinf, TR, FA)->np.ndarray:
     cFA = np.cos(FA*np.pi/180)
     return Sinf * (1-E) / (1-cFA*E)
 
-def _signal_ss_fex(v, R1, S0:float, TR:float, FA:float):
+def _signal_ss_fex(v, R1, S0, TR:float, FA:float):
     if np.size(R1) == np.size(v):
         R1 = np.sum(np.multiply(v,R1))
         return _signal_ss(R1, S0, TR, FA)
@@ -71,7 +71,7 @@ def _signal_ss_fex(v, R1, S0:float, TR:float, FA:float):
         R1fex += v[c]*R1[c,...]
     return _signal_ss(R1fex, S0, TR, FA)
 
-def _signal_ss_nex(v, R1:np.ndarray, S0:float, TR:float, FA:float):
+def _signal_ss_nex(v, R1:np.ndarray, S0, TR:float, FA:float):
     if np.size(R1) == np.size(v):
         S = signal_ss(R1, S0, TR, FA)
         return np.sum(np.multiply(v,S)) 
