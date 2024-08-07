@@ -140,3 +140,4 @@ def autodoc_skip_member(app, what, name, obj, skip, options):
  
 def setup(app):
     app.connect('autodoc-skip-member', autodoc_skip_member)
+    app.add_css_file("custom.css")

@@ -22,9 +22,6 @@ These are the current developers of dcmri:
      <div class="team-member-handle">@plaresmedima</div>
    </div>
 
-
-.. raw:: html
-
    <div class="team-member">
      <a href="https://github.com/EbonyGunwhy" class="team-member-name">
         <div class="team-member-photo">
@@ -36,8 +33,5 @@ These are the current developers of dcmri:
         </div>
         Ebony Gunwhy
      </a>
-     <div class="team-member-handle">@bonyGunwhy</div>
+     <div class="team-member-handle">@EbonyGunwhy</div>
    </div>
-
-
-
