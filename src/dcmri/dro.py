@@ -20,6 +20,7 @@ def fake_brain(
         TC = 0.2,
         CNR = np.inf,
         dt_sim = 0.1,
+        verbose = 0,
     ):
     """Synthetic brain images data generated using Parker's AIF, the Shepp-Logan phantom and a two-compartment exchange tissue.
 
@@ -40,6 +41,7 @@ def fake_brain(
         TC (float, optional): time to center of k-space in SR sequence. This is ignored when sequence='SS'. efaults to 0.2 sec.
         CNR (float, optional): Contrast-to-noise ratio, define as the ratio of signal-enhancement in the AIF to noise. Defaults to np.inf.
         dt_sim (float, optional): Sampling inteval of the forward modelling in sec. Defaults to 0.1.
+        verbose (int, optional): if set to 0, no feedback is given during the computation. With verbose=1, an progress bar is shown. Defaults to 0.
 
     Returns: 
         tuple: time, signal, gt
@@ -56,7 +58,7 @@ def fake_brain(
 
         Generate data:
 
-        >>> time, signal, gt = dc.fake_brain(n=64, CNR=100)
+        >>> time, signal, aif, gt = dc.fake_brain(n=64, CNR=100)
 
         Display as animation:
 
@@ -91,13 +93,20 @@ def fake_brain(
         aif = dc.signal_src(R1b, S0, TC)
     sdev = (np.amax(aif)-aif[0])/CNR
     time = np.arange(0, tacq, dt)
+    aif = dc.sample(time, t, aif, dt)
 
     # Output
     conc = np.zeros((n,n,t.size))
     signal = np.zeros((n,n,time.size))
+    signal_noisefree = np.zeros((n,n,time.size))
     
     # Tissue signal
-    for i in tqdm(range(n)):
+    if verbose==0:
+        iter = range(n)
+    else:
+        iter = tqdm(range(n), desc='Generating fake brain data')
+        
+    for i in iter:
         for j in range(n):
 
             if roi['background'][i,j]:
@@ -121,19 +130,22 @@ def fake_brain(
                 sig = dc.signal_ss(R1, S0*im['PD'][i,j], TR, FA)
             elif sequence=='SR':
                 sig = dc.signal_sr(R1, S0*im['PD'][i,j], TR, FA, TC)
-            sig = dc.sample(time, t, sig, dt)
-            sig = dc.add_noise(sig, sdev)
+            sig_noisefree = dc.sample(time, t, sig, dt)
+            sig = dc.add_noise(sig_noisefree, sdev)
                                
             # Save results
             conc[i,j,:] = C
             signal[i,j,:] = sig
+            signal_noisefree[i,j,:] = sig_noisefree
 
-    gt = {'t':t, 'cp':cp, 'C':conc, 'cb':cp*(1-Hct),
+    gt = {'t':t, 'cp':cp, 'C':conc, 'cb':cp*(1-Hct), 
+          'signal': signal_noisefree,
           'Fp':im['BF']*(1-Hct), 'vp':im['BV']*(1-Hct), 
-          'PS':im['PS'], 've':im['IV'], 'T1':im['T1'],
-          'TR':TR, 'FA':FA, 'S0':S0}
+          'PS':im['PS'], 've':im['IV'], 
+          'T1':im['T1'], 'PD':im['PD'],
+          'TR':TR, 'FA':FA, 'S0':S0*im['PD']}
     
-    return time, signal, gt
+    return time, signal, aif, gt
 
 
 

@@ -22,10 +22,12 @@
       ~AortaLiver2scan.cost
       ~AortaLiver2scan.export_params
       ~AortaLiver2scan.get_params
+      ~AortaLiver2scan.load
       ~AortaLiver2scan.plot
       ~AortaLiver2scan.predict
       ~AortaLiver2scan.print_params
       ~AortaLiver2scan.relax
+      ~AortaLiver2scan.save
       ~AortaLiver2scan.train
    
    

@@ -6,7 +6,7 @@ import dcmri as dc
 
 def fake_brain():
 
-    time, signal, gt = dc.fake_brain(n=64, tacq=90, CNR=100)
+    time, signal, aif, gt = dc.fake_brain(n=64, tacq=90, CNR=100)
 
     fig, ax = plt.subplots()
     ims = []

@@ -22,10 +22,12 @@
       ~AortaKidneys.cost
       ~AortaKidneys.export_params
       ~AortaKidneys.get_params
+      ~AortaKidneys.load
       ~AortaKidneys.plot
       ~AortaKidneys.predict
       ~AortaKidneys.print_params
       ~AortaKidneys.relax
+      ~AortaKidneys.save
       ~AortaKidneys.train
    
    

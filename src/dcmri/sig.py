@@ -1,5 +1,6 @@
 import math
 from scipy.linalg import expm
+
 import numpy as np
 
 
@@ -485,41 +486,3 @@ def conc_lin(S, T10, r1=0.005, n0=1):
     R10 = 1/T10
     R1 = R10*S/Sb	#relaxation rate in 1/msec
     return (R1 - R10)/r1 
-
-
-def sample(t, tp, Sp, dt=None)->np.ndarray: 
-    """Sample a signal at given time points.
-
-    Args:
-        t (array-like): The time points at which to evaluate the signal.
-        tp (array-like): the time points of the signal to be sampled.
-        Sp (array-like): the values of the signal to be sampled. Values that are outside of the range are set to zero.
-        dt (float, optional): sampling interval. If this is not provided, linear interpolation between the data points is used.  Defaults to None.
-
-    Returns:
-        np.ndarray: Signals sampled at times t.
-    """
-    if dt is None:#
-        return np.interp(t, tp, Sp, left=0, right=0)
-    Ss = np.zeros(len(t)) 
-    for k, tk in enumerate(t):
-        data = Sp[(tp >= tk) & (tp < tk+dt)]
-        if data.size > 0:
-            Ss[k] = np.mean(data)
-    return Ss 
-
-
-def add_noise(signal, sdev:float)->np.ndarray:
-    """Add noise to an MRI magnitude signal.
-
-    Args:
-        signal (array-like): Signal values.
-        sdev (float): Standard deviation of the noise.
-
-    Returns:
-        np.ndarray: signal with noise added.
-    """
-    noise_x = np.random.normal(0, sdev, signal.size)
-    noise_y = np.random.normal(0, sdev, signal.size)
-    signal = np.sqrt((signal+noise_x)**2 + noise_y**2)
-    return signal

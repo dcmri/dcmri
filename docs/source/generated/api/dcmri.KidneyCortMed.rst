@@ -22,9 +22,11 @@
       ~KidneyCortMed.cost
       ~KidneyCortMed.export_params
       ~KidneyCortMed.get_params
+      ~KidneyCortMed.load
       ~KidneyCortMed.plot
       ~KidneyCortMed.predict
       ~KidneyCortMed.print_params
+      ~KidneyCortMed.save
       ~KidneyCortMed.time
       ~KidneyCortMed.train
    

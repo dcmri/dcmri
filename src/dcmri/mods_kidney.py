@@ -6,7 +6,7 @@ from scipy.stats import rv_histogram
 
 
 class Kidney(dc.Model):
-    """Delayed two-compartment filtration model with fast water exchange acquired with a steady-state sequence.
+    """General model for whole kidney signals.
 
         **Input function**
 
@@ -93,13 +93,13 @@ class Kidney(dc.Model):
 
         >>> params['kinetics'] = '2CFM'
         >>> model = dc.Kidney(**params).train(time, roi)
-        >>> model.plot(time, roi, testdata=gt)
+        >>> model.plot(time, roi, ref=gt)
 
         Repeat the fit using a free nephron model:
 
         >>> params['kinetics'] = 'FN'
         >>> model = dc.Kidney(**params).train(time, roi)
-        >>> model.plot(time, roi, testdata=gt)
+        >>> model.plot(time, roi, ref=gt)
     """ 
 
     def __init__(self, **params):
@@ -298,7 +298,7 @@ class Kidney(dc.Model):
     def plot(self, 
                 xdata:tuple[np.ndarray, np.ndarray], 
                 ydata:tuple[np.ndarray, np.ndarray],  
-                testdata=None, xlim=None, fname=None, show=True):
+                ref=None, xlim=None, fname=None, show=True):
         time = self.time()
         C = self.conc(sum=True)
         if xlim is None:
@@ -310,9 +310,9 @@ class Kidney(dc.Model):
         ax0.set(xlabel='Time (min)', ylabel='MRI signal (a.u.)', xlim=np.array(xlim)/60)
         ax0.legend()
         ax1.set_title('Reconstruction of concentrations.')
-        if testdata is not None:
-            ax1.plot(testdata['t']/60, 1000*testdata['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-            ax1.plot(testdata['t']/60, 1000*testdata['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
+        if ref is not None:
+            ax1.plot(ref['t']/60, 1000*ref['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
+            ax1.plot(ref['t']/60, 1000*ref['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
         ax1.plot(time/60, 1000*C, linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
         ax1.plot(time/60, 1000*self.ca, linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
         ax1.set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=np.array(xlim)/60)
@@ -329,7 +329,7 @@ class Kidney(dc.Model):
 
 class KidneyCortMed(dc.Model):
     """
-    Corticomedullary multi-compartment model in fast water exchange acquired with a saturation-recovery sequence.
+    General model for renal cortico-medullary data.
 
         **Kinetic parameters**
 
@@ -414,7 +414,7 @@ class KidneyCortMed(dc.Model):
 
         Plot the reconstructed signals (left) and concentrations (right) and compare the concentrations against the noise-free ground truth:
 
-        >>> model.plot(time, roi, testdata=gt)
+        >>> model.plot(time, roi, ref=gt)
     """ 
 
 
@@ -565,7 +565,7 @@ class KidneyCortMed(dc.Model):
 
 
     def plot(self, xdata:np.ndarray, ydata:tuple[np.ndarray,np.ndarray], 
-             testdata=None, xlim=None, fname=None, show=True):
+             ref=None, xlim=None, fname=None, show=True):
 
         time = self.time()
         if xlim is None:
@@ -583,10 +583,10 @@ class KidneyCortMed(dc.Model):
         ax0.legend()
 
         ax1.set_title('Reconstruction of concentrations.')
-        if testdata is not None:
-            ax1.plot(testdata['t']/60, 1000*testdata['Cc'], marker='o', linestyle='None', color='cornflowerblue', label='Cortex ground truth')
-            ax1.plot(testdata['t']/60, 1000*testdata['Cm'], marker='x', linestyle='None', color='cornflowerblue', label='Medulla ground truth')
-            ax1.plot(testdata['t']/60, 1000*testdata['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
+        if ref is not None:
+            ax1.plot(ref['t']/60, 1000*ref['Cc'], marker='o', linestyle='None', color='cornflowerblue', label='Cortex ground truth')
+            ax1.plot(ref['t']/60, 1000*ref['Cm'], marker='x', linestyle='None', color='cornflowerblue', label='Medulla ground truth')
+            ax1.plot(ref['t']/60, 1000*ref['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
         ax1.plot(time/60, 1000*concc, linestyle='-', linewidth=3.0, color='darkblue', label='Cortex prediction')
         ax1.plot(time/60, 1000*concm, linestyle='--', linewidth=3.0, color='darkblue', label='Medulla prediction')
         ax1.plot(time/60, 1000*self.ca, linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
