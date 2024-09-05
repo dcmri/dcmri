@@ -2,16 +2,160 @@ import os
 import multiprocessing
 import warnings
 import math
+import pickle
+
 import numpy as np
 from scipy.special import gamma
 from scipy.interpolate import CubicSpline
-from scipy.optimize import curve_fit as scipy_curve_fit
+from scipy.optimize import curve_fit
+from scipy.integrate import trapezoid
+from tqdm import tqdm
 
 
 try: 
     num_workers = int(len(os.sched_getaffinity(0)))
 except: 
     num_workers = int(os.cpu_count())
+
+
+class ArrayModel():
+    # Abstract base class for end-to-end models with pixel-based analysis
+
+    def save(self, file=None, path=None, filename='Model'):
+        """Save the current state of the model
+
+        Args:
+            file (str, optional): complete path of the file. If this is not provided, a file is constructure from path amd filename variables. Defaults to None.
+            path (str, optional): path to store the state if file is not provided. This variable is ignored if file is provided. Defaults to current working directory.
+            filename (str, optional): filename to store the state if file is not provided. If no extension is included, the extension '.pkl' is automatically added. This variable is ignored if file is provided. Defaults to 'Model'.
+
+        Returns:
+            dict: class instance
+        """
+        return _save(self, file, path, filename)
+
+    def load(self, file=None, path=None, filename='Model'):
+        """Load the saved state of the model
+
+        Args:
+            file (str, optional): complete path of the file. If this is not provided, a file is constructure from path amd filename variables. Defaults to None.
+            path (str, optional): path to store the state if file is not provided. This variable is ignored if file is provided. Defaults to current working directory.
+            filename (str, optional): filename to store the state if file is not provided. If no extension is included, the extension '.pkl' is automatically added. This variable is ignored if file is provided. Defaults to 'Model'.
+
+        Returns:
+            dict: class instance
+        """
+        return _load(self, file, path, filename)
+    
+    def _pix(self, p):
+        raise NotImplementedError('No _pix() function defined')
+    
+    def _predict_curve(self, args):
+        xdata, x = args
+        p = np.unravel_index(x, self.shape)
+        pix = self._pix(p)
+        return pix.predict(xdata)
+    
+    def predict(self, xdata:np.ndarray)->np.ndarray:
+        """Predict the data for given x-values.
+
+        Args:
+            xdata (array-like): An array with x-values (time points).
+
+        Returns:
+            np.ndarray: Array of predicted y-values.
+        """
+       
+        nx = np.prod(self.shape)
+        nt = np.size(xdata)
+        if not self.parallel:
+            if self.verbose>0:
+                iterator = tqdm(range(nx), desc='Running predictions for '+self.__class__.__name__)
+            else:
+                iterator = range(nx)
+            ydata = [self._predict_curve((xdata, x)) for x in iterator]
+        else:
+            args = [(xdata, x) for x in range(nx)]
+            pool = multiprocessing.Pool(processes=num_workers)
+            ydata = pool.map(self._predict_curve, args)
+            pool.close()
+            pool.join()
+        return np.stack(ydata).reshape(self.shape + (nt,))
+    
+    
+    def _train_curve(self, args):
+        xdata, ydata, kwargs, x = args
+        p = np.unravel_index(x, self.shape)
+        # if np.array_equal(p, [2,2]):
+        #     print('')
+        pix = self._pix(p)
+        pix.train(xdata, ydata[x,:], **kwargs)
+        if hasattr(pix, 'pcov'):
+            sdev = np.sqrt(np.diag(pix.pcov))
+        else:
+            sdev = np.zeros(len(self.free))
+        for i, par in enumerate(self.free): 
+            getattr(self, par)[p] = getattr(pix, par) 
+            getattr(self, 'sdev_' + par)[p] = sdev[i]
+        return pix, p
+    
+    def train(self, xdata, ydata:np.ndarray, **kwargs):
+        """Train the free parameters
+
+        Args:
+            xdata (array-like): Array with x-data (time points)
+            ydata (array-like): Array with y-data (signal data)
+            kwargs: any keyword parameters accepted by `scipy.optimize.curve_fit`.
+
+        Returns:
+            Model: A reference to the model instance.
+        """
+        nx = np.prod(self.shape)
+        nt = ydata.shape[-1]
+        if not self.parallel:
+            if self.verbose>0:
+                iterator = tqdm(range(nx), desc='Training '+self.__class__.__name__)
+            else:
+                iterator = range(nx)
+            for x in iterator:
+                args_x = (xdata, ydata.reshape((nx,nt)), kwargs, x)
+                self._train_curve(args_x)
+        else:
+            args = [(xdata, ydata.reshape((nx,nt)), kwargs, x) for x in range(nx)]
+            pool = multiprocessing.Pool(processes=num_workers)
+            pool.map(self._train_curve, args)
+            pool.close()
+            pool.join()
+        return self
+    
+    def cost(self, xdata, ydata, metric='NRMS')->float:
+        """Goodness-of-fit value.
+
+        Args:
+            xdata (array-like): Array with x-data (time points).
+            ydata (array-like): Array with y-data (signal values)
+            metric (str, optional): Which metric to use - options are 'RMS' (Root-mean-square), 'NRMS' (Normalized root-mean-square), 'AIC' (Akaike information criterion), 'cAIC' (Corrected Akaike information criterion for small models) or 'BIC' (Baysian information criterion). Defaults to 'NRMS'.
+
+        Returns:
+            np.ndarray: goodness of fit in each element of the data array. 
+        """
+        return _cost(self, xdata, ydata, metric)
+    
+    def export_params(self)->list:
+        """Model parameters with descriptions.
+
+        Returns:
+            dict: Dictionary with one item for each model parameter. The key is the parameter symbol (short name), and the value is a 4-element list with [parameter name, value, unit, sdev].
+        """
+        pars = {}
+        for p in self.free:
+            pars[p] = [
+                p + ' name', 
+                getattr(self, p), 
+                p + ' unit', 
+                getattr(self, 'sdev_' + p),
+            ]
+        return pars
 
 
 class Model:
@@ -22,14 +166,37 @@ class Model:
         self.bounds = [-np.inf, np.inf]
         self.pcov = None
 
+    def save(self, file=None, path=None, filename='Model'):
+        """Save the current state of the model
+
+        Args:
+            file (str, optional): complete path of the file. If this is not provided, a file is constructure from path and filename variables. Defaults to None.
+            path (str, optional): path to store the state if file is not provided. Thos variable is ignored if file is provided. Defaults to current working directory.
+            filename (str, optional): filename to store the state if file is not provided. If no extension is included, the extension '.pkl' is automatically added. This variable is ignored if file is provided. Defaults to 'Model'.
+
+        Returns:
+            dict: class instance
+        """
+        return _save(self, file, path, filename)
+
+    def load(self, file=None, path=None, filename='Model'):
+        """Load the saved state of the model
+
+        Args:
+            file (str, optional): complete path of the file. If this is not provided, a file is constructure from path and filename variables. Defaults to None.
+            path (str, optional): path to store the state if file is not provided. Thos variable is ignored if file is provided. Defaults to current working directory.
+            filename (str, optional): filename to store the state if file is not provided. If no extension is included, the extension '.pkl' is automatically added. This variable is ignored if file is provided. Defaults to 'Model'.
+
+        Returns:
+            dict: class instance
+        """
+        return _load(self, file, path, filename)
+
     def predict(self, xdata):
-        """Predict the data for given x-values.
+        """Predict the data at given xdata
 
         Args:
             xdata (tuple or array-like): Either an array with x-values (time points) or a tuple with multiple such arrays
-
-        Raises:
-            NotImplementedError: If no predict method is defined for the model
 
         Returns:
             tuple or array-like: Either an array of predicted y-values (if xdata is an array) or a tuple of such arrays (if xdata is a tuple).
@@ -37,9 +204,7 @@ class Model:
         raise NotImplementedError('No predict function provided')
     
     def train(self, xdata, ydata, **kwargs):
-        """Train the free parameters of the model using the data provided.
-
-        After training, the attribute ``pars`` will contain the updated parameter values, and ``popt`` contains the covariance matrix. The function uses the scipy function `scipy.optimize.curve_fit`, but has some additional keywords for convenience during model prototyping. 
+        """Train the free parameters
 
         Args:
             xdata (array-like): Array with x-data (time points)
@@ -51,16 +216,17 @@ class Model:
         """
         return train(self, xdata, ydata, **kwargs)
 
-    def plot(self, xdata, ydata, xlim=None, testdata=None, fname=None, show=True):
-        """Plot the model fit against data.
+
+    def plot(self, xdata, ydata, xlim=None, ref=None, fname=None, show=True):
+        """Plot the model fit against data
 
         Args:
             xdata (array-like): Array with x-data (time points)
             ydata (array-like): Array with y-data (signal data)
             xlim (array_like, optional): 2-element array with lower and upper boundaries of the x-axis. Defaults to None.
-            testdata (tuple, optional): Tuple of optional test data in the form (x,y), where x is an array with x-values and y is an array with y-values. Defaults to None.
-            fname (path, optional): Path name to save the image. Defaults to None.
-            show (bool, optional): If True, the plot is shown; if false it is saved to disk but not shown. If no fname is provided the image is always shown and this keyword is ignored. Defaults to True.
+            ref (tuple, optional): Tuple of optional test data in the form (x,y), where x is an array with x-values and y is an array with y-values. Defaults to None.
+            fname (path, optional): Filepath to save the image. If no value is provided, the image is not saved. Defaults to None.
+            show (bool, optional): If True, the plot is shown. Defaults to True.
 
         Raises:
             NotImplementedError: If no plot function is implemented for the model.
@@ -69,37 +235,24 @@ class Model:
     
     
     def cost(self, xdata, ydata, metric='NRMS')->float:
-        """Goodness-of-fit value.
+        """Return the goodness-of-fit
 
         Args:
             xdata (array-like): Array with x-data (time points).
             ydata (array-like): Array with y-data (signal values)
-            metric (str, optional): Which metric to use - options are 'NRMS' (Normalized root-mean-square), 'AIC' (Akaike information criterion) or 'BIC' (Baysian information criterion). Defaults to 'NRMS'.
+            metric (str, optional): Which metric to use - options are 'RMS' (Root-mean-square), 'NRMS' (Normalized root-mean-square), 'AIC' (Akaike information criterion), 'cAIC' (Corrected Akaike information criterion for small models) or 'BIC' (Baysian information criterion). Defaults to 'NRMS'.
 
         Returns:
             float: goodness of fit.
         """
-        # Predict data at all xvalues
-        y = self.predict(xdata)
-        if isinstance(ydata, tuple):
-            y = np.concatenate(y)
-            ydata = np.concatenate(ydata)
-
-        # Calclulate the loss at the fitted values
-        if metric == 'NRMS':
-            loss = 100*np.linalg.norm(y - ydata)/np.linalg.norm(ydata)
-        elif metric == 'AIC':
-            return
-        elif metric == 'BIC':
-            return
-        return loss
+        return _cost(self, xdata, ydata, metric)
 
 
     def export_params(self)->list:
-        """Free parameters with descriptions.
+        """Return model parameters with their descriptions
 
         Returns:
-            list: list with one element for each free parameter. The elements are lists themselves providing, for each parameter, [short name, long name, value, unit].
+            dict: Dictionary with one item for each model parameter. The key is the parameter symbol (short name), and the value is a 4-element list with [parameter name, value, unit, sdev].
         """
         # Short name, full name, value, units.
         pars = {}
@@ -109,11 +262,10 @@ class Model:
     
 
     def print_params(self, round_to=None):
-        """Print a summary of the model parameters and their uncertainties.
+        """Print the model parameters and their uncertainties
 
         Args:
             round_to (int, optional): Round to how many digits. If this is not provided, the values are not rounded. Defaults to None.
-            units (str, optional): Which unit system to use in the return values. Defaults to 'standard'.
         """
         pars = self.export_params()
         print('-----------------------------------------')
@@ -143,7 +295,7 @@ class Model:
 
 
     def get_params(self, *args, round_to=None):
-        """Get parameter values.
+        """Return the parameter values
 
         Args:
             args (tuple): parameters to get
@@ -185,71 +337,69 @@ class Model:
                 v = np.reshape(vals[i:i+n], np.shape(v))
                 i+=n
             setattr(self, p, v)
+                
 
-     
-    def _x_scale(self):
-        n = len(self.free)
-        xscale = np.ones(n)
-        for p in range(n):
-            if np.isscalar(self.bounds[0]):
-                lb = self.bounds[0]
-            else:
-                lb = self.bounds[0][p]
-            if np.isscalar(self.bounds[1]):
-                ub = self.bounds[1]
-            else:
-                ub = self.bounds[1][p]
-            if (not np.isinf(lb)) and (not np.isinf(ub)):
-                xscale[p] = ub-lb
-        return xscale
+    # def _x_scale(self):
+    #     n = len(self.free)
+    #     xscale = np.ones(n)
+    #     for p in range(n):
+    #         if np.isscalar(self.bounds[0]):
+    #             lb = self.bounds[0]
+    #         else:
+    #             lb = self.bounds[0][p]
+    #         if np.isscalar(self.bounds[1]):
+    #             ub = self.bounds[1]
+    #         else:
+    #             ub = self.bounds[1][p]
+    #         if (not np.isinf(lb)) and (not np.isinf(ub)):
+    #             xscale[p] = ub-lb
+    #     return xscale
 
 
     def _add_sdev(self, pars):
         for par in pars:
             pars[par].append(0)
-        if self.pcov is None:
+        if not hasattr(self, 'pcov'):
+            perr = np.zeros(np.size(self.free))
+        elif self.pcov is None:
             perr = np.zeros(np.size(self.free))
         else:
             perr = np.sqrt(np.diag(self.pcov))
-
         for i, par in enumerate(self.free):
             if par in pars:
                 pars[par][-1] = perr[i]
         return pars
 
 
-    # rename to train_array
-    def _fit_image(self, imgs:np.ndarray, xdata=None, xtol=1e-3, bounds=False, parallel=True, **kwargs):
-        """Fit a single-pixel model pixel-by-pixel to a 2D or 3D image"""
-        
-        # Reshape to (x,t)
-        shape = imgs.shape
-        imgs = imgs.reshape((-1,shape[-1]))
-        
-        # Perform the fit pixelwise
-        if parallel:
-            args = [(xdata, imgs[x,:], xtol, bounds, kwargs) for x in range(imgs.shape[0])]
-            pool = multiprocessing.Pool(processes=num_workers)
-            fit_pars = pool.map(self.train, args)
-            pool.close()
-            pool.join()
-        else: # for debugging
-            fit_pars = [self.train((xdata, imgs[x,:], xtol, bounds, kwargs)) for x in range(imgs.shape[0])]
+def _save(model, file=None, path=None, filename='Model'):
+    if file is None:
+        if path is None:
+            path=os.getcwd()
+        if filename.split('.')[-1] != 'pkl':
+            filename += '.pkl'
+        file = os.path.join(path, filename)
+    elif file.split('.')[-1] != 'pkl':
+            file += '.pkl'
+    with open(file, 'wb') as f:
+        pickle.dump(model, f, protocol=pickle.HIGHEST_PROTOCOL)
+    f.close
+    return model
 
-        # Create output arrays
-        npars = len(fit_pars[0])
-        fit = np.empty(imgs.shape)
-        par = np.empty((imgs.shape[0], npars))
-        for x, p in enumerate(fit_pars):
-            fit[x,:] = self.predict(xdata, *p)
-            par[x,:] = p
 
-        # Return in original shape
-        fit = fit.reshape(shape)
-        par = par.reshape(shape[:-1] + (npars,))
-        
-        return fit, par
-
+def _load(model, file=None, path=None, filename='Model'):
+    if file is None:
+        if path is None:
+            path=os.getcwd()
+        if filename.split('.')[-1] != 'pkl':
+            filename += '.pkl'
+        file = os.path.join(path, filename)
+    elif file.split('.')[-1] != 'pkl':
+            file += '.pkl'
+    with open(file, 'rb') as f:
+        saved = pickle.load(f)
+    model.__dict__.update(saved.__dict__)
+    f.close
+    return model
 
 
 def train(model:Model, xdata, ydata, **kwargs):
@@ -269,7 +419,7 @@ def train(model:Model, xdata, ydata, **kwargs):
 
     p0 = model._getflat()
     try:
-        pars, model.pcov = scipy_curve_fit(
+        pars, model.pcov = curve_fit(
             fit_func, None, y, p0, 
             bounds=model.bounds, #x_scale=model._x_scale(),
             **kwargs)
@@ -283,7 +433,100 @@ def train(model:Model, xdata, ydata, **kwargs):
     model._setflat(pars)
     
     return model
+
+
+def _cost(model, xdata, ydata, metric='NRMS')->float:
+
+    # Predict data at all xvalues
+    y = model.predict(xdata)
+    if isinstance(ydata, tuple):
+        y = np.concatenate(y)
+        ydata = np.concatenate(ydata)
+
+    # Calclulate the loss at the fitted values
+    if metric == 'RMS':
+        loss = np.linalg.norm(y - ydata, axis=-1)
+    elif metric == 'NRMS':
+        ynorm = np.linalg.norm(ydata, axis=-1)
+        yerr = np.linalg.norm(y - ydata, axis=-1)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            loss = 100*yerr/ynorm
+    elif metric == 'AIC':
+        rss = np.sum((y-ydata)**2, axis=-1)
+        n = ydata.shape[-1]
+        k = len(model.free)
+        with np.errstate(divide='ignore'):
+            loss = k*2 + n*np.log(rss/n)
+    elif metric == 'cAIC':
+        rss = np.sum((y-ydata)**2)
+        n = ydata.shape[-1]
+        k = len(model.free)
+        with np.errstate(divide='ignore'):
+            loss = k*2 + n*np.log(rss/n) + 2*k*(k+1)/(n-k-1)
+    elif metric == 'BIC':
+        rss = np.sum((y-ydata)**2, axis=-1)
+        n = ydata.shape[-1]
+        k = len(model.free)
+        with np.errstate(divide='ignore'):
+            loss = k*np.log(n) + n*np.log(rss/n)
+    return loss
+
+
+
+
+# def _train_pixel(xdata, ydata, model, params, kwargs):
+#     mdl = model(**params)
+#     mdl.train(xdata, ydata, **kwargs)
+#     return mdl.export_params()
+
+
+# def train_array(xdata, ydata, model, params=None, parallel=False, **kwargs):
     
+#     # Reshape to (x,t)
+#     shape = ydata.shape
+#     ydata = np.reshape(ydata, (-1,shape[-1]))
+#     if np.size(xdata) == np.size(ydata):
+#         xdata = np.reshape(xdata, (-1,shape[-1]))
+    
+#     # Perform the fit pixelwise
+#     if not parallel: 
+#         par = []
+#         for x in range(ydata.shape[0]):
+#             if params is None:
+#                 params_x = {}
+#             elif isinstance(params, dict):
+#                 params_x = params
+#             else:
+#                 params_x = params[x]
+#             args_x = (xdata[x,:], ydata[x,:], model, params_x, kwargs)
+#             par_x = _train_pixel(*args_x)
+#             par.append(par_x)
+#     else:
+#         args = []
+#         for x in range(ydata.shape[0]):
+#             if params is None:
+#                 params_x = {}
+#             elif isinstance(params, dict):
+#                 params_x = params
+#             else:
+#                 params_x = params[x]
+#             args_x = (xdata[x,:], ydata[x,:], model, params_x, kwargs)
+#             args.append(args_x)
+#         pool = multiprocessing.Pool(processes=num_workers)
+#         par = pool.map(_train_pixel, args)
+#         pool.close()
+#         pool.join()
+
+#     # Create output arrays
+#     pars = {}
+#     sdev = {}
+#     for p in par[0].keys():
+#         pars[p] = np.array([par_x[p][1] for par_x in par]).reshape(shape[:-1])
+#         sdev[p] = np.array([par_x[p][3] for par_x in par]).reshape(shape[:-1])
+    
+#     return pars, sdev
+  
+
 
 def interp(y, x, pos=False, floor=False)->np.ndarray:
     """Interpolate uniformly sampled data. 
@@ -813,23 +1056,52 @@ def nexpconv(n, T, t):
     return g
 
 
-def test_curve_fit():
-    def third_order(x, a, b, c, d, add=2):
-        return a + b*x + c*x**2 + (d+add)*x**3
-    nx = 5
-    x = np.linspace(0,1,nx)
-    y = third_order(x, 2, 3, 4, 5, add=5)
-    p0 = [1,1,1,1]
-    p, pcov = curve_fit(third_order, x, y, 
-        p0, 
-        kwargs = {'add':5},
-        pfix = [0,0,0,0],
-        xrange = [0,1.0], # with nx=5 and xrange = [0.3,1.0] this runs into RuntimeError
-        xvalid = [1,1,0,0,1],
-        bounds = (
-            [0,0,0,0],
-            [6,6,6,6],
-        ), 
-    )
-    print(p)
+
+def sample(t, tp, Sp, dt=None)->np.ndarray: 
+    """Sample a signal at given time points.
+
+    Args:
+        t (array-like): The time points at which to evaluate the signal.
+        tp (array-like): the time points of the signal to be sampled.
+        Sp (array-like): the values of the signal to be sampled. Values that are outside of the range are set to zero.
+        dt (float, optional): sampling duration. If this is not provided, linear interpolation between the data points is used.  Defaults to None.
+
+    Returns:
+        np.ndarray: Signals sampled at times t.
+    """
+    if dt is None:
+        return np.interp(t, tp, Sp, left=0, right=0)
+    Ss = np.zeros(len(t)) 
+    for k, tk in enumerate(t):
+
+        #data = Sp[(tp >= tk) & (tp < tk+dt)]
+        # data = Sp[(tp >= tk-dt/2) & (tp < tk+dt/2)]
+        # if data.size > 0:
+        #     Ss[k] = np.mean(data)
+
+        # NEW (trapezoidal integration - more accurate)
+        tb = [tk-dt/2, tk+dt/2]
+        Sb = np.interp(tb, tp, Sp)
+        i = (tp > tb[0]) & (tp < tb[1])
+        ti = np.concatenate(([tb[0]], tp[i], [tb[1]]))
+        Si = np.concatenate(([Sb[0]], Sp[i], [Sb[1]]))
+        Ss[k] = trapezoid(Si, ti)/dt
+    return Ss 
+
+
+def add_noise(signal, sdev:float)->np.ndarray:
+    """Add noise to an MRI magnitude signal.
+
+    Args:
+        signal (array-like): Signal values.
+        sdev (float): Standard deviation of the noise.
+
+    Returns:
+        np.ndarray: signal with noise added.
+    """
+    noise_x = np.random.normal(0, sdev, signal.size)
+    noise_y = np.random.normal(0, sdev, signal.size)
+    signal = np.sqrt((signal+noise_x)**2 + noise_y**2)
+    return signal
+
 

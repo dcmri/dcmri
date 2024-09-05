@@ -22,10 +22,12 @@
       ~Liver.cost
       ~Liver.export_params
       ~Liver.get_params
+      ~Liver.load
       ~Liver.plot
       ~Liver.predict
       ~Liver.print_params
       ~Liver.relax
+      ~Liver.save
       ~Liver.time
       ~Liver.train
    

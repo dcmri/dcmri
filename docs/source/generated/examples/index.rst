@@ -6,7 +6,7 @@ Examples
 
 .. note::
 
-   dcMRI is under construction. The first stable version with more comprehensive functionality and documentation will be v1.0.0. Before that the API may still change and features may be deprecated without warning.
+   dcmri is under construction. The first stable version with more comprehensive functionality and documentation will be v1.0.0. Before that the API may still change and features may be deprecated without warning.
 
 .. warning::
 
@@ -105,23 +105,6 @@ Use cases
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of ~dcmri.AortaLiver2scan for joint fitting of aorta and liver...">
-
-.. only:: html
-
-  .. image:: /generated/examples/use_cases/images/thumb/sphx_glr_plot_tristan_volunteers_2scan_thumb.png
-    :alt:
-
-  :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers_2scan.py`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">The TRISTAN experimental medicine study (2 scan protocol)</div>
-    </div>
-
-
-.. raw:: html
-
     <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of ~dcmri.AortaLiver for joint fitting of aorta and liver sign...">
 
 .. only:: html
@@ -134,6 +117,23 @@ Use cases
 .. raw:: html
 
       <div class="sphx-glr-thumbnail-title">The TRISTAN experimental medicine study (1 scan protocol)</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of ~dcmri.AortaLiver2scan for joint fitting of aorta and liver...">
+
+.. only:: html
+
+  .. image:: /generated/examples/use_cases/images/thumb/sphx_glr_plot_tristan_volunteers_2scan_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers_2scan.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">The TRISTAN experimental medicine study (2 scan protocol)</div>
     </div>
 
 

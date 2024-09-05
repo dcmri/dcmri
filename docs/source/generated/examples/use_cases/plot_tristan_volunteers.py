@@ -20,59 +20,102 @@ Thazin Min, Marta Tibiletti, Paul Hockings, Aleksandra Galetin, Ebony Gunwhy, Ge
 """
 
 # %%
-# Import necessary packages
+# Setup
+# -----
+
+# Import packages
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 import dcmri as dc
 
-# %%
-# Fetch the 1-scan data from the TRISTAN experimental medicine study:
-
-data = dc.fetch('tristan1scan')
+# Fetch the data from the TRISTAN rifampicin study:
+data = dc.fetch('tristan_rifampicin')
 
 # %%
+# Model definition
+# ----------------
+# In order to avoid some repetition in this script, we define a function that returns a trained model for a single dataset:
+
+def tristan_human_1scan(data, **kwargs):
+
+    model = dc.AortaLiver(
+
+        # Injection parameters
+        weight = data['weight'],
+        agent = data['agent'],
+        dose = data['dose'][0],
+        rate = data['rate'],
+
+        # Acquisition parameters
+        field_strength = data['field_strength'],
+        t0 = data['t0'],
+        TR = data['TR'],
+        FA = data['FA'],
+
+        # Signal parameters
+        R10b = data['R10b'],
+        R10l = data['R10l'],
+
+        # Tissue parameters
+        Hct = data['Hct'],
+        vol = data['vol'],
+
+        # Training parameters
+        dt = 0.5,
+    )
+
+    xdata = (data['time1aorta'], data['time1liver'])
+    ydata = (data['signal1aorta'], data['signal1liver'])
+
+    model.train(xdata, ydata, **kwargs)
+
+    return model
+
+
+# %%
+# Check model fit
+# ---------------
 # Before running the full analysis on all cases, lets illustrate the results by fitting the baseline visit for the first subject. We use maximum verbosity to get some feedback about the iterations: 
 
-data_subj = data['baseline']['001']
-model = dc.AortaLiver(**data_subj['params'])
-model.train(data_subj['xdata'], data_subj['ydata'], xtol=1e-3, verbose=2)
+model = tristan_human_1scan(data[0], xtol=1e-3, verbose=2)
 
 # %%
 # Plot the results to check that the model has fitted the data. The plot also shows the concentration in the two liver compartments separately:
 
-model.plot(data_subj['xdata'], data_subj['ydata'])
+xdata = (data[0]['time1aorta'], data[0]['time1liver'])
+ydata = (data[0]['signal1aorta'], data[0]['signal1liver'])
+
+model.plot(xdata, ydata)
 
 # %%
 # Print the measured model parameters and any derived parameters. Standard deviations are included as a measure of parameter uncertainty, indicate that all parameters are identified robustly:
 
 model.print_params(round_to=3)
 
-
 # %%
+# Fit all data
+# ------------
 # Now that we have illustrated an individual result in some detail, we proceed with fitting the data for all 10 volunteers, at baseline and rifampicin visit. We do not print output for these individual computations and instead store results in one single dataframe:
 
 results = []
-for visit in data:
-    for subj in data[visit]:
 
-        # Get the data for the subject and visit
-        data_subj = data[visit][subj]
+# Loop over all datasets
+for scan in data:
 
-        # Use ``dcmri`` to fit the model and export the parameters:
-        model = dc.AortaLiver(**data_subj['params'])
-        model.train(data_subj['xdata'], data_subj['ydata'], xtol=1e-3)
-        pars_subj = model.export_params()
+    # Generate a trained model for the scan:
+    model = tristan_human_1scan(scan, xtol=1e-3, verbose=2)
 
-        # Convert the parameter dictionary to a dataframe
-        pars_subj = pd.DataFrame.from_dict(pars_subj, 
-            orient = 'index', columns = ["name", "value", "unit", 'stdev'])
-        pars_subj['subject'] = subj
-        pars_subj['visit'] = visit
-        pars_subj['parameter'] = pars_subj.index
-
-        # Add the dataframe to the list of results
-        results.append(pars_subj)
+    # Save fitted parameters as a dataframe.
+    pars = model.export_params()
+    pars = pd.DataFrame.from_dict(pars, 
+        orient = 'index', 
+        columns = ["name", "value", "unit", 'stdev'])
+    pars['parameter'] = pars.index
+    pars['visit'] = scan['visit']
+    pars['subject'] = scan['subject']
+    
+    # Add the dataframe to the list of results
+    results.append(pars)
 
 # Combine all results into a single dataframe.
 results = pd.concat(results).reset_index(drop=True)
@@ -81,13 +124,10 @@ results = pd.concat(results).reset_index(drop=True)
 print(results.to_string())
 
 
-
 # %%
+# Plot individual results
+# -----------------------
 # Now lets visualise the main results from the study by plotting the drug effect for all volunteers, and for both biomarkers: uptake rate ``khe`` and excretion rate ``kbh``:
-
-# First pivot data for both visits to wide format for easy access:
-v1 = pd.pivot_table(results[results.visit=='baseline'], values='value', columns='parameter', index='subject')
-v2 = pd.pivot_table(results[results.visit=='rifampicin'], values='value', columns='parameter', index='subject')
 
 # Set up the figure
 clr = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 
@@ -105,6 +145,10 @@ ax2.set_ylabel('kbh (mL/min/100mL)', fontsize=fs)
 ax2.set_ylim(0, 6)
 ax2.tick_params(axis='x', labelsize=fs)
 ax2.tick_params(axis='y', labelsize=fs)
+
+# Pivot data for both visits to wide format for easy access:
+v1 = pd.pivot_table(results[results.visit=='baseline'], values='value', columns='parameter', index='subject')
+v2 = pd.pivot_table(results[results.visit=='rifampicin'], values='value', columns='parameter', index='subject')
 
 # Plot the rate constants in units of mL/min/100mL
 for s in v1.index:

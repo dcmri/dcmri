@@ -191,6 +191,8 @@ def test__conc_2cx():
     assert np.linalg.norm(Cs-C0)/np.linalg.norm(C) < 1e-3
     C = dc.conc_tissue(ca, Fp, vp, 0, ve, t=t, sum=False, kinetics='2CX')
     assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 1e-3
+    C = dc.conc_tissue(ca, 0, 0, 0, 0, t=t, sum=True, kinetics='2CX')
+    assert np.linalg.norm(C) == 0
     
 def test__flux_2cx():
     # Compare against general 2comp solution

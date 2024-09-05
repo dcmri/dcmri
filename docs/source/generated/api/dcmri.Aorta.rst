@@ -22,10 +22,12 @@
       ~Aorta.cost
       ~Aorta.export_params
       ~Aorta.get_params
+      ~Aorta.load
       ~Aorta.plot
       ~Aorta.predict
       ~Aorta.print_params
       ~Aorta.relax
+      ~Aorta.save
       ~Aorta.train
    
    

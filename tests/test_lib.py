@@ -105,6 +105,25 @@ def test_aif_parker():
         assert False
 
 
+def test_shepp_logan():
+    n=64
+    roi = dc.shepp_logan(n=n)
+    im = dc.shepp_logan('T1', 'PD', 'BF', 'BV', 'PS', 'IV', n=n)
+
+    vals = im['BF'][roi['CSF left']==1]
+    assert 0 == np.amin(vals)
+    assert 0 == np.amax(vals)
+    vals = im['BV'][roi['CSF left']==1]
+    assert 0 == np.amin(vals)
+    assert 0 == np.amax(vals)
+    vals = im['PS'][roi['CSF left']==1]
+    assert 0 == np.amin(vals)
+    assert 0 == np.amax(vals)
+    vals = im['IV'][roi['CSF left']==1]
+    assert 0 == np.amin(vals)
+    assert 0 == np.amax(vals)
+
+
 if __name__ == "__main__":
 
     test_influx_step()
@@ -113,6 +132,7 @@ if __name__ == "__main__":
     test_relaxivity()
     test_T1()
     test_aif_parker()
+    test_shepp_logan()
 
     print('')
     print('All lib tests passed!!')

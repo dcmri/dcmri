@@ -233,7 +233,7 @@ class Aorta(dc.Model):
     def plot(self, 
                 xdata:tuple[np.ndarray, np.ndarray], 
                 ydata:tuple[np.ndarray, np.ndarray],  
-                testdata=None, xlim=None, fname=None, show=True):
+                ref=None, xlim=None, fname=None, show=True):
         aif = self.predict(xdata)
         t, cb = self.conc()
         if xlim is None:
@@ -246,8 +246,8 @@ class Aorta(dc.Model):
         ax0.set_ylabel('MRI signal (a.u.)')
         ax0.legend()
         ax1.set_title('Prediction of the concentrations.')
-        if testdata is not None:
-            ax1.plot(testdata['t']/60, 1000*testdata['cb'], 'ro', label='Ground truth')
+        if ref is not None:
+            ax1.plot(ref['t']/60, 1000*ref['cb'], 'ro', label='Ground truth')
         ax1.plot(t/60, 1000*cb, 'b-', label='Prediction')
         ax1.set_xlabel('Time (min)')
         ax1.set_ylabel('Blood concentration (mM)')
@@ -614,7 +614,7 @@ class AortaLiver(dc.Model):
     def plot(self, 
                 xdata:tuple[np.ndarray, np.ndarray], 
                 ydata:tuple[np.ndarray, np.ndarray],  
-                xlim=None, testdata=None, 
+                xlim=None, ref=None, 
                 fname=None, show=True):
         t, cb, C = self.conc(sum=False)
         sig = self.predict((t,t))
@@ -623,11 +623,11 @@ class AortaLiver(dc.Model):
         _plot_data1scan(t, sig[0], xdata[0], ydata[0], 
                 ax1, xlim, 
                 color=['lightcoral','darkred'], 
-                test=None if testdata is None else testdata[0])
+                test=None if ref is None else ref[0])
         _plot_data1scan(t, sig[1], xdata[1], ydata[1], 
                 ax3, xlim, 
                 color=['cornflowerblue','darkblue'], 
-                test=None if testdata is None else testdata[1])
+                test=None if ref is None else ref[1])
         _plot_conc_aorta(t, cb, ax2, xlim)
         _plot_conc_liver(t, C, ax4, xlim)
         if fname is not None:  
@@ -1053,7 +1053,7 @@ class AortaKidneys(dc.Model):
     def plot(self, 
                 xdata:tuple[np.ndarray, np.ndarray, np.ndarray], 
                 ydata:tuple[np.ndarray, np.ndarray, np.ndarray],  
-                xlim=None, testdata=None, 
+                xlim=None, ref=None, 
                 fname=None, show=True):
         t, cb, Clk, Crk = self.conc(sum=False)
         sig = self.predict((t,t,t))
@@ -1062,15 +1062,15 @@ class AortaKidneys(dc.Model):
         _plot_data1scan(t, sig[0], xdata[0], ydata[0], 
                 ax1, xlim, 
                 color=['lightcoral','darkred'], 
-                test=None if testdata is None else testdata[0])
+                test=None if ref is None else ref[0])
         _plot_data1scan(t, sig[1], xdata[1], ydata[1], 
                 ax3, xlim, 
                 color=['cornflowerblue','darkblue'], 
-                test=None if testdata is None else testdata[1])
+                test=None if ref is None else ref[1])
         _plot_data1scan(t, sig[2], xdata[2], ydata[2], 
                 ax5, xlim, 
                 color=['cornflowerblue','darkblue'], 
-                test=None if testdata is None else testdata[2])
+                test=None if ref is None else ref[2])
         _plot_conc_aorta(t, cb, ax2, xlim)
         _plot_conc_kidney(t, Clk, ax4, xlim)
         _plot_conc_kidney(t, Crk, ax6, xlim)
@@ -1141,7 +1141,7 @@ class AortaKidneys(dc.Model):
     
 
 class AortaLiver2scan(AortaLiver):
-    """Joint model for aorta and liver signals measured over 2 separate scans.
+    """Joint model for aorta and liver signals measured over two scans.
 
     The model represents the liver as a two-compartment system and the body as a leaky loop with a heart-lung system and an organ system. The heart-lung system is modelled as a chain compartment and the organs are modelled as a two-compartment exchange model. Bolus injection into the system is modelled as a step function.
     
@@ -1190,7 +1190,7 @@ class AortaLiver2scan(AortaLiver):
 
         **Liver kinetic parameters**
 
-        - **kinetics** (str, default='stationary'). Liver kinetic model, either stationary or non-stationary.
+        - **kinetics** (str, default='non-stationary'). Liver kinetic model, either stationary or non-stationary.
         - **Hct** (float, default=0.45): Hematocrit.
         - **Tel** (float, default=30): Mean transit time for extracellular space of liver and gut.
         - **De** (float, default=0.85): Dispersion in the extracellular space of liver an gut, in the range [0,1].
@@ -1507,7 +1507,7 @@ class AortaLiver2scan(AortaLiver):
     def plot(self,
              xdata:tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray], 
              ydata:tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
-             testdata=None, xlim=None, fname=None, show=True):
+             ref=None, xlim=None, fname=None, show=True):
         t, cb, C = self.conc(sum=False)
         ta1 = t[t<=xdata[1][0]]
         ta2 = t[(t>xdata[1][0]) & (t<=xdata[1][-1])]
@@ -1519,11 +1519,11 @@ class AortaLiver2scan(AortaLiver):
         _plot_data2scan((ta1,ta2), sig[:2], xdata[:2], ydata[:2], 
                 ax1, xlim, 
                 color=['lightcoral','darkred'], 
-                test=None if testdata is None else testdata[0])
+                test=None if ref is None else ref[0])
         _plot_data2scan((tl1,tl2), sig[2:], xdata[2:], ydata[2:], 
                 ax3, xlim, 
                 color=['cornflowerblue','darkblue'], 
-                test=None if testdata is None else testdata[1])
+                test=None if ref is None else ref[1])
         _plot_conc_aorta(t, cb, ax2, xlim)
         _plot_conc_liver(t, C, ax4, xlim)
         if fname is not None:  
