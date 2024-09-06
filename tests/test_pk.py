@@ -67,10 +67,10 @@ def test_res_comp():
     T = 25
     t = np.linspace(0, 150, 20)
     r = dc.res_comp(T, t)
-    assert np.round(np.trapz(r,t)) == T
+    assert np.round(np.trapezoid(r,t)) == T
     t = [0,5,15,30,60,90,150]
     r = dc.res_comp(T, t)
-    assert (np.trapz(r,t)-T)**2/T**2 < 1e-2
+    assert (np.trapezoid(r,t)-T)**2/T**2 < 1e-2
     r = dc.res_comp(np.inf, t)
     assert np.sum(np.unique(r))== 1
     r = dc.res_comp(0, t)
@@ -80,14 +80,14 @@ def test_prop_comp():
     T = 25
     t = np.linspace(0, 150, 20)
     h = dc.prop_comp(T, t)
-    assert np.round(np.trapz(h,t)) == 1
+    assert np.round(np.trapezoid(h,t)) == 1
     t = [0,5,15,30,60,90,150]
     h = dc.prop_comp(T, t)
-    assert (np.trapz(h,t)-1)**2 < 1e-2
+    assert (np.trapezoid(h,t)-1)**2 < 1e-2
     h = dc.prop_comp(np.inf, t)
     assert np.linalg.norm(h)==0
     h = dc.prop_comp(0, t)
-    assert (np.trapz(h,t)-1)**2 < 1e-2
+    assert (np.trapezoid(h,t)-1)**2 < 1e-2
 
 def test_conc_comp():
     T = 25
@@ -128,19 +128,19 @@ def test_res_plug():
     T = 25
     t = np.linspace(0, 150, 20)
     r = dc.res_plug(T, t)
-    assert (np.trapz(r,t)-T)**2/T**2 < 0.02
+    assert (np.trapezoid(r,t)-T)**2/T**2 < 0.02
     t = [0,5,15,30,60,90,150]
     r = dc.res_plug(T, t)
-    assert (np.trapz(r,t)-T)**2/T**2 < 0.06
+    assert (np.trapezoid(r,t)-T)**2/T**2 < 0.06
 
 def test_prop_plug():
     T = 25
     t = np.linspace(0, 150, 500)
     h = dc.prop_plug(T, t)
-    assert np.abs((np.trapz(h,t)-1)) < 1e-12
+    assert np.abs((np.trapezoid(h,t)-1)) < 1e-12
     t = [0,5,15,30,60,90,150]
     h = dc.prop_plug(T, t)
-    assert np.abs((np.trapz(h,t)-1)) < 1e-12
+    assert np.abs((np.trapezoid(h,t)-1)) < 1e-12
 
 def test_conc_plug():
     T = 25
@@ -190,12 +190,12 @@ def test_prop_chain():
     D = 0.5
     t = np.linspace(0, 150, 500)
     h = dc.prop_chain(T, D, t)
-    assert np.abs(np.trapz(h,t)-1) < 0.001
-    assert np.abs(np.trapz(t*h,t)-T) < 0.02
+    assert np.abs(np.trapezoid(h,t)-1) < 0.001
+    assert np.abs(np.trapezoid(t*h,t)-T) < 0.02
     t = [0,5,15,30,60,90,150]
     h = dc.prop_chain(T, D, t)
-    assert np.abs(np.trapz(h,t)-1) < 0.03
-    assert np.abs(np.trapz(t*h,t)-T) < 0.5
+    assert np.abs(np.trapezoid(h,t)-1) < 0.03
+    assert np.abs(np.trapezoid(t*h,t)-T) < 0.5
     try:
         h = dc.prop_chain(-1, D, t)
     except:
@@ -227,10 +227,10 @@ def test_res_chain():
     D = 0.5
     t = np.linspace(0, 150, 500)
     h = dc.res_chain(T, D, t)
-    assert (np.trapz(h,t)-T)**2/T**2 < 1e-6
+    assert (np.trapezoid(h,t)-T)**2/T**2 < 1e-6
     t = [0,5,15,30,60,90,150]
     h = dc.res_chain(T, D, t)
-    assert (np.trapz(h,t)-T)**2/T**2 < 1e-3
+    assert (np.trapezoid(h,t)-T)**2/T**2 < 1e-3
     h = dc.res_chain(T, 0, t)
     h0 = dc.res_plug(T,t)
     assert np.linalg.norm(h-h0)==0
@@ -286,17 +286,17 @@ def test_prop_step():
     T, D = 25, 0.5
     t = np.linspace(0, 150, 100)
     h = dc.prop_step(T, D, t)
-    assert np.abs(np.trapz(h,t)-1) < 1e-12
-    assert np.abs(np.trapz(t*h,t)-T) < 1e-12
+    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
+    assert np.abs(np.trapezoid(t*h,t)-T) < 1e-12
     h = dc.prop_step(T, 1, t)
-    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
     h = dc.prop_step(120, 0.5, t)
-    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
     h = dc.prop_step(120, 0.5, t)
-    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
     t = [0,5,15,30,60,90,150]
     h = dc.prop_step(T, D, t)
-    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
     try:
         h = dc.prop_step(-1, D, t)
     except:
@@ -325,10 +325,10 @@ def test_res_step():
     T, D = 25, 0.5
     t = np.linspace(0, 150, 500)
     h = dc.res_step(T, D, t)
-    assert (np.trapz(h,t)-T)**2/T**2 < 1e-9
+    assert (np.trapezoid(h,t)-T)**2/T**2 < 1e-9
     t = [0,5,15,30,60,90,150]
     h = dc.res_step(T, D, t)
-    assert (np.trapz(h,t)-T)**2/T**2 < 0.5
+    assert (np.trapezoid(h,t)-T)**2/T**2 < 0.5
 
 def test_conc_step():
     T, D = 25, 0.5
@@ -372,17 +372,17 @@ def test_prop_free():
     t = np.linspace(0, 150, 100)
     h = dc.prop_free([1,1], t, TT=[30,60,90])
     T = 60
-    assert np.abs(np.trapz(h,t)-1) < 1e-12
-    assert (np.trapz(t*h,t)-T)**2/T**2 < 1e-9
+    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
+    assert (np.trapezoid(t*h,t)-T)**2/T**2 < 1e-9
     h = dc.prop_free([2,2], t, TT=[30,60,90])
-    assert np.abs(np.trapz(h,t)-1) < 1e-12
-    assert (np.trapz(t*h,t)-T)**2/T**2 < 1e-9
+    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
+    assert (np.trapezoid(t*h,t)-T)**2/T**2 < 1e-9
     h = dc.prop_free([2,5], t, TT=[30,60,90])
-    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
     h = dc.prop_free([2,5], t, TT=[30,60,120])
-    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
     h = dc.prop_free([2,5], t, TT=[30.5,60.5,120.5])
-    assert np.abs(np.trapz(h,t)-1) < 1e-12
+    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
     h = dc.prop_free([1,1], t)
     h0 = dc.prop_free([1,1], t, TTmax=np.amax(t))
     assert np.linalg.norm(h-h0)/np.linalg.norm(h0) < 1e-12
@@ -398,7 +398,7 @@ def test_res_free():
     t = np.linspace(0, 150, 100)
     h = dc.res_free([1,1], t, TT=[30,60,90])
     T = 60
-    assert (np.trapz(h,t)-T)**2/T**2 < 1e-9
+    assert (np.trapezoid(h,t)-T)**2/T**2 < 1e-9
 
 def test_conc_free():
     H = [1,1]

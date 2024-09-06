@@ -20,6 +20,7 @@ readme = "README.rst"
 authors = [
   { name = "Steven Sourbron", email = "s.sourbron@sheffield.ac.uk" },
   { name = "Ebony Gunwhy", email = "e.gunwhy@sheffield.ac.uk" },
+  { name = "Eve Shalom", email = "E.S.Shalom@sheffield.ac.uk" },
 ]
 # license = "Apache-2.0" # This creates a problem for pip install somehow
 classifiers = [
