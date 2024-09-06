@@ -836,27 +836,27 @@ def _shepp_logan_mask(n=256)->dict:
     mask = {}
 
     # Background
-    array = np.ones((n,n)).astype(np.bool8)
+    array = np.ones((n,n)).astype(np.bool)
     array = _ellipse(array, [0, 0], [0.72, 0.95], 0, 0)
     mask['background'] = np.flip(array, axis=0)
     
     # 1 Scalp
-    array = _ellipse(np.zeros((n,n)).astype(np.bool8), [0, 0], [0.72, 0.95], 0, 1)
+    array = _ellipse(np.zeros((n,n)).astype(np.bool), [0, 0], [0.72, 0.95], 0, 1)
     array = _ellipse(array, [0, 0], [0.69, 0.92], 0, 0)
     mask['scalp'] = np.flip(array, axis=0)
 
     # 2 Bone and marrow
-    array = _ellipse(np.zeros((n,n)).astype(np.bool8), [0, 0], [0.69, 0.92], 0, 1)
+    array = _ellipse(np.zeros((n,n)).astype(np.bool), [0, 0], [0.69, 0.92], 0, 1)
     array = _ellipse(array, [-0.0184,0], [0.6624, 0.874], 0, 0)
     mask['bone'] = np.flip(array, axis=0)
 
     # 3 CSF
-    array = _ellipse(np.zeros((n,n)).astype(np.bool8), [-0.0184,0], [0.6624, 0.874], 0, 1)
+    array = _ellipse(np.zeros((n,n)).astype(np.bool), [-0.0184,0], [0.6624, 0.874], 0, 1)
     array = _ellipse(array, [-0.0184,0], [0.6524, 0.864], 0, 0)
     mask['CSF skull'] = np.flip(array, axis=0)
 
     # 4 Gray matter
-    array = _ellipse(np.zeros((n,n)).astype(np.bool8), [-0.0184,0], [0.6524, 0.864], 0, 1)
+    array = _ellipse(np.zeros((n,n)).astype(np.bool), [-0.0184,0], [0.6524, 0.864], 0, 1)
     array = _ellipse(array, [0,-0.22], [0.41, 0.16], 180-18, 0)
     array = _ellipse(array, [0,0.22], [0.31, 0.11], 180+18, 0)
     array = _ellipse(array, [0.35,0], [0.21, 0.25], 0, 0)
@@ -870,46 +870,46 @@ def _shepp_logan_mask(n=256)->dict:
     mask['gray matter'] = np.flip(array, axis=0)
 
     # 5 CSF
-    array = _ellipse(np.zeros((n,n)).astype(np.bool8), [0,-0.22], [0.41, 0.16], 180-18, 1)
+    array = _ellipse(np.zeros((n,n)).astype(np.bool), [0,-0.22], [0.41, 0.16], 180-18, 1)
     array = _ellipse(array, [0.35,0], [0.21, 0.25], 0, 0)
     array = _ellipse(array, [-0.1,0.0], [0.046, 0.046], 0, 0)
     mask['CSF right']= np.flip(array, axis=0)
 
     # 6 CSF
-    array = _ellipse(np.zeros((n,n)).astype(np.bool8), [0,0.22], [0.31, 0.11], 180+18, 1)
+    array = _ellipse(np.zeros((n,n)).astype(np.bool), [0,0.22], [0.31, 0.11], 180+18, 1)
     mask['CSF left'] = np.flip(array, axis=0)
 
     # 7 Tumor
-    array = _ellipse(np.zeros((n,n)).astype(np.bool8), [0.35,0], [0.21, 0.25], 0, 1)
+    array = _ellipse(np.zeros((n,n)).astype(np.bool), [0.35,0], [0.21, 0.25], 0, 1)
     array = _ellipse(array, [0.1,0], [0.046, 0.046], 0, 0)
     mask['tumor 1'] = np.flip(array, axis=0)
 
     # 8 Tumor
-    array = _ellipse(np.zeros((n,n)).astype(np.bool8), [0.1,0], [0.046, 0.046], 0, 1)
+    array = _ellipse(np.zeros((n,n)).astype(np.bool), [0.1,0], [0.046, 0.046], 0, 1)
     mask['tumor 2'] = np.flip(array, axis=0)
 
     # 9 Tumor
-    array = _ellipse(np.zeros((n,n)).astype(np.bool8), [-0.605,-0.08], [0.046, 0.023], 90, 1)
+    array = _ellipse(np.zeros((n,n)).astype(np.bool), [-0.605,-0.08], [0.046, 0.023], 90, 1)
     mask['tumor 4'] = np.flip(array, axis=0)
 
     # 10 Tumor
-    array = _ellipse(np.zeros((n,n)).astype(np.bool8), [-0.605,0.06], [0.023, 0.046], 0, 1)
+    array = _ellipse(np.zeros((n,n)).astype(np.bool), [-0.605,0.06], [0.023, 0.046], 0, 1)
     mask['tumor 6'] = np.flip(array, axis=0)
 
     # 11 Tumor
-    array = _ellipse(np.zeros((n,n)).astype(np.bool8), [-0.1,0.0], [0.046, 0.046], 0, 1)
+    array = _ellipse(np.zeros((n,n)).astype(np.bool), [-0.1,0.0], [0.046, 0.046], 0, 1)
     mask['tumor 3'] = np.flip(array, axis=0)
 
     # 12 Tumor
-    array = _ellipse(np.zeros((n,n)).astype(np.bool8), [-0.605,0.0], [0.023, 0.023], 0, 1)
+    array = _ellipse(np.zeros((n,n)).astype(np.bool), [-0.605,0.0], [0.023, 0.023], 0, 1)
     mask['tumor 5'] = np.flip(array, axis=0)
 
     # 13 Sagittal sinus
-    array = _ellipse(np.zeros((n,n)).astype(np.bool8), [-0.83, 0], [0.05, 0.05], 0, 1)
+    array = _ellipse(np.zeros((n,n)).astype(np.bool), [-0.83, 0], [0.05, 0.05], 0, 1)
     mask['sagittal sinus'] = np.flip(array, axis=0)
 
     # 14 Anterior cerebral artery
-    array = _ellipse(np.zeros((n,n)).astype(np.bool8), [0.66, 0], [0.02, 0.02], 0, 1)
+    array = _ellipse(np.zeros((n,n)).astype(np.bool), [0.66, 0], [0.02, 0.02], 0, 1)
     mask['anterior artery'] = np.flip(array, axis=0)
     
     return mask

@@ -4,6 +4,10 @@ SOPs for maintainers
 Building a virtual environment
 ------------------------------
 
+Clone dcmri package locally
+
+cd to dcmri top folder
+
 On windows:
 >>> py -3 -m venv .venv           # create virtual environment
 >>> .venv/Scripts/activate        # activate virtual environment
@@ -11,18 +15,44 @@ On windows:
 Then select the Python interpreter in the .venv folder. In VSCode:
 View > Command Palette > Python select interpreter -> enter interpreter path (.venv/Scripts/python.exe)
 
-Then install requirements
+Install dcmri from source:
 
+>>> pip install -e path\to\dcmri
+
+Install tests requirements:
+
+cd to dcmri/tests
+>>> pip install -r requirements.txt
+
+Install docs requirements:
+
+cd to dcmri/docs
 >>> pip install -r requirements.txt
 
 To leave:
 >>> deactivate
 
 
+Run test suite and check test coverage
+--------------------------------------
+
+cd to /dcmri top folder
+>>> pytest --cov=dcmri --cov-report term-missing
+
+
+Build documentation locally
+---------------------------
+cd to docs
+>>> ./make html
+
+To see the docs, open: dcmri/docs/build/html/index.html
+
+
 Creating a new release (from a fork)
 ------------------------------------
 
-- Check test coverage is 100% (see below)
+- Run the test suite in a clean environment (see above) and check test coverage (see above)
+- Build the documentation (see above)
 - Update the version number in the below locations, push and check that the test action passes. If it passes, make a pull-request to push to dev.
     - pyproject.toml
     - docs/source/conf.py
@@ -32,11 +62,6 @@ Creating a new release (from a fork)
 - Create a release on PyPI (see below)
 - Create a release on Zenodo (v1.0 and onwards)
 
-Check test coverage
--------------------
-
-cd to /dcmri top folder
->>> pytest --cov=dcmri --cov-report term-missing
 
 Build release notes
 -------------------
