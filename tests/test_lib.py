@@ -131,8 +131,7 @@ if __name__ == "__main__":
     test_ca_std_dose()
     test_relaxivity()
     test_T1()
-    test_aif_parker()
     test_shepp_logan()
+    test_aif_parker()
 
-    print('')
     print('All lib tests passed!!')

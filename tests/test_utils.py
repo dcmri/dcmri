@@ -1,44 +1,5 @@
-import os
 import numpy as np
 import dcmri as dc
-import dcmri.utils as utils
-
-
-class VoidModel(dc.Model):
-    pass
-
-class TestModel(dc.Model):
-    def __init__(self):
-        self.a=1
-        self.b=2
-        self.c=[3,4]
-        self.d=5*np.ones((2,3))
-        self.free = []
-        self.bounds = [-np.inf,np.inf]
-
-def test_model():
-
-    t = VoidModel()
-    try:
-        t.predict(None)
-    except:
-        assert True
-
-    t = TestModel()
-    a = [1,2,3,4] + 6*[5]
-    assert np.array_equal(t._getflat(), [])
-    assert np.array_equal(t._getflat(['a','b','c','d']), a)
-    f = t._getflat(['b','c','d'])
-    f[-1] = 0
-    t._setflat(f, ['b','c','d'])
-    a = [1,2,3,4] + 5*[5] + [0]
-    assert np.array_equal(t._getflat(['a','b','c','d']), a)
-    t.save()
-    t.a=2
-    assert t.a==2
-    t.load()
-    assert t.a==1
-    
 
 
 def test_tarray():
@@ -376,18 +337,18 @@ def test_sample():
     tp = np.array([2,4,5,7])
     Sp = np.array([1,2,5,9])
 
-    S = utils.sample(np.array([3]), tp, Sp)
+    S = dc.sample(np.array([3]), tp, Sp)
     assert np.array_equal(S, [1.5])
-    S = utils.sample(np.array([3]), tp, Sp, dt=1)
+    S = dc.sample(np.array([3]), tp, Sp, dt=1)
     assert np.array_equal(S, [1.5])
-    S = utils.sample(np.array([3]), tp, Sp, dt=0.1)
+    S = dc.sample(np.array([3]), tp, Sp, dt=0.1)
     assert np.array_equal(S.astype(np.float32), [1.5])
-    S = utils.sample(np.array([3]), tp, Sp, dt=2.0)
+    S = dc.sample(np.array([3]), tp, Sp, dt=2.0)
     assert np.array_equal(S.astype(np.float32), [1.5])
-    S = utils.sample(np.array([3]), tp, Sp, dt=3.0)
+    S = dc.sample(np.array([3]), tp, Sp, dt=3.0)
     integral = 0.5*1 + 2*1.5 + 0.5*(2+2+0.5*(5-2)/(5-4))/2
     assert np.array_equal(S.astype(np.float32), [integral/3])
-    S = utils.sample(np.array([3,6]), tp, Sp, dt=1)
+    S = dc.sample(np.array([3,6]), tp, Sp, dt=1)
     assert np.array_equal(S, [1.5,7])
 
 
@@ -395,21 +356,20 @@ if __name__ == "__main__":
 
     print('Testing utils..')
 
-    # test_model()
-    # test_interp()
-    # test_trapz()
-    # test_expconv()
-    # test_inttrap()
-    # test_stepconv()
-    # test_intprod()
-    # test_uconv()
-    # test_conv()
-    # test_tarray()
-    # test_ddelta()
-    # test_dstep()
-    # test_ddist()
-    # test_nexpconv()
-    # test_biexpconv()
+    test_interp()
+    test_tarray()
+    test_trapz()
+    test_ddelta()
+    test_dstep()
+    test_ddist()
+    test_intprod()
+    test_uconv()
+    test_conv()
+    test_inttrap()
+    test_stepconv()
+    test_expconv()
+    test_biexpconv()
+    test_nexpconv()
     test_sample()
 
     print('All utils tests passed!!')

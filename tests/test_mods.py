@@ -1,7 +1,57 @@
+import os
+import shutil
 import numpy as np
 import dcmri as dc
 
 SHOW = False
+
+def tmp():
+    return os.path.join(os.getcwd(),'tmp')
+
+def make_tmp():
+    os.makedirs(tmp(), exist_ok=True)
+
+def delete_tmp():
+    shutil.rmtree(tmp())
+
+class VoidModel(dc.Model):
+    pass
+
+class TestModel(dc.Model):
+    def __init__(self):
+        self.a=1
+        self.b=2
+        self.c=[3,4]
+        self.d=5*np.ones((2,3))
+        self.free = []
+        self.bounds = [-np.inf,np.inf]
+
+def test_model():
+
+    t = VoidModel()
+    try:
+        t.predict(None)
+    except:
+        assert True
+
+    t = TestModel()
+    a = [1,2,3,4] + 6*[5]
+    assert np.array_equal(t._getflat(), [])
+    assert np.array_equal(t._getflat(['a','b','c','d']), a)
+    f = t._getflat(['b','c','d'])
+    f[-1] = 0
+    t._setflat(f, ['b','c','d'])
+    a = [1,2,3,4] + 5*[5] + [0]
+    assert np.array_equal(t._getflat(['a','b','c','d']), a)
+
+    make_tmp()
+    t.save(path=tmp())
+    t.a=2
+    assert t.a==2
+    t.load(path=tmp())
+    assert t.a==1
+    delete_tmp()
+
 
 def test_mods_tissue():
 
@@ -28,8 +78,6 @@ def test_mods_tissue():
 
 def test_mods_tissue_pixel():
 
-    file = 'mods_tissue_pixel'
-
     # Create data
     n=8
     time, signal, aif, gt = dc.fake_brain(n=n, verbose=1)
@@ -45,17 +93,19 @@ def test_mods_tissue_pixel():
     }
 
     # Train array
+    with np.errstate(divide='ignore'):
+        R10 = 1/gt['T1']
     shape = (n,n)
     image = dc.TissueArray(
         shape = shape,
         FA = np.full(shape, 20),
-        R10 = 1/gt['T1'], 
+        R10 = R10, 
         parallel = False, 
         verbose = 1,
         **params, 
     )
     image.train(time, signal, xtol=1e-3)
-    image.save(filename=file)
+    # image.save(path=tmp(), filename=file)
     #image = dc.TissueArray().load(filename=file)
 
     # Train pixel curve
@@ -92,6 +142,8 @@ def test_mods_tissue_pixel():
 def test_mods_tissue_pixel_doc():
     n=8
     time, signal, aif, gt = dc.fake_brain(n)
+    with np.errstate(divide='ignore'):
+        R10 = 1/gt['T1']
     shape = (n,n)
     model = dc.TissueArray(
         shape = shape,
@@ -100,7 +152,7 @@ def test_mods_tissue_pixel_doc():
         agent = 'gadodiamide',
         TR = 0.005,
         FA = np.full(shape, 20),
-        R10 = 1/gt['T1'], 
+        R10 = R10, 
         n0 = 15,
         kinetics = '2CX',
     )
@@ -109,18 +161,7 @@ def test_mods_tissue_pixel_doc():
     loss = model.cost(time, signal, 'NRMS')
     assert np.nanmax(loss) < 1
 
-
-
-def test_mods_tissue_pixel_plot():
-    
-    file = 'mods_tissue_pixel'
-
-    # Load trained model
-    model = dc.TissueArray().load(filename=file)
-
-    # Get ground truth data
-    n=8
-    time, signal, aif, gt = dc.fake_brain(n=n, CNR=np.inf, verbose=1)
+    # Test plots
     roi = dc.shepp_logan(n=n)
 
     # Plot trained model
@@ -138,14 +179,11 @@ def test_mods_tissue_pixel_plot():
         'PS':0.003,
         've':0.5,
     }
-    show=False
     model.plot_params(roi=roi, ref=gt, vmin=vmin, vmax=vmax, show=SHOW)
     model.plot(time, signal, vmax=vmax, ref=gt, show=SHOW)
     model.plot_fit(time, signal, ref=gt, roi=roi, show=SHOW,
 #       hist_kwargs = {'bins':100, 'range':[0,10]},
    )
-
-
 
 
 
@@ -163,7 +201,7 @@ def test_mods_aorta():
         R10 = 1/dc.T1(3.0,'blood'),
     )
     aorta.train(time, aif)
-    aorta.plot(time, aif, show=False)
+    aorta.plot(time, aif, show=SHOW)
     aorta.print_params(round_to=3)
 
 def test_mods_aorta_liver():
@@ -184,7 +222,7 @@ def test_mods_aorta_liver():
     )
 
     model.train(xdata, ydata, xtol=1e-3)
-    model.plot(xdata, ydata, show=False)
+    model.plot(xdata, ydata, show=SHOW)
     model.print_params(round_to=3)
 
 def test_mods_aorta_liver2scan():
@@ -204,7 +242,7 @@ def test_mods_aorta_liver2scan():
         FA = 20,
     )
     model.train(xdata, ydata, xtol=1e-3)
-    model.plot(xdata, ydata, show=False)
+    model.plot(xdata, ydata, show=SHOW)
     model.print_params(round_to=3)
 
 def test_mods_liver():
@@ -219,7 +257,7 @@ def test_mods_liver():
         n0 = 10,
     )
     model.train(time, roi)
-    model.plot(time, roi, ref=gt, show=False)
+    model.plot(time, roi, ref=gt, show=SHOW)
 
 def test_mods_kidney():
     time, aif, roi, gt = dc.fake_tissue(R10=1/dc.T1(3.0,'kidney'))
@@ -240,13 +278,13 @@ def test_mods_kidney():
     #
     params['kinetics'] = '2CFM'
     model = dc.Kidney(**params).train(time, roi)
-    model.plot(time, roi, ref=gt, show=False)
+    model.plot(time, roi, ref=gt, show=SHOW)
     #
     # Repeat the fit using a free nephron model:
     #
     params['kinetics'] = 'FN'
     model = dc.Kidney(**params).train(time, roi)
-    model.plot(time, roi, ref=gt, show=False)
+    model.plot(time, roi, ref=gt, show=SHOW)
 
 def test_mods_kidney_cort_med():
     #
@@ -272,15 +310,18 @@ def test_mods_kidney_cort_med():
     #
     # Plot the reconstructed signals (left) and concentrations (right) and compare the concentrations against the noise-free ground truth:
     #
-    model.plot(time, roi, ref=gt, show=False)
+    model.plot(time, roi, ref=gt, show=SHOW)
+
+
+
 
 
 if __name__ == "__main__":
 
-    test_mods_tissue()
-    test_mods_tissue_pixel()
-    test_mods_tissue_pixel_doc()
-    # test_mods_tissue_pixel_plot()
+    test_model()
+    # test_mods_tissue()
+    # test_mods_tissue_pixel()
+    # test_mods_tissue_pixel_doc()
     # test_mods_aorta()
     # test_mods_aorta_liver()
     # test_mods_aorta_liver2scan()

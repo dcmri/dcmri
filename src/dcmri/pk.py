@@ -56,8 +56,6 @@ def flux(J:np.ndarray, *params, t=None, dt=1.0, kinetics='comp', **kwargs)->np.n
     msg = 'Model ' + kinetics + ' is not currently implemented.'
     raise ValueError(msg)
 
-
-
 def conc(J:np.ndarray, *params, t=None, dt=1.0, kinetics='comp', **kwargs)->np.ndarray:
     """Concentration in an arbitrary pharmacokinetic system.
 
@@ -1051,7 +1049,7 @@ def flux_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
 # TODO: check that the sum of E's for a compartment = 1. Is it true that it can be something else? No sure..
 # Maybe trapping and creation needs to be modelled with extra constants?
 # The amounts trapped or created are not proportional to the amount inside.
-def K_ncomp(T, E):
+def _K_ncomp(T, E):
     # dC/dt = J - KC 
     if not isinstance(T, np.ndarray):
         T = np.array(T)
@@ -1080,8 +1078,8 @@ def K_ncomp(T, E):
                     K[j,i] = -E[j,i]/T[i]
     return K
 
-def J_ncomp(C, T, E):
-    K = K_ncomp(T, E)
+def _J_ncomp(C, T, E):
+    K = _K_ncomp(T, E)
     nc, nt = C.shape[0], C.shape[1]
     J = np.zeros((nc,nc,nt))
     for i in range(C.shape[0]):
@@ -1098,7 +1096,7 @@ def J_ncomp(C, T, E):
 # Helper function
 def conc_ncomp_prop(J, T, E, t=None, dt=1.0, dt_prop=None):
     t = utils.tarray(len(J[0,:]), t=t, dt=dt)
-    K = K_ncomp(T, E)
+    K = _K_ncomp(T, E)
     nt, nc = len(t), len(T)
     C = np.zeros((nc,nt))
     Kmax = K.diagonal().max()
@@ -1125,7 +1123,7 @@ def conc_ncomp_prop(J, T, E, t=None, dt=1.0, dt_prop=None):
 def conc_ncomp_diag(J, T, E, t=None, dt=1.0):
     t = utils.tarray(J.shape[1], t=t, dt=dt)
     # Calculate system matrix, eigenvalues and eigenvectors
-    K = K_ncomp(T, E)
+    K = _K_ncomp(T, E)
     # From here, create generic function that solves n-comp system
     K, Q = np.linalg.eig(K)
     Qi = np.linalg.inv(Q)
@@ -1283,7 +1281,7 @@ def flux_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
         0.46603877, 0.53236151, 0.59104339, 0.64287219, 0.68859631])
     """
     C = conc_ncomp(J, T, E, t=t, dt=dt, solver=solver, dt_prop=dt_prop)
-    return J_ncomp(C, T, E)
+    return _J_ncomp(C, T, E)
 
 def res_ncomp(T, E, t):
     """Residue function of an n-compartment system.
@@ -1326,7 +1324,7 @@ def res_ncomp(T, E, t):
         0.02100968, 0.01947964, 0.01802307, 0.01666336, 0.0154024 ])
     """
     # Calculate system matrix, eigenvalues and eigenvectors
-    K = K_ncomp(T, E)
+    K = _K_ncomp(T, E)
     K, Q = np.linalg.eig(K)
     Qi = np.linalg.inv(Q)
     # Initialize concentration-time array
@@ -1389,15 +1387,14 @@ def prop_ncomp(T, E, t):
     nc, nt = len(T), len(t)
     H = np.zeros((nc,nc,nc,nt))
     for i in range(nc):
-        H[i,:,:,:] = J_ncomp(R[i,:,:], T, E)
+        H[i,:,:,:] = _J_ncomp(R[i,:,:], T, E)
     return H
 
 
 # 2 compartments (analytical)
 
-# Helper function
-def K_2comp(T,E):
-    K = K_ncomp(T, E)
+def _K_2comp(T,E):
+    K = _K_ncomp(T, E)
     if np.array_equal(K, np.identity(2)):
         return K, np.ones(2), K
     # Calculate the eigenvalues Ke  
@@ -1479,7 +1476,7 @@ def conc_2comp(J, T, E, t=None, dt=1.0):
     if not isinstance(E, np.ndarray):
         E = np.array(E)
     # Build the system matrix K
-    Q, K, Qi = K_2comp(T, E)
+    Q, K, Qi = _K_2comp(T, E)
     # Initialize concentration-time array
     t = utils.tarray(len(J[0,:]), t=t, dt=dt)
     C = np.zeros((2,len(t)))
@@ -1550,7 +1547,7 @@ def flux_2comp(J, T, E, t=None, dt=1.0):
         0.46603877, 0.53236151, 0.59104339, 0.64287219, 0.68859631])
     """
     C = conc_2comp(J, T, E, t=t, dt=dt)
-    return J_ncomp(C, T, E)
+    return _J_ncomp(C, T, E)
 
 def res_2comp(T, E, t):
     """Residue function of a 2-compartment system.
@@ -1593,7 +1590,7 @@ def res_2comp(T, E, t):
         0.02100968, 0.01947964, 0.01802307, 0.01666336, 0.0154024 ])
     """
     # Calculate system matrix, eigenvalues and eigenvectors
-    Q, K, Qi = K_2comp(T, E)
+    Q, K, Qi = _K_2comp(T, E)
     # Initialize concentration-time array
     nc, nt = len(T), len(t) 
     R = np.zeros((nc,nc,nt)) 
@@ -1654,7 +1651,7 @@ def prop_2comp(T, E, t):
     nc, nt = len(T), len(t)
     H = np.zeros((nc,nc,nc,nt))
     for i in range(nc):
-        H[i,:,:,:] = J_ncomp(R[i,:,:], T, E)
+        H[i,:,:,:] = _J_ncomp(R[i,:,:], T, E)
     return H
 
 
@@ -1782,8 +1779,7 @@ def flux_pfcomp(J, T, D, t=None, dt=1.0, solver='interp'):
 
 # Michaelis-Menten compartment
 
-# Helper function
-def mmcomp_solve(J, Vmax, Km, t):
+def _mmcomp_solve(J, Vmax, Km, t):
     #Schnell-Mendoza
     n = len(t)
     C = np.zeros(n)
@@ -1791,11 +1787,10 @@ def mmcomp_solve(J, Vmax, Km, t):
         Dk = t[k+1]-t[k]
         Jk = (J[k]+J[k+1])/2
         u = (C[k]/Km) * np.exp( (C[k]-Vmax*Dk)/Km )
-        C[k+1] = Jk*Dk + Km*lambertw(u)
+        C[k+1] = Jk*Dk + Km*np.real(lambertw(u))
     return C
 
-# Helper function
-def mmcomp_prop(J, Vmax, Km, t):
+def _mmcomp_prop(J, Vmax, Km, t):
     n = len(t)
     C = np.zeros(n)
     for k in range(n-1):
@@ -1863,9 +1858,9 @@ def conc_mmcomp(J, Vmax, Km, t=None, dt=1.0, solver='SM'):
         raise ValueError('Km must be non-negative.')
     t = utils.tarray(len(J), t=t, dt=dt)
     if solver=='SM':
-        return mmcomp_solve(J, Vmax, Km, t)
+        return _mmcomp_solve(J, Vmax, Km, t)
     if solver == 'prop':
-        return mmcomp_prop(J, Vmax, Km, t)
+        return _mmcomp_prop(J, Vmax, Km, t)
 
 def flux_mmcomp(J, Vmax, Km, t=None, solver='SM', dt=1.0):
     """Indicator flux out of a Michaelis-Menten compartment.
@@ -1912,6 +1907,7 @@ def flux_mmcomp(J, Vmax, Km, t=None, solver='SM', dt=1.0):
     return C*Vmax/(Km+C)
 
 
+# Two-compartment exchange
 
 def conc_2cxm(J, T, E, t=None, dt=1.0):
     """Indicator flux out of a 2-compartment exchange model.
@@ -1931,7 +1927,6 @@ def conc_2cxm(J, T, E, t=None, dt=1.0):
     J = np.stack((J, np.zeros(J.size)))
     C = conc_2comp(J, T, E, t=t, dt=dt)
     return C[0,:] + C[1,:]
-
 
 def flux_2cxm(J, T, E, t=None, dt=1.0):
     """Indicator flux out of a 2-compartment exchange model.

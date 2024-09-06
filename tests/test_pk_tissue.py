@@ -1,6 +1,8 @@
+from scipy.integrate import cumulative_trapezoid
+
 import numpy as np
 import dcmri as dc
-from scipy.integrate import cumulative_trapezoid
+
 
 def test__conc_u():
     n = 10
@@ -91,7 +93,7 @@ def test__flux_hfu():
     J0 = Ktrans*ca
     assert np.linalg.norm(J[1,0,:]-J0)/np.linalg.norm(J0) < 0.01
 
-def test_conc_hf():
+def test__conc_hf():
     n = 10
     Ta = 10
     vp = 0.3
@@ -286,7 +288,7 @@ if __name__ == "__main__":
     test__conc_hfu()
     test__flux_hfu()
 
-    test_conc_hf()
+    test__conc_hf()
     test__flux_hf()
 
     test__conc_2cu()
