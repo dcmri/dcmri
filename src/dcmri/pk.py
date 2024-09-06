@@ -650,17 +650,20 @@ def conc_chain(J, T, D, t=None, dt=1.0, solver='step'):
         return conc_plug(J, T, t=t, dt=dt)
     if D == 1:
         return conc_comp(J, T, t=t, dt=dt)
-    if solver=='diag':
-        n0 = np.floor(1/D)
-        Tc, Ec = _chain_ncomp(n0, T)
-        Ji = np.zeros((n0,len(J)))
-        Ji[0,:] = J
-        C = conc_ncomp(Ji, Tc, Ec, t=t, dt=dt).sum(axis=0)
-        if n0==1/D:
-            return C
-        Tc, Ec = _chain_ncomp(n0+1, T)
-        C += conc_ncomp(Ji, Tc, Ec, t=t, dt=dt).sum(axis=0)
-        return C/2
+    
+    # TODO: THIS NEEDS DEBUGGING
+    # if solver=='diag':
+    #     n0 = np.floor(1/D)
+    #     Tc, Ec = _chain_ncomp(n0, T)
+    #     Ji = np.zeros((n0,len(J)))
+    #     Ji[0,:] = J
+    #     C = conc_ncomp(Ji, Tc, Ec, t=t, dt=dt).sum(axis=0)
+    #     if n0==1/D:
+    #         return C
+    #     Tc, Ec = _chain_ncomp(n0+1, T)
+    #     C += conc_ncomp(Ji, Tc, Ec, t=t, dt=dt).sum(axis=0)
+    #     return C/2
+
     tr = utils.tarray(len(J), t=t, dt=dt)
     r = res_chain(T, D, tr)
     return utils.conv(r, J, t=t, dt=dt, solver=solver)
@@ -692,29 +695,33 @@ def flux_chain(J, T, D, t=None, dt=1.0, solver='step'):
         return flux_plug(J, T, t=t, dt=dt)
     if D == 1:
         return flux_comp(J, T, t=t, dt=dt)
-    if solver=='diag':
-        n0 = int(np.floor(1/D))
-        Tc, Ec = _chain_ncomp(n0, T)
-        Ji = np.zeros((n0,len(J)))
-        Ji[0,:] = J
-        Jo = flux_ncomp(Ji, Tc, Ec, t=t, dt=dt)[n0-1,n0-1,:]
-        if n0==1/D:
-            return Jo
-        Tc, Ec = _chain_ncomp(n0+1, T)
-        Jo += flux_ncomp(Ji, Tc, Ec, t=t, dt=dt)[n0,n0,:]
-        return Jo/2
+    
+    # TODO: This needs debugging
+    # if solver=='diag':
+    #     n0 = int(np.floor(1/D))
+    #     Tc, Ec = _chain_ncomp(n0, T)
+    #     Ji = np.zeros((n0,len(J)))
+    #     Ji[0,:] = J
+    #     Jo = flux_ncomp(Ji, Tc, Ec, t=t, dt=dt)[n0-1,n0-1,:]
+    #     if n0==1/D:
+    #         return Jo
+    #     Tc, Ec = _chain_ncomp(n0+1, T)
+    #     Jo += flux_ncomp(Ji, Tc, Ec, t=t, dt=dt)[n0,n0,:]
+    #     return Jo/2
+
     th = utils.tarray(len(J), t=t, dt=dt)
     h = prop_chain(T, D, th)
     return utils.conv(h, J, t=t, dt=dt, solver=solver)
 
-def _chain_ncomp(n, T):
-    # Helper function
-    Tarr = np.full(n, T/n)
-    E = np.zeros((n,n))
-    for i in range(n-1):
-        E[i+1,i] = 1
-    E[n-1,n-1] = 1
-    return Tarr, E
+# Helper function in diag solver for chain model
+# def _chain_ncomp(n, T):
+#     # Helper function
+#     Tarr = np.full(n, T/n)
+#     E = np.zeros((n,n))
+#     for i in range(n-1):
+#         E[i+1,i] = 1
+#     E[n-1,n-1] = 1
+#     return Tarr, E
 
 
 

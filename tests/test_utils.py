@@ -54,6 +54,12 @@ def test_expconv():
         g0 = (Tf*f-Th*h)/(Tf-Th)
         assert np.linalg.norm(g-g0)/np.linalg.norm(g0) < prec[i]
 
+    #Special case: T=0
+    t = np.arange(0,tmax,dt)
+    f = np.exp(-t/Tf)/Tf
+    assert np.array_equal(f, dc.expconv(f, 0, t))
+
+
 def test_inttrap():
     t=np.array([0,1,2,3])
     f=[1,1,1,1]
@@ -202,6 +208,21 @@ def test_conv():
         assert (np.trapezoid(g0,t)-area)**2/area**2 < prec_area
         assert np.linalg.norm(g0-g1)/np.linalg.norm(g0)  < prec_symm
 
+    # compare trap and step solvers - should be identical at high temporal resolution
+    dt = 0.1
+    t = np.arange(0,tmax,dt)
+    f = np.exp(-t/Tf)/Tf
+    h = np.exp(-t/Th)/Th
+    g0 = (Tf*f-Th*h)/(Tf-Th)
+    g = dc.conv(f, h, dt=dt)
+    assert np.linalg.norm(g-g0) < 1e-3*np.linalg.norm(g0)
+    g = dc.conv(f, h, dt=dt, solver='trap')
+    assert np.linalg.norm(g-g0) < 1e-3*np.linalg.norm(g0)
+    g = dc.conv(f, h, t)
+    assert np.linalg.norm(g-g0) < 1e-3*np.linalg.norm(g0)
+    g = dc.conv(f, h, t, solver='trap')
+    assert np.linalg.norm(g-g0) < 1e-3*np.linalg.norm(g0)
+
     # Check error handling
     try:
         dc.conv([1,2,3], [1,2])
@@ -263,6 +284,10 @@ def test_nexpconv():
     g = dc.nexpconv(200.5, T, t)
     assert np.abs(np.trapezoid(g,t)-1) < 1e-12
 
+    # Test list input format
+    g = dc.nexpconv(200.5, T, list(t))
+    assert np.abs(np.trapezoid(g,t)-1) < 1e-12
+
     # Test exceptions
     try:
         dc.nexpconv(n, -1, t)
@@ -309,6 +334,14 @@ def test_dstep():
     h = dc.dstep(0.5, 2.5, t)
     assert np.array_equal(h, [0.2,0.4,0.4,0.2])
     assert np.abs(np.trapezoid(h,t)-1) < 1e-12
+    t = [-1,0,1,2]
+    h = dc.dstep(0.5, 2.5, t)
+    assert np.array_equal(h, [0, 0.25, 0.5, 0.5])
+    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
+    t = [1,2,3,4]
+    h = dc.dstep(0.5, 2.5, t)
+    assert np.array_equal(h, [0.5, 0.5, 0.25, 0])
+    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
 
 def test_ddist():
     t = [0,2,3,4]
@@ -351,6 +384,12 @@ def test_sample():
     S = dc.sample(np.array([3,6]), tp, Sp, dt=1)
     assert np.array_equal(S, [1.5,7])
 
+def test_add_noise():
+    s0 = [1,2,3,4]
+    s1 = dc.add_noise(s0, 0)
+    assert np.array_equal(s0, s1)
+
+
 
 if __name__ == "__main__":
 
@@ -371,5 +410,6 @@ if __name__ == "__main__":
     test_biexpconv()
     test_nexpconv()
     test_sample()
+    test_add_noise()
 
     print('All utils tests passed!!')

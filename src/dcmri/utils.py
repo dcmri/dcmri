@@ -592,8 +592,8 @@ def add_noise(signal, sdev:float)->np.ndarray:
     Returns:
         np.ndarray: signal with noise added.
     """
-    noise_x = np.random.normal(0, sdev, signal.size)
-    noise_y = np.random.normal(0, sdev, signal.size)
+    noise_x = np.random.normal(0, sdev, np.size(signal))
+    noise_y = np.random.normal(0, sdev, np.size(signal))
     signal = np.sqrt((signal+noise_x)**2 + noise_y**2)
     return signal
 

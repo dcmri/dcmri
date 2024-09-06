@@ -49,7 +49,23 @@ def test__flux_1c():
     assert np.linalg.norm(J-J0)/np.linalg.norm(J0) < 0.01
     J = dc.flux_tissue(ca, 0, v, t=t, kinetics='FX')
     assert np.linalg.norm(J) == 0
-    
+
+
+def test__conc_wv():
+    n = 10
+    Ta = 10
+    Ktrans = 2
+    ve = 0.1
+    t = np.linspace(0, 20, n)
+    ca = np.exp(-t/Ta)/Ta
+    C = dc.conc_tissue(ca, Ktrans, ve, t=t, kinetics='WV')
+    C0 = Ktrans*dc.biexpconv(Ta, ve/Ktrans, t)*ve/Ktrans
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.01
+    C = dc.conc_tissue(ca, Ktrans, ve, t=t, kinetics='WV', sum=False)
+    C = C[0,:] + C[1,:]
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.01
+    C = dc.conc_tissue(ca, 0, ve, t=t, kinetics='WV')
+    assert np.linalg.norm(C) == 0
 
 def test__flux_wv():
     n = 10
@@ -114,6 +130,8 @@ def test__conc_hf():
     C1 = np.zeros(len(ca))
     assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 0.01
     assert np.linalg.norm(C[1,:]-C1) == 0
+    C = dc.conc_tissue(ca, vp, 0, ve, t=t, kinetics='HF', sum=False)
+    assert 0==np.linalg.norm(C[1,:])
 
 def test__flux_hf():
     n = 10
@@ -127,6 +145,8 @@ def test__flux_hf():
     J = dc.flux_tissue(ca, vp, Ktrans, ve, t=t, kinetics='HF')
     J0 = kep*Ktrans*dc.biexpconv(Ta, 1/kep, t)/kep
     assert np.linalg.norm(J[0,1,:]-J0)/np.linalg.norm(J0) < 0.01
+    J = dc.flux_tissue(ca, vp, 0, ve, t=t, kinetics='HF')
+    assert 0==np.linalg.norm(J[0,1,:])
 
 def test__conc_2cu():
     n = 10
@@ -273,6 +293,34 @@ def test__flux_2cf():
     assert np.linalg.norm(Jo0) == 0
 
 
+def test_conc_tissue():
+    # Only need to test exceptions
+    n = 10
+    Ta = 10
+    Fp = 2
+    t = np.linspace(0, 20, n)
+    ca = np.exp(-t/Ta)/Ta
+    try:
+        dc.conc_tissue(ca, Fp, t=t, kinetics='blabla')
+    except:
+        assert True
+    else:
+        assert False
+    
+
+def test_flux_tissue():
+    # Only need to test exceptions
+    n = 10
+    Ta = 10
+    Fp = 2
+    t = np.linspace(0, 20, n)
+    ca = np.exp(-t/Ta)/Ta
+    try:
+        dc.flux_tissue(ca, Fp, t=t, kinetics='blabla')
+    except:
+        assert True
+    else:
+        assert False
 
 
 if __name__ == "__main__":
@@ -283,6 +331,7 @@ if __name__ == "__main__":
     test__conc_1c()
     test__flux_1c()
 
+    test__conc_wv()
     test__flux_wv()
 
     test__conc_hfu()
@@ -299,5 +348,8 @@ if __name__ == "__main__":
 
     test__conc_2cf()
     test__flux_2cf()
+
+    test_conc_tissue()
+    test_flux_tissue()
 
     print('All pkmods tests passing!')

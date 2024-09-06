@@ -39,6 +39,10 @@ Run test suite and check test coverage
 cd to /dcmri top folder
 >>> pytest --cov=dcmri --cov-report term-missing
 
+To run a specific file (eg. test_utils) only, do:
+>>> pytest tests/test_utils.py --cov=dcmri --cov-report term-missing
+
+
 
 Build documentation locally
 ---------------------------
