@@ -1,5 +1,5 @@
 
-from . import utils
+from dcmri import utils
 from dcmri.utils import *
 
 from dcmri import lib
@@ -28,6 +28,9 @@ from dcmri.sig import *
 
 from dcmri import dro
 from dcmri.dro import *
+
+from dcmri import mods
+from dcmri.mods import *
 
 from dcmri import mods_aorta
 from dcmri.mods_aorta import *

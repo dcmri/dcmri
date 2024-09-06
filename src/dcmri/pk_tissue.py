@@ -112,8 +112,6 @@ def conc_tissue(ca:np.ndarray, *params, t=None, dt=1.0, kinetics='2CX', sum=True
     else:
         raise ValueError('Kinetic model ' + kinetics + ' is not currently implemented.')
 
-
-
 def flux_tissue(ca:np.ndarray, *params, t=None, dt=1.0, kinetics='2CX')->np.ndarray:
     """Indicator out of a 2-site exchange tissue.
 
@@ -251,7 +249,7 @@ def _conc_2cx(ca, Fp, vp, PS, ve, t=None, dt=1.0, sum=True):
         [1-E, 1],
         [E,   0],
     ]
-    Q, K, Qi = pk.K_2comp(T, E)
+    Q, K, Qi = pk._K_2comp(T, E)
     # Initialize concentration-time array
     nc, nt = 2, len(J)
     t = utils.tarray(nt, t=t, dt=dt)
@@ -295,7 +293,6 @@ def _conc_2cf(ca, Fp, vp, PS, Te, t=None, dt=1.0, sum=True):
         return C0+C1
     else:
         return np.stack((C0, C1))
-
 
 
 
@@ -344,7 +341,6 @@ def _flux_2cu(ca, Fp, vp, PS, t=None, dt=1.0):
         J[1,0,:] = PS*C[0,:]/vp
     return J
 
-
 def _flux_2cx(ca, Fp, vp, PS, ve, t=None, dt=1.0):
     if Fp+PS == 0:
         return np.zeros((2,2,len(ca)))
@@ -365,8 +361,7 @@ def _flux_2cx(ca, Fp, vp, PS, ve, t=None, dt=1.0):
         [1-E, 1],
         [E,   0],
     ]
-    return pk.J_ncomp(C, T, E)
-
+    return pk._J_ncomp(C, T, E)
 
 def _flux_2cf(ca, Fp, vp, PS, Te, t=None, dt=1.0):
     if Fp+PS == 0:

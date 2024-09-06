@@ -1,5 +1,6 @@
 import numpy as np
 import dcmri as dc
+import dcmri.pk as pk
 
 def test_res_trap():
     t = np.linspace(0, 100, 20)
@@ -21,7 +22,7 @@ def test_conc_trap():
     C0 = dc.conv(dc.res_trap(t), J, t)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) == 0
 
-def test__flux_trap():
+def test_flux_trap():
     t = np.linspace(0, 100, 20)
     J = np.ones(len(t))
     Jo = dc.flux(J, kinetics='trap')
@@ -52,7 +53,7 @@ def test_conc_pass():
     C0 = dc.conv(dc.res_pass(T,t), J, t)
     assert np.linalg.norm(C[1:]-C0[1:])/np.linalg.norm(C0[1:]) < 1e-12
 
-def test__flux_pass():
+def test_flux_pass():
     T = 30
     t = np.linspace(0, 100, 20)
     J = np.ones(len(t))
@@ -106,7 +107,7 @@ def test_conc_comp():
     C0 = dc.conc_trap(J,t)
     assert np.linalg.norm(C[1:]-C0[1:])/np.linalg.norm(C0[1:]) < 1e-1
 
-def test__flux_comp():
+def test_flux_comp():
     T = 25
     t = np.linspace(0, 150, 20)
     J = np.ones(len(t))
@@ -163,7 +164,7 @@ def test_conc_plug():
     C = dc.conc_plug(J, 0, t)
     assert np.linalg.norm(C) == 0
 
-def test__flux_plug():
+def test_flux_plug():
     T = 25
     t = np.linspace(0, 150, 40)
     J = np.ones(len(t))
@@ -259,7 +260,7 @@ def test_conc_chain():
     h0 = dc.conc_comp(J, T, t)
     assert np.linalg.norm(h-h0)==0
 
-def test__flux_chain():
+def test_flux_chain():
     T = 25
     D = 0.5
     t = np.linspace(0, 150, 20)
@@ -348,7 +349,7 @@ def test_conc_step():
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
 
 
-def test__flux_step():
+def test_flux_step():
     T, D = 25, 0.5
     t = np.linspace(0, 150, 20)
     J = np.ones(len(t))
@@ -415,7 +416,7 @@ def test_conc_free():
     C = dc.conc_free(J, H, t, TT=TT)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
 
-def test__flux_free():
+def test_flux_free():
     H = [1,1]
     TT = [30,60,90]
     t = np.linspace(0, 150, 20)
@@ -432,10 +433,10 @@ def test__flux_free():
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
 
 
-def test_K_ncomp():
+def test__K_ncomp():
     T1, T2 = 2, 7
     E11, E12, E21, E22 = 1, 3, 9, 2
-    K = dc.K_ncomp([T1,T2], [[E11,E12],[E21,E22]])
+    K = pk._K_ncomp([T1,T2], [[E11,E12],[E21,E22]])
     K0 = [[(E11+E21)/T1, -E12/T2],[-E21/T1, (E12+E22)/T2]]
     assert np.array_equal(K, K0)
     assert np.array_equal(np.matmul(K, [1,0]), [(E11+E21)/T1,-E21/T1])
@@ -443,20 +444,20 @@ def test_K_ncomp():
     assert np.array_equal(np.matmul(K, [1,0]), K[:,0]) # col 0
     assert np.array_equal(np.matmul(K, [0,1]), K[:,1]) # col 1
     try:
-        dc.K_ncomp([T1,T2], [[E11,-1],[E21,E22]])
+        pk._K_ncomp([T1,T2], [[E11,-1],[E21,E22]])
     except:
         assert True
     else:
         assert False
-    K = dc.K_ncomp([T1,T2], [[0,E12],[0,E22]])
+    K = pk._K_ncomp([T1,T2], [[0,E12],[0,E22]])
     assert K[0,0] == 0
 
-def test_J_ncomp():
+def test__J_ncomp():
     T = [1,2]
     E = [[1,0],[0,1]]
     C = [[1],
          [3]]
-    J = dc.J_ncomp(np.array(C), T, E)
+    J = pk._J_ncomp(np.array(C), T, E)
     assert J[0,0,:] == 1
     assert J[0,1,:] == 0
     assert J[1,0,:] == 0
@@ -572,14 +573,14 @@ def test_prop_ncomp():
     assert np.linalg.norm(Jo[1,1,:]-Jo1)/np.linalg.norm(Jo1) < 0.01
 
 
-def test_K_2comp():
+def test__K_2comp():
     # Compare against numerical computation
     T = [6,12]
     E = [[1,0.5],[0.5,1]]
     # Analytical
-    _, K, _ = dc.K_2comp(T,E)
+    _, K, _ = pk._K_2comp(T,E)
     # Numerical
-    Knum = dc.K_ncomp(T, E)
+    Knum = pk._K_ncomp(T, E)
     Knum, _ = np.linalg.eig(Knum)
     assert np.linalg.norm(K-Knum)/np.linalg.norm(Knum) < 1e-12
 
@@ -771,44 +772,44 @@ def test_flux_mmcomp():
 
 if __name__ == "__main__":
 
-    test_conc_trap()
-    test__flux_trap()
     test_res_trap()
     test_prop_trap()
+    test_conc_trap()
+    test_flux_trap()
 
     test_conc_pass()
-    test__flux_pass()
+    test_flux_pass()
     test_res_pass()
     test_prop_pass()
 
     test_conc_comp()
-    test__flux_comp()
+    test_flux_comp()
     test_res_comp()
     test_prop_comp()
 
     test_conc_plug()
-    test__flux_plug()
+    test_flux_plug()
     test_res_plug()
     test_prop_plug()
 
     test_conc_chain()
-    test__flux_chain()
+    test_flux_chain()
     test_prop_chain()
     test_res_chain()
 
     test_conc_step()
-    test__flux_step()
+    test_flux_step()
     test_prop_step()
     test_res_step()
 
     test_conc_free()
-    test__flux_free()
+    test_flux_free()
     test_prop_free()
     test_res_free()
 
-    test_K_2comp()
-    test_K_ncomp()
-    test_J_ncomp()
+    test__K_2comp()
+    test__K_ncomp()
+    test__J_ncomp()
     test_conc_ncomp_prop()
     test_conc_ncomp_diag()
 
