@@ -243,13 +243,13 @@ def influx_step(t:np.ndarray, weight:float, conc:float, dose:float, rate:float, 
     # Check consistency of timings
     if dose > 0:
         if duration==0:
-            msg = 'Invalid input variables. \n' 
-            msg = 'The injection duration is zero.'
+            msg = 'Invalid input variables. ' 
+            msg += 'The injection duration is zero.'
             raise ValueError(msg)
         if dt >= duration:
             msg = 'Invalid input variables. \n' 
-            msg = 'The smallest time step dt ('+dt+' sec) is larger than the injection duration 1 (' + duration + 'sec). \n'
-            msg = 'We would recommend dt to be at least 5 times smaller.'
+            msg += 'The smallest time step dt ('+str(dt)+' sec) is larger than the injection duration 1 (' + str(duration) + 'sec). \n'
+            msg += 'We would recommend dt to be at least 5 times smaller.'
             raise ValueError(msg)
 
     # Build flux 
