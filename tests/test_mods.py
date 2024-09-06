@@ -3,7 +3,6 @@ import shutil
 import numpy as np
 import dcmri as dc
 
-SHOW = False
 
 def tmp():
     return os.path.join(os.getcwd(),'tmp')
@@ -72,7 +71,7 @@ def test_mods_tissue():
     model.train(time, roi)
 
     # Display results
-    model.plot(time, roi, ref=gt, show=SHOW)
+    model.plot(time, roi, ref=gt, show=False)
     assert np.abs(model.Fp-gt['Fp']) < 0.1*gt['Fp']
 
 
@@ -101,7 +100,7 @@ def test_mods_tissue_pixel():
         FA = np.full(shape, 20),
         R10 = R10, 
         parallel = False, 
-        verbose = 1,
+        verbose = 0,
         **params, 
     )
     image.train(time, signal, xtol=1e-3)
@@ -118,7 +117,7 @@ def test_mods_tissue_pixel():
         **params,
     )
     curve.train(time, signal[loc,:][0,:], xtol=1e-3)
-    curve.plot(time, signal[loc,:][0,:], show=SHOW)
+    curve.plot(time, signal[loc,:][0,:], show=False)
 
     # Check array against curve fit
     # print('NRMS', curve.cost(time, signal[loc,:][0,:]), image.cost(time, signal)[loc][0])
@@ -157,7 +156,7 @@ def test_mods_tissue_pixel_doc():
         kinetics = '2CX',
     )
     model.train(time, signal)
-    model.plot(time, signal, ref=gt, show=SHOW)
+    model.plot(time, signal, ref=gt, show=False)
     loss = model.cost(time, signal, 'NRMS')
     assert np.nanmax(loss) < 1
 
@@ -179,9 +178,9 @@ def test_mods_tissue_pixel_doc():
         'PS':0.003,
         've':0.5,
     }
-    model.plot_params(roi=roi, ref=gt, vmin=vmin, vmax=vmax, show=SHOW)
-    model.plot(time, signal, vmax=vmax, ref=gt, show=SHOW)
-    model.plot_fit(time, signal, ref=gt, roi=roi, show=SHOW,
+    model.plot_params(roi=roi, ref=gt, vmin=vmin, vmax=vmax, show=False)
+    model.plot(time, signal, vmax=vmax, ref=gt, show=False)
+    model.plot_fit(time, signal, ref=gt, roi=roi, show=False,
 #       hist_kwargs = {'bins':100, 'range':[0,10]},
    )
 
@@ -201,7 +200,7 @@ def test_mods_aorta():
         R10 = 1/dc.T1(3.0,'blood'),
     )
     aorta.train(time, aif)
-    aorta.plot(time, aif, show=SHOW)
+    aorta.plot(time, aif, show=False)
     aorta.print_params(round_to=3)
 
 def test_mods_aorta_liver():
@@ -222,7 +221,7 @@ def test_mods_aorta_liver():
     )
 
     model.train(xdata, ydata, xtol=1e-3)
-    model.plot(xdata, ydata, show=SHOW)
+    model.plot(xdata, ydata, show=False)
     model.print_params(round_to=3)
 
 def test_mods_aorta_liver2scan():
@@ -242,7 +241,7 @@ def test_mods_aorta_liver2scan():
         FA = 20,
     )
     model.train(xdata, ydata, xtol=1e-3)
-    model.plot(xdata, ydata, show=SHOW)
+    model.plot(xdata, ydata, show=False)
     model.print_params(round_to=3)
 
 def test_mods_liver():
@@ -257,7 +256,7 @@ def test_mods_liver():
         n0 = 10,
     )
     model.train(time, roi)
-    model.plot(time, roi, ref=gt, show=SHOW)
+    model.plot(time, roi, ref=gt, show=False)
 
 def test_mods_kidney():
     time, aif, roi, gt = dc.fake_tissue(R10=1/dc.T1(3.0,'kidney'))
@@ -278,13 +277,13 @@ def test_mods_kidney():
     #
     params['kinetics'] = '2CFM'
     model = dc.Kidney(**params).train(time, roi)
-    model.plot(time, roi, ref=gt, show=SHOW)
+    model.plot(time, roi, ref=gt, show=False)
     #
     # Repeat the fit using a free nephron model:
     #
     params['kinetics'] = 'FN'
     model = dc.Kidney(**params).train(time, roi)
-    model.plot(time, roi, ref=gt, show=SHOW)
+    model.plot(time, roi, ref=gt, show=False)
 
 def test_mods_kidney_cort_med():
     #
@@ -310,7 +309,7 @@ def test_mods_kidney_cort_med():
     #
     # Plot the reconstructed signals (left) and concentrations (right) and compare the concentrations against the noise-free ground truth:
     #
-    model.plot(time, roi, ref=gt, show=SHOW)
+    model.plot(time, roi, ref=gt, show=False)
 
 
 
@@ -319,14 +318,14 @@ def test_mods_kidney_cort_med():
 if __name__ == "__main__":
 
     test_model()
-    # test_mods_tissue()
-    # test_mods_tissue_pixel()
-    # test_mods_tissue_pixel_doc()
-    # test_mods_aorta()
-    # test_mods_aorta_liver()
-    # test_mods_aorta_liver2scan()
-    # test_mods_liver()
-    # test_mods_kidney()
-    # test_mods_kidney_cort_med()
+    test_mods_tissue()
+    test_mods_tissue_pixel()
+    test_mods_tissue_pixel_doc()
+    test_mods_aorta()
+    test_mods_aorta_liver()
+    test_mods_aorta_liver2scan()
+    test_mods_liver()
+    test_mods_kidney()
+    test_mods_kidney_cort_med()
 
     print('All mods tests passed!!')

@@ -352,4 +352,4 @@ if __name__ == "__main__":
     test_conc_tissue()
     test_flux_tissue()
 
-    print('All pkmods tests passing!')
+    print('All pk_tissue tests passing!')

@@ -870,7 +870,7 @@ class Tissue(dc.Model):
                 vb = self.vp/(1-self.Hct)
                 v = [vb, self.ve, 1-vb-self.ve]
                 if self.sequence == 'SR':
-                    signal = dc.signal_sr_nex(v, R1, self.S0, self.TR, self.FA, self.TC, self.TP)
+                    signal = dc.signal_sr(R1, self.S0, self.TR, self.FA, self.TC, self.TP, v=v, PSw=0)
                 elif self.sequence == 'SS':
                     signal = dc.signal_ss(R1, self.S0, self.TR, self.FA, v=v, PSw=0)
 
@@ -878,14 +878,14 @@ class Tissue(dc.Model):
                 vb = self.vp/(1-self.Hct)
                 v = [vb, 1-vb]
                 if self.sequence == 'SR':
-                    signal = dc.signal_sr_nex(v, R1, self.S0, self.TR, self.FA, self.TC, self.TP)
+                    signal = dc.signal_sr(R1, self.S0, self.TR, self.FA, self.TC, self.TP, v=v, PSw=0)
                 elif self.sequence == 'SS':
                     signal = dc.signal_ss(R1, self.S0, self.TR, self.FA, v=v, PSw=0)
 
             elif self.kinetics in ['WV','FX']:
                 v = [self.ve, 1-self.ve]
                 if self.sequence == 'SR':
-                    signal = dc.signal_sr_nex(v, R1, self.S0, self.TR, self.FA, self.TC, self.TP)
+                    signal = dc.signal_sr(R1, self.S0, self.TR, self.FA, self.TC, self.TP, v=v, PSw=0)
                 elif self.sequence == 'SS':
                     signal = dc.signal_ss(R1, self.S0, self.TR, self.FA, v=v, PSw=0)
 
