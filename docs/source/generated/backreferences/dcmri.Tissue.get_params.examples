@@ -11,10 +11,11 @@ Examples using ``dcmri.Tissue.get_params``
 
     <div class="sphx-glr-thumbnails">
 
+.. thumbnail-parent-div-open
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the role of the arterial input function (AIF) in DC-MRI analysis, in...">
+    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the role of the arterial input function (AIF) in DC-MRI analysis, including the effect of using population-average AIFs versus subject-specific AIFs. ">
 
 .. only:: html
 
@@ -35,7 +36,7 @@ Examples using ``dcmri.Tissue.get_params``
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the effect of water exchange in a standard two-compartmental tissue ...">
+    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the effect of water exchange in a standard two-compartmental tissue with extended Tofts kinetics. Data acquisition is modelled using the steady-state model of a spoiled gradient echo sequence.">
 
 .. only:: html
 
@@ -53,6 +54,8 @@ Examples using ``dcmri.Tissue.get_params``
 .. only:: not html
 
  * :ref:`sphx_glr_generated_examples_tutorials_plot_wex.py`
+
+.. thumbnail-parent-div-close
 
 .. raw:: html
 

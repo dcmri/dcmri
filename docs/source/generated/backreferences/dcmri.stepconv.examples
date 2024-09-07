@@ -11,10 +11,11 @@ Examples using ``dcmri.stepconv``
 
     <div class="sphx-glr-thumbnails">
 
+.. thumbnail-parent-div-open
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="Using the convolution functions ~dcmri.conv, ~dcmri.expconv, ~dcmri.stepconv, ~dcmri.biexpconv ...">
+    <div class="sphx-glr-thumbcontainer" tooltip="Using the convolution functions conv, expconv, stepconv, biexpconv and nexpconv. ">
 
 .. only:: html
 
@@ -32,6 +33,8 @@ Examples using ``dcmri.stepconv``
 .. only:: not html
 
  * :ref:`sphx_glr_generated_examples_tutorials_plot_convolution.py`
+
+.. thumbnail-parent-div-close
 
 .. raw:: html
 

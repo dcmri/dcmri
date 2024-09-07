@@ -11,7 +11,7 @@
         :class: sphx-glr-download-link-note
 
         :ref:`Go to the end <sphx_glr_download_generated_examples_tutorials_plot_wex.py>`
-        to download the full example code
+        to download the full example code.
 
 .. rst-class:: sphx-glr-example-title
 
@@ -277,9 +277,9 @@ One way to explore the scale of the water exchange bias is by generating data fo
 
     Bias in kinetic model parameters
     --------------------------------
-    vp error: 203.7 %
-    ve error: 62.7 %
-    Ktrans error: -50.3 %
+    vp error: 203.3 %
+    ve error: 62.9 %
+    Ktrans error: -50.2 %
 
 
 
@@ -356,14 +356,14 @@ The model bias can be removed by generalizing the model to allow for any level o
 
     Bias in kinetic model parameters
     --------------------------------
-    vp error: 1.23 %
-    ve error: 0.64 %
-    Ktrans error: 0.52 %
+    vp error: 1.35 %
+    ve error: 0.77 %
+    Ktrans error: 0.61 %
 
     Water permeability estimates
     ----------------------------
-    PSe: 375.0 mL/sec/mL
-    PSc: 299.0 mL/sec/mL
+    PSe: 412.0 mL/sec/mL
+    PSc: 201.0 mL/sec/mL
 
 
 
@@ -415,7 +415,7 @@ We can get some insight by fitting the data with an unbiased model, i.e. fitting
 
     Bias in kinetic model parameters
     --------------------------------
-    vp error: 0.0 %
+    vp error: -0.0 %
     ve error: -0.0 %
     Ktrans error: -0.0 %
 
@@ -464,14 +464,14 @@ Any remaining bias is smaller than 0.01%, which shows that temporal undersamplin
 
     Bias in kinetic model parameters
     --------------------------------
-    vp error: 1.24 %
-    ve error: 0.65 %
-    Ktrans error: 0.53 %
+    vp error: 1.34 %
+    ve error: 0.77 %
+    Ktrans error: 0.61 %
 
     Water permeability estimates
     ----------------------------
-    PSe: 376.0 mL/sec/mL
-    PSc: 289.0 mL/sec/mL
+    PSe: 417.0 mL/sec/mL
+    PSc: 203.0 mL/sec/mL
 
 
 
@@ -488,7 +488,7 @@ Bias versus precision
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 17.755 seconds)
+   **Total running time of the script:** (0 minutes 19.881 seconds)
 
 
 .. _sphx_glr_download_generated_examples_tutorials_plot_wex.py:
@@ -504,6 +504,10 @@ Bias versus precision
     .. container:: sphx-glr-download sphx-glr-download-python
 
       :download:`Download Python source code: plot_wex.py <plot_wex.py>`
+
+    .. container:: sphx-glr-download sphx-glr-download-zip
+
+      :download:`Download zipped: plot_wex.zip <plot_wex.zip>`
 
 
 .. only:: html

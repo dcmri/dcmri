@@ -11,10 +11,11 @@ Examples using ``dcmri.Tissue.predict``
 
     <div class="sphx-glr-thumbnails">
 
+.. thumbnail-parent-div-open
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the effect of water exchange in a standard two-compartmental tissue ...">
+    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the effect of water exchange in a standard two-compartmental tissue with extended Tofts kinetics. Data acquisition is modelled using the steady-state model of a spoiled gradient echo sequence.">
 
 .. only:: html
 
@@ -32,6 +33,8 @@ Examples using ``dcmri.Tissue.predict``
 .. only:: not html
 
  * :ref:`sphx_glr_generated_examples_tutorials_plot_wex.py`
+
+.. thumbnail-parent-div-close
 
 .. raw:: html
 

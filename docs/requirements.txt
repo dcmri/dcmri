@@ -1,3 +1,5 @@
+matplotlib
+pandas
 autodocsumm
 docutils
 myst-parser
@@ -12,6 +14,6 @@ sphinxcontrib-jsmath
 sphinxcontrib-qthelp
 sphinxcontrib-serializinghtml
 sphinx-gallery
-matplotlib
 sphinx-exec-code
+
 
