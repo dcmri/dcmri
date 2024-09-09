@@ -1916,7 +1916,7 @@ def flux_mmcomp(J, Vmax, Km, t=None, solver='SM', dt=1.0):
 
 # Two-compartment exchange
 
-def conc_2cxm(J, T, E, t=None, dt=1.0):
+def conc_2cxm(J, T, E, t=None, dt=1.0)->np.ndarray:
     """Indicator flux out of a 2-compartment exchange model.
 
     Args:
@@ -1927,13 +1927,39 @@ def conc_2cxm(J, T, E, t=None, dt=1.0):
         dt (float, optional): spacing between time points for uniformly spaced time points (sec). This parameter is ignored if t is explicity provided. Defaults to 1.0.
 
     Returns:
-        np.ndarray: Concentration in M.
+        numpy.ndarray: Concentration in each compartment, and at each time point, as a 2D array with dimensions *(2,k)*, where 2 is the number of compartments and *k* is the number of time points in *J*. 
     """
-    # T= [ Tp, Te]
-    E = [[1-E,1],[E,0]] 
-    J = np.stack((J, np.zeros(J.size)))
-    C = conc_2comp(J, T, E, t=t, dt=dt)
-    return C[0,:] + C[1,:]
+    # T = [ Tp, Te]
+
+    K = np.array([
+        [1/T[0], -1/T[1]],
+        [-E/T[0], 1/T[1]],
+    ])
+
+    D = np.sqrt((K[0,0]-K[1,1])**2 + 4*K[0,1]*K[1,0])
+
+    KT = K[0,0] + K[1,1]
+    Kpos = 0.5*(KT + D)
+    Kneg = 0.5*(KT - D)
+
+    Jpos = utils.expconv(J, 1/Kpos, t=t, dt=dt)
+    Jneg = utils.expconv(J, 1/Kneg, t=t, dt=dt)
+
+    KB = K[0,0] + K[1,0]
+    Eneg = (Kpos - KB)/(Kpos - Kneg)
+
+    Jp = (1-Eneg)*Jpos + Eneg*Jneg
+    Je = (Jneg*Kpos - Jpos*Kneg) / (Kpos - Kneg)
+
+    # Jp = Fp*cp, Cp = vp*cp -> Jp/Cp = Fp/vp = (1-E)/TP -> Cp = Jp*TP/(1-E)
+    # Je = Fp*ce, Ce = ve*ce -> Je/Ce = Fp/ve = (1-E)/E * 1/TE -> Ce = Je*TE * E/(1-E)
+
+    Cp = Jp*T[0]/(1-E)
+    Ce = Je*T[1]*E/(1-E)
+
+    return np.stack((Cp, Ce))
+
+
 
 def flux_2cxm(J, T, E, t=None, dt=1.0):
     """Indicator flux out of a 2-compartment exchange model.
@@ -1949,7 +1975,25 @@ def flux_2cxm(J, T, E, t=None, dt=1.0):
     Returns:
         np.ndarray: Outflux in mmol/sec 
     """
-    # T= [ Tp, Te]
-    E = [[1-E,1],[E,0]] 
-    J = np.stack((J, np.zeros(J.size)))
-    return flux_2comp(J, T, E, t=t, dt=dt)[0,0,:]
+    # T = [ Tp, Te]
+
+    K = np.array([
+        [1/T[0], -1/T[1]],
+        [-E/T[0], 1/T[1]],
+    ])
+
+    D = np.sqrt((K[0,0]-K[1,1])**2 + 4*K[0,1]*K[1,0])
+
+    KT = K[0,0] + K[1,1]
+    Kpos = 0.5*(KT + D)
+    Kneg = 0.5*(KT - D)
+
+    Jpos = utils.expconv(J, 1/Kpos, t=t, dt=dt)
+    Jneg = utils.expconv(J, 1/Kneg, t=t, dt=dt)
+
+    KB = K[0,0] + K[1,0]
+    Eneg = (Kpos - KB)/(Kpos - Kneg)
+
+    Jp = (1-Eneg)*Jpos + Eneg*Jneg
+
+    return Jp

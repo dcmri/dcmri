@@ -5,6 +5,7 @@ import pickle
 import numpy as np
 
 import dcmri.utils as utils
+import dcmri.pk as pk
 
 
 # filepaths need to be identified with importlib_resources
@@ -1225,6 +1226,8 @@ def aif_tristan_rat(t,
     
     dose = 0.0075   # mmol
 
+    # !!!! CHECK UNITS - Fb  is per MIN !!!!!!!!!!
+
     Fb = 2.27/60  # https://doi.org/10.1021/acs.molpharmaceut.1c00206
                   # (Changed from 3.61/60 on 07/03/2022)
                   # From Brown the cardiac output of rats is
@@ -1257,61 +1260,22 @@ def aif_tristan_rat(t,
     # Derived constants
     VP = (1-Hct)*VB
     Fp = (1-Hct) * Fb
-    K = GFR + E*Fp*VL
+    K = GFR + E*Fp*VL # mL/sec
     
-    # Model parameters
-    KP = (K + P)/VP
-    KE = P/VE
-    KB = K/VP
-
     # Influx in mmol/sec
     J = np.zeros(np.size(t))
-    Jmax = dose/duration
+    Jmax = dose/duration #mmol/sec
     J[(t > BAT) & (t < BAT + duration)] = Jmax
 
-    cp, ce = _propagate_2cxm(t, J/K, KP, KE, KB)
+    # Model parameters
+    TP = VP/(K + P)
+    TE = VE/P
+    E = P/(K+P)
+
+    Jp = pk.flux_2cxm(J, [TP, TE], E, t)
+    cp = Jp/K
 
     return cp
-
-
-# TODO: replace by conc_tissue()
-def _propagate_2cxm(t: np.ndarray,
-                   ca: np.ndarray,
-                   KP: float,
-                   KE: float,
-                   KB: float
-                   ) -> tuple[np.ndarray, np.ndarray]:
-    """Calculates propagators for individual compartments in the 2CXM.
-
-    For details and notations see appendix of Sourbron et al. Magn Reson Med 62:672–681 (2009).
-
-    Args:
-        t: time points (sec) where the input function is defined
-        ca: input function (mmol/mL)
-        KP: inverse plasma MTT (sec) = VP/(FP+PS)
-        KE: inverse extracellular MTT (sec) = VE/PS
-        KB: inverse blood MTT (sec) = VP/FP
-
-    Returns:
-        A tuple (cp, ce), where cp is the concentration in the plasma
-        compartment, and ce is the concentration in the extracellular
-        compartment. Both are in mmol/mL.
-    """
-    KT = KP + KE
-    sqrt = math.sqrt(KT**2-4*KE*KB)
-
-    Kpos = 0.5*(KT + sqrt)
-    Kneg = 0.5*(KT - sqrt)
-
-    cpos = utils.expconv(ca, 1/Kpos, t) # normalized
-    cneg = utils.expconv(ca, 1/Kneg, t)
-
-    Eneg = (Kpos - KB)/(Kpos - Kneg)
-
-    cp = (1-Eneg)*cpos + Eneg*cneg
-    ce = (cneg*Kpos - cpos*Kneg) / (Kpos - Kneg)
-
-    return cp, ce
 
 
 
