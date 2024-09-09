@@ -180,17 +180,17 @@ def test_aif_tristan_rat():
 
 if __name__ == "__main__":
 
-    # test_fetch()
-    # test_influx_step()
-    # test_ca_conc()
-    # test_ca_std_dose()
-    # test_relaxivity()
-    # test_T1()
-    # test_T2()
-    # test_PD()
-    # test_perfusion()
-    # test_shepp_logan()
-    # test_aif_parker()
+    test_fetch()
+    test_influx_step()
+    test_ca_conc()
+    test_ca_std_dose()
+    test_relaxivity()
+    test_T1()
+    test_T2()
+    test_PD()
+    test_perfusion()
+    test_shepp_logan()
+    test_aif_parker()
     test_aif_tristan_rat()
 
     print('All lib tests passed!!')
