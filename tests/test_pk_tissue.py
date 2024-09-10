@@ -3,6 +3,8 @@ from scipy.integrate import cumulative_trapezoid
 import numpy as np
 import dcmri as dc
 
+import matplotlib.pyplot as plt
+
 
 def test__conc_u():
     n = 10
@@ -186,7 +188,7 @@ def test__flux_2cu():
     assert np.linalg.norm(J[0,0,:]-Fp*ca)/np.linalg.norm(Fp*ca) < 0.01
 
 def test__conc_2cx():
-    # Compare against general 2comp solution
+    # Compare against general ncomp solution
     t = np.linspace(0, 20, 10)
     J = np.ones((2,len(t)))
     J[1,:] = 0 # No inlet in 2nd compartment
@@ -199,7 +201,7 @@ def test__conc_2cx():
     ve = T[1]*PS
     vp = T[0]*(Fp+PS)
     C0 = dc.conc_tissue(ca, Fp, vp, PS, ve, t=t, sum=False, kinetics='2CX')
-    C = dc.conc_2comp(J, T, Emat, t)
+    C = dc.conc_ncomp(J, T, Emat, t)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C) < 1e-3
     Cs = dc.conc_tissue(ca, Fp, vp, PS, ve, t=t, sum=True, kinetics='2CX')
     C0 = np.sum(C,axis=0)
@@ -215,9 +217,61 @@ def test__conc_2cx():
     assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 1e-3
     C = dc.conc_tissue(ca, 0, 0, 0, 0, t=t, sum=True, kinetics='2CX')
     assert np.linalg.norm(C) == 0
+
+    # Test boundaries (Fp=inf)
+    Fp = 0.01
+    PS = 0.001
+    vp = 0.1
+    ve = 0.2
+    C0 = dc.conc_tissue(ca, Fp, vp, PS, ve, t=t, sum=False, kinetics='2CX')
+    Fp = 0.05
+    C1 = dc.conc_tissue(ca, Fp, vp, PS, ve, t=t, sum=False, kinetics='2CX')
+    Fp = 0.1
+    C2 = dc.conc_tissue(ca, Fp, vp, PS, ve, t=t, sum=False, kinetics='2CX')
+    Fp = 10.0
+    C3 = dc.conc_tissue(ca, Fp, vp, PS, ve, t=t, sum=False, kinetics='2CX')
+    Fp = np.inf
+    C4 = dc.conc_tissue(ca, Fp, vp, PS, ve, t=t, sum=False, kinetics='2CX')
+    # Check convergence to solution
+    err0 = np.linalg.norm(C0[:,1:]-C4[:,1:])
+    err1 = np.linalg.norm(C1[:,1:]-C4[:,1:])
+    err2 = np.linalg.norm(C2[:,1:]-C4[:,1:])
+    err3 = np.linalg.norm(C3[:,1:]-C4[:,1:])
+    assert err1 < err0
+    assert err2 < err1
+    assert err3 < err2
+    assert err3 < 1e-2
+    # plt.plot(t, C0[0,:], 'r-')
+    # plt.plot(t, C0[1,:], 'b-')
+    # plt.plot(t, C1[0,:], 'r--')
+    # plt.plot(t, C1[1,:], 'b--')
+    # plt.plot(t, C2[0,:], 'r-.')
+    # plt.plot(t, C2[1,:], 'b-.')
+    # plt.plot(t, C3[0,:], 'r-.')
+    # plt.plot(t, C3[1,:], 'b-.')
+    # plt.plot(t, C4[0,:], 'ro')
+    # plt.plot(t, C4[1,:], 'bo')
+    # plt.show()
+
+    # Test boundaries (PS+Fp=0)
+    Fp = 0
+    PS = 0
+    vp = 0.1
+    ve = 0.2
+    C0 = dc.conc_tissue(ca, Fp, vp, PS, ve, t=t, sum=False, kinetics='2CX')
+    assert np.linalg.norm(C0) == 0
+
+    # Test boundaries (PS=0)
+    Fp = 0.01
+    PS = 0
+    vp = 0.1
+    ve = 0.2
+    C0 = dc.conc_tissue(ca, Fp, vp, PS, ve, t=t, sum=True, kinetics='2CX')
+    C1 = dc.conc_tissue(ca, Fp, vp, t=t, kinetics='NX')
+    assert np.linalg.norm(C0-C1) == 0
     
 def test__flux_2cx():
-    # Compare against general 2comp solution
+    # Compare against general ncomp solution
     t = np.linspace(0, 20, 10)
     J = np.ones((2,len(t)))
     J[1,:] = 0 # No inlet in 2nd compartment
@@ -230,7 +284,7 @@ def test__flux_2cx():
     ve = T[1]*PS
     vp = T[0]*(Fp+PS)
     Jo0 = dc.flux_tissue(ca, Fp, vp, PS, ve, t=t, kinetics='2CX') 
-    Jo = dc.flux_2comp(J, T, Emat, t)
+    Jo = dc.flux_ncomp(J, T, Emat, t)
     assert np.linalg.norm(Jo-Jo0)/np.linalg.norm(Jo) < 1e-3
     Jo0 = dc.flux_tissue(ca, 0, vp, 0, ve, t=t, kinetics='2CX') 
     assert np.linalg.norm(Jo0) == 0
@@ -238,9 +292,11 @@ def test__flux_2cx():
     Jo = dc.flux_tissue(ca, Fp, vp, t=t, kinetics='NX')
     assert np.linalg.norm(Jo-Jo0[0,0,:])/np.linalg.norm(Jo) < 1e-3
 
+    # Test boundaries
+
 
 def test__conc_2cf():
-    # Compare against general 2comp solution
+    # Compare against general ncomp solution
     t = np.linspace(0, 20, 10)
     J = np.ones((2,len(t)))
     J[1,:] = 0 # No inlet in 2nd compartment
@@ -255,7 +311,7 @@ def test__conc_2cf():
     Emat = [
         [1-E, 0],
         [E  , 1]]
-    C = dc.conc_2comp(J, T, Emat, t)
+    C = dc.conc_ncomp(J, T, Emat, t)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C) < 1e-2
     Cs = dc.conc_tissue(ca, Fp, vp, PS, Te, t=t, sum=True, kinetics='2CF')
     C0 = np.sum(C,axis=0)
@@ -272,7 +328,7 @@ def test__conc_2cf():
 
 
 def test__flux_2cf():
-    # Compare against general 2comp solution
+    # Compare against general ncomp solution
     t = np.linspace(0, 20, 10)
     J = np.ones((2,len(t)))
     J[1,:] = 0 # No inlet in 2nd compartment
@@ -287,7 +343,7 @@ def test__flux_2cf():
     Emat = [
         [1-E, 0],
         [E  , 1]]
-    Jo = dc.flux_2comp(J, T, Emat, t)
+    Jo = dc.flux_ncomp(J, T, Emat, t)
     assert np.linalg.norm(Jo-Jo0)/np.linalg.norm(Jo) < 1e-3
     Jo0 = dc.flux_tissue(ca, 0, vp, 0, Te, t=t, kinetics='2CF') 
     assert np.linalg.norm(Jo0) == 0
