@@ -143,22 +143,6 @@ Three-parameter models
    flux_2cxm
 
 
-Six-parameter models
-====================
-
-*2-compartment model*
----------------------
-
-.. autosummary::
-   :toctree: ../generated/api/
-   :template: autosummary.rst
-
-   conc_2comp
-   flux_2comp
-   res_2comp
-   prop_2comp
-
-
 N-parameter models
 ==================
 

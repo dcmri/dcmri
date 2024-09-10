@@ -6,17 +6,17 @@ Examples
 
 .. note::
 
-   dcMRI is under construction. The first stable version with more comprehensive functionality and documentation will be v1.0.0. Before that the API may still change and features may be deprecated without warning.
+   dcmri is under construction. The first stable version with more comprehensive functionality and documentation will be v1.0.0. Before that the API may still change and features may be deprecated without warning.
 
-.. warning::
-
-   The examples are intended solely to illustrate the usage of the `dcmri` package. They do not make any general claims as to the accuracy or practical utility of the methods illustrated.
 
 
 .. raw:: html
 
     <div class="sphx-glr-thumbnails">
 
+.. thumbnail-parent-div-open
+
+.. thumbnail-parent-div-close
 
 .. raw:: html
 
@@ -34,10 +34,11 @@ Tutorials
 
     <div class="sphx-glr-thumbnails">
 
+.. thumbnail-parent-div-open
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the role of the arterial input function (AIF) in DC-MRI analysis, in...">
+    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the role of the arterial input function (AIF) in DC-MRI analysis, including the effect of using population-average AIFs versus subject-specific AIFs. ">
 
 .. only:: html
 
@@ -54,7 +55,7 @@ Tutorials
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="Using the convolution functions ~dcmri.conv, ~dcmri.expconv, ~dcmri.stepconv, ~dcmri.biexpconv ...">
+    <div class="sphx-glr-thumbcontainer" tooltip="Using the convolution functions conv, expconv, stepconv, biexpconv and nexpconv. ">
 
 .. only:: html
 
@@ -71,7 +72,7 @@ Tutorials
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the effect of water exchange in a standard two-compartmental tissue ...">
+    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the effect of water exchange in a standard two-compartmental tissue with extended Tofts kinetics. Data acquisition is modelled using the steady-state model of a spoiled gradient echo sequence.">
 
 .. only:: html
 
@@ -85,6 +86,8 @@ Tutorials
       <div class="sphx-glr-thumbnail-title">An exploration of water exchange effects</div>
     </div>
 
+
+.. thumbnail-parent-div-close
 
 .. raw:: html
 
@@ -102,27 +105,11 @@ Use cases
 
     <div class="sphx-glr-thumbnails">
 
+.. thumbnail-parent-div-open
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of ~dcmri.AortaLiver2scan for joint fitting of aorta and liver...">
-
-.. only:: html
-
-  .. image:: /generated/examples/use_cases/images/thumb/sphx_glr_plot_tristan_volunteers_2scan_thumb.png
-    :alt:
-
-  :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers_2scan.py`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">The TRISTAN experimental medicine study (2 scan protocol)</div>
-    </div>
-
-
-.. raw:: html
-
-    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of ~dcmri.AortaLiver for joint fitting of aorta and liver sign...">
+    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of AortaLiver for joint fitting of aorta and liver signals to a whole-body model. The use case is provided by the liver work package of the TRISTAN project  which develops imaging biomarkers for drug safety assessment. The data and analysis was first presented at the ISMRM in 2024 (Min et al 2024, manuscript in press). ">
 
 .. only:: html
 
@@ -139,7 +126,24 @@ Use cases
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of ~dcmri.Liver for fitting of signals measured in liver. The ...">
+    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of AortaLiver2scan for joint fitting of aorta and liver signals measured over 2 separate scans. The use case is provided by the liver work package of the TRISTAN project  which develops imaging biomarkers for drug safety assessment. The data and analysis was first presented at the ISMRM in 2024 (Min et al 2024, manuscript in press). ">
+
+.. only:: html
+
+  .. image:: /generated/examples/use_cases/images/thumb/sphx_glr_plot_tristan_volunteers_2scan_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers_2scan.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">The TRISTAN experimental medicine study (2 scan protocol)</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of Liver for fitting of signals measured in liver. The use case is provided by the liver work package of the TRISTAN project  which develops imaging biomarkers for drug safety assessment. The data and analysis were first published in Melillo et al (2023). ">
 
 .. only:: html
 
@@ -153,6 +157,8 @@ Use cases
       <div class="sphx-glr-thumbnail-title">The TRISTAN 6 compound study</div>
     </div>
 
+
+.. thumbnail-parent-div-close
 
 .. raw:: html
 

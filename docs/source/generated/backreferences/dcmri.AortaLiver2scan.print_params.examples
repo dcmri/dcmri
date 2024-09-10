@@ -11,10 +11,11 @@ Examples using ``dcmri.AortaLiver2scan.print_params``
 
     <div class="sphx-glr-thumbnails">
 
+.. thumbnail-parent-div-open
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of ~dcmri.AortaLiver2scan for joint fitting of aorta and liver...">
+    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of AortaLiver2scan for joint fitting of aorta and liver signals measured over 2 separate scans. The use case is provided by the liver work package of the TRISTAN project  which develops imaging biomarkers for drug safety assessment. The data and analysis was first presented at the ISMRM in 2024 (Min et al 2024, manuscript in press). ">
 
 .. only:: html
 
@@ -32,6 +33,8 @@ Examples using ``dcmri.AortaLiver2scan.print_params``
 .. only:: not html
 
  * :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers_2scan.py`
+
+.. thumbnail-parent-div-close
 
 .. raw:: html
 

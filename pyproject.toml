@@ -6,9 +6,10 @@ requires = ['setuptools>=61.2']
 
 [project]
 name = "dcmri"
-version = "0.6.7"
+version = "0.6.8"
 dependencies = [
   'importlib-resources>=1.1.0',
+  'tqdm',
   'numpy',
   'scipy',
   'matplotlib',
@@ -19,6 +20,7 @@ readme = "README.rst"
 authors = [
   { name = "Steven Sourbron", email = "s.sourbron@sheffield.ac.uk" },
   { name = "Ebony Gunwhy", email = "e.gunwhy@sheffield.ac.uk" },
+  { name = "Eve Shalom", email = "E.S.Shalom@sheffield.ac.uk" },
 ]
 # license = "Apache-2.0" # This creates a problem for pip install somehow
 classifiers = [

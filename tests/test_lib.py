@@ -1,8 +1,16 @@
 import numpy as np
 import dcmri as dc
 
+import matplotlib.pyplot as plt
+
+
+def test_fetch():
+    data = dc.fetch('tristan6drugs')
+    assert 'FA' in data[0]
+
 
 def test_influx_step():
+
     weight = 70
     conc = 0.5
     t0 = 5
@@ -15,6 +23,7 @@ def test_influx_step():
 
     assert np.around(np.sum(j)*dt) == np.around(weight*dose*conc)
 
+    # Test exceptions
     try:
         j = dc.influx_step(t, 0*weight, conc, dose, rate, t0)
     except:
@@ -56,6 +65,7 @@ def test_ca_std_dose():
         assert False
         
 def test_relaxivity():
+    assert dc.relaxivity(4.7, 'blood', 'gadobutrol') == 1000*4.7
     assert dc.relaxivity(4.7, 'plasma', 'gadobutrol') == 1000*4.7
     try:
         dc.relaxivity(4.7, 'water', 'gadobutrol')
@@ -69,11 +79,66 @@ def test_relaxivity():
 def test_T1():
     assert dc.T1(4.7, 'liver') == 1/1.281
     try:
-        dc.T1(4.7, 'muscle')
+        dc.T1(4.7, 'hair')
     except:
         assert True
     else:
         assert False
+
+def test_T2():
+    assert dc.T2(1.5, 'csf') == 1.99
+    try:
+        dc.T2(4.7, 'hair')
+    except:
+        assert True
+    else:
+        assert False
+
+def test_PD():
+    assert dc.PD('csf') == 0.98
+    try:
+        dc.PD('hair')
+    except:
+        assert True
+    else:
+        assert False
+
+def test_perfusion():
+    assert dc.perfusion('BF', 'csf') == 0.0
+    assert dc.perfusion('BV', 'csf') == 0.0
+    assert dc.perfusion('PS', 'csf') == 0.0
+    assert dc.perfusion('IV', 'csf') == 0.0
+    try:
+        dc.perfusion('BF', 'hair')
+    except:
+        assert True
+    else:
+        assert False
+
+def test_shepp_logan():
+
+    n=64
+    roi = dc.shepp_logan(n=n)
+    im = dc.shepp_logan('T1', 'T2', 'PD', 'BF', 'BV', 'PS', 'IV', n=n)
+
+    vals = im['BF'][roi['CSF left']==1]
+    assert 0 == np.amin(vals)
+    assert 0 == np.amax(vals)
+    vals = im['BV'][roi['CSF left']==1]
+    assert 0 == np.amin(vals)
+    assert 0 == np.amax(vals)
+    vals = im['PS'][roi['CSF left']==1]
+    assert 0 == np.amin(vals)
+    assert 0 == np.amax(vals)
+    vals = im['IV'][roi['CSF left']==1]
+    assert 0 == np.amin(vals)
+    assert 0 == np.amax(vals)
+
+    # Special case - 1 parameter - does not return dict
+    im = dc.shepp_logan('BF', n=n)
+    vals = im[roi['CSF left']==1]
+    assert 0 == np.amin(vals)
+    assert 0 == np.amax(vals)
 
 
 def test_aif_parker():
@@ -105,14 +170,27 @@ def test_aif_parker():
         assert False
 
 
+def test_aif_tristan_rat():
+    
+    t = np.arange(0, 6*60, 1)
+    ca = dc.aif_tristan_rat(t)
+    assert np.round(1000*np.amax(ca), 1) == 0.5
+
+
+
 if __name__ == "__main__":
 
+    test_fetch()
     test_influx_step()
     test_ca_conc()
     test_ca_std_dose()
     test_relaxivity()
     test_T1()
+    test_T2()
+    test_PD()
+    test_perfusion()
+    test_shepp_logan()
     test_aif_parker()
+    test_aif_tristan_rat()
 
-    print('')
     print('All lib tests passed!!')

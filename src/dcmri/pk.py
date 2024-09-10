@@ -16,7 +16,7 @@ def flux(J:np.ndarray, *params, t=None, dt=1.0, kinetics='comp', **kwargs)->np.n
         params (tuple): model parameters.
         t (array_like, optional): the time points of the indicator flux J. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
         dt (float, optional): spacing between time points for uniformly spaced time points. This parameter is ignored if t is explicity provided. Defaults to 1.0.
-        kinetics (str, optional): Model to use, options are 'trap', 'pass', 'comp', 'plug', 'chain', 'step', 'free', 'ncomp', '2comp', 'nscomp', 'pfcomp', 'mmcomp', '2cxm'. Defaults to 'comp'.
+        kinetics (str, optional): Model to use, options are 'trap', 'pass', 'comp', 'plug', 'chain', 'step', 'free', 'ncomp', 'nscomp', 'pfcomp', 'mmcomp', '2cxm'. Defaults to 'comp'.
         kwargs (dict): any optional parameters required by the model.
 
     Raises:
@@ -43,8 +43,6 @@ def flux(J:np.ndarray, *params, t=None, dt=1.0, kinetics='comp', **kwargs)->np.n
         return flux_free(J, *params, t=t, dt=dt, **kwargs)
     if kinetics == 'ncomp':
         return flux_ncomp(J, *params, t=t, dt=dt, **kwargs)
-    if kinetics == '2comp':
-        return flux_2comp(J, *params, t=t, dt=dt, **kwargs)
     if kinetics == 'nscomp':
         return flux_nscomp(J, *params, t=t, dt=dt)
     if kinetics == 'pfcomp':
@@ -56,8 +54,6 @@ def flux(J:np.ndarray, *params, t=None, dt=1.0, kinetics='comp', **kwargs)->np.n
     msg = 'Model ' + kinetics + ' is not currently implemented.'
     raise ValueError(msg)
 
-
-
 def conc(J:np.ndarray, *params, t=None, dt=1.0, kinetics='comp', **kwargs)->np.ndarray:
     """Concentration in an arbitrary pharmacokinetic system.
 
@@ -66,7 +62,7 @@ def conc(J:np.ndarray, *params, t=None, dt=1.0, kinetics='comp', **kwargs)->np.n
         params (tuple): model parameters.
         t (array_like, optional): the time points of the indicator flux J. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
         dt (float, optional): spacing between time points for uniformly spaced time points. This parameter is ignored if t is explicity provided. Defaults to 1.0.
-        kinetics (str, optional): Model to use, options are 'trap', 'pass', 'comp', 'plug', 'chain', 'step', 'free', 'ncomp', '2comp', 'nscomp', 'mmcomp', '2cxm'. Defaults to 'comp'.
+        kinetics (str, optional): Model to use, options are 'trap', 'pass', 'comp', 'plug', 'chain', 'step', 'free', 'ncomp', 'nscomp', 'mmcomp', '2cxm'. Defaults to 'comp'.
 
     This is a wrapper function offering a standard interface to calculate the concentration in a specific system.
 
@@ -93,8 +89,6 @@ def conc(J:np.ndarray, *params, t=None, dt=1.0, kinetics='comp', **kwargs)->np.n
         return conc_free(J, *params, t=t, dt=dt, **kwargs)
     if kinetics == 'ncomp':
         return conc_ncomp(J, *params, t=t, dt=dt, **kwargs)
-    if kinetics == '2comp':
-        return conc_2comp(J, *params, t=t, dt=dt, **kwargs)
     if kinetics == 'nscomp':
         return conc_nscomp(J, *params, t=t, dt=dt)
     if kinetics == 'mmcomp':
@@ -652,17 +646,20 @@ def conc_chain(J, T, D, t=None, dt=1.0, solver='step'):
         return conc_plug(J, T, t=t, dt=dt)
     if D == 1:
         return conc_comp(J, T, t=t, dt=dt)
-    if solver=='diag':
-        n0 = np.floor(1/D)
-        Tc, Ec = _chain_ncomp(n0, T)
-        Ji = np.zeros((n0,len(J)))
-        Ji[0,:] = J
-        C = conc_ncomp(Ji, Tc, Ec, t=t, dt=dt).sum(axis=0)
-        if n0==1/D:
-            return C
-        Tc, Ec = _chain_ncomp(n0+1, T)
-        C += conc_ncomp(Ji, Tc, Ec, t=t, dt=dt).sum(axis=0)
-        return C/2
+    
+    # TODO: THIS NEEDS DEBUGGING
+    # if solver=='diag':
+    #     n0 = np.floor(1/D)
+    #     Tc, Ec = _chain_ncomp(n0, T)
+    #     Ji = np.zeros((n0,len(J)))
+    #     Ji[0,:] = J
+    #     C = conc_ncomp(Ji, Tc, Ec, t=t, dt=dt).sum(axis=0)
+    #     if n0==1/D:
+    #         return C
+    #     Tc, Ec = _chain_ncomp(n0+1, T)
+    #     C += conc_ncomp(Ji, Tc, Ec, t=t, dt=dt).sum(axis=0)
+    #     return C/2
+
     tr = utils.tarray(len(J), t=t, dt=dt)
     r = res_chain(T, D, tr)
     return utils.conv(r, J, t=t, dt=dt, solver=solver)
@@ -694,29 +691,33 @@ def flux_chain(J, T, D, t=None, dt=1.0, solver='step'):
         return flux_plug(J, T, t=t, dt=dt)
     if D == 1:
         return flux_comp(J, T, t=t, dt=dt)
-    if solver=='diag':
-        n0 = int(np.floor(1/D))
-        Tc, Ec = _chain_ncomp(n0, T)
-        Ji = np.zeros((n0,len(J)))
-        Ji[0,:] = J
-        Jo = flux_ncomp(Ji, Tc, Ec, t=t, dt=dt)[n0-1,n0-1,:]
-        if n0==1/D:
-            return Jo
-        Tc, Ec = _chain_ncomp(n0+1, T)
-        Jo += flux_ncomp(Ji, Tc, Ec, t=t, dt=dt)[n0,n0,:]
-        return Jo/2
+    
+    # TODO: This needs debugging
+    # if solver=='diag':
+    #     n0 = int(np.floor(1/D))
+    #     Tc, Ec = _chain_ncomp(n0, T)
+    #     Ji = np.zeros((n0,len(J)))
+    #     Ji[0,:] = J
+    #     Jo = flux_ncomp(Ji, Tc, Ec, t=t, dt=dt)[n0-1,n0-1,:]
+    #     if n0==1/D:
+    #         return Jo
+    #     Tc, Ec = _chain_ncomp(n0+1, T)
+    #     Jo += flux_ncomp(Ji, Tc, Ec, t=t, dt=dt)[n0,n0,:]
+    #     return Jo/2
+
     th = utils.tarray(len(J), t=t, dt=dt)
     h = prop_chain(T, D, th)
     return utils.conv(h, J, t=t, dt=dt, solver=solver)
 
-def _chain_ncomp(n, T):
-    # Helper function
-    Tarr = np.full(n, T/n)
-    E = np.zeros((n,n))
-    for i in range(n-1):
-        E[i+1,i] = 1
-    E[n-1,n-1] = 1
-    return Tarr, E
+# Helper function in diag solver for chain model
+# def _chain_ncomp(n, T):
+#     # Helper function
+#     Tarr = np.full(n, T/n)
+#     E = np.zeros((n,n))
+#     for i in range(n-1):
+#         E[i+1,i] = 1
+#     E[n-1,n-1] = 1
+#     return Tarr, E
 
 
 
@@ -895,7 +896,7 @@ def prop_free(H, t, TT=None, TTmin=0, TTmax=None):
             msg += '\n with N the size of the transit time distribution H.'
             raise ValueError(msg)
     h = utils.ddist(H, TT, t)
-    return h/np.trapz(h,t)
+    return h/np.trapezoid(h,t)
 
 def res_free(H, t, TT=None, TTmin=0, TTmax=None):
     """Residue function of a free system.
@@ -1051,7 +1052,7 @@ def flux_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
 # TODO: check that the sum of E's for a compartment = 1. Is it true that it can be something else? No sure..
 # Maybe trapping and creation needs to be modelled with extra constants?
 # The amounts trapped or created are not proportional to the amount inside.
-def K_ncomp(T, E):
+def _K_ncomp(T, E):
     # dC/dt = J - KC 
     if not isinstance(T, np.ndarray):
         T = np.array(T)
@@ -1080,8 +1081,8 @@ def K_ncomp(T, E):
                     K[j,i] = -E[j,i]/T[i]
     return K
 
-def J_ncomp(C, T, E):
-    K = K_ncomp(T, E)
+def _J_ncomp(C, T, E):
+    K = _K_ncomp(T, E)
     nc, nt = C.shape[0], C.shape[1]
     J = np.zeros((nc,nc,nt))
     for i in range(C.shape[0]):
@@ -1098,7 +1099,7 @@ def J_ncomp(C, T, E):
 # Helper function
 def conc_ncomp_prop(J, T, E, t=None, dt=1.0, dt_prop=None):
     t = utils.tarray(len(J[0,:]), t=t, dt=dt)
-    K = K_ncomp(T, E)
+    K = _K_ncomp(T, E)
     nt, nc = len(t), len(T)
     C = np.zeros((nc,nt))
     Kmax = K.diagonal().max()
@@ -1125,7 +1126,7 @@ def conc_ncomp_prop(J, T, E, t=None, dt=1.0, dt_prop=None):
 def conc_ncomp_diag(J, T, E, t=None, dt=1.0):
     t = utils.tarray(J.shape[1], t=t, dt=dt)
     # Calculate system matrix, eigenvalues and eigenvectors
-    K = K_ncomp(T, E)
+    K = _K_ncomp(T, E)
     # From here, create generic function that solves n-comp system
     K, Q = np.linalg.eig(K)
     Qi = np.linalg.inv(Q)
@@ -1164,9 +1165,7 @@ def conc_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
         `res_ncomp`, `prop_ncomp`, `flux_ncomp`
 
     Note:
-        1. In practice the extraction fractions *E[:,i]* for any compartment *i* will usually add up to 1, but this is not required by the function. Physically, if the sum of all *E[:,i]* is less than one, this models a situation where the compartment *i* traps some of the incoming indicator. Conversely, if the sum of all *E[:,i]* is larger than 1, this models a situation where indicator is created inside the compartment. This is unphysical in common applications of `dcmri` but the function allows for the possibility and leaves it up to the user to impose suitable constraints.
-
-        2. The default solver `'diag'` should be most accurate and fastest, but currently does not allow for compartments that trap the tracer. It relies on matrix diagonalization which may be more problematic in very large systems, such as spatiotemporal models. The alternative solver `'prop'` is simple and robust and is a suitable alternative in such cases. It is slower and less accurate, though the accuracy can be improved at the cost of larger computation times by setting a smaller *dt_prop*. 
+        The default solver `'diag'` should be most accurate and fastest, but currently does not allow for compartments that trap the tracer. It relies on matrix diagonalization which may be more problematic in very large systems, such as spatiotemporal models. The alternative solver `'prop'` is simple and robust and is a suitable alternative in such cases. It is slower and less accurate, though the accuracy can be improved at the cost of larger computation times by setting a smaller *dt_prop*. 
 
     Example:
         >>> import numpy as np
@@ -1222,6 +1221,8 @@ def conc_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
     if solver=='prop':
         return conc_ncomp_prop(J, T, E, t=t, dt=dt, dt_prop=dt_prop)
     if solver=='diag':
+        if len(T)==2:
+            return _conc_2comp(J, T, E, t=t, dt=dt)
         return conc_ncomp_diag(J, T, E, t=t, dt=dt)
 
 def flux_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
@@ -1283,7 +1284,7 @@ def flux_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
         0.46603877, 0.53236151, 0.59104339, 0.64287219, 0.68859631])
     """
     C = conc_ncomp(J, T, E, t=t, dt=dt, solver=solver, dt_prop=dt_prop)
-    return J_ncomp(C, T, E)
+    return _J_ncomp(C, T, E)
 
 def res_ncomp(T, E, t):
     """Residue function of an n-compartment system.
@@ -1325,8 +1326,10 @@ def res_ncomp(T, E, t):
         array([0.        , 0.01895809, 0.02356375, 0.02370372, 0.02252098,
         0.02100968, 0.01947964, 0.01802307, 0.01666336, 0.0154024 ])
     """
+    if len(T)==2:
+        return _res_2comp(T, E, t)
     # Calculate system matrix, eigenvalues and eigenvectors
-    K = K_ncomp(T, E)
+    K = _K_ncomp(T, E)
     K, Q = np.linalg.eig(K)
     Qi = np.linalg.inv(Q)
     # Initialize concentration-time array
@@ -1389,15 +1392,15 @@ def prop_ncomp(T, E, t):
     nc, nt = len(T), len(t)
     H = np.zeros((nc,nc,nc,nt))
     for i in range(nc):
-        H[i,:,:,:] = J_ncomp(R[i,:,:], T, E)
+        H[i,:,:,:] = _J_ncomp(R[i,:,:], T, E)
     return H
+
 
 
 # 2 compartments (analytical)
 
-# Helper function
-def K_2comp(T,E):
-    K = K_ncomp(T, E)
+def _K_2comp(T,E):
+    K = _K_ncomp(T, E)
     if np.array_equal(K, np.identity(2)):
         return K, np.ones(2), K
     # Calculate the eigenvalues Ke  
@@ -1418,57 +1421,7 @@ def K_2comp(T,E):
     Qi /= N
     return Q, Ke, Qi
 
-def conc_2comp(J, T, E, t=None, dt=1.0):
-    """Concentration in a linear and stationary 2-compartment system.
-
-    Args:
-        J (array_like): the indicator flux entering the system, as a rectangular 2D array with dimensions *(2,k)*, where 2 is the number of compartments and *k* is the number of time points in *J*. 
-        T (array_like): 2-element array with mean transit times of each compartment.
-        E (array_like): dimensionless and square *2 x 2* matrix. An off-diagonal element *E[j,i]* is the extraction fraction from compartment *i* to compartment *j*. A diagonal element *E[i,i]* is the extraction fraction from compartment *i* to the outside. 
-        t (array_like, optional): the time points of the indicator flux *J*, in the same units as *T*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
-        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as *T*. This parameter is ignored if t is explicity provided. Defaults to 1.0.
-
-    Returns:
-        numpy.ndarray: Concentration in each compartment, and at each time point, as a 2D array with dimensions *(2,k)*, where 2 is the number of compartments and *k* is the number of time points in *J*. 
-
-    See Also:
-        `res_2comp`, `prop_2comp`, `flux_2comp`
-
-    Note:
-        The more general function `conc_ncomp` can also be used to calculate the same results. The only difference is that `conc_2comp` uses an analytical solution which may have some benefit in terms of computation speed, for instance in pixel-wise model-fitting where the function is evaluated many times. This should not affect the accuracy.
-
-    Example:
-        >>> import numpy as np
-        >>> import dcmri as dc
-
-        Consider a measurement with 10 time points from 0 to 20s, and a 2-compartment system with a constant influx in each compartment. The influx in compartment 1 is twice a large than in compartment 0:
-
-        >>> t = np.linspace(0, 20, 10)
-        >>> J = np.zeros((2, t.size))
-        >>> J[0,:] = 1
-        >>> J[1,:] = 2
-
-        The transit times and extraction fractions for the system are as follows (see example in `conc_ncomp` for some more detail): 
-        
-        >>> T = [6,12]
-        >>> E = [
-        ...  [0.7, 0.8],
-        ...  [0.3, 0.2]]
-
-        Calculate the concentrations in both compartments of the system and print the concentration in compartment 0:
-
-        >>> C = dc.conc_2comp(J, T, E, t)
-        >>> C[0,:]
-        array([ 0.        ,  2.13668993,  4.09491578,  5.87276879,  7.47633644,
-        8.91605167, 10.20442515, 11.3546615 , 12.37983769, 13.29243667])
-
-        Compare this to the result from the more general function `conc_ncomp`, which is identical in this case:
-
-        >>> C = dc.conc_ncomp(J, T, E, t)
-        >>> C[0,:]
-        array([ 0.        ,  2.13668993,  4.09491578,  5.87276879,  7.47633644,
-        8.91605167, 10.20442515, 11.3546615 , 12.37983769, 13.29243667])
-    """
+def _conc_2comp(J, T, E, t=None, dt=1.0):
     # Check input parameters
     if np.amin(T) <= 0:
         raise ValueError('T must be strictly positive.')
@@ -1479,7 +1432,7 @@ def conc_2comp(J, T, E, t=None, dt=1.0):
     if not isinstance(E, np.ndarray):
         E = np.array(E)
     # Build the system matrix K
-    Q, K, Qi = K_2comp(T, E)
+    Q, K, Qi = _K_2comp(T, E)
     # Initialize concentration-time array
     t = utils.tarray(len(J[0,:]), t=t, dt=dt)
     C = np.zeros((2,len(t)))
@@ -1496,104 +1449,9 @@ def conc_2comp(J, T, E, t=None, dt=1.0):
         C += np.matmul(Q, Ei)
     return C
 
-def flux_2comp(J, T, E, t=None, dt=1.0):
-    """Outfluxes out of a linear and stationary 2-compartment system.
-
-    Args:
-        J (array_like): the indicator flux entering the system, as a rectangular 2D array with dimensions *(2,k)*, where *2* is the number of compartments and *k* is the number of time points in *J*.
-        T (array_like): n-element array with mean transit times of each compartment.
-        E (array_like): dimensionless and square *2 x 2* matrix. An off-diagonal element *E[j,i]* is the extraction fraction from compartment *i* to compartment *j*. A diagonal element *E[i,i]* is the extraction fraction from compartment *i* to the outside. 
-        t (array_like, optional): the time points of the indicator flux *J*, in the same units as *T*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
-        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as *T*. This parameter is ignored if t is explicity provided. Defaults to 1.0. 
-
-    Returns:
-        numpy.ndarray: Outflux out of each compartment, and at each time point, as a 3D array with dimensions *(2,2,k)*, where *2* is the number of compartments and *k* is the number of time points in *J*. Encoding of the first two indices is the same as for *E*: *J[j,i,:]* is the flux from compartment *i* to *j*, and *J[i,i,:]* is the flux from *i* directly to the outside.
-
-    See Also:
-        `res_2comp`, `prop_2comp`, `conc_2comp`
-
-    Note:
-        This uses an analytical solution of the model, as opposed to the more general function `flux_2comp` which uses a numerical solution. This may have some benefits in terms of computation time but should not affect the accuracy of the result.
-
-    Example:
-        >>> import numpy as np
-        >>> import dcmri as dc
-
-        Consider a measurement with 10 time points from 0 to 20s, and a 2-compartment system with a constant influx in each compartment. The influx in compartment 1 is twice a large than in compartment 0:
-
-        >>> t = np.linspace(0, 20, 10)
-        >>> J = np.zeros((2, t.size))
-        >>> J[0,:] = 1
-        >>> J[1,:] = 2
-
-        The transit times and extraction fractions are as follows: 
-        
-        >>> T = [6,12]
-        >>> E = [
-        ...  [0.7, 0.8],
-        ...  [0.3, 0.2]]
-
-        Calculate the outflux out of both compartments:
-
-        >>> J = dc.flux_2comp(J, T, E, t)
-        
-        The indicator flux out of compartment 0 to the outside is:
-
-        >>> J[0,0,:]
-        array([0.        , 0.25925926, 0.49931413, 0.71731951, 0.91301198,
-        1.0874238 , 1.24217685, 1.37910125, 1.50003511, 1.60672472])
-
-        The indicator flux from compartment 1 to 0 is:
-        
-        >>> J[1,0,:]
-        array([0.        , 0.11111111, 0.21399177, 0.30742265, 0.39129085,
-        0.46603877, 0.53236151, 0.59104339, 0.64287219, 0.68859631])
-    """
-    C = conc_2comp(J, T, E, t=t, dt=dt)
-    return J_ncomp(C, T, E)
-
-def res_2comp(T, E, t):
-    """Residue function of a 2-compartment system.
-
-    Args:
-        T (array_like): 2-element array with mean transit times of each compartment.
-        E (array_like): dimensionless and square *2 x 2* matrix. An off-diagonal element *E[j,i]* is the extraction fraction from compartment *i* to compartment *j*. A diagonal element *E[i,i]* is the extraction fraction from compartment *i* to the outside. 
-        t (array_like): the time points of the indicator flux *J*, in the same units as *T*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
-
-    Returns:
-        numpy.ndarray: Residue in each compartment, and at each time point, as a 3D array with dimensions *(2,2,k)*, where 2 is the number of compartments and *k* is the number of time points in *t*. Encoding of the first two indices is as follows: *R[j,i,:]* is the residue in compartment *i* from an impulse injected into compartment *J*.
-
-    See Also:
-        `flux_2comp`, `prop_2comp`, `conc_2comp`
-
-    Example:
-        >>> import numpy as np
-        >>> import dcmri as dc
-
-        Consider a measurement with 10 time points from 0 to 20s, and a 2-compartment system defined by *T* and *E* as follows:
-
-        >>> t = np.linspace(0, 20, 10)
-        >>> T = [20,2]
-        >>> E = [[0.7, 0.9], [0.3, 0.1]]
-
-        Calculate the residue in both compartments:
-
-        >>> R = dc.res_2comp(T, E, t)
-        
-        Given an impulse in compartment 1 at time *t=0*, the residue in compartment 1 is strictly decreasing: 
-
-        >>> R[1,1,:]
-        array([1.        , 0.337098  , 0.12441734, 0.05534255, 0.03213718,
-        0.02364203, 0.01991879, 0.01779349, 0.01624864, 0.01495455])
-
-        Given an impulse in compartment 1 at time *t=0*, the residue in compartment 0 is zero initially and peaks at a later time:
-
-        >>> R[1,0,:]
-        array([0.        , 0.01895809, 0.02356375, 0.02370372, 0.02252098,
-        0.02100968, 0.01947964, 0.01802307, 0.01666336, 0.0154024 ])
-    """
+def _res_2comp(T, E, t):
     # Calculate system matrix, eigenvalues and eigenvectors
-    Q, K, Qi = K_2comp(T, E)
+    Q, K, Qi = _K_2comp(T, E)
     # Initialize concentration-time array
     nc, nt = len(T), len(t) 
     R = np.zeros((nc,nc,nt)) 
@@ -1610,52 +1468,6 @@ def res_2comp(T, E, t):
         R[i,:,:] = np.matmul(Q, Ei)
     return R
 
-def prop_2comp(T, E, t):
-    """Propagator of a 2-compartment system.
-
-    Args:
-        T (array_like): 2-element array with mean transit times of each compartment.
-        E (array_like): dimensionless and square *2 x 2* matrix. An off-diagonal element *E[j,i]* is the extraction fraction from compartment *i* to compartment *j*. A diagonal element *E[i,i]* is the extraction fraction from compartment *i* to the outside. 
-        t (array_like): the time points of the indicator flux *J*, in the same units as *T*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
-
-    Returns:
-        numpy.ndarray: Propagator for each arrow as a 4D array with dimensions *(2,2,2,k)*, where 2 is the number of compartments and *k* is the number of time points in *t*. Encoding of the first indices is as follows: *H[i,k,j,:]* is the propagator from the inlet at compartment *i* to the outlet from *j* to *k*. The diagonal element *H[i,j,j,:]* is the propagator from the inlet at *i* to the outlet of *j* to the environment.
-
-    See Also:
-        `flux_2comp`, `res_2comp`, `conc_2comp`
-
-    Example:
-        >>> import numpy as np
-        >>> import dcmri as dc
-
-        Consider a measurement with 10 time points from 0 to 20s, and a 2-compartment system defined by *T* and *E* as follows:
-
-        >>> t = np.linspace(0, 20, 10)
-        >>> T = [20,2]
-        >>> E = [[0.7, 0.9], [0.3, 0.1]]
-
-        Calculate the propagator for the system:
-
-        >>> H = dc.prop_2comp(T, E, t)
-        
-        The propagator from the inlet at 1 (first index = 1) to the outlet of compartment 0 is: 
-
-        >>> H[1,0,0,:]
-        array([0.        , 0.019906  , 0.02474194, 0.0248889 , 0.02364703,
-        0.02206017, 0.02045362, 0.01892422, 0.01749653, 0.01617252])
-        
-        The propagator from the inlet at 1 (first index = 1) to the outlet from 0 to 1 is:
-
-        >>> H[1,1,0,:]
-        array([0.        , 0.00853114, 0.01060369, 0.01066667, 0.01013444,
-        0.00945436, 0.00876584, 0.00811038, 0.00749851, 0.00693108])
-    """
-    R = res_2comp(T, E, t)
-    nc, nt = len(T), len(t)
-    H = np.zeros((nc,nc,nc,nt))
-    for i in range(nc):
-        H[i,:,:,:] = J_ncomp(R[i,:,:], T, E)
-    return H
 
 
 
@@ -1782,8 +1594,7 @@ def flux_pfcomp(J, T, D, t=None, dt=1.0, solver='interp'):
 
 # Michaelis-Menten compartment
 
-# Helper function
-def mmcomp_solve(J, Vmax, Km, t):
+def _mmcomp_solve(J, Vmax, Km, t):
     #Schnell-Mendoza
     n = len(t)
     C = np.zeros(n)
@@ -1791,11 +1602,10 @@ def mmcomp_solve(J, Vmax, Km, t):
         Dk = t[k+1]-t[k]
         Jk = (J[k]+J[k+1])/2
         u = (C[k]/Km) * np.exp( (C[k]-Vmax*Dk)/Km )
-        C[k+1] = Jk*Dk + Km*lambertw(u)
+        C[k+1] = Jk*Dk + Km*np.real(lambertw(u))
     return C
 
-# Helper function
-def mmcomp_prop(J, Vmax, Km, t):
+def _mmcomp_prop(J, Vmax, Km, t):
     n = len(t)
     C = np.zeros(n)
     for k in range(n-1):
@@ -1863,9 +1673,9 @@ def conc_mmcomp(J, Vmax, Km, t=None, dt=1.0, solver='SM'):
         raise ValueError('Km must be non-negative.')
     t = utils.tarray(len(J), t=t, dt=dt)
     if solver=='SM':
-        return mmcomp_solve(J, Vmax, Km, t)
+        return _mmcomp_solve(J, Vmax, Km, t)
     if solver == 'prop':
-        return mmcomp_prop(J, Vmax, Km, t)
+        return _mmcomp_prop(J, Vmax, Km, t)
 
 def flux_mmcomp(J, Vmax, Km, t=None, solver='SM', dt=1.0):
     """Indicator flux out of a Michaelis-Menten compartment.
@@ -1912,25 +1722,254 @@ def flux_mmcomp(J, Vmax, Km, t=None, solver='SM', dt=1.0):
     return C*Vmax/(Km+C)
 
 
+# Two-compartment exchange
 
-def conc_2cxm(J, T, E, t=None, dt=1.0):
+def conc_2cxm(J, T, E, t=None, dt=1.0)->np.ndarray:
     """Indicator flux out of a 2-compartment exchange model.
 
     Args:
         J (array_like): the indicator flux entering the compartment (mmol/sec).
-        T (array-like): 2-element array with mean transit times of plasma and extravascular compartment.
-        E (float): Extraction fraction out of the plasma compartment.
+        T (array-like): 2-element array with mean transit times of plasma and extravascular compartment. Mean transit times can take any value, including 0 and inf. Negative values are unphysical but will only trigger an error if no solution exists.
+        E (float): Extraction fraction out of the plasma compartment. E is a value between 0 and 1, and boundary values E=0 and E=1 are correctly handled. Values outside that range are unphysical but will only trigger an error if no solution exists.        
         t (array_like, optional): the time points of the indicator flux J (sec). If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
         dt (float, optional): spacing between time points for uniformly spaced time points (sec). This parameter is ignored if t is explicity provided. Defaults to 1.0.
 
+    Raises:
+        ValueError: if no real solution exists because of unphysical parameter values (usually E<0).
+
     Returns:
-        np.ndarray: Concentration in M.
+        numpy.ndarray: Concentration in each compartment, and at each time point, as a 2D array with dimensions *(2,k)*, where 2 is the number of compartments and *k* is the number of time points in *J*. 
     """
-    # T= [ Tp, Te]
-    E = [[1-E,1],[E,0]] 
-    J = np.stack((J, np.zeros(J.size)))
-    C = conc_2comp(J, T, E, t=t, dt=dt)
-    return C[0,:] + C[1,:]
+    # T = [ Tp, Te]
+
+    if E==0:
+        Cp = conc_comp(J, T[0], t=t, dt=dt)
+        Ce = np.zeros(len(J))
+        return np.stack((Cp, Ce))
+    
+    if E==1:
+        # D 
+        # = sqrt( (Kp-Ke)**2 + 4 E Kp Ke  )
+        # = sqrt( (Kp+Ke)**2 -4KeKp + 4 E Kp Ke  )
+        # = sqrt( (Kp+Ke)**2 - 4(1-E)KeKp)
+        # D(x) = sqrt( (Kp+Ke)**2 - 4 x KeKp)
+        # D(0) = Kp+Ke
+        # D'(x) = 0.5 ( (Kp+Ke)**2 - 4 x KeKp)**(-0.5) (-4 KeKp)
+        # D'(0) = -2 KeKp/(Kp+Ke) 
+        # D = Kp+Ke -2 (1-E) KeKp/(Kp+Ke) 
+
+        # KT = Kp + Ke
+        # Kpos = Kp + Ke
+        # Kneg = (1-E) KeKp/(Kp+Ke)
+
+        # Jpos 
+        # = utils.expconv(J, 1/Kpos, t=t, dt=dt)
+        # Jneg 
+        # = Kneg exp(-tKneg) * J
+
+        # Eneg 
+        # = (Kp+Ke - (1-E)Kp) / (Kp+Ke - (1-E) KeKp/(Kp+Ke))
+
+        # 1 - Eneg
+        # = [Kp+Ke - (1-E) KeKp/(Kp+Ke) - (Kp+Ke - (1-E)Kp)] / (Kp+Ke - (1-E) KeKp/(Kp+Ke))
+        # = [(1-E)Kp - (1-E) KeKp/(Kp+Ke)] / (Kp+Ke - (1-E) KeKp/(Kp+Ke))
+        # = (1-E) [Kp - KeKp/(Kp+Ke)] / (Kp+Ke - (1-E) KeKp/(Kp+Ke))
+
+        # 1- Eneg = Epos 
+        # approx  [Kp - KeKp/(Kp+Ke)] (1-E) / (Kp+Ke)
+        # (1-E) [Kp - KeKp/(Kp+Ke)] / (Kp+Ke)
+        # (1-E) Rpos
+
+        # Cp 
+        # = [ Epos*Jpos + Eneg*Jneg ] (1/Kp) / (1-E) 
+        # = [ Rpos*Jpos + (KeKp/(Kp+Ke)) exp(-tKneg) * J  ] (1/Kp) 
+        # = [ Rpos*Jpos + (KeKp/(Kp+Ke)) * J  ] (1/Kp) 
+        # = [ Jpos [Kp - KeKp/(Kp+Ke)] / (Kp+Ke) + (KeKp/(Kp+Ke)) * J  ] (1/Kp) 
+        # = [ Jpos [Kp - KeKp/(Kp+Ke)]  + KeKp * J  ] (1/Kp)  / (Kp+Ke) 
+        # Ce 
+        # = [(Kneg exp(-tKneg) * J*Kpos - Jpos*Kneg) / (Kpos - Kneg)] (1/Ke) E / (1-E)
+        # = [Kpos exp(-tKneg) * J - Jpos) / (Kpos - Kneg)] Kneg (1/Ke) E / (1-E)
+        # = [Kpos exp(-tKneg) * J - Jpos) / (Kpos - Kneg)] KeKp/(Kp+Ke) (1/Ke)
+        # = [(Ke + Kp) exp(-tKneg) * J - Jpos) / (Ke + Kp)] KeKp/(Kp+Ke) (1/Ke)
+        # = [(Ke + Kp) * J - Jpos) / (Ke + Kp)] KeKp/(Kp+Ke) (1/Ke)
+
+        # Kp, Ke = 1/T[0], 1/T[1]
+        # Kpos = Kp + Ke
+        # Jpos = utils.expconv(J, 1/Kpos, t=t, dt=dt)
+
+        # Jint = conc_trap(J, t=t, dt=dt)
+
+        # K = Ke*Kp/(Kp+Ke)
+
+        # Cp = ( Jpos*(Kp - K)  + Ke*Kp * Jint  ) * (1/Kp)  / (Kp+Ke) 
+        # Ce = ( (Jint - Jpos/(Ke + Kp))  ) * (1/Ke) * K
+
+        # Cp = ( Jpos*(Kp - Ke*Kp/(Kp+Ke))  + Ke*Kp * Jint  ) * (1/Kp)  / (Kp+Ke) 
+        # Ce = ( (Jint - Jpos/(Ke + Kp))  ) * (1/Ke) * Ke*Kp/(Kp+Ke)
+
+        # Cp = ( Jpos*(1/Ke - 1/(Kp+Ke))  +  Jint  ) * Ke/(Kp+Ke)
+        # Ce = ( (Jint - Jpos/(Ke + Kp))  ) * Kp/(Kp+Ke)
+
+        # Solution In Kp-representation
+        # Cp = ( Jpos* Kp/(Kp+Ke)  +  Ke*Jint  ) /(Kp+Ke)
+        # Ce = ( (Jint - Jpos/(Ke + Kp))  ) *Kp/(Kp+Ke)
+
+        # Solution In Tp-representation
+        # Tp, Te = T[0], T[1]
+
+        # Cp = ( Jpos* Te/(Tp+Te)  +  Jint /Te ) *Tp*Te/(Tp+Te)
+        # Ce = ( (Jint - Jpos*Tp*Te/(Tp + Te))  ) *Te/(Tp+Te)
+
+        Jint = conc_trap(J, t=t, dt=dt)
+
+        if T[0] == 0:
+            Cp = np.zeros(len(J))
+            Ce = Jint
+            return np.stack((Cp, Ce))
+        
+        if T[1] == 0:
+            Cp = Jint
+            Ce = np.zeros(len(J)) 
+            return np.stack((Cp, Ce))   
+
+        if np.isinf(T[0]):
+            Cp = Jint 
+            Ce = np.zeros(len(J))
+            return np.stack((Cp, Ce))
+        
+        if np.isinf(T[1]):
+            # T[0] is not inf - covered above
+            Jpos = utils.expconv(J, T[0], t=t, dt=dt)
+            Cp = Jpos*T[0]
+            Ce = Jint - Jpos*T[0]
+            return np.stack((Cp, Ce))
+        
+        Kpos = 1/T[0] + 1/T[1]
+        Jpos = utils.expconv(J, 1/Kpos, t=t, dt=dt)
+
+        X = T[0]*T[1]/(T[0]+T[1])
+        Cp = ( Jpos* X/T[0]  +  Jint /T[1] ) * X
+        Ce = (Jint - Jpos*X) *X/T[0]
+
+        # Check:
+        # Cp + Ce
+        # Jint (X/T[1] + X/T[0]) + Jpos(X*X/T[0] - X*X/T[0])
+        # = Jint
+
+        return np.stack((Cp, Ce))
+
+
+
+    if T[0] == 0:
+        # D = sqrt( (1/TP-1/TE)**2 + 4 * E * (1/TP) * (1/TE)  )
+        # D = (1/TP) * sqrt( (1-TP/TE)**2 + 4 * E * TP/TE)
+        # KT = 1/TP + 1/TE 
+        # KT = (1/TP) (1 + TP/TE)
+        # Kpos = 0.5/TP * [ 1 + TP/TE + sqrt( (1-TP/TE)**2 + 4 * E * TP/TE) ] 
+        # Kneg = 0.5/TP * [ 1 + TP/TE - sqrt( (1-TP/TE)**2 + 4 * E * TP/TE) ] 
+        # First order term in Kneg dominates so need power expansion:
+            # f(x) = sqrt( (1-x)**2 + 4E*x ) 
+            # f(0) = 1
+            # f'(x) = 1/2 * ((1-x)**2 + 4E*x)**(-1/2) * (-2*(1-x)+4E)
+            # f'(0) = 1/2 * (-2+4E) = -1+2E
+            # f(x) = 1 + (-1+2E)*x
+        # TP->0:
+        # Kpos = 0.5/TP * 2
+        # Kpos = 1/TP
+        # Kneg = 0.5/TP * [ TP/TE - (-1+2E) TP/TE] 
+        # Kneg = 0.5 * [1 - (-1+2E)] / TE 
+        # Kneg = (1-E)/TE
+        # Then:
+        # KB = (1-E)/TP
+        # Eneg = (1/TP - (1-E)/TP) / (1/TP - (1-E)/TE)
+        # Eneg = E / (1 - (1-E) TP/TE)
+        # Eneg -> E
+
+        #Jpos = J
+        Jneg = utils.expconv(J, T[1]/(1-E), t=t, dt=dt)
+
+        # Je = (Jneg/TP - Jpos*(1-E)/TE) / (1/TP - (1-E)/TE)
+        # Je = (Jneg - TP*Jpos*(1-E)/TE) / (1 - TP(1-E)/TE)
+        # Je = Jneg
+
+        #Jp = (1-E)*Jpos + E*Jneg
+        #Je = Jneg
+        
+        # Cp = 0*Jp
+        Cp = np.zeros(len(J))
+        Ce = Jneg*T[1]*E/(1-E) 
+    
+        return np.stack((Cp, Ce))
+    
+    if T[1] == 0:
+        # D symmetric in TP and TE, so power expansion in TE is:
+        # Kpos = 1/TE
+        # Kneg = (1-E)/TP
+
+        #Jpos = J
+        Jneg = utils.expconv(J, T[0]/(1-E), t=t, dt=dt)
+
+        # KB = (1-E)/TP
+        # Eneg = (1/TE - (1-E)/TP) / (1/TE - (1-E)/TP) = 1
+
+        Jp = Jneg
+        # Je 
+        # = (Jneg/TE - Jpos*(1-E)/TP) / (1/TE - (1-E)/TP)
+        # = Jneg
+        # Je = Jneg
+
+        Cp = Jp*T[0]/(1-E)
+        #Ce = Je*0
+        Ce = np.zeros(len(J))
+
+        return np.stack((Cp, Ce))
+
+    if np.isinf(T[0]):
+        Cp = conc_trap(J, t=t, dt=dt)
+        Ce = np.zeros(len(J))
+        return np.stack((Cp, Ce))
+    
+    if np.isinf(T[1]):
+        Cp = conc_comp(J, T[0], t=t, dt=dt)
+        Jp = Cp/T[0]
+        Ce = conc_trap(E*Jp, t=t, dt=dt)
+        return np.stack((Cp, Ce))
+
+
+    K = np.array([
+        [1/T[0], -1/T[1]],
+        [-E/T[0], 1/T[1]],
+    ])
+
+    Dsq = (K[0,0]-K[1,1])**2 + 4*K[0,1]*K[1,0]
+    if Dsq < 0:
+        msg = 'No real solution to the 2CXM exists because of unphysical parameter values.'
+        if E<0:
+            msg += '\n-> The extraction fraction is negative (E = '+str(E)+').'
+        raise ValueError(msg)
+    D = np.sqrt(Dsq)
+
+    KT = K[0,0] + K[1,1]
+    Kpos = 0.5*(KT + D)
+    Kneg = 0.5*(KT - D)
+
+    Jpos = utils.expconv(J, 1/Kpos, t=t, dt=dt)
+    Jneg = utils.expconv(J, 1/Kneg, t=t, dt=dt)
+
+    KB = K[0,0] + K[1,0]
+    Eneg = (Kpos - KB)/(Kpos - Kneg)
+
+    Jp = (1-Eneg)*Jpos + Eneg*Jneg
+    Je = (Jneg*Kpos - Jpos*Kneg) / (Kpos - Kneg)
+
+    # Jp = Fp*cp, Cp = vp*cp -> Jp/Cp = Fp/vp = (1-E)/TP -> Cp = Jp*TP/(1-E)
+    # Je = Fp*ce, Ce = ve*ce -> Je/Ce = Fp/ve = (1-E)/E * 1/TE -> Ce = Je*TE * E/(1-E)
+
+    Cp = Jp*T[0]/(1-E)
+    Ce = Je*T[1]*E/(1-E)
+
+    return np.stack((Cp, Ce))
+
 
 
 def flux_2cxm(J, T, E, t=None, dt=1.0):
@@ -1938,8 +1977,8 @@ def flux_2cxm(J, T, E, t=None, dt=1.0):
 
     Args:
         J (array_like): the indicator flux entering the compartment (mmol/sec).
-        T (array-like): 2-element array with mean transit times of plasma and extravascular compartment.
-        E (float): Extraction fraction out of the plasma compartment.
+        T (array-like): 2-element array with mean transit times of plasma and extravascular compartment. Mean transit times can take any value, including 0 and inf. Negative values are unphysical but will only trigger an error if no solution exists.
+        E (float): Extraction fraction out of the plasma compartment. E is a value between 0 and 1, and boundary values E=0 and E=1 are correctly handled. Values outside that range are unphysical but will only trigger an error if no solution exists.
         t (array_like, optional): the time points of the indicator flux J (sec). If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
         dt (float, optional): spacing between time points for uniformly spaced time points (sec). This parameter is ignored if t is explicity provided. Defaults to 1.0.
         solver (str, optional): solver for the system, either 'conv' for explicit convolution with a discrete impulse response (slow) or 'interp' for interpolation (fast). Defaults to 'interp'.
@@ -1947,7 +1986,79 @@ def flux_2cxm(J, T, E, t=None, dt=1.0):
     Returns:
         np.ndarray: Outflux in mmol/sec 
     """
-    # T= [ Tp, Te]
-    E = [[1-E,1],[E,0]] 
-    J = np.stack((J, np.zeros(J.size)))
-    return flux_2comp(J, T, E, t=t, dt=dt)[0,0,:]
+    # T = [ Tp, Te]
+
+    # Jp = Fp*cp, Cp = vp*cp -> Jp/Cp = Fp/vp = (1-E)/TP -> Cp = Jp*TP/(1-E)
+    # Jp = Cp*(1-E)/Tp
+
+    if E == 1:
+        return np.zeros(len(J))
+
+    if T[0] == 0:
+        # D = sqrt( (1/TP-1/TE)**2 + 4 * E * (1/TP) * (1/TE)  )
+        # D = (1/TP) * sqrt( (1-TP/TE)**2 + 4 * E * TP/TE)
+        # KT = 1/TP + 1/TE 
+        # KT = (1/TP) (1 + TP/TE)
+        # Kpos = 0.5/TP * [ 1 + TP/TE + sqrt( (1-TP/TE)**2 + 4 * E * TP/TE) ] 
+        # Kneg = 0.5/TP * [ 1 + TP/TE - sqrt( (1-TP/TE)**2 + 4 * E * TP/TE) ] 
+        # First order term in Kneg dominates so need power expansion:
+            # f(x) = sqrt( (1-x)**2 + 4E*x ) 
+            # f(0) = 1
+            # f'(x) = 1/2 * ((1-x)**2 + 4E*x)**(-1/2) * (-2*(1-x)+4E)
+            # f'(0) = 1/2 * (-2+4E) = -1+2E
+            # f(x) = 1 + (-1+2E)*x
+        # TP->0:
+        # Kpos = 0.5/TP * 2
+        # Kpos = 1/TP
+        # Kneg = 0.5/TP * [ TP/TE - (-1+2E) TP/TE] 
+        # Kneg = 0.5 * [1 - (-1+2E)] / TE 
+        # Kneg = (1-E)/TE
+        # Then:
+        # KB = (1-E)/TP
+        # Eneg = (1/TP - (1-E)/TP) / (1/TP - (1-E)/TE)
+        # Eneg = E / (1 - (1-E) TP/TE)
+        # Eneg -> E
+        #Jpos = J
+        #Jneg = utils.expconv(J, T[1]/(1-E), t=t, dt=dt)
+
+        # Je = (Jneg/TP - Jpos*(1-E)/TE) / (1/TP - (1-E)/TE)
+        # Je = (Jneg - TP*Jpos*(1-E)/TE) / (1 - TP(1-E)/TE)
+        # Je = Jneg
+
+        #Jp = (1-E)*Jpos + E*Jneg
+        #Je = Jneg
+
+        # The case E=1 is already handled above
+       
+        if np.isinf(T[1]):
+            return (1-E)*J
+        
+        Jpos = J
+        Jneg = utils.expconv(J, T[1]/(1-E), t=t, dt=dt)
+        return (1-E)*Jpos + E*Jneg
+    
+    C = conc_2cxm(J, T, E, t=t, dt=dt)
+    Jp = C[0,:]*(1-E)/T[0]
+    
+    return Jp
+
+    # K = np.array([
+    #     [1/T[0], -1/T[1]],
+    #     [-E/T[0], 1/T[1]],
+    # ])
+
+    # D = np.sqrt((K[0,0]-K[1,1])**2 + 4*K[0,1]*K[1,0])
+
+    # KT = K[0,0] + K[1,1]
+    # Kpos = 0.5*(KT + D)
+    # Kneg = 0.5*(KT - D)
+
+    # Jpos = utils.expconv(J, 1/Kpos, t=t, dt=dt)
+    # Jneg = utils.expconv(J, 1/Kneg, t=t, dt=dt)
+
+    # KB = K[0,0] + K[1,0]
+    # Eneg = (Kpos - KB)/(Kpos - Kneg)
+
+    # Jp = (1-Eneg)*Jpos + Eneg*Jneg
+
+    # return Jp

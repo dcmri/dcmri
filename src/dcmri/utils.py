@@ -1,289 +1,12 @@
-import os
-import multiprocessing
-import warnings
 import math
+
 import numpy as np
 from scipy.special import gamma
 from scipy.interpolate import CubicSpline
-from scipy.optimize import curve_fit as scipy_curve_fit
-
-
-try: 
-    num_workers = int(len(os.sched_getaffinity(0)))
-except: 
-    num_workers = int(os.cpu_count())
-
-
-class Model:
-    # Abstract base class for end-to-end models.                  
-
-    def __init__(self):
-        self.free = []
-        self.bounds = [-np.inf, np.inf]
-        self.pcov = None
-
-    def predict(self, xdata):
-        """Predict the data for given x-values.
-
-        Args:
-            xdata (tuple or array-like): Either an array with x-values (time points) or a tuple with multiple such arrays
-
-        Raises:
-            NotImplementedError: If no predict method is defined for the model
-
-        Returns:
-            tuple or array-like: Either an array of predicted y-values (if xdata is an array) or a tuple of such arrays (if xdata is a tuple).
-        """
-        raise NotImplementedError('No predict function provided')
-    
-    def train(self, xdata, ydata, **kwargs):
-        """Train the free parameters of the model using the data provided.
-
-        After training, the attribute ``pars`` will contain the updated parameter values, and ``popt`` contains the covariance matrix. The function uses the scipy function `scipy.optimize.curve_fit`, but has some additional keywords for convenience during model prototyping. 
-
-        Args:
-            xdata (array-like): Array with x-data (time points)
-            ydata (array-like): Array with y-data (signal data)
-            kwargs: any keyword parameters accepted by `scipy.optimize.curve_fit`.
-
-        Returns:
-            Model: A reference to the model instance.
-        """
-        return train(self, xdata, ydata, **kwargs)
-
-    def plot(self, xdata, ydata, xlim=None, testdata=None, fname=None, show=True):
-        """Plot the model fit against data.
-
-        Args:
-            xdata (array-like): Array with x-data (time points)
-            ydata (array-like): Array with y-data (signal data)
-            xlim (array_like, optional): 2-element array with lower and upper boundaries of the x-axis. Defaults to None.
-            testdata (tuple, optional): Tuple of optional test data in the form (x,y), where x is an array with x-values and y is an array with y-values. Defaults to None.
-            fname (path, optional): Path name to save the image. Defaults to None.
-            show (bool, optional): If True, the plot is shown; if false it is saved to disk but not shown. If no fname is provided the image is always shown and this keyword is ignored. Defaults to True.
-
-        Raises:
-            NotImplementedError: If no plot function is implemented for the model.
-        """
-        raise NotImplementedError('No plot function implemented for model ' + self.__class__.__name__)
-    
-    
-    def cost(self, xdata, ydata, metric='NRMS')->float:
-        """Goodness-of-fit value.
-
-        Args:
-            xdata (array-like): Array with x-data (time points).
-            ydata (array-like): Array with y-data (signal values)
-            metric (str, optional): Which metric to use - options are 'NRMS' (Normalized root-mean-square), 'AIC' (Akaike information criterion) or 'BIC' (Baysian information criterion). Defaults to 'NRMS'.
-
-        Returns:
-            float: goodness of fit.
-        """
-        # Predict data at all xvalues
-        y = self.predict(xdata)
-        if isinstance(ydata, tuple):
-            y = np.concatenate(y)
-            ydata = np.concatenate(ydata)
-
-        # Calclulate the loss at the fitted values
-        if metric == 'NRMS':
-            loss = 100*np.linalg.norm(y - ydata)/np.linalg.norm(ydata)
-        elif metric == 'AIC':
-            return
-        elif metric == 'BIC':
-            return
-        return loss
-
-
-    def export_params(self)->list:
-        """Free parameters with descriptions.
-
-        Returns:
-            list: list with one element for each free parameter. The elements are lists themselves providing, for each parameter, [short name, long name, value, unit].
-        """
-        # Short name, full name, value, units.
-        pars = {}
-        for p in self.free:
-            pars[p] = [p+' name', getattr(self, p), p+' unit']
-        return self._add_sdev(pars)
-    
-
-    def print_params(self, round_to=None):
-        """Print a summary of the model parameters and their uncertainties.
-
-        Args:
-            round_to (int, optional): Round to how many digits. If this is not provided, the values are not rounded. Defaults to None.
-            units (str, optional): Which unit system to use in the return values. Defaults to 'standard'.
-        """
-        pars = self.export_params()
-        print('-----------------------------------------')
-        print('Free parameters with their errors (stdev)')
-        print('-----------------------------------------')
-        for par in self.free:
-            if par in pars:
-                p = pars[par]
-                if round_to is None:
-                    v = p[1]
-                    verr = p[3]
-                else:
-                    v = round(p[1], round_to)
-                    verr = round(p[3], round_to)
-                print(p[0] + ' ('+par+'): ' + str(v) + ' (' + str(verr) + ') ' + p[2])
-        print('------------------')
-        print('Derived parameters')
-        print('------------------')
-        for par in pars:
-            if par not in self.free:
-                p = pars[par]
-                if round_to is None:
-                    v = p[1]
-                else:
-                    v = round(p[1], round_to)
-                print(p[0] + ' ('+par+'): ' + str(v) + ' ' + p[2])
-
-
-    def get_params(self, *args, round_to=None):
-        """Get parameter values.
-
-        Args:
-            args (tuple): parameters to get
-            round_to (int, optional): Round to how many digits. If this is not provided, the values are not rounded. Defaults to None.
-
-        Returns:
-            list: values of parameter values
-        """
-        pars = []
-        for a in args:
-            v = getattr(self, a)
-            if round_to is not None:
-                v = round(v, round_to)
-            pars.append(v)
-        return pars
-    
-    
-    def _getflat(self, attr:np.ndarray=None)->np.ndarray:
-        if attr is None:
-            attr = self.free
-        vals = []
-        for a in attr:
-            v = getattr(self, a)
-            vals = np.append(vals, np.ravel(v))
-        return vals
-    
-
-    def _setflat(self, vals:np.ndarray, attr:np.ndarray=None):
-        if attr is None:
-            attr = self.free
-        i=0
-        for p in attr:
-            v = getattr(self, p)
-            if np.isscalar(v):
-                v = vals[i]
-                i+=1
-            else:
-                n = np.size(v)
-                v = np.reshape(vals[i:i+n], np.shape(v))
-                i+=n
-            setattr(self, p, v)
-
-     
-    def _x_scale(self):
-        n = len(self.free)
-        xscale = np.ones(n)
-        for p in range(n):
-            if np.isscalar(self.bounds[0]):
-                lb = self.bounds[0]
-            else:
-                lb = self.bounds[0][p]
-            if np.isscalar(self.bounds[1]):
-                ub = self.bounds[1]
-            else:
-                ub = self.bounds[1][p]
-            if (not np.isinf(lb)) and (not np.isinf(ub)):
-                xscale[p] = ub-lb
-        return xscale
-
-
-    def _add_sdev(self, pars):
-        for par in pars:
-            pars[par].append(0)
-        if self.pcov is None:
-            perr = np.zeros(np.size(self.free))
-        else:
-            perr = np.sqrt(np.diag(self.pcov))
-
-        for i, par in enumerate(self.free):
-            if par in pars:
-                pars[par][-1] = perr[i]
-        return pars
-
-
-    # rename to train_array
-    def _fit_image(self, imgs:np.ndarray, xdata=None, xtol=1e-3, bounds=False, parallel=True, **kwargs):
-        """Fit a single-pixel model pixel-by-pixel to a 2D or 3D image"""
-        
-        # Reshape to (x,t)
-        shape = imgs.shape
-        imgs = imgs.reshape((-1,shape[-1]))
-        
-        # Perform the fit pixelwise
-        if parallel:
-            args = [(xdata, imgs[x,:], xtol, bounds, kwargs) for x in range(imgs.shape[0])]
-            pool = multiprocessing.Pool(processes=num_workers)
-            fit_pars = pool.map(self.train, args)
-            pool.close()
-            pool.join()
-        else: # for debugging
-            fit_pars = [self.train((xdata, imgs[x,:], xtol, bounds, kwargs)) for x in range(imgs.shape[0])]
-
-        # Create output arrays
-        npars = len(fit_pars[0])
-        fit = np.empty(imgs.shape)
-        par = np.empty((imgs.shape[0], npars))
-        for x, p in enumerate(fit_pars):
-            fit[x,:] = self.predict(xdata, *p)
-            par[x,:] = p
-
-        # Return in original shape
-        fit = fit.reshape(shape)
-        par = par.reshape(shape[:-1] + (npars,))
-        
-        return fit, par
+from scipy.integrate import trapezoid
 
 
 
-def train(model:Model, xdata, ydata, **kwargs):
-
-    if isinstance(ydata, tuple):
-        y = np.concatenate(ydata)
-    else:
-        y = ydata
-
-    def fit_func(_, *p):
-        model._setflat(p)
-        yp = model.predict(xdata)
-        if isinstance(yp, tuple):
-            return np.concatenate(yp)
-        else:
-            return yp
-
-    p0 = model._getflat()
-    try:
-        pars, model.pcov = scipy_curve_fit(
-            fit_func, None, y, p0, 
-            bounds=model.bounds, #x_scale=model._x_scale(),
-            **kwargs)
-    except RuntimeError as e:
-        msg = 'Runtime error in curve_fit -- \n'
-        msg += str(e) + ' Returning initial values.'
-        warnings.warn(msg)
-        pars = p0
-        model.pcov = np.zeros((np.size(p0), np.size(p0)))
-    
-    model._setflat(pars)
-    
-    return model
-    
 
 def interp(y, x, pos=False, floor=False)->np.ndarray:
     """Interpolate uniformly sampled data. 
@@ -475,12 +198,14 @@ def intprod(f, h, t=None, dt=1.0):
         g += sh*sf*dt**3/3
     return g
 
+
 def _intstep(f, h, t=None, dt=1.0):
     g = f*h
     if t is None:
         return 0.5*np.sum(g[1:]+g[:-1])*dt
     else:
         return 0.5*np.sum((g[1:]+g[:-1])*(t[1:]-t[:-1]) )
+
 
 def uconv(f, h, dt=1.0, solver='trap'):
     # Helper function: convolution over uniformly sampled grid.
@@ -573,7 +298,7 @@ def inttrap(f, t, t0, t1):
     ti = t[(t0<t)*(t<t1)]
     ti = np.concatenate(([t0],ti,[t1]))
     fi = np.interp(ti, t, f, left=0, right=0)
-    return np.trapz(fi,ti)
+    return np.trapezoid(fi,ti)
 
 
 def stepconv(f, T, D, t=None, dt=1.0):
@@ -752,7 +477,7 @@ def biexpconv(T1, T2, t):
 
 
 def nexpconv(n, T, t):
-    """Convolve n identical normalised exponentials analytically.
+    """Convolve n identical normalised exponentials analytically
 
     Args:
         n (float): number of exponentials. Since an analytical formula is used this can also be non-integer.
@@ -779,6 +504,10 @@ def nexpconv(n, T, t):
         .. math::
             g(t) = \\frac{1}{\\Gamma(n)}\\left(\\frac{t}{T}\\right) \\frac{e^{-t/T}}{T} 
 
+        Note the gamma-variate function becomes unstable due to numerical overflow at large n and/or short T. 
+        This function handles that situation by moving to a numerical solution, but this slows down the computations significantly.
+        Callers should if possible avoid this situation by placing suitable bounds on the parameters.
+
     Example:
         Import package and create a vector of uniformly sampled time points t with spacing 5.0s:
 
@@ -797,10 +526,17 @@ def nexpconv(n, T, t):
     if not isinstance(t, np.ndarray):
         t = np.array(t)
     u = t/T
-    g = u**(n-1) * np.exp(-u)/T/gamma(n)
+
+    # Calculate gamma variate, silencing the warnings 
+    # as invalid cases are handled properly in the next line.
+    with np.errstate(divide='ignore', invalid='ignore', over='ignore', under='ignore'):
+        g = u**(n-1) * np.exp(-u)/T/gamma(n)
+
+    # Handle overflow/invalid values
     if False in np.isfinite(g):
         # At large n the analytical formula runs into overflow
         # use numerical calculation in this case (slower and less accurate)
+        # The caller is responsible for avoiding this situation by setting suitable parameter bounds
         g = np.exp(-t/T)/T
         n0 = int(np.floor(n))
         for _ in range(n0-1):
@@ -813,23 +549,52 @@ def nexpconv(n, T, t):
     return g
 
 
-def test_curve_fit():
-    def third_order(x, a, b, c, d, add=2):
-        return a + b*x + c*x**2 + (d+add)*x**3
-    nx = 5
-    x = np.linspace(0,1,nx)
-    y = third_order(x, 2, 3, 4, 5, add=5)
-    p0 = [1,1,1,1]
-    p, pcov = curve_fit(third_order, x, y, 
-        p0, 
-        kwargs = {'add':5},
-        pfix = [0,0,0,0],
-        xrange = [0,1.0], # with nx=5 and xrange = [0.3,1.0] this runs into RuntimeError
-        xvalid = [1,1,0,0,1],
-        bounds = (
-            [0,0,0,0],
-            [6,6,6,6],
-        ), 
-    )
-    print(p)
+
+def sample(t, tp, Sp, dt=None)->np.ndarray: 
+    """Sample a signal at given time points.
+
+    Args:
+        t (array-like): The time points at which to evaluate the signal.
+        tp (array-like): the time points of the signal to be sampled.
+        Sp (array-like): the values of the signal to be sampled. Values that are outside of the range are set to zero.
+        dt (float, optional): sampling duration. If this is not provided, linear interpolation between the data points is used.  Defaults to None.
+
+    Returns:
+        np.ndarray: Signals sampled at times t.
+    """
+    if dt is None:
+        return np.interp(t, tp, Sp, left=0, right=0)
+    Ss = np.zeros(len(t)) 
+    for k, tk in enumerate(t):
+
+        #data = Sp[(tp >= tk) & (tp < tk+dt)]
+        # data = Sp[(tp >= tk-dt/2) & (tp < tk+dt/2)]
+        # if data.size > 0:
+        #     Ss[k] = np.mean(data)
+
+        # NEW (trapezoidal integration - more accurate)
+        tb = [tk-dt/2, tk+dt/2]
+        Sb = np.interp(tb, tp, Sp)
+        i = (tp > tb[0]) & (tp < tb[1])
+        ti = np.concatenate(([tb[0]], tp[i], [tb[1]]))
+        Si = np.concatenate(([Sb[0]], Sp[i], [Sb[1]]))
+        Ss[k] = trapezoid(Si, ti)/dt
+    return Ss 
+
+
+def add_noise(signal, sdev:float)->np.ndarray:
+    """Add noise to an MRI magnitude signal.
+
+    Args:
+        signal (array-like): Signal values.
+        sdev (float): Standard deviation of the noise.
+
+    Returns:
+        np.ndarray: signal with noise added.
+    """
+    noise_x = np.random.normal(0, sdev, np.size(signal))
+    noise_y = np.random.normal(0, sdev, np.size(signal))
+    signal = np.sqrt((signal+noise_x)**2 + noise_y**2)
+    return signal
+
 

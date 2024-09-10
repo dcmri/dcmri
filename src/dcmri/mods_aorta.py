@@ -230,10 +230,8 @@ class Aorta(dc.Model):
         #pars['S0'] = ["Baseline", self.S0, "au"]
         return self._add_sdev(pars)
     
-    def plot(self, 
-                xdata:tuple[np.ndarray, np.ndarray], 
-                ydata:tuple[np.ndarray, np.ndarray],  
-                testdata=None, xlim=None, fname=None, show=True):
+    def plot(self, xdata:np.ndarray, ydata:np.ndarray,  
+            ref=None, xlim=None, fname=None, show=True):
         aif = self.predict(xdata)
         t, cb = self.conc()
         if xlim is None:
@@ -246,8 +244,8 @@ class Aorta(dc.Model):
         ax0.set_ylabel('MRI signal (a.u.)')
         ax0.legend()
         ax1.set_title('Prediction of the concentrations.')
-        if testdata is not None:
-            ax1.plot(testdata['t']/60, 1000*testdata['cb'], 'ro', label='Ground truth')
+        if ref is not None:
+            ax1.plot(ref['t']/60, 1000*ref['cb'], 'ro', label='Ground truth')
         ax1.plot(t/60, 1000*cb, 'b-', label='Prediction')
         ax1.set_xlabel('Time (min)')
         ax1.set_ylabel('Blood concentration (mM)')
@@ -560,7 +558,15 @@ class AortaLiver(dc.Model):
         t, R1l = self._relax_liver()
         return t, R1b, R1l
 
-    def predict(self, xdata:tuple[np.ndarray, np.ndarray])->tuple[np.ndarray, np.ndarray]:
+    def predict(self, xdata:tuple)->tuple:
+        """Predict the data at given xdata
+
+        Args:
+            xdata (tuple): tuple of 2 arrays with time points for aorta and liver, in that order. The two arrays can be different in length and value.
+
+        Returns:
+            tuple: tuple of 2 arrays with signals for aorta and liver, in that order. The arrays can be different in length and value but each has to have the same length as its corresponding array of time points.
+        """
         # Public interface
         if self._predict is None:
             signala = self._predict_aorta(xdata[0])
@@ -572,9 +578,18 @@ class AortaLiver(dc.Model):
         elif self._predict == 'liver': 
             return self._predict_liver(xdata)
 
-    def train(self, xdata:tuple[np.ndarray, np.ndarray], 
-              ydata:tuple[np.ndarray, np.ndarray], **kwargs):
+    def train(self, xdata:tuple, 
+              ydata:tuple, **kwargs):
+        """Train the free parameters
 
+        Args:
+            xdata (tuple): tuple of 2 arrays with time points for aorta and liver, in that order. The two arrays can be different in length and value.
+            ydata (array-like): tuple of 2 arrays with signals for aorta and liver, in that order. The arrays can be different in length and value but each has to have the same length as its corresponding array of time points.
+            kwargs: any keyword parameters accepted by `scipy.optimize.curve_fit`.
+
+        Returns:
+            Model: A reference to the model instance.
+        """
         # Estimate BAT and S0b from data
         if self.sequence == 'SR':
             Srefb = dc.signal_sr(self.R10b, 1, self.TR, self.FA, self.TC)
@@ -612,10 +627,20 @@ class AortaLiver(dc.Model):
         return dc.train(self, xdata, ydata, **kwargs)
     
     def plot(self, 
-                xdata:tuple[np.ndarray, np.ndarray], 
-                ydata:tuple[np.ndarray, np.ndarray],  
-                xlim=None, testdata=None, 
+                xdata:tuple, 
+                ydata:tuple,  
+                xlim=None, ref=None, 
                 fname=None, show=True):
+        """Plot the model fit against data
+
+        Args:
+            xdata (tuple): tuple of 2 arrays with time points for aorta and liver, in that order. The two arrays can be different in length and value.
+            ydata (array-like): tuple of 2 arrays with signals for aorta and liver, in that order. The arrays can be different in length and value but each has to have the same length as its corresponding array of time points.
+            xlim (array_like, optional): 2-element array with lower and upper boundaries of the x-axis. Defaults to None.
+            ref (tuple, optional): Tuple of optional test data in the form (x,y), where x is an array with x-values and y is an array with y-values. Defaults to None.
+            fname (path, optional): Filepath to save the image. If no value is provided, the image is not saved. Defaults to None.
+            show (bool, optional): If True, the plot is shown. Defaults to True.
+        """
         t, cb, C = self.conc(sum=False)
         sig = self.predict((t,t))
         fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2,2,figsize=(10,8))
@@ -623,11 +648,11 @@ class AortaLiver(dc.Model):
         _plot_data1scan(t, sig[0], xdata[0], ydata[0], 
                 ax1, xlim, 
                 color=['lightcoral','darkred'], 
-                test=None if testdata is None else testdata[0])
+                test=None if ref is None else ref[0])
         _plot_data1scan(t, sig[1], xdata[1], ydata[1], 
                 ax3, xlim, 
                 color=['cornflowerblue','darkblue'], 
-                test=None if testdata is None else testdata[1])
+                test=None if ref is None else ref[1])
         _plot_conc_aorta(t, cb, ax2, xlim)
         _plot_conc_liver(t, C, ax4, xlim)
         if fname is not None:  
@@ -688,6 +713,25 @@ class AortaLiver(dc.Model):
             if self.vol is not None:
                 pars['CL']=['Liver blood clearance', khe_avr*self.vol, 'mL/sec']
         return self._add_sdev(pars)
+    
+    def cost(self, xdata, ydata, metric='NRMS')->float:
+        """Return the goodness-of-fit
+
+        Args:
+            xdata (tuple): tuple of 2 arrays with time points for aorta and liver, in that order. The two arrays can be different in length and value.
+            ydata (array-like): tuple of 2 arrays with signals for aorta and liver, in that order. The arrays can be different in length and value but each has to have the same length as its corresponding array of time points.
+            metric (str, optional): Which metric to use - options are: 
+                **RMS** (Root-mean-square);
+                **NRMS** (Normalized root-mean-square); 
+                **AIC** (Akaike information criterion); 
+                **cAIC** (Corrected Akaike information criterion for small models);
+                **BIC** (Baysian information criterion). Defaults to 'NRMS'.
+
+        Returns:
+            float: goodness of fit.
+        """
+        return super().cost(self, xdata, ydata, metric)
+
     
 
 
@@ -976,10 +1020,10 @@ class AortaKidneys(dc.Model):
         """Concentrations in aorta and kidney.
 
         Args:
-            sum (bool, optional): If set to true, the liver concentrations are the sum over both compartments. If set to false, the compartmental concentrations are returned individually. Defaults to True.
+            sum (bool, optional): If set to true, the kidney concentrations are the sum over all compartments. If set to false, the compartmental concentrations are returned individually. Defaults to True.
 
         Returns:
-            tuple: time points, aorta blood concentrations, kidney concentrations.
+            tuple: time points, aorta blood concentrations, left kidney concentrations, right kidney concentrations.
         """
         t, cb = self._conc_aorta()
         t, Clk, Crk = self._conc_kidneys(sum=sum)
@@ -989,13 +1033,21 @@ class AortaKidneys(dc.Model):
         """Relaxation rates in aorta and kidney.
 
         Returns:
-            tuple: time points, aorta blood concentrations, kidney concentrations.
+            tuple: time points, aorta relaxation rate, left kidney relaxation rate, right kidney relaxation rate.
         """
         t, R1b = self._relax_aorta()
         t, R1_lk, R1_rk = self._relax_kidneys()
         return t, R1b, R1_lk, R1_rk
 
-    def predict(self, xdata:tuple[np.ndarray, np.ndarray, np.ndarray])->tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def predict(self, xdata:tuple)->tuple:
+        """Predict the data at given xdata
+
+        Args:
+            xdata (tuple): Tuple of 3 arrays with time points for aorta, left kidney and right kidney, in that order. The three arrays can all be different in length and value.
+
+        Returns:
+            tuple: Tuple of 3 arrays with signals for aorta, left kidney and right kidney, in that order. The three arrays can all be different in length and value but each has to have the same length as its corresponding array of time points.
+        """
         # Public interface
         if self._predict is None:
             signala = self._predict_aorta(xdata[0])
@@ -1007,9 +1059,18 @@ class AortaKidneys(dc.Model):
         elif self._predict == 'kidneys': 
             return self._predict_kidneys(xdata)
 
-    def train(self, xdata:tuple[np.ndarray, np.ndarray, np.ndarray], 
-            ydata:tuple[np.ndarray, np.ndarray, np.ndarray], **kwargs):
+    def train(self, xdata:tuple, 
+            ydata:tuple, **kwargs):
+        """Train the free parameters
 
+        Args:
+            xdata (tuple): Tuple of 3 arrays with time points for aorta, left kidney and right kidney, in that order. The three arrays can all be different in length and value.
+            ydata (tuple): Tuple of 3 arrays with signals for aorta, left kidney and right kidney, in that order. The three arrays can all be different in length and values but each has to have the same length as its corresponding array of time points.
+            kwargs: any keyword parameters accepted by `scipy.optimize.curve_fit`.
+
+        Returns:
+            Model: A reference to the model instance.
+        """
         # Estimate BAT and S0b from data
         if self.sequence == 'SR':
             Srefb = dc.signal_sr(self.R10b, 1, self.TR, self.FA, self.TC)
@@ -1051,10 +1112,20 @@ class AortaKidneys(dc.Model):
         return dc.train(self, xdata, ydata, **kwargs)
     
     def plot(self, 
-                xdata:tuple[np.ndarray, np.ndarray, np.ndarray], 
-                ydata:tuple[np.ndarray, np.ndarray, np.ndarray],  
-                xlim=None, testdata=None, 
+                xdata:tuple, 
+                ydata:tuple,  
+                xlim=None, ref=None, 
                 fname=None, show=True):
+        """Plot the model fit against data
+
+        Args:
+            xdata (tuple): Tuple of 3 arrays with time points for aorta, left kidney and right kidney, in that order. The three arrays can all be different in length and value.
+            ydata (tuple): Tuple of 3 arrays with signals for aorta, left kidney and right kidney, in that order. The three arrays can all be different in length and values but each has to have the same length as its corresponding array of time points.
+            xlim (array_like, optional): 2-element array with lower and upper boundaries of the x-axis. Defaults to None.
+            ref (tuple, optional): Tuple of optional test data in the form (x,y), where x is an array with x-values and y is an array with y-values. Defaults to None.
+            fname (path, optional): Filepath to save the image. If no value is provided, the image is not saved. Defaults to None.
+            show (bool, optional): If True, the plot is shown. Defaults to True.
+        """
         t, cb, Clk, Crk = self.conc(sum=False)
         sig = self.predict((t,t,t))
         fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3,2,figsize=(10,12))
@@ -1062,15 +1133,15 @@ class AortaKidneys(dc.Model):
         _plot_data1scan(t, sig[0], xdata[0], ydata[0], 
                 ax1, xlim, 
                 color=['lightcoral','darkred'], 
-                test=None if testdata is None else testdata[0])
+                test=None if ref is None else ref[0])
         _plot_data1scan(t, sig[1], xdata[1], ydata[1], 
                 ax3, xlim, 
                 color=['cornflowerblue','darkblue'], 
-                test=None if testdata is None else testdata[1])
+                test=None if ref is None else ref[1])
         _plot_data1scan(t, sig[2], xdata[2], ydata[2], 
                 ax5, xlim, 
                 color=['cornflowerblue','darkblue'], 
-                test=None if testdata is None else testdata[2])
+                test=None if ref is None else ref[2])
         _plot_conc_aorta(t, cb, ax2, xlim)
         _plot_conc_kidney(t, Clk, ax4, xlim)
         _plot_conc_kidney(t, Crk, ax6, xlim)
@@ -1139,9 +1210,27 @@ class AortaKidneys(dc.Model):
 
         return self._add_sdev(pars)
     
+    def cost(self, xdata:tuple, ydata:tuple, metric='NRMS')->float:
+        """Return the goodness-of-fit
+
+        Args:
+            xdata (tuple): Tuple of 3 arrays with time points for aorta, left kidney and right kidney, in that order. The three arrays can all be different in length and value.
+            ydata (tuple): Tuple of 3 arrays with signals for aorta, left kidney and right kidney, in that order. The three arrays can all be different in length and values but each has to have the same length as its corresponding array of time points.
+            metric (str, optional): Which metric to use - options are: 
+                **RMS** (Root-mean-square);
+                **NRMS** (Normalized root-mean-square); 
+                **AIC** (Akaike information criterion); 
+                **cAIC** (Corrected Akaike information criterion for small models);
+                **BIC** (Baysian information criterion). Defaults to 'NRMS'.
+
+        Returns:
+            float: goodness of fit.
+        """
+        return super().cost(self, xdata, ydata, metric)
+    
 
 class AortaLiver2scan(AortaLiver):
-    """Joint model for aorta and liver signals measured over 2 separate scans.
+    """Joint model for aorta and liver signals measured over two scans.
 
     The model represents the liver as a two-compartment system and the body as a leaky loop with a heart-lung system and an organ system. The heart-lung system is modelled as a chain compartment and the organs are modelled as a two-compartment exchange model. Bolus injection into the system is modelled as a step function.
     
@@ -1190,7 +1279,7 @@ class AortaLiver2scan(AortaLiver):
 
         **Liver kinetic parameters**
 
-        - **kinetics** (str, default='stationary'). Liver kinetic model, either stationary or non-stationary.
+        - **kinetics** (str, default='non-stationary'). Liver kinetic model, either stationary or non-stationary.
         - **Hct** (float, default=0.45): Hematocrit.
         - **Tel** (float, default=30): Mean transit time for extracellular space of liver and gut.
         - **De** (float, default=0.85): Dispersion in the extracellular space of liver an gut, in the range [0,1].
@@ -1434,10 +1523,17 @@ class AortaLiver2scan(AortaLiver):
             dc.sample(xdata[0], t[t1], signal1, tacq),
             dc.sample(xdata[1], t[t2], signal2, tacq2),
         )
+
  
-    def predict(self, 
-            xdata:tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
-            )->tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def predict(self, xdata:tuple )->tuple:
+        """Predict the data at given time points
+
+        Args:
+            xdata (tuple): tuple of 4 arrays with time points for aorta in the first scan, aorta in the second stand, liver in the first scan, and liver in the second scan, in that order. The four arrays can be different in length and value.
+
+        Returns:
+            tuple: tuple of 4 arrays with signals for aorta in the first scan, aorta in the second stand, liver in the first scan, and liver in the second scan, in that order. The arrays have the same length as its corresponding array of time points.
+        """
         # Public interface
         if self._predict is None:
             signal_a = self._predict_aorta((xdata[0],xdata[1]))
@@ -1450,12 +1546,18 @@ class AortaLiver2scan(AortaLiver):
             return self._predict_liver(xdata)
 
 
-    def train(self, 
-              xdata:tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray], 
-              ydata:tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
-              **kwargs):
+    def train(self, xdata:tuple, ydata:tuple, **kwargs):
         # x,y: (aorta scan 1, aorta scan 2, liver scan 1, liver scan 2)
+        """Train the free parameters
 
+        Args:
+            xdata (tuple): tuple of 4 arrays with time points for aorta in the first scan, aorta in the second stand, liver in the first scan, and liver in the second scan, in that order. The four arrays can be different in length and value.
+            ydata (tuple): tuple of 4 arrays with signals for aorta in the first scan, aorta in the second stand, liver in the first scan, and liver in the second scan, in that order. The arrays can be different in length but each has to have the same length as its corresponding array of time points.
+            kwargs: any keyword parameters accepted by `scipy.optimize.curve_fit`.
+
+        Returns:
+            AortaLiver2scan: A reference to the model instance.
+        """
         # Estimate BAT
         T, D = self.Thl, self.Dhl
         self.BAT = xdata[0][np.argmax(ydata[0])] - (1-D)*T
@@ -1504,10 +1606,19 @@ class AortaLiver2scan(AortaLiver):
         return dc.train(self, xdata, ydata, **kwargs)
 
     
-    def plot(self,
-             xdata:tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray], 
-             ydata:tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
-             testdata=None, xlim=None, fname=None, show=True):
+    def plot(self, xdata:tuple, ydata:tuple,
+             ref=None, xlim=None, fname=None, show=True):
+        """Plot the model fit against data
+
+        Args:
+            xdata (tuple): tuple of 4 arrays with time points for aorta in the first scan, aorta in the second stand, liver in the first scan, and liver in the second scan, in that order. The four arrays can be different in length and value.
+            ydata (tuple): tuple of 4 arrays with signals for aorta in the first scan, aorta in the second stand, liver in the first scan, and liver in the second scan, in that order. The arrays can be different in length but each has to have the same length as its corresponding array of time points.
+            xlim (array_like, optional): 2-element array with lower and upper boundaries of the x-axis. Defaults to None.
+            ref (tuple, optional): Tuple of optional test data in the form (x,y), where x is an array with x-values and y is an array with y-values. Defaults to None.
+            fname (path, optional): Filepath to save the image. If no value is provided, the image is not saved. Defaults to None.
+            show (bool, optional): If True, the plot is shown. Defaults to True.
+        """
+
         t, cb, C = self.conc(sum=False)
         ta1 = t[t<=xdata[1][0]]
         ta2 = t[(t>xdata[1][0]) & (t<=xdata[1][-1])]
@@ -1519,11 +1630,11 @@ class AortaLiver2scan(AortaLiver):
         _plot_data2scan((ta1,ta2), sig[:2], xdata[:2], ydata[:2], 
                 ax1, xlim, 
                 color=['lightcoral','darkred'], 
-                test=None if testdata is None else testdata[0])
+                test=None if ref is None else ref[0])
         _plot_data2scan((tl1,tl2), sig[2:], xdata[2:], ydata[2:], 
                 ax3, xlim, 
                 color=['cornflowerblue','darkblue'], 
-                test=None if testdata is None else testdata[1])
+                test=None if ref is None else ref[1])
         _plot_conc_aorta(t, cb, ax2, xlim)
         _plot_conc_liver(t, C, ax4, xlim)
         if fname is not None:  
@@ -1532,6 +1643,24 @@ class AortaLiver2scan(AortaLiver):
             plt.show()
         else:
             plt.close()
+
+    def cost(self, xdata:tuple, ydata:tuple, metric='NRMS')->float:
+        """Return the goodness-of-fit
+
+        Args:
+            xdata (tuple): tuple of 4 arrays with time points for aorta in the first scan, aorta in the second stand, liver in the first scan, and liver in the second scan, in that order. The four arrays can be different in length and value.
+            ydata (tuple): tuple of 4 arrays with signals for aorta in the first scan, aorta in the second stand, liver in the first scan, and liver in the second scan, in that order. The arrays can be different in length but each has to have the same length as its corresponding array of time points.
+            metric (str, optional): Which metric to use - options are: 
+                **RMS** (Root-mean-square);
+                **NRMS** (Normalized root-mean-square); 
+                **AIC** (Akaike information criterion); 
+                **cAIC** (Corrected Akaike information criterion for small models);
+                **BIC** (Baysian information criterion). Defaults to 'NRMS'.
+
+        Returns:
+            float: goodness of fit.
+        """
+        return super().cost(self, xdata, ydata, metric)
     
     
 

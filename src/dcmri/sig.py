@@ -1,5 +1,5 @@
-import math
 from scipy.linalg import expm
+
 import numpy as np
 
 
@@ -57,11 +57,13 @@ def conc_t2w(S, TE:float, r2=0.5, n0=1)->np.ndarray:
 
 
 def _signal_ss(R1, Sinf, TR, FA)->np.ndarray:
-    E = np.exp(-TR*R1)
-    cFA = np.cos(FA*np.pi/180)
-    return Sinf * (1-E) / (1-cFA*E)
+    FA = FA*np.pi/180
+    E = np.exp(-np.multiply(TR,R1))
+    cFA = np.cos(FA)
+    S = Sinf * (1-E) / (1-cFA*E)
+    return np.sin(FA)*S
 
-def _signal_ss_fex(v, R1, S0:float, TR:float, FA:float):
+def _signal_ss_fex(v, R1, S0, TR:float, FA:float):
     if np.size(R1) == np.size(v):
         R1 = np.sum(np.multiply(v,R1))
         return _signal_ss(R1, S0, TR, FA)
@@ -71,14 +73,14 @@ def _signal_ss_fex(v, R1, S0:float, TR:float, FA:float):
         R1fex += v[c]*R1[c,...]
     return _signal_ss(R1fex, S0, TR, FA)
 
-def _signal_ss_nex(v, R1:np.ndarray, S0:float, TR:float, FA:float):
+def _signal_ss_nex(v, R1:np.ndarray, S0, TR:float, FA:float):
     if np.size(R1) == np.size(v):
-        S = signal_ss(R1, S0, TR, FA)
+        S = _signal_ss(R1, S0, TR, FA)
         return np.sum(np.multiply(v,S)) 
     nc, nt = R1.shape
     S = np.zeros(nt)
     for c in range(nc):
-        S += v[c]*signal_ss(R1[c,:], S0, TR, FA)
+        S += v[c]*_signal_ss(R1[c,:], S0, TR, FA)
     return S
 
 def _signal_ss_aex(PS, v, R1, S0, TR, FA):
@@ -171,7 +173,8 @@ def _signal_ss_aex(PS, v, R1, S0, TR, FA):
             if d!=c:
                 K[c,d,:] = -PS[c,d]/v[d]
 
-    cFA = np.cos(FA*np.pi/180)
+    FA = FA*np.pi/180
+    cFA = np.cos(FA)
     Mag = np.empty(nt)
     Id = np.eye(nc)
     for t in range(nt):
@@ -184,7 +187,7 @@ def _signal_ss_aex(PS, v, R1, S0, TR, FA):
 
     # Return in original shape
     R1 = R1.reshape(n)
-    return Mag.reshape(n[1:])
+    return np.sin(FA)*Mag.reshape(n[1:])
 
 
 def signal_ss(R1, S0, TR, FA, v=None, PSw=np.inf, R10=None)->np.ndarray:
@@ -205,10 +208,17 @@ def signal_ss(R1, S0, TR, FA, v=None, PSw=np.inf, R10=None)->np.ndarray:
     if R10 is None:
         Sinf = S0
     else:
+        if v is not None:
+            R10 = np.full(len(v), R10)
         Sinf = S0/signal_ss(R10, 1, TR, FA, v=v, PSw=PSw)
     if v is None:
         return _signal_ss(R1, Sinf, TR, FA)
-    if np.size(v) != np.shape(R1)[0]:
+    if np.isscalar(R1):
+        raise ValueError('In a multi-compartment system, R1 must be an array with at least 1 dimension..')
+    if np.ndim(R1)==1:
+        if np.size(v) != np.size(R1):
+            raise ValueError('v must have the same length as R1.')
+    elif np.size(v) != np.shape(R1)[0]:
         raise ValueError('v must have the same length as the first dimension of R1.')
     if np.isscalar(PSw):
         if PSw==np.inf:
@@ -244,8 +254,8 @@ def conc_ss(S, TR:float, FA:float, T10:float, r1=0.005, n0=1)->np.ndarray:
     # exp(-TR*R1) - Sn *cFA*exp(-TR*R1) = 1-Sn
     # (1-Sn*cFA) * exp(-TR*R1) = 1-Sn
     Sb = np.mean(S[:n0])
-    E0 = math.exp(-TR/T10)
-    c = math.cos(FA*math.pi/180)
+    E0 = np.exp(-TR/T10)
+    c = np.cos(FA*np.pi/180)
     Sn = (S/Sb)*(1-E0)/(1-c*E0)	        # normalized signal
     # Replace any Nan values by interpolating between nearest neighbours
     outrange = Sn >= 1
@@ -258,7 +268,52 @@ def conc_ss(S, TR:float, FA:float, T10:float, r1=0.005, n0=1)->np.ndarray:
 
 
 
-def signal_sr(R1, S0:float, TR:float, FA:float, TC:float, TP=0.0, R10=None)->np.ndarray:
+def _signal_sr(R1, Sinf:float, TR:float, FA:float, TC:float, TP=0.0)->np.ndarray:
+
+    if TP > TC:
+        msg = 'Incorrect sequence parameters.'
+        msg += 'Tsat must be smaller than TC.'
+        raise ValueError(msg)
+    
+    FA = np.pi*FA/180
+    cFA = np.cos(FA)
+    T1_app = TR/(np.multiply(TR,R1)-np.log(cFA))
+
+    ER = np.exp(-np.multiply(TR,R1))
+    E_sat = np.exp(-np.multiply(TP,R1))
+    E_center = np.exp(-(TC-TP)/T1_app)
+
+    S_sat = Sinf * (1-E_sat)
+    S_ss = Sinf * (1-ER)/(1-cFA*ER)
+
+    S_ss = S_ss*(1-E_center) + S_sat*E_center
+
+    return np.sin(FA)*S_ss
+
+
+def _signal_sr_fex(v, R1, S0:float, TR:float, FA:float, TC:float, TP=0.0):
+    if np.size(R1) == np.size(v):
+        R1 = np.sum(np.multiply(v,R1))
+        return _signal_sr(R1, S0, TR, FA, TC, TP)
+    nc, nt = R1.shape
+    R1fex = np.zeros(nt)
+    for c in range(nc):
+        R1fex += v[c]*R1[c,:]
+    return _signal_sr(R1fex, S0, TR, FA, TC, TP)
+
+
+def _signal_sr_nex(v, R1, S0:float, TR:float, FA:float, TC:float, TP=0.0):
+    if np.size(R1) == np.size(v):
+        S = _signal_sr(R1, S0, TR, FA, TC, TP)
+        return np.sum(np.multiply(v,S)) 
+    nc, nt = R1.shape
+    S = np.zeros(nt)
+    for c in range(nc):
+        S += v[c]*_signal_sr(R1[c,:], S0, TR, FA, TC, TP)
+    return S
+
+
+def signal_sr(R1, S0:float, TR:float, FA:float, TC:float, TP=0.0, v=None, PSw=np.inf, R10=None)->np.ndarray:
     """Signal model for a saturation-recovery sequence with a FLASH readout.
 
     Args:
@@ -268,6 +323,10 @@ def signal_sr(R1, S0:float, TR:float, FA:float, TC:float, TP=0.0, R10=None)->np.
         FA (array-like): Flip angle in degrees.
         TC (float): Time (sec) between the saturation pulse and the acquisition of the k-space center.
         TP (float, optional): Time (sec) between the saturation pre-pulse and the first readout pulse. Defaults to 0.
+        v (array-like, optional): volume fractions of each compartment. If v is not provided, the tissue will be treated as one-compartmental. If v is provided, the length must be same as the first dimension of R1 and values must add up to 1. Defaults to None.
+        PSw (array-like, optional): Water permeability-surface area products through the interfaces between the compartments, in units of mL/sec/mL. With PSw=np.inf (default), water exchange is in the fast-exchange limit. With PSw=0, there is no water exchange between the compartments. For any intermediate level of water exchange, PSw must be a nxn array, where n is the number of compartments, and PSw[j,i] is the permeability for water moving from compartment i into j. The diagonal elements PSw[i,i] quantify the flow of water from compartment i to outside. Defaults to np.inf.
+
+        R10 (float, optional): R1-value where S0 is defined. If not provided, S0 is the scaling factor corresponding to infinite R10. Defaults to None.
 
     Raises:
         ValueError: If TP is larger than TC.
@@ -278,72 +337,30 @@ def signal_sr(R1, S0:float, TR:float, FA:float, TC:float, TP=0.0, R10=None)->np.
     if R10 is None:
         Sinf = S0
     else:
-        Sinf = S0/signal_sr(R10, 1, TR, FA, TC, TP)
-    if TP > TC:
-        msg = 'Incorrect sequence parameters.'
-        msg += 'Tsat must be smaller than TC.'
-        raise ValueError(msg)
-    cFA = np.cos(np.pi*FA/180)
-    T1_app = TR/(TR*R1-np.log(cFA))
-
-    ER = np.exp(-TR*R1)
-    E_sat = np.exp(-TP*R1)
-    E_center = np.exp(-(TC-TP)/T1_app)
-
-    S_sat = Sinf * (1-E_sat)
-    S_ss = Sinf * (1-ER)/(1-cFA*ER)
-
-    return S_ss*(1-E_center) + S_sat*E_center
-
-
-def signal_sr_fex(v, R1, S0:float, TR:float, FA:float, TC:float, TP=0.0):
-    """Signal of a spoiled gradient echo sequence applied after satration preparation, for a multi-compartmental tissue with fast water exchange.
-
-    Args:
-        v (array-like): Volume fractions of the compartments. v is a numpy array with size nc, where nc is the number of compartments.
-        R1 (np.ndarray): Longitudinal relaxation rates of the compartments in 1/sec. R1 is a numpy array with dimensions (nc,) or (nc,nt), where nc is the number of compartments and nt is tne number of time points.
-        S0 (float): Signal scaling factor (arbitrary units).
-        TR (float): Repetition time, or time between successive selective excitations, in sec. 
-        FA (array-like): Flip angle in degrees.
-        TC (float): Time (sec) between the saturation pulse and the acquisition of the k-space center.
-        TP (float, optional): Time (sec) between the saturation pre-pulse and the first readout pulse. Defaults to 0.
-
-    Returns:
-        np.ndarray: Signal in arbitrary units. If R1 is two-dimensional, this returns an array with a signal value for each time point.
-    """
-    if np.size(R1) == np.size(v):
-        R1 = np.sum(np.multiply(v,R1))
-        return signal_sr(R1, S0, TR, FA, TC, TP)
-    nc, nt = R1.shape
-    R1fex = np.zeros(nt)
-    for c in range(nc):
-        R1fex += v[c]*R1[c,:]
-    return signal_sr(R1fex, S0, TR, FA, TC, TP)
-
-
-def signal_sr_nex(v, R1, S0:float, TR:float, FA:float, TC:float, TP=0.0):
-    """Signal of a spoiled gradient echo sequence applied with saturation preparation, for a multi-compartmental tissue without water exchange.
-
-    Args:
-        v (array-like): Volume fractions of the compartments. v is a numpy array with size nc, where nc is the number of compartments.
-        R1 (np.ndarray): Longitudinal relaxation rates of the compartments in 1/sec. R1 is a numpy array with dimensions (nc,) or (nc,nt), where nc is the number of compartments and nt is tne number of time points.
-        S0 (float): Signal scaling factor (arbitrary units).
-        TR (float): Repetition time, or time between successive selective excitations, in sec. 
-        FA (array-like): Flip angle in degrees.
-        TC (float): Time (sec) between the saturation pulse and the acquisition of the k-space center.
-        TP (float, optional): Time (sec) between the saturation pre-pulse and the first readout pulse. Defaults to 0.
-
-    Returns:
-        np.ndarray: Signal in arbitrary units. If R1 is two-dimensional, this returns an array with a signal value for each time point.
-    """
-    if np.size(R1) == np.size(v):
-        S = signal_sr(R1, S0, TR, FA, TC, TP)
-        return np.sum(np.multiply(v,S)) 
-    nc, nt = R1.shape
-    S = np.zeros(nt)
-    for c in range(nc):
-        S += v[c]*signal_sr(R1[c,:], S0, TR, FA, TC, TP)
-    return S
+        if v is not None:
+            R10 = np.full(len(v), R10)
+        Sinf = S0/signal_sr(R10, 1, TR, FA, TC, TP, v=v)
+    if v is None:
+        return _signal_sr(R1, Sinf, TR, FA, TC, TP)
+    if np.isscalar(R1):
+        raise ValueError('In a multi-compartment system, R1 must be an array with at least 1 dimension..')
+    if np.ndim(R1)==1:
+        if np.size(v) != np.size(R1):
+            raise ValueError('v must have the same length as R1.')
+    if np.size(v) != np.shape(R1)[0]:
+        raise ValueError('v must have the same length as the first dimension of R1.')
+    if np.isscalar(PSw):
+        if PSw==np.inf:
+            return _signal_sr_fex(v, R1, Sinf, TR, FA, TC, TP)
+        elif PSw==0:
+            return _signal_sr_nex(v, R1, Sinf, TR, FA, TC, TP)
+    else:
+        if np.ndim(PSw) != 2:
+            raise ValueError("For intermediate water exchange, PSw must be a square array")
+        if np.shape(PSw)[0] != np.size(v):
+            raise ValueError("Dimensions of PSw and v do not match up.")
+        raise NotImplementedError('Internediate water exchange modelling is not yet available for SR sequences')
+        #return _signal_sr_aex(PSw, v, R1, Sinf, TR, FA, TC, TP)
 
 
 def signal_er(R1, S0:float, TR:float, FA:float, TC:float)->np.ndarray:
@@ -360,15 +377,17 @@ def signal_er(R1, S0:float, TR:float, FA:float, TC:float)->np.ndarray:
         np.ndarray: Signal in arbitrary units, of the same length as R1.
     """
     #TI is the residence time in the slab
-    cFA = np.cos(np.pi*FA/180)
+    FA = np.pi*FA/180
+    cFA = np.cos(FA)
     R1_app = R1 - np.log(cFA)/TR
 
     ER = np.exp(-TR*R1)
     EI = np.exp(-TC*R1_app)
 
-    S_ss = S0 * (1-ER)/(1-cFA*ER)
+    Sss = S0 * (1-ER)/(1-cFA*ER)
+    Sss = Sss*(1-EI) + S0*EI
 
-    return S_ss*(1-EI) + S0*EI
+    return np.sin(FA)*Sss
 
 
 def signal_src(R1, S0, TC, R10=None):
@@ -451,7 +470,7 @@ def conc_src(S, TC:float, T10:float, r1=0.005, n0=1)->np.ndarray:
     # ln(1-(1-exp(-TC*R10))*S/Sb) = -TC*R1
     # -ln(1-(1-exp(-TC*R10))*S/Sb)/TC = R1
     Sb = np.mean(S[:n0])
-    E = math.exp(-TC/T10)
+    E = np.exp(-TC/T10)
     R1 = -np.log(1-(1-E)*S/Sb)/TC	
     return (R1 - 1/T10)/r1 
 
@@ -485,41 +504,3 @@ def conc_lin(S, T10, r1=0.005, n0=1):
     R10 = 1/T10
     R1 = R10*S/Sb	#relaxation rate in 1/msec
     return (R1 - R10)/r1 
-
-
-def sample(t, tp, Sp, dt=None)->np.ndarray: 
-    """Sample a signal at given time points.
-
-    Args:
-        t (array-like): The time points at which to evaluate the signal.
-        tp (array-like): the time points of the signal to be sampled.
-        Sp (array-like): the values of the signal to be sampled. Values that are outside of the range are set to zero.
-        dt (float, optional): sampling interval. If this is not provided, linear interpolation between the data points is used.  Defaults to None.
-
-    Returns:
-        np.ndarray: Signals sampled at times t.
-    """
-    if dt is None:#
-        return np.interp(t, tp, Sp, left=0, right=0)
-    Ss = np.zeros(len(t)) 
-    for k, tk in enumerate(t):
-        data = Sp[(tp >= tk) & (tp < tk+dt)]
-        if data.size > 0:
-            Ss[k] = np.mean(data)
-    return Ss 
-
-
-def add_noise(signal, sdev:float)->np.ndarray:
-    """Add noise to an MRI magnitude signal.
-
-    Args:
-        signal (array-like): Signal values.
-        sdev (float): Standard deviation of the noise.
-
-    Returns:
-        np.ndarray: signal with noise added.
-    """
-    noise_x = np.random.normal(0, sdev, signal.size)
-    noise_y = np.random.normal(0, sdev, signal.size)
-    signal = np.sqrt((signal+noise_x)**2 + noise_y**2)
-    return signal

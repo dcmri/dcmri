@@ -11,7 +11,7 @@
         :class: sphx-glr-download-link-note
 
         :ref:`Go to the end <sphx_glr_download_generated_examples_tutorials_plot_aif.py>`
-        to download the full example code
+        to download the full example code.
 
 .. rst-class:: sphx-glr-example-title
 
@@ -168,9 +168,9 @@ Now we adjust those parameters by training the models using the measured signals
  .. code-block:: none
 
     Tissue parameters (subject A): 
-    [0.03, 0.005]
+    [np.float64(0.03), np.float64(0.005)]
     Tissue parameters (subject B): 
-    [0.03, 0.005]
+    [np.float64(0.03), np.float64(0.005)]
 
 
 
@@ -210,7 +210,7 @@ If the arterial input is inaccurately measured, then the input to the tissue is 
  .. code-block:: none
 
     Tissue parameters (subject A): 
-    [0.06, 0.01]
+    [np.float64(0.06), np.float64(0.01)]
 
 
 
@@ -279,9 +279,9 @@ To illustrate the implications of using a population-based AIF, lets analyse the
  .. code-block:: none
 
     Tissue parameters (subject A): 
-    [0.024, 0.0019]
+    [np.float64(0.024), np.float64(0.002)]
     Tissue parameters (subject B): 
-    [0.036, 0.0029]
+    [np.float64(0.0361), np.float64(0.0029)]
 
 
 
@@ -399,18 +399,18 @@ We can also have a look at the fitted parameters:
     -----------------------------------------
     Free parameters with their errors (stdev)
     -----------------------------------------
-    Bolus arrival time (BAT): 16.07 (0.54) sec
-    Cardiac output (CO): 220.7 (3.01) mL/sec
-    Heart-lung mean transit time (Thl): 12.83 (0.57) sec
-    Heart-lung transit time dispersion (Dhl): 0.09 (0.01) 
-    Organs mean transit time (To): 12.87 (3.8) sec
+    Bolus arrival time (BAT): 15.43 (0.34) sec
+    Cardiac output (CO): 219.52 (2.94) mL/sec
+    Heart-lung mean transit time (Thl): 12.98 (0.35) sec
+    Heart-lung transit time dispersion (Dhl): 0.08 (0.01) 
+    Organs mean transit time (To): 12.99 (3.05) sec
     Extraction fraction (Eb): 0.01 (0.14) 
-    Organs extraction fraction (Eo): 0.49 (0.05) 
-    Extracellular mean transit time (Te): 25.76 (16.27) sec
+    Organs extraction fraction (Eo): 0.49 (0.04) 
+    Extracellular mean transit time (Te): 27.11 (16.22) sec
     ------------------
     Derived parameters
     ------------------
-    Mean circulation time (Tc): 25.7 sec
+    Mean circulation time (Tc): 25.97 sec
 
 
 
@@ -437,7 +437,7 @@ The cardiac output of the populaton AIF is 220 mL/sec, substantially higher than
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 3.536 seconds)
+   **Total running time of the script:** (0 minutes 3.420 seconds)
 
 
 .. _sphx_glr_download_generated_examples_tutorials_plot_aif.py:
@@ -453,6 +453,10 @@ The cardiac output of the populaton AIF is 220 mL/sec, substantially higher than
     .. container:: sphx-glr-download sphx-glr-download-python
 
       :download:`Download Python source code: plot_aif.py <plot_aif.py>`
+
+    .. container:: sphx-glr-download sphx-glr-download-zip
+
+      :download:`Download zipped: plot_aif.zip <plot_aif.zip>`
 
 
 .. only:: html

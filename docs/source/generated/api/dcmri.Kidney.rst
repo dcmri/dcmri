@@ -22,10 +22,12 @@
       ~Kidney.cost
       ~Kidney.export_params
       ~Kidney.get_params
+      ~Kidney.load
       ~Kidney.plot
       ~Kidney.predict
       ~Kidney.print_params
       ~Kidney.relax
+      ~Kidney.save
       ~Kidney.signal
       ~Kidney.time
       ~Kidney.train

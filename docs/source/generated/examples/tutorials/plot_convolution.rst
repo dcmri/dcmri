@@ -11,7 +11,7 @@
         :class: sphx-glr-download-link-note
 
         :ref:`Go to the end <sphx_glr_download_generated_examples_tutorials_plot_convolution.py>`
-        to download the full example code
+        to download the full example code.
 
 .. rst-class:: sphx-glr-example-title
 
@@ -155,8 +155,8 @@ However, `~dcmri.expconv` comes with a major improvement in computation time com
 
  .. code-block:: none
 
-    Computation time for conv():  1.1428205966949463 sec
-    Computation time for expconv():  0.03563237190246582 sec
+    Computation time for conv():  0.7542219161987305 sec
+    Computation time for expconv():  0.025061368942260742 sec
 
 
 
@@ -184,7 +184,7 @@ Incidentally since the time array in this case is uniform, `~dcmri.conv` can be 
 
  .. code-block:: none
 
-    Computation time for conv() with uniform times:  0.35923123359680176 sec
+    Computation time for conv() with uniform times:  0.15426087379455566 sec
 
 
 
@@ -263,8 +263,8 @@ If both functions are exponentials, convolution can be accelerated further with 
 
  .. code-block:: none
 
-    Computation time for expconv():  0.03809309005737305 sec
-    Computation time for biexpconv():  0.016726016998291016 sec
+    Computation time for expconv():  0.01562047004699707 sec
+    Computation time for biexpconv():  0.015620946884155273 sec
 
 
 
@@ -420,8 +420,8 @@ As with `~dcmri.expconv` the difference between `~dcmri.stepconv` and `~dcmri.co
 
  .. code-block:: none
 
-    Computation time for conv():  0.6662440299987793 sec
-    Computation time for stepconv():  0.5251078605651855 sec
+    Computation time for conv():  0.4298064708709717 sec
+    Computation time for stepconv():  0.13528013229370117 sec
 
 
 
@@ -429,7 +429,7 @@ As with `~dcmri.expconv` the difference between `~dcmri.stepconv` and `~dcmri.co
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 3.952 seconds)
+   **Total running time of the script:** (0 minutes 2.281 seconds)
 
 
 .. _sphx_glr_download_generated_examples_tutorials_plot_convolution.py:
@@ -445,6 +445,10 @@ As with `~dcmri.expconv` the difference between `~dcmri.stepconv` and `~dcmri.co
     .. container:: sphx-glr-download sphx-glr-download-python
 
       :download:`Download Python source code: plot_convolution.py <plot_convolution.py>`
+
+    .. container:: sphx-glr-download sphx-glr-download-zip
+
+      :download:`Download zipped: plot_convolution.zip <plot_convolution.zip>`
 
 
 .. only:: html

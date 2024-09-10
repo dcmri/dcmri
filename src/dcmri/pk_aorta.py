@@ -91,7 +91,7 @@ def flux_aorta(J_vena:np.ndarray,
     
     """Indicator flux through the body modelled with a two-system whole body model (heart-lung system and organ system).
 
-    The heart-lung system and the other organs are organised in a loop, with the heart and lungs modelled as a chain and the other organs as a 2-compartment exchange model (`flux_2comp`).
+    The heart-lung system and the other organs are organised in a loop, with the heart and lungs modelled as a chain and the other organs as a 2-compartment exchange model (`flux_ncomp`).
 
     Args:
         J_vena (np.ndarray): Indicator influx (mmol/sec) into the veins. 
@@ -146,7 +146,7 @@ def flux_aorta(J_vena:np.ndarray,
         plt.show()
     """
 
-    dose = np.trapz(J_vena, x=t, dx=dt)
+    dose = np.trapezoid(J_vena, x=t, dx=dt)
     min_dose = tol*dose
 
     # Residuals of each pathway
@@ -173,7 +173,7 @@ def flux_aorta(J_vena:np.ndarray,
             J_vena += Rk*pk.flux(J_aorta, *kidneys[1], t=t, dt=dt, kinetics=kidneys[0])
 
         # Get residual dose in current pass
-        dose = np.trapz(J_vena, x=t, dx=dt)
+        dose = np.trapezoid(J_vena, x=t, dx=dt)
 
     return J_aorta_total
 

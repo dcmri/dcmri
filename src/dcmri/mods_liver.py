@@ -5,7 +5,7 @@ import dcmri as dc
 
 class Liver(dc.Model):
 
-    """Single-inlet model for intracellular indicator measured with a steady-state sequence.
+    """General model for liver tissue.
 
         **Input function**
 
@@ -53,6 +53,9 @@ class Liver(dc.Model):
     See Also:
         `Tissue`
 
+    Notes:
+        Currently this only only provides single-inlet kinetic models. 
+    
     Example:
 
         Derive model parameters from simulated data:
@@ -86,7 +89,7 @@ class Liver(dc.Model):
 
         Plot the reconstructed signals (left) and concentrations (right) and compare the concentrations against the noise-free ground truth:
 
-        >>> model.plot(time, roi, testdata=gt)
+        >>> model.plot(time, roi, ref=gt)
     """ 
 
     def __init__(self, **params):
@@ -238,6 +241,16 @@ class Liver(dc.Model):
         return dc.sample(xdata, t, signal, self.dt)
     
     def train(self, xdata, ydata, **kwargs):
+        """Train the free parameters
+
+        Args:
+            xdata (array-like): Array with x-data (time points)
+            ydata (array-like): Array with y-data (signal data)
+            kwargs: any keyword parameters accepted by `scipy.optimize.curve_fit`.
+
+        Returns:
+            Liver: A reference to the model instance.
+        """
         if self.sequence == 'SR':
             Sref = dc.signal_sr(self.R10, 1, self.TR, self.FA, self.TC)
         else:
@@ -295,9 +308,9 @@ class Liver(dc.Model):
         return self._add_sdev(pars)
 
     def plot(self, 
-                xdata:tuple[np.ndarray, np.ndarray], 
-                ydata:tuple[np.ndarray, np.ndarray],  
-                testdata=None, xlim=None, fname=None, show=True):
+                xdata:np.ndarray, 
+                ydata:np.ndarray,  
+                ref=None, xlim=None, fname=None, show=True):
 
         time, C = self.conc(sum=True)
         if xlim is None:
@@ -309,9 +322,9 @@ class Liver(dc.Model):
         ax0.set(xlabel='Time (min)', ylabel='MRI signal (a.u.)', xlim=np.array(xlim)/60)
         ax0.legend()
         ax1.set_title('Reconstruction of concentrations.')
-        if testdata is not None:
-            ax1.plot(testdata['t']/60, 1000*testdata['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-            ax1.plot(testdata['t']/60, 1000*testdata['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
+        if ref is not None:
+            ax1.plot(ref['t']/60, 1000*ref['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
+            ax1.plot(ref['t']/60, 1000*ref['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
         ax1.plot(time/60, 1000*C, linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
         ax1.plot(time/60, 1000*self.ca, linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
         ax1.set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=np.array(xlim)/60)
