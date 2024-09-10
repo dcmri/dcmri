@@ -292,7 +292,14 @@ def test__flux_2cx():
     Jo = dc.flux_tissue(ca, Fp, vp, t=t, kinetics='NX')
     assert np.linalg.norm(Jo-Jo0[0,0,:])/np.linalg.norm(Jo) < 1e-3
 
-    # Test boundaries
+    # Test boundary
+    Fp = np.inf
+    vp = 0.1
+    PS = 0.001
+    ve = 0.2
+    J = dc.flux_tissue(ca, np.inf, vp, PS, ve, t=t, kinetics='2CX')
+    assert np.isinf(J[0,0,0])
+
 
 
 def test__conc_2cf():

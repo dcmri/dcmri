@@ -1165,9 +1165,7 @@ def conc_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
         `res_ncomp`, `prop_ncomp`, `flux_ncomp`
 
     Note:
-        1. In practice the extraction fractions *E[:,i]* for any compartment *i* will usually add up to 1, but this is not required by the function. Physically, if the sum of all *E[:,i]* is less than one, this models a situation where the compartment *i* traps some of the incoming indicator. Conversely, if the sum of all *E[:,i]* is larger than 1, this models a situation where indicator is created inside the compartment. This is unphysical in common applications of `dcmri` but the function allows for the possibility and leaves it up to the user to impose suitable constraints.
-
-        2. The default solver `'diag'` should be most accurate and fastest, but currently does not allow for compartments that trap the tracer. It relies on matrix diagonalization which may be more problematic in very large systems, such as spatiotemporal models. The alternative solver `'prop'` is simple and robust and is a suitable alternative in such cases. It is slower and less accurate, though the accuracy can be improved at the cost of larger computation times by setting a smaller *dt_prop*. 
+        The default solver `'diag'` should be most accurate and fastest, but currently does not allow for compartments that trap the tracer. It relies on matrix diagonalization which may be more problematic in very large systems, such as spatiotemporal models. The alternative solver `'prop'` is simple and robust and is a suitable alternative in such cases. It is slower and less accurate, though the accuracy can be improved at the cost of larger computation times by setting a smaller *dt_prop*. 
 
     Example:
         >>> import numpy as np

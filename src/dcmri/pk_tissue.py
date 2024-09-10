@@ -314,7 +314,7 @@ def _flux_hfu(ca, vp, Ktrans, t=None, dt=1.0):
 
 def _flux_hf(ca, vp, Ktrans, ve, t=None, dt=1.0):
     J = np.zeros(((2,2,len(ca))))
-    J[0,0,:] = np.nan
+    J[0,0,:] = np.inf
     J[1,0,:] = Ktrans*ca
     if Ktrans==0:
         J[0,1,:] = 0*ca
