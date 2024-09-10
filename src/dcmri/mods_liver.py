@@ -241,6 +241,16 @@ class Liver(dc.Model):
         return dc.sample(xdata, t, signal, self.dt)
     
     def train(self, xdata, ydata, **kwargs):
+        """Train the free parameters
+
+        Args:
+            xdata (array-like): Array with x-data (time points)
+            ydata (array-like): Array with y-data (signal data)
+            kwargs: any keyword parameters accepted by `scipy.optimize.curve_fit`.
+
+        Returns:
+            Liver: A reference to the model instance.
+        """
         if self.sequence == 'SR':
             Sref = dc.signal_sr(self.R10, 1, self.TR, self.FA, self.TC)
         else:
@@ -298,8 +308,8 @@ class Liver(dc.Model):
         return self._add_sdev(pars)
 
     def plot(self, 
-                xdata:tuple[np.ndarray, np.ndarray], 
-                ydata:tuple[np.ndarray, np.ndarray],  
+                xdata:np.ndarray, 
+                ydata:np.ndarray,  
                 ref=None, xlim=None, fname=None, show=True):
 
         time, C = self.conc(sum=True)

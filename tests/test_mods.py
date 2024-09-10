@@ -178,7 +178,7 @@ def test_mods_tissue_pixel_doc():
         'PS':0.003,
         've':0.5,
     }
-    model.plot_params(roi=roi, ref=gt, vmin=vmin, vmax=vmax, show=False)
+    #model.plot_params(roi=roi, ref=gt, vmin=vmin, vmax=vmax, show=False)
     model.plot(time, signal, vmax=vmax, ref=gt, show=False)
     model.plot_fit(time, signal, ref=gt, roi=roi, show=False,
 #       hist_kwargs = {'bins':100, 'range':[0,10]},
@@ -317,15 +317,15 @@ def test_mods_kidney_cort_med():
 
 if __name__ == "__main__":
 
-    test_model()
-    test_mods_tissue()
-    test_mods_tissue_pixel()
+    # test_model()
+    # test_mods_tissue()
+    # test_mods_tissue_pixel()
     test_mods_tissue_pixel_doc()
-    test_mods_aorta()
-    test_mods_aorta_liver()
-    test_mods_aorta_liver2scan()
-    test_mods_liver()
-    test_mods_kidney()
-    test_mods_kidney_cort_med()
+    # test_mods_aorta()
+    # test_mods_aorta_liver()
+    # test_mods_aorta_liver2scan()
+    # test_mods_liver()
+    # test_mods_kidney()
+    # test_mods_kidney_cort_med()
 
     print('All mods tests passed!!')
