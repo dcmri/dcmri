@@ -6,9 +6,9 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 project = 'dcmri'
-copyright = '2023, dcmri maintainers'
+copyright = '2024, dcmri maintainers'
 author = 'dcmri maintainers'
-release = '0.6.7'
+release = '0.6.8'
 
 # -- Path setup --------------------------------------------------------------
 # If extensions (or modules to document with autodoc) are in another directory,
