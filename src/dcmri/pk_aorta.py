@@ -91,7 +91,7 @@ def flux_aorta(J_vena:np.ndarray,
     
     """Indicator flux through the body modelled with a two-system whole body model (heart-lung system and organ system).
 
-    The heart-lung system and the other organs are organised in a loop, with the heart and lungs modelled as a chain and the other organs as a 2-compartment exchange model (`flux_2comp`).
+    The heart-lung system and the other organs are organised in a loop, with the heart and lungs modelled as a chain and the other organs as a 2-compartment exchange model (`flux_ncomp`).
 
     Args:
         J_vena (np.ndarray): Indicator influx (mmol/sec) into the veins. 

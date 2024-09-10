@@ -225,43 +225,36 @@ def _conc_2cu(ca, Fp, vp, PS, t=None, dt=1.0, sum=True):
     else:
         return np.stack((Cp,Ce))
     
+
 def _conc_2cx(ca, Fp, vp, PS, ve, t=None, dt=1.0, sum=True):
+
+    if np.isinf(Fp):
+        return _conc_hf(ca, vp, PS, ve, t=t, dt=dt, sum=sum)   
+
+    J = Fp*ca
+
     if Fp+PS == 0:
-        if sum:
-            return np.zeros(len(ca))
-        else:
-            return np.zeros((2,len(ca)))
-    if PS == 0:
-        Cp = _conc_1c(ca, Fp, vp, t=t, dt=dt)
+        Cp = np.zeros(len(ca))
         Ce = np.zeros(len(ca))
         if sum:
             return Cp+Ce
         else:
             return np.stack((Cp,Ce))
-    # Derive standard parameters
+        
     Tp = vp/(Fp+PS)
-    Te = ve/PS
-    J = Fp*ca
     E = PS/(Fp+PS)
-    # Build the system matrix K
-    T = [Tp, Te]
-    E = [
-        [1-E, 1],
-        [E,   0],
-    ]
-    Q, K, Qi = pk._K_2comp(T, E)
-    # Initialize concentration-time array
-    nc, nt = 2, len(J)
-    t = utils.tarray(nt, t=t, dt=dt)
-    Ei = np.empty((nc,nt))
-    # Loop over the eigenvalues
-    for d in [0,1]:
-        # Calculate elements of diagonal matrix
-        Ei[d,:] = pk.conc_comp(J, 1/K[d], t)
-        # Right-multiply with inverse eigenvector matrix
-        Ei[d,:] *= Qi[d,0]
-    # Left-multiply with eigenvector matrix
-    C = np.matmul(Q, Ei)
+
+    if PS == 0:
+        Cp = pk.conc_comp(Fp*ca, Tp, t=t, dt=dt)
+        Ce = np.zeros(len(ca))
+        if sum:
+            return Cp+Ce
+        else:
+            return np.stack((Cp,Ce))
+    
+    Te = ve/PS
+    
+    C = pk.conc_2cxm(J, [Tp, Te], E, t=t, dt=dt)
     if sum:
         return np.sum(C, axis=0)
     else:
@@ -321,7 +314,7 @@ def _flux_hfu(ca, vp, Ktrans, t=None, dt=1.0):
 
 def _flux_hf(ca, vp, Ktrans, ve, t=None, dt=1.0):
     J = np.zeros(((2,2,len(ca))))
-    J[0,0,:] = np.nan
+    J[0,0,:] = np.inf
     J[1,0,:] = Ktrans*ca
     if Ktrans==0:
         J[0,1,:] = 0*ca
@@ -342,6 +335,10 @@ def _flux_2cu(ca, Fp, vp, PS, t=None, dt=1.0):
     return J
 
 def _flux_2cx(ca, Fp, vp, PS, ve, t=None, dt=1.0):
+
+    if np.isinf(Fp):
+        return _flux_hf(ca, vp, PS, ve, t=t, dt=dt)  
+    
     if Fp+PS == 0:
         return np.zeros((2,2,len(ca)))
     if PS == 0:
@@ -353,7 +350,6 @@ def _flux_2cx(ca, Fp, vp, PS, ve, t=None, dt=1.0):
     # Derive standard parameters
     Tp = vp/(Fp+PS)
     Te = ve/PS
-    J = Fp*ca
     E = PS/(Fp+PS)
     # Build the system matrix K
     T = [Tp, Te]

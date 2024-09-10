@@ -1,0 +1,705 @@
+{
+ "A": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri.mods_tissue",
+   "module_short": "dcmri",
+   "name": "Tissue"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Tissue"
+  }
+ ],
+ "A.get_params": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri.mods_tissue",
+   "module_short": "dcmri",
+   "name": "Tissue.get_params"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Tissue.get_params"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri.mods",
+   "module_short": "dcmri",
+   "name": "Model.get_params"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Model.get_params"
+  }
+ ],
+ "A.plot": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri.mods_tissue",
+   "module_short": "dcmri",
+   "name": "Tissue.plot"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Tissue.plot"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri.mods",
+   "module_short": "dcmri",
+   "name": "Model.plot"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Model.plot"
+  }
+ ],
+ "A.train": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri.mods_tissue",
+   "module_short": "dcmri",
+   "name": "Tissue.train"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Tissue.train"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri.mods",
+   "module_short": "dcmri",
+   "name": "Model.train"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Model.train"
+  }
+ ],
+ "Aorta": [
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "Aorta"
+  }
+ ],
+ "B": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri.mods_tissue",
+   "module_short": "dcmri",
+   "name": "Tissue"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Tissue"
+  }
+ ],
+ "B.get_params": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri.mods_tissue",
+   "module_short": "dcmri",
+   "name": "Tissue.get_params"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Tissue.get_params"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri.mods",
+   "module_short": "dcmri",
+   "name": "Model.get_params"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Model.get_params"
+  }
+ ],
+ "B.plot": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri.mods_tissue",
+   "module_short": "dcmri",
+   "name": "Tissue.plot"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Tissue.plot"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri.mods",
+   "module_short": "dcmri",
+   "name": "Model.plot"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Model.plot"
+  }
+ ],
+ "B.train": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri.mods_tissue",
+   "module_short": "dcmri",
+   "name": "Tissue.train"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Tissue.train"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri.mods",
+   "module_short": "dcmri",
+   "name": "Model.train"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Model.train"
+  }
+ ],
+ "R1": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "ndarray"
+  }
+ ],
+ "R10": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "float"
+  }
+ ],
+ "aorta": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri.mods_aorta",
+   "module_short": "dcmri",
+   "name": "Aorta"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Aorta"
+  }
+ ],
+ "aorta.plot": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri.mods_aorta",
+   "module_short": "dcmri",
+   "name": "Aorta.plot"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Aorta.plot"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri.mods",
+   "module_short": "dcmri",
+   "name": "Model.plot"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Model.plot"
+  }
+ ],
+ "aorta.print_params": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri.mods_aorta",
+   "module_short": "dcmri",
+   "name": "Aorta.print_params"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Aorta.print_params"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri.mods",
+   "module_short": "dcmri",
+   "name": "Model.print_params"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Model.print_params"
+  }
+ ],
+ "aorta.train": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri.mods_aorta",
+   "module_short": "dcmri",
+   "name": "Aorta.train"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Aorta.train"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri.mods",
+   "module_short": "dcmri",
+   "name": "Model.train"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Model.train"
+  }
+ ],
+ "ca_A": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "ndarray"
+  }
+ ],
+ "ca_B": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "ndarray"
+  }
+ ],
+ "ca_pop": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "ndarray"
+  }
+ ],
+ "cb": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "ndarray"
+  }
+ ],
+ "dc.Aorta": [
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "dcmri.mods_aorta",
+   "module_short": "dcmri",
+   "name": "Aorta"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Aorta"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "dcmri.mods",
+   "module_short": "dcmri",
+   "name": "Model"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Model"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Aorta"
+  }
+ ],
+ "dc.T1": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "function"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "T1"
+  }
+ ],
+ "dc.Tissue": [
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "dcmri.mods_tissue",
+   "module_short": "dcmri",
+   "name": "Tissue"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Tissue"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "dcmri.mods",
+   "module_short": "dcmri",
+   "name": "Model"
+  },
+  {
+   "is_class": true,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Model"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "Tissue"
+  }
+ ],
+ "dc.aif_parker": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "function"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "aif_parker"
+  }
+ ],
+ "dc.aif_tristan": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "function"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "aif_tristan"
+  }
+ ],
+ "dc.relaxivity": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "function"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "relaxivity"
+  }
+ ],
+ "dc.signal_ss": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "function"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "signal_ss"
+  }
+ ],
+ "dt": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "float"
+  }
+ ],
+ "np.arange": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "builtin_function_or_method"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "arange"
+  }
+ ],
+ "plt.legend": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "function"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "matplotlib.pyplot",
+   "module_short": "matplotlib.pyplot",
+   "name": "legend"
+  }
+ ],
+ "plt.plot": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "function"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "matplotlib.pyplot",
+   "module_short": "matplotlib.pyplot",
+   "name": "plot"
+  }
+ ],
+ "plt.show": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "function"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "matplotlib.pyplot",
+   "module_short": "matplotlib.pyplot",
+   "name": "show"
+  }
+ ],
+ "plt.xlabel": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "function"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "matplotlib.pyplot",
+   "module_short": "matplotlib.pyplot",
+   "name": "xlabel"
+  }
+ ],
+ "plt.ylabel": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "function"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "matplotlib.pyplot",
+   "module_short": "matplotlib.pyplot",
+   "name": "ylabel"
+  }
+ ],
+ "r1": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "float"
+  }
+ ],
+ "sig_A": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "ndarray"
+  }
+ ],
+ "sig_B": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "ndarray"
+  }
+ ],
+ "sig_pop": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "ndarray"
+  }
+ ],
+ "t": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "ndarray"
+  }
+ ],
+ "tissue": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "dict"
+  }
+ ],
+ "tmax": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "int"
+  }
+ ]
+}

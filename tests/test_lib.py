@@ -1,6 +1,8 @@
 import numpy as np
 import dcmri as dc
 
+import matplotlib.pyplot as plt
+
 
 def test_fetch():
     data = dc.fetch('tristan6drugs')
@@ -173,8 +175,6 @@ def test_aif_tristan_rat():
     t = np.arange(0, 6*60, 1)
     ca = dc.aif_tristan_rat(t)
     assert np.round(1000*np.amax(ca), 1) == 0.5
-
-
 
 
 

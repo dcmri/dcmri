@@ -1,0 +1,672 @@
+{
+ "D": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "float"
+  }
+ ],
+ "MTT": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "int"
+  }
+ ],
+ "T": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "int"
+  }
+ ],
+ "T0": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "float"
+  }
+ ],
+ "T1": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "float"
+  }
+ ],
+ "Tf": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "int"
+  }
+ ],
+ "Th": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "int"
+  }
+ ],
+ "_": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "int"
+  }
+ ],
+ "dc.biexpconv": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "function"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "biexpconv"
+  }
+ ],
+ "dc.conv": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "function"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "conv"
+  }
+ ],
+ "dc.expconv": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "function"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "expconv"
+  }
+ ],
+ "dc.nexpconv": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "function"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "nexpconv"
+  }
+ ],
+ "dc.stepconv": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "function"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "stepconv"
+  }
+ ],
+ "dcmri": [
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "dcmri"
+  }
+ ],
+ "dcmri.biexpconv": [
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "biexpconv"
+  },
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "biexpconv"
+  }
+ ],
+ "dcmri.conv": [
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "conv"
+  },
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "conv"
+  },
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "conv"
+  },
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "conv"
+  },
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "conv"
+  },
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "conv"
+  },
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "conv"
+  },
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "conv"
+  },
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "conv"
+  },
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "conv"
+  }
+ ],
+ "dcmri.expconv": [
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "expconv"
+  },
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "expconv"
+  },
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "expconv"
+  },
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "expconv"
+  },
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "expconv"
+  },
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "expconv"
+  },
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "expconv"
+  }
+ ],
+ "dcmri.nexpconv": [
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "nexpconv"
+  },
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "nexpconv"
+  }
+ ],
+ "dcmri.stepconv": [
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "stepconv"
+  },
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "stepconv"
+  },
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "stepconv"
+  }
+ ],
+ "f": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "ndarray"
+  }
+ ],
+ "g": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "ndarray"
+  }
+ ],
+ "g0": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "ndarray"
+  }
+ ],
+ "g1": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "ndarray"
+  }
+ ],
+ "g10": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "ndarray"
+  }
+ ],
+ "g100": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "ndarray"
+  }
+ ],
+ "h": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "ndarray"
+  }
+ ],
+ "i": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "int"
+  }
+ ],
+ "n": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "int"
+  }
+ ],
+ "norm.pdf": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "scipy.stats._continuous_distns",
+   "module_short": "scipy.stats._continuous_distns",
+   "name": "norm_gen.pdf"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "scipy.stats",
+   "module_short": "scipy.stats",
+   "name": "norm_gen.pdf"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "scipy",
+   "module_short": "scipy",
+   "name": "norm_gen.pdf"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "scipy.stats._distn_infrastructure",
+   "module_short": "scipy.stats",
+   "name": "rv_continuous.pdf"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "scipy.stats",
+   "module_short": "scipy.stats",
+   "name": "rv_continuous.pdf"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "scipy",
+   "module_short": "scipy",
+   "name": "rv_continuous.pdf"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "scipy.stats._distn_infrastructure",
+   "module_short": "scipy.stats._distn_infrastructure",
+   "name": "rv_generic.pdf"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "scipy.stats",
+   "module_short": "scipy.stats",
+   "name": "rv_generic.pdf"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "scipy",
+   "module_short": "scipy",
+   "name": "rv_generic.pdf"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "scipy.stats.norm",
+   "module_short": "scipy.stats.norm",
+   "name": "pdf"
+  }
+ ],
+ "np.convolve": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "_ArrayFunctionDispatcher"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "convolve"
+  }
+ ],
+ "np.exp": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "ufunc"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "exp"
+  }
+ ],
+ "np.linspace": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "_ArrayFunctionDispatcher"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "linspace"
+  }
+ ],
+ "np.zeros": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "builtin_function_or_method"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "zeros"
+  }
+ ],
+ "numpy.convolve": [
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "convolve"
+  },
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "convolve"
+  }
+ ],
+ "plt.legend": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "function"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "matplotlib.pyplot",
+   "module_short": "matplotlib.pyplot",
+   "name": "legend"
+  }
+ ],
+ "plt.plot": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "function"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "matplotlib.pyplot",
+   "module_short": "matplotlib.pyplot",
+   "name": "plot"
+  }
+ ],
+ "plt.show": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "function"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "matplotlib.pyplot",
+   "module_short": "matplotlib.pyplot",
+   "name": "show"
+  }
+ ],
+ "plt.title": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "function"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "matplotlib.pyplot",
+   "module_short": "matplotlib.pyplot",
+   "name": "title"
+  }
+ ],
+ "start": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "float"
+  }
+ ],
+ "t": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "ndarray"
+  }
+ ],
+ "time.time": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "builtin_function_or_method"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "time",
+   "module_short": "time",
+   "name": "time"
+  }
+ ]
+}
