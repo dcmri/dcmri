@@ -94,12 +94,6 @@ class Kidney(dc.Model):
         >>> params['kinetics'] = '2CFM'
         >>> model = dc.Kidney(**params).train(time, roi)
         >>> model.plot(time, roi, ref=gt)
-
-        Repeat the fit using a free nephron model:
-
-        >>> params['kinetics'] = 'FN'
-        >>> model = dc.Kidney(**params).train(time, roi)
-        >>> model.plot(time, roi, ref=gt)
     """ 
 
     def __init__(self, **params):
@@ -296,8 +290,8 @@ class Kidney(dc.Model):
 
 
     def plot(self, 
-                xdata:tuple[np.ndarray, np.ndarray], 
-                ydata:tuple[np.ndarray, np.ndarray],  
+                xdata:np.ndarray, 
+                ydata:np.ndarray,  
                 ref=None, xlim=None, fname=None, show=True):
         time = self.time()
         C = self.conc(sum=True)
@@ -476,7 +470,7 @@ class KidneyCortMed(dc.Model):
 
 
     def time(self):
-        """Array of time points.
+        """Array of time points
 
         Returns:
             np.ndarray: time points in seconds.
@@ -511,7 +505,15 @@ class KidneyCortMed(dc.Model):
             self.Tpt, self.Tlh, self.Tdt, self.Tcd, 
             t=self.t, dt=self.dt, sum=sum, kinetics='7C')
         
-    def predict(self, xdata:np.ndarray)->tuple[np.ndarray,np.ndarray]:
+    def predict(self, xdata:np.ndarray)->tuple:
+        """Predict the data at given xdata
+
+        Args:
+            xdata (array-like): Either an array with x-values (time points) or a tuple with multiple such arrays
+
+        Returns:
+            tuple[np.ndarray,np.ndarray]: tuple of two 1D arrays with signal in corex and medulla, respectively.
+        """
         Cc, Cm = self.conc()
         r1 = dc.relaxivity(self.field_strength, 'blood', self.agent)
         R1c = self.R10c + r1*Cc
@@ -529,6 +531,17 @@ class KidneyCortMed(dc.Model):
         ) 
     
     def train(self, xdata:np.ndarray, ydata:tuple[np.ndarray,np.ndarray], **kwargs):
+        """Train the free parameters
+
+        Args:
+            xdata (array-like): Array with x-data (time points)
+            ydata (tuple): Tuple of two 1D arrays (signal_cortex, signal_mdeulla) with signals in cortex and medulla, respectively.
+            kwargs: any keyword parameters accepted by `scipy.optimize.curve_fit`.
+
+        Returns:
+            Model: A reference to the model instance.
+        """
+
         if self.sequence == 'SR':
             Scref = dc.signal_sr(self.R10c, 1, self.TR, self.FA, self.TC, self.Tsat)
             Smref = dc.signal_sr(self.R10m, 1, self.TR, self.FA, self.TC, self.Tsat)
@@ -566,6 +579,16 @@ class KidneyCortMed(dc.Model):
 
     def plot(self, xdata:np.ndarray, ydata:tuple[np.ndarray,np.ndarray], 
              ref=None, xlim=None, fname=None, show=True):
+        """Plot the model fit against data
+
+        Args:
+            xdata (array-like): Array with x-data (time points)
+            ydata (tuple of arrays): Tuple of two 1D arrays (signal_cortex, signal_mdeulla) with signals in cortex and medulla, respectively.
+            xlim (array_like, optional): 2-element array with lower and upper boundaries of the x-axis. Defaults to None.
+            ref (tuple, optional): Tuple of optional test data in the form (x,y), where x is an array with x-values and y is an array with y-values. Defaults to None.
+            fname (path, optional): Filepath to save the image. If no value is provided, the image is not saved. Defaults to None.
+            show (bool, optional): If True, the plot is shown. Defaults to True.
+        """
 
         time = self.time()
         if xlim is None:
@@ -599,3 +622,21 @@ class KidneyCortMed(dc.Model):
             plt.show()
         else:
             plt.close()
+
+    def cost(self, xdata:np.ndarray, ydata:tuple[np.ndarray,np.ndarray], metric='NRMS')->float:
+        """Return the goodness-of-fit
+
+        Args:
+            xdata (array-like): Array with x-data (time points).
+            ydata (tuple): Tuple of two 1D arrays (signal_cortex, signal_mdeulla) with signals in cortex and medulla, respectively.
+            metric (str, optional): Which metric to use - options are: 
+                **RMS** (Root-mean-square);
+                **NRMS** (Normalized root-mean-square); 
+                **AIC** (Akaike information criterion); 
+                **cAIC** (Corrected Akaike information criterion for small models);
+                **BIC** (Baysian information criterion). Defaults to 'NRMS'.
+
+        Returns:
+            float: goodness of fit.
+        """
+        return super().cost(self, xdata, ydata, metric)

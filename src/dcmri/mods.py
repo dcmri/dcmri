@@ -192,7 +192,7 @@ class Model:
         """Predict the data at given xdata
 
         Args:
-            xdata (tuple or array-like): Either an array with x-values (time points) or a tuple with multiple such arrays
+            xdata (array-like): Either an array with x-values (time points) or a tuple with multiple such arrays
 
         Returns:
             tuple or array-like: Either an array of predicted y-values (if xdata is an array) or a tuple of such arrays (if xdata is a tuple).
@@ -223,9 +223,6 @@ class Model:
             ref (tuple, optional): Tuple of optional test data in the form (x,y), where x is an array with x-values and y is an array with y-values. Defaults to None.
             fname (path, optional): Filepath to save the image. If no value is provided, the image is not saved. Defaults to None.
             show (bool, optional): If True, the plot is shown. Defaults to True.
-
-        Raises:
-            NotImplementedError: If no plot function is implemented for the model.
         """
         raise NotImplementedError('No plot function implemented for model ' + self.__class__.__name__)
     
@@ -236,7 +233,12 @@ class Model:
         Args:
             xdata (array-like): Array with x-data (time points).
             ydata (array-like): Array with y-data (signal values)
-            metric (str, optional): Which metric to use - options are 'RMS' (Root-mean-square), 'NRMS' (Normalized root-mean-square), 'AIC' (Akaike information criterion), 'cAIC' (Corrected Akaike information criterion for small models) or 'BIC' (Baysian information criterion). Defaults to 'NRMS'.
+            metric (str, optional): Which metric to use - options are: 
+                **RMS** (Root-mean-square);
+                **NRMS** (Normalized root-mean-square); 
+                **AIC** (Akaike information criterion); 
+                **cAIC** (Corrected Akaike information criterion for small models);
+                **BIC** (Baysian information criterion). Defaults to 'NRMS'.
 
         Returns:
             float: goodness of fit.

@@ -243,7 +243,7 @@ class TissueArray(dc.ArrayModel):
         """Predict the data at given time points
 
         Args:
-            time (array-like): Array with time points.
+            time (array-like): 1D array with time points.
 
         Returns:
             ndarray: Array of predicted y-values.
@@ -255,7 +255,7 @@ class TissueArray(dc.ArrayModel):
         """Train the free parameters
 
         Args:
-            time (array-like): Array with time points.
+            time (array-like): 1D array with time points.
             signal (array-like): Array of signal curves. Any number of dimensions is allowed but the last dimension must be time. 
             kwargs: any keyword parameters accepted by `Tissue.train`.
 
@@ -269,7 +269,7 @@ class TissueArray(dc.ArrayModel):
         """Return the goodness-of-fit
 
         Args:
-            time (array-like): Array with time points.
+            time (array-like): 1D array with time points.
             signal (array-like): Array of signal curves. Any number of dimensions is allowed but the last dimension must be time. 
             metric (str, optional): Which metric to use - options are 'RMS' (Root-mean-square), 'NRMS' (Normalized root-mean-square), 'AIC' (Akaike information criterion), 'cAIC' (Corrected Akaike information criterion for small models) or 'BIC' (Bayesian information criterion). Defaults to 'NRMS'.
 
@@ -294,7 +294,7 @@ class TissueArray(dc.ArrayModel):
         """Plot parameter maps
 
         Args:
-            time (array-like): time points in seconds
+            time (array-like): 1D array with time points.
             signal (array-like): Array of signal curves. Any number of dimensions is allowed but the last dimension is time. 
             vmin (dict, optional): Minimum values on display for given parameters. Defaults to {}.
             vmax (dict, optional): Maximum values on display for given parameters. Defaults to {}.
@@ -377,7 +377,7 @@ class TissueArray(dc.ArrayModel):
         """Plot measured and reconstructed dynamic signals.
 
         Args:
-            time (array-like): time points in seconds
+            time (array-like): 1D array with time points.
             signal (array-like): Array of signal curves. Any number of dimensions is allowed but the last dimension is time. 
             cmap (str, optional): matplotlib colormap. Defaults to 'gray'.
             ref (dict, optional): Reference images - typically used to display ground truth data when available. Keys are 'signal' (array of data in the same shape as signal), and the parameter maps to show. Defaults to None.
@@ -523,14 +523,14 @@ class TissueArray(dc.ArrayModel):
             plt.close()
 
 
-    def plot_fit(self, time, signal:np.ndarray, 
+    def plot_fit(self, time, signal, 
             hist_kwargs={}, roi=None, ref=None,
             fname=None, show=True,
         ):
         """Plot time curves and fits in representative pixels.
 
         Args:
-            time (array-like): time points in seconds
+            time (array-like): 1D array with time points.
             signal (array-like): Array of signal curves. Any number of dimensions is allowed but the last dimension is time. 
             hist_kwargs (dict, optional): Keyword arguments to be passed on the matlotlib's hist() finction. Defaults to {}.
             roi (dict, optional): Dictionary with masks for regions-of-interest to be shown in the plot. if none is provided, the entire array is shown. Defaults to None.
