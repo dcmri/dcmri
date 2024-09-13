@@ -49,7 +49,7 @@ Import the package:
    tissue.plot(time, roi)                       # Check the fit to the data
 
 .. image:: plot.png
-  :width: 400
+  :width: 800
 
 Print the fitted parameters:
 
@@ -59,30 +59,33 @@ Print the fitted parameters:
 
 ::
 
-    -----------------------------------------
-    Free parameters with their errors (stdev)
-    -----------------------------------------
-    Permeability-surface area product (PS): 0.002 (0.0) mL/sec/mL
-    Plasma volume (vp): 0.042 (0.002) mL/mL
-    Extravascular extracellular volume (ve): 0.16 (0.005) mL/mL
+    --------------------------------
+    Free parameters with their stdev
+    --------------------------------
+
+    Permeability-surface area product (PS): 0.003 (0.0) mL/sec/mL
+    Plasma volume (vp): 0.036 (0.002) mL/mL
+    Extravascular extracellular volume (ve): 0.185 (0.005) mL/mL
+
     ------------------
     Derived parameters
     ------------------
+
     Plasma flow (Fp): inf mL/sec/mL
-    Volume transfer constant (Ktrans): 0.002 mL/sec/mL
-    Blood volume (vb): 0.076 mL/mL
-    Extracellular volume (v): 0.202 mL/mL
-    Extracellular mean transit time (Te): 64.444 sec
-    Extravascular transfer constant (kep): 0.016 1/sec
+    Volume transfer constant (Ktrans): 0.003 mL/sec/mL
+    Blood volume (vb): 0.065 mL/mL
+    Extracellular volume (v): 0.22 mL/mL
+    Extracellular mean transit time (Te): 68.805 sec
+    Extravascular transfer constant (kep): 0.015 1/sec
     Extraction fraction (E): 0.0
     Plasma mean transit time (Tp): 0.0 sec
     Blood mean transit time (Tb): 0.0 sec
     Mean transit time (T): 0.0 sec
     Transendothelial water PS (PSe): 10 mL/sec/mL
     Transcytolemmal water PS (PSc): 10 mL/sec/mL
-    Intracellular water mean transit time (Twc): 0.076 sec
-    Interstitial water mean transit time (Twi): 0.008 sec
-    Intravascular water mean transit time (Twb): 0.008 sec
+    Intracellular water mean transit time (Twc): 0.075 sec
+    Interstitial water mean transit time (Twi): 0.009 sec
+    Intravascular water mean transit time (Twb): 0.006 sec
 
 
 
