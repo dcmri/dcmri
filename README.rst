@@ -21,13 +21,12 @@ dcmri
 A python toolbox for dynamic contrast MRI
 -----------------------------------------
 
-.. note::
-
-   dcmri is under construction. At this stage, the API may still change and features may be deprecated without warning.
-
-
 - **Documentation:** https://dcmri.org
 - **Source:** https://github.com/dcmri
+
+
+.. note::
+   dcmri is under construction. At this stage, the API may still change and features may be deprecated without warning.
 
 
 Install
