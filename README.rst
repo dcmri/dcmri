@@ -43,31 +43,12 @@ Import the package:
 
    import dcmri as dc
 
-Generate some test data:
+   time, aif, roi, _ = dc.fake_tissue(CNR=50)   # Generate some test data
+   tissue = dc.Tissue(aif=aif, t=time)          # Launch a standard tissue model
+   tissue.train(time, roi)                      # Train the model on the data
+   tissue.plot(time, roi)                       # Check the fit to the data
 
-.. code-block:: python
-
-   time, aif, roi, _ = dc.fake_tissue(CNR=50)
-
-Launch a standard tissue model:
-
-.. code-block:: python
-
-   tissue = dc.Tissue(aif=aif, t=time)
-
-Train the model on the data:
-
-.. code-block:: python
-
-   tissue.train(time, roi)
-
-Check the fit to the data:
-
-.. code-block:: python
-
-   tissue.plot(time, roi)
-
-.. image:: plot_aif.png
+.. image:: plot.png
   :width: 400
 
 Print the fitted parameters:
