@@ -22,8 +22,8 @@ A python toolbox for dynamic contrast MRI
 -----------------------------------------
 
 .. note::
-  
-  dcmri is under construction. At this stage, the API may still change and features may be deprecated without warning.
+
+   dcmri is under construction. At this stage, the API may still change and features may be deprecated without warning.
 
 
 - **Documentation:** https://dcmri.org
@@ -53,11 +53,10 @@ Basic usage
 .. image:: plot.png
   :width: 800
 
-Print the fitted parameters:
 
 .. code-block:: python
 
-   tissue.print(round_to=3)
+   tissue.print(round_to=3)                     # Print the fitted parameters
 
 ::
 
