@@ -945,6 +945,7 @@ class Tissue(dc.Model):
         return signal
 
 
+    # TODO: make time optional (if not provided, assume equal to self.time())
     def predict(self, time:np.ndarray)->np.ndarray:
         """Predict the data at given time points
 

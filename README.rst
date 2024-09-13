@@ -17,10 +17,14 @@ dcmri
   :target: https://opensource.org/licenses/Apache-2.0
 
 
-**Note:** *dcmri is under construction. The API may still change and features may be deprecated without warning.*
-
 
 dcmri is a python toolbox for dynamic contrast MRI.
+
+
+
+**Note:** *dcmri is under construction. At this stage, the API may still change and features may be deprecated without warning.*
+
+
 
 - **Documentation:** https://dcmri.org
 - **Source:** https://github.com/dcmri
@@ -36,8 +40,6 @@ Install the latest version of dcmri::
 
 Basic usage
 -----------
-
-Import the package:
 
 .. code-block:: python
 
@@ -92,4 +94,4 @@ Print the fitted parameters:
 License
 -------
 
-Released under the Apache 2.0 license (https://opensource.org/licenses/Apache-2.0)::
+Released under the `Apache 2.0 <https://opensource.org/licenses/Apache-2.0>`_  license.
