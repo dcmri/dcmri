@@ -166,7 +166,7 @@ def fake_tissue(
         S0 = 150,
         sequence = 'SS',
         TR = 0.005,
-        FA = 20,
+        FA = 15,
         TC = 0.2,
         CNR = np.inf,
         dt_sim = 0.1,
