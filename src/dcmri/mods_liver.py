@@ -79,7 +79,7 @@ class Liver(dc.Model):
         ...     Hct = 0.45, 
         ...     agent = 'gadoxetate',
         ...     TR = 0.005,
-        ...     FA = 20,
+        ...     FA = 15,
         ...     n0 = 10,
         ... )
 

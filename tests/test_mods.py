@@ -63,7 +63,7 @@ def test_mods_tissue():
         dt = time[1],
         agent = 'gadodiamide',
         TR = 0.005,
-        FA = 20,
+        FA = 15,
         kinetics='2CX',
         n0=10,
     )
@@ -97,7 +97,7 @@ def test_mods_tissue_pixel():
     shape = (n,n)
     image = dc.TissueArray(
         shape = shape,
-        FA = np.full(shape, 20),
+        FA = np.full(shape, 15),
         R10 = R10, 
         parallel = False, 
         verbose = 0,
@@ -112,7 +112,7 @@ def test_mods_tissue_pixel():
     #region = 'background'
     loc = dc.shepp_logan(n=n)[region] == 1
     curve = dc.Tissue(
-        FA = 20,
+        FA = 15,
         R10 = 1/gt['T1'][loc][0], 
         **params,
     )
@@ -150,7 +150,7 @@ def test_mods_tissue_pixel_doc():
         dt = time[1],
         agent = 'gadodiamide',
         TR = 0.005,
-        FA = np.full(shape, 20),
+        FA = np.full(shape, 15),
         R10 = R10, 
         n0 = 15,
         kinetics = '2CX',
@@ -196,7 +196,7 @@ def test_mods_aorta():
         rate = 3,
         field_strength = 3.0,
         TR = 0.005,
-        FA = 20,
+        FA = 15,
         R10 = 1/dc.T1(3.0,'blood'),
     )
     aorta.train(time, aif)
@@ -217,7 +217,7 @@ def test_mods_aorta_liver():
         field_strength = 3.0,
         t0 = 10,
         TR = 0.005,
-        FA = 20,
+        FA = 15,
     )
 
     model.train(xdata, ydata, xtol=1e-3)
@@ -238,7 +238,7 @@ def test_mods_aorta_liver2scan():
         field_strength = 3.0,
         t0 = 10,
         TR = 0.005,
-        FA = 20,
+        FA = 15,
     )
     model.train(xdata, ydata, xtol=1e-3)
     model.plot(xdata, ydata, show=False)
@@ -252,7 +252,7 @@ def test_mods_liver():
         Hct = 0.45,
         agent = 'gadoxetate',
         TR = 0.005,
-        FA = 20,
+        FA = 15,
         n0 = 10,
     )
     model.train(time, roi)
@@ -268,7 +268,7 @@ def test_mods_kidney():
         'dt':time[1],
         'agent': 'gadodiamide',
         'TR': 0.005,
-        'FA': 20,
+        'FA': 15,
         'R10': 1/dc.T1(3.0,'kidney'),
         'n0': 15,
     }
@@ -298,7 +298,7 @@ def test_mods_kidney_cort_med():
         dt = time[1],
         agent = 'gadoterate',
         TR = 0.005,
-        FA = 20,
+        FA = 15,
         TC = 0.2,
         n0 = 10,
     )
@@ -317,15 +317,15 @@ def test_mods_kidney_cort_med():
 
 if __name__ == "__main__":
 
-    # test_model()
-    # test_mods_tissue()
-    # test_mods_tissue_pixel()
+    test_model()
+    test_mods_tissue()
+    test_mods_tissue_pixel()
     test_mods_tissue_pixel_doc()
-    # test_mods_aorta()
-    # test_mods_aorta_liver()
-    # test_mods_aorta_liver2scan()
-    # test_mods_liver()
-    # test_mods_kidney()
-    # test_mods_kidney_cort_med()
+    test_mods_aorta()
+    test_mods_aorta_liver()
+    test_mods_aorta_liver2scan()
+    test_mods_liver()
+    test_mods_kidney()
+    test_mods_kidney_cort_med()
 
     print('All mods tests passed!!')
