@@ -114,7 +114,7 @@ class TissueArray(dc.ArrayModel):
         ...     dt = time[1],
         ...     agent = 'gadodiamide',
         ...     TR = 0.005,
-        ...     FA = np.full(shape, 20),
+        ...     FA = np.full(shape, 15),
         ...     R10 = 1/gt['T1'],
         ...     n0 = 15,
         ...     kinetics = '2CX',
@@ -681,7 +681,7 @@ class Tissue(dc.Model):
         ...     dt = time[1],
         ...     agent = 'gadodiamide',
         ...     TR = 0.005,
-        ...     FA = 20,
+        ...     FA = 15,
         ...     n0 = 15,
         ... )
 
@@ -945,6 +945,7 @@ class Tissue(dc.Model):
         return signal
 
 
+    # TODO: make time optional (if not provided, assume equal to self.time())
     def predict(self, time:np.ndarray)->np.ndarray:
         """Predict the data at given time points
 

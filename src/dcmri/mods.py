@@ -266,9 +266,11 @@ class Model:
             round_to (int, optional): Round to how many digits. If this is not provided, the values are not rounded. Defaults to None.
         """
         pars = self.export_params()
-        print('-----------------------------------------')
-        print('Free parameters with their errors (stdev)')
-        print('-----------------------------------------')
+        print('')
+        print('--------------------------------')
+        print('Free parameters with their stdev')
+        print('--------------------------------')
+        print('')
         for par in self.free:
             if par in pars:
                 p = pars[par]
@@ -279,9 +281,11 @@ class Model:
                     v = round(p[1], round_to)
                     verr = round(p[3], round_to)
                 print(p[0] + ' ('+par+'): ' + str(v) + ' (' + str(verr) + ') ' + p[2])
+        print('')
         print('------------------')
         print('Derived parameters')
         print('------------------')
+        print('')
         for par in pars:
             if par not in self.free:
                 p = pars[par]

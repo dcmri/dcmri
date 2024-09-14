@@ -33,6 +33,11 @@ Install docs requirements:
 cd to dcmri/docs
 >>> pip install -r requirements.txt
 
+Install dev requirements:
+
+cd to dcmri/dev
+>>> pip install -r requirements.txt
+
 To leave:
 >>> deactivate
 
@@ -101,9 +106,4 @@ When prompted for user name, enter __token__
 
 As password paste the API token generated in PyPi dcmri repository settings (https://pypi.org/manage/project/dcmri/settings/). 
 Note: Paste with Ctrl-V does not work in Windows. Use Edit > Paste via the menu.
-
-
-
-
-
 

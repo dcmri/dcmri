@@ -84,7 +84,7 @@ class Kidney(dc.Model):
         ...     'dt':time[1], 
         ...     'agent': 'gadodiamide', 
         ...     'TR': 0.005, 
-        ...     'FA': 20, 
+        ...     'FA': 15, 
         ...     'R10': 1/dc.T1(3.0,'kidney'), 
         ...     'n0': 15,
         ... }
@@ -397,7 +397,7 @@ class KidneyCortMed(dc.Model):
         ...     dt = time[1],
         ...     agent = 'gadoterate',
         ...     TR = 0.005,
-        ...     FA = 20,
+        ...     FA = 15,
         ...     TC = 0.2,
         ...     n0 = 10,
         ... )

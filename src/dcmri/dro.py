@@ -16,7 +16,7 @@ def fake_brain(
         S0 = 150,
         sequence = 'SS',    
         TR = 0.005,
-        FA = 20,
+        FA = 15,
         TC = 0.2,
         CNR = np.inf,
         dt_sim = 0.1,
@@ -166,7 +166,7 @@ def fake_tissue(
         S0 = 150,
         sequence = 'SS',
         TR = 0.005,
-        FA = 20,
+        FA = 15,
         TC = 0.2,
         CNR = np.inf,
         dt_sim = 0.1,
@@ -248,7 +248,7 @@ def fake_tissue2scan(
         S02 = 300,
         sequence = 'SS',
         TR = 0.005,
-        FA = 20,
+        FA = 15,
         TC = 0.2,
         CNR = np.inf,
         dt_sim = 0.1,
@@ -275,7 +275,7 @@ def fake_tissue2scan(
         S02 (int, optional): Signal scaling factor for tissue in the second scan (arbitrary units). Defaults to 150.
         sequence (str, optional): Scanning sequences, either steady-state ('SS') or saturation-recovery ('SR')
         TR (float, optional): Repetition time in sec. Defaults to 0.005.
-        FA (int, optional): Flip angle. Defaults to 20.
+        FA (int, optional): Flip angle. Defaults to 15.
         TC (float, optional): time to center of k-space in SR sequence. This is ignored when sequence='SS'. Defaults to 0.2 sec.
         CNR (float, optional): Contrast-to-noise ratio, define as the ratio of signal-enhancement in the AIF to noise. Defaults to np.inf.
         dt_sim (float, optional): Sampling inteval of the forward modelling in sec. Defaults to 0.1.
@@ -359,7 +359,7 @@ def fake_kidney_cortex_medulla(
         sequence = 'SR',
         TC = 0.2,
         TR = 0.005,
-        FA = 20,
+        FA = 15,
         CNR = np.inf,
         dt_sim = 0.1,
     ):
@@ -388,7 +388,7 @@ def fake_kidney_cortex_medulla(
         S0 (float, optional): Signal scaling factor for tissue (arbitrary units). Defaults to 150.
         TC (float, optional): Time to readout of the k-space center in sec. Defaults to 0.2.
         TR (float, optional): Repetition time in sec. Defaults to 0.005.
-        FA (float, optional): Flip angle. Defaults to 20.
+        FA (float, optional): Flip angle. Defaults to 15.
         CNR (float, optional): Contrast-to-noise ratio, define as the ratio of signal-enhancement in the AIF to noise. Defaults to np.inf.
         dt_sim (float, optional): Sampling interval of the forward modelling in sec. Defaults to 0.1.
 

@@ -84,7 +84,7 @@ class Aorta(dc.Model):
         ...     rate = 3,
         ...     field_strength = 3.0,
         ...     TR = 0.005,
-        ...     FA = 20,
+        ...     FA = 15,
         ...     R10 = 1/dc.T1(3.0,'blood'),
         ... )
 
@@ -355,7 +355,7 @@ class AortaLiver(dc.Model):
         ...     field_strength = 3.0,
         ...     t0 = 10,
         ...     TR = 0.005,
-        ...     FA = 20,
+        ...     FA = 15,
         ... )
 
         Train the model on the data:
@@ -841,7 +841,7 @@ class AortaKidneys(dc.Model):
         ...     field_strength = 3.0,
         ...     t0 = 10,
         ...     TR = 0.005,
-        ...     FA = 20,
+        ...     FA = 15,
         ... )
 
         Train the model on the data:
@@ -1331,7 +1331,7 @@ class AortaLiver2scan(AortaLiver):
         ...     field_strength = 3.0,
         ...     t0 = 10,
         ...     TR = 0.005,
-        ...     FA = 20,
+        ...     FA = 15,
         ... )
 
         Train the model on the data:

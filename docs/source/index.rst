@@ -4,7 +4,7 @@ dcmri documentation
 
 .. note::
 
-   dcmri is under construction. The first stable version with more comprehensive functionality and documentation will be v1.0.0. Before that the API may still change and features may be deprecated without warning.
+   dcmri is under construction. At this stage, the API may still change and features may be deprecated without warning.
 
 
 
@@ -14,7 +14,7 @@ dcmri is a Python toolbox for dynamic contrast MRI.
 .. toctree::
    :maxdepth: 2
    
-   tutorial/index
+   user_guide/index
    reference/index
    generated/examples/index
    contribute/index
