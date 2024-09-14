@@ -25,8 +25,7 @@ A python toolbox for dynamic contrast MRI
 - **Source:** https://github.com/dcmri
 
 
-.. note::
-   dcmri is under construction. At this stage, the API may still change and features may be deprecated without warning.
+*Note:* dcmri is under construction. At this stage, the API may still change and features may be deprecated without warning.
 
 
 Install
@@ -49,7 +48,7 @@ Basic usage
    tissue.train(time, roi)                      # Train the model on the data
    tissue.plot(time, roi)                       # Check the fit to the data
 
-.. image:: plot.png
+.. image:: docs/source/user_guide/tissue.png
   :width: 800
 
 
@@ -57,7 +56,8 @@ Basic usage
 
    tissue.print(round_to=3)                     # Print the fitted parameters
 
-::
+
+.. code-block:: console
 
     --------------------------------
     Free parameters with their stdev
