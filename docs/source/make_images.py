@@ -20,16 +20,17 @@ def fake_brain():
     plt.close(fig)
 
 
-def readme():
+def getting_started():
 
     time, aif, roi, _ = dc.fake_tissue(CNR=50)
     tissue = dc.Tissue(aif=aif, t=time)
     tissue.train(time, roi)
-    tissue.plot(time, roi, fname='plot.png')
+    tissue.plot(time, roi, fname='docs/source/user_guide/tissue.png')
     tissue.print_params(round_to=3)
+
 
 
 if __name__ == '__main__':
 
     # fake_brain()
-    readme()
+    getting_started()
