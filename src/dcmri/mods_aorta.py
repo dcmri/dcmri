@@ -25,7 +25,7 @@ class Aorta(dc.Model):
         - **t0** (float, default=1): Baseline length in secs.
         - **TR** (float, default=0.005): Repetition time, or time between excitation pulses, in sec. 
         - **FA** (float, default=15): Nominal flip angle in degrees.
-        - **TC** (float, default=0.1): Time to the center of k-space in a saturation-recovery sequence.
+        - **TC** (float, default=0.1): Time to the center of k-space in a saturation-recovery sequence (sec).
 
         **Signal parameters**
 
@@ -308,9 +308,9 @@ class AortaLiver(dc.Model):
         - **Tel** (float, default=30): Mean transit time for extracellular space of liver and gut.
         - **De** (float, default=0.85): Dispersion in the extracellular space of liver an gut, in the range [0,1].
         - **ve** (float, default=0.3): Liver extracellular volume fraction.
-        - **khe** (float, default=0.003): Hepatocellular uptake rate.
+        - **khe** (float, default=0.003): Hepatocellular uptake rate (mL/sec/cm3).
         - **Th** (float, default=1800): Hepatocellular transit time.
-        - **khe_f** (float, default=0.003): Final hepatocellular uptake rate (non-stationary models).
+        - **khe_f** (float, default=0.003): Final hepatocellular uptake rate (non-stationary models) (mL/sec/cm3).
         - **Th_f** (float, default=1800): Final hepatocellular transit time (non-stationary models).
         - **vol** (float, default=None): liver volume in mL (for whole liver export parameters).
 
@@ -380,8 +380,8 @@ class AortaLiver(dc.Model):
         Extraction fraction (Eb): 0.01 (0.623)
         Liver extracellular mean transit time (Tel): 2.915 (0.588) sec
         Liver extracellular dispersion (De): 1.0 (0.19)
-        Liver extracellular volume fraction (ve): 0.176 (0.015) mL/mL
-        Hepatocellular uptake rate (khe): 0.005 (0.001) mL/sec/mL
+        Liver extracellular volume fraction (ve): 0.176 (0.015) mL/cm3
+        Hepatocellular uptake rate (khe): 0.005 (0.001) mL/sec/cm3
         Hepatocellular transit time (Th): 600.0 (747.22) sec
         Organs extraction fraction (Eo): 0.261 (0.324)
         Organs extracellular mean transit time (Teb): 81.765 (329.097) sec
@@ -391,9 +391,9 @@ class AortaLiver(dc.Model):
         Blood precontrast T1 (T10b): 1.629 sec
         Mean circulation time (Tc): 40.916 sec
         Liver precontrast T1 (T10l): 0.752 sec
-        Biliary excretion rate (kbh): 0.001 mL/sec/mL
-        Hepatocellular tissue uptake rate (Khe): 0.026 mL/sec/mL
-        Biliary tissue excretion rate (Kbh): 0.002 mL/sec/mL
+        Biliary excretion rate (kbh): 0.001 mL/sec/cm3
+        Hepatocellular tissue uptake rate (Khe): 0.026 mL/sec/cm3
+        Biliary tissue excretion rate (Kbh): 0.002 mL/sec/cm3
 
     """   
     def __init__(self, **params):
@@ -679,13 +679,13 @@ class AortaLiver(dc.Model):
         pars['T10l']=['Liver precontrast T1', 1/self.R10l, "sec"]
         pars['Tel']=["Liver extracellular mean transit time", self.Tel, 'sec']
         pars['De']=["Liver extracellular dispersion", self.De, '']
-        pars['ve']=["Liver extracellular volume fraction", self.ve, 'mL/mL']
+        pars['ve']=["Liver extracellular volume fraction", self.ve, 'mL/cm3']
         if self.kinetics=='stationary':
-            pars['khe']=["Hepatocellular uptake rate", self.khe, 'mL/sec/mL']
+            pars['khe']=["Hepatocellular uptake rate", self.khe, 'mL/sec/cm3']
             pars['Th']=["Hepatocellular transit time", self.Th, 'sec']
-            pars['kbh']=["Biliary excretion rate", (1-self.ve)/self.Th, 'mL/sec/mL']
-            pars['Khe']=["Hepatocellular tissue uptake rate", self.khe/self.ve, 'mL/sec/mL']
-            pars['Kbh']=["Biliary tissue excretion rate", 1/self.Th, 'mL/sec/mL']
+            pars['kbh']=["Biliary excretion rate", (1-self.ve)/self.Th, 'mL/sec/cm3']
+            pars['Khe']=["Hepatocellular tissue uptake rate", self.khe/self.ve, 'mL/sec/cm3']
+            pars['Kbh']=["Biliary tissue excretion rate", 1/self.Th, 'mL/sec/cm3']
             if self.vol is not None:
                 pars['CL']=['Liver blood clearance', self.khe*self.vol, 'mL/sec']
         else:
@@ -697,19 +697,19 @@ class AortaLiver(dc.Model):
             Kbh_var = (np.amax(Kbh)-np.amin(Kbh))/Kbh_avr 
             kbh = np.mean((1-self.ve)*Kbh_avr)
             Th = np.mean(1/Kbh_avr)
-            pars['khe']=["Hepatocellular uptake rate", khe_avr, 'mL/sec/mL']
+            pars['khe']=["Hepatocellular uptake rate", khe_avr, 'mL/sec/cm3']
             pars['Th']=["Hepatocellular transit time", Th, 'sec']
-            pars['kbh']=["Biliary excretion rate", kbh, 'mL/sec/mL']
-            pars['Khe']=["Hepatocellular tissue uptake rate", khe_avr/self.ve, 'mL/sec/mL']
-            pars['Kbh']=["Biliary tissue excretion rate", Kbh_avr, 'mL/sec/mL']
-            pars['khe_i']=["Hepatocellular uptake rate (initial)", self.khe, 'mL/sec/mL']
-            pars['khe_f']=["Hepatocellular uptake rate (final)", self.khe_f, 'mL/sec/mL']
+            pars['kbh']=["Biliary excretion rate", kbh, 'mL/sec/cm3']
+            pars['Khe']=["Hepatocellular tissue uptake rate", khe_avr/self.ve, 'mL/sec/cm3']
+            pars['Kbh']=["Biliary tissue excretion rate", Kbh_avr, 'mL/sec/cm3']
+            pars['khe_i']=["Hepatocellular uptake rate (initial)", self.khe, 'mL/sec/cm3']
+            pars['khe_f']=["Hepatocellular uptake rate (final)", self.khe_f, 'mL/sec/cm3']
             pars['Th_i']=["Hepatocellular transit time (initial)", self.Th, 'sec']
             pars['Th_f']=["Hepatocellular transit time (final)", self.Th_f, 'sec']
             pars['khe_var']=["Hepatocellular uptake rate variance", khe_var, '']
             pars['Kbh_var']=["Biliary tissue excretion rate variance", Kbh_var, '']
-            pars['kbh_i']=["Biliary excretion rate (initial)", (1-self.ve)/self.Th, 'mL/sec/mL']
-            pars['kbh_f']=["Biliary excretion rate (final)", (1-self.ve)/self.Th_f, 'mL/sec/mL']
+            pars['kbh_i']=["Biliary excretion rate (initial)", (1-self.ve)/self.Th, 'mL/sec/cm3']
+            pars['kbh_f']=["Biliary excretion rate (final)", (1-self.ve)/self.Th_f, 'mL/sec/cm3']
             if self.vol is not None:
                 pars['CL']=['Liver blood clearance', khe_avr*self.vol, 'mL/sec']
         return self._add_sdev(pars)
@@ -784,14 +784,14 @@ class AortaKidneys(dc.Model):
 
         - **kinetics** (str, default='2CFM'). Kidney kinetic model (only one option at this stage).
         - **Hct** (float, default=0.45): Hematocrit.
-        - **Fp_lk** (Plasma flow, mL/sec/mL): Flow of plasma into the plasma compartment (left kidney).
+        - **Fp_lk** (Plasma flow, mL/sec/cm3): Flow of plasma into the plasma compartment (left kidney).
         - **Tp_lk** (Plasma mean transit time, sec): Transit time of the plasma compartment (left kidney). 
-        - **Ft_lk** (Tubular flow, mL/sec/mL): Flow of fluid into the tubuli (left kidney).
+        - **Ft_lk** (Tubular flow, mL/sec/cm3): Flow of fluid into the tubuli (left kidney).
         - **Tt_lk** (Tubular mean transit time, sec): Transit time of the tubular compartment (left kidney).
         - **Ta_lk** (Arterial delay time, sec): Transit time through the arterial compartment (left kidney). 
-        - **Fp_rk** (Plasma flow, mL/sec/mL): Flow of plasma into the plasma compartment (right kidney).
+        - **Fp_rk** (Plasma flow, mL/sec/cm3): Flow of plasma into the plasma compartment (right kidney).
         - **Tp_rk** (Plasma mean transit time, sec): Transit time of the plasma compartment (right kidney). 
-        - **Ft_rk** (Tubular flow, mL/sec/mL): Flow of fluid into the tubuli (right kidney).
+        - **Ft_rk** (Tubular flow, mL/sec/cm3): Flow of fluid into the tubuli (right kidney).
         - **Tt_rk** (Tubular mean transit time, sec): Transit time of the tubular compartment (right kidney).
         - **Ta_rk** (Arterial delay time, sec): Transit time through the arterial compartment (right kidney). 
 
@@ -804,8 +804,8 @@ class AortaKidneys(dc.Model):
 
         **Additional parameters**
 
-        - **vol_lk** (float, optional): Kidney volume in mL (left kidney).
-        - **vol_rk** (float, optional): Kidney volume in mL (right kidney).
+        - **vol_lk** (float, optional): Kidney volume in cm3 (left kidney).
+        - **vol_rk** (float, optional): Kidney volume in cm3 (right kidney).
 
     Args:
         params (dict, optional): override defaults for any of the parameters.
@@ -1182,11 +1182,11 @@ class AortaKidneys(dc.Model):
         Tp_lk = self.vp_lk*self.vol_lk/RPF_lk
         pars['LK-RPF'] = ['LK Single-kidney plasma flow', RPF_lk, 'mL/sec']
         pars['LK-GFR'] = ['LK Single-kidney glomerular filtration rate', GFR_lk, 'mL/sec']
-        pars['LK-vol'] = ['LK Single-kidney volume', self.vol_lk, 'mL']
-        pars['LK-Fp'] = ['LK Plasma flow', RPF_lk/self.vol_lk, 'mL/sec/mL']
+        pars['LK-vol'] = ['LK Single-kidney volume', self.vol_lk, 'cm3']
+        pars['LK-Fp'] = ['LK Plasma flow', RPF_lk/self.vol_lk, 'mL/sec/cm3']
         pars['LK-Tp'] = ['LK Plasma mean transit time', Tp_lk, 'sec']
-        pars['LK-Ft'] = ['LK Tubular flow', GFR_lk/self.vol_lk, 'mL/sec/mL']
-        pars['LK-ve'] = ['LK Extracellular volume', self.vp_lk, 'mL/mL']
+        pars['LK-Ft'] = ['LK Tubular flow', GFR_lk/self.vol_lk, 'mL/sec/cm3']
+        pars['LK-ve'] = ['LK Extracellular volume', self.vp_lk, 'mL/cm3']
         pars['LK-FF'] = ['LK Filtration fraction', GFR_lk/RPF_lk, '']
         pars['LK-E'] = ['LK Extraction fraction', GFR_lk/(GFR_lk+RPF_lk), '']
         pars['LK-Tt'] = ['LK Tubular mean transit time', self.Tt_lk, 'sec']
@@ -1198,11 +1198,11 @@ class AortaKidneys(dc.Model):
         Tp_rk = self.vp_rk*self.vol_rk/RPF_rk
         pars['RK-RPF'] = ['RK Single-kidney plasma flow', RPF_rk, 'mL/sec']
         pars['RK-GFR'] = ['RK Single-kidney glomerular filtration rate', GFR_rk, 'mL/sec']
-        pars['RK-vol'] = ['RK Single-kidney volume', self.vol_rk, 'mL']
-        pars['RK-Fp'] = ['RK Plasma flow', RPF_rk/self.vol_rk, 'mL/sec/mL']
+        pars['RK-vol'] = ['RK Single-kidney volume', self.vol_rk, 'cm3']
+        pars['RK-Fp'] = ['RK Plasma flow', RPF_rk/self.vol_rk, 'mL/sec/cm3']
         pars['RK-Tp'] = ['RK Plasma mean transit time', Tp_rk, 'sec']
-        pars['RK-Ft'] = ['RK Tubular flow', GFR_rk/self.vol_rk, 'mL/sec/mL']
-        pars['RK-ve'] = ['RK Extracellular volume', self.vp_rk, 'mL/mL']
+        pars['RK-Ft'] = ['RK Tubular flow', GFR_rk/self.vol_rk, 'mL/sec/cm3']
+        pars['RK-ve'] = ['RK Extracellular volume', self.vp_rk, 'mL/cm3']
         pars['RK-FF'] = ['RK Filtration fraction', GFR_rk/RPF_rk, '']
         pars['RK-E'] = ['RK Extraction fraction', GFR_rk/(GFR_rk+RPF_rk), '']
         pars['RK-Tt'] = ['RK Tubular mean transit time', self.Tt_rk, 'sec']
@@ -1356,12 +1356,12 @@ class AortaLiver2scan(AortaLiver):
         Extraction fraction (Eb): 0.064 (0.032)
         Liver extracellular mean transit time (Tel): 2.957 (0.452) sec
         Liver extracellular dispersion (De): 1.0 (0.146)
-        Liver extracellular volume fraction (ve): 0.077 (0.007) mL/mL
-        Hepatocellular uptake rate (khe): 0.002 (0.001) mL/sec/mL
+        Liver extracellular volume fraction (ve): 0.077 (0.007) mL/cm3
+        Hepatocellular uptake rate (khe): 0.002 (0.001) mL/sec/cm3
         Hepatocellular transit time (Th): 600.0 (1173.571) sec
         Organs extraction fraction (Eo): 0.2 (0.057)
         Organs extracellular mean transit time (Teb): 87.077 (56.882) sec
-        Hepatocellular uptake rate (final) (khe_f): 0.001 (0.001) mL/sec/mL
+        Hepatocellular uptake rate (final) (khe_f): 0.001 (0.001) mL/sec/cm3
         Hepatocellular transit time (final) (Th_f): 600.0 (623.364) sec
         ------------------
         Derived parameters
@@ -1369,15 +1369,15 @@ class AortaLiver2scan(AortaLiver):
         Blood precontrast T1 (T10b): 1.629 sec
         Mean circulation time (Tc): 43.318 sec
         Liver precontrast T1 (T10l): 0.752 sec
-        Biliary excretion rate (kbh): 0.002 mL/sec/mL
-        Hepatocellular tissue uptake rate (Khe): 0.023 mL/sec/mL
-        Biliary tissue excretion rate (Kbh): 0.002 mL/sec/mL
-        Hepatocellular uptake rate (initial) (khe_i): 0.003 mL/sec/mL
+        Biliary excretion rate (kbh): 0.002 mL/sec/cm3
+        Hepatocellular tissue uptake rate (Khe): 0.023 mL/sec/cm3
+        Biliary tissue excretion rate (Kbh): 0.002 mL/sec/cm3
+        Hepatocellular uptake rate (initial) (khe_i): 0.003 mL/sec/cm3
         Hepatocellular transit time (initial) (Th_i): 600.0 sec
         Hepatocellular uptake rate variance (khe_var): 0.934
         Biliary tissue excretion rate variance (Kbh_var): 0.0
-        Biliary excretion rate (initial) (kbh_i): 0.002 mL/sec/mL
-        Biliary excretion rate (final) (kbh_f): 0.002 mL/sec/mL
+        Biliary excretion rate (initial) (kbh_i): 0.002 mL/sec/cm3
+        Biliary excretion rate (final) (kbh_f): 0.002 mL/sec/cm3
     """ 
 
     def __init__(self, **params):

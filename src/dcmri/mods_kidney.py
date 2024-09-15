@@ -26,9 +26,9 @@ class Kidney(dc.Model):
         **Tracer-kinetic parameters (any model)**
 
         - **Hct** (float, optional): Hematocrit. 
-        - **Fp** (Plasma flow, mL/sec/mL): Flow of plasma into the plasma compartment.
+        - **Fp** (Plasma flow, mL/sec/cm3): Flow of plasma into the plasma compartment.
         - **Tp** (Plasma mean transit time, sec): Transit time of the plasma compartment. 
-        - **Ft** (Tubular flow, mL/sec/mL): Flow of fluid into the tubuli.
+        - **Ft** (Tubular flow, mL/sec/cm3): Flow of fluid into the tubuli.
 
         **Tracer-kinetic parameters (2CFM)**
 
@@ -260,10 +260,10 @@ class Kidney(dc.Model):
     def export_params(self):
         pars = {}
         pars['S0'] = ['Signal scaling factor', self.S0, 'a.u.']
-        pars['Fp'] = ['Plasma flow', self.Fp, 'mL/sec/mL']
+        pars['Fp'] = ['Plasma flow', self.Fp, 'mL/sec/cm3']
         pars['Tp'] = ['Plasma mean transit time', self.Tp, 'sec']
-        pars['Ft'] = ['Tubular flow', self.Ft, 'mL/sec/mL']
-        pars['Fb'] = ['Blood flow',self.Fp/(1-self.Hct),'mL/sec/mL']
+        pars['Ft'] = ['Tubular flow', self.Ft, 'mL/sec/cm3']
+        pars['Fb'] = ['Blood flow',self.Fp/(1-self.Hct),'mL/sec/cm3']
         pars['ve'] = ['Extracellular volume', self.Fp*self.Tp, '']
         pars['FF'] = ['Filtration fraction', self.Ft/self.Fp, '']
         pars['E'] = ['Extraction fraction', self.Ft/(self.Ft+self.Fp), '']
@@ -285,7 +285,7 @@ class Kidney(dc.Model):
             return self._add_sdev(pars)
         pars['SK-GFR'] = ['Single-kidney glomerular filtration rate', self.Ft*self.vol, 'mL/sec']
         pars['SK-RBF'] = ['Single-kidney renal blood flow', self.Fp*self.vol/(1-self.Hct), 'mL/sec']
-        pars['SK-Vol'] = ['Single-kidney volume', self.vol, 'mL']
+        pars['SK-Vol'] = ['Single-kidney volume', self.vol, 'cm3']
         return self._add_sdev(pars)
 
 
@@ -488,7 +488,7 @@ class KidneyCortMed(dc.Model):
         """Cortical and medullary concentration
 
         Returns:
-            tuple[numpy.ndarray, numpy.ndarray]: Concentration in cortex, concentration in medulla, in M
+            tuple: Concentration in cortex, concentration in medulla, in M
         """
 
         if self.aif is not None:
@@ -555,7 +555,7 @@ class KidneyCortMed(dc.Model):
 
     def export_params(self):
         pars = {}
-        pars['Fp']=['Plasma flow',self.Fp,'mL/sec/mL']
+        pars['Fp']=['Plasma flow',self.Fp,'mL/sec/cm3']
         pars['Eg']=['Glomerular extraction fraction',self.Eg,'']
         pars['fc']=['Cortical flow fraction',self.fc,'']
         pars['Tg']=['Glomerular mean transit time',self.Tg,'sec']
@@ -565,9 +565,9 @@ class KidneyCortMed(dc.Model):
         pars['Tdt']=['Distal tubuli mean transit time',self.Tdt,'sec'] 
         pars['Tcd']=['Collecting duct mean transit time',self.Tcd,'sec']
         pars['FF']=['Filtration fraction', self.Eg/(1-self.Eg), '']
-        pars['Ft']=['Tubular flow', self.Fp*self.Eg/(1-self.Eg), 'mL/sec/mL']
-        pars['CBF']=['Cortical blood flow', self.Fp/(1-self.Hct), 'mL/sec/mL']
-        pars['MBF']=['Medullary blood flow', (1-self.fc)*(1-self.Eg)*self.Fp/(1-self.Hct), 'mL/sec/mL']
+        pars['Ft']=['Tubular flow', self.Fp*self.Eg/(1-self.Eg), 'mL/sec/cm3']
+        pars['CBF']=['Cortical blood flow', self.Fp/(1-self.Hct), 'mL/sec/cm3']
+        pars['MBF']=['Medullary blood flow', (1-self.fc)*(1-self.Eg)*self.Fp/(1-self.Hct), 'mL/sec/cm3']
         if self.vol is None:   
             return self._add_sdev(pars)
         pars['SKGFR']=['Single-kidney glomerular filtration rate', self.vol*self.Fp*self.Eg/(1-self.Eg),'mL/sec']
