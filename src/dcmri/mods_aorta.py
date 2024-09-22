@@ -118,7 +118,7 @@ class Aorta(dc.Model):
         *Note*: The extracellular mean transit time has a high error, indicating that the acquisition time here is insufficient to resolve the transit through the leakage space.
     """         
 
-    def __init__(self, **params):
+    def __init__(self, free=None, bounds=None, **params):
 
         self.dt = 0.5  
         self.tmax = 120             
@@ -154,9 +154,7 @@ class Aorta(dc.Model):
             [np.inf, np.inf, 30, 0.95, 60, 0.15, 0.5, 800],
         ]
 
-        # Override defaults
-        for k, v in params.items():
-            setattr(self, k, v)
+        self._override_defaults(free=free, bounds=bounds, **params)
 
 
     def conc(self):
@@ -208,7 +206,7 @@ class Aorta(dc.Model):
 
     def train(self, xdata, ydata, **kwargs):
         n0 = max([np.sum(xdata<self.t0), 1])
-        self.BAT = xdata[np.argmax(ydata)] - (1-self.Dhl)*self.Thl
+        self.BAT = xdata[np.argmax(ydata)] - self.Thl
         if self.sequence == 'SR':
             Sref = dc.signal_src(self.R10, 1, self.TC)
         else:
@@ -396,7 +394,7 @@ class AortaLiver(dc.Model):
         Biliary tissue excretion rate (Kbh): 0.002 mL/sec/cm3
 
     """   
-    def __init__(self, **params):
+    def __init__(self, free=None, bounds=None, **params):
 
         # Constants
         self.dt = 0.5   
@@ -442,6 +440,7 @@ class AortaLiver(dc.Model):
         self.sequence = 'SS'
         self.organs = '2cxm'
         self.kinetics = 'stationary'
+
         self.free = ['BAT','CO','Thl','Dhl','To','Eb',
                 'Tel','De','ve','khe','Th','Eo','Teb']
         self.bounds = [
@@ -450,8 +449,7 @@ class AortaLiver(dc.Model):
         ]
 
         # Override defaults
-        for k, v in params.items():
-            setattr(self, k, v)
+        self._override_defaults(free=free, bounds=bounds, **params)
 
         # Internal flag
         self._predict = None
@@ -730,7 +728,7 @@ class AortaLiver(dc.Model):
         Returns:
             float: goodness of fit.
         """
-        return super().cost(self, xdata, ydata, metric)
+        return super().cost(xdata, ydata, metric)
 
     
 
@@ -853,7 +851,7 @@ class AortaKidneys(dc.Model):
         >>> model.plot(xdata, ydata)
 
     """   
-    def __init__(self, **params):
+    def __init__(self, free=None, bounds=None, **params):
 
         # Constants
         self.dt = 0.5   
@@ -925,9 +923,7 @@ class AortaKidneys(dc.Model):
                 1, np.inf] #5],
         ]
 
-        # Override defaults
-        for k, v in params.items():
-            setattr(self, k, v) 
+        self._override_defaults(free=free, bounds=bounds, **params)
 
         # Internal flag
         self._predict = None
@@ -976,8 +972,8 @@ class AortaKidneys(dc.Model):
     
     def _conc_kidneys(self, sum=True):
         t = self.t
-        ca_lk = dc.flux(self.ca, self.Ta_lk, t=self.t, dt=self.dt, kinetics='plug')
-        ca_rk = dc.flux(self.ca, self.Ta_rk, t=self.t, dt=self.dt, kinetics='plug')
+        ca_lk = dc.flux(self.ca, self.Ta_lk, t=self.t, dt=self.dt, model='plug')
+        ca_rk = dc.flux(self.ca, self.Ta_rk, t=self.t, dt=self.dt, model='plug')
         GFR = self.RPF * self.FF
         GFR_lk = self.DRF*GFR
         GFR_rk = (1-self.DRF)*GFR
@@ -1226,7 +1222,7 @@ class AortaKidneys(dc.Model):
         Returns:
             float: goodness of fit.
         """
-        return super().cost(self, xdata, ydata, metric)
+        return super().cost(xdata, ydata, metric)
     
 
 class AortaLiver2scan(AortaLiver):
@@ -1380,7 +1376,7 @@ class AortaLiver2scan(AortaLiver):
         Biliary excretion rate (final) (kbh_f): 0.002 mL/sec/cm3
     """ 
 
-    def __init__(self, **params):
+    def __init__(self, free=None, bounds=None, **params):
         
         # Injection
         self.weight = 70.0         
@@ -1448,9 +1444,7 @@ class AortaLiver2scan(AortaLiver):
              60, 1, 0.6, 0.1, 10*60*60, 0.5, 800, 0.1, 10*60*60],
         ]
 
-        # Override defaults
-        for k, v in params.items():
-            setattr(self, k, v)
+        self._override_defaults(free=free, bounds=bounds, **params)
 
         # Internal flags
         self._predict = None
@@ -1660,7 +1654,7 @@ class AortaLiver2scan(AortaLiver):
         Returns:
             float: goodness of fit.
         """
-        return super().cost(self, xdata, ydata, metric)
+        return super().cost(xdata, ydata, metric)
     
     
 

@@ -79,6 +79,7 @@ Useful constants
    T2 
    PD
    perfusion
+   model_props
 
 
 Convolution

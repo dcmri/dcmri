@@ -2,7 +2,7 @@ from tqdm import tqdm
 import numpy as np
 import dcmri as dc
 
-
+# TODO align API with Tissue
 def fake_brain(
         n = 192,
         tacq = 180.0, 
@@ -79,6 +79,9 @@ def fake_brain(
     # Parameter maps
     roi = dc.shepp_logan(n=n)
     im = dc.shepp_logan('T1', 'PD', 'BF', 'BV', 'PS', 'IV', n=n)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        denom = im['PS']+im['BF']*(1-Hct)
+        Ktrans = np.where(denom==0, 0, im['PS']*im['BF']*(1-Hct)/denom)
 
     # Input
     t = np.arange(0, tacq+dt, dt_sim)
@@ -120,9 +123,8 @@ def fake_brain(
             else:
                 Fp = im['BF'][i,j]*(1-Hct)
                 vp = im['BV'][i,j]*(1-Hct)
-                PS = im['PS'][i,j]
-                ve = im['IV'][i,j]
-                C = dc.conc_tissue(cp, Fp, vp, PS, ve, dt=dt_sim, kinetics='2CX')
+                vi = im['IV'][i,j]
+                C = dc.conc_tissue(cp, dt=dt_sim, model='2CX', Fp=Fp, vp=vp, vi=vi, Ktrans=Ktrans[i,j])
 
             # Pixel signal
             R1 = 1/im['T1'][i,j] + rp*C
@@ -141,7 +143,8 @@ def fake_brain(
     gt = {'t':t, 'cp':cp, 'C':conc, 'cb':cp*(1-Hct), 
           'signal': signal_noisefree,
           'Fp':im['BF']*(1-Hct), 'vp':im['BV']*(1-Hct), 
-          'PS':im['PS'], 've':im['IV'], 
+          'PS':im['PS'], 'vi':im['IV'], 
+          'Ktrans':Ktrans,
           'T1':im['T1'], 'PD':im['PD'],
           'TR':TR, 'FA':FA, 'S0':S0*im['PD']}
     
@@ -153,10 +156,10 @@ def fake_tissue(
         tacq = 180.0, 
         dt = 1.5,
         BAT = 20,
-        Fp = 0.1, 
+        Fp = 0.1, #TODO should be 0.01
         vp = 0.05, 
-        PS = 0.003, 
-        ve = 0.2,
+        PS = 0.003,  # TODO replace Ktrans
+        ve = 0.2, # TODO: rename vi
         field_strength = 3.0,
         agent = 'gadodiamide', 
         Hct = 0.45,
@@ -205,7 +208,8 @@ def fake_tissue(
     """
     t = np.arange(0, tacq+dt, dt_sim)
     cp = dc.aif_parker(t, BAT)
-    C = dc.conc_tissue(cp, Fp, vp, PS, ve, dt=dt_sim, kinetics='2CX')
+    Ktrans = Fp*PS/(Fp+PS)
+    C = dc.conc_tissue(cp, dt=dt_sim, model='2CX', Fp=Fp, vp=vp, Ktrans=Ktrans, vi=ve)
     rp = dc.relaxivity(field_strength, 'plasma', agent)
     R1b = R10b + rp*cp*(1-Hct)
     R1 = R10 + rp*C
@@ -222,7 +226,8 @@ def fake_tissue(
     aif = dc.add_noise(aif, sdev)
     roi = dc.add_noise(roi, sdev)
     gt = {'t':t, 'cp':cp, 'C':C, 'cb':cp*(1-Hct),
-          'Fp':Fp, 'vp':vp, 'PS':PS, 've':ve, 
+          'Fp':Fp, 'vp':vp, 'PS':PS, 'vi':ve, 
+          'Ktrans': Fp*PS/(Fp+PS),
           'TR':TR, 'FA':FA, 'S0':S0}
     return time, aif, roi, gt
 
@@ -292,7 +297,8 @@ def fake_tissue2scan(
     t = np.arange(0, 2*tacq+tbreak+dt, dt_sim)
     cp = dc.aif_parker(t, BAT)
     cp += dc.aif_parker(t, tacq+tbreak+BAT)
-    C = dc.conc_tissue(cp, Fp, vp, PS, ve, dt=dt_sim, kinetics='2CX')
+    Ktrans = Fp*PS/(Fp+PS)
+    C = dc.conc_tissue(cp, dt=dt_sim, model='2CX', Fp=Fp, vp=vp, Ktrans=Ktrans, vi=ve)
     rp = dc.relaxivity(field_strength, 'plasma', agent)
     R1b = R10b + rp*cp*(1-Hct)
     R1 = R10 + rp*C
@@ -330,7 +336,8 @@ def fake_tissue2scan(
     aif = (aif1, aif2)
     roi = (roi1, roi2)
     gt = {'t':t, 'cp':cp, 'C':C, 'cb':cp*(1-Hct),
-          'Fp':Fp, 'vp':vp, 'PS':PS, 've':ve, 
+          'Fp':Fp, 'vp':vp, 'PS':PS, 'vi':ve, 
+          'Ktrans':Fp*PS/(Fp+PS),
           'TR':TR, 'FA':FA, 'S01':S01, 'S02':S02}
     return time, aif, roi, gt
 

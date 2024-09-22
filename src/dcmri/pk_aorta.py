@@ -160,17 +160,17 @@ def flux_aorta(J_vena:np.ndarray,
     while dose > min_dose:
 
         # Aorta flux of the current pass
-        J_aorta = pk.flux(J_vena, *heartlung[1], t=t, dt=dt, kinetics=heartlung[0])
+        J_aorta = pk.flux(J_vena, *heartlung[1], t=t, dt=dt, model=heartlung[0])
 
         # Add to the total aorta flux
         J_aorta_total += J_aorta
 
         # Venous flux of the current pass
-        J_vena = Ro*pk.flux(J_aorta, *organs[1], t=t, dt=dt, kinetics=organs[0])
+        J_vena = Ro*pk.flux(J_aorta, *organs[1], t=t, dt=dt, model=organs[0])
         if Rl>0:
-            J_vena += Rl*pk.flux(J_aorta, *liver[1], t=t, dt=dt, kinetics=liver[0])
+            J_vena += Rl*pk.flux(J_aorta, *liver[1], t=t, dt=dt, model=liver[0])
         if Rk>0:
-            J_vena += Rk*pk.flux(J_aorta, *kidneys[1], t=t, dt=dt, kinetics=kidneys[0])
+            J_vena += Rk*pk.flux(J_aorta, *kidneys[1], t=t, dt=dt, model=kidneys[0])
 
         # Get residual dose in current pass
         dose = np.trapezoid(J_vena, x=t, dx=dt)

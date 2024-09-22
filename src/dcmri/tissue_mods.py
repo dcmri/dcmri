@@ -46,7 +46,7 @@ class TissueArray(dc.ArrayModel):
         - **kinetics** (str, default='HF'): Tracer-kinetic model (see below for options)
         - **Hct** (float, default=0.45): Hematocrit.
         - **Fp** (array, default=np.full(shape, 0.01)): Plasma flow, or flow of plasma into the plasma compartment (mL/sec/mL).
-        - **PS** (array, default=np.full(shape, 0.003)): Permeability-surface area product: volume of plasma cleared of indicator per unit time and per unit tissue (mL/sec/mL).
+        - **Ktrans** (array, default=np.full(shape, 0.003)): Transfer constant: volume of arterial plasma cleared of indicator per unit time and per unit tissue (mL/sec/mL).
         - **vp** (array, default=np.full(shape, 0.1)): Plasma volume, or volume fraction of the plasma compartment (mL/mL). 
         - **ve** (array, default=np.full(shape, 0.5)): Extravascular, extracellular volume: volume fraction of the interstitial compartment (mL/mL).
         - **Ktrans** (array, default=np.full(shape, 0.0023)): Volume transfer constant (mL/sec/mL).
@@ -98,6 +98,7 @@ class TissueArray(dc.ArrayModel):
         :include-source:
         :context: close-figs
     
+        >>> import numpy as np
         >>> import dcmri as dc
 
         Use `fake_brain` to generate synthetic test data:
@@ -131,107 +132,131 @@ class TissueArray(dc.ArrayModel):
         As the left panel shows, the measured signals are accurately reconstructed by the model. However, while these simulated data are noise-free, they are temporally undersampled (dt = 1.5 sec). As a result the reconstruction of the parameter maps (right panel) is not perfect - as can be seen by comparison against the ground truth, or, in the absence of a ground truth, by inspecting the standard deviations. PS for instance is showing some areas where the value is overestimated and the standard deviations large. 
         
         The interstitial volume fraction ve is wrong in a large part of the image, but this is for another reason: much of this tissue has an intact blood brain barrier, and therefore therefore the properties of the extravascular space are fundamentally unmeasureable. This type of error is dangerous because it cannot be detected by inspecting the standard deviations. When no ground truth is available, this therefore risks a misinterpretation of the results. The risk of this type of error can be reduced by applying model selection.
+
     """ 
 
-    def __init__(self, shape=(32,32), **params):
+    def __init__(self, shape, kinetics='HF', water_exchange='FF', sequence='SS', free=None, bounds=None, **params):
 
+        # Define model
+        self.kinetics = kinetics
+        self.water_exchange = water_exchange
+        self.sequence = sequence
+        _check_inputs(self)
+
+        # Array model params
         self.shape = shape
         self.parallel = False
         self.verbose = 0
 
+        # Check inputs
+        self.kinetics = kinetics
+        self.water_exchange = water_exchange
+        self.sequence = sequence
+        _check_inputs(self)
+
+        #
+        # Set defaults for all parameters
+        # 
+
         # Input function
         self.aif = None
         self.ca = None
-        
-        # Acquisition parameters
-        self.sequence = 'SS'
-        self.field_strength = 3.0
         self.t = None
         self.dt = 1.0
-        self.agent = 'gadoterate'
+
+        # Tracer-kinetic parameters
+        self.Hct = 0.45
+        self.Fp = np.full(shape, 0.01)
+        self.Ktrans = np.full(shape, 0.003)
+        self.vp = np.full(shape, 0.1)
+        self.vi = np.full(shape, 0.5)
+        self.ve = np.full(shape, 0.6)
+        self.vc = np.full(shape, 0.4)
         
-        self.TR = 0.005
+        # Acquisition parameters
+        self.field_strength = 3.0
+        self.agent = 'gadoterate'
+        self.S0 = np.full(shape, 1.0)
+        
+        # Sequence parameters
+        self.FAa = 15
         self.FA = np.full(shape, 15)
+        self.TR = 0.005
         self.TC = 0.1
         self.TP = 0
         self.TS = None
-        
-        # Tracer-kinetic parameters
-        self.kinetics = 'HF'
-        self.Hct = 0.45
-        self.Fp = np.full(shape, 0.01)
-        self.PS = np.full(shape, 0.003)
-        self.vp = np.full(shape, 0.1)
-        self.ve = np.full(shape, 0.5)
 
-        # Water-kinetic parameters (TODO: what are typical values?)
-        self.water_exchange = 'fast'
-        self.PSe = np.full(shape, 10)
-        self.PSc = np.full(shape, 10)
-
-        # Signal parameters
-        self.R10 = np.full(shape, 1/dc.T1(3.0, 'muscle'))
-        self.R10b = 1/dc.T1(3.0, 'blood')
-        self.S0 = np.full(shape, 1.0)
+        # Tissue properties
+        self.R10 = np.full(shape, 0.7)
+        self.R10b = 0.7
+        self.PSe = np.full(shape, 0.03)
+        self.PSc = np.full(shape, 0.03)
 
         # training parameters
         self.n0 = 1
-        self.free = ['PS','vp','ve']
-        self.bounds = [0, [np.inf, 1, 1]]
 
-        _init(self, **params)
+        # Set free parameters and bounds
+        mdl = dc.model_props(water_exchange + '-' + kinetics)
+        self.free = mdl['params']
+        self.bounds = [mdl['lb'], mdl['ub']]
+
+        self._override_defaults(free=free, bounds=bounds, **params)
 
         # sdevs
         for par in self.free:
             setattr(self, 'sdev_' + par,  np.zeros(shape).astype(np.float32))
 
+        _init(self)
+
 
     def _pix(self, p):
-        return Tissue(
+        pix = Tissue(
+
+            kinetics = self.kinetics,
+            water_exchange = self.water_exchange,
+            sequence = self.sequence,
 
             # Input function
             aif = self.aif,
             ca = self.ca,
-            
-            # Acquisition parameters
-            sequence = self.sequence,
-            field_strength = self.field_strength,
             t = self.t,
             dt = self.dt,
+
+            # Tracer-kinetic parameters
+            Hct = self.Hct,
+            Fp = self.Fp[p],
+            Ktrans = self.Ktrans[p],
+            vp = self.vp[p],
+            vi = self.vi[p],
+            ve = self.ve[p],
+            vc = self.vc[p],
+            
+            # Acquisition parameters
+            field_strength = self.field_strength,
             agent = self.agent,
+            S0 = self.S0[p],
+
+            # Sequence parameters
+            FAa = self.FAa,
             FA = self.FA[p],
             TR = self.TR,
             TC = self.TC,
             TP = self.TP,
             TS = self.TS,
-            
-            # Tracer-kinetic parameters
-            kinetics = self.kinetics,
-            Hct = self.Hct,
-            Fp = self.Fp[p],
-            PS = self.PS[p],
-            vp = self.vp[p],
-            ve = self.ve[p],
 
-            # Water-kinetic parameters 
-            water_exchange = self.water_exchange,
+            # Tissue properties
+            R10 = self.R10[p],
+            R10b = self.R10b,
             PSe = self.PSe[p],
             PSc = self.PSc[p],
 
-            # Signal parameters
-            R10 = self.R10[p],
-            R10b = self.R10b,
-            S0 = self.S0[p],
-
             # training parameters
             n0 = self.n0,
-            free = self.free,
-            bounds = self.bounds,
-
-            # Dependents
-            Ktrans = self.Ktrans[p],
-            v = self.v[p],
         )
+        pix.free = self.free
+        pix.bounds = self.bounds
+        return pix
+    
 
     def _train_curve(self, args):
         pix, p = super()._train_curve(args)
@@ -277,10 +302,14 @@ class TissueArray(dc.ArrayModel):
             ndarray: goodness of fit in each element of the data array. 
         """
         return super().cost(time, signal, metric)
-
+    
 
     def export_params(self):
-        pars = _export_params(self)
+        self.vb = self.vp/(1-self.Hct)
+        model = self.water_exchange + '-' + self.kinetics
+        prop = dc.model_props(model, self.__dict__)
+        pars = prop['params'] | prop['derived']
+        pars = {p: [prop['name'][p], pars[p], prop['unit'][p]] for p in pars}
         for par in pars:
             if par in self.free:
                 sdev = getattr(self, 'sdev_' + par)
@@ -588,7 +617,6 @@ class TissueArray(dc.ArrayModel):
 
 
 
-
 class Tissue(dc.Model):
     """Model for general vascular-interstitial tissues.
 
@@ -596,44 +624,44 @@ class Tissue(dc.Model):
 
         **Input function**
 
-        - **aif** (array-like, default=None): Signal-time curve in a feeding artery. If AIF is set to None, then the parameter ca must be provided (arterial concentrations).
-        - **ca** (array-like, default=None): Plasma concentration (M) in the arterial input. Must be provided when aif = None, ignored otherwise. 
+        - **aif** (array-like, default=None): Signal-time curve in a feeding artery (arbitrary units). If AIF is set to None, then the parameter ca must be provided (arterial concentrations).
+        - **ca** (array-like, default=None): Plasma concentration in the arterial input (M). Must be provided when aif = None, ignored otherwise. 
 
         **Acquisition parameters**
 
-        - **t** (array-like, default=None): Time points (sec) of the aif. If t is not provided, the temporal sampling is uniform with interval dt.
-        - **dt** (float, default=1.0): Time interval of the AIF in sec.
-        - **field_strength** (float, default=3.0): Magnetic field strength in T.
+        - **t** (array-like, default=None): Time points of the aif (sec). If t is not provided, the temporal sampling is uniform with interval dt.
+        - **dt** (float, default=1.0): Time interval of the AIF (sec).
+        - **field_strength** (float, default=3.0): Magnetic field strength (T).
         - **agent** (str, default='gadoterate'): Contrast agent generic name.
-        - **TR** (float, default=0.005): Repetition time, or time between excitation pulses, in sec.
-        - **FA** (float, default=15): Nominal flip angle in degrees.
-        - **TC** (float, default=0.1): Time to the center of k-space in a saturation-recovery sequence.
-        - **TP** (float, default=0): Preparation delay in a saturation-recovery sequence.
-        - **TS** (float, default=None): Sampling duration, or duration of the readout for a single time point. If not provided, and sampling is uniform, TS is assumed to be equal to the uniform time interval. TS is required if sampling is non-uniform.
+        - **TR** (float, default=0.005): Repetition time, or time between excitation pulses (sec).
+        - **FA** (float, default=15): Nominal flip angle (degrees).
+        - **TC** (float, default=0.1): Time to the center of k-space in a saturation-recovery sequence (sec).
+        - **TP** (float, default=0): Preparation delay in a saturation-recovery sequence (sec).
+        - **TS** (float, default=None): Sampling duration, or duration of the readout for a single time point (sec). If not provided, and sampling is uniform, TS is assumed to be equal to the uniform time interval. TS is required if sampling is non-uniform.
 
         **Tracer-kinetic parameters**
 
         - **kinetics** (str, default='HF'): Tracer-kinetic model (see below for options)
         - **Hct** (float, default=0.45): Hematocrit.
-        - **Fp** (float, default=0.01): Plasma flow, or flow of plasma into the plasma compartment (mL/sec/mL).
-        - **PS** (float, default=0.003): Permeability-surface area product: volume of plasma cleared of indicator per unit time and per unit tissue (mL/sec/mL).
-        - **vp** (float, default=0.1): Plasma volume, or volume fraction of the plasma compartment (mL/mL). 
-        - **ve** (float, default=0.5): Extravascular, extracellular volume: volume fraction of the interstitial compartment (mL/mL).
-        - **Ktrans** (float, default=0.0023): Volume transfer constant (mL/sec/mL).
-        - **v** (float, default=0.6): Extracellular volume fraction (mL/mL).
+        - **Fp** (float, default=0.01): Plasma flow, or flow of plasma into the plasma compartment (mL/sec/cm3).
+        - **Ktrans** (float, default=0.003): Volume transfer constant: volume of arterial plasma cleared of indicator per unit time and per unit tissue (mL/sec/cm3).
+        - **vp** (float, default=0.1): Plasma volume, or volume fraction of the plasma compartment (mL/cm3). 
+        - **vi** (float, default=0.5): Interstitial volume: volume fraction of the interstitial compartment (mL/cm3).
+        - **Ktrans** (float, default=0.0023): Volume transfer constant (mL/sec/cm3).
+        - **ve** (float, default=0.6): Extracellular volume fraction (mL/cm3).
 
         **Water-kinetic parameters**
 
         - **water_exchange** (str, default='fast'): Water exchange regime ('fast', 'none' or 'any').
-        - **PSe** (float, default=10): Transendothelial water permeability-surface area product: PS for water across the endothelium (mL/sec/mL).
-        - **PSc** (float, default=10): Transcytolemmal water permeability-surface area product: PS for water across the cell wall (mL/sec/mL).
+        - **PSe** (float, default=10): Transendothelial water permeability-surface area product: PS for water across the endothelium (mL/sec/cm3).
+        - **PSc** (float, default=10): Transcytolemmal water permeability-surface area product: PS for water across the cell wall (mL/sec/cm3).
 
         **Signal parameters**
 
         - **sequence** (str, default='SS'): imaging sequence.
-        - **R10** (float, default=1): Precontrast tissue relaxation rate in 1/sec.
-        - **R10b** (float, default=1): Precontrast arterial relaxation rate in 1/sec. 
-        - **S0** (float, default=1): Scale factor for the MR signal (a.u.).
+        - **R10** (float, default=0.7): Precontrast tissue relaxation rate (1/sec).
+        - **R10b** (float, default=0.7): Precontrast blood relaxation rate (1/sec).
+        - **S0** (float, default=1): Scale factor for the MR signal (arbitrary units).
 
         **Prediction and training parameters**
 
@@ -692,52 +720,67 @@ class Tissue(dc.Model):
         Plot the reconstructed signals (left) and concentrations (right) and compare the concentrations against the noise-free ground truth:
 
         >>> model.plot(time, roi, ref=gt)
+
     """ 
 
-    def __init__(self, **params):
+
+    def __init__(self, kinetics='HF', water_exchange='FF', sequence='SS', free=None, bounds=None, **params):
+
+        # Define model
+        self.kinetics = kinetics
+        self.water_exchange = water_exchange
+        self.sequence = sequence
+        self.model = water_exchange + '-' + kinetics
+        _check_inputs(self)
+        
+        #
+        # Set defaults for all parameters
+        # 
 
         # Input function
         self.aif = None
         self.ca = None
-        
-        # Acquisition parameters
-        self.sequence = 'SS'
-        self.field_strength = 3.0
         self.t = None
         self.dt = 1.0
-        self.agent = 'gadoterate'
-        
-        self.TR = 0.005
-        self.FA = 15
-        self.TC = 0.1
-        self.TP = 0
-        self.TS = None
-        
+
         # Tracer-kinetic parameters
-        self.kinetics = 'HF'
-        self.Hct = 0.45
+        self.Hct = 0.45 # TODO substitute model param vb?
         self.Fp = 0.01
-        self.PS = 0.003
+        self.Ktrans = 0.003
         self.vp = 0.1
-        self.ve = 0.5
+        self.vi = 0.5
+        self.ve = 0.6
+        self.vc = 0.4
 
-        # Water-kinetic parameters (TODO: what are typical values?)
-        self.water_exchange = 'fast'
-        self.PSe = 10
-        self.PSc = 10
-
-        # Signal parameters
-        self.R10 = 1/dc.T1(3.0, 'muscle')
-        self.R10b = 1/dc.T1(3.0, 'blood')
+        # Acquisition parameters
+        self.field_strength = 3.0
+        self.agent = 'gadoterate'
         self.S0 = 1.0
 
-        # # training parameters
+        # Sequence parameters
+        self.FAa = 15
+        self.FA = 15
+        self.TR = 0.005
+        self.TC = 0.2
+        self.TP = 0.05
+        self.TS = None # initialized as dt if not provided
+
+        # Tissue properties
+        self.R10 = 0.7
+        self.R10b = 0.7
+        self.PSe = 0.03
+        self.PSc = 0.03
+        
+        # training parameters
+        mdl = dc.model_props(water_exchange + '-' + kinetics)
+        self.free = mdl['params']
+        self.bounds = [mdl['lb'], mdl['ub']]
         self.n0 = 1
-        self.free = ['PS','vp','ve']
-        self.bounds = [0, [np.inf, 1, 1]]
 
-        _init(self, **params)
+        self._override_defaults(free=free, bounds=bounds, **params)
 
+        _init(self)
+        
 
     def time(self):
         """Return an array of time points
@@ -754,7 +797,7 @@ class Tissue(dc.Model):
                 raise ValueError('Either aif or ca must be provided.')
         else:
             return self.t
-
+    
 
     def conc(self, sum=True):
         """Return the tissue concentration
@@ -765,89 +808,26 @@ class Tissue(dc.Model):
         Returns:
             np.ndarray: Concentration in M
         """
-
-        # Arterial concentrations
-        if self.ca is None:
-            if self.aif is None:
-                raise ValueError('Either aif or ca must be provided.')
-            else:
-                r1 = dc.relaxivity(self.field_strength, 'blood', self.agent)
-                if self.sequence == 'SR':
-                    cb = dc.conc_src(self.aif, self.TC, 1/self.R10b, r1, self.n0)
-                elif self.sequence == 'SS':
-                    cb = dc.conc_ss(self.aif, self.TR, self.FA, 1/self.R10b, r1, self.n0)
-                else:
-                    raise NotImplementedError('Signal model ' + self.sequence + 'is not (yet) supported.') 
-                self.ca = cb/(1-self.Hct) 
-
-        # Tissue concentrations
-        if self.kinetics == '2CX': # (Fp, PS, vp, ve)
-            self.Ktrans = self.Fp*self.PS/(self.Fp+self.PS) if self.Fp+self.PS>0 else 0
-            self.v = self.vp + self.ve
-            C = dc.conc_tissue(self.ca, self.Fp, self.vp, self.PS, self.ve, t=self.t, dt=self.dt, sum=sum, kinetics='2CX')
-        elif self.kinetics == '2CU': # (Fp, PS, vp)
-            self.Ktrans = self.Fp*self.PS/(self.Fp+self.PS) if self.Fp+self.PS>0 else 0
-            C = dc.conc_tissue(self.ca, self.Fp, self.vp, self.PS, t=self.t, dt=self.dt, sum=sum, kinetics='2CU')
-        elif self.kinetics == 'HF': # (PS, vp, ve)
-            self.Fp = np.inf
-            self.Ktrans = self.PS
-            self.v = self.ve + self.vp
-            C = dc.conc_tissue(self.ca, self.vp, self.PS, self.ve, t=self.t, dt=self.dt, sum=sum, kinetics='HF')
-        elif self.kinetics == 'HFU': # (Fp, PS, vp)
-            self.Fp = np.inf
-            self.Ktrans = self.PS
-            C = dc.conc_tissue(self.ca, self.vp, self.PS, t=self.t, dt=self.dt, sum=sum, kinetics='HFU')
-        elif self.kinetics == 'WV': # (Ktrans, ve)
-            self.v = self.ve
-            self.vp = 0    
-            C = dc.conc_tissue(self.ca, self.Ktrans, self.ve, t=self.t, dt=self.dt, sum=sum, kinetics='FX')        
-        elif self.kinetics == 'FX': # (Fp, v)
-            self.PS = np.inf
-            self.Ktrans = self.Fp
-            C = dc.conc_tissue(self.ca, self.Fp, self.v, t=self.t, dt=self.dt, kinetics='FX')
-        elif self.kinetics == 'NX': # (Fp, vp)
-            C = dc.conc_tissue(self.ca, self.Fp, self.vp, t=self.t, dt=self.dt, kinetics='NX')
-        elif self.kinetics == 'U': # (Fp)
-            C = dc.conc_tissue(self.ca, self.Fp, t=self.t, dt=self.dt, kinetics='U')
-        return C
+        pars = dc.model_props(self.kinetics, self.__dict__)['params']
+        return dc.conc_tissue(self.ca, t=self.t, dt=self.dt, sum=sum, model=self.kinetics, **pars)
 
 
     def relax(self):
-        """Return the longitudinal relaxation rate
+        """Return the tissue relaxation rate(s)
 
         Returns:
-            np.ndarray: Relaxation rate. Dimensions are (nt,) for a tissue in fast water exchange, or (nc,nt) for a multicompartment tissue outside the fast water exchange limit.
+            np.ndarray: the free relaxation rate of all tissue compartments. In the fast water exchange limit, the relaxation rates are a 1D array. In all other situations, relaxation rates are a 2D-array with dimensions (k,n), where k is the number of compartments and n is the number of time points in ca. 
         """
-        C = self.conc(sum=False)
+        # TODO: ADD diagonal element tp PSw (flow term)!!
+        # Also needs adding inflow 
+        # Fb = self.Fp/(1-self.Hct)
+        # PSw = np.array([[Fb,self.PSe,0],[self.PSe,0,self.PSc],[0,self.PSc,0]])
+
+        if 'vb' in self.free:
+            self.vb = self.vp/(1-self.Hct)
         r1 = dc.relaxivity(self.field_strength, 'blood', self.agent)
-        if self.water_exchange == 'fast':
-            if self.kinetics in ['FX', 'NX', 'U']:
-                R1 = self.R10 + r1*C
-            else:
-                R1 = self.R10 + r1*(C[0,:]+C[1,:])
-        elif self.kinetics in ['2CX', 'HF']:
-            vb = self.vp/(1-self.Hct)
-            R1b = self.R10b + r1*C[0,:]/vb
-            R1e = self.R10 + r1*C[1,:]/self.ve
-            R1c = self.R10 + np.zeros(C.shape[1])
-            R1 = np.stack((R1b, R1e, R1c))
-        elif self.kinetics in ['2CU','HFU']:
-            vb = self.vp/(1-self.Hct)
-            R1b = self.R10b + r1*C[0,:]/vb
-            R1e = self.R10 + r1*C[1,:]/(1-vb)
-            R1 = np.stack((R1b, R1e))    
-        elif self.kinetics in ['WV','FX']:
-            R1e = self.R10 + r1*C/self.v
-            R1c = self.R10 + np.zeros(C.size)
-            R1 = np.stack((R1e, R1c))
-        elif self.kinetics == 'NX':
-            vb = self.vp/(1-self.Hct)
-            R1b = self.R10b + r1*C/vb
-            R1e = self.R10 + np.zeros(C.size)
-            R1 = np.stack((R1b, R1e))  
-        elif self.kinetics == 'U':
-            R1 = self.R10 + r1*C
-        return R1
+        pars = dc.model_props(self.model, self.__dict__)['relax-params']
+        return dc.relax_tissue(self.ca, self.R10, r1, t=self.t, dt=self.dt, model=self.model, **pars)
 
 
     def signal(self)->np.ndarray:
@@ -857,92 +837,15 @@ class Tissue(dc.Model):
             np.ndarray: the signal as a 1D array.
         """
         R1 = self.relax()
+        vals = dc.model_props(self.model, self.__dict__)
+        PSw, v = vals['PSw'], vals['volw']
+        if v!=1: 
+            v = list(v.values())
 
-        if self.water_exchange == 'fast':
-            if self.sequence == 'SR':
-                signal = dc.signal_sr(R1, self.S0, self.TR, self.FA, self.TC, self.TP)
-            elif self.sequence == 'SS':
-                signal = dc.signal_ss(R1, self.S0, self.TR, self.FA)
-
-        elif self.water_exchange == 'none':
-
-            if self.kinetics in ['2CX','HF']:
-                vb = self.vp/(1-self.Hct)
-                v = [vb, self.ve, 1-vb-self.ve]
-                if self.sequence == 'SR':
-                    signal = dc.signal_sr(R1, self.S0, self.TR, self.FA, self.TC, self.TP, v=v, PSw=0)
-                elif self.sequence == 'SS':
-                    signal = dc.signal_ss(R1, self.S0, self.TR, self.FA, v=v, PSw=0)
-
-            elif self.kinetics in ['2CU','HFU','NX']:
-                vb = self.vp/(1-self.Hct)
-                v = [vb, 1-vb]
-                if self.sequence == 'SR':
-                    signal = dc.signal_sr(R1, self.S0, self.TR, self.FA, self.TC, self.TP, v=v, PSw=0)
-                elif self.sequence == 'SS':
-                    signal = dc.signal_ss(R1, self.S0, self.TR, self.FA, v=v, PSw=0)
-
-            elif self.kinetics in ['WV','FX']:
-                v = [self.ve, 1-self.ve]
-                if self.sequence == 'SR':
-                    signal = dc.signal_sr(R1, self.S0, self.TR, self.FA, self.TC, self.TP, v=v, PSw=0)
-                elif self.sequence == 'SS':
-                    signal = dc.signal_ss(R1, self.S0, self.TR, self.FA, v=v, PSw=0)
-
-            elif self.kinetics == 'U':
-                if self.sequence == 'SR':
-                    signal = dc.signal_sr(R1, self.S0, self.TR, self.FA, self.TC, self.TP)
-                elif self.sequence == 'SS':
-                    signal = dc.signal_ss(R1, self.S0, self.TR, self.FA)
-
-        elif self.water_exchange == 'any':
-
-            if self.kinetics in ['2CX','HF']:
-                vb = self.vp/(1-self.Hct)
-                v = [vb, self.ve, 1-vb-self.ve]
-                PSw = np.array([[0,self.PSe,0],[self.PSe,0,self.PSc],[0,self.PSc,0]])
-                # TODO: ADD diagonal element (flow term)!!
-                # Also needs adding inflow 
-                # Fb = self.Fp/(1-self.Hct)
-                # PSw = np.array([[Fb,self.PSe,0],[self.PSe,0,self.PSc],[0,self.PSc,0]])
-                if self.sequence == 'SR':
-                    raise NotImplementedError('Saturation-recovery not yet implemented for intermediate water exchange')
-                elif self.sequence == 'SS':
-                    signal = dc.signal_ss(R1, self.S0, self.TR, self.FA, v=v, PSw=PSw)
-
-            elif self.kinetics in ['2CU','HFU','NX']:
-                vb = self.vp/(1-self.Hct)
-                v = [vb, 1-vb]
-                # TODO: ADD diagonal element (flow term)!!
-                # Fb = self.Fp/(1-self.Hct)
-                # PSw = np.array([[Fb,self.PSe],[self.PSe,0]])
-                PSw = np.array([[0,self.PSe],[self.PSe,0]])
-                if self.sequence == 'SR':
-                    raise NotImplementedError('Saturation-recovery not yet implemented for intermediate water exchange')
-                elif self.sequence == 'SS':
-                    signal = dc.signal_ss(R1, self.S0, self.TR, self.FA, v=v, PSw=PSw)
-
-            elif self.kinetics in ['WV','FX']:
-                v = [self.ve, 1-self.ve]
-                PSw = np.array([[0,self.PSc],[self.PSc,0]])
-                # TODO: ADD diagonal element (flow term)!!
-                # FX:
-                # Fb = self.Fp/(1-self.Hct)
-                # PSw = np.array([[Fb,self.PSc],[self.PSc,0]])
-                # WV:
-                # PSw = np.array([[self.PSe,self.PSc],[self.PSc,0]])
-                if self.sequence == 'SR':
-                    raise NotImplementedError('Saturation-recovery not yet implemented for intermediate water exchange')
-                elif self.sequence == 'SS':
-                    signal = dc.signal_ss(R1, self.S0, self.TR, self.FA, v=v, PSw=PSw)
-
-            elif self.kinetics == 'U':
-                if self.sequence == 'SR':
-                    signal = dc.signal_sr(R1, self.S0, self.TR, self.FA, self.TC, self.TP)
-                elif self.sequence == 'SS':
-                    signal = dc.signal_ss(R1, self.S0, self.TR, self.FA)
-
-        return signal
+        if self.sequence == 'SR':
+            return dc.signal_sr(R1, self.S0, self.TR, self.FA, self.TC, self.TP, v=v, PSw=PSw)
+        elif self.sequence == 'SS':
+            return dc.signal_ss(R1, self.S0, self.TR, self.FA, v=v, PSw=PSw)
 
 
     # TODO: make time optional (if not provided, assume equal to self.time())
@@ -983,7 +886,8 @@ class Tissue(dc.Model):
             Sref = dc.signal_ss(self.R10, 1, self.TR, self.FA)
         else:
             raise NotImplementedError('Signal model ' + self.sequence + 'is not (yet) supported.') 
-        self.S0 = np.mean(signal[:self.n0]) / Sref
+        
+        self.S0 = np.mean(signal[:self.n0])/Sref if Sref>0 else 0
 
         # If there is no signal, set all free parameters to zero
         if self.S0 == 0:
@@ -1018,16 +922,20 @@ class Tissue(dc.Model):
                 #     self.vp = 0
                 #     self.Fp = 0
                 #     self.PS = 0
-                #     self.ve = iv.vp
+                #     self.vi = iv.vp
                 #     self.Ktrans = iv.Fp
                 #     self.v = iv.vp
             return self
 
         
     def export_params(self):
-        pars = _export_params(self)
+        self.vb = self.vp/(1-self.Hct)
+        prop = dc.model_props(self.model, self.__dict__)
+        pars = prop['params'] | prop['derived']
+        pars = {p: [prop['name'][p], pars[p], prop['unit'][p]] for p in pars}
         return self._add_sdev(pars)
     
+
     def cost(self, time, signal, metric='NRMS')->float:
         """Return the goodness-of-fit
 
@@ -1126,90 +1034,56 @@ def _plot_roi(xdata, ydata, yfit, ref, hist_kwargs, rms, ax, name, mask=None):
     ax[5].plot(xdata, np.mean(ydata[loc[4],:], axis=0), label='Data (95th perc)', **style)    
 
 
+def _check_inputs(self:Tissue):
+    if self.sequence not in ['SS','SR']:
+        msg = 'Sequence ' + str(self.sequence) + ' is not available.'
+        raise ValueError(msg)
+    
+    if self.kinetics not in ['2CX', '2CU', 'HF', 'HFU', 'WV', 'FX', 'NX', 'U']:
+        msg = 'The value ' + str(self.kinetics) + ' for the kinetics argument is not recognised.'
+        msg += '\n possible values are 2CX, 2CU, HF, HFU, WV, FX, NX, U.'
+        raise ValueError(msg)
+    
+    if self.water_exchange not in ['FF','NF','RF','FN','NN','RN','FR','NR','RR']:
+        msg = 'The value ' + str(self.water_exchange) + ' for the water_exchange argument is not recognised.'
+        msg += '\n It must be a 2-element string composed of characters N, F, R.'
+        raise ValueError(msg)
 
-def _init(model, **params):
 
-    # Preset parameters
-    if 'kinetics' in params:
-        if params['kinetics'] == '2CX': # TODO: change to 2CX
-            model.free = ['Fp','PS','vp','ve']
-            model.bounds = [0, [np.inf, np.inf, 1, 1]]
-        elif params['kinetics'] == '2CU': # TODO: change to 2CU
-            model.free = ['Fp','PS','vp']
-            model.bounds = [0, [np.inf, np.inf, 1]]
-        elif params['kinetics'] == 'HF':
-            model.free = ['PS','vp','ve']
-            model.bounds = [0, [np.inf, 1, 1]]
-        elif params['kinetics'] == 'HFU':
-            model.free = ['Fp','vp']
-            model.bounds = [0, [np.inf, 1]]
-        elif params['kinetics'] == 'WV': 
-            model.free = ['Ktrans','ve']
-            model.bounds = [0, [np.inf, 1]]
-        elif params['kinetics'] == 'FX':
-            model.free = ['Fp','v']
-            model.bounds = [0, [np.inf, 1]] 
-        elif params['kinetics'] == 'NX': 
-            model.free = ['Fp','vp']
-            model.bounds = [0, [np.inf, 1]]
-        elif params['kinetics'] == 'U': 
-            model.free = ['Fp']
-            model.bounds = [0, np.inf]
+def _init(self:Tissue):
 
-    if 'water_exchange' in params:        
-        if params['water_exchange'] == 'any':
-            model.free += ['PSe', 'PSc']
-            model.bounds[1] += [np.inf, np.inf]
+    # set derived params:
+    self.vb = self.vp/(1-self.Hct)
 
-    # Override defaults
-    for k, v in params.items():
-        setattr(model, k, v)
-
-    if 'TS' not in params:
-        if model.t is None:
+    # Set TS
+    if self.TS is None:
+        if self.t is None:
             # With uniform sampling, assume TS=dt
-            model.TS = model.dt
+            self.TS = self.dt
         else:
             # Raise an error if sampling is not uniform
             # as the sampling duration is ambiguous in that case
-            dt = np.unique(model.t[1:]-model.t[:-1])
+            dt = np.unique(self.t[1:]-self.t[:-1])
             if dt.size > 1:
                 raise ValueError('For non-uniform time points, the sampling duration TS must be specified explicitly.')
             else:
-            # With uniform sampling, assume TS=dt
-                model.TS = dt[0]
-    
-    # Dependent parameters
-    if 'Ktrans' not in params.items():
-        with np.errstate(divide='ignore', invalid='ignore'):
-            model.Ktrans = model.PS*model.Fp/(model.PS+model.Fp)
-    if 'v' not in params.items():
-        model.v = model.vp+model.ve
+                # With uniform sampling, assume TS=dt
+                self.TS = dt[0]
 
-def _export_params(model):
-    vb = model.vp/(1-model.Hct)
-    with np.errstate(divide='ignore', invalid='ignore'):
-        pars = {
-            'Fp': ['Plasma flow',model.Fp,'mL/sec/mL'],
-            'PS': ['Permeability-surface area product',model.PS,'mL/sec/mL'],
-            'Ktrans': ['Volume transfer constant',model.Ktrans,'mL/sec/mL'],
-            've': ['Extravascular extracellular volume',model.ve,'mL/mL'],
-            'vb': ['Blood volume',vb,'mL/mL'],
-            'vp': ['Plasma volume',model.vp,'mL/mL'],
-            'v': ['Extracellular volume',model.v,'mL/mL'],
-            'Te': ['Extracellular mean transit time',model.ve/model.PS,'sec'],
-            'kep': ['Extravascular transfer constant',model.Ktrans/model.ve,'1/sec'],
-            'E': ['Extraction fraction',model.PS/(model.PS+model.Fp),''],
-            'Tp': ['Plasma mean transit time',model.vp/(model.Fp+model.PS),'sec'],
-            'Tb': ['Blood mean transit time',model.vp/model.Fp,'sec'],
-            'T': ['Mean transit time',model.v/model.Fp,'sec'],
-            'PSe': ['Transendothelial water PS',model.PSe,'mL/sec/mL'],
-            'PSc': ['Transcytolemmal water PS',model.PSc,'mL/sec/mL'],
-            'Twc': ['Intracellular water mean transit time', (1-vb-model.ve)/model.PSc, 'sec'],
-            'Twi': ['Interstitial water mean transit time', model.ve/(model.PSc+model.PSe), 'sec'],
-            'Twb': [ 'Intravascular water mean transit time', vb/model.PSe, 'sec'],
-        }
-    return pars
+    # Arterial concentrations
+    if self.ca is None:
+        if self.aif is None:
+            raise ValueError('Either aif or ca must be provided.')
+        else:
+            r1 = dc.relaxivity(self.field_strength, 'blood', self.agent)
+            if self.sequence == 'SR':
+                cb = dc.conc_src(self.aif, self.TC, 1/self.R10b, r1, self.n0)
+            elif self.sequence == 'SS':
+                cb = dc.conc_ss(self.aif, self.TR, self.FAa, 1/self.R10b, r1, self.n0) 
+            self.ca = cb/(1-self.Hct) 
+
+
+
 
 
 

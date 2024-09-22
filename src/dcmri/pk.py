@@ -6,7 +6,7 @@ import dcmri.utils as utils
 
 # Wrappers
 
-def flux(J:np.ndarray, *params, t=None, dt=1.0, kinetics='comp', **kwargs)->np.ndarray:
+def flux(J:np.ndarray, *params, t=None, dt=1.0, model='comp', **kwargs)->np.ndarray:
     """Flux out of an arbitrary pharmacokinetic system.
 
     This is a wrapper function offering a standard interface to calculate the flux out of a specific system, with the system architecture specified in the dictionary. It offers a convenient way to build more complex models with variable configurations, such as `flux_aorta`.
@@ -16,7 +16,7 @@ def flux(J:np.ndarray, *params, t=None, dt=1.0, kinetics='comp', **kwargs)->np.n
         params (tuple): model parameters.
         t (array_like, optional): the time points of the indicator flux J. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
         dt (float, optional): spacing between time points for uniformly spaced time points. This parameter is ignored if t is explicity provided. Defaults to 1.0.
-        kinetics (str, optional): Model to use, options are 'trap', 'pass', 'comp', 'plug', 'chain', 'step', 'free', 'ncomp', 'nscomp', 'pfcomp', 'mmcomp', '2cxm'. Defaults to 'comp'.
+        model (str, optional): Model to use, options are 'trap', 'pass', 'comp', 'plug', 'chain', 'step', 'free', 'ncomp', 'nscomp', 'pfcomp', 'mmcomp', '2cxm'. Defaults to 'comp'.
         kwargs (dict): any optional parameters required by the model.
 
     Raises:
@@ -27,34 +27,34 @@ def flux(J:np.ndarray, *params, t=None, dt=1.0, kinetics='comp', **kwargs)->np.n
 
     """
 
-    if kinetics=='trap':
+    if model=='trap':
         return flux_trap(J)
-    if kinetics == 'pass':
+    if model == 'pass':
         return flux_pass(J)
-    if kinetics == 'comp':
+    if model == 'comp':
         return flux_comp(J, *params, t=t, dt=dt, **kwargs)
-    if kinetics == 'plug':
+    if model == 'plug':
         return flux_plug(J, *params, t=t, dt=dt, **kwargs)
-    if kinetics == 'chain':
+    if model == 'chain':
         return flux_chain(J, *params, t=t, dt=dt, **kwargs)
-    if kinetics == 'step':
+    if model == 'step':
         return flux_step(J, *params, t=t, dt=dt, **kwargs)
-    if kinetics == 'free':
+    if model == 'free':
         return flux_free(J, *params, t=t, dt=dt, **kwargs)
-    if kinetics == 'ncomp':
+    if model == 'ncomp':
         return flux_ncomp(J, *params, t=t, dt=dt, **kwargs)
-    if kinetics == 'nscomp':
+    if model == 'nscomp':
         return flux_nscomp(J, *params, t=t, dt=dt)
-    if kinetics == 'pfcomp':
+    if model == 'pfcomp':
         return flux_pfcomp(J, *params, t=t, dt=dt, **kwargs)
-    if kinetics == 'mmcomp':
+    if model == 'mmcomp':
         return flux_mmcomp(J, *params, t=t, dt=dt, **kwargs)
-    if kinetics == '2cxm': 
+    if model == '2cxm': 
         return flux_2cxm(J, *params, t=t, dt=dt, **kwargs)
-    msg = 'Model ' + kinetics + ' is not currently implemented.'
+    msg = 'Model ' + model + ' is not currently implemented.'
     raise ValueError(msg)
 
-def conc(J:np.ndarray, *params, t=None, dt=1.0, kinetics='comp', **kwargs)->np.ndarray:
+def conc(J:np.ndarray, *params, t=None, dt=1.0, model='comp', **kwargs)->np.ndarray:
     """Concentration in an arbitrary pharmacokinetic system.
 
     Args:
@@ -62,7 +62,7 @@ def conc(J:np.ndarray, *params, t=None, dt=1.0, kinetics='comp', **kwargs)->np.n
         params (tuple): model parameters.
         t (array_like, optional): the time points of the indicator flux J. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
         dt (float, optional): spacing between time points for uniformly spaced time points. This parameter is ignored if t is explicity provided. Defaults to 1.0.
-        kinetics (str, optional): Model to use, options are 'trap', 'pass', 'comp', 'plug', 'chain', 'step', 'free', 'ncomp', 'nscomp', 'mmcomp', '2cxm'. Defaults to 'comp'.
+        model (str, optional): Model to use, options are 'trap', 'pass', 'comp', 'plug', 'chain', 'step', 'free', 'ncomp', 'nscomp', 'mmcomp', '2cxm'. Defaults to 'comp'.
 
     This is a wrapper function offering a standard interface to calculate the concentration in a specific system.
 
@@ -73,29 +73,29 @@ def conc(J:np.ndarray, *params, t=None, dt=1.0, kinetics='comp', **kwargs)->np.n
         np.ndarray: Concentration in the system.
     """
 
-    if kinetics=='trap':
+    if model=='trap':
         return conc_trap(J, t=t, dt=dt)
-    if kinetics == 'pass':
+    if model == 'pass':
         return conc_pass(J, *params)
-    if kinetics == 'comp':
+    if model == 'comp':
         return conc_comp(J, *params, t=t, dt=dt, **kwargs)
-    if kinetics == 'plug':
+    if model == 'plug':
         return conc_plug(J, *params, t=t, dt=dt, **kwargs)
-    if kinetics == 'chain':
+    if model == 'chain':
         return conc_chain(J, *params, t=t, dt=dt, **kwargs)
-    if kinetics == 'step':
+    if model == 'step':
         return conc_step(J, *params, t=t, dt=dt, **kwargs)
-    if kinetics == 'free':
+    if model == 'free':
         return conc_free(J, *params, t=t, dt=dt, **kwargs)
-    if kinetics == 'ncomp':
+    if model == 'ncomp':
         return conc_ncomp(J, *params, t=t, dt=dt, **kwargs)
-    if kinetics == 'nscomp':
+    if model == 'nscomp':
         return conc_nscomp(J, *params, t=t, dt=dt)
-    if kinetics == 'mmcomp':
+    if model == 'mmcomp':
         return conc_mmcomp(J, *params, t=t, dt=dt, **kwargs)
-    if kinetics == '2cxm':
+    if model == '2cxm':
         return conc_2cxm(J, *params, t=t, dt=dt, **kwargs)
-    msg = 'Model ' + kinetics + ' is not currently implemented.'
+    msg = 'Model ' + model + ' is not currently implemented.'
     raise ValueError(msg)
 
 

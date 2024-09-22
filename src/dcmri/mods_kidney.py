@@ -1,11 +1,17 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import dcmri as dc
 from scipy.stats import rv_histogram
 
+import dcmri.pk as pk
+import dcmri.pk_kidney as pkk
+import dcmri.lib as lib
+import dcmri.mods as mods
+import dcmri.sig as sig
+import dcmri.utils as utils
 
 
-class Kidney(dc.Model):
+
+class Kidney(mods.Model):
     """General model for whole kidney signals.
 
         **Input function**
@@ -96,7 +102,7 @@ class Kidney(dc.Model):
         >>> model.plot(time, roi, ref=gt)
     """ 
 
-    def __init__(self, **params):
+    def __init__(self, free=None, bounds=None, **params):
 
         # Input function
         self.aif = None
@@ -135,8 +141,8 @@ class Kidney(dc.Model):
         self.TT = [15,30,60,90,150,300,600]
 
         # Signal parameters
-        self.R10 = 1/dc.T1(3.0, 'kidney')  
-        self.R10b = 1/dc.T1(3.0, 'blood')
+        self.R10 = 1/lib.T1(3.0, 'kidney')  
+        self.R10b = 1/lib.T1(3.0, 'blood')
         self.S0 = 1
 
         # Training parameters
@@ -158,9 +164,7 @@ class Kidney(dc.Model):
         # Additional parameters
         self.vol = None
 
-        # Override defaults
-        for k, v in params.items():
-            setattr(self, k, v)
+        self._override_defaults(free=free, bounds=bounds, **params)
 
         # Check inputs
         if (self.aif is None) and (self.ca is None):
@@ -194,23 +198,23 @@ class Kidney(dc.Model):
 
         # Arterial concentrations
         if self.aif is not None:
-            r1 = dc.relaxivity(self.field_strength, 'blood', self.agent)
+            r1 = lib.relaxivity(self.field_strength, 'blood', self.agent)
             if self.sequence == 'SR':
-                cb = dc.conc_src(self.aif, self.TC, 1/self.R10b, r1, self.n0)
+                cb = sig.conc_src(self.aif, self.TC, 1/self.R10b, r1, self.n0)
             elif self.sequence == 'SS':
-                cb = dc.conc_ss(self.aif, self.TR, self.FA, 1/self.R10b, r1, self.n0)
+                cb = sig.conc_ss(self.aif, self.TR, self.FA, 1/self.R10b, r1, self.n0)
             elif self.sequence == 'lin':
-                cb = dc.conc_lin(self.aif, 1/self.R10b, r1, self.n0)
+                cb = sig.conc_lin(self.aif, 1/self.R10b, r1, self.n0)
             else:
                 raise NotImplementedError('Signal model ' + self.sequence + 'is not (yet) supported.') 
             self.ca = cb/(1-self.Hct) 
 
         if self.kinetics == '2CFM':
-            ca = dc.flux(self.ca, self.Ta, t=self.t, dt=self.dt, kinetics='plug')
-            return dc.conc_kidney(ca, self.Fp, self.Tp, self.Ft, self.Tt, t=self.t, dt=self.dt, sum=sum, kinetics='2CF')
+            ca = pk.flux(self.ca, self.Ta, t=self.t, dt=self.dt, model='plug')
+            return pkk.conc_kidney(ca, self.Fp, self.Tp, self.Ft, self.Tt, t=self.t, dt=self.dt, sum=sum, kinetics='2CF')
         elif self.kinetics == 'FN':
             H = [self.h0,self.h1,self.h2,self.h3,self.h4,self.h5]
-            return dc.conc_kidney(self.ca, self.Fp, self.Tp, self.Ft, H, TT=self.TT, t=self.t, dt=self.dt, sum=sum, kinetics='FN')
+            return pkk.conc_kidney(self.ca, self.Fp, self.Tp, self.Ft, H, TT=self.TT, t=self.t, dt=self.dt, sum=sum, kinetics='FN')
         
     def relax(self):
         """Longitudinal relaxation rate R1(t).
@@ -219,7 +223,7 @@ class Kidney(dc.Model):
             np.ndarray: Relaxation rate. Dimensions are (nt,) for a tissue in fast water exchange, or (nc,nt) for a multicompartment tissue outside the fast water exchange limit.
         """
         C = self.conc()
-        r1 = dc.relaxivity(self.field_strength, 'blood', self.agent)
+        r1 = lib.relaxivity(self.field_strength, 'blood', self.agent)
         R1 = self.R10 + r1*C
         return R1
         
@@ -231,11 +235,11 @@ class Kidney(dc.Model):
         """
         R1 = self.relax()
         if self.sequence=='SR':
-            return dc.signal_sr(R1, self.S0, self.TR, self.FA, self.TC, self.Tsat)
+            return sig.signal_sr(R1, self.S0, self.TR, self.FA, self.TC, self.Tsat)
         elif self.sequence == 'SS':
-            return dc.signal_ss(R1, self.S0, self.TR, self.FA)
+            return sig.signal_ss(R1, self.S0, self.TR, self.FA)
         elif self.sequence == 'lin':
-            return dc.signal_lin(R1, self.S0)
+            return sig.signal_lin(R1, self.S0)
 
     def predict(self, xdata):
         t = self.time()
@@ -244,18 +248,18 @@ class Kidney(dc.Model):
             msg += 'The largest time point that can be predicted is ' + str(np.amax(t)/60) + 'min.'
             raise ValueError(msg)
         sig = self.signal()
-        return dc.sample(xdata, t, sig, self.dt)
+        return utils.sample(xdata, t, sig, self.dt)
 
     
     def train(self, xdata, ydata, **kwargs):
         if self.sequence=='SR':
-            Sref = dc.signal_sr(self.R10, 1, self.TR, self.FA, self.TC, self.Tsat)
+            Sref = sig.signal_sr(self.R10, 1, self.TR, self.FA, self.TC, self.Tsat)
         elif self.sequence == 'SS':
-            Sref = dc.signal_ss(self.R10, 1, self.TR, self.FA)
+            Sref = sig.signal_ss(self.R10, 1, self.TR, self.FA)
         elif self.sequence == 'lin':
-            Sref = dc.signal_lin(self.R10, 1)
+            Sref = sig.signal_lin(self.R10, 1)
         self.S0 = np.mean(ydata[:self.n0]) / Sref
-        return dc.train(self, xdata, ydata, **kwargs)
+        return mods.train(self, xdata, ydata, **kwargs)
 
     def export_params(self):
         pars = {}
@@ -321,7 +325,7 @@ class Kidney(dc.Model):
 
 
 
-class KidneyCortMed(dc.Model):
+class KidneyCortMed(mods.Model):
     """
     General model for renal cortico-medullary data.
 
@@ -413,7 +417,7 @@ class KidneyCortMed(dc.Model):
 
 
 
-    def __init__(self, **params):
+    def __init__(self, free=None, bounds=None, **params):
 
         # Input function
         self.aif = None
@@ -444,9 +448,9 @@ class KidneyCortMed(dc.Model):
         self.Tcd = 30
 
         # Signal parameters
-        self.R10c = 1/dc.T1(3.0, 'kidney')
-        self.R10m = 1/dc.T1(3.0, 'kidney')  
-        self.R10b = 1/dc.T1(3.0, 'blood')
+        self.R10c = 1/lib.T1(3.0, 'kidney')
+        self.R10m = 1/lib.T1(3.0, 'kidney')  
+        self.R10b = 1/lib.T1(3.0, 'blood')
         self.S0c = 1
         self.S0m = 1
         
@@ -460,9 +464,7 @@ class KidneyCortMed(dc.Model):
         # Other parameters
         self.vol = None
 
-        # Override defaults
-        for k, v in params.items():
-            setattr(self, k, v)
+        self._override_defaults(free=free, bounds=bounds, **params)
 
         # Check inputs
         if (self.aif is None) and (self.ca is None):
@@ -492,15 +494,15 @@ class KidneyCortMed(dc.Model):
         """
 
         if self.aif is not None:
-            r1 = dc.relaxivity(self.field_strength, 'blood', self.agent)
+            r1 = lib.relaxivity(self.field_strength, 'blood', self.agent)
             if self.sequence == 'SR':
-                cb = dc.conc_src(self.aif, self.TC, 1/self.R10b, r1, self.n0)
+                cb = sig.conc_src(self.aif, self.TC, 1/self.R10b, r1, self.n0)
             elif self.sequence == 'SS':
-                cb = dc.conc_ss(self.aif, self.TR, self.FA, 1/self.R10b, r1, self.n0)
+                cb = sig.conc_ss(self.aif, self.TR, self.FA, 1/self.R10b, r1, self.n0)
             else:
                 raise NotImplementedError('Signal model ' + self.sequence + 'is not (yet) supported.')   
             self.ca = cb/(1-self.Hct)      
-        return dc.conc_kidney_cortex_medulla(self.ca, 
+        return pkk.conc_kidney_cortex_medulla(self.ca, 
             self.Fp, self.Eg, self.fc, self.Tg, self.Tv, 
             self.Tpt, self.Tlh, self.Tdt, self.Tcd, 
             t=self.t, dt=self.dt, sum=sum, kinetics='7C')
@@ -515,19 +517,19 @@ class KidneyCortMed(dc.Model):
             tuple[np.ndarray,np.ndarray]: tuple of two 1D arrays with signal in corex and medulla, respectively.
         """
         Cc, Cm = self.conc()
-        r1 = dc.relaxivity(self.field_strength, 'blood', self.agent)
+        r1 = lib.relaxivity(self.field_strength, 'blood', self.agent)
         R1c = self.R10c + r1*Cc
         R1m = self.R10m + r1*Cm
         if self.sequence == 'SR':
-            Sc = dc.signal_sr(R1c, self.S0c, self.TR, self.FA, self.TC, self.Tsat)
-            Sm = dc.signal_sr(R1m, self.S0m, self.TR, self.FA, self.TC, self.Tsat)
+            Sc = sig.signal_sr(R1c, self.S0c, self.TR, self.FA, self.TC, self.Tsat)
+            Sm = sig.signal_sr(R1m, self.S0m, self.TR, self.FA, self.TC, self.Tsat)
         elif self.sequence == 'SS':
-            Sc = dc.signal_ss(R1c, self.S0c, self.TR, self.FA)
-            Sm = dc.signal_ss(R1m, self.S0m, self.TR, self.FA)  
+            Sc = sig.signal_ss(R1c, self.S0c, self.TR, self.FA)
+            Sm = sig.signal_ss(R1m, self.S0m, self.TR, self.FA)  
         t = self.time()          
         return (
-            dc.sample(xdata, t, Sc, self.dt), 
-            dc.sample(xdata, t, Sm, self.dt),
+            utils.sample(xdata, t, Sc, self.dt), 
+            utils.sample(xdata, t, Sm, self.dt),
         ) 
     
     def train(self, xdata:np.ndarray, ydata:tuple[np.ndarray,np.ndarray], **kwargs):
@@ -543,14 +545,14 @@ class KidneyCortMed(dc.Model):
         """
 
         if self.sequence == 'SR':
-            Scref = dc.signal_sr(self.R10c, 1, self.TR, self.FA, self.TC, self.Tsat)
-            Smref = dc.signal_sr(self.R10m, 1, self.TR, self.FA, self.TC, self.Tsat)
+            Scref = sig.signal_sr(self.R10c, 1, self.TR, self.FA, self.TC, self.Tsat)
+            Smref = sig.signal_sr(self.R10m, 1, self.TR, self.FA, self.TC, self.Tsat)
         elif self.sequence == 'SS':
-            Scref = dc.signal_ss(self.R10c, 1, self.TR, self.FA)
-            Smref = dc.signal_ss(self.R10m, 1, self.TR, self.FA)        
+            Scref = sig.signal_ss(self.R10c, 1, self.TR, self.FA)
+            Smref = sig.signal_ss(self.R10m, 1, self.TR, self.FA)        
         self.S0c = np.mean(ydata[0][:self.n0]) / Scref
         self.S0m = np.mean(ydata[1][:self.n0]) / Smref
-        return dc.train(self, xdata, ydata, **kwargs)
+        return mods.train(self, xdata, ydata, **kwargs)
 
 
     def export_params(self):
@@ -639,4 +641,4 @@ class KidneyCortMed(dc.Model):
         Returns:
             float: goodness of fit.
         """
-        return super().cost(self, xdata, ydata, metric)
+        return super().cost(xdata, ydata, metric)

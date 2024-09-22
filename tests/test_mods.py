@@ -4,6 +4,14 @@ import numpy as np
 import dcmri as dc
 
 
+# Debugging mode
+# VERBOSE = 1
+# SHOW = True
+
+VERBOSE = 0
+SHOW = False
+
+
 def tmp():
     return os.path.join(os.getcwd(),'tmp')
 
@@ -55,139 +63,125 @@ def test_model():
 def test_mods_tissue():
 
     # Create data
-    time, aif, roi, gt = dc.fake_tissue(CNR=np.inf)
+    time, aif, roi, gt = dc.fake_tissue()
 
-    # Train model
-    model = dc.Tissue(
-        aif = aif,
-        dt = time[1],
-        agent = 'gadodiamide',
-        TR = 0.005,
-        FA = 15,
-        kinetics='2CX',
-        n0=10,
-    )
-    ypred = model.predict(time)
+    params = {
+        'kinetics': '2CX',
+        'water_exchange': 'FF',
+        'aif': aif,
+        'dt': time[1],
+        'agent': 'gadodiamide',
+        'TR': 0.005,
+        'FA': 15,
+        'FAa': 15,
+        'n0': 10,
+        'R10b': 1/dc.T1(3.0,'blood'),
+        'R10': 1/dc.T1(3.0,'muscle'),
+    }
+
+    model = dc.Tissue(**params)
+
+    # Train model and check results
     model.train(time, roi)
+    pars = model.export_params()
+    assert model.cost(time, roi) < 1 # perc
+    assert np.abs(pars['Fp'][1]-gt['Fp']) < 0.1*gt['Fp']
+    assert np.abs(pars['vp'][1]-gt['vp']) < 0.1*gt['vp']
 
-    # Display results
+    params['water_exchange'] = 'NN'
+    model = dc.Tissue(**params)
+    model.train(time, roi)
+    assert model.cost(time, roi) < 1
+
+    params['water_exchange'] = 'RR'
+    model = dc.Tissue(**params)
+    model.train(time, roi, xtol=1e-2)
+    assert model.cost(time, roi) < 1
+    assert model.get_params('PSe') > 1 # fast exchange
+    assert model.get_params('PSc') > 1
+
+    # Loop over all models
+    cost = {'U':20, 'NX':10, 'FX':20, 'WV':10, 'HFU':20, 'HF':6, '2CU':20, '2CX':2}
+    for k in ['U', 'NX', 'FX', 'WV', 'HFU', 'HF', '2CU', '2CX']:
+        for e in ['R','F','N']:
+            for c in ['R','F','N']:
+                params['water_exchange'] = e+c
+                params['kinetics'] = k
+                model = dc.Tissue(**params)
+                model.train(time, roi, xtol=1e-2)
+                assert model.cost(time, roi) < cost[k]
+
+    # Display last result
     model.plot(time, roi, ref=gt, show=False)
-    assert np.abs(model.Fp-gt['Fp']) < 0.1*gt['Fp']
+    
 
 
-def test_mods_tissue_pixel():
+def test_mods_tissue_array():
 
     # Create data
     n=8
-    time, signal, aif, gt = dc.fake_brain(n=n, verbose=1)
+    time, signal, aif, gt = dc.fake_brain(n=n, verbose=VERBOSE)
 
-    # Define model
+    with np.errstate(divide='ignore'):
+        R10 = np.where(gt['T1']==0, 0, 1/gt['T1'])
+
+    # Define model parameters
     params = {
-        'ca': gt['cp'],
-        'dt': gt['t'][1],
-        'agent': 'gadodiamide',
         'kinetics': '2CX',
-        'TS': time[1],
+        'water_exchange': 'FF',
+        'aif': aif,
+        'dt': time[1],
+        'agent': 'gadodiamide',
         'TR': 0.005,
+        'FA': np.full((n,n), 15),
+        'FAa': 15,
+        'n0': 10,
+        'R10b': 1/dc.T1(3.0,'blood'),
+        'R10': R10,
+        'parallel': False,
+        'verbose': VERBOSE,
     }
 
     # Train array
-    with np.errstate(divide='ignore'):
-        R10 = 1/gt['T1']
-    shape = (n,n)
-    image = dc.TissueArray(
-        shape = shape,
-        FA = np.full(shape, 15),
-        R10 = R10, 
-        parallel = False, 
-        verbose = 0,
-        **params, 
-    )
+    image = dc.TissueArray((n,n), **params)
     image.train(time, signal, xtol=1e-3)
-    # image.save(path=tmp(), filename=file)
+    #image.save(path=tmp(), filename='TissueArray')
     #image = dc.TissueArray().load(filename=file)
 
-    # Train pixel curve
-    region = 'gray matter'
-    #region = 'background'
-    loc = dc.shepp_logan(n=n)[region] == 1
-    curve = dc.Tissue(
-        FA = 15,
-        R10 = 1/gt['T1'][loc][0], 
-        **params,
-    )
-    curve.train(time, signal[loc,:][0,:], xtol=1e-3)
-    curve.plot(time, signal[loc,:][0,:], show=False)
+    # Plot array
+    roi = dc.shepp_logan(n=n)
+    vmin = {'S0':0, 'Fp':0, 'vp':0, 'Ktrans':0, 've':0}
+    vmax = {'S0':np.amax(gt['S0']), 'Fp':0.01, 'vp':0.2, 'Ktrans':0.003, 've':0.5}
+    image.plot(time, signal, vmax=vmax, ref=gt, show=SHOW)
+    image.plot_params(roi=roi, ref=gt, vmin=vmin, vmax=vmax, show=SHOW)
+    image.plot_fit(time, signal, ref=gt, roi=roi, show=SHOW,
+#       hist_kwargs = {'bins':100, 'range':[0,10]},
+   )
 
-    # Check array against curve fit
-    # print('NRMS', curve.cost(time, signal[loc,:][0,:]), image.cost(time, signal)[loc][0])
-    # print('S0 ', curve.S0, image.S0[loc][0], gt['S0'][loc][0])
-    # print('Fp ', curve.Fp, image.Fp[loc][0], gt['Fp'][loc][0])
-    # print('vp ', curve.vp, image.vp[loc][0], gt['vp'][loc][0])
-    # print('PS ', curve.PS, image.PS[loc][0], gt['PS'][loc][0])
-    # print('ve ', curve.ve, image.ve[loc][0], gt['ve'][loc][0])
+    # Compare against curve fit in one pixel.
+    loc = dc.shepp_logan(n=n)['gray matter'] == 1
+    signal_loc = signal[loc,:][0,:]
+    params['FA'] = 15
+    params['R10'] = R10[loc][0]
+    curve = dc.Tissue(**params)
+    curve.train(time, signal_loc, xtol=1e-3)
+    curve.plot(time, signal_loc, show=SHOW)
 
-    nrmsc = curve.cost(time, signal[loc,:][0,:])
+    nrmsc = curve.cost(time, signal_loc)
     nrmsa = image.cost(time, signal)[loc][0]
     assert np.abs(nrmsc-nrmsa) <= 0.1*nrmsc
     assert np.abs(curve.S0 - image.S0[loc][0]) <= 0.1*curve.S0
     assert np.abs(curve.Fp - image.Fp[loc][0]) <= 0.1*curve.Fp
     assert np.abs(curve.vp - image.vp[loc][0]) <= 0.1*curve.vp
-    assert np.abs(curve.PS - image.PS[loc][0]) <= 0.1*curve.PS
-    assert np.abs(curve.ve - image.ve[loc][0]) <= 0.1*curve.ve
-
-
-
-def test_mods_tissue_pixel_doc():
-    n=8
-    time, signal, aif, gt = dc.fake_brain(n)
-    with np.errstate(divide='ignore'):
-        R10 = 1/gt['T1']
-    shape = (n,n)
-    model = dc.TissueArray(
-        shape = shape,
-        aif = aif,
-        dt = time[1],
-        agent = 'gadodiamide',
-        TR = 0.005,
-        FA = np.full(shape, 15),
-        R10 = R10, 
-        n0 = 15,
-        kinetics = '2CX',
-    )
-    model.train(time, signal)
-    model.plot(time, signal, ref=gt, show=False)
-    loss = model.cost(time, signal, 'NRMS')
-    assert np.nanmax(loss) < 1
-
-    # Test plots
-    roi = dc.shepp_logan(n=n)
-
-    # Plot trained model
-    vmin= {
-        'S0':0,
-        'Fp':0,
-        'vp':0,
-        'PS':0,
-        've':0,
-    }
-    vmax = {
-        'S0':np.amax(gt['S0']),
-        'Fp':0.01,
-        'vp':0.2,
-        'PS':0.003,
-        've':0.5,
-    }
-    #model.plot_params(roi=roi, ref=gt, vmin=vmin, vmax=vmax, show=False)
-    model.plot(time, signal, vmax=vmax, ref=gt, show=False)
-    model.plot_fit(time, signal, ref=gt, roi=roi, show=False,
-#       hist_kwargs = {'bins':100, 'range':[0,10]},
-   )
+    assert np.abs(curve.Ktrans - image.Ktrans[loc][0]) <= 0.1*curve.Ktrans
+    assert np.abs(curve.vi - image.vi[loc][0]) <= 0.1*curve.vi
 
 
 
 def test_mods_aorta():
-    time, aif, _, _ = dc.fake_tissue()
+
+    truth = {'BAT': 20}
+    time, aif, _, _ = dc.fake_tissue(**truth)
     aorta = dc.Aorta(
         dt = 1.5,
         weight = 70,
@@ -197,13 +191,20 @@ def test_mods_aorta():
         field_strength = 3.0,
         TR = 0.005,
         FA = 15,
-        R10 = 1/dc.T1(3.0,'blood'),
+        R10 = 1/dc.T1(3.0,'blood'), 
+        heartlung = 'chain',
     )
-    aorta.train(time, aif)
-    aorta.plot(time, aif, show=False)
-    aorta.print_params(round_to=3)
+    aorta.train(time, aif, xtol=1e-3)
+    aorta.plot(time, aif, show=SHOW)
+    rec = aorta.export_params()
+    rec_aif = aorta.predict(time)
+    assert rec['BAT'][1] == aorta.get_params('BAT')
+    assert np.linalg.norm(aif-rec_aif) < 0.1*np.linalg.norm(aif)
+    assert np.abs(rec['BAT'][1]-truth['BAT']) < 0.2*truth['BAT']
+
 
 def test_mods_aorta_liver():
+
     time, aif, roi, gt = dc.fake_tissue()
     xdata, ydata = (time,time), (aif,roi)
 
@@ -218,11 +219,13 @@ def test_mods_aorta_liver():
         t0 = 10,
         TR = 0.005,
         FA = 15,
+        bounds = {'Th': [0, np.inf]},
     )
-
     model.train(xdata, ydata, xtol=1e-3)
-    model.plot(xdata, ydata, show=False)
-    model.print_params(round_to=3)
+    model.plot(xdata, ydata, show=SHOW)
+    assert model.cost(xdata, ydata) < 10
+    assert model.get_params('Th', round_to=0) == 68
+
 
 def test_mods_aorta_liver2scan():
     time, aif, roi, gt = dc.fake_tissue2scan(R10 = 1/dc.T1(3.0,'liver'))
@@ -239,13 +242,19 @@ def test_mods_aorta_liver2scan():
         t0 = 10,
         TR = 0.005,
         FA = 15,
+        kinetics = 'stationary',
+        bounds = {'Th':[0, np.inf]},
     )
     model.train(xdata, ydata, xtol=1e-3)
-    model.plot(xdata, ydata, show=False)
-    model.print_params(round_to=3)
+    model.plot(xdata, ydata, show=SHOW)
+    assert model.cost(xdata, ydata) < 5
+    assert model.get_params('Th', round_to=0) == 73
 
 def test_mods_liver():
-    time, aif, roi, gt = dc.fake_tissue(CNR=100, agent='gadoxetate', R10=1/dc.T1(3.0,'liver'))
+    time, aif, roi, gt = dc.fake_tissue(
+        agent='gadoxetate', 
+        R10=1/dc.T1(3.0,'liver'),
+    )
     model = dc.Liver(
         aif = aif,
         dt = time[1],
@@ -254,9 +263,13 @@ def test_mods_liver():
         TR = 0.005,
         FA = 15,
         n0 = 10,
+        kinetics = 'stationary',
+        bounds = {'Th':[0, np.inf]},
     )
     model.train(time, roi)
-    model.plot(time, roi, ref=gt, show=False)
+    model.plot(time, roi, ref=gt, show=SHOW)
+    assert model.cost(time, roi) < 1
+    assert model.get_params('Th', round_to=0) == 69
 
 def test_mods_kidney():
     time, aif, roi, gt = dc.fake_tissue(R10=1/dc.T1(3.0,'kidney'))
@@ -276,23 +289,26 @@ def test_mods_kidney():
     # Train a two-compartment filtration model on the ROI data and plot the fit:
     #
     params['kinetics'] = '2CFM'
-    model = dc.Kidney(**params).train(time, roi)
-    model.plot(time, roi, ref=gt, show=False)
+    model = dc.Kidney(**params)
+    model.train(time, roi)
+    model.plot(time, roi, ref=gt, show=SHOW)
+    assert model.cost(time, roi) < 1
+    assert model.get_params('Tt', round_to=0) == 67
     #
     # Repeat the fit using a free nephron model:
     #
     params['kinetics'] = 'FN'
-    model = dc.Kidney(**params).train(time, roi)
-    model.plot(time, roi, ref=gt, show=False)
+    model = dc.Kidney(**params)
+    model.train(time, roi)
+    model.plot(time, roi, ref=gt, show=SHOW)
+    assert model.cost(time, roi) < 1
+    assert model.get_params('Fp', round_to=2) == 0.06
+
 
 def test_mods_kidney_cort_med():
-    #
-    # Use `fake_kidney_cortex_medulla` to generate synthetic test data:
-    #
-    time, aif, roi, gt = dc.fake_kidney_cortex_medulla(CNR=100)
-    #
-    # Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
-    #
+
+    time, aif, roi, gt = dc.fake_kidney_cortex_medulla()
+
     model = dc.KidneyCortMed(
         aif = aif,
         dt = time[1],
@@ -302,25 +318,22 @@ def test_mods_kidney_cort_med():
         TC = 0.2,
         n0 = 10,
     )
-    #
-    # Train the model on the ROI data and predict signals and concentrations:
-    #
+
     model.train(time, roi)
-    #
-    # Plot the reconstructed signals (left) and concentrations (right) and compare the concentrations against the noise-free ground truth:
-    #
-    model.plot(time, roi, ref=gt, show=False)
+    model.plot(time, roi, ref=gt, show=SHOW)
 
-
+    assert model.cost(time, roi) < 1
+    assert model.get_params('Tdt', round_to=0) == 27
 
 
 
 if __name__ == "__main__":
 
+    # make_tmp()
+
     test_model()
     test_mods_tissue()
-    test_mods_tissue_pixel()
-    test_mods_tissue_pixel_doc()
+    test_mods_tissue_array()
     test_mods_aorta()
     test_mods_aorta_liver()
     test_mods_aorta_liver2scan()

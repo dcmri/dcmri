@@ -17,9 +17,9 @@ def test_prop_trap():
 def test_conc_trap():
     t = np.linspace(0, 100, 20)
     J = np.ones(len(t))
-    C = dc.conc(J, t=t, kinetics='trap')
+    C = dc.conc(J, t=t, model='trap')
     assert C[-1] == 100
-    C = dc.conc(J, dt=t[1], kinetics='trap')
+    C = dc.conc(J, dt=t[1], model='trap')
     assert C[-1] == 100
     C0 = dc.conv(dc.res_trap(t), J, t)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) == 0
@@ -27,7 +27,7 @@ def test_conc_trap():
 def test_flux_trap():
     t = np.linspace(0, 100, 20)
     J = np.ones(len(t))
-    Jo = dc.flux(J, kinetics='trap')
+    Jo = dc.flux(J, model='trap')
     assert np.linalg.norm(Jo) == 0
     Jo0 = dc.conv(dc.prop_trap(t), J, t)
     assert np.linalg.norm(Jo-Jo0) == 0
@@ -50,7 +50,7 @@ def test_conc_pass():
     T = 30
     t = np.linspace(0, 100, 20)
     J = np.ones(len(t))
-    C = dc.conc(J, T, kinetics='pass')
+    C = dc.conc(J, T, model='pass')
     assert np.unique(C)[0] == T
     C0 = dc.conv(dc.res_pass(T,t), J, t)
     assert np.linalg.norm(C[1:]-C0[1:])/np.linalg.norm(C0[1:]) < 1e-12
@@ -59,7 +59,7 @@ def test_flux_pass():
     T = 30
     t = np.linspace(0, 100, 20)
     J = np.ones(len(t))
-    Jo = dc.flux(J, kinetics='pass')
+    Jo = dc.flux(J, model='pass')
     assert np.linalg.norm(J-Jo)/np.linalg.norm(J) < 1e-12
     Jo0 = dc.conv(dc.prop_pass(t), J, t)
     assert np.linalg.norm(Jo[1:]-Jo0[1:])/np.linalg.norm(Jo[1:]) < 1e-12
@@ -96,17 +96,17 @@ def test_conc_comp():
     t = np.linspace(0, 150, 20)
     J = np.ones(len(t))
     C0 = dc.conv(dc.res_comp(T,t), J, t)
-    C = dc.conc(J, T, t=t, kinetics='comp')
+    C = dc.conc(J, T, t=t, model='comp')
     assert np.linalg.norm(C[1:]-C0[1:])/np.linalg.norm(C0[1:]) < 1e-2
-    C = dc.conc(J, T, dt=t[1], kinetics='comp')
+    C = dc.conc(J, T, dt=t[1], model='comp')
     assert np.linalg.norm(C[1:]-C0[1:])/np.linalg.norm(C0[1:]) < 1e-2
     t = [0,5,15,30,60,90,150]
     J = np.ones(len(t))
     C0 = dc.conv(dc.res_comp(T,t), J, t)
-    C = dc.conc(J, T, t=t, kinetics='comp')
+    C = dc.conc(J, T, t=t, model='comp')
     assert np.linalg.norm(C[1:]-C0[1:])/np.linalg.norm(C0[1:]) < 1e-1
-    C = dc.conc(J, np.inf, t=t, kinetics='comp')
-    C0 = dc.conc(J,t=t, kinetics='trap')
+    C = dc.conc(J, np.inf, t=t, model='comp')
+    C0 = dc.conc(J,t=t, model='trap')
     assert np.linalg.norm(C[1:]-C0[1:])/np.linalg.norm(C0[1:]) < 1e-1
 
 def test_flux_comp():
@@ -114,16 +114,16 @@ def test_flux_comp():
     t = np.linspace(0, 150, 20)
     J = np.ones(len(t))
     J0 = dc.conv(dc.prop_comp(T,t), J, t)
-    Jo = dc.flux(J, T, t=t, kinetics='comp')
+    Jo = dc.flux(J, T, t=t, model='comp')
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-2
-    Jo = dc.flux(J, T, dt=t[1], kinetics='comp')
+    Jo = dc.flux(J, T, dt=t[1], model='comp')
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-2
     t = [0,5,15,30,60,90,150]
     J = np.ones(len(t))
     J0 = dc.conv(dc.prop_comp(T,t), J, t)
-    Jo = dc.flux(J, T, t=t, kinetics='comp')
+    Jo = dc.flux(J, T, t=t, model='comp')
     assert np.linalg.norm(J0-Jo)/np.linalg.norm(J0) < 1e-1
-    Jo = dc.flux(J, np.inf, t=t, kinetics='comp')
+    Jo = dc.flux(J, np.inf, t=t, model='comp')
     assert np.linalg.norm(Jo) == 0
 
 def test_res_plug():
@@ -149,7 +149,7 @@ def test_conc_plug():
     t = np.linspace(0, 150, 40)
     J = np.ones(len(t))
     C0 = dc.conv(dc.res_plug(T,t), J, t)
-    C = dc.conc(J, T, t=t, kinetics='plug')
+    C = dc.conc(J, T, t=t, model='plug')
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-2
     C = dc.conc_plug(J, T, t, solver='conv')
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-2
@@ -171,24 +171,24 @@ def test_flux_plug():
     t = np.linspace(0, 150, 40)
     J = np.ones(len(t))
     J0 = dc.conv(dc.prop_plug(T,t), J, t)
-    Jo = dc.flux(J, T, t=t, kinetics='plug')
+    Jo = dc.flux(J, T, t=t, model='plug')
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 0.2
-    Jo = dc.flux(J, T, t=t, kinetics='plug', solver='conv')
+    Jo = dc.flux(J, T, t=t, model='plug', solver='conv')
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 0.2
-    Jo = dc.flux(J, T, dt=t[1], kinetics='plug')
+    Jo = dc.flux(J, T, dt=t[1], model='plug')
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 0.2
     t = [0,5,15,30,60,90,150]
     J = np.ones(len(t))
     J0 = dc.conv(dc.prop_plug(T,t), J, t)
-    Jo = dc.flux(J, T, t=t, kinetics='plug')
+    Jo = dc.flux(J, T, t=t, model='plug')
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 0.3
-    Jo = dc.flux(J, np.inf, t=t, kinetics='plug')
+    Jo = dc.flux(J, np.inf, t=t, model='plug')
     assert np.linalg.norm(Jo) == 0
-    Jo = dc.flux(J, 0, t=t, kinetics='plug')
+    Jo = dc.flux(J, 0, t=t, model='plug')
     assert np.linalg.norm(Jo-J) == 0
 
     try:
-        Jo = dc.flux(J, T, t=t, kinetics='plug', solver='blabla')
+        Jo = dc.flux(J, T, t=t, model='plug', solver='blabla')
     except:
         assert True
     else:
@@ -254,7 +254,7 @@ def test_conc_chain():
     t = np.linspace(0, 150, 20)
     J = np.ones(len(t))
     C0 = dc.conv(dc.res_chain(T,D,t), J, t)
-    C = dc.conc(J, T, D, t=t, kinetics='chain')
+    C = dc.conc(J, T, D, t=t, model='chain')
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
     C = dc.conc_chain(J, T, D, dt=t[1])
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
@@ -276,20 +276,20 @@ def test_flux_chain():
     t = np.linspace(0, 150, 20)
     J = np.ones(len(t))
     J0 = dc.conv(dc.prop_chain(T,D,t), J, t)
-    Jo = dc.flux(J, T, D, t=t, kinetics='chain')
+    Jo = dc.flux(J, T, D, t=t, model='chain')
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
-    Jo = dc.flux(J, T, D, dt=t[1], kinetics='chain')
+    Jo = dc.flux(J, T, D, dt=t[1], model='chain')
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
     t = [0,5,15,30,60,90,150]
     J = np.ones(len(t))
     J0 = dc.conv(dc.prop_chain(T,D,t), J, t)
-    Jo = dc.flux(J, T, D, t=t, kinetics='chain')
+    Jo = dc.flux(J, T, D, t=t, model='chain')
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
-    h = dc.flux(J, T, 0, t=t, kinetics='chain')
-    h0 = dc.flux(J, T, t=t, kinetics='plug')
+    h = dc.flux(J, T, 0, t=t, model='chain')
+    h0 = dc.flux(J, T, t=t, model='plug')
     assert np.linalg.norm(h-h0)==0
-    h = dc.flux(J, T, 1, t=t, kinetics='chain')
-    h0 = dc.flux(J, T, t=t, kinetics='comp')
+    h = dc.flux(J, T, 1, t=t, model='chain')
+    h0 = dc.flux(J, T, t=t, model='comp')
     assert np.linalg.norm(h-h0)==0
 
 
@@ -301,25 +301,25 @@ def test_flux_pfcomp():
     J = np.exp(-t/20)/20
 
     # Check that the function preserves areas
-    Jo = dc.flux(J, T, D, t=t, kinetics='pfcomp')
+    Jo = dc.flux(J, T, D, t=t, model='pfcomp')
     assert np.sum(Jo)*t[1]-1 < 1e-2
 
     # D=0
-    Jo = dc.flux(J, T, 0, t=t, kinetics='pfcomp')
+    Jo = dc.flux(J, T, 0, t=t, model='pfcomp')
     assert np.sum(Jo)*t[1]-1 < 1e-2
 
     # D=1
-    Jo = dc.flux(J, T, 1, t=t, kinetics='pfcomp')
+    Jo = dc.flux(J, T, 1, t=t, model='pfcomp')
     assert np.sum(Jo)*t[1]-1 < 1e-2
 
     try:
-        Jo = dc.flux(J, T, -1, t=t, kinetics='pfcomp')
+        Jo = dc.flux(J, T, -1, t=t, model='pfcomp')
     except:
         assert True
     else:
         assert False
     try:
-        Jo = dc.flux(J, T, 2, t=t, kinetics='pfcomp')
+        Jo = dc.flux(J, T, 2, t=t, model='pfcomp')
     except:
         assert True
     else:
@@ -379,7 +379,7 @@ def test_conc_step():
     t = np.linspace(0, 150, 20)
     J = np.ones(len(t))
     C0 = dc.conv(dc.res_step(T,D,t), J, t)
-    C = dc.conc(J, T, D, t=t, kinetics='step')
+    C = dc.conc(J, T, D, t=t, model='step')
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
     C = dc.conc_step(J, T, D, dt=t[1])
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
@@ -398,17 +398,17 @@ def test_flux_step():
     t = np.linspace(0, 150, 20)
     J = np.ones(len(t))
     J0 = dc.conv(dc.prop_step(T,D,t), J, t)
-    Jo = dc.flux(J, T, D, t=t, kinetics='step')
+    Jo = dc.flux(J, T, D, t=t, model='step')
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
-    Jo = dc.flux(J, T, D, dt=t[1], kinetics='step')
+    Jo = dc.flux(J, T, D, dt=t[1], model='step')
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
     t = [0,5,15,30,60,90,150]
     J = np.ones(len(t))
     J0 = dc.conv(dc.prop_step(T,D,t), J, t)
-    Jo = dc.flux(J, T, D, t=t, kinetics='step')
+    Jo = dc.flux(J, T, D, t=t, model='step')
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
-    Jo = dc.flux(J, T, 0, t=t, kinetics='step')
-    J0 = dc.flux(J, T, t=t, kinetics='plug')
+    Jo = dc.flux(J, T, 0, t=t, model='step')
+    J0 = dc.flux(J, T, t=t, model='plug')
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
 
 
@@ -450,7 +450,7 @@ def test_conc_free():
     t = np.linspace(0, 150, 20)
     J = np.ones(len(t))
     C0 = dc.conv(dc.res_free(H,t,TT), J, t)
-    C = dc.conc(J, H, t=t, kinetics='free', TT=TT)
+    C = dc.conc(J, H, t=t, model='free', TT=TT)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
     C = dc.conc_free(J, H, t, dt=t[1], TT=TT)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-12
@@ -466,14 +466,14 @@ def test_flux_free():
     t = np.linspace(0, 150, 20)
     J = np.ones(len(t))
     J0 = dc.conv(dc.prop_free(H,t,TT), J, t)
-    Jo = dc.flux(J, H, t=t, kinetics='free', TT=TT)
+    Jo = dc.flux(J, H, t=t, model='free', TT=TT)
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
-    Jo = dc.flux(J, H, dt=t[1], kinetics='free', TT=TT)
+    Jo = dc.flux(J, H, dt=t[1], model='free', TT=TT)
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
     t = [0,5,15,30,60,90,150]
     J = np.ones(len(t))
     J0 = dc.conv(dc.prop_free(H,t,TT=TT), J, t)
-    Jo = dc.flux(J, H, t=t, kinetics='free', TT=TT)
+    Jo = dc.flux(J, H, t=t, model='free', TT=TT)
     assert np.linalg.norm(Jo-J0)/np.linalg.norm(J0) < 1e-12
 
 
@@ -547,7 +547,7 @@ def test_conc_ncomp():
     C1 = dc.conc_comp(J[1,:], T[1], t)
     prec = [1e-1, 1e-2, 1e-3]
     for i, dt_prop in enumerate([None, 0.1, 0.01]):
-        C = dc.conc(J, T, E, t=t, kinetics='ncomp', dt_prop=dt_prop)
+        C = dc.conc(J, T, E, t=t, model='ncomp', dt_prop=dt_prop)
         assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < prec[i]
         assert np.linalg.norm(C[1,:]-C1)/np.linalg.norm(C1) < prec[i]
 
@@ -566,8 +566,8 @@ def test_conc_ncomp():
     J = np.stack((J, np.zeros(J.size)))
     E = 0.1
     E = [[1-E,1],[E,0]]
-    C = dc.conc(J, T, E, t=t, kinetics='ncomp', solver='prop', dt_prop=0.01)
-    C0 = dc.conc(J, T, E, t=t, kinetics='ncomp', solver='diag')
+    C = dc.conc(J, T, E, t=t, model='ncomp', solver='prop', dt_prop=0.01)
+    C0 = dc.conc(J, T, E, t=t, model='ncomp', solver='diag')
     assert np.linalg.norm(C-C0)/np.linalg.norm(C) < 1e-3
 
 def test_flux_ncomp():
@@ -579,7 +579,7 @@ def test_flux_ncomp():
     E = [[1,0],[0,1]]
     J0 = dc.conc_comp(J[0,:], T[0], t) / T[0]
     J1 = dc.conc_comp(J[1,:], T[1], t) / T[1]
-    J = dc.flux(J, T, E, t=t, dt_prop=0.01, kinetics='ncomp')
+    J = dc.flux(J, T, E, t=t, dt_prop=0.01, model='ncomp')
     assert np.linalg.norm(J[0,0,:]-J0)/np.linalg.norm(J0) < 1e-3
     assert np.linalg.norm(J[1,1,:]-J1)/np.linalg.norm(J1) < 1e-3
     assert np.linalg.norm(J[1,0,:]) == 0
@@ -651,7 +651,7 @@ def test_conc_2comp():
     J[1,:] = 2
     T = [6,12]
     E = [[1,0.5],[0.5,1]]
-    C0 = dc.conc(J, T, E, t=t, kinetics='ncomp') 
+    C0 = dc.conc(J, T, E, t=t, model='ncomp') 
     C = dc.conc_ncomp(J, T, E, t, dt_prop=0.1)
     assert np.linalg.norm(C[0,:]-C0[0,:])/np.linalg.norm(C[0,:]) < 1e-2
     assert np.linalg.norm(C[1,:]-C0[1,:])/np.linalg.norm(C[1,:]) < 1e-2
@@ -684,7 +684,7 @@ def test_flux_2comp():
     E = [[1,0],[0,1]]
     J0 = dc.conc_comp(J[0,:], T[0], t) / T[0]
     J1 = dc.conc_comp(J[1,:], T[1], t) / T[1]
-    J = dc.flux(J, T, E, t=t, kinetics='ncomp')
+    J = dc.flux(J, T, E, t=t, model='ncomp')
     assert np.linalg.norm(J[0,0,:]-J0)/np.linalg.norm(J0) < 1e-3
     assert np.linalg.norm(J[1,1,:]-J1)/np.linalg.norm(J1) < 1e-3
     assert np.linalg.norm(J[1,0,:]) == 0
@@ -759,7 +759,7 @@ def test_conc_nscomp():
 
     # Test functionality
     C = dc.conc_comp(J, T, t)
-    C0 = dc.conc(J, T*np.ones(len(t)), t=t, kinetics='nscomp')
+    C0 = dc.conc(J, T*np.ones(len(t)), t=t, model='nscomp')
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.1
     
     t = [0,5,15,30,60,90,150]
@@ -777,14 +777,14 @@ def test_flux_nscomp():
     J = np.ones(len(t))
 
     # Test functionality
-    C = dc.flux(J, T, t=t, kinetics='comp')
-    C0 = dc.flux(J, T*np.ones(len(t)), t=t, kinetics='nscomp')
+    C = dc.flux(J, T, t=t, model='comp')
+    C0 = dc.flux(J, T*np.ones(len(t)), t=t, model='nscomp')
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.1
     
     t = [0,5,15,30,60,90,150]
     J = np.ones(len(t))
-    C = dc.flux(J, T, t=t, kinetics='comp')
-    C0 = dc.flux(J, T*np.ones(len(t)), t=t, kinetics='nscomp')
+    C = dc.flux(J, T, t=t, model='comp')
+    C0 = dc.flux(J, T*np.ones(len(t)), t=t, model='nscomp')
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.1
 
 
@@ -795,7 +795,7 @@ def test_conc_mmcomp():
     C = dc.conc_comp(J, T, t)
     Km = np.amax(C)/2
     Vmax = np.amax(C)/np.amax(T)
-    C = dc.conc(J, Vmax, Km, t=t, kinetics='mmcomp', solver='SM')
+    C = dc.conc(J, Vmax, Km, t=t, model='mmcomp', solver='SM')
     C0 = dc.conc_mmcomp(J, Vmax, Km, t, solver='prop')
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-2
 
@@ -821,14 +821,14 @@ def test_flux_mmcomp():
     C = dc.conc_comp(J, T, t)
     Km = np.amax(C)/2
     Vmax = np.amax(C)/np.amax(T)
-    C = dc.flux(J, Vmax, Km, t=t, kinetics='mmcomp', solver='SM')
-    C0 = dc.flux(J, Vmax, Km, t=t, kinetics='mmcomp', solver='prop')
+    C = dc.flux(J, Vmax, Km, t=t, model='mmcomp', solver='SM')
+    C0 = dc.flux(J, Vmax, Km, t=t, model='mmcomp', solver='prop')
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 1e-2
 
     t = [0,5,15,30,60,90,150]
     J = np.ones(len(t))
-    C = dc.flux(J, Vmax, Km, t=t, kinetics='mmcomp', solver='SM')
-    C0 = dc.flux(J, Vmax, Km, t=t, kinetics='mmcomp', solver='prop')
+    C = dc.flux(J, Vmax, Km, t=t, model='mmcomp', solver='SM')
+    C0 = dc.flux(J, Vmax, Km, t=t, model='mmcomp', solver='prop')
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.3
 
 def test_conc_2cxm():
@@ -839,27 +839,27 @@ def test_conc_2cxm():
     
     T = [6,12]
     E = 0.1
-    C0 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C0 = dc.conc(J, T, E, t=t, model='2cxm')
     E = [[1-E,1],[E,0]]
-    C = dc.conc(J2c, T, E, t=t, kinetics='ncomp')
+    C = dc.conc(J2c, T, E, t=t, model='ncomp')
     assert np.linalg.norm(C-C0)/np.linalg.norm(C) < 1e-9
 
     E = 0.5
-    C0 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C0 = dc.conc(J, T, E, t=t, model='2cxm')
     E = [[1-E,1],[E,0]]
-    C = dc.conc(J2c, T, E, t=t, kinetics='ncomp')
+    C = dc.conc(J2c, T, E, t=t, model='ncomp')
     assert np.linalg.norm(C-C0)/np.linalg.norm(C) < 1e-9
 
     # # test boundary case: TP=0
     E = 0.5
     T = [6,12]
-    C0 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C0 = dc.conc(J, T, E, t=t, model='2cxm')
     T[0] = 0.1
-    C1 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C1 = dc.conc(J, T, E, t=t, model='2cxm')
     T[0] = 0.01
-    C2 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C2 = dc.conc(J, T, E, t=t, model='2cxm')
     T[0] = 0.0
-    C = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C = dc.conc(J, T, E, t=t, model='2cxm')
     # Check convergence to T=0 solution
     err0 = np.linalg.norm(C0-C)
     err1 = np.linalg.norm(C1-C)
@@ -871,13 +871,13 @@ def test_conc_2cxm():
     # # test boundary case: TE=0
     E = 0.5
     T = [6,12]
-    C0 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C0 = dc.conc(J, T, E, t=t, model='2cxm')
     T[1] = 0.1
-    C1 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C1 = dc.conc(J, T, E, t=t, model='2cxm')
     T[1] = 0.01
-    C2 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C2 = dc.conc(J, T, E, t=t, model='2cxm')
     T[1] = 0.0
-    C = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C = dc.conc(J, T, E, t=t, model='2cxm')
     # Check convergence to T=0 solution
     err0 = np.linalg.norm(C0-C)
     err1 = np.linalg.norm(C1-C)
@@ -889,13 +889,13 @@ def test_conc_2cxm():
     # # test boundary case: TP=inf
     E = 0.5
     T = [6,12]
-    C0 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C0 = dc.conc(J, T, E, t=t, model='2cxm')
     T[0] = 100
-    C1 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C1 = dc.conc(J, T, E, t=t, model='2cxm')
     T[0] = 1000
-    C2 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C2 = dc.conc(J, T, E, t=t, model='2cxm')
     T[0] = np.inf
-    C = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C = dc.conc(J, T, E, t=t, model='2cxm')
     # Check convergence to T=0 solution
     err0 = np.linalg.norm(C0-C)
     err1 = np.linalg.norm(C1-C)
@@ -907,13 +907,13 @@ def test_conc_2cxm():
     # # test boundary case: TE=inf
     E = 0.5
     T = [6,12]
-    C0 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C0 = dc.conc(J, T, E, t=t, model='2cxm')
     T[1] = 100
-    C1 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C1 = dc.conc(J, T, E, t=t, model='2cxm')
     T[1] = 1000
-    C2 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C2 = dc.conc(J, T, E, t=t, model='2cxm')
     T[1] = np.inf
-    C = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C = dc.conc(J, T, E, t=t, model='2cxm')
     # Check convergence to T=0 solution
     err0 = np.linalg.norm(C0-C)
     err1 = np.linalg.norm(C1-C)
@@ -925,13 +925,13 @@ def test_conc_2cxm():
     # # test boundary case: E=0
     E = 0.5
     T = [6,12]
-    C0 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C0 = dc.conc(J, T, E, t=t, model='2cxm')
     E = 0.05
-    C1 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C1 = dc.conc(J, T, E, t=t, model='2cxm')
     E = 0.005
-    C2 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C2 = dc.conc(J, T, E, t=t, model='2cxm')
     E = 0
-    C = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C = dc.conc(J, T, E, t=t, model='2cxm')
     # Check convergence to T=0 solution
     err0 = np.linalg.norm(C0-C)
     err1 = np.linalg.norm(C1-C)
@@ -943,13 +943,13 @@ def test_conc_2cxm():
     # # test boundary case: E=1
     E = 0.5
     T = [6,12]
-    C0 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C0 = dc.conc(J, T, E, t=t, model='2cxm')
     E = 0.95
-    C1 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C1 = dc.conc(J, T, E, t=t, model='2cxm')
     E = 0.995
-    C2 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C2 = dc.conc(J, T, E, t=t, model='2cxm')
     E = 1
-    C = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C = dc.conc(J, T, E, t=t, model='2cxm')
     # Check convergence to T=0 solution
     err0 = np.linalg.norm(C0-C)
     err1 = np.linalg.norm(C1-C)
@@ -961,17 +961,17 @@ def test_conc_2cxm():
     # # test boundary case: E=1, Tp=0
     E = 0.5
     T = [6,12]
-    C0 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C0 = dc.conc(J, T, E, t=t, model='2cxm')
     E = 0.95
-    C1 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C1 = dc.conc(J, T, E, t=t, model='2cxm')
     T[0] = 0.1
-    C2 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C2 = dc.conc(J, T, E, t=t, model='2cxm')
     E = 0.99
     T[0] = 0.01
-    C3 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C3 = dc.conc(J, T, E, t=t, model='2cxm')
     E = 1
     T[0] = 0
-    C = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C = dc.conc(J, T, E, t=t, model='2cxm')
     # Check convergence to T=0 solution
     err0 = np.linalg.norm(C0-C)
     err1 = np.linalg.norm(C1-C)
@@ -985,17 +985,17 @@ def test_conc_2cxm():
     # # test boundary case: E=1, Te=0
     E = 0.5
     T = [6,12]
-    C0 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C0 = dc.conc(J, T, E, t=t, model='2cxm')
     E = 0.95
-    C1 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C1 = dc.conc(J, T, E, t=t, model='2cxm')
     T[1] = 0.1
-    C2 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C2 = dc.conc(J, T, E, t=t, model='2cxm')
     E = 0.99
     T[1] = 0.01
-    C3 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C3 = dc.conc(J, T, E, t=t, model='2cxm')
     E = 1
     T[1] = 0
-    C = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C = dc.conc(J, T, E, t=t, model='2cxm')
     # Check convergence to T=0 solution
     #err0 = np.linalg.norm(C0-C) # diverges before it converges
     err1 = np.linalg.norm(C1-C)
@@ -1009,17 +1009,17 @@ def test_conc_2cxm():
     # # test boundary case: E=1, Tp=inf
     E = 0.5
     T = [6,12]
-    C0 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C0 = dc.conc(J, T, E, t=t, model='2cxm')
     E = 0.95
-    C1 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C1 = dc.conc(J, T, E, t=t, model='2cxm')
     T[0] = 100
-    C2 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C2 = dc.conc(J, T, E, t=t, model='2cxm')
     E = 0.99
     T[0] = 1000
-    C3 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C3 = dc.conc(J, T, E, t=t, model='2cxm')
     E = 1
     T[0] = np.inf
-    C = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C = dc.conc(J, T, E, t=t, model='2cxm')
     plt.show()
     # Check convergence to T=0 solution
     #err0 = np.linalg.norm(C0-C) # diverges before convergence
@@ -1034,17 +1034,17 @@ def test_conc_2cxm():
     # # test boundary case: E=1, Te=inf
     E = 0.5
     T = [6,12]
-    C0 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C0 = dc.conc(J, T, E, t=t, model='2cxm')
     E = 0.95
-    C1 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C1 = dc.conc(J, T, E, t=t, model='2cxm')
     T[1] = 100
-    C2 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C2 = dc.conc(J, T, E, t=t, model='2cxm')
     E = 0.99
     T[1] = 1000
-    C3 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C3 = dc.conc(J, T, E, t=t, model='2cxm')
     E = 1
     T[1] = np.inf
-    C = dc.conc(J, T, E, t=t, kinetics='2cxm')
+    C = dc.conc(J, T, E, t=t, model='2cxm')
     # Check convergence to T=0 solution
     #err0 = np.linalg.norm(C0-C) # diverges before convergence
     err1 = np.linalg.norm(C1-C)
@@ -1059,7 +1059,7 @@ def test_conc_2cxm():
     E = -0.5
     T = [6,12]
     try:
-        C2 = dc.conc(J, T, E, t=t, kinetics='2cxm')
+        C2 = dc.conc(J, T, E, t=t, model='2cxm')
     except:
         assert True
     else:
@@ -1075,28 +1075,28 @@ def test_flux_2cxm():
 
     T = [6,12]
     E = 0.1
-    J0 = dc.flux(J, T, E, t=t, kinetics='2cxm')
+    J0 = dc.flux(J, T, E, t=t, model='2cxm')
     E = [[1-E,1],[E,0]]
-    J1 = dc.flux(J2c, T, E, t=t, kinetics='ncomp')[0,0,:]
+    J1 = dc.flux(J2c, T, E, t=t, model='ncomp')[0,0,:]
     assert np.linalg.norm(J1-J0)/np.linalg.norm(J1) < 1e-9
 
     E = 0.5
-    J0 = dc.flux(J, T, E, t=t, kinetics='2cxm')
+    J0 = dc.flux(J, T, E, t=t, model='2cxm')
     E = [[1-E,1],[E,0]]
-    J1 = dc.flux(J2c, T, E, t=t, kinetics='ncomp')[0,0,:]
+    J1 = dc.flux(J2c, T, E, t=t, model='ncomp')[0,0,:]
     assert np.linalg.norm(J1-J0)/np.linalg.norm(J1) < 1e-9
 
 
     # # test boundary case: E=1
     E = 0.5
     T = [6,12]
-    J0 = dc.flux(J, T, E, t=t, kinetics='2cxm')
+    J0 = dc.flux(J, T, E, t=t, model='2cxm')
     E = 0.95
-    J1 = dc.flux(J, T, E, t=t, kinetics='2cxm')
+    J1 = dc.flux(J, T, E, t=t, model='2cxm')
     E = 0.999
-    J2 = dc.flux(J, T, E, t=t, kinetics='2cxm')
+    J2 = dc.flux(J, T, E, t=t, model='2cxm')
     E = 1
-    J3 = dc.flux(J, T, E, t=t, kinetics='2cxm')
+    J3 = dc.flux(J, T, E, t=t, model='2cxm')
     # Check convergence to solution
     err0 = np.linalg.norm(J0-J3)
     err1 = np.linalg.norm(J1-J3)
@@ -1108,13 +1108,13 @@ def test_flux_2cxm():
     # # test boundary case: Tp=0
     E = 0.5
     T = [6,12]
-    J0 = dc.flux(J, T, E, t=t, kinetics='2cxm')
+    J0 = dc.flux(J, T, E, t=t, model='2cxm')
     T[0] = 1
-    J1 = dc.flux(J, T, E, t=t, kinetics='2cxm')
+    J1 = dc.flux(J, T, E, t=t, model='2cxm')
     T[0] = 0.1
-    J2 = dc.flux(J, T, E, t=t, kinetics='2cxm')
+    J2 = dc.flux(J, T, E, t=t, model='2cxm')
     T[0] = 0.01
-    J3 = dc.flux(J, T, E, t=t, kinetics='2cxm')
+    J3 = dc.flux(J, T, E, t=t, model='2cxm')
     # Check convergence to solution
     err0 = np.linalg.norm(J0-J3)
     err1 = np.linalg.norm(J1-J3)
@@ -1126,16 +1126,16 @@ def test_flux_2cxm():
     # # test boundary case: Tp=0, Te=inf
     E = 0.5
     T = [6,12]
-    J0 = dc.flux(J, T, E, t=t, kinetics='2cxm')
+    J0 = dc.flux(J, T, E, t=t, model='2cxm')
     T[0] = 0.1
     T[1] = 100
-    J1 = dc.flux(J, T, E, t=t, kinetics='2cxm')
+    J1 = dc.flux(J, T, E, t=t, model='2cxm')
     T[0] = 0.01
     T[1] = 1000
-    J2 = dc.flux(J, T, E, t=t, kinetics='2cxm')
+    J2 = dc.flux(J, T, E, t=t, model='2cxm')
     T[0] = 0
     T[1] = np.inf
-    J3 = dc.flux(J, T, E, t=t, kinetics='2cxm')
+    J3 = dc.flux(J, T, E, t=t, model='2cxm')
     # Check convergence to solution
     err0 = np.linalg.norm(J0[1:]-J3[1:])
     err1 = np.linalg.norm(J1[1:]-J3[1:])
@@ -1153,7 +1153,7 @@ def test_conc():
     T = [6,12]
     E = 0.1
     try:
-        dc.conc(J, T, E, t=t, kinetics='blabla') 
+        dc.conc(J, T, E, t=t, model='blabla') 
     except:
         assert True
     else:
@@ -1167,7 +1167,7 @@ def test_flux():
     T = [6,12]
     E = 0.1
     try:
-        J1 = dc.flux(J, T, E, t=t, kinetics='blabla') 
+        J1 = dc.flux(J, T, E, t=t, model='blabla') 
     except:
         assert True
     else:

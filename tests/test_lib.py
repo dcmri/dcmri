@@ -177,20 +177,91 @@ def test_aif_tristan_rat():
     assert np.round(1000*np.amax(ca), 1) == 0.5
 
 
+def test_model_props():
+
+    try:
+        dc.model_props('blabla')
+    except:
+        assert True
+    else:
+        assert False
+
+    assert dc.model_props('U')['params'] == ['Fp']
+
+    vals = {
+        'Fp':0.01,
+        'Ktrans':0.003,
+        'vi': 0.3,
+        'vc': 0.6,
+        'vb': 0.1,
+        'PSe': 10,
+        'PSc':10,
+    }
+
+    try: # Error: missing vp value
+        dc.model_props('2CX', vals)['params']
+    except:
+        assert True
+    else:
+        assert False
+
+    vals['vp'] = 0.05
+
+    # Test some typical results (no vals)
+
+    assert np.array_equal(
+        dc.model_props('2CX')['params'],
+        ['vp', 'vi', 'Fp', 'Ktrans'],
+    )
+    assert np.array_equal(
+        dc.model_props('2CX')['ub'],
+        [1, 1, np.inf, np.inf],
+    )
+    assert np.array_equal(
+        dc.model_props('RF-2CU')['params'],
+        ['PSe', 'vb', 'vp', 'Fp', 'Ktrans'],
+    )
+    assert np.array_equal(
+        dc.model_props('RF-2CU')['ub'],
+        [np.inf, 1, 1, np.inf, np.inf],
+    )
+    assert np.array_equal(
+        dc.model_props('RF-2CU')['PSw'],
+        [['', 'PSe'], ['PSe', '']],
+    )
+    assert np.array_equal(
+        dc.model_props('RF-2CU')['volw'],
+        ['vb', '1-vb'],
+    )
+
+    # Test some typical results (vals)
+    assert dc.model_props('U', vals)['params'] == {'Fp':0.01}
+    assert dc.model_props('NX', vals)['params'] == {'Fp':0.01, 'vp':0.05}
+    assert dc.model_props('RR-NX', vals)['params'] == {'PSe': 10, 'vb': 0.1, 'vp': 0.05, 'Fp': 0.01}
+
+    PSw = dc.model_props('RN-2CX', vals)['PSw']
+    assert np.array_equal(PSw, [[0,10,0],[10,0,0],[0,0,0]])
+
+    assert dc.model_props('RR-NX', vals)['name']['Fp'] == 'Plasma flow'
+    assert dc.model_props('RR-NX', vals)['unit']['Fp'] == 'mL/sec/cm3'
+    
+
+
 
 if __name__ == "__main__":
 
-    test_fetch()
-    test_influx_step()
-    test_ca_conc()
-    test_ca_std_dose()
-    test_relaxivity()
-    test_T1()
-    test_T2()
-    test_PD()
-    test_perfusion()
-    test_shepp_logan()
-    test_aif_parker()
-    test_aif_tristan_rat()
+    # test_fetch()
+    # test_influx_step()
+    # test_ca_conc()
+    # test_ca_std_dose()
+    # test_relaxivity()
+    # test_T1()
+    # test_T2()
+    # test_PD()
+    # test_perfusion()
+    # test_shepp_logan()
+    # test_aif_parker()
+    # test_aif_tristan_rat()
+    test_model_props()
 
     print('All lib tests passed!!')

@@ -8,6 +8,7 @@ from scipy.optimize import curve_fit
 from tqdm import tqdm
 
 
+
 try: 
     num_workers = int(len(os.sched_getaffinity(0)))
 except: 
@@ -152,6 +153,9 @@ class ArrayModel():
                 getattr(self, 'sdev_' + p),
             ]
         return pars
+    
+    def _override_defaults(*args, **kwargs):
+        _override_defaults(*args, **kwargs)
 
 
 class Model:
@@ -304,7 +308,7 @@ class Model:
             round_to (int, optional): Round to how many digits. If this is not provided, the values are not rounded. Defaults to None.
 
         Returns:
-            list: values of parameter values
+            list or float: values of parameter values, or a scalar value if only one parameter is required.
         """
         pars = []
         for a in args:
@@ -312,9 +316,15 @@ class Model:
             if round_to is not None:
                 v = round(v, round_to)
             pars.append(v)
-        return pars
-    
-    
+        if len(pars)==1:
+            return pars[0]
+        else:
+            return pars
+        
+    def _override_defaults(*args, **kwargs):
+        _override_defaults(*args, **kwargs)
+        
+ 
     def _getflat(self, attr:np.ndarray=None)->np.ndarray:
         if attr is None:
             attr = self.free
@@ -371,6 +381,34 @@ class Model:
             if par in pars:
                 pars[par][-1] = perr[i]
         return pars
+
+
+def _override_defaults(self, free=None, bounds=None, **params):
+
+    for k, v in params.items():
+        setattr(self, k, v)
+
+    if free is not None:
+        self.free = list(free.keys())
+        self.bounds = [
+            [free[k][0] for k in free],
+            [free[k][1] for k in free],
+        ]
+    elif bounds is not None:
+        for par in bounds:
+            try:
+                i = self.free.index(par)
+            except:
+                pass
+            else:
+                if np.isscalar(self.bounds[0]):
+                    b = self.bounds[0]
+                    self.bounds[0] = [b]*len(self.free)
+                if np.isscalar(self.bounds[1]):
+                    b = self.bounds[1]
+                    self.bounds[1] = [b]*len(self.free)
+                self.bounds[0][i] = bounds[par][0]
+                self.bounds[1][i] = bounds[par][1]
 
 
 def _save(model, file=None, path=None, filename='Model'):

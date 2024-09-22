@@ -1,5 +1,5 @@
 import numpy as np
-import dcmri as dc
+import dcmri.pk as pk
 
 
 def conc_kidney(ca:np.ndarray, *params, t=None, dt=1.0, sum=True, kinetics='2CF', **kwargs)->np.ndarray:
@@ -100,9 +100,9 @@ def conc_kidney(ca:np.ndarray, *params, t=None, dt=1.0, sum=True, kinetics='2CF'
 
 def _conc_kidney_2cf(ca, Fp, Tp, Ft, Tt, t=None, dt=1.0, sum=True):
     vp = Tp*(Fp+Ft)
-    Cp = dc.conc_comp(Fp*ca, Tp, t=t, dt=dt)
+    Cp = pk.conc_comp(Fp*ca, Tp, t=t, dt=dt)
     cp = Cp/vp
-    Ct = dc.conc_comp(Ft*cp, Tt, t=t, dt=dt)   
+    Ct = pk.conc_comp(Ft*cp, Tt, t=t, dt=dt)   
     if sum:
         return Cp+Ct
     else:
@@ -110,7 +110,7 @@ def _conc_kidney_2cf(ca, Fp, Tp, Ft, Tt, t=None, dt=1.0, sum=True):
     
 def _conc_kidney_hf(ca, vp, Ft, Tt, t=None, dt=1.0, sum=True):
     Cp = vp*ca
-    Ct = dc.conc_comp(Ft*ca, Tt, t=t, dt=dt)   
+    Ct = pk.conc_comp(Ft*ca, Tt, t=t, dt=dt)   
     if sum:
         return Cp+Ct
     else:
@@ -127,9 +127,9 @@ def _conc_kidney_fn(ca, Fp, Tp, Ft, h, t=None, dt=1.0, sum=True, TT=None):
         nTT = 1+np.size(h)
         TT = np.linspace(0, tmax, nTT)
     vp = Tp*(Fp+Ft)
-    Cp = dc.conc_plug(Fp*ca, Tp, t=t, dt=dt) 
+    Cp = pk.conc_plug(Fp*ca, Tp, t=t, dt=dt) 
     cp = Cp/vp
-    Ct = dc.conc_free(Ft*cp, h, dt=dt, TT=TT, solver='step')  
+    Ct = pk.conc_free(Ft*cp, h, dt=dt, TT=TT, solver='step')  
     if sum:
         return Cp+Ct
     else:
@@ -211,22 +211,22 @@ def conc_kidney_cortex_medulla(ca:np.ndarray, *params, t=None, dt=1.0, sum=True,
 def _conc_kidney_cm9(ca, Fp, Eg, fc, Tg, Tv, Tpt, Tlh, Tdt, Tcd, t=None, dt=1.0, sum=True):
 
     # Flux out of the glomeruli and arterial tree
-    Jg = dc.flux(Fp*ca, Tg, t=t, dt=dt, kinetics='comp')
+    Jg = pk.flux(Fp*ca, Tg, t=t, dt=dt, model='comp')
 
     # Flux out of the peritubular capillaries and venous system
-    Jv = dc.flux((1-Eg)*Jg, Tv, t=t, dt=dt, kinetics='comp')
+    Jv = pk.flux((1-Eg)*Jg, Tv, t=t, dt=dt, model='comp')
 
     # Flux out of the proximal tubuli
-    Jpt = dc.flux(Eg*Jg, Tpt, t=t, dt=dt, kinetics='comp')
+    Jpt = pk.flux(Eg*Jg, Tpt, t=t, dt=dt, model='comp')
 
     # Flux out of the lis of Henle
-    Jlh = dc.flux(Jpt, Tlh, t=t, dt=dt, kinetics='comp')
+    Jlh = pk.flux(Jpt, Tlh, t=t, dt=dt, model='comp')
 
     # Flux out of the distal tubuli
-    Jdt = dc.flux(Jlh, Tdt, t=t, dt=dt, kinetics='comp')
+    Jdt = pk.flux(Jlh, Tdt, t=t, dt=dt, model='comp')
 
     # Flux out of the collecting ducts
-    Jcd = dc.flux(Jdt, Tcd, t=t, dt=dt, kinetics='comp')
+    Jcd = pk.flux(Jdt, Tcd, t=t, dt=dt, model='comp')
 
     # Build cortical concentrations
     Cg = Tg*Jg      # arteries/glomeruli

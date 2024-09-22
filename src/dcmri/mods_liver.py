@@ -92,7 +92,7 @@ class Liver(dc.Model):
         >>> model.plot(time, roi, ref=gt)
     """ 
 
-    def __init__(self, **params):
+    def __init__(self, free=None, bounds=None, **params):
 
         # Input function
         self.aif = None
@@ -142,9 +142,7 @@ class Liver(dc.Model):
                 self.bounds[0] += [0, 10*60]
                 self.bounds[1] += [ 0.1, 10*60*60]
         
-        # Override defaults
-        for k, v in params.items():
-            setattr(self, k, v)
+        self._override_defaults(free=free, bounds=bounds, **params)
 
         # Check inputs
         if (self.aif is None) and (self.ca is None):

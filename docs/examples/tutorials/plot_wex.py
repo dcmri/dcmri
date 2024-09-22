@@ -5,7 +5,7 @@ An exploration of water exchange effects
 
 This tutorial will explore the effect of water exchange in a standard two-compartmental tissue with extended Tofts kinetics. Data acquisition is modelled using the steady-state model of a spoiled gradient echo sequence.
 
-The three tissue compartments involved are the blood, interstitium and tissue cells. The effect of water exchange between blood and interstitium (**transendothelial** water exchange) and between intersitium and tissue cells (**transcytolemmal** water exchange) is separately investigated. The water exchange in the blood compartment, particularly between plasma and red blood cells, is assumed to be in the fast exhange limit throughout. 
+The three tissue compartments involved are the blood, interstitium and tissue cells. The effect of water exchange between blood and interstitium (**transendothelial** water exchange) and between interstitium and tissue cells (**transcytolemmal** water exchange) is separately investigated. The water exchange in the blood compartment, particularly between plasma and red blood cells, is assumed to be in the fast exhange limit throughout. 
 """
 
 # %%
@@ -32,51 +32,39 @@ tacq, aif, _, _ = dc.fake_tissue(tacq=300, **const)
 
 # The ground-truth kinetic parameters of the extended Tofts model
 ptruth = {
-    'S0':1,        # S0 (a.u.)
-    'vp':0.05,       # vp (mL/mL)
-    'PS':0.1/60,     # Ktrans (mL/sec/mL)
-    've':0.30,        # ve (mL/mL)
+    'S0':1,             # arbitrary units
+    'vp':0.05,          # mL/cm3
+    'Ktrans':0.1/60,    # mL/sec/cm3
+    'vi':0.30,          # mL/cm3
 } 
 truth = np.array(list(ptruth.values()))
 
 # %% 
 # Visualising water exchange effects
 # ----------------------------------
-# We'll start by exploring how the level of water exchange affects the measured signal. As a point of reference we will predict signals using explicit models in the limits of fast water exchange and no water exchange:
+# We'll start by exploring how the level of water exchange affects the measured signal. We will predict signals using explicit models in the limiting scenarios of fast water exchange (F) and no water exchange (N):
 
 # %% 
 
-# Signal in the fast water exchange limit (all barriers fully transparent to water)
+# The fast water exchange limit (all barriers fully transparent to water) - this is the default:
 ffx = dc.Tissue(aif=aif, t=tacq, **(const | ptruth)).predict(tacq)
 
-# Signal in the no water exchange limit (all barriers impermeable to water)
-nnx = dc.Tissue(aif=aif, t=tacq, water_exchange='none', **(const | ptruth)).predict(tacq)
+# The no water exchange limit (NN, both barriers impermeable to water). 
+nnx = dc.Tissue(aif=aif, t=tacq, water_exchange='NN', **(const | ptruth)).predict(tacq)
 
-# %% 
-# In order to simulate intermediate regimes, we need the more general model that allows us to vary the values of the water permeabilities ``PSe`` and ``PSc`` across the endothelium and the membrane of the tissue cells, respectively. 
-#
-# In the first instance we consider a (hypothetical) tissue without transendothelial water exchange, but fast transcytolemmal water exchange. In other words, the endothelium is impermeable to water (``PSe = 0``) and the cell membrane is fully transparent. The symbolic value ``PSc = np.inf`` is not allowed but we can set ``PSc`` to the very high value of 1000 mL water filtered per second by 1mL of tissue. This is indistinguishable from the fast water exchange limit ``PSc = np.inf`` (as could be verified by increasing the value even higher):
+# A mixed case, with no transendothelial water exchange (N), but fast transcytolemmal water exchange (F):
+nfx = dc.Tissue(aif=aif, t=tacq, water_exchange='NF', **(const | ptruth)).predict(tacq) 
+
+# The other mixed case (FN) with fast transendothelial water exchange (F), but no transcytolemmal water exchange (N):
+fnx = dc.Tissue(aif=aif, t=tacq, water_exchange='FN', **(const | ptruth)).predict(tacq)
+
+# %%
+# Now we turn to the intermediate case of restricted water exchange (R), where the water exchange is neither infinite or zero. A choice of ``PSe = 1`` mL/sec/cm3 and ``PSc = 2`` mL/sec/cm3 produces a curve that lies in between the extremes:
 
 # %%
 
-# Signal without transendothelial water exchange, but fast transcytolemmal water exchange
-nfx = dc.Tissue(aif=aif, t=tacq, water_exchange='any', PSe=0, PSc=1000, **(const | ptruth)).predict(tacq) 
-
-# %% 
-# Next we consider the alternative scenario where the endothelium is transparent to water (``PSe = np.inf``, approximated as ``PSe = 1000``) and the cell membrane is impermeable (``PSc = 0``):
-
-# %%
-
-# Signal with fast transendothelial water exchange, but without transcytolemmal water exchange
-fnx = dc.Tissue(aif=aif, t=tacq, water_exchange='any', PSe=1000, PSc=0, **(const | ptruth)).predict(tacq)
-
-# %%
-# An intermediate situation arises if neither of the water permeabilities is either very high or close to zero. Trial and error shows that a choice of ``PSe = 1`` mL/sec/mL and ``PSc = 2`` mL/sec/mL produces a curve that lies in between the extremes:
-
-# %%
-
-# Signal with intermediate transendothelial and transcytolemmal water exchange
-iix = dc.Tissue(aif=aif, t=tacq, water_exchange='any', PSe=1, PSc=2, **(const | ptruth)).predict(tacq)
+# Signal with restricted (R) transendothelial and transcytolemmal water exchange (RR):
+iix = dc.Tissue(aif=aif, t=tacq, water_exchange='RR', PSe=1, PSc=2, **(const | ptruth)).predict(tacq)
 
 # %%
 # We now plot the different results, using fast- and no-exchange limits for visual reference:
@@ -131,20 +119,20 @@ plt.show()
 #
 # One way to explore the scale of the water exchange bias is by generating data for a tissue in the fast exchange limit and analysing them making the opposite assumption that water exchange is negligible:
 
-# Launch a no-exchange model with default settings for the free parameters
-model = dc.Tissue(aif=aif, t=tacq, water_exchange='none', **const)
+# Launch a no-exchange model
+model = dc.Tissue(aif=aif, t=tacq, water_exchange='NN', **const)
 
-# Predict the signal using the untrained model as a reference
+# To check the effect of training, first predict the signal using the untrained model
 nnx0 = model.predict(tacq)
 
-# Train the model using data for a fast-exchange tissue
+# Fit the model to the fast-exchange tissue
 model.train(tacq, ffx)
 
 # Predict the signal using the trained model
 nnx1 = model.predict(tacq)
 
 # Calculate the bias in the fitted parameters in %
-pars = model.get_params('S0','vp','PS','ve')
+pars = model.get_params('S0','vp','Ktrans','vi')
 bias = 100*(np.array(pars)-truth)/truth
 
 # Plot the model fits
@@ -163,7 +151,7 @@ print('')
 print('Bias in kinetic model parameters')
 print('--------------------------------')
 print('vp error:', round(bias[1],1), '%')
-print('ve error:', round(bias[3],1), '%')
+print('vi error:', round(bias[3],1), '%')
 print('Ktrans error:', round(bias[2],1), '%')
 
 # %%
@@ -175,17 +163,17 @@ print('Ktrans error:', round(bias[2],1), '%')
 # The model bias can be removed by generalizing the model to allow for any level of water exchange, avoiding the risk of making a false assumption on this point:
 
 # Launch a general water exchange model with default settings for all free parameters
-model = dc.Tissue(aif=aif, t=tacq, water_exchange='any', **const)
+model = dc.Tissue(aif=aif, t=tacq, water_exchange='RR', **const)
 
 # Predict the signal using the untrained model as a reference
 iix0 = model.predict(tacq)
 
-# Train the model using fast-exchange data and predict the signal again.
-# Note: we reduce here the x-tolerance from its default (1e-08) to speed up convergence. 
-iix1 = model.train(tacq, ffx, xtol=1e-2).predict(tacq)
+# Fit the model to the fast-exchange data and predict the signal again 
+# (we reduce here the x-tolerance to speed up convergence). 
+iix1 = model.train(tacq, ffx, xtol=1e-4).predict(tacq)
 
 # Calculate the bias in the fitted parameters
-pars = model.get_params('S0','vp','PS','ve')
+pars = model.get_params('S0','vp','Ktrans','vi')
 bias = 100*(np.array(pars)-truth)/truth
 
 # Plot the model fits
@@ -204,21 +192,23 @@ print('')
 print('Bias in kinetic model parameters')
 print('--------------------------------')
 print('vp error:', round(bias[1],2), '%')
-print('ve error:', round(bias[3],2), '%')
+print('vi error:', round(bias[3],2), '%')
 print('Ktrans error:', round(bias[2],2), '%')
 
 # Print the water permeability estimates
 print('')
 print('Water permeability estimates')
 print('----------------------------')
-print('PSe:', round(model.PSe,0), 'mL/sec/mL')
-print('PSc:', round(model.PSc,0), 'mL/sec/mL')
+print('PSe:', model.get_params('PSe', round_to=0), 'mL/sec/cm3')
+print('PSc:', model.get_params('PSc', round_to=0), 'mL/sec/cm3')
 
 
 # %%
-# Plotting the results now shows a practically perfect fit to the data, and the measurements of the kinetic parameters are effectively unbiased. 
+# Plotting the results now shows a practically perfect fit to the data, and the measurements of the kinetic parameters are more accurate.  
 # 
 # As a bonus the water-exchange sensitive model also estimates the water permeability, which as expected produces values in the fast-exchange range. As the actual PS-values are infinite the estimates can never approximate the ground truth, but at this level the predicted data are effectively indistinguishable from fast-exchange signals. 
+#
+# Note this does not automatically imply that water exchanges rates should always be included in the modelling. The data in this tutorial are noise free, and noise in the data may well mask more subtle structure such as that imposed by restricted water exchange.
 
 # %% 
 # Additional sources of bias
@@ -233,7 +223,7 @@ print('PSc:', round(model.PSc,0), 'mL/sec/mL')
 model = dc.Tissue(aif=aif, t=tacq, **const).train(tacq, ffx)
 
 # Calculate the bias relative to the ground truth
-pars = model.get_params('S0','vp','PS','ve')
+pars = model.get_params('S0','vp','Ktrans','vi')
 bias = 100*(np.array(pars)-truth)/truth
 
 # Print the bias for each kinetic parameter
@@ -241,38 +231,12 @@ print('')
 print('Bias in kinetic model parameters')
 print('--------------------------------')
 print('vp error:', round(bias[1],2), '%')
-print('ve error:', round(bias[3],2), '%')
+print('vi error:', round(bias[3],2), '%')
 print('Ktrans error:', round(bias[2],2), '%')
 
 # %%
-# Any remaining bias is smaller than 0.01%, which shows that temporal undersampling in this case only causes a minor error, and the residual errors observed with the more general model are due to imperfect convergence or numerical error. We can test for convergence bias by retraining the model with tighter convergence criteria: 
-
-# Train a general water exchange model to fast exchange data:
-model = dc.Tissue(aif=aif, t=tacq, water_exchange='any', **const).train(tacq, ffx, xtol=1e-9)
-
-# Calculate the bias in the fitted parameters
-pars = model.get_params('S0','vp','PS','ve')
-bias = 100*(np.array(pars)-truth)/truth
-
-# Print the parameter bias
-print('')
-print('Bias in kinetic model parameters')
-print('--------------------------------')
-print('vp error:', round(bias[1],2), '%')
-print('ve error:', round(bias[3],2), '%')
-print('Ktrans error:', round(bias[2],2), '%')
-
-# Print the water permeability estimates
-print('')
-print('Water permeability estimates')
-print('----------------------------')
-print('PSe:', round(model.PSe,0), 'mL/sec/mL')
-print('PSc:', round(model.PSc,0), 'mL/sec/mL')
-
-# %%
-# The result is almost exactly the same as before, which indicates that the model has indeed converged and the residual bias is likely due to numerical error. This is plausible, since the general water exchange model is implemented using linear algebra involving operations such as matrix exponentials and numerical matrix inversion, which are likely to come with some numerical error. The exercise here verifies that the impact of these errors on the measurements of the kinetic parameters is negligible - as it should be.  
-
-# %% 
-# Bias versus precision
-# ---------------------
+# Any remaining bias is smaller than 0.01%, which shows that temporal undersampling in this case only causes a minor error, and the residual errors observed with the more general model are due to imperfect convergence or numerical error. 
 # 
+# Imperfect convergence is likely to play a role, as actual water PS values are infinite in this case, convergence is likely to be slow. Indeed - reducing the xtolerance and increasing the maximum number of iterations leads to increasingly accurate results.
+# 
+# Numerical error may also play a role, since the general water exchange model is implemented using linear algebra involving operations such as matrix exponentials and numerical matrix inversion, which are likely to come with some numerical error. However the effect is likely small compared to other sources of error at play.

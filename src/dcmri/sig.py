@@ -190,7 +190,7 @@ def _signal_ss_aex(PS, v, R1, S0, TR, FA):
     return np.sin(FA)*Mag.reshape(n[1:])
 
 
-def signal_ss(R1, S0, TR, FA, v=None, PSw=np.inf, R10=None)->np.ndarray:
+def signal_ss(R1, S0, TR, FA, v=1, PSw=np.inf, R10=None)->np.ndarray:
     """Signal of a spoiled gradient echo sequence applied in steady state.
 
     Args:
@@ -198,7 +198,7 @@ def signal_ss(R1, S0, TR, FA, v=None, PSw=np.inf, R10=None)->np.ndarray:
         S0 (float): Signal scaling factor (arbitrary units).
         TR (float): Repetition time, or time between successive selective excitations, in sec. 
         FA (float): Flip angle in degrees.
-        v (array-like, optional): volume fractions of each compartment. If v is not provided, the tissue will be treated as one-compartmental. If v is provided, the length must be same as the first dimension of R1 and values must add up to 1. Defaults to None.
+        v (array-like, optional): volume fractions of each compartment. v=1 for a 1-compartment tissue. For a tissue with multiple compartments, the length of v must be same as the first dimension of R1 and values must add up to 1. Defaults to 1.
         PSw (array-like, optional): Water permeability-surface area products through the interfaces between the compartments, in units of mL/sec/mL. With PSw=np.inf (default), water exchange is in the fast-exchange limit. With PSw=0, there is no water exchange between the compartments. For any intermediate level of water exchange, PSw must be a nxn array, where n is the number of compartments, and PSw[j,i] is the permeability for water moving from compartment i into j. The diagonal elements PSw[i,i] quantify the flow of water from compartment i to outside. Defaults to np.inf.
         R10 (float, optional): R1-value where S0 is defined. If not provided, S0 is the scaling factor corresponding to infinite R10. Defaults to None.
 
@@ -208,10 +208,10 @@ def signal_ss(R1, S0, TR, FA, v=None, PSw=np.inf, R10=None)->np.ndarray:
     if R10 is None:
         Sinf = S0
     else:
-        if v is not None:
+        if v!=1:
             R10 = np.full(len(v), R10)
         Sinf = S0/signal_ss(R10, 1, TR, FA, v=v, PSw=PSw)
-    if v is None:
+    if v==1:
         return _signal_ss(R1, Sinf, TR, FA)
     if np.isscalar(R1):
         raise ValueError('In a multi-compartment system, R1 must be an array with at least 1 dimension..')
@@ -225,11 +225,17 @@ def signal_ss(R1, S0, TR, FA, v=None, PSw=np.inf, R10=None)->np.ndarray:
             return _signal_ss_fex(v, R1, Sinf, TR, FA)
         elif PSw==0:
             return _signal_ss_nex(v, R1, Sinf, TR, FA)
+        else:
+            nc = len(v)
+            PSw = np.full((nc,nc), PSw) - np.diag(np.full(nc, PSw))
+            return signal_ss(R1, Sinf, TR, FA, v=v, PSw=PSw)
     else:
         if np.ndim(PSw) != 2:
             raise ValueError("For intermediate water exchange, PSw must be a square array")
         if np.shape(PSw)[0] != np.size(v):
             raise ValueError("Dimensions of PSw and v do not match up.")
+        if 0 == np.linalg.norm(PSw-np.diag(np.diag(PSw))):
+            return _signal_ss_nex(v, R1, Sinf, TR, FA)
         return _signal_ss_aex(PSw, v, R1, Sinf, TR, FA)
 
 
@@ -313,7 +319,7 @@ def _signal_sr_nex(v, R1, S0:float, TR:float, FA:float, TC:float, TP=0.0):
     return S
 
 
-def signal_sr(R1, S0:float, TR:float, FA:float, TC:float, TP=0.0, v=None, PSw=np.inf, R10=None)->np.ndarray:
+def signal_sr(R1, S0:float, TR:float, FA:float, TC:float, TP=0.0, v=1, PSw=np.inf, R10=None)->np.ndarray:
     """Signal model for a saturation-recovery sequence with a FLASH readout.
 
     Args:
@@ -323,9 +329,8 @@ def signal_sr(R1, S0:float, TR:float, FA:float, TC:float, TP=0.0, v=None, PSw=np
         FA (array-like): Flip angle in degrees.
         TC (float): Time (sec) between the saturation pulse and the acquisition of the k-space center.
         TP (float, optional): Time (sec) between the saturation pre-pulse and the first readout pulse. Defaults to 0.
-        v (array-like, optional): volume fractions of each compartment. If v is not provided, the tissue will be treated as one-compartmental. If v is provided, the length must be same as the first dimension of R1 and values must add up to 1. Defaults to None.
+        v (array-like, optional): volume fractions of each compartment. v=1 for a 1-compartment tissue. For a tissue with multiple compartments, the length of v must be same as the first dimension of R1 and values must add up to 1. Defaults to 1.
         PSw (array-like, optional): Water permeability-surface area products through the interfaces between the compartments, in units of mL/sec/mL. With PSw=np.inf (default), water exchange is in the fast-exchange limit. With PSw=0, there is no water exchange between the compartments. For any intermediate level of water exchange, PSw must be a nxn array, where n is the number of compartments, and PSw[j,i] is the permeability for water moving from compartment i into j. The diagonal elements PSw[i,i] quantify the flow of water from compartment i to outside. Defaults to np.inf.
-
         R10 (float, optional): R1-value where S0 is defined. If not provided, S0 is the scaling factor corresponding to infinite R10. Defaults to None.
 
     Raises:
@@ -337,10 +342,10 @@ def signal_sr(R1, S0:float, TR:float, FA:float, TC:float, TP=0.0, v=None, PSw=np
     if R10 is None:
         Sinf = S0
     else:
-        if v is not None:
+        if v!=1:
             R10 = np.full(len(v), R10)
         Sinf = S0/signal_sr(R10, 1, TR, FA, TC, TP, v=v)
-    if v is None:
+    if v==1:
         return _signal_sr(R1, Sinf, TR, FA, TC, TP)
     if np.isscalar(R1):
         raise ValueError('In a multi-compartment system, R1 must be an array with at least 1 dimension..')
@@ -359,7 +364,7 @@ def signal_sr(R1, S0:float, TR:float, FA:float, TC:float, TP=0.0, v=None, PSw=np
             raise ValueError("For intermediate water exchange, PSw must be a square array")
         if np.shape(PSw)[0] != np.size(v):
             raise ValueError("Dimensions of PSw and v do not match up.")
-        raise NotImplementedError('Internediate water exchange modelling is not yet available for SR sequences')
+        raise NotImplementedError('Internediate water exchange is not yet available for SR sequences')
         #return _signal_sr_aex(PSw, v, R1, Sinf, TR, FA, TC, TP)
 
 

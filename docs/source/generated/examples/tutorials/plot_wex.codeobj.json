@@ -994,7 +994,7 @@
   {
    "is_class": true,
    "is_explicit": false,
-   "module": "dcmri.mods_tissue",
+   "module": "dcmri.tissue_mods",
    "module_short": "dcmri",
    "name": "Tissue"
   },
@@ -1108,7 +1108,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_tissue",
+   "module": "dcmri.tissue_mods",
    "module_short": "dcmri",
    "name": "Tissue"
   },
@@ -1120,29 +1120,11 @@
    "name": "Tissue"
   }
  ],
- "model.PSc": [
-  {
-   "is_class": false,
-   "is_explicit": false,
-   "module": "numpy",
-   "module_short": "numpy",
-   "name": "float64"
-  }
- ],
- "model.PSe": [
-  {
-   "is_class": false,
-   "is_explicit": false,
-   "module": "numpy",
-   "module_short": "numpy",
-   "name": "float64"
-  }
- ],
  "model.get_params": [
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_tissue",
+   "module": "dcmri.tissue_mods",
    "module_short": "dcmri",
    "name": "Tissue.get_params"
   },
@@ -1172,7 +1154,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_tissue",
+   "module": "dcmri.tissue_mods",
    "module_short": "dcmri",
    "name": "Tissue.predict"
   },
@@ -1202,7 +1184,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_tissue",
+   "module": "dcmri.tissue_mods",
    "module_short": "dcmri",
    "name": "Tissue.train"
   },
