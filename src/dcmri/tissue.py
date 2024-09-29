@@ -3,9 +3,10 @@
 import numpy as np
 import dcmri.pk as pk
 import dcmri.utils as utils
+import dcmri.sig as sig
 
-
-def relax_tissue(ca:np.ndarray, R10:float, r1:float, t=None, dt=1.0, model='2CX', **params):
+# TODO: keywords kinetics and water_exchange instead of model
+def relax_tissue(ca:np.ndarray, R10:float, r1:float, t=None, dt=1.0, kinetics='2CX', water_exchange='FF', **params):
     """Relaxation rates for a 2-site exchange tissue and different water exchange regimes
 
     This function returns the free relaxation rates for each distinct tissue compartment as a function of time. The free relaxation rates are the relaxation rates of the tissue compartments in the absence of water exchange between them.
@@ -16,7 +17,8 @@ def relax_tissue(ca:np.ndarray, R10:float, r1:float, t=None, dt=1.0, model='2CX'
         r1 (float): contrast agent relaivity. 
         t (array_like, optional): the time points in sec of the input function *ca*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
         dt (float, optional): spacing in seconds between time points for uniformly spaced time points. This parameter is ignored if *t* is explicity provided. Defaults to 1.0.
-        model (str, optional): Short name of the model to use, as a string specifying the water exchange regime and kinetic model separated by '-' (see `dcmri.model_props` for details).
+        kinetics (str, optional): Kinetic model to use. Defaults to '2CX'.
+        water_exchange (str, optional): Water exchange model to use. Defaults to 'FF'.
         params (dict): model parameters (see `dcmri.model_props` for detail on available models).
 
     Returns:
@@ -68,29 +70,18 @@ def relax_tissue(ca:np.ndarray, R10:float, r1:float, t=None, dt=1.0, model='2CX'
 
     """
 
-    # FA: PSw = np.array([[0,PSc],[PSc,0]]), v = np.array([1-vc, vc])
-    # AF: PSw = np.array([[0,PSe],[PSe,0]]), v = np.array([vb, 1-vb])
-    # A: PSw = np.array([[0,PSe,0],[PSe,0,PSc],[0,PSc,0]]), v = np.array([vb, vi, vc])
-
-
-    # Consider N scenario and FF vs None
-
-    mdl = model.split('-')
-    kinetics = mdl[0] if len(mdl)==1 else mdl[1]
-    wex = 'FF' if len(mdl)==1 else mdl[0]
-
     if kinetics not in ['U', 'FX', 'NX', 'WV', 'HFU', 'HF', '2CU', '2CX']:
         msg = "Kinetic model '" + str(kinetics) + "' is not recognised.\n"
         msg += "Possible values are: 'U', 'FX', 'NX', 'WV', 'HFU', 'HF', '2CU' and '2CX'."
         raise ValueError(msg)
     
-    if wex not in ['FF','NF','RF','FN','NN','RN','FR','NR','RR']:
+    if water_exchange not in ['FF','NF','RF','FN','NN','RN','FR','NR','RR']:
         msg = "Water exchange regime '" + str(wex) + "' is not recognised.\n"
         msg += "Possible values are: 'FF','NF','RF','FN','NN','RN','FR','NR','RR'."
         raise ValueError(msg)
     
     # No water exchange is the same tissue model as restricted water exchange
-    wex = wex.replace('N','R')
+    wex = water_exchange.replace('N','R')
     model = wex + '-' + kinetics
 
     if model=='FF-U':
@@ -169,164 +160,188 @@ def relax_tissue(ca:np.ndarray, R10:float, r1:float, t=None, dt=1.0, model='2CX'
 def _relax_2cx_ff(ca, R10, r1, t=None, dt=1.0, **params):
     C = _conc_2cx(ca, t=t, dt=dt, **params)
     R1 = R10 + r1*C
-    return R1
+    return R1, 1
 
 def _relax_2cu_ff(ca, R10, r1, t=None, dt=1.0, **params):
     C = _conc_2cu(ca, t=t, dt=dt, **params)
     R1 = R10 + r1*C
-    return R1
+    return R1, 1
 
 def _relax_hf_ff(ca, R10, r1, t=None, dt=1.0, **params):
     C = _conc_hf(ca, t=t, dt=dt, **params)
     R1 = R10 + r1*C
-    return R1
+    return R1, 1
 
 def _relax_hfu_ff(ca, R10, r1, t=None, dt=1.0, **params):
     C = _conc_hfu(ca, t=t, dt=dt, **params)
     R1 = R10 + r1*C
-    return R1
+    return R1, 1
 
 def _relax_nx_ff(ca, R10, r1, t=None, dt=1.0, **params):
     C = _conc_nx(ca, t=t, dt=dt, **params)
     R1 = R10 + r1*C
-    return R1
+    return R1, 1
 
 def _relax_wv_ff(ca, R10, r1, t=None, dt=1.0, **params):
     C = _conc_wv(ca, t=t, dt=dt, **params)
     R1 = R10 + r1*C
-    return R1
+    return R1, 1
 
 def _relax_u_ff(ca, R10, r1, t=None, dt=1.0, **params):
     C = _conc_u(ca, t=t, dt=dt, **params)
     R1 = R10 + r1*C
-    return R1
+    return R1, 1
 
 def _relax_fx_ff(ca, R10, r1, t=None, dt=1.0, ve=None, Fp=None):
     C = _conc_1c(ca, t=t, dt=dt, v=ve, F=Fp)
     R1 = R10 + r1*C
-    return R1
+    return R1, 1
 
 
 
-def _relax_2cx_fr(ca, R10, r1, t=None, dt=1.0, vc=None, **params):
-    C = _conc_2cx(ca, t=t, dt=dt, **params)
+def _relax_2cx_fr(ca, R10, r1, t=None, dt=1.0, vb=None, H=None, ui=None, Fp=None, E=None):
+    vp=vb*(1-H)
+    vi=(1-vb)*ui
+    vc=(1-vb)*(1-ui)
+    ve=vp+vi
+    if ve==0:
+        C = ca*0
+    else:
+        C = _conc_2cx(ca, t=t, dt=dt, ve=ve, up=vp/ve, Fp=Fp, E=E)
     R1 = np.full((2,C.size), R10)
     if 1-vc != 0:
         R1[0,:] += r1*C/(1-vc)
-    return R1
+    return R1, [1-vc,vc]
 
-def _relax_2cu_fr(ca, R10, r1, t=None, dt=1.0, vc=None, **params):
-    C = _conc_2cu(ca, t=t, dt=dt, **params)
+def _relax_2cu_fr(ca, R10, r1, t=None, dt=1.0, ucp=None, vcp=None, Fp=None, E=None):
+    vc=ucp*vcp
+    vp=(1-ucp)*vcp
+    C = _conc_2cu(ca, t=t, dt=dt, vp=vp, Fp=Fp, Ktrans=E*Fp)
     R1 = np.full((2,C.size), R10)
     if 1-vc != 0:
         R1[0,:] += r1*C/(1-vc)
-    return R1
+    return R1, [1-vc,vc]
 
-def _relax_hf_fr(ca, R10, r1, t=None, dt=1.0, vc=None, **params):
-    C = _conc_hf(ca, t=t, dt=dt, **params)
+def _relax_hf_fr(ca, R10, r1, t=None, dt=1.0, vb=None, H=None, ui=None,  Ktrans=None):
+    vp=vb*(1-H)
+    vi=(1-vb)*ui
+    vc=(1-vb)*(1-ui)
+    ve=vp+vi
+    if ve==0:
+        C = np.zeros(ca.size)
+    else:
+        C = _conc_hf(ca, t=t, dt=dt, ve=ve, up=vp/ve, Ktrans=Ktrans)
     R1 = np.full((2,C.size), R10)
     if 1-vc != 0:
         R1[0,:] += r1*C/(1-vc)
-    return R1
+    return R1, [1-vc,vc]
 
-def _relax_hfu_fr(ca, R10, r1, t=None, dt=1.0, vc=None, **params):
-    C = _conc_hfu(ca, t=t, dt=dt, **params)
+def _relax_hfu_fr(ca, R10, r1, t=None, dt=1.0, ucp=None, vcp=None, Ktrans=None):
+    vp=(1-ucp)*vcp
+    vc=ucp*vcp
+    C = _conc_hfu(ca, t=t, dt=dt, vp=vp, Ktrans=Ktrans)
     R1 = np.full((2,C.size), R10)
     if 1-vc != 0:
         R1[0,:] += r1*C/(1-vc)
-    return R1
+    return R1, [1-vc,vc]
 
-def _relax_nx_fr(ca, R10, r1, t=None, dt=1.0, vc=None, **params):
-    C = _conc_nx(ca, t=t, dt=dt, **params)
+def _relax_nx_fr(ca, R10, r1, t=None, dt=1.0, ucp=None, vcp=None, Fp=None):
+    vc=ucp*vcp
+    vp=(1-ucp)*vcp
+    C = _conc_nx(ca, t=t, dt=dt, vp=vp, Fp=Fp)
     R1 = np.full((2,C.size), R10)
     if 1-vc != 0:
         R1[0,:] += r1*C/(1-vc)
-    return R1
+    return R1, [1-vc,vc]
 
-def _relax_wv_fr(ca, R10, r1, t=None, dt=1.0, vi=None, **params):
-    C = _conc_wv(ca, t=t, dt=dt, vi=vi, **params)
+def _relax_wv_fr(ca, R10, r1, t=None, dt=1.0, vi=None, Ktrans=None):
+    # vi, Ktrans
+    C = _conc_wv(ca, t=t, dt=dt, vi=vi, Ktrans=Ktrans)
     vc = 1-vi
     R1 = np.full((2,C.size), R10)
     if 1-vc != 0:
         R1[0,:] += r1*C/(1-vc)
-    return R1
+    return R1, [vi,1-vi]
 
-def _relax_u_fr(ca, R10, r1, t=None, dt=1.0, vc=None, **params):
-    C = _conc_u(ca, t=t, dt=dt, **params)
+def _relax_u_fr(ca, R10, r1, t=None, dt=1.0, vc=None, Fp=None):
+    # vc, Fp
+    C = _conc_u(ca, t=t, dt=dt, Fp=Fp)
     R1 = np.full((2,C.size), R10)
     if 1-vc != 0:
         R1[0,:] += r1*C/(1-vc)
-    return R1
+    return R1, [1-vc,vc]
 
-def _relax_fx_fr(ca, R10, r1, t=None, dt=1.0, vc=None, ve=None, Fp=None):
+def _relax_fx_fr(ca, R10, r1, t=None, dt=1.0, uce=None, vce=None, Fp=None):
+    vc=uce*vce
+    ve=(1-uce)*vce
     C = _conc_1c(ca, t=t, dt=dt, v=ve, F=Fp)
     R1 = np.full((2,C.size), R10)
     if 1-vc != 0:
         R1[0,:] += r1*C/(1-vc)
-    return R1
+    return R1, [1-vc,vc]
 
 
 
-def _relax_2cx_rf(ca, R10, r1, t=None, dt=1.0, vb=None, **params):
-    C = _conc_2cx(ca, t=t, dt=dt, sum=False, **params)
+def _relax_2cx_rf(ca, R10, r1, t=None, dt=1.0, vb=None, vp=None, vi=None, Fp=None, Ktrans=None):
+    C = _conc_2cx(ca, t=t, dt=dt, vp=vp, vi=vi, Fp=Fp, Ktrans=Ktrans, sum=False)
     R1 = np.full((2,C.shape[1]), R10)
     if vb != 0:
         R1[0,:] += r1*C[0,:]/vb
     if 1-vb != 0:
         R1[1,:] += r1*C[1,:]/(1-vb)
-    return R1
+    return R1, [vb, 1-vb]
 
-def _relax_2cu_rf(ca, R10, r1, t=None, dt=1.0, vb=None, **params):
-    C = _conc_2cu(ca, t=t, dt=dt, sum=False, **params)
+def _relax_2cu_rf(ca, R10, r1, t=None, dt=1.0, vb=None, vp=None, Fp=None, Ktrans=None):
+    C = _conc_2cu(ca, t=t, dt=dt, sum=False, vp=vp, Fp=Fp, Ktrans=Ktrans)
     R1 = np.full((2,C.shape[1]), R10)
     if vb != 0:
         R1[0,:] += r1*C[0,:]/vb
     if 1-vb != 0:
         R1[1,:] += r1*C[1,:]/(1-vb)
-    return R1
+    return R1, [vb, 1-vb]
 
-def _relax_hf_rf(ca, R10, r1, t=None, dt=1.0, vb=None, **params):
-    C = _conc_hf(ca, t=t, dt=dt, sum=False, **params)
+def _relax_hf_rf(ca, R10, r1, t=None, dt=1.0, vb=None, vi=None, vp=None, Ktrans=None):
+    C = _conc_hf(ca, t=t, dt=dt, vi=vi, vp=vp, Ktrans=Ktrans, sum=False)
     R1 = np.full((2,C.shape[1]), R10)
     if vb != 0:
         R1[0,:] += r1*C[0,:]/vb
     if 1-vb != 0:
         R1[1,:] += r1*C[1,:]/(1-vb)
-    return R1
+    return R1, [vb, 1-vb]
 
-def _relax_hfu_rf(ca, R10, r1, t=None, dt=1.0, vb=None, **params):
-    C = _conc_hfu(ca, t=t, dt=dt, sum=False, **params)
+def _relax_hfu_rf(ca, R10, r1, t=None, dt=1.0, vb=None, vp=None, Ktrans=None):
+    C = _conc_hfu(ca, t=t, dt=dt, sum=False, vp=vp, Ktrans=Ktrans)
     R1 = np.full((2,C.shape[1]), R10)
     if vb != 0:
         R1[0,:] += r1*C[0,:]/vb
     if 1-vb != 0:
         R1[1,:] += r1*C[1,:]/(1-vb)
-    return R1
+    return R1, [vb, 1-vb]
 
-def _relax_nx_rf(ca, R10, r1, t=None, dt=1.0, vb=None, **params):
-    C = _conc_nx(ca, t=t, dt=dt, **params)
+def _relax_nx_rf(ca, R10, r1, t=None, dt=1.0, vb=None, vp=None, Fp=None):
+    # vb, Hct, Fp
+    C = _conc_nx(ca, t=t, dt=dt, vp=vp, Fp=Fp)
     R1 = np.full((2,C.size), R10)
     if vb != 0:
         R1[0,:] += r1*C/vb
-    return R1
+    return R1, [vb,1-vb]
 
-def _relax_wv_rf(ca, R10, r1, t=None, dt=1.0, **params):
-    C = _conc_wv(ca, t=t, dt=dt, **params)
+def _relax_wv_rf(ca, R10, r1, t=None, dt=1.0, vi=None, Ktrans=None):
+    # vi, Ktrans
+    C = _conc_wv(ca, t=t, dt=dt, vi=vi, Ktrans=Ktrans)
     R1 = R10 + r1*C
-    return R1
+    return R1, 1
 
-def _relax_u_rf(ca, R10, r1, t=None, dt=1.0, vb=None, **params):
-    C = _conc_u(ca, t=t, dt=dt, **params)
+def _relax_u_rf(ca, R10, r1, t=None, dt=1.0, vb=None, Fp=None):
+    C = _conc_u(ca, t=t, dt=dt, Fp=Fp)
     R1 = np.full((2,C.size), R10)
     if vb != 0:
         R1[0,:] += r1*C/vb
-    return R1
+    return R1, [vb,1-vb]
 
-def _relax_fx_rf(ca, R10, r1, t=None, dt=1.0, vb=None, vc=None, ve=None, Fp=None):
+def _relax_fx_rf(ca, R10, r1, t=None, dt=1.0, vb=None, vp=None, ve=None, Fp=None):
+    vi=ve-vp
     C = _conc_1c(ca, t=t, dt=dt, v=ve, F=Fp)
-    v_rbc = 1-vc-ve
-    vp = vb-v_rbc
-    vi = ve-vp
     R1 = np.full((2,C.size), R10)
     if ve != 0:
         ce = C/ve
@@ -334,164 +349,171 @@ def _relax_fx_rf(ca, R10, r1, t=None, dt=1.0, vb=None, vc=None, ve=None, Fp=None
             R1[0,:] += r1*ce*vp/vb
         if 1-vb != 0:
             R1[1,:] += r1*ce*vi/(1-vb)
-    return R1
+    return R1, [vb, 1-vb]
 
 
 
-def _relax_2cx_rr(ca, R10, r1, t=None, dt=1.0, vc=None, vi=None, **params):
-    C = _conc_2cx(ca, t=t, dt=dt, sum=False, vi=vi, **params)
-    vb = 1-vi-vc
+def _relax_2cx_rr(ca, R10, r1, t=None, dt=1.0, vb=None, vp=None, vi=None, Fp=None, Ktrans=None):
+    C = _conc_2cx(ca, t=t, dt=dt, vp=vp, vi=vi, Fp=Fp, Ktrans=Ktrans, sum=False)
     R1 = np.full((3,C.shape[1]), R10)
     if vb != 0:
         R1[0,:] += r1*C[0,:]/vb
     if vi != 0:
         R1[1,:] += r1*C[1,:]/vi
-    return R1
+    return R1, [vb, vi, 1-vb-vi]
 
-def _relax_2cu_rr(ca, R10, r1, t=None, dt=1.0, vb=None, vc=None, **params):
-    C = _conc_2cu(ca, t=t, dt=dt, sum=False, **params)
-    vi = 1-vb-vc
+def _relax_2cu_rr(ca, R10, r1, t=None, dt=1.0, vb=None, vi=None, vp=None, Fp=None, Ktrans=None):
+    C = _conc_2cu(ca, t=t, dt=dt, sum=False, vp=vp, Fp=Fp, Ktrans=Ktrans)
     R1 = np.full((3,C.shape[1]), R10)
     if vb != 0:
         R1[0,:] += r1*C[0,:]/vb
     if vi != 0:
         R1[1,:] += r1*C[1,:]/vi
-    return R1
+    return R1, [vb, vi, 1-vb-vi]
     
-def _relax_hf_rr(ca, R10, r1, t=None, dt=1.0, vc=None, vi=None, **params):
-    C = _conc_hf(ca, t=t, dt=dt, sum=False, vi=vi, **params)
-    vb = 1-vi-vc
+def _relax_hf_rr(ca, R10, r1, t=None, dt=1.0, vb=None, vp=None, vi=None, Ktrans=None):
+    C = _conc_hf(ca, t=t, dt=dt, vp=vp, vi=vi, Ktrans=Ktrans, sum=False)
     R1 = np.full((3,C.shape[1]), R10)
     if vb != 0:
         R1[0,:] += r1*C[0,:]/vb
     if vi != 0:
         R1[1,:] += r1*C[1,:]/vi
-    return R1
+    return R1, [vb, vi, 1-vb-vi]
 
-def _relax_hfu_rr(ca, R10, r1, t=None, dt=1.0, vb=None, vc=None, **params):
-    C = _conc_hfu(ca, t=t, dt=dt, sum=False, **params)
-    vi = 1-vb-vc
+def _relax_hfu_rr(ca, R10, r1, t=None, dt=1.0, vb=None, vi=None, vp=None, Ktrans=None):
+    C = _conc_hfu(ca, t=t, dt=dt, sum=False, vp=vp, Ktrans=Ktrans)
     R1 = np.full((3,C.shape[1]), R10)
     if vb != 0:
         R1[0,:] += r1*C[0,:]/vb
     if vi != 0:
         R1[1,:] += r1*C[1,:]/vi
-    return R1
+    return R1, [vb, vi, 1-vb-vi]
 
-def _relax_nx_rr(ca, R10, r1, t=None, dt=1.0, vb=None, **params):
-    # Permeability across cell wall plays no role if ci=0.
-    C = _conc_nx(ca, t=t, dt=dt, **params)
+def _relax_nx_rr(ca, R10, r1, t=None, dt=1.0, vb=None, vp=None, Fp=None):
+    C = _conc_nx(ca, t=t, dt=dt, vp=vp, Fp=Fp)
     R1 = np.full((2,C.size), R10)
     if vb != 0:
         R1[0,:] += r1*C/vb
-    return R1
+    return R1, [vb, 1-vb]
 
-def _relax_wv_rr(ca, R10, r1, t=None, dt=1.0, vi=None, **params):
-    # Permeability across endothelium plays no role if vp=0
-    C = _conc_wv(ca, t=t, dt=dt, vi=vi, **params)
+def _relax_wv_rr(ca, R10, r1, t=None, dt=1.0, vi=None, Ktrans=None):
+    C = _conc_wv(ca, t=t, dt=dt, vi=vi, Ktrans=Ktrans)
     R1 = np.full((2,C.size), R10)
     if vi != 0:
         R1[0,:] += r1*C/vi
-    return R1
+    return R1, [vi, 1-vi]
 
-def _relax_u_rr(ca, R10, r1, t=None, dt=1.0, vb=None, **params):
-    # Permeability across cell wall plays no role if ci=0
-    C = _conc_u(ca, t=t, dt=dt, **params)
+def _relax_u_rr(ca, R10, r1, t=None, dt=1.0, vb=None, Fp=None):
+    C = _conc_u(ca, t=t, dt=dt, Fp=Fp)
     R1 = np.full((2,C.size), R10)
     if vb != 0:
         R1[0,:] += r1*C/vb
-    return R1
+    return R1, [vb,1-vb]
 
-def _relax_fx_rr(ca, R10, r1, t=None, dt=1.0, vb=None, vc=None, ve=None, Fp=None):
+def _relax_fx_rr(ca, R10, r1, t=None, dt=1.0, vb=None, vp=None, ve=None, Fp=None):
     C = _conc_1c(ca, t=t, dt=dt, v=ve, F=Fp)
-    vi = 1-vb-vc
-    vp = ve-vi
     R1 = np.full((3,C.size), R10)
+    vi = ve-vp
     if ve != 0:
         ce = C/ve
         if vb != 0:
             R1[0,:] += r1*ce*vp/vb
         R1[1,:] += r1*ce
-    return R1
+    return R1, [vb, vi, 1-vb-vi]
 
 
 
 
-
-
-def conc_tissue(ca:np.ndarray, t=None, dt=1.0, model='2CX', sum=True, **params)->np.ndarray:
+def conc_tissue(ca:np.ndarray, t=None, dt=1.0, kinetics='2CX', sum=True, **params)->np.ndarray:
     """Tissue concentration in a 2-site exchange tissue.
 
     Args:
         ca (array-like): concentration in the arterial input.
-        t (array_like, optional): the time points in sec of the input function *ca*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
-        dt (float, optional): spacing in seconds between time points for uniformly spaced time points. This parameter is ignored if *t* is explicity provided. Defaults to 1.0.
-        model (str, optional): Kinetics of the tissue, either 'U', 'NX', 'FX', 'WV', 'HFU', 'HF', '2CU', '2CX' (see also `dcmri.model_props` for more detail). Defaults to '2CX'. 
-        sum (bool, optional): For two-compartment tissues, set to True to return the total tissue concentration. Defaults to True.
-        params (dict): free model parameters and their values.
+        t (array_like, optional): the time points of the input function *ca*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
+        dt (float, optional): spacing in seconds between time points for uniformly spaced time points. This parameter is ignored if *t* is provided. Defaults to 1.0.
+        kinetics (str, optional): The kinetic model of the tissue (see below for possible values). Defaults to '2CX'. 
+        sum (bool, optional): For two-compartment tissues, set to True to return the total tissue concentration, and False to return the concentrations in the compartments separately. In one-compartment tissues this keyword has no effect. Defaults to True.
+        params (dict): free model parameters and their values (see below for possible).
 
     Returns:
-        numpy.ndarray: If sum=True, this is a 1D array with the total concentration at each time point. If sum=False this is the concentration in each compartment, and at each time point, as a 2D array with dimensions *(2,k)*, where *k* is the number of time points in *ca*. The concentration is returned in units of M.
+        numpy.ndarray: If sum=True, or the tissue is one-compartmental, this is a 1D array with the total concentration at each time point. If sum=False this is the concentration in each compartment, and at each time point, as a 2D array with dimensions *(2,k)*, where *k* is the number of time points in *ca*. 
 
-    Notes:
 
-        Currently implemented tissue types are: 
-        
-        - **2CX**: two-compartment exchange tissue. 
-        - **2CU**: two-compartment uptake tissue. 
-        - **HF**: high-flow tissue - also known as *extended Tofts model*, *extended Patlak model* or *general kinetic model*.
-        - **HFU**: high-flow uptake tissue - also known as *Patlak model*.
-        - **FX**: fast tracer exchange tissue. 
-        - **NX**: no tracer exchange tissue. 
-        - **U**: uptake tissue. 
-        - **WV**: weakly vascularized tissue - also known as *Tofts model*. 
+    The tables below define the possible values of the `kinetics` argument and the corresponding parameters in the `params` dictionary. 
 
-        Each tissue is determined by one or more of the following parameters (see table below):
-
-        - **Fp** (mL/sec/cm3): plasma flow.
-        - **Ktrans** (mL/sec/cm3): volume transfer constant.
-        - **vp** (mL/cm3): plasma volume fraction.
-        - **vi** (mL/cm3): interstitial volume fraction.
-        - **ve** (mL/cm3): extracellular volume fraction (= plasma + interstitium).
-
-    .. list-table:: Available tissue types and their parameters
-        :widths: 15 25 50
+    .. list-table:: **kinetic models**
+        :widths: 10 40 20 20
         :header-rows: 1
 
-        * - Tissue type
+        * - Kinetics
+          - Full name
           - Parameters
-          - Tracer compartments
-        * - 2CX
-          - (vp, vi, Fp, Ktrans)
-          - Plasma, Interstitium
-        * - 2CU
-          - (vp, Fp, Ktrans)
-          - Plasma, Interstitium
-        * - HF
-          - (vp, vi, Ktrans)
-          - Plasma, Interstitium
-        * - HFU
-          - (vp, Ktrans)
-          - Plasma, Interstitium
-        * - FX
-          - (ve, Fp)
-          - Extracellular space      
-        * - NX
-          - (vp, Fp)
-          - Plasma    
-        * - U
-          - (Fp, )
-          - Plasma      
-        * - WV
-          - (vi, Ktrans)
-          - Interstitium      
+          - Assumptions
+        * - '2CX'
+          - Two-compartment exchange
+          - vi, vp, Fp, Ktrans
+          - see :ref:`two-site-exchange`
+        * - '2CU'
+          - Two-compartment uptake
+          - vp, Fp, Ktrans
+          - :math:`PS` small
+        * - 'HF'
+          - High-flow, AKA *extended Tofts model*, *extended Patlak model*, *general kinetic model*.
+          - vi, vp, Ktrans
+          - :math:`F_p = \infty`
+        * - 'HFU'
+          - High flow uptake, AKA *Patlak model*
+          - vp, Ktrans
+          - :math:`F_p = \infty`, PS small
+        * - 'FX'
+          - Fast indicator exchange
+          - ve, Fp
+          - :math:`PS = \infty`  
+        * - 'NX'
+          - No indicator exchange
+          - vp, Fp
+          - :math:`PS = 0`     
+        * - 'U'
+          - Uptake
+          - Fp
+          - Fp small    
+        * - 'WV'
+          - Weakly vascularized, AKA *Tofts model*.
+          - vi, Ktrans
+          - :math:`v_p = 0`
+
+            
+    .. list-table:: **tissue parameters**
+        :widths: 15 40 20
+        :header-rows: 1
+
+        * - Short name
+          - Full name
+          - Units
+        * - Fp
+          - Plasma flow
+          - mL/sec/cm3
+        * - Ktrans
+          - Volume transfer constant
+          - mL/sec/cm3
+        * - vp  
+          - Plasma volume fraction
+          - mL/cm3
+        * - vi
+          - Interstitial volume fraction
+          - mL/cm3
+        * - ve
+          - Extracellular volume fraction (= vp + vi)
+          - mL/cm3
 
     Example:
 
-        Plot concentration in cortex and medulla for typical values:
+        We plot the concentrations of 2CX and WV models with the same values for the shared tissue parameters. 
 
     .. plot::
         :include-source:
+
+        Start by importing the packages:
 
         >>> import matplotlib.pyplot as plt
         >>> import numpy as np
@@ -504,53 +526,60 @@ def conc_tissue(ca:np.ndarray, t=None, dt=1.0, model='2CX', sum=True, **params)-
 
         Define some tissue parameters: 
 
-        >>> p = {'vp':0.05, 'vi':0.4, 'Fp':0.01, 'Ktrans':0.005}
+        >>> p2x = {'vp':0.05, 'vi':0.4, 'Fp':0.01, 'Ktrans':0.005}
+        >>> pwv = {'vi':0.4, 'Ktrans':0.005}
 
         Generate plasma and extravascular tissue concentrations with the 2CX and WV models:
 
-        >>> C0 = dc.conc_tissue(ca, t=t, sum=False, model='2CX', **p)
-        >>> C1 = dc.conc_tissue(ca, t=t, sum=False, model='WV', vi=p['vi'], Ktrans=p['Ktrans'])
+        >>> C2x = dc.conc_tissue(ca, t=t, sum=False, model='2CX', **p2x)
+        >>> Cwv = dc.conc_tissue(ca, t=t, sum=False, model='WV', **pwv)
 
         Compare them in a plot:
 
         >>> fig, (ax0, ax1) = plt.subplots(1,2,figsize=(12,5))
+
+        Plot 2CX results in the left panel:
+
         >>> ax0.set_title('2-compartment exchange model')
-        >>> ax0.plot(t/60, 1000*C0[0,:], linestyle='--', linewidth=3.0, color='darkred', label='Plasma')
-        >>> ax0.plot(t/60, 1000*C0[1,:], linestyle='--', linewidth=3.0, color='darkblue', label='Extravascular, extracellular space')
-        >>> ax0.plot(t/60, 1000*(C0[0,:]+C0[1,:]), linestyle='-', linewidth=3.0, color='grey', label='Tissue')
+        >>> ax0.plot(t/60, 1000*C2x[0,:], linestyle='-', linewidth=3.0, color='darkred', label='Plasma')
+        >>> ax0.plot(t/60, 1000*C2x[1,:], linestyle='-', linewidth=3.0, color='darkblue', label='Extravascular, extracellular space')
+        >>> ax0.plot(t/60, 1000*(C2x[0,:]+C2x[1,:]), linestyle='-', linewidth=3.0, color='grey', label='Tissue')
         >>> ax0.set_xlabel('Time (min)')
         >>> ax0.set_ylabel('Tissue concentration (mM)')
         >>> ax0.legend()
+
+        Plot WV results in the right panel:
+
         >>> ax1.set_title('Weakly vascularised model')
-        >>> ax1.plot(t/60, 1000*C1[0,:], linestyle='--', linewidth=3.0, color='darkred', label='Plasma (WV)')
-        >>> ax1.plot(t/60, 1000*C1[1,:], linestyle='--', linewidth=3.0, color='darkblue', label='Extravascular, extracellular space')
-        >>> ax1.plot(t/60, 1000*(C1[0,:]+C1[1,:]), linestyle='-', linewidth=3.0, color='grey', label='Tissue')
+        >>> ax1.plot(t/60, 1000*Cwv[0,:], linestyle='-', linewidth=3.0, color='darkred', label='Plasma (WV)')
+        >>> ax1.plot(t/60, 1000*Cwv[1,:], linestyle='-', linewidth=3.0, color='darkblue', label='Extravascular, extracellular space')
+        >>> ax1.plot(t/60, 1000*(Cwv[0,:]+Cwv[1,:]), linestyle='-', linewidth=3.0, color='grey', label='Tissue')
         >>> ax1.set_xlabel('Time (min)')
         >>> ax1.set_ylabel('Tissue concentration (mM)')
         >>> ax1.legend()
         >>> plt.show()
     """
 
-    if model=='U':
+    if kinetics=='U':
         return _conc_u(ca, t=t, dt=dt, **params)
-    elif model=='FX':
+    elif kinetics=='FX':
         return _conc_1c(ca, t=t, dt=dt, F=params['Fp'], v=params['ve'])
-    elif model=='NX':
+    elif kinetics=='NX':
         return _conc_nx(ca, t=t, dt=dt, sum=sum, **params)
-    elif model=='WV':
+    elif kinetics=='WV':
         return _conc_wv(ca, t=t, dt=dt, sum=sum, **params)
-    elif model=='HFU':
+    elif kinetics=='HFU':
         return _conc_hfu(ca, t=t, dt=dt, sum=sum, **params)
-    elif model=='HF':
+    elif kinetics=='HF':
         return _conc_hf(ca, t=t, dt=dt, sum=sum, **params)
-    elif model=='2CU':
+    elif kinetics=='2CU':
         return _conc_2cu(ca, t=t, dt=dt, sum=sum, **params)
-    elif model=='2CX':
+    elif kinetics=='2CX':
         return _conc_2cx(ca, t=t, dt=dt, sum=sum, **params)
     # elif model=='2CF':
     #     return _conc_2cf(ca, *params, t=t, dt=dt, sum=sum)
     else:
-        raise ValueError('Kinetic model ' + model + ' is not currently implemented.')
+        raise ValueError('Kinetic model ' + kinetics + ' is not currently implemented.')
     
 
 def _conc_u(ca, t=None, dt=1.0, Fp=None):
@@ -590,7 +619,7 @@ def _conc_hfu(ca, t=None, dt=1.0, sum=True, vp=None, Ktrans=None):
     else:
         return np.stack((Cp,Ce))
     
-def _conc_hf(ca, t=None, dt=1.0, sum=True, vp=None, vi=None, Ktrans=None):
+def _conc_hf(ca, t=None, dt=1.0, sum=True, vi=None, vp=None, Ktrans=None):
     Cp = vp*ca
     if Ktrans==0:
         Ce = 0*ca
@@ -628,10 +657,10 @@ def _conc_2cu(ca, t=None, dt=1.0, sum=True, vp=None, Fp=None, Ktrans=None):
         return np.stack((Cp,Ce))
     
 
-def _conc_2cx(ca, t=None, dt=1.0, sum=True, vp=None, vi=None, Fp=None, Ktrans=None):
+def _conc_2cx(ca, t=None, dt=1.0, sum=True, vi=None, vp=None, Fp=None, Ktrans=None):
 
     if np.isinf(Fp):
-        return _conc_hf(ca, t=t, dt=dt, sum=sum, vp=vp, vi=vi, Ktrans=Ktrans)  
+        return _conc_hf(ca, t=t, dt=dt, sum=sum, vi=vi, vp=vp, Ktrans=Ktrans)
 
     if Ktrans==Fp: #E=1: FX
         C = _conc_1c(ca, t=t, dt=dt, v=vp+vi, F=Fp)
@@ -707,92 +736,108 @@ def _conc_2cf(ca, t=None, dt=1.0, sum=True, vp=None, Fp=None, PS=None, Te=None):
 
 
 
-def flux_tissue(ca:np.ndarray, t=None, dt=1.0, model='2CX', **params)->np.ndarray:
+def flux_tissue(ca:np.ndarray, t=None, dt=1.0, kinetics='2CX', **params)->np.ndarray:
     """Indicator out of a 2-site exchange tissue.
 
     Args:
         ca (array-like): concentration in the arterial input.
-        t (array_like, optional): the time points in sec of the input function *ca*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
-        dt (float, optional): spacing in seconds between time points for uniformly spaced time points. This parameter is ignored if *t* is explicity provided. Defaults to 1.0.
-        model (str, optional): Kinetics of the tissue, either 'U', 'NX', 'FX', 'WV', 'HFU', 'HF', '2CU', '2CX' - see below for detail. Defaults to '2CX'. 
-        params (dict): free model parameters and their values.
+        t (array_like, optional): the time points of the input function *ca*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
+        dt (float, optional): spacing in seconds between time points for uniformly spaced time points. This parameter is ignored if *t* is provided. Defaults to 1.0.
+        kinetics (str, optional): The kinetic model of the tissue (see below for possible values). Defaults to '2CX'. 
+        params (dict): free model parameters and their values (see below for possible).
 
     Returns:
         numpy.ndarray: For a one-compartmental tissue, outflux out of the compartment as a 1D array in units of mmol/sec/mL or M/sec. For a multi=compartmental tissue, outflux out of each compartment, and at each time point, as a 3D array with dimensions *(2,2,k)*, where *2* is the number of compartments and *k* is the number of time points in *J*. Encoding of the first two indices is the same as for *E*: *J[j,i,:]* is the flux from compartment *i* to *j*, and *J[i,i,:]* is the flux from *i* directly to the outside. The flux is returned in units of mmol/sec/mL or M/sec.
 
     Notes:
-        Currently implemented tissue types are: 
-        
-        - **2CX**: two-compartment exchange tissue. 
-        - **2CU**: two-compartment uptake tissue. 
-        - **HF**: high-flow tissue - also known as *extended Tofts model*, *extended Patlak model* or *general kinetic model*.
-        - **HFU**: high-flow uptake tissue - also known as *Patlak model*.
-        - **FX**: fast tracer exchange tissue. 
-        - **NX**: no tracer exchange tissue. 
-        - **U**: uptake tissue. 
-        - **WV**: weakly vascularized tissue - also known as *Tofts model*. 
+    The tables below define the possible values of the `kinetics` argument and the corresponding parameters in the `params` dictionary. 
 
-        Each tissue is determined by one or more of the following parameters (see table below):
-
-        - **Fp** (mL/sec/cm3): plasma flow.
-        - **Ktrans** (mL/sec/cm3): volume transfer constant.
-        - **vp** (mL/cm3): plasma volume fraction.
-        - **vi** (mL/cm3): interstitial volume fraction.
-        - **ve** (mL/cm3): extracellular volume fraction (= plasma + interstitium).
-
-    .. list-table:: Available tissue types and their parameters
-        :widths: 15 25 50
+    .. list-table:: **kinetic models**
+        :widths: 10 40 20 20
         :header-rows: 1
 
-        * - Tissue type
+        * - Kinetics
+          - Full name
           - Parameters
-          - Tracer compartments
-        * - 2CX
-          - (vp, vi, Fp, Ktrans)
-          - Plasma, Interstitium
-        * - 2CU
-          - (vp, Fp, Ktrans)
-          - Plasma, Interstitium
-        * - HF
-          - (vp, vi, Ktrans)
-          - Plasma, Interstitium
-        * - HFU
-          - (vp, Ktrans)
-          - Plasma, Interstitium
-        * - FX
-          - (ve, Fp)
-          - Extracellular space      
-        * - NX
-          - (vp, Fp)
-          - Plasma    
-        * - U
-          - (Fp, )
-          - Plasma      
-        * - WV
-          - (vi, Ktrans)
-          - Interstitium      
+          - Assumptions
+        * - '2CX'
+          - Two-compartment exchange
+          - vi, vp, Fp, Ktrans
+          - see :ref:`two-site-exchange`
+        * - '2CU'
+          - Two-compartment uptake
+          - vp, Fp, Ktrans
+          - :math:`PS` small
+        * - 'HF'
+          - High-flow, AKA *extended Tofts model*, *extended Patlak model*, *general kinetic model*.
+          - vi, Ktrans
+          - :math:`F_p = \infty`
+        * - 'HFU'
+          - High flow uptake, AKA *Patlak model*
+          - Ktrans
+          - :math:`F_p = \infty`, PS small
+        * - 'FX'
+          - Fast indicator exchange
+          - ve, Fp
+          - :math:`PS = \infty`  
+        * - 'NX'
+          - No indicator exchange
+          - vp, Fp
+          - :math:`PS = 0`     
+        * - 'U'
+          - Uptake
+          - Fp
+          - Fp small    
+        * - 'WV'
+          - Weakly vascularized, AKA *Tofts model*.
+          - vi, Ktrans
+          - :math:`v_p = 0`
+
+            
+    .. list-table:: **tissue parameters**
+        :widths: 15 40 20
+        :header-rows: 1
+
+        * - Short name
+          - Full name
+          - Units
+        * - Fp
+          - Plasma flow
+          - mL/sec/cm3
+        * - Ktrans
+          - Volume transfer constant
+          - mL/sec/cm3
+        * - vp  
+          - Plasma volume fraction
+          - mL/cm3
+        * - vi
+          - Interstitial volume fraction
+          - mL/cm3
+        * - ve
+          - Extracellular volume fraction (= vp + vi)
+          - mL/cm3
 
     """
-    if model=='U':
+    if kinetics=='U':
         return _flux_u(ca, **params)
-    elif model=='NX':
+    elif kinetics=='NX':
         return _flux_1c(ca, t=t, dt=dt, v=params['vp'], F=params['Fp'])
-    elif model=='FX':
+    elif kinetics=='FX':
         return _flux_1c(ca, t=t, dt=dt, v=params['ve'], F=params['Fp'])
-    elif model=='WV':
+    elif kinetics=='WV':
         return _flux_wv(ca, t=t, dt=dt, **params)
-    elif model=='HFU':
+    elif kinetics=='HFU':
         return _flux_hfu(ca, **params)
-    elif model=='HF':
+    elif kinetics=='HF':
         return _flux_hf(ca, t=t, dt=dt, **params)
-    elif model=='2CU':
+    elif kinetics=='2CU':
         return _flux_2cu(ca, t=t, dt=dt, **params)
-    elif model=='2CX':
+    elif kinetics=='2CX':
         return _flux_2cx(ca, t=t, dt=dt, **params)
     # elif model=='2CF':
     #     return _flux_2cf(ca, t=t, dt=dt, **params)
     else:
-        raise ValueError('Kinetic model ' + model + ' is not currently implemented.')
+        raise ValueError('Kinetic model ' + kinetics + ' is not currently implemented.')
 
 
 def _flux_u(ca, Fp=None):
