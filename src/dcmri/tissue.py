@@ -3,13 +3,13 @@
 import numpy as np
 import dcmri.pk as pk
 import dcmri.utils as utils
-import dcmri.sig as sig
 
-# TODO: keywords kinetics and water_exchange instead of model
+
+# TODO: HF and 2CXM params the same across WX regimes
 def relax_tissue(ca:np.ndarray, R10:float, r1:float, t=None, dt=1.0, kinetics='2CX', water_exchange='FF', **params):
-    """Relaxation rates for a 2-site exchange tissue and different water exchange regimes
+    """Free relaxation rates for a 2-site exchange tissue and different water exchange regimes
 
-    This function returns the free relaxation rates for each distinct tissue compartment as a function of time. The free relaxation rates are the relaxation rates of the tissue compartments in the absence of water exchange between them.
+    Note: the free relaxation rates are the relaxation rates of the tissue compartments in the absence of water exchange between them.
 
     Args:
         ca (array-like): concentration in the arterial input.
@@ -17,12 +17,240 @@ def relax_tissue(ca:np.ndarray, R10:float, r1:float, t=None, dt=1.0, kinetics='2
         r1 (float): contrast agent relaivity. 
         t (array_like, optional): the time points in sec of the input function *ca*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
         dt (float, optional): spacing in seconds between time points for uniformly spaced time points. This parameter is ignored if *t* is explicity provided. Defaults to 1.0.
-        kinetics (str, optional): Kinetic model to use. Defaults to '2CX'.
-        water_exchange (str, optional): Water exchange model to use. Defaults to 'FF'.
-        params (dict): model parameters (see `dcmri.model_props` for detail on available models).
+        kinetics (str, optional): Kinetic model to use - see below for detailed options. Defaults to '2CX'.
+        water_exchange (str, optional): Water exchange model to use - see below for detailed options. Defaults to 'FF'.
+        params (dict): model parameters - see below for detailed options.
 
     Returns:
-        np.ndarray: in the fast water exchange limit, the relaxation rates are a 1D array. In all other situations, relaxation rates are a 2D-array with dimensions (k,n), where k is the number of compartments and n is the number of time points in ca.
+        tuple: relaxation rates of tissue compartments and their volumes.
+            - **R1** (array-like): in the fast water exchange limit, the relaxation rates are a 1D array. In all other situations, relaxation rates are a 2D-array with dimensions (k,n), where k is the number of compartments and n is the number of time points in ca.
+            - **v** (list or float): the volume fractions of the tissue compartments. 
+
+    Water exchange across a barrier can either be in the fast exchange limit (F), or restricted (R). Since there are two barriers involved, there are four different values for the parameter `water_exchange`:
+
+    .. list-table:: **water exchange models**
+        :widths: 15 40 40
+        :header-rows: 1
+
+        * - water_exchange
+          - Transendothelial
+          - Transcytolemmal
+        * - 'FF'
+          - Fast
+          - Fast
+        * - 'RR'
+          - Restricted
+          - Restricted
+        * - 'RF'
+          - Restricted
+          - Fast
+        * - 'FR'
+          - Fast
+          - Restricted
+
+    Any of these can be combined with any possible kinetic model (see :ref:`two-site-exchange`). The tables below list the possible model parameters, and the different model combinations with their respective free parameters:
+
+    .. list-table:: **tissue parameters**
+        :widths: 15 40 20
+        :header-rows: 1
+
+        * - Short name
+          - Full name
+          - Units
+        * - Fp
+          - Plasma flow
+          - mL/sec/cm3
+        * - PS
+          - Permeability-surface area product
+          - mL/sec/cm3
+        * - Ktrans
+          - Volume transfer constant
+          - mL/sec/cm3
+        * - vp  
+          - Plasma volume fraction
+          - mL/cm3
+        * - vi
+          - Interstitial volume fraction
+          - mL/cm3
+        * - ve
+          - Extracellular volume fraction (= vp + vi)
+          - mL/cm3
+        * - vb
+          - Blood volume fraction
+          - mL/cm3
+        * - vc
+          - Tissue cell volume fraction
+          - mL/cm3
+        * - H
+          - Hematocrit
+          - None
+
+
+    .. list-table:: **Fast endothelial and cytolemmal water exchange (FF).** 
+        :widths: 20 20 30 40
+        :header-rows: 1 
+
+        * - water_exchange
+          - kinetics
+          - Water compartments
+          - Free parameters
+        * - FF
+          - 2CX
+          - 1
+          - vp, vi, Fp, PS
+        * - FF
+          - 2CU
+          - 1
+          - vp, Fp, PS
+        * - FF
+          - HF
+          - 1
+          - vp, vi, PS
+        * - FF
+          - HFU
+          - 1
+          - vp, PS
+        * - FF
+          - FX
+          - 1
+          - vp, ve, Fp  
+        * - FF
+          - NX
+          - 1
+          - vp, Fp  
+        * - FF
+          - U
+          - 1
+          - Fp 
+        * - FF
+          - WV
+          - 1
+          - vi, Ktrans
+
+    .. list-table:: **Restricted endothelial and cytolemmal water exchange (RR).** 
+        :widths: 20 20 30 40
+        :header-rows: 1 
+
+        * - water_exchange
+          - kinetics
+          - Water compartments
+          - Free parameters
+        * - RR
+          - 2CX
+          - vb, vi, vc
+          - H, vp, vi, Fp, PS
+        * - RR
+          - 2CU
+          - vb, vi, vc
+          - H, vp, vi, Fp, PS
+        * - RR
+          - HF
+          - vb, vi, vc
+          - H, vp, vi, PS
+        * - RR
+          - HFU
+          - vb, vi, vc
+          - H, vp, vi, PS
+        * - RR
+          - FX
+          - vb, vi, vc 
+          - H, vp, ve, Fp  
+        * - RR
+          - NX
+          - vb, 1-vb 
+          - H, vp, Fp  
+        * - RR
+          - U
+          - vb, 1-vb 
+          - vb, Fp 
+        * - RR
+          - WV
+          - vi, 1-vi
+          - vi, Ktrans
+        
+        
+    .. list-table:: **Restricted endothelial and fast cytolemmal water exchange (RF).** 
+        :widths: 20 20 30 40
+        :header-rows: 1
+
+        * - water_exchange
+          - kinetics
+          - Water compartments
+          - Free parameters
+        * - RF
+          - 2CX
+          - vb, 1-vb
+          - H, vp, vi, Fp, PS
+        * - RF
+          - 2CU
+          - vb, 1-vb
+          - H, vp, Fp, PS
+        * - RF
+          - HF
+          - vb, 1-vb
+          - H, vp, vi, PS
+        * - RF
+          - HFU
+          - vb, 1-vb
+          - H, vp, PS
+        * - RF
+          - FX
+          - vb, 1-vb 
+          - H, vp, ve, Fp
+        * - RF
+          - NX
+          - vb, 1-vb
+          - H, vp, Fp
+        * - RF
+          - U
+          - vb, 1-vb
+          - vb, Fp  
+        * - RF
+          - WV
+          - 1  
+          - vi, Ktrans 
+
+            
+    .. list-table:: **Fast endothelial and restricted cytolemmal water exchange (FR).**
+        :widths: 20 20 30 40
+        :header-rows: 1
+
+        * - water_exchange
+          - kinetics
+          - Water compartments
+          - Free parameters
+        * - FR
+          - 2CX
+          - 1-vc, vc
+          - H, vp, vi, Fp, PS
+        * - FR
+          - 2CU
+          - 1-vc, vc
+          - vc, vp, Fp, PS
+        * - FR
+          - HF
+          - 1-vc, vc
+          - H, vp, vi, PS
+        * - FR
+          - HFU
+          - 1-vc, vc
+          - vc, vp, PS
+        * - FR
+          - FX
+          - 1-vc, vc 
+          - vc, ve, Fp
+        * - FR
+          - NX
+          - 1-vc, vc 
+          - vc, vp, Fp
+        * - FR
+          - U
+          - 1-vc, vc 
+          - vc, Fp
+        * - FR
+          - WV
+          - vi, 1-vi
+          - PSc, vi, Ktrans
 
     Example:
 
@@ -42,18 +270,21 @@ def relax_tissue(ca:np.ndarray, R10:float, r1:float, t=None, dt=1.0, kinetics='2
 
         Define constants and model parameters: 
 
-        >>> R10, r1 = 1/dc.T1(), dc.relaxivity()                    # Constants
-        >>> p = {vc:0.3, vp:0.05, vi:0.4, Fp:0.01, Ktrans:0.005}    # Parameters
+        >>> R10, r1 = 1/dc.T1(), dc.relaxivity()                # Constants
+        >>> pf = {'vp':0.05, 'vi':0.3, 'Fp':0.01, 'PS':0.005}   # Kinetic parameters
+        >>> pr = {'H':0.6} | pf                                 # All parameters
 
-        Calculate tissue relaxation rate R1a with intermediate water exchange, and also in the fast exchange limit for comparison:
+        Calculate tissue relaxation rates R1r with restrictedwater exchange, and also in the fast exchange limit for comparison:
 
-        >>> R1r = dc.relax_tissue(ca, R10, r1, t=t, model='RR-2CX', **p)
-        >>> del p['vc']
-        >>> R1f = dc.relax_tissue(ca, R10, r1, t=t, model='2CX', **p)
+        >>> R1f, _ = dc.relax_tissue(ca, R10, r1, t=t, water_exchange='FF', **pf)
+        >>> R1r, _ = dc.relax_tissue(ca, R10, r1, t=t, water_exchange='RR', **pr)
 
         Plot the relaxation rates in the three compartments, and compare against the fast exchange result:
 
         >>> fig, (ax0, ax1) = plt.subplots(1,2,figsize=(12,5))
+
+        Plot restricted water exchange in the left panel:
+
         >>> ax0.set_title('Restricted water exchange')
         >>> ax0.plot(t/60, R1r[0,:], linestyle='-', linewidth=2.0, color='darkred', label='Blood')
         >>> ax0.plot(t/60, R1r[1,:], linestyle='-', linewidth=2.0, color='darkblue', label='Interstitium')
@@ -61,6 +292,9 @@ def relax_tissue(ca:np.ndarray, R10:float, r1:float, t=None, dt=1.0, kinetics='2
         >>> ax0.set_xlabel('Time (min)')
         >>> ax0.set_ylabel('Compartment relaxation rate (1/sec)')
         >>> ax0.legend()
+
+        Plot fast water exchange in the right panel:
+
         >>> ax1.set_title('Fast water exchange')
         >>> ax1.plot(t/60, R1f, linestyle='-', linewidth=2.0, color='black', label='Tissue')
         >>> ax1.set_xlabel('Time (min)')
@@ -75,85 +309,86 @@ def relax_tissue(ca:np.ndarray, R10:float, r1:float, t=None, dt=1.0, kinetics='2
         msg += "Possible values are: 'U', 'FX', 'NX', 'WV', 'HFU', 'HF', '2CU' and '2CX'."
         raise ValueError(msg)
     
-    if water_exchange not in ['FF','NF','RF','FN','NN','RN','FR','NR','RR']:
-        msg = "Water exchange regime '" + str(wex) + "' is not recognised.\n"
-        msg += "Possible values are: 'FF','NF','RF','FN','NN','RN','FR','NR','RR'."
+    if water_exchange not in ['FF','RF','FR','RR']:
+        msg = "Water exchange regime '" + str(water_exchange) + "' is not recognised.\n"
+        msg += "Possible values are: 'FF','RF','FR','RR'."
         raise ValueError(msg)
-    
-    # No water exchange is the same tissue model as restricted water exchange
-    wex = water_exchange.replace('N','R')
-    model = wex + '-' + kinetics
 
-    if model=='FF-U':
-        return _relax_u_ff(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='FF-FX':
-        return _relax_fx_ff(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='FF-NX':
-        return _relax_nx_ff(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='FF-WV':
-        return _relax_wv_ff(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='FF-HFU':
-        return _relax_hfu_ff(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='FF-HF':
-        return _relax_hf_ff(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='FF-2CU':
-        return _relax_2cu_ff(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='FF-2CX':
-        return _relax_2cx_ff(ca, R10, r1, t=t, dt=dt, **params)
+    if water_exchange=='FF':
+
+        if kinetics=='U':
+            return _relax_u_ff(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='FX':
+            return _relax_fx_ff(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='NX':
+            return _relax_nx_ff(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='WV':
+            return _relax_wv_ff(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='HFU':
+            return _relax_hfu_ff(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='HF':
+            return _relax_hf_ff(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='2CU':
+            return _relax_2cu_ff(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='2CX':
+            return _relax_2cx_ff(ca, R10, r1, t=t, dt=dt, **params)
     
+    elif water_exchange=='RF':
     
-    elif model=='RF-U':
-        return _relax_u_rf(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='RF-FX':
-        return _relax_fx_rf(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='RF-NX':
-        return _relax_nx_rf(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='RF-WV':
-        return _relax_wv_rf(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='RF-HFU':
-        return _relax_hfu_rf(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='RF-HF':
-        return _relax_hf_rf(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='RF-2CU':
-        return _relax_2cu_rf(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='RF-2CX':
-        return _relax_2cx_rf(ca, R10, r1, t=t, dt=dt, **params)
+        if kinetics=='U':
+            return _relax_u_rf(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='FX':
+            return _relax_fx_rf(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='NX':
+            return _relax_nx_rf(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='WV':
+            return _relax_wv_rf(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='HFU':
+            return _relax_hfu_rf(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='HF':
+            return _relax_hf_rf(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='2CU':
+            return _relax_2cu_rf(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='2CX':
+            return _relax_2cx_rf(ca, R10, r1, t=t, dt=dt, **params)
     
+    elif water_exchange=='FR':
+
+        if kinetics=='U':
+            return _relax_u_fr(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='FX':
+            return _relax_fx_fr(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='NX':
+            return _relax_nx_fr(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='WV':
+            return _relax_wv_fr(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='HFU':
+            return _relax_hfu_fr(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='HF':
+            return _relax_hf_fr(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='2CU':
+            return _relax_2cu_fr(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='2CX':
+            return _relax_2cx_fr(ca, R10, r1, t=t, dt=dt, **params)
     
-    elif model=='FR-U':
-        return _relax_u_fr(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='FR-FX':
-        return _relax_fx_fr(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='FR-NX':
-        return _relax_nx_fr(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='FR-WV':
-        return _relax_wv_fr(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='FR-HFU':
-        return _relax_hfu_fr(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='FR-HF':
-        return _relax_hf_fr(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='FR-2CU':
-        return _relax_2cu_fr(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='FR-2CX':
-        return _relax_2cx_fr(ca, R10, r1, t=t, dt=dt, **params)
-    
-    
-    elif model=='RR-U':
-        return _relax_u_rr(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='RR-FX':
-        return _relax_fx_rr(ca, R10, r1, t=t, dt=dt, **params) 
-    elif model=='RR-NX':
-        return _relax_nx_rr(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='RR-WV':
-        return _relax_wv_rr(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='RR-HFU':
-        return _relax_hfu_rr(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='RR-HF':
-        return _relax_hf_rr(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='RR-2CU':
-        return _relax_2cu_rr(ca, R10, r1, t=t, dt=dt, **params)
-    elif model=='RR-2CX':
-        return _relax_2cx_rr(ca, R10, r1, t=t, dt=dt, **params)
+    elif water_exchange=='RR':
+
+        if kinetics=='U':
+            return _relax_u_rr(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='FX':
+            return _relax_fx_rr(ca, R10, r1, t=t, dt=dt, **params) 
+        elif kinetics=='NX':
+            return _relax_nx_rr(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='WV':
+            return _relax_wv_rr(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='HFU':
+            return _relax_hfu_rr(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='HF':
+            return _relax_hf_rr(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='2CU':
+            return _relax_2cu_rr(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics=='2CX':
+            return _relax_2cx_rr(ca, R10, r1, t=t, dt=dt, **params)
         
 
 
@@ -199,69 +434,59 @@ def _relax_fx_ff(ca, R10, r1, t=None, dt=1.0, ve=None, Fp=None):
 
 
 
-def _relax_2cx_fr(ca, R10, r1, t=None, dt=1.0, vb=None, H=None, ui=None, Fp=None, E=None):
-    vp=vb*(1-H)
-    vi=(1-vb)*ui
-    vc=(1-vb)*(1-ui)
-    ve=vp+vi
-    if ve==0:
-        C = ca*0
-    else:
-        C = _conc_2cx(ca, t=t, dt=dt, ve=ve, up=vp/ve, Fp=Fp, E=E)
+def _relax_2cx_fr(ca, R10, r1, t=None, dt=1.0, H=None, vp=None, vi=None, Fp=None, PS=None):
+    vb=vp/(1-H) if H!=1 else 0
+    vc=np.amax([1-vb-vi,1e-6]) # TODO allow v=0 in signal models and remove this protection
+    C = _conc_2cx(ca, t=t, dt=dt, vp=vp, vi=vi, Fp=Fp, PS=PS)
     R1 = np.full((2,C.size), R10)
     if 1-vc != 0:
         R1[0,:] += r1*C/(1-vc)
     return R1, [1-vc,vc]
 
-def _relax_2cu_fr(ca, R10, r1, t=None, dt=1.0, ucp=None, vcp=None, Fp=None, E=None):
-    vc=ucp*vcp
-    vp=(1-ucp)*vcp
-    C = _conc_2cu(ca, t=t, dt=dt, vp=vp, Fp=Fp, Ktrans=E*Fp)
+def _relax_2cu_fr(ca, R10, r1, t=None, dt=1.0, vc=None, vp=None, Fp=None, PS=None):
+    C = _conc_2cu(ca, t=t, dt=dt, vp=vp, Fp=Fp, PS=PS)
     R1 = np.full((2,C.size), R10)
     if 1-vc != 0:
         R1[0,:] += r1*C/(1-vc)
     return R1, [1-vc,vc]
 
-def _relax_hf_fr(ca, R10, r1, t=None, dt=1.0, vb=None, H=None, ui=None,  Ktrans=None):
-    vp=vb*(1-H)
-    vi=(1-vb)*ui
-    vc=(1-vb)*(1-ui)
-    ve=vp+vi
-    if ve==0:
-        C = np.zeros(ca.size)
-    else:
-        C = _conc_hf(ca, t=t, dt=dt, ve=ve, up=vp/ve, Ktrans=Ktrans)
+def _relax_hf_fr(ca, R10, r1, t=None, dt=1.0, H=None, vp=None, vi=None, PS=None):
+    vb=vp/(1-H) if H!=1 else 0
+    vc=np.amax([1-vb-vi,1e-6])
+    C = _conc_hf(ca, t=t, dt=dt, vp=vp, vi=vi, PS=PS)
     R1 = np.full((2,C.size), R10)
     if 1-vc != 0:
         R1[0,:] += r1*C/(1-vc)
     return R1, [1-vc,vc]
 
-def _relax_hfu_fr(ca, R10, r1, t=None, dt=1.0, ucp=None, vcp=None, Ktrans=None):
-    vp=(1-ucp)*vcp
-    vc=ucp*vcp
-    C = _conc_hfu(ca, t=t, dt=dt, vp=vp, Ktrans=Ktrans)
+def _relax_hfu_fr(ca, R10, r1, t=None, dt=1.0, vc=None, vp=None, PS=None):
+    C = _conc_hfu(ca, t=t, dt=dt, vp=vp, PS=PS)
+    R1 = np.full((2,C.size), R10)
+    if 1-vc != 0:
+        R1[0,:] += r1*C/(1-vc)
+    return R1, [1-vc, vc]
+
+def _relax_fx_fr(ca, R10, r1, t=None, dt=1.0, vc=None, ve=None, Fp=None):
+    C = _conc_1c(ca, t=t, dt=dt, v=ve, F=Fp)
     R1 = np.full((2,C.size), R10)
     if 1-vc != 0:
         R1[0,:] += r1*C/(1-vc)
     return R1, [1-vc,vc]
 
-def _relax_nx_fr(ca, R10, r1, t=None, dt=1.0, ucp=None, vcp=None, Fp=None):
-    vc=ucp*vcp
-    vp=(1-ucp)*vcp
+def _relax_nx_fr(ca, R10, r1, t=None, dt=1.0, vc=None, vp=None, Fp=None):
     C = _conc_nx(ca, t=t, dt=dt, vp=vp, Fp=Fp)
     R1 = np.full((2,C.size), R10)
     if 1-vc != 0:
         R1[0,:] += r1*C/(1-vc)
-    return R1, [1-vc,vc]
+    return R1, [1-vc, vc]
 
 def _relax_wv_fr(ca, R10, r1, t=None, dt=1.0, vi=None, Ktrans=None):
-    # vi, Ktrans
     C = _conc_wv(ca, t=t, dt=dt, vi=vi, Ktrans=Ktrans)
-    vc = 1-vi
+    vc = np.amax([1-vi,1e-6])
     R1 = np.full((2,C.size), R10)
     if 1-vc != 0:
         R1[0,:] += r1*C/(1-vc)
-    return R1, [vi,1-vi]
+    return R1, [1-vc, vc]
 
 def _relax_u_fr(ca, R10, r1, t=None, dt=1.0, vc=None, Fp=None):
     # vc, Fp
@@ -271,56 +496,73 @@ def _relax_u_fr(ca, R10, r1, t=None, dt=1.0, vc=None, Fp=None):
         R1[0,:] += r1*C/(1-vc)
     return R1, [1-vc,vc]
 
-def _relax_fx_fr(ca, R10, r1, t=None, dt=1.0, uce=None, vce=None, Fp=None):
-    vc=uce*vce
-    ve=(1-uce)*vce
+
+
+
+
+def _relax_2cx_rf(ca, R10, r1, t=None, dt=1.0, H=None, vp=None, vi=None, Fp=None, PS=None):
+    vb=vp/(1-H) if H!=1 else 0
+    C = _conc_2cx(ca, t=t, dt=dt, vp=vp, vi=vi, Fp=Fp, PS=PS, sum=False)
+    R1 = np.full((2,C.shape[1]), R10)
+    if vb != 0:
+        R1[0,:] += r1*C[0,:]/vb
+    if 1-vb != 0:
+        R1[1,:] += r1*C[1,:]/(1-vb)
+    return R1, [vb, 1-vb]
+
+def _relax_2cu_rf(ca, R10, r1, t=None, dt=1.0, H=None, vp=None, Fp=None, PS=None):
+    vb=vp/(1-H) if H!=1 else 0
+    C = _conc_2cu(ca, t=t, dt=dt, sum=False, vp=vp, Fp=Fp, PS=PS)
+    R1 = np.full((2,C.shape[1]), R10)
+    if vb != 0:
+        R1[0,:] += r1*C[0,:]/vb
+    if 1-vb != 0:
+        R1[1,:] += r1*C[1,:]/(1-vb)
+    return R1, [vb, 1-vb]
+
+def _relax_hf_rf(ca, R10, r1, t=None, dt=1.0, H=None, vp=None, vi=None, PS=None):
+    vb=vp/(1-H) if H!=1 else 0
+    C = _conc_hf(ca, t=t, dt=dt, vi=vi, vp=vp, PS=PS, sum=False)
+    R1 = np.full((2,C.shape[1]), R10)
+    if vb != 0:
+        R1[0,:] += r1*C[0,:]/vb
+    if 1-vb != 0:
+        R1[1,:] += r1*C[1,:]/(1-vb)
+    return R1, [vb, 1-vb]
+
+def _relax_hfu_rf(ca, R10, r1, t=None, dt=1.0, H=None, vp=None, PS=None):
+    vb=vp/(1-H) if H!=1 else 0
+    C = _conc_hfu(ca, t=t, dt=dt, sum=False, vp=vp, PS=PS)
+    R1 = np.full((2,C.shape[1]), R10)
+    if vb != 0:
+        R1[0,:] += r1*C[0,:]/vb
+    if 1-vb != 0:
+        R1[1,:] += r1*C[1,:]/(1-vb)
+    return R1, [vb, 1-vb]
+
+def _relax_fx_rf(ca, R10, r1, t=None, dt=1.0, H=None, vp=None, ve=None, Fp=None):
+    vb=vp/(1-H) if H!=1 else 0
+    vi=np.amax([ve-vp,1e-6])
     C = _conc_1c(ca, t=t, dt=dt, v=ve, F=Fp)
     R1 = np.full((2,C.size), R10)
-    if 1-vc != 0:
-        R1[0,:] += r1*C/(1-vc)
-    return R1, [1-vc,vc]
-
-
-
-def _relax_2cx_rf(ca, R10, r1, t=None, dt=1.0, vb=None, vp=None, vi=None, Fp=None, Ktrans=None):
-    C = _conc_2cx(ca, t=t, dt=dt, vp=vp, vi=vi, Fp=Fp, Ktrans=Ktrans, sum=False)
-    R1 = np.full((2,C.shape[1]), R10)
-    if vb != 0:
-        R1[0,:] += r1*C[0,:]/vb
-    if 1-vb != 0:
-        R1[1,:] += r1*C[1,:]/(1-vb)
+    if ve != 0:
+        ce = C/ve
+        if vb != 0:
+            R1[0,:] += r1*ce*vp/vb
+        if 1-vb != 0:
+            R1[1,:] += r1*ce*vi/(1-vb)
     return R1, [vb, 1-vb]
 
-def _relax_2cu_rf(ca, R10, r1, t=None, dt=1.0, vb=None, vp=None, Fp=None, Ktrans=None):
-    C = _conc_2cu(ca, t=t, dt=dt, sum=False, vp=vp, Fp=Fp, Ktrans=Ktrans)
-    R1 = np.full((2,C.shape[1]), R10)
-    if vb != 0:
-        R1[0,:] += r1*C[0,:]/vb
-    if 1-vb != 0:
-        R1[1,:] += r1*C[1,:]/(1-vb)
-    return R1, [vb, 1-vb]
-
-def _relax_hf_rf(ca, R10, r1, t=None, dt=1.0, vb=None, vi=None, vp=None, Ktrans=None):
-    C = _conc_hf(ca, t=t, dt=dt, vi=vi, vp=vp, Ktrans=Ktrans, sum=False)
-    R1 = np.full((2,C.shape[1]), R10)
-    if vb != 0:
-        R1[0,:] += r1*C[0,:]/vb
-    if 1-vb != 0:
-        R1[1,:] += r1*C[1,:]/(1-vb)
-    return R1, [vb, 1-vb]
-
-def _relax_hfu_rf(ca, R10, r1, t=None, dt=1.0, vb=None, vp=None, Ktrans=None):
-    C = _conc_hfu(ca, t=t, dt=dt, sum=False, vp=vp, Ktrans=Ktrans)
-    R1 = np.full((2,C.shape[1]), R10)
-    if vb != 0:
-        R1[0,:] += r1*C[0,:]/vb
-    if 1-vb != 0:
-        R1[1,:] += r1*C[1,:]/(1-vb)
-    return R1, [vb, 1-vb]
-
-def _relax_nx_rf(ca, R10, r1, t=None, dt=1.0, vb=None, vp=None, Fp=None):
-    # vb, Hct, Fp
+def _relax_nx_rf(ca, R10, r1, t=None, dt=1.0, H=None, vp=None, Fp=None):
+    vb=vp/(1-H) if H!=1 else 0
     C = _conc_nx(ca, t=t, dt=dt, vp=vp, Fp=Fp)
+    R1 = np.full((2,C.size), R10)
+    if vb != 0:
+        R1[0,:] += r1*C/vb
+    return R1, [vb,1-vb]
+
+def _relax_u_rf(ca, R10, r1, t=None, dt=1.0, vb=None, Fp=None):
+    C = _conc_u(ca, t=t, dt=dt, Fp=Fp)
     R1 = np.full((2,C.size), R10)
     if vb != 0:
         R1[0,:] += r1*C/vb
@@ -332,29 +574,11 @@ def _relax_wv_rf(ca, R10, r1, t=None, dt=1.0, vi=None, Ktrans=None):
     R1 = R10 + r1*C
     return R1, 1
 
-def _relax_u_rf(ca, R10, r1, t=None, dt=1.0, vb=None, Fp=None):
-    C = _conc_u(ca, t=t, dt=dt, Fp=Fp)
-    R1 = np.full((2,C.size), R10)
-    if vb != 0:
-        R1[0,:] += r1*C/vb
-    return R1, [vb,1-vb]
-
-def _relax_fx_rf(ca, R10, r1, t=None, dt=1.0, vb=None, vp=None, ve=None, Fp=None):
-    vi=ve-vp
-    C = _conc_1c(ca, t=t, dt=dt, v=ve, F=Fp)
-    R1 = np.full((2,C.size), R10)
-    if ve != 0:
-        ce = C/ve
-        if vb != 0:
-            R1[0,:] += r1*ce*vp/vb
-        if 1-vb != 0:
-            R1[1,:] += r1*ce*vi/(1-vb)
-    return R1, [vb, 1-vb]
 
 
-
-def _relax_2cx_rr(ca, R10, r1, t=None, dt=1.0, vb=None, vp=None, vi=None, Fp=None, Ktrans=None):
-    C = _conc_2cx(ca, t=t, dt=dt, vp=vp, vi=vi, Fp=Fp, Ktrans=Ktrans, sum=False)
+def _relax_2cx_rr(ca, R10, r1, t=None, dt=1.0, H=None, vp=None, vi=None, Fp=None, PS=None):
+    vb=vp/(1-H) if H!=1 else 0
+    C = _conc_2cx(ca, t=t, dt=dt, vp=vp, vi=vi, Fp=Fp, PS=PS, sum=False)
     R1 = np.full((3,C.shape[1]), R10)
     if vb != 0:
         R1[0,:] += r1*C[0,:]/vb
@@ -362,8 +586,9 @@ def _relax_2cx_rr(ca, R10, r1, t=None, dt=1.0, vb=None, vp=None, vi=None, Fp=Non
         R1[1,:] += r1*C[1,:]/vi
     return R1, [vb, vi, 1-vb-vi]
 
-def _relax_2cu_rr(ca, R10, r1, t=None, dt=1.0, vb=None, vi=None, vp=None, Fp=None, Ktrans=None):
-    C = _conc_2cu(ca, t=t, dt=dt, sum=False, vp=vp, Fp=Fp, Ktrans=Ktrans)
+def _relax_2cu_rr(ca, R10, r1, t=None, dt=1.0, H=None, vi=None, vp=None, Fp=None, PS=None):
+    vb=vp/(1-H) if H!=1 else 0
+    C = _conc_2cu(ca, t=t, dt=dt, sum=False, vp=vp, Fp=Fp, PS=PS)
     R1 = np.full((3,C.shape[1]), R10)
     if vb != 0:
         R1[0,:] += r1*C[0,:]/vb
@@ -371,8 +596,9 @@ def _relax_2cu_rr(ca, R10, r1, t=None, dt=1.0, vb=None, vi=None, vp=None, Fp=Non
         R1[1,:] += r1*C[1,:]/vi
     return R1, [vb, vi, 1-vb-vi]
     
-def _relax_hf_rr(ca, R10, r1, t=None, dt=1.0, vb=None, vp=None, vi=None, Ktrans=None):
-    C = _conc_hf(ca, t=t, dt=dt, vp=vp, vi=vi, Ktrans=Ktrans, sum=False)
+def _relax_hf_rr(ca, R10, r1, t=None, dt=1.0, H=None, vp=None, vi=None, PS=None):
+    vb=vp/(1-H) if H!=1 else 0
+    C = _conc_hf(ca, t=t, dt=dt, vp=vp, vi=vi, PS=PS, sum=False)
     R1 = np.full((3,C.shape[1]), R10)
     if vb != 0:
         R1[0,:] += r1*C[0,:]/vb
@@ -380,8 +606,9 @@ def _relax_hf_rr(ca, R10, r1, t=None, dt=1.0, vb=None, vp=None, vi=None, Ktrans=
         R1[1,:] += r1*C[1,:]/vi
     return R1, [vb, vi, 1-vb-vi]
 
-def _relax_hfu_rr(ca, R10, r1, t=None, dt=1.0, vb=None, vi=None, vp=None, Ktrans=None):
-    C = _conc_hfu(ca, t=t, dt=dt, sum=False, vp=vp, Ktrans=Ktrans)
+def _relax_hfu_rr(ca, R10, r1, t=None, dt=1.0, H=None, vp=None, vi=None, PS=None):
+    vb=vp/(1-H) if H!=1 else 0
+    C = _conc_hfu(ca, t=t, dt=dt, sum=False, vp=vp, PS=PS)
     R1 = np.full((3,C.shape[1]), R10)
     if vb != 0:
         R1[0,:] += r1*C[0,:]/vb
@@ -389,28 +616,8 @@ def _relax_hfu_rr(ca, R10, r1, t=None, dt=1.0, vb=None, vi=None, vp=None, Ktrans
         R1[1,:] += r1*C[1,:]/vi
     return R1, [vb, vi, 1-vb-vi]
 
-def _relax_nx_rr(ca, R10, r1, t=None, dt=1.0, vb=None, vp=None, Fp=None):
-    C = _conc_nx(ca, t=t, dt=dt, vp=vp, Fp=Fp)
-    R1 = np.full((2,C.size), R10)
-    if vb != 0:
-        R1[0,:] += r1*C/vb
-    return R1, [vb, 1-vb]
-
-def _relax_wv_rr(ca, R10, r1, t=None, dt=1.0, vi=None, Ktrans=None):
-    C = _conc_wv(ca, t=t, dt=dt, vi=vi, Ktrans=Ktrans)
-    R1 = np.full((2,C.size), R10)
-    if vi != 0:
-        R1[0,:] += r1*C/vi
-    return R1, [vi, 1-vi]
-
-def _relax_u_rr(ca, R10, r1, t=None, dt=1.0, vb=None, Fp=None):
-    C = _conc_u(ca, t=t, dt=dt, Fp=Fp)
-    R1 = np.full((2,C.size), R10)
-    if vb != 0:
-        R1[0,:] += r1*C/vb
-    return R1, [vb,1-vb]
-
-def _relax_fx_rr(ca, R10, r1, t=None, dt=1.0, vb=None, vp=None, ve=None, Fp=None):
+def _relax_fx_rr(ca, R10, r1, t=None, dt=1.0, H=None, vp=None, ve=None, Fp=None):
+    vb=vp/(1-H) if H!=1 else 0
     C = _conc_1c(ca, t=t, dt=dt, v=ve, F=Fp)
     R1 = np.full((3,C.size), R10)
     vi = ve-vp
@@ -420,6 +627,32 @@ def _relax_fx_rr(ca, R10, r1, t=None, dt=1.0, vb=None, vp=None, ve=None, Fp=None
             R1[0,:] += r1*ce*vp/vb
         R1[1,:] += r1*ce
     return R1, [vb, vi, 1-vb-vi]
+
+def _relax_nx_rr(ca, R10, r1, t=None, dt=1.0, H=None, vp=None, Fp=None):
+    vb=vp/(1-H) if H!=1 else 0
+    C = _conc_nx(ca, t=t, dt=dt, vp=vp, Fp=Fp)
+    R1 = np.full((2,C.size), R10)
+    if vb != 0:
+        R1[0,:] += r1*C/vb
+    return R1, [vb, 1-vb]
+
+def _relax_u_rr(ca, R10, r1, t=None, dt=1.0, vb=None, Fp=None):
+    C = _conc_u(ca, t=t, dt=dt, Fp=Fp)
+    R1 = np.full((2,C.size), R10)
+    if vb != 0:
+        R1[0,:] += r1*C/vb
+    return R1, [vb,1-vb]
+
+def _relax_wv_rr(ca, R10, r1, t=None, dt=1.0, vi=None, Ktrans=None):
+    C = _conc_wv(ca, t=t, dt=dt, vi=vi, Ktrans=Ktrans)
+    R1 = np.full((2,C.size), R10)
+    if vi != 0:
+        R1[0,:] += r1*C/vi
+    return R1, [vi, 1-vi]
+
+
+
+
 
 
 
@@ -451,11 +684,11 @@ def conc_tissue(ca:np.ndarray, t=None, dt=1.0, kinetics='2CX', sum=True, **param
           - Assumptions
         * - '2CX'
           - Two-compartment exchange
-          - vi, vp, Fp, Ktrans
+          - vi, vp, Fp, PS
           - see :ref:`two-site-exchange`
         * - '2CU'
           - Two-compartment uptake
-          - vp, Fp, Ktrans
+          - vp, Fp, PS
           - :math:`PS` small
         * - 'HF'
           - High-flow, AKA *extended Tofts model*, *extended Patlak model*, *general kinetic model*.
@@ -463,7 +696,7 @@ def conc_tissue(ca:np.ndarray, t=None, dt=1.0, kinetics='2CX', sum=True, **param
           - :math:`F_p = \infty`
         * - 'HFU'
           - High flow uptake, AKA *Patlak model*
-          - vp, Ktrans
+          - vp, PS
           - :math:`F_p = \infty`, PS small
         * - 'FX'
           - Fast indicator exchange
@@ -492,6 +725,9 @@ def conc_tissue(ca:np.ndarray, t=None, dt=1.0, kinetics='2CX', sum=True, **param
           - Units
         * - Fp
           - Plasma flow
+          - mL/sec/cm3
+        * - PS
+          - Permeability-surface area product
           - mL/sec/cm3
         * - Ktrans
           - Volume transfer constant
@@ -526,8 +762,8 @@ def conc_tissue(ca:np.ndarray, t=None, dt=1.0, kinetics='2CX', sum=True, **param
 
         Define some tissue parameters: 
 
-        >>> p2x = {'vp':0.05, 'vi':0.4, 'Fp':0.01, 'Ktrans':0.005}
-        >>> pwv = {'vi':0.4, 'Ktrans':0.005}
+        >>> p2x = {'vp':0.05, 'vi':0.4, 'Fp':0.01, 'PS':0.005}
+        >>> pwv = {'vi':0.4, 'Ktrans':0.005*0.01/(0.005+0.01)}
 
         Generate plasma and extravascular tissue concentrations with the 2CX and WV models:
 
@@ -611,43 +847,35 @@ def _conc_wv(ca, t=None, dt=1.0, sum=True, vi=None, Ktrans=None):
     else:
         return np.stack((Cp,Ce))
 
-def _conc_hfu(ca, t=None, dt=1.0, sum=True, vp=None, Ktrans=None):
+def _conc_hfu(ca, t=None, dt=1.0, sum=True, vp=None, PS=None):
     Cp = vp*ca
-    Ce = pk.conc_trap(Ktrans*ca, t=t, dt=dt)
+    Ce = pk.conc_trap(PS*ca, t=t, dt=dt)
     if sum:
         return Cp+Ce
     else:
         return np.stack((Cp,Ce))
     
-def _conc_hf(ca, t=None, dt=1.0, sum=True, vi=None, vp=None, Ktrans=None):
+def _conc_hf(ca, t=None, dt=1.0, sum=True, vi=None, vp=None, PS=None):
     Cp = vp*ca
-    if Ktrans==0:
+    if PS==0:
         Ce = 0*ca
     else:
-        Ce = pk.conc_comp(Ktrans*ca, vi/Ktrans, t=t, dt=dt)
+        Ce = pk.conc_comp(PS*ca, vi/PS, t=t, dt=dt)
     if sum:
         return Cp+Ce
     else:
         return np.stack((Cp,Ce))
     
-def _conc_2cu(ca, t=None, dt=1.0, sum=True, vp=None, Fp=None, Ktrans=None):
+def _conc_2cu(ca, t=None, dt=1.0, sum=True, vp=None, Fp=None, PS=None):
 
     if np.isinf(Fp):
-        return _conc_hfu(ca, t=t, dt=dt, sum=sum, vp=vp, Ktrans=Ktrans)   
-
-    if Ktrans==Fp: #E=1. Since i is a trap, the whole system is a trap.
-        if sum is False:
-            msg = 'With Fp=Ktrans, the system is a trap and the concentration of intra- and extravascular spaces cannot be independently deptermined.'
-            raise ValueError(msg)
-        return _conc_u(ca, t=None, dt=1.0, Fp=Fp)
-
-    PS = Ktrans*Fp/(Fp-Ktrans) 
-
+        return _conc_hfu(ca, t=t, dt=dt, sum=sum, vp=vp, PS=PS)   
     if Fp+PS==0:
         return np.zeros((2,len(ca)))
     Tp = vp/(Fp+PS)
     Cp = pk.conc_comp(Fp*ca, Tp, t=t, dt=dt)
     if vp==0:
+        Ktrans = PS*Fp/(PS+Fp)
         Ce = pk.conc_trap(Ktrans*ca, t=t, dt=dt)
     else:
         Ce = pk.conc_trap(PS*Cp/vp, t=t, dt=dt)
@@ -657,24 +885,11 @@ def _conc_2cu(ca, t=None, dt=1.0, sum=True, vp=None, Fp=None, Ktrans=None):
         return np.stack((Cp,Ce))
     
 
-def _conc_2cx(ca, t=None, dt=1.0, sum=True, vi=None, vp=None, Fp=None, Ktrans=None):
+def _conc_2cx(ca, t=None, dt=1.0, sum=True, vi=None, vp=None, Fp=None, PS=None):
 
     if np.isinf(Fp):
-        return _conc_hf(ca, t=t, dt=dt, sum=sum, vi=vi, vp=vp, Ktrans=Ktrans)
+        return _conc_hf(ca, t=t, dt=dt, sum=sum, vi=vi, vp=vp, PS=PS)
 
-    if Ktrans==Fp: #E=1: FX
-        C = _conc_1c(ca, t=t, dt=dt, v=vp+vi, F=Fp)
-        if sum:
-            return C
-        else:
-            if vp+vi==0:
-                return np.zeros((2,len(ca)))
-            else:
-                Cp = C*vp/(vp+vi)
-                Ce = C*vi/(vp+vi)
-                return np.stack((Cp,Ce))
-
-    PS = Ktrans*Fp/(Fp-Ktrans)
     J = Fp*ca
 
     if Fp+PS == 0:
@@ -749,8 +964,7 @@ def flux_tissue(ca:np.ndarray, t=None, dt=1.0, kinetics='2CX', **params)->np.nda
     Returns:
         numpy.ndarray: For a one-compartmental tissue, outflux out of the compartment as a 1D array in units of mmol/sec/mL or M/sec. For a multi=compartmental tissue, outflux out of each compartment, and at each time point, as a 3D array with dimensions *(2,2,k)*, where *2* is the number of compartments and *k* is the number of time points in *J*. Encoding of the first two indices is the same as for *E*: *J[j,i,:]* is the flux from compartment *i* to *j*, and *J[i,i,:]* is the flux from *i* directly to the outside. The flux is returned in units of mmol/sec/mL or M/sec.
 
-    Notes:
-    The tables below define the possible values of the `kinetics` argument and the corresponding parameters in the `params` dictionary. 
+    **Notes**: the tables below define the possible values of the `kinetics` argument and the corresponding parameters in the `params` dictionary. 
 
     .. list-table:: **kinetic models**
         :widths: 10 40 20 20
@@ -762,11 +976,11 @@ def flux_tissue(ca:np.ndarray, t=None, dt=1.0, kinetics='2CX', **params)->np.nda
           - Assumptions
         * - '2CX'
           - Two-compartment exchange
-          - vi, vp, Fp, Ktrans
+          - vi, vp, Fp, PS
           - see :ref:`two-site-exchange`
         * - '2CU'
           - Two-compartment uptake
-          - vp, Fp, Ktrans
+          - vp, Fp, PS
           - :math:`PS` small
         * - 'HF'
           - High-flow, AKA *extended Tofts model*, *extended Patlak model*, *general kinetic model*.
@@ -774,7 +988,7 @@ def flux_tissue(ca:np.ndarray, t=None, dt=1.0, kinetics='2CX', **params)->np.nda
           - :math:`F_p = \infty`
         * - 'HFU'
           - High flow uptake, AKA *Patlak model*
-          - Ktrans
+          - PS
           - :math:`F_p = \infty`, PS small
         * - 'FX'
           - Fast indicator exchange
@@ -803,6 +1017,9 @@ def flux_tissue(ca:np.ndarray, t=None, dt=1.0, kinetics='2CX', **params)->np.nda
           - Units
         * - Fp
           - Plasma flow
+          - mL/sec/cm3
+        * - PS
+          - Permeability-surface area product
           - mL/sec/cm3
         * - Ktrans
           - Volume transfer constant
@@ -856,51 +1073,42 @@ def _flux_wv(ca, t=None, dt=1.0, vi=None, Ktrans=None):
         J[0,1,:] = pk.flux(Ktrans*ca, vi/Ktrans, t=t, dt=dt, model='comp')
     return J
 
-def _flux_hfu(ca, Ktrans=None):
+def _flux_hfu(ca, PS=None):
     J = np.zeros(((2,2,len(ca))))
     J[0,0,:] = np.nan
-    J[1,0,:] = Ktrans*ca
+    J[1,0,:] = PS*ca
     return J
 
-def _flux_hf(ca, t=None, dt=1.0, vi=None, Ktrans=None):
+def _flux_hf(ca, t=None, dt=1.0, vi=None, PS=None):
     J = np.zeros(((2,2,len(ca))))
     J[0,0,:] = np.inf
-    J[1,0,:] = Ktrans*ca
-    if Ktrans==0:
+    J[1,0,:] = PS*ca
+    if PS==0:
         J[0,1,:] = 0*ca
     else:
-        J[0,1,:] = pk.flux(Ktrans*ca, vi/Ktrans, t=t, dt=dt, model='comp')
+        J[0,1,:] = pk.flux(PS*ca, vi/PS, t=t, dt=dt, model='comp')
     return J
 
-def _flux_2cu(ca, t=None, dt=1.0, vp=None, Fp=None, Ktrans=None):
-    C = _conc_2cu(ca, t=t, dt=dt, sum=False, vp=vp, Fp=Fp, Ktrans=Ktrans)
+def _flux_2cu(ca, t=None, dt=1.0, vp=None, Fp=None, PS=None):
+    C = _conc_2cu(ca, t=t, dt=dt, sum=False, vp=vp, Fp=Fp, PS=PS)
     J = np.zeros(((2,2,len(ca))))
     if vp==0:
-        J[0,0,:] = Fp*ca
-        J[1,0,:] = Ktrans*ca
+        if Fp+PS!=0:
+            Ktrans = Fp*PS/(Fp+PS)
+            J[0,0,:] = Fp*ca
+            J[1,0,:] = Ktrans*ca
     else:
-        PS = Ktrans*Fp/(Fp-Ktrans) 
         J[0,0,:] = Fp*C[0,:]/vp
         J[1,0,:] = PS*C[0,:]/vp
     return J
 
-def _flux_2cx(ca, t=None, dt=1.0, vp=None, vi=None, Fp=None, Ktrans=None):
+def _flux_2cx(ca, t=None, dt=1.0, vp=None, vi=None, Fp=None, PS=None):
 
     if np.isinf(Fp):
-        return _flux_hf(ca, t=t, dt=dt, vi=vi, Ktrans=Ktrans)  
+        return _flux_hf(ca, t=t, dt=dt, vi=vi, PS=PS)  
     
     if Fp==0:
         return np.zeros((2,2,len(ca)))
-    
-    if Ktrans==Fp: #E=1: FX
-        J = np.zeros((2,2,len(ca)))
-        Jp = _flux_1c(ca, t=t, dt=dt, v=vp+vi, F=Fp)
-        J[0,0,:] = Jp
-        J[0,1,:] = np.inf
-        J[1,0,:] = np.inf
-        return J
-    
-    PS = Ktrans*Fp/(Fp-Ktrans)
     
     if Fp+PS == 0:
         return np.zeros((2,2,len(ca)))
@@ -909,7 +1117,7 @@ def _flux_2cx(ca, t=None, dt=1.0, vp=None, vi=None, Fp=None, Ktrans=None):
         J = np.zeros((2,2,len(ca)))
         J[0,0,:] = Jp
         return J
-    C = _conc_2cx(ca, t=t, dt=dt, sum=False, vp=vp, vi=vi, Fp=Fp, Ktrans=Ktrans)
+    C = _conc_2cx(ca, t=t, dt=dt, sum=False, vp=vp, vi=vi, Fp=Fp, PS=PS)
     # Derive standard parameters
     Tp = vp/(Fp+PS)
     Te = vi/PS

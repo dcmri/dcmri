@@ -2,6 +2,65 @@ from tqdm import tqdm
 import numpy as np
 import dcmri as dc
 
+
+def fake_aif(
+        tacq = 180.0, 
+        dt = 1.5,
+        BAT = 20,
+        field_strength = 3.0,
+        agent = 'gadodiamide', 
+        Hct = 0.45,
+        R10b = 1/dc.T1(3.0,'blood'),
+        S0b = 150,
+        sequence = 'SS',
+        TR = 0.005,
+        FA = 15,
+        TC = 0.2,
+        CNR = np.inf,
+        dt_sim = 0.1,
+    ):
+    """Synthetic AIF signal with noise.
+
+    Args:
+        tacq (float, optional): Duration of the acquisition in sec. Defaults to 180.
+        dt (float, optional): Sampling interval in sec. Defaults to 1.5.
+        BAT (int, optional): Bolus arrival time in sec. Defaults to 20.
+        field_strength (float, optional): B0 field in T. Defaults to 3.0.
+        agent (str, optional): Contrast agent generic name. Defaults to 'gadodiamide'.
+        Hct (float, optional): Hematocrit. Defaults to 0.45.
+        R10b (_type_, optional): Precontrast relaxation rate for blood in 1/sec. Defaults to 1/dc.T1(3.0, 'blood').
+        S0b (int, optional): Signal scaling factor in blood (arbitrary units). Defaults to 150.
+        sequence (str, optional): Scanning sequences, either steady-state ('SS') or saturation-recovery ('SR')
+        TR (float, optional): Repetition time in sec. Defaults to 0.005.
+        FA (int, optional): Flip angle. Defaults to 20.
+        TC (float, optional): time to center of k-space in SR sequence. This is ignored when sequence='SS'. efaults to 0.2 sec.
+        CNR (float, optional): Contrast-to-noise ratio, define as the ratio of signal-enhancement in the AIF to noise. Defaults to np.inf.
+        dt_sim (float, optional): Sampling inteval of the forward modelling in sec. Defaults to 0.1.
+
+    Returns: 
+        tuple: time, aif, gt
+
+        - **time**: array of time points.
+        - **aif**: array of AIF signals.
+        - **gt**: dictionary with ground truth values.
+    """
+    t = np.arange(0, tacq+dt, dt_sim)
+    cp = dc.aif_parker(t, BAT)
+    rp = dc.relaxivity(field_strength, 'plasma', agent)
+    R1b = R10b + rp*cp*(1-Hct)
+    if sequence=='SS':
+        aif = dc.signal_ss(R1b, S0b, TR, FA)
+    elif sequence=='SR':
+        aif = dc.signal_src(R1b, S0b, TC)
+    time = np.arange(0, tacq, dt)
+    aif = dc.sample(time, t, aif, dt)
+    sdev = (np.amax(aif)-aif[0])/CNR
+    aif = dc.add_noise(aif, sdev)
+    gt = {'t':t, 'cp':cp, 'cb':cp*(1-Hct),
+          'TR':TR, 'FA':FA, 'S0b':S0b}
+    return time, aif, gt
+
+
 # TODO align API with Tissue
 def fake_brain(
         n = 192,
@@ -79,9 +138,6 @@ def fake_brain(
     # Parameter maps
     roi = dc.shepp_logan(n=n)
     im = dc.shepp_logan('T1', 'PD', 'BF', 'BV', 'PS', 'IV', n=n)
-    with np.errstate(divide='ignore', invalid='ignore'):
-        denom = im['PS']+im['BF']*(1-Hct)
-        Ktrans = np.where(denom==0, 0, im['PS']*im['BF']*(1-Hct)/denom)
 
     # Input
     t = np.arange(0, tacq+dt, dt_sim)
@@ -124,7 +180,8 @@ def fake_brain(
                 Fp = im['BF'][i,j]*(1-Hct)
                 vp = im['BV'][i,j]*(1-Hct)
                 vi = im['IV'][i,j]
-                C = dc.conc_tissue(cp, dt=dt_sim, model='2CX', Fp=Fp, vp=vp, vi=vi, Ktrans=Ktrans[i,j])
+                PS = im['PS'][i,j]
+                C = dc.conc_tissue(cp, dt=dt_sim, kinetics='2CX', Fp=Fp, vp=vp, vi=vi, PS=PS)
 
             # Pixel signal
             R1 = 1/im['T1'][i,j] + rp*C
@@ -144,9 +201,10 @@ def fake_brain(
           'signal': signal_noisefree,
           'Fp':im['BF']*(1-Hct), 'vp':im['BV']*(1-Hct), 
           'PS':im['PS'], 'vi':im['IV'], 
-          'Ktrans':Ktrans,
           'T1':im['T1'], 'PD':im['PD'],
           'TR':TR, 'FA':FA, 'S0':S0*im['PD']}
+    
+    gt['ve'] = gt['vi'] + gt['vp']
     
     return time, signal, aif, gt
 
@@ -156,7 +214,7 @@ def fake_tissue(
         tacq = 180.0, 
         dt = 1.5,
         BAT = 20,
-        Fp = 0.1, #TODO should be 0.01
+        Fp = 0.01, #TODO should be 0.01
         vp = 0.05, 
         PS = 0.003,  # TODO replace Ktrans
         ve = 0.2, # TODO: rename vi
@@ -208,8 +266,7 @@ def fake_tissue(
     """
     t = np.arange(0, tacq+dt, dt_sim)
     cp = dc.aif_parker(t, BAT)
-    Ktrans = Fp*PS/(Fp+PS)
-    C = dc.conc_tissue(cp, dt=dt_sim, model='2CX', Fp=Fp, vp=vp, Ktrans=Ktrans, vi=ve)
+    C = dc.conc_tissue(cp, dt=dt_sim, kinetics='2CX', Fp=Fp, vp=vp, PS=PS, vi=ve)
     rp = dc.relaxivity(field_strength, 'plasma', agent)
     R1b = R10b + rp*cp*(1-Hct)
     R1 = R10 + rp*C
@@ -297,8 +354,7 @@ def fake_tissue2scan(
     t = np.arange(0, 2*tacq+tbreak+dt, dt_sim)
     cp = dc.aif_parker(t, BAT)
     cp += dc.aif_parker(t, tacq+tbreak+BAT)
-    Ktrans = Fp*PS/(Fp+PS)
-    C = dc.conc_tissue(cp, dt=dt_sim, model='2CX', Fp=Fp, vp=vp, Ktrans=Ktrans, vi=ve)
+    C = dc.conc_tissue(cp, dt=dt_sim, kinetics='2CX', Fp=Fp, vp=vp, PS=PS, vi=ve)
     rp = dc.relaxivity(field_strength, 'plasma', agent)
     R1b = R10b + rp*cp*(1-Hct)
     R1 = R10 + rp*C
@@ -337,7 +393,6 @@ def fake_tissue2scan(
     roi = (roi1, roi2)
     gt = {'t':t, 'cp':cp, 'C':C, 'cb':cp*(1-Hct),
           'Fp':Fp, 'vp':vp, 'PS':PS, 'vi':ve, 
-          'Ktrans':Fp*PS/(Fp+PS),
           'TR':TR, 'FA':FA, 'S01':S01, 'S02':S02}
     return time, aif, roi, gt
 

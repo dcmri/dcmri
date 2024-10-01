@@ -57,8 +57,10 @@ def tristan_rat(data, **kwargs):
         kinetics = 'IC-HF',
         Hct = 0.418,
         ve = 0.23,
-        free = ['khe', 'Th'],
-        bounds = [0, np.inf],
+        free = {
+            'khe': [0, np.inf], 
+            'Th': [0, np.inf],
+        },
 
         # Tissue paramaters
         R10 = 1/dc.T1(data['field_strength'], 'liver'),

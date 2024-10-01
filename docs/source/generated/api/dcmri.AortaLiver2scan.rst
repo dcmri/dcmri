@@ -9,6 +9,12 @@
 
    
    
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~AortaLiver2scan.free
+   
    
 
 
@@ -28,6 +34,7 @@
       ~AortaLiver2scan.print_params
       ~AortaLiver2scan.relax
       ~AortaLiver2scan.save
+      ~AortaLiver2scan.set_free
       ~AortaLiver2scan.train
    
    

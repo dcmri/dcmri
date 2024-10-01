@@ -22,12 +22,14 @@
       ~Tissue.cost
       ~Tissue.export_params
       ~Tissue.get_params
+      ~Tissue.info
       ~Tissue.load
       ~Tissue.plot
       ~Tissue.predict
       ~Tissue.print_params
       ~Tissue.relax
       ~Tissue.save
+      ~Tissue.set_free
       ~Tissue.signal
       ~Tissue.time
       ~Tissue.train

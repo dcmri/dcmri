@@ -24,6 +24,7 @@ Synthetic data
    :toctree: ../generated/api/
    :template: autosummary.rst
 
+   fake_aif
    fake_brain
    fake_tissue
    fake_tissue2scan
@@ -79,7 +80,6 @@ Useful constants
    T2 
    PD
    perfusion
-   model_props
 
 
 Convolution

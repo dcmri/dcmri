@@ -59,7 +59,7 @@ class Kidney(mods.Model):
         **Prediction and training parameters**
 
         - **free** (array-like): list of free parameters. The default depends on the kinetics parameter.
-        - **bounds** (array-like): 2-element list with lower and upper bounds of the free parameters. The default depends on the kinetics parameter.
+        - **free** (array-like): 2-element list with lower and upper free of the free parameters. The default depends on the kinetics parameter.
 
         **Additional parameters**
 
@@ -102,14 +102,19 @@ class Kidney(mods.Model):
         >>> model.plot(time, roi, ref=gt)
     """ 
 
-    def __init__(self, free=None, bounds=None, **params):
+    free = {}   #: lower- and upper free for all free parameters.
+
+    def __init__(self, kinetics='2CFM', sequence='SS', **params):
+
+        # Config
+        self.sequence = sequence
+        self.kinetics = kinetics
 
         # Input function
         self.aif = None
         self.ca = None
     
         # Acquisition parameters
-        self.sequence = 'SS'
         self.field_strength = 3.0
         self.t = None
         self.dt = 0.5 
@@ -121,7 +126,6 @@ class Kidney(mods.Model):
         self.TC = 0.085
         
         # Tracer-kinetic parameters
-        self.kinetics = '2CFM'
         self.Ta = 0
         self.Hct = 0.45
         self.Fp = 200/6000
@@ -145,26 +149,33 @@ class Kidney(mods.Model):
         self.R10b = 1/lib.T1(3.0, 'blood')
         self.S0 = 1
 
-        # Training parameters
-        self.free = ['Fp','Tp','Ft','Tt']
-        self.bounds = [
-            0,
-            [np.inf, np.inf, np.inf, np.inf],
-        ]
-        
-        # Training parameters
-        if 'kinetics' in params:
-            if params['kinetics'] == 'FN':
-                self.free = ['Fp','Tp','Ft','h0','h1','h2','h3','h4','h5']
-                self.bounds = (
-                    0,
-                    [np.inf, 8, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf],
-                )
-
-        # Additional parameters
+        # Optional parameters
         self.vol = None
 
-        self._override_defaults(free=free, bounds=bounds, **params)
+        # Training parameters
+        if kinetics == 'FN':
+            self.free = {
+                'Fp':[0,np.inf],
+                'Tp':[0,8],
+                'Ft':[0,np.inf],
+                'h0':[0,np.inf],
+                'h1':[0,np.inf],
+                'h2':[0,np.inf],
+                'h3':[0,np.inf],
+                'h4':[0,np.inf],
+                'h5':[0,np.inf],
+            }
+        else:
+            self.free = {
+                'Fp':[0,np.inf],
+                'Tp':[0,np.inf],
+                'Ft':[0,np.inf],
+                'Tt':[0,np.inf],
+            }
+
+        # overide defaults
+        for k, v in params.items():
+            setattr(self, k, v)
 
         # Check inputs
         if (self.aif is None) and (self.ca is None):
@@ -370,7 +381,7 @@ class KidneyCortMed(mods.Model):
         **Prediction and training parameters**
 
         - **free** (array-like): list of free parameters. The default depends on the kinetics parameter.
-        - **bounds** (array-like): 2-element list with lower and upper bounds of the free parameters. The default depends on the kinetics parameter.
+        - **free** (array-like): 2-element list with lower and upper free of the free parameters. The default depends on the kinetics parameter.
         
         **Other parameters**
 
@@ -415,16 +426,18 @@ class KidneyCortMed(mods.Model):
         >>> model.plot(time, roi, ref=gt)
     """ 
 
+    free = {}   #: lower- and upper free for all free parameters.
 
+    def __init__(self, sequence='SR', **params):
 
-    def __init__(self, free=None, bounds=None, **params):
+        # Config
+        self.sequence = sequence
 
         # Input function
         self.aif = None
         self.ca = None
 
         # Acquisition parameters
-        self.sequence = 'SR'
         self.field_strength = 3.0
         self.t = None
         self.dt = 0.5
@@ -453,18 +466,26 @@ class KidneyCortMed(mods.Model):
         self.R10b = 1/lib.T1(3.0, 'blood')
         self.S0c = 1
         self.S0m = 1
-        
-        # training parameters
-        self.free = ['Fp','Eg','fc','Tg','Tv','Tpt','Tlh','Tdt','Tcd']
-        self.bounds = [
-            [0.01, 0, 0, 0, 0, 0, 0, 0, 0],
-            [1, 1, 1, 10, 30, np.inf, np.inf, np.inf, np.inf],
-        ]
 
         # Other parameters
         self.vol = None
+        
+        # training parameters
+        self.free = {
+            'Fp':[0.01,1],
+            'Eg':[0,1],
+            'fc':[0,1],
+            'Tg':[0,10],
+            'Tv':[0,30],
+            'Tpt':[0,np.inf],
+            'Tlh':[0,np.inf],
+            'Tdt':[0,np.inf],
+            'Tcd':[0,np.inf],
+        }
 
-        self._override_defaults(free=free, bounds=bounds, **params)
+        # overide defaults
+        for k, v in params.items():
+            setattr(self, k, v)
 
         # Check inputs
         if (self.aif is None) and (self.ca is None):

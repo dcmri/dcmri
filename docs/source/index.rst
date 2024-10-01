@@ -8,7 +8,7 @@ dcmri documentation
 
 
 
-dcmri is a Python toolbox for dynamic contrast MRI.
+A Python toolbox for dynamic contrast MRI.
 
 
 .. toctree::

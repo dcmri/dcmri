@@ -15,7 +15,7 @@ Examples using ``dcmri.Tissue.predict``
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the effect of water exchange in a standard two-compartmental tissue with extended Tofts kinetics. Data acquisition is modelled using the steady-state model of a spoiled gradient echo sequence.">
+    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the effect of water exchange in a standard two-compartmental tissue using the models in dcmri.Tissue.">
 
 .. only:: html
 

@@ -13,3 +13,4 @@ User guide
    installation
    getting_started
    units
+   tissue_types

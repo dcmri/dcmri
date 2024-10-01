@@ -1,3 +1,4 @@
 changelist==0.4
+autopep8
 build
 twine

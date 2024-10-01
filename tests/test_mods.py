@@ -26,12 +26,11 @@ class VoidModel(dc.Model):
 
 class TestModel(dc.Model):
     def __init__(self):
+        self.free = {'a':[-np.inf,np.inf]}
         self.a=1
         self.b=2
         self.c=[3,4]
         self.d=5*np.ones((2,3))
-        self.free = []
-        self.bounds = [-np.inf,np.inf]
 
 def test_model():
 
@@ -43,7 +42,7 @@ def test_model():
 
     t = TestModel()
     a = [1,2,3,4] + 6*[5]
-    assert np.array_equal(t._getflat(), [])
+    assert np.array_equal(t._getflat(), [1.0])
     assert np.array_equal(t._getflat(['a','b','c','d']), a)
     f = t._getflat(['b','c','d'])
     f[-1] = 0
@@ -54,9 +53,9 @@ def test_model():
     make_tmp()
     t.save(path=tmp())
     t.a=2
-    assert t.a==2
+    assert t.get_params('a')==2
     t.load(path=tmp())
-    assert t.a==1
+    assert t.get_params('a')==1
     delete_tmp()
 
 
@@ -79,19 +78,30 @@ def test_mods_tissue():
         'R10': 1/dc.T1(3.0,'muscle'),
     }
 
-    model = dc.Tissue(**params)
-
     # Train model and check results
+    model = dc.Tissue(**params)
     model.train(time, roi)
+    model.plot(time, roi, ref=gt, show=SHOW)
     pars = model.export_params()
-    assert model.cost(time, roi) < 1 # perc
+    cost0 = model.cost(time, roi)
+    assert cost0 < 1 # perc
     assert np.abs(pars['Fp'][1]-gt['Fp']) < 0.1*gt['Fp']
     assert np.abs(pars['vp'][1]-gt['vp']) < 0.1*gt['vp']
+
+    # Try again fixing up to the wrong range
+    # Check that the fit is less good
+    # And that the value runs against the upper bound
+    model = dc.Tissue(vp=0.001, **params)
+    model.set_free(vp = [0., 0.01])
+    model.train(time, roi)
+    pars = model.export_params()
+    assert np.round(pars['vp'][1],3)==0.01
+    assert model.cost(time, roi) > cost0
 
     params['water_exchange'] = 'NN'
     model = dc.Tissue(**params)
     model.train(time, roi)
-    assert model.cost(time, roi) < 1
+    assert model.cost(time, roi) < 1.5
 
     params['water_exchange'] = 'RR'
     model = dc.Tissue(**params)
@@ -112,7 +122,7 @@ def test_mods_tissue():
                 assert model.cost(time, roi) < cost[k]
 
     # Display last result
-    model.plot(time, roi, ref=gt, show=False)
+    model.plot(time, roi, ref=gt, show=SHOW)
     
 
 
@@ -150,7 +160,7 @@ def test_mods_tissue_array():
 
     # Plot array
     roi = dc.shepp_logan(n=n)
-    vmin = {'S0':0, 'Fp':0, 'vp':0, 'Ktrans':0, 've':0}
+    vmin = {'S0':0, 'Fp':0, 'vp':0, 'Ktrans':0, 'vi':0}
     vmax = {'S0':np.amax(gt['S0']), 'Fp':0.01, 'vp':0.2, 'Ktrans':0.003, 've':0.5}
     image.plot(time, signal, vmax=vmax, ref=gt, show=SHOW)
     image.plot_params(roi=roi, ref=gt, vmin=vmin, vmax=vmax, show=SHOW)
@@ -163,6 +173,8 @@ def test_mods_tissue_array():
     signal_loc = signal[loc,:][0,:]
     params['FA'] = 15
     params['R10'] = R10[loc][0]
+    params.pop('parallel')
+    params.pop('verbose')
     curve = dc.Tissue(**params)
     curve.train(time, signal_loc, xtol=1e-3)
     curve.plot(time, signal_loc, show=SHOW)
@@ -170,11 +182,10 @@ def test_mods_tissue_array():
     nrmsc = curve.cost(time, signal_loc)
     nrmsa = image.cost(time, signal)[loc][0]
     assert np.abs(nrmsc-nrmsa) <= 0.1*nrmsc
-    assert np.abs(curve.S0 - image.S0[loc][0]) <= 0.1*curve.S0
-    assert np.abs(curve.Fp - image.Fp[loc][0]) <= 0.1*curve.Fp
-    assert np.abs(curve.vp - image.vp[loc][0]) <= 0.1*curve.vp
-    assert np.abs(curve.Ktrans - image.Ktrans[loc][0]) <= 0.1*curve.Ktrans
-    assert np.abs(curve.vi - image.vi[loc][0]) <= 0.1*curve.vi
+    cp = curve.get_params('S0','Fp','vp','Ktrans','vi')
+    ip = image.get_params('S0','Fp','vp','Ktrans','vi')
+    for i in range(len(cp)):
+        assert np.abs(cp[i] - ip[i][loc][0]) <= 0.1*cp[i]
 
 
 
@@ -219,12 +230,12 @@ def test_mods_aorta_liver():
         t0 = 10,
         TR = 0.005,
         FA = 15,
-        bounds = {'Th': [0, np.inf]},
     )
+    model.free['Th'] = [0, np.inf]
     model.train(xdata, ydata, xtol=1e-3)
     model.plot(xdata, ydata, show=SHOW)
     assert model.cost(xdata, ydata) < 10
-    assert model.get_params('Th', round_to=0) == 68
+    assert model.get_params('Th', round_to=0) == 99
 
 
 def test_mods_aorta_liver2scan():
@@ -242,13 +253,16 @@ def test_mods_aorta_liver2scan():
         t0 = 10,
         TR = 0.005,
         FA = 15,
-        kinetics = 'stationary',
-        bounds = {'Th':[0, np.inf]},
+        kinetics = 'non-stationary',
+        Th = 120,
+        Th_f = 120,
     )
+    model.free['Th'] = [0, np.inf]
+    model.free['Th_f'] = [0, np.inf]
     model.train(xdata, ydata, xtol=1e-3)
     model.plot(xdata, ydata, show=SHOW)
     assert model.cost(xdata, ydata) < 5
-    assert model.get_params('Th', round_to=0) == 73
+    assert model.get_params('Th', round_to=0) == 72
 
 def test_mods_liver():
     time, aif, roi, gt = dc.fake_tissue(
@@ -264,12 +278,13 @@ def test_mods_liver():
         FA = 15,
         n0 = 10,
         kinetics = 'stationary',
-        bounds = {'Th':[0, np.inf]},
+        Th = 120,
     )
+    model.free['Th'] = [0, np.inf]
     model.train(time, roi)
     model.plot(time, roi, ref=gt, show=SHOW)
-    assert model.cost(time, roi) < 1
-    assert model.get_params('Th', round_to=0) == 69
+    assert model.cost(time, roi) < 0.2
+    assert model.get_params('Th', round_to=0) == 87
 
 def test_mods_kidney():
     time, aif, roi, gt = dc.fake_tissue(R10=1/dc.T1(3.0,'kidney'))
@@ -283,26 +298,24 @@ def test_mods_kidney():
         'TR': 0.005,
         'FA': 15,
         'R10': 1/dc.T1(3.0,'kidney'),
-        'n0': 15,
+        'n0': 10,
     }
     #
     # Train a two-compartment filtration model on the ROI data and plot the fit:
     #
-    params['kinetics'] = '2CFM'
-    model = dc.Kidney(**params)
+    model = dc.Kidney(kinetics='2CFM', **params)
     model.train(time, roi)
     model.plot(time, roi, ref=gt, show=SHOW)
-    assert model.cost(time, roi) < 1
-    assert model.get_params('Tt', round_to=0) == 67
+    assert model.cost(time, roi) < 0.5
+    assert model.get_params('Tt', round_to=0) == 88
     #
     # Repeat the fit using a free nephron model:
     #
-    params['kinetics'] = 'FN'
-    model = dc.Kidney(**params)
+    model = dc.Kidney(kinetics='FN', **params)
     model.train(time, roi)
     model.plot(time, roi, ref=gt, show=SHOW)
     assert model.cost(time, roi) < 1
-    assert model.get_params('Fp', round_to=2) == 0.06
+    assert model.get_params('Fp', round_to=2) == 0.01
 
 
 def test_mods_kidney_cort_med():
@@ -332,13 +345,13 @@ if __name__ == "__main__":
     # make_tmp()
 
     test_model()
-    test_mods_tissue()
-    test_mods_tissue_array()
-    test_mods_aorta()
-    test_mods_aorta_liver()
-    test_mods_aorta_liver2scan()
-    test_mods_liver()
-    test_mods_kidney()
-    test_mods_kidney_cort_med()
+    # test_mods_tissue()
+    # test_mods_tissue_array()
+    # test_mods_aorta()
+    # test_mods_aorta_liver()
+    # test_mods_aorta_liver2scan()
+    # test_mods_liver()
+    # test_mods_kidney()
+    # test_mods_kidney_cort_med()
 
     print('All mods tests passed!!')

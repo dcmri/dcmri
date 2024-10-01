@@ -36,7 +36,6 @@ class Liver(dc.Model):
         **Prediction and training parameters**
 
         - **free** (array-like): list of free parameters. The default depends on the kinetics parameter.
-        - **bounds** (array-like): 2-element list with lower and upper bounds of the free parameters. The default depends on the kinetics parameter.
 
         **Signal parameters**
 
@@ -92,14 +91,19 @@ class Liver(dc.Model):
         >>> model.plot(time, roi, ref=gt)
     """ 
 
-    def __init__(self, free=None, bounds=None, **params):
+    free = {}   #: lower- and upper bounds for all free parameters.
+    
+    def __init__(self, kinetics='non-stationary', sequence='SS', **params):
+
+        # Configuration
+        self.sequence = sequence
+        self.kinetics = kinetics
 
         # Input function
         self.aif = None
         self.ca = None
 
         # Acquisition parameters
-        self.sequence = 'SS'
         self.field_strength = 3.0 
         self.t = None
         self.dt = 0.5                    
@@ -110,7 +114,6 @@ class Liver(dc.Model):
         self.TC = 0.180
 
         # Tracer-kinetic parameters
-        self.kinetics = 'non-stationary'
         self.Hct = 0.45    
         self.Te = 30.0
         self.De = 0.85
@@ -123,26 +126,26 @@ class Liver(dc.Model):
         # Signal parameters
         self.R10 = 1/dc.T1(3.0, 'liver')  
         self.R10b = 1/dc.T1(3.0, 'blood')  
-        self.S0 = 1         
+        self.S0 = 1   
+
+        # Optional parameters
+        self.vol = None      
         
         # training parameters
-        self.free = ['Te','De','ve','khe','Th']
-        self.bounds = [
-            [0.1, 0, 0.01, 0, 10*60, ],
-            [60, 1, 0.6, 0.1, 10*60*60],
-        ]
-
-        # Other parameters
-        self.vol = None
+        self.free = {
+            'Te':[0.1, 60],
+            'De':[0, 1],
+            've':[0.01, 0.6],
+            'khe':[0, 0.1],
+            'Th':[10*60, 10*60*60],
+        }
+        if kinetics == 'non-stationary':
+            self.free['khe_f'] = [0, 10*60]
+            self.free['Th_f'] = [ 0.1, 10*60*60]
         
-        # Preset parameters
-        if 'kinetics' in params:
-            if params['kinetics'] == 'non-stationary':
-                self.free += ['khe_f','Th_f']
-                self.bounds[0] += [0, 10*60]
-                self.bounds[1] += [ 0.1, 10*60*60]
-        
-        self._override_defaults(free=free, bounds=bounds, **params)
+        # overide defaults
+        for k, v in params.items():
+            setattr(self, k, v)
 
         # Check inputs
         if (self.aif is None) and (self.ca is None):

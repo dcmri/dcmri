@@ -18,6 +18,10 @@ except:
 class ArrayModel():
     # Abstract base class for end-to-end models with pixel-based analysis
 
+    def __init__(self):
+        self.shape = None
+        self.free = {}
+
     def save(self, file=None, path=None, filename='Model'):
         """Save the current state of the model
 
@@ -90,9 +94,9 @@ class ArrayModel():
         if hasattr(pix, 'pcov'):
             sdev = np.sqrt(np.diag(pix.pcov))
         else:
-            sdev = np.zeros(len(self.free))
-        for i, par in enumerate(self.free): 
-            getattr(self, par)[p] = getattr(pix, par) 
+            sdev = np.zeros(len(self.free.keys()))
+        for i, par in enumerate(self.free.keys()): 
+            getattr(self, par)[p] = getattr(pix, par)
             getattr(self, 'sdev_' + par)[p] = sdev[i]
         return pix, p
     
@@ -145,7 +149,7 @@ class ArrayModel():
             dict: Dictionary with one item for each model parameter. The key is the parameter symbol (short name), and the value is a 4-element list with [parameter name, value, unit, sdev].
         """
         pars = {}
-        for p in self.free:
+        for p in self.free.keys():
             pars[p] = [
                 p + ' name', 
                 getattr(self, p), 
@@ -154,16 +158,33 @@ class ArrayModel():
             ]
         return pars
     
-    def _override_defaults(*args, **kwargs):
-        _override_defaults(*args, **kwargs)
+    def _add_sdev(self, pars):
+        for par in pars:
+            if par in self.free:
+                sdev = getattr(self, 'sdev_' + par)
+            else:
+                sdev = None
+            pars[par].append(sdev)
+        return pars
+    
+    def _set_defaults(self, **params):
+        for k, v in params.items():
+            if hasattr(self, k):
+                val = getattr(self,k)
+                if isinstance(val, np.ndarray):
+                    setattr(self, k, np.full(self.shape, v))
+                else:
+                    setattr(self, k, v)
+    
+            else:
+                raise ValueError(str(k) + ' is not a valid parameter for this model.')
 
 
 class Model:
     # Abstract base class for end-to-end models.                  
 
     def __init__(self):
-        self.free = []
-        self.bounds = [-np.inf, np.inf]
+        self.free = {}
         self.pcov = None
 
     def save(self, file=None, path=None, filename='Model'):
@@ -259,7 +280,7 @@ class Model:
         # Short name, full name, value, units.
         pars = {}
         for p in self.free:
-            pars[p] = [p+' name', getattr(self, p), p+' unit']
+            pars[p] = [p+' name', self.free[p], p+' unit']
         return self._add_sdev(pars)
     
 
@@ -276,19 +297,18 @@ class Model:
         print('--------------------------------')
         print('')
         for par in self.free:
-            if par in pars:
-                p = pars[par]
-                if round_to is None:
-                    v = p[1]
-                    verr = p[3]
-                else:
-                    v = round(p[1], round_to)
-                    verr = round(p[3], round_to)
-                print(p[0] + ' ('+par+'): ' + str(v) + ' (' + str(verr) + ') ' + p[2])
+            p = pars[par]
+            if round_to is None:
+                v = p[1]
+                verr = p[3]
+            else:
+                v = round(p[1], round_to)
+                verr = round(p[3], round_to)
+            print(p[0] + ' ('+par+'): ' + str(v) + ' (' + str(verr) + ') ' + p[2])
         print('')
-        print('------------------')
-        print('Derived parameters')
-        print('------------------')
+        print('----------------------------')
+        print('Fixed and derived parameters')
+        print('----------------------------')
         print('')
         for par in pars:
             if par not in self.free:
@@ -296,10 +316,10 @@ class Model:
                 if round_to is None:
                     v = p[1]
                 else:
-                    v = round(p[1], round_to)
+                    v = np.round(p[1], round_to)
                 print(p[0] + ' ('+par+'): ' + str(v) + ' ' + p[2])
 
-
+    # TODO rationalise getters and setters
     def get_params(self, *args, round_to=None):
         """Return the parameter values
 
@@ -310,6 +330,8 @@ class Model:
         Returns:
             list or float: values of parameter values, or a scalar value if only one parameter is required.
         """
+        if args == ():
+            args = self.free.keys()
         pars = []
         for a in args:
             v = getattr(self, a)
@@ -320,24 +342,66 @@ class Model:
             return pars[0]
         else:
             return pars
-        
-    def _override_defaults(*args, **kwargs):
-        _override_defaults(*args, **kwargs)
-        
- 
+
+    def set_free(self, pop=None, **kwargs):
+        """Set bounds for free model parameters.
+
+        Args:
+            pop (str or list): a single variable or a list of variables to remove from the list of free parameters. 
+
+        Raises:
+            ValueError: if the pop argument contains a parameter that is not in the list of free parameters.
+            ValueError: If the parameter is not a model parameter, or bounds are not properly formatted.
+        """
+        if pop is not None:
+            if np.isscalar(pop):
+                if pop in self.free:
+                    self.free.pop(pop)
+                else:
+                    raise ValueError(pop +' is not currently a free parameter, so cannot be removed from the list.')
+            else:
+                for par in pop:
+                    if par in self.free:
+                        self.free.pop(par)
+                    else:
+                        raise ValueError(par +' is not currently a free parameter, so cannot be removed from the list.')                   
+        for k, v in kwargs.items():
+            if k in self.__dict__:
+                if np.size(v)==2:
+                    if v[0]<v[1]:
+                        if (v[0]<=getattr(self, k)) and (v[1]>=getattr(self, k)):
+                            self.free[k] = v
+                        else:
+                            raise ValueError('Cannot set parameter bounds for '+str(k)+'. The value current value '+str(getattr(self, k)) +' is outside of the bounds. ')
+                    else:
+                        raise ValueError(str(v) +' is not a proper parameter bound. The first element must be smaller than the second.')
+                else:
+                    raise ValueError(str(v) +' is not a proper parameter bound. Bounds must lists or arrays with 2 elements.')
+            else:
+                raise ValueError(str(k) +' is not a model parameter.')
+
+
+    def _set_defaults(self, **params):
+        for k, v in params.items():
+            if hasattr(self, k):
+                setattr(self, k, v)
+            else:
+                raise ValueError(str(k) + ' is not a valid parameter for this model.')
+
+
     def _getflat(self, attr:np.ndarray=None)->np.ndarray:
         if attr is None:
-            attr = self.free
+            attr = self.free.keys()
         vals = []
         for a in attr:
             v = getattr(self, a)
             vals = np.append(vals, np.ravel(v))
         return vals
-    
+
 
     def _setflat(self, vals:np.ndarray, attr:np.ndarray=None):
         if attr is None:
-            attr = self.free
+            attr = self.free.keys()
         i=0
         for p in attr:
             v = getattr(self, p)
@@ -355,14 +419,14 @@ class Model:
     #     n = len(self.free)
     #     xscale = np.ones(n)
     #     for p in range(n):
-    #         if np.isscalar(self.bounds[0]):
-    #             lb = self.bounds[0]
+    #         if np.isscalar(self.free[0]):
+    #             lb = self.free[0]
     #         else:
-    #             lb = self.bounds[0][p]
-    #         if np.isscalar(self.bounds[1]):
-    #             ub = self.bounds[1]
+    #             lb = self.free[0][p]
+    #         if np.isscalar(self.free[1]):
+    #             ub = self.free[1]
     #         else:
-    #             ub = self.bounds[1][p]
+    #             ub = self.free[1][p]
     #         if (not np.isinf(lb)) and (not np.isinf(ub)):
     #             xscale[p] = ub-lb
     #     return xscale
@@ -372,43 +436,15 @@ class Model:
         for par in pars:
             pars[par].append(0)
         if not hasattr(self, 'pcov'):
-            perr = np.zeros(np.size(self.free))
+            perr = np.zeros(len(self.free.keys()))
         elif self.pcov is None:
-            perr = np.zeros(np.size(self.free))
+            perr = np.zeros(len(self.free.keys()))
         else:
             perr = np.sqrt(np.diag(self.pcov))
-        for i, par in enumerate(self.free):
+        for i, par in enumerate(self.free.keys()):
             if par in pars:
                 pars[par][-1] = perr[i]
         return pars
-
-
-def _override_defaults(self, free=None, bounds=None, **params):
-
-    for k, v in params.items():
-        setattr(self, k, v)
-
-    if free is not None:
-        self.free = list(free.keys())
-        self.bounds = [
-            [free[k][0] for k in free],
-            [free[k][1] for k in free],
-        ]
-    elif bounds is not None:
-        for par in bounds:
-            try:
-                i = self.free.index(par)
-            except:
-                pass
-            else:
-                if np.isscalar(self.bounds[0]):
-                    b = self.bounds[0]
-                    self.bounds[0] = [b]*len(self.free)
-                if np.isscalar(self.bounds[1]):
-                    b = self.bounds[1]
-                    self.bounds[1] = [b]*len(self.free)
-                self.bounds[0][i] = bounds[par][0]
-                self.bounds[1][i] = bounds[par][1]
 
 
 def _save(model, file=None, path=None, filename='Model'):
@@ -458,10 +494,14 @@ def train(model:Model, xdata, ydata, **kwargs):
             return yp
 
     p0 = model._getflat()
+    bounds = [
+        [par[0] for par in model.free.values()],
+        [par[1] for par in model.free.values()],
+    ]
     try:
         pars, model.pcov = curve_fit(
             fit_func, None, y, p0, 
-            bounds=model.bounds, #x_scale=model._x_scale(),
+            bounds=bounds, #x_scale=model._x_scale(),
             **kwargs)
     except RuntimeError as e:
         msg = 'Runtime error in curve_fit -- \n'
@@ -494,19 +534,19 @@ def _cost(model, xdata, ydata, metric='NRMS')->float:
     elif metric == 'AIC':
         rss = np.sum((y-ydata)**2, axis=-1)
         n = ydata.shape[-1]
-        k = len(model.free)
+        k = len(model.free.keys())
         with np.errstate(divide='ignore'):
             loss = k*2 + n*np.log(rss/n)
     elif metric == 'cAIC':
         rss = np.sum((y-ydata)**2)
         n = ydata.shape[-1]
-        k = len(model.free)
+        k = len(model.free.keys())
         with np.errstate(divide='ignore'):
             loss = k*2 + n*np.log(rss/n) + 2*k*(k+1)/(n-k-1)
     elif metric == 'BIC':
         rss = np.sum((y-ydata)**2, axis=-1)
         n = ydata.shape[-1]
-        k = len(model.free)
+        k = len(model.free.keys())
         with np.errstate(divide='ignore'):
             loss = k*np.log(n) + n*np.log(rss/n)
     return loss

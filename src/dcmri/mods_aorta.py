@@ -51,7 +51,7 @@ class Aorta(dc.Model):
         - **dt** (float, default=1): Internal time resolution of the AIF in sec. 
         - **dose_tolerance** (fload, default=0.1): Stopping criterion for the whole-body model.
         - **free** (array-like): list of free parameters. The default depends on the kinetics parameter.
-        - **bounds** (array-like): 2-element list with lower and upper bounds of the free parameters. The default depends on the kinetics parameter.
+        - **free** (array-like): 2-element list with lower and upper free of the free parameters. The default depends on the kinetics parameter.
 
     Args:
         params (dict, optional): override defaults for any of the parameters.
@@ -116,9 +116,20 @@ class Aorta(dc.Model):
         Mean circulation time (Tc): 38.521 sec
 
         *Note*: The extracellular mean transit time has a high error, indicating that the acquisition time here is insufficient to resolve the transit through the leakage space.
-    """         
+    """ 
 
-    def __init__(self, free=None, bounds=None, **params):
+    free = {}   #: lower- and upper free for all free parameters.        
+
+    def __init__(self, organs='2cxm', heartlung='pfcomp', sequence='SS', **params):
+
+        # Define model
+        self.organs = organs
+        self.heartlung = heartlung
+        self.sequence = sequence
+
+        #
+        # Set defaults for all parameters
+        # 
 
         self.dt = 0.5  
         self.tmax = 120             
@@ -128,7 +139,7 @@ class Aorta(dc.Model):
         self.dose = dc.ca_std_dose('gadoterate') 
         self.rate = 1 
         self.field_strength = 3.0
-        self.R10 = 1/dc.T1(3.0, 'blood') 
+        self.R10 = 0.7 
         self.t0 = 0
 
         self.TR = 0.005
@@ -145,16 +156,21 @@ class Aorta(dc.Model):
         self.Eo = 0.15
         self.Te = 120
 
-        self.sequence = 'SS'
-        self.organs = '2cxm'
-        self.heartlung = 'pfcomp'
-        self.free = ['BAT','CO','Thl','Dhl','To','Eb','Eo','Te']
-        self.bounds = [
-            [0, 0, 0, 0.05, 0, 0.01, 0, 0],
-            [np.inf, np.inf, 30, 0.95, 60, 0.15, 0.5, 800],
-        ]
+        # TODO: preset free depending on model options
+        self.free = {
+            'BAT':[0, np.inf],
+            'CO':[0, np.inf],
+            'Thl':[0, 30],
+            'Dhl':[0.05, 0.95],
+            'To':[0, 60],
+            'Eb':[0.01, 0.15],
+            'Eo':[0, 0.5],
+            'Te':[0, 800],
+        }
 
-        self._override_defaults(free=free, bounds=bounds, **params)
+        # overide defaults
+        for k, v in params.items():
+            setattr(self, k, v)
 
 
     def conc(self):
@@ -317,7 +333,7 @@ class AortaLiver(dc.Model):
         - **dt** (float, default=1): Internal time resolution of the AIF in sec. 
         - **dose_tolerance** (fload, default=0.1): Stopping criterion for the whole-body model.
         - **free** (array-like): list of free parameters. The default depends on the kinetics parameter.
-        - **bounds** (array-like): 2-element list with lower and upper bounds of the free parameters. The default depends on the kinetics parameter.
+        - **free** (array-like): 2-element list with lower and upper free of the free parameters. The default depends on the kinetics parameter.
 
     Args:
         params (dict, optional): override defaults for any of the parameters.
@@ -394,7 +410,15 @@ class AortaLiver(dc.Model):
         Biliary tissue excretion rate (Kbh): 0.002 mL/sec/cm3
 
     """   
-    def __init__(self, free=None, bounds=None, **params):
+
+    free = {}   #: lower- and upper free for all free parameters.
+
+    def __init__(self, kinetics='stationary', organs='2cxm', sequence='SS',**params):
+
+        # Configuration
+        self.sequence = sequence
+        self.organs = organs
+        self.kinetics = kinetics
 
         # Constants
         self.dt = 0.5   
@@ -412,7 +436,7 @@ class AortaLiver(dc.Model):
         self.TC = 0.180
         
         # Aorta parameters
-        self.R10b = 1/dc.T1(3.0,'blood')
+        self.R10b = 0.7
         self.S0b = 1
         self.BAT = 60
         self.CO = 100
@@ -436,20 +460,28 @@ class AortaLiver(dc.Model):
         self.Th_f = 30*60
         self.vol = None
 
-        # Configuration
-        self.sequence = 'SS'
-        self.organs = '2cxm'
-        self.kinetics = 'stationary'
+        self.free = {
+            'BAT':[0, np.inf],
+            'CO':[0, 300],
+            'Thl':[0, 30],
+            'Dhl':[0.05, 0.95],
+            'To':[0, 60],
+            'Eb':[0.01, 0.15],
+            'Tel':[0.1, 60],
+            'De':[0, 1],
+            've':[0.01, 0.6],
+            'khe':[0, 0.1],
+            'Th':[10*60, 10*60*60],
+            'Eo':[0, 0.5],
+            'Teb':[0, 800],
+        }
+        if kinetics == 'non-stationary':
+            self.free['khe_f'] = [0, 10*60]
+            self.free['Th_f'] = [ 0.1, 10*60*60]
 
-        self.free = ['BAT','CO','Thl','Dhl','To','Eb',
-                'Tel','De','ve','khe','Th','Eo','Teb']
-        self.bounds = [
-            [0, 0, 0, 0.05, 0, 0.01,0.1, 0, 0.01, 0, 10*60, 0, 0],
-            [np.inf, 300, 30, 0.95, 60, 0.15, 60, 1, 0.6, 0.1, 10*60*60, 0.5, 800],
-        ]
-
-        # Override defaults
-        self._override_defaults(free=free, bounds=bounds, **params)
+        # overide defaults
+        for k, v in params.items():
+            setattr(self, k, v)
 
         # Internal flag
         self._predict = None
@@ -601,27 +633,26 @@ class AortaLiver(dc.Model):
         self.BAT = xdata[0][np.argmax(ydata[0])] - (1-self.Dhl)*self.Thl
         self.BAT = max([self.BAT, 0])
 
+        # Copy the original free to restore later
+        free = deepcopy(self.free)
+
         # Train free aorta parameters on aorta data
         self._predict = 'aorta'
-        f, b = deepcopy(self.free), deepcopy(self.bounds)
-        sel = ['BAT','CO','Thl','Dhl','To','Eb','Eo','Teb']
-        isel = [i for i in range(len(f)) if f[i] in sel]
-        self.free = [f[i] for i in isel]
-        self.bounds = [[b[0][i] for i in isel], [b[1][i] for i in isel]]
+        pars = ['BAT','CO','Thl','Dhl','To','Eb','Eo','Teb']
+        self.free = {s:free[s] for s in pars if s in free}
         dc.train(self, xdata[0], ydata[0], **kwargs)
 
         # Train free liver parameters on liver data
         self._predict = 'liver'
-        sel = ['Tel','De','ve','khe','Th','khe_f','Th_f']
-        isel = [i for i in range(len(f)) if f[i] in sel]
-        self.free = [f[i] for i in isel]
-        self.bounds = [[b[0][i] for i in isel], [b[1][i] for i in isel]]
+        pars = ['Tel','De','ve','khe','Th']
+        if self.kinetics == 'non-stationary':
+            free += ['khe_f', 'Th_f']
+        self.free = {s:free[s] for s in pars if s in free}
         dc.train(self, xdata[1], ydata[1], **kwargs)
 
         # Train all parameters on all data
         self._predict = None
-        self.free = f
-        self.bounds = b
+        self.free = free
         return dc.train(self, xdata, ydata, **kwargs)
     
     def plot(self, 
@@ -798,7 +829,7 @@ class AortaKidneys(dc.Model):
         - **dt** (float, default=1): Internal time resolution of the AIF in sec. 
         - **dose_tolerance** (fload, default=0.1): Stopping criterion for the whole-body model.
         - **free** (array-like): list of free parameters. The default depends on the kinetics parameter.
-        - **bounds** (array-like): 2-element list with lower and upper bounds of the free parameters. The default depends on the kinetics parameter.
+        - **free** (array-like): 2-element list with lower and upper free of the free parameters. The default depends on the kinetics parameter.
 
         **Additional parameters**
 
@@ -851,7 +882,16 @@ class AortaKidneys(dc.Model):
         >>> model.plot(xdata, ydata)
 
     """   
-    def __init__(self, free=None, bounds=None, **params):
+
+    free = {}   #: lower- and upper free for all free parameters.
+
+    def __init__(self, organs='comp', heartlung='pfcomp', kidneys='2CF', sequence='SS', **params):
+
+        # Configuration
+        self.sequence = sequence
+        self.organs = organs
+        self.heartlung = heartlung
+        self.kidneys = kidneys
 
         # Constants
         self.dt = 0.5   
@@ -902,31 +942,30 @@ class AortaKidneys(dc.Model):
         self.Tt_rk = 300
         self.vol_rk = 150
 
-        # Configuration
-        self.sequence = 'SS'
-        self.organs = 'comp'
-        self.heartlung = 'pfcomp'
-        self.kidneys = '2CF'
-        self.free = [
-                'BAT','CO','Thl','Dhl','To', 'FF',
-                'RPF','DRPF', 'DRF',
-                'vp_lk','Tt_lk',#'Ta_lk',
-                'vp_rk','Tt_rk']#'Ta_rk']
-        self.bounds = [
-            [   0, 0, 0, 0.05, 0, 0.0,
-                0, 0, 0,
-                0.0, 0,
-                0.0, 0],
-            [   np.inf, 300, 30, 0.95, 60, 0.5,
-                np.inf, 1, 1,
-                1, np.inf, #5,
-                1, np.inf] #5],
-        ]
 
-        self._override_defaults(free=free, bounds=bounds, **params)
+        self.free = {
+            'BAT':[0, np.inf],
+            'CO':[0, 300],
+            'Thl':[0, 30],
+            'Dhl':[0.05, 0.95],
+            'To':[0, 60], 
+            'FF':[0, 0.5],
+            'RPF':[0, np.inf],
+            'DRPF':[0, 1], 
+            'DRF':[0, 1],
+            'vp_lk':[0, 1],
+            'Tt_lk':[0, np.inf],#'Ta_lk',
+            'vp_rk':[0, 1],
+            'Tt_rk':[0, np.inf], #'Ta_rk']
+        }
+
+        # overide defaults
+        for k, v in params.items():
+            setattr(self, k, v)
 
         # Internal flag
         self._predict = None
+
 
     def _conc_aorta(self) -> np.ndarray:
         if self.organs == 'comp':
@@ -1082,29 +1121,26 @@ class AortaKidneys(dc.Model):
         self.BAT = xdata[0][np.argmax(ydata[0])] - (1-self.Dhl)*self.Thl
         self.BAT = max([self.BAT, 0])
 
+        # Copy all free to restor at the end
+        free = deepcopy(self.free)
+
         # Train free aorta parameters on aorta data
         self._predict = 'aorta'
-        f, b = deepcopy(self.free), deepcopy(self.bounds)
-        sel = ['BAT','CO','Thl','Dhl','To','Eb','Eo','Teb']
-        isel = [i for i in range(len(f)) if f[i] in sel]
-        self.free = [f[i] for i in isel]
-        self.bounds = [[b[0][i] for i in isel], [b[1][i] for i in isel]]
+        pars = ['BAT','CO','Thl','Dhl','To','Eb','Eo','Teb']
+        self.free = {s:free[s] for s in pars if s in free}
         dc.train(self, xdata[0], ydata[0], **kwargs)
 
         # Train free kidney parameters on kidney data
         self._predict = 'kidneys'
-        sel = [ 'RPF','DRPF', 'DRF',
+        pars = ['RPF','DRPF', 'DRF',
                 'vp_lk','Tt_lk','Ta_lk',
                 'vp_rk','Tt_rk','Ta_rk']
-        isel = [i for i in range(len(f)) if f[i] in sel]
-        self.free = [f[i] for i in isel]
-        self.bounds = [[b[0][i] for i in isel], [b[1][i] for i in isel]]
+        self.free = {s:free[s] for s in pars if s in free}
         dc.train(self, (xdata[1],xdata[2]), (ydata[1],ydata[2]), **kwargs)
 
         # Train all parameters on all data
         self._predict = None
-        self.free = f
-        self.bounds = b
+        self.free = free
         return dc.train(self, xdata, ydata, **kwargs)
     
     def plot(self, 
@@ -1291,7 +1327,7 @@ class AortaLiver2scan(AortaLiver):
         - **dt** (float, default=1): Internal time resolution of the AIF in sec. 
         - **dose_tolerance** (fload, default=0.1): Stopping criterion for the whole-body model.
         - **free** (array-like): list of free parameters. The default depends on the kinetics parameter.
-        - **bounds** (array-like): 2-element list with lower and upper bounds of the free parameters. The default depends on the kinetics parameter.
+        - **free** (array-like): 2-element list with lower and upper free of the free parameters. The default depends on the kinetics parameter.
 
     Args:
         params (dict, optional): override defaults for any of the parameters.
@@ -1376,7 +1412,13 @@ class AortaLiver2scan(AortaLiver):
         Biliary excretion rate (final) (kbh_f): 0.002 mL/sec/cm3
     """ 
 
-    def __init__(self, free=None, bounds=None, **params):
+    free = {}   #: lower- and upper free for all free parameters.
+    
+    def __init__(self, organs='2cxm', kinetics='non-stationary', sequence='SS', **params):
+
+        self.organs = organs
+        self.sequence = sequence
+        self.kinetics = kinetics
         
         # Injection
         self.weight = 70.0         
@@ -1391,7 +1433,6 @@ class AortaLiver2scan(AortaLiver):
         self.tacq = None 
         self.tacq2 = None  
         self.field_strength = 3.0
-        self.sequence = 'SS'
         self.TR = 0.005
         self.FA = 15.0
         self.TC = 0.180
@@ -1408,7 +1449,6 @@ class AortaLiver2scan(AortaLiver):
         self.S02l = 1
         
         # Body
-        self.organs = '2cxm'
         self.BAT = 60
         self.BAT2 = 1200
         self.CO = 100
@@ -1420,7 +1460,6 @@ class AortaLiver2scan(AortaLiver):
         self.Teb = 120
     
         # Liver
-        self.kinetics = 'non-stationary'
         self.Hct = 0.45
         self.Tel = 30.0
         self.De = 0.85
@@ -1434,17 +1473,31 @@ class AortaLiver2scan(AortaLiver):
         # Prediction and training
         self.dt = 0.5   
         self.dose_tolerance = 0.1 
-        self.free = [
-            'BAT','BAT2','S02b','S02l','CO','Thl','Dhl','To','Eb',
-            'Tel','De','ve','khe','Th','Eo','Teb', 'khe_f','Th_f']
-        self.bounds = [
-            [0, 0, 0, 0, 0, 0, 0.05, 0, 0.01,
-             0.1, 0, 0.01, 0, 10*60, 0, 0, 0, 10*60],
-            [np.inf, np.inf, np.inf, np.inf, 300, 30, 0.95, 60, 0.15, 
-             60, 1, 0.6, 0.1, 10*60*60, 0.5, 800, 0.1, 10*60*60],
-        ]
+        self.free = {
+            'BAT':[0, np.inf],
+            'BAT2':[0, np.inf],
+            'S02b':[0, np.inf],
+            'S02l':[0, np.inf],
+            'CO':[0, 300],
+            'Thl':[0, 30],
+            'Dhl':[0.05, 0.95],
+            'To':[0, 60],
+            'Eb':[0.01, 0.15],
+            'Tel':[0.1, 60],
+            'De':[0, 1],
+            've':[0.01, 0.6],
+            'khe':[0, 0.1],
+            'Th':[10*60, 10*60*60],
+            'Eo':[0, 0.5],
+            'Teb':[0, 800], 
+        }
+        if kinetics == 'non-stationary':
+            self.free['khe_f'] = [0, 0.1]
+            self.free['Th_f'] = [10*60, 10*60*60]
 
-        self._override_defaults(free=free, bounds=bounds, **params)
+        # overide defaults
+        for k, v in params.items():
+            setattr(self, k, v)
 
         # Internal flags
         self._predict = None
@@ -1575,28 +1628,24 @@ class AortaLiver2scan(AortaLiver):
         self.S0l = np.mean(ydata[2][1:n0]) / Srefl
         self.S02l = np.mean(ydata[3][1:n0]) / Sref2l
 
-        f, b = deepcopy(self.free), deepcopy(self.bounds)
+        free = deepcopy(self.free)
 
         # Train free aorta parameters on aorta data
         self._predict = 'aorta'
-        sel = ['BAT','CO','Thl','Dhl','To','Eb','Eo','Teb','BAT2','S02b']
-        isel = [i for i in range(len(f)) if f[i] in sel]
-        self.free = [f[i] for i in isel]
-        self.bounds = [[b[0][i] for i in isel], [b[1][i] for i in isel]]
+        pars = ['BAT','CO','Thl','Dhl','To','Eb','Eo','Teb','BAT2','S02b']
+        self.free = {s:free[s] for s in pars if s in free}
         dc.train(self, (xdata[0],xdata[1]), (ydata[0],ydata[1]), **kwargs)       
 
         # Train free liver parameters on liver data
         self._predict = 'liver'
-        sel = ['Tel','De','ve','khe','Th','khe_f','Th_f','S02l']
-        isel = [i for i in range(len(f)) if f[i] in sel]
-        self.free = [f[i] for i in isel]
-        self.bounds = [[b[0][i] for i in isel], [b[1][i] for i in isel]]
+        pars = ['Tel','De','ve','khe','Th','khe_f','Th_f','S02l']
+        self.free = {s:free[s] for s in pars if s in free}
+        # added if s in free - add everywhere after testing
         dc.train(self, (xdata[2],xdata[3]), (ydata[2],ydata[3]), **kwargs) 
 
         # Train all parameters on all data
         self._predict = None
-        self.free = f
-        self.bounds = b
+        self.free = free
         return dc.train(self, xdata, ydata, **kwargs)
 
     

@@ -5,8 +5,12 @@ from copy import deepcopy
 import matplotlib.pyplot as plt
 from matplotlib.animation import ArtistAnimation
 import numpy as np
-import dcmri as dc
 
+import dcmri.mods as mods
+import dcmri.sig as sig
+import dcmri.lib as lib
+import dcmri.tissue as tissue
+import dcmri.utils as utils
 
 try: 
     num_workers = int(len(os.sched_getaffinity(0)))
@@ -15,7 +19,7 @@ except:
 
 
 
-class TissueArray(dc.ArrayModel):
+class TissueArray(mods.ArrayModel):
     """Pixel-based model for vascular-interstitial tissues.
 
     The model accepts the following parameters:
@@ -69,8 +73,7 @@ class TissueArray(dc.ArrayModel):
 
         - **n0** (int): number of precontrast baseline signals.
         - **free** (array-like): list of free parameters. The default depends on the kinetics parameter.
-        - **bounds** (array-like): 2-element list with lower and upper bounds of the free parameters. The default depends on the kinetics parameter.
-
+ 
     Args:
         params (dict, optional): override defaults for any of the parameters.
 
@@ -135,20 +138,14 @@ class TissueArray(dc.ArrayModel):
 
     """ 
 
-    def __init__(self, shape, kinetics='HF', water_exchange='FF', sequence='SS', free=None, bounds=None, **params):
-
-        # Define model
-        self.kinetics = kinetics
-        self.water_exchange = water_exchange
-        self.sequence = sequence
-        _check_inputs(self)
+    def __init__(self, shape, kinetics='HF', water_exchange='FF', sequence='SS', **params):
 
         # Array model params
         self.shape = shape
         self.parallel = False
         self.verbose = 0
 
-        # Check inputs
+        # Define model
         self.kinetics = kinetics
         self.water_exchange = water_exchange
         self.sequence = sequence
@@ -158,86 +155,79 @@ class TissueArray(dc.ArrayModel):
         # Set defaults for all parameters
         # 
 
+        # Acquisition parameters
+        self.field_strength = 3.0
+        self.agent = 'gadoterate'
+
         # Input function
         self.aif = None
         self.ca = None
         self.t = None
         self.dt = 1.0
-
-        # Tracer-kinetic parameters
-        self.Hct = 0.45
-        self.Fp = np.full(shape, 0.01)
-        self.Ktrans = np.full(shape, 0.003)
-        self.vp = np.full(shape, 0.1)
-        self.vi = np.full(shape, 0.5)
-        self.ve = np.full(shape, 0.6)
-        self.vc = np.full(shape, 0.4)
-        
-        # Acquisition parameters
-        self.field_strength = 3.0
-        self.agent = 'gadoterate'
-        self.S0 = np.full(shape, 1.0)
-        
-        # Sequence parameters
+        self.Hcta = 0.45
+        self.R10b = 0.7 # TODO: b to a
         self.FAa = 15
+
+        # Model parameters
+        model_pars = _tissue_pars(kinetics, water_exchange)
+        for p in model_pars:
+            setattr(self, p, np.full(shape, _init(p)))
+        self.free = {p:_bound(p) for p in model_pars}
+        self.R10 = np.full(shape, 0.7)
+
+        # Sequence parameters
         self.FA = np.full(shape, 15)
         self.TR = 0.005
-        self.TC = 0.1
-        self.TP = 0
+        self.TC = 0.2
+        self.TP = 0.05
         self.TS = None
-
+        
         # Tissue properties
-        self.R10 = np.full(shape, 0.7)
-        self.R10b = 0.7
-        self.PSe = np.full(shape, 0.03)
-        self.PSc = np.full(shape, 0.03)
+        self.S0 = np.full(shape, 1.0)
 
         # training parameters
         self.n0 = 1
 
-        # Set free parameters and bounds
-        mdl = dc.model_props(water_exchange + '-' + kinetics)
-        self.free = mdl['params']
-        self.bounds = [mdl['lb'], mdl['ub']]
-
-        self._override_defaults(free=free, bounds=bounds, **params)
+        # overide defaults
+        self._set_defaults(**params)
 
         # sdevs
         for par in self.free:
             setattr(self, 'sdev_' + par,  np.zeros(shape).astype(np.float32))
 
-        _init(self)
+        _init_tissue(self)
+
 
 
     def _pix(self, p):
-        pix = Tissue(
+
+        pars = _tissue_pars(self.kinetics, self.water_exchange)
+        pars = {par:getattr(self, par)[p] for par in pars}
+
+        return Tissue(
 
             kinetics = self.kinetics,
             water_exchange = self.water_exchange,
             sequence = self.sequence,
+
+            # Acquisition parameters
+            field_strength = self.field_strength,
+            agent = self.agent,
 
             # Input function
             aif = self.aif,
             ca = self.ca,
             t = self.t,
             dt = self.dt,
-
-            # Tracer-kinetic parameters
-            Hct = self.Hct,
-            Fp = self.Fp[p],
-            Ktrans = self.Ktrans[p],
-            vp = self.vp[p],
-            vi = self.vi[p],
-            ve = self.ve[p],
-            vc = self.vc[p],
+            Hcta = self.Hcta,
+            R10b = self.R10b,
+            FAa = self.FAa,
             
-            # Acquisition parameters
-            field_strength = self.field_strength,
-            agent = self.agent,
-            S0 = self.S0[p],
+            # Model parameters
+            free = self.free,
+            R10 = self.R10[p],
 
             # Sequence parameters
-            FAa = self.FAa,
             FA = self.FA[p],
             TR = self.TR,
             TC = self.TC,
@@ -245,17 +235,28 @@ class TissueArray(dc.ArrayModel):
             TS = self.TS,
 
             # Tissue properties
-            R10 = self.R10[p],
-            R10b = self.R10b,
-            PSe = self.PSe[p],
-            PSc = self.PSc[p],
+            S0 = self.S0[p],
 
             # training parameters
             n0 = self.n0,
+            
+            # Model parameters
+            **pars,
         )
-        pix.free = self.free
-        pix.bounds = self.bounds
-        return pix
+
+
+    def info(self):
+        """Print information about the tisue"""
+        info = '\n'
+        info += 'Water exchange regime: ' + self.water_exchange + '\n'
+        info += 'Kinetics: ' + self.kinetics + '\n\n'
+        info += 'Model parameters\n'
+        info += '----------------\n'
+        for p in _tissue_pars(self.kinetics, self.water_exchange):
+            info += 'Parameter: ' + str(p) + '\n'
+            info += '--> Definition: ' + _name(p) + '\n'
+            info += '--> Units: ' + _unit(p) + '\n'
+        print(info)
     
 
     def _train_curve(self, args):
@@ -289,6 +290,7 @@ class TissueArray(dc.ArrayModel):
         """
         return super().train(time, signal, **kwargs)
 
+    # TODO: Add conc and relax functions
 
     def cost(self, time, signal, metric='NRMS')->float:
         """Return the goodness-of-fit
@@ -303,20 +305,33 @@ class TissueArray(dc.ArrayModel):
         """
         return super().cost(time, signal, metric)
     
+    def get_params(self, *args):
+        """Return the parameter values
 
-    def export_params(self):
-        self.vb = self.vp/(1-self.Hct)
-        model = self.water_exchange + '-' + self.kinetics
-        prop = dc.model_props(model, self.__dict__)
-        pars = prop['params'] | prop['derived']
-        pars = {p: [prop['name'][p], pars[p], prop['unit'][p]] for p in pars}
-        for par in pars:
-            if par in self.free:
-                sdev = getattr(self, 'sdev_' + par)
+        Args:
+            args (tuple): parameters to get
+
+        Returns:
+            list or float: values of parameter values, or a scalar value if only one parameter is required.
+        """
+        p = _all_pars(self.kinetics, self.water_exchange, self.__dict__)
+        if args == ():
+            args = p.keys()
+        pars = []
+        for a in args:
+            if a in p:
+                pars.append(p[a])
             else:
-                sdev = None
-            pars[par].append(sdev)
-        return pars
+                pars.append(getattr(self, a))
+        if len(pars)==1:
+            return pars[0]
+        else:
+            return pars
+    
+    def export_params(self):
+        pars = _all_pars(self.kinetics, self.water_exchange, self.__dict__)
+        pars = {p: [_name(p), pars[p], _unit(p)] for p in pars}
+        return self._add_sdev(pars)
 
 
     def plot(self, time, signal, vmin={}, vmax={}, cmap='gray', ref=None, fname=None, show=True):
@@ -338,7 +353,8 @@ class TissueArray(dc.ArrayModel):
         if len(self.shape)==1:
             raise NotImplementedError('Cannot plot 1D images.')
         yfit = self.predict(time)
-        params = self.free if 'S0' in self.free else ['S0']+self.free
+        params = _std_conc_pars(self.kinetics, self.__dict__)
+        params['S0'] = self.S0
 
         if len(self.shape)==2:
             ncols = 2+len(params)
@@ -380,15 +396,15 @@ class TissueArray(dc.ArrayModel):
             ax[1,0].set_ylabel('std devs')
             if ref is not None:
                 ax[2,0].set_ylabel('ground truth')
-            for i, par in enumerate(params):
+            for i, par in enumerate(params.keys()):
                 v0 = vmin[par] if par in vmin else None
                 v1 = vmax[par] if par in vmax else None
                 ax[0,i].set_title(par)
-                ax[0,i].imshow(getattr(self, par), vmin=v0, vmax=v1, cmap=cmap)
+                ax[0,i].imshow(params[par], vmin=v0, vmax=v1, cmap=cmap)
                 if hasattr(self, 'sdev_' + par):
                     ax[1,i].imshow(getattr(self, 'sdev_' + par), vmin=v0, vmax=v1, cmap=cmap)  
                 else:
-                    ax[1,i].imshow(np.zeros(getattr(self, par).shape).astype(np.int16), cmap=cmap)
+                    ax[1,i].imshow(np.zeros(self.shape).astype(np.int16), cmap=cmap)
                 if ref is not None:
                     ax[2,i].imshow(ref[par], vmin=v0, vmax=v1, cmap=cmap) 
         if len(self.shape)==3:         
@@ -485,7 +501,9 @@ class TissueArray(dc.ArrayModel):
             fname (str, optional): File path to save image. Defaults to None.
             show (bool, optional): Determine whether the image is shown or not. Defaults to True.
         """
-        params = self.free if 'S0' in self.free else ['S0']+self.free
+        params = _std_conc_pars(self.kinetics, self.__dict__)
+        params['S0'] = self.S0
+
         ncols = len(params)
         if roi is None:
             nrows = 1
@@ -496,7 +514,7 @@ class TissueArray(dc.ArrayModel):
                 ax[i].set_xticks([])  
                 ax[i].set_title(par, fontsize=8)
 
-                data = getattr(self, par)
+                data = params[par]
                 if data.size == 0:
                     continue
                 if ref is not None:
@@ -510,7 +528,7 @@ class TissueArray(dc.ArrayModel):
 
                 if ref is not None:
                     ax[i].hist(ref[par], range=[vmin[par], vmax[par]], label='Truth')
-                ax[i].hist(getattr(self, par), range=[vmin[par], vmax[par]], label='Reconstructed')
+                ax[i].hist(params[par], range=[vmin[par], vmax[par]], label='Reconstructed')
             ax[-1].legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize=8)
         else:
             nrows = len(roi)
@@ -525,7 +543,7 @@ class TissueArray(dc.ArrayModel):
                     if i==0:
                         ax[i,p].set_title(par, fontsize=8)
 
-                    data = getattr(self, par)[mask==1] 
+                    data = params[par][mask==1] 
                     if data.size == 0:
                         continue
                     if ref is not None:
@@ -539,7 +557,7 @@ class TissueArray(dc.ArrayModel):
 
                     if ref is not None:
                         ax[i,p].hist(ref[par][mask==1], range=hrange, label='Truth')
-                    ax[i,p].hist(getattr(self, par)[mask==1], range=hrange, label='Reconstructed')
+                    ax[i,p].hist(params[par][mask==1], range=hrange, label='Reconstructed')
                 i+=1
             ax[0,-1].legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize=8)
 
@@ -616,8 +634,9 @@ class TissueArray(dc.ArrayModel):
 
 
 
+#TODO: iex and wex instead of kinetics and water_exchange? Water exchange is also kinetics.
 
-class Tissue(dc.Model):
+class Tissue(mods.Model):
     """Model for general vascular-interstitial tissues.
 
     The model accepts the following parameters:
@@ -667,7 +686,7 @@ class Tissue(dc.Model):
 
         - **n0** (int): number of precontrast baseline signals.
         - **free** (array-like): list of free parameters. The default depends on the kinetics parameter.
-        - **bounds** (array-like): 2-element list with lower and upper bounds of the free parameters. The default depends on the kinetics parameter.
+
 
     Args:
         params (dict, optional): override defaults for any of the parameters.
@@ -723,42 +742,35 @@ class Tissue(dc.Model):
 
     """ 
 
+    def __init__(self, kinetics='HF', water_exchange='FF', sequence='SS', **params):
 
-    def __init__(self, kinetics='HF', water_exchange='FF', sequence='SS', free=None, bounds=None, **params):
-
-        # Define model
+        # Set configuration
         self.kinetics = kinetics
         self.water_exchange = water_exchange
         self.sequence = sequence
-        self.model = water_exchange + '-' + kinetics
+        self.agent = 'gadoterate'
         _check_inputs(self)
-        
-        #
-        # Set defaults for all parameters
-        # 
+
+        # Acquisition parameters
+        self.field_strength = 3.0
 
         # Input function
         self.aif = None
         self.ca = None
         self.t = None
         self.dt = 1.0
-
-        # Tracer-kinetic parameters
-        self.Hct = 0.45 # TODO substitute model param vb?
-        self.Fp = 0.01
-        self.Ktrans = 0.003
-        self.vp = 0.1
-        self.vi = 0.5
-        self.ve = 0.6
-        self.vc = 0.4
-
-        # Acquisition parameters
-        self.field_strength = 3.0
-        self.agent = 'gadoterate'
-        self.S0 = 1.0
-
-        # Sequence parameters
+        self.Hcta = 0.45
+        self.R10b = 0.7
         self.FAa = 15
+
+        # Model parameters
+        model_pars = _tissue_pars(kinetics, water_exchange)
+        for p in model_pars:
+            setattr(self, p, _init(p))
+        self.free = {p:_bound(p) for p in model_pars}
+        self.R10 = 0.7
+        
+        # Sequence parameters
         self.FA = 15
         self.TR = 0.005
         self.TC = 0.2
@@ -766,21 +778,30 @@ class Tissue(dc.Model):
         self.TS = None # initialized as dt if not provided
 
         # Tissue properties
-        self.R10 = 0.7
-        self.R10b = 0.7
-        self.PSe = 0.03
-        self.PSc = 0.03
+        self.S0 = 1.0
         
-        # training parameters
-        mdl = dc.model_props(water_exchange + '-' + kinetics)
-        self.free = mdl['params']
-        self.bounds = [mdl['lb'], mdl['ub']]
+        # Training parameters
         self.n0 = 1
-
-        self._override_defaults(free=free, bounds=bounds, **params)
-
-        _init(self)
         
+        # overide defaults
+        self._set_defaults(**params)
+        
+        _init_tissue(self)
+
+
+    def info(self):
+        """Print information about the tissue"""
+        info = '\n'
+        info += 'Water exchange regime: ' + self.water_exchange + '\n'
+        info += 'Kinetics: ' + self.kinetics + '\n\n'
+        info += 'Model parameters\n'
+        info += '----------------\n'
+        for p in _tissue_pars(self.kinetics, self.water_exchange):
+            info += 'Parameter: ' + str(p) + '\n'
+            info += '--> Definition: ' + _name(p) + '\n'
+            info += '--> Units: ' + _unit(p) + '\n'
+        print(info)
+
 
     def time(self):
         """Return an array of time points
@@ -797,7 +818,20 @@ class Tissue(dc.Model):
                 raise ValueError('Either aif or ca must be provided.')
         else:
             return self.t
-    
+        
+    def _check_ca(self):
+        
+        # Arterial concentrations
+        if self.ca is None:
+            if self.aif is None:
+                raise ValueError('Either aif or ca must be provided to predict signal data.')
+            else:
+                r1 = lib.relaxivity(self.field_strength, 'blood', self.agent)
+                if self.sequence == 'SR':
+                    cb = sig.conc_src(self.aif, self.TC, 1/self.R10b, r1, self.n0)
+                elif self.sequence == 'SS':
+                    cb = sig.conc_ss(self.aif, self.TR, self.FAa, 1/self.R10b, r1, self.n0) 
+                self.ca = cb/(1-self.Hcta) 
 
     def conc(self, sum=True):
         """Return the tissue concentration
@@ -808,9 +842,9 @@ class Tissue(dc.Model):
         Returns:
             np.ndarray: Concentration in M
         """
-        pars = dc.model_props(self.kinetics, self.__dict__)['params']
-        return dc.conc_tissue(self.ca, t=self.t, dt=self.dt, sum=sum, model=self.kinetics, **pars)
-
+        self._check_ca()
+        pars =  _std_conc_pars(self.kinetics, self.__dict__) 
+        return tissue.conc_tissue(self.ca, t=self.t, dt=self.dt, sum=sum, kinetics=self.kinetics, **pars)   
 
     def relax(self):
         """Return the tissue relaxation rate(s)
@@ -818,34 +852,31 @@ class Tissue(dc.Model):
         Returns:
             np.ndarray: the free relaxation rate of all tissue compartments. In the fast water exchange limit, the relaxation rates are a 1D array. In all other situations, relaxation rates are a 2D-array with dimensions (k,n), where k is the number of compartments and n is the number of time points in ca. 
         """
-        # TODO: ADD diagonal element tp PSw (flow term)!!
-        # Also needs adding inflow 
+        # TODO: ADD diagonal element to PSw (flow term)!!
         # Fb = self.Fp/(1-self.Hct)
         # PSw = np.array([[Fb,self.PSe,0],[self.PSe,0,self.PSc],[0,self.PSc,0]])
+        self._check_ca()
+        pars = _std_relax_pars(self.kinetics, self.water_exchange, self.__dict__)
+        r1 = lib.relaxivity(self.field_strength, 'blood', self.agent)
+        # TODO in FF v should be a 1-element list (and signal needs to adjust accordingly)
+        R1,v = tissue.relax_tissue(self.ca, self.R10, r1, t=self.t, dt=self.dt, kinetics=self.kinetics, water_exchange=self.water_exchange.replace('N','R'), **pars)
+        PSw = _PSw(self.kinetics, self.water_exchange, self.__dict__)
+        return R1, PSw, v
 
-        if 'vb' in self.free:
-            self.vb = self.vp/(1-self.Hct)
-        r1 = dc.relaxivity(self.field_strength, 'blood', self.agent)
-        pars = dc.model_props(self.model, self.__dict__)['relax-params']
-        return dc.relax_tissue(self.ca, self.R10, r1, t=self.t, dt=self.dt, model=self.model, **pars)
 
-
-    def signal(self)->np.ndarray:
+    def signal(self, sum=True)->np.ndarray:
         """Return the signal
 
         Returns:
             np.ndarray: the signal as a 1D array.
         """
-        R1 = self.relax()
-        vals = dc.model_props(self.model, self.__dict__)
-        PSw, v = vals['PSw'], vals['volw']
-        if v!=1: 
-            v = list(v.values())
-
+        R1, PSw, v = self.relax()
         if self.sequence == 'SR':
-            return dc.signal_sr(R1, self.S0, self.TR, self.FA, self.TC, self.TP, v=v, PSw=PSw)
+            if not sum:
+                raise ValueError('Separate signals for signal model SR are not yet implemented.')
+            return sig.signal_sr(R1, self.S0, self.TR, self.FA, self.TC, self.TP, v=v, PSw=PSw)
         elif self.sequence == 'SS':
-            return dc.signal_ss(R1, self.S0, self.TR, self.FA, v=v, PSw=PSw)
+            return sig.signal_ss(R1, self.S0, self.TR, self.FA, v=v, PSw=PSw, sum=sum)
 
 
     # TODO: make time optional (if not provided, assume equal to self.time())
@@ -864,7 +895,7 @@ class Tissue(dc.Model):
             msg += 'The largest time point that can be predicted is ' + str(np.amax(t)/60) + 'min.'
             raise ValueError(msg)
         sig = self.signal()
-        return dc.sample(time, t, sig, self.TS)
+        return utils.sample(time, t, sig, self.TS)
 
    
     def train(self, time, signal, method='NLLS', **kwargs):
@@ -881,9 +912,9 @@ class Tissue(dc.Model):
         """
         # Estimate S0
         if self.sequence == 'SR':
-            Sref = dc.signal_sr(self.R10, 1, self.TR, self.FA, self.TC, self.TP)
+            Sref = sig.signal_sr(self.R10, 1, self.TR, self.FA, self.TC, self.TP)
         elif self.sequence == 'SS':
-            Sref = dc.signal_ss(self.R10, 1, self.TR, self.FA)
+            Sref = sig.signal_ss(self.R10, 1, self.TR, self.FA)
         else:
             raise NotImplementedError('Signal model ' + self.sequence + 'is not (yet) supported.') 
         
@@ -896,22 +927,19 @@ class Tissue(dc.Model):
             return self
     
         if method == 'NLLS':
-            return dc.train(self, time, signal, **kwargs)
-        if method == 'PSMS':
+            return mods.train(self, time, signal, **kwargs)
+        
+        if method == 'PSMS': # Work in progress
             # Fit the complete model
-            dc.train(self, time, signal, **kwargs)
+            mods.train(self, time, signal, **kwargs)
             # Fit an intravascular model with the same free parameters
             iv = deepcopy(self)
             #iv.kinetics = 'NX'
-            iv.PS = 0
+            iv._par['PS'] = 0
             for par in ['ve','PS','PSc']:
                 if par in iv.free:
-                    i = iv.free.index(par)
-                    iv.free.pop(i)
-                    for bound in iv.bounds:
-                        if isinstance(bound, list):
-                            bound.pop(i)
-            dc.train(iv, time, signal, **kwargs)
+                    iv.free.pop(par)
+            mods.train(iv, time, signal, **kwargs)
             # If the intravascular model has a lower AIC, take the free parameters from there
             if iv.cost(time, signal, metric='cAIC') < self.cost(time, signal, metric='cAIC'):
                 for par in self.free:
@@ -925,14 +953,37 @@ class Tissue(dc.Model):
                 #     self.vi = iv.vp
                 #     self.Ktrans = iv.Fp
                 #     self.v = iv.vp
-            return self
 
-        
+    def get_params(self, *args, round_to=None):
+        """Return the parameter values
+
+        Args:
+            args (tuple): parameters to get
+            round_to (int, optional): Round to how many digits. If this is not provided, the values are not rounded. Defaults to None.
+
+        Returns:
+            list or float: values of parameter values, or a scalar value if only one parameter is required.
+        """
+        p = _all_pars(self.kinetics, self.water_exchange, self.__dict__)
+        if args == ():
+            args = p.keys()
+        pars = []
+        for a in args:
+            if a in p:
+                v = p[a]
+            else:
+                v = getattr(self, a)
+            if round_to is not None:
+                v = round(v, round_to)
+            pars.append(v)
+        if len(pars)==1:
+            return pars[0]
+        else:
+            return pars
+
     def export_params(self):
-        self.vb = self.vp/(1-self.Hct)
-        prop = dc.model_props(self.model, self.__dict__)
-        pars = prop['params'] | prop['derived']
-        pars = {p: [prop['name'][p], pars[p], prop['unit'][p]] for p in pars}
+        pars = _all_pars(self.kinetics, self.water_exchange, self.__dict__)
+        pars = {p: [_name(p), pars[p], _unit(p)] for p in pars}
         return self._add_sdev(pars)
     
 
@@ -950,40 +1001,92 @@ class Tissue(dc.Model):
         return super().cost(time, signal, metric=metric)
     
     
-    def plot(self, time:np.ndarray, signal:np.ndarray,  
+    def plot(self, time=None, signal=None,  
              xlim=None, ref=None,fname=None, show=True):
         """Plot the model fit against data.
 
         Args:
-            time (array-like): Array with time points.
-            signal (array-like): Array with measured signals for each element of *time*.
+            time (array-like, optional): Array with time points.
+            signal (array-like, optional): Array with measured signals for each element of *time*.
             xlim (array_like, optional): 2-element array with lower and upper boundaries of the x-axis. Defaults to None.
             ref (tuple, optional): Tuple of optional test data in the form (x,y), where x is an array with x-values and y is an array with y-values. Defaults to None.
             fname (path, optional): Filepath to save the image. If no value is provided, the image is not saved. Defaults to None.
             show (bool, optional): If True, the plot is shown. Defaults to True.
         """
         t = self.time()
-        C = self.conc(sum=True)
+        if time is None:
+            time = t
+        
         if xlim is None:
             xlim = [np.amin(t), np.amax(t)]
-        fig, (ax0, ax1) = plt.subplots(1,2,figsize=(12,5))
-        ax0.set_title('Prediction of the MRI signals.')
+
+        if self.water_exchange!='FF':
+            fig, ax = plt.subplots(2,2,figsize=(10,12))
+            ax00 = ax[0,0]
+            ax01 = ax[0,1]
+            ax10 = ax[1,0]
+            ax11 = ax[1,1]
+        else:
+            fig, ax = plt.subplots(1,2,figsize=(10,5))
+            ax00 = ax[0]
+            ax01 = ax[1]
+
+
+        ax00.set_title('MRI signals')
         if ref is not None:
             if 'signal' in ref:
-                ax0.plot(t/60, ref['signal'], linestyle='-', linewidth=3.0, color='lightgray', label='Tissue ground truth')
-        ax0.plot(time/60, self.predict(time), marker='o', linestyle='None', color='cornflowerblue', label='Predicted data')
-        ax0.plot(time/60, signal, marker='x', linestyle='None', color='darkblue', label='Data')
-        ax0.plot(t/60, self.predict(t), linestyle='-', linewidth=3.0, color='darkblue', label='Model')
-        ax0.set(xlabel='Time (min)', ylabel='MRI signal (a.u.)', xlim=np.array(xlim)/60)
-        ax0.legend()
-        ax1.set_title('Reconstruction of concentrations.')
+                ax00.plot(t/60, ref['signal'], linestyle='-', linewidth=3.0, color='lightgray', label='Tissue ground truth')
+        ax00.plot(time/60, self.predict(time), marker='o', linestyle='None', color='cornflowerblue', label='Predicted data')
+        if signal is not None:
+            ax00.plot(time/60, signal, marker='x', linestyle='None', color='darkblue', label='Data')
+        ax00.plot(t/60, self.predict(t), linestyle='-', linewidth=3.0, color='darkblue', label='Model')
+        ax00.set(ylabel='MRI signal (a.u.)', xlim=np.array(xlim)/60)
+        ax00.legend()
+
+
+        C = self.conc(sum=False)
+        v = _kin_vols(self.kinetics)
+        comps = _kin_comps(self.kinetics)
+        pars = _std_conc_pars(self.kinetics, self.__dict__)
+        ax01.set_title('Concentration in indicator compartments')
         if ref is not None:
-            ax1.plot(ref['t']/60, 1000*ref['C'], marker='o', linestyle='None', color='lightgray', label='Tissue ground truth')
-            ax1.plot(ref['t']/60, 1000*ref['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-        ax1.plot(t/60, 1000*C, linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
-        ax1.plot(t/60, 1000*self.ca, linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
-        ax1.set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=np.array(xlim)/60)
-        ax1.legend()
+            #ax01.plot(ref['t']/60, 1000*ref['C'], marker='o', linestyle='None', color='lightgray', label='Tissue ground truth')
+            ax01.plot(ref['t']/60, 1000*ref['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
+        ax01.plot(t/60, 1000*self.ca, linestyle='-', linewidth=5.0, color='lightcoral', label='Arterial plasma')
+        for k, vk in enumerate(v):
+            if vk in pars:
+                ck = C[k,:]/pars[vk]
+                ax01.plot(t/60, 1000*ck, linestyle='-', linewidth=3.0, label=comps[k], color=_clr(comps[k]))
+        #ax01.plot(t/60, 1000*np.sum(C,axis=0), linestyle='-', linewidth=3.0, color='darkblue', label='Tissue')
+        ax01.set(ylabel='Concentration (mM)', xlim=np.array(xlim)/60)
+        ax01.legend()
+
+        if self.water_exchange!='FF':
+
+            R1, _, v = self.relax()
+            r1 = lib.relaxivity(self.field_strength, 'blood', self.agent)
+            c = sig.c_lin(R1, r1)
+            comps = _relax_comps(self.kinetics, self.water_exchange)
+            if R1.ndim==1:
+                c = c.reshape((1,len(c)))
+            ax11.set_title('Concentration in water compartments')
+            for i in range(c.shape[0]):
+                ax11.plot(t/60, 1000*c[i,:], linestyle='-', linewidth=3.0, color=_clr(comps[i]), label=comps[i])
+            ax11.set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=np.array(xlim)/60)
+            ax11.legend()
+
+
+            S = self.signal(sum=False)
+            ax10.set_title('Magnetization in water compartments')
+            for i in range(S.shape[0]):
+                if np.isscalar(v): # TODO renove this after ref of v
+                    Si = S[i,...]/v
+                else:
+                    Si = S[i,...]/v[i]
+                ax10.plot(t/60, Si, linestyle='-', linewidth=3.0, color=_clr(comps[i]), label=comps[i])
+            ax10.set(xlabel='Time (min)', ylabel='Magnetization (a.u.)', xlim=np.array(xlim)/60)
+            ax10.legend()
+        
         if fname is not None:
             plt.savefig(fname=fname)
         if show:
@@ -992,10 +1095,25 @@ class Tissue(dc.Model):
             plt.close()
 
 
-
-
-
 # Helper functions
+
+def _clr(comp):
+    if comp=='Plasma':
+        return 'darkred'
+    if comp=='Interstitium':
+        return 'steelblue'
+    if comp=='Extracellular':
+        return 'dimgrey'
+    if comp=='Tissue':
+        return 'darkgrey'
+    if comp=='Blood':
+        return 'darkred'
+    if comp=='Extravascular':
+        return 'blue'
+    if comp=='Tissue cells':
+        return 'lightblue'
+    if comp=='Blood + Interstitium':
+        return 'purple'
 
 
 
@@ -1050,10 +1168,7 @@ def _check_inputs(self:Tissue):
         raise ValueError(msg)
 
 
-def _init(self:Tissue):
-
-    # set derived params:
-    self.vb = self.vp/(1-self.Hct)
+def _init_tissue(self:Tissue):
 
     # Set TS
     if self.TS is None:
@@ -1070,22 +1185,480 @@ def _init(self:Tissue):
                 # With uniform sampling, assume TS=dt
                 self.TS = dt[0]
 
-    # Arterial concentrations
-    if self.ca is None:
-        if self.aif is None:
-            raise ValueError('Either aif or ca must be provided.')
+
+
+
+
+
+# CONFIGURATIONS
+
+def _kin_pars(kin):
+
+    if kin=='2CX': 
+        return ['vp','vi','Fp','PS']
+    if kin=='2CU': 
+        return ['vp','Fp','PS']
+    if kin=='HF': 
+        return ['vp','vi','PS']
+    if kin=='HFU': 
+        return ['vp','PS']
+    if kin=='FX': 
+        return ['ve','Fp']
+    if kin=='NX': 
+        return ['vp','Fp']
+    if kin=='U': 
+        return ['Fp']
+    if kin=='WV': 
+        return ['vi','Ktrans']
+    
+        
+def _relax_pars(kin, wex)->list:
+
+    if wex=='FF':
+        return _kin_pars(kin)
+    
+    if kin == '2CX':
+        return ['H','vp','vi','Fp','PS']
+    if kin == 'HF':
+        return ['H','vp','vi','PS']
+    if kin=='WV':
+        return ['vi','Ktrans']
+        
+    if wex in ['RR','NN','NR','RN']:
+
+        if kin == '2CU':
+            return ['H','vp','vi','Fp','PS']
+        if kin == 'HFU':
+            return ['H','vp','vi','PS']
+        if kin=='FX':
+            return ['H','vp','ve','Fp']
+        if kin=='NX':
+            return ['H','vp','Fp']
+        if kin=='U':
+            return ['vb','Fp'] 
+
+    if wex in ['RF','NF']:
+
+        if kin == '2CU':
+            return ['H','vp','Fp','PS']
+        if kin == 'HFU':
+            return ['H','vp','PS']
+        if kin=='FX':
+            return ['H','vp','ve','Fp']
+        if kin=='NX':
+            return ['H','vp','Fp']
+        if kin=='U':
+            return ['vb','Fp']
+
+    if wex in ['FR','FN']:
+
+        if kin == '2CU':
+            return ['vc','vp','Fp','PS']
+        if kin == 'HFU':
+            return ['vc','vp','PS']
+        if kin=='FX':
+            return ['vc','ve','Fp']
+        if kin=='NX':
+            return ['vc','vp','Fp']
+        if kin=='U':
+            return ['vc','Fp']
+        
+
+def _tissue_pars(kin, wex)->list:
+
+    pars = _relax_pars(kin, wex)
+
+    if wex=='FF':
+        return pars
+    
+    if wex=='RR':
+        if kin=='WV':
+            return ['PSc'] + pars
+        elif kin in ['NX','U']:
+            return ['PSe'] + pars
         else:
-            r1 = dc.relaxivity(self.field_strength, 'blood', self.agent)
-            if self.sequence == 'SR':
-                cb = dc.conc_src(self.aif, self.TC, 1/self.R10b, r1, self.n0)
-            elif self.sequence == 'SS':
-                cb = dc.conc_ss(self.aif, self.TR, self.FAa, 1/self.R10b, r1, self.n0) 
-            self.ca = cb/(1-self.Hct) 
+            return ['PSe','PSc'] + pars
+        
+    if wex=='NN':
+        return pars
+    
+    if wex=='NR':
+        if kin in ['NX','U']:
+            return pars
+        else:
+            return ['PSc'] + pars 
+         
+    if wex=='RN':
+        if kin=='WV':
+            return pars
+        else:
+            return ['PSe'] + pars  
+        
+    if wex=='RF':
+        if kin=='WV':
+            return pars
+        else:
+            return ['PSe'] + pars
+        
+    if wex=='NF':
+        return pars
+    
+    if wex=='FR':
+        return ['PSc'] + pars
+    
+    if wex=='FN':
+        return pars
+
+
+def _init(p):
+    if p=='Fp': 
+        return 0.01
+    if p=='PS':
+        return 0.003
+    if p=='vb':
+        return 0.1
+    if p=='vi':
+        return 0.3
+    if p=='H':
+        return 0.45
+    if p=='PSe':
+        return 0.03
+    if p=='PSc':
+        return 0.03
+    if p=='Ktrans':
+        return _init('PS')*_init('Fp')/(_init('PS')+_init('Fp'))
+    if p=='vc':
+        return 1-_init('vb')-_init('vi')
+    if p=='vp':
+        return _init('vb')*(1-_init('H'))
+    if p=='ve':
+        return _init('vp')+_init('vi')
+
+def _bound(p):
+    if p in ['Ktrans','PS','Fp','PSe','PSc']:
+        return [0, np.inf]
+    else:
+        return [1e-3, 1-1e-3] # TODO: needs solutions vor v=0 in signal models
+    
+def _name(p)->str:
+
+    # Primary
+    if 'Fp'==p:
+        return 'Plasma flow'
+    if 'Ktrans'==p:
+        return 'Volume transfer constant'
+    if 'PS'==p:
+        return 'Permeability-surface area product'
+    if 'vb'==p: 
+        return 'Blood volume'
+    if 'vi'==p:
+        return 'Interstitial volume'
+    if 'vc'==p:
+        return 'Intracellular volume'
+    if 'vp'==p:
+        return 'Plasma volume'
+    if 've'==p:
+        return 'Extracellular volume'
+    if 'PSe'==p: 
+        return 'Transendothelial water PS'
+    if 'PSc'==p: 
+        return 'Transcytolemmal water PS'
+    if 'H'==p:
+        return 'Hematocrit'    
+
+    # Derived
+    if 'E'==p:
+        return 'Tracer extraction fraction'
+    if 'Ti'==p:
+        return 'Interstitial mean transit time'
+    if 'Tp'==p:
+        return 'Plasma mean transit time'
+    if 'Tb'==p:
+        return 'Blood mean transit time'
+    if 'Te'==p:
+        return 'Extracellular mean transit time'
+    if 'Twc'==p: 
+        return 'Intracellular water mean transit time'
+    if 'Twi'==p: 
+        return 'Interstitial water mean transit time'
+    if 'Twb'==p: 
+        return 'Intravascular water mean transit time'
+
+    raise ValueError(p + ' not recognized')
+
+
+def _unit(p)->str:
+
+    # Primary
+
+    if 'Fp'==p:
+        return 'mL/sec/cm3'
+    if 'Ktrans'==p:
+        return 'mL/sec/cm3'
+    if 'PS'==p:
+        return 'mL/sec/cm3'
+    if 'vb'==p: 
+        return 'mL/cm3'
+    if 'vi'==p:
+        return 'mL/cm3'
+    if 'vc'==p:
+        return 'mL/cm3'
+    if 'H'==p:
+        return ''
+    if 'vp'==p:
+        return 'mL/cm3'
+    if 've'==p:
+        return 'mL/cm3'
+    if 'PSe'==p: 
+        return  'mL/sec/cm3'
+    if 'PSc'==p: 
+        return  'mL/sec/cm3'
+    
+    # Derived
+
+    if 'E'==p:
+        return ''
+    if 'Ti'==p:
+        return 'sec'
+    if 'Tp'==p:
+        return 'sec'
+    if 'Tb'==p:
+        return 'sec'
+    if 'Te'==p:
+        return 'sec'
+    if 'Twc'==p: 
+        return  'sec'
+    if 'Twi'==p: 
+        return  'sec'  
+    if 'Twb'==p: 
+        return  'sec'
+    
+    # All others dimensionless
+    return ''
+
+
+def _std_conc_pars(kin, p): 
+    return {par:p[par] for par in _kin_pars(kin)}
+
+
+def _std_relax_pars(kin, wex, p):
+    return {par:p[par] for par in _relax_pars(kin, wex)}
+
+        
+def _PSw(kin, wex, p):
+    
+    if wex=='FF':
+        return None
+    
+    elif wex == 'RR':
+
+        if kin=='WV':
+            PSw = [[0, p['PSc']], [p['PSc'], 0]]
+        elif kin in ['NX', 'U']:
+            PSw = [[0, p['PSe']], [p['PSe'], 0]]
+        else:
+            PSw = [[0, p['PSe'], 0], [p['PSe'], 0, p['PSc']], [0, p['PSc'], 0]]  
+
+    elif wex == 'RN':
+
+        if kin=='WV':
+            PSw = [[0, 0], [0, 0]]
+        elif kin in ['NX', 'U']:
+            PSw = [[0, p['PSe']], [p['PSe'], 0]]
+        else:
+            PSw = [[0, p['PSe'], 0], [p['PSe'], 0, 0], [0, 0, 0]] 
+
+    elif wex == 'NR':
+
+        if kin=='WV':
+            PSw = [[0, p['PSc']], [p['PSc'], 0]]
+        elif kin in ['NX', 'U']:
+            PSw = [[0, 0], [0, 0]]
+        else:
+            PSw = [[0, 0, 0], [0, 0, p['PSc']], [0, p['PSc'], 0]] 
+
+    elif wex == 'NN':
+
+        if kin=='WV':
+            PSw = [[0,0], [0,0]]
+        elif kin in ['NX', 'U']:
+            PSw = [[0,0], [0,0]]
+        else:
+            PSw = [[0,0,0], [0,0,0], [0,0,0]] 
+
+    elif wex == 'RF':
+
+        if kin=='WV':
+            return None
+        else:
+            PSw = [[0, p['PSe']], [p['PSe'], 0]]
+
+    elif wex == 'NF':
+
+        if kin=='WV':
+            return None
+        else:
+            PSw = [[0,0], [0,0]]
+
+    elif wex == 'FR':
+
+        PSw = [[0, p['PSc']], [p['PSc'], 0]]
+
+    elif wex == 'FN':
+
+        PSw = [[0,0],[0,0]]
+
+    return np.array(PSw)
+    
+
+def _kin_vols(kin):
+
+    if kin=='2CX': 
+        return ['vp','vi']
+    if kin=='2CU': 
+        return ['vp','vi']
+    if kin=='HF': 
+        return ['vp','vi']
+    if kin=='HFU': 
+        return ['vp','vi']
+    if kin=='FX': 
+        return ['ve']
+    if kin=='NX': 
+        return ['vp']
+    if kin=='U': 
+        return ['vp']
+    if kin=='WV': 
+        return ['vi']
+
+
+def _kin_comps(kin):
+
+    if kin=='2CX': 
+        return ['Plasma','Interstitium']
+    if kin=='2CU': 
+        return ['Plasma','Interstitium']
+    if kin=='HF': 
+        return ['Plasma','Interstitium']
+    if kin=='HFU': 
+        return ['Plasma','Interstitium']
+    if kin=='FX': 
+        return ['Extracellular']
+    if kin=='NX': 
+        return ['Plasma']
+    if kin=='U': 
+        return ['Plasma']
+    if kin=='WV': 
+        return ['Interstitium']
+    
+
+def _relax_comps(kin, wex)->list:
+
+    if wex=='FF':
+        return ['Tissue']
+        
+    if wex in ['RR','NN','NR','RN']:
+        if kin=='WV':
+            return ['Interstitium']
+        elif kin in ['NX','U']:
+            return ['Blood', 'Extravascular']
+        else:
+            return ['Blood', 'Interstitium', 'Tissue cells']
+        
+    if wex in ['RF','NF']:
+        if kin=='WV':
+            return ['Interstitium']
+        else:
+            return ['Blood', 'Extravascular']
+
+    if wex in ['FR','FN']:
+        if kin=='WV': 
+            return ['Interstitium', 'Tissue cells']
+        else:
+            return ['Blood + Interstitium', 'Tissue cells']
 
 
 
+def _add_fix_params(kin, wex, p):
+
+    if kin=='2CX': 
+        pass
+    elif kin=='HF': 
+        p['Fp'] = np.inf
+    elif kin=='HFU': 
+        p['Fp'] = np.inf
+    elif kin=='FX': 
+        p['Ktrans'] = np.inf
+    elif kin=='NX': 
+        p['Ktrans'] = 0
+    elif kin=='WV': 
+        p['vp'] = 0
+
+    if wex[0]=='N':
+        p['PSe'] = 0
+    elif wex[0]=='F':
+        p['PSe'] = np.inf
+
+    if wex[1]=='N':
+        p['PSc'] = 0
+    elif wex[1]=='F':
+        p['PSc'] = np.inf
+
+    return p
 
 
+def _all_pars(kin, wex, p):
+
+    p = {par:p[par] for par in _tissue_pars(kin, wex)}
+ 
+    try:
+        p['Ktrans'] = _div(p['Fp']*p['PS'], p['Fp']+p['PS'])
+    except:
+        pass
+    try:
+        p['ve'] = p['vi'] + p['vc']
+    except:
+        pass
+    try:
+        p['vb'] = _div(p['vp'], 1-p['H'])
+    except:
+        pass   
+    try:
+        p['E'] = _div(p['PS'], p['Fp']+p['PS'])
+    except:
+        pass     
+    try:
+        p['Ti'] = _div(p['vi'], p['PS'])
+    except:
+        pass
+    try:
+        p['Tp'] = _div(p['vp'], p['PS']+p['Fp'])
+    except:
+        pass
+    try:
+        p['Tb'] = _div(p['vp'], p['Fp'])
+    except:
+        pass
+    try:
+        p['Te'] = _div(p['ve'], p['Fp'])
+    except:
+        pass
+    try:
+        p['Twc'] = _div(1-p['vb']-p['vi'], p['PSc'])
+    except:
+        pass
+    try:
+        p['Twi'] = _div(p['vi'], p['PSc']+p['PSe'])
+    except:
+        pass
+    try:
+        p['Twb'] = _div(p['vb'], p['PSe'])
+    except:
+        pass
+
+    return p
 
 
+def _div(a, b):
+    with np.errstate(divide='ignore', invalid='ignore'):
+        return np.where(b==0, 0, np.divide(a, b))
 

@@ -35,6 +35,23 @@ Tutorials
 
 .. raw:: html
 
+    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the effect of water exchange in a standard two-compartmental tissue using the models in dcmri.Tissue.">
+
+.. only:: html
+
+  .. image:: /generated/examples/tutorials/images/thumb/sphx_glr_plot_wex_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_generated_examples_tutorials_plot_wex.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">An exploration of water exchange effects</div>
+    </div>
+
+
+.. raw:: html
+
     <div class="sphx-glr-thumbcontainer" tooltip="Using the convolution functions conv, expconv, stepconv, biexpconv and nexpconv. ">
 
 .. only:: html
@@ -50,23 +67,6 @@ Tutorials
     </div>
 
 
-.. raw:: html
-
-    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the effect of water exchange in a standard two-compartmental tissue with extended Tofts kinetics. Data acquisition is modelled using the steady-state model of a spoiled gradient echo sequence.">
-
-.. only:: html
-
-  .. image:: /generated/examples/tutorials/images/thumb/sphx_glr_plot_wex_thumb.png
-    :alt:
-
-  :ref:`sphx_glr_generated_examples_tutorials_plot_wex.py`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">An exploration of water exchange effects</div>
-    </div>
-
-
 .. thumbnail-parent-div-close
 
 .. raw:: html
@@ -78,6 +78,6 @@ Tutorials
    :hidden:
 
    /generated/examples/tutorials/plot_aif
-   /generated/examples/tutorials/plot_convolution
    /generated/examples/tutorials/plot_wex
+   /generated/examples/tutorials/plot_convolution
 
