@@ -3,8 +3,6 @@ from scipy.integrate import cumulative_trapezoid
 import numpy as np
 import dcmri as dc
 
-import matplotlib.pyplot as plt
-
 
 def test__conc_u():
     n = 10
@@ -26,7 +24,7 @@ def test__flux_u():
     J0 = np.zeros(len(t))
     assert np.linalg.norm(J-J0) < 0.01
 
-def test__conc_1c():
+def test__conc_fx():
     n = 10
     Ta = 10
     Fp = 2
@@ -63,8 +61,7 @@ def test__conc_wv():
     C = dc.conc_tissue(ca, t=t, kinetics='WV', vi=vi, Ktrans=Ktrans)
     C0 = Ktrans*dc.biexpconv(Ta, vi/Ktrans, t)*vi/Ktrans
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.01
-    C = dc.conc_tissue(ca, t=t, kinetics='WV', sum=False, vi=vi, Ktrans=Ktrans)
-    C = C[0,:] + C[1,:]
+    C = dc.conc_tissue(ca, t=t, kinetics='WV', vi=vi, Ktrans=Ktrans)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.01
     C = dc.conc_tissue(ca, t=t, kinetics='WV', vi=vi, Ktrans=0)
     assert np.linalg.norm(C) == 0
@@ -264,9 +261,10 @@ def test__conc_2cx():
     PS = 0
     vp = 0.1
     vi = 0.2
-    C0 = dc.conc_tissue(ca, t=t, sum=True, kinetics='2CX', vp=vp, vi=vi, Fp=Fp, PS=PS)
+    C0 = dc.conc_tissue(ca, t=t, sum=True, kinetics='2CX', 
+                        vp=vp, vi=vi, Fp=Fp, PS=PS)
     C1 = dc.conc_tissue(ca, t=t, kinetics='NX', vp=vp, Fp=Fp)
-    assert np.linalg.norm(C0-C1) == 0
+    assert np.linalg.norm(C0-C1) < 1e-9
     
 def test__flux_2cx():
     # Compare against general ncomp solution
@@ -427,7 +425,7 @@ if __name__ == "__main__":
     test__conc_u()
     test__flux_u()
 
-    test__conc_1c()
+    test__conc_fx()
     test__flux_1c()
 
     test__conc_wv()

@@ -4,7 +4,7 @@ import numpy as np
 import dcmri as dc
 
 
-# Debugging mode
+# # Debugging mode
 # VERBOSE = 1
 # SHOW = True
 
@@ -69,10 +69,9 @@ def test_mods_tissue():
         'water_exchange': 'FF',
         'aif': aif,
         'dt': time[1],
-        'agent': 'gadodiamide',
+        'relaxivity': dc.relaxivity(3,'blood','gadodiamide'),
         'TR': 0.005,
         'FA': 15,
-        'FAa': 15,
         'n0': 10,
         'R10b': 1/dc.T1(3.0,'blood'),
         'R10': 1/dc.T1(3.0,'muscle'),
@@ -111,7 +110,8 @@ def test_mods_tissue():
     assert model.get_params('PSc') > 1
 
     # Loop over all models
-    cost = {'U':20, 'NX':10, 'FX':20, 'WV':10, 'HFU':20, 'HF':6, '2CU':20, '2CX':2}
+    cost = {'U':20, 'NX':10, 'FX':20, 'WV':10, 'HFU':20, 'HF':6, '2CU':20, 
+            '2CX':2}
     for k in ['U', 'NX', 'FX', 'WV', 'HFU', 'HF', '2CU', '2CX']:
         for e in ['R','F','N']:
             for c in ['R','F','N']:
@@ -141,10 +141,9 @@ def test_mods_tissue_array():
         'water_exchange': 'FF',
         'aif': aif,
         'dt': time[1],
-        'agent': 'gadodiamide',
+        'relaxivity': dc.relaxivity(3, 'blood', 'gadodiamide'),
         'TR': 0.005,
-        'FA': np.full((n,n), 15),
-        'FAa': 15,
+        'FA': 15,
         'n0': 10,
         'R10b': 1/dc.T1(3.0,'blood'),
         'R10': R10,
@@ -344,9 +343,9 @@ if __name__ == "__main__":
 
     # make_tmp()
 
-    test_model()
-    # test_mods_tissue()
-    # test_mods_tissue_array()
+    # test_model()
+    test_mods_tissue()
+    test_mods_tissue_array()
     # test_mods_aorta()
     # test_mods_aorta_liver()
     # test_mods_aorta_liver2scan()
