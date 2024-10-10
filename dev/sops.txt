@@ -13,7 +13,8 @@ On windows:
 >>> .venv/Scripts/activate        # activate virtual environment
 
 Then select the Python interpreter in the .venv folder. In VSCode:
-View > Command Palette > Python select interpreter -> enter interpreter path (.venv/Scripts/python.exe)
+View > Command Palette > Python select interpreter -> enter interpreter path 
+(.venv/Scripts/python.exe)
 
 
 Installation
@@ -48,10 +49,19 @@ Enforce PEP8
 cd to /dcmri top folder
 
 To fix a single file
->>> autopep8 py_file --in-place
+>>> autopep8 src/dcmri/file.py --in-place
 
 To fix the whole project
->>> autopep8 dcmri --recursive --in-place --pep8-passes 2000 --verbose
+>>> autopep8 src/dcmri --recursive --in-place --pep8-passes 2000 --verbose
+
+Check any remaining isues and fix manually
+>>> pycodestyle src/dcmri --ignore=E501
+
+Note agressive option - dangerous - may need debugging. Use carefully and test 
+after changing
+>>> autopep8 src/dcmri/file.py --in-place --aggressive
+
+
 
 Run test suite and check test coverage
 --------------------------------------
@@ -92,6 +102,7 @@ Building release notes
 Creating a new release (from a fork)
 ------------------------------------
 
+= Enforce PEP8 (see above)
 - Run the test suite in a clean environment (see above) and check test coverage (see above)
 - Build the documentation (see above)
 - Update the version number in the below locations, push and check that the test action passes. If it passes, make a pull-request to push to dev.
