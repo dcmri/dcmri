@@ -3,59 +3,7 @@ from scipy.linalg import expm
 import numpy as np
 
 
-def c_lin(R1, r1)->np.ndarray:
-    """Derive concentrations from relaxation rates using a linear relationship.
-
-    Args:
-        R1 (float or array-like): Relaxation rates. For a multi-compartmental tissue, R1 is a 2-dimensional array where the first dimension is the number of compartments.
-        r1 (float or array-like): relaxivity. For a multi-compartmental tissue, r1 can be a 1-dimensional array with the relaxation rates for each compartment. If it is a scalar, the assumption is that all compartments have the same r1.
-
-    Returns:
-        np.ndarray: concentrations in each tissue compartment, in the same shape as R1.
-    """
-    if R1.ndim==2:
-        c = np.zeros(R1.shape)
-        for i in range(R1.ndim):
-            if np.isscalar(r1):
-                r1i = r1
-            else:
-                r1i = r1[i]
-            c[i,:] = (R1[i,:]-R1[i,0])/r1i
-    else:
-        c = (R1-R1[0])/r1
-    return c
-
-
-def R1_lin(C, R10, r1, v=1.0)->np.ndarray:
-    """Derive longitudinal R1 from tissue concentrations assuming a linear relation.
-
-    Args:
-        C (array-like): Tissue concentrations, either as a one-dimensionsal array for one-compartment systems, or two-dimensional where the 1st dimension is the number of compartments.
-        R10 (array-like or float): Precontrast R1, either a single value for one-compartment tissues or an array with one value for each tissue compartment.
-        r1 (float or array-like): relaxivity, either a single value for one-compartment tissues or an array with one value for each tissue compartment.
-        v (float or array-like, optional): Compartmental volume fraction - either a single value for one-compartment tissues or an array with one value for each tissue compartment. This must be provided when the tissue has multiple compartments. Defaults to 1.
-
-    Returns:
-        np.ndarray: Array with longitudinal relaxvities, same shape as C.
-    """
-
-    if np.isscalar(v):
-        if v==0:
-            return np.full(C.shape, R10)
-        else:
-            return R10 + C*(r1/v)
-    else:
-        R1 = np.zeros(C.shape)
-        for i in range(np.size(v)):
-            if v[i]==0:
-                R1[i,:] = R10[i]
-            else:
-                R1[i,:] = R10[i] + C[i,:]*(r1[i]/v[i])
-        return R1
-                
-
-
-def signal_dsc(R1, R2, S0:float, TR, TE)->np.ndarray:
+def signal_dsc(R1, R2, S0: float, TR, TE) -> np.ndarray:
     """Signal model for a DSC scan with T2 and T2-weighting.
 
     Args:
@@ -68,10 +16,10 @@ def signal_dsc(R1, R2, S0:float, TR, TE)->np.ndarray:
     Returns:
         np.ndarray: Signal in arbitrary units, same length as R1 and R2.
     """
-    return S0*np.exp(-np.multiply(TE,R2))*(1-np.exp(-np.multiply(TR,R1)))
+    return S0*np.exp(-np.multiply(TE, R2))*(1-np.exp(-np.multiply(TR, R1)))
 
 
-def signal_t2w(R2, S0:float, TE)->np.ndarray:
+def signal_t2w(R2, S0: float, TE) -> np.ndarray:
     """Signal model for a DSC scan with T2-weighting.
 
     Args:
@@ -82,9 +30,10 @@ def signal_t2w(R2, S0:float, TE)->np.ndarray:
     Returns:
         np.ndarray: Signal in arbitrary units, same length as R1 and R2.
     """
-    return S0*np.exp(-np.multiply(TE,R2))
+    return S0*np.exp(-np.multiply(TE, R2))
 
-def conc_t2w(S, TE:float, r2=0.5, n0=1)->np.ndarray:
+
+def conc_t2w(S, TE: float, r2=0.5, n0=1) -> np.ndarray:
     """Concentration for a DSC scan with T2-weighting.
 
     Args:
@@ -107,47 +56,49 @@ def conc_t2w(S, TE:float, r2=0.5, n0=1)->np.ndarray:
     return C
 
 
-
-def _signal_ss(R1, Sinf, TR, FA)->np.ndarray:
+def _signal_ss(R1, Sinf, TR, FA) -> np.ndarray:
     FA = FA*np.pi/180
-    E = np.exp(-np.multiply(TR,R1))
+    E = np.exp(-np.multiply(TR, R1))
     cFA = np.cos(FA)
     S = Sinf * (1-E) / (1-cFA*E)
     return np.sin(FA)*S
 
-def _signal_ss_nex(v, R1:np.ndarray, S0, TR:float, FA:float, sum=True):
+
+def _signal_ss_nex(v, R1: np.ndarray, S0, TR: float, FA: float, sum=True):
     if np.size(R1) == np.size(v):
         S = _signal_ss(R1, S0, TR, FA)
-        S = np.multiply(v,S)
+        S = np.multiply(v, S)
         if sum:
             return np.sum(S)
         else:
-            return S 
+            return S
     S = np.zeros(R1.shape)
     for c in range(R1.shape[0]):
-        S[c,...] = v[c]*_signal_ss(R1[c,...], S0, TR, FA)
+        S[c, ...] = v[c]*_signal_ss(R1[c, ...], S0, TR, FA)
     if sum:
         return np.sum(S, axis=0)
     else:
         return S
 
-def _signal_ss_fex(v, R1, S0, TR:float, FA:float, sum=True):
+
+def _signal_ss_fex(v, R1, S0, TR: float, FA: float, sum=True):
     if np.size(R1) == np.size(v):
-        R1 = np.sum(np.multiply(v,R1))
+        R1 = np.sum(np.multiply(v, R1))
         S = _signal_ss(R1, S0, TR, FA)
         if sum:
             return S
         else:
-            return S.reshape((1,len(S)))
+            return S.reshape((1, len(S)))
     nc = R1.shape[0]
     R1fex = np.zeros(R1.shape[1:])
     for c in range(nc):
-        R1fex += v[c]*R1[c,...]
+        R1fex += v[c]*R1[c, ...]
     sig = _signal_ss(R1fex, S0, TR, FA)
     if sum:
         return sig
     else:
         return sig.reshape((1,) + sig.shape)
+
 
 def _signal_ss_aex(PS, v, R1, S0, TR, FA, sum=True):
 
@@ -156,8 +107,8 @@ def _signal_ss_aex(PS, v, R1, S0, TR, FA, sum=True):
     # Longitudinal magnetization in a 2-compartment system
     # with kinetic transport and free relaxation
 
-    # v1*dm1/dt = fi1*mi1 - fo1*m1 + f12*m2 - f21*m1 + R1_1*v1*(m01-m1) 
-    # v2*dm2/dt = fi2*mi2 - fo2*m2 + f21*m1 - f12*m2 + R1_2*v2*(m02-m2) 
+    # v1*dm1/dt = fi1*mi1 - fo1*m1 + f12*m2 - f21*m1 + R1_1*v1*(m01-m1)
+    # v2*dm2/dt = fi2*mi2 - fo2*m2 + f21*m1 - f12*m2 + R1_2*v2*(m02-m2)
 
     # v1*dm1/dt = fi1*mi1 - (fo1+f21+R1_1*v1)*m1 + f12*m2 + R1_1*v1*m01
     # v2*dm2/dt = fi2*mi2 - (fo2+f12+R1_2*v2)*m2 + f21*m1 + R1_2*v2*m02
@@ -168,16 +119,16 @@ def _signal_ss_aex(PS, v, R1, S0, TR, FA, sum=True):
     # J1(t) = fi1*mi1(t) + R1_1*v1*m01 > 0
     # J2(t) = fi2*mi2(t) + R1_2*v2*m02 > 0
 
-    # v1*dm1/dt = J1 - f1*m1 + f12*m2 
-    # v2*dm2/dt = J2 - f2*m2 + f21*m1 
+    # v1*dm1/dt = J1 - f1*m1 + f12*m2
+    # v2*dm2/dt = J2 - f2*m2 + f21*m1
 
     # K1 = (fo1 + f21)/v1 + R1_1
     # K2 = (fo2 + f12)/v2 + R1_2
     # K12 = f12/v2
     # K21 = f21/v1
 
-    # dM1/dt = J1 - K1*M1 + K12*M2 
-    # dM2/dt = J2 - K2*M2 + K21*M1 
+    # dM1/dt = J1 - K1*M1 + K12*M2
+    # dM2/dt = J2 - K2*M2 + K21*M1
 
     # K = [[K1, -K12],[-K21, K2]
     # dM/dt = J - KM
@@ -192,10 +143,10 @@ def _signal_ss_aex(PS, v, R1, S0, TR, FA, sum=True):
 
     # Check
 
-    # dM/dt 
+    # dM/dt
     # = - K exp(-tK)M(0) + exp(-tK) J
-    # J - KM 
-    # = J - Kexp(-tK)M(0) - (1-exp(-tK))J 
+    # J - KM
+    # = J - Kexp(-tK)M(0) - (1-exp(-tK))J
     # = - K exp(-tK)M(0) + exp(-tK) J
 
     # Spoiled gradient echo steady state:
@@ -209,7 +160,7 @@ def _signal_ss_aex(PS, v, R1, S0, TR, FA, sum=True):
 
     # f1 = fo1 + f21 + R1_1(t)*v1
     # f2 = fo2 + f12 + R1_2(t)*v2
-    
+
     # J1 = fi1*S0*mi1(t) + R1_1(t)*v1*S0*m01
     # J2 = fi2*S0*mi2(t) + R1_2(t)*v2*S0*m02
 
@@ -226,20 +177,20 @@ def _signal_ss_aex(PS, v, R1, S0, TR, FA, sum=True):
 
     # reshape for convenience
     n = np.shape(R1)
-    R1 = np.reshape(R1, (n[0],-1))
+    R1 = np.reshape(R1, (n[0], -1))
     PS = np.array(PS)
 
     nc, nt = R1.shape
-    J = np.empty((nc,nt))
-    K = np.empty((nc,nc,nt))
+    J = np.empty((nc, nt))
+    K = np.empty((nc, nc, nt))
     for c in range(nc):
-        J[c,:] = S0*v[c]*R1[c,:]
-        DK = np.sum(PS[:,c])/v[c] # This needs a solution for v=0
-        K[c,c,:] = R1[c,:] + DK
+        J[c, :] = S0*v[c]*R1[c, :]
+        DK = np.sum(PS[:, c])/v[c]  # This needs a solution for v=0
+        K[c, c, :] = R1[c, :] + DK
         for d in range(nc):
-            if d!=c:
-                DK = PS[c,d]/v[d] # This needs a solution for v=0
-                K[c,d,:] = -DK
+            if d != c:
+                DK = PS[c, d]/v[d]  # This needs a solution for v=0
+                K[c, d, :] = -DK
 
     FA = FA*np.pi/180
     cFA = np.cos(FA)
@@ -247,20 +198,20 @@ def _signal_ss_aex(PS, v, R1, S0, TR, FA, sum=True):
     if sum:
         Mag = np.empty(nt)
     else:
-        Mag = np.empty((nc,nt))
+        Mag = np.empty((nc, nt))
     for t in range(nt):
-        Et = expm(-TR*K[:,:,t])
-        Mt = np.dot(K[:,:,t], Id-cFA*Et)
+        Et = expm(-TR*K[:, :, t])
+        Mt = np.dot(K[:, :, t], Id-cFA*Et)
         Mt = np.linalg.inv(Mt)
-        Mag_t = np.dot(Id-Et, J[:,t])
+        Mag_t = np.dot(Id-Et, J[:, t])
         Mag_t = np.dot(Mt, Mag_t)
         if sum:
             Mag[t] = np.sum(Mag_t)
         else:
-            Mag[:,t] = Mag_t
+            Mag[:, t] = Mag_t
 
     # Return in original shape
-    R1 = R1.reshape(n) # TODO: not necessary - delete
+    R1 = R1.reshape(n)  # TODO: not necessary - delete
     if sum:
         Mag = Mag.reshape(n[1:])
     else:
@@ -268,7 +219,7 @@ def _signal_ss_aex(PS, v, R1, S0, TR, FA, sum=True):
     return np.sin(FA)*Mag
 
 
-def signal_ss(R1, S0, TR, FA, v=1, PSw=np.inf, R10=None, sum=True)->np.ndarray:
+def signal_ss(R1, S0, TR, FA, v=1, PSw=np.inf, R10=None, sum=True) -> np.ndarray:
     """Signal of a spoiled gradient echo sequence applied in steady state.
 
     Args:
@@ -287,34 +238,37 @@ def signal_ss(R1, S0, TR, FA, v=1, PSw=np.inf, R10=None, sum=True)->np.ndarray:
     if R10 is None:
         Sinf = S0
     else:
-        if v!=1:
+        if v != 1:
             R10 = np.full(len(v), R10)
         Sinf = S0/signal_ss(R10, 1, TR, FA, v=v, PSw=PSw)
-    if v==1:
+    if v == 1:
         sig = _signal_ss(R1, Sinf, TR, FA)
         if sum:
             return sig
         else:
             return sig.reshape((1,)+sig.shape)
     if np.isscalar(R1):
-        raise ValueError('In a multi-compartment system, R1 must be an array with at least 1 dimension..')
-    if np.ndim(R1)==1:
+        raise ValueError(
+            'In a multi-compartment system, R1 must be an array with at least 1 dimension..')
+    if np.ndim(R1) == 1:
         if np.size(v) != np.size(R1):
             raise ValueError('v must have the same length as R1.')
     elif np.size(v) != np.shape(R1)[0]:
-        raise ValueError('v must have the same length as the first dimension of R1.')
+        raise ValueError(
+            'v must have the same length as the first dimension of R1.')
     if np.isscalar(PSw):
-        if PSw==np.inf:
+        if PSw == np.inf:
             return _signal_ss_fex(v, R1, Sinf, TR, FA, sum=sum)
-        elif PSw==0:
+        elif PSw == 0:
             return _signal_ss_nex(v, R1, Sinf, TR, FA, sum=sum)
         else:
             nc = len(v)
-            PSw = np.full((nc,nc), PSw) - np.diag(np.full(nc, PSw))
+            PSw = np.full((nc, nc), PSw) - np.diag(np.full(nc, PSw))
             return signal_ss(R1, Sinf, TR, FA, v=v, PSw=PSw, sum=sum)
     else:
         if np.ndim(PSw) != 2:
-            raise ValueError("For intermediate water exchange, PSw must be a square array")
+            raise ValueError(
+                "For intermediate water exchange, PSw must be a square array")
         if np.shape(PSw)[0] != np.size(v):
             raise ValueError("Dimensions of PSw and v do not match up.")
         if 0 == np.linalg.norm(PSw-np.diag(np.diag(PSw))):
@@ -322,7 +276,7 @@ def signal_ss(R1, S0, TR, FA, v=1, PSw=np.inf, R10=None, sum=True)->np.ndarray:
         return _signal_ss_aex(PSw, v, R1, Sinf, TR, FA, sum=sum)
 
 
-def conc_ss(S, TR:float, FA:float, T10:float, r1=0.005, n0=1)->np.ndarray:
+def conc_ss(S, TR: float, FA: float, T10: float, r1=0.005, n0=1) -> np.ndarray:
     """Concentration of a spoiled gradient echo sequence applied in steady state.
 
     Args:
@@ -352,24 +306,23 @@ def conc_ss(S, TR:float, FA:float, T10:float, r1=0.005, n0=1)->np.ndarray:
         inrange = Sn < 1
         x = np.arange(Sn.size)
         Sn[outrange] = np.interp(x[outrange], x[inrange], Sn[inrange])
-    R1 = -np.log((1-Sn)/(1-c*Sn))/TR	# relaxation rate in 1/msec
-    return (R1 - 1/T10)/r1 
+    R1 = -np.log((1-Sn)/(1-c*Sn))/TR  # relaxation rate in 1/msec
+    return (R1 - 1/T10)/r1
 
 
-
-def _signal_sr(R1, Sinf:float, TR:float, FA:float, TC:float, TP=0.0)->np.ndarray:
+def _signal_sr(R1, Sinf: float, TR: float, FA: float, TC: float, TP=0.0) -> np.ndarray:
 
     if TP > TC:
         msg = 'Incorrect sequence parameters.'
         msg += 'Tsat must be smaller than TC.'
         raise ValueError(msg)
-    
+
     FA = np.pi*FA/180
     cFA = np.cos(FA)
-    T1_app = TR/(np.multiply(TR,R1)-np.log(cFA))
+    T1_app = TR/(np.multiply(TR, R1)-np.log(cFA))
 
-    ER = np.exp(-np.multiply(TR,R1))
-    E_sat = np.exp(-np.multiply(TP,R1))
+    ER = np.exp(-np.multiply(TR, R1))
+    E_sat = np.exp(-np.multiply(TP, R1))
     E_center = np.exp(-(TC-TP)/T1_app)
 
     S_sat = Sinf * (1-E_sat)
@@ -380,29 +333,29 @@ def _signal_sr(R1, Sinf:float, TR:float, FA:float, TC:float, TP=0.0)->np.ndarray
     return np.sin(FA)*S_ss
 
 
-def _signal_sr_fex(v, R1, S0:float, TR:float, FA:float, TC:float, TP=0.0):
+def _signal_sr_fex(v, R1, S0: float, TR: float, FA: float, TC: float, TP=0.0):
     if np.size(R1) == np.size(v):
-        R1 = np.sum(np.multiply(v,R1))
+        R1 = np.sum(np.multiply(v, R1))
         return _signal_sr(R1, S0, TR, FA, TC, TP)
     nc, nt = R1.shape
     R1fex = np.zeros(nt)
     for c in range(nc):
-        R1fex += v[c]*R1[c,:]
+        R1fex += v[c]*R1[c, :]
     return _signal_sr(R1fex, S0, TR, FA, TC, TP)
 
 
-def _signal_sr_nex(v, R1, S0:float, TR:float, FA:float, TC:float, TP=0.0):
+def _signal_sr_nex(v, R1, S0: float, TR: float, FA: float, TC: float, TP=0.0):
     if np.size(R1) == np.size(v):
         S = _signal_sr(R1, S0, TR, FA, TC, TP)
-        return np.sum(np.multiply(v,S)) 
+        return np.sum(np.multiply(v, S))
     nc, nt = R1.shape
     S = np.zeros(nt)
     for c in range(nc):
-        S += v[c]*_signal_sr(R1[c,:], S0, TR, FA, TC, TP)
+        S += v[c]*_signal_sr(R1[c, :], S0, TR, FA, TC, TP)
     return S
 
 
-def signal_sr(R1, S0:float, TR:float, FA:float, TC:float, TP=0.0, v=1, PSw=np.inf, R10=None)->np.ndarray:
+def signal_sr(R1, S0: float, TR: float, FA: float, TC: float, TP=0.0, v=1, PSw=np.inf, R10=None) -> np.ndarray:
     """Signal model for a saturation-recovery sequence with a FLASH readout.
 
     Args:
@@ -425,33 +378,37 @@ def signal_sr(R1, S0:float, TR:float, FA:float, TC:float, TP=0.0, v=1, PSw=np.in
     if R10 is None:
         Sinf = S0
     else:
-        if v!=1:
+        if v != 1:
             R10 = np.full(len(v), R10)
         Sinf = S0/signal_sr(R10, 1, TR, FA, TC, TP, v=v)
-    if v==1:
+    if v == 1:
         return _signal_sr(R1, Sinf, TR, FA, TC, TP)
     if np.isscalar(R1):
-        raise ValueError('In a multi-compartment system, R1 must be an array with at least 1 dimension..')
-    if np.ndim(R1)==1:
+        raise ValueError(
+            'In a multi-compartment system, R1 must be an array with at least 1 dimension..')
+    if np.ndim(R1) == 1:
         if np.size(v) != np.size(R1):
             raise ValueError('v must have the same length as R1.')
     if np.size(v) != np.shape(R1)[0]:
-        raise ValueError('v must have the same length as the first dimension of R1.')
+        raise ValueError(
+            'v must have the same length as the first dimension of R1.')
     if np.isscalar(PSw):
-        if PSw==np.inf:
+        if PSw == np.inf:
             return _signal_sr_fex(v, R1, Sinf, TR, FA, TC, TP)
-        elif PSw==0:
+        elif PSw == 0:
             return _signal_sr_nex(v, R1, Sinf, TR, FA, TC, TP)
     else:
         if np.ndim(PSw) != 2:
-            raise ValueError("For intermediate water exchange, PSw must be a square array")
+            raise ValueError(
+                "For intermediate water exchange, PSw must be a square array")
         if np.shape(PSw)[0] != np.size(v):
             raise ValueError("Dimensions of PSw and v do not match up.")
-        raise NotImplementedError('Internediate water exchange is not yet available for SR sequences')
-        #return _signal_sr_aex(PSw, v, R1, Sinf, TR, FA, TC, TP)
+        raise NotImplementedError(
+            'Internediate water exchange is not yet available for SR sequences')
+        # return _signal_sr_aex(PSw, v, R1, Sinf, TR, FA, TC, TP)
 
 
-def signal_er(R1, S0:float, TR:float, FA:float, TC:float)->np.ndarray:
+def signal_er(R1, S0: float, TR: float, FA: float, TC: float) -> np.ndarray:
     """Signal model for a FLASH readout, starting from equilibrium (i.e. no preparation pulse).
 
     Args:
@@ -464,7 +421,7 @@ def signal_er(R1, S0:float, TR:float, FA:float, TC:float)->np.ndarray:
     Returns:
         np.ndarray: Signal in arbitrary units, of the same length as R1.
     """
-    #TI is the residence time in the slab
+    # TI is the residence time in the slab
     FA = np.pi*FA/180
     cFA = np.cos(FA)
     R1_app = R1 - np.log(cFA)/TR
@@ -499,7 +456,7 @@ def signal_src(R1, S0, TC, R10=None):
     return Sinf * (1-E)
 
 
-def conc_src(S, TC:float, T10:float, r1=0.005, n0=1)->np.ndarray:
+def conc_src(S, TC: float, T10: float, r1=0.005, n0=1) -> np.ndarray:
     """Concentration of a saturation-recovery sequence with a center-encoded readout.
 
     Args:
@@ -559,11 +516,11 @@ def conc_src(S, TC:float, T10:float, r1=0.005, n0=1)->np.ndarray:
     # -ln(1-(1-exp(-TC*R10))*S/Sb)/TC = R1
     Sb = np.mean(S[:n0])
     E = np.exp(-TC/T10)
-    R1 = -np.log(1-(1-E)*S/Sb)/TC	
-    return (R1 - 1/T10)/r1 
+    R1 = -np.log(1-(1-E)*S/Sb)/TC
+    return (R1 - 1/T10)/r1
 
 
-def signal_lin(R1, S0:float)->np.ndarray:
+def signal_lin(R1, S0: float) -> np.ndarray:
     """Signal for any sequence operating in the linear regime.
 
     Args:
@@ -590,5 +547,5 @@ def conc_lin(S, T10, r1=0.005, n0=1):
     """
     Sb = np.mean(S[:n0])
     R10 = 1/T10
-    R1 = R10*S/Sb	#relaxation rate in 1/msec
-    return (R1 - R10)/r1 
+    R1 = R10*S/Sb  # relaxation rate in 1/msec
+    return (R1 - R10)/r1
