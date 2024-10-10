@@ -201,6 +201,7 @@ def test_mods_aorta():
         field_strength = 3.0,
         TR = 0.005,
         FA = 15,
+        TS = 1.5,
         R10 = 1/dc.T1(3.0,'blood'), 
         heartlung = 'chain',
     )
@@ -229,6 +230,7 @@ def test_mods_aorta_liver():
         t0 = 10,
         TR = 0.005,
         FA = 15,
+        TS = 0.5,
     )
     model.free['Th'] = [0, np.inf]
     model.train(xdata, ydata, xtol=1e-3)
@@ -252,6 +254,7 @@ def test_mods_aorta_liver2scan():
         t0 = 10,
         TR = 0.005,
         FA = 15,
+        TS = 0.5,
         kinetics = 'non-stationary',
         Th = 120,
         Th_f = 120,
@@ -296,6 +299,7 @@ def test_mods_kidney():
         'agent': 'gadodiamide',
         'TR': 0.005,
         'FA': 15,
+        'TS': time[1],
         'R10': 1/dc.T1(3.0,'kidney'),
         'n0': 10,
     }
@@ -328,6 +332,7 @@ def test_mods_kidney_cort_med():
         TR = 0.005,
         FA = 15,
         TC = 0.2,
+        TS = time[1],
         n0 = 10,
     )
 
@@ -344,9 +349,9 @@ if __name__ == "__main__":
     # make_tmp()
 
     # test_model()
-    test_mods_tissue()
-    test_mods_tissue_array()
-    # test_mods_aorta()
+    # test_mods_tissue()
+    # test_mods_tissue_array()
+    test_mods_aorta()
     # test_mods_aorta_liver()
     # test_mods_aorta_liver2scan()
     # test_mods_liver()
