@@ -4,21 +4,21 @@ import dcmri as dc
 
 
 def fake_aif(
-        tacq = 180.0, 
-        dt = 1.5,
-        BAT = 20,
-        field_strength = 3.0,
-        agent = 'gadodiamide', 
-        Hct = 0.45,
-        R10b = 1/dc.T1(3.0,'blood'),
-        S0b = 150,
-        sequence = 'SS',
-        TR = 0.005,
-        FA = 15,
-        TC = 0.2,
-        CNR = np.inf,
-        dt_sim = 0.1,
-    ):
+    tacq=180.0,
+    dt=1.5,
+    BAT=20,
+    field_strength=3.0,
+    agent='gadodiamide',
+    Hct=0.45,
+    R10b=1/dc.T1(3.0, 'blood'),
+    S0b=150,
+    sequence='SS',
+    TR=0.005,
+    FA=15,
+    TC=0.2,
+    CNR=np.inf,
+    dt_sim=0.1,
+):
     """Synthetic AIF signal with noise.
 
     Args:
@@ -48,39 +48,39 @@ def fake_aif(
     cp = dc.aif_parker(t, BAT)
     rp = dc.relaxivity(field_strength, 'plasma', agent)
     R1b = R10b + rp*cp*(1-Hct)
-    if sequence=='SS':
+    if sequence == 'SS':
         aif = dc.signal_ss(R1b, S0b, TR, FA)
-    elif sequence=='SR':
+    elif sequence == 'SR':
         aif = dc.signal_src(R1b, S0b, TC)
     time = np.arange(0, tacq, dt)
     aif = dc.sample(time, t, aif, dt)
     sdev = (np.amax(aif)-aif[0])/CNR
     aif = dc.add_noise(aif, sdev)
-    gt = {'t':t, 'cp':cp, 'cb':cp*(1-Hct),
-          'TR':TR, 'FA':FA, 'S0b':S0b}
+    gt = {'t': t, 'cp': cp, 'cb': cp*(1-Hct),
+          'TR': TR, 'FA': FA, 'S0b': S0b}
     return time, aif, gt
 
 
 # TODO align API with Tissue
 def fake_brain(
-        n = 192,
-        tacq = 180.0, 
-        dt = 1.5,
-        BAT = 20,
-        Tav = 8,
-        field_strength = 3.0,
-        agent = 'gadodiamide', 
-        Hct = 0.45,
-        R10b = 1/dc.T1(3.0,'blood'),
-        S0 = 150,
-        sequence = 'SS',    
-        TR = 0.005,
-        FA = 15,
-        TC = 0.2,
-        CNR = np.inf,
-        dt_sim = 0.1,
-        verbose = 0,
-    ):
+    n=192,
+    tacq=180.0,
+    dt=1.5,
+    BAT=20,
+    Tav=8,
+    field_strength=3.0,
+    agent='gadodiamide',
+    Hct=0.45,
+    R10b=1/dc.T1(3.0, 'blood'),
+    S0=150,
+    sequence='SS',
+    TR=0.005,
+    FA=15,
+    TC=0.2,
+    CNR=np.inf,
+    dt_sim=0.1,
+    verbose=0,
+):
     """Synthetic brain images data generated using Parker's AIF, the Shepp-Logan phantom and a two-compartment exchange tissue.
 
     Args:
@@ -133,7 +133,7 @@ def fake_brain(
 
         .. image:: ../../_static/animations/fake_brain.gif
             :alt: Example animation
-        
+
     """
     # Parameter maps
     roi = dc.shepp_logan(n=n)
@@ -146,92 +146,92 @@ def fake_brain(
     # Arterial signal
     rp = dc.relaxivity(field_strength, 'plasma', agent)
     R1b = R10b + rp*cp*(1-Hct)
-    if sequence=='SS':
+    if sequence == 'SS':
         aif = dc.signal_ss(R1b, S0, TR, FA)
-    elif sequence=='SR':
+    elif sequence == 'SR':
         aif = dc.signal_src(R1b, S0, TC)
     sdev = (np.amax(aif)-aif[0])/CNR
     time = np.arange(0, tacq, dt)
     aif = dc.sample(time, t, aif, dt)
 
     # Output
-    conc = np.zeros((n,n,t.size))
-    signal = np.zeros((n,n,time.size))
-    signal_noisefree = np.zeros((n,n,time.size))
-    
+    conc = np.zeros((n, n, t.size))
+    signal = np.zeros((n, n, time.size))
+    signal_noisefree = np.zeros((n, n, time.size))
+
     # Tissue signal
-    if verbose==0:
+    if verbose == 0:
         iter = range(n)
     else:
         iter = tqdm(range(n), desc='Generating fake brain data')
-        
+
     for i in iter:
         for j in range(n):
 
-            if roi['background'][i,j]:
+            if roi['background'][i, j]:
                 continue
 
             # Pixel concentration
-            if roi['anterior artery'][i,j]:
+            if roi['anterior artery'][i, j]:
                 C = cp.copy()
-            elif roi['sagittal sinus'][i,j]:
+            elif roi['sagittal sinus'][i, j]:
                 C = dc.flux_comp(cp, Tav, dt=dt_sim)
             else:
-                Fp = im['BF'][i,j]*(1-Hct)
-                vp = im['BV'][i,j]*(1-Hct)
-                vi = im['IV'][i,j]
-                PS = im['PS'][i,j]
-                C = dc.conc_tissue(cp, dt=dt_sim, kinetics='2CX', Fp=Fp, vp=vp, vi=vi, PS=PS)
+                Fp = im['BF'][i, j]*(1-Hct)
+                vp = im['BV'][i, j]*(1-Hct)
+                vi = im['IV'][i, j]
+                PS = im['PS'][i, j]
+                C = dc.conc_tissue(
+                    cp, dt=dt_sim, kinetics='2CX', Fp=Fp, vp=vp, vi=vi, PS=PS)
 
             # Pixel signal
-            R1 = 1/im['T1'][i,j] + rp*C
-            if sequence=='SS':
-                sig = dc.signal_ss(R1, S0*im['PD'][i,j], TR, FA)
-            elif sequence=='SR':
-                sig = dc.signal_sr(R1, S0*im['PD'][i,j], TR, FA, TC)
+            R1 = 1/im['T1'][i, j] + rp*C
+            if sequence == 'SS':
+                sig = dc.signal_ss(R1, S0*im['PD'][i, j], TR, FA)
+            elif sequence == 'SR':
+                sig = dc.signal_sr(R1, S0*im['PD'][i, j], TR, FA, TC)
             sig_noisefree = dc.sample(time, t, sig, dt)
             sig = dc.add_noise(sig_noisefree, sdev)
-                               
-            # Save results
-            conc[i,j,:] = C
-            signal[i,j,:] = sig
-            signal_noisefree[i,j,:] = sig_noisefree
 
-    gt = {'t':t, 'cp':cp, 'C':conc, 'cb':cp*(1-Hct), 
+            # Save results
+            conc[i, j, :] = C
+            signal[i, j, :] = sig
+            signal_noisefree[i, j, :] = sig_noisefree
+
+    gt = {'t': t, 'cp': cp, 'C': conc, 'cb': cp*(1-Hct),
           'signal': signal_noisefree,
-          'Fp':im['BF']*(1-Hct), 'vp':im['BV']*(1-Hct), 
-          'PS':im['PS'], 'vi':im['IV'], 
-          'T1':im['T1'], 'PD':im['PD'],
-          'TR':TR, 'FA':FA, 'S0':S0*im['PD']}
-    
+          'Fp': im['BF']*(1-Hct), 'vp': im['BV']*(1-Hct),
+          'PS': im['PS'], 'vi': im['IV'],
+          'T1': im['T1'], 'PD': im['PD'],
+          'TR': TR, 'FA': FA, 'S0': S0*im['PD']}
+
     gt['ve'] = gt['vi'] + gt['vp']
-    
+
     return time, signal, aif, gt
 
 
-
 def fake_tissue(
-        tacq = 180.0, 
-        dt = 1.5,
-        BAT = 20,
-        Fp = 0.01, #TODO should be 0.01
-        vp = 0.05, 
-        PS = 0.003,  # TODO replace Ktrans
-        ve = 0.2, # TODO: rename vi
-        field_strength = 3.0,
-        agent = 'gadodiamide', 
-        Hct = 0.45,
-        R10b = 1/dc.T1(3.0,'blood'),
-        R10 = 1/dc.T1(3.0,'muscle'),
-        S0b = 100,
-        S0 = 150,
-        sequence = 'SS',
-        TR = 0.005,
-        FA = 15,
-        TC = 0.2,
-        CNR = np.inf,
-        dt_sim = 0.1,
-    ):
+    tacq=180.0,
+    dt=1.5,
+    BAT=20,
+    Fp=0.01,  # TODO should be 0.01
+    vp=0.05,
+    PS=0.003,  # TODO replace Ktrans
+    ve=0.2,  # TODO: rename vi
+    field_strength=3.0,
+    agent='gadodiamide',
+    Hct=0.45,
+    R10b=1/dc.T1(3.0, 'blood'),
+    R10=1/dc.T1(3.0, 'muscle'),
+    S0b=100,
+    S0=150,
+    sequence='SS',
+    TR=0.005,
+    FA=15,
+    TC=0.2,
+    CNR=np.inf,
+    dt_sim=0.1,
+):
     """Synthetic data generated using Parker's AIF and a two-compartment exchange tissue.
 
     Args:
@@ -266,14 +266,15 @@ def fake_tissue(
     """
     t = np.arange(0, tacq+dt, dt_sim)
     cp = dc.aif_parker(t, BAT)
-    C = dc.conc_tissue(cp, dt=dt_sim, kinetics='2CX', Fp=Fp, vp=vp, PS=PS, vi=ve)
+    C = dc.conc_tissue(cp, dt=dt_sim, kinetics='2CX',
+                       Fp=Fp, vp=vp, PS=PS, vi=ve)
     rp = dc.relaxivity(field_strength, 'plasma', agent)
     R1b = R10b + rp*cp*(1-Hct)
     R1 = R10 + rp*C
-    if sequence=='SS':
+    if sequence == 'SS':
         aif = dc.signal_ss(R1b, S0b, TR, FA)
         roi = dc.signal_ss(R1, S0, TR, FA)
-    elif sequence=='SR':
+    elif sequence == 'SR':
         aif = dc.signal_src(R1b, S0b, TC)
         roi = dc.signal_sr(R1, S0, TR, FA, TC)
     time = np.arange(0, tacq, dt)
@@ -282,39 +283,38 @@ def fake_tissue(
     sdev = (np.amax(aif)-aif[0])/CNR
     aif = dc.add_noise(aif, sdev)
     roi = dc.add_noise(roi, sdev)
-    gt = {'t':t, 'cp':cp, 'C':C, 'cb':cp*(1-Hct),
-          'Fp':Fp, 'vp':vp, 'PS':PS, 'vi':ve, 
+    gt = {'t': t, 'cp': cp, 'C': C, 'cb': cp*(1-Hct),
+          'Fp': Fp, 'vp': vp, 'PS': PS, 'vi': ve,
           'Ktrans': Fp*PS/(Fp+PS),
-          'TR':TR, 'FA':FA, 'S0':S0}
+          'TR': TR, 'FA': FA, 'S0': S0}
     return time, aif, roi, gt
 
-    
 
 def fake_tissue2scan(
-        tacq = 180.0, 
-        tbreak = 60,
-        dt = 1.5,
-        BAT = 20,
-        Fp = 0.1, 
-        vp = 0.05, 
-        PS = 0.003, 
-        ve = 0.2,
-        field_strength = 3.0,
-        agent = 'gadodiamide', 
-        Hct = 0.45,
-        R10b = 1/dc.T1(3.0, 'blood'),
-        R10 = 1/dc.T1(3.0, 'muscle'),
-        S0b1 = 100,
-        S01 = 150,
-        S0b2 = 200,
-        S02 = 300,
-        sequence = 'SS',
-        TR = 0.005,
-        FA = 15,
-        TC = 0.2,
-        CNR = np.inf,
-        dt_sim = 0.1,
-    ):
+    tacq=180.0,
+    tbreak=60,
+    dt=1.5,
+    BAT=20,
+    Fp=0.1,
+    vp=0.05,
+    PS=0.003,
+    ve=0.2,
+    field_strength=3.0,
+    agent='gadodiamide',
+    Hct=0.45,
+    R10b=1/dc.T1(3.0, 'blood'),
+    R10=1/dc.T1(3.0, 'muscle'),
+    S0b1=100,
+    S01=150,
+    S0b2=200,
+    S02=300,
+    sequence='SS',
+    TR=0.005,
+    FA=15,
+    TC=0.2,
+    CNR=np.inf,
+    dt_sim=0.1,
+):
     """Synthetic data generated using Parker's AIF, a two-compartment exchange tissue and a steady-state sequence.
 
     Args:
@@ -354,18 +354,19 @@ def fake_tissue2scan(
     t = np.arange(0, 2*tacq+tbreak+dt, dt_sim)
     cp = dc.aif_parker(t, BAT)
     cp += dc.aif_parker(t, tacq+tbreak+BAT)
-    C = dc.conc_tissue(cp, dt=dt_sim, kinetics='2CX', Fp=Fp, vp=vp, PS=PS, vi=ve)
+    C = dc.conc_tissue(cp, dt=dt_sim, kinetics='2CX',
+                       Fp=Fp, vp=vp, PS=PS, vi=ve)
     rp = dc.relaxivity(field_strength, 'plasma', agent)
     R1b = R10b + rp*cp*(1-Hct)
     R1 = R10 + rp*C
 
     # Generate the signals from the first scan
-    if sequence=='SS':
+    if sequence == 'SS':
         aif = dc.signal_ss(R1b, S0b1, TR, FA)
         roi = dc.signal_ss(R1, S01, TR, FA)
-    elif sequence=='SR':
+    elif sequence == 'SR':
         aif = dc.signal_src(R1b, S0b1, TC)
-        roi = dc.signal_sr(R1, S01, TR, FA, TC)       
+        roi = dc.signal_sr(R1, S01, TR, FA, TC)
     time1 = np.arange(0, tacq, dt)
     aif1 = dc.sample(time1, t, aif, dt)
     roi1 = dc.sample(time1, t, roi, dt)
@@ -374,12 +375,12 @@ def fake_tissue2scan(
     roi1 = dc.add_noise(roi1, sdev)
 
     # Generate the second signals
-    if sequence=='SS':
+    if sequence == 'SS':
         aif = dc.signal_ss(R1b, S0b2, TR, FA)
         roi = dc.signal_ss(R1, S02, TR, FA)
-    elif sequence=='SR':
+    elif sequence == 'SR':
         aif = dc.signal_src(R1b, S0b2, TC)
-        roi = dc.signal_sr(R1, S02, TR, FA, TC)          
+        roi = dc.signal_sr(R1, S02, TR, FA, TC)
     time2 = np.arange(tacq+tbreak, 2*tacq+tbreak, dt)
     aif2 = dc.sample(time2, t, aif, dt)
     roi2 = dc.sample(time2, t, roi, dt)
@@ -391,40 +392,40 @@ def fake_tissue2scan(
     time = (time1, time2)
     aif = (aif1, aif2)
     roi = (roi1, roi2)
-    gt = {'t':t, 'cp':cp, 'C':C, 'cb':cp*(1-Hct),
-          'Fp':Fp, 'vp':vp, 'PS':PS, 'vi':ve, 
-          'TR':TR, 'FA':FA, 'S01':S01, 'S02':S02}
+    gt = {'t': t, 'cp': cp, 'C': C, 'cb': cp*(1-Hct),
+          'Fp': Fp, 'vp': vp, 'PS': PS, 'vi': ve,
+          'TR': TR, 'FA': FA, 'S01': S01, 'S02': S02}
     return time, aif, roi, gt
 
 
 def fake_kidney_cortex_medulla(
-        tacq = 180.0, 
-        dt = 1.5,
-        BAT = 20,
-        Fp = 0.03,
-        Eg = 0.15, 
-        fc = 0.8, 
-        Tg = 4, 
-        Tv = 10, 
-        Tpt = 60, 
-        Tlh = 60, 
-        Tdt = 30, 
-        Tcd = 30,
-        field_strength = 3.0,
-        agent = 'gadoterate', 
-        Hct = 0.45,
-        R10b = 1/dc.T1(3.0, 'blood'),
-        R10c = 1/dc.T1(3.0,'kidney'),
-        R10m = 1/dc.T1(3.0,'kidney'),
-        S0b = 100,
-        S0 = 150,
-        sequence = 'SR',
-        TC = 0.2,
-        TR = 0.005,
-        FA = 15,
-        CNR = np.inf,
-        dt_sim = 0.1,
-    ):
+    tacq=180.0,
+    dt=1.5,
+    BAT=20,
+    Fp=0.03,
+    Eg=0.15,
+    fc=0.8,
+    Tg=4,
+    Tv=10,
+    Tpt=60,
+    Tlh=60,
+    Tdt=30,
+    Tcd=30,
+    field_strength=3.0,
+    agent='gadoterate',
+    Hct=0.45,
+    R10b=1/dc.T1(3.0, 'blood'),
+    R10c=1/dc.T1(3.0, 'kidney'),
+    R10m=1/dc.T1(3.0, 'kidney'),
+    S0b=100,
+    S0=150,
+    sequence='SR',
+    TC=0.2,
+    TR=0.005,
+    FA=15,
+    CNR=np.inf,
+    dt_sim=0.1,
+):
     """Synthetic data generated using Parker's AIF, and a multicompartment kidney model.
 
     Args:
@@ -465,16 +466,16 @@ def fake_kidney_cortex_medulla(
     t = np.arange(0, tacq+dt, dt_sim)
     cp = dc.aif_parker(t, BAT)
     Cc, Cm = dc.conc_kidney_cortex_medulla(
-            cp, Fp, Eg, fc, Tg, Tv, Tpt, Tlh, Tdt, Tcd, dt=dt_sim, kinetics='7C')
+        cp, Fp, Eg, fc, Tg, Tv, Tpt, Tlh, Tdt, Tcd, dt=dt_sim, kinetics='7C')
     rp = dc.relaxivity(field_strength, 'plasma', agent)
     R1b = R10b + rp*cp*(1-Hct)
     R1c = R10c + rp*Cc
     R1m = R10m + rp*Cm
-    if sequence=='SS':
+    if sequence == 'SS':
         aif = dc.signal_ss(R1b, S0b, TR, FA)
         roic = dc.signal_ss(R1c, S0, TR, FA)
         roim = dc.signal_ss(R1m, S0, TR, FA)
-    elif sequence=='SR':
+    elif sequence == 'SR':
         aif = dc.signal_src(R1b, S0b, TC)
         roic = dc.signal_sr(R1c, S0, TR, FA, TC)
         roim = dc.signal_sr(R1m, S0, TR, FA, TC)
@@ -486,6 +487,5 @@ def fake_kidney_cortex_medulla(
     aif = dc.add_noise(aif, sdev)
     roic = dc.add_noise(roic, sdev)
     roim = dc.add_noise(roim, sdev)
-    gt = {'t':t, 'cp':cp, 'Cc':Cc, 'Cm':Cm, 'cb':cp*(1-Hct)}
+    gt = {'t': t, 'cp': cp, 'Cc': Cc, 'Cm': Cm, 'cb': cp*(1-Hct)}
     return time, aif, (roic, roim), gt
-
