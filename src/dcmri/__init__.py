@@ -8,8 +8,8 @@ from dcmri.lib import *
 from dcmri import pk
 from dcmri.pk import *
 
-from dcmri import pk_tissue
-from dcmri.pk_tissue import *
+from dcmri import tissue
+from dcmri.tissue import *
 
 from dcmri import pk_aorta
 from dcmri.pk_aorta import *
@@ -23,6 +23,9 @@ from dcmri.pk_liver import *
 from dcmri import pk_inv
 from dcmri.pk_inv import *
 
+from dcmri import rel
+from dcmri.rel import *
+
 from dcmri import sig
 from dcmri.sig import *
 
@@ -32,15 +35,14 @@ from dcmri.dro import *
 from dcmri import mods
 from dcmri.mods import *
 
-from dcmri import mods_aorta
-from dcmri.mods_aorta import *
-
 from dcmri import mods_tissue
 from dcmri.mods_tissue import *
+
+from dcmri import mods_aorta
+from dcmri.mods_aorta import *
 
 from dcmri import mods_kidney
 from dcmri.mods_kidney import *
 
 from dcmri import mods_liver
 from dcmri.mods_liver import *
-

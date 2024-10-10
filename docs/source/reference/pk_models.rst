@@ -31,3 +31,13 @@ Flux
 
    flux_tissue
    flux_aorta
+
+
+Relaxation rates
+================
+
+.. autosummary::
+   :toctree: ../generated/api/
+   :template: autosummary.rst
+
+   relax_tissue

@@ -36,4 +36,14 @@ Inverse signal models
    conc_lin
 
 
+Relaxation
+==========
+
+.. autosummary::
+   :toctree: ../generated/api/
+   :template: autosummary.rst
+
+   relax
+
+
    

@@ -6,9 +6,7 @@ from scipy.interpolate import CubicSpline
 from scipy.integrate import trapezoid
 
 
-
-
-def interp(y, x, pos=False, floor=False)->np.ndarray:
+def interp(y, x, pos=False, floor=False) -> np.ndarray:
     """Interpolate uniformly sampled data. 
 
     This function is a convenience wrapper for standard interpolation, used in dcmri for instance to parametrize non-stationat models.
@@ -35,21 +33,22 @@ def interp(y, x, pos=False, floor=False)->np.ndarray:
     # Interpolate y on x, assuming y-values are uniformly distributed over the x-range
     if np.isscalar(y):
         yi = y*np.ones(len(x))
-    elif np.size(y)==1:
+    elif np.size(y) == 1:
         yi = y[0]*np.ones(len(x))
-    elif np.size(y)==2:
-        yi = _lin(x,y)
-    elif np.size(y)==3:
-        yi = _quad(x,y)
+    elif np.size(y) == 2:
+        yi = _lin(x, y)
+    elif np.size(y) == 3:
+        yi = _quad(x, y)
     else:
         x_y = np.linspace(np.amin(x), np.amax(x), len(y))
         yi = CubicSpline(x_y, y)(x)
     if pos:
-        yi[yi<0] = 0
+        yi[yi < 0] = 0
     if floor:
         y0 = np.amin(y)
-        yi[yi<y0] = y0
+        yi[yi < y0] = y0
     return yi
+
 
 def _quad(t, K):
     # Helper
@@ -57,22 +56,25 @@ def _quad(t, K):
     mid = math.floor(nt/2)
     return _quadratic(t, t[0], t[mid], t[-1], K[0], K[1], K[2])
 
+
 def _lin(t, K):
     # Helper
     return _linear(t, t[0], t[-1], K[0], K[1])
 
+
 def _linear(x, x1, x2, y1, y2):
     # Helper
-    #returns a linear function of x 
-    #that goes through the two points (xi, yi)
+    # returns a linear function of x
+    # that goes through the two points (xi, yi)
     L1 = (x2-x)/(x2-x1)
     L2 = (x-x1)/(x2-x1)
     return y1*L1 + y2*L2
 
+
 def _quadratic(x, x0, x1, x2, y0, y1, y2):
     # Helper
-    #returns a quadratic function of x 
-    #that goes through the three points (xi, yi)
+    # returns a quadratic function of x
+    # that goes through the three points (xi, yi)
     L0 = (x-x1)*(x-x2)/((x0-x1)*(x0-x2))
     L1 = (x-x0)*(x-x2)/((x1-x0)*(x1-x2))
     L2 = (x-x0)*(x-x1)/((x2-x0)*(x2-x1))
@@ -87,7 +89,7 @@ def tarray(n, t=None, dt=1.0):
         if not isinstance(t, np.ndarray):
             t = np.array(t)
         if len(t) != n:
-            raise ValueError('Time array must have same length as the input.')   
+            raise ValueError('Time array must have same length as the input.')
     return t
 
 
@@ -107,26 +109,26 @@ def trapz(f, t=None, dt=1.0):
 def ddelta(T, t):
     # Helper function - discrete delta
     if not isinstance(t, np.ndarray):
-        t=np.array(t)
+        t = np.array(t)
     n = len(t)
     h = np.zeros(n)
-    if T<t[0]:
+    if T < t[0]:
         return h
-    if T>t[-1]:
+    if T > t[-1]:
         return h
-    if T==t[0]:
-        h[0]=2/(t[1]-t[0])
+    if T == t[0]:
+        h[0] = 2/(t[1]-t[0])
         return h
-    if T==t[-1]:
-        h[-1]=2/(t[-1]-t[-2])
+    if T == t[-1]:
+        h[-1] = 2/(t[-1]-t[-2])
         return h
-    i = np.where(T>=t)[0][-1]
+    i = np.where(T >= t)[0][-1]
     u = (T-t[i])/(t[i+1]-t[i])
-    if i==0:
+    if i == 0:
         h[i] = (1-u)*2/(t[i+1]-t[i])
     else:
         h[i] = (1-u)*2/(t[i+1]-t[i-1])
-    if i==n-2:
+    if i == n-2:
         h[i+1] = u*2/(t[i+1]-t[i])
     else:
         h[i+1] = u*2/(t[i+2]-t[i])
@@ -136,30 +138,30 @@ def ddelta(T, t):
 def dstep(T0, T1, t):
     # Helper function - discrete step
     if not isinstance(t, np.ndarray):
-        t=np.array(t)
+        t = np.array(t)
     n = len(t)
-    i = np.where((t>T0)*(t<T1))[0]
-    if len(i)==0:
+    i = np.where((t > T0)*(t < T1))[0]
+    if len(i) == 0:
         return ddelta((T0+T1)/2, t)
     i0, i1 = i[0], i[-1]
     t0, t1 = t[i0], t[i1]
     hi = 0
-    if i0>0:
+    if i0 > 0:
         u0 = (t0-T0)/(t0-t[i0-1])
         hi += 0.5*(1+u0)*(t0-t[i0-1])
-        if i0>1:
-            hi += 0.5*u0*(t[i0-1]-t[i0-2])   
+        if i0 > 1:
+            hi += 0.5*u0*(t[i0-1]-t[i0-2])
     hi += t1-t0
-    if i1<n-1:
+    if i1 < n-1:
         u1 = (T1-t1)/(t[i1+1]-t1)
         hi += 0.5*(1+u1)*(t[i1+1]-t1)
-        if i1<n-2:
+        if i1 < n-2:
             hi += 0.5*u1*(t[i1+2]-t[i1+1])
     h = np.zeros(n)
     h[i] = 1/hi
-    if i0>0:
+    if i0 > 0:
         h[i0-1] = u0/hi
-    if i1<n-1:
+    if i1 < n-1:
         h[i1+1] = u1/hi
     return h
 
@@ -204,18 +206,18 @@ def _intstep(f, h, t=None, dt=1.0):
     if t is None:
         return 0.5*np.sum(g[1:]+g[:-1])*dt
     else:
-        return 0.5*np.sum((g[1:]+g[:-1])*(t[1:]-t[:-1]) )
+        return 0.5*np.sum((g[1:]+g[:-1])*(t[1:]-t[:-1]))
 
 
 def uconv(f, h, dt=1.0, solver='trap'):
     # Helper function: convolution over uniformly sampled grid.
-    n = len(f) 
+    n = len(f)
     g = np.zeros(n)
     h = np.flip(h)
     for k in range(1, n):
-        if solver=='trap':
+        if solver == 'trap':
             g[k] = intprod(f[:k+1], h[-(k+1):], dt=dt)
-        elif solver=='step':
+        elif solver == 'step':
             g[k] = _intstep(f[:k+1], h[-(k+1):], dt=dt)
     return g
 
@@ -286,19 +288,19 @@ def conv(f, h, t=None, dt=1.0, solver='step'):
         tk = np.unique(np.concatenate((t[:k+1], tkf)))
         fk = np.interp(tk, tkf, f[-(k+1):], left=0, right=0)
         hk = np.interp(tk, t[:k+1], h[:k+1], left=0, right=0)
-        if solver=='trap':
+        if solver == 'trap':
             g[k] = intprod(fk, hk, tk)
-        elif solver=='step':
+        elif solver == 'step':
             g[k] = _intstep(fk, hk, tk)
     return g
 
 
 def inttrap(f, t, t0, t1):
     # Helper function: integrate f from t0 to t1
-    ti = t[(t0<t)*(t<t1)]
-    ti = np.concatenate(([t0],ti,[t1]))
+    ti = t[(t0 < t)*(t < t1)]
+    ti = np.concatenate(([t0], ti, [t1]))
     fi = np.interp(ti, t, f, left=0, right=0)
-    return np.trapezoid(fi,ti)
+    return np.trapezoid(fi, ti)
 
 
 def stepconv(f, T, D, t=None, dt=1.0):
@@ -335,7 +337,7 @@ def stepconv(f, T, D, t=None, dt=1.0):
         >>> dc.stepconv(f, 3, 0.5, t)
         array([0.        , 0.8125    , 3.64583333, 3.5625    ])
     """
-    if D>1:
+    if D > 1:
         raise ValueError('The dispersion factor D must be <= 1')
     TW = D*T      # Half width of step
     T0 = T-TW     # Initial time point of step
@@ -343,15 +345,15 @@ def stepconv(f, T, D, t=None, dt=1.0):
     n = len(f)
     t = tarray(n, t=t, dt=dt)
     g = np.zeros(n)
-    k = len(t[t<T0])
-    ti = t[(T0<=t)*(t<=T1)]
+    k = len(t[t < T0])
+    ti = t[(T0 <= t)*(t <= T1)]
     for tk in ti:
         g[k] = inttrap(f, t, 0, tk-T0)
-        k+=1
-    ti = t[T1<t]
+        k += 1
+    ti = t[T1 < t]
     for tk in ti:
         g[k] = inttrap(f, t, tk-T1, tk-T0)
-        k+=1
+        k += 1
     return g/(2*TW)
 
 
@@ -411,7 +413,7 @@ def expconv(f, T, t=None, dt=1.0):
         array([0.        , 1.26774952, 2.32709015, 4.16571645])
     """
 
-    if T==0: 
+    if T == 0:
         return f
     f = np.array(f)
     n = len(f)
@@ -423,8 +425,8 @@ def expconv(f, T, t=None, dt=1.0):
     E0 = 1-E
     E1 = x-E0
     add = f[0:n-1]*E0 + df*E1
-    for i in range(0,n-1):
-        g[i+1] = E[i]*g[i] + add[i]      
+    for i in range(0, n-1):
+        g[i+1] = E[i]*g[i] + add[i]
     return g
 
 
@@ -452,11 +454,11 @@ def biexpconv(T1, T2, t):
 
         .. math::
             g(t) = \\frac{Ae^{-t/A}-Be^{-t/B}}{A-B}
-    
+
         In code this translates as:
 
         .. code-block:: python
-        
+
             g = biexpconv(A, B, t)
 
     Example:
@@ -470,7 +472,7 @@ def biexpconv(T1, T2, t):
         >>> g = dc.biexpconv(10, 15, t)
         array([-0.        ,  0.02200013,  0.02910754,  0.02894986])
     """
-    if T1==T2:
+    if T1 == T2:
         return (t/T1) * np.exp(-t/T1)/T1
     else:
         return (np.exp(-t/T1)-np.exp(-t/T2))/(T1-T2)
@@ -519,15 +521,15 @@ def nexpconv(n, T, t):
         >>> g = dc.nexpconv(4, 5, t)
         array([0.        , 0.01226265, 0.03608941, 0.04480836])
     """
-    if T<0:
+    if T < 0:
         raise ValueError('T must be non-negative')
-    if n<1:
+    if n < 1:
         raise ValueError('n cannot be smaller than 1')
     if not isinstance(t, np.ndarray):
         t = np.array(t)
     u = t/T
 
-    # Calculate gamma variate, silencing the warnings 
+    # Calculate gamma variate, silencing the warnings
     # as invalid cases are handled properly in the next line.
     with np.errstate(divide='ignore', invalid='ignore', over='ignore', under='ignore'):
         g = u**(n-1) * np.exp(-u)/T/gamma(n)
@@ -541,7 +543,7 @@ def nexpconv(n, T, t):
         n0 = int(np.floor(n))
         for _ in range(n0-1):
             g = expconv(g, T, t)
-        if n!=n0:
+        if n != n0:
             # Interpolate between n0 and n0+1
             g1 = expconv(g, T, t)
             u = n-n0
@@ -549,8 +551,7 @@ def nexpconv(n, T, t):
     return g
 
 
-
-def sample(t, tp, Sp, dt=None)->np.ndarray: 
+def sample(t, tp, Sp, dt=None) -> np.ndarray:
     """Sample a signal at given time points.
 
     Args:
@@ -564,10 +565,12 @@ def sample(t, tp, Sp, dt=None)->np.ndarray:
     """
     if dt is None:
         return np.interp(t, tp, Sp, left=0, right=0)
-    Ss = np.zeros(len(t)) 
+    if dt == 0:
+        return np.interp(t, tp, Sp, left=0, right=0)
+    Ss = np.zeros(len(t))
     for k, tk in enumerate(t):
 
-        #data = Sp[(tp >= tk) & (tp < tk+dt)]
+        # data = Sp[(tp >= tk) & (tp < tk+dt)]
         # data = Sp[(tp >= tk-dt/2) & (tp < tk+dt/2)]
         # if data.size > 0:
         #     Ss[k] = np.mean(data)
@@ -579,10 +582,10 @@ def sample(t, tp, Sp, dt=None)->np.ndarray:
         ti = np.concatenate(([tb[0]], tp[i], [tb[1]]))
         Si = np.concatenate(([Sb[0]], Sp[i], [Sb[1]]))
         Ss[k] = trapezoid(Si, ti)/dt
-    return Ss 
+    return Ss
 
 
-def add_noise(signal, sdev:float)->np.ndarray:
+def add_noise(signal, sdev: float) -> np.ndarray:
     """Add noise to an MRI magnitude signal.
 
     Args:
@@ -596,5 +599,3 @@ def add_noise(signal, sdev:float)->np.ndarray:
     noise_y = np.random.normal(0, sdev, np.size(signal))
     signal = np.sqrt((signal+noise_x)**2 + noise_y**2)
     return signal
-
-

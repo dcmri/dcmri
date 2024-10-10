@@ -28,6 +28,7 @@
       ~AortaKidneys.print_params
       ~AortaKidneys.relax
       ~AortaKidneys.save
+      ~AortaKidneys.set_free
       ~AortaKidneys.train
    
    

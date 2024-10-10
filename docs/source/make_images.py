@@ -11,7 +11,8 @@ def fake_brain():
     fig, ax = plt.subplots()
     ims = []
     for i in range(time.size):
-        im = ax.imshow(signal[:,:,i], cmap='magma', animated=True, vmin=0, vmax=30)
+        im = ax.imshow(signal[:,:,i], cmap='magma', animated=True, 
+                       vmin=0, vmax=30)
         ims.append([im])
     ani = ArtistAnimation(
         fig, ims, interval=50, blit=True,
@@ -32,5 +33,5 @@ def getting_started():
 
 if __name__ == '__main__':
 
-    # fake_brain()
+    fake_brain()
     getting_started()

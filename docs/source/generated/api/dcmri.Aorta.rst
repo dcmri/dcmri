@@ -9,6 +9,12 @@
 
    
    
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~Aorta.free
+   
    
 
 
@@ -28,6 +34,7 @@
       ~Aorta.print_params
       ~Aorta.relax
       ~Aorta.save
+      ~Aorta.set_free
       ~Aorta.train
    
    

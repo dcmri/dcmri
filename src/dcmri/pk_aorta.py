@@ -4,27 +4,27 @@ import dcmri.lib as lib
 
 
 def aif_tristan(
-        t:np.ndarray, 
-        agent = 'gadoterate',
-        dose = 0.2, 
-        rate = 3, 
-        BAT = 0, 
-        weight = 73, 
-        CO = 97, 
-        E = 0.07, 
-        Thl = 13,  
-        Dhl = 0.5,  
-        Tp = 25, 
-        Te = 350, 
-        Ee = 0.18, 
-        dtol = 0.01, 
-    )->np.ndarray:
+    t: np.ndarray,
+    agent='gadoterate',
+    dose=0.2,
+    rate=3,
+    BAT=0,
+    weight=73,
+    CO=97,
+    E=0.07,
+    Thl=13,
+    Dhl=0.5,
+    Tp=25,
+    Te=350,
+    Ee=0.18,
+    dtol=0.01,
+) -> np.ndarray:
     """Arterial input function with default parameters for young healthy volunteers.
 
     This AIF was measured in the TRISTAN project (Min et al 2024). The default values are for young healthy volunteers but since the AIF is built on a whole-body model of the circulation, they can be modified to generate virtual populations. 
 
     Reference:
-    
+
     Thazin Min, Marta Tibiletti, Paul Hockings, Aleksandra Galetin, Ebony Gunwhy, Gerry Kenna, Nicola Melillo, Geoff JM Parker, Gunnar Schuetz, Daniel Scotcher, John Waterton, Ian Rowe, and Steven Sourbron. *Measurement of liver function with dynamic gadoxetate-enhanced MRI: a validation study in healthy volunteers*. Proc Intl Soc Mag Reson Med, Singapore 2024.
 
     Args:
@@ -69,26 +69,24 @@ def aif_tristan(
         plt.show()    
     """
     conc = lib.ca_conc(agent)
-    Ji = lib.influx_step(t, weight, 
-            conc, dose, rate, BAT,
-    )
+    Ji = lib.influx_step(t, weight,
+                         conc, dose, rate, BAT,
+                         )
     Jb = flux_aorta(Ji, t, E=E,
-            heartlung = ['chain', (Thl, Dhl)], 
-            organs=['2cxm', ([Tp, Te], Ee)],
-            tol=dtol,   
-    )
+                    heartlung=['chain', (Thl, Dhl)],
+                    organs=['2cxm', ([Tp, Te], Ee)],
+                    tol=dtol,
+                    )
     return Jb/CO
 
 
-
-def flux_aorta(J_vena:np.ndarray, 
-        t=None, dt=1.0, E=0.1, FFkl=0.0, FFk=0.5, 
-        heartlung = ['pfcomp', (10, 0.2)],
-        organs = ['2cxm', ([20, 120], 0.15)],
-        kidneys = ['comp', (10,)],
-        liver = ['pfcomp', (10, 0.2)],
-        tol = 0.001):
-    
+def flux_aorta(J_vena: np.ndarray,
+               t=None, dt=1.0, E=0.1, FFkl=0.0, FFk=0.5,
+               heartlung=['pfcomp', (10, 0.2)],
+               organs=['2cxm', ([20, 120], 0.15)],
+               kidneys=['comp', (10,)],
+               liver=['pfcomp', (10, 0.2)],
+               tol=0.001):
     """Indicator flux through the body modelled with a two-system whole body model (heart-lung system and organ system).
 
     The heart-lung system and the other organs are organised in a loop, with the heart and lungs modelled as a chain and the other organs as a 2-compartment exchange model (`flux_ncomp`).
@@ -160,20 +158,22 @@ def flux_aorta(J_vena:np.ndarray,
     while dose > min_dose:
 
         # Aorta flux of the current pass
-        J_aorta = pk.flux(J_vena, *heartlung[1], t=t, dt=dt, kinetics=heartlung[0])
+        J_aorta = pk.flux(
+            J_vena, *heartlung[1], t=t, dt=dt, model=heartlung[0])
 
         # Add to the total aorta flux
         J_aorta_total += J_aorta
 
         # Venous flux of the current pass
-        J_vena = Ro*pk.flux(J_aorta, *organs[1], t=t, dt=dt, kinetics=organs[0])
-        if Rl>0:
-            J_vena += Rl*pk.flux(J_aorta, *liver[1], t=t, dt=dt, kinetics=liver[0])
-        if Rk>0:
-            J_vena += Rk*pk.flux(J_aorta, *kidneys[1], t=t, dt=dt, kinetics=kidneys[0])
+        J_vena = Ro*pk.flux(J_aorta, *organs[1], t=t, dt=dt, model=organs[0])
+        if Rl > 0:
+            J_vena += Rl * \
+                pk.flux(J_aorta, *liver[1], t=t, dt=dt, model=liver[0])
+        if Rk > 0:
+            J_vena += Rk * \
+                pk.flux(J_aorta, *kidneys[1], t=t, dt=dt, model=kidneys[0])
 
         # Get residual dose in current pass
         dose = np.trapezoid(J_vena, x=t, dx=dt)
 
     return J_aorta_total
-

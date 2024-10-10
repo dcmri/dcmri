@@ -24,6 +24,7 @@ Synthetic data
    :toctree: ../generated/api/
    :template: autosummary.rst
 
+   fake_aif
    fake_brain
    fake_tissue
    fake_tissue2scan

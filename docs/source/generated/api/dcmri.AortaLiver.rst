@@ -28,6 +28,7 @@
       ~AortaLiver.print_params
       ~AortaLiver.relax
       ~AortaLiver.save
+      ~AortaLiver.set_free
       ~AortaLiver.train
    
    

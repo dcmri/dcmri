@@ -9,6 +9,12 @@
 
    
    
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~KidneyCortMed.free
+   
    
 
 
@@ -27,6 +33,7 @@
       ~KidneyCortMed.predict
       ~KidneyCortMed.print_params
       ~KidneyCortMed.save
+      ~KidneyCortMed.set_free
       ~KidneyCortMed.time
       ~KidneyCortMed.train
    

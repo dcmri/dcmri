@@ -8,14 +8,18 @@ from scipy.optimize import curve_fit
 from tqdm import tqdm
 
 
-try: 
+try:
     num_workers = int(len(os.sched_getaffinity(0)))
-except: 
+except:
     num_workers = int(os.cpu_count())
 
 
 class ArrayModel():
     # Abstract base class for end-to-end models with pixel-based analysis
+
+    def __init__(self):
+        self.shape = None
+        self.free = {}
 
     def save(self, file=None, path=None, filename='Model'):
         """Save the current state of the model
@@ -42,17 +46,17 @@ class ArrayModel():
             dict: class instance
         """
         return _load(self, file, path, filename)
-    
+
     def _pix(self, p):
         raise NotImplementedError('No _pix() function defined')
-    
+
     def _predict_curve(self, args):
         xdata, x = args
         p = np.unravel_index(x, self.shape)
         pix = self._pix(p)
         return pix.predict(xdata)
-    
-    def predict(self, xdata:np.ndarray)->np.ndarray:
+
+    def predict(self, xdata: np.ndarray) -> np.ndarray:
         """Predict the data for given x-values.
 
         Args:
@@ -61,12 +65,13 @@ class ArrayModel():
         Returns:
             np.ndarray: Array of predicted y-values.
         """
-       
+
         nx = np.prod(self.shape)
         nt = np.size(xdata)
         if not self.parallel:
-            if self.verbose>0:
-                iterator = tqdm(range(nx), desc='Running predictions for '+self.__class__.__name__)
+            if self.verbose > 0:
+                iterator = tqdm(
+                    range(nx), desc='Running predictions for '+self.__class__.__name__)
             else:
                 iterator = range(nx)
             ydata = [self._predict_curve((xdata, x)) for x in iterator]
@@ -77,25 +82,24 @@ class ArrayModel():
             pool.close()
             pool.join()
         return np.stack(ydata).reshape(self.shape + (nt,))
-    
-    
+
     def _train_curve(self, args):
         xdata, ydata, kwargs, x = args
         p = np.unravel_index(x, self.shape)
         # if np.array_equal(p, [2,2]):
         #     print('')
         pix = self._pix(p)
-        pix.train(xdata, ydata[x,:], **kwargs)
+        pix.train(xdata, ydata[x, :], **kwargs)
         if hasattr(pix, 'pcov'):
             sdev = np.sqrt(np.diag(pix.pcov))
         else:
-            sdev = np.zeros(len(self.free))
-        for i, par in enumerate(self.free): 
-            getattr(self, par)[p] = getattr(pix, par) 
+            sdev = np.zeros(len(self.free.keys()))
+        for i, par in enumerate(self.free.keys()):
+            getattr(self, par)[p] = getattr(pix, par)
             getattr(self, 'sdev_' + par)[p] = sdev[i]
         return pix, p
-    
-    def train(self, xdata, ydata:np.ndarray, **kwargs):
+
+    def train(self, xdata, ydata: np.ndarray, **kwargs):
         """Train the free parameters
 
         Args:
@@ -109,22 +113,24 @@ class ArrayModel():
         nx = np.prod(self.shape)
         nt = ydata.shape[-1]
         if not self.parallel:
-            if self.verbose>0:
-                iterator = tqdm(range(nx), desc='Training '+self.__class__.__name__)
+            if self.verbose > 0:
+                iterator = tqdm(range(nx), desc='Training ' +
+                                self.__class__.__name__)
             else:
                 iterator = range(nx)
             for x in iterator:
-                args_x = (xdata, ydata.reshape((nx,nt)), kwargs, x)
+                args_x = (xdata, ydata.reshape((nx, nt)), kwargs, x)
                 self._train_curve(args_x)
         else:
-            args = [(xdata, ydata.reshape((nx,nt)), kwargs, x) for x in range(nx)]
+            args = [(xdata, ydata.reshape((nx, nt)), kwargs, x)
+                    for x in range(nx)]
             pool = multiprocessing.Pool(processes=num_workers)
             pool.map(self._train_curve, args)
             pool.close()
             pool.join()
         return self
-    
-    def cost(self, xdata, ydata, metric='NRMS')->float:
+
+    def cost(self, xdata, ydata, metric='NRMS') -> float:
         """Goodness-of-fit value.
 
         Args:
@@ -136,30 +142,64 @@ class ArrayModel():
             np.ndarray: goodness of fit in each element of the data array. 
         """
         return _cost(self, xdata, ydata, metric)
-    
-    def export_params(self)->list:
+
+    def export_params(self) -> list:
         """Model parameters with descriptions.
 
         Returns:
             dict: Dictionary with one item for each model parameter. The key is the parameter symbol (short name), and the value is a 4-element list with [parameter name, value, unit, sdev].
         """
         pars = {}
-        for p in self.free:
+        for p in self.free.keys():
             pars[p] = [
-                p + ' name', 
-                getattr(self, p), 
-                p + ' unit', 
+                p + ' name',
+                getattr(self, p),
+                p + ' unit',
                 getattr(self, 'sdev_' + p),
             ]
         return pars
 
+    def _add_sdev(self, pars):
+        for par in pars:
+            if par in self.free:
+                sdev = getattr(self, 'sdev_' + par)
+            else:
+                sdev = None
+            pars[par].append(sdev)
+        return pars
+
+    def _set_defaults(self, **params):
+        for k, v in params.items():
+            if hasattr(self, k):
+                val = getattr(self, k)
+                if isinstance(val, np.ndarray):
+                    if isinstance(v, np.ndarray):
+                        if v.shape != self.shape:
+                            raise ValueError("""Parameter """ + str(k) + """
+                                 does not have the correct shape. """)
+                        else:
+                            setattr(self, k, v)
+                    else:
+                        setattr(self, k, np.full(self.shape, v))
+                elif val is None:
+                    setattr(self, k, v)
+                else:
+                    if isinstance(v, np.ndarray):
+                        msg = str(k) + " is not a pixel-based quantity. \n"
+                        msg += "Please provide a scalar initial value instead."
+                        raise ValueError(msg)
+                    else:
+                        setattr(self, k, v)
+            else:
+                raise ValueError(
+                    str(k) + ' is not a valid parameter for this model.')
+
 
 class Model:
-    # Abstract base class for end-to-end models.                  
+    # Abstract base class for end-to-end models.
 
     def __init__(self):
-        self.free = []
-        self.bounds = [-np.inf, np.inf]
+        self.free = {}
         self.pcov = None
 
     def save(self, file=None, path=None, filename='Model'):
@@ -198,7 +238,7 @@ class Model:
             tuple or array-like: Either an array of predicted y-values (if xdata is an array) or a tuple of such arrays (if xdata is a tuple).
         """
         raise NotImplementedError('No predict function provided')
-    
+
     def train(self, xdata, ydata, **kwargs):
         """Train the free parameters
 
@@ -212,7 +252,6 @@ class Model:
         """
         return train(self, xdata, ydata, **kwargs)
 
-
     def plot(self, xdata, ydata, xlim=None, ref=None, fname=None, show=True):
         """Plot the model fit against data
 
@@ -224,10 +263,10 @@ class Model:
             fname (path, optional): Filepath to save the image. If no value is provided, the image is not saved. Defaults to None.
             show (bool, optional): If True, the plot is shown. Defaults to True.
         """
-        raise NotImplementedError('No plot function implemented for model ' + self.__class__.__name__)
-    
-    
-    def cost(self, xdata, ydata, metric='NRMS')->float:
+        raise NotImplementedError(
+            'No plot function implemented for model ' + self.__class__.__name__)
+
+    def cost(self, xdata, ydata, metric='NRMS') -> float:
         """Return the goodness-of-fit
 
         Args:
@@ -245,8 +284,7 @@ class Model:
         """
         return _cost(self, xdata, ydata, metric)
 
-
-    def export_params(self)->list:
+    def export_params(self) -> list:
         """Return model parameters with their descriptions
 
         Returns:
@@ -255,9 +293,8 @@ class Model:
         # Short name, full name, value, units.
         pars = {}
         for p in self.free:
-            pars[p] = [p+' name', getattr(self, p), p+' unit']
+            pars[p] = [p+' name', self.free[p], p+' unit']
         return self._add_sdev(pars)
-    
 
     def print_params(self, round_to=None):
         """Print the model parameters and their uncertainties
@@ -272,19 +309,19 @@ class Model:
         print('--------------------------------')
         print('')
         for par in self.free:
-            if par in pars:
-                p = pars[par]
-                if round_to is None:
-                    v = p[1]
-                    verr = p[3]
-                else:
-                    v = round(p[1], round_to)
-                    verr = round(p[3], round_to)
-                print(p[0] + ' ('+par+'): ' + str(v) + ' (' + str(verr) + ') ' + p[2])
+            p = pars[par]
+            if round_to is None:
+                v = p[1]
+                verr = p[3]
+            else:
+                v = round(p[1], round_to)
+                verr = round(p[3], round_to)
+            print(p[0] + ' ('+par+'): ' + str(v) +
+                  ' (' + str(verr) + ') ' + p[2])
         print('')
-        print('------------------')
-        print('Derived parameters')
-        print('------------------')
+        print('----------------------------')
+        print('Fixed and derived parameters')
+        print('----------------------------')
         print('')
         for par in pars:
             if par not in self.free:
@@ -292,10 +329,10 @@ class Model:
                 if round_to is None:
                     v = p[1]
                 else:
-                    v = round(p[1], round_to)
+                    v = np.round(p[1], round_to)
                 print(p[0] + ' ('+par+'): ' + str(v) + ' ' + p[2])
 
-
+    # TODO rationalise getters and setters
     def get_params(self, *args, round_to=None):
         """Return the parameter values
 
@@ -304,70 +341,123 @@ class Model:
             round_to (int, optional): Round to how many digits. If this is not provided, the values are not rounded. Defaults to None.
 
         Returns:
-            list: values of parameter values
+            list or float: values of parameter values, or a scalar value if only one parameter is required.
         """
+        if args == ():
+            args = self.free.keys()
         pars = []
         for a in args:
             v = getattr(self, a)
             if round_to is not None:
                 v = round(v, round_to)
             pars.append(v)
-        return pars
-    
-    
-    def _getflat(self, attr:np.ndarray=None)->np.ndarray:
+        if len(pars) == 1:
+            return pars[0]
+        else:
+            return pars
+
+    def set_free(self, pop=None, **kwargs):
+        """Set bounds for free model parameters.
+
+        Args:
+            pop (str or list): a single variable or a list of variables to remove from the list of free parameters. 
+
+        Raises:
+            ValueError: if the pop argument contains a parameter that is not in the list of free parameters.
+            ValueError: If the parameter is not a model parameter, or bounds are not properly formatted.
+        """
+        if pop is not None:
+            if np.isscalar(pop):
+                if pop in self.free:
+                    self.free.pop(pop)
+                else:
+                    raise ValueError(
+                        pop + ' is not currently a free parameter, so cannot be removed from the list.')
+            else:
+                for par in pop:
+                    if par in self.free:
+                        self.free.pop(par)
+                    else:
+                        raise ValueError(
+                            par + ' is not currently a free parameter, so cannot be removed from the list.')
+        for k, v in kwargs.items():
+            if k in self.__dict__:
+                if np.size(v) == 2:
+                    if v[0] < v[1]:
+                        if (v[0] <= getattr(self, k)) and (v[1] >= getattr(self, k)):
+                            self.free[k] = v
+                        else:
+                            raise ValueError('Cannot set parameter bounds for '+str(
+                                k)+'. The value current value '+str(getattr(self, k)) + ' is outside of the bounds. ')
+                    else:
+                        raise ValueError(str(
+                            v) + ' is not a proper parameter bound. The first element must be smaller than the second.')
+                else:
+                    raise ValueError(str(
+                        v) + ' is not a proper parameter bound. Bounds must lists or arrays with 2 elements.')
+            else:
+                raise ValueError(str(k) + ' is not a model parameter.')
+
+    def _set_defaults(self, free=None, **params):
+        for k, v in params.items():
+            if hasattr(self, k):
+                setattr(self, k, v)
+            else:
+                raise ValueError(
+                    str(k) + ' is not a valid parameter for this model.')
+        if free is not None:
+            self.set_free(**free)
+
+    def _getflat(self, attr: np.ndarray = None) -> np.ndarray:
         if attr is None:
-            attr = self.free
+            attr = self.free.keys()
         vals = []
         for a in attr:
             v = getattr(self, a)
             vals = np.append(vals, np.ravel(v))
         return vals
-    
 
-    def _setflat(self, vals:np.ndarray, attr:np.ndarray=None):
+    def _setflat(self, vals: np.ndarray, attr: np.ndarray = None):
         if attr is None:
-            attr = self.free
-        i=0
+            attr = self.free.keys()
+        i = 0
         for p in attr:
             v = getattr(self, p)
             if np.isscalar(v):
                 v = vals[i]
-                i+=1
+                i += 1
             else:
                 n = np.size(v)
                 v = np.reshape(vals[i:i+n], np.shape(v))
-                i+=n
+                i += n
             setattr(self, p, v)
-                
 
     # def _x_scale(self):
     #     n = len(self.free)
     #     xscale = np.ones(n)
     #     for p in range(n):
-    #         if np.isscalar(self.bounds[0]):
-    #             lb = self.bounds[0]
+    #         if np.isscalar(self.free[0]):
+    #             lb = self.free[0]
     #         else:
-    #             lb = self.bounds[0][p]
-    #         if np.isscalar(self.bounds[1]):
-    #             ub = self.bounds[1]
+    #             lb = self.free[0][p]
+    #         if np.isscalar(self.free[1]):
+    #             ub = self.free[1]
     #         else:
-    #             ub = self.bounds[1][p]
+    #             ub = self.free[1][p]
     #         if (not np.isinf(lb)) and (not np.isinf(ub)):
     #             xscale[p] = ub-lb
     #     return xscale
-
 
     def _add_sdev(self, pars):
         for par in pars:
             pars[par].append(0)
         if not hasattr(self, 'pcov'):
-            perr = np.zeros(np.size(self.free))
+            perr = np.zeros(len(self.free.keys()))
         elif self.pcov is None:
-            perr = np.zeros(np.size(self.free))
+            perr = np.zeros(len(self.free.keys()))
         else:
             perr = np.sqrt(np.diag(self.pcov))
-        for i, par in enumerate(self.free):
+        for i, par in enumerate(self.free.keys()):
             if par in pars:
                 pars[par][-1] = perr[i]
         return pars
@@ -376,12 +466,12 @@ class Model:
 def _save(model, file=None, path=None, filename='Model'):
     if file is None:
         if path is None:
-            path=os.getcwd()
+            path = os.getcwd()
         if filename.split('.')[-1] != 'pkl':
             filename += '.pkl'
         file = os.path.join(path, filename)
     elif file.split('.')[-1] != 'pkl':
-            file += '.pkl'
+        file += '.pkl'
     with open(file, 'wb') as f:
         pickle.dump(model, f, protocol=pickle.HIGHEST_PROTOCOL)
     f.close
@@ -391,12 +481,12 @@ def _save(model, file=None, path=None, filename='Model'):
 def _load(model, file=None, path=None, filename='Model'):
     if file is None:
         if path is None:
-            path=os.getcwd()
+            path = os.getcwd()
         if filename.split('.')[-1] != 'pkl':
             filename += '.pkl'
         file = os.path.join(path, filename)
     elif file.split('.')[-1] != 'pkl':
-            file += '.pkl'
+        file += '.pkl'
     with open(file, 'rb') as f:
         saved = pickle.load(f)
     model.__dict__.update(saved.__dict__)
@@ -404,7 +494,7 @@ def _load(model, file=None, path=None, filename='Model'):
     return model
 
 
-def train(model:Model, xdata, ydata, **kwargs):
+def train(model: Model, xdata, ydata, **kwargs):
 
     if isinstance(ydata, tuple):
         y = np.concatenate(ydata)
@@ -420,10 +510,14 @@ def train(model:Model, xdata, ydata, **kwargs):
             return yp
 
     p0 = model._getflat()
+    bounds = [
+        [par[0] for par in model.free.values()],
+        [par[1] for par in model.free.values()],
+    ]
     try:
         pars, model.pcov = curve_fit(
-            fit_func, None, y, p0, 
-            bounds=model.bounds, #x_scale=model._x_scale(),
+            fit_func, None, y, p0,
+            bounds=bounds,  # x_scale=model._x_scale(),
             **kwargs)
     except RuntimeError as e:
         msg = 'Runtime error in curve_fit -- \n'
@@ -431,13 +525,13 @@ def train(model:Model, xdata, ydata, **kwargs):
         warnings.warn(msg)
         pars = p0
         model.pcov = np.zeros((np.size(p0), np.size(p0)))
-    
+
     model._setflat(pars)
-    
+
     return model
 
 
-def _cost(model, xdata, ydata, metric='NRMS')->float:
+def _cost(model, xdata, ydata, metric='NRMS') -> float:
 
     # Predict data at all xvalues
     y = model.predict(xdata)
@@ -456,19 +550,19 @@ def _cost(model, xdata, ydata, metric='NRMS')->float:
     elif metric == 'AIC':
         rss = np.sum((y-ydata)**2, axis=-1)
         n = ydata.shape[-1]
-        k = len(model.free)
+        k = len(model.free.keys())
         with np.errstate(divide='ignore'):
             loss = k*2 + n*np.log(rss/n)
     elif metric == 'cAIC':
         rss = np.sum((y-ydata)**2)
         n = ydata.shape[-1]
-        k = len(model.free)
+        k = len(model.free.keys())
         with np.errstate(divide='ignore'):
             loss = k*2 + n*np.log(rss/n) + 2*k*(k+1)/(n-k-1)
     elif metric == 'BIC':
         rss = np.sum((y-ydata)**2, axis=-1)
         n = ydata.shape[-1]
-        k = len(model.free)
+        k = len(model.free.keys())
         with np.errstate(divide='ignore'):
             loss = k*np.log(n) + n*np.log(rss/n)
     return loss

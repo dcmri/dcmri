@@ -1,5 +1,6 @@
 import numpy as np
-import dcmri as dc
+import dcmri.pk as pk
+import dcmri.utils as utils
 
 
 def conc_liver(ca, *params, t=None, dt=1.0, kinetics='EC', sum=True, cv=None):
@@ -19,7 +20,7 @@ def conc_liver(ca, *params, t=None, dt=1.0, kinetics='EC', sum=True, cv=None):
 
     Notes:
         Currently implemented kinetic models are: 
-        
+
         - 'EC': model for extracellular contrast agent. params = (ve, Te, De,) if cv=None (single-inlet model) and params = (Ta, af, Fp, ve,) otherwise (dual-inlet model).
         - 'IC': model for intracellular contrast agent. params = (ve, Te, De, khe, Th, ) if cv=None (single-inlet model and params = (Ta, af, Fp, ve, khe, Th,) otherwise (dual-inlet model). 
         - 'ICNS': non-stationary model for intracellular contrast agent. params = (ve, Te, De, khe, Th, ) if cv=None (single-inlet model and params = (Ta, af, Fp, ve, khe, Th,) otherwise (dual-inlet model). In this case khe and Th are arrays with 2 or more values.
@@ -69,102 +70,102 @@ def conc_liver(ca, *params, t=None, dt=1.0, kinetics='EC', sum=True, cv=None):
         >>> ax.legend()
         >>> plt.show()
     """
-    if kinetics=='EC':
+    if kinetics == 'EC':
         if cv is None:
             ve, Te, De = params
             cp = ca
             return _conc_liver(cp, ve, extracellular=['pfcomp', (Te, De)], t=t, dt=dt)
         else:
-            Ta, af, Fp, ve  = params
+            Ta, af, Fp, ve = params
             return _conc_liverav(ca, cv, Ta, af, Fp, ve, t=t, dt=dt)
-        
-    elif kinetics=='IC':
+
+    elif kinetics == 'IC':
         if cv is None:
             ve, Te, De, khe, Th = params
-            return _conc_liver_hep(ca, ve, khe, 
-                t=t, dt=dt, sum=sum,
-                extracellular = ['pfcomp', (Te, De)],
-                hepatocytes = ['comp', (Th,)])
+            return _conc_liver_hep(ca, ve, khe,
+                                   t=t, dt=dt, sum=sum,
+                                   extracellular=['pfcomp', (Te, De)],
+                                   hepatocytes=['comp', (Th,)])
         else:
             Ta, af, ve, Te, De, khe, Th = params
-            return _conc_liverav_hep(ca, cv, 
-                Ta, af, 
-                ve, khe, 
-                t=t, dt=dt, sum=sum,
-                extracellular = ['pfcomp', (Te, De)],
-                hepatocytes = ['comp', (Th,)])
-        
-    elif kinetics=='IC-HF':
+            return _conc_liverav_hep(ca, cv,
+                                     Ta, af,
+                                     ve, khe,
+                                     t=t, dt=dt, sum=sum,
+                                     extracellular=['pfcomp', (Te, De)],
+                                     hepatocytes=['comp', (Th,)])
+
+    elif kinetics == 'IC-HF':
         if cv is None:
             ve, khe, Th = params
-            return _conc_liver_hep(ca, 
-                ve, khe, 
-                t=t, dt=dt, sum=sum,
-                extracellular = ['pass', ()],
-                hepatocytes = ['comp', (Th,)])
+            return _conc_liver_hep(ca,
+                                   ve, khe,
+                                   t=t, dt=dt, sum=sum,
+                                   extracellular=['pass', ()],
+                                   hepatocytes=['comp', (Th,)])
         else:
             Ta, af, ve, khe, Th = params
-            return _conc_liverav_hep(ca, cv, 
-                Ta, af, 
-                ve, khe, 
-                t=t, dt=dt, sum=sum,
-                extracellular = ['pass', ()],
-                hepatocytes = ['nscomp', (Th,)])
-        
-    elif kinetics=='ICNSU':
-        tarr = dc.tarray(np.size(ca), t=t, dt=dt)
+            return _conc_liverav_hep(ca, cv,
+                                     Ta, af,
+                                     ve, khe,
+                                     t=t, dt=dt, sum=sum,
+                                     extracellular=['pass', ()],
+                                     hepatocytes=['nscomp', (Th,)])
+
+    elif kinetics == 'ICNSU':
+        tarr = utils.tarray(np.size(ca), t=t, dt=dt)
         if cv is None:
             ve, Te, De, khe, Th = params
             if np.size(khe) != np.size(tarr):
-                khe = dc.interp(khe, tarr)
-            return _conc_liver_hep(ca, ve, khe, 
-                t=t, dt=dt, sum=sum,
-                extracellular = ['pfcomp', (Te, De)],
-                hepatocytes = ['comp', (Th,)])
+                khe = utils.interp(khe, tarr)
+            return _conc_liver_hep(ca, ve, khe,
+                                   t=t, dt=dt, sum=sum,
+                                   extracellular=['pfcomp', (Te, De)],
+                                   hepatocytes=['comp', (Th,)])
         else:
             Ta, af, ve, Te, De, khe, Th = params
             if np.size(khe) != np.size(tarr):
-                khe = dc.interp(khe, tarr)
-            return _conc_liverav_hep(ca, cv, 
-                Ta, af, 
-                ve, khe, 
-                t=t, dt=dt, sum=sum,
-                extracellular = ['pfcomp', (Te, De)],
-                hepatocytes = ['nscomp', (Th,)])
-        
-    elif kinetics=='ICNS':
-        tarr = dc.tarray(np.size(ca), t=t, dt=dt)
+                khe = utils.interp(khe, tarr)
+            return _conc_liverav_hep(ca, cv,
+                                     Ta, af,
+                                     ve, khe,
+                                     t=t, dt=dt, sum=sum,
+                                     extracellular=['pfcomp', (Te, De)],
+                                     hepatocytes=['nscomp', (Th,)])
+
+    elif kinetics == 'ICNS':
+        tarr = utils.tarray(np.size(ca), t=t, dt=dt)
         if cv is None:
             ve, Te, De, khe, Th = params
             if np.size(khe) != np.size(tarr):
-                khe = dc.interp(khe, tarr)
+                khe = utils.interp(khe, tarr)
             if np.size(Th) != np.size(tarr):
-                Th = dc.interp(Th, tarr)
-            return _conc_liver_hep(ca, 
-                ve, khe, 
-                t=t, dt=dt, sum=sum,
-                extracellular = ['pfcomp', (Te, De)],
-                hepatocytes = ['nscomp', (Th,)])
+                Th = utils.interp(Th, tarr)
+            return _conc_liver_hep(ca,
+                                   ve, khe,
+                                   t=t, dt=dt, sum=sum,
+                                   extracellular=['pfcomp', (Te, De)],
+                                   hepatocytes=['nscomp', (Th,)])
         else:
             Ta, af, ve, Te, De, khe, Th = params
             if np.size(khe) != np.size(tarr):
-                khe = dc.interp(khe, tarr)
+                khe = utils.interp(khe, tarr)
             if np.size(Th) != np.size(tarr):
-                Th = dc.interp(Th, tarr)
-            return _conc_liverav_hep(ca, cv, 
-                Ta, af, 
-                ve, khe, 
-                t=t, dt=dt, sum=sum,
-                extracellular = ['pfcomp', (Te, De)],
-                hepatocytes = ['nscomp', (Th,)])
+                Th = utils.interp(Th, tarr)
+            return _conc_liverav_hep(ca, cv,
+                                     Ta, af,
+                                     ve, khe,
+                                     t=t, dt=dt, sum=sum,
+                                     extracellular=['pfcomp', (Te, De)],
+                                     hepatocytes=['nscomp', (Th,)])
     else:
-        raise ValueError('Kinetic model ' + kinetics + ' is not currently implemented.')
+        raise ValueError('Kinetic model ' + kinetics +
+                         ' is not currently implemented.')
 
 
-def _conc_liver(ca, ve, 
-        extracellular = ['pfcomp', (30, 0.85)],
-        t=None, dt=1.0):
-
+def _conc_liver(ca, ve,
+                extracellular=['pfcomp', (30, 0.85)],
+                t=None, dt=1.0):
     """Single-inlet liver model modelling the extracellular space (gut and liver) as a plug-flow compartment.
 
     Args:
@@ -209,29 +210,28 @@ def _conc_liver(ca, ve,
         >>> plt.show()
     """
     # Propagate through the extracellular space
-    ce = dc.flux(ca, *extracellular[1], t=t, dt=dt, kinetics=extracellular[0])
+    ce = pk.flux(ca, *extracellular[1], t=t, dt=dt, model=extracellular[0])
     # Tissue concentration in the extracellular space
     Ce = ve*ce
     return Ce
 
 
-def _conc_liverav(ca, cv, Ta:float, af, Fp, ve, t=None, dt=1.0):
+def _conc_liverav(ca, cv, Ta: float, af, Fp, ve, t=None, dt=1.0):
     """Dual-inlet liver model for extracellular agents."""
 
     # Propagate through arterial tree
-    ca = dc.flux(ca, Ta, t=t, dt=dt, kinetics='plug')
+    ca = pk.flux(ca, Ta, t=t, dt=dt, model='plug')
     # Determine inlet concentration
     cp = af*ca + (1-af)*cv
     # Tissue concentration in the extracellular space
     Te = ve/Fp
-    Ce = dc.conc_comp(Fp*cp, Te, t=t, dt=dt)
+    Ce = pk.conc_comp(Fp*cp, Te, t=t, dt=dt)
     return Ce
 
 
 def _conc_liver_hep(ca, ve, khe, t=None, dt=1.0, sum=True,
-        extracellular = ['pfcomp', (30, 0.85)],
-        hepatocytes = ['comp', (30*60,)]):
-
+                    extracellular=['pfcomp', (30, 0.85)],
+                    hepatocytes=['comp', (30*60,)]):
     """Single-inlet liver model modelling the extracellular space (gut and liver) as a plug-flow compartment and the hepatocytes as a non-stationary compartment.
 
     Args:
@@ -293,32 +293,32 @@ def _conc_liver_hep(ca, ve, khe, t=None, dt=1.0, sum=True,
     """
 
     # Propagate through the extracellular space
-    ce = dc.flux(ca, *extracellular[1], t=t, dt=dt, kinetics=extracellular[0])
+    ce = pk.flux(ca, *extracellular[1], t=t, dt=dt, model=extracellular[0])
     # Tissue concentration in the extracellular space
     Ce = ve*ce
     # Tissue concentration in the hepatocytes
-    Ch = dc.conc(khe*ce, *hepatocytes[1], t=t, dt=dt, kinetics=hepatocytes[0])
+    Ch = pk.conc(khe*ce, *hepatocytes[1], t=t, dt=dt, model=hepatocytes[0])
     if sum:
         return Ce+Ch
     else:
-        return np.stack((Ce,Ch))
-    
+        return np.stack((Ce, Ch))
+
 
 def _conc_liverav_hep(ca, cv, Ta, af, ve, khe, t=None, dt=1.0, sum=True,
-        extracellular = ['pfcomp', (30, 0.85)],
-        hepatocytes = ['comp', (30*60,)]):
+                      extracellular=['pfcomp', (30, 0.85)],
+                      hepatocytes=['comp', (30*60,)]):
 
     # Propagate through arterial tree
-    ca = dc.flux(ca, Ta, t=t, dt=dt, kinetics='plug')
+    ca = pk.flux(ca, Ta, t=t, dt=dt, model='plug')
     # Determine inlet concentration
     cp = af*ca + (1-af)*cv
     # Propagate through the extracellular space
-    ce = dc.flux(cp, *extracellular[1], t=t, dt=dt, kinetics=extracellular[0])
+    ce = pk.flux(cp, *extracellular[1], t=t, dt=dt, model=extracellular[0])
     # Tissue concentration in the extracellular space
     Ce = ve*ce
     # Tissue concentration in the hepatocytes
-    Ch = dc.conc(khe*ce, *hepatocytes[1], t=t, dt=dt, kinetics=hepatocytes[0])
+    Ch = pk.conc(khe*ce, *hepatocytes[1], t=t, dt=dt, model=hepatocytes[0])
     if sum:
         return Ce+Ch
     else:
-        return np.stack((Ce,Ch))
+        return np.stack((Ce, Ch))

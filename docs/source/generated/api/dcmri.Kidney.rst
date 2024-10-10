@@ -9,6 +9,12 @@
 
    
    
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~Kidney.free
+   
    
 
 
@@ -28,6 +34,7 @@
       ~Kidney.print_params
       ~Kidney.relax
       ~Kidney.save
+      ~Kidney.set_free
       ~Kidney.signal
       ~Kidney.time
       ~Kidney.train

@@ -20,6 +20,8 @@
    
       ~TissueArray.cost
       ~TissueArray.export_params
+      ~TissueArray.get_params
+      ~TissueArray.info
       ~TissueArray.load
       ~TissueArray.plot
       ~TissueArray.plot_fit
