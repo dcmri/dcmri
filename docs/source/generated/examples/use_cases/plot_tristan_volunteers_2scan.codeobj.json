@@ -1,4 +1,13 @@
 {
+ "_": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "tuple"
+  }
+ ],
  "ax1": [
   {
    "is_class": false,

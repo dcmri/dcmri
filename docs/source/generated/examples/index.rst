@@ -55,7 +55,7 @@ Tutorials
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the effect of water exchange in a standard two-compartmental tissue using the models in dcmri.Tissue.">
+    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the effect of water exchange in a standard  two-compartmental tissue using the models in dcmri.Tissue.">
 
 .. only:: html
 
@@ -109,7 +109,7 @@ Use cases
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of AortaLiver for joint fitting of aorta and liver signals to a whole-body model. The use case is provided by the liver work package of the TRISTAN project  which develops imaging biomarkers for drug safety assessment. The data and analysis was first presented at the ISMRM in 2024 (Min et al 2024, manuscript in press). ">
+    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of AortaLiver for joint fitting of  aorta and liver signals to a whole-body model. The use case is provided by the  liver work package of the  TRISTAN project  which develops imaging  biomarkers for drug safety assessment. The data and analysis was first  presented at the ISMRM in 2024 (Min et al 2024, manuscript in press). ">
 
 .. only:: html
 
@@ -126,7 +126,7 @@ Use cases
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of AortaLiver2scan for joint fitting of aorta and liver signals measured over 2 separate scans. The use case is provided by the liver work package of the TRISTAN project  which develops imaging biomarkers for drug safety assessment. The data and analysis was first presented at the ISMRM in 2024 (Min et al 2024, manuscript in press). ">
+    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of AortaLiver2scan for joint  fitting of aorta and liver signals measured over 2 separate scans. The use  case is provided by the liver work package of the  TRISTAN project  which develops imaging  biomarkers for drug safety assessment. The data and analysis was first  presented at the ISMRM in 2024 (Min et al 2024, manuscript in press). ">
 
 .. only:: html
 
@@ -143,7 +143,7 @@ Use cases
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of Liver for fitting of signals measured in liver. The use case is provided by the liver work package of the TRISTAN project  which develops imaging biomarkers for drug safety assessment. The data and analysis were first published in Melillo et al (2023). ">
+    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of Liver for fitting of signals  measured in liver. The use case is provided by the liver work package of the  TRISTAN project  which develops imaging  biomarkers for drug safety assessment. The data and analysis were first  published in Melillo et al (2023). ">
 
 .. only:: html
 

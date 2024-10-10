@@ -35,7 +35,7 @@ Tutorials
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the effect of water exchange in a standard two-compartmental tissue using the models in dcmri.Tissue.">
+    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the effect of water exchange in a standard  two-compartmental tissue using the models in dcmri.Tissue.">
 
 .. only:: html
 

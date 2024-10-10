@@ -605,7 +605,7 @@
   {
    "is_class": true,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue"
   },
@@ -652,6 +652,22 @@
    "module": "dcmri",
    "module_short": "dcmri",
    "name": "fake_aif"
+  }
+ ],
+ "dc.relaxivity": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "function"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "relaxivity"
   }
  ],
  "dcmri.Tissue": [
@@ -792,7 +808,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue"
   },
@@ -808,7 +824,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue.get_params"
   },
@@ -838,7 +854,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue.plot"
   },
@@ -868,7 +884,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue.signal"
   },
@@ -898,7 +914,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue.train"
   },
@@ -928,7 +944,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue"
   },
@@ -944,7 +960,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue.signal"
   },
@@ -974,7 +990,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue"
   },
@@ -990,7 +1006,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue.plot"
   },
@@ -1020,7 +1036,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue.signal"
   },
@@ -1050,7 +1066,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue"
   },
@@ -1066,7 +1082,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue.plot"
   },
@@ -1096,7 +1112,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue.signal"
   },
@@ -1126,7 +1142,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue"
   },
@@ -1142,7 +1158,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue.signal"
   },
@@ -1172,7 +1188,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue"
   },
@@ -1188,7 +1204,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue.plot"
   },
@@ -1218,7 +1234,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue.signal"
   },
@@ -1248,7 +1264,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue"
   },
@@ -1264,7 +1280,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue.get_params"
   },
@@ -1294,7 +1310,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue.plot"
   },
@@ -1324,7 +1340,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue.signal"
   },
@@ -1354,7 +1370,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue.train"
   },
@@ -1384,7 +1400,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue"
   },
@@ -1400,7 +1416,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue.signal"
   },
@@ -1430,7 +1446,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue"
   },
@@ -1446,7 +1462,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.tissue_mods",
+   "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
    "name": "Tissue.signal"
   },

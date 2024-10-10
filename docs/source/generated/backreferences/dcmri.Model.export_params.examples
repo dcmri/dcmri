@@ -15,7 +15,7 @@ Examples using ``dcmri.Model.export_params``
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of Liver for fitting of signals measured in liver. The use case is provided by the liver work package of the TRISTAN project  which develops imaging biomarkers for drug safety assessment. The data and analysis were first published in Melillo et al (2023). ">
+    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of Liver for fitting of signals  measured in liver. The use case is provided by the liver work package of the  TRISTAN project  which develops imaging  biomarkers for drug safety assessment. The data and analysis were first  published in Melillo et al (2023). ">
 
 .. only:: html
 
