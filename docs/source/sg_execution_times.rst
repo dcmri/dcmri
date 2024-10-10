@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**00:10.366** total execution time for 6 files **from all galleries**:
+**00:08.056** total execution time for 6 files **from all galleries**:
 
 .. container::
 
@@ -32,8 +32,8 @@ Computation times
    * - Example
      - Time
      - Mem (MB)
-   * - :ref:`sphx_glr_generated_examples_tutorials_plot_wex.py` (``..\examples\tutorials\plot_wex.py``)
-     - 00:10.366
+   * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan6drugs.py` (``..\examples\use_cases\plot_tristan6drugs.py``)
+     - 00:08.056
      - 0.0
    * - :ref:`sphx_glr_generated_examples_tutorials_plot_aif.py` (``..\examples\tutorials\plot_aif.py``)
      - 00:00.000
@@ -41,7 +41,7 @@ Computation times
    * - :ref:`sphx_glr_generated_examples_tutorials_plot_convolution.py` (``..\examples\tutorials\plot_convolution.py``)
      - 00:00.000
      - 0.0
-   * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan6drugs.py` (``..\examples\use_cases\plot_tristan6drugs.py``)
+   * - :ref:`sphx_glr_generated_examples_tutorials_plot_wex.py` (``..\examples\tutorials\plot_wex.py``)
      - 00:00.000
      - 0.0
    * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers.py` (``..\examples\use_cases\plot_tristan_volunteers.py``)

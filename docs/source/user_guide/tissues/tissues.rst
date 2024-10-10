@@ -1,13 +1,12 @@
 .. _two-site-exchange:
 
-*************************
 Two-site exchange tissues
-*************************
+-------------------------
 
 This is the most common tissue type relevant for the majority of applications currently in DC-MRI, including brain, cancer, prostate, muscle, and more. Most common approaches to modelling the signal from two-site exchange tissues are available through `dcmri.Tissue`.  
 
 Indicator kinetics
-------------------
+^^^^^^^^^^^^^^^^^^
 
 The most general kinetic model implemented in `dcmri.Tissue` is the 2-compartment exchange model (2CX). It assumes that the indicator distributes over two compartments: the plasma *p* and the interstitium *i*, with volume fractions *vp* and *vi*, respectively. Together they form the extracellular space *e* with volume fraction *ve*: 
 
@@ -69,7 +68,7 @@ The other kinetic models available through `dcmri.Tissue` are all special cases 
 
 
 Water kinetics
---------------
+^^^^^^^^^^^^^^
 
 For two-compartment exchange tissues, the three tissue compartments exchanging water are the blood, interstitium and tissue cells. Water exchange refers to the transport of water across the barriers between them: *transendothelial* water exchange between blood and interstitium, and *transcytolemmal* water exchange between interstitium and tissue cells. The water exchange in the blood compartment between plasma and red blood cells is assumed to be in the fast exchange limit throughout.
 
@@ -88,7 +87,7 @@ Water exchange across either of these two barriers can be in the fast-exchange l
 
 
 Tissue models
--------------
+^^^^^^^^^^^^^
 
 Any kinetic model can be combined with any water exchange model to build a complete tissue model. In the fast water exchange limit (FF) the entire tissue acts as a single well-mixed water compartment and the parameters are the kinetic parameters listed in table :ref:`two-site-exchange-kinetics`. For other combinations, the free parameters are listed in section :ref:`two-site-exchange-tables`, but they can also be printed using `dcmri.Tissue` directly. For instance, to find the free parameters for a high-flow tissue with restricted transcytolemmal water exchange:
 
@@ -110,51 +109,67 @@ This will print all tissue parameters with their initial values:
 .. _two-site-exchange-tables:
 
 Reference tables
-----------------
+^^^^^^^^^^^^^^^^
 
 Table :ref:`two-site-tissue-params` provides a complete list of possible tissue parameters including symbols, full name, and units. The other tables list the water compartments and free parameters for all tissues with water exchange regimes FR, RF, and RR. Regimes without water exchange across one or both of the barriers are not listed explicitly (FN, NF, FR, NR and NN). They differ from restricted water exchange only in that they fix the respective water permeabilities (*PSe* or *PSc*) to zero. 
 
 
 .. _two-site-tissue-params:
 .. list-table:: **tissue parameters**
-    :widths: 15 40 20
+    :widths: 15 25 40 20
     :header-rows: 1
 
     * - Short name
       - Full name
+      - Definition
       - Units
     * - Fp
       - Plasma flow
+      - Flow of plasma into the vascular space of a unit tissue
       - mL/sec/cm3
     * - Ktrans
       - Volume transfer constant
+      - Volume of arterial plasma cleared of indicator per unit time and per 
+        unit tissue
       - mL/sec/cm3
     * - E 
       - Extraction fraction
+      - 
       - None
     * - vp  
-      - Plasma volume fraction
+      - Plasma volume
+      - Volume fraction of the plasma space
       - mL/cm3
     * - vb
       - Blood volume fraction
+      - Volume fraction of the blood space
       - mL/cm3
-    * - Hct
+    * - H
       - Hematocrit
+      - Volume fraction of the red blood cells in whole blood
       - None
     * - vi
-      - Interstitial volume fraction
+      - Interstitial volume
+      - Volume fraction of the interstitial space
+      - mL/cm3
+    * - ve
+      - Extracellular volume 
+      - Combined volume fraction of plasma and interstitium
       - mL/cm3
     * - vc
+      - Cellular volume
       - Volume fraction of the tissue cells
       - mL/cm3
     * - PSe
       - Endothelial water permeability
+      - Flow of water across the endothelium per unit tissue volume
       - mL/sec/cm3
     * - PSc
       - Cytolemmal water permeability
+      - Flow of water across the cell wall per unit tissue volume
       - mL/sec/cm3
 
-
+.. _kinetic-regimes:
 .. list-table:: **Restricted endothelial and cytolemmal water exchange (RR).** 
     :widths: 20 20 30 40
     :header-rows: 1 
