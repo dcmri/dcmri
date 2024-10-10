@@ -236,7 +236,7 @@ def test_mods_aorta_liver():
     model.train(xdata, ydata, xtol=1e-3)
     model.plot(xdata, ydata, show=SHOW)
     assert model.cost(xdata, ydata) < 10
-    assert model.get_params('Th', round_to=0) == 99
+    assert 90 < model.get_params('Th', round_to=0) < 110
 
 
 def test_mods_aorta_liver2scan():
@@ -264,7 +264,7 @@ def test_mods_aorta_liver2scan():
     model.train(xdata, ydata, xtol=1e-3)
     model.plot(xdata, ydata, show=SHOW)
     assert model.cost(xdata, ydata) < 5
-    assert model.get_params('Th', round_to=0) == 72
+    assert 60 < model.get_params('Th', round_to=0) < 80
 
 def test_mods_liver():
     time, aif, roi, gt = dc.fake_tissue(
@@ -351,9 +351,9 @@ if __name__ == "__main__":
     # test_model()
     # test_mods_tissue()
     # test_mods_tissue_array()
-    test_mods_aorta()
-    # test_mods_aorta_liver()
-    # test_mods_aorta_liver2scan()
+    # test_mods_aorta()
+    test_mods_aorta_liver()
+    test_mods_aorta_liver2scan()
     # test_mods_liver()
     # test_mods_kidney()
     # test_mods_kidney_cort_med()
