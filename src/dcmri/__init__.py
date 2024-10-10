@@ -23,6 +23,9 @@ from dcmri.pk_liver import *
 from dcmri import pk_inv
 from dcmri.pk_inv import *
 
+from dcmri import rel
+from dcmri.rel import *
+
 from dcmri import sig
 from dcmri.sig import *
 
@@ -32,8 +35,8 @@ from dcmri.dro import *
 from dcmri import mods
 from dcmri.mods import *
 
-from dcmri import tissue_mods
-from dcmri.tissue_mods import *
+from dcmri import mods_tissue
+from dcmri.mods_tissue import *
 
 from dcmri import mods_aorta
 from dcmri.mods_aorta import *
@@ -43,4 +46,3 @@ from dcmri.mods_kidney import *
 
 from dcmri import mods_liver
 from dcmri.mods_liver import *
-
