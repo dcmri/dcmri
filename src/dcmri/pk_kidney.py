@@ -2,7 +2,7 @@ import numpy as np
 import dcmri.pk as pk
 
 
-def conc_kidney(ca:np.ndarray, *params, t=None, dt=1.0, sum=True, kinetics='2CF', **kwargs)->np.ndarray:
+def conc_kidney(ca: np.ndarray, *params, t=None, dt=1.0, sum=True, kinetics='2CF', **kwargs) -> np.ndarray:
     """Concentration in kidney tissues.
 
     Args:
@@ -19,7 +19,7 @@ def conc_kidney(ca:np.ndarray, *params, t=None, dt=1.0, sum=True, kinetics='2CF'
 
     Notes:
         Currently implemented kinetic models are: 
-        
+
         - '2CF': two-compartment filtration model. params = (Fp, Tp, Ft, Tt,)
         - 'FN': free nephron model. params = (Fp, Tp, Ft, h, ). 
 
@@ -30,7 +30,7 @@ def conc_kidney(ca:np.ndarray, *params, t=None, dt=1.0, sum=True, kinetics='2CF'
         - **Ft** (float, mL/sec/mL): tubular flow.
         - **Tt** (float, sec): tubular mean transit time.
         - **hh** (array-like, 1/sec): frequences of transit time histogram. The boundaries of the transit time bins can be provided as an array in a keyword parameter TT, which has to have one more element than h. If TT is not provided, the transit time bins are equally space in the range [0, tmax], where tmax is the largest acquisition time.
-        
+
 
     Example:
 
@@ -66,11 +66,11 @@ def conc_kidney(ca:np.ndarray, *params, t=None, dt=1.0, sum=True, kinetics='2CF'
         >>> plt.show()
 
         Use generate plasma and tubular tissue concentrations using the free nephron model for comparison. We assume 4 transit time bins with the following boundaries (in units of seconds):
-        
+
         >>> TT = [0, 15, 30, 60, 120]
 
         with longest transit times most likely (note the frequences to not have to add up to 1):
-        
+
         >>> h = [1, 2, 3, 4]
         >>> C = dc.conc_kidney(ca, Fp, Tp, Ft, h, t=t, sum=False, kinetics='FN', TT=TT)
 
@@ -95,27 +95,28 @@ def conc_kidney(ca:np.ndarray, *params, t=None, dt=1.0, sum=True, kinetics='2CF'
         # TT = [15,30,60,90,150,300,600]
         return _conc_kidney_fn(ca, *params, t=t, dt=dt, sum=sum, **kwargs)
     else:
-        raise ValueError('Kinetic model ' + kinetics + ' is not currently implemented.')
+        raise ValueError('Kinetic model ' + kinetics +
+                         ' is not currently implemented.')
 
 
 def _conc_kidney_2cf(ca, Fp, Tp, Ft, Tt, t=None, dt=1.0, sum=True):
     vp = Tp*(Fp+Ft)
     Cp = pk.conc_comp(Fp*ca, Tp, t=t, dt=dt)
     cp = Cp/vp
-    Ct = pk.conc_comp(Ft*cp, Tt, t=t, dt=dt)   
+    Ct = pk.conc_comp(Ft*cp, Tt, t=t, dt=dt)
     if sum:
         return Cp+Ct
     else:
-        return np.stack((Cp,Ct))
-    
+        return np.stack((Cp, Ct))
+
+
 def _conc_kidney_hf(ca, vp, Ft, Tt, t=None, dt=1.0, sum=True):
     Cp = vp*ca
-    Ct = pk.conc_comp(Ft*ca, Tt, t=t, dt=dt)   
+    Ct = pk.conc_comp(Ft*ca, Tt, t=t, dt=dt)
     if sum:
         return Cp+Ct
     else:
-        return np.stack((Cp,Ct))
-
+        return np.stack((Cp, Ct))
 
 
 def _conc_kidney_fn(ca, Fp, Tp, Ft, h, t=None, dt=1.0, sum=True, TT=None):
@@ -127,16 +128,16 @@ def _conc_kidney_fn(ca, Fp, Tp, Ft, h, t=None, dt=1.0, sum=True, TT=None):
         nTT = 1+np.size(h)
         TT = np.linspace(0, tmax, nTT)
     vp = Tp*(Fp+Ft)
-    Cp = pk.conc_plug(Fp*ca, Tp, t=t, dt=dt) 
+    Cp = pk.conc_plug(Fp*ca, Tp, t=t, dt=dt)
     cp = Cp/vp
-    Ct = pk.conc_free(Ft*cp, h, dt=dt, TT=TT, solver='step')  
+    Ct = pk.conc_free(Ft*cp, h, dt=dt, TT=TT, solver='step')
     if sum:
         return Cp+Ct
     else:
-        return np.stack((Cp,Ct)) 
+        return np.stack((Cp, Ct))
 
 
-def conc_kidney_cortex_medulla(ca:np.ndarray, *params, t=None, dt=1.0, sum=True, kinetics='7C'):
+def conc_kidney_cortex_medulla(ca: np.ndarray, *params, t=None, dt=1.0, sum=True, kinetics='7C'):
     """Concentration in kidney cortex and medulla tissues.
 
     Args:
@@ -146,14 +147,14 @@ def conc_kidney_cortex_medulla(ca:np.ndarray, *params, t=None, dt=1.0, sum=True,
         dt (float, optional): spacing in seconds between time points for uniformly spaced time points. This parameter is ignored if *t* is explicity provided. Defaults to 1.0.
         sum (bool, optional): For two-compartment tissues, set to True to return the total tissue concentration. Defaults to True.
         kinetics (str, optional): Kinetics of the tissue, currently only '7C' available - see below for detail. Defaults to '7F'. 
-    
+
     Returns:
         tuple[numpy.ndarray, numpy.ndarray]: If sum=True, each return value is a 1D array with the total concentration at each time point, in cortex and medulla, respectively. If sum=False each return value is the concentration in each compartment, and at each time point, of cortex and medulla as a 2D array with dimensions *(n,k)*, where n is the number of compartments and *k* is the number of time points in *ca*. The concentration is returned in units of M.
 
 
     Notes:
         Currently implemented kinetic models are: 
-        
+
         - '7CF': 7-compartment model. params = (Fp, Eg, fc, Tg, Tv, Tpt, Tlh, Tdt, Tcd,). Cortico-medullary model with 4 cortical compartments (glomeruli, peritubular capillaries & veins, proximal tubuli and distal tubuli) and 3 medullary compartments (peritubular capillaries & veins, list of Henle and collecting ducts). 
 
         The 9 model parameters are:
@@ -204,9 +205,9 @@ def conc_kidney_cortex_medulla(ca:np.ndarray, *params, t=None, dt=1.0, sum=True,
     if kinetics == '7C':
         return _conc_kidney_cm9(ca, *params, t=t, dt=dt, sum=sum)
     else:
-        raise ValueError('Kinetic model ' + kinetics + ' is not currently implemented.')
+        raise ValueError('Kinetic model ' + kinetics +
+                         ' is not currently implemented.')
 
-    
 
 def _conc_kidney_cm9(ca, Fp, Eg, fc, Tg, Tv, Tpt, Tlh, Tdt, Tcd, t=None, dt=1.0, sum=True):
 
@@ -231,21 +232,20 @@ def _conc_kidney_cm9(ca, Fp, Eg, fc, Tg, Tv, Tpt, Tlh, Tdt, Tcd, t=None, dt=1.0,
     # Build cortical concentrations
     Cg = Tg*Jg      # arteries/glomeruli
     Cv = fc*Tv*Jv   # part of the peritubular capillaries
-    Cpt = Tpt*Jpt   # proximal tubuli 
-    Cdt = Tdt*Jdt   # distal tubuli 
+    Cpt = Tpt*Jpt   # proximal tubuli
+    Cdt = Tdt*Jdt   # distal tubuli
     if sum:
         Ccor = Cg + Cv + Cpt + Cdt
     else:
-        Ccor = np.stack((Cg,Cv,Cpt,Cdt))
+        Ccor = np.stack((Cg, Cv, Cpt, Cdt))
 
-    # Build medullary concentrations 
+    # Build medullary concentrations
     Cv = (1-fc)*Tv*Jv   # part of the peritubular capillaries
     Clh = Tlh*Jlh       # Lis of Henle
     Ccd = Tcd*Jcd       # collecting ducts
     if sum:
         Cmed = Cv + Clh + Ccd
     else:
-        Cmed = np.stack((Cv,Clh,Ccd))
+        Cmed = np.stack((Cv, Clh, Ccd))
 
-    return Ccor, Cmed 
-    
+    return Ccor, Cmed

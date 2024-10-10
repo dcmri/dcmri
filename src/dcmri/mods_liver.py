@@ -54,7 +54,7 @@ class Liver(dc.Model):
 
     Notes:
         Currently this only only provides single-inlet kinetic models. 
-    
+
     Example:
 
         Derive model parameters from simulated data:
@@ -62,14 +62,14 @@ class Liver(dc.Model):
     .. plot::
         :include-source:
         :context: close-figs
-    
+
         >>> import matplotlib.pyplot as plt
         >>> import dcmri as dc
 
         Use `fake_tissue` to generate synthetic test data:
 
         >>> time, aif, roi, gt = dc.fake_tissue(CNR=100, agent='gadoxetate', R10=1/dc.T1(3.0,'liver'))
-        
+
         Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
 
         >>> model = dc.Liver(
@@ -89,10 +89,8 @@ class Liver(dc.Model):
         Plot the reconstructed signals (left) and concentrations (right) and compare the concentrations against the noise-free ground truth:
 
         >>> model.plot(time, roi, ref=gt)
-    """ 
+    """
 
-    free = {}   #: lower- and upper bounds for all free parameters.
-    
     def __init__(self, kinetics='non-stationary', sequence='SS', **params):
 
         # Configuration
@@ -104,53 +102,55 @@ class Liver(dc.Model):
         self.ca = None
 
         # Acquisition parameters
-        self.field_strength = 3.0 
+        self.field_strength = 3.0
         self.t = None
-        self.dt = 0.5                    
-        self.agent = 'gadoxetate'  
-        self.n0 = 1  
-        self.TR = 0.005  
-        self.FA = 15.0  
+        self.dt = 0.5
+        self.agent = 'gadoxetate'
+        self.n0 = 1
+        self.TR = 0.005
+        self.FA = 15.0
         self.TC = 0.180
+        self.TS = None
 
         # Tracer-kinetic parameters
-        self.Hct = 0.45    
+        self.Hct = 0.45
         self.Te = 30.0
         self.De = 0.85
-        self.ve = 0.3 
+        self.ve = 0.3
         self.khe = 20/6000
         self.Th = 30*60
         self.khe_f = 20/6000
         self.Th_f = 30*60
 
         # Signal parameters
-        self.R10 = 1/dc.T1(3.0, 'liver')  
-        self.R10b = 1/dc.T1(3.0, 'blood')  
-        self.S0 = 1   
+        self.R10 = 1/dc.T1(3.0, 'liver')
+        self.R10b = 1/dc.T1(3.0, 'blood')
+        self.S0 = 1
 
         # Optional parameters
-        self.vol = None      
-        
+        self.vol = None
+
         # training parameters
         self.free = {
-            'Te':[0.1, 60],
-            'De':[0, 1],
-            've':[0.01, 0.6],
-            'khe':[0, 0.1],
-            'Th':[10*60, 10*60*60],
+            'Te': [0.1, 60],
+            'De': [0, 1],
+            've': [0.01, 0.6],
+            'khe': [0, 0.1],
+            'Th': [10*60, 10*60*60],
         }
         if kinetics == 'non-stationary':
             self.free['khe_f'] = [0, 10*60]
-            self.free['Th_f'] = [ 0.1, 10*60*60]
-        
+            self.free['Th_f'] = [0.1, 10*60*60]
+
         # overide defaults
         for k, v in params.items():
             setattr(self, k, v)
 
         # Check inputs
         if (self.aif is None) and (self.ca is None):
-            raise ValueError('Please provide either an arterial sigal (aif) or an arterial concentration (ca).')  
-        
+            raise ValueError(
+                'Please provide either an arterial sigal (aif) or an arterial concentration (ca).')
+
     def time(self):
         """Array of time points.
 
@@ -164,7 +164,6 @@ class Liver(dc.Model):
                 return self.dt*np.arange(np.size(self.aif))
         else:
             return self.t
-
 
     def conc(self, sum=True):
         """Tissue concentrations
@@ -181,42 +180,46 @@ class Liver(dc.Model):
             if self.sequence == 'SR':
                 cb = dc.conc_src(self.aif, self.TC, 1/self.R10b, r1, self.n0)
             elif self.sequence == 'SS':
-                cb = dc.conc_ss(self.aif, self.TR, self.FA, 1/self.R10b, r1, self.n0)
+                cb = dc.conc_ss(self.aif, self.TR, self.FA,
+                                1/self.R10b, r1, self.n0)
             else:
-                raise NotImplementedError('Signal model ' + self.sequence + 'is not (yet) supported.') 
-            self.ca = cb/(1-self.Hct) 
+                raise NotImplementedError(
+                    'Signal model ' + self.sequence + 'is not (yet) supported.')
+            self.ca = cb/(1-self.Hct)
 
         t = self.time()
 
         if self.kinetics == 'non-stationary':
-            khe = dc.interp([self.khe*(1-self.Hct), self.khe_f*(1-self.Hct)], t)
+            khe = dc.interp(
+                [self.khe*(1-self.Hct), self.khe_f*(1-self.Hct)], t)
             Kbh = dc.interp([1/self.Th, 1/self.Th_f], t)
-            return t, dc.conc_liver(self.ca, 
-                    self.ve, self.Te, self.De, khe, 1/Kbh,
-                    t=self.t, dt=self.dt, kinetics='ICNS', sum=sum)
-        
+            return t, dc.conc_liver(self.ca,
+                                    self.ve, self.Te, self.De, khe, 1/Kbh,
+                                    t=self.t, dt=self.dt, kinetics='ICNS', sum=sum)
+
         elif self.kinetics == 'non-stationary uptake':
             self.Th_f = self.Th
-            khe = dc.interp([self.khe*(1-self.Hct), self.khe_f*(1-self.Hct)], t)
-            return t, dc.conc_liver(self.ca, 
-                    self.ve, self.Te, self.De, khe, self.Th,
-                    t=self.t, dt=self.dt, kinetics='ICNSU', sum=sum)
-        
+            khe = dc.interp(
+                [self.khe*(1-self.Hct), self.khe_f*(1-self.Hct)], t)
+            return t, dc.conc_liver(self.ca,
+                                    self.ve, self.Te, self.De, khe, self.Th,
+                                    t=self.t, dt=self.dt, kinetics='ICNSU', sum=sum)
+
         elif self.kinetics == 'stationary':
             self.khe_f = self.khe
             self.Th_f = self.Th
             khe = self.khe*(1-self.Hct)
-            return t, dc.conc_liver(self.ca, 
-                    self.ve, self.Te, self.De, khe, self.Th,
-                    t=self.t, dt=self.dt, kinetics='IC', sum=sum)
-        
+            return t, dc.conc_liver(self.ca,
+                                    self.ve, self.Te, self.De, khe, self.Th,
+                                    t=self.t, dt=self.dt, kinetics='IC', sum=sum)
+
         elif self.kinetics == 'IC-HF':
             self.khe_f = self.khe
             self.Th_f = self.Th
             khe = self.khe*(1-self.Hct)
-            return t, dc.conc_liver(self.ca, 
-                self.ve, khe, self.Th,
-                t=self.t, dt=self.dt, kinetics='IC-HF', sum=sum)
+            return t, dc.conc_liver(self.ca,
+                                    self.ve, khe, self.Th,
+                                    t=self.t, dt=self.dt, kinetics='IC-HF', sum=sum)
 
     def relax(self):
         """Tissue relaxation rate
@@ -227,9 +230,9 @@ class Liver(dc.Model):
         t, C = self.conc(sum=False)
         rp = dc.relaxivity(self.field_strength, 'blood', self.agent)
         rh = dc.relaxivity(self.field_strength, 'hepatocytes', self.agent)
-        return t, self.R10 + rp*C[0,:] + rh*C[1,:]
-    
-    def predict(self, xdata): 
+        return t, self.R10 + rp*C[0, :] + rh*C[1, :]
+
+    def predict(self, xdata):
         t, R1 = self.relax()
         # if self.signal == 'SR':
         #     signal = dc.signal_sr(R1, self.S0, self.TR, self.FA, self.TC, R10=self.R10)
@@ -239,8 +242,8 @@ class Liver(dc.Model):
             signal = dc.signal_sr(R1, self.S0, self.TR, self.FA, self.TC)
         else:
             signal = dc.signal_ss(R1, self.S0, self.TR, self.FA)
-        return dc.sample(xdata, t, signal, self.dt)
-    
+        return dc.sample(xdata, t, signal, self.TS)
+
     def train(self, xdata, ydata, **kwargs):
         """Train the free parameters
 
@@ -258,85 +261,106 @@ class Liver(dc.Model):
             Sref = dc.signal_ss(self.R10, 1, self.TR, self.FA)
         self.S0 = np.mean(ydata[:self.n0]) / Sref
         return dc.train(self, xdata, ydata, **kwargs)
-    
+
     def export_params(self):
         pars = {}
-        pars['ve']=["Liver extracellular volume fraction", self.ve, 'mL/cm3']
-        if self.kinetics=='IC-HF':
-            pars['khe']=["Hepatocellular uptake rate", self.khe, 'mL/sec/cm3']
-            pars['Th']=["Hepatocellular transit time", self.Th, 'sec']
-            pars['kbh']=["Biliary excretion rate", (1-self.ve)/self.Th, 'mL/sec/cm3']
-            pars['Khe']=["Hepatocellular tissue uptake rate", self.khe/self.ve, 'mL/sec/cm3']
-            pars['Kbh']=["Biliary tissue excretion rate", 1/self.Th, 'mL/sec/cm3']
+        pars['ve'] = ["Liver extracellular volume fraction", self.ve, 'mL/cm3']
+        if self.kinetics == 'IC-HF':
+            pars['khe'] = ["Hepatocellular uptake rate", self.khe, 'mL/sec/cm3']
+            pars['Th'] = ["Hepatocellular transit time", self.Th, 'sec']
+            pars['kbh'] = ["Biliary excretion rate",
+                           (1-self.ve)/self.Th, 'mL/sec/cm3']
+            pars['Khe'] = ["Hepatocellular tissue uptake rate",
+                           self.khe/self.ve, 'mL/sec/cm3']
+            pars['Kbh'] = ["Biliary tissue excretion rate",
+                           1/self.Th, 'mL/sec/cm3']
             if self.vol is not None:
-                pars['CL']=['Liver blood clearance', self.khe*self.vol, 'mL/sec']
-        elif self.kinetics=='stationary':
-            pars['Te']=["Extracellular transit time", self.Te, 'sec']
-            pars['De']=["Extracellular dispersion", self.De, '']
-            pars['khe']=["Hepatocellular uptake rate", self.khe, 'mL/sec/cm3']
-            pars['Th']=["Hepatocellular transit time", self.Th, 'sec']
-            pars['kbh']=["Biliary excretion rate", (1-self.ve)/self.Th, 'mL/sec/cm3']
-            pars['Khe']=["Hepatocellular tissue uptake rate", self.khe/self.ve, 'mL/sec/cm3']
-            pars['Kbh']=["Biliary tissue excretion rate", 1/self.Th, 'mL/sec/cm3']
+                pars['CL'] = ['Liver blood clearance',
+                              self.khe*self.vol, 'mL/sec']
+        elif self.kinetics == 'stationary':
+            pars['Te'] = ["Extracellular transit time", self.Te, 'sec']
+            pars['De'] = ["Extracellular dispersion", self.De, '']
+            pars['khe'] = ["Hepatocellular uptake rate", self.khe, 'mL/sec/cm3']
+            pars['Th'] = ["Hepatocellular transit time", self.Th, 'sec']
+            pars['kbh'] = ["Biliary excretion rate",
+                           (1-self.ve)/self.Th, 'mL/sec/cm3']
+            pars['Khe'] = ["Hepatocellular tissue uptake rate",
+                           self.khe/self.ve, 'mL/sec/cm3']
+            pars['Kbh'] = ["Biliary tissue excretion rate",
+                           1/self.Th, 'mL/sec/cm3']
             if self.vol is not None:
-                pars['CL']=['Liver blood clearance', self.khe*self.vol, 'mL/sec']
+                pars['CL'] = ['Liver blood clearance',
+                              self.khe*self.vol, 'mL/sec']
         else:
-            pars['Te']=["Extracellular transit time", self.Te, 'sec']
-            pars['De']=["Extracellular dispersion", self.De, '']
+            pars['Te'] = ["Extracellular transit time", self.Te, 'sec']
+            pars['De'] = ["Extracellular dispersion", self.De, '']
             khe = [self.khe, self.khe_f]
             Kbh = [1/self.Th, 1/self.Th_f]
             khe_avr = np.mean(khe)
             Kbh_avr = np.mean(Kbh)
             khe_var = (np.amax(khe)-np.amin(khe))/khe_avr
-            Kbh_var = (np.amax(Kbh)-np.amin(Kbh))/Kbh_avr 
+            Kbh_var = (np.amax(Kbh)-np.amin(Kbh))/Kbh_avr
             kbh = np.mean((1-self.ve)*Kbh_avr)
             Th = np.mean(1/Kbh_avr)
-            pars['khe']=["Hepatocellular uptake rate", khe_avr, 'mL/sec/cm3']
-            pars['Th']=["Hepatocellular transit time", Th, 'sec']
-            pars['kbh']=["Biliary excretion rate", kbh, 'mL/sec/cm3']
-            pars['Khe']=["Hepatocellular tissue uptake rate", khe_avr/self.ve, 'mL/sec/cm3']
-            pars['Kbh']=["Biliary tissue excretion rate", Kbh_avr, 'mL/sec/cm3']
-            pars['khe_i']=["Hepatocellular uptake rate (initial)", self.khe, 'mL/sec/cm3']
-            pars['khe_f']=["Hepatocellular uptake rate (final)", self.khe_f, 'mL/sec/cm3']
-            pars['Th_i']=["Hepatocellular transit time (initial)", self.Th, 'sec']
-            pars['Th_f']=["Hepatocellular transit time (final)", self.Th_f, 'sec']
-            pars['khe_var']=["Hepatocellular uptake rate variance", khe_var, '']
-            pars['Kbh_var']=["Biliary tissue excretion rate variance", Kbh_var, '']
-            pars['kbh_i']=["Biliary excretion rate (initial)", (1-self.ve)/self.Th, 'mL/sec/cm3']
-            pars['kbh_f']=["Biliary excretion rate (final)", (1-self.ve)/self.Th_f, 'mL/sec/cm3']
+            pars['khe'] = ["Hepatocellular uptake rate", khe_avr, 'mL/sec/cm3']
+            pars['Th'] = ["Hepatocellular transit time", Th, 'sec']
+            pars['kbh'] = ["Biliary excretion rate", kbh, 'mL/sec/cm3']
+            pars['Khe'] = ["Hepatocellular tissue uptake rate",
+                           khe_avr/self.ve, 'mL/sec/cm3']
+            pars['Kbh'] = ["Biliary tissue excretion rate", Kbh_avr, 'mL/sec/cm3']
+            pars['khe_i'] = [
+                "Hepatocellular uptake rate (initial)", self.khe, 'mL/sec/cm3']
+            pars['khe_f'] = [
+                "Hepatocellular uptake rate (final)", self.khe_f, 'mL/sec/cm3']
+            pars['Th_i'] = [
+                "Hepatocellular transit time (initial)", self.Th, 'sec']
+            pars['Th_f'] = [
+                "Hepatocellular transit time (final)", self.Th_f, 'sec']
+            pars['khe_var'] = ["Hepatocellular uptake rate variance", khe_var, '']
+            pars['Kbh_var'] = [
+                "Biliary tissue excretion rate variance", Kbh_var, '']
+            pars['kbh_i'] = [
+                "Biliary excretion rate (initial)", (1-self.ve)/self.Th, 'mL/sec/cm3']
+            pars['kbh_f'] = [
+                "Biliary excretion rate (final)", (1-self.ve)/self.Th_f, 'mL/sec/cm3']
             if self.vol is not None:
-                pars['CL']=['Liver blood clearance', khe_avr*self.vol, 'mL/sec']
+                pars['CL'] = ['Liver blood clearance',
+                              khe_avr*self.vol, 'mL/sec']
         return self._add_sdev(pars)
 
-    def plot(self, 
-                xdata:np.ndarray, 
-                ydata:np.ndarray,  
-                ref=None, xlim=None, fname=None, show=True):
+    def plot(self,
+             xdata: np.ndarray,
+             ydata: np.ndarray,
+             ref=None, xlim=None, fname=None, show=True):
 
         time, C = self.conc(sum=True)
         if xlim is None:
             xlim = [np.amin(time), np.amax(time)]
-        fig, (ax0, ax1) = plt.subplots(1,2,figsize=(12,5))
+        fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 5))
         ax0.set_title('Prediction of the MRI signals.')
-        ax0.plot(xdata/60, ydata, marker='o', linestyle='None', color='cornflowerblue', label='Data')
-        ax0.plot(time/60, self.predict(time), linestyle='-', linewidth=3.0, color='darkblue', label='Prediction')
-        ax0.set(xlabel='Time (min)', ylabel='MRI signal (a.u.)', xlim=np.array(xlim)/60)
+        ax0.plot(xdata/60, ydata, marker='o', linestyle='None',
+                 color='cornflowerblue', label='Data')
+        ax0.plot(time/60, self.predict(time), linestyle='-',
+                 linewidth=3.0, color='darkblue', label='Prediction')
+        ax0.set(xlabel='Time (min)', ylabel='MRI signal (a.u.)',
+                xlim=np.array(xlim)/60)
         ax0.legend()
         ax1.set_title('Reconstruction of concentrations.')
         if ref is not None:
-            ax1.plot(ref['t']/60, 1000*ref['C'], marker='o', linestyle='None', color='cornflowerblue', label='Tissue ground truth')
-            ax1.plot(ref['t']/60, 1000*ref['cp'], marker='o', linestyle='None', color='lightcoral', label='Arterial ground truth')
-        ax1.plot(time/60, 1000*C, linestyle='-', linewidth=3.0, color='darkblue', label='Tissue prediction')
-        ax1.plot(time/60, 1000*self.ca, linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
-        ax1.set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=np.array(xlim)/60)
+            ax1.plot(ref['t']/60, 1000*ref['C'], marker='o', linestyle='None',
+                     color='cornflowerblue', label='Tissue ground truth')
+            ax1.plot(ref['t']/60, 1000*ref['cp'], marker='o', linestyle='None',
+                     color='lightcoral', label='Arterial ground truth')
+        ax1.plot(time/60, 1000*C, linestyle='-', linewidth=3.0,
+                 color='darkblue', label='Tissue prediction')
+        ax1.plot(time/60, 1000*self.ca, linestyle='-', linewidth=3.0,
+                 color='darkred', label='Arterial prediction')
+        ax1.set(xlabel='Time (min)', ylabel='Concentration (mM)',
+                xlim=np.array(xlim)/60)
         ax1.legend()
-        if fname is not None:  
+        if fname is not None:
             plt.savefig(fname=fname)
         if show:
             plt.show()
         else:
             plt.close()
-
-    
-
-

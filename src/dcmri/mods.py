@@ -8,10 +8,9 @@ from scipy.optimize import curve_fit
 from tqdm import tqdm
 
 
-
-try: 
+try:
     num_workers = int(len(os.sched_getaffinity(0)))
-except: 
+except:
     num_workers = int(os.cpu_count())
 
 
@@ -47,17 +46,17 @@ class ArrayModel():
             dict: class instance
         """
         return _load(self, file, path, filename)
-    
+
     def _pix(self, p):
         raise NotImplementedError('No _pix() function defined')
-    
+
     def _predict_curve(self, args):
         xdata, x = args
         p = np.unravel_index(x, self.shape)
         pix = self._pix(p)
         return pix.predict(xdata)
-    
-    def predict(self, xdata:np.ndarray)->np.ndarray:
+
+    def predict(self, xdata: np.ndarray) -> np.ndarray:
         """Predict the data for given x-values.
 
         Args:
@@ -66,12 +65,13 @@ class ArrayModel():
         Returns:
             np.ndarray: Array of predicted y-values.
         """
-       
+
         nx = np.prod(self.shape)
         nt = np.size(xdata)
         if not self.parallel:
-            if self.verbose>0:
-                iterator = tqdm(range(nx), desc='Running predictions for '+self.__class__.__name__)
+            if self.verbose > 0:
+                iterator = tqdm(
+                    range(nx), desc='Running predictions for '+self.__class__.__name__)
             else:
                 iterator = range(nx)
             ydata = [self._predict_curve((xdata, x)) for x in iterator]
@@ -82,25 +82,24 @@ class ArrayModel():
             pool.close()
             pool.join()
         return np.stack(ydata).reshape(self.shape + (nt,))
-    
-    
+
     def _train_curve(self, args):
         xdata, ydata, kwargs, x = args
         p = np.unravel_index(x, self.shape)
         # if np.array_equal(p, [2,2]):
         #     print('')
         pix = self._pix(p)
-        pix.train(xdata, ydata[x,:], **kwargs)
+        pix.train(xdata, ydata[x, :], **kwargs)
         if hasattr(pix, 'pcov'):
             sdev = np.sqrt(np.diag(pix.pcov))
         else:
             sdev = np.zeros(len(self.free.keys()))
-        for i, par in enumerate(self.free.keys()): 
+        for i, par in enumerate(self.free.keys()):
             getattr(self, par)[p] = getattr(pix, par)
             getattr(self, 'sdev_' + par)[p] = sdev[i]
         return pix, p
-    
-    def train(self, xdata, ydata:np.ndarray, **kwargs):
+
+    def train(self, xdata, ydata: np.ndarray, **kwargs):
         """Train the free parameters
 
         Args:
@@ -114,22 +113,24 @@ class ArrayModel():
         nx = np.prod(self.shape)
         nt = ydata.shape[-1]
         if not self.parallel:
-            if self.verbose>0:
-                iterator = tqdm(range(nx), desc='Training '+self.__class__.__name__)
+            if self.verbose > 0:
+                iterator = tqdm(range(nx), desc='Training ' +
+                                self.__class__.__name__)
             else:
                 iterator = range(nx)
             for x in iterator:
-                args_x = (xdata, ydata.reshape((nx,nt)), kwargs, x)
+                args_x = (xdata, ydata.reshape((nx, nt)), kwargs, x)
                 self._train_curve(args_x)
         else:
-            args = [(xdata, ydata.reshape((nx,nt)), kwargs, x) for x in range(nx)]
+            args = [(xdata, ydata.reshape((nx, nt)), kwargs, x)
+                    for x in range(nx)]
             pool = multiprocessing.Pool(processes=num_workers)
             pool.map(self._train_curve, args)
             pool.close()
             pool.join()
         return self
-    
-    def cost(self, xdata, ydata, metric='NRMS')->float:
+
+    def cost(self, xdata, ydata, metric='NRMS') -> float:
         """Goodness-of-fit value.
 
         Args:
@@ -141,8 +142,8 @@ class ArrayModel():
             np.ndarray: goodness of fit in each element of the data array. 
         """
         return _cost(self, xdata, ydata, metric)
-    
-    def export_params(self)->list:
+
+    def export_params(self) -> list:
         """Model parameters with descriptions.
 
         Returns:
@@ -151,13 +152,13 @@ class ArrayModel():
         pars = {}
         for p in self.free.keys():
             pars[p] = [
-                p + ' name', 
-                getattr(self, p), 
-                p + ' unit', 
+                p + ' name',
+                getattr(self, p),
+                p + ' unit',
                 getattr(self, 'sdev_' + p),
             ]
         return pars
-    
+
     def _add_sdev(self, pars):
         for par in pars:
             if par in self.free:
@@ -166,22 +167,36 @@ class ArrayModel():
                 sdev = None
             pars[par].append(sdev)
         return pars
-    
+
     def _set_defaults(self, **params):
         for k, v in params.items():
             if hasattr(self, k):
-                val = getattr(self,k)
+                val = getattr(self, k)
                 if isinstance(val, np.ndarray):
-                    setattr(self, k, np.full(self.shape, v))
-                else:
+                    if isinstance(v, np.ndarray):
+                        if v.shape != self.shape:
+                            raise ValueError("""Parameter """ + str(k) + """
+                                 does not have the correct shape. """)
+                        else:
+                            setattr(self, k, v)
+                    else:
+                        setattr(self, k, np.full(self.shape, v))
+                elif val is None:
                     setattr(self, k, v)
-    
+                else:
+                    if isinstance(v, np.ndarray):
+                        msg = str(k) + " is not a pixel-based quantity. \n"
+                        msg += "Please provide a scalar initial value instead."
+                        raise ValueError(msg)
+                    else:
+                        setattr(self, k, v)
             else:
-                raise ValueError(str(k) + ' is not a valid parameter for this model.')
+                raise ValueError(
+                    str(k) + ' is not a valid parameter for this model.')
 
 
 class Model:
-    # Abstract base class for end-to-end models.                  
+    # Abstract base class for end-to-end models.
 
     def __init__(self):
         self.free = {}
@@ -223,7 +238,7 @@ class Model:
             tuple or array-like: Either an array of predicted y-values (if xdata is an array) or a tuple of such arrays (if xdata is a tuple).
         """
         raise NotImplementedError('No predict function provided')
-    
+
     def train(self, xdata, ydata, **kwargs):
         """Train the free parameters
 
@@ -237,7 +252,6 @@ class Model:
         """
         return train(self, xdata, ydata, **kwargs)
 
-
     def plot(self, xdata, ydata, xlim=None, ref=None, fname=None, show=True):
         """Plot the model fit against data
 
@@ -249,10 +263,10 @@ class Model:
             fname (path, optional): Filepath to save the image. If no value is provided, the image is not saved. Defaults to None.
             show (bool, optional): If True, the plot is shown. Defaults to True.
         """
-        raise NotImplementedError('No plot function implemented for model ' + self.__class__.__name__)
-    
-    
-    def cost(self, xdata, ydata, metric='NRMS')->float:
+        raise NotImplementedError(
+            'No plot function implemented for model ' + self.__class__.__name__)
+
+    def cost(self, xdata, ydata, metric='NRMS') -> float:
         """Return the goodness-of-fit
 
         Args:
@@ -270,8 +284,7 @@ class Model:
         """
         return _cost(self, xdata, ydata, metric)
 
-
-    def export_params(self)->list:
+    def export_params(self) -> list:
         """Return model parameters with their descriptions
 
         Returns:
@@ -282,7 +295,6 @@ class Model:
         for p in self.free:
             pars[p] = [p+' name', self.free[p], p+' unit']
         return self._add_sdev(pars)
-    
 
     def print_params(self, round_to=None):
         """Print the model parameters and their uncertainties
@@ -304,7 +316,8 @@ class Model:
             else:
                 v = round(p[1], round_to)
                 verr = round(p[3], round_to)
-            print(p[0] + ' ('+par+'): ' + str(v) + ' (' + str(verr) + ') ' + p[2])
+            print(p[0] + ' ('+par+'): ' + str(v) +
+                  ' (' + str(verr) + ') ' + p[2])
         print('')
         print('----------------------------')
         print('Fixed and derived parameters')
@@ -338,7 +351,7 @@ class Model:
             if round_to is not None:
                 v = round(v, round_to)
             pars.append(v)
-        if len(pars)==1:
+        if len(pars) == 1:
             return pars[0]
         else:
             return pars
@@ -358,38 +371,44 @@ class Model:
                 if pop in self.free:
                     self.free.pop(pop)
                 else:
-                    raise ValueError(pop +' is not currently a free parameter, so cannot be removed from the list.')
+                    raise ValueError(
+                        pop + ' is not currently a free parameter, so cannot be removed from the list.')
             else:
                 for par in pop:
                     if par in self.free:
                         self.free.pop(par)
                     else:
-                        raise ValueError(par +' is not currently a free parameter, so cannot be removed from the list.')                   
+                        raise ValueError(
+                            par + ' is not currently a free parameter, so cannot be removed from the list.')
         for k, v in kwargs.items():
             if k in self.__dict__:
-                if np.size(v)==2:
-                    if v[0]<v[1]:
-                        if (v[0]<=getattr(self, k)) and (v[1]>=getattr(self, k)):
+                if np.size(v) == 2:
+                    if v[0] < v[1]:
+                        if (v[0] <= getattr(self, k)) and (v[1] >= getattr(self, k)):
                             self.free[k] = v
                         else:
-                            raise ValueError('Cannot set parameter bounds for '+str(k)+'. The value current value '+str(getattr(self, k)) +' is outside of the bounds. ')
+                            raise ValueError('Cannot set parameter bounds for '+str(
+                                k)+'. The value current value '+str(getattr(self, k)) + ' is outside of the bounds. ')
                     else:
-                        raise ValueError(str(v) +' is not a proper parameter bound. The first element must be smaller than the second.')
+                        raise ValueError(str(
+                            v) + ' is not a proper parameter bound. The first element must be smaller than the second.')
                 else:
-                    raise ValueError(str(v) +' is not a proper parameter bound. Bounds must lists or arrays with 2 elements.')
+                    raise ValueError(str(
+                        v) + ' is not a proper parameter bound. Bounds must lists or arrays with 2 elements.')
             else:
-                raise ValueError(str(k) +' is not a model parameter.')
+                raise ValueError(str(k) + ' is not a model parameter.')
 
-
-    def _set_defaults(self, **params):
+    def _set_defaults(self, free=None, **params):
         for k, v in params.items():
             if hasattr(self, k):
                 setattr(self, k, v)
             else:
-                raise ValueError(str(k) + ' is not a valid parameter for this model.')
+                raise ValueError(
+                    str(k) + ' is not a valid parameter for this model.')
+        if free is not None:
+            self.set_free(**free)
 
-
-    def _getflat(self, attr:np.ndarray=None)->np.ndarray:
+    def _getflat(self, attr: np.ndarray = None) -> np.ndarray:
         if attr is None:
             attr = self.free.keys()
         vals = []
@@ -398,22 +417,20 @@ class Model:
             vals = np.append(vals, np.ravel(v))
         return vals
 
-
-    def _setflat(self, vals:np.ndarray, attr:np.ndarray=None):
+    def _setflat(self, vals: np.ndarray, attr: np.ndarray = None):
         if attr is None:
             attr = self.free.keys()
-        i=0
+        i = 0
         for p in attr:
             v = getattr(self, p)
             if np.isscalar(v):
                 v = vals[i]
-                i+=1
+                i += 1
             else:
                 n = np.size(v)
                 v = np.reshape(vals[i:i+n], np.shape(v))
-                i+=n
+                i += n
             setattr(self, p, v)
-                
 
     # def _x_scale(self):
     #     n = len(self.free)
@@ -430,7 +447,6 @@ class Model:
     #         if (not np.isinf(lb)) and (not np.isinf(ub)):
     #             xscale[p] = ub-lb
     #     return xscale
-
 
     def _add_sdev(self, pars):
         for par in pars:
@@ -450,12 +466,12 @@ class Model:
 def _save(model, file=None, path=None, filename='Model'):
     if file is None:
         if path is None:
-            path=os.getcwd()
+            path = os.getcwd()
         if filename.split('.')[-1] != 'pkl':
             filename += '.pkl'
         file = os.path.join(path, filename)
     elif file.split('.')[-1] != 'pkl':
-            file += '.pkl'
+        file += '.pkl'
     with open(file, 'wb') as f:
         pickle.dump(model, f, protocol=pickle.HIGHEST_PROTOCOL)
     f.close
@@ -465,12 +481,12 @@ def _save(model, file=None, path=None, filename='Model'):
 def _load(model, file=None, path=None, filename='Model'):
     if file is None:
         if path is None:
-            path=os.getcwd()
+            path = os.getcwd()
         if filename.split('.')[-1] != 'pkl':
             filename += '.pkl'
         file = os.path.join(path, filename)
     elif file.split('.')[-1] != 'pkl':
-            file += '.pkl'
+        file += '.pkl'
     with open(file, 'rb') as f:
         saved = pickle.load(f)
     model.__dict__.update(saved.__dict__)
@@ -478,7 +494,7 @@ def _load(model, file=None, path=None, filename='Model'):
     return model
 
 
-def train(model:Model, xdata, ydata, **kwargs):
+def train(model: Model, xdata, ydata, **kwargs):
 
     if isinstance(ydata, tuple):
         y = np.concatenate(ydata)
@@ -500,8 +516,8 @@ def train(model:Model, xdata, ydata, **kwargs):
     ]
     try:
         pars, model.pcov = curve_fit(
-            fit_func, None, y, p0, 
-            bounds=bounds, #x_scale=model._x_scale(),
+            fit_func, None, y, p0,
+            bounds=bounds,  # x_scale=model._x_scale(),
             **kwargs)
     except RuntimeError as e:
         msg = 'Runtime error in curve_fit -- \n'
@@ -509,13 +525,13 @@ def train(model:Model, xdata, ydata, **kwargs):
         warnings.warn(msg)
         pars = p0
         model.pcov = np.zeros((np.size(p0), np.size(p0)))
-    
+
     model._setflat(pars)
-    
+
     return model
 
 
-def _cost(model, xdata, ydata, metric='NRMS')->float:
+def _cost(model, xdata, ydata, metric='NRMS') -> float:
 
     # Predict data at all xvalues
     y = model.predict(xdata)
