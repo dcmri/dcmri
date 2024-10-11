@@ -159,8 +159,8 @@ def test_mods_tissue_array():
 
     # Plot array
     roi = dc.shepp_logan(n=n)
-    vmin = {'S0':0, 'Fp':0, 'vp':0, 'Ktrans':0, 'vi':0}
-    vmax = {'S0':np.amax(gt['S0']), 'Fp':0.01, 'vp':0.2, 'Ktrans':0.003, 've':0.5}
+    vmin = {'S0':0, 'Fp':0, 'vp':0, 'PS':0, 'vi':0}
+    vmax = {'S0':np.amax(gt['S0']), 'Fp':0.01, 'vp':0.2, 'PS':0.003, 'vi':0.5}
     image.plot(time, signal, vmax=vmax, ref=gt, show=SHOW)
     image.plot_params(roi=roi, ref=gt, vmin=vmin, vmax=vmax, show=SHOW)
     image.plot_fit(time, signal, ref=gt, roi=roi, show=SHOW,
@@ -181,8 +181,8 @@ def test_mods_tissue_array():
     nrmsc = curve.cost(time, signal_loc)
     nrmsa = image.cost(time, signal)[loc][0]
     assert np.abs(nrmsc-nrmsa) <= 0.1*nrmsc
-    cp = curve.get_params('S0','Fp','vp','Ktrans','vi')
-    ip = image.get_params('S0','Fp','vp','Ktrans','vi')
+    cp = curve.get_params('S0','Fp','vp','PS','vi')
+    ip = image.get_params('S0','Fp','vp','PS','vi')
     for i in range(len(cp)):
         assert np.abs(cp[i] - ip[i][loc][0]) <= 0.1*cp[i]
 
@@ -350,10 +350,10 @@ if __name__ == "__main__":
 
     # test_model()
     # test_mods_tissue()
-    # test_mods_tissue_array()
+    test_mods_tissue_array()
     # test_mods_aorta()
-    test_mods_aorta_liver()
-    test_mods_aorta_liver2scan()
+    # test_mods_aorta_liver()
+    # test_mods_aorta_liver2scan()
     # test_mods_liver()
     # test_mods_kidney()
     # test_mods_kidney_cort_med()

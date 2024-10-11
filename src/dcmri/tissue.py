@@ -463,10 +463,10 @@ def _relax_fx_ff(ca, R10, r1, t=None, dt=1.0, **params):
 # FR
 
 def _relax_2cx_fr(ca, R10, r1, t=None, dt=1.0, 
-                  H=None, vp=None, vi=None, Fp=None, PS=None):
+                  H=None, vb=None, vi=None, Fp=None, PS=None):
+    vp = vb * (1-H)
     C = _conc_2cx(ca, t=t, dt=dt, 
                   vp=vp, vi=vi, Fp=Fp, PS=PS)
-    vb = vp/(1-H)
     v = [vb+vi, 1-vb-vi]
     R1 = np.stack((
         rel.relax(_c(C, v[0]), R10, r1),
@@ -486,10 +486,10 @@ def _relax_2cu_fr(ca, R10, r1, t=None, dt=1.0,
     return R1, v
 
 def _relax_hf_fr(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vp=None, vi=None, PS=None):
+                 H=None, vb=None, vi=None, PS=None):
+    vp = vb * (1-H)
     C = _conc_hf(ca, t=t, dt=dt, 
                  vp=vp, vi=vi, PS=PS)
-    vb = vp/(1-H)
     v = [vb+vi, 1-vb-vi]
     R1 = np.stack((
         rel.relax(_c(C, v[0]), R10, r1),
@@ -551,10 +551,10 @@ def _relax_u_fr(ca, R10, r1, t=None, dt=1.0,
 # RF
 
 def _relax_2cx_rf(ca, R10, r1, t=None, dt=1.0, 
-                  H=None, vp=None, vi=None, Fp=None, PS=None):
+                  H=None, vb=None, vi=None, Fp=None, PS=None):
+    vp = vb * (1-H)
     C = _conc_2cx(ca, t=t, dt=dt, sum=False, 
                   vp=vp, vi=vi, Fp=Fp, PS=PS)
-    vb = vp/(1-H)
     v = [vb, 1-vb]
     R1 = np.stack((
         rel.relax(_c(C[0,:], v[0]), R10, r1),
@@ -563,10 +563,10 @@ def _relax_2cx_rf(ca, R10, r1, t=None, dt=1.0,
     return R1, v
 
 def _relax_2cu_rf(ca, R10, r1, t=None, dt=1.0, 
-                  H=None, vp=None, Fp=None, PS=None):
+                  H=None, vb=None, Fp=None, PS=None):
+    vp = vb * (1-H)
     C = _conc_2cu(ca, t=t, dt=dt, sum=False, 
                   vp=vp, Fp=Fp, PS=PS)
-    vb = vp/(1-H)
     v = [vb, 1-vb]
     R1 = np.stack((
         rel.relax(_c(C[0,:], v[0]), R10, r1),
@@ -575,10 +575,10 @@ def _relax_2cu_rf(ca, R10, r1, t=None, dt=1.0,
     return R1, v
 
 def _relax_hf_rf(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vp=None, vi=None, PS=None):
+                 H=None, vb=None, vi=None, PS=None):
+    vp = vb * (1-H)
     C = _conc_hf(ca, t=t, dt=dt, sum=False, 
                  vp=vp, vi=vi, PS=PS)
-    vb = vp/(1-H)
     v = [vb, 1-vb]
     R1 = np.stack((
         rel.relax(_c(C[0,:], v[0]), R10, r1),
@@ -587,10 +587,10 @@ def _relax_hf_rf(ca, R10, r1, t=None, dt=1.0,
     return R1, v
 
 def _relax_hfu_rf(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vp=None, PS=None):
+                 H=None, vb=None, PS=None):
+    vp = vb * (1-H)
     C = _conc_hfu(ca, t=t, dt=dt, sum=False, 
                  vp=vp, PS=PS)
-    vb = vp/(1-H)
     v = [vb, 1-vb]
     R1 = np.stack((
         rel.relax(_c(C[0,:], v[0]), R10, r1),
@@ -605,8 +605,8 @@ def _relax_wv_rf(ca, R10, r1, t=None, dt=1.0,
     return R1, 1
 
 def _relax_fx_rf(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vp=None, vi=None, Fp=None):
-    vb = vp/(1-H)
+                 H=None, vb=None, vi=None, Fp=None):
+    vp = vb * (1-H)
     ve = vp + vi
     C = _conc_fx(ca, t=t, dt=dt, ve=ve, Fp=Fp)
     v = [vb, 1-vb]
@@ -619,9 +619,9 @@ def _relax_fx_rf(ca, R10, r1, t=None, dt=1.0,
     return R1, v
 
 def _relax_nx_rf(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vp=None, Fp=None):
+                 H=None, vb=None, Fp=None):
+    vp = vb * (1-H)
     C = _conc_nx(ca, t=t, dt=dt, vp=vp, Fp=Fp)
-    vb = vp/(1-H)
     v = [vb, 1-vb]
     R1 = np.stack((
         rel.relax(_c(C, v[0]), R10, r1),
@@ -646,11 +646,11 @@ def _relax_u_rf(ca, R10, r1, t=None, dt=1.0,
 
 
 def _relax_2cx_rr(ca, R10, r1, t=None, dt=1.0, 
-                  H=None, vp=None, vi=None, 
+                  H=None, vb=None, vi=None, 
                   Fp=None, PS=None):
+    vp = vb * (1-H)
     C = _conc_2cx(ca, t=t, dt=dt, sum=False, 
                   vp=vp, vi=vi, Fp=Fp, PS=PS)
-    vb = vp/(1-H)
     v = [vb, vi, 1-vb-vi]
     R1 = np.stack((
         rel.relax(_c(C[0,:], v[0]), R10, r1),
@@ -660,11 +660,11 @@ def _relax_2cx_rr(ca, R10, r1, t=None, dt=1.0,
     return R1, v
 
 def _relax_2cu_rr(ca, R10, r1, t=None, dt=1.0, 
-                  H=None, vp=None, vi=None, 
+                  H=None, vb=None, vi=None, 
                   Fp=None, PS=None):
+    vp = vb * (1-H)
     C = _conc_2cu(ca, t=t, dt=dt, sum=False, 
                   vp=vp, Fp=Fp, PS=PS)
-    vb = vp/(1-H)
     v = [vb, vi, 1-vb-vi]
     R1 = np.stack((
         rel.relax(_c(C[0,:], v[0]), R10, r1),
@@ -674,10 +674,10 @@ def _relax_2cu_rr(ca, R10, r1, t=None, dt=1.0,
     return R1, v
 
 def _relax_hf_rr(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vp=None, vi=None, PS=None):
+                 H=None, vb=None, vi=None, PS=None):
+    vp = vb * (1-H)
     C = _conc_hf(ca, t=t, dt=dt, sum=False, 
                  vp=vp, vi=vi, PS=PS)
-    vb = vp/(1-H)
     v = [vb, vi, 1-vb-vi]
     R1 = np.stack((
         rel.relax(_c(C[0,:], v[0]), R10, r1),
@@ -687,10 +687,10 @@ def _relax_hf_rr(ca, R10, r1, t=None, dt=1.0,
     return R1, v
 
 def _relax_hfu_rr(ca, R10, r1, t=None, dt=1.0, 
-                  H=None, vp=None, vi=None, PS=None):
+                  H=None, vb=None, vi=None, PS=None):
+    vp = vb * (1-H)
     C = _conc_hfu(ca, t=t, dt=dt, sum=False, 
                  vp=vp, PS=PS)
-    vb = vp/(1-H)
     v = [vb, vi, 1-vb-vi]
     R1 = np.stack((
         rel.relax(_c(C[0,:], v[0]), R10, r1),
@@ -710,8 +710,8 @@ def _relax_wv_rr(ca, R10, r1, t=None, dt=1.0,
     return R1, v
 
 def _relax_fx_rr(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vp=None, vi=None, Fp=None):
-    vb = vp/(1-H)
+                 H=None, vb=None, vi=None, Fp=None):
+    vp = vb * (1-H)
     ve = vp + vi
     C = _conc_fx(ca, t=t, dt=dt, ve=ve, Fp=Fp)
     v = [vb, vi, 1-vb-vi]
@@ -725,9 +725,9 @@ def _relax_fx_rr(ca, R10, r1, t=None, dt=1.0,
     return R1, v
 
 def _relax_nx_rr(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vp=None, Fp=None):
+                 H=None, vb=None, Fp=None):
+    vp = vb * (1-H)
     C = _conc_nx(ca, t=t, dt=dt, vp=vp, Fp=Fp)
-    vb = vp/(1-H)
     v = [vb, 1-vb]
     R1 = np.stack((
         rel.relax(_c(C, v[0]), R10, r1),

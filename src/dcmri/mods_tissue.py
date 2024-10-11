@@ -930,7 +930,10 @@ class Tissue(mods.Model):
             np.ndarray: Concentration in M
         """
         self._check_ca()
-        pars = {p: getattr(self, p) for p in _kin_pars(self.kinetics)}
+        pars = _all_pars(self.kinetics, self.water_exchange, self.sequence, 
+                         self.__dict__)
+        pars = {p: pars[p] for p in _kin_pars(self.kinetics)}
+        # pars = {p: getattr(self, p) for p in _kin_pars(self.kinetics)}
         return tissue.conc_tissue(
             self.ca, t=self.t, dt=self.dt, sum=sum, kinetics=self.kinetics, 
             **pars)
@@ -1087,7 +1090,12 @@ class Tissue(mods.Model):
             if a in p:
                 v = p[a]
             else:
-                v = getattr(self, a)
+                if hasattr(self, a):
+                    v = getattr(self, a)
+                else:
+                    msg = (a + ' is not a model parameter, and cannot be '
+                           + 'derived from the model parameters.')
+                    raise ValueError(msg)
             if round_to is not None:
                 v = round(v, round_to)
             pars.append(v)
@@ -1180,7 +1188,9 @@ class Tissue(mods.Model):
         if C.ndim==1:
             C = C.reshape((1,-1))
         v, comps = _plot_labels_kin(self.kinetics)
-        pars = {p: getattr(self, p) for p in _kin_pars(self.kinetics)}
+        pars = _all_pars(self.kinetics, self.water_exchange, self.sequence, 
+                         self.__dict__)
+        pars = {p: pars[p] for p in _kin_pars(self.kinetics)}
         ax01.set_title('Concentration in indicator compartments')
         if ref is not None:
             # ax01.plot(ref['t']/60, 1000*ref['C'], marker='o', 
@@ -1375,26 +1385,6 @@ def _check_config(self: Tissue):
         raise ValueError(msg)
 
 
-# def _init_TS(self: Tissue):
-
-#     # Set TS
-#     if self.TS is None:
-#         if self.t is None:
-#             # With uniform sampling, assume TS=dt
-#             self.TS = self.dt
-#         else:
-#             # Raise an error if sampling is not uniform
-#             # as the sampling duration is ambiguous in that case
-#             dt = np.unique(self.t[1:] - self.t[:-1])
-#             if dt.size > 1:
-#                 raise ValueError(
-#                     """"For non-uniform time points, the sampling duration TS 
-#                         must be specified explicitly.""")
-#             else:
-#                 # With uniform sampling, assume TS=dt
-#                 self.TS = dt[0]
-
-
 # CONFIGURATIONS
 
 
@@ -1458,35 +1448,35 @@ def _relax_pars(kin, wex) -> list:
         return _kin_pars(kin)
 
     if kin == '2CX':
-        return ['H', 'vp', 'vi', 'Fp', 'PS']
+        return ['H', 'vb', 'vi', 'Fp', 'PS']
     if kin == 'HF':
-        return ['H', 'vp', 'vi', 'PS']
+        return ['H', 'vb', 'vi', 'PS']
     if kin == 'WV':
         return ['vi', 'Ktrans']
 
     if wex in ['RR', 'NN', 'NR', 'RN']:
 
         if kin == '2CU':
-            return ['H', 'vp', 'vi', 'Fp', 'PS']
+            return ['H', 'vb', 'vi', 'Fp', 'PS']
         if kin == 'HFU':
-            return ['H', 'vp', 'vi', 'PS']
+            return ['H', 'vb', 'vi', 'PS']
         if kin == 'FX':
-            return ['H', 'vp', 'vi', 'Fp']
+            return ['H', 'vb', 'vi', 'Fp']
         if kin == 'NX':
-            return ['H', 'vp', 'Fp']
+            return ['H', 'vb', 'Fp']
         if kin == 'U':
             return ['vb', 'Fp']
 
     if wex in ['RF', 'NF']:
 
         if kin == '2CU':
-            return ['H', 'vp', 'Fp', 'PS']
+            return ['H', 'vb', 'Fp', 'PS']
         if kin == 'HFU':
-            return ['H', 'vp', 'PS']
+            return ['H', 'vb', 'PS']
         if kin == 'FX':
-            return ['H', 'vp', 'vi', 'Fp']
+            return ['H', 'vb', 'vi', 'Fp']
         if kin == 'NX':
-            return ['H', 'vp', 'Fp']
+            return ['H', 'vb', 'Fp']
         if kin == 'U':
             return ['vb', 'Fp']
 
@@ -1828,11 +1818,11 @@ def _all_pars(kin, wex, seq, p):
     except KeyError:
         pass
     try:
-        p['ve'] = p['vi'] + p['vc']
+        p['vp'] = p['vb']*(1 - p['H'])
     except KeyError:
         pass
     try:
-        p['vb'] = _div(p['vp'], 1 - p['H'])
+        p['ve'] = p['vi'] + p['vc']
     except KeyError:
         pass
     try:
