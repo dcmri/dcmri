@@ -63,7 +63,7 @@ class TissueArray(mods.ArrayModel):
         **Signal parameters**
 
         - **sequence** (str, default='SS'): imaging sequence.
-        - **R10b** (float, default=1): Precontrast arterial relaxation rate in 1/sec.
+        - **R10a** (float, default=1): Precontrast arterial relaxation rate in 1/sec.
         - **R10** (array, default=np.full(shape, 1)): Precontrast tissue relaxation rate in 1/sec.
         - **S0** (array, default=np.full(shape, 1)): Scale factor for the MR signal (a.u.).
 
@@ -263,7 +263,7 @@ class TissueArray(mods.ArrayModel):
         """
         return super().cost(time, signal, metric)
 
-    def get_params(self, *args):
+    def params(self, *args):
         """Return the parameter values
 
         Args:
@@ -663,19 +663,40 @@ class Tissue(mods.Model):
         free (dict, optional): Dictionary with free parameters and their 
           bounds. If not provided, a default set of free parameters is used. 
           Defaults to None.
-        params (dict, optional): values for any tissue parameters, 
+        params (dict, optional): values for the parameters of the tissue, 
           specified as keyword parameters. Defaults are used for any that are 
           not provided. 
           
-    All tissue configurations accept the parameters  **n0** (number of 
-    precontrast samples), **r1** and **R10** (:ref:`relaxation-params`). If 
-    **aif** is provided then additionally the parameters **R10b**, **Ha** and 
-    **B1corr_a** are accepted. The other parameters depend on the sequence 
-    (:ref:`params-per-sequence`) and the kinetic regime 
-    (:ref:`kinetic-regimes`). Initial values and default ranges are set as in 
-    the table below:
+    Relevant parameters and their defaults are listed in the tables below:
 
-        .. list-table:: **Defaults for all tissue parameters** 
+        .. list-table:: **Tissue parameters** 
+            :widths: 20 30 30
+            :header-rows: 1 
+
+            * - Parameters
+              - When to use
+              - Further detail
+            * - **n0**
+              - Always
+              - :ref:`model-fitting-params`
+            * - **r1**, **R10**
+              - Always
+              - :ref:`relaxation-params`
+            * - **R10a**, **Ha**, **B1corr_a**
+              - When **aif** is provided
+              - :ref:`relaxation-params`, :ref:`params-per-sequence`
+            * - **S0**, **FA**, **TR**, **TS**, **B1corr**
+              - Always
+              - :ref:`params-per-sequence`
+            * - **TP**, **TC**
+              - If **sequence** is 'SR'
+              - :ref:`params-per-sequence`
+            * - **Fp**, **PS**, **Ktrans**, **vp**, **vb**, **H**, **vi**, 
+                **ve**, **vc**, **PSe**, **PSc**.
+              - Depends on **kinetics** and **water_exchange**
+              - :ref:`kinetic-regimes`
+
+        .. list-table:: **Parameter defaults** 
             :widths: 5 10 10 10 10
             :header-rows: 1 
 
@@ -694,19 +715,9 @@ class Tissue(mods.Model):
               - 0.7
               - [0, inf]
               - Fixed
-            * - R10b
+            * - R10a
               - Relaxation
               - 0.7
-              - [0, inf]
-              - Fixed
-            * - S0
-              - Sequence
-              - 1
-              - [0, inf]
-              - Fixed
-            * - FA
-              - Sequence
-              - 15
               - [0, inf]
               - Fixed
             * - B1corr
@@ -719,9 +730,14 @@ class Tissue(mods.Model):
               - 1
               - [0, inf]
               - Fixed
-            * - TR
+            * - FA
               - Sequence
-              - 0.005
+              - 15
+              - [0, inf]
+              - Fixed
+            * - S0
+              - Sequence
+              - 1
               - [0, inf]
               - Fixed
             * - TC
@@ -734,17 +750,22 @@ class Tissue(mods.Model):
               - 0
               - [0, inf]
               - Fixed
+            * - TR
+              - Sequence
+              - 0.005
+              - [0, inf]
+              - Fixed
             * - TS
               - Sequence
               - 0
               - [0, inf]
               - Fixed
-            * - Ha
+            * - H
               - Kinetic
               - 0.45
               - [0, 1]
               - Fixed
-            * - H
+            * - Ha
               - Kinetic
               - 0.45
               - [0, 1]
@@ -754,44 +775,14 @@ class Tissue(mods.Model):
               - 0.01
               - [0, inf]
               - Free
-            * - PS
-              - Kinetic
-              - 0.003
-              - [0, inf]
-              - Free
             * - Ktrans
               - Kinetic
               - 0.003
               - [0, inf]
               - Free
-            * - vp
+            * - PS
               - Kinetic
-              - 0.055
-              - [0, 1]
-              - Free
-            * - vb
-              - Kinetic
-              - 0.1
-              - [0, 1]
-              - Free
-            * - vi
-              - Kinetic
-              - 0.5
-              - [0, 1]
-              - Free
-            * - ve
-              - Kinetic
-              - 0.355
-              - [0, 1]
-              - Free
-            * - vc
-              - Kinetic
-              - 0.4
-              - [0, 1]
-              - Free
-            * - PSe
-              - Kinetic
-              - 0.03
+              - 0.003
               - [0, inf]
               - Free
             * - PSc
@@ -799,6 +790,37 @@ class Tissue(mods.Model):
               - 0.03
               - [0, inf]
               - Free
+            * - PSe
+              - Kinetic
+              - 0.03
+              - [0, inf]
+              - Free
+            * - vb
+              - Kinetic
+              - 0.1
+              - [0, 1]
+              - Free
+            * - vc
+              - Kinetic
+              - 0.4
+              - [0, 1]
+              - Free
+            * - ve
+              - Kinetic
+              - 0.355
+              - [0, 1]
+              - Free
+            * - vi
+              - Kinetic
+              - 0.5
+              - [0, 1]
+              - Free
+            * - vp
+              - Kinetic
+              - 0.055
+              - [0, 1]
+              - Free
+
 
     See Also:
         `Liver`, `Kidney`
@@ -817,8 +839,8 @@ class Tissue(mods.Model):
 
         >>> time, aif, roi, gt = dc.fake_tissue(CNR=50)
 
-        Build a tissue model and set the constants to match the experimental 
-        conditions of the synthetic test data:
+        Build a tissue and set the parameters to match the experimental 
+        conditions of the synthetic data:
 
         >>> model = dc.Tissue(
         ...     aif = aif,
@@ -833,8 +855,8 @@ class Tissue(mods.Model):
 
         >>> model.train(time, roi)
 
-        Plot the reconstructed signals (left) and concentrations (right) and 
-        compare the concentrations against the noise-free ground truth:
+        Plot the reconstructed signals (left) and concentrations (right), 
+        using the noise-free ground truth as reference:
 
         >>> model.plot(time, roi, ref=gt)
 
@@ -910,11 +932,11 @@ class Tissue(mods.Model):
             else:
                 if self.sequence == 'SR':
                     cb = sig.conc_src(self.aif, self.TC,
-                                      1 / self.R10b, 
+                                      1 / self.R10a, 
                                       self.relaxivity, self.n0)
                 elif self.sequence == 'SS':
                     cb = sig.conc_ss(self.aif, self.TR, self.B1corr_a*self.FA,
-                                     1 / self.R10b, 
+                                     1 / self.R10a, 
                                      self.relaxivity, self.n0)
                 self.ca = cb / (1 - self.Ha)
 
@@ -939,40 +961,44 @@ class Tissue(mods.Model):
             **pars)
 
     def relax(self):
-        """Return the tissue relaxation rate(s)
+        """Compartmental rselaxation rates, volume fractions and 
+        water-permeability matrix.
 
-        Returns:
-            np.ndarray: the free relaxation rate of all tissue compartments. 
-            In the fast water exchange limit, the relaxation rates are a 1D 
-            array. In all other situations, relaxation rates are a 2D-array 
-            with dimensions (k,n), where k is the number of compartments and 
-            n is the number of time points in ca.
+        tuple: relaxation rates of tissue compartments and their volumes.
+            - **R1** (numpy.ndarray): in the fast water exchange limit, the 
+              relaxation rates are a 1D array. In all other situations, 
+              relaxation rates are a 2D-array with dimensions (k,n), where k is 
+              the number of compartments and n is the number of time points 
+              in ca.
+            - **v** (numpy.ndarray or None): the volume fractions of the tissue 
+              compartments. Returns None in 'FF' regime. 
+            - **PSw** (numpy.ndarray or None): 2D array with water exchange 
+              rates between tissue compartments. Returns None in 'FF' regime. 
         """
         # TODO: ADD diagonal element to PSw (flow term)!!
         # Fb = self.Fp/(1-self.Hct)
         # PSw = np.array([[Fb,self.PSe,0],[self.PSe,0,self.PSc],[0,self.PSc,0]])
         self._check_ca()
-        pars = {p: getattr(self, p) for p in _relax_pars(self.kinetics, 
-                                                         self.water_exchange)}
+        pars = _tissue_pars(self.kinetics, self.water_exchange)
+        pars = {p: getattr(self, p) for p in pars}
         # TODO in FF v should be a 1-element list (and signal needs to adjust
         # accordingly)
-        R1, v = tissue.relax_tissue(self.ca, self.R10, 
+        R1, v, PSw = tissue.relax_tissue(self.ca, self.R10, 
                                     self.relaxivity, t=self.t, 
                                     dt=self.dt,
                                     kinetics=self.kinetics, 
                                     water_exchange=
                                     self.water_exchange.replace('N', 'R'), 
                                     **pars)
-        PSw = _PSw(self.kinetics, self.water_exchange, self.__dict__)
-        return R1, PSw, v
+        return R1, v, PSw
 
     def signal(self, sum=True) -> np.ndarray:
-        """Return the signal
+        """Pseudocontinuous signal
 
         Returns:
             np.ndarray: the signal as a 1D array.
         """
-        R1, PSw, v = self.relax()
+        R1, v, PSw = self.relax()
         if self.sequence == 'SR':
             if not sum:
                 raise ValueError(
@@ -987,7 +1013,7 @@ class Tissue(mods.Model):
 
     # TODO: make time optional (if not provided, assume equal to self.time())
     def predict(self, time: np.ndarray) -> np.ndarray:
-        """Predict the data at given time points
+        """Predict the data at specific time points
 
         Args:
             time (array-like): Array of time points.
@@ -1069,7 +1095,7 @@ class Tissue(mods.Model):
                 #     self.Ktrans = iv.Fp
                 #     self.v = iv.vp
 
-    def get_params(self, *args, round_to=None):
+    def params(self, *args, round_to=None):
         """Return the parameter values
 
         Args:
@@ -1140,16 +1166,16 @@ class Tissue(mods.Model):
         Args:
             time (array-like, optional): Array with time points.
             signal (array-like, optional): Array with measured signals for 
-            each element of *time*.
+              each element of *time*.
             xlim (array_like, optional): 2-element array with lower and upper 
-            boundaries of the x-axis. Defaults to None.
+              boundaries of the x-axis. Defaults to None.
             ref (tuple, optional): Tuple of optional test data in the form 
-            (x,y), where x is an array with x-values and y is an array with 
-            y-values. Defaults to None.
+              (x,y), where x is an array with x-values and y is an array with 
+              y-values. Defaults to None.
             fname (path, optional): Filepath to save the image. If no value is 
-            provided, the image is not saved. Defaults to None.
+              provided, the image is not saved. Defaults to None.
             show (bool, optional): If True, the plot is shown. Defaults to 
-            True.
+              True.
         """
         t = self.time()
         if time is None:
@@ -1212,7 +1238,7 @@ class Tissue(mods.Model):
 
         if self.water_exchange != 'FF':
 
-            R1, _, v = self.relax()
+            R1, v, PSw = self.relax()
             c = rel.c_lin(R1, self.relaxivity)
             comps = _plot_labels_relax(self.kinetics, self.water_exchange)
             if R1.ndim == 1:
@@ -1390,7 +1416,7 @@ def _check_config(self: Tissue):
 
 def _model_pars(kin, wex, seq):
     pars = ['relaxivity']
-    pars += ['Ha', 'R10b', 'B1corr_a']
+    pars += ['Ha', 'R10a', 'B1corr_a']
     pars += _seq_pars(seq)
     pars += _tissue_pars(kin, wex)
     pars += ['R10','S0','n0']
@@ -1532,7 +1558,7 @@ PARAMS = {
         'unit': '',
         'pixel_par': False,
     },
-    'R10b': {
+    'R10a': {
         'init': 0.7,
         'default_free': False,
         'bounds': [0, np.inf],
@@ -1749,64 +1775,6 @@ PARAMS = {
     },
 }
 
-
-    
-def _PSw(kin, wex, p):
-
-    if wex == 'FF':
-        return None
-
-    elif wex == 'RR':
-        if kin == 'WV':
-            PSw = [[0, p['PSc']], [p['PSc'], 0]]
-        elif kin in ['NX', 'U']:
-            PSw = [[0, p['PSe']], [p['PSe'], 0]]
-        else:
-            PSw = [[0, p['PSe'], 0], [p['PSe'], 0, p['PSc']], [0, p['PSc'], 0]]
-
-    elif wex == 'RN':
-        if kin == 'WV':
-            PSw = [[0, 0], [0, 0]]
-        elif kin in ['NX', 'U']:
-            PSw = [[0, p['PSe']], [p['PSe'], 0]]
-        else:
-            PSw = [[0, p['PSe'], 0], [p['PSe'], 0, 0], [0, 0, 0]]
-
-    elif wex == 'NR':
-        if kin == 'WV':
-            PSw = [[0, p['PSc']], [p['PSc'], 0]]
-        elif kin in ['NX', 'U']:
-            PSw = [[0, 0], [0, 0]]
-        else:
-            PSw = [[0, 0, 0], [0, 0, p['PSc']], [0, p['PSc'], 0]]
-
-    elif wex == 'NN':
-        if kin == 'WV':
-            PSw = [[0, 0], [0, 0]]
-        elif kin in ['NX', 'U']:
-            PSw = [[0, 0], [0, 0]]
-        else:
-            PSw = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
-
-    elif wex == 'RF':
-        if kin == 'WV':
-            return None
-        else:
-            PSw = [[0, p['PSe']], [p['PSe'], 0]]
-
-    elif wex == 'NF':
-        if kin == 'WV':
-            return None
-        else:
-            PSw = [[0, 0], [0, 0]]
-
-    elif wex == 'FR':
-        PSw = [[0, p['PSc']], [p['PSc'], 0]]
-
-    elif wex == 'FN':
-        PSw = [[0, 0], [0, 0]]
-
-    return np.array(PSw)
 
 
 def _all_pars(kin, wex, seq, p):

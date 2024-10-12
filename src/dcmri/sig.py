@@ -219,18 +219,38 @@ def _signal_ss_aex(PS, v, R1, S0, TR, FA, sum=True):
     return np.sin(FA)*Mag
 
 
-def signal_ss(R1, S0, TR, FA, v=1, PSw=np.inf, R10=None, sum=True) -> np.ndarray:
+def signal_ss(R1, S0, TR, FA, v=None, PSw=np.inf, R10=None, 
+              sum=True) -> np.ndarray:
     """Signal of a spoiled gradient echo sequence applied in steady state.
 
     Args:
-        R1 (array-like): Longitudinal relaxation rates in 1/sec. For a tissue with n compartments, the first dimension of R1 must be n. For a tissue with a single compartment, R1 can have any shape.
+        R1 (array-like): Longitudinal relaxation rates in 1/sec. For a tissue 
+          with n compartments, the first dimension of R1 must be n. For a 
+          tissue with a single compartment, R1 can have any shape.
         S0 (float): Signal scaling factor (arbitrary units).
-        TR (float): Repetition time, or time between successive selective excitations, in sec. 
+        TR (float): Repetition time, or time between successive selective 
+          excitations, in sec. 
         FA (float): Flip angle in degrees.
-        v (array-like, optional): volume fractions of each compartment. v=1 for a 1-compartment tissue. For a tissue with multiple compartments, the length of v must be same as the first dimension of R1 and values must add up to 1. Defaults to 1.
-        PSw (array-like, optional): Water permeability-surface area products through the interfaces between the compartments, in units of mL/sec/mL. With PSw=np.inf (default), water exchange is in the fast-exchange limit. With PSw=0, there is no water exchange between the compartments. For any intermediate level of water exchange, PSw must be a nxn array, where n is the number of compartments, and PSw[j,i] is the permeability for water moving from compartment i into j. The diagonal elements PSw[i,i] quantify the flow of water from compartment i to outside. Defaults to np.inf.
-        R10 (float, optional): R1-value where S0 is defined. If not provided, S0 is the scaling factor corresponding to infinite R10. Defaults to None.
-        sum (bool, optional): If set to True, this returns an array with the total signal. Otherwise an array is returned with the signal of each compartment separately. In that case the first dimension is the number of compartments. Defaults to True.
+        v (array-like, optional): volume fractions of each compartment. 
+          v=1 for a 1-compartment tissue. For a tissue with multiple 
+        compartments, the length of v must be same as the first dimension of 
+          R1 and values must add up to 1. Defaults to 1.
+        PSw (array-like, optional): Water permeability-surface area products 
+          through the interfaces between the compartments, in units of 
+          mL/sec/mL. With PSw=np.inf (default), water exchange is in the 
+          fast-exchange limit. With PSw=0, there is no water exchange between 
+          the compartments. For any intermediate level of water exchange, 
+          PSw must be a nxn array, where n is the number of compartments, 
+          and PSw[j,i] is the permeability for water moving from compartment 
+          i into j. The diagonal elements PSw[i,i] quantify the flow of water 
+          from compartment i to outside. Defaults to np.inf.
+        R10 (float, optional): R1-value where S0 is defined. If not provided, 
+          S0 is the scaling factor corresponding to infinite R10. Defaults 
+          to None.
+        sum (bool, optional): If set to True, this returns an array with the 
+          total signal. Otherwise an array is returned with the signal of 
+          each compartment separately. In that case the first dimension is 
+          the number of compartments. Defaults to True.
 
     Returns:
         np.ndarray: Signal in the same units as S0, e
@@ -238,10 +258,10 @@ def signal_ss(R1, S0, TR, FA, v=1, PSw=np.inf, R10=None, sum=True) -> np.ndarray
     if R10 is None:
         Sinf = S0
     else:
-        if v != 1:
+        if v is not None:
             R10 = np.full(len(v), R10)
         Sinf = S0/signal_ss(R10, 1, TR, FA, v=v, PSw=PSw)
-    if v == 1:
+    if v is None:
         sig = _signal_ss(R1, Sinf, TR, FA)
         if sum:
             return sig
