@@ -297,7 +297,7 @@ class AortaLiver(dc.Model):
 
         **Signal parameters**
 
-        - **R10b** (float, default=1): Precontrast arterial relaxation rate in 1/sec.  
+        - **R10a** (float, default=1): Precontrast arterial relaxation rate in 1/sec.  
         - **R10l** (float, default=1): Baseline R1 for the liver.
         - **S0b** (float, default=1): scale factor for the arterial MR signal in the first scan.
         - **S0l** (float, default=1): Scale factor for the liver signal.   
@@ -402,7 +402,7 @@ class AortaLiver(dc.Model):
         ------------------
         Derived parameters
         ------------------
-        Blood precontrast T1 (T10b): 1.629 sec
+        Blood precontrast T1 (T10a): 1.629 sec
         Mean circulation time (Tc): 40.916 sec
         Liver precontrast T1 (T10l): 0.752 sec
         Biliary excretion rate (kbh): 0.001 mL/sec/cm3
@@ -434,7 +434,7 @@ class AortaLiver(dc.Model):
         self.TS = None
 
         # Aorta parameters
-        self.R10b = 0.7
+        self.R10a = 0.7
         self.S0b = 1
         self.BAT = 60
         self.CO = 100
@@ -504,7 +504,7 @@ class AortaLiver(dc.Model):
     def _relax_aorta(self) -> np.ndarray:
         t, cb = self._conc_aorta()
         rp = dc.relaxivity(self.field_strength, 'plasma', self.agent)
-        return t, self.R10b + rp*cb
+        return t, self.R10a + rp*cb
 
     def _predict_aorta(self, xdata: np.ndarray) -> np.ndarray:
         self.tmax = max(xdata)+self.dt
@@ -512,10 +512,10 @@ class AortaLiver(dc.Model):
             self.tmax += self.TS
         t, R1b = self._relax_aorta()
         if self.sequence == 'SR':
-            # signal = dc.signal_src(R1b, self.S0b, self.TC, R10=self.R10b)
+            # signal = dc.signal_src(R1b, self.S0b, self.TC, R10=self.R10a)
             signal = dc.signal_src(R1b, self.S0b, self.TC)
         else:
-            # signal = dc.signal_ss(R1b, self.S0b, self.TR, self.FA, R10=self.R10b)
+            # signal = dc.signal_ss(R1b, self.S0b, self.TR, self.FA, R10=self.R10a)
             signal = dc.signal_ss(R1b, self.S0b, self.TR, self.FA)
         return dc.sample(xdata, t, signal, self.TS)
 
@@ -616,10 +616,10 @@ class AortaLiver(dc.Model):
         """
         # Estimate BAT and S0b from data
         if self.sequence == 'SR':
-            Srefb = dc.signal_sr(self.R10b, 1, self.TR, self.FA, self.TC)
+            Srefb = dc.signal_sr(self.R10a, 1, self.TR, self.FA, self.TC)
             Srefl = dc.signal_sr(self.R10l, 1, self.TR, self.FA, self.TC)
         else:
-            Srefb = dc.signal_ss(self.R10b, 1, self.TR, self.FA)
+            Srefb = dc.signal_ss(self.R10a, 1, self.TR, self.FA)
             Srefl = dc.signal_ss(self.R10l, 1, self.TR, self.FA)
         n0 = max([np.sum(xdata[0] < self.t0), 1])
         self.S0b = np.mean(ydata[0][:n0]) / Srefb
@@ -733,7 +733,7 @@ class AortaKidneys(dc.Model):
 
         **Signal parameters**
 
-        - **R10b** (float, default=1): Precontrast arterial relaxation rate in 1/sec. 
+        - **R10a** (float, default=1): Precontrast arterial relaxation rate in 1/sec. 
         - **S0b** (float, default=1): scale factor for the arterial MR signal in the first scan. 
         - **R10_lk** (float, default=1): Baseline R1 for the left kidney.
         - **S0_lk** (float, default=1): Scale factor for the left kidney signal. 
@@ -851,7 +851,7 @@ class AortaKidneys(dc.Model):
         self.TS = None
 
         # Aorta parameters
-        self.R10b = 1/dc.T1(3.0, 'blood')
+        self.R10a = 1/dc.T1(3.0, 'blood')
         self.S0b = 1
         self.BAT = 60
         self.CO = 100
@@ -932,7 +932,7 @@ class AortaKidneys(dc.Model):
     def _relax_aorta(self) -> np.ndarray:
         t, cb = self._conc_aorta()
         rp = dc.relaxivity(self.field_strength, 'plasma', self.agent)
-        return t, self.R10b + rp*cb
+        return t, self.R10a + rp*cb
 
     def _predict_aorta(self, xdata: np.ndarray) -> np.ndarray:
         self.tmax = max(xdata)+self.dt
@@ -940,10 +940,10 @@ class AortaKidneys(dc.Model):
             self.tmax += self.TS
         t, R1b = self._relax_aorta()
         if self.sequence == 'SR':
-            # signal = dc.signal_src(R1b, self.S0b, self.TC, R10=self.R10b)
+            # signal = dc.signal_src(R1b, self.S0b, self.TC, R10=self.R10a)
             signal = dc.signal_src(R1b, self.S0b, self.TC)
         else:
-            # signal = dc.signal_ss(R1b, self.S0b, self.TR, self.FA, R10=self.R10b)
+            # signal = dc.signal_ss(R1b, self.S0b, self.TR, self.FA, R10=self.R10a)
             signal = dc.signal_ss(R1b, self.S0b, self.TR, self.FA)
         return dc.sample(xdata, t, signal, self.TS)
 
@@ -1049,11 +1049,11 @@ class AortaKidneys(dc.Model):
         """
         # Estimate BAT and S0b from data
         if self.sequence == 'SR':
-            Srefb = dc.signal_sr(self.R10b, 1, self.TR, self.FA, self.TC)
+            Srefb = dc.signal_sr(self.R10a, 1, self.TR, self.FA, self.TC)
             Sref_lk = dc.signal_sr(self.R10_lk, 1, self.TR, self.FA, self.TC)
             Sref_rk = dc.signal_sr(self.R10_rk, 1, self.TR, self.FA, self.TC)
         else:
-            Srefb = dc.signal_ss(self.R10b, 1, self.TR, self.FA)
+            Srefb = dc.signal_ss(self.R10a, 1, self.TR, self.FA)
             Sref_lk = dc.signal_ss(self.R10_lk, 1, self.TR, self.FA)
             Sref_rk = dc.signal_ss(self.R10_rk, 1, self.TR, self.FA)
         self.S0b = np.mean(ydata[0][:self.n0]) / Srefb
@@ -1130,7 +1130,7 @@ class AortaKidneys(dc.Model):
         pars = {}
 
         # Aorta
-        pars['T10b'] = ['Blood precontrast T1', 1/self.R10b, "sec"]
+        pars['T10a'] = ['Blood precontrast T1', 1/self.R10a, "sec"]
         pars['rate'] = ['Injection rate', self.rate, "mL/sec"]
         pars['BAT'] = ['Bolus arrival time', self.BAT, "sec"]
         pars['CO'] = ['Cardiac output', self.CO, "mL/sec"]
@@ -1231,7 +1231,7 @@ class AortaLiver2scan(AortaLiver):
 
         **Signal parameters**
 
-        - **R10b** (float, default=1): Precontrast arterial relaxation rate in 1/sec. 
+        - **R10a** (float, default=1): Precontrast arterial relaxation rate in 1/sec. 
         - **R102b** (float, default=1): Precontrast arterial relaxation rate in the second scan in 1/sec. 
         - **R10l** (float, default=1): Baseline R1 for the liver.
         - **R102l** (float, default=1): Baseline R1 for the liver (second scan).
@@ -1344,7 +1344,7 @@ class AortaLiver2scan(AortaLiver):
         ------------------
         Derived parameters
         ------------------
-        Blood precontrast T1 (T10b): 1.629 sec
+        Blood precontrast T1 (T10a): 1.629 sec
         Mean circulation time (Tc): 43.318 sec
         Liver precontrast T1 (T10l): 0.752 sec
         Biliary excretion rate (kbh): 0.002 mL/sec/cm3
@@ -1382,7 +1382,7 @@ class AortaLiver2scan(AortaLiver):
         self.t0 = 0
 
         # Signal
-        self.R10b = 1/dc.T1(3.0, 'blood')
+        self.R10a = 1/dc.T1(3.0, 'blood')
         self.R102b = 1/dc.T1(3.0, 'blood')
         self.S0b = 1
         self.S02b = 1
@@ -1544,12 +1544,12 @@ class AortaLiver2scan(AortaLiver):
 
         # Estimate S0
         if self.sequence == 'SR':
-            Srefb = dc.signal_sr(self.R10b, 1, self.TR, self.FA, self.TC)
+            Srefb = dc.signal_sr(self.R10a, 1, self.TR, self.FA, self.TC)
             Sref2b = dc.signal_sr(self.R102b, 1, self.TR, self.FA, self.TC)
             Srefl = dc.signal_sr(self.R10l, 1, self.TR, self.FA, self.TC)
             Sref2l = dc.signal_sr(self.R102l, 1, self.TR, self.FA, self.TC)
         else:
-            Srefb = dc.signal_ss(self.R10b, 1, self.TR, self.FA)
+            Srefb = dc.signal_ss(self.R10a, 1, self.TR, self.FA)
             Sref2b = dc.signal_ss(self.R102b, 1, self.TR, self.FA)
             Srefl = dc.signal_ss(self.R10l, 1, self.TR, self.FA)
             Sref2l = dc.signal_ss(self.R102l, 1, self.TR, self.FA)
@@ -1726,7 +1726,7 @@ def _plot_data1scan(t: np.ndarray, sig: np.ndarray,
 def _aorta_liver_params(self):
     pars = {}
     # Aorta
-    pars['T10b'] = ['Blood precontrast T1', 1/self.R10b, "sec"]
+    pars['T10a'] = ['Blood precontrast T1', 1/self.R10a, "sec"]
     pars['BAT'] = ['Bolus arrival time', self.BAT, "sec"]
     pars['CO'] = ['Cardiac output', self.CO, "mL/sec"]
     pars['Thl'] = ['Heart-lung mean transit time', self.Thl, "sec"]

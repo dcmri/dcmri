@@ -10,7 +10,7 @@ def fake_aif(
     field_strength=3.0,
     agent='gadodiamide',
     Hct=0.45,
-    R10b=1/dc.T1(3.0, 'blood'),
+    R10a=1/dc.T1(3.0, 'blood'),
     S0b=150,
     sequence='SS',
     TR=0.005,
@@ -28,7 +28,7 @@ def fake_aif(
         field_strength (float, optional): B0 field in T. Defaults to 3.0.
         agent (str, optional): Contrast agent generic name. Defaults to 'gadodiamide'.
         Hct (float, optional): Hematocrit. Defaults to 0.45.
-        R10b (_type_, optional): Precontrast relaxation rate for blood in 1/sec. Defaults to 1/dc.T1(3.0, 'blood').
+        R10a (_type_, optional): Precontrast relaxation rate for blood in 1/sec. Defaults to 1/dc.T1(3.0, 'blood').
         S0b (int, optional): Signal scaling factor in blood (arbitrary units). Defaults to 150.
         sequence (str, optional): Scanning sequences, either steady-state ('SS') or saturation-recovery ('SR')
         TR (float, optional): Repetition time in sec. Defaults to 0.005.
@@ -47,7 +47,7 @@ def fake_aif(
     t = np.arange(0, tacq+dt, dt_sim)
     cp = dc.aif_parker(t, BAT)
     rp = dc.relaxivity(field_strength, 'plasma', agent)
-    R1b = R10b + rp*cp*(1-Hct)
+    R1b = R10a + rp*cp*(1-Hct)
     if sequence == 'SS':
         aif = dc.signal_ss(R1b, S0b, TR, FA)
     elif sequence == 'SR':
@@ -71,7 +71,7 @@ def fake_brain(
     field_strength=3.0,
     agent='gadodiamide',
     Hct=0.45,
-    R10b=1/dc.T1(3.0, 'blood'),
+    R10a=1/dc.T1(3.0, 'blood'),
     S0=150,
     sequence='SS',
     TR=0.005,
@@ -92,7 +92,7 @@ def fake_brain(
         field_strength (float, optional): B0 field in T. Defaults to 3.0.
         agent (str, optional): Contrast agent generic name. Defaults to 'gadodiamide'.
         Hct (float, optional): Hematocrit. Defaults to 0.45.
-        R10b (_type_, optional): Precontrast relaxation rate for blood in 1/sec. Defaults to 1/dc.T1(3.0, 'blood').
+        R10a (_type_, optional): Precontrast relaxation rate for blood in 1/sec. Defaults to 1/dc.T1(3.0, 'blood').
         S0 (int, optional): Signal scaling factor for tissue (arbitrary units). Defaults to 150.
         sequence (str, optional): Scanning sequences, either steady-state ('SS') or saturation-recovery ('SR')
         TR (float, optional): Repetition time in sec. Defaults to 0.005.
@@ -145,7 +145,7 @@ def fake_brain(
 
     # Arterial signal
     rp = dc.relaxivity(field_strength, 'plasma', agent)
-    R1b = R10b + rp*cp*(1-Hct)
+    R1b = R10a + rp*cp*(1-Hct)
     if sequence == 'SS':
         aif = dc.signal_ss(R1b, S0, TR, FA)
     elif sequence == 'SR':
@@ -221,7 +221,7 @@ def fake_tissue(
     field_strength=3.0,
     agent='gadodiamide',
     Hct=0.45,
-    R10b=1/dc.T1(3.0, 'blood'),
+    R10a=1/dc.T1(3.0, 'blood'),
     R10=1/dc.T1(3.0, 'muscle'),
     S0b=100,
     S0=150,
@@ -245,7 +245,7 @@ def fake_tissue(
         field_strength (float, optional): B0 field in T. Defaults to 3.0.
         agent (str, optional): Contrast agent generic name. Defaults to 'gadodiamide'.
         Hct (float, optional): Hematocrit. Defaults to 0.45.
-        R10b (_type_, optional): Precontrast relaxation rate for blood in 1/sec. Defaults to 1/dc.T1(3.0, 'blood').
+        R10a (_type_, optional): Precontrast relaxation rate for blood in 1/sec. Defaults to 1/dc.T1(3.0, 'blood').
         R10 (int, optional): Precontrast relaxation rate for tissue in 1/sec. Defaults to 1.
         S0b (int, optional): Signal scaling factor for blood (arbitrary units). Defaults to 100.
         S0 (int, optional): Signal scaling factor for tissue (arbitrary units). Defaults to 150.
@@ -269,7 +269,7 @@ def fake_tissue(
     C = dc.conc_tissue(cp, dt=dt_sim, kinetics='2CX',
                        Fp=Fp, vp=vp, PS=PS, vi=ve)
     rp = dc.relaxivity(field_strength, 'plasma', agent)
-    R1b = R10b + rp*cp*(1-Hct)
+    R1b = R10a + rp*cp*(1-Hct)
     R1 = R10 + rp*C
     if sequence == 'SS':
         aif = dc.signal_ss(R1b, S0b, TR, FA)
@@ -302,7 +302,7 @@ def fake_tissue2scan(
     field_strength=3.0,
     agent='gadodiamide',
     Hct=0.45,
-    R10b=1/dc.T1(3.0, 'blood'),
+    R10a=1/dc.T1(3.0, 'blood'),
     R10=1/dc.T1(3.0, 'muscle'),
     S0b1=100,
     S01=150,
@@ -329,7 +329,7 @@ def fake_tissue2scan(
         field_strength (float, optional): B0 field in T. Defaults to 3.0.
         agent (str, optional): Contrast agent generic name. Defaults to 'gadodiamide'.
         Hct (float, optional): Hematocrit. Defaults to 0.45.
-        R10b (_type_, optional): Precontrast relaxation rate for blood in 1/sec. Defaults to 1/dc.T1(3.0, 'blood').
+        R10a (_type_, optional): Precontrast relaxation rate for blood in 1/sec. Defaults to 1/dc.T1(3.0, 'blood').
         R10 (int, optional): Precontrast relaxation rate for tissue in 1/sec. Defaults to 1.
         S0b1 (int, optional): Signal scaling factor for blood in the first scan (arbitrary units). Defaults to 100.
         S01 (int, optional): Signal scaling factor for tissue in the first scan (arbitrary units). Defaults to 150.
@@ -357,7 +357,7 @@ def fake_tissue2scan(
     C = dc.conc_tissue(cp, dt=dt_sim, kinetics='2CX',
                        Fp=Fp, vp=vp, PS=PS, vi=ve)
     rp = dc.relaxivity(field_strength, 'plasma', agent)
-    R1b = R10b + rp*cp*(1-Hct)
+    R1b = R10a + rp*cp*(1-Hct)
     R1 = R10 + rp*C
 
     # Generate the signals from the first scan
@@ -414,7 +414,7 @@ def fake_kidney_cortex_medulla(
     field_strength=3.0,
     agent='gadoterate',
     Hct=0.45,
-    R10b=1/dc.T1(3.0, 'blood'),
+    R10a=1/dc.T1(3.0, 'blood'),
     R10c=1/dc.T1(3.0, 'kidney'),
     R10m=1/dc.T1(3.0, 'kidney'),
     S0b=100,
@@ -444,7 +444,7 @@ def fake_kidney_cortex_medulla(
         field_strength (float, optional): B0 field in T. Defaults to 3.0.
         agent (str, optional): Contrast agent generic name. Defaults to 'gadodiamide'.
         Hct (float, optional): Hematocrit. Defaults to 0.45.
-        R10b (float, optional): Precontrast relaxation rate for blood in 1/sec. Defaults to 1/dc.T1(3.0, 'blood').
+        R10a (float, optional): Precontrast relaxation rate for blood in 1/sec. Defaults to 1/dc.T1(3.0, 'blood').
         R10c (float, optional): Precontrast relaxation rate for cortex in 1/sec. Defaults to 1.
         R10m (float, optional): Precontrast relaxation rate for cortex in 1/sec. Defaults to 1.
         S0b (float, optional): Signal scaling factor for blood (arbitrary units). Defaults to 100.
@@ -468,7 +468,7 @@ def fake_kidney_cortex_medulla(
     Cc, Cm = dc.conc_kidney_cortex_medulla(
         cp, Fp, Eg, fc, Tg, Tv, Tpt, Tlh, Tdt, Tcd, dt=dt_sim, kinetics='7C')
     rp = dc.relaxivity(field_strength, 'plasma', agent)
-    R1b = R10b + rp*cp*(1-Hct)
+    R1b = R10a + rp*cp*(1-Hct)
     R1c = R10c + rp*Cc
     R1m = R10m + rp*Cm
     if sequence == 'SS':

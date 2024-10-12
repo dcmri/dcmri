@@ -46,7 +46,7 @@ aif = {
     't': t,
     'aif': aif, 
     'relaxivity': dc.relaxivity(3, 'blood', 'gadodiamide'), 
-    'R10b': 1/dc.T1(3.0,'blood'),
+    'R10a': 1/dc.T1(3.0,'blood'),
 }
 
 
@@ -206,7 +206,7 @@ plt.show()
 tissue_nn = dc.Tissue('2CX','NN', **aif)
 
 # Save the ground truth values 
-truth = tissue_nn.get_params('vp','vi','Ktrans')
+truth = tissue_nn.params('vp','vi','Ktrans')
 
 # Train the tissue on the fast-exchange signal and plot results
 tissue_nn.train(t, signal_ff)
@@ -217,7 +217,7 @@ tissue_nn.plot(t, signal_ff)
 # accuracy. However, the reconstructed magnetization is incorrect for fast 
 # exchange tissue, and the reconstructed parameters are severely biased:
 
-rec = tissue_nn.get_params('vp','vi','Ktrans')
+rec = tissue_nn.params('vp','vi','Ktrans')
 print('vp error:', round(100*(rec[0]-truth[0])/truth[0],1), '%')
 print('vi error:', round(100*(rec[1]-truth[1])/truth[1],1), '%')
 print('Ktrans error:', round(100*(rec[2]-truth[2])/truth[2],1), '%')
@@ -241,7 +241,7 @@ tissue.plot(t, signal_ff)
 # magnetization is close to the fast exchange limit. Also the measurements of 
 # the kinetic parameters are more accurate:
 
-rec = tissue.get_params('vp','vi','Ktrans')
+rec = tissue.params('vp','vi','Ktrans')
 print('vp error:', round(100*(rec[0]-truth[0])/truth[0],1), '%')
 print('vi error:', round(100*(rec[1]-truth[1])/-truth[1],1), '%')
 print('Ktrans error:', round(100*(rec[2]-truth[2])/truth[2],1), '%')
@@ -252,7 +252,7 @@ print('Ktrans error:', round(100*(rec[2]-truth[2])/truth[2],1), '%')
 # infinite water PS, this nevertheless produces values that correspond to 
 # extremely high levels of water exchange: 
 
-rec = tissue.get_params('PSe', 'PSc', round_to=0)
+rec = tissue.params('PSe', 'PSc', round_to=0)
 print('PSe:', rec[0], 'mL/sec/cm3')
 print('PSc:', rec[1], 'mL/sec/cm3')
 
@@ -271,7 +271,7 @@ tissue.plot(t, signal_ff)
 # The tissue now predicts the data correctly and the kinetic parameters are 
 # recovered exactly:
 
-rec = tissue.get_params('vp','vi','Ktrans')
+rec = tissue.params('vp','vi','Ktrans')
 print('vp error:', round(100*(rec[0]-truth[0])/truth[0],1), '%')
 print('vi error:', round(100*(rec[1]-truth[1])/-truth[1],1), '%')
 print('Ktrans error:', round(100*(rec[2]-truth[2])/truth[2],1), '%')

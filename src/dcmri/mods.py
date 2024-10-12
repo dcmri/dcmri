@@ -333,7 +333,7 @@ class Model:
                 print(p[0] + ' ('+par+'): ' + str(v) + ' ' + p[2])
 
     # TODO rationalise getters and setters
-    def get_params(self, *args, round_to=None):
+    def params(self, *args, round_to=None):
         """Return the parameter values
 
         Args:
@@ -357,14 +357,17 @@ class Model:
             return pars
 
     def set_free(self, pop=None, **kwargs):
-        """Set bounds for free model parameters.
+        """Set the free model parameters.
 
         Args:
-            pop (str or list): a single variable or a list of variables to remove from the list of free parameters. 
+            pop (str or list): a single variable or a list of variables to 
+              remove from the list of free parameters. 
 
         Raises:
-            ValueError: if the pop argument contains a parameter that is not in the list of free parameters.
-            ValueError: If the parameter is not a model parameter, or bounds are not properly formatted.
+            ValueError: if the pop argument contains a parameter that is not 
+              in the list of free parameters.
+            ValueError: If the parameter is not a model parameter, or bounds 
+              are not properly formatted.
         """
         if pop is not None:
             if np.isscalar(pop):
