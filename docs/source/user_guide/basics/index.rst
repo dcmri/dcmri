@@ -12,6 +12,7 @@ Basic concepts
    relaxation
    magnetization
    signals
+   fitting
 
 
 

@@ -6,4 +6,7 @@ Tissue types
 .. toctree::
    :maxdepth: 2
 
-   tissues
+   exchange
+   liver
+   kidney
+   whole_body
