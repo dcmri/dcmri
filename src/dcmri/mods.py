@@ -21,6 +21,10 @@ class ArrayModel():
         self.shape = None
         self.free = {}
 
+    def _par_values(self):
+        return {par: getattr(self, par) for par in self.__dict__ if par not in ['free', 'shape']}
+
+
     def params(self, *args, round_to=None):
         """Return the parameter values
 
@@ -237,6 +241,9 @@ class Model:
     def __init__(self):
         self.free = {}
         self.pcov = None
+
+    def _par_values(self):
+        return {par: getattr(self, par) for par in self.__dict__ if par not in ['free', 'pcov']}
 
     def save(self, file=None, path=None, filename='Model'):
         """Save the current state of the model

@@ -115,7 +115,6 @@ def test_mods_tissue():
     for k in ['U', 'NX', 'FX', 'WV', 'HFU', 'HF', '2CU', '2CX']:
         for e in ['R','F','N']:
             for c in ['R','F','N']:
-                print(k, e+c)
                 params['water_exchange'] = e+c
                 params['kinetics'] = k
                 model = dc.Tissue(**params)
@@ -349,9 +348,9 @@ if __name__ == "__main__":
 
     # make_tmp()
 
-    # test_model()
-    test_mods_tissue()
-    test_mods_tissue_array()
+    test_model()
+    # test_mods_tissue()
+    # test_mods_tissue_array()
     # test_mods_aorta()
     # test_mods_aorta_liver()
     # test_mods_aorta_liver2scan()

@@ -35,7 +35,7 @@ def test_signal_ss():
     else:
         assert False
     R1 = [1,1]
-    S = dc.signal_ss(R1, S0, TR, FA, v=v)
+    S = dc.signal_ss(R1, S0, TR, FA, v=v, PSw=np.inf)
     assert S==0
     S = dc.signal_ss(R1, S0, TR, FA, v=v, PSw=0)
     assert S==0
@@ -43,7 +43,7 @@ def test_signal_ss():
     S = dc.signal_ss(R1, S0, TR, FA, v=v, PSw=PSw)
     assert S==0
     R1 = np.ones((2,10))
-    S = dc.signal_ss(R1, S0, TR, FA, v=v)
+    S = dc.signal_ss(R1, S0, TR, FA, v=v, PSw=np.inf)
     assert 0==np.linalg.norm(S)
     S = dc.signal_ss(R1, S0, TR, FA, v=v, PSw=0)
     assert 0==np.linalg.norm(S)
@@ -88,7 +88,7 @@ def test_signal_ss():
     assert np.round(S)==5
     R1 = [1,1]
     v = [0.5, 0.5]
-    S = dc.signal_ss(R1, S0, TR, FA, v=v, R10=R1[0])
+    S = dc.signal_ss(R1, S0, TR, FA, v=v, R10=R1[0], PSw=np.inf)
     assert np.round(S)==5
 
 
