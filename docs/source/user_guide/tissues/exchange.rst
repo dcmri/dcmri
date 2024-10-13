@@ -122,12 +122,11 @@ Table :ref:`two-site-exchange-kinetics` lists all kinetic models for exchange
 tissues, along with alternative names and their free parameters. 
 
 Table :ref:`kinetic-regimes` list the water compartments and free parameters 
-for all tissues with water exchange regimes FR, RF, and RR. In fast water 
-exchange (FF), the parameters are the same as those in Table 
-:ref:`two-site-exchange-kinetics`. Regimes without water exchange across one 
-or both of the barriers are not listed explicitly (FN, NF, FR, NR and NN). 
-They differ from restricted water exchange only in that they fix the 
-respective water permeabilities (*PSe* or *PSc*) to zero. 
+for all tissues with water exchange regimes FF, FR, RF, and RR. Regimes 
+without water exchange across one or both of the barriers are not listed 
+explicitly (FN, NF, FR, NR and NN). They differ from restricted water 
+exchange only in that they fix the respective water permeabilities 
+(*PSe* or *PSc*) to zero. 
 
 .. _two-site-tissue-params:
 .. list-table:: **Tissue parameters**
@@ -239,6 +238,46 @@ respective water permeabilities (*PSe* or *PSc*) to zero.
       - Indicator exchange
       - Water compartments
       - Free parameters
+    * - **FF**
+      - 
+      - 
+      - 
+    * - FF
+      - 2CX
+      - vb + vi + vc
+      - vp, vi, Fp, PS
+    * - FF
+      - 2CU
+      - vb + vi + vc
+      - vp, Fp, PS
+    * - FF
+      - HF
+      - vb + vi + vc
+      - vp, vi, PS
+    * - FF
+      - HFU
+      - vb + vi + vc
+      - vp, PS
+    * - FF
+      - FX
+      - vb + vi + vc 
+      - ve, Fp  
+    * - FF
+      - NX
+      - vb + vi + vc
+      - vp, Fp  
+    * - FF
+      - U
+      - vb + vi + vc
+      - Fp 
+    * - FF
+      - WV
+      - vb + vi + vc
+      - vi, Ktrans
+    * - **RR**
+      - 
+      - 
+      - 
     * - RR
       - 2CX
       - vb, vi, vc
@@ -261,16 +300,20 @@ respective water permeabilities (*PSe* or *PSc*) to zero.
       - PSe, PSc, H, vb, vi, Fp  
     * - RR
       - NX
-      - vb, vi+vc 
-      - PSe, H, vb, Fp  
+      - vb, vi, vc 
+      - PSe, H, vb, vi, Fp  
     * - RR
       - U
-      - vb, vi+vc 
-      - PSe, vb, Fp 
+      - vb, vi, vc 
+      - PSe, vb, vi, Fp 
     * - RR
       - WV
       - vi, vi+vc
       - PSc, vi, Ktrans
+    * - **RF**
+      - 
+      - 
+      - 
     * - RF
       - 2CX
       - vb, vi+vc
@@ -302,7 +345,11 @@ respective water permeabilities (*PSe* or *PSc*) to zero.
     * - RF
       - WV
       - vi+vc
-      - vi, Ktrans 
+      - vi, Ktrans
+    * - **FR**
+      - 
+      - 
+      -  
     * - FR
       - 2CX
       - vb+vi, vc

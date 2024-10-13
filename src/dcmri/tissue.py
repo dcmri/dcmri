@@ -6,7 +6,6 @@ import dcmri.utils as utils
 import dcmri.rel as rel
 
 
-# TODO: HF and 2CXM params the same across WX regimes
 def relax_tissue(ca: np.ndarray, R10: float, r1: float, t=None, dt=1.0, 
                  kinetics='2CX', water_exchange='FF', **params):
     """Free relaxation rates for a 2-site exchange tissue and different water 
@@ -47,8 +46,8 @@ def relax_tissue(ca: np.ndarray, R10: float, r1: float, t=None, dt=1.0,
 
     Example:
 
-        Plot the free relaxation rates for a 2-compartment exchange model 
-        with intermediate water exchange:
+        Compare the free relaxation rates without water exchange against 
+        relaxation rates in fast exchange:
 
     .. plot::
         :include-source:
@@ -68,11 +67,13 @@ def relax_tissue(ca: np.ndarray, R10: float, r1: float, t=None, dt=1.0,
         >>> pf = {'vp':0.05, 'vi':0.3, 'Fp':0.01, 'PS':0.005}   
         >>> pn = {'H':0.5, 'vb':0.1, 'vi':0.3, 'Fp':0.01, 'PS':0.005}                                # All parameters
 
-        Calculate tissue relaxation rates R1r without water exchange, 
+        Calculate tissue relaxation rates without water exchange, 
         and also in the fast exchange limit for comparison:
 
-        >>> R1f, _, _ = dc.relax_tissue(ca, R10, r1, t=t, water_exchange='FF', **pf)
-        >>> R1r, _, _ = dc.relax_tissue(ca, R10, r1, t=t, water_exchange='RR', **pn)
+        >>> R1f, _, _ = dc.relax_tissue(ca, R10, r1, t=t, 
+        >>>                             water_exchange='FF', **pf)
+        >>> R1n, _, _ = dc.relax_tissue(ca, R10, r1, t=t, 
+        >>>                             water_exchange='NN', **pn)
 
         Plot the relaxation rates in the three compartments, and compare 
         against the fast exchange result:
@@ -82,11 +83,11 @@ def relax_tissue(ca: np.ndarray, R10: float, r1: float, t=None, dt=1.0,
         Plot restricted water exchange in the left panel:
 
         >>> ax0.set_title('Restricted water exchange')
-        >>> ax0.plot(t/60, R1r[0,:], linestyle='-', 
+        >>> ax0.plot(t/60, R1n[0,:], linestyle='-', 
         >>>          linewidth=2.0, color='darkred', label='Blood')
-        >>> ax0.plot(t/60, R1r[1,:], linestyle='-', 
+        >>> ax0.plot(t/60, R1n[1,:], linestyle='-', 
         >>>          linewidth=2.0, color='darkblue', label='Interstitium')
-        >>> ax0.plot(t/60, R1r[2,:], linestyle='-', 
+        >>> ax0.plot(t/60, R1n[2,:], linestyle='-', 
         >>>          linewidth=2.0, color='grey', label='Cells')
         >>> ax0.set_xlabel('Time (min)')
         >>> ax0.set_ylabel('Compartment relaxation rate (1/sec)')
@@ -106,18 +107,31 @@ def relax_tissue(ca: np.ndarray, R10: float, r1: float, t=None, dt=1.0,
 
     # Check configuration
     if kinetics not in ['U', 'FX', 'NX', 'WV', 'HFU', 'HF', '2CU', '2CX']:
-        msg = "Kinetic model '" + str(kinetics) + "' is not recognised.\n"
-        msg += "Possible values are: 'U', 'FX', 'NX', 'WV', 'HFU', 'HF', '2CU' and '2CX'."
-        raise ValueError(msg)
+        raise ValueError(
+            "Kinetic model '" + str(kinetics) + 
+            "' is not recognised.\n Possible values are: " +
+            "'U', 'FX', 'NX', 'WV', 'HFU', 'HF', '2CU' and '2CX'."
+        )
+    
+    if (water_exchange[0] not in ['F', 'R', 'N']) or (
+        water_exchange[1] not in ['F', 'R', 'N']):
+        raise ValueError(
+            "Water exchange regime '" +
+            str(water_exchange) + "' is not recognised.\n" + 
+            "Possible values are: 'FF','RF','NF','FR','RR','NR','FN','RN','NN'"
+        )
 
-    if water_exchange not in ['FF', 'RF', 'FR', 'RR']:
-        msg = "Water exchange regime '" + \
-            str(water_exchange) + "' is not recognised.\n"
-        msg += "Possible values are: 'FF','RF','FR','RR'."
-        raise ValueError(msg)
+    if water_exchange[0] == 'N':
+        if kinetics != 'WV':
+            params['PSe'] = 0
+
+    if water_exchange[1] == 'N':
+        params['PSc'] = 0    
+
+    wex = water_exchange.replace('N','R')
 
     # Distribute cases
-    if water_exchange == 'FF':
+    if wex == 'FF':
 
         if kinetics == 'U':
             return _relax_u_ff(ca, R10, r1, t=t, dt=dt, **params)
@@ -136,7 +150,7 @@ def relax_tissue(ca: np.ndarray, R10: float, r1: float, t=None, dt=1.0,
         elif kinetics == '2CX':
             return _relax_2cx_ff(ca, R10, r1, t=t, dt=dt, **params)
 
-    elif water_exchange == 'RF':
+    elif wex == 'RF':
 
         if kinetics == 'U':
             return _relax_u_rf(ca, R10, r1, t=t, dt=dt, **params)
@@ -155,7 +169,7 @@ def relax_tissue(ca: np.ndarray, R10: float, r1: float, t=None, dt=1.0,
         elif kinetics == '2CX':
             return _relax_2cx_rf(ca, R10, r1, t=t, dt=dt, **params)
 
-    elif water_exchange == 'FR':
+    elif wex == 'FR':
 
         if kinetics == 'U':
             return _relax_u_fr(ca, R10, r1, t=t, dt=dt, **params)
@@ -174,7 +188,7 @@ def relax_tissue(ca: np.ndarray, R10: float, r1: float, t=None, dt=1.0,
         elif kinetics == '2CX':
             return _relax_2cx_fr(ca, R10, r1, t=t, dt=dt, **params)
 
-    elif water_exchange == 'RR':
+    elif wex == 'RR':
 
         if kinetics == 'U':
             return _relax_u_rr(ca, R10, r1, t=t, dt=dt, **params)
@@ -247,19 +261,20 @@ def _relax_fx_ff(ca, R10, r1, t=None, dt=1.0, **params):
 # FR
 
 def _relax_2cx_fr(ca, R10, r1, t=None, dt=1.0, 
-                  H=None, vb=None, vi=None, Fp=None, PS=None, PSc=0):
+                  H=None, vb=None, vi=None, Fp=None, PS=None, PSc=None):
     vp = vb * (1-H)
     C = _conc_2cx(ca, t=t, dt=dt, 
                   vp=vp, vi=vi, Fp=Fp, PS=PS)
     v = [vb+vi, 1-vb-vi]
-    R1 = (rel.relax(_c(C, v[0]), R10, r1),
-          rel.relax(ca*0, R10, r1), 
+    R1 = (
+        rel.relax(_c(C, v[0]), R10, r1),
+        rel.relax(ca*0, R10, r1), 
     )
     PSw = [[0, PSc], [PSc, 0]]
     return np.stack(R1), np.array(v), np.array(PSw)
 
 def _relax_2cu_fr(ca, R10, r1, t=None, dt=1.0, 
-                  vc=None, vp=None, Fp=None, PS=None, PSc=0):
+                  vc=None, vp=None, Fp=None, PS=None, PSc=None):
     C = _conc_2cu(ca, t=t, dt=dt, 
                   vp=vp, Fp=Fp, PS=PS)
     v = [1-vc, vc]
@@ -271,7 +286,7 @@ def _relax_2cu_fr(ca, R10, r1, t=None, dt=1.0,
     return np.stack(R1), np.array(v), np.array(PSw)
 
 def _relax_hf_fr(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vb=None, vi=None, PS=None, PSc=0):
+                 H=None, vb=None, vi=None, PS=None, PSc=None):
     vp = vb * (1-H)
     C = _conc_hf(ca, t=t, dt=dt, 
                  vp=vp, vi=vi, PS=PS)
@@ -284,7 +299,7 @@ def _relax_hf_fr(ca, R10, r1, t=None, dt=1.0,
     return np.stack(R1), np.array(v), np.array(PSw)
 
 def _relax_hfu_fr(ca, R10, r1, t=None, dt=1.0, 
-                 vc=None, vp=None, PS=None, PSc=0):
+                 vc=None, vp=None, PS=None, PSc=None):
     C = _conc_hfu(ca, t=t, dt=dt, 
                  vp=vp, PS=PS)
     v = [1-vc, vc]
@@ -296,7 +311,7 @@ def _relax_hfu_fr(ca, R10, r1, t=None, dt=1.0,
     return np.stack(R1), np.array(v), np.array(PSw)
 
 def _relax_wv_fr(ca, R10, r1, t=None, dt=1.0, 
-                 vi=None, Ktrans=None, PSc=0):
+                 vi=None, Ktrans=None, PSc=None):
     C = _conc_wv(ca, t=t, dt=dt, vi=vi, Ktrans=Ktrans)
     v = [vi, 1-vi]
     R1 = (
@@ -307,7 +322,7 @@ def _relax_wv_fr(ca, R10, r1, t=None, dt=1.0,
     return np.stack(R1), np.array(v), np.array(PSw)
 
 def _relax_fx_fr(ca, R10, r1, t=None, dt=1.0, 
-                 vc=None, ve=None, Fp=None, PSc=0):
+                 vc=None, ve=None, Fp=None, PSc=None):
     C = _conc_fx(ca, t=t, dt=dt, ve=ve, Fp=Fp)
     v = [1-vc, vc]
     R1 = (
@@ -318,7 +333,7 @@ def _relax_fx_fr(ca, R10, r1, t=None, dt=1.0,
     return np.stack(R1), np.array(v), np.array(PSw)
 
 def _relax_nx_fr(ca, R10, r1, t=None, dt=1.0, 
-                 vc=None, vp=None, Fp=None, PSc=0):
+                 vc=None, vp=None, Fp=None, PSc=None):
     C = _conc_nx(ca, t=t, dt=dt, vp=vp, Fp=Fp)
     v = [1-vc, vc]
     R1 = (
@@ -329,7 +344,7 @@ def _relax_nx_fr(ca, R10, r1, t=None, dt=1.0,
     return np.stack(R1), np.array(v), np.array(PSw)
 
 def _relax_u_fr(ca, R10, r1, t=None, dt=1.0, 
-                vc=None, Fp=None, PSc=0):
+                vc=None, Fp=None, PSc=None):
     C = _conc_u(ca, t=t, dt=dt, Fp=Fp)
     v = [1-vc, vc]
     R1 = (
@@ -342,7 +357,7 @@ def _relax_u_fr(ca, R10, r1, t=None, dt=1.0,
 # RF
 
 def _relax_2cx_rf(ca, R10, r1, t=None, dt=1.0, 
-                  H=None, vb=None, vi=None, Fp=None, PS=None, PSe=0):
+                  H=None, vb=None, vi=None, Fp=None, PS=None, PSe=None):
     vp = vb * (1-H)
     C = _conc_2cx(ca, t=t, dt=dt, sum=False, 
                   vp=vp, vi=vi, Fp=Fp, PS=PS)
@@ -355,7 +370,7 @@ def _relax_2cx_rf(ca, R10, r1, t=None, dt=1.0,
     return np.stack(R1), np.array(v), np.array(PSw)
 
 def _relax_2cu_rf(ca, R10, r1, t=None, dt=1.0, 
-                  H=None, vb=None, Fp=None, PS=None, PSe=0):
+                  H=None, vb=None, Fp=None, PS=None, PSe=None):
     vp = vb * (1-H)
     C = _conc_2cu(ca, t=t, dt=dt, sum=False, 
                   vp=vp, Fp=Fp, PS=PS)
@@ -368,7 +383,7 @@ def _relax_2cu_rf(ca, R10, r1, t=None, dt=1.0,
     return np.stack(R1), np.array(v), np.array(PSw)
 
 def _relax_hf_rf(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vb=None, vi=None, PS=None, PSe=0):
+                 H=None, vb=None, vi=None, PS=None, PSe=None):
     vp = vb * (1-H)
     C = _conc_hf(ca, t=t, dt=dt, sum=False, 
                  vp=vp, vi=vi, PS=PS)
@@ -381,7 +396,7 @@ def _relax_hf_rf(ca, R10, r1, t=None, dt=1.0,
     return np.stack(R1), np.array(v), np.array(PSw)
 
 def _relax_hfu_rf(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vb=None, PS=None, PSe=0):
+                 H=None, vb=None, PS=None, PSe=None):
     vp = vb * (1-H)
     C = _conc_hfu(ca, t=t, dt=dt, sum=False, 
                  vp=vp, PS=PS)
@@ -400,7 +415,7 @@ def _relax_wv_rf(ca, R10, r1, t=None, dt=1.0,
     return R1, None, None
 
 def _relax_fx_rf(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vb=None, vi=None, Fp=None, PSe=0):
+                 H=None, vb=None, vi=None, Fp=None, PSe=None):
     vp = vb * (1-H)
     ve = vp + vi
     C = _conc_fx(ca, t=t, dt=dt, ve=ve, Fp=Fp)
@@ -415,7 +430,7 @@ def _relax_fx_rf(ca, R10, r1, t=None, dt=1.0,
     return np.stack(R1), np.array(v), np.array(PSw)
 
 def _relax_nx_rf(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vb=None, Fp=None, PSe=0):
+                 H=None, vb=None, Fp=None, PSe=None):
     vp = vb * (1-H)
     C = _conc_nx(ca, t=t, dt=dt, vp=vp, Fp=Fp)
     v = [vb, 1-vb]
@@ -427,7 +442,7 @@ def _relax_nx_rf(ca, R10, r1, t=None, dt=1.0,
     return np.stack(R1), np.array(v), np.array(PSw)
 
 def _relax_u_rf(ca, R10, r1, t=None, dt=1.0, 
-                vb=None, Fp=None, PSe=0):
+                vb=None, Fp=None, PSe=None):
     C = _conc_u(ca, t=t, dt=dt, Fp=Fp)
     v = [vb, 1-vb]
     R1 = (
@@ -443,7 +458,7 @@ def _relax_u_rf(ca, R10, r1, t=None, dt=1.0,
 
 def _relax_2cx_rr(ca, R10, r1, t=None, dt=1.0, 
                   H=None, vb=None, vi=None, 
-                  Fp=None, PS=None, PSe=0, PSc=0):
+                  Fp=None, PS=None, PSe=None, PSc=None):
     vp = vb * (1-H)
     C = _conc_2cx(ca, t=t, dt=dt, sum=False, 
                   vp=vp, vi=vi, Fp=Fp, PS=PS)
@@ -458,7 +473,7 @@ def _relax_2cx_rr(ca, R10, r1, t=None, dt=1.0,
 
 def _relax_2cu_rr(ca, R10, r1, t=None, dt=1.0, 
                   H=None, vb=None, vi=None, 
-                  Fp=None, PS=None, PSe=0, PSc=0):
+                  Fp=None, PS=None, PSe=None, PSc=None):
     vp = vb * (1-H)
     C = _conc_2cu(ca, t=t, dt=dt, sum=False, 
                   vp=vp, Fp=Fp, PS=PS)
@@ -472,7 +487,7 @@ def _relax_2cu_rr(ca, R10, r1, t=None, dt=1.0,
     return np.stack(R1), np.array(v), np.array(PSw)
 
 def _relax_hf_rr(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vb=None, vi=None, PS=None, PSe=0, PSc=0):
+                 H=None, vb=None, vi=None, PS=None, PSe=None, PSc=None):
     vp = vb * (1-H)
     C = _conc_hf(ca, t=t, dt=dt, sum=False, 
                  vp=vp, vi=vi, PS=PS)
@@ -486,7 +501,7 @@ def _relax_hf_rr(ca, R10, r1, t=None, dt=1.0,
     return np.stack(R1), np.array(v), np.array(PSw)
 
 def _relax_hfu_rr(ca, R10, r1, t=None, dt=1.0, 
-                  H=None, vb=None, vi=None, PS=None, PSe=0, PSc=0):
+                  H=None, vb=None, vi=None, PS=None, PSe=None, PSc=None):
     vp = vb * (1-H)
     C = _conc_hfu(ca, t=t, dt=dt, sum=False, 
                  vp=vp, PS=PS)
@@ -500,7 +515,7 @@ def _relax_hfu_rr(ca, R10, r1, t=None, dt=1.0,
     return np.stack(R1), np.array(v), np.array(PSw)
 
 def _relax_wv_rr(ca, R10, r1, t=None, dt=1.0, 
-                 vi=None, Ktrans=None, PSc=0):
+                 vi=None, Ktrans=None, PSc=None):
     C = _conc_wv(ca, t=t, dt=dt, vi=vi, Ktrans=Ktrans)
     v = [vi, 1-vi]
     R1 = (
@@ -511,7 +526,7 @@ def _relax_wv_rr(ca, R10, r1, t=None, dt=1.0,
     return np.stack(R1), np.array(v), np.array(PSw)
 
 def _relax_fx_rr(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vb=None, vi=None, Fp=None, PSe=0, PSc=0):
+                 H=None, vb=None, vi=None, Fp=None, PSe=None, PSc=None):
     vp = vb * (1-H)
     ve = vp + vi
     C = _conc_fx(ca, t=t, dt=dt, ve=ve, Fp=Fp)
@@ -527,23 +542,25 @@ def _relax_fx_rr(ca, R10, r1, t=None, dt=1.0,
     return np.stack(R1), np.array(v), np.array(PSw)
 
 def _relax_nx_rr(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vb=None, Fp=None, PSe=0):
+                 H=None, vb=None, vi=None, Fp=None, PSe=None, PSc=None):
     vp = vb * (1-H)
     C = _conc_nx(ca, t=t, dt=dt, vp=vp, Fp=Fp)
-    v = [vb, 1-vb]
+    v = [vb, vi, 1-vb-vi]
     R1 = (
         rel.relax(_c(C, v[0]), R10, r1),
+        rel.relax(ca*0, R10, r1),
         rel.relax(ca*0, R10, r1), 
     )
-    PSw = [[0, PSe], [PSe, 0]]
+    PSw = [[0, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]]
     return np.stack(R1), np.array(v), np.array(PSw)
 
 def _relax_u_rr(ca, R10, r1, t=None, dt=1.0, 
-                vb=None, Fp=None, PSe=0, PSc=0):
-    v = [vb, 1-vb]
+                vb=None, vi=None, Fp=None, PSe=None, PSc=None):
+    v = [vb, vi, 1-vb-vi]
     if Fp==0:
         R1 = (
             rel.relax(ca*0, R10, r1),
+            rel.relax(ca*0, R10, r1), 
             rel.relax(ca*0, R10, r1), 
         )
     else:
@@ -551,8 +568,9 @@ def _relax_u_rr(ca, R10, r1, t=None, dt=1.0,
         R1 = (
             rel.relax(_c(C, v[0]), R10, r1),
             rel.relax(ca*0, R10, r1), 
+            rel.relax(ca*0, R10, r1), 
         )
-    PSw = [[0, PSe], [PSe, 0]]
+    PSw = [[0, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]]
     return np.stack(R1), np.array(v), np.array(PSw)
 
 

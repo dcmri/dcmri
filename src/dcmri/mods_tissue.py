@@ -13,87 +13,54 @@ import dcmri.utils as utils
 
 
 class TissueArray(mods.ArrayModel):
-    """Pixel-based model for vascular-interstitial tissues.
+    """Pixel-based vascular-interstitial tissue.
 
-    The model accepts the following parameters:
-
-        - **shape** (array-like, default=(32,32)): shape of the pixel array, not including the time dimensions. Any number of dimensions are allowed.
-        - **parallel** (bool, default=False): use parallel computing during training or not.
-        - **verbose** (int, default=0): verbosity during computation. 0: no feedback, 1: show progress bar.
-
-        **Input function**
-
-        - **aif** (array-like, default=None): Signal-time curve in a feeding artery. If AIF is set to None, then the parameter ca must be provided (arterial concentrations).
-        - **ca** (array-like, default=None): Plasma concentration (M) in the arterial input. Must be provided when aif = None, ignored otherwise.
-
-        **Acquisition parameters**
-
-        - **t** (array-like, default=None): Time points (sec) of the aif. If t is not provided, the temporal sampling is uniform with interval dt.
-        - **dt** (float, default=1.0): Time interval of the AIF in sec.
-        - **relaxivity** (float, default=0.005): Contrast agent relaxivity 
-          (Hz/M). 
-        - **TR** (float, default=0.005): Repetition time, or time between excitation pulses, in sec.
-        - **FA** (array, default=np.full(shape, 15)): Nominal flip angle in degrees.
-        - **TC** (float, default=0.1): Time to the center of k-space in a saturation-recovery sequence.
-        - **TP** (float, default=0): Preparation delay in a saturation-
-          recovery sequence.
-        - **TS** (float, default=None): Sampling duration, or duration of the 
-          readout for a single time point. If TS=None, the continuous signals 
-          are sampled at the required time points by interpolation. If TS is a 
-          finite value, the signals are averaged over a time TS around the 
-          required time point. Defaults to None.
-
-        **Tracer-kinetic parameters**
-
-        - **kinetics** (str, default='HF'): Tracer-kinetic model (see below for options)
-        - **Hct** (float, default=0.45): Hematocrit.
-        - **Fp** (array, default=np.full(shape, 0.01)): Plasma flow, or flow of plasma into the plasma compartment (mL/sec/mL).
-        - **Ktrans** (array, default=np.full(shape, 0.003)): Transfer constant: volume of arterial plasma cleared of indicator per unit time and per unit tissue (mL/sec/mL).
-        - **vp** (array, default=np.full(shape, 0.1)): Plasma volume, or volume fraction of the plasma compartment (mL/mL).
-        - **ve** (array, default=np.full(shape, 0.5)): Extravascular, extracellular volume: volume fraction of the interstitial compartment (mL/mL).
-        - **Ktrans** (array, default=np.full(shape, 0.0023)): Volume transfer constant (mL/sec/mL).
-        - **v** (array, default=np.full(shape, 0.6)): Extracellular volume fraction (mL/mL).
-
-        **Water-kinetic parameters**
-
-        - **water_exchange** (str, default='fast'): Water exchange regime ('fast', 'none' or 'any').
-        - **PSe** (array, default=np.full(shape, 10)): Transendothelial water permeability-surface area product: PS for water across the endothelium (mL/sec/mL).
-        - **PSc** (array, default=np.full(shape, 10)): Transcytolemmal water permeability-surface area product: PS for water across the cell wall (mL/sec/mL).
-
-        **Signal parameters**
-
-        - **sequence** (str, default='SS'): imaging sequence.
-        - **R10a** (float, default=1): Precontrast arterial relaxation rate in 1/sec.
-        - **R10** (array, default=np.full(shape, 1)): Precontrast tissue relaxation rate in 1/sec.
-        - **S0** (array, default=np.full(shape, 1)): Scale factor for the MR signal (a.u.).
-
-        **Prediction and training parameters**
-
-        - **n0** (int): number of precontrast baseline signals.
-        - **free** (array-like): list of free parameters. The default depends on the kinetics parameter.
+    This is the most common tissue type as found in for instance brain, 
+    cancer, lung, muscle, prostate, skin, and more. For more detail see 
+    :ref:`two-site-exchange`. 
+    
+    Usage of this class is mostly identical to `dcmri.Tissue`.
 
     Args:
-        params (dict, optional): override defaults for any of the parameters.
-
-    Notes:
-
-        Possible values for the **kinetics** argument, along with relevant parameters::
-
-        - 'U': uptake tissue. Parameters: Fp
-        - 'NX': no tracer exchange tissue. Parameters: Fp, vp
-        - 'FX': fast tracer exchange tissue. Parameters: Fp, v
-        - 'WV': weakly vascularized tissue - also known as *Tofts model*.Parameters: Ktrans, ve
-        - 'HFU': high-flow uptake tissue - also known as *Patlak model*. Parameters: vp, PS
-        - 'HF': high-flow tissue - also known as *extended Tofts model*, *extended Patlak model* or *general kinetic model*. Params = (vp, PS, ve, )
-        - '2CU': two-compartment uptake tissue. Parameters: Fp, vp, PS
-        - '2CX': two-compartment exchange tissue. Parameters: Fp, vp, PS, ve
+        shape (array-like): shape of the tissue array in dimensions. Any 
+          number of dimensions is allowed but the last must be time.
+        kinetics (str, optional): Tracer-kinetic model. Possible values are 
+         '2CX', '2CU', 'HF', 'HFU', 'NX', 'FX', 'WV', 'U'. Defaults to 'HF'.
+        water_exchange (str, optional): Water exchange regime, Any combination 
+          of two of the letters 'F', 'N', 'R' is allowed. Defaults to 'FF'.
+        sequence (str, optional): imaging sequence. Possible values are 'SS' 
+          and 'SR'. Defaults to 'SS'.
+        aif (array-like, optional): Signal-time curve in the blood of the 
+          feeding artery. If *aif* is not provided, the arterial 
+          blood concentration is *ca*. Defaults to None.
+        ca (array-like, optional): Blood concentration in the arterial 
+          input. *ca* is ignored if *aif* is provided, but is required 
+          otherwise. Defaults to None.
+        t (array-like, optional): Time points of the arterial input function. 
+          If *t* is not provided, the temporal sampling is uniform with 
+          interval *dt*. Defaults to None.
+        dt (float, optional): Time interval between values of the arterial 
+          input function. *dt* is ignored if *t* is provided. Defaults to 1.0.
+        free (dict, optional): Dictionary with free parameters and their 
+          bounds. If not provided, a default set of free parameters is used. 
+          Defaults to None.
+        parallel (bool, optional): If True, computations are parallelized. 
+          Defaults to False.
+        verbose (int, optional): verbosity of the computation. With verbose=0, 
+          no feedback is given; with verbose=1, as status bar is shown. 
+          Defaults to 0.
+        params (dict, optional): values for the parameters of the tissue, 
+          specified as keyword parameters. Defaults are used for any that are 
+          not provided. The parameters are the same as in `dcmri.Tissue`. 
+          See tables :ref:`Tissue-parameters` and :ref:`Tissue-defaults` for 
+          a list of parameters and their default values.
 
     See Also:
         `Tissue`
 
     Example:
 
-    Fit a coarse image of the brain using a 2-compartment exchange model.
+        Fit a coarse image of the brain using a 2-compartment exchange model.
 
     .. plot::
         :include-source:
@@ -107,14 +74,15 @@ class TissueArray(mods.ArrayModel):
         >>> n=8
         >>> time, signal, aif, gt = dc.fake_brain(n)
 
-        Build a tissue array model and set the constants to match the experimental conditions of the synthetic test data:
+        Build a tissue array and set the constants to match the 
+        experimental conditions of the synthetic test data:
 
         >>> shape = (n,n)
-        >>> model = dc.TissueArray(
-        ...     shape = shape,
+        >>> tissue = dc.TissueArray(
+        ...     shape,
         ...     aif = aif,
         ...     dt = time[1],
-        ...     relaxivity = dc.relaxivity(3, 'blood', 'gadodiamide'),
+        ...     r1 = dc.relaxivity(3, 'blood', 'gadodiamide'),
         ...     TR = 0.005,
         ...     FA = 15,
         ...     R10 = 1/gt['T1'],
@@ -122,27 +90,43 @@ class TissueArray(mods.ArrayModel):
         ...     kinetics = '2CX',
         ... )
 
-        Train the model on the ROI data:
+        Train the tissue on the data:
 
-        >>> model.train(time, signal)
+        >>> tissue.train(time, signal)
 
-        Plot the reconstructed maps, along with their standard deviations and the ground truth for reference:
+        Plot the reconstructed maps, along with their standard deviations 
+        and the ground truth for reference:
 
-        >>> model.plot(time, signal, ref=gt)
+        >>> tissue.plot(time, signal, ref=gt)
 
-        As the left panel shows, the measured signals are accurately reconstructed by the model. However, while these simulated data are noise-free, they are temporally undersampled (dt = 1.5 sec). As a result the reconstruction of the parameter maps (right panel) is not perfect - as can be seen by comparison against the ground truth, or, in the absence of a ground truth, by inspecting the standard deviations. PS for instance is showing some areas where the value is overestimated and the standard deviations large.
+        As the left panel shows, the measured signals are accurately 
+        reconstructed by the model. However, while these simulated data are 
+        noise-free, they are temporally undersampled (dt = 1.5 sec). As a 
+        result the reconstruction of the parameter maps (right panel) is not 
+        perfect - as can be seen by comparison against the ground truth, or, 
+        in the absence of a ground truth, by inspecting the standard 
+        deviations. PS for instance is showing some areas where the value is 
+        overestimated and the standard deviations large.
 
-        The interstitial volume fraction ve is wrong in a large part of the image, but this is for another reason: much of this tissue has an intact blood brain barrier, and therefore therefore the properties of the extravascular space are fundamentally unmeasureable. This type of error is dangerous because it cannot be detected by inspecting the standard deviations. When no ground truth is available, this therefore risks a misinterpretation of the results. The risk of this type of error can be reduced by applying model selection.
-
+        The interstitial volume fraction ve is wrong in a large part of the 
+        image, but this is for another reason: much of this tissue has an 
+        intact blood brain barrier, and therefore therefore the properties of 
+        the extravascular space are fundamentally unmeasureable. This type of 
+        error is dangerous because it cannot be detected by inspecting the 
+        standard deviations. When no ground truth is available, this therefore 
+        risks a misinterpretation of the results. The risk of this type of 
+        error can be reduced by applying model selection.
     """
 
-    def __init__(self, shape, kinetics='HF',
-                 water_exchange='FF', sequence='SS', **params):
+    def __init__(self, shape,
+                 kinetics='HF', water_exchange='FF', sequence='SS', 
+                 aif=None, ca=None, t=None, dt=1.0, 
+                 free=None, parallel=False, verbose=0, **params):
 
         # Array model params
         self.shape = shape
-        self.parallel = False
-        self.verbose = 0
+        self.parallel = parallel
+        self.verbose = verbose
 
         # Define model
         self.kinetics = kinetics
@@ -151,10 +135,10 @@ class TissueArray(mods.ArrayModel):
         _check_config(self)
 
         # Input function
-        self.aif = None
-        self.ca = None
-        self.t = None
-        self.dt = 1.0
+        self.aif = aif
+        self.ca = ca
+        self.t = t
+        self.dt = dt
 
         # Model parameters
         model_pars = _model_pars(kinetics, water_exchange, sequence)
@@ -163,19 +147,35 @@ class TissueArray(mods.ArrayModel):
                 setattr(self, p, np.full(shape, PARAMS[p]['init']))
             else:
                 setattr(self, p, PARAMS[p]['init'])
-        # TODO check in set_free - only pixel_pars can be free
         self.free = {
             p: PARAMS[p]['bounds'] for p in model_pars if (
             PARAMS[p]['default_free'] and PARAMS[p]['pixel_par'])
         } 
 
         # overide defaults
-        self._set_defaults(**params)
+        self._set_defaults(free=free, **params)
 
         # sdevs
         for par in self.free:
             setattr(self, 'sdev_' + par, np.zeros(shape).astype(np.float32))
 
+    def _params(self, p):
+        return PARAMS[p]
+    
+    def _par_values(self, tissue=False):
+        return _all_pars(self.kinetics, 
+                         self.water_exchange, 
+                         self.sequence, 
+                         self.__dict__,
+                         tissue=tissue)
+
+    # def _config(self):
+    #     return (self.kinetics, 
+    #             self.water_exchange, 
+    #             self.sequence)
+
+    # def _set_config(self, *config):
+    #         self.kinetics, self.water_exchange, self.sequence = config
 
     def _pix(self, x):
 
@@ -204,19 +204,127 @@ class TissueArray(mods.ArrayModel):
             **kwargs,
         )
 
-    def info(self):
-        """Print information about the tissue"""
 
-        print('Water exchange regime: ' + self.water_exchange)
-        print('Kinetics: ' + self.kinetics)
-        print('\n\n')
-        print('Model parameters')
-        print('----------------')
-        for p in _model_pars(self.kinetics, 
-                             self.water_exchange, self.sequence):
-            print('Parameter: ' + str(p))
-            print('--> Full name: ' + PARAMS[p]['name'])
-            print('--> Units: ' + PARAMS[p]['unit'])
+    def info(self):
+        """
+        Print detailed information about the tissue
+
+        Example:
+
+            List all parameters of a default tissue:
+
+            >>> import dcmri as dc
+            >>> tissue = dc.Tissue()
+            >>> tissue.info()
+            -------------
+            Configuration
+            -------------
+            Kinetics: HF
+            Water exchange regime: FF
+            Imaging sequence: SS
+            ----------
+            Parameters
+            ----------
+            r1
+            --> Full name: Contrast agent relaxivity
+            --> Units: Hz/M
+            --> Initial value: 5000.0
+            --> Current value: 5000.0
+            --> Free parameter: No
+            --> Bounds: [0, inf]
+            Ha
+            --> Full name: Arterial Hematocrit
+            --> Units: 
+            --> Initial value: 0.45
+            --> Current value: 0.45
+            --> Free parameter: No
+            --> Bounds: [0.001, 0.999]
+            R10a
+            --> Full name: Arterial precontrast R1
+            --> Units: Hz
+            --> Initial value: 0.7
+            --> Current value: 0.7
+            --> Free parameter: No
+            --> Bounds: [0, inf]
+            B1corr_a
+            --> Full name: Arterial B1-correction factor
+            --> Units: 
+            --> Initial value: 1
+            --> Current value: 1
+            --> Free parameter: No
+            --> Bounds: [0, inf]
+            B1corr
+            --> Full name: Tissue B1-correction factor
+            --> Units: 
+            --> Initial value: 1
+            --> Current value: 1
+            --> Free parameter: No
+            --> Bounds: [0, inf]
+            FA
+            --> Full name: Flip angle
+            --> Units: deg
+            --> Initial value: 15
+            --> Current value: 15
+            --> Free parameter: No
+            --> Bounds: [0, inf]
+            TR
+            --> Full name: Repetition time
+            --> Units: sec
+            --> Initial value: 0.005
+            --> Current value: 0.005
+            --> Free parameter: No
+            --> Bounds: [0, inf]
+            TS
+            --> Full name: Sampling time
+            --> Units: sec
+            --> Initial value: 0
+            --> Current value: 0
+            --> Free parameter: No
+            --> Bounds: [0, inf]
+            vp
+            --> Full name: Plasma volume
+            --> Units: mL/cm3
+            --> Initial value: 0.05500000000000001
+            --> Current value: 0.05500000000000001
+            --> Free parameter: Yes
+            --> Bounds: [0.001, 0.999]
+            vi
+            --> Full name: Interstitial volume
+            --> Units: mL/cm3
+            --> Initial value: 0.3
+            --> Current value: 0.3
+            --> Free parameter: Yes
+            --> Bounds: [0.001, 0.999]
+            PS
+            --> Full name: Permeability-surface area product
+            --> Units: mL/sec/cm3
+            --> Initial value: 0.003
+            --> Current value: 0.003
+            --> Free parameter: Yes
+            --> Bounds: [0, inf]
+            R10
+            --> Full name: Tissue precontrast R1
+            --> Units: Hz
+            --> Initial value: 0.7
+            --> Current value: 0.7
+            --> Free parameter: No
+            --> Bounds: [0, inf]
+            S0
+            --> Full name: Signal scaling factor
+            --> Units: a.u.
+            --> Initial value: 1.0
+            --> Current value: 1.0
+            --> Free parameter: No
+            --> Bounds: [0, inf]
+            n0
+            --> Full name: Number of precontrast acquisitions
+            --> Units: 
+            --> Initial value: 1
+            --> Current value: 1
+            --> Free parameter: No
+        
+        """
+        info(self)
 
 
     def _train_curve(self, args):
@@ -240,7 +348,8 @@ class TissueArray(mods.ArrayModel):
 
         Args:
             time (array-like): 1D array with time points.
-            signal (array-like): Array of signal curves. Any number of dimensions is allowed but the last dimension must be time.
+            signal (array-like): Array of signal curves. Any number of 
+            dimensions is allowed but the last dimension must be time.
             kwargs: any keyword parameters accepted by `Tissue.train`.
 
         Returns:
@@ -254,47 +363,36 @@ class TissueArray(mods.ArrayModel):
         """Return the goodness-of-fit
 
         Args:
-            time (array-like): 1D array with time points.
-            signal (array-like): Array of signal curves. Any number of dimensions is allowed but the last dimension must be time.
-            metric (str, optional): Which metric to use - options are 'RMS' (Root-mean-square), 'NRMS' (Normalized root-mean-square), 'AIC' (Akaike information criterion), 'cAIC' (Corrected Akaike information criterion for small models) or 'BIC' (Bayesian information criterion). Defaults to 'NRMS'.
+            time (array-like): Array with time points.
+            signal (array-like): Array with measured signals for each element 
+              of *time*.
+            metric (str, optional): Which metric to use.  
+              Possible metrics are 'RMS' (Root-mean-square); 'NRMS' 
+              (Normalized root-mean-square); 'AIC' (Akaike information 
+              criterion); 'cAIC' (Corrected Akaike information criterion for 
+              small models); 'BIC' (Bayesian information criterion). Defaults 
+              to 'NRMS'.
 
         Returns:
             ndarray: goodness of fit in each element of the data array.
         """
         return super().cost(time, signal, metric)
 
-    def params(self, *args):
+    def params(self, *args, round_to=None):
         """Return the parameter values
 
         Args:
             args (tuple): parameters to get
 
         Returns:
-            list or float: values of parameter values, or a scalar value if only one parameter is required.
+            list or float: values of parameter values, or a scalar value if 
+            only one parameter is required.
+
         """
-        p = _all_pars(self.kinetics, 
-                      self.water_exchange, 
-                      self.sequence, 
-                      self.__dict__)
-        if args == ():
-            args = p.keys()
-        pars = []
-        for a in args:
-            if a in p:
-                v = p[a]
-            else:
-                v = getattr(self, a)
-            pars.append(v)
-        if len(pars) == 1:
-            return pars[0]
-        else:
-            return pars
+        return super().params(*args, round_to=round_to)
 
     def export_params(self):
-        pars = _all_pars(self.kinetics, 
-                         self.water_exchange, 
-                         self.sequence, 
-                         self.__dict__)
+        pars = self._par_values()
         pars = {p: [PARAMS[p]['name'], pars[p], PARAMS[p]['unit']] 
                 for p in pars}
         return self._add_sdev(pars)
@@ -638,9 +736,11 @@ class TissueArray(mods.ArrayModel):
 # is also kinetics.
 
 class Tissue(mods.Model):
-    """Model for general vascular-interstitial tissues. See sections on 
-    :ref:`two-site-exchange` and :ref:`imaging-sequences` for more detail 
-    on notations and definitions.
+    """Vascular-interstitial tissue. 
+    
+    This is the most common tissue type as found in for instance brain, 
+    cancer, lung, muscle, prostate, skin, and more. For more detail see 
+    :ref:`two-site-exchange`.
 
     Args:
         kinetics (str, optional): Tracer-kinetic model. Possible values are 
@@ -665,10 +765,73 @@ class Tissue(mods.Model):
           Defaults to None.
         params (dict, optional): values for the parameters of the tissue, 
           specified as keyword parameters. Defaults are used for any that are 
-          not provided. 
-          
-    Relevant parameters and their defaults are listed in the tables below:
+          not provided. See tables :ref:`Tissue-parameters` and 
+          :ref:`Tissue-defaults` for a list of tissue parameters and their 
+          default values.
 
+    See Also:
+        `Liver`, `Kidney`
+
+    Example:
+
+        Fit an extended Tofts model to data:
+
+    .. plot::
+        :include-source:
+        :context: close-figs
+
+        >>> import dcmri as dc
+
+        Use `fake_tissue` to generate synthetic test data:
+
+        >>> time, aif, roi, gt = dc.fake_tissue(CNR=50)
+
+        Build a tissue and set the parameters to match the experimental 
+        conditions of the synthetic data:
+
+        >>> tissue = dc.Tissue(
+        ...     aif = aif,
+        ...     dt = time[1],
+        ...     r1 = dc.relaxivity(3, 'blood','gadodiamide'),
+        ...     TR = 0.005,
+        ...     FA = 15,
+        ...     n0 = 15,
+        ... )
+
+        Train the tissue on the data:
+
+        >>> tissue.train(time, roi)
+
+        Print the optimized tissue parameters, their standard deviations and 
+        any derived parameters:
+
+        >>> tissue.print_params(round_to=2)
+        <BLANKLINE>
+        --------------------------------
+        Free parameters with their stdev
+        --------------------------------
+        <BLANKLINE>
+        Plasma volume (vp): 0.02 (0.0) mL/cm3
+        Interstitial volume (vi): 0.18 (0.01) mL/cm3
+        Permeability-surface area product (PS): 0.0 (0.0) mL/sec/cm3
+        <BLANKLINE>
+        ----------------------------
+        Fixed and derived parameters
+        ----------------------------
+        <BLANKLINE>
+        Interstitial mean transit time (Ti): 74.61 sec
+
+        Plot the fit to the data and the reconstructed concentrations, using 
+        the noise-free ground truth as reference:
+
+        >>> tissue.plot(time, roi, ref=gt)
+
+    Notes:
+          
+        The tables below list the tissue properties, their usage and default 
+        settings.
+
+        .. _Tissue-parameters:
         .. list-table:: **Tissue parameters** 
             :widths: 20 30 30
             :header-rows: 1 
@@ -696,6 +859,7 @@ class Tissue(mods.Model):
               - Depends on **kinetics** and **water_exchange**
               - :ref:`kinetic-regimes`
 
+        .. _Tissue-defaults:
         .. list-table:: **Parameter defaults** 
             :widths: 5 10 10 10 10
             :header-rows: 1 
@@ -707,7 +871,7 @@ class Tissue(mods.Model):
               - Free/Fixed
             * - r1
               - Relaxation
-              - 0.005
+              - 5000.0
               - [0, inf]
               - Fixed
             * - R10
@@ -820,46 +984,6 @@ class Tissue(mods.Model):
               - 0.055
               - [0, 1]
               - Free
-
-
-    See Also:
-        `Liver`, `Kidney`
-
-    Example:
-
-        Single time-curve analysis: fit extended Tofts model to data.
-
-    .. plot::
-        :include-source:
-        :context: close-figs
-
-        >>> import dcmri as dc
-
-        Use `fake_tissue` to generate synthetic test data:
-
-        >>> time, aif, roi, gt = dc.fake_tissue(CNR=50)
-
-        Build a tissue and set the parameters to match the experimental 
-        conditions of the synthetic data:
-
-        >>> model = dc.Tissue(
-        ...     aif = aif,
-        ...     dt = time[1],
-        ...     relaxivity = dc.relaxivity(3, 'blood','gadodiamide'),
-        ...     TR = 0.005,
-        ...     FA = 15,
-        ...     n0 = 15,
-        ... )
-
-        Train the model on the ROI data:
-
-        >>> model.train(time, roi)
-
-        Plot the reconstructed signals (left) and concentrations (right), 
-        using the noise-free ground truth as reference:
-
-        >>> model.plot(time, roi, ref=gt)
-
     """
 
     def __init__(self, 
@@ -882,27 +1006,151 @@ class Tissue(mods.Model):
         # Model parameters
         model_pars = _model_pars(kinetics, water_exchange, sequence)
         for p in model_pars:
-            setattr(self, p, PARAMS[p]['init']) # TODO _pars attr?
+            setattr(self, p, PARAMS[p]['init']) 
         free_pars = [p for p in model_pars if PARAMS[p]['default_free']]
-        self.free = {p: PARAMS[p]['bounds'] for p in free_pars} # TODO make private _free
+        self.free = {p: PARAMS[p]['bounds'] for p in free_pars} 
  
         # overide defaults
         self._set_defaults(free=free, **params)
 
+    def _params(self):
+        return PARAMS
+    
+    # def _config(self):
+    #     return (self.kinetics, 
+    #             self.water_exchange, 
+    #             self.sequence)
+
+    # def _set_config(self, *config):
+    #         self.kinetics, self.water_exchange, self.sequence = config
+
+    def _par_values(self, tissue=False):
+        return _all_pars(self.kinetics, 
+                         self.water_exchange, 
+                         self.sequence, 
+                         self.__dict__, 
+                         tissue=tissue)
 
     def info(self):
-        """Print information about the tissue"""
+        """
+        Print detailed information about the tissue
 
-        print('Water exchange regime: ' + self.water_exchange)
-        print('Kinetics: ' + self.kinetics)
-        print('\n\n')
-        print('Model parameters')
-        print('----------------')
-        for p in _model_pars(self.kinetics, 
-                             self.water_exchange, self.sequence):
-            print('Parameter: ' + str(p))
-            print('--> Full name: ' + PARAMS[p]['name'])
-            print('--> Units: ' + PARAMS[p]['unit'])
+        Example:    
+
+            List all parameters of a default tissue:
+
+            >>> import dcmri as dc
+            >>> tissue = dc.Tissue()
+            >>> tissue.info()
+            -------------
+            Configuration
+            -------------
+            Kinetics: HF
+            Water exchange regime: FF
+            Imaging sequence: SS
+            ----------
+            Parameters
+            ----------
+            r1
+            --> Full name: Contrast agent relaxivity
+            --> Units: Hz/M
+            --> Initial value: 5000.0
+            --> Current value: 5000.0
+            --> Free parameter: No
+            --> Bounds: [0, inf]
+            Ha
+            --> Full name: Arterial Hematocrit
+            --> Units: 
+            --> Initial value: 0.45
+            --> Current value: 0.45
+            --> Free parameter: No
+            --> Bounds: [0.001, 0.999]
+            R10a
+            --> Full name: Arterial precontrast R1
+            --> Units: Hz
+            --> Initial value: 0.7
+            --> Current value: 0.7
+            --> Free parameter: No
+            --> Bounds: [0, inf]
+            B1corr_a
+            --> Full name: Arterial B1-correction factor
+            --> Units: 
+            --> Initial value: 1
+            --> Current value: 1
+            --> Free parameter: No
+            --> Bounds: [0, inf]
+            B1corr
+            --> Full name: Tissue B1-correction factor
+            --> Units: 
+            --> Initial value: 1
+            --> Current value: 1
+            --> Free parameter: No
+            --> Bounds: [0, inf]
+            FA
+            --> Full name: Flip angle
+            --> Units: deg
+            --> Initial value: 15
+            --> Current value: 15
+            --> Free parameter: No
+            --> Bounds: [0, inf]
+            TR
+            --> Full name: Repetition time
+            --> Units: sec
+            --> Initial value: 0.005
+            --> Current value: 0.005
+            --> Free parameter: No
+            --> Bounds: [0, inf]
+            TS
+            --> Full name: Sampling time
+            --> Units: sec
+            --> Initial value: 0
+            --> Current value: 0
+            --> Free parameter: No
+            --> Bounds: [0, inf]
+            vp
+            --> Full name: Plasma volume
+            --> Units: mL/cm3
+            --> Initial value: 0.05500000000000001
+            --> Current value: 0.05500000000000001
+            --> Free parameter: Yes
+            --> Bounds: [0.001, 0.999]
+            vi
+            --> Full name: Interstitial volume
+            --> Units: mL/cm3
+            --> Initial value: 0.3
+            --> Current value: 0.3
+            --> Free parameter: Yes
+            --> Bounds: [0.001, 0.999]
+            PS
+            --> Full name: Permeability-surface area product
+            --> Units: mL/sec/cm3
+            --> Initial value: 0.003
+            --> Current value: 0.003
+            --> Free parameter: Yes
+            --> Bounds: [0, inf]
+            R10
+            --> Full name: Tissue precontrast R1
+            --> Units: Hz
+            --> Initial value: 0.7
+            --> Current value: 0.7
+            --> Free parameter: No
+            --> Bounds: [0, inf]
+            S0
+            --> Full name: Signal scaling factor
+            --> Units: a.u.
+            --> Initial value: 1.0
+            --> Current value: 1.0
+            --> Free parameter: No
+            --> Bounds: [0, inf]
+            n0
+            --> Full name: Number of precontrast acquisitions
+            --> Units: 
+            --> Initial value: 1
+            --> Current value: 1
+            --> Free parameter: No
+        
+        """
+        info(self)
 
 
     def time(self):
@@ -933,11 +1181,11 @@ class Tissue(mods.Model):
                 if self.sequence == 'SR':
                     cb = sig.conc_src(self.aif, self.TC,
                                       1 / self.R10a, 
-                                      self.relaxivity, self.n0)
+                                      self.r1, self.n0)
                 elif self.sequence == 'SS':
                     cb = sig.conc_ss(self.aif, self.TR, self.B1corr_a*self.FA,
                                      1 / self.R10a, 
-                                     self.relaxivity, self.n0)
+                                     self.r1, self.n0)
                 self.ca = cb / (1 - self.Ha)
 
     def conc(self, sum=True):
@@ -950,10 +1198,33 @@ class Tissue(mods.Model):
 
         Returns:
             np.ndarray: Concentration in M
+
+        Example:
+
+            Build a tissue, and plot the tissue concentrations in each 
+            compartment:
+
+        .. plot::
+            :include-source:
+            :context: close-figs
+
+            >>> import dcmri as dc
+            >>> import matplotlib.pyplot as plt
+
+            >>> t, aif, _ = dc.fake_aif()
+            >>> tissue = dc.Tissue('HFU', 'RR', aif=aif, t=t)
+            >>> C = tissue.conc(sum=False)
+
+            >>> _ = plt.figure()
+            >>> _ = plt.plot(t/60, 1e3*C[0,:], label='Plasma')
+            >>> _ = plt.plot(t/60, 1e3*C[1,:], label='Interstitium')
+            >>> _ = plt.xlabel('Time (min)')
+            >>> _ = plt.ylabel('Concentration (mM)')
+            >>> _ = plt.legend()
+            >>> _ = plt.show()
         """
         self._check_ca()
-        pars = _all_pars(self.kinetics, self.water_exchange, self.sequence, 
-                         self.__dict__)
+        pars = self._par_values()
         pars = {p: pars[p] for p in _kin_pars(self.kinetics)}
         # pars = {p: getattr(self, p) for p in _kin_pars(self.kinetics)}
         return tissue.conc_tissue(
@@ -961,7 +1232,7 @@ class Tissue(mods.Model):
             **pars)
 
     def relax(self):
-        """Compartmental rselaxation rates, volume fractions and 
+        """Compartmental relaxation rates, volume fractions and 
         water-permeability matrix.
 
         tuple: relaxation rates of tissue compartments and their volumes.
@@ -973,7 +1244,41 @@ class Tissue(mods.Model):
             - **v** (numpy.ndarray or None): the volume fractions of the tissue 
               compartments. Returns None in 'FF' regime. 
             - **PSw** (numpy.ndarray or None): 2D array with water exchange 
-              rates between tissue compartments. Returns None in 'FF' regime. 
+              rates between tissue compartments. Returns None in 'FF' regime.
+
+        Example:
+
+            Build a tissue, print its compartmental volumes and water 
+            permeability matrix, and plot the free relaxation rates of each 
+            compartment:
+
+        .. plot::
+            :include-source:
+            :context: close-figs
+
+            >>> import dcmri as dc
+            >>> t, aif, _ = dc.fake_aif()
+            >>> tissue = dc.Tissue('2CX', 'RR', aif=aif, t=t)
+            >>> R1, v, PSw = tissue.relax()
+
+            >>> v
+            array([0.1, 0.3, 0.6])
+
+            >>> PSw
+            array([[0.  , 0.03, 0.  ],
+                   [0.03, 0.  , 0.03],
+                   [0.  , 0.03, 0.  ]])
+
+            >>> import matplotlib.pyplot as plt
+            >>> _ = plt.figure()
+            >>> _ = plt.plot(t/60, R1[0,:], label='Blood')
+            >>> _ = plt.plot(t/60, R1[1,:], label='Interstitium')
+            >>> _ = plt.plot(t/60, R1[2,:], label='Cells')
+            >>> _ = plt.xlabel('Time (min)')
+            >>> _ = plt.ylabel('Relaxation rate (Hz)')
+            >>> _ = plt.legend()
+            >>> plt.show()
+
         """
         # TODO: ADD diagonal element to PSw (flow term)!!
         # Fb = self.Fp/(1-self.Hct)
@@ -981,14 +1286,12 @@ class Tissue(mods.Model):
         self._check_ca()
         pars = _tissue_pars(self.kinetics, self.water_exchange)
         pars = {p: getattr(self, p) for p in pars}
-        # TODO in FF v should be a 1-element list (and signal needs to adjust
-        # accordingly)
         R1, v, PSw = tissue.relax_tissue(self.ca, self.R10, 
-                                    self.relaxivity, t=self.t, 
+                                    self.r1, t=self.t, 
                                     dt=self.dt,
                                     kinetics=self.kinetics, 
                                     water_exchange=
-                                    self.water_exchange.replace('N', 'R'), 
+                                    self.water_exchange, 
                                     **pars)
         return R1, v, PSw
 
@@ -1106,35 +1409,83 @@ class Tissue(mods.Model):
         Returns:
             list or float: values of parameter values, or a scalar value if 
             only one parameter is required.
+
+        Example:
+
+            Train a tissue on synthetic data and print the compartment 
+            volumes:    
+        
+            >>> import dcmri as dc
+            >>> t, aif, roi, _ = dc.fake_tissue()
+            >>> tissue = dc.Tissue('HF','RR', t=t, aif=aif).train(t, roi)
+            >>> tissue.params('vp', 'vi', round_to=2)
+            [np.float64(0.03), np.float64(0.24)]
         """
-        p = _all_pars(self.kinetics, self.water_exchange, self.sequence, 
-                      self.__dict__)
-        if args == ():
-            args = p.keys()
-        pars = []
-        for a in args:
-            if a in p:
-                v = p[a]
-            else:
-                if hasattr(self, a):
-                    v = getattr(self, a)
-                else:
-                    msg = (a + ' is not a model parameter, and cannot be '
-                           + 'derived from the model parameters.')
-                    raise ValueError(msg)
-            if round_to is not None:
-                v = round(v, round_to)
-            pars.append(v)
-        if len(pars) == 1:
-            return pars[0]
-        else:
-            return pars
+        return super().params(*args, round_to=round_to)
 
     def export_params(self):
-        pars = _all_pars(self.kinetics, self.water_exchange, self.sequence, 
-                         self.__dict__)
+        """Return model parameters with their descriptions
+
+        Returns:
+            dict: Dictionary with one item for each model parameter. The key 
+            is the parameter symbol (short name), and the value is a 
+            4-element list with [parameter name, value, unit, sdev].
+
+        Example:
+
+            Train a tissue on synthetic data and print the blood volume after
+            training:    
+        
+            >>> import dcmri as dc
+            >>> t, aif, roi, _ = dc.fake_tissue()
+            >>> tissue = dc.Tissue('HF','RR', t=t, aif=aif).train(t, roi)
+            >>> pars = tissue.export_params()
+            >>> pars['vb]
+            ['Blood volume', np.float64(0.05095144449523547), 'mL/cm3', np.float64(0.014249923765634711)]
+           
+        """
+        pars = self._par_values(tissue=True)
         pars = {p: [PARAMS[p]['name'], pars[p], PARAMS[p]['unit']] for p in pars}
         return self._add_sdev(pars)
+    
+    def print_params(self, round_to=None):
+        """Print the model parameters and their uncertainties
+
+        Args:
+            round_to (int, optional): Round to how many digits. If this is 
+              not provided, the values are not rounded. Defaults to None.
+
+        Example:
+
+            Train a tissue on synthetic data and print the parameters:    
+        
+            >>> import dcmri as dc
+            >>> t, aif, roi, _ = dc.fake_tissue()
+            >>> tissue = dc.Tissue('HF','RR', t=t, aif=aif).train(t, roi)
+            >>> tissue.print_params(round_to=2)
+            <BLANKLINE>
+            --------------------------------
+            Free parameters with their stdev
+            --------------------------------
+            <BLANKLINE>
+            Transendothelial water PS (PSe): 0.0 (0.19) mL/sec/cm3
+            Transcytolemmal water PS (PSc): 0.0 (1.29) mL/sec/cm3
+            Blood volume (vb): 0.05 (0.01) mL/cm3
+            Interstitial volume (vi): 0.24 (0.06) mL/cm3
+            Permeability-surface area product (PS): 0.0 (0.0) mL/sec/cm3
+            <BLANKLINE>
+            ----------------------------
+            Fixed and derived parameters
+            ----------------------------
+            <BLANKLINE>
+            Tissue Hematocrit (H): 0.45 
+            Plasma volume (vp): 0.03 mL/cm3
+            Interstitial mean transit time (Ti): 88.97 sec
+            Intracellular water mean transit time (Twc): 1.4420297588827527e+19 sec
+            Interstitial water mean transit time (Twi): 3.1259246312028428e+16 sec
+            Intravascular water mean transit time (Twb): 6753233920453409.0 sec
+        """
+        super().print_params(round_to=round_to)
 
     def cost(self, time, signal, metric='NRMS') -> float:
         """Return the goodness-of-fit
@@ -1143,19 +1494,36 @@ class Tissue(mods.Model):
             time (array-like): Array with time points.
             signal (array-like): Array with measured signals for each element 
               of *time*.
-            metric (str, optional): Which metric to use (see below for 
-              options). Defaults to 'NRMS'. 
+            metric (str, optional): Which metric to use.  
+              Possible metrics are 'RMS' (Root-mean-square); 'NRMS' 
+              (Normalized root-mean-square); 'AIC' (Akaike information 
+              criterion); 'cAIC' (Corrected Akaike information criterion for 
+              small models); 'BIC' (Bayesian information criterion). Defaults 
+              to 'NRMS'.
 
         Returns:
             float: goodness of fit.
 
-        Possible metrics are:
+        Example:
 
-        - 'RMS' (Root-mean-square)
-        - 'NRMS' (Normalized root-mean-square) 
-        - 'AIC' (Akaike information criterion) 
-        - 'cAIC' (Corrected Akaike information criterion for small models) 
-        - 'BIC' (Bayesian information criterion) 
+            Generate a fake dataset, build two tissues and use the Akaike 
+            Information Criterion to decide which configuration is most 
+            consistent with the data.
+
+            >>> import dcmri as dc
+            >>> t, aif, roi, _ = dc.fake_tissue()
+
+            >>> tissue1 = dc.Tissue('2CX','FF', t=t, aif=aif).train(t, roi)
+            >>> tissue2 = dc.Tissue('HFU','RR', t=t, aif=aif).train(t, roi)
+
+            >>> tissue1.cost(t, roi, 'AIC')
+            np.float64(-987.7367059039368)
+
+            >>> tissue2.cost(t, roi, 'AIC')
+            np.float64(-410.9667012160706)
+
+            tissue1 achieves the lowest cost and is therefore the optimal 
+            configuration according to the Akaike Information Criterion.
         """
         return super().cost(time, signal, metric=metric)
 
@@ -1214,8 +1582,7 @@ class Tissue(mods.Model):
         if C.ndim==1:
             C = C.reshape((1,-1))
         v, comps = _plot_labels_kin(self.kinetics)
-        pars = _all_pars(self.kinetics, self.water_exchange, self.sequence, 
-                         self.__dict__)
+        pars = self._par_values()
         pars = {p: pars[p] for p in _kin_pars(self.kinetics)}
         ax01.set_title('Concentration in indicator compartments')
         if ref is not None:
@@ -1239,7 +1606,7 @@ class Tissue(mods.Model):
         if self.water_exchange != 'FF':
 
             R1, v, PSw = self.relax()
-            c = rel.c_lin(R1, self.relaxivity)
+            c = rel.c_lin(R1, self.r1)
             comps = _plot_labels_relax(self.kinetics, self.water_exchange)
             if R1.ndim == 1:
                 c = c.reshape((1, len(c)))
@@ -1319,15 +1686,13 @@ def _plot_labels_relax(kin, wex) -> list:
 
     if wex in ['RR', 'NN', 'NR', 'RN']:
         if kin == 'WV':
-            return ['Interstitium']
-        elif kin in ['NX', 'U']:
-            return ['Blood', 'Extravascular']
+            return ['Interstitium', 'Tissue cells']
         else:
             return ['Blood', 'Interstitium', 'Tissue cells']
 
     if wex in ['RF', 'NF']:
         if kin == 'WV':
-            return ['Interstitium']
+            return ['Extravascular']
         else:
             return ['Blood', 'Extravascular']
 
@@ -1411,11 +1776,37 @@ def _check_config(self: Tissue):
         raise ValueError(msg)
 
 
+def info(self):
+
+    print('-------------')
+    print('Configuration')
+    print('-------------')
+    print('Kinetics: ' + self.kinetics)
+    print('Water exchange regime: ' + self.water_exchange)
+    print('Imaging sequence: ' + self.sequence)
+    print('----------')
+    print('Parameters')
+    print('----------')
+    
+    for p in _model_pars(self.kinetics, 
+                            self.water_exchange, self.sequence):
+        free = 'Yes' if p in self.free else 'No'
+        print(p)
+        print('--> Full name: ' + PARAMS[p]['name'])
+        print('--> Units: ' + PARAMS[p]['unit'])
+        print('--> Initial value: ' + str(PARAMS[p]['init']))
+        print('--> Current value: ' + str(getattr(self, p)))
+        print('--> Free parameter: ' + free)
+        if PARAMS[p]['bounds'] is not None:
+            print('--> Bounds: [' + str(PARAMS[p]['bounds'][0]) + 
+                ', ' + str(PARAMS[p]['bounds'][1]) +']')
+            
+
 # CONFIGURATIONS
 
 
 def _model_pars(kin, wex, seq):
-    pars = ['relaxivity']
+    pars = ['r1']
     pars += ['Ha', 'R10a', 'B1corr_a']
     pars += _seq_pars(seq)
     pars += _tissue_pars(kin, wex)
@@ -1434,38 +1825,20 @@ def _tissue_pars(kin, wex) -> list:
 
     pars = _relax_pars(kin, wex)
 
-    if wex == 'FF':
+    if wex in ['FF','NN','NF','FN']:
         return pars
+    if wex in ['NR','FR']:
+        return ['PSc'] + pars
+    if wex in ['RN','RF']:
+        if kin == 'WV':
+            return pars
+        else:
+            return ['PSe'] + pars
     if wex == 'RR':
         if kin == 'WV':
             return ['PSc'] + pars
-        elif kin in ['NX', 'U']:
-            return ['PSe'] + pars
         else:
             return ['PSe', 'PSc'] + pars
-    if wex == 'NN':
-        return pars
-    if wex == 'NR':
-        if kin in ['NX', 'U']:
-            return pars
-        else:
-            return ['PSc'] + pars
-    if wex == 'RN':
-        if kin == 'WV':
-            return pars
-        else:
-            return ['PSe'] + pars
-    if wex == 'RF':
-        if kin == 'WV':
-            return pars
-        else:
-            return ['PSe'] + pars
-    if wex == 'NF':
-        return pars
-    if wex == 'FR':
-        return ['PSc'] + pars
-    if wex == 'FN':
-        return pars
 
     
 def _relax_pars(kin, wex) -> list:
@@ -1489,9 +1862,9 @@ def _relax_pars(kin, wex) -> list:
         if kin == 'FX':
             return ['H', 'vb', 'vi', 'Fp']
         if kin == 'NX':
-            return ['H', 'vb', 'Fp']
+            return ['H', 'vb', 'vi', 'Fp']
         if kin == 'U':
-            return ['vb', 'Fp']
+            return ['vb', 'vi', 'Fp']
 
     if wex in ['RF', 'NF']:
 
@@ -1542,8 +1915,8 @@ def _kin_pars(kin):
 
 
 PARAMS = {
-    'relaxivity': {
-        'init': 0.005,
+    'r1': {
+        'init': 5000.0,
         'default_free': False,
         'bounds': [0,np.inf],
         'name': 'Contrast agent relaxivity',
@@ -1703,7 +2076,7 @@ PARAMS = {
         'pixel_par': False,
     },
     'TS': {
-        'init': None,
+        'init': 0,
         'default_free': False,
         'bounds': [0, np.inf],
         'name': 'Sampling time',
@@ -1777,9 +2150,14 @@ PARAMS = {
 
 
 
-def _all_pars(kin, wex, seq, p):
+def _all_pars(kin, wex, seq, p, tissue=False):
 
-    p = {par: p[par] for par in _model_pars(kin, wex, seq)}
+    if tissue:
+        pars = _tissue_pars(kin, wex)
+    else:
+        pars = _model_pars(kin, wex, seq)
+
+    p = {par: p[par] for par in pars}
 
     try:
         p['Ktrans'] = _div(p['Fp'] * p['PS'], p['Fp'] + p['PS'])

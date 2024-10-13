@@ -360,30 +360,30 @@ def test_relax_tissue():
 
     # Test WV limit - exact
     p = {'H':0.0, 'vb':0.0, 'vi':0.3, 'Fp':0.01, 'PS':0.005}
-    R1_0, _ = dc.relax_tissue(ca, R10, r1, t=t, kinetics='2CX', water_exchange='RR', **p)
+    R1_0, _, _ = dc.relax_tissue(ca, R10, r1, t=t, kinetics='2CX', water_exchange='RR', **p)
     p = {'vi':0.3, 'Ktrans':0.01*0.005/(0.01+0.005)}
-    R1_1, _ = dc.relax_tissue(ca, R10, r1, t=t, kinetics='WV', water_exchange='RR', **p)
+    R1_1, _, _ = dc.relax_tissue(ca, R10, r1, t=t, kinetics='WV', water_exchange='RR', **p)
     assert np.linalg.norm(R1_0[1:,:]-R1_1) < 1e-9
 
     # Test WV limit - approx
     p = {'H':0.4, 'vb':0.5*1e-3, 'vi':0.3, 'Fp':0.01, 'PS':0.005}
-    R1_0, _ = dc.relax_tissue(ca, R10, r1, t=t, kinetics='2CX', water_exchange='RR', **p)
+    R1_0, _, _ = dc.relax_tissue(ca, R10, r1, t=t, kinetics='2CX', water_exchange='RR', **p)
     p = {'vi':0.3, 'Ktrans':0.01*0.005/(0.01+0.005)}
-    R1_1, _ = dc.relax_tissue(ca, R10, r1, t=t, kinetics='WV', water_exchange='RR', **p)
+    R1_1, _, _ = dc.relax_tissue(ca, R10, r1, t=t, kinetics='WV', water_exchange='RR', **p)
     assert np.linalg.norm(R1_0[1:,:]-R1_1)< 1e-3*np.linalg.norm(R1_0[1:,:])
 
     # Test HF limit - exact
     p = {'H':0.4, 'vb':0.05, 'vi':0.3, 'Fp':np.inf, 'PS':0.005}
-    R1_0, _ = dc.relax_tissue(ca, R10, r1, t=t, kinetics='2CX', water_exchange='RR', **p)
+    R1_0, _, _ = dc.relax_tissue(ca, R10, r1, t=t, kinetics='2CX', water_exchange='RR', **p)
     p = {'H':0.4, 'vb':0.05, 'vi':0.3, 'PS':0.005}
-    R1_1, _ = dc.relax_tissue(ca, R10, r1, t=t, kinetics='HF', water_exchange='RR', **p)
+    R1_1, _, _ = dc.relax_tissue(ca, R10, r1, t=t, kinetics='HF', water_exchange='RR', **p)
     assert np.linalg.norm(R1_0-R1_1) < 1e-9
 
     # Test HF limit - approx
     p = {'H':0.4, 'vb':0.05, 'vi':0.3, 'Fp':1000, 'PS':0.005}
-    R1_0, _ = dc.relax_tissue(ca, R10, r1, t=t, kinetics='2CX', water_exchange='RR', **p)
+    R1_0, _, _ = dc.relax_tissue(ca, R10, r1, t=t, kinetics='2CX', water_exchange='RR', **p)
     p = {'H':0.4, 'vb':0.05, 'vi':0.3, 'PS':0.005}
-    R1_1, _ = dc.relax_tissue(ca, R10, r1, t=t, kinetics='HF', water_exchange='RR', **p)
+    R1_1, _, _ = dc.relax_tissue(ca, R10, r1, t=t, kinetics='HF', water_exchange='RR', **p)
     assert np.linalg.norm(R1_0-R1_1) < 1e-3*np.linalg.norm(R1_0)
 
 

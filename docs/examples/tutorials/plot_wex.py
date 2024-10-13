@@ -45,7 +45,7 @@ t, aif, _ = dc.fake_aif(tacq=300)
 aif = {
     't': t,
     'aif': aif, 
-    'relaxivity': dc.relaxivity(3, 'blood', 'gadodiamide'), 
+    'r1': dc.relaxivity(3, 'blood', 'gadodiamide'), 
     'R10a': 1/dc.T1(3.0,'blood'),
 }
 

@@ -4,7 +4,7 @@ Signals
 -------
 
 .. _sequence-params:
-.. list-table:: **sequence parameters**
+.. list-table:: **List of sequence parameters**
     :widths: 15 20 40 10 10
     :header-rows: 1
 
@@ -54,7 +54,7 @@ Signals
 
 
 .. _params-per-sequence:
-.. list-table:: **Parameters per sequence**
+.. list-table:: **Sequence parameters**
     :widths: 20 40
     :header-rows: 1 
 

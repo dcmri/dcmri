@@ -219,7 +219,7 @@ def _signal_ss_aex(PS, v, R1, S0, TR, FA, sum=True):
     return np.sin(FA)*Mag
 
 
-def signal_ss(R1, S0, TR, FA, v=None, PSw=np.inf, R10=None, 
+def signal_ss(R1, S0, TR, FA, v=None, PSw=None, R10=None, 
               sum=True) -> np.ndarray:
     """Signal of a spoiled gradient echo sequence applied in steady state.
 

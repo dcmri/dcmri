@@ -69,7 +69,7 @@ def test_mods_tissue():
         'water_exchange': 'FF',
         'aif': aif,
         'dt': time[1],
-        'relaxivity': dc.relaxivity(3,'blood','gadodiamide'),
+        'r1': dc.relaxivity(3,'blood','gadodiamide'),
         'TR': 0.005,
         'FA': 15,
         'n0': 10,
@@ -115,6 +115,7 @@ def test_mods_tissue():
     for k in ['U', 'NX', 'FX', 'WV', 'HFU', 'HF', '2CU', '2CX']:
         for e in ['R','F','N']:
             for c in ['R','F','N']:
+                print(k, e+c)
                 params['water_exchange'] = e+c
                 params['kinetics'] = k
                 model = dc.Tissue(**params)
@@ -141,7 +142,7 @@ def test_mods_tissue_array():
         'water_exchange': 'FF',
         'aif': aif,
         'dt': time[1],
-        'relaxivity': dc.relaxivity(3, 'blood', 'gadodiamide'),
+        'r1': dc.relaxivity(3, 'blood', 'gadodiamide'),
         'TR': 0.005,
         'FA': 15,
         'n0': 10,
@@ -349,7 +350,7 @@ if __name__ == "__main__":
     # make_tmp()
 
     # test_model()
-    # test_mods_tissue()
+    test_mods_tissue()
     test_mods_tissue_array()
     # test_mods_aorta()
     # test_mods_aorta_liver()
