@@ -44,7 +44,7 @@ Contributors:
              alt="Avatar picture of @EShalom"
            />
         </div>
-        Eva Shalom
+        Eve Shalom
      </a>
      <div class="team-member-handle">@EShalom</div>
    </div>
