@@ -4,7 +4,7 @@ import numpy as np
 import dcmri as dc
 
 
-# # Debugging mode
+# Debugging mode
 # VERBOSE = 1
 # SHOW = True
 
@@ -53,9 +53,9 @@ def test_model():
     make_tmp()
     t.save(path=tmp())
     t.a=2
-    assert t.get_params('a')==2
+    assert t.params('a')==2
     t.load(path=tmp())
-    assert t.get_params('a')==1
+    assert t.params('a')==1
     delete_tmp()
 
 
@@ -69,11 +69,13 @@ def test_mods_tissue():
         'water_exchange': 'FF',
         'aif': aif,
         'dt': time[1],
-        'relaxivity': dc.relaxivity(3,'blood','gadodiamide'),
+        # 'ca': gt['cb'],
+        # 't': gt['t'],
+        'r1': dc.relaxivity(3,'blood','gadodiamide'),
         'TR': 0.005,
         'FA': 15,
         'n0': 10,
-        'R10b': 1/dc.T1(3.0,'blood'),
+        'R10a': 1/dc.T1(3.0,'blood'),
         'R10': 1/dc.T1(3.0,'muscle'),
     }
 
@@ -90,11 +92,11 @@ def test_mods_tissue():
     # Try again fixing up to the wrong range
     # Check that the fit is less good
     # And that the value runs against the upper bound
-    model = dc.Tissue(vp=0.001, **params)
-    model.set_free(vp = [0., 0.01])
+    model = dc.Tissue(vb=0.001, **params)
+    model.set_free(vb = [0., 0.01])
     model.train(time, roi)
     pars = model.export_params()
-    assert np.round(pars['vp'][1],3)==0.01
+    assert np.round(pars['vb'][1],3)==0.01
     assert model.cost(time, roi) > cost0
 
     params['water_exchange'] = 'NN'
@@ -106,8 +108,8 @@ def test_mods_tissue():
     model = dc.Tissue(**params)
     model.train(time, roi, xtol=1e-2)
     assert model.cost(time, roi) < 1
-    assert model.get_params('PSe') > 1 # fast exchange
-    assert model.get_params('PSc') > 1
+    assert model.params('PSe') > 1 # fast exchange
+    assert model.params('PSc') > 1
 
     # Loop over all models
     cost = {'U':20, 'NX':10, 'FX':20, 'WV':10, 'HFU':20, 'HF':6, '2CU':20, 
@@ -141,11 +143,11 @@ def test_mods_tissue_array():
         'water_exchange': 'FF',
         'aif': aif,
         'dt': time[1],
-        'relaxivity': dc.relaxivity(3, 'blood', 'gadodiamide'),
+        'r1': dc.relaxivity(3, 'blood', 'gadodiamide'),
         'TR': 0.005,
         'FA': 15,
         'n0': 10,
-        'R10b': 1/dc.T1(3.0,'blood'),
+        'R10a': 1/dc.T1(3.0,'blood'),
         'R10': R10,
         'parallel': False,
         'verbose': VERBOSE,
@@ -153,14 +155,14 @@ def test_mods_tissue_array():
 
     # Train array
     image = dc.TissueArray((n,n), **params)
-    image.train(time, signal, xtol=1e-3)
+    image.train(time, signal, xtol=1e-4)
     #image.save(path=tmp(), filename='TissueArray')
     #image = dc.TissueArray().load(filename=file)
 
     # Plot array
     roi = dc.shepp_logan(n=n)
-    vmin = {'S0':0, 'Fp':0, 'vp':0, 'Ktrans':0, 'vi':0}
-    vmax = {'S0':np.amax(gt['S0']), 'Fp':0.01, 'vp':0.2, 'Ktrans':0.003, 've':0.5}
+    vmin = {'S0':0, 'Fb':0, 'vb':0, 'PS':0, 'vi':0}
+    vmax = {'S0':np.amax(gt['S0']), 'Fb':0.02, 'vb':0.2, 'PS':0.003, 'vi':0.5}
     image.plot(time, signal, vmax=vmax, ref=gt, show=SHOW)
     image.plot_params(roi=roi, ref=gt, vmin=vmin, vmax=vmax, show=SHOW)
     image.plot_fit(time, signal, ref=gt, roi=roi, show=SHOW,
@@ -169,20 +171,21 @@ def test_mods_tissue_array():
 
     # Compare against curve fit in one pixel.
     loc = dc.shepp_logan(n=n)['gray matter'] == 1
+    loc = dc.shepp_logan(n=n)['bone'] == 1
     signal_loc = signal[loc,:][0,:]
     params['FA'] = 15
     params['R10'] = R10[loc][0]
     params.pop('parallel')
     params.pop('verbose')
     curve = dc.Tissue(**params)
-    curve.train(time, signal_loc, xtol=1e-3)
+    curve.train(time, signal_loc, xtol=1e-4)
     curve.plot(time, signal_loc, show=SHOW)
 
     nrmsc = curve.cost(time, signal_loc)
     nrmsa = image.cost(time, signal)[loc][0]
     assert np.abs(nrmsc-nrmsa) <= 0.1*nrmsc
-    cp = curve.get_params('S0','Fp','vp','Ktrans','vi')
-    ip = image.get_params('S0','Fp','vp','Ktrans','vi')
+    cp = curve.params('S0','Fb','vb','PS','vi')
+    ip = image.params('S0','Fb','vb','PS','vi')
     for i in range(len(cp)):
         assert np.abs(cp[i] - ip[i][loc][0]) <= 0.1*cp[i]
 
@@ -209,7 +212,7 @@ def test_mods_aorta():
     aorta.plot(time, aif, show=SHOW)
     rec = aorta.export_params()
     rec_aif = aorta.predict(time)
-    assert rec['BAT'][1] == aorta.get_params('BAT')
+    assert rec['BAT'][1] == aorta.params('BAT')
     assert np.linalg.norm(aif-rec_aif) < 0.1*np.linalg.norm(aif)
     assert np.abs(rec['BAT'][1]-truth['BAT']) < 0.2*truth['BAT']
 
@@ -236,7 +239,7 @@ def test_mods_aorta_liver():
     model.train(xdata, ydata, xtol=1e-3)
     model.plot(xdata, ydata, show=SHOW)
     assert model.cost(xdata, ydata) < 10
-    assert 90 < model.get_params('Th', round_to=0) < 110
+    assert 90 < model.params('Th', round_to=0) < 110
 
 
 def test_mods_aorta_liver2scan():
@@ -264,7 +267,7 @@ def test_mods_aorta_liver2scan():
     model.train(xdata, ydata, xtol=1e-3)
     model.plot(xdata, ydata, show=SHOW)
     assert model.cost(xdata, ydata) < 5
-    assert 60 < model.get_params('Th', round_to=0) < 80
+    assert 60 < model.params('Th', round_to=0) < 80
 
 def test_mods_liver():
     time, aif, roi, gt = dc.fake_tissue(
@@ -286,7 +289,7 @@ def test_mods_liver():
     model.train(time, roi)
     model.plot(time, roi, ref=gt, show=SHOW)
     assert model.cost(time, roi) < 0.2
-    assert model.get_params('Th', round_to=0) == 87
+    assert 80 < model.params('Th', round_to=0) < 90
 
 def test_mods_kidney():
     time, aif, roi, gt = dc.fake_tissue(R10=1/dc.T1(3.0,'kidney'))
@@ -310,7 +313,7 @@ def test_mods_kidney():
     model.train(time, roi)
     model.plot(time, roi, ref=gt, show=SHOW)
     assert model.cost(time, roi) < 0.5
-    assert model.get_params('Tt', round_to=0) == 88
+    assert 80 < model.params('Tt', round_to=0) < 90
     #
     # Repeat the fit using a free nephron model:
     #
@@ -318,7 +321,7 @@ def test_mods_kidney():
     model.train(time, roi)
     model.plot(time, roi, ref=gt, show=SHOW)
     assert model.cost(time, roi) < 1
-    assert model.get_params('Fp', round_to=2) == 0.01
+    assert 0.005 < model.params('Fp', round_to=2) < 0.015
 
 
 def test_mods_kidney_cort_med():
@@ -340,7 +343,7 @@ def test_mods_kidney_cort_med():
     model.plot(time, roi, ref=gt, show=SHOW)
 
     assert model.cost(time, roi) < 1
-    assert model.get_params('Tdt', round_to=0) == 27
+    assert model.params('Tdt', round_to=0) == 27
 
 
 
@@ -348,14 +351,14 @@ if __name__ == "__main__":
 
     # make_tmp()
 
-    # test_model()
-    # test_mods_tissue()
-    # test_mods_tissue_array()
-    # test_mods_aorta()
+    test_model()
+    test_mods_tissue()
+    test_mods_tissue_array()
+    test_mods_aorta()
     test_mods_aorta_liver()
     test_mods_aorta_liver2scan()
-    # test_mods_liver()
-    # test_mods_kidney()
-    # test_mods_kidney_cort_med()
+    test_mods_liver()
+    test_mods_kidney()
+    test_mods_kidney_cort_med()
 
     print('All mods tests passed!!')

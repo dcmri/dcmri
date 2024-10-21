@@ -81,7 +81,6 @@ def tristan_rat(data, **kwargs):
         field_strength = data['field_strength'],
         TR = data['TR'],
         FA = data['FA'],
-        TS = 60,
         n0 = data['n0'],
 
         # Kinetic paramaters

@@ -23,8 +23,8 @@ This part of the modelling is determined by the following parameters:
       - Precontrast longitudinal relaxation rate in tissue
       - Native longitudinal relaxation rate in the absence of contrast agent
       - Hz
-    * - R10b
-      - Precontrast longitudinal relaxation rate in blood
+    * - R10a
+      - Precontrast longitudinal relaxation rate in arterial blood
       - Native longitudinal relaxation rate in blood in the absence of 
         contrast agent
       - Hz

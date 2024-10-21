@@ -2,8 +2,7 @@
 .. _core-developers-team:
 
 
-These are the current developers of dcmri:
-
+Contributors:
 
 
 .. raw:: html

@@ -33,5 +33,5 @@ def getting_started():
 
 if __name__ == '__main__':
 
-    fake_brain()
+    # fake_brain()
     getting_started()

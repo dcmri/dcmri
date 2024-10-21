@@ -27,8 +27,8 @@
       ~KidneyCortMed.conc
       ~KidneyCortMed.cost
       ~KidneyCortMed.export_params
-      ~KidneyCortMed.get_params
       ~KidneyCortMed.load
+      ~KidneyCortMed.params
       ~KidneyCortMed.plot
       ~KidneyCortMed.predict
       ~KidneyCortMed.print_params

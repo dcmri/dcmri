@@ -21,8 +21,8 @@
       ~AortaLiver.conc
       ~AortaLiver.cost
       ~AortaLiver.export_params
-      ~AortaLiver.get_params
       ~AortaLiver.load
+      ~AortaLiver.params
       ~AortaLiver.plot
       ~AortaLiver.predict
       ~AortaLiver.print_params

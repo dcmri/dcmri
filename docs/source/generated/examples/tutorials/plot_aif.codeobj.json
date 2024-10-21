@@ -15,34 +15,34 @@
    "name": "Tissue"
   }
  ],
- "A.get_params": [
+ "A.params": [
   {
    "is_class": false,
    "is_explicit": false,
    "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
-   "name": "Tissue.get_params"
+   "name": "Tissue.params"
   },
   {
    "is_class": false,
    "is_explicit": false,
    "module": "dcmri",
    "module_short": "dcmri",
-   "name": "Tissue.get_params"
+   "name": "Tissue.params"
   },
   {
    "is_class": false,
    "is_explicit": false,
    "module": "dcmri.mods",
    "module_short": "dcmri",
-   "name": "Model.get_params"
+   "name": "Model.params"
   },
   {
    "is_class": false,
    "is_explicit": false,
    "module": "dcmri",
    "module_short": "dcmri",
-   "name": "Model.get_params"
+   "name": "Model.params"
   }
  ],
  "A.plot": [
@@ -130,34 +130,34 @@
    "name": "Tissue"
   }
  ],
- "B.get_params": [
+ "B.params": [
   {
    "is_class": false,
    "is_explicit": false,
    "module": "dcmri.mods_tissue",
    "module_short": "dcmri",
-   "name": "Tissue.get_params"
+   "name": "Tissue.params"
   },
   {
    "is_class": false,
    "is_explicit": false,
    "module": "dcmri",
    "module_short": "dcmri",
-   "name": "Tissue.get_params"
+   "name": "Tissue.params"
   },
   {
    "is_class": false,
    "is_explicit": false,
    "module": "dcmri.mods",
    "module_short": "dcmri",
-   "name": "Model.get_params"
+   "name": "Model.params"
   },
   {
    "is_class": false,
    "is_explicit": false,
    "module": "dcmri",
    "module_short": "dcmri",
-   "name": "Model.get_params"
+   "name": "Model.params"
   }
  ],
  "B.plot": [

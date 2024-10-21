@@ -73,6 +73,16 @@ To run a specific file (eg. test_utils) only, do:
 >>> pytest tests/test_utils.py --cov=dcmri --cov-report term-missing
 
 
+Check tests in docstrings
+-------------------------
+
+To test file.py, cd to directpory of file.py, then do:
+>>> pytest --doctest-modules file.py
+
+To insert the expected test results, do:
+>>> pytest --doctest-modules file.py --accept
+
+
 Build documentation locally
 ---------------------------
 cd to docs

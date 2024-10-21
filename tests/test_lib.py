@@ -104,12 +104,12 @@ def test_PD():
         assert False
 
 def test_perfusion():
-    assert dc.perfusion('BF', 'csf') == 0.0
-    assert dc.perfusion('BV', 'csf') == 0.0
+    assert dc.perfusion('Fb', 'csf') == 0.0
+    assert dc.perfusion('vb', 'csf') == 0.0
     assert dc.perfusion('PS', 'csf') == 0.0
-    assert dc.perfusion('IV', 'csf') == 0.0
+    assert dc.perfusion('vi', 'csf') == 0.0
     try:
-        dc.perfusion('BF', 'hair')
+        dc.perfusion('Fb', 'hair')
     except:
         assert True
     else:
@@ -119,23 +119,23 @@ def test_shepp_logan():
 
     n=64
     roi = dc.shepp_logan(n=n)
-    im = dc.shepp_logan('T1', 'T2', 'PD', 'BF', 'BV', 'PS', 'IV', n=n)
+    im = dc.shepp_logan('T1', 'T2', 'PD', 'Fb', 'vb', 'PS', 'vi', n=n)
 
-    vals = im['BF'][roi['CSF left']==1]
+    vals = im['Fb'][roi['CSF left']==1]
     assert 0 == np.amin(vals)
     assert 0 == np.amax(vals)
-    vals = im['BV'][roi['CSF left']==1]
+    vals = im['vb'][roi['CSF left']==1]
     assert 0 == np.amin(vals)
     assert 0 == np.amax(vals)
     vals = im['PS'][roi['CSF left']==1]
     assert 0 == np.amin(vals)
     assert 0 == np.amax(vals)
-    vals = im['IV'][roi['CSF left']==1]
+    vals = im['vi'][roi['CSF left']==1]
     assert 0 == np.amin(vals)
     assert 0 == np.amax(vals)
 
     # Special case - 1 parameter - does not return dict
-    im = dc.shepp_logan('BF', n=n)
+    im = dc.shepp_logan('Fb', n=n)
     vals = im[roi['CSF left']==1]
     assert 0 == np.amin(vals)
     assert 0 == np.amax(vals)

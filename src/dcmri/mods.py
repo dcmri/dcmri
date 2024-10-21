@@ -21,6 +21,44 @@ class ArrayModel():
         self.shape = None
         self.free = {}
 
+    def _par_values(self):
+        return {par: getattr(self, par) for par in self.__dict__ if par not in ['free', 'shape']}
+
+
+    def params(self, *args, round_to=None):
+        """Return the parameter values
+
+        Args:
+            args (tuple): parameters to get
+            round_to (int, optional): Round to how many digits. If this is 
+            not provided, the values are not rounded. Defaults to None.
+
+        Returns:
+            list or float: values of parameter values, or a scalar value if 
+            only one parameter is required.
+        """
+        return params(self, *args, round_to=round_to)
+
+    def set_free(self, pop=None, **kwargs):
+        """Set the free model parameters.
+
+        Args:
+            pop (str or list): a single variable or a list of variables to 
+              remove from the list of free parameters. 
+
+        Raises:
+            ValueError: if the pop argument contains a parameter that is not 
+              in the list of free parameters.
+            ValueError: If the parameter is not a model parameter, or bounds 
+              are not properly formatted.
+        """
+        for p in kwargs:
+            if not self._params(p)['pixel_par']:
+                raise ValueError(
+                    str(p) + ' is not a pixel-based parameter. ' +
+                    'Only pixel-based parameters can be free.')
+        set_free(self, pop=pop, **kwargs)
+
     def save(self, file=None, path=None, filename='Model'):
         """Save the current state of the model
 
@@ -168,7 +206,7 @@ class ArrayModel():
             pars[par].append(sdev)
         return pars
 
-    def _set_defaults(self, **params):
+    def _set_defaults(self, free=None, **params):
         for k, v in params.items():
             if hasattr(self, k):
                 val = getattr(self, k)
@@ -193,6 +231,8 @@ class ArrayModel():
             else:
                 raise ValueError(
                     str(k) + ' is not a valid parameter for this model.')
+        if free is not None:
+            self.set_free(**free)
 
 
 class Model:
@@ -201,6 +241,9 @@ class Model:
     def __init__(self):
         self.free = {}
         self.pcov = None
+
+    def _par_values(self):
+        return {par: getattr(self, par) for par in self.__dict__ if par not in ['free', 'pcov']}
 
     def save(self, file=None, path=None, filename='Model'):
         """Save the current state of the model
@@ -283,12 +326,14 @@ class Model:
             float: goodness of fit.
         """
         return _cost(self, xdata, ydata, metric)
-
+    
     def export_params(self) -> list:
         """Return model parameters with their descriptions
 
         Returns:
-            dict: Dictionary with one item for each model parameter. The key is the parameter symbol (short name), and the value is a 4-element list with [parameter name, value, unit, sdev].
+            dict: Dictionary with one item for each model parameter. The key 
+            is the parameter symbol (short name), and the value is a 
+            4-element list with [parameter name, value, unit, sdev].
         """
         # Short name, full name, value, units.
         pars = {}
@@ -332,71 +377,35 @@ class Model:
                     v = np.round(p[1], round_to)
                 print(p[0] + ' ('+par+'): ' + str(v) + ' ' + p[2])
 
-    # TODO rationalise getters and setters
-    def get_params(self, *args, round_to=None):
+    def params(self, *args, round_to=None):
         """Return the parameter values
 
         Args:
             args (tuple): parameters to get
-            round_to (int, optional): Round to how many digits. If this is not provided, the values are not rounded. Defaults to None.
+            round_to (int, optional): Round to how many digits. If this is 
+            not provided, the values are not rounded. Defaults to None.
 
         Returns:
-            list or float: values of parameter values, or a scalar value if only one parameter is required.
+            list or float: values of parameter values, or a scalar value if 
+            only one parameter is required.
         """
-        if args == ():
-            args = self.free.keys()
-        pars = []
-        for a in args:
-            v = getattr(self, a)
-            if round_to is not None:
-                v = round(v, round_to)
-            pars.append(v)
-        if len(pars) == 1:
-            return pars[0]
-        else:
-            return pars
+        return params(self, *args, round_to=round_to)
+
 
     def set_free(self, pop=None, **kwargs):
-        """Set bounds for free model parameters.
+        """Set the free model parameters.
 
         Args:
-            pop (str or list): a single variable or a list of variables to remove from the list of free parameters. 
+            pop (str or list): a single variable or a list of variables to 
+              remove from the list of free parameters. 
 
         Raises:
-            ValueError: if the pop argument contains a parameter that is not in the list of free parameters.
-            ValueError: If the parameter is not a model parameter, or bounds are not properly formatted.
+            ValueError: if the pop argument contains a parameter that is not 
+              in the list of free parameters.
+            ValueError: If the parameter is not a model parameter, or bounds 
+              are not properly formatted.
         """
-        if pop is not None:
-            if np.isscalar(pop):
-                if pop in self.free:
-                    self.free.pop(pop)
-                else:
-                    raise ValueError(
-                        pop + ' is not currently a free parameter, so cannot be removed from the list.')
-            else:
-                for par in pop:
-                    if par in self.free:
-                        self.free.pop(par)
-                    else:
-                        raise ValueError(
-                            par + ' is not currently a free parameter, so cannot be removed from the list.')
-        for k, v in kwargs.items():
-            if k in self.__dict__:
-                if np.size(v) == 2:
-                    if v[0] < v[1]:
-                        if (v[0] <= getattr(self, k)) and (v[1] >= getattr(self, k)):
-                            self.free[k] = v
-                        else:
-                            raise ValueError('Cannot set parameter bounds for '+str(
-                                k)+'. The value current value '+str(getattr(self, k)) + ' is outside of the bounds. ')
-                    else:
-                        raise ValueError(str(
-                            v) + ' is not a proper parameter bound. The first element must be smaller than the second.')
-                else:
-                    raise ValueError(str(
-                        v) + ' is not a proper parameter bound. Bounds must lists or arrays with 2 elements.')
-            else:
-                raise ValueError(str(k) + ' is not a model parameter.')
+        set_free(self, pop=pop, **kwargs)
 
     def _set_defaults(self, free=None, **params):
         for k, v in params.items():
@@ -461,6 +470,65 @@ class Model:
             if par in pars:
                 pars[par][-1] = perr[i]
         return pars
+    
+
+def params(self, *args, round_to=None):
+    p = self._par_values()
+    if args == ():
+        args = p.keys()
+    pars = []
+    for a in args:
+        if a in p:
+            v = p[a]
+        else:
+            if hasattr(self, a):
+                v = getattr(self, a)
+            else:
+                raise ValueError(
+                    a + ' is not a model parameter, and cannot be '
+                    + 'derived from the model parameters.'
+                )
+        if round_to is not None:
+            v = round(v, round_to)
+        pars.append(v)
+    if len(pars) == 1:
+        return pars[0]
+    else:
+        return pars
+    
+
+def set_free(self, pop=None, **kwargs):
+    if pop is not None:
+        if np.isscalar(pop):
+            if pop in self.free:
+                self.free.pop(pop)
+            else:
+                raise ValueError(
+                    pop + ' is not currently a free parameter, so cannot be removed from the list.')
+        else:
+            for par in pop:
+                if par in self.free:
+                    self.free.pop(par)
+                else:
+                    raise ValueError(
+                        par + ' is not currently a free parameter, so cannot be removed from the list.')
+    for k, v in kwargs.items():
+        if k in self.__dict__:
+            if np.size(v) == 2:
+                if v[0] < v[1]:
+                    if (v[0] <= getattr(self, k)) and (v[1] >= getattr(self, k)):
+                        self.free[k] = v
+                    else:
+                        raise ValueError('Cannot set parameter bounds for '+str(
+                            k)+'. The value current value '+str(getattr(self, k)) + ' is outside of the bounds. ')
+                else:
+                    raise ValueError(str(
+                        v) + ' is not a proper parameter bound. The first element must be smaller than the second.')
+            else:
+                raise ValueError(str(
+                    v) + ' is not a proper parameter bound. Bounds must lists or arrays with 2 elements.')
+        else:
+            raise ValueError(str(k) + ' is not a model parameter.')
 
 
 def _save(model, file=None, path=None, filename='Model'):

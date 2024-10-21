@@ -15,7 +15,7 @@ This reference manual details all functions included in dcmri, describing what t
 
    e2e
    sig
-   pk_models
+   tissues
    pk_blocks
    utils
    

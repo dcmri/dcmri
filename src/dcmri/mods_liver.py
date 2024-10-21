@@ -9,8 +9,11 @@ class Liver(dc.Model):
 
         **Input function**
 
-        - **aif** (array-like, default=None): Signal-time curve in a feeding artery. If AIF is set to None, then the parameter ca must be provided (arterial concentrations).
-        - **ca** (array-like, default=None): Concentration (M) in the arterial input. Must be provided when aif = None, ignored otherwise.
+        - **aif** (array-like, default=None): Signal-time curve in a feeding 
+          artery. If AIF is set to None, then the parameter ca must be 
+          provided (arterial concentrations).
+        - **ca** (array-like, default=None): Concentration (M) in the 
+          arterial input. Must be provided when aif = None, ignored otherwise.
 
         **Acquisition parameters**
 
@@ -124,7 +127,7 @@ class Liver(dc.Model):
 
         # Signal parameters
         self.R10 = 1/dc.T1(3.0, 'liver')
-        self.R10b = 1/dc.T1(3.0, 'blood')
+        self.R10a = 1/dc.T1(3.0, 'blood')
         self.S0 = 1
 
         # Optional parameters
@@ -178,10 +181,10 @@ class Liver(dc.Model):
         if self.aif is not None:
             r1 = dc.relaxivity(self.field_strength, 'blood', self.agent)
             if self.sequence == 'SR':
-                cb = dc.conc_src(self.aif, self.TC, 1/self.R10b, r1, self.n0)
+                cb = dc.conc_src(self.aif, self.TC, 1/self.R10a, r1, self.n0)
             elif self.sequence == 'SS':
                 cb = dc.conc_ss(self.aif, self.TR, self.FA,
-                                1/self.R10b, r1, self.n0)
+                                1/self.R10a, r1, self.n0)
             else:
                 raise NotImplementedError(
                     'Signal model ' + self.sequence + 'is not (yet) supported.')

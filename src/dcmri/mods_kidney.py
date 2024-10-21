@@ -52,7 +52,7 @@ class Kidney(mods.Model):
         **Signal parameters**
 
         - **R10** (float, default=1): Precontrast tissue relaxation rate in 1/sec.
-        - **R10b** (float, default=1): Precontrast arterial relaxation rate in 1/sec. 
+        - **R10a** (float, default=1): Precontrast arterial relaxation rate in 1/sec. 
         - **S0** (float, default=1): Scale factor for the MR signal (a.u.).
 
         **Prediction and training parameters**
@@ -146,7 +146,7 @@ class Kidney(mods.Model):
 
         # Signal parameters
         self.R10 = 1/lib.T1(3.0, 'kidney')
-        self.R10b = 1/lib.T1(3.0, 'blood')
+        self.R10a = 1/lib.T1(3.0, 'blood')
         self.S0 = 1
 
         # Optional parameters
@@ -210,12 +210,12 @@ class Kidney(mods.Model):
         if self.aif is not None:
             r1 = lib.relaxivity(self.field_strength, 'blood', self.agent)
             if self.sequence == 'SR':
-                cb = sig.conc_src(self.aif, self.TC, 1/self.R10b, r1, self.n0)
+                cb = sig.conc_src(self.aif, self.TC, 1/self.R10a, r1, self.n0)
             elif self.sequence == 'SS':
                 cb = sig.conc_ss(self.aif, self.TR, self.FA,
-                                 1/self.R10b, r1, self.n0)
+                                 1/self.R10a, r1, self.n0)
             elif self.sequence == 'lin':
-                cb = sig.conc_lin(self.aif, 1/self.R10b, r1, self.n0)
+                cb = sig.conc_lin(self.aif, 1/self.R10a, r1, self.n0)
             else:
                 raise NotImplementedError(
                     'Signal model ' + self.sequence + 'is not (yet) supported.')
@@ -384,7 +384,7 @@ class KidneyCortMed(mods.Model):
 
         - **R10c** (float, optional): Precontrast cortex relaxation rate in 1/sec. 
         - **R10m** (float, optional): Precontrast medulla relaxation rate in 1/sec.
-        - **R10b** (float, optional): Precontrast arterial relaxation rate in 1/sec. 
+        - **R10a** (float, optional): Precontrast arterial relaxation rate in 1/sec. 
         - **S0c** (float, optional): Signal scaling factor in the cortex (a.u.).
         - **S0m** (float, optional): Signal scaling factor in the medulla (a.u.).
 
@@ -474,7 +474,7 @@ class KidneyCortMed(mods.Model):
         # Signal parameters
         self.R10c = 1/lib.T1(3.0, 'kidney')
         self.R10m = 1/lib.T1(3.0, 'kidney')
-        self.R10b = 1/lib.T1(3.0, 'blood')
+        self.R10a = 1/lib.T1(3.0, 'blood')
         self.S0c = 1
         self.S0m = 1
 
@@ -527,10 +527,10 @@ class KidneyCortMed(mods.Model):
         if self.aif is not None:
             r1 = lib.relaxivity(self.field_strength, 'blood', self.agent)
             if self.sequence == 'SR':
-                cb = sig.conc_src(self.aif, self.TC, 1/self.R10b, r1, self.n0)
+                cb = sig.conc_src(self.aif, self.TC, 1/self.R10a, r1, self.n0)
             elif self.sequence == 'SS':
                 cb = sig.conc_ss(self.aif, self.TR, self.FA,
-                                 1/self.R10b, r1, self.n0)
+                                 1/self.R10a, r1, self.n0)
             else:
                 raise NotImplementedError(
                     'Signal model ' + self.sequence + 'is not (yet) supported.')
