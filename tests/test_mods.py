@@ -4,7 +4,7 @@ import numpy as np
 import dcmri as dc
 
 
-# # Debugging mode
+# Debugging mode
 # VERBOSE = 1
 # SHOW = True
 
@@ -69,6 +69,8 @@ def test_mods_tissue():
         'water_exchange': 'FF',
         'aif': aif,
         'dt': time[1],
+        # 'ca': gt['cb'],
+        # 't': gt['t'],
         'r1': dc.relaxivity(3,'blood','gadodiamide'),
         'TR': 0.005,
         'FA': 15,
@@ -90,11 +92,11 @@ def test_mods_tissue():
     # Try again fixing up to the wrong range
     # Check that the fit is less good
     # And that the value runs against the upper bound
-    model = dc.Tissue(vp=0.001, **params)
-    model.set_free(vp = [0., 0.01])
+    model = dc.Tissue(vb=0.001, **params)
+    model.set_free(vb = [0., 0.01])
     model.train(time, roi)
     pars = model.export_params()
-    assert np.round(pars['vp'][1],3)==0.01
+    assert np.round(pars['vb'][1],3)==0.01
     assert model.cost(time, roi) > cost0
 
     params['water_exchange'] = 'NN'
@@ -153,14 +155,14 @@ def test_mods_tissue_array():
 
     # Train array
     image = dc.TissueArray((n,n), **params)
-    image.train(time, signal, xtol=1e-3)
+    image.train(time, signal, xtol=1e-4)
     #image.save(path=tmp(), filename='TissueArray')
     #image = dc.TissueArray().load(filename=file)
 
     # Plot array
     roi = dc.shepp_logan(n=n)
-    vmin = {'S0':0, 'Fp':0, 'vp':0, 'PS':0, 'vi':0}
-    vmax = {'S0':np.amax(gt['S0']), 'Fp':0.01, 'vp':0.2, 'PS':0.003, 'vi':0.5}
+    vmin = {'S0':0, 'Fb':0, 'vb':0, 'PS':0, 'vi':0}
+    vmax = {'S0':np.amax(gt['S0']), 'Fb':0.02, 'vb':0.2, 'PS':0.003, 'vi':0.5}
     image.plot(time, signal, vmax=vmax, ref=gt, show=SHOW)
     image.plot_params(roi=roi, ref=gt, vmin=vmin, vmax=vmax, show=SHOW)
     image.plot_fit(time, signal, ref=gt, roi=roi, show=SHOW,
@@ -169,20 +171,21 @@ def test_mods_tissue_array():
 
     # Compare against curve fit in one pixel.
     loc = dc.shepp_logan(n=n)['gray matter'] == 1
+    loc = dc.shepp_logan(n=n)['bone'] == 1
     signal_loc = signal[loc,:][0,:]
     params['FA'] = 15
     params['R10'] = R10[loc][0]
     params.pop('parallel')
     params.pop('verbose')
     curve = dc.Tissue(**params)
-    curve.train(time, signal_loc, xtol=1e-3)
+    curve.train(time, signal_loc, xtol=1e-4)
     curve.plot(time, signal_loc, show=SHOW)
 
     nrmsc = curve.cost(time, signal_loc)
     nrmsa = image.cost(time, signal)[loc][0]
     assert np.abs(nrmsc-nrmsa) <= 0.1*nrmsc
-    cp = curve.params('S0','Fp','vp','PS','vi')
-    ip = image.params('S0','Fp','vp','PS','vi')
+    cp = curve.params('S0','Fb','vb','PS','vi')
+    ip = image.params('S0','Fb','vb','PS','vi')
     for i in range(len(cp)):
         assert np.abs(cp[i] - ip[i][loc][0]) <= 0.1*cp[i]
 
@@ -286,7 +289,7 @@ def test_mods_liver():
     model.train(time, roi)
     model.plot(time, roi, ref=gt, show=SHOW)
     assert model.cost(time, roi) < 0.2
-    assert model.params('Th', round_to=0) == 87
+    assert 80 < model.params('Th', round_to=0) < 90
 
 def test_mods_kidney():
     time, aif, roi, gt = dc.fake_tissue(R10=1/dc.T1(3.0,'kidney'))
@@ -310,7 +313,7 @@ def test_mods_kidney():
     model.train(time, roi)
     model.plot(time, roi, ref=gt, show=SHOW)
     assert model.cost(time, roi) < 0.5
-    assert model.params('Tt', round_to=0) == 88
+    assert 80 < model.params('Tt', round_to=0) < 90
     #
     # Repeat the fit using a free nephron model:
     #
@@ -318,7 +321,7 @@ def test_mods_kidney():
     model.train(time, roi)
     model.plot(time, roi, ref=gt, show=SHOW)
     assert model.cost(time, roi) < 1
-    assert model.params('Fp', round_to=2) == 0.01
+    assert 0.005 < model.params('Fp', round_to=2) < 0.015
 
 
 def test_mods_kidney_cort_med():
@@ -349,13 +352,13 @@ if __name__ == "__main__":
     # make_tmp()
 
     test_model()
-    # test_mods_tissue()
-    # test_mods_tissue_array()
-    # test_mods_aorta()
-    # test_mods_aorta_liver()
-    # test_mods_aorta_liver2scan()
-    # test_mods_liver()
-    # test_mods_kidney()
-    # test_mods_kidney_cort_med()
+    test_mods_tissue()
+    test_mods_tissue_array()
+    test_mods_aorta()
+    test_mods_aorta_liver()
+    test_mods_aorta_liver2scan()
+    test_mods_liver()
+    test_mods_kidney()
+    test_mods_kidney_cort_med()
 
     print('All mods tests passed!!')

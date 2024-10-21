@@ -21,8 +21,8 @@
       ~AortaKidneys.conc
       ~AortaKidneys.cost
       ~AortaKidneys.export_params
-      ~AortaKidneys.get_params
       ~AortaKidneys.load
+      ~AortaKidneys.params
       ~AortaKidneys.plot
       ~AortaKidneys.predict
       ~AortaKidneys.print_params

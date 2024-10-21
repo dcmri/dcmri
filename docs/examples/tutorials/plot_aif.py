@@ -26,10 +26,10 @@ t = np.arange(0, tmax, dt)
 tissue = {
     'kinetics': 'NX',   # NX = No-Exchange of contrast agent is appropriate 
                         # for brain tissue with intact blood-brain barrier.
-    'vp': 0.03,         # Plasma volume fraction is 3 mL/100mL in grey matter, 
-                        # or 0.03 in standard units of mL/mL.
-    'Fp': 0.005,        # Plasma flow is 60 mL/min/100mL in grey matter, 
-                        # or 0.005 in standard units of mL/sec/mL.
+    'vb': 0.05,         # Bloodvolume fraction is 5 mL/100mL in grey matter, 
+                        # or 0.05 in standard units of mL/mL.
+    'Fb': 0.01,         # Blood flow is 60 mL/min/100mL in grey matter, 
+                        # or 0.01 in standard units of mL/sec/mL.
 }
 
 # Simulate the concentrations at the arterial inlet to the tissue. 
@@ -65,9 +65,9 @@ B = dc.Tissue(ca=ca_B, t=t, kinetics='NX')
 
 # At this stage the tissue parameters are set to default values that are incorrect:
 print('Tissue parameters: ')
-print(A.params('vp', 'Fp'))
+print(A.params('vb', 'Fb'))
 print('Ground truth:')
-print([tissue['vp'], tissue['Fp']])
+print([tissue['vb'], tissue['Fb']])
 
 # %%
 # Now we adjust those parameters by training the models using the measured signals:
@@ -78,9 +78,9 @@ B.train(t, sig_B)
 # Since the data are noise-free, the measured parameters are now exactly equal to the ground truth:
 
 print('Tissue parameters (subject A): ')
-print(A.params('vp', 'Fp', round_to=3))
+print(A.params('vb', 'Fb', round_to=3))
 print('Tissue parameters (subject B): ')
-print(B.params('vp', 'Fp', round_to=3))
+print(B.params('vb', 'Fb', round_to=3))
 
 # %%
 # Thanks to the AIF, we correctly conclude from these data that the blood flow and the blood volume of the grey matter of A and B are the same, despite the very different appearance of the signals measured in the grey matter of both subjects. 
@@ -99,7 +99,7 @@ A.train(t, sig_A)
 
 # And check the impact on the measured parameters:
 print('Tissue parameters (subject A): ')
-print(A.params('vp', 'Fp', round_to=3))
+print(A.params('vb', 'Fb', round_to=3))
 
 # %%
 # The tissue perfusion is now overestimated with the same factor 2, which obviously could lead to entirely wrong conclusions as regards the grey matter health. An additional problem is that this type of error is difficult to control. If partial volume effects are present, they will cause different levels of overestimation in different measurements. So this not only causes a bias, but also a variability that will impact even on assessed changes over time in the same subject. 
@@ -128,9 +128,9 @@ B.plot(t, sig_B)
 
 # Check the values for the measured parameters:
 print('Tissue parameters (subject A): ')
-print(A.params('vp', 'Fp', round_to=4))
+print(A.params('vb', 'Fb', round_to=4))
 print('Tissue parameters (subject B): ')
-print(B.params('vp', 'Fp', round_to=4))
+print(B.params('vb', 'Fb', round_to=4))
 
 # %%
 # The fit to the data is good and the measurements of ``vp`` are not so far off the ground truth (``vp=0.03``): underestimated for subject A (``vp=0.024``) and overestimated for subject B (``vp=0.036``). The estimates for the blood flow values are a factor 2.6 and 1.7 underestimated, respectively. The analysis leads to the (false) conclusion that the cerebral blood volume and -flow values of B are 50% higher than A. 

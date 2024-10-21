@@ -21,8 +21,8 @@
       ~Liver.conc
       ~Liver.cost
       ~Liver.export_params
-      ~Liver.get_params
       ~Liver.load
+      ~Liver.params
       ~Liver.plot
       ~Liver.predict
       ~Liver.print_params

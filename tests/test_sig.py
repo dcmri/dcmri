@@ -48,6 +48,18 @@ def test_signal_ss():
     S = dc.signal_ss(R1, S0, TR, FA, v=v, PSw=0)
     assert 0==np.linalg.norm(S)
 
+    # Calibrate on other R10 reference
+    R1 = 1
+    S0 = 5
+    TR = 1
+    FA = 45
+    S = dc.signal_ss(R1, S0, TR, FA, R10=R1)
+    assert np.round(S)==5
+    R1 = [1,1]
+    v = [0.5, 0.5]
+    S = dc.signal_ss(R1, S0, TR, FA, v=v, R10=R1, PSw=np.inf)
+    assert np.round(S)==5
+
     # Check exceptions
     try:
         S = dc.signal_ss(R1, S0, TR, FA, v=v, PSw=[1,1])
@@ -79,18 +91,38 @@ def test_signal_ss():
     else:
         assert False
 
-    # Calibrate on other R10 reference
-    R1 = 1
-    S0 = 5
-    TR = 1
-    FA = 45
-    S = dc.signal_ss(R1, S0, TR, FA, R10=R1)
-    assert np.round(S)==5
-    R1 = [1,1]
+    # Check boundary regimes with flow
+    n = 100
+    R1 = np.ones((2,n))
+    Ji = np.ones((2,n))
     v = [0.5, 0.5]
-    S = dc.signal_ss(R1, S0, TR, FA, v=v, R10=R1[0], PSw=np.inf)
-    assert np.round(S)==5
+    S0 = 1
+    TR = 1
+    FA = 10
 
+    # No water exchange
+    zero = 1e-6
+    PSw = [[0.1,zero],[zero,1]]
+    S1 = dc.signal_ss(R1, S0, TR, FA, v=v, PSw=PSw, Ji=Ji)
+    PSw = [[0.1,0],[0,1]]
+    S2 = dc.signal_ss(R1, S0, TR, FA, v=v, PSw=PSw, Ji=Ji)
+    assert np.linalg.norm(S1-S2) < 1e-6*np.linalg.norm(S2)
+
+    # Fast water exchange
+    inf = 1e+6
+    PSw = np.array([[0.1,inf],[inf,1]])
+    S1 = dc.signal_ss(R1, S0, TR, FA, v=v, PSw=PSw, Ji=Ji)
+    PSw = np.array([[0.1,np.inf],[np.inf,1]])
+    S2 = dc.signal_ss(R1, S0, TR, FA, v=v, PSw=PSw, Ji=Ji)
+    assert np.linalg.norm(S1-S2) < 1e-6*np.linalg.norm(S2)
+    PSw = [[0.1,inf],[np.inf,1]]
+    try:
+        S2 = dc.signal_ss(R1, S0, TR, FA, v=v, PSw=PSw, Ji=Ji)
+    except:
+        assert True
+    else:
+        assert False
+    # assert np.linalg.norm(S1-S2) < 1e-6*np.linalg.norm(S2)
 
 
 def test_signal_sr():
@@ -243,17 +275,17 @@ def test_conc_lin():
 
 if __name__ == "__main__":
 
-    test_signal_dsc()
-    test_signal_t2w()
+    # test_signal_dsc()
+    # test_signal_t2w()
     test_signal_ss()
-    test_signal_sr()
-    test_signal_er()
-    test_signal_src()
-    test_signal_lin()
+    # test_signal_sr()
+    # test_signal_er()
+    # test_signal_src()
+    # test_signal_lin()
 
-    test_conc_t2w()
-    test_conc_ss()
-    test_conc_src()
-    test_conc_lin()
+    # test_conc_t2w()
+    # test_conc_ss()
+    # test_conc_src()
+    # test_conc_lin()
 
     print('All sig tests passing!')

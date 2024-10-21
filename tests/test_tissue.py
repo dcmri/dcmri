@@ -4,50 +4,55 @@ import numpy as np
 import dcmri as dc
 
 
+
 def test__conc_u():
     n = 10
     Ta = 10
-    Fp = 2
+    Fb = 2
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    C = dc.conc_tissue(ca, t=t, kinetics='U', Fp=Fp)
-    C0 = Fp*cumulative_trapezoid(ca, t, initial=0)
+    C = dc.conc_tissue(ca, t=t, kinetics='U', Fb=Fb)
+    C0 = Fb*cumulative_trapezoid(ca, t, initial=0)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.01
 
 def test__flux_u():
     n = 10
     Ta = 10
-    Fp = 2
+    Fb = 2
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    J = dc.flux_tissue(ca, t=t, kinetics='U', Fp=Fp)
+    J = dc.flux_tissue(ca, t=t, kinetics='U', Fb=Fb)
     J0 = np.zeros(len(t))
     assert np.linalg.norm(J-J0) < 0.01
 
 def test__conc_fx():
     n = 10
     Ta = 10
-    Fp = 2
-    v = 0.1
+    Fb = 2
+    ve = 0.1
+    H = 0.45
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    C = dc.conc_tissue(ca, t=t, kinetics='FX', ve=v, Fp=Fp)
-    C0 = Fp*dc.biexpconv(Ta, v/Fp, t)*v/Fp
+    C = dc.conc_tissue(ca, t=t, kinetics='FX', H=H, ve=ve, Fb=Fb)
+    Fp = Fb*(1-H)
+    C0 = Fp*dc.biexpconv(Ta, ve/Fp, t)*ve/Fp/(1-H)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.01
-    C = dc.conc_tissue(ca, t=t, kinetics='FX', ve=v, Fp=0)
+    C = dc.conc_tissue(ca, t=t, kinetics='FX', H=H, ve=ve, Fb=0)
     assert np.linalg.norm(C) == 0
 
-def test__flux_1c():
+def test__flux_fx():
     n = 10
     Ta = 10
-    Fp = 2
-    v = 0.1
+    Fb = 2
+    ve = 0.1
+    H = 0.45
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    J = dc.flux_tissue(ca, t=t, kinetics='FX', ve=v, Fp=Fp)
-    J0 = Fp*dc.biexpconv(Ta, v/Fp, t)
+    J = dc.flux_tissue(ca, t=t, kinetics='FX', H=H, ve=ve, Fb=Fb)
+    Fp = Fb*(1-H)
+    J0 = Fp*dc.biexpconv(Ta, ve/Fp, t)/(1-H)
     assert np.linalg.norm(J-J0)/np.linalg.norm(J0) < 0.01
-    J = dc.flux_tissue(ca, t=t, kinetics='FX', ve=v, Fp=0)
+    J = dc.flux_tissue(ca, t=t, kinetics='FX', H=H, ve=ve, Fb=0)
     assert np.linalg.norm(J) == 0
 
 
@@ -56,14 +61,15 @@ def test__conc_wv():
     Ta = 10
     Ktrans = 2
     vi = 0.1
+    H = 0.45
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    C = dc.conc_tissue(ca, t=t, kinetics='WV', vi=vi, Ktrans=Ktrans)
-    C0 = Ktrans*dc.biexpconv(Ta, vi/Ktrans, t)*vi/Ktrans
+    C = dc.conc_tissue(ca, t=t, kinetics='WV', H=H,  vi=vi, Ktrans=Ktrans)
+    C0 = Ktrans*dc.biexpconv(Ta, vi/Ktrans, t)*vi/Ktrans/(1-H)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.01
-    C = dc.conc_tissue(ca, t=t, kinetics='WV', vi=vi, Ktrans=Ktrans)
+    C = dc.conc_tissue(ca, t=t, kinetics='WV', H=H, vi=vi, Ktrans=Ktrans)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.01
-    C = dc.conc_tissue(ca, t=t, kinetics='WV', vi=vi, Ktrans=0)
+    C = dc.conc_tissue(ca, t=t, kinetics='WV', H=H, vi=vi, Ktrans=0)
     assert np.linalg.norm(C) == 0
 
 
@@ -72,29 +78,31 @@ def test__flux_wv():
     Ta = 10
     Ktrans = 2
     kep = 5
+    H = 0.45
     vi = Ktrans/kep
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    J = dc.flux_tissue(ca, t=t, kinetics='WV', vi=vi, Ktrans=Ktrans)
-    J0 = Ktrans*dc.biexpconv(Ta, 1/kep, t)
+    J = dc.flux_tissue(ca, t=t, kinetics='WV', H=H, vi=vi, Ktrans=Ktrans)
+    J0 = Ktrans*dc.biexpconv(Ta, 1/kep, t)/(1-H)
     assert np.linalg.norm(J[0,1,:]-J0)/np.linalg.norm(J0) < 0.01
-    J = dc.flux_tissue(ca, t=t, kinetics='WV', vi=vi, Ktrans=0)
+    J = dc.flux_tissue(ca, t=t, kinetics='WV', H=H, vi=vi, Ktrans=0)
     assert np.linalg.norm(J[0,1,:]) == 0
     
 
 def test__conc_hfu():
     n = 10
     Ta = 10
-    vp = 0.3
+    vb = 0.3
     PS = 2
+    H = 0.45
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    C = dc.conc_tissue(ca, t=t, kinetics='HFU', sum=False, vp=vp, PS=PS)
-    C0 = vp*ca
-    C1 = PS*dc.conc_trap(ca, t)
+    C = dc.conc_tissue(ca, t=t, kinetics='HFU', sum=False, H=H, vb=vb, PS=PS)
+    C0 = vb*ca
+    C1 = PS*dc.conc_trap(ca/(1-H), t)
     assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 0.01
     assert np.linalg.norm(C[1,:]-C1)/np.linalg.norm(C1) < 0.01
-    C = dc.conc_tissue(ca, t=t, kinetics='HFU', sum=True, vp=vp, PS=PS)
+    C = dc.conc_tissue(ca, t=t, kinetics='HFU', sum=True, H=H, vb=vb, PS=PS)
     C0 = C0+C1
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.01
 
@@ -102,34 +110,40 @@ def test__flux_hfu():
     n = 10
     Ta = 10
     PS = 2
+    H = 0.45
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    J = dc.flux_tissue(ca, kinetics='HFU', PS=PS)
-    J0 = PS*ca
+    J = dc.flux_tissue(ca, kinetics='HFU', H=H, PS=PS)
+    J0 = PS*ca/(1-H)
     assert np.linalg.norm(J[1,0,:]-J0)/np.linalg.norm(J0) < 0.01
 
 def test__conc_hf():
     n = 10
     Ta = 10
-    vp = 0.3
+    vb = 0.3
     PS = 2
     vi = 0.2
+    H = 0.45
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    C = dc.conc_tissue(ca, t=t, kinetics='HF', sum=False, vp=vp, vi=vi, PS=PS)
-    C0 = vp*ca
-    C1 = PS*dc.biexpconv(Ta, vi/PS, t)*vi/PS
+    C = dc.conc_tissue(ca, t=t, kinetics='HF', sum=False, 
+                       H=H, vb=vb, vi=vi, PS=PS)
+    C0 = vb*ca
+    C1 = PS*dc.biexpconv(Ta, vi/PS, t)*vi/PS/(1-H)
     assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 0.01
     assert np.linalg.norm(C[1,:]-C1)/np.linalg.norm(C1) < 0.01
-    C = dc.conc_tissue(ca, t=t, kinetics='HF', sum=True, vp=vp, vi=vi, PS=PS)
+    C = dc.conc_tissue(ca, t=t, kinetics='HF', sum=True, 
+                       H=H, vb=vb, vi=vi, PS=PS)
     C0 = C0+C1
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.01
-    C = dc.conc_tissue(ca, t=t, kinetics='HF', sum=False, vp=vp, vi=0, PS=PS)
-    C0 = vp*ca
+    C = dc.conc_tissue(ca, t=t, kinetics='HF', sum=False, 
+                       H=H, vb=vb, vi=0, PS=PS)
+    C0 = vb*ca
     C1 = np.zeros(len(ca))
     assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 0.01
     assert np.linalg.norm(C[1,:]-C1) == 0
-    C = dc.conc_tissue(ca, t=t, kinetics='HF', sum=False, vp=vp, vi=vi, PS=0)
+    C = dc.conc_tissue(ca, t=t, kinetics='HF', sum=False, 
+                       H=H, vb=vb, vi=vi, PS=0)
     assert 0==np.linalg.norm(C[1,:])
 
 def test__flux_hf():
@@ -138,49 +152,63 @@ def test__flux_hf():
     PS = 2
     kep = 5
     vi = PS/kep
+    H = 0.45
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    J = dc.flux_tissue(ca, t=t, kinetics='HF', vi=vi, PS=PS)
-    J0 = kep*PS*dc.biexpconv(Ta, 1/kep, t)/kep
+    J = dc.flux_tissue(ca, t=t, kinetics='HF', H=H, vi=vi, PS=PS)
+    J0 = kep*PS*dc.biexpconv(Ta, 1/kep, t)/kep/(1-H)
     assert np.linalg.norm(J[0,1,:]-J0)/np.linalg.norm(J0) < 0.01
-    J = dc.flux_tissue(ca, t=t, kinetics='HF', vi=vi, PS=0)
+    J = dc.flux_tissue(ca, t=t, kinetics='HF', H=H, vi=vi, PS=0)
     assert 0==np.linalg.norm(J[0,1,:])
 
 def test__conc_2cu():
     n = 10
     Ta = 10
-    vp = 0.3
+    vb = 0.3
     PS = 2
-    Fp = 4
+    Fb = 4
+    H = 0.45
+    Fp = (1-H)*Fb
+    vp = (1-H)*vb
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    C = dc.conc_tissue(ca, t=t, sum=False, kinetics='2CU', vp=vp, Fp=Fp, PS=PS)
+    C = dc.conc_tissue(ca, t=t, sum=False, kinetics='2CU', 
+                       H=H, vb=vb, Fb=Fb, PS=PS)
     Tp = vp/(Fp+PS)
-    C0 = Tp*Fp*dc.biexpconv(Ta, Tp, t)
+    C0 = Tp*Fp*dc.biexpconv(Ta, Tp, t)/(1-H)
     assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 0.01
-    Cs = dc.conc_tissue(ca, t=t, sum=True, kinetics='2CU', vp=vp, Fp=Fp, PS=PS)
+    Cs = dc.conc_tissue(ca, t=t, sum=True, kinetics='2CU', 
+                        H=H, vb=vb, Fb=Fb, PS=PS)
     C0 = C0+C[1,:]
     assert np.linalg.norm(Cs-C0)/np.linalg.norm(C0) < 0.01
-    Cs = dc.conc_tissue(ca, t=t, sum=True, kinetics='2CU', vp=0, Fp=Fp, PS=PS)
-    C0 = dc.conc_tissue(ca, t=t, kinetics='U', Fp=PS*Fp/(PS+Fp))
+    Cs = dc.conc_tissue(ca, t=t, sum=True, kinetics='2CU', 
+                        H=H, vb=0, Fb=Fb, PS=PS)
+    C0 = dc.conc_tissue(ca/(1-H), t=t, kinetics='U', 
+                        Fb=PS*Fp/(PS+Fp))
     assert np.linalg.norm(Cs-C0)/np.linalg.norm(C0) < 0.01
-    Cs = dc.conc_tissue(ca, t=t, sum=True, kinetics='2CU', vp=vp, Fp=0, PS=0)
+    Cs = dc.conc_tissue(ca, t=t, sum=True, kinetics='2CU', 
+                        H=H, vb=vb, Fb=0, PS=0)
     assert np.linalg.norm(Cs)==0
 
 def test__flux_2cu():
     n = 10
     Ta = 10
-    vp = 0.3
+    vb = 0.3
     PS = 2
-    Fp = 4
+    Fb = 4
+    H = 0.45
+    vp = (1-H)*vb
+    Fp = (1-H)*Fb
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    J = dc.flux_tissue(ca, t=t, kinetics='2CU', vp=vp, Fp=Fp, PS=PS)
+    J = dc.flux_tissue(ca, t=t, kinetics='2CU', 
+                       H=H, vb=vb, Fb=Fb, PS=PS)
     Tp = vp/(Fp+PS)
     J0 = Tp*Fp*dc.biexpconv(Ta, Tp, t)*Fp/vp
     assert np.linalg.norm(J[0,0,:]-J0)/np.linalg.norm(J0) < 0.01
-    J = dc.flux_tissue(ca, t=t, kinetics='2CU', vp=0, Fp=Fp, PS=PS)
-    assert np.linalg.norm(J[0,0,:]-Fp*ca)/np.linalg.norm(Fp*ca) < 0.01
+    J = dc.flux_tissue(ca, t=t, kinetics='2CU', 
+                       H=H, vb=0, Fb=Fb, PS=PS)
+    assert np.linalg.norm(J[0,0,:]-Fb*ca)/np.linalg.norm(Fb*ca) < 0.01
 
 def test__conc_2cx():
     # Compare against general ncomp solution
@@ -195,38 +223,54 @@ def test__conc_2cx():
     PS = Fp*E/(1-E)
     vi = T[1]*PS
     vp = T[0]*(Fp+PS)
-    C0 = dc.conc_tissue(ca, t=t, sum=False, kinetics='2CX', vp=vp, vi=vi, Fp=Fp, PS=PS)
+    H = 0.45
+    Fb = Fp/(1-H)
+    vb = vp/(1-H)
+    C0 = dc.conc_tissue(ca*(1-H), t=t, sum=False, kinetics='2CX', 
+                        H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
     C = dc.conc_ncomp(J, T, Emat, t)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C) < 1e-3
-    Cs = dc.conc_tissue(ca, t=t, sum=True, kinetics='2CX', vp=vp, vi=vi, Fp=Fp, PS=PS)
+    Cs = dc.conc_tissue(ca*(1-H), t=t, sum=True, kinetics='2CX',
+                        H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
     C0 = np.sum(C,axis=0)
     assert np.linalg.norm(Cs-C0)/np.linalg.norm(C0) < 0.01
-    Cs = dc.conc_tissue(ca, t=t, sum=True, kinetics='2CX', vp=vp, vi=vi, Fp=0, PS=0)
+    Cs = dc.conc_tissue(ca*(1-H), t=t, sum=True, kinetics='2CX', 
+                        H=H, vb=vb, vi=vi, Fb=0, PS=0)
     assert np.linalg.norm(Cs) == 0
-    Cs = dc.conc_tissue(ca, t=t, sum=False, kinetics='2CX', vp=vp, vi=vi, Fp=0, PS=0)
+    Cs = dc.conc_tissue(ca*(1-H), t=t, sum=False, kinetics='2CX', 
+                        H=H, vb=vb, vi=vi, Fb=0, PS=0)
     assert np.linalg.norm(Cs) == 0
-    Cs = dc.conc_tissue(ca, t=t, sum=True, kinetics='2CX', vp=vp, vi=vi, Fp=Fp, PS=0)
-    C0 = dc.conc_tissue(ca, t=t, kinetics='NX', vp=vp, Fp=Fp)
+    Cs = dc.conc_tissue(ca*(1-H), t=t, sum=True, kinetics='2CX', 
+                        H=H, vb=vb, vi=vi, Fb=Fb, PS=0)
+    C0 = dc.conc_tissue(ca*(1-H), t=t, kinetics='NX', 
+                        vb=vb, Fb=Fb)
     assert np.linalg.norm(Cs-C0)/np.linalg.norm(C) < 1e-3
-    C = dc.conc_tissue(ca, t=t, sum=False, kinetics='2CX', vp=vp, vi=vi, Fp=Fp, PS=0)
+    C = dc.conc_tissue(ca*(1-H), t=t, sum=False, kinetics='2CX', 
+                       H=H, vb=vb, vi=vi, Fb=Fb, PS=0)
     assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 1e-3
-    C = dc.conc_tissue(ca, t=t, sum=True, kinetics='2CX', vp=0, vi=0, Fp=0, PS=0)
+    C = dc.conc_tissue(ca*(1-H), t=t, sum=True, kinetics='2CX', 
+                       H=H, vb=0, vi=0, Fb=0, PS=0)
     assert np.linalg.norm(C) == 0
 
     # Test boundaries (Fp=inf)
-    Fp = 0.01
+    Fb = 0.01
     PS = 0.001
-    vp = 0.1
+    vb = 0.1
     vi = 0.2
-    C0 = dc.conc_tissue(ca, t=t, sum=False, kinetics='2CX', vp=vp, vi=vi, Fp=Fp, PS=PS)
-    Fp = 0.05
-    C1 = dc.conc_tissue(ca, t=t, sum=False, kinetics='2CX', vp=vp, vi=vi, Fp=Fp, PS=PS)
-    Fp = 0.1
-    C2 = dc.conc_tissue(ca, t=t, sum=False, kinetics='2CX', vp=vp, vi=vi, Fp=Fp, PS=PS)
-    Fp = 10.0
-    C3 = dc.conc_tissue(ca, t=t, sum=False, kinetics='2CX', vp=vp, vi=vi, Fp=Fp, PS=PS)
-    Fp = np.inf
-    C4 = dc.conc_tissue(ca, t=t, sum=False, kinetics='2CX', vp=vp, vi=vi, Fp=Fp, PS=PS)
+    C0 = dc.conc_tissue(ca*(1-H), t=t, sum=False, kinetics='2CX', 
+                        H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
+    Fb = 0.05
+    C1 = dc.conc_tissue(ca*(1-H), t=t, sum=False, kinetics='2CX', 
+                        H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
+    Fb = 0.1
+    C2 = dc.conc_tissue(ca*(1-H), t=t, sum=False, kinetics='2CX', 
+                        H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
+    Fb = 10.0
+    C3 = dc.conc_tissue(ca*(1-H), t=t, sum=False, kinetics='2CX', 
+                        H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
+    Fb = np.inf
+    C4 = dc.conc_tissue(ca*(1-H), t=t, sum=False, kinetics='2CX', 
+                        H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
     # Check convergence to solution
     err0 = np.linalg.norm(C0[:,1:]-C4[:,1:])
     err1 = np.linalg.norm(C1[:,1:]-C4[:,1:])
@@ -249,21 +293,23 @@ def test__conc_2cx():
     # plt.show()
 
     # Test boundaries (PS+Fp=0)
-    Fp = 0
+    Fb = 0
     PS = 0
-    vp = 0.1
+    vb = 0.1
     vi = 0.2
-    C0 = dc.conc_tissue(ca, t=t, sum=False, kinetics='2CX', vp=vp, vi=vi, Fp=Fp, PS=PS)
+    C0 = dc.conc_tissue(ca*(1-H), t=t, sum=False, kinetics='2CX', 
+                        H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
     assert np.linalg.norm(C0) == 0
 
     # Test boundaries (PS=0)
-    Fp = 0.01
+    Fb = 0.01
     PS = 0
-    vp = 0.1
+    vb = 0.1
     vi = 0.2
-    C0 = dc.conc_tissue(ca, t=t, sum=True, kinetics='2CX', 
-                        vp=vp, vi=vi, Fp=Fp, PS=PS)
-    C1 = dc.conc_tissue(ca, t=t, kinetics='NX', vp=vp, Fp=Fp)
+    C0 = dc.conc_tissue(ca*(1-H), t=t, sum=True, kinetics='2CX', 
+                        H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
+    C1 = dc.conc_tissue(ca*(1-H), t=t, kinetics='NX', 
+                        vb=vb, Fb=Fb)
     assert np.linalg.norm(C0-C1) < 1e-9
     
 def test__flux_2cx():
@@ -279,21 +325,30 @@ def test__flux_2cx():
     PS = Fp*E/(1-E)
     vi = T[1]*PS
     vp = T[0]*(Fp+PS)
-    Jo0 = dc.flux_tissue(ca, t=t, kinetics='2CX', vp=vp, vi=vi, Fp=Fp, PS=PS) 
+    H = 0.45
+    vb = vp/(1-H)
+    Fb = Fp/(1-H) 
+    Jo0 = dc.flux_tissue(ca*(1-H), t=t, kinetics='2CX', 
+                         H=H, vb=vb, vi=vi, Fb=Fb, PS=PS) 
     Jo = dc.flux_ncomp(J, T, Emat, t)
     assert np.linalg.norm(Jo-Jo0)/np.linalg.norm(Jo) < 1e-1
-    Jo0 = dc.flux_tissue(ca, t=t, kinetics='2CX', vp=vp, vi=vi, Fp=0, PS=0) 
+    Jo0 = dc.flux_tissue(ca*(1-H), t=t, kinetics='2CX', 
+                         H=H, vb=vb, vi=vi, Fb=0, PS=0) 
     assert np.linalg.norm(Jo0) == 0
-    Jo0 = dc.flux_tissue(ca, t=t, kinetics='2CX', vp=vp, vi=vi, Fp=Fp, PS=0) 
-    Jo = dc.flux_tissue(ca, t=t, kinetics='NX', vp=vp, Fp=Fp)
+    Jo0 = dc.flux_tissue(ca*(1-H), t=t, kinetics='2CX', 
+                         H=H, vb=vb, vi=vi, Fb=Fb, PS=0) 
+    Jo = dc.flux_tissue(ca*(1-H), t=t, kinetics='NX', 
+                        vb=vb, Fb=Fb)
     assert np.linalg.norm(Jo-Jo0[0,0,:])/np.linalg.norm(Jo) < 1e-3
 
     # Test boundary
-    Fp = np.inf
-    vp = 0.1
+    Fb = np.inf
+    vb = 0.1
     PS = 0.001
     vi = 0.2
-    J = dc.flux_tissue(ca, t=t, kinetics='2CX', vp=vp, vi=vi, Fp=np.inf, PS=PS)
+    H = 0.45
+    J = dc.flux_tissue(ca, t=t, kinetics='2CX', 
+                       H=H, vb=vb, vi=vi, Fb=np.inf, PS=PS)
     assert np.isinf(J[0,0,0])
 
 
@@ -357,33 +412,42 @@ def test_relax_tissue():
     t = np.arange(0, 300, 1.5)
     ca = dc.aif_parker(t, BAT=20)
     R10, r1 = 1/dc.T1(), dc.relaxivity() 
+    H = 0.45
 
     # Test WV limit - exact
-    p = {'H':0.0, 'vb':0.0, 'vi':0.3, 'Fp':0.01, 'PS':0.005}
-    R1_0, _, _ = dc.relax_tissue(ca, R10, r1, t=t, kinetics='2CX', water_exchange='RR', **p)
-    p = {'vi':0.3, 'Ktrans':0.01*0.005/(0.01+0.005)}
-    R1_1, _, _ = dc.relax_tissue(ca, R10, r1, t=t, kinetics='WV', water_exchange='RR', **p)
+    p = {'H':H, 'vb':0.0, 'vi':0.3, 'Fb':0.01, 'PS':0.005}
+    R1_0, _, _ = dc.relax_tissue(ca*(1-H), R10, r1, t=t, 
+                                 kinetics='2CX', water_exchange='RR', **p)
+    p = {'H':H, 'vi':0.3, 'Ktrans':0.01*(1-H)*0.005/(0.01*(1-H)+0.005)}
+    R1_1, _, _ = dc.relax_tissue(ca*(1-H), R10, r1, t=t, 
+                                 kinetics='WV', water_exchange='RR', **p)
     assert np.linalg.norm(R1_0[1:,:]-R1_1) < 1e-9
 
     # Test WV limit - approx
-    p = {'H':0.4, 'vb':0.5*1e-3, 'vi':0.3, 'Fp':0.01, 'PS':0.005}
-    R1_0, _, _ = dc.relax_tissue(ca, R10, r1, t=t, kinetics='2CX', water_exchange='RR', **p)
-    p = {'vi':0.3, 'Ktrans':0.01*0.005/(0.01+0.005)}
-    R1_1, _, _ = dc.relax_tissue(ca, R10, r1, t=t, kinetics='WV', water_exchange='RR', **p)
+    p = {'H':H, 'vb':0.5*1e-3, 'vi':0.3, 'Fb':0.01, 'PS':0.005}
+    R1_0, _, _ = dc.relax_tissue(ca*(1-H), R10, r1, t=t, 
+                                 kinetics='2CX', water_exchange='RR', **p)
+    p = {'H':H, 'vi':0.3, 'Ktrans':0.01*(1-H)*0.005/(0.01*(1-H)+0.005)}
+    R1_1, _, _ = dc.relax_tissue(ca*(1-H), R10, r1, t=t, 
+                                 kinetics='WV', water_exchange='RR', **p)
     assert np.linalg.norm(R1_0[1:,:]-R1_1)< 1e-3*np.linalg.norm(R1_0[1:,:])
 
     # Test HF limit - exact
-    p = {'H':0.4, 'vb':0.05, 'vi':0.3, 'Fp':np.inf, 'PS':0.005}
-    R1_0, _, _ = dc.relax_tissue(ca, R10, r1, t=t, kinetics='2CX', water_exchange='RR', **p)
-    p = {'H':0.4, 'vb':0.05, 'vi':0.3, 'PS':0.005}
-    R1_1, _, _ = dc.relax_tissue(ca, R10, r1, t=t, kinetics='HF', water_exchange='RR', **p)
+    p = {'H':H, 'vb':0.05, 'vi':0.3, 'Fb':np.inf, 'PS':0.005}
+    R1_0, _, _ = dc.relax_tissue(ca, R10, r1, t=t, 
+                                 kinetics='2CX', water_exchange='RR', **p)
+    p = {'H':H, 'vb':0.05, 'vi':0.3, 'PS':0.005}
+    R1_1, _, _ = dc.relax_tissue(ca, R10, r1, t=t, 
+                                 kinetics='HF', water_exchange='RR', **p)
     assert np.linalg.norm(R1_0-R1_1) < 1e-9
 
     # Test HF limit - approx
-    p = {'H':0.4, 'vb':0.05, 'vi':0.3, 'Fp':1000, 'PS':0.005}
-    R1_0, _, _ = dc.relax_tissue(ca, R10, r1, t=t, kinetics='2CX', water_exchange='RR', **p)
+    p = {'H':0.4, 'vb':0.05, 'vi':0.3, 'Fb':1000, 'PS':0.005}
+    R1_0, _, _ = dc.relax_tissue(ca, R10, r1, t=t, 
+                                 kinetics='2CX', water_exchange='RR', **p)
     p = {'H':0.4, 'vb':0.05, 'vi':0.3, 'PS':0.005}
-    R1_1, _, _ = dc.relax_tissue(ca, R10, r1, t=t, kinetics='HF', water_exchange='RR', **p)
+    R1_1, _, _ = dc.relax_tissue(ca, R10, r1, t=t, 
+                                 kinetics='HF', water_exchange='RR', **p)
     assert np.linalg.norm(R1_0-R1_1) < 1e-3*np.linalg.norm(R1_0)
 
 
@@ -392,11 +456,11 @@ def test_conc_tissue():
     # Only need to test exceptions
     n = 10
     Ta = 10
-    Fp = 2
+    Fb = 2
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
     try:
-        dc.conc_tissue(ca, t=t, kinetics='blabla', Fp=Fp)
+        dc.conc_tissue(ca, t=t, kinetics='blabla', Fb=Fb)
     except:
         assert True
     else:
@@ -407,11 +471,11 @@ def test_flux_tissue():
     # Only need to test exceptions
     n = 10
     Ta = 10
-    Fp = 2
+    Fb = 2
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
     try:
-        dc.flux_tissue(ca, t=t, kinetics='blabla', Fp=Fp)
+        dc.flux_tissue(ca, t=t, kinetics='blabla', Fb=Fb)
     except:
         assert True
     else:
@@ -426,7 +490,7 @@ if __name__ == "__main__":
     test__flux_u()
 
     test__conc_fx()
-    test__flux_1c()
+    test__flux_fx()
 
     test__conc_wv()
     test__flux_wv()
@@ -448,7 +512,5 @@ if __name__ == "__main__":
 
     test_relax_tissue()
 
-    # test__conc_2cf()
-    # test__flux_2cf()
 
     print('All pk_tissue tests passing!')

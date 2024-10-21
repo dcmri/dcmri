@@ -27,8 +27,8 @@
       ~Aorta.conc
       ~Aorta.cost
       ~Aorta.export_params
-      ~Aorta.get_params
       ~Aorta.load
+      ~Aorta.params
       ~Aorta.plot
       ~Aorta.predict
       ~Aorta.print_params

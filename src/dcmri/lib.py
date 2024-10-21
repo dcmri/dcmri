@@ -851,11 +851,11 @@ def PD(tissue='gray matter') -> float:
         raise ValueError(msg)
 
 
-def perfusion(parameter='BF', tissue='gray matter') -> float:
+def perfusion(parameter='Fb', tissue='gray matter') -> float:
     """perfusion parameters of selected tissue types.
 
     Args:
-        parameter (str, optional): perfusion parameter. Options are 'BF' (blood flow), 'BV' (Blood volume), 'PS' (permeability-surface area product) and 'IV' (interstitial volume). Defaults to 'BF'.
+        parameter (str, optional): perfusion parameter. Options are 'Fb' (blood flow), 'vb' (Blood volume), 'PS' (permeability-surface area product) and 'vi' (interstitial volume). Defaults to 'Fb'.
         tissue (str, optional): Tissue type. Defaults to 'gray matter'.
 
     Raises:
@@ -878,10 +878,10 @@ def perfusion(parameter='BF', tissue='gray matter') -> float:
     Example:
 
         >>> import dcmri as dc
-        >>> print('The BF of gray matter is', dc.perfusion('BF', 'gray matter'), 'mL/sec/mL')
+        >>> print('The BF of gray matter is', dc.perfusion('Fb', 'gray matter'), 'mL/sec/mL')
         The BF of gray matter is 0.01 mL/sec/mL
     """
-    if parameter == 'BF':
+    if parameter == 'Fb':
         val = {
             'skin': 0.005,  # 5 kg/s/m**3 = 5000mL/sec/100*100*100 mL = 0.005mL/sec/mL
             'bone marrow': 0.0013,  # 0.08 ml/ml/min
@@ -889,7 +889,7 @@ def perfusion(parameter='BF', tissue='gray matter') -> float:
             'white matter': 0.0033,
             'gray matter': 0.01,
         }
-    elif parameter == 'BV':
+    elif parameter == 'vb':
         val = {
             'skin': 0.03,
             'bone marrow': 0.25,
@@ -905,7 +905,7 @@ def perfusion(parameter='BF', tissue='gray matter') -> float:
             'white matter': 0.0,
             'gray matter': 0.0,
         }
-    elif parameter == 'IV':  # Needs verification
+    elif parameter == 'vi':  # Needs verification
         val = {
             'skin': 0.03,
             'bone marrow': 0.2,
@@ -1061,18 +1061,18 @@ def _shepp_logan(param, n=256, B0=3) -> np.ndarray:
         gm = T1(B0, 'gray matter')
         tumor = 0.926 * (B0**0.217)
         blood = T1(B0, 'blood')
-    elif param == 'BF':
-        scalp = perfusion('BF', 'skin')
-        bone = perfusion('BF', 'bone marrow')
-        csf = perfusion('BF', 'csf')
-        gm = perfusion('BF', 'gray matter')
+    elif param == 'Fb':
+        scalp = perfusion('Fb', 'skin')
+        bone = perfusion('Fb', 'bone marrow')
+        csf = perfusion('Fb', 'csf')
+        gm = perfusion('Fb', 'gray matter')
         tumor = 0.02
         blood = 0
-    elif param == 'BV':
-        scalp = perfusion('BV', 'skin')
-        bone = perfusion('BV', 'bone marrow')
-        csf = perfusion('BV', 'csf')
-        gm = perfusion('BV', 'gray matter')
+    elif param == 'vb':
+        scalp = perfusion('vb', 'skin')
+        bone = perfusion('vb', 'bone marrow')
+        csf = perfusion('vb', 'csf')
+        gm = perfusion('vb', 'gray matter')
         tumor = 0.1
         blood = 1
     elif param == 'PS':
@@ -1082,11 +1082,11 @@ def _shepp_logan(param, n=256, B0=3) -> np.ndarray:
         gm = perfusion('PS', 'gray matter')
         tumor = 0.001
         blood = 0
-    elif param == 'IV':
-        scalp = perfusion('IV', 'skin')
-        bone = perfusion('IV', 'bone marrow')
-        csf = perfusion('IV', 'csf')
-        gm = perfusion('IV', 'gray matter')
+    elif param == 'vi':
+        scalp = perfusion('vi', 'skin')
+        bone = perfusion('vi', 'bone marrow')
+        csf = perfusion('vi', 'csf')
+        gm = perfusion('vi', 'gray matter')
         tumor = 0.3
         blood = 0
 
@@ -1127,18 +1127,32 @@ def _shepp_logan(param, n=256, B0=3) -> np.ndarray:
 def shepp_logan(*params, n=256, B0=3):
     """Modified Shepp-Logan phantom mimicking an axial slice through the brain.
 
-    The phantom is based on an MRI adaptation of the Shepp-Logan phantom (Gach et al 2008), but with added features for use in a DC-MRI setting: (1) additional regions for anterior cerebral artery and sinus sagittalis; (2) additional optional contrasts blood flow (BF), blood volume (BV), permeability-surface area product (PS) and interstitial volume (IV).
+    The phantom is based on an MRI adaptation of the Shepp-Logan phantom 
+    (Gach et al 2008), but with added features for use in a DC-MRI setting: 
+    (1) additional regions for anterior cerebral artery and sinus sagittalis; 
+    (2) additional optional contrasts blood flow (BF), blood volume (BV), 
+    permeability-surface area product (PS) and interstitial volume (IV).
 
     Args:
-        params (str or tuple): parameter or parameters shown in the image. The options are 'PD' (proton density), 'T1', 'T2', 'BF' (blood flow), 'BV' (Blood volume), 'PS' (permeability-surface area product) and 'IV' (interstitial volume). If no parameters are provided, the function returns a dictionary with 14 masks, one for each region.
+        params (str or tuple): parameter or parameters shown in the image. 
+        The options are 'PD' (proton density), 'T1', 'T2', 'Fb' (blood flow), 
+        'vb' (Blood volume), 'PS' (permeability-surface area product) and 
+        'vi' (interstitial volume). If no parameters are provided, the 
+        function returns a dictionary with 14 masks, one for each region.
         n (int, optional): matrix size. Defaults to 256.
         B0 (int, optional): field strength in T. Defaults to 3.
 
     Reference:
-        H. M. Gach, C. Tanase and F. Boada, "2D & 3D Shepp-Logan Phantom Standards for MRI," 2008 19th International Conference on Systems Engineering, Las Vegas, NV, USA, 2008, pp. 521-526, `doi 10.1109/ICSEng.2008.15 <https://ieeexplore.ieee.org/document/4616690>`_.
+        H. M. Gach, C. Tanase and F. Boada, "2D & 3D Shepp-Logan Phantom 
+        Standards for MRI," 2008 19th International Conference on Systems 
+        Engineering, Las Vegas, NV, USA, 2008, pp. 521-526, 
+        `doi 10.1109/ICSEng.2008.15 <https://ieeexplore.ieee.org/document/4616690>`_.
 
     Returns:
-        numpy.array or dict: if only one parameter is provided, this returns an array. In all other conditions this returns a dictionary where keys are the parameter- or region names, and values are square arrays with image values.
+        numpy.array or dict: if only one parameter is provided, this returns 
+        an array. In all other conditions this returns a dictionary where keys 
+        are the parameter- or region names, and values are square arrays with 
+        image values.
 
     Note:
         Mask names:
@@ -1165,7 +1179,7 @@ def shepp_logan(*params, n=256, B0=3):
 
         Simulate a synthetic blood flow image:
 
-        >>> im = dc.shepp_logan('BF')
+        >>> im = dc.shepp_logan('Fb')
 
         Plot the result in units of mL/min/100mL:
 
