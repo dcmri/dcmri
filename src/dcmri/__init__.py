@@ -17,8 +17,8 @@ from dcmri.pk_aorta import *
 from dcmri import pk_kidney
 from dcmri.pk_kidney import *
 
-from dcmri import pk_liver
-from dcmri.pk_liver import *
+from dcmri import liver
+from dcmri.liver import *
 
 from dcmri import pk_inv
 from dcmri.pk_inv import *
@@ -29,20 +29,23 @@ from dcmri.rel import *
 from dcmri import sig
 from dcmri.sig import *
 
-from dcmri import dro
-from dcmri.dro import *
+from dcmri import fake
+from dcmri.fake import *
 
-from dcmri import mods
-from dcmri.mods import *
+from dcmri import ui
+from dcmri.ui import *
 
-from dcmri import mods_tissue
-from dcmri.mods_tissue import *
+from dcmri import ui_tissue
+from dcmri.ui_tissue import *
 
-from dcmri import mods_aorta
-from dcmri.mods_aorta import *
+from dcmri import ui_aorta
+from dcmri.ui_aorta import *
 
-from dcmri import mods_kidney
-from dcmri.mods_kidney import *
+from dcmri import ui_aorta_liver
+from dcmri.ui_aorta_liver import *
 
-from dcmri import mods_liver
-from dcmri.mods_liver import *
+from dcmri import ui_kidney
+from dcmri.ui_kidney import *
+
+from dcmri import ui_liver
+from dcmri.ui_liver import *

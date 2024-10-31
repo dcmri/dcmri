@@ -679,20 +679,6 @@
   {
    "is_class": true,
    "is_explicit": false,
-   "module": "dcmri.mods_aorta",
-   "module_short": "dcmri",
-   "name": "AortaLiver"
-  },
-  {
-   "is_class": true,
-   "is_explicit": false,
-   "module": "dcmri",
-   "module_short": "dcmri",
-   "name": "AortaLiver"
-  },
-  {
-   "is_class": true,
-   "is_explicit": false,
    "module": "dcmri.mods",
    "module_short": "dcmri",
    "name": "Model"
@@ -867,20 +853,6 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_aorta",
-   "module_short": "dcmri",
-   "name": "AortaLiver.export_params"
-  },
-  {
-   "is_class": false,
-   "is_explicit": false,
-   "module": "dcmri",
-   "module_short": "dcmri",
-   "name": "AortaLiver.export_params"
-  },
-  {
-   "is_class": false,
-   "is_explicit": false,
    "module": "dcmri.mods",
    "module_short": "dcmri",
    "name": "Model.export_params"
@@ -907,20 +879,6 @@
    "module": "dcmri",
    "module_short": "dcmri",
    "name": "AortaLiver2scan.plot"
-  },
-  {
-   "is_class": false,
-   "is_explicit": false,
-   "module": "dcmri.mods_aorta",
-   "module_short": "dcmri",
-   "name": "AortaLiver.plot"
-  },
-  {
-   "is_class": false,
-   "is_explicit": false,
-   "module": "dcmri",
-   "module_short": "dcmri",
-   "name": "AortaLiver.plot"
   },
   {
    "is_class": false,
@@ -955,20 +913,6 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_aorta",
-   "module_short": "dcmri",
-   "name": "AortaLiver.print_params"
-  },
-  {
-   "is_class": false,
-   "is_explicit": false,
-   "module": "dcmri",
-   "module_short": "dcmri",
-   "name": "AortaLiver.print_params"
-  },
-  {
-   "is_class": false,
-   "is_explicit": false,
    "module": "dcmri.mods",
    "module_short": "dcmri",
    "name": "Model.print_params"
@@ -995,20 +939,6 @@
    "module": "dcmri",
    "module_short": "dcmri",
    "name": "AortaLiver2scan.train"
-  },
-  {
-   "is_class": false,
-   "is_explicit": false,
-   "module": "dcmri.mods_aorta",
-   "module_short": "dcmri",
-   "name": "AortaLiver.train"
-  },
-  {
-   "is_class": false,
-   "is_explicit": false,
-   "module": "dcmri",
-   "module_short": "dcmri",
-   "name": "AortaLiver.train"
   },
   {
    "is_class": false,

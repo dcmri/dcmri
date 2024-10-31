@@ -69,7 +69,8 @@ def tristan_human_2scan(data, **kwargs):
         # Injection parameters
         weight = data['weight'],
         agent = data['agent'],
-        dose = data['dose'],
+        dose = data['dose'][0],
+        dose2 = data['dose'][1],
         rate = data['rate'],
 
         # Acquisition parameters
@@ -79,13 +80,13 @@ def tristan_human_2scan(data, **kwargs):
         FA = data['FA'],
 
         # Signal parameters
-        R10b = data['R10b'],
-        R102b = data['R102b'],
+        R10a = data['R10b'],
+        R102a = data['R102b'],
         R10l = data['R10l'],
         R102l = data['R102l'],
 
         # Tissue parameters
-        Hct = data['Hct'],
+        H = data['Hct'],
         vol = data['vol'],
     )
 
@@ -125,7 +126,6 @@ model.plot(xdata, ydata)
 # all parameters are identified robustly:
 
 model.print_params(round_to=3)
-
 
 # %%
 # Fit all data

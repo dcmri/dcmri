@@ -5,14 +5,14 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import ArtistAnimation
 import numpy as np
 
-import dcmri.mods as mods
+import dcmri.ui as ui
 import dcmri.sig as sig
 import dcmri.rel as rel
 import dcmri.tissue as tissue
 import dcmri.utils as utils
 
 
-class TissueArray(mods.ArrayModel):
+class TissueArray(ui.ArrayModel):
     """Pixel-based vascular-interstitial tissue.
 
     This is the most common tissue type as found in for instance brain,
@@ -707,7 +707,7 @@ class TissueArray(mods.ArrayModel):
 # TODO: iex and wex instead of kinetics and water_exchange? Water exchange
 # is also kinetics.
 
-class Tissue(mods.Model):
+class Tissue(ui.Model):
     """Vascular-interstitial tissue.
 
     This is the most common tissue type as found in for instance brain,
@@ -717,7 +717,7 @@ class Tissue(mods.Model):
     Args:
         kinetics (str, optional): Tracer-kinetic model. Possible values are
          '2CX', '2CU', 'HF', 'HFU', 'NX', 'FX', 'WV', 'U'. Defaults to 'HF'.
-        water_exchange (str, optional): Water exchange regime, Any combination
+        water_exchange (str, optional): Water exchange regime. Any combination
           of two of the letters 'F', 'N', 'R' is allowed. Defaults to 'FF'.
         sequence (str, optional): imaging sequence. Possible values are 'SS'
           and 'SR'. Defaults to 'SS'.
@@ -820,7 +820,7 @@ class Tissue(mods.Model):
               - Further detail
             * - n0
               - Always
-              - :ref:`model-fitting-params`
+              - For estimating baseline signal
             * - r1, R10
               - Always
               - :ref:`relaxation-params`
@@ -955,10 +955,11 @@ class Tissue(mods.Model):
               - Free
     """
 
-    def __init__(self,
-                 kinetics='HF', water_exchange='FF', sequence='SS',
-                 aif=None, ca=None, t=None, dt=1.0,
-                 free=None, **params):
+    def __init__(
+            self,
+            kinetics='HF', water_exchange='FF', sequence='SS',
+            aif=None, ca=None, t=None, dt=1.0,
+            free=None, **params):
 
         # Set configuration
         self.kinetics = kinetics
@@ -972,18 +973,14 @@ class Tissue(mods.Model):
         self.t = t
         self.dt = dt
 
-        # Model parameters
-        model_pars = _model_pars(kinetics, water_exchange, sequence)
-        for p in model_pars:
-            setattr(self, p, PARAMS[p]['init'])
-        free_pars = [p for p in model_pars if PARAMS[p]['default_free']]
-        self.free = {p: PARAMS[p]['bounds'] for p in free_pars}
-
         # overide defaults
         self._set_defaults(free=free, **params)
 
     def _params(self):
         return PARAMS
+    
+    def _model_pars(self):
+        return _model_pars(self.kinetics, self.water_exchange, self.sequence)
 
     def _par_values(self, *args, **kwargs):
         return _par_values(self, *args, **kwargs)
@@ -1273,10 +1270,10 @@ class Tissue(mods.Model):
         """
         t = self.time()
         if np.amax(time) > np.amax(t):
-            msg = """The acquisition window is longer than the duration
-                     of the AIF. The largest time point that can be
-                     predicted is """ + str(np.amax(t) / 60) + 'min.'
-            raise ValueError(msg)
+            raise ValueError(
+                "The acquisition window is longer than the duration "
+                "of the AIF. The largest time point that can be "
+                "predicted is " + str(np.amax(t) / 60) + "min.")
         sig = self.signal()
         return utils.sample(time, t, sig, self.TS)
 
@@ -1316,11 +1313,11 @@ class Tissue(mods.Model):
             return self
 
         if method == 'NLLS':
-            return mods.train(self, time, signal, **kwargs)
+            return ui.train(self, time, signal, **kwargs)
 
         if method == 'PSMS':  # Work in progress
             # Fit the complete model
-            mods.train(self, time, signal, **kwargs)
+            ui.train(self, time, signal, **kwargs)
             # Fit an intravascular model with the same free parameters
             iv = deepcopy(self)
             # iv.kinetics = 'NX'
@@ -1328,7 +1325,7 @@ class Tissue(mods.Model):
             for par in ['ve', 'PS', 'PSc']:
                 if par in iv.free:
                     iv.free.pop(par)
-            mods.train(iv, time, signal, **kwargs)
+            ui.train(iv, time, signal, **kwargs)
             # If the intravascular model has a lower AIC, take the free
             # parameters from there
             if iv.cost(time, signal, metric='cAIC') < self.cost(
@@ -1391,10 +1388,7 @@ class Tissue(mods.Model):
             ['Blood volume', np.float64(0.05735355675475683), 'mL/cm3', np.float64(0.016039245654090793)]
 
         """
-        pars = self._par_values(export=True)
-        pars = {p: [PARAMS[p]['name'], pars[p], PARAMS[p]['unit']]
-                for p in pars}
-        return self._add_sdev(pars)
+        return super().export_params()
 
     def print_params(self, round_to=None):
         """Print the model parameters and their uncertainties

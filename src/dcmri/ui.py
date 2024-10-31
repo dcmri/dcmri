@@ -174,7 +174,13 @@ class ArrayModel():
         Args:
             xdata (array-like): Array with x-data (time points).
             ydata (array-like): Array with y-data (signal values)
-            metric (str, optional): Which metric to use - options are 'RMS' (Root-mean-square), 'NRMS' (Normalized root-mean-square), 'AIC' (Akaike information criterion), 'cAIC' (Corrected Akaike information criterion for small models) or 'BIC' (Baysian information criterion). Defaults to 'NRMS'.
+            metric (str, optional): Which metric to use - options are: 
+                **RMS** (Root-mean-square);
+                **NRMS** (Normalized root-mean-square); 
+                **AIC** (Akaike information criterion); 
+                **cAIC** (Corrected Akaike information criterion for small 
+                  models);
+                **BIC** (Baysian information criterion). Defaults to 'NRMS'.
 
         Returns:
             np.ndarray: goodness of fit in each element of the data array. 
@@ -242,8 +248,56 @@ class Model:
         self.free = {}
         self.pcov = None
 
-    def _par_values(self):
-        return {par: getattr(self, par) for par in self.__dict__ if par not in ['free', 'pcov']}
+    def _par_values(self, export=False):
+        # Abstract method - needs to be overridden
+        return {par: getattr(self, par) for par in self.__dict__ 
+                if par not in ['free', 'pcov']}
+
+    def _model_pars(self):
+        # Abstract method - needs to be overridden
+        return list(self._par_values().keys())
+    
+    def _params(self):
+        # Abstract method - needs to be overridden
+        return
+
+    def _set_defaults(self, free=None, **params):
+
+        # Model parameters
+        model_pars = self._model_pars()
+        pars = self._params()
+        for p in model_pars:
+            setattr(self, p, pars[p]['init'])
+        free_pars = [p for p in model_pars if pars[p]['default_free']]
+        self.free = {p: pars[p]['bounds'] for p in free_pars}
+
+        # Override defaults
+        for k, v in params.items():
+            if hasattr(self, k):
+                setattr(self, k, v)
+            else:
+                raise ValueError(
+                    str(k) + ' is not a valid parameter for this model.')
+            
+        # Set free
+        if free is not None:
+            self.free = {}
+            self.set_free(**free)
+
+    def export_params(self) -> list:
+        """Return model parameters with their descriptions
+
+        Returns:
+            dict: Dictionary with one item for each model parameter. The key 
+            is the parameter symbol (short name), and the value is a 
+            4-element list with [parameter name, value, unit, sdev].
+        """
+        # Short name, full name, value, units.
+        pars = self._par_values(export=True)
+        params = self._params()
+        pars = {p: [params[p]['name'], pars[p], params[p]['unit']]
+                for p in pars}
+        return self._add_sdev(pars)
 
     def save(self, file=None, path=None, filename='Model'):
         """Save the current state of the model
@@ -327,19 +381,7 @@ class Model:
         """
         return _cost(self, xdata, ydata, metric)
     
-    def export_params(self) -> list:
-        """Return model parameters with their descriptions
 
-        Returns:
-            dict: Dictionary with one item for each model parameter. The key 
-            is the parameter symbol (short name), and the value is a 
-            4-element list with [parameter name, value, unit, sdev].
-        """
-        # Short name, full name, value, units.
-        pars = {}
-        for p in self.free:
-            pars[p] = [p+' name', self.free[p], p+' unit']
-        return self._add_sdev(pars)
 
     def print_params(self, round_to=None):
         """Print the model parameters and their uncertainties
@@ -406,16 +448,6 @@ class Model:
               are not properly formatted.
         """
         set_free(self, pop=pop, **kwargs)
-
-    def _set_defaults(self, free=None, **params):
-        for k, v in params.items():
-            if hasattr(self, k):
-                setattr(self, k, v)
-            else:
-                raise ValueError(
-                    str(k) + ' is not a valid parameter for this model.')
-        if free is not None:
-            self.set_free(**free)
 
     def _getflat(self, attr: np.ndarray = None) -> np.ndarray:
         if attr is None:

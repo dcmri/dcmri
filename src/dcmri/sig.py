@@ -3,6 +3,19 @@ from scipy.linalg import expm
 import numpy as np
 
 
+def signal(sequence, R1, S0, TR=None, FA=None, TC=None):
+    # Private for now - generalize to umbrella signal function
+    if sequence == 'SRC':
+        return signal_src(R1, S0, TC)
+    if sequence == 'SR':
+        return signal_sr(R1, S0, TR, FA, TC)
+    elif sequence == 'SS':
+        return signal_ss(R1, S0, TR, FA)
+    else:
+        raise ValueError(
+            'Sequence ' + str(sequence) + ' is not recognised.')
+
+
 def signal_dsc(R1, R2, S0: float, TR, TE) -> np.ndarray:
     """Signal model for a DSC scan with T2 and T2-weighting.
 

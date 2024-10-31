@@ -504,11 +504,14 @@ def nexpconv(n, T, t):
         The result is a gamma variate function with unit area:
 
         .. math::
-            g(t) = \\frac{1}{\\Gamma(n)}\\left(\\frac{t}{T}\\right) \\frac{e^{-t/T}}{T} 
+            g(t) = \\frac{1}{\\Gamma(n)}\\left(\\frac{t}{T}\\right)^{n-1} \\frac{e^{-t/T}}{T} 
 
-        Note the gamma-variate function becomes unstable due to numerical overflow at large n and/or short T. 
-        This function handles that situation by moving to a numerical solution, but this slows down the computations significantly.
-        Callers should if possible avoid this situation by placing suitable bounds on the parameters.
+        Note the gamma-variate function becomes unstable due to numerical 
+        overflow at large n and/or short T. 
+        This function handles that situation by moving to a numerical 
+        solution, but this slows down the computations significantly.
+        Callers should if possible avoid this situation by placing suitable 
+        bounds on the parameters.
 
     Example:
         Import package and create a vector of uniformly sampled time points t with spacing 5.0s:

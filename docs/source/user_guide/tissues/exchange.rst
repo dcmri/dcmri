@@ -16,10 +16,10 @@ Configurations
 ^^^^^^^^^^^^^^
 
 The configuration of an exchange tissue is fully defined by: 
-a *tracer-kinetic model* (see section :ref:`tissue-indicator-kinetics`), 
+a *pharmacokinetic model* (see section :ref:`tissue-indicator-kinetics`), 
 which describes the transport of indicator through the tissue; 
 and a *water-exchange model* (see section :ref:`tissue-water-exchange`), 
-which describes the transport of water and magnetization. Any tracer-kinetic 
+which describes the transport of water and magnetization. Any pharmacokinetic 
 model can be combined with any water exchange model to build a complete 
 tissue model. 
 
@@ -89,7 +89,7 @@ are those listed in table :ref:`two-site-exchange-kinetics`.
 Indicator kinetics
 ^^^^^^^^^^^^^^^^^^ 
 
-The most general kinetic model implemented in `dcmri.Tissue` is the 
+The most general pharmacokinetic model implemented in `dcmri.Tissue` is the 
 2-compartment exchange model (2CX). It assumes that the indicator distributes 
 over two compartments: the plasma *p* and the interstitium *i*, with volume 
 fractions *vp* and *vi*, respectively. The plasma volume is related to the 

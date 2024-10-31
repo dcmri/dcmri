@@ -2,7 +2,7 @@
 dcmri documentation
 ###################
 
-A Python toolbox for dynamic contrast MRI.
+A python toolbox for dynamic contrast MRI.
 
 .. note::
 

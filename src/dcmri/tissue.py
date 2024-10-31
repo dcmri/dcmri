@@ -15,7 +15,7 @@ def params_tissue(kinetics='2CX', water_exchange='RR') -> list:
     Args:
         kinetics (str, optional): Tracer-kinetic regime. Possible values are
          '2CX', '2CU', 'HF', 'HFU', 'NX', 'FX', 'WV', 'U'. Defaults to '2CX'.
-        water_exchange (str, optional): Water exchange regime, Any combination
+        water_exchange (str, optional): Water exchange regime. Any combination
           of two of the letters 'F', 'N', 'R' is allowed. Defaults to 'RR'.
 
     Returns: 

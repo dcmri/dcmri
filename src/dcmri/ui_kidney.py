@@ -5,12 +5,12 @@ from scipy.stats import rv_histogram
 import dcmri.pk as pk
 import dcmri.pk_kidney as pkk
 import dcmri.lib as lib
-import dcmri.mods as mods
+import dcmri.ui as ui
 import dcmri.sig as sig
 import dcmri.utils as utils
 
 
-class Kidney(mods.Model):
+class Kidney(ui.Model):
     """General model for whole kidney signals.
 
         **Input function**
@@ -272,7 +272,7 @@ class Kidney(mods.Model):
         elif self.sequence == 'lin':
             Sref = sig.signal_lin(self.R10, 1)
         self.S0 = np.mean(ydata[:self.n0]) / Sref
-        return mods.train(self, xdata, ydata, **kwargs)
+        return ui.train(self, xdata, ydata, **kwargs)
 
     def export_params(self):
         pars = {}
@@ -346,7 +346,7 @@ class Kidney(mods.Model):
             plt.close()
 
 
-class KidneyCortMed(mods.Model):
+class KidneyCortMed(ui.Model):
     """
     General model for renal cortico-medullary data.
 
@@ -589,7 +589,7 @@ class KidneyCortMed(mods.Model):
             Smref = sig.signal_ss(self.R10m, 1, self.TR, self.FA)
         self.S0c = np.mean(ydata[0][:self.n0]) / Scref
         self.S0m = np.mean(ydata[1][:self.n0]) / Smref
-        return mods.train(self, xdata, ydata, **kwargs)
+        return ui.train(self, xdata, ydata, **kwargs)
 
     def export_params(self):
         pars = {}
