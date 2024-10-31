@@ -1445,7 +1445,7 @@ and excretion rate ``kbh``:
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (12 minutes 44.505 seconds)
+   **Total running time of the script:** (12 minutes 9.558 seconds)
 
 
 .. _sphx_glr_download_generated_examples_use_cases_plot_tristan_volunteers.py:

@@ -698,6 +698,8 @@ def T1(field_strength=3.0, tissue='blood', Hct=0.45) -> float:
             1.0: 1.378,  # Extrapolated
             1.5: 1.441,
             3.0: 1 / (0.52 * Hct + 0.38),  # Lu MRM 2004
+            4.7: 1 / 1.70,  # https://cds.ismrm.org/ismrm-2002/PDF4/1048.PDF
+            7.0: 1 / 2.29,  # 10.1016/j.mri.2012.08.008
         },
         'spleen': {
             4.7: 1 / 0.631,

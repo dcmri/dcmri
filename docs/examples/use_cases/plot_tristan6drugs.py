@@ -65,7 +65,7 @@ data = dc.fetch('tristan6drugs')
 def tristan_rat(data, **kwargs):
 
     # High-resolution time points for prediction
-    t = np.arange(0, np.amax(data['time']), 0.5)
+    t = np.arange(0, np.amax(data['time'])+0.5, 0.5)
 
     # Standard input function
     ca = dc.aif_tristan_rat(t, BAT=data['BAT'], duration=data['duration'])
@@ -75,24 +75,25 @@ def tristan_rat(data, **kwargs):
 
         # Input parameters
         t = t,
-        ca = ca,
+        ca = ca*(1-0.418),
 
         # Acquisition parameters
         field_strength = data['field_strength'],
+        agent = 'gadoxetate',
         TR = data['TR'],
         FA = data['FA'],
         n0 = data['n0'],
 
-        # Kinetic paramaters
-        kinetics = 'IC-HF',
-        Hct = 0.418,
+        # Kinetic parameters
+        kinetics = '1I-IC-HF',
+        H = 0.418,
         ve = 0.23,
         free = {
             'khe': [0, np.inf], 
             'Th': [0, np.inf],
         },
 
-        # Tissue paramaters
+        # Tissue parameters
         R10 = 1/dc.T1(data['field_strength'], 'liver'),
     )
     return model.train(data['time'], data['liver'], **kwargs)

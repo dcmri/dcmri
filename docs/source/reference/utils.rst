@@ -27,6 +27,7 @@ Synthetic data
    fake_aif
    fake_brain
    fake_tissue
+   fake_liver
    fake_tissue2scan
    fake_kidney_cortex_medulla
 

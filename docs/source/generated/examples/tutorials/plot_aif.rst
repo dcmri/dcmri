@@ -441,7 +441,7 @@ The cardiac output of the populaton AIF is 220 mL/sec, substantially higher than
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 5.767 seconds)
+   **Total running time of the script:** (0 minutes 2.319 seconds)
 
 
 .. _sphx_glr_download_generated_examples_tutorials_plot_aif.py:

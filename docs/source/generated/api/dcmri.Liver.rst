@@ -29,6 +29,7 @@
       ~Liver.relax
       ~Liver.save
       ~Liver.set_free
+      ~Liver.signal
       ~Liver.time
       ~Liver.train
    

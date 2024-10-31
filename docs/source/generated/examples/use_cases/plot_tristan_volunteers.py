@@ -75,15 +75,12 @@ def tristan_human_1scan(data, **kwargs):
         FA = data['FA'],
 
         # Signal parameters
-        R10b = data['R10b'],
+        R10a = data['R10b'],
         R10l = data['R10l'],
 
         # Tissue parameters
-        Hct = data['Hct'],
+        H = data['Hct'],
         vol = data['vol'],
-
-        # Training parameters
-        dt = 0.5,
     )
 
     xdata = (data['time1aorta'], data['time1liver'])

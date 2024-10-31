@@ -10,14 +10,23 @@ import dcmri.utils as utils
 def flux(J: np.ndarray, *params, t=None, dt=1.0, model='comp', **kwargs) -> np.ndarray:
     """Flux out of an arbitrary pharmacokinetic system.
 
-    This is a wrapper function offering a standard interface to calculate the flux out of a specific system, with the system architecture specified in the dictionary. It offers a convenient way to build more complex models with variable configurations, such as `flux_aorta`.
+    This is a wrapper function offering a standard interface to calculate the 
+    flux out of a specific system, with the system architecture specified in 
+    the dictionary. It offers a convenient way to build more complex models 
+    with variable configurations, such as `dcmri.flux_aorta`.
 
     Args:
         J (array_like): the indicator flux entering the trap.
         params (tuple): model parameters.
-        t (array_like, optional): the time points of the indicator flux J. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
-        dt (float, optional): spacing between time points for uniformly spaced time points. This parameter is ignored if t is explicity provided. Defaults to 1.0.
-        model (str, optional): Model to use, options are 'trap', 'pass', 'comp', 'plug', 'chain', 'step', 'free', 'ncomp', 'nscomp', 'pfcomp', 'mmcomp', '2cxm'. Defaults to 'comp'.
+        t (array_like, optional): the time points of the indicator flux J. If 
+          t=None, the time points are assumed to be uniformly spaced with 
+          spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly 
+          spaced time points. This parameter is ignored if t is explicity 
+          provided. Defaults to 1.0.
+        model (str, optional): Model to use, options are 'trap', 'pass', 
+          'comp', 'plug', 'chain', 'step', 'free', 'ncomp', 'nscomp', 
+          'pfcomp', 'mmcomp', '2cxm'. Defaults to 'comp'.
         kwargs (dict): any optional parameters required by the model.
 
     Raises:
@@ -115,7 +124,7 @@ def conc(J: np.ndarray, *params, t=None, dt=1.0, model='comp',
 def res_trap(t):
     """Residue function of a trap.
 
-    A trap is a space where all indicator that enters is trapped forever. In practice it is used to model tissues where the transit times are much longer than the acquisition window. 
+    See section :ref:`define-trap` for more detail. 
 
     Args:
         t (array_like): Time points where the residue function is calculated.
@@ -125,9 +134,6 @@ def res_trap(t):
 
     See Also:
         `prop_trap`, `conc_trap`, `flux_trap`
-
-    Notes: 
-        The residue function of a trap is a function with a constant value of 1 everywhere, and can therefore easily be generated using the standard numpy function `numpy.ones`. The function is nevertheless included in the `dcmri` package for consistency and completeness. 
 
     Example:
         >>> import dcmri as dc
@@ -141,8 +147,8 @@ def res_trap(t):
 def prop_trap(t):
     """Propagator or transit time distribution of a trap.
 
-    A trap is a space where all indicator that enters is trapped forever. In practice it is used to model tissues where the transit times are much longer than the acquisition window. 
-
+    See section :ref:`define-trap` for more detail. 
+     
     Args:
         t (array_like): Time points where the propagator is calculated.
 
@@ -151,9 +157,6 @@ def prop_trap(t):
 
     See Also:
         `res_trap`, `conc_trap`, `flux_trap`
-
-    Notes: 
-        The propagator of a trap is a function with a constant value of 0 everywhere, and can therefore easily be generated using the standard numpy function `numpy.zeros`. The function is nevertheless included in the `dcmri` package for consistency and completeness. 
 
     Example:
         >>> import dcmri as dc
@@ -165,23 +168,24 @@ def prop_trap(t):
 
 
 def conc_trap(J, t=None, dt=1.0):
-    """Indicator concentration inside a trap.
+    """Indicator tissue concentration inside a trap.
 
-    A trap is a space where all indicator that enters is trapped forever. In practice it is used to model tissues where the transit times are much longer than the acquisition window. 
+    See section :ref:`define-trap` for more detail.
 
     Args:
         J (array_like): the indicator flux entering the trap.
-        t (array_like, optional): the time points of the indicator flux J. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
-        dt (float, optional): spacing between time points for uniformly spaced time points. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+        t (array_like, optional): the time points of the indicator flux J. If 
+          t=None, the time points are assumed to be uniformly spaced with 
+          spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly 
+          spaced time points. This parameter is ignored if t is explicity 
+          provided. Defaults to 1.0.
 
     Returns:
         numpy.ndarray: Concentration as a 1D array.
 
     See Also:
         `res_trap`, `prop_trap`, `flux_trap`
-
-    Notes: 
-        The concentration inside a trap is the time-integral of the influx, here calculated using trapezoidal integration.
 
     Example:
         >>> import dcmri as dc
@@ -195,7 +199,7 @@ def conc_trap(J, t=None, dt=1.0):
 def flux_trap(J):
     """Indicator flux out of a trap.
 
-    A trap is a space where all indicator that enters is trapped forever. In practice it is used to model tissues where the transit times are much longer than the acquisition window. 
+    See section :ref:`define-trap` for more detail. 
 
     Args:
         J (array_like): the indicator flux entering the trap.
@@ -205,9 +209,6 @@ def flux_trap(J):
 
     See Also:
         `res_trap`, `conc_trap`, `prop_trap`
-
-    Notes: 
-        The outflux out of a trap is always zero, and can therefore easily be generated using the standard numpy function `numpy.zeros`. The function is nevertheless included in the `dcmri` package for consistency and completeness. 
 
     Example:
         >>> import dcmri as dc
@@ -225,7 +226,7 @@ def flux_trap(J):
 def res_pass(T, t):
     """Residue function of a pass.
 
-    A pass is a space where the concentration is proportional to the input. In practice it is used to model tissues where the transit times are shorter than the temporal sampling interval. Under these conditions any bolus broadening is not detectable. 
+    See section :ref:`define-pass` for more detail.
 
     Args:
         T (float): transit time of the pass.
@@ -236,9 +237,6 @@ def res_pass(T, t):
 
     See Also:
         `prop_pass`, `conc_pass`, `flux_pass`
-
-    Notes: 
-        The residue function of a pass is a delta function and therefore can only be approximated numerically. The numerical approximation becomes accurate only at very short sampling intervals.
 
     Example:
         >>> import dcmri as dc
@@ -252,8 +250,8 @@ def res_pass(T, t):
 def prop_pass(t):
     """Propagator or transit time distribution of a pass.
 
-    A pass is a space where the concentration is proportional to the input. In practice it is used to model tissues where the transit times are shorter than the temporal sampling interval. Under these conditions any bolus broadening is not detectable. 
-
+    See section :ref:`define-pass` for more detail.
+    
     Args:
         t (array_like): Time points where the propagator is calculated.
 
@@ -262,9 +260,6 @@ def prop_pass(t):
 
     See Also:
         `res_pass`, `conc_pass`, `flux_pass`
-
-    Notes: 
-        The propagator of a pass is a delta function and therefore can only be approximated numerically. The numerical approximation becomes accurate only at very short sampling intervals. 
 
     Example:
         >>> import dcmri as dc
@@ -278,8 +273,8 @@ def prop_pass(t):
 def conc_pass(J, T):
     """Indicator concentration inside a pass.
 
-    A pass is a space where the concentration is proportional to the input. In practice it is used to model tissues where the transit times are shorter than the temporal sampling interval. Under these conditions any bolus broadening is not detectable. 
-
+    See section :ref:`define-pass` for more detail.
+    
     Args:
         J (array_like): the indicator flux entering the pass.
         T (float): transit time of the pass.
@@ -302,8 +297,8 @@ def conc_pass(J, T):
 def flux_pass(J):
     """Indicator flux out of a pass.
 
-    A pass is a space where the concentration is proportional to the input. In practice it is used to model tissues where the transit times are shorter than the temporal sampling interval. Under these conditions any bolus broadening is not detectable. 
-
+    See section :ref:`define-pass` for more detail.
+    
     Args:
         J (array_like): the indicator flux entering the pass.
 
@@ -312,9 +307,6 @@ def flux_pass(J):
 
     See Also:
         `res_pass`, `conc_pass`, `prop_pass`
-
-    Notes: 
-        The outflux out of a pass is always the same as the influx, and therefore this function is an identity. It is nevertheless included in the `dcmri` package for consistency with other functionality. 
 
     Example:
         >>> import dcmri as dc
@@ -330,7 +322,7 @@ def flux_pass(J):
 def res_comp(T, t):
     """Residue function of a compartment.
 
-    A compartment is a space with a uniform concentration everywhere - also known as a well-mixed space. The residue function of a compartment is a mono-exponentially decaying function.
+    See section :ref:`define-compartment` for more detail.
 
     Args:
         T (float): mean transit time of the compartment. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
@@ -360,7 +352,7 @@ def res_comp(T, t):
 def prop_comp(T, t):
     """Propagator or transit time distribution of a compartment.
 
-    A compartment is a space with a uniform concentration everywhere - also known as a well-mixed space. The propagator of a compartment is a mono-exponentially decaying function. 
+    See section :ref:`define-compartment` for more detail.
 
     Args:
         T (float): mean transit time of the compartment. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
@@ -388,8 +380,7 @@ def prop_comp(T, t):
 def conc_comp(J, T, t=None, dt=1.0):
     """Indicator concentration inside a compartment.
 
-    A compartment is a space with a uniform concentration everywhere - also 
-    known as a well-mixed space. 
+    See section :ref:`define-compartment` for more detail. 
 
     Args:
         J (array_like): the indicator flux entering the compartment.
@@ -424,7 +415,7 @@ def conc_comp(J, T, t=None, dt=1.0):
 def flux_comp(J, T, t=None, dt=1.0):
     """Indicator flux out of a compartment.
 
-    A compartment is a space with a uniform concentration everywhere - also known as a well-mixed space. 
+    See section :ref:`define-compartment` for more detail.
 
     Args:
         J (array_like): the indicator flux entering the compartment.
@@ -455,7 +446,7 @@ def flux_comp(J, T, t=None, dt=1.0):
 def prop_plug(T, t):
     """Propagator or transit time distribution of a plug flow system.
 
-    A plug flow system is a space with a constant velocity. The propagator of a plug flow system is a (discrete) delta function. 
+    See section :ref:`define-plug-flow` for more detail.
 
     Args:
         T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the system is a trap.
@@ -479,11 +470,14 @@ def prop_plug(T, t):
 def res_plug(T, t):
     """Residue function of a plug flow system.
 
-    A plug flow system is a space with a constant velocity. The residue function of a plug flow system is a step function.
+    See section :ref:`define-plug-flow` for more detail.
 
     Args:
-        T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the system is a trap.
-        t (array_like): time points where the residue function is calculated, in the same units as T.
+        T (float): mean transit time of the system. Any non-negative value is 
+          allowed, including :math:`T=0` and :math:`T=\\infty`, in which 
+          case the system is a trap.
+        t (array_like): time points where the residue function is calculated, 
+          in the same units as T.
 
     Returns:
         numpy.ndarray: residue function as a 1D array.
@@ -504,7 +498,7 @@ def res_plug(T, t):
 def conc_plug(J, T, t=None, dt=1.0, solver='interp'):
     """Indicator concentration inside a plug flow system.
 
-    A plug flow system is a space with a constant velocity. 
+    See section :ref:`define-plug-flow` for more detail.
 
     Args:
         J (array_like): the indicator flux entering the system.
@@ -542,7 +536,7 @@ def conc_plug(J, T, t=None, dt=1.0, solver='interp'):
 def flux_plug(J, T, t=None, dt=1.0, solver='interp'):
     """Indicator flux out of a plug flow system.
 
-    A plug flow system is a space with a constant velocity. 
+    See section :ref:`define-plug-flow` for more detail.
 
     Args:
         J (array_like): the indicator flux entering the system.
@@ -585,6 +579,8 @@ def flux_plug(J, T, t=None, dt=1.0, solver='interp'):
 def prop_chain(T, D, t):
     """Propagator or transit time distribution of a chain system.
 
+    See section :ref:`define-chain` for more detail.
+
     Args:
         T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the system is a trap.
         D (float): dispersion of the system. Values must be between 0 (no dispersion) and 1 (maximal dispersion).
@@ -623,6 +619,8 @@ def prop_chain(T, D, t):
 def res_chain(T, D, t):
     """Residue function of a chain system.
 
+    See section :ref:`define-chain` for more detail.
+
     Args:
         T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the system is a trap.
         D (float): dispersion of the system. Values must be between 0 (no dispersion) and 1 (maximal dispersion).
@@ -650,6 +648,8 @@ def res_chain(T, D, t):
 
 def conc_chain(J, T, D, t=None, dt=1.0, solver='step'):
     """Indicator concentration inside a chain system.
+
+    See section :ref:`define-chain` for more detail.
 
     Args:
         J (array_like): the indicator flux entering the system.
@@ -696,6 +696,8 @@ def conc_chain(J, T, D, t=None, dt=1.0, solver='step'):
 
 def flux_chain(J, T, D, t=None, dt=1.0, solver='step'):
     """Indicator flux out of a chain system.
+
+    See section :ref:`define-chain` for more detail.
 
     Args:
         J (array_like): the indicator flux entering the system.
@@ -755,6 +757,8 @@ def flux_chain(J, T, D, t=None, dt=1.0, solver='step'):
 def prop_step(T, D, t):
     """Propagator or transit time distribution of a step system.
 
+    See section :ref:`define-step` for more detail.
+
     Args:
         T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the system is a trap.
         D (float): dispersion of the system, or half-width of the step given as a fraction of T. Values must be between 0 (no dispersion) and 1 (maximal dispersion).
@@ -793,6 +797,8 @@ def prop_step(T, D, t):
 def res_step(T, D, t):
     """Residue function of a step system.
 
+    See section :ref:`define-step` for more detail.
+
     Args:
         T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the system is a trap.
         D (float): dispersion of the system, or half-width of the step given as a fraction of T. Values must be between 0 (no dispersion) and 1 (maximal dispersion).
@@ -816,6 +822,8 @@ def res_step(T, D, t):
 
 def conc_step(J, T, D, t=None, dt=1.0):
     """Indicator concentration inside a step system.
+
+    See section :ref:`define-step` for more detail.
 
     Args:
         J (array_like): the indicator flux entering the system.
@@ -847,6 +855,8 @@ def conc_step(J, T, D, t=None, dt=1.0):
 def flux_step(J, T, D, t=None, dt=1.0):
     """Indicator flux out of a step system.
 
+    See section :ref:`define-step` for more detail.
+
     Args:
         J (array_like): the indicator flux entering the system.
         T (float): mean transit time of the system. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
@@ -874,6 +884,37 @@ def flux_step(J, T, D, t=None, dt=1.0):
     return utils.conv(h, J, t)
 
 
+def flux_pfcomp(J, T, D, t=None, dt=1.0, solver='interp'):
+    """Indicator flux out of a serial arrangement of a plug flow 
+    system and a compartment.
+
+    See section :ref:`define-pfcomp` for more detail.
+
+    Args:
+        J (array_like): the indicator flux entering the compartment (mmol/sec).
+        T (float): mean transit time of the compartment (sec). Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
+        D (float): Dispersion of the systemd defined as the ratio of the compartmental mean transit time versus the total mean transit time.
+        t (array_like, optional): the time points of the indicator flux J (sec). If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points (sec). This parameter is ignored if t is explicity provided. Defaults to 1.0.
+        solver (str, optional): solver for the system, either 'conv' for explicit convolution with a discrete impulse response (slow) or 'interp' for interpolation (fast). Defaults to 'interp'.
+
+    Returns:
+        np.ndarrayx: Outflux in mmol/sec
+    """
+    if D < 0 or D > 1:
+        raise ValueError('Dispersion must be in the range [0,1]')
+    if D == 0:
+        return flux_plug(J, T, t=t, dt=dt, solver=solver)
+    if D == 1:
+        return flux_comp(J, T, t=t, dt=dt)
+    Tc = D*T
+    Tp = (1-D)*T
+    J = flux_comp(J, Tc, t=t, dt=dt)
+    J = flux_plug(J, Tp, t=t, dt=dt, solver=solver)
+    return J
+
+
+
 # N parameters
 
 # Free
@@ -881,6 +922,8 @@ def flux_step(J, T, D, t=None, dt=1.0):
 
 def prop_free(H, t, TT=None, TTmin=0, TTmax=None):
     """Propagator or transit time distribution of a free system.
+
+    See section :ref:`define-free` for more detail.
 
     Args:
         H (array_like): frequencies of the transit time histogram in each transit time bin. These do not have to be normalized - the function normalizes to unit area by default.
@@ -934,6 +977,8 @@ def prop_free(H, t, TT=None, TTmin=0, TTmax=None):
 def res_free(H, t, TT=None, TTmin=0, TTmax=None):
     """Residue function of a free system.
 
+    See section :ref:`define-free` for more detail.
+
     Args:
         H (array_like): frequencies of the transit time histogram in each transit time bin. These do not have to be normalized - the function normalizes to unit area by default.
         t (array_like): time points where the residue function is calculated, in the same units as T.
@@ -977,6 +1022,8 @@ def res_free(H, t, TT=None, TTmin=0, TTmax=None):
 
 def conc_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None, solver='trap'):
     """Indicator concentration inside a free system.
+
+    See section :ref:`define-free` for more detail.
 
     Args:
         J (array_like): the indicator flux entering the system.
@@ -1031,14 +1078,27 @@ def conc_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None, solver='trap')
 def flux_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
     """Indicator flux out of a free system.
 
+    See section :ref:`define-free` for more detail.
+
     Args:
         J (array_like): the indicator flux entering the system.
-        H (array_like): frequencies of the transit time histogram in each transit time bin. These do not have to be normalized - the function normalizes to unit area by default.
-        t (array_like, optional): the time points of the indicator flux J, in the same units as T. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
-        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as T. This parameter is ignored if t is explicity provided. Defaults to 1.0.
-        TT (array_like): boundaries of the transit time histogram bins. The number of elements in this array must be one more than the number of elements in H. If TT is not provided, the boundaries are equally distributed between TTmin and TTmax. Defaults to None.
-        TTmin (float): Minimal transit time to be considered. If TT is provided, this argument is ignored. Defaults to 0.
-        TTmax (float): Maximal transit time to be considered. If TT is provided, this argument is ignored. Defaults to the maximum of t.
+        H (array_like): frequencies of the transit time histogram in each 
+          transit time bin. These do not have to be normalized - the function 
+          normalizes to unit area by default.
+        t (array_like, optional): the time points of the indicator flux J, in 
+          the same units as T. If t=None, the time points are assumed to be 
+          uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly 
+          spaced time points, in the same units as T. This parameter is 
+          ignored if t is explicity provided. Defaults to 1.0.
+        TT (array_like): boundaries of the transit time histogram bins. The 
+          number of elements in this array must be one more than the number 
+          of elements in H. If TT is not provided, the boundaries are equally 
+          distributed between TTmin and TTmax. Defaults to None.
+        TTmin (float): Minimal transit time to be considered. If TT is 
+          provided, this argument is ignored. Defaults to 0.
+        TTmax (float): Maximal transit time to be considered. If TT is 
+          provided, this argument is ignored. Defaults to the maximum of t.
 
     Returns:
         numpy.ndarray: Outflux as a 1D array.
@@ -1189,6 +1249,8 @@ def conc_ncomp_diag(J, T, E, t=None, dt=1.0):
 def conc_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
     """Concentration in a linear and stationary n-compartment system.
 
+    See section :ref:`define-ncomp` for more detail.
+
     Args:
         J (array_like): the indicator flux entering the system, as a rectangular 2D array with dimensions *(n,k)*, where *n* is the number of compartments and *k* is the number of time points in *J*. 
         T (array_like): n-element array with mean transit times of each compartment.
@@ -1269,6 +1331,8 @@ def conc_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
 def flux_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
     """Outfluxes out of a linear and stationary n-compartment system.
 
+    See section :ref:`define-ncomp` for more detail.
+
     Args:
         J (array_like): the indicator flux entering the system, as a rectangular 2D array with dimensions *(n,k)*, where *n* is the number of compartments and *k* is the number of time points in *J*.
         T (array_like): n-element array with mean transit times of each compartment.
@@ -1283,9 +1347,6 @@ def flux_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
 
     See Also:
         `res_ncomp`, `prop_ncomp`, `conc_ncomp`
-
-    Note:
-        See the documentation of the similar function `conc_ncomp` for some more detail on parameters and options.
 
     Example:
         >>> import numpy as np
@@ -1330,6 +1391,8 @@ def flux_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
 
 def res_ncomp(T, E, t):
     """Residue function of an n-compartment system.
+
+    See section :ref:`define-ncomp` for more detail.
 
     Args:
         T (array_like): n-element array with mean transit times of each compartment.
@@ -1393,6 +1456,8 @@ def res_ncomp(T, E, t):
 
 def prop_ncomp(T, E, t):
     """Propagator of an n-compartment system.
+
+    See section :ref:`define-ncomp` for more detail.
 
     Args:
         T (array_like): n-element array with mean transit times of each compartment.
@@ -1519,6 +1584,8 @@ def _res_2comp(T, E, t):
 def conc_nscomp(J, T, t=None, dt=1.0):
     """Indicator concentration inside a non-stationary compartment.
 
+    See section :ref:`define-nscomp` for more detail.
+
     Args:
         J (array_like): the indicator flux entering the compartment.
         T (array_like): array with the mean transit time as a function of time, with the same length as *J*. Only finite and strictly positive values are allowed.
@@ -1581,7 +1648,7 @@ def conc_nscomp(J, T, t=None, dt=1.0):
 def flux_nscomp(J, T, t=None, dt=1.0):
     """Indicator flux out of a non-stationary compartment.
 
-    A compartment is a space with a uniform concentration everywhere - also known as a well-mixed space. 
+    See section :ref:`define-nscomp` for more detail.
 
     Args:
         J (array_like): the indicator flux entering the compartment.
@@ -1609,31 +1676,6 @@ def flux_nscomp(J, T, t=None, dt=1.0):
 # TODO: Defaults for solver to None - everywhere
 
 
-def flux_pfcomp(J, T, D, t=None, dt=1.0, solver='interp'):
-    """Indicator flux out of a serial arrangement of a plug flow system and a compartment.
-
-    Args:
-        J (array_like): the indicator flux entering the compartment (mmol/sec).
-        T (float): mean transit time of the compartment (sec). Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
-        D (float): Dispersion of the systemd defined as the ratio of the compartmental mean transit time versus the total mean transit time.
-        t (array_like, optional): the time points of the indicator flux J (sec). If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
-        dt (float, optional): spacing between time points for uniformly spaced time points (sec). This parameter is ignored if t is explicity provided. Defaults to 1.0.
-        solver (str, optional): solver for the system, either 'conv' for explicit convolution with a discrete impulse response (slow) or 'interp' for interpolation (fast). Defaults to 'interp'.
-
-    Returns:
-        np.ndarrayx: Outflux in mmol/sec
-    """
-    if D < 0 or D > 1:
-        raise ValueError('Dispersion must be in the range [0,1]')
-    if D == 0:
-        return flux_plug(J, T, t=t, dt=dt, solver=solver)
-    if D == 1:
-        return flux_comp(J, T, t=t, dt=dt)
-    Tc = D*T
-    Tp = (1-D)*T
-    J = flux_comp(J, Tc, t=t, dt=dt)
-    J = flux_plug(J, Tp, t=t, dt=dt, solver=solver)
-    return J
 
 
 # Michaelis-Menten compartment
@@ -1674,13 +1716,23 @@ def _mmcomp_prop(J, Vmax, Km, t):
 def conc_mmcomp(J, Vmax, Km, t=None, dt=1.0, solver='SM'):
     """Indicator concentration inside a Michaelis-Menten compartment.
 
+    See section :ref:`define-mmcomp` for more detail.
+
     Args:
         J (array_like): the indicator flux entering the compartment.
-        Vmax (float): Limiting rate in the same units as J. Must be non-negative.
-        Km (float): Michaelis-Menten constant in units of concentration (or flux x time). Must be non-negative.
-        t (array_like, optional): the time points of the indicator flux J, in the same units as Km/Vmax. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
-        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as Km/Vmax. This parameter is ignored if t is explicity provided. Defaults to 1.0.
-        solver (str, optional): choose which solver to use. The options are 'SM' for the analytical solution derived by `Schnell and Mendoza <https://www.sciencedirect.com/science/article/pii/S0022519397904252>`_, or 'prop' for a numerical solution by forward propagation. Defaults to 'SM'.
+        Vmax (float): Limiting rate in the same units as J. Must be 
+          non-negative.
+        Km (float): Michaelis-Menten constant in units of concentration (or 
+          flux x time). Must be non-negative.
+        t (array_like, optional): the time points of the indicator flux J, in 
+          the same units as Km/Vmax. If t=None, the time points are assumed 
+          to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced 
+          time points, in the same units as Km/Vmax. This parameter is ignored 
+          if t is explicity provided. Defaults to 1.0.
+        solver (str, optional): choose which solver to use. The options are 
+          'SM' for the Schnell and Mendoza solution or 'prop' for a numerical 
+          solution by forward propagation. Defaults to 'SM'.
 
     Returns:
         numpy.ndarray: Concentration as a 1D array.
@@ -1690,19 +1742,6 @@ def conc_mmcomp(J, Vmax, Km, t=None, dt=1.0, solver='SM'):
 
     See Also:
         `flux_mmcomp`
-
-    Note:
-        The Michaelis-Menten compartment is an example of a non-linear one-compartment model where the rate constant :math:`K(C)` is a function of the concentration itself:
-
-        .. math::
-            \\frac{dC}{dt} = -K(C) C
-
-        In the Michaelis-Menten model the rate constant is given by:
-
-        .. math::
-            K(C) = \\frac{V_\max}{K_m+C}
-
-        For small enough concentrations :math:`C << K_m` this reduces to a standard linear compartment with :math:`K=V_\max/K_m`. 
 
     Example:
         >>> import dcmri as dc
@@ -1727,13 +1766,24 @@ def conc_mmcomp(J, Vmax, Km, t=None, dt=1.0, solver='SM'):
 def flux_mmcomp(J, Vmax, Km, t=None, solver='SM', dt=1.0):
     """Indicator flux out of a Michaelis-Menten compartment.
 
+    See section :ref:`define-mmcomp` for more detail.
+
     Args:
         J (array_like): the indicator flux entering the compartment.
-        Vmax (float): Limiting rate in the same units as J. Must be non-negative.
-        Km (float): Michaelis-Menten constant in units of concentration (or flux x time). Must be non-negative.
-        t (array_like, optional): the time points of the indicator flux J, in the same units as Km/Vmax. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
-        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as Km/Vmax. This parameter is ignored if t is explicity provided. Defaults to 1.0.
-        solver (str, optional): choose which solver to use. The options are 'SM' for the analytical solution derived by `Schnell and Mendoza <https://www.sciencedirect.com/science/article/pii/S0022519397904252>`_, or 'prop' for a numerical solution by forward propagation. Defaults to 'SM'.
+        Vmax (float): Limiting rate in the same units as J. Must be 
+          non-negative.
+        Km (float): Michaelis-Menten constant in units of concentration (or 
+          flux x time). Must be non-negative.
+        t (array_like, optional): the time points of the indicator flux J, in 
+          the same units as Km/Vmax. If t=None, the time points are assumed to 
+          be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced 
+          time points, in the same units as Km/Vmax. This parameter is ignored 
+          if t is explicity provided. Defaults to 1.0.
+        solver (str, optional): choose which solver to use. The options are 
+          'SM' for the Schnell and Mendoza solution, 
+          or 'prop' for a numerical solution by forward propagation. 
+          Defaults to 'SM'.
 
     Returns:
         numpy.ndarray: Outflux as a 1D array.
@@ -1743,19 +1793,6 @@ def flux_mmcomp(J, Vmax, Km, t=None, solver='SM', dt=1.0):
 
     See Also:
         `conc_mmcomp`
-
-    Note:
-        The Michaelis-Menten compartment is an example of a non-linear one-compartment model where the rate constant :math:`K(C)` is a function of the concentration itself:
-
-        .. math::
-            \\frac{dC}{dt} = -K(C) C
-
-        In the Michaelis-Menten model the rate constant is given by:
-
-        .. math::
-            K(C) = \\frac{V_\max}{K_m+C}
-
-        For small enough concentrations :math:`C << K_m` this reduces to a standard linear compartment with :math:`K=V_\max/K_m`. 
 
     Example:
         >>> import dcmri as dc
@@ -1773,6 +1810,8 @@ def flux_mmcomp(J, Vmax, Km, t=None, solver='SM', dt=1.0):
 
 def conc_2cxm(J, T, E, t=None, dt=1.0) -> np.ndarray:
     """Indicator flux out of a 2-compartment exchange model.
+
+    See section :ref:`define-2comp` for more detail.
 
     Args:
         J (array_like): the indicator flux entering the compartment (mmol/sec).
@@ -2055,6 +2094,8 @@ def conc_2cxm(J, T, E, t=None, dt=1.0) -> np.ndarray:
 
 def flux_2cxm(J, T, E, t=None, dt=1.0):
     """Indicator flux out of a 2-compartment exchange model.
+
+    See section :ref:`define-2comp` for more detail.
 
     Args:
         J (array_like): the indicator flux entering the compartment (mmol/sec).

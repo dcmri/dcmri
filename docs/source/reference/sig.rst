@@ -23,6 +23,8 @@ Signal models
    signal_lin
 
 
+.. _inverse-signal-models:
+
 Inverse signal models
 =====================
 

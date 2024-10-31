@@ -295,6 +295,112 @@ def fake_tissue(
     return time, aif, roi, gt
 
 
+def fake_liver(
+    tacq = 180.0,
+    dt = 1.5,
+    BAT = 20,
+    Tg = 10,
+    H = 0.45,
+    ve = 0.3,
+    Fp = 0.01,
+    fa = 0.2,
+    Ta = 2,
+    khe = 0.003,
+    Th = 20*60,  
+    field_strength = 3.0,
+    agent = 'gadoxetate',
+    R10a = 1/dc.T1(3.0, 'blood'),
+    R10 = 1/dc.T1(3.0, 'liver'),
+    S0b = 100,
+    S0 = 150,
+    model = 'SS',
+    TR = 0.005,
+    FA = 15,
+    TC = 0.2,
+    CNR = np.inf,
+    dt_sim = 0.1,
+):
+    """Synthetic data for liver tissue.
+
+    Args:
+        tacq (float, optional): Duration of the acquisition in sec. 
+          Defaults to 180.
+        dt (float, optional): Sampling interval in sec. Defaults to 1.5.
+        BAT (float, optional): Bolus arrival time in sec. Defaults to 20.
+        Tg (float, optional): Gut mean transit time. Defaults to 10 sec.
+        H (float, optional): Hematocrit. Defaults to 0.45.
+        ve (float, optional): Extracellular volume fraction. Defaults to 0.3.
+        Fp (float, optional): Plasma flow in mL/sec/mL. Defaults to 0.01.
+        fa (float, optional): Arterial flow fraction. Defaults to 0.2.
+        Ta (float, optional): Arterial mean transit time. Defaults to 2 sec.
+        khe (float, optional): Hepatocellular uptake rate. Defaults to 0.003.
+        Th (float, optional): Hepatocyte mean transit time. Defaults to 20 
+          mins.
+        field_strength (float, optional): B0 field in T. Defaults to 3.0.
+        agent (str, optional): Contrast agent generic name. Defaults to 
+          'gadoxetate'.
+        R10a (_type_, optional): Precontrast relaxation rate for blood in 
+          1/sec. Defaults to 1/dc.T1(3.0, 'blood').
+        R10 (int, optional): Precontrast relaxation rate for tissue in 1/sec. 
+          Defaults to 1.
+        S0b (int, optional): Signal scaling factor for blood (arbitrary 
+          units). Defaults to 100.
+        S0 (int, optional): Signal scaling factor for tissue (arbitrary 
+          units). Defaults to 150.
+        model (str, optional): Scanning sequences, either steady-state 
+          ('SS') or saturation-recovery ('SR')
+        TR (float, optional): Repetition time in sec. Defaults to 0.005.
+        FA (int, optional): Flip angle. Defaults to 20.
+        TC (float, optional): time to center of k-space in SR sequence. 
+          This is ignored when sequence='SS'. efaults to 0.2 sec.
+        CNR (float, optional): Contrast-to-noise ratio, define as the ratio 
+          of signal-enhancement in the AIF to noise. Defaults to np.inf.
+        dt_sim (float, optional): Sampling inteval of the forward modelling 
+          in sec. Defaults to 0.1.
+
+    Returns: 
+        tuple: time, aif, roi, gt
+
+        - **time**: array of time points.
+        - **aif**: array of AIF signals.
+        - **vif**: array of VIF signals.
+        - **roi**: array of ROI signals.
+        - **gt**: dictionary with ground truth values for concentrations and 
+          tissue parameters.
+    """
+    t = np.arange(0, tacq+dt, dt_sim)
+    cp = dc.aif_parker(t, BAT)
+    cv = dc.flux_comp(cp, Tg, t)
+    C = dc.conc_liver(cp*(1-H), dt=dt_sim, cv=cv, sum=False,
+                      H=H, ve=ve, Fp=Fp, fa=fa, Ta=Ta, khe=khe, Th=Th)
+    rp = dc.relaxivity(field_strength, 'plasma', agent)
+    rh = dc.relaxivity(field_strength, 'hepatocytes', agent)
+    R1a = R10a + rp*cp*(1-H)
+    R1v = R10a + rp*cv*(1-H)
+    R1 = R10 + rp*C[0, :] + rh*C[1, :]
+    if model == 'SS':
+        aif = dc.signal_ss(R1a, S0b, TR, FA)
+        vif = dc.signal_ss(R1v, S0b, TR, FA)
+        roi = dc.signal_ss(R1, S0, TR, FA)
+    elif model == 'SR':
+        aif = dc.signal_src(R1a, S0b, TC)
+        vif = dc.signal_src(R1v, S0b, TC)
+        roi = dc.signal_sr(R1, S0, TR, FA, TC)
+    time = np.arange(0, tacq, dt)
+    aif = dc.sample(time, t, aif, dt)
+    vif = dc.sample(time, t, vif, dt)
+    roi = dc.sample(time, t, roi, dt)
+    sdev = (np.amax(aif)-aif[0])/CNR
+    aif = dc.add_noise(aif, sdev)
+    vif = dc.add_noise(vif, sdev)
+    roi = dc.add_noise(roi, sdev)
+    gt = {'t': t, 'cp': cp, 'cv':cv, 'C': np.sum(C,axis=0), 'cb': cp*(1-H),
+          've': ve, 'Fp': Fp, 
+          'Fb': Fp/(1-H), 'fa': fa, 'Ta': Ta, 'khe': khe, 'Th': Th,
+          'TR': TR, 'FA': FA, 'S0': S0}
+    return time, aif, vif, roi, gt
+
+
 def fake_tissue2scan(
     tacq=180.0,
     tbreak=60,
