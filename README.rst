@@ -25,14 +25,14 @@ A python toolbox for dynamic contrast MRI
 - **Source code:** https://github.com/dcmri/dcmri
 
 
-*Note:* `dcmri` is under construction. At this stage, the API may still change 
+*Note:* dcmri is under construction. At this stage, the API may still change 
 and features may be deprecated without warning.
 
 
 Install
 -------
 
-Install the latest version of `dcmri`::
+Install the latest version of dcmri::
 
     $ pip install dcmri
 
@@ -72,7 +72,6 @@ ROI-based analysis
     Fixed and derived parameters
     ----------------------------
 
-    Tissue Hematocrit (H): 0.45 
     Plasma volume (vp): 0.01 mL/cm3
     Interstitial mean transit time (Ti): 74.614 sec
 
