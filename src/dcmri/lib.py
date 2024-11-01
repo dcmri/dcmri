@@ -263,12 +263,12 @@ def fetch(dataset: str) -> dict:
         >>>     #
         >>>     # Signal parameters
         >>>     #
-        >>>     R10b = data['R10b'],
+        >>>     R10a = data['R10b'],
         >>>     R10l = data['R10l'],
         >>>     #
         >>>     # Tissue parameters
         >>>     #
-        >>>     Hct = data['Hct'],
+        >>>     H = data['Hct'],
         >>>     vol = data['vol'],
         >>> )
 
