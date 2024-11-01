@@ -88,7 +88,7 @@ def aif_tristan(
         plt.show()    
     """
     conc = lib.ca_conc(agent)
-    Ji = lib.influx_step(t, weight,conc, dose, rate, BAT)
+    Ji = lib.ca_injection(t, weight,conc, dose, rate, BAT)
     Jb = flux_aorta(Ji, t, E=E,
                     heartlung=['chain', (Thl, Dhl)],
                     organs=['2cxm', ([Tp, Te], Ee)],
@@ -166,7 +166,7 @@ def flux_aorta(J_vena: np.ndarray,
 
         # Generate a stepwise injection:
         t = np.arange(0, 120, 2.0)
-        Ji = dc.influx_step(t, 70, 0.5, 0.2, 3, 30)
+        Ji = dc.ca_injection(t, 70, 0.5, 0.2, 3, 30)
 
         # Calculate the fluxes in mmol/sec:
         Ja = dc.flux_aorta(Ji, t)

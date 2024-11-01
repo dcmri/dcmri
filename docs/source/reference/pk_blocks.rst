@@ -5,13 +5,17 @@ PK blocks
 *********
 
 A collection of basic pharmacokinetic models that can be assembled to build 
-more complex models.
+more complex models. For more background on these models, see the section on 
+:ref:`basic pharmacokinetics <basics-pharmacokinetics>`.
 
 .. currentmodule:: dcmri
 
 
 Any model
 =========
+
+These are high-level wrappers for all many of the other functions in this 
+section.
 
 .. autosummary::
    :toctree: ../generated/api/

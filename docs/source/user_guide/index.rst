@@ -1,3 +1,5 @@
+.. _user-guide:
+
 ##########
 User guide
 ##########
@@ -7,8 +9,8 @@ User guide
    :maxdepth: 2
    
    getting_started
-   units
    usage
+   units
    basics/index
    tissues/index
 

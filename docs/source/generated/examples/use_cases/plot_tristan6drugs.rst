@@ -94,7 +94,7 @@ The model uses a standardized, population-average input function and fits
 for only 2 parameters, fixing all other free parameters to typical values 
 for this rat model:
 
-.. GENERATED FROM PYTHON SOURCE LINES 64-103
+.. GENERATED FROM PYTHON SOURCE LINES 64-102
 
 .. code-block:: Python
 
@@ -115,6 +115,8 @@ for this rat model:
             ca = ca*(1-0.418),
 
             # Acquisition parameters
+            field_strength = data['field_strength'],
+            agent = 'gadoxetate',
             TR = data['TR'],
             FA = data['FA'],
             n0 = data['n0'],
@@ -129,10 +131,7 @@ for this rat model:
             },
 
             # Tissue parameters
-            r1 = dc.relaxivity(data['field_strength'], 'blood', 'gadoxetate'),
-            r1h = dc.relaxivity(data['field_strength'], 'hepatocytes', 'gadoxetate'),
             R10 = 1/dc.T1(data['field_strength'], 'liver'),
-            #R10a = 1/dc.T1(data['field_strength'], 'blood'),
         )
         return model.train(data['time'], data['liver'], **kwargs)
 
@@ -144,7 +143,7 @@ for this rat model:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 104-109
+.. GENERATED FROM PYTHON SOURCE LINES 103-108
 
 Check model fit
 ---------------
@@ -152,7 +151,7 @@ Before running the full analysis on all cases, lets illustrate the results
 by fitting the baseline visit for the first subject. We use maximum 
 verbosity to get some feedback about the iterations: 
 
-.. GENERATED FROM PYTHON SOURCE LINES 109-112
+.. GENERATED FROM PYTHON SOURCE LINES 108-111
 
 .. code-block:: Python
 
@@ -183,11 +182,11 @@ verbosity to get some feedback about the iterations:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 113-114
+.. GENERATED FROM PYTHON SOURCE LINES 112-113
 
 Plot the results to check that the model has fitted the data:
 
-.. GENERATED FROM PYTHON SOURCE LINES 114-117
+.. GENERATED FROM PYTHON SOURCE LINES 113-116
 
 .. code-block:: Python
 
@@ -206,13 +205,13 @@ Plot the results to check that the model has fitted the data:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 118-121
+.. GENERATED FROM PYTHON SOURCE LINES 117-120
 
 Print the measured model parameters and any derived parameters and check 
 that standard deviations of measured parameters are small relative to the 
 value, indicating that the parameters are measured reliably:
 
-.. GENERATED FROM PYTHON SOURCE LINES 121-125
+.. GENERATED FROM PYTHON SOURCE LINES 120-124
 
 .. code-block:: Python
 
@@ -249,14 +248,14 @@ value, indicating that the parameters are measured reliably:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 126-130
+.. GENERATED FROM PYTHON SOURCE LINES 125-129
 
 Fit all data
 ------------
 Now that we have illustrated an individual result in some detail, we proceed 
 with fitting all the data. Results are stored in a dataframe in long format:
 
-.. GENERATED FROM PYTHON SOURCE LINES 130-159
+.. GENERATED FROM PYTHON SOURCE LINES 129-158
 
 .. code-block:: Python
 
@@ -778,7 +777,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 160-165
+.. GENERATED FROM PYTHON SOURCE LINES 159-164
 
 Plot individual results
 -----------------------
@@ -786,7 +785,7 @@ Now lets visualise the main results from the study by plotting the drug
 effect for all rats, and for both biomarkers: uptake rate ``khe`` and 
 excretion rate ``kbh``:
 
-.. GENERATED FROM PYTHON SOURCE LINES 165-218
+.. GENERATED FROM PYTHON SOURCE LINES 164-217
 
 .. code-block:: Python
 
@@ -855,7 +854,7 @@ excretion rate ``kbh``:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 219-227
+.. GENERATED FROM PYTHON SOURCE LINES 218-226
 
 Plot effect sizes
 -----------------
@@ -866,7 +865,7 @@ the 95% CI is less than -20%), in **orange** if inhbition is less than 20%
 (i.e. upper value of the 95% CI is less than 0%), and in **green** if no 
 inhibition was detected with 95% confidence (0% in the 95% CI):
 
-.. GENERATED FROM PYTHON SOURCE LINES 227-301
+.. GENERATED FROM PYTHON SOURCE LINES 226-300
 
 .. code-block:: Python
 
@@ -959,7 +958,7 @@ inhibition was detected with 95% confidence (0% in the 95% CI):
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 5.553 seconds)
+   **Total running time of the script:** (0 minutes 6.179 seconds)
 
 
 .. _sphx_glr_download_generated_examples_use_cases_plot_tristan6drugs.py:

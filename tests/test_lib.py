@@ -9,7 +9,7 @@ def test_fetch():
     assert 'FA' in data[0]
 
 
-def test_influx_step():
+def test_ca_injection():
 
     weight = 70
     conc = 0.5
@@ -19,20 +19,20 @@ def test_influx_step():
     dt = 0.1
 
     t = np.arange(0, 20, dt)
-    j = dc.influx_step(t, weight, conc, dose, rate, t0)
+    j = dc.ca_injection(t, weight, conc, dose, rate, t0)
 
     assert np.around(np.sum(j)*dt) == np.around(weight*dose*conc)
 
     # Test exceptions
     try:
-        j = dc.influx_step(t, 0*weight, conc, dose, rate, t0)
+        j = dc.ca_injection(t, 0*weight, conc, dose, rate, t0)
     except:
         assert True
     else:
         assert False
 
     try:
-        j = dc.influx_step(t, weight, conc, 0.01*dose, rate, t0)
+        j = dc.ca_injection(t, weight, conc, 0.01*dose, rate, t0)
     except:
         assert True
     else:
@@ -181,7 +181,7 @@ def test_aif_tristan_rat():
 if __name__ == "__main__":
 
     test_fetch()
-    test_influx_step()
+    test_ca_injection()
     test_ca_conc()
     test_ca_std_dose()
     test_relaxivity()

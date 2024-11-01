@@ -1,8 +1,12 @@
+.. _signal mods:
+
 *****************
 MRI signal models
 *****************
 
-MRI signal models available in `dcmri`, as well as their inverses and some utilities such as sampling and adding noise.
+MRI signal models available in `dcmri`, as well as their inverses and some 
+utilities such as sampling and adding noise. For more background on these 
+models, see the section on :ref:`imaging sequences <imaging-sequences>`.
 
 .. currentmodule:: dcmri
 

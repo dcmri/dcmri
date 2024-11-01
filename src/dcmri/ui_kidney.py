@@ -411,9 +411,9 @@ class KidneyCortMed(ui.Model):
 
         >>> import dcmri as dc
 
-        Use `fake_kidney_cortex_medulla` to generate synthetic test data:
+        Use `fake_kidney` to generate synthetic test data:
 
-        >>> time, aif, roi, gt = dc.fake_kidney_cortex_medulla(CNR=100)
+        >>> time, aif, roi, gt = dc.fake_kidney(CNR=100)
 
         Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
 

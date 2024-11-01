@@ -5,7 +5,8 @@ Tissue models
 *************
 
 Models for signals, relaxation rates and concentrations in specific tissue 
-types.
+types. For more background, see the section on 
+:ref:`tissue types <tissue-types>`.
 
 .. currentmodule:: dcmri
 

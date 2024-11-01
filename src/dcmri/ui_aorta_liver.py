@@ -427,7 +427,7 @@ class AortaLiver(ui.Model):
             organs = ['2cxm', ([self.To, self.Toe], self.Eo)]
         self.t = np.arange(0, self.tmax, self.dt)
         conc = lib.ca_conc(self.agent)
-        Ji = lib.influx_step(
+        Ji = lib.ca_injection(
             self.t, self.weight, conc, self.dose, self.rate, self.BAT)
         Jb = pk_aorta.flux_aorta(
             Ji, E=self.Eb, dt=self.dt, tol=self.dose_tolerance,
@@ -447,12 +447,6 @@ class AortaLiver(ui.Model):
         #seq = 'SRC' if self.sequence=='SR' else 'SS'
         pars = self._par_values(seq=self.sequence)
         signal = sig.signal(self.sequence, R1b, self.S0a, **pars)
-        # if self.sequence == 'SR':
-        #     # signal = sig.signal_src(R1b, self.S0a, self.TC, R10=self.R10a)
-        #     signal = sig.signal_src(R1b, self.S0a, self.TC)
-        # else:
-        #     # signal = sig.signal_ss(R1b, self.S0a, self.TR, self.FA, R10=self.R10a)
-        #     signal = sig.signal_ss(R1b, self.S0a, self.TR, self.FA)
         return utils.sample(xdata, t, signal, self.TS)
 
     def _conc_liver(*args, **kwargs):
@@ -465,12 +459,6 @@ class AortaLiver(ui.Model):
         t, R1l = self._relax_liver()
         pars = self._par_values(seq=self.sequence)
         signal = sig.signal(self.sequence, R1l, self.S0l, **pars)
-        # if self.sequence == 'SR':
-        #     # signal = sig.signal_sr(R1l, self.S0l, self.TR, self.FA, self.TC, R10=R1l[0])
-        #     signal = sig.signal_sr(R1l, self.S0l, self.TR, self.FA, self.TC)
-        # else:
-        #     # signal = sig.signal_ss(R1l, self.S0l, self.TR, self.FA, R10=R1l[0])
-        #     signal = sig.signal_ss(R1l, self.S0l, self.TR, self.FA)
         return utils.sample(xdata, t, signal, self.TS)
 
     def conc(self, sum=True):
@@ -511,7 +499,9 @@ class AortaLiver(ui.Model):
 
         Returns:
             tuple: tuple of 2 arrays with signals for aorta and liver, in 
-              that order. The arrays can be different in length and value but each has to have the same length as its corresponding array of time points.
+              that order. The arrays can be different in length and value but 
+              each has to have the same length as its corresponding array of 
+              time points.
         """
         # Public interface
         if self._predict is None:
@@ -545,12 +535,6 @@ class AortaLiver(ui.Model):
         pars = self._par_values(seq=self.sequence)
         Srefb = sig.signal(self.sequence, self.R10a, 1, **pars)
         Srefl = sig.signal(self.sequence, self.R10l, 1, **pars)
-        # if self.sequence == 'SR':
-        #     Srefb = sig.signal_sr(self.R10a, 1, self.TR, self.FA, self.TC)
-        #     Srefl = sig.signal_sr(self.R10l, 1, self.TR, self.FA, self.TC)
-        # else:
-        #     Srefb = sig.signal_ss(self.R10a, 1, self.TR, self.FA)
-        #     Srefl = sig.signal_ss(self.R10l, 1, self.TR, self.FA)
 
         n0 = max([np.sum(xdata[0] < self.t0), 1])
         self.S0a = np.mean(ydata[0][:n0]) / Srefb
@@ -635,16 +619,22 @@ class AortaLiver(ui.Model):
               liver, in that order. The arrays can be different in length and 
               value but each has to have the same length as its corresponding 
               array of time points.
-            metric (str, optional): Which metric to use - options are: 
-                **RMS** (Root-mean-square);
-                **NRMS** (Normalized root-mean-square); 
-                **AIC** (Akaike information criterion); 
-                **cAIC** (Corrected Akaike information criterion for small 
-                  models);
-                **BIC** (Baysian information criterion). Defaults to 'NRMS'.
+            metric (str, optional): Which metric to use (see notes for 
+              possible values). Defaults to 'NRMS'.
 
         Returns:
             float: goodness of fit.
+
+        Notes:
+
+            Available options are: 
+            
+            - 'RMS': Root-mean-square.
+            - 'NRMS': Normalized root-mean-square. 
+            - 'AIC': Akaike information criterion. 
+            - 'cAIC': Corrected Akaike information criterion for small 
+              models.
+            - 'BIC': Baysian information criterion.
         """
         return super().cost(xdata, ydata, metric)
 
@@ -1072,9 +1062,9 @@ class AortaLiver2scan(ui.Model):
             organs = ['2cxm', ([self.To, self.Toe], self.Eo)]
         self.t = np.arange(0, self.tmax, self.dt)
         conc = lib.ca_conc(self.agent)
-        J1 = lib.influx_step(
+        J1 = lib.ca_injection(
             self.t, self.weight, conc, self.dose, self.rate, self.BAT)
-        J2 = lib.influx_step(
+        J2 = lib.ca_injection(
             self.t, self.weight, conc, self.dose2, self.rate, self.BAT2)
         Jb = pk_aorta.flux_aorta(
             J1 + J2, E=self.Eb, dt=self.dt, tol=self.dose_tolerance,
@@ -1101,12 +1091,6 @@ class AortaLiver2scan(ui.Model):
         pars = self._par_values(seq=self.sequence)
         signal1 = sig.signal(self.sequence, R11, self.S0a, **pars)
         signal2 = sig.signal(self.sequence, R12, self.S02a, **pars)
-        # if self.sequence == 'SR':
-        #     signal1 = sig.signal_sr(R11, self.S0a, self.TR, self.FA, self.TC)
-        #     signal2 = sig.signal_sr(R12, self.S02a, self.TR, self.FA, self.TC)
-        # else:
-        #     signal1 = sig.signal_ss(R11, self.S0a, self.TR, self.FA)
-        #     signal2 = sig.signal_ss(R12, self.S02a, self.TR, self.FA)
         return (
             utils.sample(xdata[0], t[t1], signal1, self.TS),
             utils.sample(xdata[1], t[t2], signal2, self.TS),
@@ -1128,12 +1112,6 @@ class AortaLiver2scan(ui.Model):
         pars = self._par_values(seq=self.sequence)
         signal1 = sig.signal(self.sequence, R11, self.S0l, **pars)
         signal2 = sig.signal(self.sequence, R12, self.S02l, **pars)
-        # if self.sequence == 'SR':
-        #     signal1 = sig.signal_sr(R11, self.S0l, self.TR, self.FA, self.TC)
-        #     signal2 = sig.signal_sr(R12, self.S02l, self.TR, self.FA, self.TC)
-        # else:
-        #     signal1 = sig.signal_ss(R11, self.S0l, self.TR, self.FA)
-        #     signal2 = sig.signal_ss(R12, self.S02l, self.TR, self.FA)
         return (
             utils.sample(xdata[0], t[t1], signal1, self.TS),
             utils.sample(xdata[1], t[t2], signal2, self.TS),
@@ -1223,18 +1201,6 @@ class AortaLiver2scan(ui.Model):
         Sref2b = sig.signal(self.sequence, self.R102a, 1, **pars)
         Srefl = sig.signal(self.sequence, self.R10l, 1, **pars)
         Sref2l = sig.signal(self.sequence, self.R102l, 1, **pars)
-
-        # # Estimate S0
-        # if self.sequence == 'SR':
-        #     Srefb = sig.signal_sr(self.R10a, 1, self.TR, self.FA, self.TC)
-        #     Sref2b = sig.signal_sr(self.R102a, 1, self.TR, self.FA, self.TC)
-        #     Srefl = sig.signal_sr(self.R10l, 1, self.TR, self.FA, self.TC)
-        #     Sref2l = sig.signal_sr(self.R102l, 1, self.TR, self.FA, self.TC)
-        # else:
-        #     Srefb = sig.signal_ss(self.R10a, 1, self.TR, self.FA)
-        #     Sref2b = sig.signal_ss(self.R102a, 1, self.TR, self.FA)
-        #     Srefl = sig.signal_ss(self.R10l, 1, self.TR, self.FA)
-        #     Sref2l = sig.signal_ss(self.R102l, 1, self.TR, self.FA)
 
         n0 = max([np.sum(xdata[0] < self.t0), 2])
         self.S0a = np.mean(ydata[0][1:n0]) / Srefb
@@ -1326,16 +1292,22 @@ class AortaLiver2scan(ui.Model):
               and liver in the second scan, in that order. The arrays can be 
               different in length but each has to have the same length as its 
               corresponding array of time points.
-            metric (str, optional): Which metric to use - options are: 
-                **RMS** (Root-mean-square);
-                **NRMS** (Normalized root-mean-square); 
-                **AIC** (Akaike information criterion); 
-                **cAIC** (Corrected Akaike information criterion for small 
-                  models);
-                **BIC** (Baysian information criterion). Defaults to 'NRMS'.
+            metric (str, optional): Which metric to use (see notes for 
+              possible values). Defaults to 'NRMS'.
 
         Returns:
             float: goodness of fit.
+
+        Notes:
+
+            Available options are: 
+            
+            - 'RMS': Root-mean-square.
+            - 'NRMS': Normalized root-mean-square. 
+            - 'AIC': Akaike information criterion. 
+            - 'cAIC': Corrected Akaike information criterion for small 
+              models.
+            - 'BIC': Baysian information criterion.
         """
         return super().cost(xdata, ydata, metric)
 
@@ -1393,7 +1365,8 @@ def _plot_data2scan(t: tuple[np.ndarray, np.ndarray],
                     ax, xlim, color=['black', 'black'], test=None):
     if xlim is None:
         xlim = [0, t[1][-1]]
-    ax.set(xlabel='Time (min)', ylabel='MR Signal (a.u.)', xlim=np.array(xlim)/60)
+    ax.set(xlabel='Time (min)', ylabel='MR Signal (a.u.)', 
+           xlim=np.array(xlim)/60)
     ax.plot(np.concatenate(xdata)/60, np.concatenate(ydata),
             marker='o', color=color[0], label='fitted data', linestyle='None')
     ax.plot(np.concatenate(t)/60, np.concatenate(sig),
@@ -1457,17 +1430,6 @@ def _par_values(self, kin=False, export=False, seq=None):
     p = {par: getattr(self, par) for par in pars}
 
     try:
-        p['Kbh'] = _div(1, p['Th'])
-    except KeyError:
-        pass
-    try:
-        p['Kbh'] = np.mean([
-            _div(1, p['Th_i']), 
-            _div(1, p['Th_f']),
-        ])
-    except KeyError:
-        pass
-    try:
         p['Th'] = np.mean([p['Th_i'], p['Th_f']])
     except KeyError:
         pass
@@ -1476,11 +1438,15 @@ def _par_values(self, kin=False, export=False, seq=None):
     except KeyError:
         pass
     try:
+        p['Kbh'] = _div(1, p['Th'])
+    except KeyError:
+        pass
+    try:
         p['Khe'] = _div(p['khe'], p['ve'])
     except KeyError:
         pass
     try:
-        p['kbh'] = (1-p['ve'])*p['Kbh']
+        p['kbh'] = _div(1-p['ve'], p['Th'])
     except KeyError:
         pass
     if p['vol'] is not None:

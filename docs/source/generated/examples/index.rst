@@ -6,8 +6,8 @@ Examples
 
 .. note::
 
-   dcmri is under construction. The first stable version with more comprehensive functionality and documentation will be v1.0.0. Before that the API may still change and features may be deprecated without warning.
-
+   dcmri is under construction. At this stage, the API may still change and 
+   features may be deprecated without warning.
 
 
 .. raw:: html
@@ -21,6 +21,7 @@ Examples
 .. raw:: html
 
     </div>
+
 
 *********
 Tutorials
@@ -72,7 +73,7 @@ Tutorials
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="Using the convolution functions conv, expconv, stepconv, biexpconv and nexpconv. ">
+    <div class="sphx-glr-thumbcontainer" tooltip="Convolution is a key operation in any application of pharmacokinetic  analysis. The reason for this central role is that the solution of a linear  and stationary system can always be written as a convolution. dcmri includes  functions that  perform convolution in the most general context, but also includes solutions  that are optimized for common special cases. ">
 
 .. only:: html
 
@@ -92,6 +93,7 @@ Tutorials
 .. raw:: html
 
     </div>
+
 
 *********
 Use cases

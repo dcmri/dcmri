@@ -1,3 +1,5 @@
+.. _tissue-types:
+
 ************
 Tissue types
 ************

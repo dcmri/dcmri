@@ -1,3 +1,4 @@
+# WORKS IN PROGRESS - NOT YET EXPOSED
 
 import numpy as np
 from scipy import integrate

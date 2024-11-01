@@ -1,3 +1,4 @@
+import os
 import matplotlib.pyplot as plt
 from matplotlib.animation import ArtistAnimation
 
@@ -29,9 +30,32 @@ def getting_started():
     tissue.plot(time, roi, fname='docs/source/user_guide/tissue.png')
     tissue.print_params(round_to=3)
 
+    tissue = dc.Tissue(aif=aif, t=time, water_exchange='FR')
+    tissue.train(time, roi).print_params(round_to=3)
+
+    tissue = dc.Tissue(aif=aif, t=time, water_exchange='FR', vb=0.5)
+    tissue.set_free(B1corr=[0,2])
+    tissue.train(time, roi).print_params(round_to=3)
+
+
+def getting_started_images():
+
+    n = 128
+    time, signal, aif, _ = dc.fake_brain(n)
+    shape = (n, n)
+
+    image = dc.TissueArray(shape, aif=aif, t=time, verbose=1)
+    image.train(time, signal)
+    image.plot(time, signal, 
+               fname='docs/source/user_guide/pixel.png')
+    
+    image = dc.TissueArray(shape, aif=aif, t=time, verbose=1, kinetics='2CU')
+    image.train(time, signal)
+    image.plot(time, signal, fname='docs/source/user_guide/pixel_2cu.png')
 
 
 if __name__ == '__main__':
 
     # fake_brain()
     getting_started()
+    # getting_started_images()

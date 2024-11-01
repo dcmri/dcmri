@@ -2,6 +2,8 @@
 
 .. _sphx_glr_generated_examples_use_cases:
 
+.. _use-cases:
+
 *********
 Use cases
 *********

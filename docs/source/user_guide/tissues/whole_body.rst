@@ -30,7 +30,7 @@ indicator is not returned to the blood stream.
 
 Assume a known injection *Jv_0(t)* into the venous system. With a standard bolus 
 injection this can be approximated by a step function between the start and 
-end of the injection period (see `dcmri.influx_step`). The first-pass *Ja_1* 
+end of the injection period (see `dcmri.ca_injection`). The first-pass *Ja_1* 
 through the aorta can be computed by propagating the input through the 
 heart-lung system:
 

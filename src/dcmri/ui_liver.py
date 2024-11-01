@@ -286,7 +286,7 @@ class Liver(ui.Model):
 
     def __init__(
             self, 
-            kinetics='2I-IC-U', stationary='UE', sequence='SS', 
+            kinetics='2C-EC', stationary='UE', sequence='SS', 
             aif=None, ca=None, vif=None, cv=None, t=None, dt=0.5,
             free=None, **params):
 
