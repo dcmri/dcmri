@@ -49,7 +49,7 @@ ROI-based analysis
    tissue.train(time, roi)                      # Train the tissue on the data
    tissue.plot(time, roi)                       # Check the fit to the data
 
-.. image:: docs/source/user_guide/tissue.png
+.. image:: https://dcmri.org/_images/tissue.png
   :width: 800
 
 
@@ -91,7 +91,7 @@ Pixel-based analysis
    image.train(time, roi)                       # Train the tissue on the data
    image.plot(time, roi)                        # Plot the parameter maps
 
-.. image:: docs/source/user_guide/pixel.png
+.. image:: https://dcmri.org/_images/pixel_2cu.png
   :width: 800
 
 
