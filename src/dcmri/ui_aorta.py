@@ -195,7 +195,7 @@ class Aorta(ui.Model):
             organs = ['2cxm', ([self.To, self.Te], self.Eo)]
         t = np.arange(0, self.tmax, self.dt)
         conc = lib.ca_conc(self.agent)
-        Ji = lib.influx_step(t, self.weight,
+        Ji = lib.ca_injection(t, self.weight,
                             conc, self.dose, self.rate, self.BAT)
         Jb = pk_aorta.flux_aorta(Ji, E=self.Eb,
                            heartlung=[self.heartlung, (self.Thl, self.Dhl)],
@@ -491,7 +491,7 @@ class AortaKidneys(ui.Model):
             heartlung = ['chain', (self.Thl, self.Dhl)]
         self.t = np.arange(0, self.tmax, self.dt)
         conc = lib.ca_conc(self.agent)
-        Ji = lib.influx_step(self.t, self.weight,
+        Ji = lib.ca_injection(self.t, self.weight,
                             conc, self.dose, self.rate, self.BAT)
         Jb = pk_aorta.flux_aorta(Ji, E=self.FF/(1+self.FF),
                            heartlung=heartlung, organs=organs,

@@ -2,6 +2,8 @@
 
 .. _sphx_glr_generated_examples_tutorials:
 
+.. _tutorials:
+
 *********
 Tutorials
 *********
@@ -52,7 +54,7 @@ Tutorials
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="Using the convolution functions conv, expconv, stepconv, biexpconv and nexpconv. ">
+    <div class="sphx-glr-thumbcontainer" tooltip="Convolution is a key operation in any application of pharmacokinetic  analysis. The reason for this central role is that the solution of a linear  and stationary system can always be written as a convolution. dcmri includes  functions that  perform convolution in the most general context, but also includes solutions  that are optimized for common special cases. ">
 
 .. only:: html
 

@@ -1,8 +1,8 @@
 .. _end-to-end models:
 
-***************
-Model catalogue
-***************
+***********
+Tissue bank
+***********
 
 An overview of all end-to-end models built into `dcmri`. 
 
@@ -17,7 +17,10 @@ The models are organised based on the type of data they can predict.
 One region of interest
 ======================
 
-Theae models assume the data represent a single 1D time curve - typically the signal for a pixel, or an average over a region of interest. Some, but not all, of these models require a separately measured input, or have to assume a standardised input.
+Theae models assume the data represent a single 1D time curve - typically the 
+signal for a pixel, or an average over a region of interest. Some, but not 
+all, of these models require a separately measured input, or have to assume a 
+standardised input.
 
 
 .. autosummary::

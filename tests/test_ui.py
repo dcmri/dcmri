@@ -353,7 +353,7 @@ def test_ui_kidney():
 
 def test_ui_kidney_cort_med():
 
-    time, aif, roi, gt = dc.fake_kidney_cortex_medulla()
+    time, aif, roi, gt = dc.fake_kidney()
 
     model = dc.KidneyCortMed(
         aif = aif,

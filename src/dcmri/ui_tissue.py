@@ -47,7 +47,7 @@ class TissueArray(ui.ArrayModel):
         parallel (bool, optional): If True, computations are parallelized.
           Defaults to False.
         verbose (int, optional): verbosity of the computation. With verbose=0,
-          no feedback is given; with verbose=1, as status bar is shown.
+          no feedback is given; with verbose=1, a status bar is shown.
           Defaults to 0.
         params (dict, optional): values for the parameters of the tissue,
           specified as keyword parameters. Defaults are used for any that are
@@ -316,7 +316,7 @@ class TissueArray(ui.ArrayModel):
         Args:
             time (array-like): 1D array with time points.
             signal (array-like): Array of signal curves. Any number of
-            dimensions is allowed but the last dimension must be time.
+              dimensions is allowed but the last dimension must be time.
             kwargs: any keyword parameters accepted by `Tissue.train`.
 
         Returns:
@@ -437,8 +437,8 @@ class TissueArray(ui.ArrayModel):
             if ref is not None:
                 ax[2, 0].set_ylabel('ground truth')
             for i, par in enumerate(params.keys()):
-                v0 = vmin[par] if par in vmin else None
-                v1 = vmax[par] if par in vmax else None
+                v0 = vmin[par] if par in vmin else np.percentile(params[par], 1)
+                v1 = vmax[par] if par in vmax else np.percentile(params[par], 99)
                 ax[0, i].set_title(par)
                 ax[0, i].imshow(params[par], vmin=v0, vmax=v1, cmap=cmap)
                 if hasattr(self, 'sdev_' + par):
@@ -1592,7 +1592,7 @@ def _clr(comp):
         return 'dimgrey'
     if comp == 'Tissue':
         return 'darkgrey'
-    if comp == 'Blood':
+    if comp == 'Tissue blood':
         return 'darkred'
     if comp == 'Extravascular':
         return 'blue'
@@ -1749,7 +1749,7 @@ def _par_values(self, *args, tiss=False, kin=False, seq=False,
     if export:
         p0 = _model_pars(self.kinetics, self.water_exchange, self.sequence)
         p1 = tissue.params_tissue(self.kinetics, self.water_exchange)
-        discard = set(p0) - set(p1)
+        discard = set(p0) - set(p1) - set(self.free.keys())
         return {p: pars[p] for p in pars if p not in discard}
 
     return pars

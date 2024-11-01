@@ -8,7 +8,7 @@
 project = 'dcmri'
 copyright = '2024, dcmri maintainers'
 author = 'dcmri maintainers'
-release = '0.6.8'
+release = '0.6.9'
 
 # -- Path setup --------------------------------------------------------------
 # If extensions (or modules to document with autodoc) are in another directory,

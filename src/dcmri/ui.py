@@ -22,7 +22,8 @@ class ArrayModel():
         self.free = {}
 
     def _par_values(self):
-        return {par: getattr(self, par) for par in self.__dict__ if par not in ['free', 'shape']}
+        return {par: getattr(self, par) for par in self.__dict__ 
+                if par not in ['free', 'shape']}
 
 
     def params(self, *args, round_to=None):
@@ -63,9 +64,16 @@ class ArrayModel():
         """Save the current state of the model
 
         Args:
-            file (str, optional): complete path of the file. If this is not provided, a file is constructure from path amd filename variables. Defaults to None.
-            path (str, optional): path to store the state if file is not provided. This variable is ignored if file is provided. Defaults to current working directory.
-            filename (str, optional): filename to store the state if file is not provided. If no extension is included, the extension '.pkl' is automatically added. This variable is ignored if file is provided. Defaults to 'Model'.
+            file (str, optional): complete path of the file. If this is not 
+              provided, a file is constructure from path amd filename 
+              variables. Defaults to None.
+            path (str, optional): path to store the state if file is not 
+              provided. This variable is ignored if file is provided. 
+              Defaults to current working directory.
+            filename (str, optional): filename to store the state if file is 
+              not provided. If no extension is included, the extension '.pkl' 
+              is automatically added. This variable is ignored if file is 
+              provided. Defaults to 'Model'.
 
         Returns:
             dict: class instance
@@ -76,9 +84,16 @@ class ArrayModel():
         """Load the saved state of the model
 
         Args:
-            file (str, optional): complete path of the file. If this is not provided, a file is constructure from path amd filename variables. Defaults to None.
-            path (str, optional): path to store the state if file is not provided. This variable is ignored if file is provided. Defaults to current working directory.
-            filename (str, optional): filename to store the state if file is not provided. If no extension is included, the extension '.pkl' is automatically added. This variable is ignored if file is provided. Defaults to 'Model'.
+            file (str, optional): complete path of the file. If this is not 
+              provided, a file is constructure from path amd filename 
+              variables. Defaults to None.
+            path (str, optional): path to store the state if file is not 
+              provided. This variable is ignored if file is provided. 
+              Defaults to current working directory.
+            filename (str, optional): filename to store the state if file is 
+              not provided. If no extension is included, the extension 
+              '.pkl' is automatically added. This variable is ignored if 
+              file is provided. Defaults to 'Model'.
 
         Returns:
             dict: class instance
@@ -109,7 +124,8 @@ class ArrayModel():
         if not self.parallel:
             if self.verbose > 0:
                 iterator = tqdm(
-                    range(nx), desc='Running predictions for '+self.__class__.__name__)
+                    range(nx), 
+                    desc='Running predictions for '+self.__class__.__name__)
             else:
                 iterator = range(nx)
             ydata = [self._predict_curve((xdata, x)) for x in iterator]
@@ -143,7 +159,8 @@ class ArrayModel():
         Args:
             xdata (array-like): Array with x-data (time points)
             ydata (array-like): Array with y-data (signal data)
-            kwargs: any keyword parameters accepted by `scipy.optimize.curve_fit`.
+            kwargs: any keyword parameters accepted by 
+              `scipy.optimize.curve_fit`.
 
         Returns:
             Model: A reference to the model instance.
@@ -151,11 +168,12 @@ class ArrayModel():
         nx = np.prod(self.shape)
         nt = ydata.shape[-1]
         if not self.parallel:
-            if self.verbose > 0:
+            if self.verbose==1:
                 iterator = tqdm(range(nx), desc='Training ' +
                                 self.__class__.__name__)
             else:
                 iterator = range(nx)
+            
             for x in iterator:
                 args_x = (xdata, ydata.reshape((nx, nt)), kwargs, x)
                 self._train_curve(args_x)
@@ -191,7 +209,9 @@ class ArrayModel():
         """Model parameters with descriptions.
 
         Returns:
-            dict: Dictionary with one item for each model parameter. The key is the parameter symbol (short name), and the value is a 4-element list with [parameter name, value, unit, sdev].
+            dict: Dictionary with one item for each model parameter. The key 
+              is the parameter symbol (short name), and the value is a 
+              4-element list with [parameter name, value, unit, sdev].
         """
         pars = {}
         for p in self.free.keys():
@@ -240,7 +260,7 @@ class ArrayModel():
         if free is not None:
             self.set_free(**free)
 
-
+# TODO: self.free - > self._free and include self.free()
 class Model:
     # Abstract base class for end-to-end models.
 
@@ -303,9 +323,16 @@ class Model:
         """Save the current state of the model
 
         Args:
-            file (str, optional): complete path of the file. If this is not provided, a file is constructure from path and filename variables. Defaults to None.
-            path (str, optional): path to store the state if file is not provided. Thos variable is ignored if file is provided. Defaults to current working directory.
-            filename (str, optional): filename to store the state if file is not provided. If no extension is included, the extension '.pkl' is automatically added. This variable is ignored if file is provided. Defaults to 'Model'.
+            file (str, optional): complete path of the file. If this is not 
+              provided, a file is constructure from path and filename 
+              variables. Defaults to None.
+            path (str, optional): path to store the state if file is not 
+              provided. Thos variable is ignored if file is provided. 
+              Defaults to current working directory.
+            filename (str, optional): filename to store the state if file is 
+              not provided. If no extension is included, the extension '.pkl' 
+              is automatically added. This variable is ignored if file is 
+              provided. Defaults to 'Model'.
 
         Returns:
             dict: class instance
@@ -316,9 +343,16 @@ class Model:
         """Load the saved state of the model
 
         Args:
-            file (str, optional): complete path of the file. If this is not provided, a file is constructure from path and filename variables. Defaults to None.
-            path (str, optional): path to store the state if file is not provided. Thos variable is ignored if file is provided. Defaults to current working directory.
-            filename (str, optional): filename to store the state if file is not provided. If no extension is included, the extension '.pkl' is automatically added. This variable is ignored if file is provided. Defaults to 'Model'.
+            file (str, optional): complete path of the file. If this is not 
+              provided, a file is constructure from path and filename 
+              variables. Defaults to None.
+            path (str, optional): path to store the state if file is not 
+              provided. Thos variable is ignored if file is provided. 
+              Defaults to current working directory.
+            filename (str, optional): filename to store the state if file is 
+              not provided. If no extension is included, the extension 
+              '.pkl' is automatically added. This variable is ignored if file 
+              is provided. Defaults to 'Model'.
 
         Returns:
             dict: class instance
@@ -329,10 +363,13 @@ class Model:
         """Predict the data at given xdata
 
         Args:
-            xdata (array-like): Either an array with x-values (time points) or a tuple with multiple such arrays
+            xdata (array-like): Either an array with x-values (time points) 
+              or a tuple with multiple such arrays
 
         Returns:
-            tuple or array-like: Either an array of predicted y-values (if xdata is an array) or a tuple of such arrays (if xdata is a tuple).
+            tuple or array-like: Either an array of predicted y-values (if 
+              xdata is an array) or a tuple of such arrays (if xdata is a 
+              tuple).
         """
         raise NotImplementedError('No predict function provided')
 
@@ -342,7 +379,8 @@ class Model:
         Args:
             xdata (array-like): Array with x-data (time points)
             ydata (array-like): Array with y-data (signal data)
-            kwargs: any keyword parameters accepted by `scipy.optimize.curve_fit`.
+            kwargs: any keyword parameters accepted by 
+              `scipy.optimize.curve_fit`.
 
         Returns:
             Model: A reference to the model instance.
@@ -355,10 +393,15 @@ class Model:
         Args:
             xdata (array-like): Array with x-data (time points)
             ydata (array-like): Array with y-data (signal data)
-            xlim (array_like, optional): 2-element array with lower and upper boundaries of the x-axis. Defaults to None.
-            ref (tuple, optional): Tuple of optional test data in the form (x,y), where x is an array with x-values and y is an array with y-values. Defaults to None.
-            fname (path, optional): Filepath to save the image. If no value is provided, the image is not saved. Defaults to None.
-            show (bool, optional): If True, the plot is shown. Defaults to True.
+            xlim (array_like, optional): 2-element array with lower and upper 
+              boundaries of the x-axis. Defaults to None.
+            ref (tuple, optional): Tuple of optional test data in the form 
+              (x,y), where x is an array with x-values and y is an array with 
+              y-values. Defaults to None.
+            fname (path, optional): Filepath to save the image. If no value 
+              is provided, the image is not saved. Defaults to None.
+            show (bool, optional): If True, the plot is shown. Defaults 
+              to True.
         """
         raise NotImplementedError(
             'No plot function implemented for model ' + self.__class__.__name__)
@@ -369,25 +412,33 @@ class Model:
         Args:
             xdata (array-like): Array with x-data (time points).
             ydata (array-like): Array with y-data (signal values)
-            metric (str, optional): Which metric to use - options are: 
-                **RMS** (Root-mean-square);
-                **NRMS** (Normalized root-mean-square); 
-                **AIC** (Akaike information criterion); 
-                **cAIC** (Corrected Akaike information criterion for small models);
-                **BIC** (Baysian information criterion). Defaults to 'NRMS'.
+            metric (str, optional): Which metric to use (see notes for 
+              possible values). Defaults to 'NRMS'.
 
         Returns:
             float: goodness of fit.
+
+        Notes:
+
+            Available options are: 
+            
+            - 'RMS': Root-mean-square.
+            - 'NRMS': Normalized root-mean-square. 
+            - 'AIC': Akaike information criterion. 
+            - 'cAIC': Corrected Akaike information criterion for small 
+              models.
+            - 'BIC': Baysian information criterion.
+
         """
         return _cost(self, xdata, ydata, metric)
     
-
 
     def print_params(self, round_to=None):
         """Print the model parameters and their uncertainties
 
         Args:
-            round_to (int, optional): Round to how many digits. If this is not provided, the values are not rounded. Defaults to None.
+            round_to (int, optional): Round to how many digits. If this is 
+              not provided, the values are not rounded. Defaults to None.
         """
         pars = self.export_params()
         print('')
@@ -536,14 +587,16 @@ def set_free(self, pop=None, **kwargs):
                 self.free.pop(pop)
             else:
                 raise ValueError(
-                    pop + ' is not currently a free parameter, so cannot be removed from the list.')
+                    pop + ' is not currently a free parameter, so cannot be '
+                    'removed from the list.')
         else:
             for par in pop:
                 if par in self.free:
                     self.free.pop(par)
                 else:
                     raise ValueError(
-                        par + ' is not currently a free parameter, so cannot be removed from the list.')
+                        par + ' is not currently a free parameter, so cannot '
+                        'be removed from the list.')
     for k, v in kwargs.items():
         if k in self.__dict__:
             if np.size(v) == 2:
@@ -551,14 +604,19 @@ def set_free(self, pop=None, **kwargs):
                     if (v[0] <= getattr(self, k)) and (v[1] >= getattr(self, k)):
                         self.free[k] = v
                     else:
-                        raise ValueError('Cannot set parameter bounds for '+str(
-                            k)+'. The value current value '+str(getattr(self, k)) + ' is outside of the bounds. ')
+                        raise ValueError(
+                            'Cannot set parameter bounds for ' + str(k) + '. '
+                            'The value current value'
+                            ' ' + str(getattr(self, k)) + ' is outside of '
+                            'the bounds. ')
                 else:
-                    raise ValueError(str(
-                        v) + ' is not a proper parameter bound. The first element must be smaller than the second.')
+                    raise ValueError(
+                        str(v) + ' is not a proper parameter ''bound. The '
+                        'first element must be smaller than the second.')
             else:
-                raise ValueError(str(
-                    v) + ' is not a proper parameter bound. Bounds must lists or arrays with 2 elements.')
+                raise ValueError(
+                    str(v) + ' is not a proper parameter bound. Bounds must be '
+                    'lists or arrays with 2 elements.')
         else:
             raise ValueError(str(k) + ' is not a model parameter.')
 

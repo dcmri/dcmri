@@ -22,11 +22,26 @@
 A comparison of convolution functions
 =====================================
 
-Using the convolution functions `~dcmri.conv`, `~dcmri.expconv`, `~dcmri.stepconv`, `~dcmri.biexpconv` and `~dcmri.nexpconv`. 
+Convolution is a key operation in any application of pharmacokinetic 
+analysis. The reason for this central role is that the solution of a linear 
+and stationary system can always be written as a convolution. `dcmri` includes 
+functions that 
+perform convolution in the most general context, but also includes solutions 
+that are optimized for common special cases. 
 
-.. GENERATED FROM PYTHON SOURCE LINES 10-16
+This tutorial illustrates the use of these functions and compares their 
+performance against other implementations.
+
+.. GENERATED FROM PYTHON SOURCE LINES 20-23
+
+Setup
+-----
+Import the necessary packages
+
+.. GENERATED FROM PYTHON SOURCE LINES 23-30
 
 .. code-block:: Python
+
 
     import time
     import numpy as np
@@ -41,13 +56,18 @@ Using the convolution functions `~dcmri.conv`, `~dcmri.expconv`, `~dcmri.stepcon
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 17-20
+.. GENERATED FROM PYTHON SOURCE LINES 31-39
 
 Convolving any two functions
 ----------------------------
-Generate two normalized gaussian distributions f(t) and h(t) and use `~dcmri.conv` to convolve them. Compare the result to `numpy.convolve`:
+There are different definitions possible for the convolution product, and 
+they are not necessarily interchangeable. We illustrate this here by 
+convolving two functions with `~dcmri.conv` and comparing the result to 
+a naive application of `numpy.convolve`. For the purposes of this 
+illustration we will convolve normalized gaussian distributions f(t) and 
+h(t):
 
-.. GENERATED FROM PYTHON SOURCE LINES 20-39
+.. GENERATED FROM PYTHON SOURCE LINES 39-58
 
 .. code-block:: Python
 
@@ -82,17 +102,25 @@ Generate two normalized gaussian distributions f(t) and h(t) and use `~dcmri.con
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 40-41
+.. GENERATED FROM PYTHON SOURCE LINES 59-64
 
-While there is clearly some relation between both results, they are not in any way similar. The `~numpy.convolve` result is shifted compared to `~dcmri.conv` and has a lower amplitude. This shows that caution is needed when applying convolution formulae from different libraries in a tracer-kinetic setting.
+While there is clearly some relation between both results, they are not in 
+any way similar. The `~numpy.convolve` result is shifted compared to 
+`~dcmri.conv` and has a lower amplitude. This shows that caution is needed 
+when applying convolution formulae from different libraries in a 
+tracer-kinetic setting.
 
-.. GENERATED FROM PYTHON SOURCE LINES 44-47
+.. GENERATED FROM PYTHON SOURCE LINES 67-74
 
 Convolution with an exponential
 -------------------------------
-In the special case where one of the factors is an exponential function, the function `~dcmri.expconv` is more accurate than `~dcmri.conv`, though the difference is small at this time resolution:
+The generic function `~dcmri.conv` applies to any two functions, but is 
+uneccesarily slow in special cases where the functional form of the 
+factors is known. An example is the case where one of the 
+factors is an exponential function - a very common scenario in 
+pharmacokinetics. In that case the function `~dcmri.expconv` can be used: 
 
-.. GENERATED FROM PYTHON SOURCE LINES 47-65
+.. GENERATED FROM PYTHON SOURCE LINES 74-92
 
 .. code-block:: Python
 
@@ -108,8 +136,8 @@ In the special case where one of the factors is an exponential function, the fun
     # Compare the two results on the same plot:
     plt.plot(t, f, 'r-', label='f(t)')
     plt.plot(t, h, 'b-', label='h(t)')
-    plt.plot(t, g0, 'k-', label='conv()')
-    plt.plot(t, g1, color='gray', linestyle='-', label='expconv()')
+    plt.plot(t, g0, label='conv()', linewidth=6, color='lightgray', linestyle='-')
+    plt.plot(t, g1, 'k-', label='expconv()')
     plt.title('Comparison of conv() and expconv()')
     plt.legend()
     plt.show()
@@ -126,11 +154,16 @@ In the special case where one of the factors is an exponential function, the fun
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 66-67
+.. GENERATED FROM PYTHON SOURCE LINES 93-99
 
-However, `~dcmri.expconv` comes with a major improvement in computation time compared to `~dcmri.conv`. Hence `~dcmri.expconv` should be used instead of `~dcmri.conv` whenever applicable. We illustrate the effect by applying the functions 500 times and measuring the total computation time in each case. The acceleration is alomst 3 orders of magnitude:
+The result shows that the difference in accuracy between `~dcmri.expconv` 
+and `~dcmri.conv` is negligible at higher time resolution. 
+However, `~dcmri.expconv` comes with a major improvement in computation 
+time. We illustrate the effect by 
+applying the functions 500 times and measuring the total computation time 
+in each case:
 
-.. GENERATED FROM PYTHON SOURCE LINES 67-80
+.. GENERATED FROM PYTHON SOURCE LINES 99-112
 
 .. code-block:: Python
 
@@ -155,26 +188,30 @@ However, `~dcmri.expconv` comes with a major improvement in computation time com
 
  .. code-block:: none
 
-    Computation time for conv():  1.6457374095916748 sec
-    Computation time for expconv():  0.03332352638244629 sec
+    Computation time for conv():  0.774057149887085 sec
+    Computation time for expconv():  0.015619754791259766 sec
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 81-82
+.. GENERATED FROM PYTHON SOURCE LINES 113-117
 
-Incidentally since the time array in this case is uniform, `~dcmri.conv` can be accelerated by specifying dt instead of t in the arguments. However the performance remains far below `~dcmri.expconv`:
+The acceleration is 2 orders of magnitude. Incidentally since the 
+time array in this case is uniform, `~dcmri.conv` 
+can be accelerated by specifying dt instead of t in the arguments. However 
+the performance remains far below `~dcmri.expconv`:
 
-.. GENERATED FROM PYTHON SOURCE LINES 82-89
+.. GENERATED FROM PYTHON SOURCE LINES 117-125
 
 .. code-block:: Python
 
 
-    # Print the duration of 500 runs of conv with uniform time resolution:
+    # Print the duration of 500 runs of conv with uniform dt:
     start = time.time()
     for i in range(500):
         dc.conv(h, f, dt=t[1])
-    print('Computation time for conv() with uniform times: ', time.time()-start, 'sec')
+    print('Computation time for conv(): ', 
+          time.time()-start, 'sec')
 
 
 
@@ -184,16 +221,19 @@ Incidentally since the time array in this case is uniform, `~dcmri.conv` can be 
 
  .. code-block:: none
 
-    Computation time for conv() with uniform times:  0.2997853755950928 sec
+    Computation time for conv():  0.1799788475036621 sec
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 90-91
+.. GENERATED FROM PYTHON SOURCE LINES 126-130
 
-The difference in accuracy between `~dcmri.conv` and `~dcmri.expconv` becomes more apparent at lower temporal resolution but generally remains minor. Using 10 time points instead of 50 as above we start seeing some effect:
+The difference in accuracy between `~dcmri.conv` and `~dcmri.expconv` 
+becomes more apparent at lower temporal resolution but generally remains 
+minor. Using 10 time points instead of 50 as above we start seeing some 
+effect:
 
-.. GENERATED FROM PYTHON SOURCE LINES 91-110
+.. GENERATED FROM PYTHON SOURCE LINES 130-149
 
 .. code-block:: Python
 
@@ -210,8 +250,8 @@ The difference in accuracy between `~dcmri.conv` and `~dcmri.expconv` becomes mo
     # Compare the result on the same plot:
     plt.plot(t, f, 'r-', label='f(t)')
     plt.plot(t, h, 'b-', label='h(t)')
-    plt.plot(t, g0, 'k-', label='conv()')
-    plt.plot(t, g1, color='gray', linestyle='-', label='expconv()')
+    plt.plot(t, g0, label='conv()', linewidth=6, color='lightgray', linestyle='-')
+    plt.plot(t, g1, 'k-', label='expconv()')
     plt.title('Comparison of conv() and expconv() at lower resolution')
     plt.legend()
     plt.show()
@@ -228,13 +268,15 @@ The difference in accuracy between `~dcmri.conv` and `~dcmri.expconv` becomes mo
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 111-114
+.. GENERATED FROM PYTHON SOURCE LINES 150-155
 
 Convolving two or more exponentials
 -----------------------------------
-If both functions are exponentials, convolution can be accelerated further with `~dcmri.biexpconv`, which uses an analytical formula to calculate the convolution: 
+If both functions are exponentials, convolution can be accelerated further 
+with `~dcmri.biexpconv`, which uses an analytical formula to calculate the 
+convolution: 
 
-.. GENERATED FROM PYTHON SOURCE LINES 114-131
+.. GENERATED FROM PYTHON SOURCE LINES 155-172
 
 .. code-block:: Python
 
@@ -263,17 +305,19 @@ If both functions are exponentials, convolution can be accelerated further with 
 
  .. code-block:: none
 
-    Computation time for expconv():  0.03330564498901367 sec
-    Computation time for biexpconv():  0.03352928161621094 sec
+    Computation time for expconv():  0.02012801170349121 sec
+    Computation time for biexpconv():  0.010132789611816406 sec
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 132-133
+.. GENERATED FROM PYTHON SOURCE LINES 173-176
 
-The difference in computation time is small in this case, but using an analytical formula also comes with some improvements in accuracy. This is apparent at lower time resolution:
+The difference in computation time is small in this case, but using an 
+analytical formula also comes with some improvements in accuracy. This is 
+apparent at lower time resolution:
 
-.. GENERATED FROM PYTHON SOURCE LINES 133-149
+.. GENERATED FROM PYTHON SOURCE LINES 176-192
 
 .. code-block:: Python
 
@@ -305,11 +349,15 @@ The difference in computation time is small in this case, but using an analytica
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 150-151
+.. GENERATED FROM PYTHON SOURCE LINES 193-198
 
-The final convolution function `~dcmri.nexpconv` convolves n indentical exponentials with mean transit time T analytically. We illustrate the result by keeping the total mean transit time MTT=nT constant, and increasing n from 1 to 100. As the number of exponentials increases, the convolution converges to a delta function positioned on t=MTT:
+The final convolution function `~dcmri.nexpconv` convolves n indentical 
+exponentials with mean transit time T analytically. We illustrate the 
+result by keeping the total mean transit time MTT=nT constant, and 
+increasing n from 1 to 100. As the number of exponentials increases, the 
+convolution converges to a delta function positioned on t=MTT:
 
-.. GENERATED FROM PYTHON SOURCE LINES 151-168
+.. GENERATED FROM PYTHON SOURCE LINES 198-215
 
 .. code-block:: Python
 
@@ -342,13 +390,15 @@ The final convolution function `~dcmri.nexpconv` convolves n indentical exponent
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 169-172
+.. GENERATED FROM PYTHON SOURCE LINES 216-221
 
 Convolution with a step function
 --------------------------------
-`dcmri` also provides a dedicated function `~dcmri.stepconv` for convolution with a step function. We illustrate this function here and compare against `~dcmri.conv`:
+`dcmri` also provides a dedicated function `~dcmri.stepconv` for 
+convolution with a step function. We illustrate this function here and 
+compare against `~dcmri.conv`:
 
-.. GENERATED FROM PYTHON SOURCE LINES 172-199
+.. GENERATED FROM PYTHON SOURCE LINES 221-248
 
 .. code-block:: Python
 
@@ -391,11 +441,13 @@ Convolution with a step function
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 200-201
+.. GENERATED FROM PYTHON SOURCE LINES 249-252
 
-As with `~dcmri.expconv` the difference between `~dcmri.stepconv` and `~dcmri.conv` is relatively small even for coarse time grids such as the above, but there is a more substantial gain in computation time: 
+As with `~dcmri.expconv` the difference between `~dcmri.stepconv` and 
+`~dcmri.conv` is relatively small even for coarse time grids such as the 
+above, but there is a more substantial gain in computation time: 
 
-.. GENERATED FROM PYTHON SOURCE LINES 201-214
+.. GENERATED FROM PYTHON SOURCE LINES 252-265
 
 .. code-block:: Python
 
@@ -420,8 +472,8 @@ As with `~dcmri.expconv` the difference between `~dcmri.stepconv` and `~dcmri.co
 
  .. code-block:: none
 
-    Computation time for conv():  0.33332324028015137 sec
-    Computation time for stepconv():  0.2158961296081543 sec
+    Computation time for conv():  0.25009703636169434 sec
+    Computation time for stepconv():  0.1517472267150879 sec
 
 
 
@@ -429,7 +481,7 @@ As with `~dcmri.expconv` the difference between `~dcmri.stepconv` and `~dcmri.co
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 3.602 seconds)
+   **Total running time of the script:** (0 minutes 2.102 seconds)
 
 
 .. _sphx_glr_download_generated_examples_tutorials_plot_convolution.py:

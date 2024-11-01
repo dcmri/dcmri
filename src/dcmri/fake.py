@@ -510,7 +510,7 @@ def fake_tissue2scan(
     return time, aif, roi, gt
 
 
-def fake_kidney_cortex_medulla(
+def fake_kidney(
     tacq=180.0,
     dt=1.5,
     BAT=20,

@@ -1290,7 +1290,10 @@ def _conc_2cu(ca, t=None, dt=1.0, sum=True,
         return _conc_hfu(ca, t=t, dt=dt, sum=sum, vp=vp, PS=PS)
     ca = ca/(1-H)
     if Fp+PS == 0:
-        return np.zeros((2, len(ca)))
+        if sum:
+            return np.zeros(len(ca))
+        else:
+            return np.zeros((2, len(ca)))
     Tp = vp/(Fp+PS)
     Cp = pk.conc_comp(Fp*ca, Tp, t=t, dt=dt)
     if vp == 0:

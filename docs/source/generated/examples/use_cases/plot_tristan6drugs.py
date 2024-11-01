@@ -78,6 +78,8 @@ def tristan_rat(data, **kwargs):
         ca = ca*(1-0.418),
 
         # Acquisition parameters
+        field_strength = data['field_strength'],
+        agent = 'gadoxetate',
         TR = data['TR'],
         FA = data['FA'],
         n0 = data['n0'],
@@ -92,10 +94,7 @@ def tristan_rat(data, **kwargs):
         },
 
         # Tissue parameters
-        r1 = dc.relaxivity(data['field_strength'], 'blood', 'gadoxetate'),
-        r1h = dc.relaxivity(data['field_strength'], 'hepatocytes', 'gadoxetate'),
         R10 = 1/dc.T1(data['field_strength'], 'liver'),
-        #R10a = 1/dc.T1(data['field_strength'], 'blood'),
     )
     return model.train(data['time'], data['liver'], **kwargs)
 

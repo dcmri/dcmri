@@ -158,6 +158,13 @@
    "module": "builtins",
    "module_short": "builtins",
    "name": "dcmri"
+  },
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "dcmri"
   }
  ],
  "dcmri.biexpconv": [
@@ -167,30 +174,9 @@
    "module": "dcmri",
    "module_short": "dcmri",
    "name": "biexpconv"
-  },
-  {
-   "is_class": false,
-   "is_explicit": true,
-   "module": "dcmri",
-   "module_short": "dcmri",
-   "name": "biexpconv"
   }
  ],
  "dcmri.conv": [
-  {
-   "is_class": false,
-   "is_explicit": true,
-   "module": "dcmri",
-   "module_short": "dcmri",
-   "name": "conv"
-  },
-  {
-   "is_class": false,
-   "is_explicit": true,
-   "module": "dcmri",
-   "module_short": "dcmri",
-   "name": "conv"
-  },
   {
    "is_class": false,
    "is_explicit": true,
@@ -290,13 +276,6 @@
    "module": "dcmri",
    "module_short": "dcmri",
    "name": "expconv"
-  },
-  {
-   "is_class": false,
-   "is_explicit": true,
-   "module": "dcmri",
-   "module_short": "dcmri",
-   "name": "expconv"
   }
  ],
  "dcmri.nexpconv": [
@@ -306,23 +285,9 @@
    "module": "dcmri",
    "module_short": "dcmri",
    "name": "nexpconv"
-  },
-  {
-   "is_class": false,
-   "is_explicit": true,
-   "module": "dcmri",
-   "module_short": "dcmri",
-   "name": "nexpconv"
   }
  ],
  "dcmri.stepconv": [
-  {
-   "is_class": false,
-   "is_explicit": true,
-   "module": "dcmri",
-   "module_short": "dcmri",
-   "name": "stepconv"
-  },
   {
    "is_class": false,
    "is_explicit": true,

@@ -94,7 +94,7 @@ Model definition
 In order to avoid some repetition in this script, we define a function that 
 returns a trained model for a single dataset with 2 scans:
 
-.. GENERATED FROM PYTHON SOURCE LINES 64-109
+.. GENERATED FROM PYTHON SOURCE LINES 64-110
 
 .. code-block:: Python
 
@@ -106,7 +106,8 @@ returns a trained model for a single dataset with 2 scans:
             # Injection parameters
             weight = data['weight'],
             agent = data['agent'],
-            dose = data['dose'],
+            dose = data['dose'][0],
+            dose2 = data['dose'][1],
             rate = data['rate'],
 
             # Acquisition parameters
@@ -116,13 +117,13 @@ returns a trained model for a single dataset with 2 scans:
             FA = data['FA'],
 
             # Signal parameters
-            R10b = data['R10b'],
-            R102b = data['R102b'],
+            R10a = data['R10b'],
+            R102a = data['R102b'],
             R10l = data['R10l'],
             R102l = data['R102l'],
 
             # Tissue parameters
-            Hct = data['Hct'],
+            H = data['Hct'],
             vol = data['vol'],
         )
 
@@ -150,13 +151,13 @@ returns a trained model for a single dataset with 2 scans:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 110-113
+.. GENERATED FROM PYTHON SOURCE LINES 111-114
 
 Before running the full analysis on all cases, lets illustrate the results 
 by fitting the baseline visit for the first subject. We use maximum 
 verbosity to get some feedback about the iterations: 
 
-.. GENERATED FROM PYTHON SOURCE LINES 113-116
+.. GENERATED FROM PYTHON SOURCE LINES 114-117
 
 .. code-block:: Python
 
@@ -172,47 +173,51 @@ verbosity to get some feedback about the iterations:
  .. code-block:: none
 
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         5.1310e+07                                    4.59e+09    
-           1              2         9.3610e+06      4.19e+07       9.75e+02       2.53e+09    
-           2              3         3.2246e+06      6.14e+06       2.19e+02       1.14e+09    
-           3              4         1.7383e+06      1.49e+06       4.06e+02       1.00e+09    
-           4              5         7.3339e+05      1.00e+06       3.38e+02       1.25e+09    
-           5              6         3.4741e+05      3.86e+05       1.41e+02       7.91e+08    
-           6              7         2.3570e+05      1.12e+05       6.78e+01       3.27e+08    
-           7              8         2.0616e+05      2.95e+04       2.88e+01       1.02e+08    
-           8              9         2.0265e+05      3.51e+03       1.32e+01       7.92e+06    
-           9             11         2.0250e+05      1.52e+02       5.60e+00       2.62e+04    
+           0              1         5.3733e+07                                    4.63e+09    
+           1              2         1.0176e+07      4.36e+07       8.79e+02       2.27e+09    
+           2              3         3.4631e+06      6.71e+06       1.13e+02       8.20e+08    
+           3              4         1.7629e+06      1.70e+06       5.17e+02       5.78e+08    
+           4              5         8.0658e+05      9.56e+05       3.94e+02       8.09e+08    
+           5              6         4.2212e+05      3.84e+05       1.48e+02       9.29e+08    
+           6              7         2.3350e+05      1.89e+05       9.75e+01       3.41e+08    
+           7              8         2.0407e+05      2.94e+04       2.72e+01       7.09e+07    
+           8              9         2.0311e+05      9.61e+02       1.57e+01       3.08e+07    
+           9             10         2.0311e+05      0.00e+00       0.00e+00       3.08e+07    
     `xtol` termination condition is satisfied.
-    Function evaluations 11, initial cost 5.1310e+07, final cost 2.0250e+05, first-order optimality 2.62e+04.
+    Function evaluations 10, initial cost 5.3733e+07, final cost 2.0311e+05, first-order optimality 3.08e+07.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         3.1053e+07                                    7.05e+08    
-           1              2         2.8912e+06      2.82e+07       4.40e+03       5.64e+08    
-           2              3         7.1152e+05      2.18e+06       1.62e+03       1.55e+08    
-           3              4         4.3773e+05      2.74e+05       9.07e+02       4.05e+07    
-           4              5         4.1939e+05      1.83e+04       1.03e+03       3.66e+07    
-           5              6         4.0109e+05      1.83e+04       6.37e+02       7.67e+06    
-           6              7         4.0012e+05      9.68e+02       6.36e+02       5.86e+06    
-           7              8         3.9966e+05      4.59e+02       2.35e+02       5.85e+05    
-           8              9         3.9965e+05      1.41e+01       9.02e+01       8.23e+04    
-           9             10         3.9965e+05      1.62e+00       1.80e+01       4.77e+03    
-          10             11         3.9965e+05      2.79e-01       7.87e+00       1.09e+03    
+           0              1         3.3952e+07                                    7.14e+08    
+           1              2         2.2095e+06      3.17e+07       4.52e+03       4.35e+08    
+           2              3         5.6485e+05      1.64e+06       1.76e+03       1.07e+08    
+           3              4         4.1051e+05      1.54e+05       1.12e+03       2.34e+07    
+           4              5         3.9426e+05      1.63e+04       1.38e+03       2.70e+07    
+           5              6         3.7903e+05      1.52e+04       8.66e+02       8.51e+06    
+           6              7         3.7552e+05      3.51e+03       9.72e+02       9.71e+06    
+           7              8         3.7266e+05      2.86e+03       6.00e+02       3.07e+06    
+           8              9         3.7183e+05      8.27e+02       5.30e+02       2.24e+06    
+           9             10         3.7151e+05      3.23e+02       3.07e+02       6.74e+05    
+          10             11         3.7143e+05      7.98e+01       1.79e+02       2.17e+05    
+          11             12         3.7141e+05      1.89e+01       8.92e+01       5.00e+04    
+          12             13         3.7141e+05      4.34e+00       4.29e+01       1.03e+04    
+          13             14         3.7141e+05      1.02e+00       2.06e+01       2.18e+03    
+          14             15         3.7141e+05      2.41e-01       9.95e+00       4.24e+02    
     `xtol` termination condition is satisfied.
-    Function evaluations 11, initial cost 3.1053e+07, final cost 3.9965e+05, first-order optimality 1.09e+03.
+    Function evaluations 15, initial cost 3.3952e+07, final cost 3.7141e+05, first-order optimality 4.24e+02.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         6.0214e+05                                    1.99e+05    
-           1              7         5.9999e+05      2.15e+03       1.20e+01       1.03e+05    
+           0              1         5.7465e+05                                    2.50e+07    
+           1              4         5.7403e+05      6.24e+02       1.21e+01       9.67e+06    
     `xtol` termination condition is satisfied.
-    Function evaluations 7, initial cost 6.0214e+05, final cost 5.9999e+05, first-order optimality 1.03e+05.
+    Function evaluations 4, initial cost 5.7465e+05, final cost 5.7403e+05, first-order optimality 9.67e+06.
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 117-119
+.. GENERATED FROM PYTHON SOURCE LINES 118-120
 
 Plot the results to check that the model has fitted the data. The plot also 
 shows the concentration in the two liver compartments separately:
 
-.. GENERATED FROM PYTHON SOURCE LINES 119-122
+.. GENERATED FROM PYTHON SOURCE LINES 120-123
 
 .. code-block:: Python
 
@@ -231,19 +236,18 @@ shows the concentration in the two liver compartments separately:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 123-126
+.. GENERATED FROM PYTHON SOURCE LINES 124-127
 
 Print the measured model parameters and any derived parameters. Standard 
 deviations are included as a measure of parameter uncertainty, indicate that 
 all parameters are identified robustly:
 
-.. GENERATED FROM PYTHON SOURCE LINES 126-130
+.. GENERATED FROM PYTHON SOURCE LINES 127-130
 
 .. code-block:: Python
 
 
     model.print_params(round_to=3)
-
 
 
 
@@ -258,42 +262,36 @@ all parameters are identified robustly:
     Free parameters with their stdev
     --------------------------------
 
-    Bolus arrival time (BAT): 74.247 (2.22) sec
-    Bolus arrival time - 2nd scan (BAT2): 8604.65 (2.218) sec
-    Blood signal scale factor - 2nd scan (S02b): 9360.402 (24.874) a.u.
-    Liver signal scale factor - 2nd scan (S02l): 8860.539 (96.02) a.u.
-    Cardiac output (CO): 219.539 (15.508) mL/sec
-    Heart-lung mean transit time (Thl): 21.703 (3.638) sec
-    Heart-lung transit time dispersion (Dhl): 0.69 (0.05) 
-    Organs mean transit time (To): 22.902 (0.928) sec
-    Extraction fraction (Eb): 0.058 (0.007) 
-    Liver extracellular mean transit time (Tel): 32.935 (1.556) sec
-    Liver extracellular dispersion (De): 0.661 (0.031) 
-    Liver extracellular volume fraction (ve): 0.227 (0.008) mL/cm3
-    Hepatocellular uptake rate (khe): 0.003 (0.0) mL/sec/cm3
-    Hepatocellular transit time (Th): 3407.14 (49.825) sec
-    Organs extraction fraction (Eo): 0.134 (0.009) 
-    Organs extracellular mean transit time (Teb): 460.422 (31.697) sec
-    Hepatocellular uptake rate (final) (khe_f): 0.001 (0.0) mL/sec/cm3
-    Hepatocellular transit time (final) (Th_f): 6681.701 (495.125) sec
+    Aorta second signal scale factor (S02a): 9792.765 (25.421) a.u.
+    Liver second signal scale factor (S02l): 7563.56 (90.013) a.u.
+    Second bolus arrival time (BAT2): 8602.941 (0.637) sec
+    First bolus arrival time (BAT): 72.673 (0.653) sec
+    Cardiac output (CO): 226.03 (5.903) mL/sec
+    Heart-lung mean transit time (Thl): 24.205 (1.084) sec
+    Heart-lung dispersion (Dhl): 0.657 (0.017) 
+    Organs blood mean transit time (To): 22.853 (0.832) sec
+    Organs extraction fraction (Eo): 0.134 (0.004) 
+    Organs extravascular mean transit time (Toe): 451.15 (18.89) sec
+    Body extraction fraction (Eb): 0.06 (0.003) 
+    Liver extracellular volume fraction (ve): 0.307 (0.011) mL/cm3
+    Extracellular mean transit time (Te): 40.488 (1.981) sec
+    Extracellular dispersion (De): 0.73 (0.026) 
+    Initial hepatocellular uptake rate (khe_i): 0.006 (0.0) mL/sec/cm3
+    Final hepatocellular uptake rate (khe_f): 0.001 (0.0) mL/sec/cm3
+    Initial hepatocellular mean transit time (Th_i): 1152.108 (83.79) sec
+    Final hepatocellular mean transit time (Th_f): 8906.001 (375.751) sec
 
     ----------------------------
     Fixed and derived parameters
     ----------------------------
 
-    Blood precontrast T1 (T10a): 1.629 sec
-    Mean circulation time (Tc): 44.605 sec
-    Liver precontrast T1 (T10l): 0.762 sec
-    Biliary excretion rate (kbh): 0.0 mL/sec/cm3
-    Hepatocellular tissue uptake rate (Khe): 0.014 mL/sec/cm3
+    Hematocrit (H): 0.45 
+    Hepatocellular mean transit time (Th): 5029.054 sec
+    Hepatocellular uptake rate (khe): 0.004 mL/sec/cm3
     Biliary tissue excretion rate (Kbh): 0.0 mL/sec/cm3
-    Hepatocellular uptake rate (initial) (khe_i): 0.005 mL/sec/cm3
-    Hepatocellular transit time (initial) (Th_i): 2286.55 sec
-    Hepatocellular uptake rate variance (khe_var): 1.37 
-    Biliary tissue excretion rate variance (Kbh_var): 0.98 
-    Biliary excretion rate (initial) (kbh_i): 0.0 mL/sec/cm3
-    Biliary excretion rate (final) (kbh_f): 0.0 mL/sec/cm3
-    Liver blood clearance (CL): 3.605 mL/sec
+    Hepatocellular tissue uptake rate (Khe): 0.012 mL/sec/cm3
+    Biliary excretion rate (kbh): 0.0 mL/sec/cm3
+    Liver blood clearance (CL): 0.0 mL/sec
 
 
 
@@ -348,1207 +346,1100 @@ and instead store results in one single dataframe:
  .. code-block:: none
 
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         5.1310e+07                                    4.59e+09    
-           1              2         9.3610e+06      4.19e+07       9.75e+02       2.53e+09    
-           2              3         3.2246e+06      6.14e+06       2.19e+02       1.14e+09    
-           3              4         1.7383e+06      1.49e+06       4.06e+02       1.00e+09    
-           4              5         7.3339e+05      1.00e+06       3.38e+02       1.25e+09    
-           5              6         3.4741e+05      3.86e+05       1.41e+02       7.91e+08    
-           6              7         2.3570e+05      1.12e+05       6.78e+01       3.27e+08    
-           7              8         2.0616e+05      2.95e+04       2.88e+01       1.02e+08    
-           8              9         2.0265e+05      3.51e+03       1.32e+01       7.92e+06    
-           9             11         2.0250e+05      1.52e+02       5.60e+00       2.62e+04    
+           0              1         5.3733e+07                                    4.63e+09    
+           1              2         1.0176e+07      4.36e+07       8.79e+02       2.27e+09    
+           2              3         3.4631e+06      6.71e+06       1.13e+02       8.20e+08    
+           3              4         1.7629e+06      1.70e+06       5.17e+02       5.78e+08    
+           4              5         8.0658e+05      9.56e+05       3.94e+02       8.09e+08    
+           5              6         4.2212e+05      3.84e+05       1.48e+02       9.29e+08    
+           6              7         2.3350e+05      1.89e+05       9.75e+01       3.41e+08    
+           7              8         2.0407e+05      2.94e+04       2.72e+01       7.09e+07    
+           8              9         2.0311e+05      9.61e+02       1.57e+01       3.08e+07    
+           9             10         2.0311e+05      0.00e+00       0.00e+00       3.08e+07    
     `xtol` termination condition is satisfied.
-    Function evaluations 11, initial cost 5.1310e+07, final cost 2.0250e+05, first-order optimality 2.62e+04.
+    Function evaluations 10, initial cost 5.3733e+07, final cost 2.0311e+05, first-order optimality 3.08e+07.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         3.1053e+07                                    7.05e+08    
-           1              2         2.8912e+06      2.82e+07       4.40e+03       5.64e+08    
-           2              3         7.1152e+05      2.18e+06       1.62e+03       1.55e+08    
-           3              4         4.3773e+05      2.74e+05       9.07e+02       4.05e+07    
-           4              5         4.1939e+05      1.83e+04       1.03e+03       3.66e+07    
-           5              6         4.0109e+05      1.83e+04       6.37e+02       7.67e+06    
-           6              7         4.0012e+05      9.68e+02       6.36e+02       5.86e+06    
-           7              8         3.9966e+05      4.59e+02       2.35e+02       5.85e+05    
-           8              9         3.9965e+05      1.41e+01       9.02e+01       8.23e+04    
-           9             10         3.9965e+05      1.62e+00       1.80e+01       4.77e+03    
-          10             11         3.9965e+05      2.79e-01       7.87e+00       1.09e+03    
+           0              1         3.3952e+07                                    7.14e+08    
+           1              2         2.2095e+06      3.17e+07       4.52e+03       4.35e+08    
+           2              3         5.6485e+05      1.64e+06       1.76e+03       1.07e+08    
+           3              4         4.1051e+05      1.54e+05       1.12e+03       2.34e+07    
+           4              5         3.9426e+05      1.63e+04       1.38e+03       2.70e+07    
+           5              6         3.7903e+05      1.52e+04       8.66e+02       8.51e+06    
+           6              7         3.7552e+05      3.51e+03       9.72e+02       9.71e+06    
+           7              8         3.7266e+05      2.86e+03       6.00e+02       3.07e+06    
+           8              9         3.7183e+05      8.27e+02       5.30e+02       2.24e+06    
+           9             10         3.7151e+05      3.23e+02       3.07e+02       6.74e+05    
+          10             11         3.7143e+05      7.98e+01       1.79e+02       2.17e+05    
+          11             12         3.7141e+05      1.89e+01       8.92e+01       5.00e+04    
+          12             13         3.7141e+05      4.34e+00       4.29e+01       1.03e+04    
+          13             14         3.7141e+05      1.02e+00       2.06e+01       2.18e+03    
+          14             15         3.7141e+05      2.41e-01       9.95e+00       4.24e+02    
     `xtol` termination condition is satisfied.
-    Function evaluations 11, initial cost 3.1053e+07, final cost 3.9965e+05, first-order optimality 1.09e+03.
+    Function evaluations 15, initial cost 3.3952e+07, final cost 3.7141e+05, first-order optimality 4.24e+02.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         6.0214e+05                                    1.99e+05    
-           1              7         5.9999e+05      2.15e+03       1.20e+01       1.03e+05    
+           0              1         5.7465e+05                                    2.50e+07    
+           1              4         5.7403e+05      6.24e+02       1.21e+01       9.67e+06    
     `xtol` termination condition is satisfied.
-    Function evaluations 7, initial cost 6.0214e+05, final cost 5.9999e+05, first-order optimality 1.03e+05.
+    Function evaluations 4, initial cost 5.7465e+05, final cost 5.7403e+05, first-order optimality 9.67e+06.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         6.4774e+05                                    2.47e+08    
-           1              2         5.0573e+05      1.42e+05       3.76e+02       6.86e+06    
-           2              3         3.7774e+05      1.28e+05       7.29e+01       1.25e+06    
-           3              4         3.5746e+05      2.03e+04       5.18e+01       1.81e+05    
-           4              5         3.5154e+05      5.92e+03       2.34e+01       2.03e+05    
-           5              7         3.5154e+05      0.00e+00       0.00e+00       2.03e+05    
+           0              1         7.1001e+05                                    2.16e+08    
+           1              2         5.1331e+05      1.97e+05       7.82e+02       7.22e+06    
+           2              3         3.7614e+05      1.37e+05       7.06e+01       1.02e+06    
+           3              4         3.5706e+05      1.91e+04       5.16e+01       2.14e+05    
+           4              5         3.5419e+05      2.87e+03       2.16e+01       5.77e+08    
+           5              6         3.4957e+05      4.62e+03       2.50e+01       4.09e+07    
+           6              8         3.4957e+05      0.00e+00       0.00e+00       4.09e+07    
     `xtol` termination condition is satisfied.
-    Function evaluations 7, initial cost 6.4774e+05, final cost 3.5154e+05, first-order optimality 2.03e+05.
+    Function evaluations 8, initial cost 7.1001e+05, final cost 3.4957e+05, first-order optimality 4.09e+07.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         3.7689e+06                                    8.32e+07    
-           1              2         2.0862e+05      3.56e+06       1.74e+03       2.19e+06    
-           2              3         1.7315e+05      3.55e+04       7.96e+02       2.34e+06    
-           3              7         1.6451e+05      8.64e+03       2.66e+02       5.27e+05    
-           4              8         1.5990e+05      4.61e+03       1.26e+02       1.95e+05    
-           5              9         1.5586e+05      4.05e+03       2.14e+02       4.46e+05    
-           6             10         1.5445e+05      1.40e+03       2.93e+02       4.37e+05    
-           7             11         1.5412e+05      3.29e+02       2.67e+01       2.59e+04    
-           8             12         1.5410e+05      2.73e+01       1.25e+01       1.90e+03    
-           9             13         1.5409e+05      4.31e+00       3.98e+00       3.39e+02    
+           0              1         3.9699e+06                                    8.16e+07    
+           1              2         2.1231e+05      3.76e+06       1.86e+03       2.35e+06    
+           2              3         1.7376e+05      3.85e+04       7.93e+02       1.97e+06    
+           3              7         1.6588e+05      7.88e+03       2.78e+02       4.31e+05    
+           4              8         1.6089e+05      4.99e+03       1.35e+02       1.91e+05    
+           5              9         1.5654e+05      4.35e+03       2.37e+02       3.94e+05    
+           6             10         1.5465e+05      1.89e+03       4.02e+02       5.42e+05    
+           7             11         1.5420e+05      4.48e+02       2.53e+01       2.15e+04    
+           8             12         1.5418e+05      1.96e+01       1.20e+01       1.79e+03    
+           9             13         1.5417e+05      9.12e+00       1.00e+00       1.83e+02    
     `xtol` termination condition is satisfied.
-    Function evaluations 13, initial cost 3.7689e+06, final cost 1.5409e+05, first-order optimality 3.39e+02.
+    Function evaluations 13, initial cost 3.9699e+06, final cost 1.5417e+05, first-order optimality 1.83e+02.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         5.0750e+05                                    5.49e+05    
-           1              3         5.0750e+05      0.00e+00       0.00e+00       5.49e+05    
+           0              1         5.0388e+05                                    4.31e+07    
+           1              4         5.0388e+05      0.00e+00       0.00e+00       4.31e+07    
     `xtol` termination condition is satisfied.
-    Function evaluations 3, initial cost 5.0750e+05, final cost 5.0750e+05, first-order optimality 5.49e+05.
+    Function evaluations 4, initial cost 5.0388e+05, final cost 5.0388e+05, first-order optimality 4.31e+07.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         3.8049e+05                                    9.07e+06    
-           1              2         3.2947e+05      5.10e+04       1.18e-01       2.61e+06    
+           0              1         3.4546e+05                                    9.57e+06    
+           1              2         2.9190e+05      5.36e+04       1.18e-01       1.67e+06    
     `xtol` termination condition is satisfied.
-    Function evaluations 2, initial cost 3.8049e+05, final cost 3.2947e+05, first-order optimality 2.61e+06.
+    Function evaluations 2, initial cost 3.4546e+05, final cost 2.9190e+05, first-order optimality 1.67e+06.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         1.0897e+06                                    6.10e+07    
-           1              2         1.4669e+05      9.43e+05       8.71e+02       3.84e+05    
-           2              3         1.4407e+05      2.62e+03       3.23e+02       4.08e+05    
-           3              5         1.4371e+05      3.62e+02       2.10e+02       7.96e+04    
-           4              7         1.4363e+05      7.52e+01       1.69e+02       2.68e+05    
-           5              8         1.4351e+05      1.17e+02       2.26e+02       3.26e+05    
-           6              9         1.4348e+05      3.33e+01       2.43e+01       2.54e+03    
-           7             10         1.4336e+05      1.23e+02       1.93e+02       1.72e+05    
-           8             11         1.4335e+05      1.08e+01       1.39e+01       3.11e+03    
-           9             12         1.4327e+05      8.08e+01       3.09e+02       4.70e+05    
-          10             13         1.4322e+05      5.01e+01       2.35e+01       1.63e+04    
-          11             14         1.4320e+05      1.09e+01       2.10e+02       1.62e+05    
-          12             15         1.4320e+05      6.66e+00       9.00e+00       2.92e+04    
+           0              1         1.1015e+06                                    6.12e+07    
+           1              2         1.4707e+05      9.54e+05       9.09e+02       4.28e+05    
+           2              3         1.4430e+05      2.77e+03       3.18e+02       3.79e+05    
+           3              4         1.4350e+05      8.05e+02       9.45e+02       3.76e+05    
+           4              5         1.4332e+05      1.73e+02       1.71e+02       4.10e+04    
+           5              6         1.4316e+05      1.60e+02       1.74e+02       1.91e+04    
+           6              7         1.4303e+05      1.31e+02       1.29e+02       5.69e+03    
+           7              8         1.4300e+05      2.97e+01       4.30e+01       2.42e+03    
+           8              9         1.4299e+05      8.00e+00       1.10e+01       1.70e+02    
+           9             10         1.4299e+05      6.64e-01       1.22e+00       7.69e+00    
     `xtol` termination condition is satisfied.
-    Function evaluations 15, initial cost 1.0897e+06, final cost 1.4320e+05, first-order optimality 2.92e+04.
+    Function evaluations 10, initial cost 1.1015e+06, final cost 1.4299e+05, first-order optimality 7.69e+00.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         4.7266e+05                                    2.61e+06    
-           1              2         3.5214e+05      1.21e+05       1.89e+04       4.88e+06    
-           2              3         3.1213e+05      4.00e+04       2.87e+04       1.13e+06    
-           3              4         3.0162e+05      1.05e+04       3.40e+04       1.11e+05    
-           4              5         3.0039e+05      1.23e+03       3.04e+04       7.92e+04    
-           5              6         3.0036e+05      2.84e+01       7.46e+02       7.77e+04    
-           6              7         2.9999e+05      3.78e+02       2.90e+04       4.88e+05    
-           7              8         2.9972e+05      2.65e+02       7.48e+03       8.81e+04    
-           8              9         2.9967e+05      4.73e+01       3.78e+04       3.59e+05    
-           9             10         2.9935e+05      3.25e+02       9.45e+03       1.32e+04    
-          10             11         2.9930e+05      4.54e+01       1.89e+04       8.50e+03    
-          11             17         2.9930e+05      0.00e+00       0.00e+00       8.50e+03    
+           0              1         4.3489e+05                                    1.67e+06    
+           1              2         3.5957e+05      7.53e+04       2.64e+05       4.88e+06    
+           2              3         3.1266e+05      4.69e+04       2.40e+05       6.71e+05    
+           3              4         3.0250e+05      1.02e+04       2.34e+05       1.28e+05    
+           4              5         3.0056e+05      1.94e+03       3.01e+05       6.29e+05    
+           5              6         3.0015e+05      4.13e+02       7.15e+04       2.02e+05    
+           6              7         2.9968e+05      4.71e+02       5.63e+05       3.56e+04    
+           7             13         2.9968e+05      0.00e+00       0.00e+00       3.56e+04    
     `xtol` termination condition is satisfied.
-    Function evaluations 17, initial cost 4.7266e+05, final cost 2.9930e+05, first-order optimality 8.50e+03.
+    Function evaluations 13, initial cost 4.3489e+05, final cost 2.9968e+05, first-order optimality 3.56e+04.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         1.9614e+06                                    1.36e+09    
-           1              2         1.0342e+06      9.27e+05       2.45e+02       6.98e+08    
-           2              3         7.6185e+05      2.72e+05       2.06e+02       3.88e+08    
-           3              4         6.5737e+05      1.04e+05       8.07e+01       2.59e+09    
-           4              5         4.9383e+05      1.64e+05       5.87e+01       4.83e+08    
-           5              6         3.4773e+05      1.46e+05       3.49e+01       7.59e+07    
-           6              7         3.3111e+05      1.66e+04       4.58e+01       1.72e+08    
-           7             10         3.3111e+05      0.00e+00       0.00e+00       1.72e+08    
+           0              1         2.1526e+06                                    1.38e+09    
+           1              2         1.0527e+06      1.10e+06       7.12e+02       8.54e+08    
+           2              3         7.7428e+05      2.78e+05       3.88e+02       3.88e+08    
+           3              4         6.3655e+05      1.38e+05       7.49e+01       1.50e+09    
+           4              5         5.0117e+05      1.35e+05       4.54e+01       1.50e+09    
+           5              6         3.4284e+05      1.58e+05       1.83e+01       1.30e+08    
+           6              7         3.2453e+05      1.83e+04       3.39e+01       1.26e+08    
+           7              8         3.2263e+05      1.90e+03       2.47e+01       1.14e+08    
+           8              9         3.0233e+05      2.03e+04       2.38e+01       8.12e+08    
+           9             10         2.7124e+05      3.11e+04       1.25e+01       4.63e+08    
+          10             11         2.4773e+05      2.35e+04       1.96e+01       4.26e+08    
+          11             12         2.4773e+05      0.00e+00       0.00e+00       4.26e+08    
     `xtol` termination condition is satisfied.
-    Function evaluations 10, initial cost 1.9614e+06, final cost 3.3111e+05, first-order optimality 1.72e+08.
+    Function evaluations 12, initial cost 2.1526e+06, final cost 2.4773e+05, first-order optimality 4.26e+08.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         3.7835e+06                                    1.35e+08    
-           1              2         4.9996e+05      3.28e+06       2.72e+03       6.52e+07    
-           2              3         3.7946e+05      1.20e+05       4.21e+03       4.78e+07    
-           3              4         1.8474e+05      1.95e+05       1.56e+03       4.15e+06    
-           4              6         1.7865e+05      6.09e+03       1.62e+03       3.12e+06    
-           5              7         1.7621e+05      2.44e+03       2.97e+03       8.36e+06    
-           6              8         1.7020e+05      6.01e+03       2.38e+03       3.95e+06    
-           7              9         1.6849e+05      1.71e+03       2.88e+03       3.26e+06    
-           8             10         1.6730e+05      1.19e+03       2.22e+03       1.16e+06    
-           9             11         1.6693e+05      3.74e+02       3.12e+03       1.42e+06    
-          10             12         1.6665e+05      2.83e+02       1.89e+03       3.47e+05    
-          11             13         1.6652e+05      1.23e+02       3.28e+03       8.05e+05    
-          12             14         1.6644e+05      8.29e+01       1.29e+03       9.16e+04    
-          13             15         1.6639e+05      4.83e+01       3.07e+03       4.45e+05    
-          14             16         1.6637e+05      2.24e+01       7.37e+02       2.21e+04    
-          15             17         1.6635e+05      1.82e+01       2.25e+03       1.77e+05    
-          16             18         1.6635e+05      3.98e+00       4.07e+02       1.10e+04    
-          17             19         1.6634e+05      4.08e+00       1.08e+03       4.08e+04    
-          18             20         1.6634e+05      1.09e+00       1.98e+02       1.02e+04    
-          19             22         1.6634e+05      0.00e+00       0.00e+00       1.02e+04    
+           0              1         4.5712e+06                                    1.43e+08    
+           1              2         4.1900e+05      4.15e+06       2.72e+03       3.77e+07    
+           2              3         2.2182e+05      1.97e+05       2.30e+03       1.58e+07    
+           3              4         2.1472e+05      7.11e+03       2.97e+03       1.79e+07    
+           4              5         1.7341e+05      4.13e+04       1.42e+03       2.17e+06    
+           5              6         1.7105e+05      2.36e+03       2.19e+03       2.97e+06    
+           6              7         1.6928e+05      1.77e+03       2.04e+03       2.72e+06    
+           7              8         1.6817e+05      1.11e+03       1.43e+03       6.87e+05    
+           8              9         1.6793e+05      2.37e+02       1.97e+03       7.73e+05    
+           9             10         1.6781e+05      1.21e+02       8.46e+02       1.25e+05    
+          10             11         1.6780e+05      1.24e+01       9.51e+02       1.23e+05    
+          11             13         1.6780e+05      1.53e-02       5.99e+01       3.78e+03    
+          12             14         1.6780e+05      3.82e+00       6.37e-01       8.96e+02    
     `xtol` termination condition is satisfied.
-    Function evaluations 22, initial cost 3.7835e+06, final cost 1.6634e+05, first-order optimality 1.02e+04.
+    Function evaluations 14, initial cost 4.5712e+06, final cost 1.6780e+05, first-order optimality 8.96e+02.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         4.9798e+05                                    1.74e+08    
-           1              2         4.9721e+05      7.66e+02       3.13e+02       2.77e+08    
-           2              3         4.9534e+05      1.87e+03       5.21e+01       7.41e+06    
-           3              4         4.7424e+05      2.11e+04       3.43e+00       9.33e+07    
+           0              1         4.1575e+05                                    4.29e+08    
+           1              2         4.1523e+05      5.17e+02       1.17e+02       3.04e+08    
+           2              4         4.1523e+05      0.00e+00       0.00e+00       3.04e+08    
     `xtol` termination condition is satisfied.
-    Function evaluations 4, initial cost 4.9798e+05, final cost 4.7424e+05, first-order optimality 9.33e+07.
+    Function evaluations 4, initial cost 4.1575e+05, final cost 4.1523e+05, first-order optimality 3.04e+08.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         4.2500e+06                                    2.70e+09    
-           1              2         7.5506e+05      3.49e+06       3.34e+03       2.24e+06    
-           2              3         5.0348e+05      2.52e+05       6.16e+02       1.64e+08    
-           3              4         4.3484e+05      6.86e+04       5.98e+01       7.25e+08    
-           4              5         3.0603e+05      1.29e+05       3.60e+01       6.93e+05    
-           5              6         2.6803e+05      3.80e+04       2.43e+01       2.58e+06    
-           6              7         2.4725e+05      2.08e+04       1.19e+01       1.57e+05    
+           0              1         2.0793e+06                                    2.56e+09    
+           1              2         5.5332e+05      1.53e+06       1.88e+03       9.27e+06    
+           2              3         4.6813e+05      8.52e+04       1.81e+02       4.81e+05    
+           3              4         4.5301e+05      1.51e+04       1.46e+01       3.27e+05    
+           4              5         3.8748e+05      6.55e+04       3.73e+01       4.98e+08    
+           5              6         2.8226e+05      1.05e+05       3.10e+01       1.18e+06    
+           6              8         2.6532e+05      1.69e+04       6.37e+00       2.61e+07    
     `xtol` termination condition is satisfied.
-    Function evaluations 7, initial cost 4.2500e+06, final cost 2.4725e+05, first-order optimality 1.57e+05.
+    Function evaluations 8, initial cost 2.0793e+06, final cost 2.6532e+05, first-order optimality 2.61e+07.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         1.0057e+07                                    2.33e+08    
-           1              2         2.7906e+05      9.78e+06       1.65e+03       5.64e+06    
-           2              3         1.7615e+05      1.03e+05       4.71e+02       2.86e+06    
-           3              4         1.6966e+05      6.50e+03       3.83e+02       2.58e+06    
-           4              5         1.6838e+05      1.28e+03       5.26e+01       4.22e+04    
-           5              6         1.6826e+05      1.20e+02       3.51e+01       2.76e+04    
-           6              7         1.6823e+05      3.36e+01       6.40e+00       2.63e+03    
+           0              1         6.3994e+06                                    2.28e+08    
+           1              2         2.0983e+05      6.19e+06       1.34e+03       3.05e+06    
+           2              3         1.7394e+05      3.59e+04       3.33e+02       2.75e+06    
+           3              4         1.7101e+05      2.93e+03       2.00e+02       9.82e+05    
+           4              5         1.7060e+05      4.08e+02       5.12e+01       5.44e+04    
+           5              6         1.7049e+05      1.07e+02       1.62e+01       1.17e+04    
+           6              7         1.7041e+05      7.72e+01       1.12e+01       9.44e+03    
+           7              8         1.7040e+05      1.16e+01       3.83e+00       1.85e+03    
     `xtol` termination condition is satisfied.
-    Function evaluations 7, initial cost 1.0057e+07, final cost 1.6823e+05, first-order optimality 2.63e+03.
+    Function evaluations 8, initial cost 6.3994e+06, final cost 1.7040e+05, first-order optimality 1.85e+03.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         4.1548e+05                                    1.57e+05    
-           1              4         4.1096e+05      4.52e+03       8.80e+00       4.91e+05    
+           0              1         4.3572e+05                                    2.33e+07    
+           1              2         4.3123e+05      4.49e+03       1.21e+02       7.23e+06    
+           2              3         4.2657e+05      4.66e+03       3.96e+01       1.86e+05    
+           3              4         4.2266e+05      3.90e+03       7.56e+01       8.44e+05    
+           4              6         4.2159e+05      1.08e+03       1.26e+01       1.08e+05    
     `xtol` termination condition is satisfied.
-    Function evaluations 4, initial cost 4.1548e+05, final cost 4.1096e+05, first-order optimality 4.91e+05.
+    Function evaluations 6, initial cost 4.3572e+05, final cost 4.2159e+05, first-order optimality 1.08e+05.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         7.9439e+05                                    3.38e+08    
-           1              2         3.9981e+05      3.95e+05       3.22e+02       1.34e+09    
-           2              3         3.2477e+05      7.50e+04       6.35e+01       1.01e+08    
-           3              4         3.1665e+05      8.12e+03       5.29e+01       3.62e+06    
-           4              5         2.4815e+05      6.85e+04       3.63e+01       2.78e+07    
-           5              6         2.3546e+05      1.27e+04       1.13e+01       1.07e+06    
-           6              7         2.3272e+05      2.74e+03       1.10e+01       1.02e+08    
-           7              8         1.7410e+05      5.86e+04       1.60e+01       4.12e+08    
-           8              9         1.5142e+05      2.27e+04       3.50e+01       1.85e+08    
-           9             10         1.4754e+05      3.89e+03       1.83e+01       3.23e+06    
-          10             12         1.4665e+05      8.90e+02       7.12e+00       8.35e+07    
+           0              1         7.5706e+05                                    3.29e+08    
+           1              2         3.8782e+05      3.69e+05       7.64e+01       9.39e+08    
+           2              3         3.2543e+05      6.24e+04       8.78e+01       1.38e+08    
+           3              4         3.1700e+05      8.43e+03       5.54e+01       2.04e+07    
+           4              8         3.1700e+05      0.00e+00       0.00e+00       2.04e+07    
     `xtol` termination condition is satisfied.
-    Function evaluations 12, initial cost 7.9439e+05, final cost 1.4665e+05, first-order optimality 8.35e+07.
+    Function evaluations 8, initial cost 7.5706e+05, final cost 3.1700e+05, first-order optimality 2.04e+07.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         5.8296e+06                                    1.55e+08    
-           1              2         3.2022e+05      5.51e+06       1.75e+03       5.08e+06    
-           2              3         2.0592e+05      1.14e+05       3.14e+02       1.01e+06    
-           3              4         2.0076e+05      5.17e+03       1.00e+02       1.46e+05    
-           4              5         1.9986e+05      8.99e+02       1.76e+01       1.45e+04    
-           5              6         1.9922e+05      6.37e+02       1.61e+01       1.01e+04    
-           6              7         1.9894e+05      2.84e+02       6.47e+00       6.17e+03    
+           0              1         7.0710e+06                                    1.52e+08    
+           1              2         3.4868e+05      6.72e+06       1.77e+03       5.98e+06    
+           2              3         2.0752e+05      1.41e+05       3.86e+02       8.24e+05    
+           3              4         2.0277e+05      4.75e+03       1.83e+02       2.39e+05    
+           4              5         2.0223e+05      5.37e+02       2.80e+01       7.99e+03    
+           5              6         2.0200e+05      2.33e+02       1.43e+01       7.54e+03    
+           6              7         2.0179e+05      2.10e+02       9.62e+00       3.98e+03    
+           7              8         2.0172e+05      7.30e+01       9.12e+00       4.17e+03    
+           8              9         2.0167e+05      4.73e+01       3.88e+00       1.89e+03    
     `xtol` termination condition is satisfied.
-    Function evaluations 7, initial cost 5.8296e+06, final cost 1.9894e+05, first-order optimality 6.17e+03.
+    Function evaluations 9, initial cost 7.0710e+06, final cost 2.0167e+05, first-order optimality 1.89e+03.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         3.4559e+05                                    8.35e+07    
-           1              4         3.4559e+05      0.00e+00       0.00e+00       8.35e+07    
+           0              1         5.2007e+05                                    1.93e+07    
+           1              4         5.2007e+05      0.00e+00       0.00e+00       1.93e+07    
     `xtol` termination condition is satisfied.
-    Function evaluations 4, initial cost 3.4559e+05, final cost 3.4559e+05, first-order optimality 8.35e+07.
+    Function evaluations 4, initial cost 5.2007e+05, final cost 5.2007e+05, first-order optimality 1.93e+07.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         1.4847e+06                                    1.03e+09    
-           1              2         4.4914e+05      1.04e+06       5.91e+02       1.67e+08    
-           2              3         2.6054e+05      1.89e+05       1.34e+02       3.08e+06    
-           3              4         2.2090e+05      3.96e+04       2.96e+01       7.62e+05    
-           4              5         2.1912e+05      1.78e+03       1.77e+01       1.82e+07    
-           5              7         2.1912e+05      0.00e+00       0.00e+00       1.82e+07    
+           0              1         1.3655e+06                                    1.02e+09    
+           1              2         4.7989e+05      8.86e+05       2.77e+02       1.10e+08    
+           2              3         3.0353e+05      1.76e+05       7.57e+01       4.65e+08    
+           3              4         2.2474e+05      7.88e+04       2.40e+01       1.91e+08    
+           4              5         2.2177e+05      2.97e+03       5.55e+00       3.23e+07    
     `xtol` termination condition is satisfied.
-    Function evaluations 7, initial cost 1.4847e+06, final cost 2.1912e+05, first-order optimality 1.82e+07.
+    Function evaluations 5, initial cost 1.3655e+06, final cost 2.2177e+05, first-order optimality 3.23e+07.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         5.7383e+06                                    2.03e+08    
-           1              2         1.9917e+05      5.54e+06       1.00e+03       3.89e+06    
-           2              3         1.4577e+05      5.34e+04       1.91e+02       1.69e+06    
-           3              4         1.4086e+05      4.91e+03       2.62e+02       3.16e+06    
-           4              5         1.3968e+05      1.18e+03       1.48e+01       2.91e+04    
-           5              6         1.3963e+05      4.60e+01       8.90e+00       7.39e+03    
-           6              7         1.3963e+05      5.76e+00       2.03e+00       5.71e+02    
+           0              1         6.9238e+06                                    2.05e+08    
+           1              2         2.2835e+05      6.70e+06       1.02e+03       5.06e+06    
+           2              3         1.4671e+05      8.16e+04       2.54e+02       1.75e+06    
+           3              4         1.4018e+05      6.53e+03       2.92e+02       3.19e+06    
+           4              5         1.3881e+05      1.37e+03       1.75e+01       2.44e+04    
+           5              6         1.3874e+05      6.95e+01       1.45e+01       1.29e+04    
+           6              7         1.3872e+05      2.29e+01       5.83e+00       3.33e+03    
     `xtol` termination condition is satisfied.
-    Function evaluations 7, initial cost 5.7383e+06, final cost 1.3963e+05, first-order optimality 5.71e+02.
+    Function evaluations 7, initial cost 6.9238e+06, final cost 1.3872e+05, first-order optimality 3.33e+03.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         3.5925e+05                                    1.90e+07    
-           1              3         3.5925e+05      0.00e+00       0.00e+00       1.90e+07    
+           0              1         3.6049e+05                                    3.37e+07    
+           1              5         3.6049e+05      0.00e+00       0.00e+00       3.37e+07    
     `xtol` termination condition is satisfied.
-    Function evaluations 3, initial cost 3.5925e+05, final cost 3.5925e+05, first-order optimality 1.90e+07.
+    Function evaluations 5, initial cost 3.6049e+05, final cost 3.6049e+05, first-order optimality 3.37e+07.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         2.4721e+06                                    5.18e+09    
-           1              2         6.3695e+05      1.84e+06       4.24e+02       5.09e+07    
-           2              3         3.6183e+05      2.75e+05       8.47e+01       6.47e+05    
-           3              4         2.9115e+05      7.07e+04       8.34e+01       5.16e+07    
-           4              5         2.7035e+05      2.08e+04       3.48e+01       2.00e+07    
-           5              6         2.1458e+05      5.58e+04       2.44e+01       3.38e+05    
-           6              7         2.0716e+05      7.42e+03       3.14e+01       1.22e+08    
-           7              8         1.6558e+05      4.16e+04       3.53e+01       1.36e+08    
-           8              9         1.5808e+05      7.50e+03       1.92e+01       4.68e+06    
-           9             11         1.5795e+05      1.25e+02       1.33e+00       2.79e+07    
+           0              1         2.5818e+06                                    5.30e+09    
+           1              2         7.5402e+05      1.83e+06       1.18e+02       2.22e+06    
+           2              3         3.9721e+05      3.57e+05       3.05e+02       1.06e+06    
+           3              4         3.0068e+05      9.65e+04       1.27e+02       4.31e+05    
+           4              5         2.6962e+05      3.11e+04       4.11e+01       1.39e+07    
+           5              6         2.0430e+05      6.53e+04       1.14e+01       1.32e+05    
     `xtol` termination condition is satisfied.
-    Function evaluations 11, initial cost 2.4721e+06, final cost 1.5795e+05, first-order optimality 2.79e+07.
+    Function evaluations 6, initial cost 2.5818e+06, final cost 2.0430e+05, first-order optimality 1.32e+05.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         3.6847e+06                                    1.04e+08    
-           1              2         1.7468e+05      3.51e+06       1.14e+03       2.35e+06    
-           2              3         1.4885e+05      2.58e+04       2.25e+02       1.10e+06    
-           3              4         1.4676e+05      2.08e+03       4.19e+02       2.97e+06    
-           4              5         1.4419e+05      2.57e+03       4.15e+01       1.64e+04    
-           5              6         1.4407e+05      1.24e+02       5.06e+01       2.83e+04    
-           6              7         1.4390e+05      1.68e+02       1.96e+01       6.74e+03    
-           7              8         1.4388e+05      2.26e+01       4.18e+00       2.03e+03    
+           0              1         4.4849e+06                                    1.08e+08    
+           1              2         1.8872e+05      4.30e+06       1.23e+03       3.10e+06    
+           2              3         1.4935e+05      3.94e+04       2.64e+02       9.27e+05    
+           3              4         1.4584e+05      3.51e+03       4.73e+02       2.72e+06    
+           4              5         1.4379e+05      2.05e+03       8.01e+01       3.78e+04    
+           5              6         1.4371e+05      8.44e+01       1.41e+01       8.18e+03    
+           6              7         1.4368e+05      3.07e+01       5.59e+00       7.60e+02    
     `xtol` termination condition is satisfied.
-    Function evaluations 8, initial cost 3.6847e+06, final cost 1.4388e+05, first-order optimality 2.03e+03.
+    Function evaluations 7, initial cost 4.4849e+06, final cost 1.4368e+05, first-order optimality 7.60e+02.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         3.0183e+05                                    2.71e+07    
-           1              5         3.0170e+05      1.30e+02       2.96e+01       3.88e+05    
-           2              6         3.0146e+05      2.37e+02       2.52e+01       6.79e+06    
-           3              7         3.0146e+05      0.00e+00       0.00e+00       6.79e+06    
+           0              1         3.4798e+05                                    1.32e+05    
+           1              3         3.4744e+05      5.37e+02       2.13e+01       6.80e+05    
+           2              4         3.4708e+05      3.67e+02       1.21e+01       2.85e+04    
     `xtol` termination condition is satisfied.
-    Function evaluations 7, initial cost 3.0183e+05, final cost 3.0146e+05, first-order optimality 6.79e+06.
+    Function evaluations 4, initial cost 3.4798e+05, final cost 3.4708e+05, first-order optimality 2.85e+04.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         1.6120e+06                                    1.60e+09    
-           1              2         5.1549e+05      1.10e+06       6.21e+01       6.07e+08    
-           2              3         2.8229e+05      2.33e+05       2.21e+02       3.87e+08    
-           3              4         2.2593e+05      5.64e+04       1.29e+02       7.75e+07    
-           4              5         2.1564e+05      1.03e+04       7.40e+01       1.04e+07    
-           5              6         2.1295e+05      2.69e+03       3.79e+01       2.34e+08    
-           6              7         1.8979e+05      2.32e+04       1.85e+01       2.83e+08    
-           7              8         1.8179e+05      8.00e+03       6.66e+00       1.53e+08    
+           0              1         1.8066e+06                                    1.63e+09    
+           1              2         6.1492e+05      1.19e+06       2.87e+02       5.89e+08    
+           2              3         2.7474e+05      3.40e+05       3.74e+02       4.48e+07    
+           3              4         2.2343e+05      5.13e+04       1.86e+02       1.86e+08    
+           4              5         1.9374e+05      2.97e+04       6.51e+01       3.16e+08    
+           5              6         1.7929e+05      1.44e+04       2.85e+01       4.33e+07    
+           6              8         1.7829e+05      1.00e+03       2.96e+00       2.91e+07    
     `xtol` termination condition is satisfied.
-    Function evaluations 8, initial cost 1.6120e+06, final cost 1.8179e+05, first-order optimality 1.53e+08.
+    Function evaluations 8, initial cost 1.8066e+06, final cost 1.7829e+05, first-order optimality 2.91e+07.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         1.7855e+05                                    1.56e+07    
-           1              2         3.7811e+04      1.41e+05       4.06e+02       2.31e+05    
-           2              3         3.6114e+04      1.70e+03       2.22e+02       2.64e+05    
-           3              4         3.6018e+04      9.64e+01       6.50e+01       4.83e+04    
-           4              5         3.5929e+04      8.88e+01       2.92e+01       9.59e+03    
-           5              6         3.5917e+04      1.22e+01       1.59e+01       4.10e+03    
-           6              7         3.5884e+04      3.28e+01       1.61e+01       2.81e+03    
-           7              8         3.5881e+04      3.25e+00       1.50e+01       3.46e+03    
-           8              9         3.5856e+04      2.45e+01       9.21e+00       1.68e+03    
-           9             10         3.5842e+04      1.41e+01       3.60e+00       4.94e+02    
+           0              1         2.8081e+05                                    1.89e+07    
+           1              2         3.7898e+04      2.43e+05       4.11e+02       7.23e+04    
+           2              3         3.6183e+04      1.71e+03       2.16e+02       2.46e+05    
+           3              4         3.6080e+04      1.03e+02       1.44e+02       1.54e+05    
+           4              5         3.5881e+04      1.99e+02       4.16e+01       1.68e+04    
+           5              6         3.5818e+04      6.29e+01       9.03e+00       2.36e+03    
+           6              7         3.5777e+04      4.09e+01       1.32e+01       1.60e+03    
+           7              8         3.5771e+04      5.89e+00       1.31e+01       2.72e+03    
+           8              9         3.5749e+04      2.19e+01       7.96e+00       1.41e+03    
+           9             10         3.5735e+04      1.43e+01       2.34e+00       3.25e+02    
     `xtol` termination condition is satisfied.
-    Function evaluations 10, initial cost 1.7855e+05, final cost 3.5842e+04, first-order optimality 4.94e+02.
+    Function evaluations 10, initial cost 2.8081e+05, final cost 3.5735e+04, first-order optimality 3.25e+02.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         2.1763e+05                                    1.53e+08    
-           1              2         2.0570e+05      1.19e+04       4.80e+01       3.16e+07    
-           2              3         1.8172e+05      2.40e+04       1.78e+01       6.51e+06    
-           3              4         1.7996e+05      1.76e+03       1.44e+01       9.34e+05    
-           4              7         1.7996e+05      0.00e+00       0.00e+00       9.34e+05    
+           0              1         2.1402e+05                                    2.89e+07    
+           1              2         2.0569e+05      8.34e+03       7.18e+01       4.41e+06    
+           2              3         1.9129e+05      1.44e+04       3.07e+01       8.12e+07    
+           3              4         1.8303e+05      8.26e+03       1.74e+01       2.21e+05    
+           4              6         1.8210e+05      9.23e+02       3.48e+00       1.34e+07    
     `xtol` termination condition is satisfied.
-    Function evaluations 7, initial cost 2.1763e+05, final cost 1.7996e+05, first-order optimality 9.34e+05.
+    Function evaluations 6, initial cost 2.1402e+05, final cost 1.8210e+05, first-order optimality 1.34e+07.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         1.1295e+06                                    6.81e+08    
-           1              2         4.6309e+05      6.66e+05       1.05e+03       7.18e+06    
-           2              3         3.1354e+05      1.50e+05       1.87e+02       2.65e+06    
-           3              4         2.8504e+05      2.85e+04       8.98e+01       5.65e+07    
-           4              5         2.5496e+05      3.01e+04       1.15e+02       4.24e+08    
-           5              6         2.2394e+05      3.10e+04       8.12e+01       1.70e+06    
-           6              7         1.8232e+05      4.16e+04       1.47e+02       1.59e+05    
-           7              8         1.7799e+05      4.33e+03       9.06e+01       4.07e+07    
-           8              9         1.7548e+05      2.51e+03       1.26e+02       6.66e+04    
-           9             10         1.7499e+05      4.83e+02       1.14e+02       1.11e+05    
-          10             11         1.7363e+05      1.36e+03       5.08e+01       6.12e+06    
-          11             12         1.7337e+05      2.60e+02       4.50e+01       5.28e+05    
-          12             13         1.7310e+05      2.75e+02       1.77e+01       4.83e+04    
-          13             15         1.7298e+05      1.21e+02       2.61e+00       1.18e+07    
+           0              1         1.0571e+06                                    6.81e+08    
+           1              2         4.5038e+05      6.07e+05       9.22e+02       6.96e+06    
+           2              3         3.1125e+05      1.39e+05       1.65e+02       2.51e+06    
+           3              4         2.8334e+05      2.79e+04       9.16e+01       2.62e+08    
+           4              5         2.1536e+05      6.80e+04       1.23e+02       7.89e+07    
+           5              6         1.9089e+05      2.45e+04       9.07e+01       1.50e+08    
+           6              7         1.8196e+05      8.93e+03       1.36e+02       8.36e+07    
+           7             10         1.7615e+05      5.80e+03       1.01e+00       3.80e+08    
     `xtol` termination condition is satisfied.
-    Function evaluations 15, initial cost 1.1295e+06, final cost 1.7298e+05, first-order optimality 1.18e+07.
+    Function evaluations 10, initial cost 1.0571e+06, final cost 1.7615e+05, first-order optimality 3.80e+08.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         7.5420e+05                                    1.01e+07    
-           1              2         2.3952e+05      5.15e+05       7.30e+02       1.15e+07    
-           2              6         1.8141e+05      5.81e+04       3.02e+02       5.47e+06    
-           3              7         1.3944e+05      4.20e+04       2.86e+02       4.01e+06    
-           4              8         1.3535e+05      4.09e+03       1.88e+02       3.05e+06    
-           5              9         1.1091e+05      2.44e+04       7.77e+02       1.15e+07    
-           6             10         8.9302e+04      2.16e+04       4.41e+01       1.28e+05    
-           7             11         8.6803e+04      2.50e+03       5.59e+01       1.22e+05    
-           8             12         8.6621e+04      1.83e+02       5.41e+01       2.41e+05    
-           9             13         8.6608e+04      1.29e+01       4.61e+00       1.56e+04    
+           0              1         3.7344e+05                                    3.45e+07    
+           1              2         1.0737e+05      2.66e+05       6.79e+02       1.01e+07    
+           2              3         8.2558e+04      2.48e+04       2.77e+02       1.59e+06    
+           3              4         8.1314e+04      1.24e+03       3.01e+01       6.25e+04    
+           4              5         8.1272e+04      4.18e+01       1.32e+01       3.17e+04    
+           5              6         8.1173e+04      9.86e+01       1.30e+01       1.38e+04    
+           6              7         8.1114e+04      5.96e+01       8.78e+00       6.11e+03    
+           7              8         8.1069e+04      4.48e+01       5.27e+00       6.99e+03    
     `xtol` termination condition is satisfied.
-    Function evaluations 13, initial cost 7.5420e+05, final cost 8.6608e+04, first-order optimality 1.56e+04.
+    Function evaluations 8, initial cost 3.7344e+05, final cost 8.1069e+04, first-order optimality 6.99e+03.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         2.5958e+05                                    1.28e+07    
-           1              6         2.5958e+05      0.00e+00       0.00e+00       1.28e+07    
+           0              1         2.5722e+05                                    3.81e+08    
+           1              2         2.5268e+05      4.55e+03       3.49e+02       9.22e+07    
+           2              7         2.4650e+05      6.17e+03       9.49e+00       6.79e+05    
     `xtol` termination condition is satisfied.
-    Function evaluations 6, initial cost 2.5958e+05, final cost 2.5958e+05, first-order optimality 1.28e+07.
+    Function evaluations 7, initial cost 2.5722e+05, final cost 2.4650e+05, first-order optimality 6.79e+05.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         3.7619e+05                                    1.24e+09    
-           1              2         2.7788e+05      9.83e+04       3.46e+02       3.35e+06    
-           2              3         2.3369e+05      4.42e+04       6.42e+01       2.74e+05    
-           3              4         2.2010e+05      1.36e+04       2.11e+01       2.57e+05    
-           4              6         2.1742e+05      2.69e+03       5.00e+00       8.11e+07    
+           0              1         3.7576e+05                                    1.23e+09    
+           1              2         2.7527e+05      1.00e+05       8.43e+01       3.17e+06    
+           2              3         2.3316e+05      4.21e+04       6.62e+01       2.87e+05    
+           3              4         2.1956e+05      1.36e+04       1.96e+01       2.28e+05    
+           4              6         2.1753e+05      2.03e+03       6.24e+00       9.66e+07    
     `xtol` termination condition is satisfied.
-    Function evaluations 6, initial cost 3.7619e+05, final cost 2.1742e+05, first-order optimality 8.11e+07.
+    Function evaluations 6, initial cost 3.7576e+05, final cost 2.1753e+05, first-order optimality 9.66e+07.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         8.3428e+05                                    1.47e+06    
-           1              2         2.2513e+05      6.09e+05       6.05e+02       3.32e+05    
-           2              3         1.1915e+05      1.06e+05       2.73e+02       7.28e+04    
-           3              4         9.6150e+04      2.30e+04       2.88e+02       6.03e+04    
-           4              7         9.3921e+04      2.23e+03       2.70e+02       3.71e+05    
-           5              8         9.2366e+04      1.56e+03       5.35e+02       9.38e+05    
-           6              9         9.1167e+04      1.20e+03       5.37e+02       4.12e+05    
-           7             10         9.0221e+04      9.46e+02       1.07e+03       9.39e+05    
-           8             11         8.9521e+04      7.00e+02       1.05e+03       3.66e+05    
-           9             12         8.9077e+04      4.44e+02       2.06e+03       6.52e+05    
-          10             13         8.8790e+04      2.87e+02       2.00e+03       2.58e+05    
-          11             14         8.8597e+04      1.92e+02       3.84e+03       4.17e+05    
-          12             15         8.8469e+04      1.28e+02       3.54e+03       1.29e+05    
-          13             16         8.8371e+04      9.87e+01       6.47e+03       1.97e+05    
-          14             17         8.8293e+04      7.73e+01       1.05e+04       1.88e+05    
-          15             18         8.8279e+04      1.49e+01       2.34e+03       5.19e+03    
-          16             19         8.8276e+04      2.46e+00       5.90e+02       1.41e+03    
-          17             20         8.8276e+04      2.30e-02       6.74e+00       1.42e+02    
+           0              1         9.4108e+05                                    2.01e+06    
+           1              2         2.4927e+05      6.92e+05       5.84e+02       3.72e+05    
+           2              3         1.2565e+05      1.24e+05       2.79e+02       8.24e+04    
+           3              4         9.7301e+04      2.83e+04       2.85e+02       3.42e+04    
+           4              5         9.6158e+04      1.14e+03       9.95e+02       4.75e+06    
+           5              6         9.1970e+04      4.19e+03       2.90e+03       4.58e+06    
+           6              7         8.8662e+04      3.31e+03       2.78e+03       3.47e+05    
+           7              8         8.8445e+04      2.18e+02       2.70e+03       3.61e+05    
+           8              9         8.8353e+04      9.23e+01       4.37e+03       6.23e+05    
+           9             10         8.8267e+04      8.61e+01       2.70e+03       1.60e+05    
+          10             11         8.8242e+04      2.50e+01       4.75e+03       3.91e+05    
+          11             12         8.8213e+04      2.88e+01       1.41e+03       2.87e+04    
+          12             13         8.8205e+04      7.78e+00       5.83e+03       3.74e+05    
+          13             14         8.8188e+04      1.73e+01       4.96e+02       3.86e+03    
+          14             15         8.8180e+04      7.70e+00       4.60e+03       1.62e+05    
+          15             16         8.8177e+04      3.07e+00       1.75e+02       9.80e+02    
+          16             17         8.8175e+04      1.76e+00       1.04e+03       7.32e+03    
+          17             18         8.8175e+04      8.49e-02       4.68e+01       1.01e+02    
+          18             19         8.8175e+04      2.03e-02       1.26e+01       1.46e+01    
     `xtol` termination condition is satisfied.
-    Function evaluations 20, initial cost 8.3428e+05, final cost 8.8276e+04, first-order optimality 1.42e+02.
+    Function evaluations 19, initial cost 9.4108e+05, final cost 8.8175e+04, first-order optimality 1.46e+01.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         3.0569e+05                                    8.12e+07    
-           1              2         3.0406e+05      1.63e+03       5.10e+02       1.01e+05    
-           2              3         3.0381e+05      2.49e+02       7.14e+01       1.13e+07    
-           3              4         3.0320e+05      6.12e+02       7.69e+01       8.81e+05    
-           4              5         3.0312e+05      8.29e+01       3.81e+01       4.77e+03    
+           0              1         3.0571e+05                                    9.68e+07    
+           1              2         3.0400e+05      1.70e+03       2.34e+02       2.01e+05    
+           2              3         3.0360e+05      3.98e+02       3.93e+01       3.83e+06    
     `xtol` termination condition is satisfied.
-    Function evaluations 5, initial cost 3.0569e+05, final cost 3.0312e+05, first-order optimality 4.77e+03.
+    Function evaluations 3, initial cost 3.0571e+05, final cost 3.0360e+05, first-order optimality 3.83e+06.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         2.3174e+06                                    2.67e+08    
-           1              2         3.0711e+05      2.01e+06       3.26e+03       9.12e+08    
-           2              3         2.3935e+05      6.78e+04       8.19e+01       3.82e+06    
-           3              4         1.6774e+05      7.16e+04       1.40e+02       7.18e+05    
-           4              5         1.5700e+05      1.07e+04       1.41e+01       6.64e+05    
+           0              1         2.8006e+06                                    2.56e+08    
+           1              2         3.0707e+05      2.49e+06       3.79e+03       1.13e+09    
+           2              3         2.4559e+05      6.15e+04       6.59e+01       4.40e+06    
+           3              4         1.8983e+05      5.58e+04       1.24e+02       1.97e+06    
+           4              5         1.5678e+05      3.30e+04       2.70e+01       1.99e+05    
+           5              6         1.5625e+05      5.31e+02       1.65e+01       4.58e+05    
+           6              7         1.5180e+05      4.45e+03       2.71e+00       1.26e+04    
     `xtol` termination condition is satisfied.
-    Function evaluations 5, initial cost 2.3174e+06, final cost 1.5700e+05, first-order optimality 6.64e+05.
+    Function evaluations 7, initial cost 2.8006e+06, final cost 1.5180e+05, first-order optimality 1.26e+04.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         2.1263e+06                                    1.60e+07    
-           1              2         4.1736e+05      1.71e+06       6.13e+02       1.35e+06    
-           2              3         1.7793e+05      2.39e+05       4.08e+02       1.55e+05    
-           3              4         1.4075e+05      3.72e+04       3.33e+02       2.80e+04    
-           4              5         1.3690e+05      3.84e+03       1.69e+02       2.54e+05    
-           5              8         1.3584e+05      1.06e+03       3.45e+02       1.08e+06    
-           6              9         1.3504e+05      8.07e+02       3.45e+02       4.32e+05    
-           7             10         1.3460e+05      4.36e+02       6.87e+02       1.28e+06    
-           8             11         1.3416e+05      4.36e+02       6.82e+02       5.76e+05    
-           9             12         1.3408e+05      8.87e+01       4.63e+02       2.69e+05    
-          10             13         1.3403e+05      4.46e+01       1.87e+02       2.43e+04    
-          11             14         1.3401e+05      2.14e+01       8.58e+02       6.76e+05    
-          12             15         1.3397e+05      3.68e+01       1.62e+02       7.01e+03    
-          13             16         1.3397e+05      1.42e-01       6.68e+01       2.56e+03    
-          14             17         1.3397e+05      1.97e-02       1.12e+01       6.61e+01    
-          15             18         1.3397e+05      3.36e-03       4.49e+00       1.80e+01    
+           0              1         1.7835e+06                                    1.41e+07    
+           1              2         3.6842e+05      1.42e+06       5.72e+02       1.14e+06    
+           2              3         1.6929e+05      1.99e+05       4.06e+02       1.32e+05    
+           3              4         1.3992e+05      2.94e+04       2.97e+02       2.32e+04    
+           4              5         1.3665e+05      3.27e+03       2.12e+02       4.04e+05    
+           5              7         1.3646e+05      1.89e+02       6.99e+02       3.04e+06    
+           6              8         1.3472e+05      1.74e+03       1.71e+02       2.49e+04    
+           7              9         1.3443e+05      2.87e+02       3.48e+02       2.69e+05    
+           8             10         1.3425e+05      1.86e+02       6.93e+02       7.26e+05    
+           9             11         1.3411e+05      1.39e+02       4.95e+02       2.62e+05    
+          10             12         1.3407e+05      3.23e+01       1.44e+02       2.41e+04    
+          11             13         1.3404e+05      3.24e+01       1.01e+03       8.88e+05    
+          12             14         1.3397e+05      6.76e+01       1.85e+02       3.81e+03    
+          13             15         1.3397e+05      3.20e-01       9.24e+01       4.73e+03    
+          14             16         1.3397e+05      5.00e-02       1.94e+01       1.35e+02    
+          15             17         1.3397e+05      1.04e-02       1.08e+01       7.65e+01    
     `xtol` termination condition is satisfied.
-    Function evaluations 18, initial cost 2.1263e+06, final cost 1.3397e+05, first-order optimality 1.80e+01.
+    Function evaluations 17, initial cost 1.7835e+06, final cost 1.3397e+05, first-order optimality 7.65e+01.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         2.9097e+05                                    6.64e+05    
-           1              2         2.8678e+05      4.19e+03       3.99e+01       4.67e+05    
-           2              3         2.8568e+05      1.10e+03       5.42e+01       3.63e+05    
-           3              5         2.8568e+05      0.00e+00       0.00e+00       3.63e+05    
+           0              1         2.8578e+05                                    1.26e+04    
+           1              2         2.8543e+05      3.47e+02       2.23e+02       1.31e+07    
+           2              3         2.8512e+05      3.11e+02       8.22e+01       4.15e+05    
+           3              4         2.8512e+05      0.00e+00       0.00e+00       4.15e+05    
     `xtol` termination condition is satisfied.
-    Function evaluations 5, initial cost 2.9097e+05, final cost 2.8568e+05, first-order optimality 3.63e+05.
+    Function evaluations 4, initial cost 2.8578e+05, final cost 2.8512e+05, first-order optimality 4.15e+05.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         1.7482e+06                                    9.24e+08    
-           1              2         7.3413e+05      1.01e+06       1.13e+02       9.24e+08    
-           2              3         5.7281e+05      1.61e+05       1.77e+02       2.94e+08    
-           3              4         4.9397e+05      7.88e+04       5.18e+01       1.24e+09    
-           4              5         3.9810e+05      9.59e+04       5.02e+01       4.31e+07    
-           5              6         3.6732e+05      3.08e+04       2.91e+01       1.73e+07    
-           6              7         3.2846e+05      3.89e+04       2.87e+01       7.87e+07    
-           7              8         3.1071e+05      1.77e+04       3.01e+01       2.53e+08    
-           8             10         3.0761e+05      3.10e+03       3.25e+00       2.05e+08    
+           0              1         2.0081e+06                                    9.30e+08    
+           1              2         8.0703e+05      1.20e+06       5.31e+02       1.30e+09    
+           2              3         5.7396e+05      2.33e+05       1.35e+02       8.03e+08    
+           3              4         4.2233e+05      1.52e+05       2.21e+02       4.41e+08    
+           4              5         3.9085e+05      3.15e+04       4.80e+01       1.10e+08    
+           5              6         3.6960e+05      2.13e+04       3.97e+01       1.65e+07    
+           6              7         3.1470e+05      5.49e+04       3.89e+01       2.77e+08    
+           7              8         3.0189e+05      1.28e+04       2.18e+01       4.84e+08    
+           8              9         2.8048e+05      2.14e+04       2.91e+01       8.34e+08    
+           9             10         2.4405e+05      3.64e+04       1.43e+01       1.95e+08    
+          10             11         2.4264e+05      1.41e+03       1.90e+01       3.12e+07    
+          11             12         2.4187e+05      7.79e+02       2.56e+00       1.02e+07    
     `xtol` termination condition is satisfied.
-    Function evaluations 10, initial cost 1.7482e+06, final cost 3.0761e+05, first-order optimality 2.05e+08.
+    Function evaluations 12, initial cost 2.0081e+06, final cost 2.4187e+05, first-order optimality 1.02e+07.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         6.7592e+06                                    2.21e+07    
-           1              2         1.2449e+06      5.51e+06       6.98e+02       2.64e+06    
-           2              3         2.9870e+05      9.46e+05       4.60e+02       4.76e+05    
-           3              4         1.4503e+05      1.54e+05       1.74e+02       1.02e+05    
-           4              5         9.2347e+04      5.27e+04       2.28e+02       8.94e+05    
-           5              6         8.4214e+04      8.13e+03       7.38e+02       1.65e+07    
-           6              7         7.0500e+04      1.37e+04       1.25e+03       7.90e+06    
-           7              8         6.7362e+04      3.14e+03       1.67e+03       2.52e+06    
-           8              9         6.7081e+04      2.82e+02       1.04e+03       1.24e+06    
-           9             10         6.7035e+04      4.59e+01       6.89e+02       4.62e+05    
-          10             11         6.7027e+04      7.26e+00       4.08e+02       1.48e+05    
-          11             12         6.7027e+04      7.86e-01       1.63e+02       2.17e+04    
-          12             13         6.7027e+04      1.94e-02       3.17e+01       7.48e+02    
-          13             14         6.7027e+04      8.95e-05       2.59e+00       5.69e+00    
+           0              1         5.2633e+06                                    1.83e+07    
+           1              2         9.8343e+05      4.28e+06       6.38e+02       2.01e+06    
+           2              3         2.3658e+05      7.47e+05       4.80e+02       3.83e+05    
+           3              4         1.2037e+05      1.16e+05       1.72e+02       8.03e+04    
+           4              5         8.0513e+04      3.99e+04       2.45e+02       1.36e+06    
+           5              6         7.8625e+04      1.89e+03       7.91e+02       1.28e+07    
+           6              7         6.8718e+04      9.91e+03       1.08e+03       5.20e+06    
+           7              8         6.7027e+04      1.69e+03       1.51e+03       2.32e+06    
+           8              9         6.6739e+04      2.88e+02       8.16e+02       6.13e+05    
+           9             10         6.6721e+04      1.88e+01       5.96e+02       3.10e+05    
+          10             11         6.6717e+04      3.75e+00       2.28e+02       3.43e+04    
+          11             12         6.6717e+04      1.07e-01       7.32e+01       3.30e+03    
+          12             13         6.6717e+04      3.38e-03       1.53e+01       1.06e+02    
+          13             14         6.6717e+04      9.31e-05       2.48e+00       5.27e+00    
     Both `ftol` and `xtol` termination conditions are satisfied.
-    Function evaluations 14, initial cost 6.7592e+06, final cost 6.7027e+04, first-order optimality 5.69e+00.
+    Function evaluations 14, initial cost 5.2633e+06, final cost 6.6717e+04, first-order optimality 5.27e+00.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         3.7464e+05                                    2.07e+08    
-           1              2         3.2929e+05      4.53e+04       1.19e+03       7.67e+08    
-           2              3         3.1624e+05      1.30e+04       7.76e+01       5.31e+08    
-           3              7         3.1265e+05      3.59e+03       2.24e+00       3.91e+08    
+           0              1         3.0858e+05                                    1.16e+07    
+           1              3         3.0414e+05      4.44e+03       9.39e-01       2.33e+05    
     `xtol` termination condition is satisfied.
-    Function evaluations 7, initial cost 3.7464e+05, final cost 3.1265e+05, first-order optimality 3.91e+08.
+    Function evaluations 3, initial cost 3.0858e+05, final cost 3.0414e+05, first-order optimality 2.33e+05.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         8.4155e+05                                    3.68e+09    
-           1              2         3.4017e+05      5.01e+05       3.33e+02       1.28e+09    
-           2              3         2.0528e+05      1.35e+05       5.77e+01       3.24e+05    
-           3              4         1.7909e+05      2.62e+04       4.71e+01       1.99e+07    
-           4              5         1.5313e+05      2.60e+04       4.83e+01       1.18e+08    
-           5              6         1.4649e+05      6.65e+03       4.11e+01       1.85e+08    
-           6              7         1.2716e+05      1.93e+04       1.34e+01       1.21e+08    
-           7              8         1.2240e+05      4.77e+03       4.78e+00       4.02e+07    
+           0              1         8.3663e+05                                    3.76e+09    
+           1              2         3.6919e+05      4.67e+05       1.96e+02       1.10e+09    
+           2              3         2.1342e+05      1.56e+05       1.62e+02       2.44e+05    
+           3              4         1.8208e+05      3.13e+04       4.85e+01       1.07e+08    
+           4              5         1.4060e+05      4.15e+04       5.70e+01       2.43e+08    
+           5              6         1.3283e+05      7.77e+03       3.54e+01       1.94e+08    
+           6              7         1.2601e+05      6.82e+03       3.65e+01       1.45e+07    
+           7              8         1.2275e+05      3.26e+03       1.45e+01       1.11e+05    
+           8              9         1.2275e+05      0.00e+00       0.00e+00       1.11e+05    
     `xtol` termination condition is satisfied.
-    Function evaluations 8, initial cost 8.4155e+05, final cost 1.2240e+05, first-order optimality 4.02e+07.
+    Function evaluations 9, initial cost 8.3663e+05, final cost 1.2275e+05, first-order optimality 1.11e+05.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         2.3068e+06                                    8.74e+06    
-           1              2         4.7823e+05      1.83e+06       5.34e+02       7.78e+05    
-           2              3         1.2496e+05      3.53e+05       5.16e+02       1.72e+05    
-           3              4         6.7161e+04      5.78e+04       2.32e+02       3.72e+04    
-           4              5         4.8969e+04      1.82e+04       2.05e+02       4.11e+04    
-           5              6         4.6282e+04      2.69e+03       1.73e+02       1.35e+05    
-           6              8         4.6103e+04      1.80e+02       7.45e+02       3.06e+06    
-           7              9         4.4378e+04      1.72e+03       1.92e+02       2.74e+04    
-           8             10         4.4102e+04      2.76e+02       3.83e+02       2.25e+05    
-           9             11         4.3915e+04      1.86e+02       7.56e+02       4.99e+05    
-          10             12         4.3734e+04      1.81e+02       7.57e+02       2.26e+05    
-          11             13         4.3696e+04      3.84e+01       1.36e+03       5.57e+05    
-          12             14         4.3636e+04      5.98e+01       1.16e+03       1.51e+05    
-          13             16         4.3609e+04      2.67e+01       7.47e+02       3.28e+05    
-          14             17         4.3588e+04      2.17e+01       6.76e+02       3.88e+04    
-          15             18         4.3575e+04      1.23e+01       1.43e+03       2.29e+05    
-          16             19         4.3564e+04      1.15e+01       1.33e+03       9.53e+04    
-          17             20         4.3559e+04      4.95e+00       2.47e+03       1.96e+05    
-          18             21         4.3553e+04      6.05e+00       2.33e+03       9.04e+04    
-          19             22         4.3552e+04      7.63e-01       4.60e+03       2.16e+05    
-          20             23         4.3549e+04      3.59e+00       1.05e+03       8.00e+03    
-          21             24         4.3548e+04      6.51e-01       2.09e+03       2.45e+04    
-          22             25         4.3547e+04      6.37e-01       3.88e+03       5.50e+04    
-          23             26         4.3547e+04      4.90e-01       1.97e+03       1.12e+04    
-          24             27         4.3546e+04      3.17e-01       3.70e+03       2.64e+04    
-          25             28         4.3546e+04      1.39e-01       1.15e+03       2.77e+03    
-          26             29         4.3546e+04      1.24e-01       2.13e+03       5.99e+03    
-          27             30         4.3546e+04      2.82e-02       4.72e+02       5.14e+02    
-          28             31         4.3546e+04      1.46e-02       2.94e+02       1.76e+02    
-          29             32         4.3546e+04      9.08e-04       1.75e+01       3.12e+01    
+           0              1         1.7837e+06                                    7.30e+06    
+           1              2         3.7776e+05      1.41e+06       4.98e+02       6.27e+05    
+           2              3         1.0572e+05      2.72e+05       5.09e+02       1.37e+05    
+           3              4         6.1178e+04      4.45e+04       2.32e+02       2.94e+04    
+           4              5         4.8324e+04      1.29e+04       1.52e+02       3.60e+04    
+           5              6         4.5892e+04      2.43e+03       2.53e+02       3.79e+05    
+           6              9         4.4966e+04      9.26e+02       2.45e+02       2.87e+05    
+           7             10         4.4418e+04      5.48e+02       5.44e+02       7.41e+05    
+           8             11         4.4217e+04      2.01e+02       1.02e+03       1.01e+06    
+           9             12         4.3734e+04      4.83e+02       1.07e+03       3.31e+05    
+          10             14         4.3680e+04      5.45e+01       5.32e+02       5.98e+04    
+          11             15         4.3666e+04      1.35e+01       5.10e+02       5.06e+04    
+          12             17         4.3643e+04      2.36e+01       5.29e+02       7.26e+04    
+          13             18         4.3635e+04      7.81e+00       3.36e+02       1.93e+04    
+          14             20         4.3623e+04      1.15e+01       5.23e+02       5.81e+04    
+          15             21         4.3619e+04      4.47e+00       3.53e+02       1.75e+04    
+          16             23         4.3613e+04      5.94e+00       5.18e+02       5.23e+04    
+          17             24         4.3610e+04      2.59e+00       3.48e+02       1.57e+04    
+          18             26         4.3607e+04      2.89e+00       5.13e+02       4.58e+04    
+          19             27         4.3606e+04      1.37e+00       3.53e+02       1.49e+04    
+          20             28         4.3605e+04      1.19e+00       5.91e+02       4.80e+04    
+          21             29         4.3604e+04      2.80e-01       7.56e+02       7.58e+04    
+          22             30         4.3604e+04      4.25e-01       3.60e+02       6.33e+03    
+          23             32         4.3604e+04      1.41e-02       3.44e+02       6.93e+03    
+          24             33         4.3604e+04      6.11e-02       1.10e+02       1.04e+03    
+          25             34         4.3604e+04      3.97e-04       8.59e+01       6.90e+02    
+          26             35         4.3604e+04      4.91e-03       3.16e+01       1.13e+02    
+          27             36         4.3604e+04      1.71e-03       6.19e+01       3.61e+02    
+          28             38         4.3604e+04      8.12e-04       1.59e+01       3.41e+01    
+          29             39         4.3604e+04      2.70e-05       5.57e+00       8.49e+00    
+    Both `ftol` and `xtol` termination conditions are satisfied.
+    Function evaluations 39, initial cost 1.7837e+06, final cost 4.3604e+04, first-order optimality 8.49e+00.
+       Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
+           0              1         1.6634e+05                                    2.45e+05    
+           1              2         1.6629e+05      5.14e+01       2.97e+02       5.44e+07    
+           2              3         1.6558e+05      7.12e+02       1.10e+02       1.83e+05    
+           3              5         1.6558e+05      0.00e+00       0.00e+00       1.83e+05    
     `xtol` termination condition is satisfied.
-    Function evaluations 32, initial cost 2.3068e+06, final cost 4.3546e+04, first-order optimality 3.12e+01.
+    Function evaluations 5, initial cost 1.6634e+05, final cost 1.6558e+05, first-order optimality 1.83e+05.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         1.6594e+05                                    4.03e+07    
-           1              2         1.6537e+05      5.72e+02       2.00e+02       4.67e+05    
-           2              4         1.6537e+05      0.00e+00       0.00e+00       4.67e+05    
+           0              1         6.1333e+05                                    4.57e+08    
+           1              2         2.5251e+05      3.61e+05       1.51e+02       9.71e+08    
+           2              3         1.6288e+05      8.96e+04       9.86e+01       2.56e+05    
+           3              4         1.5284e+05      1.00e+04       1.93e+01       2.00e+05    
+           4              5         1.5050e+05      2.34e+03       8.56e+00       4.00e+04    
     `xtol` termination condition is satisfied.
-    Function evaluations 4, initial cost 1.6594e+05, final cost 1.6537e+05, first-order optimality 4.67e+05.
+    Function evaluations 5, initial cost 6.1333e+05, final cost 1.5050e+05, first-order optimality 4.00e+04.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         5.8723e+05                                    4.59e+08    
-           1              2         2.4550e+05      3.42e+05       7.64e+01       1.39e+08    
-           2              3         1.5870e+05      8.68e+04       7.25e+01       9.81e+04    
-           3              5         1.5453e+05      4.17e+03       3.16e+00       2.88e+05    
+           0              1         4.2935e+06                                    1.51e+07    
+           1              2         7.3597e+05      3.56e+06       6.80e+02       2.02e+06    
+           2              3         1.7294e+05      5.63e+05       3.75e+02       2.89e+05    
+           3              4         8.1477e+04      9.15e+04       1.82e+02       6.15e+04    
+           4              5         4.9907e+04      3.16e+04       2.08e+02       6.12e+04    
+           5              6         4.8364e+04      1.54e+03       6.89e+02       8.47e+06    
+           6              7         3.9571e+04      8.79e+03       1.44e+03       4.61e+06    
+           7              8         3.8994e+04      5.77e+02       2.92e+03       5.21e+06    
+           8              9         3.7386e+04      1.61e+03       7.60e+02       1.81e+05    
+           9             11         3.7357e+04      2.84e+01       1.29e+03       4.19e+05    
+          10             13         3.7335e+04      2.23e+01       6.26e+02       7.83e+04    
+          11             14         3.7321e+04      1.38e+01       1.45e+03       3.21e+05    
+          12             15         3.7320e+04      1.14e+00       2.24e+03       7.08e+05    
+          13             16         3.7296e+04      2.40e+01       8.77e+02       5.30e+04    
+          14             17         3.7292e+04      4.17e+00       1.13e+03       1.05e+05    
+          15             18         3.7286e+04      5.79e+00       1.90e+03       2.24e+05    
+          16             19         3.7279e+04      6.53e+00       2.14e+03       2.99e+05    
+          17             21         3.7276e+04      3.74e+00       5.29e+02       2.06e+05    
+          18             23         3.7273e+04      2.44e+00       2.87e+02       1.22e+05    
+          19             25         3.7272e+04      1.36e+00       1.49e+02       4.60e+04    
+          20             26         3.7271e+04      1.05e+00       2.98e+02       2.14e+05    
+          21             27         3.7270e+04      1.17e+00       2.59e+02       2.50e+05    
+          22             28         3.7268e+04      1.94e+00       1.10e+01       2.77e+03    
     `xtol` termination condition is satisfied.
-    Function evaluations 5, initial cost 5.8723e+05, final cost 1.5453e+05, first-order optimality 2.88e+05.
+    Function evaluations 28, initial cost 4.2935e+06, final cost 3.7268e+04, first-order optimality 2.77e+03.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         4.8735e+06                                    1.64e+07    
-           1              2         8.3504e+05      4.04e+06       7.04e+02       2.24e+06    
-           2              3         1.9503e+05      6.40e+05       3.71e+02       3.25e+05    
-           3              4         8.9148e+04      1.06e+05       1.82e+02       6.96e+04    
-           4              5         5.3398e+04      3.58e+04       2.13e+02       3.10e+04    
-           5              6         4.7048e+04      6.35e+03       5.96e+02       7.70e+06    
-           6              7         4.0808e+04      6.24e+03       1.58e+03       6.92e+06    
-           7              8         3.7864e+04      2.94e+03       2.39e+03       2.55e+06    
-           8              9         3.7406e+04      4.58e+02       1.66e+03       1.24e+06    
-           9             10         3.7374e+04      3.24e+01       2.24e+03       1.36e+06    
-          10             11         3.7288e+04      8.63e+01       1.32e+03       2.78e+05    
-          11             13         3.7279e+04      8.63e+00       1.12e+03       1.45e+05    
-          12             14         3.7274e+04      5.55e+00       1.93e+03       3.06e+05    
-          13             15         3.7266e+04      7.61e+00       1.75e+03       2.04e+05    
-          14             16         3.7263e+04      2.47e+00       2.76e+03       3.44e+05    
-          15             17         3.7258e+04      5.15e+00       1.43e+03       5.95e+04    
-          16             19         3.7257e+04      9.30e-01       9.69e+02       2.26e+04    
-          17             20         3.7256e+04      1.13e+00       1.87e+03       7.12e+04    
-          18             21         3.7255e+04      1.02e+00       2.77e+03       1.19e+05    
-          19             22         3.7254e+04      8.97e-01       1.43e+03       2.40e+04    
-          20             23         3.7254e+04      5.29e-01       3.00e+03       8.80e+04    
-          21             24         3.7253e+04      3.97e-01       9.17e+02       6.41e+03    
-          22             25         3.7253e+04      3.22e-01       3.16e+03       6.65e+04    
-          23             26         3.7253e+04      1.71e-01       4.00e+02       8.57e+02    
-          24             27         3.7253e+04      1.79e-01       2.02e+03       2.05e+04    
-          25             28         3.7253e+04      2.61e-02       1.74e+02       1.37e+02    
-          26             29         3.7253e+04      3.05e-02       3.87e+02       6.67e+02    
-          27             30         3.7253e+04      1.35e-03       1.75e+01       2.36e+00    
+           0              1         1.8777e+05                                    3.74e+04    
+           1              4         1.8777e+05      0.00e+00       0.00e+00       3.74e+04    
     `xtol` termination condition is satisfied.
-    Function evaluations 30, initial cost 4.8735e+06, final cost 3.7253e+04, first-order optimality 2.36e+00.
+    Function evaluations 4, initial cost 1.8777e+05, final cost 1.8777e+05, first-order optimality 3.74e+04.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         1.9179e+05                                    2.86e+05    
-           1              2         1.8787e+05      3.92e+03       4.65e+02       4.48e+07    
-           2              4         1.8787e+05      0.00e+00       0.00e+00       4.48e+07    
+           0              1         1.1875e+06                                    2.60e+09    
+           1              2         4.8493e+05      7.03e+05       1.07e+02       1.70e+09    
+           2              3         2.6592e+05      2.19e+05       1.51e+02       5.17e+07    
+           3              4         2.2364e+05      4.23e+04       4.79e+01       1.62e+05    
+           4              5         2.1594e+05      7.70e+03       6.02e+01       9.43e+04    
+           5              6         2.1398e+05      1.96e+03       4.84e+01       6.32e+04    
+           6              8         2.1381e+05      1.72e+02       9.92e+00       2.49e+07    
     `xtol` termination condition is satisfied.
-    Function evaluations 4, initial cost 1.9179e+05, final cost 1.8787e+05, first-order optimality 4.48e+07.
+    Function evaluations 8, initial cost 1.1875e+06, final cost 2.1381e+05, first-order optimality 2.49e+07.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         1.1554e+06                                    2.58e+09    
-           1              2         4.6607e+05      6.89e+05       7.94e+01       1.72e+09    
-           2              3         2.6049e+05      2.06e+05       1.18e+02       3.64e+07    
-           3              4         2.2251e+05      3.80e+04       4.62e+01       1.46e+05    
-           4              5         2.1555e+05      6.96e+03       5.90e+01       8.98e+04    
-           5              6         2.1306e+05      2.50e+03       4.85e+01       1.30e+08    
-           6              7         1.9736e+05      1.57e+04       3.13e+01       2.45e+08    
-           7              8         1.6049e+05      3.69e+04       2.24e+01       6.25e+07    
-           8             10         1.6049e+05      0.00e+00       0.00e+00       6.25e+07    
+           0              1         3.9218e+06                                    1.54e+07    
+           1              2         7.7838e+05      3.14e+06       5.68e+02       1.52e+06    
+           2              3         1.9403e+05      5.84e+05       4.57e+02       2.92e+05    
+           3              4         9.7472e+04      9.66e+04       1.74e+02       6.50e+04    
+           4              5         6.7971e+04      2.95e+04       2.16e+02       8.17e+04    
+           5              9         6.5190e+04      2.78e+03       2.20e+02       6.67e+05    
+           6             10         6.2995e+04      2.20e+03       4.42e+02       1.81e+06    
+           7             11         6.0630e+04      2.37e+03       8.88e+02       3.09e+06    
+           8             12         5.8767e+04      1.86e+03       8.79e+02       1.03e+06    
+           9             13         5.8241e+04      5.25e+02       1.50e+03       1.89e+06    
+          10             14         5.7639e+04      6.03e+02       1.69e+03       1.32e+06    
+          11             15         5.7450e+04      1.89e+02       1.40e+03       5.30e+05    
+          12             16         5.7337e+04      1.13e+02       1.98e+03       9.22e+05    
+          13             18         5.7269e+04      6.78e+01       1.28e+03       3.06e+05    
+          14             19         5.7235e+04      3.38e+01       2.80e+03       1.08e+06    
+          15             20         5.7190e+04      4.48e+01       2.14e+03       4.67e+05    
+          16             21         5.7177e+04      1.38e+01       2.71e+03       5.67e+05    
+          17             22         5.7165e+04      1.13e+01       1.34e+03       1.23e+05    
+          18             23         5.7165e+04      2.35e-01       3.20e+03       5.05e+05    
+          19             24         5.7160e+04      5.28e+00       2.47e+02       9.57e+03    
+          20             25         5.7160e+04      3.07e-01       7.69e+02       2.24e+04    
+          21             26         5.7159e+04      1.16e-01       7.54e+02       2.35e+04    
+          22             27         5.7159e+04      1.26e-02       1.63e+02       4.78e+02    
+          23             29         5.7159e+04      8.04e-03       1.84e+02       1.24e+03    
+          24             31         5.7159e+04      1.26e-03       2.05e+01       3.81e+01    
     `xtol` termination condition is satisfied.
-    Function evaluations 10, initial cost 1.1554e+06, final cost 1.6049e+05, first-order optimality 6.25e+07.
+    Function evaluations 31, initial cost 3.9218e+06, final cost 5.7159e+04, first-order optimality 3.81e+01.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         4.3881e+06                                    1.70e+07    
-           1              2         8.5483e+05      3.53e+06       5.91e+02       1.76e+06    
-           2              3         2.1214e+05      6.43e+05       4.51e+02       3.22e+05    
-           3              4         1.0373e+05      1.08e+05       1.72e+02       7.21e+04    
-           4              5         6.9708e+04      3.40e+04       2.18e+02       7.83e+04    
-           5              9         6.6004e+04      3.70e+03       3.27e+02       1.66e+06    
-           6             10         6.3301e+04      2.70e+03       6.57e+02       3.13e+06    
-           7             11         6.0659e+04      2.64e+03       6.56e+02       1.10e+06    
-           8             12         5.9088e+04      1.57e+03       1.30e+03       3.20e+06    
-           9             13         5.7844e+04      1.24e+03       1.28e+03       9.84e+05    
-          10             14         5.7698e+04      1.46e+02       2.38e+03       2.22e+06    
-          11             15         5.7355e+04      3.43e+02       2.07e+03       4.94e+05    
-          12             16         5.7226e+04      1.29e+02       3.57e+03       8.33e+05    
-          13             17         5.7127e+04      9.86e+01       6.20e+03       1.38e+06    
-          14             18         5.7029e+04      9.78e+01       4.83e+03       4.65e+05    
-          15             19         5.6996e+04      3.31e+01       5.86e+03       2.78e+05    
-          16             20         5.6982e+04      1.42e+01       3.83e+03       6.52e+04    
-          17             21         5.6976e+04      5.48e+00       2.04e+03       1.53e+04    
-          18             22         5.6976e+04      6.98e-01       2.81e+02       4.70e+02    
-          19             23         5.6976e+04      2.22e-02       9.03e+00       1.71e+01    
+           0              1         2.7097e+05                                    2.47e+07    
+           1              2         2.7019e+05      7.75e+02       6.30e+03       1.32e+07    
+           2              3         2.6980e+05      3.99e+02       3.77e+02       1.36e+05    
+           3              4         2.6949e+05      3.04e+02       6.78e+02       4.63e+06    
+           4              5         2.6759e+05      1.90e+03       1.10e+02       4.26e+06    
+           5              6         2.4084e+05      2.67e+04       6.42e+00       3.26e+05    
     `xtol` termination condition is satisfied.
-    Function evaluations 23, initial cost 4.3881e+06, final cost 5.6976e+04, first-order optimality 1.71e+01.
+    Function evaluations 6, initial cost 2.7097e+05, final cost 2.4084e+05, first-order optimality 3.26e+05.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         2.1744e+05                                    6.24e+07    
-           1              3         2.1744e+05      0.00e+00       0.00e+00       6.24e+07    
+           0              1         1.9986e+06                                    1.38e+09    
+           1              2         7.5009e+05      1.25e+06       4.02e+02       8.64e+08    
+           2              3         3.3710e+05      4.13e+05       3.49e+02       2.72e+08    
+           3              4         2.3643e+05      1.01e+05       1.50e+02       3.71e+07    
+           4              5         1.9835e+05      3.81e+04       8.71e+01       3.35e+08    
+           5              6         1.7520e+05      2.31e+04       7.40e+01       5.19e+07    
+           6              7         1.7254e+05      2.66e+03       8.80e+01       1.55e+06    
+           7              8         1.5244e+05      2.01e+04       4.75e+01       7.98e+07    
+           8              9         1.3996e+05      1.25e+04       2.37e+01       5.77e+07    
+           9             10         1.3989e+05      7.10e+01       5.42e+01       1.52e+08    
+          10             11         1.2672e+05      1.32e+04       3.17e+01       7.40e+07    
+          11             12         1.2475e+05      1.97e+03       1.35e+01       8.43e+06    
+          12             13         1.2381e+05      9.39e+02       6.68e+00       5.69e+06    
     `xtol` termination condition is satisfied.
-    Function evaluations 3, initial cost 2.1744e+05, final cost 2.1744e+05, first-order optimality 6.24e+07.
+    Function evaluations 13, initial cost 1.9986e+06, final cost 1.2381e+05, first-order optimality 5.69e+06.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         1.6309e+06                                    1.33e+09    
-           1              2         5.7180e+05      1.06e+06       2.02e+02       6.94e+08    
-           2              3         2.8308e+05      2.89e+05       9.09e+01       2.65e+08    
-           3              4         2.1941e+05      6.37e+04       9.11e+01       1.96e+08    
-           4              5         1.8144e+05      3.80e+04       7.77e+01       2.01e+08    
-           5              6         1.6580e+05      1.56e+04       7.42e+01       9.69e+07    
-           6              7         1.4098e+05      2.48e+04       7.80e+01       2.97e+07    
-           7              8         1.4071e+05      2.76e+02       4.82e+01       9.11e+06    
-           8              9         1.3998e+05      7.28e+02       5.97e+00       2.29e+07    
+           0              1         3.6191e+06                                    1.19e+07    
+           1              2         6.7011e+05      2.95e+06       6.56e+02       1.59e+06    
+           2              3         1.6584e+05      5.04e+05       4.10e+02       2.42e+05    
+           3              4         7.3637e+04      9.22e+04       2.15e+02       5.41e+04    
+           4              5         3.9354e+04      3.43e+04       2.79e+02       1.23e+04    
+           5              6         2.8168e+04      1.12e+04       2.58e+02       3.80e+04    
+           6              7         2.7364e+04      8.05e+02       9.77e+01       3.07e+04    
+           7             10         2.7110e+04      2.54e+02       1.29e+02       1.55e+05    
+           8             11         2.6867e+04      2.42e+02       2.62e+02       3.28e+05    
+           9             12         2.6705e+04      1.63e+02       5.49e+02       7.86e+05    
+          10             13         2.6544e+04      1.61e+02       5.34e+02       2.36e+05    
+          11             14         2.6509e+04      3.44e+01       1.11e+03       8.66e+05    
+          12             15         2.6443e+04      6.65e+01       3.15e+02       2.87e+03    
+          13             16         2.6439e+04      4.08e+00       4.11e+02       4.92e+04    
+          14             17         2.6436e+04      2.87e+00       2.62e+02       1.50e+04    
+          15             18         2.6434e+04      2.16e+00       2.27e+02       1.27e+04    
+          16             19         2.6434e+04      1.81e-02       1.79e+02       6.32e+03    
+          17             20         2.6434e+04      4.23e-02       6.54e+01       1.11e+03    
+          18             21         2.6434e+04      8.48e-03       4.37e+01       5.67e+02    
+          19             22         2.6434e+04      1.14e-04       2.97e+01       1.12e+02    
+          20             23         2.6434e+04      1.19e-03       1.27e+01       8.40e+01    
+          21             24         2.6434e+04      1.99e-04       3.01e+00       5.80e+00    
+    Both `ftol` and `xtol` termination conditions are satisfied.
+    Function evaluations 24, initial cost 3.6191e+06, final cost 2.6434e+04, first-order optimality 5.80e+00.
+       Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
+           0              1         1.5024e+05                                    5.64e+06    
+           1              2         1.3481e+05      1.54e+04       2.16e+02       2.61e+07    
+           2              3         1.2787e+05      6.94e+03       9.82e+01       7.96e+05    
+           3              4         1.2761e+05      2.66e+02       2.46e+01       3.20e+06    
+           4              6         1.2761e+05      0.00e+00       0.00e+00       3.20e+06    
     `xtol` termination condition is satisfied.
-    Function evaluations 9, initial cost 1.6309e+06, final cost 1.3998e+05, first-order optimality 2.29e+07.
+    Function evaluations 6, initial cost 1.5024e+05, final cost 1.2761e+05, first-order optimality 3.20e+06.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         5.4280e+06                                    1.59e+07    
-           1              2         9.9343e+05      4.43e+06       7.28e+02       2.32e+06    
-           2              3         2.4433e+05      7.49e+05       3.81e+02       3.48e+05    
-           3              4         1.0291e+05      1.41e+05       2.09e+02       7.91e+04    
-           4              5         5.3578e+04      4.93e+04       2.87e+02       1.76e+04    
-           5              6         2.8418e+04      2.52e+04       3.86e+02       3.56e+03    
-           6              7         2.7453e+04      9.65e+02       1.27e+02       2.07e+05    
-           7             10         2.7111e+04      3.42e+02       1.91e+02       3.94e+05    
-           8             11         2.6843e+04      2.68e+02       3.82e+02       6.64e+05    
-           9             12         2.6710e+04      1.33e+02       7.47e+02       1.18e+06    
-          10             13         2.6547e+04      1.63e+02       5.17e+02       1.59e+05    
-          11             15         2.6480e+04      6.77e+01       3.73e+02       1.02e+05    
-          12             16         2.6462e+04      1.77e+01       6.45e+02       1.92e+05    
-          13             17         2.6456e+04      6.26e+00       1.48e+03       5.90e+05    
-          14             18         2.6435e+04      2.10e+01       3.40e+02       9.11e+03    
-          15             19         2.6431e+04      3.54e+00       1.53e+02       3.73e+03    
-          16             20         2.6429e+04      1.95e+00       1.18e+02       1.61e+03    
-          17             21         2.6429e+04      2.13e-02       1.51e+02       2.67e+03    
-          18             22         2.6429e+04      7.46e-03       1.47e+02       2.26e+03    
-          19             23         2.6429e+04      8.47e-03       4.29e+01       2.54e+02    
-          20             24         2.6429e+04      2.47e-03       4.08e+01       1.72e+02    
-          21             25         2.6429e+04      3.42e-04       1.88e+01       2.49e+01    
-          22             26         2.6429e+04      4.61e-05       1.00e+01       1.57e+01    
+           0              1         1.6611e+06                                    1.19e+09    
+           1              2         6.6861e+05      9.92e+05       3.91e+02       4.12e+08    
+           2              3         3.7802e+05      2.91e+05       1.93e+02       4.31e+05    
+           3              4         3.2844e+05      4.96e+04       1.03e+02       2.50e+05    
+           4              6         2.8054e+05      4.79e+04       7.55e+00       2.25e+08    
+    `xtol` termination condition is satisfied.
+    Function evaluations 6, initial cost 1.6611e+06, final cost 2.8054e+05, first-order optimality 2.25e+08.
+       Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
+           0              1         3.1320e+06                                    1.10e+07    
+           1              2         5.9686e+05      2.54e+06       5.80e+02       1.30e+06    
+           2              3         1.4839e+05      4.48e+05       4.26e+02       2.32e+05    
+           3              4         7.0430e+04      7.80e+04       1.99e+02       5.15e+04    
+           4              5         4.4624e+04      2.58e+04       2.37e+02       1.16e+04    
+           5              6         4.0569e+04      4.06e+03       1.80e+02       4.43e+05    
+           6              9         3.9955e+04      6.14e+02       2.05e+02       3.70e+05    
+           7             10         3.9497e+04      4.58e+02       4.06e+02       7.20e+05    
+           8             11         3.9275e+04      2.22e+02       8.10e+02       1.31e+06    
+           9             12         3.9000e+04      2.76e+02       4.24e+02       6.30e+04    
+          10             13         3.8897e+04      1.03e+02       1.61e+03       2.29e+06    
+          11             14         3.8542e+04      3.55e+02       3.93e+02       8.09e+03    
+          12             15         3.8499e+04      4.32e+01       7.89e+02       2.56e+05    
+          13             16         3.8470e+04      2.86e+01       1.13e+03       3.60e+05    
+          14             17         3.8444e+04      2.65e+01       6.86e+02       9.52e+04    
+          15             19         3.8422e+04      2.16e+01       7.70e+02       1.55e+05    
+          16             20         3.8408e+04      1.45e+01       1.10e+03       2.06e+05    
+          17             21         3.8393e+04      1.48e+01       1.72e+03       4.34e+05    
+          18             22         3.8377e+04      1.57e+01       1.91e+03       4.48e+05    
+          19             24         3.8366e+04      1.08e+01       9.28e+02       7.20e+04    
+          20             25         3.8360e+04      6.18e+00       1.78e+03       2.36e+05    
+          21             27         3.8356e+04      4.60e+00       9.23e+02       5.30e+04    
+          22             28         3.8351e+04      4.32e+00       1.84e+03       1.85e+05    
+          23             29         3.8351e+04      4.50e-01       3.67e+03       5.87e+05    
+          24             30         3.8342e+04      8.64e+00       9.13e+02       2.31e+04    
+          25             31         3.8340e+04      2.03e+00       1.73e+03       8.03e+04    
+          26             32         3.8338e+04      2.25e+00       3.30e+03       2.41e+05    
+          27             33         3.8335e+04      2.54e+00       2.00e+03       6.85e+04    
+          28             34         3.8334e+04      1.62e+00       3.89e+03       2.16e+05    
+          29             35         3.8332e+04      1.32e+00       1.07e+03       1.29e+04    
+          30             36         3.8331e+04      1.13e+00       3.76e+03       1.58e+05    
+          31             37         3.8331e+04      4.88e-01       2.49e+02       2.89e+02    
+          32             38         3.8331e+04      2.94e-01       8.75e+02       6.93e+03    
+          33             39         3.8331e+04      4.10e-03       2.26e+02       4.09e+02    
+          34             41         3.8331e+04      5.17e-04       1.11e+02       1.20e+02    
+          35             42         3.8331e+04      3.46e-05       1.53e+02       2.19e+02    
+          36             43         3.8331e+04      1.68e-04       4.69e+01       1.44e+01    
     `ftol` termination condition is satisfied.
-    Function evaluations 26, initial cost 5.4280e+06, final cost 2.6429e+04, first-order optimality 1.57e+01.
+    Function evaluations 43, initial cost 3.1320e+06, final cost 3.8331e+04, first-order optimality 1.44e+01.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         1.6641e+05                                    2.29e+07    
-           1              4         1.6641e+05      0.00e+00       0.00e+00       2.29e+07    
+           0              1         3.1887e+05                                    2.25e+08    
+           1              2         2.7922e+05      3.96e+04       1.80e+04       1.48e+08    
+           2              3         2.6148e+05      1.77e+04       1.44e+03       4.28e+06    
+           3              4         2.6063e+05      8.53e+02       1.09e+04       4.85e+07    
+           4              5         2.6063e+05      5.42e+00       6.64e+03       2.04e+07    
+           5              7         2.6063e+05      0.00e+00       0.00e+00       2.04e+07    
     `xtol` termination condition is satisfied.
-    Function evaluations 4, initial cost 1.6641e+05, final cost 1.6641e+05, first-order optimality 2.29e+07.
-       Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         1.5320e+06                                    1.18e+09    
-           1              2         6.2456e+05      9.07e+05       1.03e+02       5.45e+08    
-           2              3         3.6851e+05      2.56e+05       1.31e+02       3.48e+05    
-           3              4         3.2794e+05      4.06e+04       1.05e+02       2.78e+05    
-           4              5         3.2241e+05      5.54e+03       9.39e+01       9.58e+04    
-           5              6         3.2074e+05      1.67e+03       8.67e+01       7.71e+07    
-           6              7         2.9832e+05      2.24e+04       1.51e+01       1.36e+06    
-           7              8         2.9532e+05      3.00e+03       1.05e+01       2.55e+07    
-           8              9         2.4423e+05      5.11e+04       7.60e+01       3.12e+08    
-           9             10         2.2340e+05      2.08e+04       6.06e+01       4.72e+05    
-          10             12         2.2340e+05      0.00e+00       0.00e+00       4.72e+05    
-    `xtol` termination condition is satisfied.
-    Function evaluations 12, initial cost 1.5320e+06, final cost 2.2340e+05, first-order optimality 4.72e+05.
-       Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         4.2785e+06                                    1.57e+07    
-           1              2         7.4290e+05      3.54e+06       6.65e+02       2.14e+06    
-           2              3         1.8390e+05      5.59e+05       3.64e+02       2.90e+05    
-           3              4         8.4374e+04      9.95e+04       1.83e+02       6.44e+04    
-           4              5         5.1386e+04      3.30e+04       2.18e+02       4.96e+04    
-           5              6         4.8326e+04      3.06e+03       6.39e+02       7.76e+06    
-           6              7         4.4317e+04      4.01e+03       1.24e+03       7.79e+06    
-           7              8         3.8905e+04      5.41e+03       2.13e+03       1.12e+06    
-           8              9         3.8758e+04      1.47e+02       2.21e+03       1.70e+06    
-           9             10         3.8601e+04      1.57e+02       1.43e+03       3.47e+05    
-          10             12         3.8586e+04      1.47e+01       1.06e+03       1.37e+05    
-          11             13         3.8579e+04      7.09e+00       1.99e+03       3.41e+05    
-          12             14         3.8569e+04      1.02e+01       1.83e+03       1.86e+05    
-          13             15         3.8568e+04      5.79e-01       3.71e+03       4.92e+05    
-          14             16         3.8558e+04      9.98e+00       9.01e+02       1.49e+04    
-          15             17         3.8556e+04      1.94e+00       1.75e+03       5.35e+04    
-          16             18         3.8554e+04      2.24e+00       3.33e+03       1.40e+05    
-          17             19         3.8552e+04      2.24e+00       2.94e+03       7.20e+04    
-          18             20         3.8550e+04      1.51e+00       3.46e+03       7.06e+04    
-          19             21         3.8550e+04      9.24e-01       2.31e+03       2.29e+04    
-          20             22         3.8549e+04      7.24e-01       2.61e+03       2.38e+04    
-          21             23         3.8549e+04      2.75e-01       1.06e+03       3.28e+03    
-          22             24         3.8548e+04      1.47e-01       6.43e+02       1.14e+03    
-          23             25         3.8548e+04      1.40e-02       6.25e+01       1.40e+01    
-          24             26         3.8548e+04      4.50e-04       2.07e+00       1.77e+00    
-    `xtol` termination condition is satisfied.
-    Function evaluations 26, initial cost 4.2785e+06, final cost 3.8548e+04, first-order optimality 1.77e+00.
-       Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         2.6199e+05                                    4.69e+05    
-           1              2         2.6199e+05      0.00e+00       0.00e+00       4.69e+05    
-    `xtol` termination condition is satisfied.
-    Function evaluations 2, initial cost 2.6199e+05, final cost 2.6199e+05, first-order optimality 4.69e+05.
-                                           name         value        unit         stdev parameter       visit subject
-    0                      Blood precontrast T1      1.628664         sec  0.000000e+00      T10a    baseline     001
-    1                        Bolus arrival time     74.246576         sec  2.220347e+00       BAT    baseline     001
-    2                            Cardiac output    219.538817      mL/sec  1.550836e+01        CO    baseline     001
-    3              Heart-lung mean transit time     21.702906         sec  3.638056e+00       Thl    baseline     001
-    4        Heart-lung transit time dispersion      0.690058              4.960174e-02       Dhl    baseline     001
-    5                  Organs mean transit time     22.901833         sec  9.284833e-01        To    baseline     001
-    6                       Extraction fraction      0.058247              6.562441e-03        Eb    baseline     001
-    7                     Mean circulation time     44.604739         sec  0.000000e+00        Tc    baseline     001
-    8                Organs extraction fraction      0.133624              9.119207e-03        Eo    baseline     001
-    9    Organs extracellular mean transit time    460.422325         sec  3.169678e+01       Teb    baseline     001
-    10                     Liver precontrast T1      0.762050         sec  0.000000e+00      T10l    baseline     001
-    11    Liver extracellular mean transit time     32.934952         sec  1.555582e+00       Tel    baseline     001
-    12           Liver extracellular dispersion      0.660918              3.059823e-02        De    baseline     001
-    13      Liver extracellular volume fraction      0.226523      mL/cm3  7.755812e-03        ve    baseline     001
-    14               Hepatocellular uptake rate      0.003258  mL/sec/cm3  5.159845e-05       khe    baseline     001
-    15              Hepatocellular transit time   3407.140050         sec  4.982549e+01        Th    baseline     001
-    16                   Biliary excretion rate      0.000227  mL/sec/cm3  0.000000e+00       kbh    baseline     001
-    17        Hepatocellular tissue uptake rate      0.014385  mL/sec/cm3  0.000000e+00       Khe    baseline     001
-    18            Biliary tissue excretion rate      0.000294  mL/sec/cm3  0.000000e+00       Kbh    baseline     001
-    19     Hepatocellular uptake rate (initial)      0.005491  mL/sec/cm3  0.000000e+00     khe_i    baseline     001
-    20       Hepatocellular uptake rate (final)      0.001026  mL/sec/cm3  4.023276e-05     khe_f    baseline     001
-    21    Hepatocellular transit time (initial)   2286.550012         sec  0.000000e+00      Th_i    baseline     001
-    22      Hepatocellular transit time (final)   6681.701169         sec  4.951254e+02      Th_f    baseline     001
-    23      Hepatocellular uptake rate variance      1.370442              0.000000e+00   khe_var    baseline     001
-    24   Biliary tissue excretion rate variance      0.980158              0.000000e+00   Kbh_var    baseline     001
-    25         Biliary excretion rate (initial)      0.000338  mL/sec/cm3  0.000000e+00     kbh_i    baseline     001
-    26           Biliary excretion rate (final)      0.000116  mL/sec/cm3  0.000000e+00     kbh_f    baseline     001
-    27                    Liver blood clearance      3.604559      mL/sec  0.000000e+00        CL    baseline     001
-    28            Bolus arrival time - 2nd scan   8604.650410         sec  2.217741e+00      BAT2    baseline     001
-    29     Blood signal scale factor - 2nd scan   9360.401859        a.u.  2.487445e+01      S02b    baseline     001
-    30     Liver signal scale factor - 2nd scan   8860.539221        a.u.  9.601972e+01      S02l    baseline     001
-    31                     Blood precontrast T1      1.628664         sec  0.000000e+00      T10a    baseline     002
-    32                       Bolus arrival time     80.896172         sec  2.776172e-01       BAT    baseline     002
-    33                           Cardiac output     81.198138      mL/sec  3.936179e+00        CO    baseline     002
-    34             Heart-lung mean transit time     14.389389         sec  4.205606e-01       Thl    baseline     002
-    35       Heart-lung transit time dispersion      0.471446              1.933044e-02       Dhl    baseline     002
-    36                 Organs mean transit time     15.087619         sec  1.431222e+00        To    baseline     002
-    37                      Extraction fraction      0.056603              4.899385e-03        Eb    baseline     002
-    38                    Mean circulation time     29.477008         sec  0.000000e+00        Tc    baseline     002
-    39               Organs extraction fraction      0.177130              1.054781e-02        Eo    baseline     002
-    40   Organs extracellular mean transit time    345.202209         sec  2.687837e+01       Teb    baseline     002
-    41                     Liver precontrast T1      0.756170         sec  0.000000e+00      T10l    baseline     002
-    42    Liver extracellular mean transit time     13.790457         sec  5.336403e+00       Tel    baseline     002
-    43           Liver extracellular dispersion      0.741107              1.845023e-01        De    baseline     002
-    44      Liver extracellular volume fraction      0.110945      mL/cm3  2.933038e-02        ve    baseline     002
-    45               Hepatocellular uptake rate      0.007415  mL/sec/cm3  1.397799e-04       khe    baseline     002
-    46              Hepatocellular transit time   2130.281801         sec  2.927286e+02        Th    baseline     002
-    47                   Biliary excretion rate      0.000417  mL/sec/cm3  0.000000e+00       kbh    baseline     002
-    48        Hepatocellular tissue uptake rate      0.066836  mL/sec/cm3  0.000000e+00       Khe    baseline     002
-    49            Biliary tissue excretion rate      0.000469  mL/sec/cm3  0.000000e+00       Kbh    baseline     002
-    50     Hepatocellular uptake rate (initial)      0.004147  mL/sec/cm3  0.000000e+00     khe_i    baseline     002
-    51       Hepatocellular uptake rate (final)      0.010683  mL/sec/cm3  2.940171e-04     khe_f    baseline     002
-    52    Hepatocellular transit time (initial)   3034.643081         sec  0.000000e+00      Th_i    baseline     002
-    53      Hepatocellular transit time (final)   1641.187553         sec  8.775336e+01      Th_f    baseline     002
-    54      Hepatocellular uptake rate variance      0.881496              0.000000e+00   khe_var    baseline     002
-    55   Biliary tissue excretion rate variance      0.596025              0.000000e+00   Kbh_var    baseline     002
-    56         Biliary excretion rate (initial)      0.000293  mL/sec/cm3  0.000000e+00     kbh_i    baseline     002
-    57           Biliary excretion rate (final)      0.000542  mL/sec/cm3  0.000000e+00     kbh_f    baseline     002
-    58                    Liver blood clearance      5.069584      mL/sec  0.000000e+00        CL    baseline     002
-    59            Bolus arrival time - 2nd scan  17165.398457         sec  5.607912e-01      BAT2    baseline     002
-    60     Blood signal scale factor - 2nd scan  10265.339341        a.u.  3.181161e+01      S02b    baseline     002
-    61     Liver signal scale factor - 2nd scan   7812.120210        a.u.  2.582264e+01      S02l    baseline     002
-    62                     Blood precontrast T1      1.628664         sec  0.000000e+00      T10a    baseline     003
-    63                       Bolus arrival time     71.434160         sec  2.669248e+00       BAT    baseline     003
-    64                           Cardiac output    118.175833      mL/sec  1.189341e+01        CO    baseline     003
-    65             Heart-lung mean transit time     14.301480         sec  2.607027e+00       Thl    baseline     003
-    66       Heart-lung transit time dispersion      0.414701              5.297365e-02       Dhl    baseline     003
-    67                 Organs mean transit time     21.473532         sec  2.085123e+00        To    baseline     003
-    68                      Extraction fraction      0.068027              9.476723e-03        Eb    baseline     003
-    69                    Mean circulation time     35.775012         sec  0.000000e+00        Tc    baseline     003
-    70               Organs extraction fraction      0.119165              1.849609e-02        Eo    baseline     003
-    71   Organs extracellular mean transit time    349.741827         sec  7.098594e+01       Teb    baseline     003
-    72                     Liver precontrast T1      0.706900         sec  0.000000e+00      T10l    baseline     003
-    73    Liver extracellular mean transit time     30.739370         sec  1.883455e+01       Tel    baseline     003
-    74           Liver extracellular dispersion      0.806015              1.583227e-01        De    baseline     003
-    75      Liver extracellular volume fraction      0.208354      mL/cm3  1.058303e-01        ve    baseline     003
-    76               Hepatocellular uptake rate      0.003962  mL/sec/cm3  5.846254e-04       khe    baseline     003
-    77              Hepatocellular transit time   1235.755785         sec  6.941495e+03        Th    baseline     003
-    78                   Biliary excretion rate      0.000641  mL/sec/cm3  0.000000e+00       kbh    baseline     003
-    79        Hepatocellular tissue uptake rate      0.019016  mL/sec/cm3  0.000000e+00       Khe    baseline     003
-    80            Biliary tissue excretion rate      0.000809  mL/sec/cm3  0.000000e+00       Kbh    baseline     003
-    81     Hepatocellular uptake rate (initial)      0.007922  mL/sec/cm3  0.000000e+00     khe_i    baseline     003
-    82       Hepatocellular uptake rate (final)      0.000002  mL/sec/cm3  7.365167e-02     khe_f    baseline     003
-    83    Hepatocellular transit time (initial)   3680.150804         sec  0.000000e+00      Th_i    baseline     003
-    84      Hepatocellular transit time (final)    742.547738         sec  2.538165e+02      Th_f    baseline     003
-    85      Hepatocellular uptake rate variance      1.998969              0.000000e+00   khe_var    baseline     003
-    86   Biliary tissue excretion rate variance      1.328421              0.000000e+00   Kbh_var    baseline     003
-    87         Biliary excretion rate (initial)      0.000215  mL/sec/cm3  0.000000e+00     kbh_i    baseline     003
-    88           Biliary excretion rate (final)      0.001066  mL/sec/cm3  0.000000e+00     kbh_f    baseline     003
-    89                    Liver blood clearance      3.463126      mL/sec  0.000000e+00        CL    baseline     003
-    90            Bolus arrival time - 2nd scan  91996.095091         sec  2.088754e-09      BAT2    baseline     003
-    91     Blood signal scale factor - 2nd scan  10800.383514        a.u.  2.075514e+01      S02b    baseline     003
-    92     Liver signal scale factor - 2nd scan   8755.002017        a.u.  1.252845e+01      S02l    baseline     003
-    93                     Blood precontrast T1      1.628664         sec  0.000000e+00      T10a    baseline     004
-    94                       Bolus arrival time     73.635767         sec  2.901116e-01       BAT    baseline     004
-    95                           Cardiac output     64.507228      mL/sec  9.231892e-01        CO    baseline     004
-    96             Heart-lung mean transit time      9.236022         sec  3.397002e-01       Thl    baseline     004
-    97       Heart-lung transit time dispersion      0.485144              9.653261e-03       Dhl    baseline     004
-    98                 Organs mean transit time     35.336120         sec  1.190333e+00        To    baseline     004
-    99                      Extraction fraction      0.148604              5.008248e-03        Eb    baseline     004
-    100                   Mean circulation time     44.572142         sec  0.000000e+00        Tc    baseline     004
-    101              Organs extraction fraction      0.250404              6.695615e-03        Eo    baseline     004
-    102  Organs extracellular mean transit time    400.802040         sec  2.360312e+01       Teb    baseline     004
-    103                    Liver precontrast T1      0.802360         sec  0.000000e+00      T10l    baseline     004
-    104   Liver extracellular mean transit time     23.456969         sec  4.136613e+00       Tel    baseline     004
-    105          Liver extracellular dispersion      0.522088              1.009442e-01        De    baseline     004
-    106     Liver extracellular volume fraction      0.046770      mL/cm3  1.034453e-02        ve    baseline     004
-    107              Hepatocellular uptake rate      0.003662  mL/sec/cm3  4.311869e-05       khe    baseline     004
-    108             Hepatocellular transit time  18935.630986         sec  1.973507e+03        Th    baseline     004
-    109                  Biliary excretion rate      0.000050  mL/sec/cm3  0.000000e+00       kbh    baseline     004
-    110       Hepatocellular tissue uptake rate      0.078303  mL/sec/cm3  0.000000e+00       Khe    baseline     004
-    111           Biliary tissue excretion rate      0.000053  mL/sec/cm3  0.000000e+00       Kbh    baseline     004
-    112    Hepatocellular uptake rate (initial)      0.002812  mL/sec/cm3  0.000000e+00     khe_i    baseline     004
-    113      Hepatocellular uptake rate (final)      0.004513  mL/sec/cm3  1.325681e-04     khe_f    baseline     004
-    114   Hepatocellular transit time (initial)  12874.622361         sec  0.000000e+00      Th_i    baseline     004
-    115     Hepatocellular transit time (final)  35779.706269         sec  1.443788e+04      Th_f    baseline     004
-    116     Hepatocellular uptake rate variance      0.464600              0.000000e+00   khe_var    baseline     004
-    117  Biliary tissue excretion rate variance      0.941544              0.000000e+00   Kbh_var    baseline     004
-    118        Biliary excretion rate (initial)      0.000074  mL/sec/cm3  0.000000e+00     kbh_i    baseline     004
-    119          Biliary excretion rate (final)      0.000027  mL/sec/cm3  0.000000e+00     kbh_f    baseline     004
-    120                   Liver blood clearance      3.244962      mL/sec  0.000000e+00        CL    baseline     004
-    121           Bolus arrival time - 2nd scan   9549.078760         sec  2.437582e-01      BAT2    baseline     004
-    122    Blood signal scale factor - 2nd scan   5599.753171        a.u.  2.171769e+01      S02b    baseline     004
-    123    Liver signal scale factor - 2nd scan   5253.847713        a.u.  1.006937e+02      S02l    baseline     004
-    124                    Blood precontrast T1      1.628664         sec  0.000000e+00      T10a    baseline     005
-    125                      Bolus arrival time     70.029768         sec  7.769198e-01       BAT    baseline     005
-    126                          Cardiac output    116.289146      mL/sec  2.797722e+00        CO    baseline     005
-    127            Heart-lung mean transit time     19.722414         sec  8.611841e-01       Thl    baseline     005
-    128      Heart-lung transit time dispersion      0.504706              1.490346e-02       Dhl    baseline     005
-    129                Organs mean transit time     21.735060         sec  1.210443e+00        To    baseline     005
-    130                     Extraction fraction      0.083737              3.292728e-03        Eb    baseline     005
-    131                   Mean circulation time     41.457474         sec  0.000000e+00        Tc    baseline     005
-    132              Organs extraction fraction      0.223406              9.342125e-03        Eo    baseline     005
-    133  Organs extracellular mean transit time    252.869296         sec  1.361546e+01       Teb    baseline     005
-    134                    Liver precontrast T1      0.802500         sec  0.000000e+00      T10l    baseline     005
-    135   Liver extracellular mean transit time     39.626933         sec  6.433401e+00       Tel    baseline     005
-    136          Liver extracellular dispersion      0.775524              5.220777e-02        De    baseline     005
-    137     Liver extracellular volume fraction      0.226991      mL/cm3  3.180706e-02        ve    baseline     005
-    138              Hepatocellular uptake rate      0.006418  mL/sec/cm3  1.175643e-04       khe    baseline     005
-    139             Hepatocellular transit time   2050.165415         sec  5.956626e+01        Th    baseline     005
-    140                  Biliary excretion rate      0.000377  mL/sec/cm3  0.000000e+00       kbh    baseline     005
-    141       Hepatocellular tissue uptake rate      0.028273  mL/sec/cm3  0.000000e+00       Khe    baseline     005
-    142           Biliary tissue excretion rate      0.000488  mL/sec/cm3  0.000000e+00       Kbh    baseline     005
-    143    Hepatocellular uptake rate (initial)      0.007548  mL/sec/cm3  0.000000e+00     khe_i    baseline     005
-    144      Hepatocellular uptake rate (final)      0.005287  mL/sec/cm3  1.115942e-04     khe_f    baseline     005
-    145   Hepatocellular transit time (initial)   1976.545225         sec  0.000000e+00      Th_i    baseline     005
-    146     Hepatocellular transit time (final)   2129.482028         sec  9.867482e+01      Th_f    baseline     005
-    147     Hepatocellular uptake rate variance      0.352353              0.000000e+00   khe_var    baseline     005
-    148  Biliary tissue excretion rate variance      0.074494              0.000000e+00   Kbh_var    baseline     005
-    149        Biliary excretion rate (initial)      0.000391  mL/sec/cm3  0.000000e+00     kbh_i    baseline     005
-    150          Biliary excretion rate (final)      0.000363  mL/sec/cm3  0.000000e+00     kbh_f    baseline     005
-    151                   Liver blood clearance      4.526487      mL/sec  0.000000e+00        CL    baseline     005
-    152           Bolus arrival time - 2nd scan  10025.518688         sec  5.594840e-01      BAT2    baseline     005
-    153    Blood signal scale factor - 2nd scan   9638.265414        a.u.  2.547231e+01      S02b    baseline     005
-    154    Liver signal scale factor - 2nd scan   9112.067585        a.u.  3.202701e+01      S02l    baseline     005
-    155                    Blood precontrast T1      1.628664         sec  0.000000e+00      T10a    baseline     006
-    156                      Bolus arrival time     67.829516         sec  1.678997e-01       BAT    baseline     006
-    157                          Cardiac output     63.486001      mL/sec  8.143961e-01        CO    baseline     006
-    158            Heart-lung mean transit time     17.896067         sec  2.668375e-01       Thl    baseline     006
-    159      Heart-lung transit time dispersion      0.321881              5.812157e-03       Dhl    baseline     006
-    160                Organs mean transit time     32.434483         sec  1.432066e+00        To    baseline     006
-    161                     Extraction fraction      0.091197              3.371813e-03        Eb    baseline     006
-    162                   Mean circulation time     50.330550         sec  0.000000e+00        Tc    baseline     006
-    163              Organs extraction fraction      0.217655              8.509265e-03        Eo    baseline     006
-    164  Organs extracellular mean transit time    343.811380         sec  2.151556e+01       Teb    baseline     006
-    165                    Liver precontrast T1      0.839760         sec  0.000000e+00      T10l    baseline     006
-    166   Liver extracellular mean transit time     52.134469         sec  1.020658e+01       Tel    baseline     006
-    167          Liver extracellular dispersion      0.739858              5.750744e-02        De    baseline     006
-    168     Liver extracellular volume fraction      0.198902      mL/cm3  4.044494e-02        ve    baseline     006
-    169              Hepatocellular uptake rate      0.005469  mL/sec/cm3  1.089125e-04       khe    baseline     006
-    170             Hepatocellular transit time   2715.845894         sec  1.345754e+02        Th    baseline     006
-    171                  Biliary excretion rate      0.000295  mL/sec/cm3  0.000000e+00       kbh    baseline     006
-    172       Hepatocellular tissue uptake rate      0.027494  mL/sec/cm3  0.000000e+00       Khe    baseline     006
-    173           Biliary tissue excretion rate      0.000368  mL/sec/cm3  0.000000e+00       Kbh    baseline     006
-    174    Hepatocellular uptake rate (initial)      0.006002  mL/sec/cm3  0.000000e+00     khe_i    baseline     006
-    175      Hepatocellular uptake rate (final)      0.004935  mL/sec/cm3  1.098161e-04     khe_f    baseline     006
-    176   Hepatocellular transit time (initial)   2933.350391         sec  0.000000e+00      Th_i    baseline     006
-    177     Hepatocellular transit time (final)   2528.370204         sec  1.453944e+02      Th_f    baseline     006
-    178     Hepatocellular uptake rate variance      0.195192              0.000000e+00   khe_var    baseline     006
-    179  Biliary tissue excretion rate variance      0.148298              0.000000e+00   Kbh_var    baseline     006
-    180        Biliary excretion rate (initial)      0.000273  mL/sec/cm3  0.000000e+00     kbh_i    baseline     006
-    181          Biliary excretion rate (final)      0.000317  mL/sec/cm3  0.000000e+00     kbh_f    baseline     006
-    182                   Liver blood clearance      3.779573      mL/sec  0.000000e+00        CL    baseline     006
-    183           Bolus arrival time - 2nd scan   8583.978611         sec  3.139921e-01      BAT2    baseline     006
-    184    Blood signal scale factor - 2nd scan   5820.449582        a.u.  1.896191e+01      S02b    baseline     006
-    185    Liver signal scale factor - 2nd scan   6541.743910        a.u.  5.814130e+01      S02l    baseline     006
-    186                    Blood precontrast T1      1.628664         sec  0.000000e+00      T10a    baseline     007
-    187                      Bolus arrival time     67.632841         sec  3.205249e-01       BAT    baseline     007
-    188                          Cardiac output    159.080608      mL/sec  3.214947e+00        CO    baseline     007
-    189            Heart-lung mean transit time     13.346207         sec  4.157690e-01       Thl    baseline     007
-    190      Heart-lung transit time dispersion      0.260767              9.180064e-03       Dhl    baseline     007
-    191                Organs mean transit time     11.074567         sec  8.667271e-01        To    baseline     007
-    192                     Extraction fraction      0.031159              1.233840e-03        Eb    baseline     007
-    193                   Mean circulation time     24.420774         sec  0.000000e+00        Tc    baseline     007
-    194              Organs extraction fraction      0.216354              8.839938e-03        Eo    baseline     007
-    195  Organs extracellular mean transit time    223.215512         sec  1.020600e+01       Teb    baseline     007
-    196                    Liver precontrast T1      0.855420         sec  0.000000e+00      T10l    baseline     007
-    197   Liver extracellular mean transit time     59.981192         sec  2.404207e+01       Tel    baseline     007
-    198          Liver extracellular dispersion      0.971904              2.972437e-02        De    baseline     007
-    199     Liver extracellular volume fraction      0.210801      mL/cm3  7.503656e-02        ve    baseline     007
-    200              Hepatocellular uptake rate      0.004733  mL/sec/cm3  1.431905e-04       khe    baseline     007
-    201             Hepatocellular transit time   1804.405716         sec  5.010562e+01        Th    baseline     007
-    202                  Biliary excretion rate      0.000437  mL/sec/cm3  0.000000e+00       kbh    baseline     007
-    203       Hepatocellular tissue uptake rate      0.022451  mL/sec/cm3  0.000000e+00       Khe    baseline     007
-    204           Biliary tissue excretion rate      0.000554  mL/sec/cm3  0.000000e+00       Kbh    baseline     007
-    205    Hepatocellular uptake rate (initial)      0.005406  mL/sec/cm3  0.000000e+00     khe_i    baseline     007
-    206      Hepatocellular uptake rate (final)      0.004060  mL/sec/cm3  1.689543e-04     khe_f    baseline     007
-    207   Hepatocellular transit time (initial)   1537.392721         sec  0.000000e+00      Th_i    baseline     007
-    208     Hepatocellular transit time (final)   2183.662221         sec  1.052754e+02      Th_f    baseline     007
-    209     Hepatocellular uptake rate variance      0.284377              0.000000e+00   khe_var    baseline     007
-    210  Biliary tissue excretion rate variance      0.347358              0.000000e+00   Kbh_var    baseline     007
-    211        Biliary excretion rate (initial)      0.000513  mL/sec/cm3  0.000000e+00     kbh_i    baseline     007
-    212          Biliary excretion rate (final)      0.000361  mL/sec/cm3  0.000000e+00     kbh_f    baseline     007
-    213                   Liver blood clearance      4.468377      mL/sec  0.000000e+00        CL    baseline     007
-    214           Bolus arrival time - 2nd scan   7268.363128         sec  3.728091e-01      BAT2    baseline     007
-    215    Blood signal scale factor - 2nd scan   6022.542311        a.u.  2.119112e+01      S02b    baseline     007
-    216    Liver signal scale factor - 2nd scan   7802.918770        a.u.  5.155720e+01      S02l    baseline     007
-    217                    Blood precontrast T1      1.628664         sec  0.000000e+00      T10a    baseline     008
-    218                      Bolus arrival time     75.288843         sec  7.909024e-01       BAT    baseline     008
-    219                          Cardiac output    177.751614      mL/sec  3.401173e+00        CO    baseline     008
-    220            Heart-lung mean transit time     16.665738         sec  7.727572e-01       Thl    baseline     008
-    221      Heart-lung transit time dispersion      0.367445              1.546790e-02       Dhl    baseline     008
-    222                Organs mean transit time     18.563184         sec  1.159829e+00        To    baseline     008
-    223                     Extraction fraction      0.043326              1.567976e-03        Eb    baseline     008
-    224                   Mean circulation time     35.228921         sec  0.000000e+00        Tc    baseline     008
-    225              Organs extraction fraction      0.149471              7.816788e-03        Eo    baseline     008
-    226  Organs extracellular mean transit time    274.277062         sec  1.755056e+01       Teb    baseline     008
-    227                    Liver precontrast T1      0.743980         sec  0.000000e+00      T10l    baseline     008
-    228   Liver extracellular mean transit time     17.762339         sec  2.747573e+00       Tel    baseline     008
-    229          Liver extracellular dispersion      0.502612              1.037457e-01        De    baseline     008
-    230     Liver extracellular volume fraction      0.131796      mL/cm3  1.442719e-02        ve    baseline     008
-    231              Hepatocellular uptake rate      0.004819  mL/sec/cm3  1.064175e-04       khe    baseline     008
-    232             Hepatocellular transit time   1876.370866         sec  4.432787e+01        Th    baseline     008
-    233                  Biliary excretion rate      0.000463  mL/sec/cm3  0.000000e+00       kbh    baseline     008
-    234       Hepatocellular tissue uptake rate      0.036564  mL/sec/cm3  0.000000e+00       Khe    baseline     008
-    235           Biliary tissue excretion rate      0.000533  mL/sec/cm3  0.000000e+00       Kbh    baseline     008
-    236    Hepatocellular uptake rate (initial)      0.005944  mL/sec/cm3  0.000000e+00     khe_i    baseline     008
-    237      Hepatocellular uptake rate (final)      0.003694  mL/sec/cm3  9.879342e-05     khe_f    baseline     008
-    238   Hepatocellular transit time (initial)   1479.091888         sec  0.000000e+00      Th_i    baseline     008
-    239     Hepatocellular transit time (final)   2565.438906         sec  1.531780e+02      Th_f    baseline     008
-    240     Hepatocellular uptake rate variance      0.466805              0.000000e+00   khe_var    baseline     008
-    241  Biliary tissue excretion rate variance      0.537193              0.000000e+00   Kbh_var    baseline     008
-    242        Biliary excretion rate (initial)      0.000587  mL/sec/cm3  0.000000e+00     kbh_i    baseline     008
-    243          Biliary excretion rate (final)      0.000338  mL/sec/cm3  0.000000e+00     kbh_f    baseline     008
-    244                   Liver blood clearance      4.960185      mL/sec  0.000000e+00        CL    baseline     008
-    245           Bolus arrival time - 2nd scan   7591.226780         sec  6.456480e-01      BAT2    baseline     008
-    246    Blood signal scale factor - 2nd scan   8954.138221        a.u.  2.267535e+01      S02b    baseline     008
-    247    Liver signal scale factor - 2nd scan   7754.559994        a.u.  3.598642e+01      S02l    baseline     008
-    248                    Blood precontrast T1      1.628664         sec  0.000000e+00      T10a    baseline     009
-    249                      Bolus arrival time     71.474224         sec  3.190587e-01       BAT    baseline     009
-    250                          Cardiac output    176.208924      mL/sec  2.559136e+00        CO    baseline     009
-    251            Heart-lung mean transit time     16.810479         sec  3.405542e-01       Thl    baseline     009
-    252      Heart-lung transit time dispersion      0.334802              7.583176e-03       Dhl    baseline     009
-    253                Organs mean transit time     24.724748         sec  1.108395e+00        To    baseline     009
-    254                     Extraction fraction      0.060946              1.830823e-03        Eb    baseline     009
-    255                   Mean circulation time     41.535227         sec  0.000000e+00        Tc    baseline     009
-    256              Organs extraction fraction      0.169694              7.791890e-03        Eo    baseline     009
-    257  Organs extracellular mean transit time    296.520019         sec  1.831200e+01       Teb    baseline     009
-    258                    Liver precontrast T1      0.847050         sec  0.000000e+00      T10l    baseline     009
-    259   Liver extracellular mean transit time     33.696588         sec  5.904040e+00       Tel    baseline     009
-    260          Liver extracellular dispersion      0.729739              6.506329e-02        De    baseline     009
-    261     Liver extracellular volume fraction      0.144364      mL/cm3  1.819867e-02        ve    baseline     009
-    262              Hepatocellular uptake rate      0.003178  mL/sec/cm3  7.542927e-05       khe    baseline     009
-    263             Hepatocellular transit time   1700.193363         sec  7.204421e+01        Th    baseline     009
-    264                  Biliary excretion rate      0.000503  mL/sec/cm3  0.000000e+00       kbh    baseline     009
-    265       Hepatocellular tissue uptake rate      0.022011  mL/sec/cm3  0.000000e+00       Khe    baseline     009
-    266           Biliary tissue excretion rate      0.000588  mL/sec/cm3  0.000000e+00       Kbh    baseline     009
-    267    Hepatocellular uptake rate (initial)      0.003290  mL/sec/cm3  0.000000e+00     khe_i    baseline     009
-    268      Hepatocellular uptake rate (final)      0.003065  mL/sec/cm3  9.835426e-05     khe_f    baseline     009
-    269   Hepatocellular transit time (initial)   1861.833200         sec  0.000000e+00      Th_i    baseline     009
-    270     Hepatocellular transit time (final)   1564.377874         sec  7.460088e+01      Th_f    baseline     009
-    271     Hepatocellular uptake rate variance      0.070754              0.000000e+00   khe_var    baseline     009
-    272  Biliary tissue excretion rate variance      0.173635              0.000000e+00   Kbh_var    baseline     009
-    273        Biliary excretion rate (initial)      0.000460  mL/sec/cm3  0.000000e+00     kbh_i    baseline     009
-    274          Biliary excretion rate (final)      0.000547  mL/sec/cm3  0.000000e+00     kbh_f    baseline     009
-    275                   Liver blood clearance      3.769057      mL/sec  0.000000e+00        CL    baseline     009
-    276           Bolus arrival time - 2nd scan   7758.441425         sec  3.092621e-01      BAT2    baseline     009
-    277    Blood signal scale factor - 2nd scan   5631.232048        a.u.  1.434056e+01      S02b    baseline     009
-    278    Liver signal scale factor - 2nd scan   4569.923904        a.u.  1.719040e+01      S02l    baseline     009
-    279                    Blood precontrast T1      1.628664         sec  0.000000e+00      T10a    baseline     010
-    280                      Bolus arrival time     69.133046         sec  7.630890e-01       BAT    baseline     010
-    281                          Cardiac output    106.392392      mL/sec  1.599976e+00        CO    baseline     010
-    282            Heart-lung mean transit time     19.195580         sec  8.602813e-01       Thl    baseline     010
-    283      Heart-lung transit time dispersion      0.345714              1.308116e-02       Dhl    baseline     010
-    284                Organs mean transit time     44.482291         sec  1.636700e+00        To    baseline     010
-    285                     Extraction fraction      0.013821              2.741847e-03        Eb    baseline     010
-    286                   Mean circulation time     63.677870         sec  0.000000e+00        Tc    baseline     010
-    287              Organs extraction fraction      0.179633              4.657840e-03        Eo    baseline     010
-    288  Organs extracellular mean transit time    799.989332         sec  5.458106e+01       Teb    baseline     010
-    289                    Liver precontrast T1      0.806320         sec  0.000000e+00      T10l    baseline     010
-    290   Liver extracellular mean transit time      6.613109         sec  1.016689e+01       Tel    baseline     010
-    291          Liver extracellular dispersion      0.453036              1.029961e+00        De    baseline     010
-    292     Liver extracellular volume fraction      0.010084      mL/cm3  3.369982e-02        ve    baseline     010
-    293              Hepatocellular uptake rate      0.006691  mL/sec/cm3  1.103368e-04       khe    baseline     010
-    294             Hepatocellular transit time   1355.786734         sec  3.877384e+01        Th    baseline     010
-    295                  Biliary excretion rate      0.000730  mL/sec/cm3  0.000000e+00       kbh    baseline     010
-    296       Hepatocellular tissue uptake rate      0.663503  mL/sec/cm3  0.000000e+00       Khe    baseline     010
-    297           Biliary tissue excretion rate      0.000738  mL/sec/cm3  0.000000e+00       Kbh    baseline     010
-    298    Hepatocellular uptake rate (initial)      0.004954  mL/sec/cm3  0.000000e+00     khe_i    baseline     010
-    299      Hepatocellular uptake rate (final)      0.008427  mL/sec/cm3  3.510993e-04     khe_f    baseline     010
-    300   Hepatocellular transit time (initial)   1281.283506         sec  0.000000e+00      Th_i    baseline     010
-    301     Hepatocellular transit time (final)   1439.489204         sec  4.513707e+01      Th_f    baseline     010
-    302     Hepatocellular uptake rate variance      0.519112              0.000000e+00   khe_var    baseline     010
-    303  Biliary tissue excretion rate variance      0.116295              0.000000e+00   Kbh_var    baseline     010
-    304        Biliary excretion rate (initial)      0.000773  mL/sec/cm3  0.000000e+00     kbh_i    baseline     010
-    305          Biliary excretion rate (final)      0.000688  mL/sec/cm3  0.000000e+00     kbh_f    baseline     010
-    306                   Liver blood clearance      7.198451      mL/sec  0.000000e+00        CL    baseline     010
-    307           Bolus arrival time - 2nd scan   8503.974083         sec  9.132827e-01      BAT2    baseline     010
-    308    Blood signal scale factor - 2nd scan   6681.171586        a.u.  5.320625e+01      S02b    baseline     010
-    309    Liver signal scale factor - 2nd scan   4258.189023        a.u.  1.108396e+02      S02l    baseline     010
-    310                    Blood precontrast T1      1.628664         sec  0.000000e+00      T10a  rifampicin     002
-    311                      Bolus arrival time     77.672544         sec  2.168927e-01       BAT  rifampicin     002
-    312                          Cardiac output    121.715799      mL/sec  4.689015e+00        CO  rifampicin     002
-    313            Heart-lung mean transit time     12.399005         sec  6.040511e-01       Thl  rifampicin     002
-    314      Heart-lung transit time dispersion      0.492051              2.130081e-02       Dhl  rifampicin     002
-    315                Organs mean transit time     18.926842         sec  1.412141e+00        To  rifampicin     002
-    316                     Extraction fraction      0.040278              3.370173e-03        Eb  rifampicin     002
-    317                   Mean circulation time     31.325848         sec  0.000000e+00        Tc  rifampicin     002
-    318              Organs extraction fraction      0.112114              7.863287e-03        Eo  rifampicin     002
-    319  Organs extracellular mean transit time    401.973225         sec  5.147800e+01       Teb  rifampicin     002
-    320                    Liver precontrast T1      0.814510         sec  0.000000e+00      T10l  rifampicin     002
-    321   Liver extracellular mean transit time     27.335277         sec  4.630339e+00       Tel  rifampicin     002
-    322          Liver extracellular dispersion      0.743456              8.776733e-02        De  rifampicin     002
-    323     Liver extracellular volume fraction      0.195022      mL/cm3  1.542310e-02        ve  rifampicin     002
-    324              Hepatocellular uptake rate      0.000564  mL/sec/cm3  6.484813e-05       khe  rifampicin     002
-    325             Hepatocellular transit time   3275.606417         sec  1.467210e+05        Th  rifampicin     002
-    326                  Biliary excretion rate      0.000246  mL/sec/cm3  0.000000e+00       kbh  rifampicin     002
-    327       Hepatocellular tissue uptake rate      0.002892  mL/sec/cm3  0.000000e+00       Khe  rifampicin     002
-    328           Biliary tissue excretion rate      0.000305  mL/sec/cm3  0.000000e+00       Kbh  rifampicin     002
-    329    Hepatocellular uptake rate (initial)      0.000475  mL/sec/cm3  0.000000e+00     khe_i  rifampicin     002
-    330      Hepatocellular uptake rate (final)      0.000653  mL/sec/cm3  1.048442e-04     khe_f  rifampicin     002
-    331   Hepatocellular transit time (initial)  35999.999997         sec  0.000000e+00      Th_i  rifampicin     002
-    332     Hepatocellular transit time (final)   1715.865719         sec  7.626077e+02      Th_f  rifampicin     002
-    333     Hepatocellular uptake rate variance      0.313970              0.000000e+00   khe_var  rifampicin     002
-    334  Biliary tissue excretion rate variance      1.818022              0.000000e+00   Kbh_var  rifampicin     002
-    335        Biliary excretion rate (initial)      0.000022  mL/sec/cm3  0.000000e+00     kbh_i  rifampicin     002
-    336          Biliary excretion rate (final)      0.000469  mL/sec/cm3  0.000000e+00     kbh_f  rifampicin     002
-    337                   Liver blood clearance      0.452598      mL/sec  0.000000e+00        CL  rifampicin     002
-    338           Bolus arrival time - 2nd scan  10284.397582         sec  5.308460e-01      BAT2  rifampicin     002
-    339    Blood signal scale factor - 2nd scan  10678.240928        a.u.  2.514674e+01      S02b  rifampicin     002
-    340    Liver signal scale factor - 2nd scan   8775.061698        a.u.  5.905075e+01      S02l  rifampicin     002
-    341                    Blood precontrast T1      1.628664         sec  0.000000e+00      T10a  rifampicin     003
-    342                      Bolus arrival time     68.640169         sec  3.850852e-01       BAT  rifampicin     003
-    343                          Cardiac output    115.064911      mL/sec  2.856690e+00        CO  rifampicin     003
-    344            Heart-lung mean transit time     11.691401         sec  6.233797e-01       Thl  rifampicin     003
-    345      Heart-lung transit time dispersion      0.420749              1.694734e-02       Dhl  rifampicin     003
-    346                Organs mean transit time     20.179182         sec  1.116441e+00        To  rifampicin     003
-    347                     Extraction fraction      0.030051              1.532531e-03        Eb  rifampicin     003
-    348                   Mean circulation time     31.870584         sec  0.000000e+00        Tc  rifampicin     003
-    349              Organs extraction fraction      0.104490              7.025947e-03        Eo  rifampicin     003
-    350  Organs extracellular mean transit time    330.573999         sec  3.150624e+01       Teb  rifampicin     003
-    351                    Liver precontrast T1      0.725540         sec  0.000000e+00      T10l  rifampicin     003
-    352   Liver extracellular mean transit time     25.838387         sec  3.397741e+00       Tel  rifampicin     003
-    353          Liver extracellular dispersion      0.681125              6.174096e-02        De  rifampicin     003
-    354     Liver extracellular volume fraction      0.196551      mL/cm3  1.452808e-02        ve  rifampicin     003
-    355              Hepatocellular uptake rate      0.000599  mL/sec/cm3  6.399337e-05       khe  rifampicin     003
-    356             Hepatocellular transit time   3708.834749         sec  1.918411e+03        Th  rifampicin     003
-    357                  Biliary excretion rate      0.000217  mL/sec/cm3  0.000000e+00       kbh  rifampicin     003
-    358       Hepatocellular tissue uptake rate      0.003047  mL/sec/cm3  0.000000e+00       Khe  rifampicin     003
-    359           Biliary tissue excretion rate      0.000270  mL/sec/cm3  0.000000e+00       Kbh  rifampicin     003
-    360    Hepatocellular uptake rate (initial)      0.000501  mL/sec/cm3  0.000000e+00     khe_i  rifampicin     003
-    361      Hepatocellular uptake rate (final)      0.000697  mL/sec/cm3  1.392656e-04     khe_f  rifampicin     003
-    362   Hepatocellular transit time (initial)   4240.895702         sec  0.000000e+00      Th_i  rifampicin     003
-    363     Hepatocellular transit time (final)   3295.395806         sec  1.212969e+03      Th_f  rifampicin     003
-    364     Hepatocellular uptake rate variance      0.327061              0.000000e+00   khe_var  rifampicin     003
-    365  Biliary tissue excretion rate variance      0.250919              0.000000e+00   Kbh_var  rifampicin     003
-    366        Biliary excretion rate (initial)      0.000189  mL/sec/cm3  0.000000e+00     kbh_i  rifampicin     003
-    367          Biliary excretion rate (final)      0.000244  mL/sec/cm3  0.000000e+00     kbh_f  rifampicin     003
-    368                   Liver blood clearance      0.516175      mL/sec  0.000000e+00        CL  rifampicin     003
-    369           Bolus arrival time - 2nd scan   7309.111161         sec  5.415428e-01      BAT2  rifampicin     003
-    370    Blood signal scale factor - 2nd scan  12247.885017        a.u.  2.746225e+01      S02b  rifampicin     003
-    371    Liver signal scale factor - 2nd scan   9277.586154        a.u.  6.898829e+01      S02l  rifampicin     003
-    372                    Blood precontrast T1      1.628664         sec  0.000000e+00      T10a  rifampicin     004
-    373                      Bolus arrival time     61.713916         sec  1.272768e-01       BAT  rifampicin     004
-    374                          Cardiac output     90.970947      mL/sec  9.081921e-01        CO  rifampicin     004
-    375            Heart-lung mean transit time     20.121377         sec  1.672235e-01       Thl  rifampicin     004
-    376      Heart-lung transit time dispersion      0.310346              3.631190e-03       Dhl  rifampicin     004
-    377                Organs mean transit time     39.908909         sec  1.261004e+00        To  rifampicin     004
-    378                     Extraction fraction      0.047971              2.172717e-03        Eb  rifampicin     004
-    379                   Mean circulation time     60.030286         sec  0.000000e+00        Tc  rifampicin     004
-    380              Organs extraction fraction      0.205138              6.325625e-03        Eo  rifampicin     004
-    381  Organs extracellular mean transit time    383.730485         sec  2.350745e+01       Teb  rifampicin     004
-    382                    Liver precontrast T1      0.802290         sec  0.000000e+00      T10l  rifampicin     004
-    383   Liver extracellular mean transit time     52.523504         sec  3.637024e+00       Tel  rifampicin     004
-    384          Liver extracellular dispersion      0.804983              2.253085e-02        De  rifampicin     004
-    385     Liver extracellular volume fraction      0.176923      mL/cm3  8.028608e-03        ve  rifampicin     004
-    386              Hepatocellular uptake rate      0.000358  mL/sec/cm3  3.647517e-05       khe  rifampicin     004
-    387             Hepatocellular transit time   4409.236773         sec  1.976679e+03        Th  rifampicin     004
-    388                  Biliary excretion rate      0.000187  mL/sec/cm3  0.000000e+00       kbh  rifampicin     004
-    389       Hepatocellular tissue uptake rate      0.002021  mL/sec/cm3  0.000000e+00       Khe  rifampicin     004
-    390           Biliary tissue excretion rate      0.000227  mL/sec/cm3  0.000000e+00       Kbh  rifampicin     004
-    391    Hepatocellular uptake rate (initial)      0.000268  mL/sec/cm3  0.000000e+00     khe_i  rifampicin     004
-    392      Hepatocellular uptake rate (final)      0.000448  mL/sec/cm3  4.346689e-05     khe_f  rifampicin     004
-    393   Hepatocellular transit time (initial)   4084.763771         sec  0.000000e+00      Th_i  rifampicin     004
-    394     Hepatocellular transit time (final)   4789.706897         sec  1.800325e+03      Th_f  rifampicin     004
-    395     Hepatocellular uptake rate variance      0.503406              0.000000e+00   khe_var  rifampicin     004
-    396  Biliary tissue excretion rate variance      0.158870              0.000000e+00   Kbh_var  rifampicin     004
-    397        Biliary excretion rate (initial)      0.000201  mL/sec/cm3  0.000000e+00     kbh_i  rifampicin     004
-    398          Biliary excretion rate (final)      0.000172  mL/sec/cm3  0.000000e+00     kbh_f  rifampicin     004
-    399                   Liver blood clearance      0.351593      mL/sec  0.000000e+00        CL  rifampicin     004
-    400           Bolus arrival time - 2nd scan   9207.321076         sec  1.184312e-01      BAT2  rifampicin     004
-    401    Blood signal scale factor - 2nd scan   6429.637544        a.u.  1.672120e+01      S02b  rifampicin     004
-    402    Liver signal scale factor - 2nd scan   6194.788255        a.u.  9.225148e+01      S02l  rifampicin     004
-    403                    Blood precontrast T1      1.628664         sec  0.000000e+00      T10a  rifampicin     006
-    404                      Bolus arrival time     68.100247         sec  3.999904e-01       BAT  rifampicin     006
-    405                          Cardiac output    117.158212      mL/sec  1.740448e+00        CO  rifampicin     006
-    406            Heart-lung mean transit time     18.294901         sec  4.771764e-01       Thl  rifampicin     006
-    407      Heart-lung transit time dispersion      0.370302              9.714250e-03       Dhl  rifampicin     006
-    408                Organs mean transit time     24.320118         sec  1.218891e+00        To  rifampicin     006
-    409                     Extraction fraction      0.030434              1.377142e-03        Eb  rifampicin     006
-    410                   Mean circulation time     42.615019         sec  0.000000e+00        Tc  rifampicin     006
-    411              Organs extraction fraction      0.142111              5.658926e-03        Eo  rifampicin     006
-    412  Organs extracellular mean transit time    325.060036         sec  2.178224e+01       Teb  rifampicin     006
-    413                    Liver precontrast T1      0.836510         sec  0.000000e+00      T10l  rifampicin     006
-    414   Liver extracellular mean transit time     42.737997         sec  2.251897e+00       Tel  rifampicin     006
-    415          Liver extracellular dispersion      0.667090              2.458978e-02        De  rifampicin     006
-    416     Liver extracellular volume fraction      0.284617      mL/cm3  9.949838e-03        ve  rifampicin     006
-    417              Hepatocellular uptake rate      0.000302  mL/sec/cm3  3.876581e-05       khe  rifampicin     006
-    418             Hepatocellular transit time   5253.497581         sec  1.973265e+05        Th  rifampicin     006
-    419                  Biliary excretion rate      0.000136  mL/sec/cm3  0.000000e+00       kbh  rifampicin     006
-    420       Hepatocellular tissue uptake rate      0.001060  mL/sec/cm3  0.000000e+00       Khe  rifampicin     006
-    421           Biliary tissue excretion rate      0.000190  mL/sec/cm3  0.000000e+00       Kbh  rifampicin     006
-    422    Hepatocellular uptake rate (initial)      0.000198  mL/sec/cm3  0.000000e+00     khe_i  rifampicin     006
-    423      Hepatocellular uptake rate (final)      0.000405  mL/sec/cm3  5.125923e-05     khe_f  rifampicin     006
-    424   Hepatocellular transit time (initial)  35999.739366         sec  0.000000e+00      Th_i  rifampicin     006
-    425     Hepatocellular transit time (final)   2833.497095         sec  1.352035e+03      Th_f  rifampicin     006
-    426     Hepatocellular uptake rate variance      0.688316              0.000000e+00   khe_var  rifampicin     006
-    427  Biliary tissue excretion rate variance      1.708137              0.000000e+00   Kbh_var  rifampicin     006
-    428        Biliary excretion rate (initial)      0.000020  mL/sec/cm3  0.000000e+00     kbh_i  rifampicin     006
-    429          Biliary excretion rate (final)      0.000252  mL/sec/cm3  0.000000e+00     kbh_f  rifampicin     006
-    430                   Liver blood clearance      0.212826      mL/sec  0.000000e+00        CL  rifampicin     006
-    431           Bolus arrival time - 2nd scan   9497.198506         sec  3.387336e-01      BAT2  rifampicin     006
-    432    Blood signal scale factor - 2nd scan   7627.269480        a.u.  1.354508e+01      S02b  rifampicin     006
-    433    Liver signal scale factor - 2nd scan   6085.598402        a.u.  1.020032e+02      S02l  rifampicin     006
-    434                    Blood precontrast T1      1.628664         sec  0.000000e+00      T10a  rifampicin     007
-    435                      Bolus arrival time     66.231459         sec  2.473057e-01       BAT  rifampicin     007
-    436                          Cardiac output    139.099557      mL/sec  2.884608e+00        CO  rifampicin     007
-    437            Heart-lung mean transit time     12.916855         sec  2.522552e-01       Thl  rifampicin     007
-    438      Heart-lung transit time dispersion      0.343909              7.030603e-03       Dhl  rifampicin     007
-    439                Organs mean transit time     14.829008         sec  7.235590e-01        To  rifampicin     007
-    440                     Extraction fraction      0.029290              1.016988e-03        Eb  rifampicin     007
-    441                   Mean circulation time     27.745863         sec  0.000000e+00        Tc  rifampicin     007
-    442              Organs extraction fraction      0.185613              7.226860e-03        Eo  rifampicin     007
-    443  Organs extracellular mean transit time    246.687167         sec  1.278652e+01       Teb  rifampicin     007
-    444                    Liver precontrast T1      0.840480         sec  0.000000e+00      T10l  rifampicin     007
-    445   Liver extracellular mean transit time     38.841052         sec  3.175052e+00       Tel  rifampicin     007
-    446          Liver extracellular dispersion      0.782356              3.149237e-02        De  rifampicin     007
-    447     Liver extracellular volume fraction      0.187200      mL/cm3  8.168636e-03        ve  rifampicin     007
-    448              Hepatocellular uptake rate      0.000241  mL/sec/cm3  3.205066e-05       khe  rifampicin     007
-    449             Hepatocellular transit time   9367.280123         sec  2.664026e+03        Th  rifampicin     007
-    450                  Biliary excretion rate      0.000087  mL/sec/cm3  0.000000e+00       kbh  rifampicin     007
-    451       Hepatocellular tissue uptake rate      0.001288  mL/sec/cm3  0.000000e+00       Khe  rifampicin     007
-    452           Biliary tissue excretion rate      0.000107  mL/sec/cm3  0.000000e+00       Kbh  rifampicin     007
-    453    Hepatocellular uptake rate (initial)      0.000272  mL/sec/cm3  0.000000e+00     khe_i  rifampicin     007
-    454      Hepatocellular uptake rate (final)      0.000210  mL/sec/cm3  5.677510e-05     khe_f  rifampicin     007
-    455   Hepatocellular transit time (initial)   5384.132362         sec  0.000000e+00      Th_i  rifampicin     007
-    456     Hepatocellular transit time (final)  35999.450664         sec  1.045511e+05      Th_f  rifampicin     007
-    457     Hepatocellular uptake rate variance      0.260314              0.000000e+00   khe_var  rifampicin     007
-    458  Biliary tissue excretion rate variance      1.479588              0.000000e+00   Kbh_var  rifampicin     007
-    459        Biliary excretion rate (initial)      0.000151  mL/sec/cm3  0.000000e+00     kbh_i  rifampicin     007
-    460          Biliary excretion rate (final)      0.000023  mL/sec/cm3  0.000000e+00     kbh_f  rifampicin     007
-    461                   Liver blood clearance      0.268936      mL/sec  0.000000e+00        CL  rifampicin     007
-    462           Bolus arrival time - 2nd scan   8061.590457         sec  1.252418e-01      BAT2  rifampicin     007
-    463    Blood signal scale factor - 2nd scan   4748.230621        a.u.  1.354394e+01      S02b  rifampicin     007
-    464    Liver signal scale factor - 2nd scan   5004.801414        a.u.  8.149410e+01      S02l  rifampicin     007
-    465                    Blood precontrast T1      1.628664         sec  0.000000e+00      T10a  rifampicin     008
-    466                      Bolus arrival time     70.905820         sec  2.531154e-01       BAT  rifampicin     008
-    467                          Cardiac output    174.957026      mL/sec  2.932809e+00        CO  rifampicin     008
-    468            Heart-lung mean transit time     15.071174         sec  2.442319e-01       Thl  rifampicin     008
-    469      Heart-lung transit time dispersion      0.354822              7.927156e-03       Dhl  rifampicin     008
-    470                Organs mean transit time     17.684017         sec  6.601757e-01        To  rifampicin     008
-    471                     Extraction fraction      0.025784              8.947407e-04        Eb  rifampicin     008
-    472                   Mean circulation time     32.755192         sec  0.000000e+00        Tc  rifampicin     008
-    473              Organs extraction fraction      0.097461              3.880886e-03        Eo  rifampicin     008
-    474  Organs extracellular mean transit time    400.139347         sec  2.321866e+01       Teb  rifampicin     008
-    475                    Liver precontrast T1      0.706250         sec  0.000000e+00      T10l  rifampicin     008
-    476   Liver extracellular mean transit time     29.508574         sec  2.560451e+00       Tel  rifampicin     008
-    477          Liver extracellular dispersion      0.580684              4.966717e-02        De  rifampicin     008
-    478     Liver extracellular volume fraction      0.156653      mL/cm3  7.467783e-03        ve  rifampicin     008
-    479              Hepatocellular uptake rate      0.000360  mL/sec/cm3  2.604060e-05       khe  rifampicin     008
-    480             Hepatocellular transit time   6306.257224         sec  1.007020e+05        Th  rifampicin     008
-    481                  Biliary excretion rate      0.000134  mL/sec/cm3  0.000000e+00       kbh  rifampicin     008
-    482       Hepatocellular tissue uptake rate      0.002301  mL/sec/cm3  0.000000e+00       Khe  rifampicin     008
-    483           Biliary tissue excretion rate      0.000159  mL/sec/cm3  0.000000e+00       Kbh  rifampicin     008
-    484    Hepatocellular uptake rate (initial)      0.000208  mL/sec/cm3  0.000000e+00     khe_i  rifampicin     008
-    485      Hepatocellular uptake rate (final)      0.000513  mL/sec/cm3  5.062542e-05     khe_f  rifampicin     008
-    486   Hepatocellular transit time (initial)  35999.994836         sec  0.000000e+00      Th_i  rifampicin     008
-    487     Hepatocellular transit time (final)   3455.812587         sec  1.021551e+03      Th_f  rifampicin     008
-    488     Hepatocellular uptake rate variance      0.846155              0.000000e+00   khe_var  rifampicin     008
-    489  Biliary tissue excretion rate variance      1.649652              0.000000e+00   Kbh_var  rifampicin     008
-    490        Biliary excretion rate (initial)      0.000023  mL/sec/cm3  0.000000e+00     kbh_i  rifampicin     008
-    491          Biliary excretion rate (final)      0.000244  mL/sec/cm3  0.000000e+00     kbh_f  rifampicin     008
-    492                   Liver blood clearance      0.317379      mL/sec  0.000000e+00        CL  rifampicin     008
-    493           Bolus arrival time - 2nd scan   8204.921722         sec  1.917803e-01      BAT2  rifampicin     008
-    494    Blood signal scale factor - 2nd scan   7048.074773        a.u.  1.506457e+01      S02b  rifampicin     008
-    495    Liver signal scale factor - 2nd scan   6052.946170        a.u.  6.662660e+01      S02l  rifampicin     008
-    496                    Blood precontrast T1      1.628664         sec  0.000000e+00      T10a  rifampicin     009
-    497                      Bolus arrival time     80.883606         sec  2.286967e-01       BAT  rifampicin     009
-    498                          Cardiac output    202.690430      mL/sec  3.773456e+00        CO  rifampicin     009
-    499            Heart-lung mean transit time     11.935901         sec  3.779500e-01       Thl  rifampicin     009
-    500      Heart-lung transit time dispersion      0.540928              1.174133e-02       Dhl  rifampicin     009
-    501                Organs mean transit time     33.894538         sec  1.189831e+00        To  rifampicin     009
-    502                     Extraction fraction      0.020000              1.106657e-03        Eb  rifampicin     009
-    503                   Mean circulation time     45.830438         sec  0.000000e+00        Tc  rifampicin     009
-    504              Organs extraction fraction      0.081691              4.296235e-03        Eo  rifampicin     009
-    505  Organs extracellular mean transit time    473.375913         sec  3.798624e+01       Teb  rifampicin     009
-    506                    Liver precontrast T1      0.881320         sec  0.000000e+00      T10l  rifampicin     009
-    507   Liver extracellular mean transit time     49.579433         sec  4.080401e+00       Tel  rifampicin     009
-    508          Liver extracellular dispersion      0.689449              3.762232e-02        De  rifampicin     009
-    509     Liver extracellular volume fraction      0.192488      mL/cm3  8.754608e-03        ve  rifampicin     009
-    510              Hepatocellular uptake rate      0.000150  mL/sec/cm3  3.285608e-05       khe  rifampicin     009
-    511             Hepatocellular transit time   2906.872571         sec  6.995868e+03        Th  rifampicin     009
-    512                  Biliary excretion rate      0.000278  mL/sec/cm3  0.000000e+00       kbh  rifampicin     009
-    513       Hepatocellular tissue uptake rate      0.000781  mL/sec/cm3  0.000000e+00       Khe  rifampicin     009
-    514           Biliary tissue excretion rate      0.000344  mL/sec/cm3  0.000000e+00       Kbh  rifampicin     009
-    515    Hepatocellular uptake rate (initial)      0.000099  mL/sec/cm3  0.000000e+00     khe_i  rifampicin     009
-    516      Hepatocellular uptake rate (final)      0.000202  mL/sec/cm3  4.786403e-05     khe_f  rifampicin     009
-    517   Hepatocellular transit time (initial)   5409.935609         sec  0.000000e+00      Th_i  rifampicin     009
-    518     Hepatocellular transit time (final)   1987.362078         sec  1.145403e+03      Th_f  rifampicin     009
-    519     Hepatocellular uptake rate variance      0.682558              0.000000e+00   khe_var  rifampicin     009
-    520  Biliary tissue excretion rate variance      0.925358              0.000000e+00   Kbh_var  rifampicin     009
-    521        Biliary excretion rate (initial)      0.000149  mL/sec/cm3  0.000000e+00     kbh_i  rifampicin     009
-    522          Biliary excretion rate (final)      0.000406  mL/sec/cm3  0.000000e+00     kbh_f  rifampicin     009
-    523                   Liver blood clearance      0.180347      mL/sec  0.000000e+00        CL  rifampicin     009
-    524           Bolus arrival time - 2nd scan   9224.889425         sec  2.309136e-01      BAT2  rifampicin     009
-    525    Blood signal scale factor - 2nd scan   5794.572956        a.u.  1.605668e+01      S02b  rifampicin     009
-    526    Liver signal scale factor - 2nd scan   4979.232082        a.u.  5.115563e+01      S02l  rifampicin     009
-    527                    Blood precontrast T1      1.628664         sec  0.000000e+00      T10a  rifampicin     010
-    528                      Bolus arrival time     75.399033         sec  1.007388e+00       BAT  rifampicin     010
-    529                          Cardiac output    117.861240      mL/sec  2.805378e+00        CO  rifampicin     010
-    530            Heart-lung mean transit time     24.397154         sec  9.309764e-01       Thl  rifampicin     010
-    531      Heart-lung transit time dispersion      0.335812              1.096313e-02       Dhl  rifampicin     010
-    532                Organs mean transit time     31.706063         sec  1.220030e+00        To  rifampicin     010
-    533                     Extraction fraction      0.031569              1.926584e-03        Eb  rifampicin     010
-    534                   Mean circulation time     56.103218         sec  0.000000e+00        Tc  rifampicin     010
-    535              Organs extraction fraction      0.159959              7.020286e-03        Eo  rifampicin     010
-    536  Organs extracellular mean transit time    481.964318         sec  3.097579e+01       Teb  rifampicin     010
-    537                    Liver precontrast T1      0.830440         sec  0.000000e+00      T10l  rifampicin     010
-    538   Liver extracellular mean transit time     50.055250         sec  4.199309e+00       Tel  rifampicin     010
-    539          Liver extracellular dispersion      0.723160              3.435640e-02        De  rifampicin     010
-    540     Liver extracellular volume fraction      0.228932      mL/cm3  1.093625e-02        ve  rifampicin     010
-    541              Hepatocellular uptake rate      0.000204  mL/sec/cm3  4.232477e-05       khe  rifampicin     010
-    542             Hepatocellular transit time   7479.285566         sec  3.526354e+03        Th  rifampicin     010
-    543                  Biliary excretion rate      0.000103  mL/sec/cm3  0.000000e+00       kbh  rifampicin     010
-    544       Hepatocellular tissue uptake rate      0.000891  mL/sec/cm3  0.000000e+00       Khe  rifampicin     010
-    545           Biliary tissue excretion rate      0.000134  mL/sec/cm3  0.000000e+00       Kbh  rifampicin     010
-    546    Hepatocellular uptake rate (initial)      0.000159  mL/sec/cm3  0.000000e+00     khe_i  rifampicin     010
-    547      Hepatocellular uptake rate (final)      0.000249  mL/sec/cm3  8.251191e-05     khe_f  rifampicin     010
-    548   Hepatocellular transit time (initial)   4173.144754         sec  0.000000e+00      Th_i  rifampicin     010
-    549     Hepatocellular transit time (final)  35999.999357         sec  1.609128e+05      Th_f  rifampicin     010
-    550     Hepatocellular uptake rate variance      0.443230              0.000000e+00   khe_var  rifampicin     010
-    551  Biliary tissue excretion rate variance      1.584484              0.000000e+00   Kbh_var  rifampicin     010
-    552        Biliary excretion rate (initial)      0.000185  mL/sec/cm3  0.000000e+00     kbh_i  rifampicin     010
-    553          Biliary excretion rate (final)      0.000021  mL/sec/cm3  0.000000e+00     kbh_f  rifampicin     010
-    554                   Liver blood clearance      0.226167      mL/sec  0.000000e+00        CL  rifampicin     010
-    555           Bolus arrival time - 2nd scan   7697.013633         sec  9.508046e-01      BAT2  rifampicin     010
-    556    Blood signal scale factor - 2nd scan   6994.516555        a.u.  2.440833e+01      S02b  rifampicin     010
-    557    Liver signal scale factor - 2nd scan   5098.148211        a.u.  7.649033e+01      S02l  rifampicin     010
+    Function evaluations 7, initial cost 3.1887e+05, final cost 2.6063e+05, first-order optimality 2.04e+07.
+                                             name         value        unit         stdev parameter       visit subject
+    0            Aorta second signal scale factor  9.792765e+03        a.u.  2.542086e+01      S02a    baseline     001
+    1            Liver second signal scale factor  7.563560e+03        a.u.  9.001334e+01      S02l    baseline     001
+    2                   Second bolus arrival time  8.602941e+03         sec  6.371023e-01      BAT2    baseline     001
+    3                    First bolus arrival time  7.267319e+01         sec  6.525734e-01       BAT    baseline     001
+    4                              Cardiac output  2.260300e+02      mL/sec  5.902920e+00        CO    baseline     001
+    5                Heart-lung mean transit time  2.420511e+01         sec  1.084125e+00       Thl    baseline     001
+    6                       Heart-lung dispersion  6.567871e-01              1.726546e-02       Dhl    baseline     001
+    7              Organs blood mean transit time  2.285344e+01         sec  8.323188e-01        To    baseline     001
+    8                  Organs extraction fraction  1.341144e-01              3.755639e-03        Eo    baseline     001
+    9      Organs extravascular mean transit time  4.511497e+02         sec  1.889039e+01       Toe    baseline     001
+    10                   Body extraction fraction  6.011137e-02              2.597914e-03        Eb    baseline     001
+    11                                 Hematocrit  4.500000e-01              0.000000e+00         H    baseline     001
+    12        Liver extracellular volume fraction  3.068645e-01      mL/cm3  1.091010e-02        ve    baseline     001
+    13            Extracellular mean transit time  4.048848e+01         sec  1.981390e+00        Te    baseline     001
+    14                   Extracellular dispersion  7.303408e-01              2.606262e-02        De    baseline     001
+    15         Initial hepatocellular uptake rate  6.254956e-03  mL/sec/cm3  9.341971e-05     khe_i    baseline     001
+    16           Final hepatocellular uptake rate  1.379777e-03  mL/sec/cm3  4.562628e-05     khe_f    baseline     001
+    17   Initial hepatocellular mean transit time  1.152108e+03         sec  8.378988e+01      Th_i    baseline     001
+    18     Final hepatocellular mean transit time  8.906001e+03         sec  3.757509e+02      Th_f    baseline     001
+    19           Hepatocellular mean transit time  5.029054e+03         sec  0.000000e+00        Th    baseline     001
+    20                 Hepatocellular uptake rate  3.817366e-03  mL/sec/cm3  0.000000e+00       khe    baseline     001
+    21              Biliary tissue excretion rate  1.988445e-04  mL/sec/cm3  0.000000e+00       Kbh    baseline     001
+    22          Hepatocellular tissue uptake rate  1.243991e-02  mL/sec/cm3  0.000000e+00       Khe    baseline     001
+    23                     Biliary excretion rate  1.378262e-04  mL/sec/cm3  0.000000e+00       kbh    baseline     001
+    24                      Liver blood clearance  3.450841e-06      mL/sec  0.000000e+00        CL    baseline     001
+    25           Aorta second signal scale factor  1.068745e+04        a.u.  3.277685e+01      S02a    baseline     002
+    26           Liver second signal scale factor  7.807834e+03        a.u.  2.579038e+01      S02l    baseline     002
+    27                  Second bolus arrival time  1.716537e+04         sec  2.084147e+00      BAT2    baseline     002
+    28                   First bolus arrival time  8.087922e+01         sec  1.877339e+00       BAT    baseline     002
+    29                             Cardiac output  8.259428e+01      mL/sec  6.782578e+00        CO    baseline     002
+    30               Heart-lung mean transit time  1.480839e+01         sec  1.968934e+00       Thl    baseline     002
+    31                      Heart-lung dispersion  4.738190e-01              4.249956e-02       Dhl    baseline     002
+    32             Organs blood mean transit time  1.679441e+01         sec  1.345145e+00        To    baseline     002
+    33                 Organs extraction fraction  1.778844e-01              1.564991e-02        Eo    baseline     002
+    34     Organs extravascular mean transit time  3.711925e+02         sec  3.430035e+01       Toe    baseline     002
+    35                   Body extraction fraction  5.675113e-02              7.403842e-03        Eb    baseline     002
+    36                                 Hematocrit  4.500000e-01              0.000000e+00         H    baseline     002
+    37        Liver extracellular volume fraction  1.077369e-01      mL/cm3  3.135177e-02        ve    baseline     002
+    38            Extracellular mean transit time  1.447018e+01         sec  5.589665e+00        Te    baseline     002
+    39                   Extracellular dispersion  6.985140e-01              1.897152e-01        De    baseline     002
+    40         Initial hepatocellular uptake rate  4.359463e-03  mL/sec/cm3  1.455334e-04     khe_i    baseline     002
+    41           Final hepatocellular uptake rate  1.103078e-02  mL/sec/cm3  3.086468e-04     khe_f    baseline     002
+    42   Initial hepatocellular mean transit time  2.955778e+03         sec  2.665492e+02      Th_i    baseline     002
+    43     Final hepatocellular mean transit time  1.677858e+03         sec  9.249062e+01      Th_f    baseline     002
+    44           Hepatocellular mean transit time  2.316818e+03         sec  0.000000e+00        Th    baseline     002
+    45                 Hepatocellular uptake rate  7.695121e-03  mL/sec/cm3  0.000000e+00       khe    baseline     002
+    46              Biliary tissue excretion rate  4.316264e-04  mL/sec/cm3  0.000000e+00       Kbh    baseline     002
+    47          Hepatocellular tissue uptake rate  7.142513e-02  mL/sec/cm3  0.000000e+00       Khe    baseline     002
+    48                     Biliary excretion rate  3.851244e-04  mL/sec/cm3  0.000000e+00       kbh    baseline     002
+    49                      Liver blood clearance  1.125546e-05      mL/sec  0.000000e+00        CL    baseline     002
+    50           Aorta second signal scale factor  1.104714e+04        a.u.  2.124269e+01      S02a    baseline     003
+    51           Liver second signal scale factor  8.753472e+03        a.u.  1.947008e+01      S02l    baseline     003
+    52                  Second bolus arrival time  1.203713e+06         sec  3.957331e-10      BAT2    baseline     003
+    53                   First bolus arrival time  7.150484e+01         sec  1.117266e+00       BAT    baseline     003
+    54                             Cardiac output  1.246002e+02      mL/sec  4.877417e+00        CO    baseline     003
+    55               Heart-lung mean transit time  1.389333e+01         sec  1.781076e+00       Thl    baseline     003
+    56                      Heart-lung dispersion  4.017098e-01              3.137748e-02       Dhl    baseline     003
+    57             Organs blood mean transit time  1.898135e+01         sec  2.837077e+00        To    baseline     003
+    58                 Organs extraction fraction  1.370846e-01              1.465473e-02        Eo    baseline     003
+    59     Organs extravascular mean transit time  2.766324e+02         sec  3.436065e+01       Toe    baseline     003
+    60                   Body extraction fraction  6.730838e-02              4.193648e-03        Eb    baseline     003
+    61                                 Hematocrit  4.500000e-01              0.000000e+00         H    baseline     003
+    62        Liver extracellular volume fraction  1.163275e-01      mL/cm3  7.489966e-02        ve    baseline     003
+    63            Extracellular mean transit time  1.513864e+01         sec  1.237038e+01        Te    baseline     003
+    64                   Extracellular dispersion  7.564981e-01              2.835063e-01        De    baseline     003
+    65         Initial hepatocellular uptake rate  8.519630e-03  mL/sec/cm3  4.471387e-04     khe_i    baseline     003
+    66           Final hepatocellular uptake rate  8.766938e-03  mL/sec/cm3  5.894370e-02     khe_f    baseline     003
+    67   Initial hepatocellular mean transit time  2.243096e+03         sec  1.889928e+03      Th_i    baseline     003
+    68     Final hepatocellular mean transit time  6.163973e+02         sec  1.711678e+03      Th_f    baseline     003
+    69           Hepatocellular mean transit time  1.429747e+03         sec  0.000000e+00        Th    baseline     003
+    70                 Hepatocellular uptake rate  8.643284e-03  mL/sec/cm3  0.000000e+00       khe    baseline     003
+    71              Biliary tissue excretion rate  6.994246e-04  mL/sec/cm3  0.000000e+00       Kbh    baseline     003
+    72          Hepatocellular tissue uptake rate  7.430129e-02  mL/sec/cm3  0.000000e+00       Khe    baseline     003
+    73                     Biliary excretion rate  6.180623e-04  mL/sec/cm3  0.000000e+00       kbh    baseline     003
+    74                      Liver blood clearance  9.888524e-06      mL/sec  0.000000e+00        CL    baseline     003
+    75           Aorta second signal scale factor  6.253340e+03        a.u.  2.249683e+01      S02a    baseline     004
+    76           Liver second signal scale factor  5.426434e+03        a.u.  1.044659e+02      S02l    baseline     004
+    77                  Second bolus arrival time  9.541209e+03         sec  2.838180e-01      BAT2    baseline     004
+    78                   First bolus arrival time  6.619512e+01         sec  2.756791e-01       BAT    baseline     004
+    79                             Cardiac output  6.896965e+01      mL/sec  7.571014e-01        CO    baseline     004
+    80               Heart-lung mean transit time  1.765224e+01         sec  3.440187e-01       Thl    baseline     004
+    81                      Heart-lung dispersion  3.313820e-01              4.178460e-03       Dhl    baseline     004
+    82             Organs blood mean transit time  2.858609e+01         sec  9.570115e-01        To    baseline     004
+    83                 Organs extraction fraction  2.924242e-01              6.364490e-03        Eo    baseline     004
+    84     Organs extravascular mean transit time  4.133154e+02         sec  2.083444e+01       Toe    baseline     004
+    85                   Body extraction fraction  1.484948e-01              5.086747e-03        Eb    baseline     004
+    86                                 Hematocrit  4.500000e-01              0.000000e+00         H    baseline     004
+    87        Liver extracellular volume fraction  4.973533e-02      mL/cm3  1.371196e-02        ve    baseline     004
+    88            Extracellular mean transit time  2.380486e+01         sec  5.078504e+00        Te    baseline     004
+    89                   Extracellular dispersion  5.386769e-01              1.153561e-01        De    baseline     004
+    90         Initial hepatocellular uptake rate  3.352500e-03  mL/sec/cm3  5.009004e-05     khe_i    baseline     004
+    91           Final hepatocellular uptake rate  5.176797e-03  mL/sec/cm3  1.396751e-04     khe_f    baseline     004
+    92   Initial hepatocellular mean transit time  8.744389e+03         sec  1.110084e+03      Th_i    baseline     004
+    93     Final hepatocellular mean transit time  1.758774e+04         sec  3.344089e+03      Th_f    baseline     004
+    94           Hepatocellular mean transit time  1.316607e+04         sec  0.000000e+00        Th    baseline     004
+    95                 Hepatocellular uptake rate  4.264648e-03  mL/sec/cm3  0.000000e+00       khe    baseline     004
+    96              Biliary tissue excretion rate  7.595283e-05  mL/sec/cm3  0.000000e+00       Kbh    baseline     004
+    97          Hepatocellular tissue uptake rate  8.574686e-02  mL/sec/cm3  0.000000e+00       Khe    baseline     004
+    98                     Biliary excretion rate  7.217529e-05  mL/sec/cm3  0.000000e+00       kbh    baseline     004
+    99                      Liver blood clearance  4.813115e-06      mL/sec  0.000000e+00        CL    baseline     004
+    100          Aorta second signal scale factor  7.727382e+03        a.u.  2.019308e+01      S02a    baseline     005
+    101          Liver second signal scale factor  9.074048e+03        a.u.  3.522736e+01      S02l    baseline     005
+    102                 Second bolus arrival time  1.002701e+04         sec  1.334250e+00      BAT2    baseline     005
+    103                  First bolus arrival time  7.315345e+01         sec  1.391074e+00       BAT    baseline     005
+    104                            Cardiac output  9.038681e+01      mL/sec  1.959665e+00        CO    baseline     005
+    105              Heart-lung mean transit time  1.721498e+01         sec  2.024381e+00       Thl    baseline     005
+    106                     Heart-lung dispersion  5.177383e-01              3.431789e-02       Dhl    baseline     005
+    107            Organs blood mean transit time  2.891209e+01         sec  1.777484e+00        To    baseline     005
+    108                Organs extraction fraction  1.806029e-01              7.648083e-03        Eo    baseline     005
+    109    Organs extravascular mean transit time  3.844790e+02         sec  2.274808e+01       Toe    baseline     005
+    110                  Body extraction fraction  7.380423e-02              3.205073e-03        Eb    baseline     005
+    111                                Hematocrit  4.500000e-01              0.000000e+00         H    baseline     005
+    112       Liver extracellular volume fraction  1.388001e-01      mL/cm3  2.224595e-02        ve    baseline     005
+    113           Extracellular mean transit time  3.179716e+01         sec  5.725338e+00        Te    baseline     005
+    114                  Extracellular dispersion  7.285939e-01              6.694264e-02        De    baseline     005
+    115        Initial hepatocellular uptake rate  5.993584e-03  mL/sec/cm3  9.434199e-05     khe_i    baseline     005
+    116          Final hepatocellular uptake rate  4.175181e-03  mL/sec/cm3  8.609252e-05     khe_f    baseline     005
+    117  Initial hepatocellular mean transit time  1.822793e+03         sec  5.375753e+01      Th_i    baseline     005
+    118    Final hepatocellular mean transit time  2.092208e+03         sec  9.387783e+01      Th_f    baseline     005
+    119          Hepatocellular mean transit time  1.957501e+03         sec  0.000000e+00        Th    baseline     005
+    120                Hepatocellular uptake rate  5.084382e-03  mL/sec/cm3  0.000000e+00       khe    baseline     005
+    121             Biliary tissue excretion rate  5.108555e-04  mL/sec/cm3  0.000000e+00       Kbh    baseline     005
+    122         Hepatocellular tissue uptake rate  3.663097e-02  mL/sec/cm3  0.000000e+00       Khe    baseline     005
+    123                    Biliary excretion rate  4.399487e-04  mL/sec/cm3  0.000000e+00       kbh    baseline     005
+    124                     Liver blood clearance  7.208595e-06      mL/sec  0.000000e+00        CL    baseline     005
+    125          Aorta second signal scale factor  6.308503e+03        a.u.  2.479290e+01      S02a    baseline     006
+    126          Liver second signal scale factor  6.693530e+03        a.u.  6.227194e+01      S02l    baseline     006
+    127                 Second bolus arrival time  8.589060e+03         sec  2.733237e-01      BAT2    baseline     006
+    128                  First bolus arrival time  7.423166e+01         sec  3.831830e-01       BAT    baseline     006
+    129                            Cardiac output  1.020211e+02      mL/sec  2.768974e+00        CO    baseline     006
+    130              Heart-lung mean transit time  1.261570e+01         sec  5.469297e-01       Thl    baseline     006
+    131                     Heart-lung dispersion  3.383501e-01              1.166035e-02       Dhl    baseline     006
+    132            Organs blood mean transit time  2.166923e+01         sec  1.575640e+00        To    baseline     006
+    133                Organs extraction fraction  1.738624e-01              9.153668e-03        Eo    baseline     006
+    134    Organs extravascular mean transit time  2.843021e+02         sec  2.073470e+01       Toe    baseline     006
+    135                  Body extraction fraction  6.818492e-02              3.469412e-03        Eb    baseline     006
+    136                                Hematocrit  4.500000e-01              0.000000e+00         H    baseline     006
+    137       Liver extracellular volume fraction  2.674500e-01      mL/cm3  3.661925e-02        ve    baseline     006
+    138           Extracellular mean transit time  4.441431e+01         sec  6.786354e+00        Te    baseline     006
+    139                  Extracellular dispersion  7.153831e-01              5.128841e-02        De    baseline     006
+    140        Initial hepatocellular uptake rate  6.962528e-03  mL/sec/cm3  1.579562e-04     khe_i    baseline     006
+    141          Final hepatocellular uptake rate  5.456724e-03  mL/sec/cm3  1.436747e-04     khe_f    baseline     006
+    142  Initial hepatocellular mean transit time  2.752753e+03         sec  1.526454e+02      Th_i    baseline     006
+    143    Final hepatocellular mean transit time  2.284407e+03         sec  1.560444e+02      Th_f    baseline     006
+    144          Hepatocellular mean transit time  2.518580e+03         sec  0.000000e+00        Th    baseline     006
+    145                Hepatocellular uptake rate  6.209626e-03  mL/sec/cm3  0.000000e+00       khe    baseline     006
+    146             Biliary tissue excretion rate  3.970492e-04  mL/sec/cm3  0.000000e+00       Kbh    baseline     006
+    147         Hepatocellular tissue uptake rate  2.321790e-02  mL/sec/cm3  0.000000e+00       Khe    baseline     006
+    148                    Biliary excretion rate  2.908584e-04  mL/sec/cm3  0.000000e+00       kbh    baseline     006
+    149                     Liver blood clearance  8.984486e-06      mL/sec  0.000000e+00        CL    baseline     006
+    150          Aorta second signal scale factor  6.534956e+03        a.u.  2.312956e+01      S02a    baseline     007
+    151          Liver second signal scale factor  7.687769e+03        a.u.  5.696838e+01      S02l    baseline     007
+    152                 Second bolus arrival time  7.271230e+03         sec  2.260645e-01      BAT2    baseline     007
+    153                  First bolus arrival time  7.028366e+01         sec  1.924492e-01       BAT    baseline     007
+    154                            Cardiac output  1.757941e+02      mL/sec  3.791644e+00        CO    baseline     007
+    155              Heart-lung mean transit time  1.068567e+01         sec  3.327141e-01       Thl    baseline     007
+    156                     Heart-lung dispersion  3.450986e-01              1.081883e-02       Dhl    baseline     007
+    157            Organs blood mean transit time  1.515372e+01         sec  9.373340e-01        To    baseline     007
+    158                Organs extraction fraction  2.003282e-01              8.622726e-03        Eo    baseline     007
+    159    Organs extravascular mean transit time  2.396796e+02         sec  1.125135e+01       Toe    baseline     007
+    160                  Body extraction fraction  3.050357e-02              1.259255e-03        Eb    baseline     007
+    161                                Hematocrit  4.500000e-01              0.000000e+00         H    baseline     007
+    162       Liver extracellular volume fraction  2.292001e-01      mL/cm3  9.059038e-02        ve    baseline     007
+    163           Extracellular mean transit time  5.955715e+01         sec  2.619688e+01        Te    baseline     007
+    164                  Extracellular dispersion  9.650205e-01              3.449973e-02        De    baseline     007
+    165        Initial hepatocellular uptake rate  5.988380e-03  mL/sec/cm3  1.666018e-04     khe_i    baseline     007
+    166          Final hepatocellular uptake rate  4.606700e-03  mL/sec/cm3  1.978763e-04     khe_f    baseline     007
+    167  Initial hepatocellular mean transit time  1.469081e+03         sec  5.155478e+01      Th_i    baseline     007
+    168    Final hepatocellular mean transit time  2.176214e+03         sec  1.045252e+02      Th_f    baseline     007
+    169          Hepatocellular mean transit time  1.822648e+03         sec  0.000000e+00        Th    baseline     007
+    170                Hepatocellular uptake rate  5.297540e-03  mL/sec/cm3  0.000000e+00       khe    baseline     007
+    171             Biliary tissue excretion rate  5.486524e-04  mL/sec/cm3  0.000000e+00       Kbh    baseline     007
+    172         Hepatocellular tissue uptake rate  2.311316e-02  mL/sec/cm3  0.000000e+00       Khe    baseline     007
+    173                    Biliary excretion rate  4.229012e-04  mL/sec/cm3  0.000000e+00       kbh    baseline     007
+    174                     Liver blood clearance  5.610820e-06      mL/sec  0.000000e+00        CL    baseline     007
+    175          Aorta second signal scale factor  9.778977e+03        a.u.  2.662498e+01      S02a    baseline     008
+    176          Liver second signal scale factor  7.704686e+03        a.u.  4.509108e+01      S02l    baseline     008
+    177                 Second bolus arrival time  7.593558e+03         sec  2.545377e-01      BAT2    baseline     008
+    178                  First bolus arrival time  7.591639e+01         sec  4.311915e-01       BAT    baseline     008
+    179                            Cardiac output  2.258034e+02      mL/sec  5.574253e+00        CO    baseline     008
+    180              Heart-lung mean transit time  1.540733e+01         sec  5.564282e-01       Thl    baseline     008
+    181                     Heart-lung dispersion  3.532980e-01              1.253019e-02       Dhl    baseline     008
+    182            Organs blood mean transit time  1.571750e+01         sec  1.197360e+00        To    baseline     008
+    183                Organs extraction fraction  1.335579e-01              7.731520e-03        Eo    baseline     008
+    184    Organs extravascular mean transit time  2.680262e+02         sec  1.829597e+01       Toe    baseline     008
+    185                  Body extraction fraction  3.842871e-02              1.662950e-03        Eb    baseline     008
+    186                                Hematocrit  4.500000e-01              0.000000e+00         H    baseline     008
+    187       Liver extracellular volume fraction  1.655958e-01      mL/cm3  1.847851e-02        ve    baseline     008
+    188           Extracellular mean transit time  1.758904e+01         sec  3.242495e+00        Te    baseline     008
+    189                  Extracellular dispersion  5.425777e-01              1.116988e-01        De    baseline     008
+    190        Initial hepatocellular uptake rate  6.693871e-03  mL/sec/cm3  1.382734e-04     khe_i    baseline     008
+    191          Final hepatocellular uptake rate  4.038617e-03  mL/sec/cm3  1.140577e-04     khe_f    baseline     008
+    192  Initial hepatocellular mean transit time  1.364997e+03         sec  5.675087e+01      Th_i    baseline     008
+    193    Final hepatocellular mean transit time  2.668698e+03         sec  1.726797e+02      Th_f    baseline     008
+    194          Hepatocellular mean transit time  2.016847e+03         sec  0.000000e+00        Th    baseline     008
+    195                Hepatocellular uptake rate  5.366244e-03  mL/sec/cm3  0.000000e+00       khe    baseline     008
+    196             Biliary tissue excretion rate  4.958233e-04  mL/sec/cm3  0.000000e+00       Kbh    baseline     008
+    197         Hepatocellular tissue uptake rate  3.240568e-02  mL/sec/cm3  0.000000e+00       Khe    baseline     008
+    198                    Biliary excretion rate  4.137171e-04  mL/sec/cm3  0.000000e+00       kbh    baseline     008
+    199                     Liver blood clearance  5.213443e-06      mL/sec  0.000000e+00        CL    baseline     008
+    200          Aorta second signal scale factor  6.183152e+03        a.u.  1.584590e+01      S02a    baseline     009
+    201          Liver second signal scale factor  4.561625e+03        a.u.  1.777368e+01      S02l    baseline     009
+    202                 Second bolus arrival time  7.762220e+03         sec  3.974523e-01      BAT2    baseline     009
+    203                  First bolus arrival time  7.521178e+01         sec  3.860760e-01       BAT    baseline     009
+    204                            Cardiac output  2.041875e+02      mL/sec  3.320485e+00        CO    baseline     009
+    205              Heart-lung mean transit time  1.295869e+01         sec  5.031504e-01       Thl    baseline     009
+    206                     Heart-lung dispersion  4.252329e-01              1.220651e-02       Dhl    baseline     009
+    207            Organs blood mean transit time  3.004584e+01         sec  1.244292e+00        To    baseline     009
+    208                Organs extraction fraction  1.450724e-01              7.271313e-03        Eo    baseline     009
+    209    Organs extravascular mean transit time  3.378360e+02         sec  2.306563e+01       Toe    baseline     009
+    210                  Body extraction fraction  5.759678e-02              1.953522e-03        Eb    baseline     009
+    211                                Hematocrit  4.500000e-01              0.000000e+00         H    baseline     009
+    212       Liver extracellular volume fraction  1.675891e-01      mL/cm3  2.104813e-02        ve    baseline     009
+    213           Extracellular mean transit time  3.456531e+01         sec  6.119739e+00        Te    baseline     009
+    214                  Extracellular dispersion  7.462453e-01              6.290220e-02        De    baseline     009
+    215        Initial hepatocellular uptake rate  3.661206e-03  mL/sec/cm3  8.508245e-05     khe_i    baseline     009
+    216          Final hepatocellular uptake rate  3.426092e-03  mL/sec/cm3  1.107753e-04     khe_f    baseline     009
+    217  Initial hepatocellular mean transit time  1.851299e+03         sec  6.956643e+01      Th_i    baseline     009
+    218    Final hepatocellular mean transit time  1.565883e+03         sec  7.648211e+01      Th_f    baseline     009
+    219          Hepatocellular mean transit time  1.708591e+03         sec  0.000000e+00        Th    baseline     009
+    220                Hepatocellular uptake rate  3.543649e-03  mL/sec/cm3  0.000000e+00       khe    baseline     009
+    221             Biliary tissue excretion rate  5.852775e-04  mL/sec/cm3  0.000000e+00       Kbh    baseline     009
+    222         Hepatocellular tissue uptake rate  2.114487e-02  mL/sec/cm3  0.000000e+00       Khe    baseline     009
+    223                    Biliary excretion rate  4.871914e-04  mL/sec/cm3  0.000000e+00       kbh    baseline     009
+    224                     Liver blood clearance  2.987606e-06      mL/sec  0.000000e+00        CL    baseline     009
+    225          Aorta second signal scale factor  6.950198e+03        a.u.  1.996858e+01      S02a    baseline     010
+    226          Liver second signal scale factor  5.596066e+03        a.u.  8.107042e+01      S02l    baseline     010
+    227                 Second bolus arrival time  8.502180e+03         sec  8.565528e-01      BAT2    baseline     010
+    228                  First bolus arrival time  6.920078e+01         sec  9.002771e-01       BAT    baseline     010
+    229                            Cardiac output  9.991758e+01      mL/sec  1.612348e+00        CO    baseline     010
+    230              Heart-lung mean transit time  2.033150e+01         sec  1.106307e+00       Thl    baseline     010
+    231                     Heart-lung dispersion  3.848691e-01              1.583590e-02       Dhl    baseline     010
+    232            Organs blood mean transit time  4.879049e+01         sec  2.460765e+00        To    baseline     010
+    233                Organs extraction fraction  1.627273e-01              6.487607e-03        Eo    baseline     010
+    234    Organs extravascular mean transit time  5.490176e+02         sec  3.647319e+01       Toe    baseline     010
+    235                  Body extraction fraction  4.138222e-02              2.214046e-03        Eb    baseline     010
+    236                                Hematocrit  4.500000e-01              0.000000e+00         H    baseline     010
+    237       Liver extracellular volume fraction  1.529587e-01      mL/cm3  2.687885e-02        ve    baseline     010
+    238           Extracellular mean transit time  3.910838e+01         sec  7.319952e+00        Te    baseline     010
+    239                  Extracellular dispersion  6.811032e-01              7.321592e-02        De    baseline     010
+    240        Initial hepatocellular uptake rate  4.267074e-03  mL/sec/cm3  9.944347e-05     khe_i    baseline     010
+    241          Final hepatocellular uptake rate  5.003893e-03  mL/sec/cm3  1.784196e-04     khe_f    baseline     010
+    242  Initial hepatocellular mean transit time  1.627341e+03         sec  5.764729e+01      Th_i    baseline     010
+    243    Final hepatocellular mean transit time  1.652403e+03         sec  5.930961e+01      Th_f    baseline     010
+    244          Hepatocellular mean transit time  1.639872e+03         sec  0.000000e+00        Th    baseline     010
+    245                Hepatocellular uptake rate  4.635484e-03  mL/sec/cm3  0.000000e+00       khe    baseline     010
+    246             Biliary tissue excretion rate  6.098037e-04  mL/sec/cm3  0.000000e+00       Kbh    baseline     010
+    247         Hepatocellular tissue uptake rate  3.030547e-02  mL/sec/cm3  0.000000e+00       Khe    baseline     010
+    248                    Biliary excretion rate  5.165289e-04  mL/sec/cm3  0.000000e+00       kbh    baseline     010
+    249                     Liver blood clearance  4.308506e-06      mL/sec  0.000000e+00        CL    baseline     010
+    250          Aorta second signal scale factor  1.025927e+04        a.u.  2.419432e+01      S02a  rifampicin     002
+    251          Liver second signal scale factor  8.506373e+03        a.u.  2.401562e+02      S02l  rifampicin     002
+    252                 Second bolus arrival time  1.028445e+04         sec  3.837916e-01      BAT2  rifampicin     002
+    253                  First bolus arrival time  7.759063e+01         sec  1.038824e-01       BAT  rifampicin     002
+    254                            Cardiac output  1.177331e+02      mL/sec  4.319366e+00        CO  rifampicin     002
+    255              Heart-lung mean transit time  1.214616e+01         sec  5.006363e-01       Thl  rifampicin     002
+    256                     Heart-lung dispersion  4.790751e-01              1.954094e-02       Dhl  rifampicin     002
+    257            Organs blood mean transit time  1.715071e+01         sec  1.339567e+00        To  rifampicin     002
+    258                Organs extraction fraction  1.225897e-01              9.034404e-03        Eo  rifampicin     002
+    259    Organs extravascular mean transit time  3.222681e+02         sec  3.722182e+01       Toe  rifampicin     002
+    260                  Body extraction fraction  4.278471e-02              3.008939e-03        Eb  rifampicin     002
+    261                                Hematocrit  4.500000e-01              0.000000e+00         H  rifampicin     002
+    262       Liver extracellular volume fraction  1.940596e-01      mL/cm3  1.422735e-02        ve  rifampicin     002
+    263           Extracellular mean transit time  2.830440e+01         sec  4.735001e+00        Te  rifampicin     002
+    264                  Extracellular dispersion  7.705419e-01              6.961764e-02        De  rifampicin     002
+    265        Initial hepatocellular uptake rate  4.268645e-04  mL/sec/cm3  3.385021e-05     khe_i  rifampicin     002
+    266          Final hepatocellular uptake rate  5.849668e-04  mL/sec/cm3  1.370823e-04     khe_f  rifampicin     002
+    267  Initial hepatocellular mean transit time  3.599999e+04         sec  6.794262e+04      Th_i  rifampicin     002
+    268    Final hepatocellular mean transit time  1.792891e+03         sec  1.251987e+03      Th_f  rifampicin     002
+    269          Hepatocellular mean transit time  1.889644e+04         sec  0.000000e+00        Th  rifampicin     002
+    270                Hepatocellular uptake rate  5.059157e-04  mL/sec/cm3  0.000000e+00       khe  rifampicin     002
+    271             Biliary tissue excretion rate  5.292002e-05  mL/sec/cm3  0.000000e+00       Kbh  rifampicin     002
+    272         Hepatocellular tissue uptake rate  2.607012e-03  mL/sec/cm3  0.000000e+00       Khe  rifampicin     002
+    273                    Biliary excretion rate  4.265038e-05  mL/sec/cm3  0.000000e+00       kbh  rifampicin     002
+    274                     Liver blood clearance  6.304705e-07      mL/sec  0.000000e+00        CL  rifampicin     002
+    275          Aorta second signal scale factor  1.282956e+04        a.u.  2.879915e+01      S02a  rifampicin     003
+    276          Liver second signal scale factor  9.283319e+03        a.u.  7.284467e+01      S02l  rifampicin     003
+    277                 Second bolus arrival time  7.309127e+03         sec  5.438990e-01      BAT2  rifampicin     003
+    278                  First bolus arrival time  6.863903e+01         sec  3.721594e-01       BAT  rifampicin     003
+    279                            Cardiac output  1.196451e+02      mL/sec  3.008638e+00        CO  rifampicin     003
+    280              Heart-lung mean transit time  1.203182e+01         sec  6.320309e-01       Thl  rifampicin     003
+    281                     Heart-lung dispersion  4.354360e-01              1.717127e-02       Dhl  rifampicin     003
+    282            Organs blood mean transit time  2.091528e+01         sec  1.161954e+00        To  rifampicin     003
+    283                Organs extraction fraction  1.032547e-01              6.933352e-03        Eo  rifampicin     003
+    284    Organs extravascular mean transit time  3.439765e+02         sec  3.353573e+01       Toe  rifampicin     003
+    285                  Body extraction fraction  2.999956e-02              1.577818e-03        Eb  rifampicin     003
+    286                                Hematocrit  4.500000e-01              0.000000e+00         H  rifampicin     003
+    287       Liver extracellular volume fraction  2.070858e-01      mL/cm3  1.527597e-02        ve  rifampicin     003
+    288           Extracellular mean transit time  2.551800e+01         sec  3.322384e+00        Te  rifampicin     003
+    289                  Extracellular dispersion  6.730269e-01              6.228089e-02        De  rifampicin     003
+    290        Initial hepatocellular uptake rate  5.325112e-04  mL/sec/cm3  6.622585e-05     khe_i  rifampicin     003
+    291          Final hepatocellular uptake rate  7.263602e-04  mL/sec/cm3  1.437862e-04     khe_f  rifampicin     003
+    292  Initial hepatocellular mean transit time  4.103640e+03         sec  1.681532e+03      Th_i  rifampicin     003
+    293    Final hepatocellular mean transit time  3.315703e+03         sec  1.224225e+03      Th_f  rifampicin     003
+    294          Hepatocellular mean transit time  3.709671e+03         sec  0.000000e+00        Th  rifampicin     003
+    295                Hepatocellular uptake rate  6.294357e-04  mL/sec/cm3  0.000000e+00       khe  rifampicin     003
+    296             Biliary tissue excretion rate  2.695657e-04  mL/sec/cm3  0.000000e+00       Kbh  rifampicin     003
+    297         Hepatocellular tissue uptake rate  3.039492e-03  mL/sec/cm3  0.000000e+00       Khe  rifampicin     003
+    298                    Biliary excretion rate  2.137424e-04  mL/sec/cm3  0.000000e+00       kbh  rifampicin     003
+    299                     Liver blood clearance  7.304007e-07      mL/sec  0.000000e+00        CL  rifampicin     003
+    300          Aorta second signal scale factor  7.025855e+03        a.u.  1.788437e+01      S02a  rifampicin     004
+    301          Liver second signal scale factor  6.210448e+03        a.u.  9.212097e+01      S02l  rifampicin     004
+    302                 Second bolus arrival time  9.208518e+03         sec  9.290887e-02      BAT2  rifampicin     004
+    303                  First bolus arrival time  6.304406e+01         sec  1.068767e-01       BAT  rifampicin     004
+    304                            Cardiac output  1.020380e+02      mL/sec  1.032890e+00        CO  rifampicin     004
+    305              Heart-lung mean transit time  1.938313e+01         sec  1.708633e-01       Thl  rifampicin     004
+    306                     Heart-lung dispersion  3.652868e-01              4.079346e-03       Dhl  rifampicin     004
+    307            Organs blood mean transit time  3.839408e+01         sec  1.234025e+00        To  rifampicin     004
+    308                Organs extraction fraction  2.099652e-01              6.352205e-03        Eo  rifampicin     004
+    309    Organs extravascular mean transit time  3.637266e+02         sec  2.129114e+01       Toe  rifampicin     004
+    310                  Body extraction fraction  4.854615e-02              2.008890e-03        Eb  rifampicin     004
+    311                                Hematocrit  4.500000e-01              0.000000e+00         H  rifampicin     004
+    312       Liver extracellular volume fraction  1.954075e-01      mL/cm3  8.699748e-03        ve  rifampicin     004
+    313           Extracellular mean transit time  5.158475e+01         sec  3.519794e+00        Te  rifampicin     004
+    314                  Extracellular dispersion  8.002819e-01              2.371346e-02        De  rifampicin     004
+    315        Initial hepatocellular uptake rate  2.931485e-04  mL/sec/cm3  3.988442e-05     khe_i  rifampicin     004
+    316          Final hepatocellular uptake rate  4.767406e-04  mL/sec/cm3  4.640551e-05     khe_f  rifampicin     004
+    317  Initial hepatocellular mean transit time  4.305614e+03         sec  2.262247e+03      Th_i  rifampicin     004
+    318    Final hepatocellular mean transit time  4.919282e+03         sec  1.905949e+03      Th_f  rifampicin     004
+    319          Hepatocellular mean transit time  4.612448e+03         sec  0.000000e+00        Th  rifampicin     004
+    320                Hepatocellular uptake rate  3.849445e-04  mL/sec/cm3  0.000000e+00       khe  rifampicin     004
+    321             Biliary tissue excretion rate  2.168046e-04  mL/sec/cm3  0.000000e+00       Kbh  rifampicin     004
+    322         Hepatocellular tissue uptake rate  1.969958e-03  mL/sec/cm3  0.000000e+00       Khe  rifampicin     004
+    323                    Biliary excretion rate  1.744394e-04  mL/sec/cm3  0.000000e+00       kbh  rifampicin     004
+    324                     Liver blood clearance  3.914917e-07      mL/sec  0.000000e+00        CL  rifampicin     004
+    325          Aorta second signal scale factor  8.298682e+03        a.u.  1.474391e+01      S02a  rifampicin     006
+    326          Liver second signal scale factor  6.033159e+03        a.u.  1.325619e+02      S02l  rifampicin     006
+    327                 Second bolus arrival time  9.497489e+03         sec  7.107504e-01      BAT2  rifampicin     006
+    328                  First bolus arrival time  6.839553e+01         sec  7.537571e-01       BAT  rifampicin     006
+    329                            Cardiac output  1.292684e+02      mL/sec  2.158733e+00        CO  rifampicin     006
+    330              Heart-lung mean transit time  1.815613e+01         sec  7.610175e-01       Thl  rifampicin     006
+    331                     Heart-lung dispersion  3.825809e-01              1.273217e-02       Dhl  rifampicin     006
+    332            Organs blood mean transit time  2.522155e+01         sec  1.037330e+00        To  rifampicin     006
+    333                Organs extraction fraction  1.377769e-01              5.948716e-03        Eo  rifampicin     006
+    334    Organs extravascular mean transit time  3.427688e+02         sec  2.357361e+01       Toe  rifampicin     006
+    335                  Body extraction fraction  2.952872e-02              1.490879e-03        Eb  rifampicin     006
+    336                                Hematocrit  4.500000e-01              0.000000e+00         H  rifampicin     006
+    337       Liver extracellular volume fraction  3.160358e-01      mL/cm3  1.135460e-02        ve  rifampicin     006
+    338           Extracellular mean transit time  4.248992e+01         sec  2.182613e+00        Te  rifampicin     006
+    339                  Extracellular dispersion  6.623637e-01              2.454959e-02        De  rifampicin     006
+    340        Initial hepatocellular uptake rate  2.323554e-04  mL/sec/cm3  4.370019e-05     khe_i  rifampicin     006
+    341          Final hepatocellular uptake rate  3.961438e-04  mL/sec/cm3  6.873985e-05     khe_f  rifampicin     006
+    342  Initial hepatocellular mean transit time  8.461967e+03         sec  9.674457e+03      Th_i  rifampicin     006
+    343    Final hepatocellular mean transit time  4.851161e+03         sec  3.562629e+03      Th_f  rifampicin     006
+    344          Hepatocellular mean transit time  6.656564e+03         sec  0.000000e+00        Th  rifampicin     006
+    345                Hepatocellular uptake rate  3.142496e-04  mL/sec/cm3  0.000000e+00       khe  rifampicin     006
+    346             Biliary tissue excretion rate  1.502277e-04  mL/sec/cm3  0.000000e+00       Kbh  rifampicin     006
+    347         Hepatocellular tissue uptake rate  9.943481e-04  mL/sec/cm3  0.000000e+00       Khe  rifampicin     006
+    348                    Biliary excretion rate  1.027503e-04  mL/sec/cm3  0.000000e+00       kbh  rifampicin     006
+    349                     Liver blood clearance  4.452630e-07      mL/sec  0.000000e+00        CL  rifampicin     006
+    350          Aorta second signal scale factor  4.966319e+03        a.u.  1.410156e+01      S02a  rifampicin     007
+    351          Liver second signal scale factor  4.987192e+03        a.u.  6.832394e+01      S02l  rifampicin     007
+    352                 Second bolus arrival time  8.062418e+03         sec  5.433095e-01      BAT2  rifampicin     007
+    353                  First bolus arrival time  6.779030e+01         sec  5.664155e-01       BAT  rifampicin     007
+    354                            Cardiac output  1.581652e+02      mL/sec  3.248631e+00        CO  rifampicin     007
+    355              Heart-lung mean transit time  1.147214e+01         sec  5.537352e-01       Thl  rifampicin     007
+    356                     Heart-lung dispersion  3.380505e-01              1.381785e-02       Dhl  rifampicin     007
+    357            Organs blood mean transit time  1.366186e+01         sec  7.423909e-01        To  rifampicin     007
+    358                Organs extraction fraction  1.775528e-01              7.176594e-03        Eo  rifampicin     007
+    359    Organs extravascular mean transit time  2.438484e+02         sec  1.240750e+01       Toe  rifampicin     007
+    360                  Body extraction fraction  2.744648e-02              9.571524e-04        Eb  rifampicin     007
+    361                                Hematocrit  4.500000e-01              0.000000e+00         H  rifampicin     007
+    362       Liver extracellular volume fraction  1.929044e-01      mL/cm3  1.151710e-02        ve  rifampicin     007
+    363           Extracellular mean transit time  3.693229e+01         sec  3.537942e+00        Te  rifampicin     007
+    364                  Extracellular dispersion  7.867174e-01              3.398421e-02        De  rifampicin     007
+    365        Initial hepatocellular uptake rate  3.763420e-04  mL/sec/cm3  2.044008e-04     khe_i  rifampicin     007
+    366          Final hepatocellular uptake rate  2.220267e-04  mL/sec/cm3  2.638938e-05     khe_f  rifampicin     007
+    367  Initial hepatocellular mean transit time  6.118451e+02         sec  2.211528e+03      Th_i  rifampicin     007
+    368    Final hepatocellular mean transit time  1.814304e+04         sec  1.009091e+04      Th_f  rifampicin     007
+    369          Hepatocellular mean transit time  9.377443e+03         sec  0.000000e+00        Th  rifampicin     007
+    370                Hepatocellular uptake rate  2.991844e-04  mL/sec/cm3  0.000000e+00       khe  rifampicin     007
+    371             Biliary tissue excretion rate  1.066389e-04  mL/sec/cm3  0.000000e+00       Kbh  rifampicin     007
+    372         Hepatocellular tissue uptake rate  1.550947e-03  mL/sec/cm3  0.000000e+00       Khe  rifampicin     007
+    373                    Biliary excretion rate  8.606778e-05  mL/sec/cm3  0.000000e+00       kbh  rifampicin     007
+    374                     Liver blood clearance  2.681941e-07      mL/sec  0.000000e+00        CL  rifampicin     007
+    375          Aorta second signal scale factor  7.231974e+03        a.u.  1.731434e+01      S02a  rifampicin     008
+    376          Liver second signal scale factor  5.899657e+03        a.u.  1.328688e+02      S02l  rifampicin     008
+    377                 Second bolus arrival time  8.212261e+03         sec  1.122307e-01      BAT2  rifampicin     008
+    378                  First bolus arrival time  7.772827e+01         sec  9.611794e-02       BAT  rifampicin     008
+    379                            Cardiac output  2.109872e+02      mL/sec  4.349484e+00        CO  rifampicin     008
+    380              Heart-lung mean transit time  7.514156e+00         sec  2.201779e-01       Thl  rifampicin     008
+    381                     Heart-lung dispersion  5.372135e-01              1.121003e-02       Dhl  rifampicin     008
+    382            Organs blood mean transit time  2.240468e+01         sec  7.461913e-01        To  rifampicin     008
+    383                Organs extraction fraction  7.282945e-02              2.898752e-03        Eo  rifampicin     008
+    384    Organs extravascular mean transit time  5.124544e+02         sec  3.347311e+01       Toe  rifampicin     008
+    385                  Body extraction fraction  2.002954e-02              9.328522e-04        Eb  rifampicin     008
+    386                                Hematocrit  4.500000e-01              0.000000e+00         H  rifampicin     008
+    387       Liver extracellular volume fraction  1.677271e-01      mL/cm3  8.431601e-03        ve  rifampicin     008
+    388           Extracellular mean transit time  2.966706e+01         sec  2.828587e+00        Te  rifampicin     008
+    389                  Extracellular dispersion  6.109424e-01              5.260106e-02        De  rifampicin     008
+    390        Initial hepatocellular uptake rate  2.100794e-04  mL/sec/cm3  2.303598e-05     khe_i  rifampicin     008
+    391          Final hepatocellular uptake rate  5.174141e-04  mL/sec/cm3  6.554518e-05     khe_f  rifampicin     008
+    392  Initial hepatocellular mean transit time  1.968478e+04         sec  2.421529e+04      Th_i  rifampicin     008
+    393    Final hepatocellular mean transit time  4.084065e+03         sec  1.290041e+03      Th_f  rifampicin     008
+    394          Hepatocellular mean transit time  1.188442e+04         sec  0.000000e+00        Th  rifampicin     008
+    395                Hepatocellular uptake rate  3.637468e-04  mL/sec/cm3  0.000000e+00       khe  rifampicin     008
+    396             Biliary tissue excretion rate  8.414375e-05  mL/sec/cm3  0.000000e+00       Kbh  rifampicin     008
+    397         Hepatocellular tissue uptake rate  2.168682e-03  mL/sec/cm3  0.000000e+00       Khe  rifampicin     008
+    398                    Biliary excretion rate  7.003056e-05  mL/sec/cm3  0.000000e+00       kbh  rifampicin     008
+    399                     Liver blood clearance  4.130369e-07      mL/sec  0.000000e+00        CL  rifampicin     008
+    400          Aorta second signal scale factor  6.753652e+03        a.u.  1.519567e+01      S02a  rifampicin     009
+    401          Liver second signal scale factor  4.985520e+03        a.u.  4.415634e+01      S02l  rifampicin     009
+    402                 Second bolus arrival time  9.214694e+03         sec  6.589563e-01      BAT2  rifampicin     009
+    403                  First bolus arrival time  7.053823e+01         sec  6.722813e-01       BAT  rifampicin     009
+    404                            Cardiac output  1.903931e+02      mL/sec  2.683675e+00        CO  rifampicin     009
+    405              Heart-lung mean transit time  2.354862e+01         sec  7.419048e-01       Thl  rifampicin     009
+    406                     Heart-lung dispersion  4.048749e-01              1.170865e-02       Dhl  rifampicin     009
+    407            Organs blood mean transit time  3.262303e+01         sec  1.276158e+00        To  rifampicin     009
+    408                Organs extraction fraction  1.113001e-01              5.156201e-03        Eo  rifampicin     009
+    409    Organs extravascular mean transit time  4.284076e+02         sec  2.896997e+01       Toe  rifampicin     009
+    410                  Body extraction fraction  2.561774e-02              1.153994e-03        Eb  rifampicin     009
+    411                                Hematocrit  4.500000e-01              0.000000e+00         H  rifampicin     009
+    412       Liver extracellular volume fraction  2.243055e-01      mL/cm3  9.157749e-03        ve  rifampicin     009
+    413           Extracellular mean transit time  5.248578e+01         sec  3.685828e+00        Te  rifampicin     009
+    414                  Extracellular dispersion  6.799618e-01              3.331190e-02        De  rifampicin     009
+    415        Initial hepatocellular uptake rate  1.318777e-04  mL/sec/cm3  3.523508e-05     khe_i  rifampicin     009
+    416          Final hepatocellular uptake rate  2.347728e-04  mL/sec/cm3  5.099246e-05     khe_f  rifampicin     009
+    417  Initial hepatocellular mean transit time  3.592844e+03         sec  2.330689e+03      Th_i  rifampicin     009
+    418    Final hepatocellular mean transit time  2.008289e+03         sec  1.014377e+03      Th_f  rifampicin     009
+    419          Hepatocellular mean transit time  2.800566e+03         sec  0.000000e+00        Th  rifampicin     009
+    420                Hepatocellular uptake rate  1.833253e-04  mL/sec/cm3  0.000000e+00       khe  rifampicin     009
+    421             Biliary tissue excretion rate  3.570706e-04  mL/sec/cm3  0.000000e+00       Kbh  rifampicin     009
+    422         Hepatocellular tissue uptake rate  8.173017e-04  mL/sec/cm3  0.000000e+00       Khe  rifampicin     009
+    423                    Biliary excretion rate  2.769777e-04  mL/sec/cm3  0.000000e+00       kbh  rifampicin     009
+    424                     Liver blood clearance  1.527945e-07      mL/sec  0.000000e+00        CL  rifampicin     009
+    425          Aorta second signal scale factor  7.350251e+03        a.u.  2.968661e+01      S02a  rifampicin     010
+    426          Liver second signal scale factor  5.013287e+03        a.u.  9.487054e+01      S02l  rifampicin     010
+    427                 Second bolus arrival time  7.709236e+03         sec  3.082231e-01      BAT2  rifampicin     010
+    428                  First bolus arrival time  8.747685e+01         sec  5.100186e-01       BAT  rifampicin     010
+    429                            Cardiac output  1.396824e+02      mL/sec  3.031743e+00        CO  rifampicin     010
+    430              Heart-lung mean transit time  1.116976e+01         sec  4.497638e-01       Thl  rifampicin     010
+    431                     Heart-lung dispersion  6.363959e-01              1.892811e-02       Dhl  rifampicin     010
+    432            Organs blood mean transit time  4.067274e+01         sec  1.438028e+00        To  rifampicin     010
+    433                Organs extraction fraction  1.333543e-01              5.209381e-03        Eo  rifampicin     010
+    434    Organs extravascular mean transit time  5.272097e+02         sec  3.558158e+01       Toe  rifampicin     010
+    435                  Body extraction fraction  2.762175e-02              1.661348e-03        Eb  rifampicin     010
+    436                                Hematocrit  4.500000e-01              0.000000e+00         H  rifampicin     010
+    437       Liver extracellular volume fraction  2.503289e-01      mL/cm3  1.170805e-02        ve  rifampicin     010
+    438           Extracellular mean transit time  5.267407e+01         sec  4.276409e+00        Te  rifampicin     010
+    439                  Extracellular dispersion  7.356274e-01              3.314117e-02        De  rifampicin     010
+    440        Initial hepatocellular uptake rate  1.299584e-04  mL/sec/cm3  4.184540e-05     khe_i  rifampicin     010
+    441          Final hepatocellular uptake rate  2.531460e-04  mL/sec/cm3  1.004879e-04     khe_f  rifampicin     010
+    442  Initial hepatocellular mean transit time  1.909494e+04         sec  9.598369e+04      Th_i  rifampicin     010
+    443    Final hepatocellular mean transit time  3.090134e+04         sec  1.100976e+05      Th_f  rifampicin     010
+    444          Hepatocellular mean transit time  2.499814e+04         sec  0.000000e+00        Th  rifampicin     010
+    445                Hepatocellular uptake rate  1.915522e-04  mL/sec/cm3  0.000000e+00       khe  rifampicin     010
+    446             Biliary tissue excretion rate  4.000298e-05  mL/sec/cm3  0.000000e+00       Kbh  rifampicin     010
+    447         Hepatocellular tissue uptake rate  7.652023e-04  mL/sec/cm3  0.000000e+00       Khe  rifampicin     010
+    448                    Biliary excretion rate  2.998908e-05  mL/sec/cm3  0.000000e+00       kbh  rifampicin     010
+    449                     Liver blood clearance  1.727143e-07      mL/sec  0.000000e+00        CL  rifampicin     010
 
 
 
@@ -1620,7 +1511,7 @@ and excretion rate ``kbh``:
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (61 minutes 12.926 seconds)
+   **Total running time of the script:** (66 minutes 56.234 seconds)
 
 
 .. _sphx_glr_download_generated_examples_use_cases_plot_tristan_volunteers_2scan.py:
