@@ -2,9 +2,13 @@ dcmri 0.6.8
 ===========
 We're happy to announce the release of dcmri 0.6.8!
 
-This version includes a model for pixel-based ana;ysis of generic tissues, as well as number of tools to help illustrate or test pixel-based analysis: A modified Shepp-Logan phantom for perfusion analysis and fake DC-MRI image generation.
+This version includes a model for pixel-based analysis of generic tissues, as 
+well as number of tools to help illustrate or test pixel-based analysis: A 
+modified Shepp-Logan phantom for perfusion analysis and fake DC-MRI image 
+generation.
 
-Also includes improved implementation of the common kinetic model two-compartment exchange, and correct some critical doc strings. 
+Also includes improved implementation of the common kinetic model 
+two-compartment exchange, and correct some critical doc strings. 
 
 
 List of changes
