@@ -9,7 +9,7 @@ def test_fetch():
     assert 'FA' in data[0]
 
 
-def test_influx_step():
+def test_ca_injection():
 
     weight = 70
     conc = 0.5
@@ -19,20 +19,20 @@ def test_influx_step():
     dt = 0.1
 
     t = np.arange(0, 20, dt)
-    j = dc.influx_step(t, weight, conc, dose, rate, t0)
+    j = dc.ca_injection(t, weight, conc, dose, rate, t0)
 
     assert np.around(np.sum(j)*dt) == np.around(weight*dose*conc)
 
     # Test exceptions
     try:
-        j = dc.influx_step(t, 0*weight, conc, dose, rate, t0)
+        j = dc.ca_injection(t, 0*weight, conc, dose, rate, t0)
     except:
         assert True
     else:
         assert False
 
     try:
-        j = dc.influx_step(t, weight, conc, 0.01*dose, rate, t0)
+        j = dc.ca_injection(t, weight, conc, 0.01*dose, rate, t0)
     except:
         assert True
     else:
@@ -104,12 +104,12 @@ def test_PD():
         assert False
 
 def test_perfusion():
-    assert dc.perfusion('BF', 'csf') == 0.0
-    assert dc.perfusion('BV', 'csf') == 0.0
+    assert dc.perfusion('Fb', 'csf') == 0.0
+    assert dc.perfusion('vb', 'csf') == 0.0
     assert dc.perfusion('PS', 'csf') == 0.0
-    assert dc.perfusion('IV', 'csf') == 0.0
+    assert dc.perfusion('vi', 'csf') == 0.0
     try:
-        dc.perfusion('BF', 'hair')
+        dc.perfusion('Fb', 'hair')
     except:
         assert True
     else:
@@ -119,23 +119,23 @@ def test_shepp_logan():
 
     n=64
     roi = dc.shepp_logan(n=n)
-    im = dc.shepp_logan('T1', 'T2', 'PD', 'BF', 'BV', 'PS', 'IV', n=n)
+    im = dc.shepp_logan('T1', 'T2', 'PD', 'Fb', 'vb', 'PS', 'vi', n=n)
 
-    vals = im['BF'][roi['CSF left']==1]
+    vals = im['Fb'][roi['CSF left']==1]
     assert 0 == np.amin(vals)
     assert 0 == np.amax(vals)
-    vals = im['BV'][roi['CSF left']==1]
+    vals = im['vb'][roi['CSF left']==1]
     assert 0 == np.amin(vals)
     assert 0 == np.amax(vals)
     vals = im['PS'][roi['CSF left']==1]
     assert 0 == np.amin(vals)
     assert 0 == np.amax(vals)
-    vals = im['IV'][roi['CSF left']==1]
+    vals = im['vi'][roi['CSF left']==1]
     assert 0 == np.amin(vals)
     assert 0 == np.amax(vals)
 
     # Special case - 1 parameter - does not return dict
-    im = dc.shepp_logan('BF', n=n)
+    im = dc.shepp_logan('Fb', n=n)
     vals = im[roi['CSF left']==1]
     assert 0 == np.amin(vals)
     assert 0 == np.amax(vals)
@@ -181,7 +181,7 @@ def test_aif_tristan_rat():
 if __name__ == "__main__":
 
     test_fetch()
-    test_influx_step()
+    test_ca_injection()
     test_ca_conc()
     test_ca_std_dose()
     test_relaxivity()

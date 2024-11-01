@@ -1,4 +1,13 @@
 {
+ "_": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "tuple"
+  }
+ ],
  "ax1": [
   {
    "is_class": false,
@@ -656,7 +665,7 @@
   {
    "is_class": true,
    "is_explicit": false,
-   "module": "dcmri.mods_aorta",
+   "module": "dcmri.ui_aorta_liver",
    "module_short": "dcmri",
    "name": "AortaLiver2scan"
   },
@@ -670,21 +679,7 @@
   {
    "is_class": true,
    "is_explicit": false,
-   "module": "dcmri.mods_aorta",
-   "module_short": "dcmri",
-   "name": "AortaLiver"
-  },
-  {
-   "is_class": true,
-   "is_explicit": false,
-   "module": "dcmri",
-   "module_short": "dcmri",
-   "name": "AortaLiver"
-  },
-  {
-   "is_class": true,
-   "is_explicit": false,
-   "module": "dcmri.mods",
+   "module": "dcmri.ui",
    "module_short": "dcmri",
    "name": "Model"
   },
@@ -828,7 +823,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_aorta",
+   "module": "dcmri.ui_aorta_liver",
    "module_short": "dcmri",
    "name": "AortaLiver2scan"
   },
@@ -844,7 +839,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_aorta",
+   "module": "dcmri.ui_aorta_liver",
    "module_short": "dcmri",
    "name": "AortaLiver2scan.export_params"
   },
@@ -858,21 +853,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_aorta",
-   "module_short": "dcmri",
-   "name": "AortaLiver.export_params"
-  },
-  {
-   "is_class": false,
-   "is_explicit": false,
-   "module": "dcmri",
-   "module_short": "dcmri",
-   "name": "AortaLiver.export_params"
-  },
-  {
-   "is_class": false,
-   "is_explicit": false,
-   "module": "dcmri.mods",
+   "module": "dcmri.ui",
    "module_short": "dcmri",
    "name": "Model.export_params"
   },
@@ -888,7 +869,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_aorta",
+   "module": "dcmri.ui_aorta_liver",
    "module_short": "dcmri",
    "name": "AortaLiver2scan.plot"
   },
@@ -902,21 +883,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_aorta",
-   "module_short": "dcmri",
-   "name": "AortaLiver.plot"
-  },
-  {
-   "is_class": false,
-   "is_explicit": false,
-   "module": "dcmri",
-   "module_short": "dcmri",
-   "name": "AortaLiver.plot"
-  },
-  {
-   "is_class": false,
-   "is_explicit": false,
-   "module": "dcmri.mods",
+   "module": "dcmri.ui",
    "module_short": "dcmri",
    "name": "Model.plot"
   },
@@ -932,7 +899,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_aorta",
+   "module": "dcmri.ui_aorta_liver",
    "module_short": "dcmri",
    "name": "AortaLiver2scan.print_params"
   },
@@ -946,21 +913,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_aorta",
-   "module_short": "dcmri",
-   "name": "AortaLiver.print_params"
-  },
-  {
-   "is_class": false,
-   "is_explicit": false,
-   "module": "dcmri",
-   "module_short": "dcmri",
-   "name": "AortaLiver.print_params"
-  },
-  {
-   "is_class": false,
-   "is_explicit": false,
-   "module": "dcmri.mods",
+   "module": "dcmri.ui",
    "module_short": "dcmri",
    "name": "Model.print_params"
   },
@@ -976,7 +929,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_aorta",
+   "module": "dcmri.ui_aorta_liver",
    "module_short": "dcmri",
    "name": "AortaLiver2scan.train"
   },
@@ -990,21 +943,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_aorta",
-   "module_short": "dcmri",
-   "name": "AortaLiver.train"
-  },
-  {
-   "is_class": false,
-   "is_explicit": false,
-   "module": "dcmri",
-   "module_short": "dcmri",
-   "name": "AortaLiver.train"
-  },
-  {
-   "is_class": false,
-   "is_explicit": false,
-   "module": "dcmri.mods",
+   "module": "dcmri.ui",
    "module_short": "dcmri",
    "name": "Model.train"
   },

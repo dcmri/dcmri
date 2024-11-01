@@ -1,11 +1,15 @@
+.. _utilities:
+
 *********
 Utilities
 *********
 
 .. currentmodule:: dcmri
 
-A collection of helper functions that may be useful for testing code, building examples, or to construct new models.
+A collection of helper functions that may be useful for testing code, 
+building examples, or to construct new models.
 
+.. _real-data:
 
 Real data
 =========
@@ -16,6 +20,7 @@ Real data
 
    fetch
 
+.. _synthetic-data:
 
 Synthetic data
 ==============
@@ -24,11 +29,14 @@ Synthetic data
    :toctree: ../generated/api/
    :template: autosummary.rst
 
+   fake_aif
    fake_brain
    fake_tissue
+   fake_liver
+   fake_kidney
    fake_tissue2scan
-   fake_kidney_cortex_medulla
 
+.. _synthetic-images:
 
 Synthetic images
 ================
@@ -40,20 +48,10 @@ Synthetic images
    shepp_logan
 
 
-Special functions
-=================
+.. _input-functions:
 
-
-.. autosummary::
-   :toctree: ../generated/api/
-   :template: autosummary.rst
-
-   influx_step
-
-
-Population AIFs
+Input functions
 ===============
-
 
 .. autosummary::
    :toctree: ../generated/api/
@@ -62,11 +60,12 @@ Population AIFs
    aif_parker
    aif_tristan
    aif_tristan_rat
+   ca_injection
 
+.. _useful-constants:
 
 Useful constants
 ================
-
 
 .. autosummary::
    :toctree: ../generated/api/
@@ -81,12 +80,16 @@ Useful constants
    perfusion
 
 
+.. _convolution-functions:
+
 Convolution
 ===========
 
-Convolution is an essential mathematical tool for solving linear and stationary compartment models. 
-Explicit numerical convolution is slow, and `dcmri` includes apart from a generic convolution method 
-also some faster and more accurate functions for use in special cases where one or both of the factors have a known form.
+Convolution is an essential mathematical tool for solving linear and 
+stationary compartment models. Explicit numerical convolution is slow, and 
+`dcmri` includes apart from a generic convolution method also some faster and 
+more accurate functions for use in special cases where one or both of the 
+factors have a known form.
 
 .. autosummary::
    :toctree: ../generated/api/
@@ -98,6 +101,8 @@ also some faster and more accurate functions for use in special cases where one 
    nexpconv
    stepconv
 
+
+.. _sampling-functions:
 
 Helper functions
 ================

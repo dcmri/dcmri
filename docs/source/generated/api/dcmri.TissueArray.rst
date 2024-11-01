@@ -20,13 +20,16 @@
    
       ~TissueArray.cost
       ~TissueArray.export_params
+      ~TissueArray.info
       ~TissueArray.load
+      ~TissueArray.params
       ~TissueArray.plot
       ~TissueArray.plot_fit
       ~TissueArray.plot_params
       ~TissueArray.plot_signals
       ~TissueArray.predict
       ~TissueArray.save
+      ~TissueArray.set_free
       ~TissueArray.train
    
    

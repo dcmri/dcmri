@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**140:59.347** total execution time for 6 files **from all galleries**:
+**00:02.102** total execution time for 6 files **from all galleries**:
 
 .. container::
 
@@ -32,21 +32,21 @@ Computation times
    * - Example
      - Time
      - Mem (MB)
-   * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers_2scan.py` (``..\examples\use_cases\plot_tristan_volunteers_2scan.py``)
-     - 120:00.865
-     - 0.0
-   * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers.py` (``..\examples\use_cases\plot_tristan_volunteers.py``)
-     - 20:24.548
-     - 0.0
-   * - :ref:`sphx_glr_generated_examples_tutorials_plot_wex.py` (``..\examples\tutorials\plot_wex.py``)
-     - 00:19.881
-     - 0.0
-   * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan6drugs.py` (``..\examples\use_cases\plot_tristan6drugs.py``)
-     - 00:08.352
+   * - :ref:`sphx_glr_generated_examples_tutorials_plot_convolution.py` (``..\examples\tutorials\plot_convolution.py``)
+     - 00:02.102
      - 0.0
    * - :ref:`sphx_glr_generated_examples_tutorials_plot_aif.py` (``..\examples\tutorials\plot_aif.py``)
-     - 00:03.420
+     - 00:00.000
      - 0.0
-   * - :ref:`sphx_glr_generated_examples_tutorials_plot_convolution.py` (``..\examples\tutorials\plot_convolution.py``)
-     - 00:02.281
+   * - :ref:`sphx_glr_generated_examples_tutorials_plot_wex.py` (``..\examples\tutorials\plot_wex.py``)
+     - 00:00.000
+     - 0.0
+   * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan6drugs.py` (``..\examples\use_cases\plot_tristan6drugs.py``)
+     - 00:00.000
+     - 0.0
+   * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers.py` (``..\examples\use_cases\plot_tristan_volunteers.py``)
+     - 00:00.000
+     - 0.0
+   * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers_2scan.py` (``..\examples\use_cases\plot_tristan_volunteers_2scan.py``)
+     - 00:00.000
      - 0.0

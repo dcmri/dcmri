@@ -4,13 +4,18 @@
 PK blocks
 *********
 
-A collection of basic pharmacokinetic models that can be assembled to build more complex models.
+A collection of basic pharmacokinetic models that can be assembled to build 
+more complex models. For more background on these models, see the section on 
+:ref:`basic pharmacokinetics <basics-pharmacokinetics>`.
 
 .. currentmodule:: dcmri
 
 
 Any model
 =========
+
+These are high-level wrappers for all many of the other functions in this 
+section.
 
 .. autosummary::
    :toctree: ../generated/api/
@@ -22,6 +27,8 @@ Any model
 
 No-parameter models
 ===================
+
+.. _reference-trap:
 
 *Trap*
 ------
@@ -39,6 +46,8 @@ No-parameter models
 One-parameter models
 ====================
 
+.. _reference-pass:
+
 *Pass*
 ------
 
@@ -52,6 +61,8 @@ One-parameter models
    prop_pass
 
 
+.. _reference-compartment:
+
 *Compartment*
 -------------
 
@@ -64,6 +75,7 @@ One-parameter models
    res_comp
    prop_comp
 
+.. _reference-plug-flow:
 
 *Plug flow*
 -----------
@@ -81,6 +93,7 @@ One-parameter models
 Two-parameter models
 ====================
 
+.. _reference-chain:
 
 *Chain*
 -------
@@ -94,6 +107,7 @@ Two-parameter models
    res_chain
    prop_chain
 
+.. _reference-pfcomp:
 
 *Plug-flow compartment*
 -----------------------
@@ -104,6 +118,7 @@ Two-parameter models
 
    flux_pfcomp
 
+.. _reference-step:
 
 *Step*
 ------
@@ -117,6 +132,7 @@ Two-parameter models
    res_step
    prop_step
 
+.. _reference-mmcomp:
 
 *Michaelis-Menten compartment*
 ------------------------------
@@ -132,8 +148,10 @@ Two-parameter models
 Three-parameter models
 ======================
 
-*2CXM*
--------
+.. _reference-2comp:
+
+*2-compartment exchange*
+------------------------
 
 .. autosummary::
    :toctree: ../generated/api/
@@ -146,6 +164,7 @@ Three-parameter models
 N-parameter models
 ==================
 
+.. _reference-free:
 
 *Free*
 ------
@@ -159,6 +178,7 @@ N-parameter models
    res_free
    prop_free
 
+.. _reference-ncomp:
 
 *N-compartment models*
 ----------------------
@@ -172,6 +192,8 @@ N-parameter models
    res_ncomp
    prop_ncomp
 
+
+.. _reference-nscomp:
 
 *Non-stationary compartment*
 ----------------------------

@@ -8,7 +8,7 @@
 project = 'dcmri'
 copyright = '2024, dcmri maintainers'
 author = 'dcmri maintainers'
-release = '0.6.8'
+release = '0.6.9'
 
 # -- Path setup --------------------------------------------------------------
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -108,7 +108,7 @@ always_document_param_types = True
 # The theme to use for HTML and HTML Help pages.  See the documentation for a list of builtin themes
 html_theme = 'pydata_sphinx_theme'
 html_theme_options = {
-    "github_url": "https://github.com/QIB-Sheffield/dcmri",
+    "github_url": "https://github.com/dcmri/dcmri",
     "collapse_navigation": True,
     }
 
@@ -124,7 +124,7 @@ html_logo = '_static/tristan-logo.jpg'
 
 # The base URL which points to the root of the HTML documentation. 
 # It is used to indicate the location of document
-#html_baseurl = "https://qib-sheffield.github.io/dcmri/"
+# html_baseurl = "https://qib-sheffield.github.io/dcmri/"
 
 # Autodoc configuration
 # autoclass_content = 'both'  # Direct autoclass to include both Class and __init__ doc strings 

@@ -6,8 +6,8 @@ Examples
 
 .. note::
 
-   dcmri is under construction. The first stable version with more comprehensive functionality and documentation will be v1.0.0. Before that the API may still change and features may be deprecated without warning.
-
+   dcmri is under construction. At this stage, the API may still change and 
+   features may be deprecated without warning.
 
 
 .. raw:: html
@@ -21,6 +21,7 @@ Examples
 .. raw:: html
 
     </div>
+
 
 *********
 Tutorials
@@ -55,24 +56,7 @@ Tutorials
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="Using the convolution functions conv, expconv, stepconv, biexpconv and nexpconv. ">
-
-.. only:: html
-
-  .. image:: /generated/examples/tutorials/images/thumb/sphx_glr_plot_convolution_thumb.png
-    :alt:
-
-  :ref:`sphx_glr_generated_examples_tutorials_plot_convolution.py`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">A comparison of convolution functions</div>
-    </div>
-
-
-.. raw:: html
-
-    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the effect of water exchange in a standard two-compartmental tissue with extended Tofts kinetics. Data acquisition is modelled using the steady-state model of a spoiled gradient echo sequence.">
+    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the effect of water exchange in a standard  two-compartmental tissue using the models in dcmri.Tissue.">
 
 .. only:: html
 
@@ -87,11 +71,29 @@ Tutorials
     </div>
 
 
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Convolution is a key operation in any application of pharmacokinetic  analysis. The reason for this central role is that the solution of a linear  and stationary system can always be written as a convolution. dcmri includes  functions that  perform convolution in the most general context, but also includes solutions  that are optimized for common special cases. ">
+
+.. only:: html
+
+  .. image:: /generated/examples/tutorials/images/thumb/sphx_glr_plot_convolution_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_generated_examples_tutorials_plot_convolution.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">A comparison of convolution functions</div>
+    </div>
+
+
 .. thumbnail-parent-div-close
 
 .. raw:: html
 
     </div>
+
 
 *********
 Use cases
@@ -109,7 +111,7 @@ Use cases
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of AortaLiver for joint fitting of aorta and liver signals to a whole-body model. The use case is provided by the liver work package of the TRISTAN project  which develops imaging biomarkers for drug safety assessment. The data and analysis was first presented at the ISMRM in 2024 (Min et al 2024, manuscript in press). ">
+    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of AortaLiver for joint fitting of  aorta and liver signals to a whole-body model. The use case is provided by the  liver work package of the  TRISTAN project  which develops imaging  biomarkers for drug safety assessment. The data and analysis was first  presented at the ISMRM in 2024 (Min et al 2024, manuscript in press). ">
 
 .. only:: html
 
@@ -126,7 +128,7 @@ Use cases
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of AortaLiver2scan for joint fitting of aorta and liver signals measured over 2 separate scans. The use case is provided by the liver work package of the TRISTAN project  which develops imaging biomarkers for drug safety assessment. The data and analysis was first presented at the ISMRM in 2024 (Min et al 2024, manuscript in press). ">
+    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of AortaLiver2scan for joint  fitting of aorta and liver signals measured over 2 separate scans. The use  case is provided by the liver work package of the  TRISTAN project  which develops imaging  biomarkers for drug safety assessment. The data and analysis was first  presented at the ISMRM in 2024 (Min et al 2024, manuscript in press). ">
 
 .. only:: html
 
@@ -143,7 +145,7 @@ Use cases
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of Liver for fitting of signals measured in liver. The use case is provided by the liver work package of the TRISTAN project  which develops imaging biomarkers for drug safety assessment. The data and analysis were first published in Melillo et al (2023). ">
+    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of Liver for fitting of signals  measured in liver. The use case is provided by the liver work package of the  TRISTAN project  which develops imaging  biomarkers for drug safety assessment. The data and analysis were first  published in Melillo et al (2023). ">
 
 .. only:: html
 

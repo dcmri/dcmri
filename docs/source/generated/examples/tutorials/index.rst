@@ -2,6 +2,8 @@
 
 .. _sphx_glr_generated_examples_tutorials:
 
+.. _tutorials:
+
 *********
 Tutorials
 *********
@@ -35,24 +37,7 @@ Tutorials
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="Using the convolution functions conv, expconv, stepconv, biexpconv and nexpconv. ">
-
-.. only:: html
-
-  .. image:: /generated/examples/tutorials/images/thumb/sphx_glr_plot_convolution_thumb.png
-    :alt:
-
-  :ref:`sphx_glr_generated_examples_tutorials_plot_convolution.py`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">A comparison of convolution functions</div>
-    </div>
-
-
-.. raw:: html
-
-    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the effect of water exchange in a standard two-compartmental tissue with extended Tofts kinetics. Data acquisition is modelled using the steady-state model of a spoiled gradient echo sequence.">
+    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the effect of water exchange in a standard  two-compartmental tissue using the models in dcmri.Tissue.">
 
 .. only:: html
 
@@ -67,6 +52,23 @@ Tutorials
     </div>
 
 
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Convolution is a key operation in any application of pharmacokinetic  analysis. The reason for this central role is that the solution of a linear  and stationary system can always be written as a convolution. dcmri includes  functions that  perform convolution in the most general context, but also includes solutions  that are optimized for common special cases. ">
+
+.. only:: html
+
+  .. image:: /generated/examples/tutorials/images/thumb/sphx_glr_plot_convolution_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_generated_examples_tutorials_plot_convolution.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">A comparison of convolution functions</div>
+    </div>
+
+
 .. thumbnail-parent-div-close
 
 .. raw:: html
@@ -78,6 +80,6 @@ Tutorials
    :hidden:
 
    /generated/examples/tutorials/plot_aif
-   /generated/examples/tutorials/plot_convolution
    /generated/examples/tutorials/plot_wex
+   /generated/examples/tutorials/plot_convolution
 

@@ -21,13 +21,14 @@
       ~AortaLiver.conc
       ~AortaLiver.cost
       ~AortaLiver.export_params
-      ~AortaLiver.get_params
       ~AortaLiver.load
+      ~AortaLiver.params
       ~AortaLiver.plot
       ~AortaLiver.predict
       ~AortaLiver.print_params
       ~AortaLiver.relax
       ~AortaLiver.save
+      ~AortaLiver.set_free
       ~AortaLiver.train
    
    

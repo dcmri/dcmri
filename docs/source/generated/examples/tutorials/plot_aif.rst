@@ -63,10 +63,10 @@ We simulate a DCE-MRI experiment on the brain of two subjects (A and B) that are
     tissue = {
         'kinetics': 'NX',   # NX = No-Exchange of contrast agent is appropriate 
                             # for brain tissue with intact blood-brain barrier.
-        'vp': 0.03,         # Plasma volume fraction is 3 mL/100mL in grey matter, 
-                            # or 0.03 in standard units of mL/mL.
-        'Fp': 0.005,        # Plasma flow is 60 mL/min/100mL in grey matter, 
-                            # or 0.005 in standard units of mL/sec/mL.
+        'vb': 0.05,         # Bloodvolume fraction is 5 mL/100mL in grey matter, 
+                            # or 0.05 in standard units of mL/mL.
+        'Fb': 0.01,         # Blood flow is 60 mL/min/100mL in grey matter, 
+                            # or 0.01 in standard units of mL/sec/mL.
     }
 
     # Simulate the concentrations at the arterial inlet to the tissue. 
@@ -120,9 +120,9 @@ To illustrate how this works, let's treat the signals generated above as measure
 
     # At this stage the tissue parameters are set to default values that are incorrect:
     print('Tissue parameters: ')
-    print(A.get_params('vp', 'Fp'))
+    print(A.params('vb', 'Fb'))
     print('Ground truth:')
-    print([tissue['vp'], tissue['Fp']])
+    print([tissue['vb'], tissue['Fb']])
 
 
 
@@ -133,9 +133,9 @@ To illustrate how this works, let's treat the signals generated above as measure
  .. code-block:: none
 
     Tissue parameters: 
-    [0.1, 0.01]
+    [0.1, 0.02]
     Ground truth:
-    [0.03, 0.005]
+    [0.05, 0.01]
 
 
 
@@ -155,9 +155,9 @@ Now we adjust those parameters by training the models using the measured signals
     # Since the data are noise-free, the measured parameters are now exactly equal to the ground truth:
 
     print('Tissue parameters (subject A): ')
-    print(A.get_params('vp', 'Fp', round_to=3))
+    print(A.params('vb', 'Fb', round_to=3))
     print('Tissue parameters (subject B): ')
-    print(B.get_params('vp', 'Fp', round_to=3))
+    print(B.params('vb', 'Fb', round_to=3))
 
 
 
@@ -168,9 +168,9 @@ Now we adjust those parameters by training the models using the measured signals
  .. code-block:: none
 
     Tissue parameters (subject A): 
-    [np.float64(0.03), np.float64(0.005)]
+    [np.float64(0.05), np.float64(0.01)]
     Tissue parameters (subject B): 
-    [np.float64(0.03), np.float64(0.005)]
+    [np.float64(0.05), np.float64(0.01)]
 
 
 
@@ -199,7 +199,7 @@ If the arterial input is inaccurately measured, then the input to the tissue is 
 
     # And check the impact on the measured parameters:
     print('Tissue parameters (subject A): ')
-    print(A.get_params('vp', 'Fp', round_to=3))
+    print(A.params('vb', 'Fb', round_to=3))
 
 
 
@@ -210,7 +210,7 @@ If the arterial input is inaccurately measured, then the input to the tissue is 
  .. code-block:: none
 
     Tissue parameters (subject A): 
-    [np.float64(0.06), np.float64(0.01)]
+    [np.float64(0.1), np.float64(0.02)]
 
 
 
@@ -249,9 +249,9 @@ To illustrate the implications of using a population-based AIF, lets analyse the
 
     # Check the values for the measured parameters:
     print('Tissue parameters (subject A): ')
-    print(A.get_params('vp', 'Fp', round_to=4))
+    print(A.params('vb', 'Fb', round_to=4))
     print('Tissue parameters (subject B): ')
-    print(B.get_params('vp', 'Fp', round_to=4))
+    print(B.params('vb', 'Fb', round_to=4))
 
 
 
@@ -262,14 +262,14 @@ To illustrate the implications of using a population-based AIF, lets analyse the
     *
 
       .. image-sg:: /generated/examples/tutorials/images/sphx_glr_plot_aif_002.png
-         :alt: Prediction of the MRI signals., Reconstruction of concentrations.
+         :alt: MRI signals, Concentration in indicator compartments
          :srcset: /generated/examples/tutorials/images/sphx_glr_plot_aif_002.png
          :class: sphx-glr-multi-img
 
     *
 
       .. image-sg:: /generated/examples/tutorials/images/sphx_glr_plot_aif_003.png
-         :alt: Prediction of the MRI signals., Reconstruction of concentrations.
+         :alt: MRI signals, Concentration in indicator compartments
          :srcset: /generated/examples/tutorials/images/sphx_glr_plot_aif_003.png
          :class: sphx-glr-multi-img
 
@@ -279,9 +279,9 @@ To illustrate the implications of using a population-based AIF, lets analyse the
  .. code-block:: none
 
     Tissue parameters (subject A): 
-    [np.float64(0.024), np.float64(0.002)]
+    [np.float64(0.0398), np.float64(0.0036)]
     Tissue parameters (subject B): 
-    [np.float64(0.0361), np.float64(0.0029)]
+    [np.float64(0.0597), np.float64(0.0054)]
 
 
 
@@ -396,21 +396,25 @@ We can also have a look at the fitted parameters:
 
  .. code-block:: none
 
-    -----------------------------------------
-    Free parameters with their errors (stdev)
-    -----------------------------------------
-    Bolus arrival time (BAT): 15.43 (0.34) sec
-    Cardiac output (CO): 219.52 (2.94) mL/sec
-    Heart-lung mean transit time (Thl): 12.98 (0.35) sec
+
+    --------------------------------
+    Free parameters with their stdev
+    --------------------------------
+
+    Bolus arrival time (BAT): 15.76 (0.47) sec
+    Cardiac output (CO): 162.21 (3.05) mL/sec
+    Heart-lung mean transit time (Thl): 12.56 (0.5) sec
     Heart-lung transit time dispersion (Dhl): 0.08 (0.01) 
-    Organs mean transit time (To): 12.99 (3.05) sec
-    Extraction fraction (Eb): 0.01 (0.14) 
-    Organs extraction fraction (Eo): 0.49 (0.04) 
-    Extracellular mean transit time (Te): 27.11 (16.22) sec
-    ------------------
-    Derived parameters
-    ------------------
-    Mean circulation time (Tc): 25.97 sec
+    Organs mean transit time (To): 15.0 (4.53) sec
+    Extraction fraction (Eb): 0.03 (0.21) 
+    Organs extraction fraction (Eo): 0.5 (0.06) 
+    Extracellular mean transit time (Te): 29.06 (23.75) sec
+
+    ----------------------------
+    Fixed and derived parameters
+    ----------------------------
+
+    Mean circulation time (Tc): 27.56 sec
 
 
 
@@ -437,7 +441,7 @@ The cardiac output of the populaton AIF is 220 mL/sec, substantially higher than
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 3.420 seconds)
+   **Total running time of the script:** (0 minutes 2.319 seconds)
 
 
 .. _sphx_glr_download_generated_examples_tutorials_plot_aif.py:

@@ -3,20 +3,41 @@
 The TRISTAN experimental medicine study (1 scan protocol)
 =========================================================
 
-This example illustrates the use of `~dcmri.AortaLiver` for joint fitting of aorta and liver signals to a whole-body model. The use case is provided by the liver work package of the `TRISTAN project <https://www.imi-tristan.eu/liver>`_  which develops imaging biomarkers for drug safety assessment. The data and analysis was first presented at the ISMRM in 2024 (Min et al 2024, manuscript in press). 
+This example illustrates the use of `~dcmri.AortaLiver` for joint fitting of 
+aorta and liver signals to a whole-body model. The use case is provided by the 
+liver work package of the 
+`TRISTAN project <https://www.imi-tristan.eu/liver>`_  which develops imaging 
+biomarkers for drug safety assessment. The data and analysis was first 
+presented at the ISMRM in 2024 (Min et al 2024, manuscript in press). 
 
-The data were acquired in the aorta and liver of 10 healthy volunteers with dynamic gadoxetate-enhanced MRI, before and after administration of a drug (rifampicin) which is known to inhibit liver function. The assessments were done on two separate visits at least 2 weeks apart. 
+The data were acquired in the aorta and liver of 10 healthy volunteers with 
+dynamic gadoxetate-enhanced MRI, before and after administration of a drug 
+(rifampicin) which is known to inhibit liver function. The assessments were 
+done on two separate visits at least 2 weeks apart. 
 
-The research question was to what extent rifampicin inhibits gadoxetate uptake rate from the extracellular space into the liver hepatocytes (khe, mL/min/100mL) and excretion rate from hepatocytes to bile (kbh, mL/100mL/min). 
+The research question was to what extent rifampicin inhibits gadoxetate uptake 
+rate from the extracellular space into the liver hepatocytes 
+(khe, mL/min/100mL) and excretion rate from hepatocytes to bile 
+(kbh, mL/100mL/min). 
 
-2 of the volunteers only had the baseline assessment, the other 8 volunteers completed the full study. The results showed consistent and strong inhibition of khe (95%) and kbh (40%) by rifampicin. This implies that rifampicin poses a risk of drug-drug interactions (DDI), meaning it can cause another drug to circulate in the body for far longer than expected, potentially causing harm or raising a need for dose adjustment.
+2 of the volunteers only had the baseline assessment, the other 8 volunteers 
+completed the full study. The results showed consistent and strong inhibition 
+of khe (95%) and kbh (40%) by rifampicin. This implies that rifampicin poses 
+a risk of drug-drug interactions (DDI), meaning it can cause another drug to 
+circulate in the body for far longer than expected, potentially causing harm 
+or raising a need for dose adjustment.
 
-**Note**: this example is different to the 2 scan example of the same study in that this uses only the first scan to fit the model. 
+**Note**: this example is different to the 2 scan example of the same study 
+in that this uses only the first scan to fit the model. 
 
 Reference
 --------- 
 
-Thazin Min, Marta Tibiletti, Paul Hockings, Aleksandra Galetin, Ebony Gunwhy, Gerry Kenna, Nicola Melillo, Geoff JM Parker, Gunnar Schuetz, Daniel Scotcher, John Waterton, Ian Rowe, and Steven Sourbron. *Measurement of liver function with dynamic gadoxetate-enhanced MRI: a validation study in healthy volunteers*. Proc Intl Soc Mag Reson Med, Singapore 2024.
+Thazin Min, Marta Tibiletti, Paul Hockings, Aleksandra Galetin, Ebony Gunwhy, 
+Gerry Kenna, Nicola Melillo, Geoff JM Parker, Gunnar Schuetz, Daniel Scotcher, 
+John Waterton, Ian Rowe, and Steven Sourbron. *Measurement of liver function 
+with dynamic gadoxetate-enhanced MRI: a validation study in healthy 
+volunteers*. Proc Intl Soc Mag Reson Med, Singapore 2024.
 """
 
 # %%
@@ -34,7 +55,8 @@ data = dc.fetch('tristan_rifampicin')
 # %%
 # Model definition
 # ----------------
-# In order to avoid some repetition in this script, we define a function that returns a trained model for a single dataset:
+# In order to avoid some repetition in this script, we define a function 
+# that returns a trained model for a single dataset:
 
 def tristan_human_1scan(data, **kwargs):
 
@@ -53,15 +75,12 @@ def tristan_human_1scan(data, **kwargs):
         FA = data['FA'],
 
         # Signal parameters
-        R10b = data['R10b'],
+        R10a = data['R10b'],
         R10l = data['R10l'],
 
         # Tissue parameters
-        Hct = data['Hct'],
+        H = data['Hct'],
         vol = data['vol'],
-
-        # Training parameters
-        dt = 0.5,
     )
 
     xdata = (data['time1aorta'], data['time1liver'])
@@ -69,33 +88,38 @@ def tristan_human_1scan(data, **kwargs):
 
     model.train(xdata, ydata, **kwargs)
 
-    return model
+    return xdata, ydata, model
 
 
 # %%
 # Check model fit
 # ---------------
-# Before running the full analysis on all cases, lets illustrate the results by fitting the baseline visit for the first subject. We use maximum verbosity to get some feedback about the iterations: 
+# Before running the full analysis on all cases, lets illustrate the results 
+# by fitting the baseline visit for the first subject. We use maximum 
+# verbosity to get some feedback about the iterations: 
 
-model = tristan_human_1scan(data[0], xtol=1e-3, verbose=2)
+xdata, ydata, model = tristan_human_1scan(data[0], xtol=1e-3, verbose=2)
 
 # %%
-# Plot the results to check that the model has fitted the data. The plot also shows the concentration in the two liver compartments separately:
-
-xdata = (data[0]['time1aorta'], data[0]['time1liver'])
-ydata = (data[0]['signal1aorta'], data[0]['signal1liver'])
+# Plot the results to check that the model has fitted the data. The plot also 
+# shows the concentration in the two liver compartments separately:
 
 model.plot(xdata, ydata)
 
 # %%
-# Print the measured model parameters and any derived parameters. Standard deviations are included as a measure of parameter uncertainty, indicate that all parameters are identified robustly:
+# Print the measured model parameters and any derived parameters. Standard 
+# deviations are included as a measure of parameter uncertainty, indicate 
+# that all parameters are identified robustly:
 
 model.print_params(round_to=3)
 
 # %%
 # Fit all data
 # ------------
-# Now that we have illustrated an individual result in some detail, we proceed with fitting the data for all 10 volunteers, at baseline and rifampicin visit. We do not print output for these individual computations and instead store results in one single dataframe:
+# Now that we have illustrated an individual result in some detail, we proceed 
+# with fitting the data for all 10 volunteers, at baseline and rifampicin 
+# visit. We do not print output for these individual computations and instead 
+# store results in one single dataframe:
 
 results = []
 
@@ -103,7 +127,7 @@ results = []
 for scan in data:
 
     # Generate a trained model for the scan:
-    model = tristan_human_1scan(scan, xtol=1e-3, verbose=2)
+    _, _, model = tristan_human_1scan(scan, xtol=1e-3, verbose=2)
 
     # Save fitted parameters as a dataframe.
     pars = model.export_params()
@@ -127,7 +151,9 @@ print(results.to_string())
 # %%
 # Plot individual results
 # -----------------------
-# Now lets visualise the main results from the study by plotting the drug effect for all volunteers, and for both biomarkers: uptake rate ``khe`` and excretion rate ``kbh``:
+# Now lets visualise the main results from the study by plotting the drug 
+# effect for all volunteers, and for both biomarkers: uptake rate ``khe`` 
+# and excretion rate ``kbh``:
 
 # Set up the figure
 clr = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 
@@ -147,8 +173,10 @@ ax2.tick_params(axis='x', labelsize=fs)
 ax2.tick_params(axis='y', labelsize=fs)
 
 # Pivot data for both visits to wide format for easy access:
-v1 = pd.pivot_table(results[results.visit=='baseline'], values='value', columns='parameter', index='subject')
-v2 = pd.pivot_table(results[results.visit=='rifampicin'], values='value', columns='parameter', index='subject')
+v1 = pd.pivot_table(results[results.visit=='baseline'], values='value', 
+                    columns='parameter', index='subject')
+v2 = pd.pivot_table(results[results.visit=='rifampicin'], values='value', 
+                    columns='parameter', index='subject')
 
 # Plot the rate constants in units of mL/min/100mL
 for s in v1.index:

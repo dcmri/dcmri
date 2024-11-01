@@ -2,25 +2,10 @@
 .. _core-developers-team:
 
 
-These are the current developers of dcmri:
-
+Contributors:
 
 
 .. raw:: html
-
-   <div class="team-member">
-     <a href="https://github.com/plaresmedima" class="team-member-name">
-        <div class="team-member-photo">
-           <img
-             src="https://avatars.githubusercontent.com/u/6051075?v=4"
-             loading="lazy"
-             alt="Avatar picture of @plaresmedima"
-           />
-        </div>
-        Steven Sourbron
-     </a>
-     <div class="team-member-handle">@plaresmedima</div>
-   </div>
 
    <div class="team-member">
      <a href="https://github.com/EbonyGunwhy" class="team-member-name">
@@ -34,4 +19,32 @@ These are the current developers of dcmri:
         Ebony Gunwhy
      </a>
      <div class="team-member-handle">@EbonyGunwhy</div>
+   </div>
+
+   <div class="team-member">
+     <a href="https://github.com/EShalom" class="team-member-name">
+        <div class="team-member-photo">
+           <img
+             src="https://avatars.githubusercontent.com/u/79933818?v=4"
+             loading="lazy"
+             alt="Avatar picture of @EShalom"
+           />
+        </div>
+        Eve Shalom
+     </a>
+     <div class="team-member-handle">@EShalom</div>
+   </div>
+
+   <div class="team-member">
+     <a href="https://github.com/plaresmedima" class="team-member-name">
+        <div class="team-member-photo">
+           <img
+             src="https://avatars.githubusercontent.com/u/6051075?v=4"
+             loading="lazy"
+             alt="Avatar picture of @plaresmedima"
+           />
+        </div>
+        Steven Sourbron
+     </a>
+     <div class="team-member-handle">@plaresmedima</div>
    </div>

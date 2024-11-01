@@ -665,7 +665,7 @@
   {
    "is_class": true,
    "is_explicit": false,
-   "module": "dcmri.mods_liver",
+   "module": "dcmri.ui_liver",
    "module_short": "dcmri",
    "name": "Liver"
   },
@@ -679,7 +679,7 @@
   {
    "is_class": true,
    "is_explicit": false,
-   "module": "dcmri.mods",
+   "module": "dcmri.ui",
    "module_short": "dcmri",
    "name": "Model"
   },
@@ -1069,7 +1069,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_liver",
+   "module": "dcmri.ui_liver",
    "module_short": "dcmri",
    "name": "Liver"
   },
@@ -1085,7 +1085,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_liver",
+   "module": "dcmri.ui_liver",
    "module_short": "dcmri",
    "name": "Liver.export_params"
   },
@@ -1099,7 +1099,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods",
+   "module": "dcmri.ui",
    "module_short": "dcmri",
    "name": "Model.export_params"
   },
@@ -1115,7 +1115,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_liver",
+   "module": "dcmri.ui_liver",
    "module_short": "dcmri",
    "name": "Liver.plot"
   },
@@ -1129,7 +1129,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods",
+   "module": "dcmri.ui",
    "module_short": "dcmri",
    "name": "Model.plot"
   },
@@ -1145,7 +1145,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_liver",
+   "module": "dcmri.ui_liver",
    "module_short": "dcmri",
    "name": "Liver.print_params"
   },
@@ -1159,7 +1159,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods",
+   "module": "dcmri.ui",
    "module_short": "dcmri",
    "name": "Model.print_params"
   },
@@ -1175,7 +1175,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_liver",
+   "module": "dcmri.ui_liver",
    "module_short": "dcmri",
    "name": "Liver.train"
   },
@@ -1189,7 +1189,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods",
+   "module": "dcmri.ui",
    "module_short": "dcmri",
    "name": "Model.train"
   },
