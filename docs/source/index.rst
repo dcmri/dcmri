@@ -9,13 +9,18 @@ A python toolbox for dynamic contrast MRI
    ``dcmri`` is under construction. At this stage, the API may still change and 
    features may be deprecated without warning.
 
+
+*******
+Mission
+*******
+
+``dcmri`` aims to simplify the analysis of dynamic-contrast MRI (DC-MRI) data, 
+and to facilitate the development and distribution of new methods. 
+
+
 ********
 Features
 ********
-
-``dcmri`` is a python package to analyzing dynamic-contrast MRI (DCMRI) data, 
-and to facilitate the development and distribution of new methods. 
-The main features are:
 
 - A :ref:`tissue bank <end-to-end models>` with an intuitive user interface 
   to analyse data from different tissues.
@@ -48,7 +53,7 @@ vascular-interstitial tissues (brain, cancer, prostate, muscle, ...) but also
 atypical tissues such as liver and kidney, and whole-body 
 models to analyse vascular signals.
 
-To get started, have look at the :ref:`user guide <user-guide>`, or 
+To get started, have look at the :ref:`user guide <user-guide>`, 
 look for an example in the list of :ref:`tutorials <tutorials>` 
 and :ref:`use cases <use-cases>`, or find a suitable method in the 
 :ref:`reference guide <reference-guide>` and dive straight in.
