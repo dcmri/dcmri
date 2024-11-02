@@ -350,7 +350,7 @@ The fit to the data is good and the measurements of ``vb`` are not so far
 off the ground truth (0.05): underestimated for subject A (0.04)
 and overestimated for subject B (0.06). The estimates 
 for the blood flow values are a factor 2.8 and 1.8 underestimated, 
-respectively. Apart from thse biases, the analysis also leads to the (false) 
+respectively. Apart from these biases, the analysis also leads to the (false) 
 conclusion that the cerebral blood volume and -flow values of B are 50% 
 higher than A. 
 
@@ -527,7 +527,7 @@ underestimation in the blood flow values observed.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 6.306 seconds)
+   **Total running time of the script:** (0 minutes 2.323 seconds)
 
 
 .. _sphx_glr_download_generated_examples_tutorials_plot_aif.py:

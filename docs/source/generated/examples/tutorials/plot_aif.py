@@ -190,7 +190,7 @@ print([tissue['vb'], tissue['Fb']])
 # off the ground truth (0.05): underestimated for subject A (0.04)
 # and overestimated for subject B (0.06). The estimates 
 # for the blood flow values are a factor 2.8 and 1.8 underestimated, 
-# respectively. Apart from thse biases, the analysis also leads to the (false) 
+# respectively. Apart from these biases, the analysis also leads to the (false) 
 # conclusion that the cerebral blood volume and -flow values of B are 50% 
 # higher than A. 
 # 
