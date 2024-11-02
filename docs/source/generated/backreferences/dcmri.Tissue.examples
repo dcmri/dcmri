@@ -34,27 +34,6 @@ Examples using ``dcmri.Tissue``
 
  * :ref:`sphx_glr_generated_examples_tutorials_plot_aif.py`
 
-.. raw:: html
-
-    <div class="sphx-glr-thumbcontainer" tooltip="This tutorial will explore the effect of water exchange in a standard  two-compartmental tissue using the models in dcmri.Tissue.">
-
-.. only:: html
-
-  .. image:: /generated/examples/tutorials/images/thumb/sphx_glr_plot_wex_thumb.png
-    :alt:
-
-  :ref:`sphx_glr_generated_examples_tutorials_plot_wex.py`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">An exploration of water exchange effects</div>
-    </div>
-
-
-.. only:: not html
-
- * :ref:`sphx_glr_generated_examples_tutorials_plot_wex.py`
-
 .. thumbnail-parent-div-close
 
 .. raw:: html
