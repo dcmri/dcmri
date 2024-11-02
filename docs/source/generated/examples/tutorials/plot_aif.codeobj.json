@@ -3,7 +3,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_tissue",
+   "module": "dcmri.ui_tissue",
    "module_short": "dcmri",
    "name": "Tissue"
   },
@@ -19,7 +19,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_tissue",
+   "module": "dcmri.ui_tissue",
    "module_short": "dcmri",
    "name": "Tissue.params"
   },
@@ -33,7 +33,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods",
+   "module": "dcmri.ui",
    "module_short": "dcmri",
    "name": "Model.params"
   },
@@ -49,7 +49,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_tissue",
+   "module": "dcmri.ui_tissue",
    "module_short": "dcmri",
    "name": "Tissue.plot"
   },
@@ -63,7 +63,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods",
+   "module": "dcmri.ui",
    "module_short": "dcmri",
    "name": "Model.plot"
   },
@@ -79,7 +79,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_tissue",
+   "module": "dcmri.ui_tissue",
    "module_short": "dcmri",
    "name": "Tissue.train"
   },
@@ -93,7 +93,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods",
+   "module": "dcmri.ui",
    "module_short": "dcmri",
    "name": "Model.train"
   },
@@ -118,7 +118,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_tissue",
+   "module": "dcmri.ui_tissue",
    "module_short": "dcmri",
    "name": "Tissue"
   },
@@ -134,7 +134,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_tissue",
+   "module": "dcmri.ui_tissue",
    "module_short": "dcmri",
    "name": "Tissue.params"
   },
@@ -148,7 +148,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods",
+   "module": "dcmri.ui",
    "module_short": "dcmri",
    "name": "Model.params"
   },
@@ -164,7 +164,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_tissue",
+   "module": "dcmri.ui_tissue",
    "module_short": "dcmri",
    "name": "Tissue.plot"
   },
@@ -178,7 +178,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods",
+   "module": "dcmri.ui",
    "module_short": "dcmri",
    "name": "Model.plot"
   },
@@ -194,7 +194,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_tissue",
+   "module": "dcmri.ui_tissue",
    "module_short": "dcmri",
    "name": "Tissue.train"
   },
@@ -208,7 +208,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods",
+   "module": "dcmri.ui",
    "module_short": "dcmri",
    "name": "Model.train"
   },
@@ -218,6 +218,15 @@
    "module": "dcmri",
    "module_short": "dcmri",
    "name": "Model.train"
+  }
+ ],
+ "Fb": [
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "Fb"
   }
  ],
  "R1": [
@@ -242,7 +251,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_aorta",
+   "module": "dcmri.ui_aorta",
    "module_short": "dcmri",
    "name": "Aorta"
   },
@@ -258,7 +267,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_aorta",
+   "module": "dcmri.ui_aorta",
    "module_short": "dcmri",
    "name": "Aorta.plot"
   },
@@ -272,7 +281,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods",
+   "module": "dcmri.ui",
    "module_short": "dcmri",
    "name": "Model.plot"
   },
@@ -288,7 +297,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_aorta",
+   "module": "dcmri.ui_aorta",
    "module_short": "dcmri",
    "name": "Aorta.print_params"
   },
@@ -302,7 +311,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods",
+   "module": "dcmri.ui",
    "module_short": "dcmri",
    "name": "Model.print_params"
   },
@@ -318,7 +327,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods_aorta",
+   "module": "dcmri.ui_aorta",
    "module_short": "dcmri",
    "name": "Aorta.train"
   },
@@ -332,7 +341,7 @@
   {
    "is_class": false,
    "is_explicit": false,
-   "module": "dcmri.mods",
+   "module": "dcmri.ui",
    "module_short": "dcmri",
    "name": "Model.train"
   },
@@ -384,7 +393,7 @@
   {
    "is_class": true,
    "is_explicit": false,
-   "module": "dcmri.mods_aorta",
+   "module": "dcmri.ui_aorta",
    "module_short": "dcmri",
    "name": "Aorta"
   },
@@ -398,7 +407,7 @@
   {
    "is_class": true,
    "is_explicit": false,
-   "module": "dcmri.mods",
+   "module": "dcmri.ui",
    "module_short": "dcmri",
    "name": "Model"
   },
@@ -437,7 +446,7 @@
   {
    "is_class": true,
    "is_explicit": false,
-   "module": "dcmri.mods_tissue",
+   "module": "dcmri.ui_tissue",
    "module_short": "dcmri",
    "name": "Tissue"
   },
@@ -451,7 +460,7 @@
   {
    "is_class": true,
    "is_explicit": false,
-   "module": "dcmri.mods",
+   "module": "dcmri.ui",
    "module_short": "dcmri",
    "name": "Model"
   },
@@ -534,6 +543,15 @@
    "name": "signal_ss"
   }
  ],
+ "dcmri.aif_parker": [
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "aif_parker"
+  }
+ ],
  "dt": [
   {
    "is_class": false,
@@ -541,6 +559,15 @@
    "module": "builtins",
    "module_short": "builtins",
    "name": "float"
+  }
+ ],
+ "https://onlinelibrary.wiley.com/doi/full/10.1002/mrm.21066": [
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "https://onlinelibrary.wiley.com/doi/full/10.1002/mrm",
+   "module_short": "https://onlinelibrary.wiley.com/doi/full/10.1002/mrm",
+   "name": "21066"
   }
  ],
  "np.arange": [
@@ -700,6 +727,15 @@
    "module": "builtins",
    "module_short": "builtins",
    "name": "int"
+  }
+ ],
+ "vb": [
+  {
+   "is_class": false,
+   "is_explicit": true,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "vb"
   }
  ]
 }

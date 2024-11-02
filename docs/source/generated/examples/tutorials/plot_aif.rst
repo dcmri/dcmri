@@ -22,13 +22,15 @@
 The role of Arterial Input Functions
 ====================================
 
-This tutorial will explore the role of the arterial input function (AIF) in DC-MRI analysis, including the effect of using population-average AIFs versus subject-specific AIFs. 
+This tutorial will explore the role of the arterial input function (AIF) in 
+DC-MRI analysis, including the effect of using population-average AIFs versus 
+subject-specific AIFs. 
 
-.. GENERATED FROM PYTHON SOURCE LINES 10-11
+.. GENERATED FROM PYTHON SOURCE LINES 12-13
 
 Import necessary packages
 
-.. GENERATED FROM PYTHON SOURCE LINES 11-15
+.. GENERATED FROM PYTHON SOURCE LINES 13-17
 
 .. code-block:: Python
 
@@ -43,13 +45,16 @@ Import necessary packages
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 16-19
+.. GENERATED FROM PYTHON SOURCE LINES 18-24
 
 Why do we measure AIFs?
 -----------------------
-We simulate a DCE-MRI experiment on the brain of two subjects (A and B) that are identical, except that A has a higher cardiac output (9 litres per minute or 150 mL/sec) than B (6 litres per minute or 100 mL/sec). Let's simulate the signal-time curves that we would measure in grey matter. 
+We simulate a DCE-MRI experiment on the brain of two subjects (A and B) 
+that are identical, except that A has a higher cardiac output (9 litres per 
+minute or 150 mL/sec) than B (6 litres per minute or 100 mL/sec). Let's 
+simulate the signal-time curves that we would measure in grey matter. 
 
-.. GENERATED FROM PYTHON SOURCE LINES 19-52
+.. GENERATED FROM PYTHON SOURCE LINES 24-57
 
 .. code-block:: Python
 
@@ -63,7 +68,7 @@ We simulate a DCE-MRI experiment on the brain of two subjects (A and B) that are
     tissue = {
         'kinetics': 'NX',   # NX = No-Exchange of contrast agent is appropriate 
                             # for brain tissue with intact blood-brain barrier.
-        'vb': 0.05,         # Bloodvolume fraction is 5 mL/100mL in grey matter, 
+        'vb': 0.05,         # Blood volume fraction is 5 mL/100mL in grey matter, 
                             # or 0.05 in standard units of mL/mL.
         'Fb': 0.01,         # Blood flow is 60 mL/min/100mL in grey matter, 
                             # or 0.01 in standard units of mL/sec/mL.
@@ -74,7 +79,7 @@ We simulate a DCE-MRI experiment on the brain of two subjects (A and B) that are
     ca_A = dc.aif_tristan(t, BAT=20, CO=150)
     ca_B = dc.aif_tristan(t, BAT=20, CO=100)
 
-    # Define the tissue
+    # Generate tissue signals
     sig_A = dc.Tissue(ca=ca_A, t=t, **tissue).signal()
     sig_B = dc.Tissue(ca=ca_B, t=t, **tissue).signal()
 
@@ -98,27 +103,42 @@ We simulate a DCE-MRI experiment on the brain of two subjects (A and B) that are
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 53-58
+.. GENERATED FROM PYTHON SOURCE LINES 58-68
 
-The signals are very different, even though the grey matter of A and B is identical. The difference reflects the cardiac output, which is a confounder in an experiment that aims to characterise the brain tissue. 
+The signals are very different, even though the grey matter of A and B is 
+identical. The difference reflects the cardiac output, which is a confounder 
+in an experiment that aims to characterise the brain tissue. 
 
-Any visual interpretation of the signal-time curves, or a descriptive analysis using parameters such as the area under the signal-enhancement curve, or maximum signal enhancement, would lead to the false conclusion that the grey matter of subject B is more perfused than that of subject A. The AIF avoids this pitfall, and ensures that any systemic differences between subjects are not misinterpreted as differences in tissue properties. 
+Any visual interpretation of the signal-time curves, or a descriptive 
+analysis using parameters such as the area under the signal-enhancement 
+curve, or maximum signal enhancement, would lead to the false conclusion 
+that the grey matter of subject B is more perfused than that of subject A. 
+The AIF avoids this pitfall, and ensures that any systemic differences 
+between subjects are not misinterpreted as differences in tissue properties.
 
-To illustrate how this works, let's treat the signals generated above as measurements and use them to determine the unknown perfusion and vascularity of the grey matter of subjects A and B. 
+.. GENERATED FROM PYTHON SOURCE LINES 70-80
 
-.. GENERATED FROM PYTHON SOURCE LINES 58-72
+How is the AIF used?
+--------------------
+To illustrate how this works, let's treat the signals generated above as 
+measurements and use them to determine the unknown perfusion and 
+vascularity of the grey matter of subjects A and B. 
+
+We create the tissue models again, but since the tissue properties are 
+now unknown, we do not provide the values of `vb` and `Fb`. 
+We assume the arterial concentrations are known from a separate measurement, 
+so these are provided as arterial input concentration to the model:
+
+.. GENERATED FROM PYTHON SOURCE LINES 80-91
 
 .. code-block:: Python
 
 
-    # We create the tissue models again, but since the tissue properties are now unknown, 
-    # we do not provide the values of `vp` and `Fp`. 
-    # We assume the arterial concentrations are known from a separate measurement, 
-    # so these are provided as arterial input concentration to the model:
     A = dc.Tissue(ca=ca_A, t=t, kinetics='NX')
     B = dc.Tissue(ca=ca_B, t=t, kinetics='NX')
 
-    # At this stage the tissue parameters are set to default values that are incorrect:
+    # At this stage the tissue parameters are set to default values that 
+    # are incorrect:
     print('Tissue parameters: ')
     print(A.params('vb', 'Fb'))
     print('Ground truth:')
@@ -140,19 +160,18 @@ To illustrate how this works, let's treat the signals generated above as measure
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 73-74
+.. GENERATED FROM PYTHON SOURCE LINES 92-94
 
-Now we adjust those parameters by training the models using the measured signals:
+Now we adjust those parameters by training the models using the measured 
+signals:
 
-.. GENERATED FROM PYTHON SOURCE LINES 74-85
+.. GENERATED FROM PYTHON SOURCE LINES 94-103
 
 .. code-block:: Python
 
 
     A.train(t, sig_A)
     B.train(t, sig_B) 
-
-    # Since the data are noise-free, the measured parameters are now exactly equal to the ground truth:
 
     print('Tissue parameters (subject A): ')
     print(A.params('vb', 'Fb', round_to=3))
@@ -175,19 +194,33 @@ Now we adjust those parameters by training the models using the measured signals
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 86-87
+.. GENERATED FROM PYTHON SOURCE LINES 104-108
 
-Thanks to the AIF, we correctly conclude from these data that the blood flow and the blood volume of the grey matter of A and B are the same, despite the very different appearance of the signals measured in the grey matter of both subjects. 
+Thanks to the AIF, we correctly conclude 
+from these data that the blood flow and the blood volume of the grey matter 
+of A and B are the same, despite the very different appearance of the 
+signals measured in the grey matter of both subjects. 
 
-.. GENERATED FROM PYTHON SOURCE LINES 89-94
+.. GENERATED FROM PYTHON SOURCE LINES 110-126
 
 The case for population AIFs
 ----------------------------
-The difficulty with the approach outlined above is that this requires an (accurate) measurement of the arterial concentration or signal in individual subjects. This is not a trivial problem. Feeding arteries are small for instance, in which case a concentration in pure blood may not be accessible; or they are far from the tissue of interest, causing bolus dispersion errors or differences in signal properties that are difficult to correct for; or they are measured in rapidly flowing and pulsating blood where standard signal models may be inaccurate. 
+The difficulty with the approach outlined above is that this requires an 
+(accurate) measurement of the arterial concentration or signal in 
+individual subjects. This is not a trivial problem. Feeding arteries are 
+small for instance, in which case a concentration in pure blood may not be 
+accessible; or they are far from the tissue of interest, causing bolus 
+dispersion errors or differences in signal properties that are difficult to 
+correct for; or they are measured in rapidly flowing and pulsating blood 
+where standard signal models may be inaccurate. 
 
-If the arterial input is inaccurately measured, then the input to the tissue is misinterpreted, and this will translate to an error in the measured parameters. To illustrate thiw, let's assume there is a partial volume in the AIF of patient A, causing its arterial blood concentration to be underestimated by a factor 2:
+If the arterial input is inaccurately measured, then the input to the 
+tissue is misinterpreted, and this will translate to an error in the 
+measured parameters. To illustrate this, let's assume there is a partial 
+volume error in the AIF of patient A, causing its arterial blood 
+concentration to be underestimated by a factor 2:
 
-.. GENERATED FROM PYTHON SOURCE LINES 94-104
+.. GENERATED FROM PYTHON SOURCE LINES 126-138
 
 .. code-block:: Python
 
@@ -200,6 +233,8 @@ If the arterial input is inaccurately measured, then the input to the tissue is 
     # And check the impact on the measured parameters:
     print('Tissue parameters (subject A): ')
     print(A.params('vb', 'Fb', round_to=3))
+    print('Ground truth:')
+    print([tissue['vb'], tissue['Fb']])
 
 
 
@@ -211,25 +246,44 @@ If the arterial input is inaccurately measured, then the input to the tissue is 
 
     Tissue parameters (subject A): 
     [np.float64(0.1), np.float64(0.02)]
+    Ground truth:
+    [0.05, 0.01]
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 105-110
+.. GENERATED FROM PYTHON SOURCE LINES 139-159
 
-The tissue perfusion is now overestimated with the same factor 2, which obviously could lead to entirely wrong conclusions as regards the grey matter health. An additional problem is that this type of error is difficult to control. If partial volume effects are present, they will cause different levels of overestimation in different measurements. So this not only causes a bias, but also a variability that will impact even on assessed changes over time in the same subject. 
+The tissue perfusion is now overestimated with the same factor 2, which 
+obviously could lead to entirely wrong conclusions as regards the grey 
+matter health. An additional problem is that this type of error is 
+difficult to control. If partial volume effects are present, they will 
+cause different levels of overestimation in different measurements. So this 
+not only causes a bias, but also a variability that will impact even on 
+assessed changes over time in the same subject. 
 
-Addressing those issues by experimental design may be possible to some extent, but may also require changes that are incompatible with other constraints. For instance, partial volume errors can be reduced by increasing the image resolution, but this may lead to acquisition times that are too long for blood flow measurement. 
+Addressing those issues by experimental design may be possible to some 
+extent, but may also require changes that are incompatible with other 
+constraints. For instance, partial volume errors can be reduced by 
+increasing the image resolution, but this may lead to acquisition times 
+that are too long for blood flow measurement. 
 
-An alternative approach that is sometimes proposed is to avoid the use of a measured AIF alltogether, and instead use a standardized AIF measured once using a similar experiment on a representative population. A popular choice is the AIF presented in Parker et al (Magn Reson Med 200%), which is implemented in ``dcmri`` as the function ``aif_parker()``.
+An alternative approach that is sometimes proposed is to avoid the use of a 
+measured AIF alltogether, and instead use a standardized AIF measured once 
+using a similar experiment on a representative population. 
+A popular choice is the AIF derived by 
+`Parker et al (2006) <https://onlinelibrary.wiley.com/doi/full/10.1002/mrm.21066>`_, 
+which is implemented in ``dcmri`` as the function `~dcmri.aif_parker`.
 
-.. GENERATED FROM PYTHON SOURCE LINES 112-115
+.. GENERATED FROM PYTHON SOURCE LINES 161-166
 
 Example using a population AIF
 ------------------------------
-To illustrate the implications of using a population-based AIF, lets analyse the data from our subjects A and B again, this time using a popular population-based AIF:
+To illustrate the implications of using a population-based AIF, lets 
+analyse the data from our subjects A and B again, this time using a 
+popular population-based AIF:
 
-.. GENERATED FROM PYTHON SOURCE LINES 115-135
+.. GENERATED FROM PYTHON SOURCE LINES 166-188
 
 .. code-block:: Python
 
@@ -252,6 +306,8 @@ To illustrate the implications of using a population-based AIF, lets analyse the
     print(A.params('vb', 'Fb', round_to=4))
     print('Tissue parameters (subject B): ')
     print(B.params('vb', 'Fb', round_to=4))
+    print('Ground truth:')
+    print([tissue['vb'], tissue['Fb']])
 
 
 
@@ -282,27 +338,43 @@ To illustrate the implications of using a population-based AIF, lets analyse the
     [np.float64(0.0398), np.float64(0.0036)]
     Tissue parameters (subject B): 
     [np.float64(0.0597), np.float64(0.0054)]
+    Ground truth:
+    [0.05, 0.01]
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 136-140
+.. GENERATED FROM PYTHON SOURCE LINES 189-203
 
-The fit to the data is good and the measurements of ``vp`` are not so far off the ground truth (``vp=0.03``): underestimated for subject A (``vp=0.024``) and overestimated for subject B (``vp=0.036``). The estimates for the blood flow values are a factor 2.6 and 1.7 underestimated, respectively. The analysis leads to the (false) conclusion that the cerebral blood volume and -flow values of B are 50% higher than A. 
+The fit to the data is good and the measurements of ``vb`` are not so far 
+off the ground truth (0.05): underestimated for subject A (0.04)
+and overestimated for subject B (0.06). The estimates 
+for the blood flow values are a factor 2.8 and 1.8 underestimated, 
+respectively. Apart from thse biases, the analysis also leads to the (false) 
+conclusion that the cerebral blood volume and -flow values of B are 50% 
+higher than A. 
 
-Hence, while a suitable chosen population AIF may produce values in the correct order of magnitude, it suffers from the same fundamental problem as descriptive or qualitative curve-type analyses that between subject differences in tissue curves are interpreted as reflecting tissue properties, even if in reality they are due to systemic differences (cardiac output in this example).
+Hence, while a suitable chosen population AIF may produce values in the 
+correct order of magnitude, it suffers from the same fundamental problem as 
+descriptive or qualitative curve-type analyses that between subject 
+differences in tissue curves are interpreted as reflecting tissue 
+properties, even if in reality they are due to systemic differences 
+(cardiac output in this example).
 
-
-.. GENERATED FROM PYTHON SOURCE LINES 142-148
+.. GENERATED FROM PYTHON SOURCE LINES 205-215
 
 Choice of a population AIF
 --------------------------
-The relative accuracy of the absolute values reflects the fact that the experimental conditions under which the population-average AIF from Parker et al was derived are actually very similar to this example (standard dose and injection rate of a standard extracellular agent). 
+The comparative accuracy of the absolute values reflects the fact that the 
+experimental conditions under which the population-average AIF from Parker 
+et al was derived are actually very similar to this example (standard dose 
+and injection rate of a standard extracellular agent). 
 
-Plotting the population AIF against that of our subjects A and B shows that they are indeed comparable:
+Plotting the population AIF against that of our subjects A and B shows that 
+they are indeed in the same range of concentrations:
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 148-156
+.. GENERATED FROM PYTHON SOURCE LINES 215-223
 
 .. code-block:: Python
 
@@ -326,11 +398,13 @@ Plotting the population AIF against that of our subjects A and B shows that they
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 157-158
+.. GENERATED FROM PYTHON SOURCE LINES 224-227
 
-We can investigate this more quantitatively by fitting the population AIF to an aorta model. Since the `Aorta` model predicts signals rather than concentrations, we need to first convert the concentrations to signals:
+We can investigate this more quantitatively by fitting the population AIF 
+to an aorta model. Since the `Aorta` model predicts signals rather than 
+concentrations, we need to first convert the concentrations to signals:
 
-.. GENERATED FROM PYTHON SOURCE LINES 158-165
+.. GENERATED FROM PYTHON SOURCE LINES 227-234
 
 .. code-block:: Python
 
@@ -348,16 +422,26 @@ We can investigate this more quantitatively by fitting the population AIF to an 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 166-167
+.. GENERATED FROM PYTHON SOURCE LINES 235-241
 
-Now we can train the Aorta model, setting the experimental parameters to match the conditions of the original paper (Parker et al 2005). We use a chain model for the heart-lung system, which is relatively slow but provides a better fit to high-resolution first pass data than the default 'pfcomp'. The defaults for the other constants (field strength, flip angle etc) are correct so do not need to be provided explicitly:
+Now we can train the Aorta model, setting the experimental parameters to 
+match the conditions of the original paper (Parker et al 2005). We use a 
+chain model for the heart-lung system, which is relatively slow but 
+provides a better fit to high-resolution first pass data than the default 
+'pfcomp'. The defaults for the other constants (field strength, flip angle 
+etc) are correct so do not need to be provided explicitly:
 
-.. GENERATED FROM PYTHON SOURCE LINES 167-176
+.. GENERATED FROM PYTHON SOURCE LINES 241-255
 
 .. code-block:: Python
 
 
-    aorta = dc.Aorta(rate=3, agent='gadodiamide', dose=0.2, heartlung='chain')
+    aorta = dc.Aorta(
+        rate = 3, 
+        agent = 'gadodiamide', 
+        dose = 0.2, 
+        heartlung = 'chain',
+    )
 
     # Train the model using the population AIF. 
     aorta.train(t, sig_pop, xtol=1e-3)
@@ -377,11 +461,11 @@ Now we can train the Aorta model, setting the experimental parameters to match t
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 177-178
+.. GENERATED FROM PYTHON SOURCE LINES 256-257
 
 We can also have a look at the fitted parameters:
 
-.. GENERATED FROM PYTHON SOURCE LINES 178-181
+.. GENERATED FROM PYTHON SOURCE LINES 257-260
 
 .. code-block:: Python
 
@@ -419,11 +503,13 @@ We can also have a look at the fitted parameters:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 182-183
+.. GENERATED FROM PYTHON SOURCE LINES 261-264
 
-The cardiac output of the populaton AIF is 220 mL/sec, substantially higher than the values for either subject A or B. This is consistent with the systematic underestimation in the blood flow values observed.
+The cardiac output of the populaton AIF is 162 mL/sec, higher than 
+the values for either subject A or B. This is consistent with the systematic 
+underestimation in the blood flow values observed.
 
-.. GENERATED FROM PYTHON SOURCE LINES 183-187
+.. GENERATED FROM PYTHON SOURCE LINES 264-268
 
 .. code-block:: Python
 
@@ -441,7 +527,7 @@ The cardiac output of the populaton AIF is 220 mL/sec, substantially higher than
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 2.319 seconds)
+   **Total running time of the script:** (0 minutes 6.306 seconds)
 
 
 .. _sphx_glr_download_generated_examples_tutorials_plot_aif.py:

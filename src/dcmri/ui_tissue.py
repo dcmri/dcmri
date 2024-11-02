@@ -1592,7 +1592,7 @@ def _clr(comp):
         return 'dimgrey'
     if comp == 'Tissue':
         return 'darkgrey'
-    if comp == 'Tissue blood':
+    if comp == 'Blood':
         return 'darkred'
     if comp == 'Extravascular':
         return 'blue'
