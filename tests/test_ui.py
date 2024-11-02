@@ -378,14 +378,14 @@ if __name__ == "__main__":
 
     # make_tmp()
 
-    test_model()
+    # test_model()
     test_ui_tissue()
-    test_ui_tissue_array()
-    test_ui_aorta()
-    test_ui_aorta_liver()
-    test_ui_aorta_liver2scan()
-    test_ui_liver()
-    test_ui_kidney()
-    test_ui_kidney_cort_med()
+    # test_ui_tissue_array()
+    # test_ui_aorta()
+    # test_ui_aorta_liver()
+    # test_ui_aorta_liver2scan()
+    # test_ui_liver()
+    # test_ui_kidney()
+    # test_ui_kidney_cort_med()
 
     print('All mods tests passed!!')

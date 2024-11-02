@@ -65,20 +65,17 @@ tissue_nn = dc.Tissue('2CX','RR', PSe=0, PSc=0, **aif)
 tissue_nn.plot()
 
 # %%
-# The top right shows that indicator concentrations in plasma and interstitium 
-# equilibrate at around 3 minutes due to the indicator exchange across the 
-# capillary wall. The bottom right shows that this does not translate into an 
-# equilbirum between the tissue compartments because the concentration in the 
-# blood is diluted by the red blood cells. In this case, since there is no 
-# water exchange in the tissue, the magnetization (bottom left) follows the 
-# profile of the indicator concentrations exactly. Since magnetization cannot 
+# In this model the indicator and water occupy the same compartments, so the 
+# concentrations on the right are the same. The magnetization (bottom left) 
+# follows the profile of the indicator concentrations exactly: since 
+# magnetization cannot 
 # exchange, it cannot equilibrate and remains directly proportional to the 
-# concentration in the compartment. Notably, the magnization in the tissue 
-# cells remains constant in this case as no indicator can enter this 
-# compartment to modulate it, and no magnetization can be transferred.
+# concentration in the compartment. Notably, the magnetization in the tissue 
+# cells remains constant as no indicator can enter this 
+# compartment to modify it, and no magnetization can be transferred.
 # 
 # Now lets consider the opposite scenario of fast water exchange across both 
-# barriers. (*Note*: we could use the FF model here, but for the purposes of 
+# barriers (*Note*: we could use the FF model here, but for the purposes of 
 # this illustration it is more instructive to use RR with very high values 
 # for the water permeabilities): 
 
@@ -88,11 +85,12 @@ tissue_ff.plot()
 # %%
 # The indicator concentration in the tissue compartments is not affected by 
 # the level of water exchange (top and bottom right), but the magnetization 
-# in all 3 compartments is now effectively the same. Even the tissue cells, 
+# in all 3 compartments is now effectively the same (bottom left). Even the 
+# tissue cells, 
 # which receive no indicator at all, show the same signal changes over time 
-# as the intersitium and blood compartments. This is because, with very high 
+# as the interstitium and blood compartments. This is because, with very high 
 # levels of water exchange, the magnetization between all 3 compartments mixes 
-# so rapidly that any differences are levelled out instance. The tissue is 
+# so rapidly that any differences are levelled out instantly. The tissue is 
 # well-mixed for water (and therefore water magnetization), although it is not 
 # well-mixed for indicator.
 
@@ -163,8 +161,8 @@ for axis in ax:
 plt.show()
 
 # %%
-# These figures show clear that water exchange levels have a measureable 
-# effect on signals, and at all times lie between the extrements of no water 
+# These figures show clearly that water exchange levels have a measureable 
+# effect on signals, and at all times lie between the extremes of no water 
 # exchange (blue) and fast water exchange (green). 
 #
 # However, while the effect of water exchange is detectable, it is 
@@ -253,26 +251,6 @@ rec = tissue.params('PSe', 'PSc', round_to=0)
 print('PSe:', rec[0], 'mL/sec/cm3')
 print('PSc:', rec[1], 'mL/sec/cm3')
 
-# %%
-# While the errors in kinetic parameters have reduced with this more general 
-# model, they have not vanished. This is because convergence to a solution 
-# with infinite water PS is slow. When water exchange rates are high, the data 
-# should be analysed with a fast water exchange model. We can verify that this 
-# recovers the accurate results in this case: 
-
-tissue = dc.Tissue('2CX','FF', **aif) 
-tissue.train(t, signal_ff)
-tissue.plot(t, signal_ff)
-
-#%%
-# The tissue now predicts the data correctly and the kinetic parameters are 
-# recovered exactly:
-
-rec = tissue.params('vp','vi','Ktrans')
-print('vp error:', round(100*(rec[0]-truth[0])/truth[0],1), '%')
-print('vi error:', round(100*(rec[1]-truth[1])/-truth[1],1), '%')
-print('Ktrans error:', round(100*(rec[2]-truth[2])/truth[2],1), '%')
-
 #%%
 # Handling water exchange
 # -----------------------
@@ -299,10 +277,10 @@ tissue_ff = dc.Tissue('2CX','FF',**aif)
 # Plot signals 
 fig, ax = plt.subplots(1,1,figsize=(6,5))
 
-ax.set_title('Realistic water exchange against extremes')
+ax.set_title('Restricted water exchange against extremes')
 ax.plot(t, tissue_ff.signal(), 'g-', label='Fast water exchange')
 ax.plot(t, tissue_nn.signal(), 'b-', label='No water exchange')
-ax.plot(t, tissue.signal(), 'r--', label='Realistic water exchange')
+ax.plot(t, tissue.signal(), 'r--', label='Restricted water exchange')
 ax.set_xlabel('Time (sec)')
 ax.set_ylabel('Signal (a.u.)')
 ax.legend()

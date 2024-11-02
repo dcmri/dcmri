@@ -136,7 +136,7 @@ def conc_liver(ca, t=None, dt=1.0, sum=True, cv=None, **params):
         concentrations with a non-stationary model:
 
         >>> C = dc.conc_liver(ca, t, sum=False, 
-        >>>     ve = 0.2, Te = 30, De = 0.5, 
+        >>>     H = 0.45, ve = 0.2, Te = 30, De = 0.5, 
         >>>     khe = [0.003, 0.01], Th = [180, 600],
         >>> )
 
