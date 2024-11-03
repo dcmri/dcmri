@@ -28,6 +28,54 @@ detail to unambiguously define all models included in ``dcmri``, but is not
 intended to provide a full introduction to pharmacokinetics. For that we 
 refer to classic textbooks or review papers.
 
+Definitions and notations
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. _PK-terms:
+.. list-table:: **Pharmacokinetic models: definitions and notations**
+    :widths: 15 20 40 10
+    :header-rows: 1
+
+    * - Short name
+      - Full name
+      - Definition
+      - Units
+    * - J
+      - Indicator flux
+      - The amount of indicator molecules entering or leaving 
+        a system in a unit of time.
+      - mmol/sec
+    * - c
+      - Indicator concentration
+      - The amount of indicator molecules relative to the volume of 
+        distribution.
+      - mmol/mL
+    * - C
+      - Indicator tissue concentration
+      - The amount of indicator molecules relative to the volume of tissue.
+      - mmol/cm3
+    * - v
+      - Indicator volume of distribution
+      - The fraction of the tissue accessible to the indicator.
+      - mL/cm3
+    * - T
+      - Indicator mean transit time
+      - The average time an indicator molecule needs to pass through the tissue.
+      - sec
+    * - R
+      - Residue function
+      - The fraction of indicator left at time t of an injection at time t=0.
+      - dimensionless
+    * - h
+      - Propagator
+      - The transit time distribution
+      - 1/sec
+    * - K
+      - Compartment rate constant
+      - The ratio between outflux and tissue concentration.
+      - 1/sec
+
+
 Indicator transit times
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -134,7 +182,12 @@ Here *K* is the **rate constant** of the compartment. The solution is:
     C(t) = e^{-Kt}*J_\mathrm{in}(t)
 
 This shows that the residue function of a compartment is a mono-exponential, 
-and its mean transit time is the therefore reciprocal *1/K*.
+and its mean transit time is the therefore reciprocal *1/K*. The propaqgator 
+of a compartment is a normalized exponential:
+
+.. math::
+
+    h(t) = \frac{e^{-t/T}}{T}
 
 
 .. _define-plug-flow:
@@ -371,52 +424,7 @@ an analytical solution is available through the work of
 `Schnell and Mendoza <https://www.sciencedirect.com/science/article/pii/S0022519397904252>`_.
 
 
-Definitions and notations
-^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. _PK-terms:
-.. list-table:: **Pharmacokinetic models: definitions and notations**
-    :widths: 15 20 40 10
-    :header-rows: 1
-
-    * - Short name
-      - Full name
-      - Definition
-      - Units
-    * - J
-      - Indicator flux
-      - The amount of indicator molecules entering or leaving 
-        a system in a unit of time.
-      - mmol/sec
-    * - c
-      - Indicator concentration
-      - The amount of indicator molecules relative to the volume of 
-        distribution.
-      - mmol/mL
-    * - C
-      - Indicator tissue concentration
-      - The amount of indicator molecules relative to the volume of tissue.
-      - mmol/cm3
-    * - v
-      - Indicator volume of distribution
-      - The fraction of the tissue accessible to the indicator.
-      - mL/cm3
-    * - T
-      - Indicator mean transit time
-      - The average time an indicator molecule needs to pass through the tissue.
-      - sec
-    * - R
-      - Residue function
-      - The fraction of indicator left at time t of an injection at time t=0.
-      - dimensionless
-    * - h
-      - Propagator
-      - The transit time distribution
-      - 1/sec
-    * - K
-      - Compartment rate constant
-      - The ratio between outflux and tissue concentration.
-      - 1/sec
 
 
 

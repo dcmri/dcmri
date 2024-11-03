@@ -29,25 +29,35 @@ A python toolbox for dynamic contrast MRI
 and features may be deprecated without warning.
 
 
-Install
--------
+Installation
+------------
 
-Install the latest version of dcmri::
+Install the latest version of dcmri:
 
-    $ pip install dcmri
+.. code-block:: console
+
+    pip install dcmri
 
 
-ROI-based analysis
-------------------
+Typical usage: ROI-based analysis
+---------------------------------
 
 .. code-block:: python
 
-   import dcmri as dc
+    import dcmri as dc
 
-   time, aif, roi, _ = dc.fake_tissue(CNR=50)   # Generate some test data
-   tissue = dc.Tissue(aif=aif, t=time)          # Launch a tissue model
-   tissue.train(time, roi)                      # Train the tissue on the data
-   tissue.plot(time, roi)                       # Check the fit to the data
+    # Generate some test data
+    time, aif, roi, _ = dc.fake_tissue(CNR=50)   
+
+    # Construct a tissue
+    tissue = dc.Tissue(aif=aif, t=time)  
+
+    # Train the tissue on the data        
+    tissue.train(time, roi)   
+
+    # Check the fit to the data                  
+    tissue.plot(time, roi)  
+                     
 
 .. image:: https://dcmri.org/_images/tissue.png
   :width: 800
@@ -55,7 +65,8 @@ ROI-based analysis
 
 .. code-block:: python
 
-   tissue.print(round_to=3)                     # Print the fitted parameters
+    # Print the fitted parameters
+    tissue.printParams(round_to=3)               
 
 
 .. code-block:: console
@@ -76,20 +87,28 @@ ROI-based analysis
     Interstitial mean transit time (Ti): 74.614 sec
 
 
-Pixel-based analysis
---------------------
+Typical usage: pixel-based analysis
+-----------------------------------
 
 .. code-block:: python
 
-   n = 128
-   time, signal, aif, _ = dc.fake_brain(n)      # Generate some test data
-   image = dc.TissueArray((n, n),               # Launch an array model
-      aif = aif, 
-      t = time, 
-      kinetics = '2CU', 
-      verbose = 1)   
-   image.train(time, roi)                       # Train the tissue on the data
-   image.plot(time, roi)                        # Plot the parameter maps
+    # Generate some test data
+    n = 128
+    time, signal, aif, _ = dc.fake_brain(n) 
+
+    # Construct an array of tissues
+    shape = (n,n)
+    image = dc.TissueArray(shape,               
+        aif = aif, 
+        t = time, 
+        kinetics = '2CU', 
+        verbose = 1)   
+
+    # Train the tissue array on the data
+    image.train(time, roi)  
+    
+    # Plot the parameter maps                  
+    image.plot(time, roi)                        
 
 .. image:: https://dcmri.org/_images/pixel_2cu.png
   :width: 800

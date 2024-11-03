@@ -12,24 +12,9 @@ Data measured on exchange tissues can be analysed most conveniently using the
 user interface in `dcmri.Tissue`. Developers can access the core 
 functionality through the functions listed in :ref:`ref-exchange-tissues`.
 
-Configurations
-^^^^^^^^^^^^^^
 
-The configuration of an exchange tissue is fully defined by: 
-a *pharmacokinetic model* (see section :ref:`tissue-indicator-kinetics`), 
-which describes the transport of indicator through the tissue; 
-and a *water-exchange model* (see section :ref:`tissue-water-exchange`), 
-which describes the transport of water and magnetization. Any pharmacokinetic 
-model can be combined with any water exchange model to build a complete 
-tissue model. 
-
-The parameters that characterise an exchange tissue depend on the 
-configuration. Table :ref:`two-site-tissue-params` lists all relevant 
-parameters, and a list of parameters for each configuration 
-can be found through the function `dcmri.params_tissue` or in its 
-documentation. The most commonly used tissue types have fast water exchange 
-across all barriers, in which case the parameters 
-are those listed in table :ref:`two-site-exchange-kinetics`.
+Definitions and notations
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. _two-site-tissue-params:
 .. list-table:: **Tissue parameters**
@@ -84,65 +69,6 @@ are those listed in table :ref:`two-site-exchange-kinetics`.
       - mL/sec/cm3
 
 
-.. _tissue-indicator-kinetics:
-
-Indicator kinetics
-^^^^^^^^^^^^^^^^^^ 
-
-The most general pharmacokinetic model implemented in `dcmri.Tissue` is the 
-2-compartment exchange model (2CX). It assumes that the indicator distributes 
-over two compartments: the plasma *p* and the interstitium *i*, with volume 
-fractions *vp* and *vi*, respectively. The plasma volume is related to the 
-blood volume *vb* by the hematocrit *H*; plasma and interstitium 
-combined form the extracellular space *e* with volume fraction *ve*: 
-
-.. math::
-    v_p = (1-H)v_b \qquad \textrm{and} \qquad v_e = v_p + v_i
-
-*Fp* is the flow of plasma into *p* via the arterial inlet, which equals the 
-flow of plasma out of the venous outlet. It is related to the blood flow *Fb*
-via the hematocrit H:
-
-.. math::
-    F_p = (1-H)F_b
-
-The transport of indicator across the endothelium (the barrier 
-separating *p* and *i*) is quantified by 
-the indicator's permeability-surface area product *PS*. The most general 2CX 
-model assumes that the transport of indicator across the endothelium is 
-the same in each direction, i.e. the PS from interstitium to plasma (*PSi*) 
-is the same as the PS from plasma to interstitium. 
-Any leakage from the interstitium via lymphatic flow or otherwise is ignored. 
-
-The indicator extraction fraction *E* and the volume transfer constant 
-*Ktrans* measure the uptake of indicator into the interstitium. *E* is the 
-fraction of the indicator that enters the interstitium at least once in a 
-transit through the tissue. *Ktrans* is the rate at which indicator is 
-delivered to the interstitium. *E* and *Ktrans* are related to the other 
-parameters:
-
-.. math::
-    E=\frac{PS}{PS+F_p} \qquad \textrm{and} \qquad K^{\mathrm{trans}}=EF_p
-
-The other kinetic models available through `dcmri.Tissue` are all special 
-cases of 2CX. An overview can be found in table 
-:ref:`two-site-exchange-kinetics`. 
-The *two-compartment uptake model* (2CU) applies when the 
-acquisition time is short so that the return of indicator to the 
-vasculature is not detectable. The *high-flow model* (HF) applies when the 
-temporal resolution of the measurement is too low to see any dispersion in the 
-vasculature, in which case the blood flow is above the detection limit. The 
-*high-flow uptake model* (HFU) combines the assumptions of the above. The 
-*fast-exchange model* (FX) assumes that the transport across the endothelium is 
-so rapid that plasma and interstitium are effectively well-mixed. The 
-*no-exchange model* (NX) applies when the opposite is the case, when no 
-measureable amounts of indicator leak out of the vasculature. The *uptake 
-model* (U) applies when data are truncated to the first seconds after 
-indicator arrival when any effect of venous outflow (*Fv*) is not detectable. 
-The *weakly vascularised* model (WV) applies when the indicator in the 
-vasculature is below the detection limit.
-
-
 .. _two-site-exchange-kinetics:
 .. list-table:: **Kinetic models**
     :widths: 10 40 20 20
@@ -187,6 +113,88 @@ vasculature is below the detection limit.
       - :math:`v_b = 0`
 
 
+Configurations
+^^^^^^^^^^^^^^
+
+The configuration of an exchange tissue is fully defined by: 
+a *pharmacokinetic model* (see section :ref:`tissue-indicator-kinetics`), 
+which describes the transport of indicator through the tissue; 
+and a *water-exchange model* (see section :ref:`tissue-water-exchange`), 
+which describes the transport of water and magnetization. Any pharmacokinetic 
+model can be combined with any water exchange model to build a complete 
+tissue model. 
+
+The parameters that characterise an exchange tissue depend on the 
+configuration. Table :ref:`two-site-tissue-params` lists all relevant 
+parameters, and a list of parameters for each configuration 
+can be found through the function `dcmri.params_tissue` or in its 
+documentation. The most commonly used tissue types have fast water exchange 
+across all barriers, in which case the parameters 
+are those listed in table :ref:`two-site-exchange-kinetics`.
+
+
+.. _tissue-indicator-kinetics:
+
+Indicator kinetics
+^^^^^^^^^^^^^^^^^^ 
+
+The most general pharmacokinetic model implemented in `dcmri.Tissue` is the 
+2-compartment exchange model (2CX). It assumes that the indicator distributes 
+over two compartments: the plasma *p* and the interstitium *i*, with volume 
+fractions *vp* and *vi*, respectively. The plasma volume is related to the 
+blood volume *vb* by the hematocrit *H*; plasma and interstitium 
+combined form the extracellular space *e* with volume fraction *ve*: 
+
+.. math::
+    v_p = (1-H)v_b \qquad \textrm{and} \qquad v_e = v_p + v_i
+
+*Fp* is the flow of plasma into *p* via the arterial inlet, which equals the 
+flow of plasma out of the venous outlet. It is related to the blood flow *Fb*
+via the hematocrit H:
+
+.. math::
+    F_p = (1-H)F_b
+
+The transport of indicator across the endothelium (the barrier 
+separating *p* and *i*) is quantified by 
+the indicator's permeability-surface area product *PS*. The most general 2CX 
+model assumes that the transport of indicator across the endothelium is 
+the same in each direction, i.e. the PS from interstitium to plasma (*PSi*) 
+is the same as the PS from plasma to interstitium. 
+Any leakage from the interstitium via lymphatic flow or otherwise is ignored. 
+
+The indicator extraction fraction *E* and the volume transfer constant 
+*Ktrans* measure the uptake of indicator into the interstitium. *E* is the 
+fraction of the indicator that enters the interstitium at least once in a 
+transit through the tissue. *Ktrans* is the rate at which indicator is 
+delivered to the interstitium. *E* and *Ktrans* are related to the other 
+parameters:
+
+.. math::
+    E=\frac{PS}{PS+F_p} \qquad \textrm{and} \qquad K^{\mathrm{trans}}=EF_p
+
+The other kinetic models available through `dcmri.Tissue` are all special 
+cases of 2CX. An overview can be found in table 
+:ref:`two-site-exchange-kinetics`:
+
+- The *two-compartment uptake model* (2CU) applies when the 
+  acquisition time is short so that the return of indicator to the 
+  vasculature is not detectable. 
+- The *high-flow model* (HF) applies when the 
+  temporal resolution of the measurement is too low to see any dispersion in the 
+  vasculature, in which case the blood flow is above the detection limit. 
+- The *high-flow uptake model* (HFU) combines the assumptions of the above. 
+- The *fast-exchange model* (FX) assumes that the transport across the 
+  endothelium is so rapid that plasma and interstitium are effectively 
+  well-mixed. 
+- The *no-exchange model* (NX) applies when the opposite is the case, when no 
+  measureable amounts of indicator leak out of the vasculature. 
+- The *uptake model* (U) applies when data are truncated to the first seconds 
+  after indicator arrival when any effect of venous outflow (*Fv*) is not 
+  detectable. 
+- The *weakly vascularised* model (WV) applies when the indicator in the 
+  vasculature is below the detection limit.
+
 .. _tissue-water-exchange:
 
 Water exchange
@@ -229,8 +237,3 @@ the cell wall. Examples of possible water exchange regimes are:
 - *FR*: Fast water exchange across the endothelium (:math:`PS_e=\infty`) and 
   restricted water exchange across the tissue cell wall 
   (:math:`0\lt PS_c\lt\infty`).
-
-
-
-
-
