@@ -15,6 +15,39 @@ relatively easily with simple approximations. See the
 :ref:`table with definitions <relaxation-params>` for a summary of relevant 
 terms and notations.
 
+Definitions and notations
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Models of magnetic relaxation are determined by the following parameters:
+
+.. _relaxation-params:
+.. list-table:: **Relaxation model parameters**
+    :widths: 15 20 40 10
+    :header-rows: 1
+
+    * - Short name
+      - Full name
+      - Definition
+      - Units
+    * - R10
+      - Precontrast longitudinal relaxation rate in tissue
+      - Native longitudinal relaxation rate in the absence of contrast agent
+      - Hz
+    * - R10a
+      - Precontrast longitudinal relaxation rate in arterial blood
+      - Native longitudinal relaxation rate in blood in the absence of 
+        contrast agent
+      - Hz
+    * - r1
+      - Longitudinal relaxivity
+      - Increase in longitudinal relaxation rate R1 per unit concentration
+      - Hz/M
+    * - r2*
+      - Longitudinal relaxivity
+      - Increase in transverse relaxation rate R2* per unit concentration
+      - Hz/M
+
+
 .. _basics-relaxation-T1:
 
 Longitudinal relaxation
@@ -103,37 +136,6 @@ literature values is not usually realistic.
 [... coming soon ...] The effect of contrast agent leakage.
 
 
-Terms and definitions
-^^^^^^^^^^^^^^^^^^^^^
-
-Models of magnetic relaxation are determined by the following parameters:
-
-.. _relaxation-params:
-.. list-table:: **Relaxation model parameters**
-    :widths: 15 20 40 10
-    :header-rows: 1
-
-    * - Short name
-      - Full name
-      - Definition
-      - Units
-    * - R10
-      - Precontrast longitudinal relaxation rate in tissue
-      - Native longitudinal relaxation rate in the absence of contrast agent
-      - Hz
-    * - R10a
-      - Precontrast longitudinal relaxation rate in arterial blood
-      - Native longitudinal relaxation rate in blood in the absence of 
-        contrast agent
-      - Hz
-    * - r1
-      - Longitudinal relaxivity
-      - Increase in longitudinal relaxation rate R1 per unit concentration
-      - Hz/M
-    * - r2*
-      - Longitudinal relaxivity
-      - Increase in transverse relaxation rate R2* per unit concentration
-      - Hz/M
 
 
 

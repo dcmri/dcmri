@@ -47,15 +47,4 @@ dictionary these are then used to train a neural network to perform the
 inverse transformation. 
 
 
-Direct inversion
-----------------
-
-In some cases, some of the analysis steps can be performed by direct inversion 
-rather than optimization of a non-linear cost function. An example is the 
-conversion from signal to concentration using steady-state sequences, which 
-can be performed analytically for tissues with fast water exchange. Some 
-of these methods are available as functions in `dcmri` 
-(see :ref:`inverse-signal-models`) and as optional fitting methods in 
-end-to-end applications.
-
   

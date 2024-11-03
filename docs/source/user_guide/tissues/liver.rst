@@ -3,16 +3,9 @@
 Liver
 -----
 
-Pharmacokinetic models in DCMRI assume that the liver consists of at most 
+Pharmacokinetic models in DC-MRI assume that the liver consists of at most 
 three spaces, as shown in the :ref:`diagram <liver-image>` below.  
-A plasma compartment recieves inflow of plasma from the hepatic artery (*Fa*) 
-and the portal vein (*Fv*), which collects venous blood that has passed 
-through the gut. 
-The plasma exchanges indicator with the liver's interstitium with a 
-bi-directional exchange rate (*PS*). The interstitium exchanges with the 
-hepatocytes which evacuate indicator to the gall bladder. Any indicator 
-that is not evacuated in this way will be cleared from the plasma compartment
-through the venous outlet. 
+ 
 
 .. _liver-image:
 
@@ -21,6 +14,13 @@ through the venous outlet.
 
   A diagram of the indicator transport into and out of the liver compartments, 
   showing their inputs and outputs. The free model parameters are shown in red.
+  A plasma compartment recieves inflow of plasma from the hepatic artery (*Fa*) 
+  and the portal vein (*Fv*), which collects venous blood that has passed 
+  through the gut. The plasma exchanges indicator with the liver's 
+  interstitium with a bi-directional exchange rate (*PS*). The interstitium 
+  exchanges with the hepatocytes which evacuate indicator to the gall bladder. 
+  Any indicator that is not evacuated in this way will be cleared from the 
+  plasma compartment through the venous outlet.
 
 
 All models currently implemented in ``dcmri`` assume that the hepatic artery 
@@ -29,6 +29,124 @@ transit time *Ta*. They also assume that the walls of
 the liver capillaries are highly permeable to contrast agent so that plasma and 
 interstitium are well-mixed (:math:`PS\to\infty`). Future versions will 
 generalize to include models with finite *PS*. 
+
+Definitions and notations
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. _table-liver-params:
+.. list-table:: **Tissue parameters**
+    :widths: 15 25 40 20
+    :header-rows: 1
+
+    * - Short name
+      - Full name
+      - Definition
+      - Units
+    * - Ta
+      - Arterial mean transit time
+      - Time for blood to travel through the hepatic artery
+      - sec
+    * - fa
+      - Arterial flow fraction
+      - Arterial fraction of the total blood flow into the liver
+      - None
+    * - Fp
+      - Liver plasma flow
+      - Total flow of plasma into the liver tissue, per unit tissue volume.
+      - mL/sec/cm3
+    * - ve
+      - liver extracellular volume fraction
+      - Part of the liver tissue taken up by the extracellular space
+      - mL/cm3
+    * - De 
+      - Extracellular dispersion
+      - Bolus broadening in the extracellular space of the liver
+      - None
+    * - Te
+      - Extracellular mean transit time
+      - Average time to for an indicator molecule to travel through the liver 
+        extracellular space
+      - sec
+    * - khe
+      - Intracellular uptake rate
+      - volume of extracellular fluid fully cleared of indicator per unit 
+        time and tissue
+      - mL/sec/cm3
+    * - kbh
+      - Biliary excretion rate
+      - volume of intracellular fluid fully cleared of indicator per unit 
+        time and tissue, by transport to bile
+      - mL/sec/cm3
+    * - Th
+      - Hepatocellular mean transit time
+      - Average time for an indicator molecule to travel through the 
+        hepatocytes
+      - sec.
+
+
+.. _table-liver-models:
+.. list-table:: **Kinetic models for the liver**
+    :widths: 20 40 20 20
+    :header-rows: 1
+
+    * - Short name
+      - Full name
+      - Parameters
+      - Solution
+    * - **Dual-inlet extracellular**
+      - 
+      -
+      - 
+    * - 2I-EC
+      - Dual-inlet extracellular
+      - ve, Fp, fa, Ta
+      - Eq. :eq:`liver-extracellular`
+    * - 2I-EC-HF
+      - Dual-inlet extracellular high-flow
+      - ve, fa, Ta
+      - Eq. :eq:`liver-extracellular-hf`
+    * - **Single-inlet extracellular**
+      - 
+      -
+      - 
+    * - 1I-EC
+      - Single-inlet extracellular
+      - ve, Fp, fa, Ta, Tg
+      - Eq. :eq:`liver-extracellular-1i`
+    * - 1I-EC-D
+      - Single-inlet extracellular dispersion
+      - ve, Te, De
+      - Eq. :eq:`liver-extracellular-disp`
+    * - **Dual-inlet intracellular**
+      - 
+      - 
+      - 
+    * - 2I-IC
+      - Dual-inlet intracellular
+      - ve, Fp, fa, Ta, khe, Th
+      - Eqs. :eq:`liver-extracellular` and :eq:`liver-hepatocytes`
+    * - 2I-IC-HF
+      - Dual-inlet intracellular high-flow
+      - ve, fa, Ta, khe, Th
+      - Eqs. :eq:`liver-extracellular-hf` and :eq:`liver-hepatocytes`
+    * - 2I-IC-U
+      - Dual-inlet intracellular uptake
+      - ve, Fp, fa, Ta, Th
+      - Eqs. :eq:`liver-extracellular` and :eq:`liver-hepatocytes-uptake`
+    * - **Single-inlet intracellular**
+      - 
+      - 
+      - 
+    * - 1I-IC-D
+      - Single-inlet intracellular dispersion
+      - ve, Te, De, khe, Th
+      - Eqs. :eq:`liver-extracellular-disp` and :eq:`liver-hepatocytes`
+    * - 1I-IC-DU
+      - Single-inlet intracellular dispersion uptake
+      - ve, Te, De, khe
+      - Eqs. :eq:`liver-extracellular-disp` and :eq:`liver-hepatocytes-uptake`
+
+
 
 
 Extracellular agents
@@ -191,122 +309,6 @@ for the hepatocyte compartment. In the simplest scenario this can be modelled
 by interpolating linearly between *initial* values for the parameters 
 :math:`k_{he, i}` and :math:`T_{h, i}` and *final* values 
 :math:`k_{he, f}` and :math:`T_{h, f}`.
-
-Definitions and notations
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. _table-liver-params:
-.. list-table:: **Tissue parameters**
-    :widths: 15 25 40 20
-    :header-rows: 1
-
-    * - Short name
-      - Full name
-      - Definition
-      - Units
-    * - Ta
-      - Arterial mean transit time
-      - Time for blood to travel through the hepatic artery
-      - sec
-    * - fa
-      - Arterial flow fraction
-      - Arterial fraction of the total blood flow into the liver
-      - None
-    * - Fp
-      - Liver plasma flow
-      - Total flow of plasma into the liver tissue, per unit tissue volume.
-      - mL/sec/cm3
-    * - ve
-      - liver extracellular volume fraction
-      - Part of the liver tissue taken up by the extracellular space
-      - mL/cm3
-    * - De 
-      - Extracellular dispersion
-      - Bolus broadening in the extracellular space of the liver
-      - None
-    * - Te
-      - Extracellular mean transit time
-      - Average time to for an indicator molecule to travel through the liver 
-        extracellular space
-      - sec
-    * - khe
-      - Intracellular uptake rate
-      - volume of extracellular fluid fully cleared of indicator per unit 
-        time and tissue
-      - mL/sec/cm3
-    * - kbh
-      - Biliary excretion rate
-      - volume of intracellular fluid fully cleared of indicator per unit 
-        time and tissue, by transport to bile
-      - mL/sec/cm3
-    * - Th
-      - Hepatocellular mean transit time
-      - Average time for an indicator molecule to travel through the 
-        hepatocytes
-      - sec.
-
-
-.. _table-liver-models:
-.. list-table:: **Kinetic models for the liver**
-    :widths: 20 40 20 20
-    :header-rows: 1
-
-    * - Short name
-      - Full name
-      - Parameters
-      - Solution
-    * - **Dual-inlet extracellular**
-      - 
-      -
-      - 
-    * - 2I-EC
-      - Dual-inlet extracellular
-      - ve, Fp, fa, Ta
-      - Eq. :eq:`liver-extracellular`
-    * - 2I-EC-HF
-      - Dual-inlet extracellular high-flow
-      - ve, fa, Ta
-      - Eq. :eq:`liver-extracellular-hf`
-    * - **Single-inlet extracellular**
-      - 
-      -
-      - 
-    * - 1I-EC
-      - Single-inlet extracellular
-      - ve, Fp, fa, Ta, Tg
-      - Eq. :eq:`liver-extracellular-1i`
-    * - 1I-EC-D
-      - Single-inlet extracellular dispersion
-      - ve, Te, De
-      - Eq. :eq:`liver-extracellular-disp`
-    * - **Dual-inlet intracellular**
-      - 
-      - 
-      - 
-    * - 2I-IC
-      - Dual-inlet intracellular
-      - ve, Fp, fa, Ta, khe, Th
-      - Eqs. :eq:`liver-extracellular` and :eq:`liver-hepatocytes`
-    * - 2I-IC-HF
-      - Dual-inlet intracellular high-flow
-      - ve, fa, Ta, khe, Th
-      - Eqs. :eq:`liver-extracellular-hf` and :eq:`liver-hepatocytes`
-    * - 2I-IC-U
-      - Dual-inlet intracellular uptake
-      - ve, Fp, fa, Ta, Th
-      - Eqs. :eq:`liver-extracellular` and :eq:`liver-hepatocytes-uptake`
-    * - **Single-inlet intracellular**
-      - 
-      - 
-      - 
-    * - 1I-IC-D
-      - Single-inlet intracellular dispersion
-      - ve, Te, De, khe, Th
-      - Eqs. :eq:`liver-extracellular-disp` and :eq:`liver-hepatocytes`
-    * - 1I-IC-DU
-      - Single-inlet intracellular dispersion uptake
-      - ve, Te, De, khe
-      - Eqs. :eq:`liver-extracellular-disp` and :eq:`liver-hepatocytes-uptake`
 
 
 
