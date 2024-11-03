@@ -182,7 +182,12 @@ Here *K* is the **rate constant** of the compartment. The solution is:
     C(t) = e^{-Kt}*J_\mathrm{in}(t)
 
 This shows that the residue function of a compartment is a mono-exponential, 
-and its mean transit time is the therefore reciprocal *1/K*.
+and its mean transit time is the therefore reciprocal *1/K*. The propaqgator 
+of a compartment is a normalized exponential:
+
+.. math::
+
+    h(t) = \frac{e^{-t/T}}{T}
 
 
 .. _define-plug-flow:
