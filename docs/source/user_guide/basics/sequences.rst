@@ -12,53 +12,8 @@ and the measured signal for common pulse sequences. See the
 :ref:`table with definitions <sequence-params>` for a summary of relevant 
 terms and definitions.
 
-
-Spoiled gradient-echo steady state
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The most common pulse sequence for T1-weighted DC-MRI involves applying 
-slective readiofrequency pulses with a low flip angle (FA) on rapid succession, 
-typically with a repetition time (TR) in the range of a few msec. After each 
-pulse the signal is collected and any transverse residual magnetization is 
-actively destroyed before applying the next pulse. 
-
-If the longitudinal magnetization is :math:`M_z` before a pulse with flip 
-angle :math:`\alpha`, it has a value :math:`M_z\cos\alpha` afterwards. Until 
-the next pulse is applied, it relaxes freely to equilibrium (see section 
-:ref:`basics-relaxation-T1`). The pulses are initially applied to the 
-equilibrium magnetization :math:`M_0`, but after a short number of 
-:math:`\alpha`-pulses a new equilibrium arises where the regrowth after each 
-pulse exactly equals the reduction in :math:`M_z` by the pulse itself: 
-
-.. math::
-
-  M_z = e^{-T_RR_1}M_z\cos\alpha + \left(1-e^{-T_RR_1}\right)M_0
-
-Solving for :math:`M_z` produces the steady-state under a series of repeated 
-pulses:
-
-.. math::
-
-  M_z = M_0\frac{1-e^{-T_RR_1}}{1-\cos\alpha\; e^{-T_RR_1}}
-
-The signal itself is proportional to the transverse magnetization 
-:math:`M_z\sin\alpha` after the pulse, with a proportionality constant 
-:math:`\Omega` that depends in unknown factors such as coil sensitivity. In 
-practice these factors are combined with the equilibrium magnitization into 
-a single scaling factor :math:`S_\infty=\Omega M_0` to produce the final signal 
-model for the spoiled gradient echo in steady state:
-
-.. math::
-
-  S = S_\infty\frac{1-e^{-T_RR_1}}{1-\cos\alpha\; e^{-T_RR_1}}
-
-
-
-[... coming soon...] Other common pulse sequences.
-
-
-Terms and definitions
-^^^^^^^^^^^^^^^^^^^^^
+Definitions and notations
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. _sequence-params:
 .. list-table:: **List of sequence parameters**
@@ -121,6 +76,53 @@ Terms and definitions
       - S0, FA, TR
     * - SR
       - S0, FA, TR, TC, TP
+
+
+Spoiled gradient-echo steady state
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The most common pulse sequence for T1-weighted DC-MRI involves applying 
+slective readiofrequency pulses with a low flip angle (FA) on rapid succession, 
+typically with a repetition time (TR) in the range of a few msec. After each 
+pulse the signal is collected and any transverse residual magnetization is 
+actively destroyed before applying the next pulse. 
+
+If the longitudinal magnetization is :math:`M_z` before a pulse with flip 
+angle :math:`\alpha`, it has a value :math:`M_z\cos\alpha` afterwards. Until 
+the next pulse is applied, it relaxes freely to equilibrium (see section 
+:ref:`basics-relaxation-T1`). The pulses are initially applied to the 
+equilibrium magnetization :math:`M_0`, but after a short number of 
+:math:`\alpha`-pulses a new equilibrium arises where the regrowth after each 
+pulse exactly equals the reduction in :math:`M_z` by the pulse itself: 
+
+.. math::
+
+  M_z = e^{-T_RR_1}M_z\cos\alpha + \left(1-e^{-T_RR_1}\right)M_0
+
+Solving for :math:`M_z` produces the steady-state under a series of repeated 
+pulses:
+
+.. math::
+
+  M_z = M_0\frac{1-e^{-T_RR_1}}{1-\cos\alpha\; e^{-T_RR_1}}
+
+The signal itself is proportional to the transverse magnetization 
+:math:`M_z\sin\alpha` after the pulse, with a proportionality constant 
+:math:`\Omega` that depends in unknown factors such as coil sensitivity. In 
+practice these factors are combined with the equilibrium magnitization into 
+a single scaling factor :math:`S_\infty=\Omega M_0` to produce the final signal 
+model for the spoiled gradient echo in steady state:
+
+.. math::
+
+  S = S_\infty\frac{1-e^{-T_RR_1}}{1-\cos\alpha\; e^{-T_RR_1}}
+
+
+
+[... coming soon...] Other common pulse sequences.
+
+
+
 
 
 
