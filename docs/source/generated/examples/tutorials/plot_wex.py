@@ -61,7 +61,7 @@ aif = {
 # the permeabilities to zero, as this then also plots the signals in individual 
 # compartments:
 
-tissue_nn = dc.Tissue('2CX','RR', PSe=0, PSc=0, **aif)
+tissue_nn = dc.Tissue('2CX', 'RR', PSe=0, PSc=0, **aif)
 tissue_nn.plot()
 
 # %%
@@ -265,14 +265,13 @@ print('PSc:', rec[1], 'mL/sec/cm3')
 #
 # This raises the question where any of the regimes of fast and zero water 
 # exchange offers a good approximation to real tissues. For this exercise we 
-# will assume values on the upper end of literature data, and set PSe and PSc 
-# to 0.05 mL/sec/cm3. We plot the resulting signal against the extremes of 
-# fast and no exchange:
+# will assume values on the upper end of literature data. We plot the 
+# resulting signal against the extremes of fast and no exchange:
 
 # Generate tissue
-tissue = dc.Tissue('2CX','RR', PSe=0.05, PSc=0.5, **aif)
-tissue_nn = dc.Tissue('2CX','NN',**aif)
-tissue_ff = dc.Tissue('2CX','FF',**aif)
+tissue = dc.Tissue('2CX', 'RR', PSe=0.05, PSc=1.5, **aif)
+tissue_nn = dc.Tissue('2CX', 'NN', **aif)
+tissue_ff = dc.Tissue('2CX', 'FF', **aif)
 
 # Plot signals 
 fig, ax = plt.subplots(1,1,figsize=(6,5))
@@ -288,8 +287,13 @@ ax.legend()
 plt.show()
 
 # %%
-# Considering the water PS values were chosen at the upper end of the 
-# literature data, this example would suggest that the assumption of no water 
-# exchange should be close to the truth. However, this may not generalize to 
-# all conditions. The impact of water exchange depends on the imaging 
-# sequence, which can be optimized to maximize water exchange sensitivity. 
+# With these settings, the restricated water exchange signal is approximately 
+# intermediate between fast and no water exchange. Hence neither approximation 
+# appears particulare more accurate than the alternative. 
+# 
+# However, the impact 
+# of water exchange also depends on the imaging sequence, such as the choice 
+# of flip angle. Hence these effects should be taken into account when 
+# optimizing the scan protocol. Water exchange sensitivity should be maximized 
+# for studies that aim to measure it, and minimized for studies where it is a 
+# confounder. 
