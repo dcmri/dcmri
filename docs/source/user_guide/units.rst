@@ -3,7 +3,7 @@ Units
 *****
 
 ``dcmri`` uses a standardized system of units for all input and output 
-quantities. The system is internally consistent: as long as data and 
+quantities. The system is **internally consistent**: as long as data and 
 parameters are entered in these units, all return values will automatically 
 also be in the same units. Hence it is not needed to track units through 
 intermediate computations, which greatly reduces the risk of unit conversion 
@@ -44,6 +44,8 @@ relevant also other units that are commonly found in the literature on DC-MRI:
 +-------------------------------+------------+--------------------------------------+
 | MRI relaxation rate           | 1/sec      | 1/msec                               | 
 +-------------------------------+------------+--------------------------------------+
+| Magnetization                 | A/cm       | A/m                                  | 
++-------------------------------+------------+--------------------------------------+
 | Contrast agent relaxivity     | 1/sec*M    | 1/mM/sec                             | 
 +-------------------------------+------------+--------------------------------------+
 | Perfusion                     | mL/sec/cm3 | mL/100mL/min, 1/sec, mL/sec/mL       | 
@@ -54,6 +56,32 @@ relevant also other units that are commonly found in the literature on DC-MRI:
 +-------------------------------+------------+--------------------------------------+
 | Fluid flow                    | mL/sec     |                                      | 
 +-------------------------------+------------+--------------------------------------+
+
+Rationale
+---------
+
+We have chosen to deviate from the the system of SI units somewhat in order 
+to align more closely to the natural units of most of the quantities, and 
+historical conventions in the field. However we have also chosen to deviate 
+from conventions in some places in order the arrive at an internally 
+consistent set of units.
+
+The use of a single systematic system of units minimises the risk of errors due 
+to incorrect conversions between units in code, which are hard to track 
+especially when different functions from different modules are assembled. 
+
+It does mean that some of the quantities are not in their natural units - 
+for instance tissue concentrations are typically in the order of 0.001 M and 
+are therefore commonly expressed in units of mM. Equally, contrast agent 
+relaxivities are conventionally expressed in units of 1/mM*sec. In `dcmri`, 
+concentrations and relaxivities will nevertheless be required and returned in 
+units of M and 1/M*sec, respectively. 
+
+It is the responsability of the user to convert any output in more 
+conventional units for publication or presentation purposes. Equally, it 
+is the user's responsability to convert any input data into `dcmri` units 
+before applying any of the functions in the package. 
+
 
 Units of volume
 ---------------
@@ -91,29 +119,13 @@ the term *tissue concentration* refers to indicator amounts (mmol) per unit
 tissue volume (cm3). They are different physical quantities and in an imaging 
 context the distinction is important. 
 
-Natural units
--------------
-
-The use of a single systematic system of units minimises the risk of errors due 
-to incorrect conversions between units in code, which are hard to track 
-especially when different functions from different modules are assembled. 
-It does mean that some of the quantities are not in their ''natural units' - 
-for instance tissue concentrations are typically in the order of 0.001 M and 
-are therefore commonly expressed in units of mM. Equally, contrast agent 
-relaxivities are conventionally expressed in units of 1/mM*sec. In `dcmri`, 
-concentrations and relaxivities will nevertheless be required and returned in 
-units of M and 1/M*sec, respectively. 
-
-It is the responsability of the user to convert any output in more 
-conventional units for publication or presentation purposes. Equally, it 
-is the user's responsability to convert any input data into `dcmri` units 
-before applying any of the functions in the package. 
 
 Units in plots
 --------------
 
 While `dcmri` rigorously adheres to standard units for all arguments and return 
-values in functions - exceptions are made in plots or other visualisations of 
+values in functions - exceptions are made in plots or other presentations of 
 data and results. Here `dcmri` will choose the units that are most natural and 
-intuitive in conveying the key messages.
+intuitive in conveying the key messages. For instance concentrations in plots 
+will typically be shown in units of mM.
 
