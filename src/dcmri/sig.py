@@ -84,7 +84,7 @@ def _signal_ss(R1, Sinf, TR, FA, MTT=None, ni=None) -> np.ndarray:
     # dM/dt = v m0*j - KM
 
     # Solution with K constant in time:
-    # M(t) = exp(-tK)M(0) + exp(-tK)*m0*j
+    # M(t) = exp(-tK)M(0) + exp(-tK)*v*m0*j
 
     # If j also constant in time:
     # M(t) = exp(-tK)M(0) + (1-exp(-tK)) K^-1 v m0*j
