@@ -186,21 +186,21 @@ Gathering terms and expressing the result in terms of the total magnetization
 
 .. math::
 
-    \frac{dM_1}{dt} &= J_1 - K_1M_1 + K_{12}M_2 
+    \frac{dM_1}{dt} &= J_1 - \Lambda_1M_1 + \Lambda_{12}M_2 
     \\
-    \frac{dM_2}{dt} &= J_2 - K_2M_2 + K_{21}M_1
+    \frac{dM_2}{dt} &= J_2 - \Lambda_2M_2 + \Lambda_{21}M_1
 
 Here we define rate constants:
 
 .. math::
 
-    K_1 &= R_{1,1} + \frac{f_{o,1} + PS_{21}}{v_1} \qquad 
-    K_{12}=\frac{PS_{12}}{v_2}
+    \Lambda_1 &= R_{1,1} + \frac{f_{o,1} + PS_{21}}{v_1} \qquad 
+    \Lambda_{12}=\frac{PS_{12}}{v_2}
     \\
-    K_2 &= R_{1,2} + \frac{f_{o,2} + PS_{12}}{v_2} \qquad 
-    K_{21}=\frac{PS_{21}}{v_1}
+    \Lambda_2 &= R_{1,2} + \frac{f_{o,2} + PS_{12}}{v_2} \qquad 
+    \Lambda_{21}=\frac{PS_{21}}{v_1}
 
-and an \`\`influx\'\' of magnetization:
+and an influx of magnetization:
 
 .. math::
 
@@ -214,10 +214,10 @@ kinetic equations:
 .. math::
   :label: Mz-RX
 
-    \frac{d\mathbf{M}}{dt} = \mathbf{J} - \mathbf{\Lambda} \mathbf{M}
+    \frac{d\mathbf{M}}{dt} = \mathbf{J} - \mathbf{K} \mathbf{M}
 
-Here :math:`\Lambda` is a square matrix which has off-diagonal elements 
-:math:`-K_{ij}` and diagonal elements :math:`K_i`. 
+Here :math:`\mathbf{K}` is a square matrix which has off-diagonal elements 
+:math:`-\Lambda_{ij}` and diagonal elements :math:`\Lambda_i`. 
 
 The equations, and therefore their solutions, are formally identical to the 
 fast-exchange situation (Eq. :eq:`Mz-FX`). If the relaxation rates :math:`R_1` 
@@ -227,16 +227,16 @@ Eq. :eq:`Mz-FX solution`):
 
 .. math::
 
-  \mathbf{M}(t) = e^{-t\mathbf{\Lambda}}\mathbf{M}(0) 
-  + e^{-t\mathbf{\Lambda}}*\mathbf{J}
+  \mathbf{M}(t) = e^{-t\mathbf{K}}\mathbf{M}(0) 
+  + e^{-t\mathbf{K}}*\mathbf{J}
 
 If additionally the influx :math:`\mathbf{J}` is constant, the result is 
 formall the same as Eq. :eq:`Mz-FX solution const J`:
 
 .. math::
 
-  \mathbf{M}(t) = e^{-t\mathbf{\Lambda}}\mathbf{M}(0) 
-  + \left(1-e^{-t\mathbf{\Lambda}}\right) \mathbf{\Lambda}^{-1}\mathbf{J}
+  \mathbf{M}(t) = e^{-t\mathbf{K}}\mathbf{M}(0) 
+  + \left(1-e^{-t\mathbf{K}}\right) \mathbf{K}^{-1}\mathbf{J}
 
 
 The effect of contrast agents
