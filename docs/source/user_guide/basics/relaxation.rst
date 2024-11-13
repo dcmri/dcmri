@@ -100,6 +100,7 @@ inflow of magnetized water and carried out by water flow and relaxation. The
 longitudinal magnetization is governed by the Bloch equation:
 
 .. math::
+  :label: Mz-1C
 
     v\frac{dm_z}{dt} = f_i m_{zi} - f_o m_z + R_1 v (m_{ze} - m_z)
 
@@ -114,6 +115,7 @@ After regrouping terms and writing this in terms of the total magnetization
 where we define influx and rate constants:
 
 .. math::
+  :label: Mz-1C-const
 
     J &= R_1 v\, m_{ze} + f_i m_{zi}
     \\
@@ -138,9 +140,17 @@ the convolution:
 
     M_z = e^{-tK}M_z(0) + \left(1-e^{-tK}\right)K^{-1} J
 
-The flow component in :math:`K, J` is often negligible, in which case 
-:math:`J=R_1M_{ze}`, :math:`K=R_1` and :math:`J/K=M_{ze}`. This produces the 
-familiar solution for free longitudinal relaxation in a closed system:
+If the flow terms are negligible compared to the relaxation rates, then we 
+have:
+
+.. math::
+
+  J = KM_{ze}
+
+This is also true whenever the inflowing magnetization is in equilibrium - 
+as can be seen from applying Eq. :eq:`Mz-1C` to the equilibrium state. In 
+either of these scenarios we have :math:`J/K=M_{ze}`, which produces the
+familiar solution for free longitudinal relaxation:
 
 .. math::
   :label: Mz-FX solution noflow
@@ -231,12 +241,26 @@ Eq. :eq:`Mz-FX solution`):
   + e^{-t\mathbf{K}}*\mathbf{J}
 
 If additionally the influx :math:`\mathbf{J}` is constant, the result is 
-formall the same as Eq. :eq:`Mz-FX solution const J`:
+formally the same as Eq. :eq:`Mz-FX solution const J`:
 
 .. math::
 
   \mathbf{M}(t) = e^{-t\mathbf{K}}\mathbf{M}(0) 
   + \left(1-e^{-t\mathbf{K}}\right) \mathbf{K}^{-1}\mathbf{J}
+
+As for the one-compartment case, if the flow terms are negligible, or when 
+the inflowing magnetization is in equilibrium, we have:
+
+.. math::
+
+  \mathbf{J} = \mathbf{K}\mathbf{M}_{e}
+
+And the solution simplifies:
+
+.. math::
+
+  \mathbf{M}(t) = e^{-t\mathbf{K}}\mathbf{M}(0) 
+  + \left(1-e^{-t\mathbf{K}}\right) \mathbf{M}_e
 
 
 The effect of contrast agents
