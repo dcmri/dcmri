@@ -378,7 +378,7 @@ class Liver(ui.Model):
             pass
         if p['vol'] is not None:
             try:
-                p['CL'] = _div(p['khe'], p['vol'])
+                p['CL'] = p['khe']*p['vol']
             except KeyError:
                 pass
             
