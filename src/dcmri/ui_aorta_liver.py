@@ -1420,10 +1420,12 @@ def _par_values(self, kin=False, export=False, seq=None):
     
     if export:
         pars = self._par_values()
-        p0 = self._model_pars()
+        all = self._model_pars()
         p1 = liver.params_liver(self.kinetics, self.stationary)
-        p2 = PARAMS_WHOLE_BODY.keys()
-        discard = set(p0) - set(p1) - set(p2) - {'S02a', 'S02l', 'BAT2'}
+        p2 = list(PARAMS_WHOLE_BODY.keys())
+        p3 = list(PARAMS_DERIVED.keys())
+        retain = p1 + p2 + p3 + ['S02a', 'S02l', 'BAT2']
+        discard = set(all) - set(retain)
         return {p: pars[p] for p in pars if p not in discard}
     
     pars = self._model_pars()
@@ -1449,9 +1451,17 @@ def _par_values(self, kin=False, export=False, seq=None):
         p['kbh'] = _div(1-p['ve'], p['Th'])
     except KeyError:
         pass
+    try:
+        p['kbh_i'] = _div(1-p['ve'], p['Th_i'])
+    except KeyError:
+        pass
+    try:
+        p['kbh_f'] = _div(1-p['ve'], p['Th_f'])
+    except KeyError:
+        pass
     if p['vol'] is not None:
         try:
-            p['CL'] = _div(p['khe'], p['vol'])
+            p['CL'] = p['khe']*p['vol']
         except KeyError:
             pass
         
@@ -1782,6 +1792,14 @@ PARAMS_LIVER = {
 PARAMS_DERIVED = {
     'kbh': {
         'name': 'Biliary excretion rate',
+        'unit': 'mL/sec/cm3',
+    },
+    'kbh_i': {
+        'name': 'Initial biliary excretion rate',
+        'unit': 'mL/sec/cm3',
+    },
+    'kbh_f': {
+        'name': 'Final biliary excretion rate',
         'unit': 'mL/sec/cm3',
     },
     'kbh': {

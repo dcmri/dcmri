@@ -155,16 +155,16 @@ now we must use the vector form of the magnetization (see section
 
 .. math::
 
-  \mathbf{M} = e^{-T_R\,\mathbf{\Lambda}}\mathbf{M}\cos\alpha 
-  + \left(1-e^{-T_R\,\mathbf{\Lambda}}\right) \mathbf{\Lambda}^{-1}\mathbf{J}
+  \mathbf{M} = e^{-T_R\,\mathbf{K}}\mathbf{M}\cos\alpha 
+  + \left(1-e^{-T_R\,\mathbf{K}}\right) \mathbf{K}^{-1}\mathbf{J}
 
 The solution is also similar, though we must take care not to commute the 
 matrices:
 
 .. math::
 
-  \mathbf{M} = \left(1 - \cos\alpha\, e^{-T_R\,\mathbf{\Lambda}}\right)^{-1} 
-  \left(1-e^{-T_R\,\mathbf{\Lambda}}\right) \mathbf{\Lambda}^{-1}\mathbf{J} 
+  \mathbf{M} = \left(1 - \cos\alpha\, e^{-T_R\,\mathbf{K}}\right)^{-1} 
+  \left(1-e^{-T_R\,\mathbf{K}}\right) \mathbf{K}^{-1}\mathbf{J} 
 
 As before the signal is proportional to the total magnetization with now 
 takes the form :math:`\mathbf{e}^T\mathbf{M}` with :math:`\mathbf{e}^T=[1,1]`. 
@@ -175,14 +175,14 @@ defining :math:`\mathbf{j}=\mathbf{J}/m_e` and absorbing the constant
 
 .. math::
 
-  S = S_\infty\, \mathbf{e}^T 
-  \left(1 - \cos\alpha\, e^{-T_R\,\mathbf{\Lambda}}\right)^{-1} 
-  \left(1-e^{-T_R\,\mathbf{\Lambda}}\right) \mathbf{\Lambda}^{-1}\mathbf{j} 
+  S = S_\infty\, \sin\alpha\, \mathbf{e}^T 
+  \left(1 - \cos\alpha\, e^{-T_R\,\mathbf{K}}\right)^{-1} 
+  \left(1-e^{-T_R\,\mathbf{K}}\right) \mathbf{K}^{-1}\mathbf{j} 
 
 If we ignore the inflow effects then :math:`\mathbf{j}` is determined by 
 relaxation rates :math:`R_{1,k}` and volume fractions :math:`v_{k}` of 
 both compartments, and 
-:math:`\mathbf{\Lambda}` additionally depends on the water permeabilities 
+:math:`\mathbf{K}` additionally depends on the water permeabilities 
 :math:`PS_{kl}` between the compartments. 
 
 This signal model is available 

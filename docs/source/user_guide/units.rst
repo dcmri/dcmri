@@ -60,7 +60,7 @@ relevant also other units that are commonly found in the literature on DC-MRI:
 Rationale
 ---------
 
-We have chosen to deviate from the the system of SI units somewhat in order 
+We have chosen to deviate from the system of SI units in order 
 to align more closely to the natural units of most of the quantities, and 
 historical conventions in the field. However we have also chosen to deviate 
 from conventions in some places in order the arrive at an internally 
