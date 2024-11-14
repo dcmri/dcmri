@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**88:38.293** total execution time for 3 files **from generated\examples\use_cases**:
+**00:09.554** total execution time for 5 files **from generated\examples\use_cases**:
 
 .. container::
 
@@ -32,12 +32,18 @@ Computation times
    * - Example
      - Time
      - Mem (MB)
-   * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers_2scan.py` (``plot_tristan_volunteers_2scan.py``)
-     - 75:14.151
-     - 0.0
-   * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers.py` (``plot_tristan_volunteers.py``)
-     - 13:13.643
+   * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_repro.py` (``plot_tristan_repro.py``)
+     - 00:09.554
      - 0.0
    * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan6drugs.py` (``plot_tristan6drugs.py``)
-     - 00:10.499
+     - 00:00.000
+     - 0.0
+   * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_repro_config.py` (``plot_tristan_repro_config.py``)
+     - 00:00.000
+     - 0.0
+   * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers.py` (``plot_tristan_volunteers.py``)
+     - 00:00.000
+     - 0.0
+   * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers_2scan.py` (``plot_tristan_volunteers_2scan.py``)
+     - 00:00.000
      - 0.0
