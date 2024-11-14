@@ -22,7 +22,8 @@ class Liver(ui.Model):
         sequence (str, optional): imaging sequence. Possible values are 'SS'
           and 'SR'. Defaults to 'SS'.
         config (str, optional): configuration option for using pre-defined
-          variable values from use cases. Defaults to None.
+          variable values from use cases. Currently, the available options
+          for this are 'TRISTAN-rat'. Defaults to None.
         aif (array-like, optional): Signal-time curve in the blood of the
           feeding artery. If *aif* is not provided, the arterial
           blood concentration is *ca*. Defaults to None.
