@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**00:09.554** total execution time for 5 files **from generated\examples\use_cases**:
+**00:12.930** total execution time for 6 files **from generated\examples\use_cases**:
 
 .. container::
 
@@ -32,18 +32,21 @@ Computation times
    * - Example
      - Time
      - Mem (MB)
-   * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_repro.py` (``plot_tristan_repro.py``)
-     - 00:09.554
+   * - :ref:`sphx_glr_generated_examples_use_cases_plot_gfr_validation.py` (``plot_gfr_validation.py``)
+     - 00:12.930
      - 0.0
    * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan6drugs.py` (``plot_tristan6drugs.py``)
      - 00:00.000
      - 0.0
-   * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_repro_config.py` (``plot_tristan_repro_config.py``)
+   * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_repro.py` (``plot_tristan_repro.py``)
      - 00:00.000
      - 0.0
    * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers.py` (``plot_tristan_volunteers.py``)
      - 00:00.000
      - 0.0
    * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers_2scan.py` (``plot_tristan_volunteers_2scan.py``)
+     - 00:00.000
+     - 0.0
+   * - :ref:`sphx_glr_generated_examples_use_cases_wip_plot_gfr_validation_wholebody.py` (``wip_plot_gfr_validation_wholebody.py``)
      - 00:00.000
      - 0.0

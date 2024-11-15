@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**00:09.554** total execution time for 8 files **from all galleries**:
+**106:05.882** total execution time for 8 files **from all galleries**:
 
 .. container::
 
@@ -32,8 +32,20 @@ Computation times
    * - Example
      - Time
      - Mem (MB)
-   * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_repro.py` (``..\examples\use_cases\plot_tristan_repro.py``)
-     - 00:09.554
+   * - :ref:`sphx_glr_generated_examples_liver_plot_tristan_volunteers_2scan.py` (``..\examples\liver\plot_tristan_volunteers_2scan.py``)
+     - 89:44.948
+     - 0.0
+   * - :ref:`sphx_glr_generated_examples_liver_plot_tristan_volunteers.py` (``..\examples\liver\plot_tristan_volunteers.py``)
+     - 14:50.701
+     - 0.0
+   * - :ref:`sphx_glr_generated_examples_liver_plot_tristan6drugs.py` (``..\examples\liver\plot_tristan6drugs.py``)
+     - 00:53.661
+     - 0.0
+   * - :ref:`sphx_glr_generated_examples_liver_plot_tristan_repro.py` (``..\examples\liver\plot_tristan_repro.py``)
+     - 00:23.042
+     - 0.0
+   * - :ref:`sphx_glr_generated_examples_kidney_plot_gfr_validation.py` (``..\examples\kidney\plot_gfr_validation.py``)
+     - 00:13.530
      - 0.0
    * - :ref:`sphx_glr_generated_examples_tutorials_plot_aif.py` (``..\examples\tutorials\plot_aif.py``)
      - 00:00.000
@@ -42,17 +54,5 @@ Computation times
      - 00:00.000
      - 0.0
    * - :ref:`sphx_glr_generated_examples_tutorials_plot_wex.py` (``..\examples\tutorials\plot_wex.py``)
-     - 00:00.000
-     - 0.0
-   * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan6drugs.py` (``..\examples\use_cases\plot_tristan6drugs.py``)
-     - 00:00.000
-     - 0.0
-   * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_repro_config.py` (``..\examples\use_cases\plot_tristan_repro_config.py``)
-     - 00:00.000
-     - 0.0
-   * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers.py` (``..\examples\use_cases\plot_tristan_volunteers.py``)
-     - 00:00.000
-     - 0.0
-   * - :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_volunteers_2scan.py` (``..\examples\use_cases\plot_tristan_volunteers_2scan.py``)
      - 00:00.000
      - 0.0

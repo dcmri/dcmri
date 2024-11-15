@@ -14,8 +14,8 @@ from dcmri.tissue import *
 from dcmri import pk_aorta
 from dcmri.pk_aorta import *
 
-from dcmri import pk_kidney
-from dcmri.pk_kidney import *
+from dcmri import kidney
+from dcmri.kidney import *
 
 from dcmri import liver
 from dcmri.liver import *
@@ -41,11 +41,17 @@ from dcmri.ui_tissue import *
 from dcmri import ui_aorta
 from dcmri.ui_aorta import *
 
+from dcmri import ui_aorta_kidneys
+from dcmri.ui_aorta_kidneys import *
+
 from dcmri import ui_aorta_liver
 from dcmri.ui_aorta_liver import *
 
 from dcmri import ui_kidney
 from dcmri.ui_kidney import *
+
+from dcmri import ui_kidney_cortmed
+from dcmri.ui_kidney_cortmed import *
 
 from dcmri import ui_liver
 from dcmri.ui_liver import *

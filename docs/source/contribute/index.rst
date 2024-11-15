@@ -25,7 +25,7 @@ Use cases
 
 Since the only real test for software is its applicability in real-world 
 applications, we are at this stage particularly interested in contributions of 
-new :ref:`use cases <use-cases>`. If you are using ``dcmri`` to analyse 
+new :ref:`examples <examples>`. If you are using ``dcmri`` to analyse 
 your data, please consider packaging this up as a use case. 
 
 As the examples show, we define a use-case loosely as a 
