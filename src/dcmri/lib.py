@@ -227,6 +227,62 @@ def fetch(dataset: str) -> dict:
             dataset for the IMI-WP2-TRISTAN Reproducibility study [Data set]. 
             `Zenodo. <https://doi.org/10.5281/zenodo.7838397>`_
 
+        **kruk_sk_gfr**
+
+            **Background**: data taken from supplementary material of Basak et 
+            al (2018), a study funded by Kidney Research UK. The dataset 
+            includes signal-time curves for aorta, left- and right kidney as 
+            well as sequence parameters and radio-isotope single kidney GFR 
+            values for 114 scans on 100 different subjects. This includes 14 
+            subjects who have had a scan before and after revascularization 
+            treatment.
+
+            **Data format**: The fetch function returns a list of 
+            dictionaries, one per scan. The dictionaries in the list contain 
+            the following items:
+
+            - **subject**: unique study ID of the participant
+            - **time**: array of time points in sec
+            - **aorta**: signal curve in the aorta (arbitrary units)
+            - **visit**: for participants that had just a single visit, this 
+              has the value 'single'. For those that had multiple visits, the 
+              value is either 'pre' (before treatment) or 'post' (after 
+              treatment).
+            - **LK**: signal curve in the left kidney (arbitrary units).
+            - **RK**: signal curve in the right kidney (arbitrary units).
+            - **LK vol**: volume of the left kidney (mL).
+            - **RK vol**: volume of the right kidney (mL).
+            - **LK iso-SK-GFR**: radio-isotope SK-GFR for the left kidney 
+              (mL/min).
+            - **RK iso-SK-GFR**: radio-isotope SK-GFR for the right kidney 
+              (mL/min).
+            - **LK T1**: precontrast T1-value of the left kidney (sec).
+            - **RK T1**: precontrast T1-value of the right kidney (sec).
+            - **TR**: repetition time or time between rf-pulses (sec)
+            - **FA**: flip angle (degrees)
+            - **n0**: number of precontrast acquisitions.
+            - **field_strength**: Magnetic field strength of the scanner (T)
+            - **agent**: Contrast agent generic name
+            - **dose**: contrast agent dose injected (mmol/kg)
+            - **rate**: rate of contrast agent injection (mL/sec)
+            - **weight**: participant weight (kg)
+
+            Note: if data are missing for a particular scan, they will not be 
+            in the dictionary for that scan. For instance, if a participant 
+            does not have a right kidney, the items starting with *RK* are 
+            not present.
+
+            Please reference the following paper when using these data:
+
+            Basak S, Buckley DL, Chrysochou C, Banerji A, Vassallo D, Odudu A, 
+            Kalra PA, Sourbron SP. Analytical validation of single-kidney 
+            glomerular filtration rate and split renal function as measured 
+            with magnetic resonance renography. Magn Reson Imaging. 2019 
+            Jun;59:53-60. doi: 10.1016/j.mri.2019.03.005. 
+            `[URL] <https://pubmed.ncbi.nlm.nih.gov/30849485/>`_.
+
+
+
 
     Example:
 
