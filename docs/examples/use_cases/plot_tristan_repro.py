@@ -9,7 +9,7 @@ measured in liver. The use case is provided by the liver work package of the
 biomarkers for drug safety assessment. The data and analysis were first 
 published in Gunwhy et al. (2024). 
 
-The specific objective of the study was to to identify the main sources of
+The specific objective of the study was to identify the main sources of
 variability in DCE-MRI biomarkers of hepatocellular function in rats. This was
 done by comparing data measured at different centres and field strengths, at
 different days in the same subjects, and over the course of several months
@@ -171,7 +171,6 @@ print(results.to_string())
 # with these benchmarks.
 
 # Customise plot settings
-plt.rcParams['savefig.dpi'] = 300
 plt.rcParams["axes.labelsize"] = 50
 plt.rcParams["axes.titlesize"] = 50
 plt.rcParams["axes.labelweight"] = 'bold'
