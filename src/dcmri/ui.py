@@ -296,8 +296,11 @@ class Model:
             if hasattr(self, k):
                 setattr(self, k, v)
             else:
-                raise ValueError(
-                    str(k) + ' is not a valid parameter for this model.')
+                if k in self._params():
+                    setattr(self, k, v)
+                else:
+                    raise ValueError(
+                        str(k) + ' is not a valid parameter for this model.')
             
         # Set free
         if free is not None:

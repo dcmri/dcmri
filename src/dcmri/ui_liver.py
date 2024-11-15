@@ -21,6 +21,9 @@ class Liver(ui.Model):
           see :ref:`liver-tissues`. Defaults to 'UE'.
         sequence (str, optional): imaging sequence. Possible values are 'SS'
           and 'SR'. Defaults to 'SS'.
+        config (str, optional): configuration option for using pre-defined
+          variable values from use cases. Currently, the available options
+          for this are 'TRISTAN-rat'. Defaults to None.
         aif (array-like, optional): Signal-time curve in the blood of the
           feeding artery. If *aif* is not provided, the arterial
           blood concentration is *ca*. Defaults to None.
@@ -286,14 +289,39 @@ class Liver(ui.Model):
 
     def __init__(
             self, 
-            kinetics='2C-EC', stationary='UE', sequence='SS', 
+            kinetics='2C-EC', stationary='UE', sequence='SS', config=None,
             aif=None, ca=None, vif=None, cv=None, t=None, dt=0.5,
             free=None, **params):
 
         # Configuration
-        self.kinetics = kinetics
-        self.stationary = stationary
-        self.sequence = sequence
+        if config == 'TRISTAN-rat':
+
+            # Acquisition parameters
+            params['agent'] = 'gadoxetate'
+
+            # Kinetic paramaters
+            self.kinetics = '1I-IC-HF'
+            self.stationary = 'UE'
+            self.sequence = 'SS'
+            params['H'] = 0.418         # Cremer et al, J Cereb Blood Flow
+                                        # Metab 3, 254-256 (1983)
+            params['ve'] = 0.23
+            params['Fp'] = 0.022019     # mL/sec/cm3
+                                        # Fp = (1-H)*Fb, where Fb=2.27 mL/min/mL
+                                        # calculated from Table S2 in 
+                                        # doi: 10.1021/acs.molpharmaceut.1c00206
+            free = {
+                'khe': [0, np.inf], 
+                'Th': [0, np.inf],
+            }
+
+            # Tissue paramaters
+            params['R10'] = 1/lib.T1(params['field_strength'], 'liver'),
+        
+        else:
+            self.kinetics = kinetics
+            self.stationary = stationary
+            self.sequence = sequence
         self._check_config()
 
         # Input function
@@ -374,6 +402,17 @@ class Liver(ui.Model):
             pass
         try:
             p['kbh'] = (1-p['ve'])*p['Kbh']
+        except KeyError:
+            pass
+        try:
+            p['E'] = p['khe']/(p['khe']+p['Fp'])
+        except KeyError:
+            try:
+                p['E'] = p['khe']/(p['khe']+self.Fp)
+            except:
+                pass
+        try:
+            p['Ktrans'] = (1-p['E'])*p['khe']
         except KeyError:
             pass
         if p['vol'] is not None:
@@ -805,6 +844,14 @@ PARAMS = {
         'unit': 'cm3',
         'pixel_par': False,
     },
+    'E': {
+        'init': 0.4,
+        'default_free': False,
+        'bounds': [0.0, 1.0],
+        'name': 'Liver extraction fraction',
+        'unit': 'unitless',
+        'pixel_par': False,
+    },
 
     # Derived parameters
     'Fa': {
@@ -821,6 +868,10 @@ PARAMS = {
     },
     'kbh': {
         'name': 'Biliary excretion rate',
+        'unit': 'mL/sec/cm3',
+    },
+    'Ktrans': {
+        'name': 'Hepatic plasma clearance',
         'unit': 'mL/sec/cm3',
     },
     'Kbh': {
