@@ -53,9 +53,8 @@ vascular-interstitial tissues (brain, cancer, prostate, muscle, ...) but also
 atypical tissues such as liver and kidney, and whole-body 
 models to analyse vascular signals.
 
-To get started, have look at the :ref:`user guide <user-guide>`, 
-look for an example in the list of :ref:`tutorials <tutorials>` 
-and :ref:`use cases <use-cases>`, or find a suitable method in the 
+To get started, have look at the :ref:`user guide <user-guide>` or the list 
+of :ref:`examples <examples>`, or find a suitable method in the 
 :ref:`reference guide <reference-guide>` and dive straight in.
 
 ******
@@ -73,7 +72,8 @@ Contributing
 ************
 
 ``dcmri`` is open to any type of contributions, but at this stage we are 
-particularly interested in contributions of :ref:`use cases <use-cases>`. 
+particularly interested in contributions of 
+:ref:`example applications <examples>`. 
 Please see the :ref:`contributor guide <contributor-guide>` for more detail.
 
 *******

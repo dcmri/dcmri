@@ -79,11 +79,23 @@ def tristan_rat(data, **kwargs):
 
         # Acquisition parameters
         field_strength = data['field_strength'],
+        agent = 'gadoxetate',
         TR = data['TR'],
         FA = data['FA'],
         n0 = data['n0'],
 
-        config = 'TRISTAN-rat',
+        # Kinetic paramaters
+        kinetics = '1I-IC-HF',
+        H = 0.418,
+        ve = 0.23,
+        Fp = 0.022019, # mL/sec/cm3
+        free = {
+            'khe': [0, np.inf], 
+            'Th': [0, np.inf],
+        },
+
+        # Tissue paramaters
+        R10 = 1/dc.T1(data['field_strength'], 'liver'),
     )
 
     return model.train(data['time'], data['liver'], **kwargs)
@@ -157,6 +169,19 @@ print(results.to_string())
 # **red** lines indicate the average benchmark value, while **blue** represents
 # the upper and lower limits of the 95% confidence intervals (CIs) associated
 # with these benchmarks.
+
+# Customise plot settings
+plt.rcParams['savefig.dpi'] = 300
+plt.rcParams["axes.labelsize"] = 50
+plt.rcParams["axes.titlesize"] = 50
+plt.rcParams["axes.labelweight"] = 'bold'
+plt.rcParams["axes.titleweight"] = 'bold'
+plt.rcParams["font.weight"] = 'bold'
+plt.rc('axes', linewidth=2)
+plt.rc('xtick', labelsize=40)
+plt.rc('ytick', labelsize=40)
+plt.rcParams["lines.linewidth"] = 4
+plt.rcParams['lines.markersize'] = 12
 
 # Create list of biomarkers (parameters) of interest
 params = ['khe', 'kbh']

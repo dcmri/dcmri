@@ -2,6 +2,19 @@ import numpy as np
 import dcmri.pk as pk
 
 
+def params_kidney(kinetics) -> list:
+    """Kidney model parameters
+
+    Args:
+        kinetics (str): kidney model. Options are: 2CF.
+
+    Returns:
+        list: Parameter short names
+    """
+    if kinetics == '2CF':
+        return ['Fp', 'vp', 'FF', 'Tt']
+
+
 def conc_kidney(ca: np.ndarray, *params, t=None, dt=1.0, sum=True, kinetics='2CF', **kwargs) -> np.ndarray:
     """Concentration in kidney tissues.
 
@@ -99,8 +112,9 @@ def conc_kidney(ca: np.ndarray, *params, t=None, dt=1.0, sum=True, kinetics='2CF
                          ' is not currently implemented.')
 
 
-def _conc_kidney_2cf(ca, Fp, Tp, Ft, Tt, t=None, dt=1.0, sum=True):
-    vp = Tp*(Fp+Ft)
+def _conc_kidney_2cf(ca, Fp, vp, Ft, Tt, t=None, dt=1.0, sum=True):
+    #vp = Tp*(Fp+Ft)
+    Tp = vp/(Fp+Ft)
     Cp = pk.conc_comp(Fp*ca, Tp, t=t, dt=dt)
     cp = Cp/vp
     Ct = pk.conc_comp(Ft*cp, Tt, t=t, dt=dt)

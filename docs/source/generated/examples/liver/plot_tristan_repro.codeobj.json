@@ -219,6 +219,22 @@
    "name": "Liver"
   }
  ],
+ "dc.T1": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "function"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "T1"
+  }
+ ],
  "dc.aif_tristan_rat": [
   {
    "is_class": false,
@@ -903,6 +919,22 @@
    "name": "arange"
   }
  ],
+ "np.inf": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "float"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "numpy",
+   "module_short": "numpy",
+   "name": "inf"
+  }
+ ],
  "params": [
   {
    "is_class": false,
@@ -1114,6 +1146,38 @@
    "module": "pandas",
    "module_short": "pandas",
    "name": "concat"
+  }
+ ],
+ "plt.rc": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "function"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "matplotlib.pyplot",
+   "module_short": "matplotlib.pyplot",
+   "name": "rc"
+  }
+ ],
+ "plt.rcParams": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "matplotlib",
+   "module_short": "matplotlib",
+   "name": "RcParams"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "matplotlib.pyplot",
+   "module_short": "matplotlib",
+   "name": "rcParams"
   }
  ],
  "plt.show": [

@@ -8,8 +8,7 @@ Analyzing data
 To analyse data with ``dcmri``, select the appropriate tissue type from the 
 :ref:`tissue bank <end-to-end models>` and train it on your data. For examples 
 of usage, consult the documentation of the model or look for a 
-similar application in the list of :ref:`tutorials <tutorials>` or 
-:ref:`use cases <use-cases>`. 
+similar application in the list of :ref:`examples <examples>`. 
 
 The models in the tissue bank are high-level implementations that can be 
 customized to run a wide range of different models, parameter settings or 
@@ -47,7 +46,7 @@ The are organised in a hierarchical fashion:
   
   - A library of **real data** taken from published studies. These are all 
     available through the `dcmri.fetch` function (see also 
-    section :ref:`use cases <use-cases>`). 
+    section :ref:`examples <examples>`). 
   - A library of functions to generate **synthetic data** for testing or 
     demonstration of models.
   - **Synthetic images** the can be used to build digital reference objects. 
