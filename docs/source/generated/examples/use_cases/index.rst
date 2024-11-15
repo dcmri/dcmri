@@ -20,6 +20,23 @@ Use cases
 
 .. raw:: html
 
+    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of Liver for fitting of signals  measured in liver. The use case is provided by the liver work package of the  TRISTAN project  which develops imaging  biomarkers for drug safety assessment. The manuscript relating to this data and analysis is currently in preparation. ">
+
+.. only:: html
+
+  .. image:: /generated/examples/use_cases/images/thumb/sphx_glr_plot_tristan_mdosing_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_mdosing.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">The TRISTAN multiple dosing study</div>
+    </div>
+
+
+.. raw:: html
+
     <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of AortaLiver for joint fitting of  aorta and liver signals to a whole-body model. The use case is provided by the  liver work package of the  TRISTAN project  which develops imaging  biomarkers for drug safety assessment. The data and analysis was first  presented at the ISMRM in 2024 (Min et al 2024, manuscript in press). ">
 
 .. only:: html
@@ -49,23 +66,6 @@ Use cases
 .. raw:: html
 
       <div class="sphx-glr-thumbnail-title">The TRISTAN experimental medicine study (2 scan protocol)</div>
-    </div>
-
-
-.. raw:: html
-
-    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of Liver for fitting of signals  measured in liver. The use case is provided by the liver work package of the  TRISTAN project  which develops imaging  biomarkers for drug safety assessment. The data and analysis were first  published in Gunwhy et al. (2024). ">
-
-.. only:: html
-
-  .. image:: /generated/examples/use_cases/images/thumb/sphx_glr_plot_tristan_repro_config_thumb.png
-    :alt:
-
-  :ref:`sphx_glr_generated_examples_use_cases_plot_tristan_repro_config.py`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">The TRISTAN reproducibility study</div>
     </div>
 
 
@@ -113,9 +113,9 @@ Use cases
 .. toctree::
    :hidden:
 
+   /generated/examples/use_cases/plot_tristan_mdosing
    /generated/examples/use_cases/plot_tristan_volunteers
    /generated/examples/use_cases/plot_tristan_volunteers_2scan
-   /generated/examples/use_cases/plot_tristan_repro_config
    /generated/examples/use_cases/plot_tristan_repro
    /generated/examples/use_cases/plot_tristan6drugs
 
