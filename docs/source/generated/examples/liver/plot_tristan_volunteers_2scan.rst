@@ -18,9 +18,9 @@
 .. _sphx_glr_generated_examples_liver_plot_tristan_volunteers_2scan.py:
 
 
-=========================================================
-The TRISTAN experimental medicine study (2 scan protocol)
-=========================================================
+==========================================================
+Clinical - rifampicin induced inhibition of liver function
+==========================================================
 
 This example illustrates the use of `~dcmri.AortaLiver2scan` for joint 
 fitting of aorta and liver signals measured over 2 separate scans. The use 
@@ -1549,7 +1549,7 @@ and excretion rate ``kbh``:
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (89 minutes 44.948 seconds)
+   **Total running time of the script:** (90 minutes 43.357 seconds)
 
 
 .. _sphx_glr_download_generated_examples_liver_plot_tristan_volunteers_2scan.py:

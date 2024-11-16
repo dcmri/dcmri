@@ -1,6 +1,6 @@
 """
 =========================================================
-The TRISTAN experimental medicine study (1 scan protocol)
+Clinical - rifampicin induced inhibition (short protocol)
 =========================================================
 
 This example illustrates the use of `~dcmri.AortaLiver` for joint fitting of 

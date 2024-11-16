@@ -1,7 +1,7 @@
 """
-=========================================================
-The TRISTAN experimental medicine study (2 scan protocol)
-=========================================================
+==========================================================
+Clinical - rifampicin induced inhibition of liver function
+==========================================================
 
 This example illustrates the use of `~dcmri.AortaLiver2scan` for joint 
 fitting of aorta and liver signals measured over 2 separate scans. The use 

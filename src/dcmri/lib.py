@@ -227,6 +227,10 @@ def fetch(dataset: str) -> dict:
             dataset for the IMI-WP2-TRISTAN Reproducibility study [Data set]. 
             `Zenodo. <https://doi.org/10.5281/zenodo.7838397>`_
 
+        **tristan_mdosing**
+
+            Description coming soon..
+
         **kruk_sk_gfr**
 
             **Background**: data taken from supplementary material of Basak et 
@@ -1370,21 +1374,29 @@ def aif_parker(t, BAT: float = 0.0) -> np.ndarray:
 
 
 def aif_tristan_rat(t, BAT=4.6 * 60, duration=30) -> np.ndarray:
-    """Population AIF model for rats measured with a standard dose of gadoxetate.
+    """Population AIF model for rats measured with a standard dose of 
+    gadoxetate.
 
     Args:
         t (array_like): time points in units of sec.
-        BAT (float, optional): Time in seconds before the bolus arrives. Defaults to 4.6 min.
+        BAT (float, optional): Time in seconds before the bolus arrives. 
+          Defaults to 4.6 min.
         duration (float, optional): Duration of the injection. Defaults to 30s.
 
     Returns:
-        np.ndarray: Concentrations in M for each time point in t. If t is a scalar, the return value is a scalar too.
+        np.ndarray: Blood concentrations in M for each time point in t. If 
+        t is a scalar, the return value is a scalar too.
 
     References:
 
-        - Melillo N, Scotcher D, Kenna JG, Green C, Hines CDG, Laitinen I, et al. Use of In Vivo Imaging and Physiologically-Based Kinetic Modelling to Predict Hepatic Transporter Mediated Drug-Drug Interactions in Rats. `Pharmaceutics 2023;15(3):896 <https://doi.org/10.3390/pharmaceutics15030896>`_.
+        - Melillo N, Scotcher D, Kenna JG, Green C, Hines CDG, Laitinen I, 
+          et al. Use of In Vivo Imaging and Physiologically-Based Kinetic 
+          Modelling to Predict Hepatic Transporter Mediated Drug-Drug 
+          Interactions in Rats. 
+          `Pharmaceutics 2023;15(3):896 <https://doi.org/10.3390/pharmaceutics15030896>`_.
 
-        - Gunwhy, E. R., & Sourbron, S. (2023). TRISTAN-RAT (v3.0.0). `Zenodo <https://doi.org/10.5281/zenodo.8372595>`_
+        - Gunwhy, E. R., & Sourbron, S. (2023). TRISTAN-RAT (v3.0.0). 
+          `Zenodo <https://doi.org/10.5281/zenodo.8372595>`_
 
     Example:
 
@@ -1401,14 +1413,14 @@ def aif_tristan_rat(t, BAT=4.6 * 60, duration=30) -> np.ndarray:
 
         Generate the rat input function for these time points:
 
-        >>> cp = dc.aif_tristan_rat(t)
+        >>> cb = dc.aif_tristan_rat(t)
 
         Plot the result:
 
-        >>> plt.plot(t/60, 1000*cp, 'r-')
+        >>> plt.plot(t/60, 1000*cb, 'r-')
         >>> plt.title('TRISTAN rat AIF')
         >>> plt.xlabel('Time (min)')
-        >>> plt.ylabel('Plasma concentration (mM)')
+        >>> plt.ylabel('Blood concentration (mM)')
         >>> plt.show()
     """
     # Constants
@@ -1470,4 +1482,4 @@ def aif_tristan_rat(t, BAT=4.6 * 60, duration=30) -> np.ndarray:
     Jp = pk.flux_2cxm(J, [TP, TE], E, t)
     cp = Jp / K
 
-    return cp
+    return cp * (1 - Hct)

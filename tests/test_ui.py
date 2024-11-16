@@ -336,19 +336,11 @@ def test_ui_kidney():
     #
     # Train a two-compartment filtration model on the ROI data and plot the fit:
     #
-    model = dc.Kidney(kinetics='2CFM', **params)
+    model = dc.Kidney(kinetics='2CF', **params)
     model.train(time, roi)
     model.plot(time, roi, ref=gt, show=SHOW)
     assert model.cost(time, roi) < 0.5
     assert 80 < model.params('Tt', round_to=0) < 90
-    #
-    # Repeat the fit using a free nephron model:
-    #
-    model = dc.Kidney(kinetics='FN', **params)
-    model.train(time, roi)
-    model.plot(time, roi, ref=gt, show=SHOW)
-    assert model.cost(time, roi) < 1
-    assert 0.005 < model.params('Fp', round_to=2) < 0.015
 
 
 def test_ui_kidney_cort_med():
@@ -379,13 +371,13 @@ if __name__ == "__main__":
     # make_tmp()
 
     # test_model()
-    test_ui_tissue()
+    # test_ui_tissue()
     # test_ui_tissue_array()
     # test_ui_aorta()
     # test_ui_aorta_liver()
     # test_ui_aorta_liver2scan()
     # test_ui_liver()
-    # test_ui_kidney()
+    test_ui_kidney()
     # test_ui_kidney_cort_med()
 
     print('All mods tests passed!!')

@@ -18,9 +18,9 @@
 .. _sphx_glr_generated_examples_liver_plot_tristan_repro.py:
 
 
-=================================
-The TRISTAN reproducibility study
-=================================
+========================================================
+Preclinical - reproducibility of hepatocellular function
+========================================================
 
 This example illustrates the use of `~dcmri.Liver` for fitting of signals 
 measured in liver. The use case is provided by the liver work package of the 
@@ -112,7 +112,7 @@ for this rat model:
 
             # Input parameters
             t = t,
-            ca = ca*(1-0.418),
+            ca = ca,
 
             # Acquisition parameters
             field_strength = data['field_strength'],
@@ -1290,7 +1290,7 @@ whether the observed values lie within these ranges.
 the upper and lower limits of the 95% confidence intervals (CIs) associated
 with these benchmarks.
 
-.. GENERATED FROM PYTHON SOURCE LINES 172-246
+.. GENERATED FROM PYTHON SOURCE LINES 172-249
 
 .. code-block:: Python
 
@@ -1369,6 +1369,9 @@ with these benchmarks.
     plt.tight_layout()
     plt.show()
 
+    # Choose the last image as a thumbnail for the gallery
+    # sphinx_gallery_thumbnail_number = -1
+
 
 
 .. image-sg:: /generated/examples/liver/images/sphx_glr_plot_tristan_repro_002.png
@@ -1383,7 +1386,7 @@ with these benchmarks.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 23.042 seconds)
+   **Total running time of the script:** (0 minutes 11.763 seconds)
 
 
 .. _sphx_glr_download_generated_examples_liver_plot_tristan_repro.py:
