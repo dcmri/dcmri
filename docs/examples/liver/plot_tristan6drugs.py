@@ -1,7 +1,7 @@
 """
-============================
-The TRISTAN 6 compound study
-============================
+======================================================
+Preclinical - effect on liver function of 6 test drugs
+======================================================
 
 This example illustrates the use of `~dcmri.Liver` for fitting of signals 
 measured in liver. The use case is provided by the liver work package of the 
@@ -75,7 +75,7 @@ def tristan_rat(data, **kwargs):
 
         # Input parameters
         t = t,
-        ca = ca*(1-0.418),
+        ca = ca,
 
         # Acquisition parameters
         field_strength = data['field_strength'],

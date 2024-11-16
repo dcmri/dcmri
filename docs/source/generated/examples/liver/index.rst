@@ -4,10 +4,13 @@
 
 .. _liver-applications-ddi:
 
-********************************
-Liver applications: drug effects
-********************************
+****************************
+Liver function: drug effects
+****************************
 
+A series of preclinical and clinical experiments performed to demonstrate that 
+gadoxetate uptake and excretion rates in liver are biomarkers for drug-induced 
+inhibition of liver function.
 
 
 
@@ -17,6 +20,23 @@ Liver applications: drug effects
     <div class="sphx-glr-thumbnails">
 
 .. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of Liver for fitting of signals  measured in liver. The use case is provided by the liver work package of the  TRISTAN project  which develops imaging  biomarkers for drug safety assessment. The manuscript relating to this data and analysis is currently in preparation. ">
+
+.. only:: html
+
+  .. image:: /generated/examples/liver/images/thumb/sphx_glr_plot_tristan_mdosing_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_generated_examples_liver_plot_tristan_mdosing.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Preclinical - repeat dosing effects on liver function</div>
+    </div>
+
 
 .. raw:: html
 
@@ -31,7 +51,7 @@ Liver applications: drug effects
 
 .. raw:: html
 
-      <div class="sphx-glr-thumbnail-title">The TRISTAN experimental medicine study (1 scan protocol)</div>
+      <div class="sphx-glr-thumbnail-title">Clinical - rifampicin induced inhibition (short protocol)</div>
     </div>
 
 
@@ -48,7 +68,7 @@ Liver applications: drug effects
 
 .. raw:: html
 
-      <div class="sphx-glr-thumbnail-title">The TRISTAN experimental medicine study (2 scan protocol)</div>
+      <div class="sphx-glr-thumbnail-title">Clinical - rifampicin induced inhibition of liver function</div>
     </div>
 
 
@@ -65,7 +85,7 @@ Liver applications: drug effects
 
 .. raw:: html
 
-      <div class="sphx-glr-thumbnail-title">The TRISTAN reproducibility study</div>
+      <div class="sphx-glr-thumbnail-title">Preclinical - reproducibility of hepatocellular function</div>
     </div>
 
 
@@ -82,7 +102,7 @@ Liver applications: drug effects
 
 .. raw:: html
 
-      <div class="sphx-glr-thumbnail-title">The TRISTAN 6 compound study</div>
+      <div class="sphx-glr-thumbnail-title">Preclinical - effect on liver function of 6 test drugs</div>
     </div>
 
 
@@ -96,6 +116,7 @@ Liver applications: drug effects
 .. toctree::
    :hidden:
 
+   /generated/examples/liver/plot_tristan_mdosing
    /generated/examples/liver/plot_tristan_volunteers
    /generated/examples/liver/plot_tristan_volunteers_2scan
    /generated/examples/liver/plot_tristan_repro

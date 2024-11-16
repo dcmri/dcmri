@@ -19,7 +19,7 @@
 
 
 =========================================================
-The TRISTAN experimental medicine study (1 scan protocol)
+Clinical - rifampicin induced inhibition (short protocol)
 =========================================================
 
 This example illustrates the use of `~dcmri.AortaLiver` for joint fitting of 
@@ -1365,7 +1365,7 @@ and excretion rate ``kbh``:
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (14 minutes 50.701 seconds)
+   **Total running time of the script:** (15 minutes 7.062 seconds)
 
 
 .. _sphx_glr_download_generated_examples_liver_plot_tristan_volunteers.py:

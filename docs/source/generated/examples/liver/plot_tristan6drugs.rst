@@ -18,9 +18,9 @@
 .. _sphx_glr_generated_examples_liver_plot_tristan6drugs.py:
 
 
-============================
-The TRISTAN 6 compound study
-============================
+======================================================
+Preclinical - effect on liver function of 6 test drugs
+======================================================
 
 This example illustrates the use of `~dcmri.Liver` for fitting of signals 
 measured in liver. The use case is provided by the liver work package of the 
@@ -112,7 +112,7 @@ for this rat model:
 
             # Input parameters
             t = t,
-            ca = ca*(1-0.418),
+            ca = ca,
 
             # Acquisition parameters
             field_strength = data['field_strength'],
@@ -958,7 +958,7 @@ inhibition was detected with 95% confidence (0% in the 95% CI):
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 53.661 seconds)
+   **Total running time of the script:** (0 minutes 7.794 seconds)
 
 
 .. _sphx_glr_download_generated_examples_liver_plot_tristan6drugs.py:

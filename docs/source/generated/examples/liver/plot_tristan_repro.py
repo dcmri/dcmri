@@ -1,7 +1,7 @@
 """
-=================================
-The TRISTAN reproducibility study
-=================================
+========================================================
+Preclinical - reproducibility of hepatocellular function
+========================================================
 
 This example illustrates the use of `~dcmri.Liver` for fitting of signals 
 measured in liver. The use case is provided by the liver work package of the 
@@ -75,7 +75,7 @@ def tristan_rat(data, **kwargs):
 
         # Input parameters
         t = t,
-        ca = ca*(1-0.418),
+        ca = ca,
 
         # Acquisition parameters
         field_strength = data['field_strength'],
@@ -243,3 +243,6 @@ for i in range(len(ylabels)):
 
 plt.tight_layout()
 plt.show()
+
+# Choose the last image as a thumbnail for the gallery
+# sphinx_gallery_thumbnail_number = -1
