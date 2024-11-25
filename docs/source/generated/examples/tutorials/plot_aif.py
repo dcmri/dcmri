@@ -229,7 +229,7 @@ cb = (1-0.45)*ca_pop                        # Convert to blood concentration usi
 R10 = 1/dc.T1(3.0, 'blood')                 # Precontrast R1 for blood at 3T
 r1 = dc.relaxivity(agent='gadodiamide')     # Relaxivity of the agent
 R1 = R10 + r1*cb                            # Relaxation rate as a function of time
-sig_pop = dc.signal_ss(R1, 1, 0.005, 15)    # Signal as a function of time
+sig_pop = dc.signal_ss(1, R1, 0.005, 15)    # Signal as a function of time
 
 # %%
 # Now we can train the Aorta model, setting the experimental parameters to 

@@ -413,7 +413,7 @@ concentrations, we need to first convert the concentrations to signals:
     R10 = 1/dc.T1(3.0, 'blood')                 # Precontrast R1 for blood at 3T
     r1 = dc.relaxivity(agent='gadodiamide')     # Relaxivity of the agent
     R1 = R10 + r1*cb                            # Relaxation rate as a function of time
-    sig_pop = dc.signal_ss(R1, 1, 0.005, 15)    # Signal as a function of time
+    sig_pop = dc.signal_ss(1, R1, 0.005, 15)    # Signal as a function of time
 
 
 
@@ -486,13 +486,13 @@ We can also have a look at the fitted parameters:
     --------------------------------
 
     Bolus arrival time (BAT): 15.76 (0.47) sec
-    Cardiac output (CO): 162.21 (3.05) mL/sec
+    Cardiac output (CO): 162.22 (3.05) mL/sec
     Heart-lung mean transit time (Thl): 12.56 (0.5) sec
     Heart-lung transit time dispersion (Dhl): 0.08 (0.01) 
     Organs mean transit time (To): 15.0 (4.53) sec
     Extraction fraction (Eb): 0.03 (0.21) 
     Organs extraction fraction (Eo): 0.5 (0.06) 
-    Extracellular mean transit time (Te): 29.06 (23.75) sec
+    Extracellular mean transit time (Te): 29.06 (23.74) sec
 
     ----------------------------
     Fixed and derived parameters
@@ -527,7 +527,7 @@ underestimation in the blood flow values observed.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 2.323 seconds)
+   **Total running time of the script:** (0 minutes 6.577 seconds)
 
 
 .. _sphx_glr_download_generated_examples_tutorials_plot_aif.py:

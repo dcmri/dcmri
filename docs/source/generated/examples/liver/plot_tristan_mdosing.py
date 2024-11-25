@@ -19,6 +19,13 @@ rats scanned after administration of vehicle and repetitive dosing regimes
 of either Rifampicin, Cyclosporine, or Bosentan. Studies were performed in
 preclinical MRI scanners at 3 different centers and 2 different field strengths.
 
+**Reference**
+
+Mikael Montelius, Steven Sourbron, Nicola Melillo, Daniel Scotcher, 
+Aleksandra Galetin, Gunnar Schuetz, Claudia Green, Edvin Johansson, 
+John C. Waterton, and Paul Hockings. Acute and chronic rifampicin effect on 
+gadoxetate uptake in rats using gadoxetate DCE-MRI. Int Soc Mag Reson Med 
+2021; 2674.
 """
 
 # %%

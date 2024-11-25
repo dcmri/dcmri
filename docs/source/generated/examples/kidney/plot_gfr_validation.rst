@@ -197,7 +197,7 @@ value, indicating that the parameters are measured reliably:
     Plasma flow (Fp): 0.035 (0.003) mL/sec/cm3
     Plasma volume (vp): 0.278 (0.019) mL/cm3
     Filtration fraction (FF): 0.103 (0.017) 
-    Tubular mean transit time (Tt): 304.63 (149.98) sec
+    Tubular mean transit time (Tt): 304.622 (149.971) sec
 
     ----------------------------
     Fixed and derived parameters
@@ -344,7 +344,7 @@ Plot MRI values and reference values
 
 Compute bias and accuracy
 
-.. GENERATED FROM PYTHON SOURCE LINES 178-198
+.. GENERATED FROM PYTHON SOURCE LINES 178-195
 
 .. code-block:: Python
 
@@ -365,9 +365,6 @@ Compute bias and accuracy
     print('95% CI on the bias (ml/min): ', bias-bias_err, bias+bias_err) # paper 0.56
     print('95% CI on individual error (ml/min): ', bias-err, bias+err) # paper [-28, 29]
 
-    # Choose the last image as a thumbnail for the gallery
-    # sphinx_gallery_thumbnail_number = -1
-
 
 
 
@@ -379,8 +376,30 @@ Compute bias and accuracy
     -----------------
     Single-kidney GFR
     -----------------
-    95% CI on the bias (ml/min):  7.391116826304132 13.995188172837253
-    95% CI on individual error (ml/min):  -39.166492765469926 60.55279776461131
+    95% CI on the bias (ml/min):  7.391160008329153 13.99521953118509
+    95% CI on individual error (ml/min):  -39.166366228478346 60.55274576799258
+
+
+
+
+.. GENERATED FROM PYTHON SOURCE LINES 196-200
+
+As the results show, these data do not replicate the results from the 
+original study exactly..
+
+[ ...more results coming soon... ]
+
+.. GENERATED FROM PYTHON SOURCE LINES 200-204
+
+.. code-block:: Python
+
+
+    # Choose the last image as a thumbnail for the gallery
+    # sphinx_gallery_thumbnail_number = -1
+
+
+
+
 
 
 
@@ -388,7 +407,7 @@ Compute bias and accuracy
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 13.530 seconds)
+   **Total running time of the script:** (0 minutes 28.685 seconds)
 
 
 .. _sphx_glr_download_generated_examples_kidney_plot_gfr_validation.py:

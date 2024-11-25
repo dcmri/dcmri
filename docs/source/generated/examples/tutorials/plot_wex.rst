@@ -388,7 +388,7 @@ exchange tissue, and the reconstructed parameters are severely biased:
 
  .. code-block:: none
 
-    vp error: 40.4 %
+    vp error: 40.5 %
     vi error: 16.9 %
     Ktrans error: 0.9 %
 
@@ -450,9 +450,9 @@ the kinetic parameters are more accurate:
 
  .. code-block:: none
 
-    vp error: 0.1 %
-    vi error: -0.1 %
-    Ktrans error: 0.0 %
+    vp error: 1.0 %
+    vi error: -0.8 %
+    Ktrans error: 0.7 %
 
 
 
@@ -481,8 +481,8 @@ extremely high levels of water exchange:
 
  .. code-block:: none
 
-    PSe: 372.0 mL/sec/cm3
-    PSc: 361.0 mL/sec/cm3
+    PSe: 106.0 mL/sec/cm3
+    PSc: 147.0 mL/sec/cm3
 
 
 
@@ -556,7 +556,7 @@ confounder.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 23.972 seconds)
+   **Total running time of the script:** (0 minutes 33.442 seconds)
 
 
 .. _sphx_glr_download_generated_examples_tutorials_plot_wex.py:
