@@ -24,6 +24,7 @@ Exchange tissues
    flux_tissue
    conc_tissue
    relax_tissue
+   Mz_tissue
    signal_tissue
 
 
