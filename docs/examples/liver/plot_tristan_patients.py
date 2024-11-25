@@ -1,47 +1,30 @@
 """
-==========================================================
-Clinical - rifampicin induced inhibition of liver function
-==========================================================
+=====================================================================
+Clinical - rifampicin effect in subjects with impaired liver function
+=====================================================================
 
-This example illustrates the use of `~dcmri.AortaLiver2scan` for joint 
-fitting of aorta and liver signals measured over 2 separate scans. The use 
+The data show in this example aimed to demonstrates the effect of rifampicin 
+on liver function of patients with impaired function. The use 
 case is provided by the liver work package of the 
 `TRISTAN project <https://www.imi-tristan.eu/liver>`_  which develops imaging 
-biomarkers for drug safety assessment. The data and analysis was first 
-presented at the ISMRM in 2024 (Min et al 2024, manuscript in press). 
+biomarkers for drug safety assessment. 
 
-The data were acquired in the aorta and liver of 10 healthy volunteers with 
-dynamic gadoxetate-enhanced MRI, before and after administration of a drug 
-(rifampicin) which is known to inhibit liver function. The assessments were 
-done on two separate visits at least 2 weeks apart. On each visit, the 
-volunteer had two scans each with a separate contrast agent injection of a 
-quarter dose each. the scans were separated by a gap of about 1 hour to enable 
-gadoxetate to clear from the liver. This design was deemed necessary for 
-reliable measurement of excretion rate when liver function was inhibited.
+The data were acquired in the aorta and liver in 3 patients with 
+dynamic gadoxetate-enhanced MRI. The study participants take rifampicin 
+as part of their routine clinical workup, with an aim to promote their liver 
+function. For this study, they were taken off rifampicin 3 days before the 
+first scan, and placed back on rifampicin 3 days before the second scan. The 
+aim was to determine the effect if rifampicin in uptake and 
+excretion function of the liver.
 
-The research question was to what extent rifampicin inhibits gadoxetate uptake 
-rate from the extracellular space into the liver hepatocytes 
-(khe, mL/min/100mL) and excretion rate from hepatocytes to bile 
-(kbh, mL/100mL/min). 
-
-2 of the volunteers only had the baseline assessment, the other 8 volunteers 
-completed the full study. The results showed consistent and strong inhibition 
-of khe (95%) and kbh (40%) by rifampicin. This implies that rifampicin poses 
-a risk of drug-drug interactions (DDI), meaning it can cause another drug to 
-circulate in the body for far longer than expected, potentially causing harm 
-or raising a need for dose adjustment.
-
-**Note**: this example is different to the 1 scan example of the same study in 
-that this uses both scans to fit the model. 
+The data confirmed that patients had significantly reduced uptake and excretion 
+function in the absence of rifampicin. Rifampicin adminstration promoted their 
+excretory function but had no effect on their uptake function. 
 
 Reference
 --------- 
 
-Thazin Min, Marta Tibiletti, Paul Hockings, Aleksandra Galetin, Ebony Gunwhy, 
-Gerry Kenna, Nicola Melillo, Geoff JM Parker, Gunnar Schuetz, Daniel Scotcher, 
-John Waterton, Ian Rowe, and Steven Sourbron. *Measurement of liver function 
-with dynamic gadoxetate-enhanced MRI: a validation study in healthy 
-volunteers*. Proc Intl Soc Mag Reson Med, Singapore 2024.
+Manuscript in preparation..
 """
 
 # %%
@@ -54,7 +37,7 @@ import matplotlib.pyplot as plt
 import dcmri as dc
 
 # Fetch the data from the TRISTAN rifampicin study:
-data = dc.fetch('tristan_rifampicin')
+data = dc.fetch('tristan_gothenburg')
 
 # %%
 # Model definition
@@ -131,7 +114,7 @@ model.print_params(round_to=3)
 # Fit all data
 # ------------
 # Now that we have illustrated an individual result in some detail, we 
-# proceed with fitting the data for all 10 volunteers, at baseline and 
+# proceed with fitting the data for all 3 patients, at baseline and 
 # rifampicin visit. We do not print output for these individual computations 
 # and instead store results in one single dataframe:
 
@@ -182,23 +165,23 @@ ax1.tick_params(axis='x', labelsize=fs)
 ax1.tick_params(axis='y', labelsize=fs)
 ax2.set_title('Biliary excretion rate', fontsize=fs, pad=10)
 ax2.set_ylabel('kbh (mL/min/100mL)', fontsize=fs)
-ax2.set_ylim(0, 6)
+ax2.set_ylim(0, 10)
 ax2.tick_params(axis='x', labelsize=fs)
 ax2.tick_params(axis='y', labelsize=fs)
 
 # Pivot data for both visits to wide format for easy access:
-v1 = pd.pivot_table(results[results.visit=='baseline'], values='value', 
+v1 = pd.pivot_table(results[results.visit=='control'], values='value', 
                     columns='parameter', index='subject')
-v2 = pd.pivot_table(results[results.visit=='rifampicin'], values='value', 
+v2 = pd.pivot_table(results[results.visit=='drug'], values='value', 
                     columns='parameter', index='subject')
 
 # Plot the rate constants in units of mL/min/100mL
 for s in v1.index:
-    x = ['baseline']
+    x = ['control']
     khe = [6000*v1.at[s,'khe']]
     kbh = [6000*v1.at[s,'kbh']] 
     if s in v2.index:
-        x += ['rifampicin']
+        x += ['drug']
         khe += [6000*v2.at[s,'khe']]
         kbh += [6000*v2.at[s,'kbh']] 
     color = clr[int(s)-1]
