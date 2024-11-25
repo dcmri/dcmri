@@ -216,13 +216,13 @@ class KidneyCortMed(ui.Model):
         R1c = self.R10c + r1*Cc
         R1m = self.R10m + r1*Cm
         if self.sequence == 'SR':
-            Sc = sig.signal_sr(R1c, self.S0c, self.TR,
-                               self.FA, self.TC, self.Tsat)
-            Sm = sig.signal_sr(R1m, self.S0m, self.TR,
-                               self.FA, self.TC, self.Tsat)
+            Sc = sig.signal_spgr(self.S0c, R1c, self.TC, self.TR,
+                               self.FA, self.Tsat)
+            Sm = sig.signal_spgr(self.S0m, R1m, self.TC, self.TR,
+                               self.FA, self.Tsat)
         elif self.sequence == 'SS':
-            Sc = sig.signal_ss(R1c, self.S0c, self.TR, self.FA)
-            Sm = sig.signal_ss(R1m, self.S0m, self.TR, self.FA)
+            Sc = sig.signal_ss(self.S0c, R1c, self.TR, self.FA)
+            Sm = sig.signal_ss(self.S0m, R1m, self.TR, self.FA)
         t = self.time()
         return (
             utils.sample(xdata, t, Sc, self.TS),
@@ -242,13 +242,13 @@ class KidneyCortMed(ui.Model):
         """
 
         if self.sequence == 'SR':
-            Scref = sig.signal_sr(self.R10c, 1, self.TR,
-                                  self.FA, self.TC, self.Tsat)
-            Smref = sig.signal_sr(self.R10m, 1, self.TR,
-                                  self.FA, self.TC, self.Tsat)
+            Scref = sig.signal_spgr(1, self.R10c, self.TC, self.TR,
+                                  self.FA, self.Tsat)
+            Smref = sig.signal_spgr(1, self.R10m, self.TC, self.TR,
+                                  self.FA, self.Tsat)
         elif self.sequence == 'SS':
-            Scref = sig.signal_ss(self.R10c, 1, self.TR, self.FA)
-            Smref = sig.signal_ss(self.R10m, 1, self.TR, self.FA)
+            Scref = sig.signal_ss(1, self.R10c, self.TR, self.FA)
+            Smref = sig.signal_ss(1, self.R10m, self.TR, self.FA)
         self.S0c = np.mean(ydata[0][:self.n0]) / Scref
         self.S0m = np.mean(ydata[1][:self.n0]) / Smref
         return ui.train(self, xdata, ydata, **kwargs)
