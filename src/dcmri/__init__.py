@@ -47,6 +47,9 @@ from dcmri.ui_aorta_kidneys import *
 from dcmri import ui_aorta_liver
 from dcmri.ui_aorta_liver import *
 
+from dcmri import ui_aorta_portal_liver
+from dcmri.ui_aorta_portal_liver import *
+
 from dcmri import ui_kidney
 from dcmri.ui_kidney import *
 

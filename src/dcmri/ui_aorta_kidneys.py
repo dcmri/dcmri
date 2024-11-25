@@ -243,11 +243,11 @@ class AortaKidneys(ui.Model):
             self.tmax += self.TS
         t, R1b = self._relax_aorta()
         if self.sequence == 'SR':
-            # signal = sig.signal_src(R1b, self.S0b, self.TC, R10=self.R10a)
-            signal = sig.signal_src(R1b, self.S0b, self.TC)
+            # signal = sig.signal_free(self.S0b, R1b, self.TC, R10=self.R10a)
+            signal = sig.signal_free(self.S0b, R1b, self.TC, self.FA)
         else:
-            # signal = sig.signal_ss(R1b, self.S0b, self.TR, self.FA, R10=self.R10a)
-            signal = sig.signal_ss(R1b, self.S0b, self.TR, self.FA)
+            # signal = sig.signal_ss(self.S0b, R1b, self.TR, self.FA, R10=self.R10a)
+            signal = sig.signal_ss(self.S0b, R1b, self.TR, self.FA)
         return utils.sample(xdata, t, signal, self.TS)
 
     def _conc_kidneys(self, sum=True):
@@ -284,13 +284,13 @@ class AortaKidneys(ui.Model):
     def _predict_kidneys(self, xdata: tuple[np.ndarray, np.ndarray]) -> tuple[np.ndarray, np.ndarray]:
         t, R1_lk, R1_rk = self._relax_kidneys()
         if self.sequence == 'SR':
-            signal_lk = sig.signal_sr(
-                R1_lk, self.S0_lk, self.TR, self.FA, self.TC)
-            signal_rk = sig.signal_sr(
-                R1_rk, self.S0_rk, self.TR, self.FA, self.TC)
+            signal_lk = sig.signal_spgr(
+                self.S0_lk, R1_lk, self.TC, self.TR, self.FA)
+            signal_rk = sig.signal_spgr(
+                self.S0_rk, R1_rk, self.TC, self.TR, self.FA)
         else:
-            signal_lk = sig.signal_ss(R1_lk, self.S0_lk, self.TR, self.FA)
-            signal_rk = sig.signal_ss(R1_rk, self.S0_rk, self.TR, self.FA)
+            signal_lk = sig.signal_ss(self.S0_lk, R1_lk, self.TR, self.FA)
+            signal_rk = sig.signal_ss(self.S0_rk, R1_rk, self.TR, self.FA)
         return (
             utils.sample(xdata[0], t, signal_lk, self.TS),
             utils.sample(xdata[1], t, signal_rk, self.TS))
@@ -352,13 +352,13 @@ class AortaKidneys(ui.Model):
         """
         # Estimate BAT and S0b from data
         if self.sequence == 'SR':
-            Srefb = sig.signal_sr(self.R10a, 1, self.TR, self.FA, self.TC)
-            Sref_lk = sig.signal_sr(self.R10_lk, 1, self.TR, self.FA, self.TC)
-            Sref_rk = sig.signal_sr(self.R10_rk, 1, self.TR, self.FA, self.TC)
+            Srefb = sig.signal_spgr(1, self.R10a, self.TC, self.TR, self.FA)
+            Sref_lk = sig.signal_spgr(1, self.R10_lk, self.TC, self.TR, self.FA)
+            Sref_rk = sig.signal_spgr(1, self.R10_rk, self.TC, self.TR, self.FA)
         else:
-            Srefb = sig.signal_ss(self.R10a, 1, self.TR, self.FA)
-            Sref_lk = sig.signal_ss(self.R10_lk, 1, self.TR, self.FA)
-            Sref_rk = sig.signal_ss(self.R10_rk, 1, self.TR, self.FA)
+            Srefb = sig.signal_ss(1, self.R10a, self.TR, self.FA)
+            Sref_lk = sig.signal_ss(1, self.R10_lk, self.TR, self.FA)
+            Sref_rk = sig.signal_ss(1, self.R10_rk, self.TR, self.FA)
         self.S0b = np.mean(ydata[0][:self.n0]) / Srefb
         self.S0_lk = np.mean(ydata[1][:self.n0]) / Sref_lk
         self.S0_rk = np.mean(ydata[2][:self.n0]) / Sref_rk

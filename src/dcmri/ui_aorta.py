@@ -220,20 +220,20 @@ class Aorta(ui.Model):
         self.tmax = max(xdata)+tacq+self.dt
         t, R1 = self.relax()
         if self.sequence == 'SR':
-            # signal = sig.signal_src(R1, self.S0, self.TC, R10=self.R10)
-            signal = sig.signal_src(R1, self.S0, self.TC)
+            # signal = sig.signal_free(self.S0, R1, self.TC, R10=self.R10)
+            signal = sig.signal_free(self.S0, R1, self.TC, self.FA)
         else:
-            # signal = sig.signal_ss(R1, self.S0, self.TR, self.FA, R10=self.R10)
-            signal = sig.signal_ss(R1, self.S0, self.TR, self.FA)
+            # signal = sig.signal_ss(self.S0, R1, self.TR, self.FA, R10=self.R10)
+            signal = sig.signal_ss(self.S0, R1, self.TR, self.FA)
         return utils.sample(xdata, t, signal, self.TS)
 
     def train(self, xdata, ydata, **kwargs):
         n0 = max([np.sum(xdata < self.t0), 1])
         self.BAT = xdata[np.argmax(ydata)] - self.Thl
         if self.sequence == 'SR':
-            Sref = sig.signal_src(self.R10, 1, self.TC)
+            Sref = sig.signal_free(1, self.R10, self.TC, self.FA)
         else:
-            Sref = sig.signal_ss(self.R10, 1, self.TR, self.FA)
+            Sref = sig.signal_ss(1, self.R10, self.TR, self.FA)
         self.S0 = np.mean(ydata[:n0]) / Sref
         return ui.train(self, xdata, ydata, **kwargs)
 

@@ -14,8 +14,8 @@ A python toolbox for dynamic contrast MRI
 Mission
 *******
 
-``dcmri`` aims to simplify the analysis of dynamic-contrast MRI (DC-MRI) data, 
-and to facilitate the development and distribution of new methods. 
+To simplify the analysis of dynamic-contrast MRI (DC-MRI) data, 
+and the development and distribution of methods. 
 
 
 ********
@@ -24,24 +24,29 @@ Features
 
 - A :ref:`tissue bank <end-to-end models>` with an intuitive user interface 
   to analyse data from different tissues.
+- A library of :ref:`examples <examples>` applying these methods in real-world 
+  questions.
 - Building blocks to simplify the creation and testing of new methods:
 
   - :ref:`signal models <signal mods>` for common MRI sequences;
   - basic :ref:`pharmacokinetic building blocks <PK blocks>` such as 
     multi-compartment models; and
   - functions to generate signals for specific 
-    :ref:`tissue types <tissue-types>`.
+    :ref:`tissue types <tissue mods>`.
 
 - A library of :ref:`real data <real-data>`,  
   :ref:`synthetic data <synthetic-data>` and 
   :ref:`synthetic images <synthetic-images>` to simplify testing or comparison 
   of methods. 
 
-- A library of basic utilities such as common 
+- A library of utilities such as common 
   :ref:`input functions <input-functions>` and 
   :ref:`constants <useful-constants>`, and functions for performing 
   :ref:`convolutions <convolution-functions>` and 
   :ref:`data sampling <sampling-functions>`. 
+
+- A :ref:`user guide <user-guide>` with background on basic concepts, 
+  physics and mathematical derivations.
 
 
 ***************

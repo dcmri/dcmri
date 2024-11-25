@@ -34,25 +34,41 @@ Models of magnetic relaxation are determined by the following parameters:
       - Reciprocal of longitudinal relaxation time
       - Hz
     * - :math:`M_z`
-      - Longitudinal magnetization
+      - Longitudinal tissue magnetization
       - Component of the tissue magnetization parallel to the magnetic field
-      - A/cm
+      - A/cm/cm3
     * - :math:`M_{ze}`
-      - Equilibrium longitudinal magnetization
+      - Equilibrium longitudinal tissue magnetization
       - Longitudinal magnetization at rest
-      - A/cm
+      - A/cm/cm3
     * - :math:`m_z`
-      - Longitudinal water magnetization
+      - Longitudinal magnetization
       - Longitudinal magnetization per unit water volume
       - A/cm/mL
     * - :math:`m_{ze}`
-      - Equilibrium longitudinal water magnetization
-      - Water magnetization at rest
+      - Equilibrium longitudinal magnetization
+      - Longitudinal magnetization per unit water volume at rest
       - A/cm/mL
     * - :math:`m_{zi}`
-      - Inlet water magnetization
+      - Inlet longitudinal magnetization
       - Magnetization of the water flowing into the tissue
       - A/cm/mL
+    * - :math:`J`
+      - Tissue magnetization flux
+      - Magnetization flux per unit of tissue volume
+      - A/cm/sec/cm3
+    * - :math:`N_z`
+      - Normalized longitudinal tissue magnetization
+      - :math:`M_{z}/m_{ze}`
+      - mL/cm3
+    * - :math:`n_z`
+      - Relative longitudinal tissue magnetization
+      - :math:`N_{z}/v`
+      - dimensionless
+    * - :math:`j`
+      - Normalized tissue magnetization flux
+      - :math:`J/m_{ze}`
+      - mL/sec/cm3
     * - :math:`R_{10}`
       - Precontrast longitudinal relaxation rate in tissue
       - Native longitudinal relaxation rate in the absence of contrast agent
@@ -122,7 +138,7 @@ where we define influx and rate constants:
     K &= R_1 + \frac{f_o}{v}
 
 Note this is in fact just another one-compartment model (see 
-section :ref:`define-compartment`), with the water magnetization :math:`M_z` 
+section :ref:`define-compartment`), with the magnetization :math:`M_z` 
 playing the role of tracer. If :math:`K` is a constant, or we are 
 considering sufficiently short time scales so that it can be assumed to be 
 constant, the solution is:
@@ -244,6 +260,7 @@ If additionally the influx :math:`\mathbf{J}` is constant, the result is
 formally the same as Eq. :eq:`Mz-FX solution const J`:
 
 .. math::
+  :label: Mz_free
 
   \mathbf{M}(t) = e^{-t\mathbf{K}}\mathbf{M}(0) 
   + \left(1-e^{-t\mathbf{K}}\right) \mathbf{K}^{-1}\mathbf{J}
@@ -258,6 +275,7 @@ the inflowing magnetization is in equilibrium, we have:
 And the solution simplifies:
 
 .. math::
+  :label: Mz_free-noflow
 
   \mathbf{M}(t) = e^{-t\mathbf{K}}\mathbf{M}(0) 
   + \left(1-e^{-t\mathbf{K}}\right) \mathbf{M}_e

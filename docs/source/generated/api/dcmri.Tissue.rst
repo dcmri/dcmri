@@ -23,6 +23,7 @@
       ~Tissue.export_params
       ~Tissue.info
       ~Tissue.load
+      ~Tissue.magnetization
       ~Tissue.params
       ~Tissue.plot
       ~Tissue.predict

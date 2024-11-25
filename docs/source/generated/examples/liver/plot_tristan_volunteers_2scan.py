@@ -141,7 +141,7 @@ results = []
 for scan in data:
 
     # Generate a trained model for the scan:
-    _, _, model = tristan_human_2scan(scan, xtol=1e-3, verbose=2)
+    _, _, model = tristan_human_2scan(scan, xtol=1e-3)
 
     # Convert the parameter dictionary to a dataframe
     pars = model.export_params()

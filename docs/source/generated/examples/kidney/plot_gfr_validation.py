@@ -192,6 +192,12 @@ print('-----------------')
 print('95% CI on the bias (ml/min): ', bias-bias_err, bias+bias_err) # paper 0.56
 print('95% CI on individual error (ml/min): ', bias-err, bias+err) # paper [-28, 29]
 
+# %%
+# As the results show, these data do not replicate the results from the 
+# original study exactly..
+# 
+# [ ...more results coming soon... ]
+
 # Choose the last image as a thumbnail for the gallery
 # sphinx_gallery_thumbnail_number = -1
 

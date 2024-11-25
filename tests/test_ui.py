@@ -5,9 +5,10 @@ import numpy as np
 import dcmri as dc
 
 
+
 # Debugging mode
-# VERBOSE = 1
-# SHOW = True
+VERBOSE = 1
+SHOW = True
 
 VERBOSE = 0
 SHOW = False
@@ -364,20 +365,45 @@ def test_ui_kidney_cort_med():
     assert model.cost(time, roi) < 1
     assert model.params('Tdt', round_to=0) == 27
 
+def test_ui_aorta_portal_liver():
+
+    time, aif, vif, roi, gt = dc.fake_liver(model='SSI')
+    xdata, ydata = (time, time, time), (aif, vif, roi)
+
+    model = dc.AortaPortalLiver(
+        sequence = 'SSI',
+        dt = 0.5,
+        tmax = 180,
+        weight = 70,
+        agent = 'gadoxetate',
+        dose = 0.2,
+        rate = 3,
+        field_strength = 3.0,
+        t0 = 10,
+        TR = 0.005,
+        FA = 15,
+        TS = 0.5,
+    )
+    model.train(xdata, ydata, xtol=1e-3)
+    model.plot(xdata, ydata, show=SHOW)
+    model.print_params(round_to=3)
+    assert model.cost(xdata, ydata) < 4
+
 
 
 if __name__ == "__main__":
 
     # make_tmp()
 
-    # test_model()
-    # test_ui_tissue()
-    # test_ui_tissue_array()
-    # test_ui_aorta()
-    # test_ui_aorta_liver()
-    # test_ui_aorta_liver2scan()
-    # test_ui_liver()
+    test_model()
+    test_ui_tissue()
+    test_ui_tissue_array()
+    test_ui_aorta()
+    test_ui_aorta_liver()
+    test_ui_aorta_liver2scan()
+    test_ui_liver()
     test_ui_kidney()
-    # test_ui_kidney_cort_med()
+    test_ui_kidney_cort_med()
+    test_ui_aorta_portal_liver()
 
     print('All mods tests passed!!')

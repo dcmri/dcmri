@@ -252,10 +252,10 @@ class Kidney(ui.Model):
         """
         R1 = self.relax()
         if self.sequence == 'SR':
-            return sig.signal_sr(R1, self.S0, self.TR, self.B1corr * self.FA, 
-                                 self.TC, self.TP)
+            return sig.signal_spgr(
+                self.S0, R1, self.TC, self.TR, self.B1corr * self.FA, self.TP)
         elif self.sequence == 'SS':
-            return sig.signal_ss(R1, self.S0, self.TR, self.B1corr * self.FA)
+            return sig.signal_ss(self.S0, R1, self.TR, self.B1corr * self.FA)
         elif self.sequence == 'lin':
             return sig.signal_lin(R1, self.S0)
 
@@ -271,10 +271,10 @@ class Kidney(ui.Model):
 
     def train(self, xdata, ydata, **kwargs):
         if self.sequence == 'SR':
-            Sref = sig.signal_sr(
-                self.R10, 1, self.TR, self.B1corr * self.FA, self.TC, self.TP)
+            Sref = sig.signal_spgr(
+                1, self.R10, self.TR, self.TC, self.B1corr * self.FA, self.TP)
         elif self.sequence == 'SS':
-            Sref = sig.signal_ss(self.R10, 1, self.TR, self.B1corr * self.FA)
+            Sref = sig.signal_ss(1, self.R10, self.TR, self.B1corr * self.FA)
         elif self.sequence == 'lin':
             Sref = sig.signal_lin(self.R10, 1)
         self.S0 = np.mean(ydata[:self.n0]) / Sref

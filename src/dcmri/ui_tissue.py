@@ -1192,7 +1192,7 @@ class Tissue(ui.Model):
               in ca.
             - **v** (numpy.ndarray or None): the volume fractions of the tissue
               compartments. Returns None in 'FF' regime.
-            - **PSw** (numpy.ndarray or None): 2D array with water exchange
+            - **Fw** (numpy.ndarray or None): 2D array with water exchange
               rates between tissue compartments. Returns None in 'FF' regime.
 
         Example:
@@ -1208,12 +1208,12 @@ class Tissue(ui.Model):
             >>> import dcmri as dc
             >>> t, aif, _ = dc.fake_aif()
             >>> tissue = dc.Tissue('2CX', 'RR', aif=aif, t=t)
-            >>> R1, v, PSw = tissue.relax()
+            >>> R1, v, Fw = tissue.relax()
 
             >>> v
             array([0.1, 0.3, 0.6])
 
-            >>> PSw
+            >>> Fw
             array([[0.  , 0.03, 0.  ],
                    [0.03, 0.  , 0.03],
                    [0.  , 0.03, 0.  ]])
@@ -1231,13 +1231,35 @@ class Tissue(ui.Model):
         """
         self._check_ca()
         pars = self._par_values(tiss=True)
-        R1, v, PSw = tissue.relax_tissue(
+        R1, v, Fw = tissue.relax_tissue(
             self.ca, self.R10, self.r1, t=self.t, dt=self.dt,
             kinetics=self.kinetics, water_exchange=self.water_exchange,
             **pars)
-        return R1, v, PSw
+        return R1, v, Fw
+    
+    def magnetization(self) -> np.ndarray:
+        """Pseudocontinuous magnetization
 
-    def signal(self, sum=True) -> np.ndarray:
+        Returns:
+            np.ndarray: the magnetization as a 1D array.
+        """
+        self._check_ca()  # TODO do not precompute
+        tpars = self._par_values(tiss=True)
+        spars = self._par_values(seq=True)
+        spars.pop('S0')
+        spars['model'] = self.sequence
+        return tissue.Mz_tissue(
+            self.ca, self.R10, self.r1, t=self.t, dt=self.dt,
+            kinetics=self.kinetics,
+            water_exchange=self.water_exchange,
+            sequence=spars,
+            # inflow = {
+            #     'R10a': self.R10a,
+            #     'B1corr_a': self.B1corr_a,
+            # },
+            **tpars)
+
+    def signal(self) -> np.ndarray:
         """Pseudocontinuous signal
 
         Returns:
@@ -1256,7 +1278,7 @@ class Tissue(ui.Model):
             #     'R10a': self.R10a,
             #     'B1corr_a': self.B1corr_a,
             # },
-            sum=sum, **tpars)
+            **tpars)
 
     # TODO: make time optional (if not provided, assume equal to self.time())
     def predict(self, time: np.ndarray) -> np.ndarray:
@@ -1296,10 +1318,10 @@ class Tissue(ui.Model):
         """
         # Estimate S0
         if self.sequence == 'SR':
-            Sref = sig.signal_sr(self.R10, 1, self.TR,
-                                 self.B1corr * self.FA, self.TC, self.TP)
+            Sref = sig.signal_spgr(
+                1, self.R10, self.TC, self.TR, self.B1corr * self.FA, self.TP)
         elif self.sequence == 'SS':
-            Sref = sig.signal_ss(self.R10, 1, self.TR, self.B1corr * self.FA)
+            Sref = sig.signal_ss(1, self.R10, self.TR, self.B1corr * self.FA)
         else:
             raise NotImplementedError(
                 'Signal model ' + self.sequence + 'is not (yet) supported.')
@@ -1547,7 +1569,7 @@ class Tissue(ui.Model):
 
         if self.water_exchange != 'FF':
 
-            R1, v, PSw = self.relax()
+            R1, v, Fw = self.relax()
             c = rel.c_lin(R1, self.r1)
             comps = _plot_labels_relax(self.kinetics, self.water_exchange)
             if R1.ndim == 1:
@@ -1560,14 +1582,14 @@ class Tissue(ui.Model):
                      xlim=np.array(xlim) / 60)
             ax11.legend()
 
-            S = self.signal(sum=False)
+            M = self.magnetization()
             ax10.set_title('Magnetization in water compartments')
-            for i in range(S.shape[0]):
+            for i in range(M.shape[0]):
                 if np.isscalar(v):  # TODO renove this after ref of v
-                    Si = S[i, ...] / v
+                    Mi = M[i, ...] / v
                 else:
-                    Si = S[i, ...] / v[i]
-                ax10.plot(t / 60, Si, linestyle='-', linewidth=3.0,
+                    Mi = M[i, ...] / v[i]
+                ax10.plot(t / 60, Mi, linestyle='-', linewidth=3.0,
                           color=_clr(comps[i]), label=comps[i])
             ax10.set(xlabel='Time (min)',
                      ylabel='Magnetization (a.u.)', xlim=np.array(xlim) / 60)

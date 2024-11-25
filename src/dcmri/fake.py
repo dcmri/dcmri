@@ -51,9 +51,9 @@ def fake_aif(
     rp = dc.relaxivity(field_strength, 'plasma', agent)
     R1b = R10a + rp*cp*(1-H)
     if model == 'SS':
-        aif = dc.signal_ss(R1b, S0, TR, B1corr*FA)
+        aif = dc.signal_ss(S0, R1b, TR, B1corr*FA)
     elif model == 'SR':
-        aif = dc.signal_src(R1b, S0, TC)
+        aif = dc.signal_free(S0, R1b, TC, B1corr*FA)
     time = np.arange(0, tacq, dt)
     aif = dc.sample(time, t, aif, dt)
     sdev = (np.amax(aif)-aif[0])/CNR
@@ -149,9 +149,9 @@ def fake_brain(
     rp = dc.relaxivity(field_strength, 'plasma', agent)
     R1b = R10a + rp*cp*(1-H)
     if model == 'SS':
-        aif = dc.signal_ss(R1b, S0, TR, FA)
+        aif = dc.signal_ss(S0, R1b, TR, FA)
     elif model == 'SR':
-        aif = dc.signal_src(R1b, S0, TC)
+        aif = dc.signal_free(S0, R1b, TC, FA)
     sdev = (np.amax(aif)-aif[0])/CNR
     time = np.arange(0, tacq, dt)
     aif = dc.sample(time, t, aif, dt)
@@ -190,9 +190,9 @@ def fake_brain(
             # Pixel signal
             R1 = 1/im['T1'][i, j] + rp*C
             if model == 'SS':
-                sig = dc.signal_ss(R1, S0*im['PD'][i, j], TR, FA)
+                sig = dc.signal_ss(S0*im['PD'][i, j], R1, TR, FA)
             elif model == 'SR':
-                sig = dc.signal_sr(R1, S0*im['PD'][i, j], TR, FA, TC)
+                sig = dc.signal_spgr(S0*im['PD'][i, j], R1, TC, TR, FA)
             sig_noisefree = dc.sample(time, t, sig, dt)
             sig = dc.add_noise(sig_noisefree, sdev)
 
@@ -276,11 +276,11 @@ def fake_tissue(
     R1b = R10a + rp*cp*(1-H)
     R1 = R10 + rp*C
     if model == 'SS':
-        aif = dc.signal_ss(R1b, S0b, TR, FA)
-        roi = dc.signal_ss(R1, S0, TR, FA)
+        aif = dc.signal_ss(S0b, R1b, TR, FA)
+        roi = dc.signal_ss(S0, R1, TR, FA)
     elif model == 'SR':
-        aif = dc.signal_src(R1b, S0b, TC)
-        roi = dc.signal_sr(R1, S0, TR, FA, TC)
+        aif = dc.signal_free(S0b, R1b, TC, FA)
+        roi = dc.signal_spgr(S0, R1, TC, TR, FA)
     time = np.arange(0, tacq, dt)
     aif = dc.sample(time, t, aif, dt)
     roi = dc.sample(time, t, roi, dt)
@@ -316,7 +316,7 @@ def fake_liver(
     model = 'SS',
     TR = 0.005,
     FA = 15,
-    TC = 0.2,
+    TC = 0.5,
     CNR = np.inf,
     dt_sim = 0.1,
 ):
@@ -348,11 +348,11 @@ def fake_liver(
         S0 (int, optional): Signal scaling factor for tissue (arbitrary 
           units). Defaults to 150.
         model (str, optional): Scanning sequences, either steady-state 
-          ('SS') or saturation-recovery ('SR')
+          ('SS') or Steady-state with inflow effects ('SSI').
         TR (float, optional): Repetition time in sec. Defaults to 0.005.
         FA (int, optional): Flip angle. Defaults to 20.
-        TC (float, optional): time to center of k-space in SR sequence. 
-          This is ignored when sequence='SS'. efaults to 0.2 sec.
+        TC (float, optional): Aortic inflow time for SSI sequence model. 
+          This is ignored when sequence='SS'. Defaults to 0.2 sec.
         CNR (float, optional): Contrast-to-noise ratio, define as the ratio 
           of signal-enhancement in the AIF to noise. Defaults to np.inf.
         dt_sim (float, optional): Sampling inteval of the forward modelling 
@@ -379,13 +379,13 @@ def fake_liver(
     R1v = R10a + rp*cv*(1-H)
     R1 = R10 + rp*C[0, :] + rh*C[1, :]
     if model == 'SS':
-        aif = dc.signal_ss(R1a, S0b, TR, FA)
-        vif = dc.signal_ss(R1v, S0b, TR, FA)
-        roi = dc.signal_ss(R1, S0, TR, FA)
-    elif model == 'SR':
-        aif = dc.signal_src(R1a, S0b, TC)
-        vif = dc.signal_src(R1v, S0b, TC)
-        roi = dc.signal_sr(R1, S0, TR, FA, TC)
+        aif = dc.signal_ss(S0b, R1a, TR, FA)
+        vif = dc.signal_ss(S0b, R1v, TR, FA)
+        roi = dc.signal_ss(S0, R1, TR, FA)
+    elif model == 'SSI':
+        aif = dc.signal_spgr(S0b, R1a, TC, TR, FA, n0=1)
+        vif = dc.signal_ss(S0b, R1v, TR, FA)
+        roi = dc.signal_ss(S0, R1, TR, FA)
     time = np.arange(0, tacq, dt)
     aif = dc.sample(time, t, aif, dt)
     vif = dc.sample(time, t, vif, dt)
@@ -473,11 +473,11 @@ def fake_tissue2scan(
 
     # Generate the signals from the first scan
     if model == 'SS':
-        aif = dc.signal_ss(R1b, S0b1, TR, FA)
-        roi = dc.signal_ss(R1, S01, TR, FA)
+        aif = dc.signal_ss(S0b1, R1b, TR, FA)
+        roi = dc.signal_ss(S01, R1, TR, FA)
     elif model == 'SR':
-        aif = dc.signal_src(R1b, S0b1, TC)
-        roi = dc.signal_sr(R1, S01, TR, FA, TC)
+        aif = dc.signal_free(S0b1, R1b, TC, FA)
+        roi = dc.signal_spgr(S01, R1, TC, TR, FA)
     time1 = np.arange(0, tacq, dt)
     aif1 = dc.sample(time1, t, aif, dt)
     roi1 = dc.sample(time1, t, roi, dt)
@@ -487,11 +487,11 @@ def fake_tissue2scan(
 
     # Generate the second signals
     if model == 'SS':
-        aif = dc.signal_ss(R1b, S0b2, TR, FA)
-        roi = dc.signal_ss(R1, S02, TR, FA)
+        aif = dc.signal_ss(S0b2, R1b, TR, FA)
+        roi = dc.signal_ss(S02, R1, TR, FA)
     elif model == 'SR':
-        aif = dc.signal_src(R1b, S0b2, TC)
-        roi = dc.signal_sr(R1, S02, TR, FA, TC)
+        aif = dc.signal_free(S0b2, R1b, TC, FA)
+        roi = dc.signal_spgr(S02, R1, TC, TR, FA)
     time2 = np.arange(tacq+tbreak, 2*tacq+tbreak, dt)
     aif2 = dc.sample(time2, t, aif, dt)
     roi2 = dc.sample(time2, t, roi, dt)
@@ -584,13 +584,13 @@ def fake_kidney(
     R1c = R10c + rp*Cc
     R1m = R10m + rp*Cm
     if model == 'SS':
-        aif = dc.signal_ss(R1b, S0b, TR, FA)
-        roic = dc.signal_ss(R1c, S0, TR, FA)
-        roim = dc.signal_ss(R1m, S0, TR, FA)
+        aif = dc.signal_ss(S0b, R1b, TR, FA)
+        roic = dc.signal_ss(S0, R1c, TR, FA)
+        roim = dc.signal_ss(S0, R1m, TR, FA)
     elif model == 'SR':
-        aif = dc.signal_src(R1b, S0b, TC)
-        roic = dc.signal_sr(R1c, S0, TR, FA, TC)
-        roim = dc.signal_sr(R1m, S0, TR, FA, TC)
+        aif = dc.signal_free(S0b, R1b, TC, FA)
+        roic = dc.signal_spgr(S0, R1c, TC, TR, FA)
+        roim = dc.signal_spgr(S0, R1m, TC, TR, FA)
     time = np.arange(0, tacq, dt)
     aif = dc.sample(time, t, aif, dt)
     roic = dc.sample(time, t, roic, dt)

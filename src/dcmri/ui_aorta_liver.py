@@ -482,8 +482,8 @@ class AortaLiver(ui.Model):
         """Relaxation rates in aorta and liver.
 
         Returns:
-            tuple: time points, aorta blood concentrations, liver 
-              concentrations.
+            tuple: time points, aorta blood R1, liver 
+              R1.
         """
         t, R1b = self._relax_aorta()
         t, R1l = self._relax_liver()
