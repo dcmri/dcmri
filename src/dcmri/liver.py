@@ -104,7 +104,7 @@ def conc_liver(ca, t=None, dt=1.0, sum=True, cv=None, **params):
           explicity provided. Defaults to 1.0.
         sum (bool, optional): For two-compartment tissues, set to True to 
           return the total tissue concentration. Defaults to True.
-        cv (array-like, optional): portal venous concentration for dual-inlet 
+        cv (array-like, optional): portal venous blood concentration for dual-inlet 
           models. Defaults to None.
         params (dict): the model parameters as keyword arguments. See table 
           :ref:`table-liver-models` for possible options.

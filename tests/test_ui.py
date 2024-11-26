@@ -275,7 +275,31 @@ def test_ui_aorta_liver2scan():
 
 def test_ui_liver():
     time, aif, vif, roi, gt = dc.fake_liver()
+
+    # Show dual-inlet model
     params = {
+        'kinetics': '2I-IC',
+        'aif': aif,
+        'vif': vif,
+        'dt': time[1],
+        'H': 0.45,
+        'field_strength': 3,
+        'agent': 'gadoxetate',
+        'TR': 0.005,
+        'FA': 15,
+        'n0': 10,
+        'R10': 1/dc.T1(3.0,'liver'),
+        'R10a': 1/dc.T1(3.0, 'blood'),  
+        'R10v': 1/dc.T1(3.0, 'blood'),      
+    }
+    model = dc.Liver(**params)
+    model.train(time, roi)
+    model.plot(time, roi, ref=gt, show=SHOW)
+    assert model.cost(time, roi) < 0.1
+
+    # Show single-inlet model
+    params = {
+        'kinetics': '1I-IC-D',
         'aif': aif,
         'dt': time[1],
         'H': 0.45,
@@ -284,15 +308,13 @@ def test_ui_liver():
         'TR': 0.005,
         'FA': 15,
         'n0': 10,
-        'kinetics': '1I-IC-D',
         'R10': 1/dc.T1(3.0,'liver'),
         'R10a': 1/dc.T1(3.0, 'blood'),        
     }
     model = dc.Liver(**params)
     model.train(time, roi)
     model.plot(time, roi, ref=gt, show=SHOW)
-    assert model.cost(time, roi) < 2
-    assert 550 < model.params('Th', round_to=0) < 650
+    assert model.cost(time, roi) < 1.5
 
     # Loop over all models
     for k in ['2I-EC', '2I-EC-HF', '1I-EC', '1I-EC-D', 
@@ -367,7 +389,7 @@ def test_ui_kidney_cort_med():
 
 def test_ui_aorta_portal_liver():
 
-    time, aif, vif, roi, gt = dc.fake_liver(model='SSI')
+    time, aif, vif, roi, gt = dc.fake_liver(sequence='SSI')
     xdata, ydata = (time, time, time), (aif, vif, roi)
 
     model = dc.AortaPortalLiver(

@@ -15,7 +15,7 @@ class Liver(ui.Model):
 
     Args:
         kinetics (str, optional): Tracer-kinetic model. See table 
-          :ref:`table-liver-models` for options. Defaults to '2C-EC'.
+          :ref:`table-liver-models` for options. Defaults to '2I-EC'.
         stationary (str, optional): Stationarity regime of the hepatocytes. 
           The options are 'UE', 'E', 'U' or None. For more detail 
           see :ref:`liver-tissues`. Defaults to 'UE'.
@@ -55,7 +55,7 @@ class Liver(ui.Model):
 
     Example:
 
-        Derive model parameters from simulated data:
+        Fit a dual-inlet liver model:
 
     .. plot::
         :include-source:
@@ -69,19 +69,24 @@ class Liver(ui.Model):
         >>> time, aif, vif, roi, gt = dc.fake_liver()
 
         Build a tissue model and set the constants to match the experimental 
-        conditions of the synthetic test data:
+        conditions of the synthetic test data. Note the default model is the 
+        dual-inlet model for extracellular agents (2I-EC). Since the 
+        synthetic data are generated with an intracellular agent, the default 
+        for the kinetic model needs to be overwritten:
 
         >>> model = dc.Liver(
+        ...     kinetics = '2I-IC',
         ...     aif = aif,
+        ...     vif = vif, 
         ...     dt = time[1],
         ...     agent = 'gadoxetate',
         ...     field_strength = 3.0,
         ...     TR = 0.005,
         ...     FA = 15,
         ...     n0 = 10,
-        ...     kinetics = '1I-IC-D',
         ...     R10 = 1/dc.T1(3.0,'liver'),
         ...     R10a = 1/dc.T1(3.0, 'blood'), 
+        ...     R10v = 1/dc.T1(3.0, 'blood'), 
         ... )
 
         Train the model on the ROI data:
@@ -89,7 +94,9 @@ class Liver(ui.Model):
         >>> model.train(time, roi)
 
         Plot the reconstructed signals (left) and concentrations (right) and 
-        compare the concentrations against the noise-free ground truth:
+        compare the concentrations against the noise-free ground truth. Since 
+        the data are analysed with an exact model, and there are no other data 
+        errors present, this should fior the data exactly.
 
         >>> model.plot(time, roi, ref=gt)
 
@@ -289,7 +296,7 @@ class Liver(ui.Model):
 
     def __init__(
             self, 
-            kinetics='2C-EC', stationary='UE', sequence='SS', config=None,
+            kinetics='2I-EC', stationary='UE', sequence='SS', config=None,
             aif=None, ca=None, vif=None, cv=None, t=None, dt=0.5,
             free=None, **params):
 
@@ -589,8 +596,11 @@ class Liver(ui.Model):
         ax1.plot(t/60, 1000*self.ca, linestyle='-', linewidth=3.0,
                  color='darkred', label='Arterial blood measurement')
         if self.cv is not None:
+            if ref is not None:
+                ax1.plot(ref['t']/60, 1000*ref['cv'], marker='o', linestyle='None',
+                        color='orchid', label='Portal venous blood')
             ax1.plot(t/60, 1000*self.cv, linestyle='-', linewidth=3.0,
-                 color='blue', label='Portal-venous blood measurement')
+                 color='purple', label='Portal-venous blood measurement')
         ax1.set(xlabel='Time (min)', ylabel='Concentration (mM)',
                 xlim=np.array(xlim)/60)
         ax1.legend()

@@ -313,7 +313,7 @@ def fake_liver(
     R10 = 1/dc.T1(3.0, 'liver'),
     S0b = 100,
     S0 = 150,
-    model = 'SS',
+    sequence = 'SS',
     TR = 0.005,
     FA = 15,
     TC = 0.5,
@@ -347,7 +347,7 @@ def fake_liver(
           units). Defaults to 100.
         S0 (int, optional): Signal scaling factor for tissue (arbitrary 
           units). Defaults to 150.
-        model (str, optional): Scanning sequences, either steady-state 
+        sequence (str, optional): Scanning sequences, either steady-state 
           ('SS') or Steady-state with inflow effects ('SSI').
         TR (float, optional): Repetition time in sec. Defaults to 0.005.
         FA (int, optional): Flip angle. Defaults to 20.
@@ -371,18 +371,18 @@ def fake_liver(
     t = np.arange(0, tacq+dt, dt_sim)
     cp = dc.aif_parker(t, BAT)
     cv = dc.flux_comp(cp, Tg, t)
-    C = dc.conc_liver(cp*(1-H), dt=dt_sim, cv=cv, sum=False,
+    C = dc.conc_liver(cp*(1-H), dt=dt_sim, cv=cv*(1-H), sum=False,
                       H=H, ve=ve, Fp=Fp, fa=fa, Ta=Ta, khe=khe, Th=Th)
     rp = dc.relaxivity(field_strength, 'plasma', agent)
     rh = dc.relaxivity(field_strength, 'hepatocytes', agent)
     R1a = R10a + rp*cp*(1-H)
     R1v = R10a + rp*cv*(1-H)
     R1 = R10 + rp*C[0, :] + rh*C[1, :]
-    if model == 'SS':
+    if sequence == 'SS':
         aif = dc.signal_ss(S0b, R1a, TR, FA)
         vif = dc.signal_ss(S0b, R1v, TR, FA)
         roi = dc.signal_ss(S0, R1, TR, FA)
-    elif model == 'SSI':
+    elif sequence == 'SSI':
         aif = dc.signal_spgr(S0b, R1a, TC, TR, FA, n0=1)
         vif = dc.signal_ss(S0b, R1v, TR, FA)
         roi = dc.signal_ss(S0, R1, TR, FA)
@@ -394,7 +394,8 @@ def fake_liver(
     aif = dc.add_noise(aif, sdev)
     vif = dc.add_noise(vif, sdev)
     roi = dc.add_noise(roi, sdev)
-    gt = {'t': t, 'cp': cp, 'cv':cv, 'C': np.sum(C,axis=0), 'cb': cp*(1-H),
+    gt = {'t': t, 'cp': cp, 'cv':cv*(1-H), 
+          'C': np.sum(C,axis=0), 'cb': cp*(1-H),
           've': ve, 'Fp': Fp, 
           'Fb': Fp/(1-H), 'fa': fa, 'Ta': Ta, 'khe': khe, 'Th': Th,
           'TR': TR, 'FA': FA, 'S0': S0}
