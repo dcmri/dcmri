@@ -56,7 +56,7 @@ class AortaPortalLiver(ui.Model):
 
         Use `fake_liver` to generate synthetic test data:
 
-        >>> time, aif, vif, roi, _ = dc.fake_liver(model='SSI')
+        >>> time, aif, vif, roi, _ = dc.fake_liver(sequence='SSI')
 
         Since this model generates 3 time curves, the x- and y-data are 
         tuples:
