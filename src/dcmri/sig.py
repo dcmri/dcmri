@@ -12,9 +12,6 @@ import numpy as np
 def _Mz_K(R1, v, Fw):
     if np.isscalar(R1):
         return R1 + Fw/v
-    if np.isscalar(v):
-        raise ValueError(
-            'In a tissue with n compartments, v must be an n-element array.')
     nc = np.size(R1)
     K = np.zeros((nc, nc))
     if np.isscalar(Fw):
@@ -179,7 +176,8 @@ def Mz_free(R1, T, v=1, Fw=0, j=None, n0=0, me=1):
             M = np.empty(nt)
             for t in range(nt):
                 jt = None if j is None else j[t]
-                M[t] = Mz_free(R1[t], T, v=v, Fw=Fw, j=jt, n0=n0, me=me)
+                n0t = n0 if np.isscalar(n0) else n0[t]
+                M[t] = Mz_free(R1[t], T, v=v, Fw=Fw, j=jt, n0=n0t, me=me)
             return M
         
         K = _Mz_K(R1, v, Fw)
@@ -190,6 +188,9 @@ def Mz_free(R1, T, v=1, Fw=0, j=None, n0=0, me=1):
         M0 = np.multiply(np.multiply(n0, me), v)
         return np.dot(E, M0) + np.dot(I-E, np.dot(Kinv, J))
 
+    if np.isscalar(v):
+        raise ValueError(
+            'In a tissue with n compartments, v must be an n-element array.')
     n = np.shape(R1)
     R1 = np.reshape(R1, (n[0], -1))
     if j is not None:
@@ -197,7 +198,11 @@ def Mz_free(R1, T, v=1, Fw=0, j=None, n0=0, me=1):
     M = np.empty(R1.shape)
     for t in range(R1.shape[1]):
         jt = None if j is None else j[:,t]
-        M[:,t] = Mz_free(R1[:,t], T, v=v, Fw=Fw, j=jt, n0=n0, me=me) 
+        if np.ndim(n0)==2:
+            n0t = n0[:,t]
+        else:
+            n0t = n0
+        M[:,t] = Mz_free(R1[:,t], T, v=v, Fw=Fw, j=jt, n0=n0t, me=me) 
     return M.reshape(n)  
 
 
@@ -328,7 +333,9 @@ def Mz_ss(R1, TR, FA, v=1, Fw=0, j=None, me=1) -> np.ndarray:
             return M
         return me*_Nz_ss(R1, TR, FA, v, Fw, j)
 
-    # reshape for convenience
+    if np.isscalar(v):
+        raise ValueError(
+            'In a tissue with n compartments, v must be an n-element array.')
     n = np.shape(R1)
     R1 = np.reshape(R1, (n[0], -1))
     if j is not None:
@@ -393,17 +400,13 @@ def _Nz_ss_fex(R1, TR, FA, v, Fw=0, j=None):
     return np.stack([N*vc/np.sum(v) for vc in v])
 
 def _Nz_ss_nex(R1, TR, FA, v, Fw=0, j=None):
-    
     if j is None:
         N = [_Nz_ss_1c(R1[c], TR, FA, v[c]) for c in range(np.size(v))]
     else:
         N = []
+        fo = np.diag(Fw)
         for c in range(np.size(v)):
-            if j is None:
-                Nc = _Nz_ss_1c(R1[c], TR, FA, v[c])
-            else:
-                fo = np.diag(Fw)
-                Nc = _Nz_ss_1c(R1[c], TR, FA, v[c], fo[c], j[c]) 
+            Nc = _Nz_ss_1c(R1[c], TR, FA, v[c], fo[c], j[c]) 
             N.append(Nc)
     return np.stack(N)
       
@@ -530,7 +533,8 @@ def Mz_spgr(R1, T, TR, FA, v=1, Fw=0, j=None, n0=0, me=1):
             M = np.empty(nt)
             for t in range(nt):
                 jt = None if j is None else j[t]
-                M[t] = Mz_spgr(R1[t], T, TR, FA, v, Fw, jt, n0, me)
+                n0t = n0 if np.isscalar(n0) else n0[t]
+                M[t] = Mz_spgr(R1[t], T, TR, FA, v, Fw, jt, n0t, me)
             return M
     
         nx = T/TR
@@ -540,7 +544,10 @@ def Mz_spgr(R1, T, TR, FA, v=1, Fw=0, j=None, n0=0, me=1):
         K = _Mz_K(R1, v, Fw)
         E = expm(-T*K)
         return Mss + ncFA*np.dot(E, M0-Mss)
-    
+
+    if np.isscalar(v):
+        raise ValueError(
+            'In a tissue with n compartments, v must be an n-element array.')
     n = np.shape(R1)
     R1 = np.reshape(R1, (n[0], -1))
     if j is not None:
@@ -548,7 +555,11 @@ def Mz_spgr(R1, T, TR, FA, v=1, Fw=0, j=None, n0=0, me=1):
     M = np.empty(R1.shape)
     for t in range(R1.shape[1]):
         jt = None if j is None else j[:,t]
-        M[:,t] = Mz_spgr(R1[:,t], T, TR, FA, v, Fw, jt, n0, me)
+        if np.ndim(n0)==2:
+            n0t = n0[:,t]
+        else:
+            n0t = n0
+        M[:,t] = Mz_spgr(R1[:,t], T, TR, FA, v, Fw, jt, n0t, me)
     return M.reshape(n) 
 
 
@@ -738,7 +749,12 @@ def signal_spgr(S0, R1, T, TR, FA, TP=0.0,
         S0 = S0/signal_spgr(1, R10, T, TR, FA, TP, v, Fw, j, n0)
     if TP>0:
         N0 = Mz_free(R1, TP, v, Fw, j, n0)
-        n0 = np.divide(N0, v)
+        if np.ndim(N0)==2:
+            n0 = N0
+            for t in range(N0.shape[1]):
+                n0[:,t] = np.divide(N0[:,t], v)
+        else:
+            n0 = np.divide(N0, v)
     Mz = Mz_spgr(R1, T, TR, FA, v, Fw, j, n0)
     if np.isscalar(Mz):
         return S0 * np.sin(FA*np.pi/180) * np.abs(Mz)
