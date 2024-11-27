@@ -205,7 +205,7 @@ class ArrayModel():
         """
         return _cost(self, xdata, ydata, metric)
 
-    def export_params(self) -> list:
+    def export_params(self) -> dict:
         """Model parameters with descriptions.
 
         Returns:

@@ -418,13 +418,13 @@ def expconv(f, T, t=None, dt=1.0):
     f = np.array(f)
     n = len(f)
     t = tarray(n, t=t, dt=dt)
-    g = np.zeros(n)
     x = (t[1:n] - t[0:n-1])/T
     df = (f[1:n] - f[0:n-1])/x
     E = np.exp(-x)
     E0 = 1-E
     E1 = x-E0
     add = f[0:n-1]*E0 + df*E1
+    g = np.zeros(n, dtype=E.dtype) 
     for i in range(0, n-1):
         g[i+1] = E[i]*g[i] + add[i]
     return g

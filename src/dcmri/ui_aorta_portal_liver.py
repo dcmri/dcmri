@@ -160,10 +160,10 @@ class AortaPortalLiver(ui.Model):
             * - BAT, CO, Thl, Dhl, To, Eo, Tie, Eb
               - Always
               - :ref:`whole-body-tissues`
-            * - H, ve, De
+            * - Tg , Dg
               - Always
-              - :ref:`table-liver-models`
-            * - khe, Th, 
+              - Gut dispersion
+            * - H, Fp, fa, Ta, ve, khe, Th
               - Always
               - :ref:`table-liver-models`
 
@@ -347,6 +347,11 @@ class AortaPortalLiver(ui.Model):
               - 0.85
               - [0, 1]
               - Free
+            * - uv
+              - Kinetic
+              - 1
+              - [0, 1]
+              - Free
             * - 
               - **Liver**
               -
@@ -357,47 +362,32 @@ class AortaPortalLiver(ui.Model):
               - 0.45
               - [0, 1]
               - Fixed
-            * - Te
-              - Kinetic
-              - 30
-              - [0.1, 60]
-              - Free
-            * - De
-              - Kinetic
-              - 0.85
-              - [0, 1]
-              - Free
             * - ve
               - Kinetic
               - 0.3
               - [0.01, 0.6]
+              - Free
+            * - Fp
+              - Kinetic
+              - 0.01
+              - [0, 0.1]
+              - Free
+            * - fa
+              - Kinetic
+              - 0.2
+              - [0, 0.1]
+              - Free
+            * - Ta
+              - Kinetic
+              - 0.5
+              - [0, 3]
               - Free
             * - khe
               - Kinetic
               - 0.003
               - [0, 0.1]
               - Free
-            * - khe_i
-              - Kinetic
-              - 0.003
-              - [0, 0.1]
-              - Free
-            * - khe_f
-              - Kinetic
-              - 0.003
-              - [0, 0.1]
-              - Free
             * - Th
-              - Kinetic
-              - 1800
-              - [600, 36000]
-              - Free
-            * - Th_i
-              - Kinetic
-              - 1800
-              - [600, 36000]
-              - Free
-            * - Th_f
               - Kinetic
               - 1800
               - [600, 36000]
@@ -493,10 +483,6 @@ class AortaPortalLiver(ui.Model):
         except KeyError:
             pass
         try:
-            p['khe'] = np.mean([p['khe_i'], p['khe_f']])
-        except KeyError:
-            pass
-        try:
             p['Kbh'] = _div(1, p['Th'])
         except KeyError:
             pass
@@ -506,14 +492,6 @@ class AortaPortalLiver(ui.Model):
             pass
         try:
             p['kbh'] = _div(1-p['ve'], p['Th'])
-        except KeyError:
-            pass
-        try:
-            p['kbh_i'] = _div(1-p['ve'], p['Th_i'])
-        except KeyError:
-            pass
-        try:
-            p['kbh_f'] = _div(1-p['ve'], p['Th_f'])
         except KeyError:
             pass
         if p['vol'] is not None:
@@ -565,7 +543,7 @@ class AortaPortalLiver(ui.Model):
     def _relax_portal(self):
         rb = lib.relaxivity(self.field_strength, 'blood', self.agent)
         cv = self._conc_portal()
-        return self.R10a + rb*cv
+        return self.R10a + rb*self.uv*cv
     
     def _predict_portal(self, xdata):
         t = np.arange(0, self.tmax, self.dt)
@@ -1077,6 +1055,14 @@ PARAMS_PORTAL = {
         'name': 'Gut dispersion',
         'unit': '',
     },
+    'uv': {
+        'init': 1.0,
+        'default_free': True,
+        'bounds': [0, 1],
+        'name': 'Portal vein volume fraction',
+        'unit': '',
+    },
+
 }
 
 PARAMS_LIVER = {
@@ -1122,39 +1108,11 @@ PARAMS_LIVER = {
         'name': 'Hepatocellular uptake rate',
         'unit': 'mL/sec/cm3',
     },
-    'khe_i': {
-        'init': 0.003,
-        'default_free': True,
-        'bounds': [0.0, 0.1],
-        'name': 'Initial hepatocellular uptake rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'khe_f': {
-        'init': 0.003,
-        'default_free': True,
-        'bounds': [0.0, 0.1],
-        'name': 'Final hepatocellular uptake rate',
-        'unit': 'mL/sec/cm3',
-    },
     'Th': {
         'init': 30*60,
         'default_free': True,
         'bounds': [10*60, 10*60*60],
         'name': 'Hepatocellular mean transit time',
-        'unit': 'sec',
-    },
-    'Th_i': {
-        'init': 30*60,
-        'default_free': True,
-        'bounds': [10*60, 10*60*60],
-        'name': 'Initial hepatocellular mean transit time',
-        'unit': 'sec',
-    },
-    'Th_f': {
-        'init': 30*60,
-        'default_free': True,
-        'bounds': [10*60, 10*60*60],
-        'name': 'Final hepatocellular mean transit time',
         'unit': 'sec',
     },
     'vol': {
@@ -1181,14 +1139,6 @@ PARAMS_DERIVED = {
     },
     'kbh': {
         'name': 'Biliary excretion rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'kbh_i': {
-        'name': 'Initial biliary excretion rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'kbh_f': {
-        'name': 'Final biliary excretion rate',
         'unit': 'mL/sec/cm3',
     },
     'kbh': {
