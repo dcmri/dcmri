@@ -66,7 +66,7 @@ Typical usage: ROI-based analysis
 .. code-block:: python
 
     # Print the fitted parameters
-    tissue.printParams(round_to=3)               
+    tissue.print_params(round_to=3)               
 
 
 .. code-block:: console
