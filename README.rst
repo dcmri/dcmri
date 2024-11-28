@@ -97,18 +97,15 @@ Typical usage: pixel-based analysis
     time, signal, aif, _ = dc.fake_brain(n) 
 
     # Construct an array of tissues
-    shape = (n,n)
-    image = dc.TissueArray(shape,               
-        aif = aif, 
-        t = time, 
-        kinetics = '2CU', 
-        verbose = 1)   
+    image = dc.TissueArray((n,n),               
+        aif = aif, t = time, 
+        kinetics = '2CU', verbose = 1)   
 
     # Train the tissue array on the data
-    image.train(time, roi)  
+    image.train(time, signal)  
     
     # Plot the parameter maps                  
-    image.plot(time, roi)                        
+    image.plot(time, signal)                        
 
 .. image:: https://dcmri.org/_images/pixel_2cu.png
   :width: 800
