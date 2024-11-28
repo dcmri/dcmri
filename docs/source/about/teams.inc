@@ -48,3 +48,18 @@ Contributors:
      </a>
      <div class="team-member-handle">@plaresmedima</div>
    </div>
+
+   <div class="team-member">
+     <a href="https://github.com/NichVC" class="team-member-name">
+        <div class="team-member-photo">
+           <img
+             src="https://avatars.githubusercontent.com/u/75381201?v=4"
+             loading="lazy"
+             alt="Avatar picture of @NichVC"
+           />
+        </div>
+        Nichlas Vous Christensen
+     </a>
+     <div class="team-member-handle">@NichVC</div>
+   </div>
+
