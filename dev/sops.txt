@@ -122,7 +122,8 @@ Creating a new release (from a fork)
 - Merge the dev branch with the main branch. Check that the documentation builds OK. 
   NOTE: after deploying the documentation the website must be set back to dcmri.org
   Got to https://github.com/dcmri/dcmri/settings/pages and enter https://dcmri.org as custom domain.
-- Build release notes (see above) and push changes to dev and main. Check docs, actions, and badges on README.
+- Build release notes (see above) and push changes to dev and main. Check 
+  docs, actions, and badges on README.
 - Create a release on github, with the main branch as target
 - Create a release on PyPI (see below)
 - Create a release on Zenodo (v1.0 and onwards)

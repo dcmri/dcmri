@@ -4,12 +4,14 @@ Releases
 
 .. note::
 
-   dcmri is under construction. At this stage, the API may still change and features may be deprecated without warning.
+   dcmri is under construction. At this stage, the API may still change and 
+   features may be deprecated without warning.
 
 
 .. toctree::
    :maxdepth: 2
 
+   release_0.6.11
    release_0.6.10
    release_0.6.9
    release_0.6.8
