@@ -241,7 +241,17 @@ def _relax_pars(kin, wex) -> list:
         return ['H', 'vi', 'Ktrans']
 
     if wex == 'FF':
-        return _kin_pars(kin)
+
+        if kin == '2CU':
+            return ['H', 'vb', 'Fb', 'PS']
+        if kin == 'HFU':
+            return ['H', 'vb', 'PS']
+        if kin == 'FX':
+            return ['H', 've', 'Fb']
+        if kin == 'NX':
+            return ['vb', 'Fb']
+        if kin == 'U':
+            return ['Fb']
 
     if wex in ['RR', 'NN', 'NR', 'RN']:
 
@@ -281,25 +291,6 @@ def _relax_pars(kin, wex) -> list:
             return ['vb', 'vi', 'Fb']
         if kin == 'U':
             return ['vc', 'Fb']
-
-def _kin_pars(kin):
-
-    if kin == '2CX':
-        return ['H', 'vb', 'vi', 'Fb', 'PS']
-    if kin == 'HF':
-        return ['H', 'vb', 'vi', 'PS']
-    if kin == 'WV':
-        return ['H', 'vi', 'Ktrans']
-    if kin == '2CU':
-        return ['H', 'vb', 'Fb', 'PS']
-    if kin == 'HFU':
-        return ['H', 'vb', 'PS']
-    if kin == 'FX':
-        return ['H', 've', 'Fb']
-    if kin == 'NX':
-        return ['vb', 'Fb']
-    if kin == 'U':
-        return ['Fb']
 
 
 def signal_tissue(
@@ -416,8 +407,8 @@ def signal_tissue(
     """
     if sequence is None:
         raise ValueError(
-            'sequence is required. Please specify a model \
-             and appropriate sequence parameters.')
+            'sequence is required. Please specify a model and appropriate '
+            'sequence parameters.')
     
     R1, v, Fw = relax_tissue(
         ca, R10, r1, t=t, dt=dt, 
@@ -443,10 +434,21 @@ def signal_tissue(
             sequence['S0'], R1, sequence['TR'], FA, v, Fw, j)
     
     elif sequence['model'] == 'SR':
-        if inflow is not None:
-            raise NotImplementedError(
-                'Inflow correction is currently not \
-                available for signal model SR')
+        if inflow is None:
+            j = None
+        else:
+            if kinetics != '2CX':
+                raise ValueError('Inflow correction is currently only \
+                                 available for 2CX tissues')
+            FAa = inflow['B1corr_a'] * sequence['FA']
+            R1a = rel.relax(ca, inflow['R10a'], r1)
+            na = sig.Mz_spgr(
+                R1a, sequence['TC'], sequence['TR'], FAa, sequence['TP'])
+            if np.isscalar(v):
+                j = Fw*na
+            else:
+                j = np.zeros((len(v), len(na)))
+                j[0, :] = Fw[0,0]*na
         FA = sequence['B1corr'] * sequence['FA']
         return sig.signal_spgr(
             sequence['S0'], R1, sequence['TC'], sequence['TR'], FA, 
@@ -579,8 +581,8 @@ def Mz_tissue(
             j = None
         else:
             if kinetics != '2CX':
-                raise ValueError('Inflow correction is currently only \
-                                 available for 2CX tissues')
+                raise ValueError('Inflow correction is currently only '
+                                 'available for 2CX tissues')
             FAa = inflow['B1corr_a'] * sequence['FA']
             R1a = rel.relax(ca, inflow['R10a'], r1)
             na = sig.Mz_ss(R1a, sequence['TR'], FAa)
@@ -593,10 +595,21 @@ def Mz_tissue(
         return sig.Mz_ss(R1, sequence['TR'], FA, v, Fw, j)
     
     elif sequence['model'] == 'SR':
-        if inflow is not None:
-            raise NotImplementedError(
-                'Inflow correction is currently not \
-                available for signal model SR')
+        if inflow is None:
+            j = None
+        else:
+            if kinetics != '2CX':
+                raise ValueError('Inflow correction is currently only '
+                                 'available for 2CX tissues')
+            FAa = inflow['B1corr_a'] * sequence['FA']
+            R1a = rel.relax(ca, inflow['R10a'], r1)
+            na = sig.Mz_spgr(
+                R1a, sequence['TC'], sequence['TR'], FAa, sequence['TP'])
+            if np.isscalar(v):
+                j = Fw*na
+            else:
+                j = np.zeros((len(v), len(na)))
+                j[0, :] = Fw[0,0]*na
         FA = sequence['B1corr'] * sequence['FA']
         return sig.Mz_spgr(
             R1, sequence['TC'], sequence['TR'], FA,  sequence['TP'], v, Fw)
