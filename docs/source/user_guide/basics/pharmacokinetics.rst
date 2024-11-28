@@ -182,7 +182,7 @@ Here *K* is the **rate constant** of the compartment. The solution is:
     C(t) = e^{-Kt}*J_\mathrm{in}(t)
 
 This shows that the residue function of a compartment is a mono-exponential, 
-and its mean transit time is the therefore reciprocal *1/K*. The propaqgator 
+and its mean transit time is therefore the reciprocal *1/K*. The propagator 
 of a compartment is a normalized exponential:
 
 .. math::
@@ -259,17 +259,17 @@ A **plug-flow compartment** is a serial arrangement of a compartment with
 mean transit time *DT* and and plug-flow system with mean transit time 
 *(1-D)T* (see section :ref:`reference-pfcomp` for implementations). The total 
 mean transit time of a plug-flow compartment is *T*. The dimensionless 
-parameter *D* can take any values in the interal [0,1] and the system has 
+parameter *D* can take any values in the interval [0,1] and the system has 
 a plug-flow system (D=0) and a compartment (D=1) as special cases. 
 
-The propagator :math:`h_\mathrm{PC}` of a plug-flow compartment is a delayed 
+The propagator of a plug-flow compartment is a delayed 
 exponential function:
 
 .. math::
 
-    h_\mathrm{PC}(t<(1-D)T) &= 0 
+    h(t<(1-D)T) &= 0 
     \\
-    h_\mathrm{PC}(t>(1-D)T) &= \frac{e^{-(t-(1-D)T)/DT}}{DT}
+    h(t>(1-D)T) &= \frac{e^{-(t-(1-D)T)/DT}}{DT}
 
 A plug-flow compartment is similar to a chain in that it 
 can be used to model tissues with an unknown level of dispersion by varying 
@@ -292,7 +292,7 @@ with a constant non-zero value between the time points *(1-D)T* and *(1+D)T*
 And h(t)=0 otherwise. The mean transit time of a step is T and just like the 
 chain and the plug-flow compartment, the dispersion parameter *D* takes 
 values in the range [0,1] where *D=1* represents maximum dispersion, 
-and *D=0* is a plug-flow system with minimal dispersion.  
+and *D=0* is a plug-flow system without dispersion.  
 
 .. _define-free:
 
@@ -322,7 +322,7 @@ following form:
 
     \frac{dC_i}{dt}(t) = J_i(t) - \sum_{j=1}^n K_{ji}C_i(t) + \sum_{j\neq i}K_{ij}C_j(t)
 
-Here :math:`j_i(t)` is the influx into compartment *i* fom the environment. 
+Here :math:`J_i(t)` is the influx into compartment *i* fom the environment. 
 The system is fully determined by the :math:`n^2` rate constants :math:`K_{ji}`
 which represent the rate constants for the outflux from 
 *i* to *j* if :math:`i\neq j`, and the rate constant for the outflux from 
