@@ -1231,8 +1231,8 @@ def conc_ncomp_diag(J, T, E, t=None, dt=1.0):
     Qi = np.linalg.inv(Q)
     # Initialize concentration-time array
     nc, nt = len(T), len(t)
-    C = np.zeros((nc, nt))
-    Ei = np.empty((nc, nt))
+    C = np.zeros((nc, nt), dtype=K.dtype)
+    Ei = np.zeros((nc, nt), dtype=K.dtype)
     # Loop over the inlets
     for i in range(nc):
         # Loop over the eigenvalues
@@ -1243,7 +1243,8 @@ def conc_ncomp_diag(J, T, E, t=None, dt=1.0):
             Ei[d, :] *= Qi[d, i]
         # Left-multiply with eigenvector matrix
         C += np.matmul(Q, Ei)
-    return C
+    # Absolute value because K can be complex
+    return np.absolute(C)
 
 
 def conc_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
@@ -1252,13 +1253,33 @@ def conc_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
     See section :ref:`define-ncomp` for more detail.
 
     Args:
-        J (array_like): the indicator flux entering the system, as a rectangular 2D array with dimensions *(n,k)*, where *n* is the number of compartments and *k* is the number of time points in *J*. 
-        T (array_like): n-element array with mean transit times of each compartment.
-        E (array_like): dimensionless and square *n x n* matrix. An off-diagonal element *E[j,i]* is the extraction fraction from compartment *i* to compartment *j*. A diagonal element *E[i,i]* is the extraction fraction from compartment *i* to the outside. 
-        t (array_like, optional): the time points of the indicator flux *J*, in the same units as *T*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
-        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as *T*. This parameter is ignored if t is explicity provided. Defaults to 1.0.
-        solver (str, optional): A string specifying the numerical method for solving the system. Two options are available: with `solver = 'diag'` the system is solved by diagonalising the system matrix, with `solver = 'prop'` the system is solved by forward propagation. The default is `'diag'`.
-        dt_prop (float, optional): internal time resolution for the forward propagation when `solver = 'prop'`. This must be in the same units as *T*. If *dt_prop* is not provided, it defaults to the sampling interval, or the smallest time step needed for stable results (whichever is smaller). This argument is ignored when `solver = 'diag'`. Defaults to None. 
+        J (array_like): the indicator flux entering the system, as a 
+          rectangular 2D array with dimensions *(n,k)*, where *n* is the 
+          number of compartments and *k* is the number of time points in *J*. 
+        T (array_like): n-element array with mean transit times of each 
+          compartment.
+        E (array_like): dimensionless and square *n x n* matrix. An 
+          off-diagonal element *E[j,i]* is the extraction fraction from 
+          compartment *i* to compartment *j*. A diagonal element *E[i,i]* is 
+          the extraction fraction from compartment *i* to the outside. 
+        t (array_like, optional): the time points of the indicator flux *J*, 
+          in the same units as *T*. If *t* is not provided, the time points 
+          are assumed to be uniformly spaced with spacing *dt*. Defaults to 
+          None.
+        dt (float, optional): spacing between time points for uniformly 
+          spaced time points, in the same units as *T*. This parameter is 
+          ignored if t is explicity provided. Defaults to 1.0.
+        solver (str, optional): A string specifying the numerical method for 
+          solving the system. Two options are available: with 
+          `solver = 'diag'` the system is solved by diagonalising the system 
+          matrix, with `solver = 'prop'` the system is solved by forward 
+          propagation. The default is `'diag'`.
+        dt_prop (float, optional): internal time resolution for the forward 
+          propagation when `solver = 'prop'`. This must be in the same units 
+          as *T*. If *dt_prop* is not provided, it defaults to the sampling 
+          interval, or the smallest time step needed for stable results 
+          (whichever is smaller). This argument is ignored when 
+          `solver = 'diag'`. Defaults to None. 
 
     Returns:
         numpy.ndarray: Concentration in each compartment, and at each time point, as a 2D array with dimensions *(n,k)*, where *n* is the number of compartments and *k* is the number of time points in *J*. 
@@ -1439,8 +1460,8 @@ def res_ncomp(T, E, t):
     Qi = np.linalg.inv(Q)
     # Initialize concentration-time array
     nc, nt = len(T), len(t)
-    R = np.zeros((nc, nc, nt))
-    Ei = np.empty((nc, nt))
+    R = np.zeros((nc, nc, nt), dtype=K.dtype)
+    Ei = np.zeros((nc, nt), dtype=K.dtype)
     # Loop over the inlets
     for i in range(nc):
         # Loop over the eigenvalues
@@ -1451,7 +1472,8 @@ def res_ncomp(T, E, t):
             Ei[d, :] *= Qi[d, i]
         # Left-multiply with eigenvector matrix
         R[i, :, :] = np.matmul(Q, Ei)
-    return R
+    # Absolute because K can be complex
+    return np.absolute(R)
 
 
 def prop_ncomp(T, E, t):

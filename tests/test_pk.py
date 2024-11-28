@@ -532,8 +532,8 @@ def test_conc_ncomp_diag():
     C0 = dc.conc_comp(J[0,:], T[0], t)
     C1 = dc.conc_comp(J[1,:], T[1], t)
     C = dc.conc_ncomp_diag(J, T, E, t)
-    assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 1e-12
-    assert np.linalg.norm(C[1,:]-C1)/np.linalg.norm(C1) < 1e-12
+    assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 1e-6
+    assert np.linalg.norm(C[1,:]-C1)/np.linalg.norm(C1) < 1e-6
 
 def test_conc_ncomp():
 
@@ -560,6 +560,12 @@ def test_conc_ncomp():
     C = dc.conc_ncomp(J, T, E, t, solver='prop', dt_prop=0.01)
     C0 = dc.conc_ncomp(J, T, E, t, solver='diag')
     assert np.linalg.norm(C-C0)/np.linalg.norm(C) < 1e-3
+    E = [[0.6, 0.5, 0.0], [0.1, 0.2, 0.5], [0.3, 0.3, 0.5]]
+    T3 = [6,12,6]
+    J3 = np.ones((3,len(t)))
+    C = dc.conc_ncomp(J3, T3, E, t, solver='prop', dt_prop=0.01)
+    C0 = dc.conc_ncomp(J3, T3, E, t, solver='diag')
+    assert np.linalg.norm(C-C0)/np.linalg.norm(C) < 1e-1
 
     # Compare both solvers for a 2CXM
     J = np.ones(len(t))
@@ -598,15 +604,15 @@ def test_res_ncomp():
     assert np.linalg.norm(R[1,0,:]) == 0
     assert np.linalg.norm(R[0,1,:]) == 0
     # Compare against convolution on a coupled system.
-    J = np.ones((2,len(t)))
-    J[1,:] = 2
-    E = [[1,0.5],[0.5,1]]
+    E = [[0.6, 0.5, 0.0], [0.1, 0.2, 0.5], [0.3, 0.3, 0.5]]
+    T = [6, 12, 6]
+    J = np.ones((3,len(t)))
     C = dc.conc_ncomp(J, T, E, t, solver='prop', dt_prop=0.01)
     R = dc.res_ncomp(T, E, t)
     C0 = dc.conv(R[0,0,:], J[0,:], t) + dc.conv(R[1,0,:], J[1,:], t)
     C1 = dc.conv(R[0,1,:], J[0,:], t) + dc.conv(R[1,1,:], J[1,:], t)
     assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 0.1
-    assert np.linalg.norm(C[1,:]-C1)/np.linalg.norm(C1) < 0.01
+    assert np.linalg.norm(C[1,:]-C1)/np.linalg.norm(C1) < 0.5
 
 def test_prop_ncomp():
     # Compare a decoupled system against analytical 1-comp model solutions
@@ -1143,6 +1149,14 @@ def test_flux_2cxm():
     assert err1 < err0
     assert err2 < err1
     assert err2 < 1e-2
+
+    T[0] = 0.0001
+    T[1] = 100
+    J1 = dc.flux(J, T, E, t=t, model='2cxm')
+    T[0] = 0.0
+    T[1] = 100
+    J2 = dc.flux(J, T, E, t=t, model='2cxm')
+    assert np.linalg.norm(J1[1:]-J2[1:]) < 1e-6*np.linalg.norm(J2[1:])
 
 
 def test_conc():

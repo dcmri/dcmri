@@ -114,6 +114,7 @@ Creating a new release (from a fork)
 
 = Enforce PEP8 (see above)
 - Run the test suite in a clean environment (see above) and check test coverage (see above)
+- Add any new contributors to the teams.inc file (About)
 - Build the documentation (see above)
 - Update the version number in the below locations, push and check that the test action passes. If it passes, make a pull-request to push to dev.
     - pyproject.toml

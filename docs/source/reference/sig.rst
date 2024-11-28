@@ -21,9 +21,8 @@ Signal models
    signal_dsc
    signal_t2w
    signal_ss
-   signal_sr
-   signal_er
-   signal_src
+   signal_spgr
+   signal_free
    signal_lin
 
 
@@ -40,16 +39,3 @@ Inverse signal models
    conc_ss
    conc_src
    conc_lin
-
-
-Relaxation
-==========
-
-.. autosummary::
-   :toctree: ../generated/api/
-   :template: autosummary.rst
-
-   relax
-
-
-   

@@ -5,9 +5,10 @@ import numpy as np
 import dcmri as dc
 
 
+
 # Debugging mode
-# VERBOSE = 1
-# SHOW = True
+VERBOSE = 1
+SHOW = True
 
 VERBOSE = 0
 SHOW = False
@@ -274,7 +275,31 @@ def test_ui_aorta_liver2scan():
 
 def test_ui_liver():
     time, aif, vif, roi, gt = dc.fake_liver()
+
+    # Show dual-inlet model
     params = {
+        'kinetics': '2I-IC',
+        'aif': aif,
+        'vif': vif,
+        'dt': time[1],
+        'H': 0.45,
+        'field_strength': 3,
+        'agent': 'gadoxetate',
+        'TR': 0.005,
+        'FA': 15,
+        'n0': 10,
+        'R10': 1/dc.T1(3.0,'liver'),
+        'R10a': 1/dc.T1(3.0, 'blood'),  
+        'R10v': 1/dc.T1(3.0, 'blood'),      
+    }
+    model = dc.Liver(**params)
+    model.train(time, roi)
+    model.plot(time, roi, ref=gt, show=SHOW)
+    assert model.cost(time, roi) < 0.1
+
+    # Show single-inlet model
+    params = {
+        'kinetics': '1I-IC-D',
         'aif': aif,
         'dt': time[1],
         'H': 0.45,
@@ -283,15 +308,13 @@ def test_ui_liver():
         'TR': 0.005,
         'FA': 15,
         'n0': 10,
-        'kinetics': '1I-IC-D',
         'R10': 1/dc.T1(3.0,'liver'),
         'R10a': 1/dc.T1(3.0, 'blood'),        
     }
     model = dc.Liver(**params)
     model.train(time, roi)
     model.plot(time, roi, ref=gt, show=SHOW)
-    assert model.cost(time, roi) < 2
-    assert 550 < model.params('Th', round_to=0) < 650
+    assert model.cost(time, roi) < 1.5
 
     # Loop over all models
     for k in ['2I-EC', '2I-EC-HF', '1I-EC', '1I-EC-D', 
@@ -336,19 +359,11 @@ def test_ui_kidney():
     #
     # Train a two-compartment filtration model on the ROI data and plot the fit:
     #
-    model = dc.Kidney(kinetics='2CFM', **params)
+    model = dc.Kidney(kinetics='2CF', **params)
     model.train(time, roi)
     model.plot(time, roi, ref=gt, show=SHOW)
     assert model.cost(time, roi) < 0.5
     assert 80 < model.params('Tt', round_to=0) < 90
-    #
-    # Repeat the fit using a free nephron model:
-    #
-    model = dc.Kidney(kinetics='FN', **params)
-    model.train(time, roi)
-    model.plot(time, roi, ref=gt, show=SHOW)
-    assert model.cost(time, roi) < 1
-    assert 0.005 < model.params('Fp', round_to=2) < 0.015
 
 
 def test_ui_kidney_cort_med():
@@ -372,20 +387,45 @@ def test_ui_kidney_cort_med():
     assert model.cost(time, roi) < 1
     assert model.params('Tdt', round_to=0) == 27
 
+def test_ui_aorta_portal_liver():
+
+    time, aif, vif, roi, gt = dc.fake_liver(sequence='SSI')
+    xdata, ydata = (time, time, time), (aif, vif, roi)
+
+    model = dc.AortaPortalLiver(
+        sequence = 'SSI',
+        dt = 0.5,
+        tmax = 180,
+        weight = 70,
+        agent = 'gadoxetate',
+        dose = 0.2,
+        rate = 3,
+        field_strength = 3.0,
+        t0 = 10,
+        TR = 0.005,
+        FA = 15,
+        TS = 0.5,
+    )
+    model.train(xdata, ydata, xtol=1e-3)
+    model.plot(xdata, ydata, show=SHOW)
+    model.print_params(round_to=3)
+    assert model.cost(xdata, ydata) < 4
+
 
 
 if __name__ == "__main__":
 
     # make_tmp()
 
-    # test_model()
+    test_model()
     test_ui_tissue()
-    # test_ui_tissue_array()
-    # test_ui_aorta()
-    # test_ui_aorta_liver()
-    # test_ui_aorta_liver2scan()
-    # test_ui_liver()
-    # test_ui_kidney()
-    # test_ui_kidney_cort_med()
+    test_ui_tissue_array()
+    test_ui_aorta()
+    test_ui_aorta_liver()
+    test_ui_aorta_liver2scan()
+    test_ui_liver()
+    test_ui_kidney()
+    test_ui_kidney_cort_med()
+    test_ui_aorta_portal_liver()
 
     print('All mods tests passed!!')

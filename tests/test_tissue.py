@@ -482,9 +482,102 @@ def test_flux_tissue():
         assert False
 
 
+def test_params_tissue():
+
+    try:
+        dc.params_tissue('XX', 'RR')
+    except:
+        assert True
+    else:
+        assert False
+
+    try:
+        dc.params_tissue('2CX', 'XX')
+    except:
+        assert True
+    else:
+        assert False
+
+    for kinetics in ['2CX', '2CU', 'HF', 'HFU', 'NX', 'FX', 'WV', 'U']:
+        for wxe in ['F','N', 'R']:
+            for wxc in ['F','N', 'R']:
+                dc.params_tissue(kinetics, wxe+wxc)
+
+
+def test_signal_tissue():
+    nt = 10
+    R10 = 1
+    r1 = 0.005
+    ca = np.ones(nt)
+    try:
+        dc.signal_tissue(ca, R10, r1, dt=1.0, kinetics='2CX', 
+                         water_exchange='FF')
+    except:
+        assert True
+    else:
+        assert False
+    pars = {
+        'H':0.45, 
+        'vb': 0.1,
+        'vi': 0.3,
+        'Fb': 0.5,
+        'PS': 0.005,
+    }
+    seq = {
+        'model': 'SS', 
+        'S0':1, 
+        'FA':15, 
+        'TR': 0.001, 
+        'B1corr':1,
+    }
+    S = dc.signal_tissue(ca, R10, r1, dt=1.0, kinetics='2CX', 
+                         water_exchange='FF', sequence=seq, **pars)
+    assert 0.007 < S[0] < 0.008
+    inflow = {'R10a': 0.7, 'B1corr_a':1}
+    try:
+        dc.signal_tissue(
+            ca, R10, r1, dt=1.0, kinetics='2CU', water_exchange='FF', 
+            sequence=seq, inflow=inflow, **pars)
+    except:
+        assert True
+    else:
+        assert False
+    S = dc.signal_tissue(
+        ca, R10, r1, dt=1.0, kinetics='2CX', water_exchange='FF', 
+        sequence=seq, inflow=inflow, **pars)
+    assert 0.007 < S[0] < 0.008
+    
+    seq = {
+        'model': 'SR', 
+        'S0':1, 
+        'FA':15, 
+        'TR': 0.001, 
+        'TC': 0.2,
+        'TP': 0.1,
+        'B1corr':1,
+    }
+    S = dc.signal_tissue(ca, R10, r1, dt=1.0, kinetics='2CX', 
+                         water_exchange='FF', sequence=seq, **pars)
+    assert 0.007 < S[0] < 0.008
+    inflow = {'R10a': 0.7, 'B1corr_a':1}
+    try:
+        dc.signal_tissue(
+            ca, R10, r1, dt=1.0, kinetics='2CU', water_exchange='FF', 
+            sequence=seq, inflow=inflow, **pars)
+    except:
+        assert True
+    else:
+        assert False
+    S = dc.signal_tissue(
+        ca, R10, r1, dt=1.0, kinetics='2CX', water_exchange='FF', 
+        sequence=seq, inflow=inflow, **pars)
+    assert 0.007 < S[0] < 0.008
 
 
 if __name__ == "__main__":
+
+    test_signal_tissue()
+    test_params_tissue()
 
     test__conc_u()
     test__flux_u()

@@ -19,33 +19,135 @@ def test_signal_t2w():
     S = dc.signal_t2w(R2, S0, TE)
     assert S==1
 
+def test_Mz_free():
+    R1 = 1
+    T = [1,2]
+    S = dc.Mz_free(R1, T)
+    assert 0.6 < S[0] < 0.7
+    R1 = [1,1]
+    S = dc.Mz_free(R1, T)
+    assert 0.6 < S[0,0] < 0.7
+    R1 = 1
+    T = 1
+    S = dc.Mz_free(R1, T)
+    assert 0.6 < S < 0.7
+    R1 = [1,1]
+    S = dc.Mz_free(R1, T)
+    assert 0.6 < S[0] < 0.7
+    v = [0.2, 0.3]
+    S = dc.Mz_free(R1, T, v)
+    assert 0.1 < S[0] < 0.2
+    R1 = np.ones((2,3))
+    j = np.ones((2,3))
+    S = dc.Mz_free(R1, T, v, j=j)
+    assert 0.7 < S[0,0] < 0.8
+    S = dc.Mz_free(R1, T, v)
+    assert 0.1 < S[0,0] < 0.2
+    S = dc.Mz_free(R1, T, v, n0=[0,0])
+    assert 0.1 < S[0,0] < 0.2
+    S = dc.Mz_free(R1, T, v, n0=np.zeros((2,3)))
+    assert 0.1 < S[0,0] < 0.2
+    v = 1
+    try:
+        S = dc.Mz_free(R1, T, v)
+    except:
+        assert True
+    else:
+        assert False
+
+def test_Mz_ss():
+    R1 = 1
+    TR = 0.005
+    FA = 15
+    S = dc.Mz_ss(R1, TR, FA)
+    assert 0.1 < S < 0.2
+    S = dc.Mz_ss(0, TR, FA)
+    assert S==0
+    R1 = [1,1]
+    S = dc.Mz_ss(R1, TR, FA)
+    assert 0.1 < S[0] < 0.2
+    v = [0.2, 0.3]
+    S = dc.Mz_ss(R1, TR, FA, v)
+    assert 0.02 < S[0] < 0.03
+    S = dc.Mz_ss(R1, TR, FA, v, Fw=0.1)
+    assert 0.02 < S[0] < 0.03
+    R1 = np.ones((2,3))
+    j = np.ones((2,3))
+    S = dc.Mz_ss(R1, TR, FA, v, j=j)
+    assert 0.02 < S[0,0] < 0.03
+    S = dc.Mz_ss(R1, TR, FA, v)
+    assert 0.02 < S[0,0] < 0.03
+    v = 1
+    try:
+        S = dc.Mz_ss(R1, TR, FA, v)
+    except:
+        assert True
+    else:
+        assert False
+
+
+def test_Mz_spgr():
+    R1 = 1
+    T = [1, 2]
+    TR = 0.005
+    FA = 15
+    S = dc.Mz_spgr(R1, T, TR, FA)
+    assert 0.1 < S[0] < 0.2
+    R1 = [1,1]
+    S = dc.Mz_spgr(R1, T, TR, FA)
+    assert 0.1 < S[0,0] < 0.2
+    R1 = 1
+    T = 1
+    S = dc.Mz_spgr(R1, T, TR, FA)
+    assert 0.1 < S < 0.2
+    R1 = [1,1]
+    S = dc.Mz_spgr(R1, T, TR, FA)
+    assert 0.1 < S[0] < 0.2
+    v = [0.2, 0.3]
+    S = dc.Mz_spgr(R1, T, TR, FA, v)
+    assert 0.02 < S[0] < 0.03
+    R1 = np.ones((2,3))
+    j = np.ones((2,3))
+    S = dc.Mz_spgr(R1, T, TR, FA, v, j=j)
+    assert 0.02 < S[0,0] < 0.03
+    S = dc.Mz_spgr(R1, T, TR, FA, v)
+    assert 0.02 < S[0,0] < 0.03
+    try:
+        S = dc.Mz_spgr(R1, T, TR, FA, v=1)
+    except:
+        assert True
+    else:
+        assert False
 
 def test_signal_ss():
     R1 = 1
     S0 = 1
     TR = 1
     FA = 0
-    S = dc.signal_ss(R1, S0, TR, FA)
+    S = dc.signal_ss(S0, R1, TR, FA)
     assert S==0
     v = [0.5, 0.5]
     try:
-        S = dc.signal_ss(R1, S0, TR, FA, v=v)
+        S = dc.signal_ss(S0, R1, TR, FA, v=v)
     except:
         assert True
     else:
         assert False
     R1 = [1,1]
-    S = dc.signal_ss(R1, S0, TR, FA, v=v, PSw=np.inf)
+    S = dc.signal_ss(S0, R1, TR, FA, v=v, Fw=np.inf)
     assert S==0
-    S = dc.signal_ss(R1, S0, TR, FA, v=v, PSw=0)
+    S = dc.signal_ss(S0, R1, TR, FA, v=v, Fw=0)
     assert S==0
-    PSw = [[0,1],[1,0]]
-    S = dc.signal_ss(R1, S0, TR, FA, v=v, PSw=PSw)
+    Fw = [[0,1],[1,0]]
+    S = dc.signal_ss(S0, R1, TR, FA, v=v, Fw=Fw)
     assert S==0
     R1 = np.ones((2,10))
-    S = dc.signal_ss(R1, S0, TR, FA, v=v, PSw=np.inf)
+    S = dc.signal_ss(S0, R1, TR, FA, v=v, Fw=np.inf)
     assert 0==np.linalg.norm(S)
-    S = dc.signal_ss(R1, S0, TR, FA, v=v, PSw=0)
+    S = dc.signal_ss(S0, R1, TR, FA, v=v, Fw=0)
+    assert 0==np.linalg.norm(S)
+    R1 = [1,1]
+    S = dc.signal_ss(S0, R1, TR, FA)
     assert 0==np.linalg.norm(S)
 
     # Calibrate on other R10 reference
@@ -53,23 +155,23 @@ def test_signal_ss():
     S0 = 5
     TR = 1
     FA = 45
-    S = dc.signal_ss(R1, S0, TR, FA, R10=R1)
+    S = dc.signal_ss(S0, R1, TR, FA, R10=R1)
     assert np.round(S)==5
     R1 = [1,1]
     v = [0.5, 0.5]
-    S = dc.signal_ss(R1, S0, TR, FA, v=v, R10=R1, PSw=np.inf)
+    S = dc.signal_ss(S0, R1, TR, FA, v=v, R10=R1, Fw=np.inf)
     assert np.round(S)==5
 
     # Check exceptions
     try:
-        S = dc.signal_ss(R1, S0, TR, FA, v=v, PSw=[1,1])
+        S = dc.signal_ss(S0, R1, TR, FA, v=v, Fw=[1,1])
     except:
         assert True
     else:
         assert False
 
     try:
-        S = dc.signal_ss(R1, S0, TR, FA, v=v, PSw=np.ones((3,3)))
+        S = dc.signal_ss(S0, R1, TR, FA, v=v, Fw=np.ones((3,3)))
     except:
         assert True
     else:
@@ -77,7 +179,7 @@ def test_signal_ss():
 
     v = [0.1, 0.4, 0.5]
     try:
-        S = dc.signal_ss(R1, S0, TR, FA, v=v, PSw=0)
+        S = dc.signal_ss(S0, R1, TR, FA, v=v, Fw=0)
     except:
         assert True
     else:
@@ -85,7 +187,7 @@ def test_signal_ss():
 
     R1 = [1,1]
     try:
-        S = dc.signal_ss(R1, S0, TR, FA, v=v)
+        S = dc.signal_ss(S0, R1, TR, FA, v=v)
     except:
         assert True
     else:
@@ -94,7 +196,7 @@ def test_signal_ss():
     # Check boundary regimes with flow
     n = 100
     R1 = np.ones((2,n))
-    Ji = np.ones((2,n))
+    j = np.ones((2,n))
     v = [0.5, 0.5]
     S0 = 1
     TR = 1
@@ -102,22 +204,22 @@ def test_signal_ss():
 
     # No water exchange
     zero = 1e-6
-    PSw = [[0.1,zero],[zero,1]]
-    S1 = dc.signal_ss(R1, S0, TR, FA, v=v, PSw=PSw, Ji=Ji)
-    PSw = [[0.1,0],[0,1]]
-    S2 = dc.signal_ss(R1, S0, TR, FA, v=v, PSw=PSw, Ji=Ji)
+    Fw = [[0.1,zero],[zero,1]]
+    S1 = dc.signal_ss(S0, R1, TR, FA, v=v, Fw=Fw, j=j)
+    Fw = [[0.1,0],[0,1]]
+    S2 = dc.signal_ss(S0, R1, TR, FA, v=v, Fw=Fw, j=j)
     assert np.linalg.norm(S1-S2) < 1e-6*np.linalg.norm(S2)
 
     # Fast water exchange
     inf = 1e+6
-    PSw = np.array([[0.1,inf],[inf,1]])
-    S1 = dc.signal_ss(R1, S0, TR, FA, v=v, PSw=PSw, Ji=Ji)
-    PSw = np.array([[0.1,np.inf],[np.inf,1]])
-    S2 = dc.signal_ss(R1, S0, TR, FA, v=v, PSw=PSw, Ji=Ji)
+    Fw = np.array([[0.1,inf],[inf,1]])
+    S1 = dc.signal_ss(S0, R1, TR, FA, v=v, Fw=Fw, j=j)
+    Fw = np.array([[0.1,np.inf],[np.inf,1]])
+    S2 = dc.signal_ss(S0, R1, TR, FA, v=v, Fw=Fw, j=j)
     assert np.linalg.norm(S1-S2) < 1e-6*np.linalg.norm(S2)
-    PSw = [[0.1,inf],[np.inf,1]]
+    Fw = [[0.1,inf],[np.inf,1]]
     try:
-        S2 = dc.signal_ss(R1, S0, TR, FA, v=v, PSw=PSw, Ji=Ji)
+        S2 = dc.signal_ss(S0, R1, TR, FA, v=v, Fw=Fw, j=j)
     except:
         assert True
     else:
@@ -125,58 +227,43 @@ def test_signal_ss():
     # assert np.linalg.norm(S1-S2) < 1e-6*np.linalg.norm(S2)
 
 
-def test_signal_sr():
+def test_signal_spgr():
     R1 = 1
     S0 = 1
     TR = 1
     FA = 0
     TC = 1
-    TP = 0
-    S = dc.signal_sr(R1, S0, TR, FA, TC, TP)
+    S = dc.signal_spgr(S0, R1, TC, TR, FA, n0=0)
     assert S==0
+   
     v = [0.5, 0.5]
     try:
-        S = dc.signal_sr(R1, S0, TR, FA, TC, TP, v=v)
+        S = dc.signal_spgr(S0, R1, TC, TR, FA, v=v, n0=0)
     except:
         assert True
     else:
         assert False
     R1 = [1,1]
-    S = dc.signal_sr(R1, S0, TR, FA, TC, TP, v=v)
+    S = dc.signal_spgr(S0, R1, TC, TR, FA, v=v, n0=0)
     assert S==0
-    S = dc.signal_sr(R1, S0, TR, FA, TC, TP, v=v, PSw=0)
+    S = dc.signal_spgr(S0, R1, TC, TR, FA, v=v, Fw=0, n0=0)
     assert S==0
-    PSw = [[0,1],[1,0]]
-    try:
-        S = dc.signal_sr(R1, S0, TR, FA, TC, TP, v=v, PSw=PSw)
-    except NotImplementedError:
-        assert True
-    else:
-        assert False
-    #assert S==0
+    Fw = [[0,1],[1,0]]
+    S = dc.signal_spgr(S0, R1, TC, TR, FA, v=v, Fw=Fw, n0=0)
+    assert S==0
     R1 = np.ones((2,10))
-    S = dc.signal_sr(R1, S0, TR, FA, TC, TP, v=v)
+    S = dc.signal_spgr(S0, R1, TC, TR, FA, v=v, n0=0)
     assert 0==np.linalg.norm(S)
-    S = dc.signal_sr(R1, S0, TR, FA, TC, TP, v=v, PSw=0)
+    S = dc.signal_spgr(S0, R1, TC, TR, FA, v=v, Fw=0, n0=0)
+    assert 0==np.linalg.norm(S)
+    S = dc.signal_spgr(S0, R1, TC, TR, FA, TP=10, v=v, Fw=0, n0=0)
+    assert 0==np.linalg.norm(S)
+    S = dc.signal_spgr(S0, [1,1], TC, TR, FA, TP=10, v=v, Fw=0, n0=0)
     assert 0==np.linalg.norm(S)
 
     # Check exceptions
     try:
-        S = dc.signal_sr(R1, S0, TR, FA, TC, TC+1, v=v)
-    except:
-        assert True
-    else:
-        assert False
-
-    try:
-        S = dc.signal_sr(R1, S0, TR, FA, TC, TP, v=v, PSw=[1,1])
-    except:
-        assert True
-    else:
-        assert False
-
-    try:
-        S = dc.signal_sr(R1, S0, TR, FA, TC, TP, v=v, PSw=np.ones((3,3)))
+        S = dc.signal_spgr(S0, R1, TC, TR, FA, v=v, Fw=[1,1], n0=0)
     except:
         assert True
     else:
@@ -184,7 +271,7 @@ def test_signal_sr():
 
     v = [0.1, 0.4, 0.5]
     try:
-        S = dc.signal_sr(R1, S0, TR, FA, TC, TP, v=v, PSw=0)
+        S = dc.signal_spgr(S0, R1, TC, TR, FA, v=v, Fw=0, n0=0)
     except:
         assert True
     else:
@@ -192,7 +279,7 @@ def test_signal_sr():
 
     R1 = [1,1]
     try:
-        S = dc.signal_sr(R1, S0, TR, FA, TC, TP, v=v)
+        S = dc.signal_spgr(S0, R1, TC, TR, FA, v=v, n0=0)
     except:
         assert True
     else:
@@ -203,34 +290,112 @@ def test_signal_sr():
     S0 = 5
     TR = 1
     FA = 45
-    S = dc.signal_sr(R1, S0, TR, FA, TC, TP, R10=R1)
+    S = dc.signal_spgr(S0, R1, TC, TR, FA, R10=R1, n0=0)
     assert np.round(S)==5
     R1 = [1,1]
     v = [0.5, 0.5]
-    S = dc.signal_sr(R1, S0, TR, FA, TC, TP, v=v, R10=R1[0])
+    S = dc.signal_spgr(S0, R1, TC, TR, FA, v=v, R10=R1, n0=0)
     assert np.round(S)==5
 
-
-def test_signal_er():
+    # With preparation
     R1 = 1
     S0 = 1
     TR = 1
     FA = 0
     TC = 1
-    S = dc.signal_er(R1, S0, TR, FA, TC)
+    TP = 0
+    S = dc.signal_spgr(S0, R1, TC, TR, FA, TP)
     assert S==0
+    v = [0.5, 0.5]
+    try:
+        S = dc.signal_spgr(S0, R1, TC, TR, FA, TP, v=v)
+    except:
+        assert True
+    else:
+        assert False
+    R1 = [1,1]
+    S = dc.signal_spgr(S0, R1, TC, TR, FA, TP, v=v)
+    assert S==0
+    R1 = [1,1]
+    S = dc.signal_spgr(S0, R1, TC, TR, FA, TP)
+    assert S[0]==0
+    S = dc.signal_spgr(S0, R1, TC, TR, FA, TP, v=v, Fw=0)
+    assert S==0
+    Fw = [[0,1],[1,0]]
+    S = dc.signal_spgr(S0, R1, TC, TR, FA, TP, v=v, Fw=Fw)
+    assert S==0
+    R1 = np.ones((2,10))
+    S = dc.signal_spgr(S0, R1, TC, TR, FA, TP, v=v)
+    assert 0==np.linalg.norm(S)
+    S = dc.signal_spgr(S0, R1, TC, TR, FA, TP, v=v, Fw=0)
+    assert 0==np.linalg.norm(S)
+
+    # Check exceptions
+    try:
+        S = dc.signal_spgr(S0, R1, TC, TR, FA, TP, v=v, Fw=[1,1])
+    except:
+        assert True
+    else:
+        assert False
+
+    try:
+        S = dc.signal_spgr(S0, R1, TC, TR, FA, TP, v=v, Fw=np.ones((3,3)))
+    except:
+        assert True
+    else:
+        assert False
+
+    v = [0.1, 0.4, 0.5]
+    try:
+        S = dc.signal_spgr(S0, R1, TC, TR, FA, TP, v=v, Fw=0)
+    except:
+        assert True
+    else:
+        assert False
+
+    R1 = [1,1]
+    try:
+        S = dc.signal_spgr(S0, R1, TC, TR, FA, TP, v=v)
+    except:
+        assert True
+    else:
+        assert False
+
+    # Calibrate on other R10 reference
+    R1 = 1
+    S0 = 5
+    TR = 1
+    FA = 45
+    S = dc.signal_spgr(S0, R1, TC, TR, FA, TP, R10=R1)
+    assert np.round(S)==5
+    R1 = [1,1]
+    v = [0.5, 0.5]
+    S = dc.signal_spgr(S0, R1, TC, TR, FA, TP, v=v, R10=R1)
+    assert np.round(S)==5
+
+    # Check convergence to fast exchange
 
 
-def test_signal_src():
+def test_signal_free():
     TC = 0
     R1 = 1
     S0 = 1 
-    S = dc.signal_src(R1, S0, TC, R10=None)
+    FA = 45
+    S = dc.signal_free(S0, R1, TC, FA, R10=None)
     assert S==0
     TC = 1
     S0 = 0
-    S = dc.signal_src(R1, S0, TC, R10=1)
+    S = dc.signal_free(S0, R1, TC, FA, R10=1)
     assert S==0
+    R1 = [1,1]
+    S0 = 1
+    S = dc.signal_free(S0, R1, TC, FA)
+    assert 0.4 < S[0] < 0.5
+    S = dc.signal_free(S0, R1, TC, FA, v=[0.2, 0.3])
+    assert 0.2 < S < 0.3
+    R1 = np.ones((2,3))
+    S = dc.signal_free(S0, R1, TC, FA, v=[0.2, 0.3])
+    assert 0.2 < S[0] < 0.3
 
 
 def test_signal_lin():
@@ -272,20 +437,37 @@ def test_conc_lin():
     C = dc.conc_lin(S, T10, r1=1, n0=1)
     assert np.linalg.norm(C)==0
 
+def test_signal():
+    S = dc.signal('SRC', 1, 2, TC=0.1, FA=10)
+    assert 0.03 < S < 0.04
+    S = dc.signal('SR', 1, 2, TC=0.1, FA=10, TR=0.005)
+    assert 0.02 < S < 0.03
+    S = dc.signal('SS', 1, 2, FA=10, TR=0.005)
+    assert 0.08 < S < 0.09
+    try:
+        S = dc.signal('X', 1, 2)
+    except:
+        assert True
+    else:
+        assert False
+
 
 if __name__ == "__main__":
 
-    # test_signal_dsc()
-    # test_signal_t2w()
+    test_signal()
+    test_signal_dsc()
+    test_signal_t2w()
+    test_Mz_free()
+    test_Mz_ss()
+    test_Mz_spgr()
     test_signal_ss()
-    # test_signal_sr()
-    # test_signal_er()
-    # test_signal_src()
-    # test_signal_lin()
+    test_signal_spgr()
+    test_signal_free()
+    test_signal_lin()
 
-    # test_conc_t2w()
-    # test_conc_ss()
-    # test_conc_src()
-    # test_conc_lin()
+    test_conc_t2w()
+    test_conc_ss()
+    test_conc_src()
+    test_conc_lin()
 
     print('All sig tests passing!')

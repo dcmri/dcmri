@@ -9,12 +9,6 @@
 
    
    
-   .. rubric:: Attributes
-
-   .. autosummary::
-   
-      ~Kidney.free
-   
    
 
 

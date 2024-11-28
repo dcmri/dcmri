@@ -141,7 +141,7 @@ In `dcmri` this model is implemented in the function `dcmri.signal_ss`:
 
 .. code-block:: python
 
-  S = signal_ss(R1, Sinf, TR, FA)
+  S = signal_ss(Sinf, R1, TR, FA)
 
 Here *R1* is either a scalar, or a 1D array if it is variable. The other 
 variables are scalar.
@@ -155,16 +155,16 @@ now we must use the vector form of the magnetization (see section
 
 .. math::
 
-  \mathbf{M} = e^{-T_R\,\mathbf{\Lambda}}\mathbf{M}\cos\alpha 
-  + \left(1-e^{-T_R\,\mathbf{\Lambda}}\right) \mathbf{\Lambda}^{-1}\mathbf{J}
+  \mathbf{M} = e^{-T_R\,\mathbf{K}}\mathbf{M}\cos\alpha 
+  + \left(\mathbf{I}-e^{-T_R\,\mathbf{K}}\right) \mathbf{K}^{-1}\mathbf{J}
 
 The solution is also similar, though we must take care not to commute the 
 matrices:
 
 .. math::
 
-  \mathbf{M} = \left(1 - \cos\alpha\, e^{-T_R\,\mathbf{\Lambda}}\right)^{-1} 
-  \left(1-e^{-T_R\,\mathbf{\Lambda}}\right) \mathbf{\Lambda}^{-1}\mathbf{J} 
+  \mathbf{M} = \left(\mathbf{I} - \cos\alpha\, e^{-T_R\,\mathbf{K}}\right)^{-1} 
+  \left(\mathbf{I}-e^{-T_R\,\mathbf{K}}\right) \mathbf{K}^{-1}\mathbf{J} 
 
 As before the signal is proportional to the total magnetization with now 
 takes the form :math:`\mathbf{e}^T\mathbf{M}` with :math:`\mathbf{e}^T=[1,1]`. 
@@ -175,14 +175,14 @@ defining :math:`\mathbf{j}=\mathbf{J}/m_e` and absorbing the constant
 
 .. math::
 
-  S = S_\infty\, \mathbf{e}^T 
-  \left(1 - \cos\alpha\, e^{-T_R\,\mathbf{\Lambda}}\right)^{-1} 
-  \left(1-e^{-T_R\,\mathbf{\Lambda}}\right) \mathbf{\Lambda}^{-1}\mathbf{j} 
+  S = S_\infty\, \sin\alpha\, \mathbf{e}^T 
+  \left(\mathbf{I} - \cos\alpha\, e^{-T_R\,\mathbf{K}}\right)^{-1} 
+  \left(\mathbf{I}-e^{-T_R\,\mathbf{K}}\right) \mathbf{K}^{-1}\mathbf{j} 
 
 If we ignore the inflow effects then :math:`\mathbf{j}` is determined by 
 relaxation rates :math:`R_{1,k}` and volume fractions :math:`v_{k}` of 
 both compartments, and 
-:math:`\mathbf{\Lambda}` additionally depends on the water permeabilities 
+:math:`\mathbf{K}` additionally depends on the water permeabilities 
 :math:`PS_{kl}` between the compartments. 
 
 This signal model is available 
@@ -193,7 +193,7 @@ barriers between them:
 
 .. code-block:: python
 
-  S = signal_ss(R1, Sinf, TR, FA, v, PS)
+  S = signal_ss(Sinf, R1, TR, FA, v, PS)
 
 In this case *R1* is a 2-element array, or a 2xn array with *n* time points if 
 *R1* is variable, *v* is a 2-element array, and *PS* is a 
@@ -208,13 +208,65 @@ normalized magnetization *j* with the same dimensions as *R1*:
 
 .. code-block:: python
 
-  S = signal_ss(R1, Sinf, TR, FA, v, PS, j)
+  S = signal_ss(Sinf, R1, TR, FA, v, PS, j)
 
 
-Saturation-recovery spoiled gradient-echo
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Spoiled gradient-echo outside the steady state
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-[... coming soon...] 
+If the magnetization is not in steady-state, then we have a different value 
+:math:`\mathbf{M}_n` before each pulse *n*, and we are left with an iteration:
+
+.. math::
+
+  \mathbf{M}_{n+1} = \cos\alpha e^{-T_R\,\mathbf{K}_n}\mathbf{M}_n
+  + \left(\mathbf{I}-e^{-T_R\,\mathbf{K}_n}\right) \mathbf{K}_n^{-1}\mathbf{J}
+
+Since we are considering larger time scales than the short interval TR, we 
+accounted here for the possibility that the matrix :math:`\mathbf{K}` depends 
+on *n* as well. However, it is common at this point to assume that any 
+time dependence of :math:`\mathbf{K}` can be ignored. In an imaging context 
+that is often justifiable when time scales are sufficiently short and the 
+signal is dominated by a single time point corresponding to the center of 
+k-space. 
+
+With a constant :math:`\mathbf{K}`, the difference from one iteration to the 
+next can be written in terms of the steady-state magnetization 
+:math:`\mathbf{M}_{ss}`:
+
+.. math::
+
+  \mathbf{M}_{n+1} - \mathbf{M}_n = 
+  \left(\mathbf{I}-\cos\alpha e^{-T_R\,\mathbf{K}}\right)
+  \left(\mathbf{M}_{ss}-\mathbf{M}_n\right)
+
+In terms of 
+the difference :math:`\mathbf{D}_n=\mathbf{M}_n-\mathbf{M}_{ss}` this 
+reduces to:
+
+.. math::
+
+  \mathbf{D}_{n+1} = \cos\alpha e^{-T_R\,\mathbf{K}}\mathbf{D}_n
+
+This equation is readily solved for any *n*. Reverting back to the 
+magnetization in the solution gives:
+
+.. math::
+
+  \mathbf{M}_n = 
+  \mathbf{M}_{ss} + \cos^n\alpha e^{-nT_R\,\mathbf{K}}
+  \left(\mathbf{M}_0-\mathbf{M}_{ss}\right)
+
+Extracting the equilibrium magnetization by defining 
+:math:`\mathbf{N}=\mathbf{M}/m_{e}`, and absorbing it in the scale factor 
+again we have the formula for the signal of a spoiled gradient-echo sequence:
+
+
+.. math::
+
+  S = S_\infty\sin\alpha\,\mathbf{e}^T\left[
+  \mathbf{N}_{ss} + \cos^n\alpha\, e^{-nT_R\,\mathbf{K}}
+  \left(\mathbf{N}_0-\mathbf{N}_{ss}\right)\right]
 
 
 

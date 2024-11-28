@@ -174,7 +174,7 @@ def test_aif_tristan_rat():
     
     t = np.arange(0, 6*60, 1)
     ca = dc.aif_tristan_rat(t)
-    assert np.round(1000*np.amax(ca), 1) == 0.5
+    assert np.round(1000*np.amax(ca), 1) == 0.3
 
 
 

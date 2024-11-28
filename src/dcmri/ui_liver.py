@@ -15,12 +15,15 @@ class Liver(ui.Model):
 
     Args:
         kinetics (str, optional): Tracer-kinetic model. See table 
-          :ref:`table-liver-models` for options. Defaults to '2C-EC'.
+          :ref:`table-liver-models` for options. Defaults to '2I-EC'.
         stationary (str, optional): Stationarity regime of the hepatocytes. 
           The options are 'UE', 'E', 'U' or None. For more detail 
           see :ref:`liver-tissues`. Defaults to 'UE'.
         sequence (str, optional): imaging sequence. Possible values are 'SS'
           and 'SR'. Defaults to 'SS'.
+        config (str, optional): configuration option for using pre-defined
+          variable values from use cases. Currently, the available options
+          for this are 'TRISTAN-rat'. Defaults to None.
         aif (array-like, optional): Signal-time curve in the blood of the
           feeding artery. If *aif* is not provided, the arterial
           blood concentration is *ca*. Defaults to None.
@@ -52,7 +55,7 @@ class Liver(ui.Model):
 
     Example:
 
-        Derive model parameters from simulated data:
+        Fit a dual-inlet liver model:
 
     .. plot::
         :include-source:
@@ -66,19 +69,24 @@ class Liver(ui.Model):
         >>> time, aif, vif, roi, gt = dc.fake_liver()
 
         Build a tissue model and set the constants to match the experimental 
-        conditions of the synthetic test data:
+        conditions of the synthetic test data. Note the default model is the 
+        dual-inlet model for extracellular agents (2I-EC). Since the 
+        synthetic data are generated with an intracellular agent, the default 
+        for the kinetic model needs to be overwritten:
 
         >>> model = dc.Liver(
+        ...     kinetics = '2I-IC',
         ...     aif = aif,
+        ...     vif = vif, 
         ...     dt = time[1],
         ...     agent = 'gadoxetate',
         ...     field_strength = 3.0,
         ...     TR = 0.005,
         ...     FA = 15,
         ...     n0 = 10,
-        ...     kinetics = '1I-IC-D',
         ...     R10 = 1/dc.T1(3.0,'liver'),
         ...     R10a = 1/dc.T1(3.0, 'blood'), 
+        ...     R10v = 1/dc.T1(3.0, 'blood'), 
         ... )
 
         Train the model on the ROI data:
@@ -86,7 +94,9 @@ class Liver(ui.Model):
         >>> model.train(time, roi)
 
         Plot the reconstructed signals (left) and concentrations (right) and 
-        compare the concentrations against the noise-free ground truth:
+        compare the concentrations against the noise-free ground truth. Since 
+        the data are analysed with an exact model, and there are no other data 
+        errors present, this should fior the data exactly.
 
         >>> model.plot(time, roi, ref=gt)
 
@@ -286,14 +296,39 @@ class Liver(ui.Model):
 
     def __init__(
             self, 
-            kinetics='2C-EC', stationary='UE', sequence='SS', 
+            kinetics='2I-EC', stationary='UE', sequence='SS', config=None,
             aif=None, ca=None, vif=None, cv=None, t=None, dt=0.5,
             free=None, **params):
 
         # Configuration
-        self.kinetics = kinetics
-        self.stationary = stationary
-        self.sequence = sequence
+        if config == 'TRISTAN-rat':
+
+            # Acquisition parameters
+            params['agent'] = 'gadoxetate'
+
+            # Kinetic paramaters
+            self.kinetics = '1I-IC-HF'
+            self.stationary = 'UE'
+            self.sequence = 'SS'
+            params['H'] = 0.418         # Cremer et al, J Cereb Blood Flow
+                                        # Metab 3, 254-256 (1983)
+            params['ve'] = 0.23
+            params['Fp'] = 0.022019     # mL/sec/cm3
+                                        # Fp = (1-H)*Fb, where Fb=2.27 mL/min/mL
+                                        # calculated from Table S2 in 
+                                        # doi: 10.1021/acs.molpharmaceut.1c00206
+            free = {
+                'khe': [0, np.inf], 
+                'Th': [0, np.inf],
+            }
+
+            # Tissue paramaters
+            params['R10'] = 1/lib.T1(params['field_strength'], 'liver'),
+        
+        else:
+            self.kinetics = kinetics
+            self.stationary = stationary
+            self.sequence = sequence
         self._check_config()
 
         # Input function
@@ -376,9 +411,20 @@ class Liver(ui.Model):
             p['kbh'] = (1-p['ve'])*p['Kbh']
         except KeyError:
             pass
+        try:
+            p['E'] = p['khe']/(p['khe']+p['Fp'])
+        except KeyError:
+            try:
+                p['E'] = p['khe']/(p['khe']+self.Fp)
+            except:
+                pass
+        try:
+            p['Ktrans'] = (1-p['E'])*p['khe']
+        except KeyError:
+            pass
         if p['vol'] is not None:
             try:
-                p['CL'] = _div(p['khe'], p['vol'])
+                p['CL'] = p['khe']*p['vol']
             except KeyError:
                 pass
             
@@ -474,10 +520,10 @@ class Liver(ui.Model):
         """
         R1 = self.relax()
         if self.sequence == 'SR':
-            return sig.signal_sr(R1, self.S0, self.TR, 
-                                 self.B1corr * self.FA, self.TC)
+            return sig.signal_spgr(self.S0, R1, self.TC, self.TR, 
+                                 self.B1corr * self.FA)
         else:
-            return sig.signal_ss(R1, self.S0, self.TR, 
+            return sig.signal_ss(self.S0, R1, self.TR, 
                                  self.B1corr * self.FA)
 
     def predict(self, time: np.ndarray):
@@ -511,10 +557,10 @@ class Liver(ui.Model):
             Liver: A reference to the model instance.
         """
         if self.sequence == 'SR':
-            Sref = sig.signal_sr(self.R10, 1, self.TR, 
-                                 self.B1corr * self.FA, self.TC)
+            Sref = sig.signal_spgr(
+                1, self.R10, self.TC, self.TR, self.B1corr * self.FA)
         else:
-            Sref = sig.signal_ss(self.R10, 1, self.TR, 
+            Sref = sig.signal_ss(1, self.R10, self.TR, 
                                 self.B1corr * self.FA)
         self.S0 = np.mean(signal[:self.n0]) / Sref if Sref > 0 else 0
         return ui.train(self, time, signal, **kwargs)
@@ -550,8 +596,11 @@ class Liver(ui.Model):
         ax1.plot(t/60, 1000*self.ca, linestyle='-', linewidth=3.0,
                  color='darkred', label='Arterial blood measurement')
         if self.cv is not None:
+            if ref is not None:
+                ax1.plot(ref['t']/60, 1000*ref['cv'], marker='o', linestyle='None',
+                        color='orchid', label='Portal venous blood')
             ax1.plot(t/60, 1000*self.cv, linestyle='-', linewidth=3.0,
-                 color='blue', label='Portal-venous blood measurement')
+                 color='purple', label='Portal-venous blood measurement')
         ax1.set(xlabel='Time (min)', ylabel='Concentration (mM)',
                 xlim=np.array(xlim)/60)
         ax1.legend()
@@ -805,6 +854,14 @@ PARAMS = {
         'unit': 'cm3',
         'pixel_par': False,
     },
+    'E': {
+        'init': 0.4,
+        'default_free': False,
+        'bounds': [0.0, 1.0],
+        'name': 'Liver extraction fraction',
+        'unit': 'unitless',
+        'pixel_par': False,
+    },
 
     # Derived parameters
     'Fa': {
@@ -821,6 +878,10 @@ PARAMS = {
     },
     'kbh': {
         'name': 'Biliary excretion rate',
+        'unit': 'mL/sec/cm3',
+    },
+    'Ktrans': {
+        'name': 'Hepatic plasma clearance',
         'unit': 'mL/sec/cm3',
     },
     'Kbh': {

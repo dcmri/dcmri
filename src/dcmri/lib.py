@@ -1,4 +1,3 @@
-from copy import deepcopy
 import sys
 import pickle
 
@@ -111,6 +110,64 @@ def fetch(dataset: str) -> dict:
             enhanced MRI: a validation study in healthy volunteers*. Proc 
             Intl Soc Mag Reson Med, Singapore 2024.
 
+        **tristan_gothenburg**
+
+            **Background**: The data aimed to demonstrates the effect of 
+            rifampicin on liver function of patients with impaired function. 
+            The data are provided by the liver work package of the 
+            `TRISTAN project <https://www.imi-tristan.eu/liver>`_  which 
+            develops imaging biomarkers for drug safety assessment. 
+
+            The data were acquired in the aorta and liver in 3 patients with 
+            dynamic gadoxetate-enhanced MRI. The study participants take 
+            rifampicin as part of their routine clinical workup, with an aim 
+            to promote their liver function. For this study, they were taken 
+            off rifampicin 3 days before the first scan, and placed back on 
+            rifampicin 3 days before the second scan. The aim was to 
+            determine the effect if rifampicin in uptake and 
+            excretion function of the liver.
+
+            The data confirmed that patients had significantly reduced uptake 
+            and excretion function in the absence of rifampicin. Rifampicin 
+            adminstration promoted their excretory function but had no effect 
+            on their uptake function. 
+
+            **Data format**: The fetch function returns a list of dictionaries, 
+            one per subject visit. Each dictionary contains the following items:
+
+            - **time1aorta**: array of signals in arbitrary units, for the 
+              aorta in the first scan.
+            - **time2aorta**: array of signals in arbitrary units, for the 
+              aorta in the second scan.
+            - **time1liver**: array of signals in arbitrary units, for the 
+              liver in the first scan.
+            - **time2liver**: array of signals in arbitrary units, for the 
+              liver in the second scan.
+            - **signal1aorta**: array of signals in arbitrary units, for the 
+              aorta in the first scan.
+            - **signal2aorta**: array of signals in arbitrary units, for the 
+              aorta in the second scan.
+            - **signal1liver**: array of signals in arbitrary units, for the 
+              liver in the first scan.
+            - **signal2liver**: array of signals in arbitrary units, for the 
+              liver in the second scan.
+            - **weight**: subject weight in kg.
+            - **agent**: contrast agent generic name (str).
+            - **dose**: 2-element list with contrast agent doses of first scan 
+              and second scan in mL/kg.
+            - **rate**: contrast agent injection rate in mL/sec.
+            - **FA**: Flip angle in degrees
+            - **TR**: repretition time in sec
+            - **t0**: baseline length in subject
+            - **subject**: Volunteer number.
+            - **visit**: either 'control' or 'drug'.
+            - **field_strength**: B0-field of scanner.
+            - **R10b**: precontrast R1 of blood (1st scan).
+            - **R10l**: precontrast R1 of liver (1st scan).
+            - **R102b**:  precontrast R1 of blood (2nd scan).
+            - **R102l**: precontrast R1 of liver (2nd scan).
+            - **Hct**: hematocrit.
+            - **vol**: liver volume in mL.
 
         **tristan6drugs**
 
@@ -227,6 +284,99 @@ def fetch(dataset: str) -> dict:
             dataset for the IMI-WP2-TRISTAN Reproducibility study [Data set]. 
             `Zenodo. <https://doi.org/10.5281/zenodo.7838397>`_
 
+        **tristan_mdosing**
+
+            **Background** These data were taken from a preclinical study 
+            which aimed to investigate the potential of gadoxetate-enhanced 
+            DCE-MRI to study acute inhibition of hepatocyte transporters of 
+            drug-induced liver injury (DILI) causing drugs, and to study
+            potential changes in transporter function after chronic dosing.
+
+            **Data format**: The fetch function returns a list of 
+            dictionaries, one per scan.The dictionaries in the list contain 
+            the following items:
+
+            - **time**: array of time points in sec
+            - **spleen**: array of spleen signals in arbitrary units
+            - **liver**: array of liver signals in arbitrary units.
+            - **FA**: Flip angle in degrees
+            - **TR**: repretition time in sec
+            - **n0**: number of precontrast acquisitions
+            - **study**: an integer identifying the substudy the scan was 
+              taken in
+            - **subject**: a study-specific identifier of the subject in 
+              the range 1-6.
+            - **visit**: either 1 (baseline) or 2 (drug or vehicle/saline).
+            - **center**: center wehere the study was performed, either 
+              E, G or D.
+            - **field_strength**: B0-field of scanner on whuch the study 
+              was performed
+            - **substance**: what was injected, eg. saline, vehicle or 
+              drug name.
+            - **BAT**: Bolus arrival time
+            - **duration**: duration on the injection in sec.
+
+            Please reference the following abstract when using these data:
+
+            Mikael Montelius, Steven Sourbron, Nicola Melillo, Daniel Scotcher, 
+            Aleksandra Galetin, Gunnar Schuetz, Claudia Green, Edvin Johansson, 
+            John C. Waterton, and Paul Hockings. Acute and chronic rifampicin 
+            effect on gadoxetate uptake in rats using gadoxetate DCE-MRI. Int 
+            Soc Mag Reson Med 2021; 2674.
+
+        **kruk_sk_gfr**
+
+            **Background**: data taken from supplementary material of Basak et 
+            al (2018), a study funded by Kidney Research UK. The dataset 
+            includes signal-time curves for aorta, left- and right kidney as 
+            well as sequence parameters and radio-isotope single kidney GFR 
+            values for 114 scans on 100 different subjects. This includes 14 
+            subjects who have had a scan before and after revascularization 
+            treatment.
+
+            **Data format**: The fetch function returns a list of 
+            dictionaries, one per scan. The dictionaries in the list contain 
+            the following items:
+
+            - **subject**: unique study ID of the participant
+            - **time**: array of time points in sec
+            - **aorta**: signal curve in the aorta (arbitrary units)
+            - **visit**: for participants that had just a single visit, this 
+              has the value 'single'. For those that had multiple visits, the 
+              value is either 'pre' (before treatment) or 'post' (after 
+              treatment).
+            - **LK**: signal curve in the left kidney (arbitrary units).
+            - **RK**: signal curve in the right kidney (arbitrary units).
+            - **LK vol**: volume of the left kidney (mL).
+            - **RK vol**: volume of the right kidney (mL).
+            - **LK iso-SK-GFR**: radio-isotope SK-GFR for the left kidney 
+              (mL/min).
+            - **RK iso-SK-GFR**: radio-isotope SK-GFR for the right kidney 
+              (mL/min).
+            - **LK T1**: precontrast T1-value of the left kidney (sec).
+            - **RK T1**: precontrast T1-value of the right kidney (sec).
+            - **TR**: repetition time or time between rf-pulses (sec)
+            - **FA**: flip angle (degrees)
+            - **n0**: number of precontrast acquisitions.
+            - **field_strength**: Magnetic field strength of the scanner (T)
+            - **agent**: Contrast agent generic name
+            - **dose**: contrast agent dose injected (mmol/kg)
+            - **rate**: rate of contrast agent injection (mL/sec)
+            - **weight**: participant weight (kg)
+
+            Note: if data are missing for a particular scan, they will not be 
+            in the dictionary for that scan. For instance, if a participant 
+            does not have a right kidney, the items starting with *RK* are 
+            not present.
+
+            Please reference the following paper when using these data:
+
+            Basak S, Buckley DL, Chrysochou C, Banerji A, Vassallo D, Odudu A, 
+            Kalra PA, Sourbron SP. Analytical validation of single-kidney 
+            glomerular filtration rate and split renal function as measured 
+            with magnetic resonance renography. Magn Reson Imaging. 2019 
+            Jun;59:53-60. doi: 10.1016/j.mri.2019.03.005. 
+            `[URL] <https://pubmed.ncbi.nlm.nih.gov/30849485/>`_.
 
     Example:
 
@@ -1314,21 +1464,29 @@ def aif_parker(t, BAT: float = 0.0) -> np.ndarray:
 
 
 def aif_tristan_rat(t, BAT=4.6 * 60, duration=30) -> np.ndarray:
-    """Population AIF model for rats measured with a standard dose of gadoxetate.
+    """Population AIF model for rats measured with a standard dose of 
+    gadoxetate.
 
     Args:
         t (array_like): time points in units of sec.
-        BAT (float, optional): Time in seconds before the bolus arrives. Defaults to 4.6 min.
+        BAT (float, optional): Time in seconds before the bolus arrives. 
+          Defaults to 4.6 min.
         duration (float, optional): Duration of the injection. Defaults to 30s.
 
     Returns:
-        np.ndarray: Concentrations in M for each time point in t. If t is a scalar, the return value is a scalar too.
+        np.ndarray: Blood concentrations in M for each time point in t. If 
+        t is a scalar, the return value is a scalar too.
 
     References:
 
-        - Melillo N, Scotcher D, Kenna JG, Green C, Hines CDG, Laitinen I, et al. Use of In Vivo Imaging and Physiologically-Based Kinetic Modelling to Predict Hepatic Transporter Mediated Drug-Drug Interactions in Rats. `Pharmaceutics 2023;15(3):896 <https://doi.org/10.3390/pharmaceutics15030896>`_.
+        - Melillo N, Scotcher D, Kenna JG, Green C, Hines CDG, Laitinen I, 
+          et al. Use of In Vivo Imaging and Physiologically-Based Kinetic 
+          Modelling to Predict Hepatic Transporter Mediated Drug-Drug 
+          Interactions in Rats. 
+          `Pharmaceutics 2023;15(3):896 <https://doi.org/10.3390/pharmaceutics15030896>`_.
 
-        - Gunwhy, E. R., & Sourbron, S. (2023). TRISTAN-RAT (v3.0.0). `Zenodo <https://doi.org/10.5281/zenodo.8372595>`_
+        - Gunwhy, E. R., & Sourbron, S. (2023). TRISTAN-RAT (v3.0.0). 
+          `Zenodo <https://doi.org/10.5281/zenodo.8372595>`_
 
     Example:
 
@@ -1345,14 +1503,14 @@ def aif_tristan_rat(t, BAT=4.6 * 60, duration=30) -> np.ndarray:
 
         Generate the rat input function for these time points:
 
-        >>> cp = dc.aif_tristan_rat(t)
+        >>> cb = dc.aif_tristan_rat(t)
 
         Plot the result:
 
-        >>> plt.plot(t/60, 1000*cp, 'r-')
+        >>> plt.plot(t/60, 1000*cb, 'r-')
         >>> plt.title('TRISTAN rat AIF')
         >>> plt.xlabel('Time (min)')
-        >>> plt.ylabel('Plasma concentration (mM)')
+        >>> plt.ylabel('Blood concentration (mM)')
         >>> plt.show()
     """
     # Constants
@@ -1414,4 +1572,4 @@ def aif_tristan_rat(t, BAT=4.6 * 60, duration=30) -> np.ndarray:
     Jp = pk.flux_2cxm(J, [TP, TE], E, t)
     cp = Jp / K
 
-    return cp
+    return cp * (1 - Hct)
