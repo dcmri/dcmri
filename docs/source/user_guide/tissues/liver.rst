@@ -131,7 +131,7 @@ Definitions and notations
       - Eqs. :eq:`liver-extracellular-hf` and :eq:`liver-hepatocytes`
     * - 2I-IC-U
       - Dual-inlet intracellular uptake
-      - ve, Fp, fa, Ta, Th
+      - ve, Fp, fa, Ta, khe
       - Eqs. :eq:`liver-extracellular` and :eq:`liver-hepatocytes-uptake`
     * - **Single-inlet intracellular**
       - 

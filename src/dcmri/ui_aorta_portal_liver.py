@@ -13,17 +13,21 @@ import dcmri.liver as liver
 
 
 class AortaPortalLiver(ui.Model):
-    """Joint model for aorta and liver signals.
+    """Joint model for aorta, portal vein and liver signals.
 
-    This models uses a whole-body model to predict aorta concentrations, and 
-    uses those as input for a liver model. The whole body model assumes the 
-    organs can be modelled as a 2-compartment exchange model, and the liver 
-    is modelled with a single-inlet dispersion model for intracellular agent. 
+    This model uses a whole-body model to simultaneously predict signals in 
+    aorta, portal vein and liver.  
 
     For more detail on the whole-body model, see :ref:`whole-body-tissues`. 
     For more detail on the liver model, see :ref:`liver-tissues`. 
 
     Args:
+        kinetics (str, optional): Tracer-kinetic liver model. See table 
+          :ref:`table-liver-models` for options - only dual-inlet models 
+          are allowed. Defaults to '2I-EC'.
+        stationary (str, optional): For intracellular tracers - stationarity 
+          regime of the hepatocytes. The options are 'UE', 'E', 'U' or None. 
+          For more detail see :ref:`liver-tissues`. Defaults to 'UE'.
         sequence (str, optional): imaging sequence. Possible values are 'SS'
           and 'SSI' (steady-state with aortic inflow correction). Defaults 
           to 'SS'.
@@ -67,6 +71,7 @@ class AortaPortalLiver(ui.Model):
         conditions of the fake liver data:
 
         >>> model = dc.AortaPortalLiver(
+        ...     kinetics = '2I-IC',
         ...     sequence = 'SSI',
         ...     dt = 0.5,
         ...     tmax = 180,
@@ -127,8 +132,8 @@ class AortaPortalLiver(ui.Model):
     Notes:
 
         Table :ref:`AortaPortalLiver-parameters` lists the parameters that are 
-        relevant in each regime. Table :ref:`AortaPortalLiver-defaults` list all 
-        possible parameters and their default settings. 
+        relevant in each regime. Table :ref:`AortaPortalLiver-defaults` list 
+        all possible parameters and their default settings. 
 
         .. _AortaPortalLiver-parameters:
         .. list-table:: **Aorta-Liver parameters**
@@ -163,8 +168,8 @@ class AortaPortalLiver(ui.Model):
             * - Tg , Dg
               - Always
               - Gut dispersion
-            * - H, Fp, fa, Ta, ve, khe, Th
-              - Always
+            * - H, ve, Fp, fa, Ta, Tg, khe, khe_i, kh_f, Th, Th_i, Th_f.
+              - Depends on **kinetics** and **stationary**
               - :ref:`table-liver-models`
 
         .. _AortaPortalLiver-defaults:
@@ -387,7 +392,27 @@ class AortaPortalLiver(ui.Model):
               - 0.003
               - [0, 0.1]
               - Free
+            * - khe_i
+              - Kinetic
+              - 0.003
+              - [0, 0.1]
+              - Free
+            * - khe_f
+              - Kinetic
+              - 0.003
+              - [0, 0.1]
+              - Free
             * - Th
+              - Kinetic
+              - 1800
+              - [600, 36000]
+              - Free
+            * - Th_i
+              - Kinetic
+              - 1800
+              - [600, 36000]
+              - Free
+            * - Th_f
               - Kinetic
               - 1800
               - [600, 36000]
@@ -400,13 +425,14 @@ class AortaPortalLiver(ui.Model):
 
     """
 
-    def __init__(self, sequence='SS', free=None, **params):
+    def __init__(self, kinetics='2I-EC', stationary='UE', 
+                 sequence='SS', free=None, **params):
 
         # Configuration
-        self.organs = '2cxm' # fixed
-        self.kinetics = '2I-IC' # fixed
+        self.organs = '2cxm' 
+        self.kinetics = kinetics 
         self.sequence = sequence 
-        self.stationary = 'UE' # fixed
+        self.stationary = stationary
 
         self._check_config()
         self._set_defaults(free=free, **params)
@@ -418,6 +444,8 @@ class AortaPortalLiver(ui.Model):
         if self.sequence not in ['SS', 'SSI']:
             raise ValueError(
                 'Sequence ' + str(self.sequence) + ' is not available.')
+        if self.kinetics[0] != '2':
+            raise ValueError('Only dual-inlet models are allowed.')
         liver.params_liver(self.kinetics, self.stationary)
 
     def _params(self):
@@ -483,6 +511,10 @@ class AortaPortalLiver(ui.Model):
         except KeyError:
             pass
         try:
+            p['khe'] = np.mean([p['khe_i'], p['khe_f']])
+        except KeyError:
+            pass
+        try:
             p['Kbh'] = _div(1, p['Th'])
         except KeyError:
             pass
@@ -494,6 +526,26 @@ class AortaPortalLiver(ui.Model):
             p['kbh'] = _div(1-p['ve'], p['Th'])
         except KeyError:
             pass
+        try:
+            p['kbh_i'] = _div(1-p['ve'], p['Th_i'])
+        except KeyError:
+            pass
+        try:
+            p['kbh_f'] = _div(1-p['ve'], p['Th_f'])
+        except KeyError:
+            pass
+        try:
+            p['E'] = p['khe']/(p['khe']+p['Fp'])
+        except KeyError:
+            try:
+                p['E'] = p['khe']/(p['khe']+self.Fp)
+            except:
+                pass
+        try:
+            p['Ktrans'] = (1-p['E'])*p['khe']
+        except KeyError:
+            pass        
+
         if p['vol'] is not None:
             try:
                 p['CL'] = p['khe']*p['vol']
@@ -561,7 +613,10 @@ class AortaPortalLiver(ui.Model):
         Cl = self._conc_liver(sum=False)
         rp = lib.relaxivity(self.field_strength, 'plasma', self.agent)
         rh = lib.relaxivity(self.field_strength, 'hepatocytes', self.agent)
-        return t, self.R10l + rp*Cl[0, :] + rh*Cl[1, :]
+        if 'IC' in self.kinetics:
+          return t, self.R10l + rp*Cl[0, :] + rh*Cl[1, :]
+        else:
+          return t, self.R10l + rp*Cl
 
     def _predict_liver(self, xdata):
         t, R1l = self._relax_liver()
@@ -731,7 +786,7 @@ class AortaPortalLiver(ui.Model):
                         xlabel='Time (min)')
         _plot_conc_aorta(t, cb, ax2, xlim)
         _plot_conc_portal(t, cv, ax4, xlim)
-        _plot_conc_liver(t, C, ax6, xlim)
+        _plot_conc_liver(self, t, C, ax6, xlim)
         if fname is not None:
             plt.savefig(fname=fname)
         if show:
@@ -795,19 +850,23 @@ def _plot_conc_portal(t, cv, ax, xlim=None):
     ax.legend()
 
 
-def _plot_conc_liver(t, C, ax, xlim=None):
+def _plot_conc_liver(self, t, C, ax, xlim=None):
     color = 'darkblue'
     if xlim is None:
         xlim = [t[0], t[-1]]
     ax.set(xlabel='Time (min)', ylabel='Tissue concentration (mM)',
            xlim=np.array(xlim)/60)
     ax.plot(t/60, 0*t, color='gray')
-    ax.plot(t/60, 1000*C[0, :], linestyle='-.',
-            color=color, linewidth=2.0, label='Extracellular')
-    ax.plot(t/60, 1000*C[1, :], linestyle='--',
-            color=color, linewidth=2.0, label='Hepatocytes')
-    ax.plot(t/60, 1000*(C[0, :]+C[1, :]), linestyle='-',
-            color=color, linewidth=2.0, label='Liver')
+    if 'IC' in self.kinetics:
+        ax.plot(t/60, 1000*C[0, :], linestyle='-.',
+                color=color, linewidth=2.0, label='Extracellular')
+        ax.plot(t/60, 1000*C[1, :], linestyle='--',
+                color=color, linewidth=2.0, label='Hepatocytes')
+        ax.plot(t/60, 1000*(C[0, :]+C[1, :]), linestyle='-',
+                color=color, linewidth=2.0, label='Liver')
+    else:
+        ax.plot(t/60, 1000*C, linestyle='-',
+                color=color, linewidth=2.0, label='Liver')
     ax.legend()
 
 
@@ -954,7 +1013,7 @@ PARAMS_WHOLE_BODY = {
         'init': 60,
         'default_free': True,
         'bounds': [0, np.inf],
-        'name': 'First bolus arrival time',
+        'name': 'Bolus arrival time',
         'unit': 'sec',
     },
     'CO': {
@@ -1108,12 +1167,44 @@ PARAMS_LIVER = {
         'name': 'Hepatocellular uptake rate',
         'unit': 'mL/sec/cm3',
     },
+    'khe_i': {
+        'init': 0.003,
+        'default_free': True,
+        'bounds': [0.0, 0.1],
+        'name': 'Initial hepatocellular uptake rate',
+        'unit': 'mL/sec/cm3',
+        'pixel_par': True,
+    },
+    'khe_f': {
+        'init': 0.003,
+        'default_free': True,
+        'bounds': [0.0, 0.1],
+        'name': 'Final hepatocellular uptake rate',
+        'unit': 'mL/sec/cm3',
+        'pixel_par': True,
+    },
     'Th': {
         'init': 30*60,
         'default_free': True,
         'bounds': [10*60, 10*60*60],
         'name': 'Hepatocellular mean transit time',
         'unit': 'sec',
+    },
+    'Th_i': {
+        'init': 30*60,
+        'default_free': True,
+        'bounds': [10*60, 10*60*60],
+        'name': 'Initial hepatocellular mean transit time',
+        'unit': 'sec',
+        'pixel_par': True,
+    },
+    'Th_f': {
+        'init': 30*60,
+        'default_free': True,
+        'bounds': [10*60, 10*60*60],
+        'name': 'Final hepatocellular mean transit time',
+        'unit': 'sec',
+        'pixel_par': True,
     },
     'vol': {
         'init': None,
@@ -1141,8 +1232,12 @@ PARAMS_DERIVED = {
         'name': 'Biliary excretion rate',
         'unit': 'mL/sec/cm3',
     },
-    'kbh': {
-        'name': 'Biliary excretion rate',
+    'kbh_i': {
+        'name': 'Initial biliary excretion rate',
+        'unit': 'mL/sec/cm3',
+    },
+    'kbh_f': {
+        'name': 'Final biliary excretion rate',
         'unit': 'mL/sec/cm3',
     },
     'Kbh': {
@@ -1151,6 +1246,14 @@ PARAMS_DERIVED = {
     },
     'Khe': {
         'name': 'Hepatocellular tissue uptake rate',
+        'unit': 'mL/sec/cm3',
+    },
+    'E': {
+        'name': 'Liver extraction fraction',
+        'unit': '',
+    },
+    'Ktrans': {
+        'name': 'Hepatic plasma clearance',
         'unit': 'mL/sec/cm3',
     },
     'CL': {

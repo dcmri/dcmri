@@ -14,18 +14,19 @@ import dcmri.liver as liver
 class AortaLiver(ui.Model):
     """Joint model for aorta and liver signals.
 
-    This models uses a whole-body model to predict aorta concentrations, and 
-    uses those as input for a liver model. The whole body model assumes the 
-    organs can be modelled as a 2-compartment exchange model, and the liver 
-    is modelled with a single-inlet dispersion model for intracellular agent. 
+    This model uses a whole-body model to simultaneously predict signals in 
+    aorta and liver.  
 
     For more detail on the whole-body model, see :ref:`whole-body-tissues`. 
     For more detail on the liver model, see :ref:`liver-tissues`. 
 
     Args:
-        stationary (str, optional): Stationarity regime of the hepatocytes. 
-          The options are 'UE', 'E', 'U' or None. For more detail 
-          see :ref:`liver-tissues`. Defaults to 'UE'.
+        kinetics (str, optional): Tracer-kinetic liver model. See table 
+          :ref:`table-liver-models` for options - only single-inlet models 
+          are allowed. Defaults to '1I-IC-D'.
+        stationary (str, optional): For intracellular tracers - stationarity 
+          regime of the hepatocytes. The options are 'UE', 'E', 'U' or None. 
+          For more detail see :ref:`liver-tissues`. Defaults to 'UE'.
         sequence (str, optional): imaging sequence. Possible values are 'SS'
           and 'SR'. Defaults to 'SS'.
         free (dict, optional): Dictionary with free parameters and their
@@ -384,11 +385,12 @@ class AortaLiver(ui.Model):
 
     """
 
-    def __init__(self, stationary='UE', sequence='SS', free=None, **params):
+    def __init__(self, kinetics = '1I-IC-D', stationary='UE', sequence='SS', 
+                 free=None, **params):
 
         # Configuration
         self.organs = '2cxm' # fixed
-        self.kinetics = '1I-IC-D' # fixed
+        self.kinetics = kinetics
         self.sequence = sequence 
         self.stationary = stationary
 
@@ -600,7 +602,7 @@ class AortaLiver(ui.Model):
                         color=['cornflowerblue', 'darkblue'],
                         test=None if ref is None else ref[1])
         _plot_conc_aorta(t, cb, ax2, xlim)
-        _plot_conc_liver(t, C, ax4, xlim)
+        _plot_conc_liver(self, t, C, ax4, xlim)
         if fname is not None:
             plt.savefig(fname=fname)
         if show:
@@ -642,15 +644,19 @@ class AortaLiver(ui.Model):
 class AortaLiver2scan(ui.Model):
     """Joint model for aorta and liver signals measured over two scans.
 
-    This models uses a whole-body model to predict aorta concentrations, and 
-    uses those as input for a liver model. The whole body model assumes the 
-    organs can be modelled as a 2-compartment exchange model, and the liver 
-    is modelled with a single-inlet dispersion model for intracellular agent. 
+    This model uses a whole-body model to simultaneously predict signals in 
+    aorta and liver, measured over two separate scans.
 
     For more detail on the whole-body model, see :ref:`whole-body-tissues`. 
     For more detail on the liver model, see :ref:`liver-tissues`. 
 
     Args:
+        kinetics (str, optional): Tracer-kinetic liver model. See table 
+          :ref:`table-liver-models` for options - only single-inlet models 
+          are allowed. Defaults to '1I-IC-D'.
+        stationary (str, optional): For intracellular tracers - stationarity 
+          regime of the hepatocytes. The options are 'UE', 'E', 'U' or None. 
+          For more detail see :ref:`liver-tissues`. Defaults to 'UE'.
         stationary (str, optional): Stationarity regime of the hepatocytes. 
           The options are 'UE', 'E', 'U' or None. For more detail 
           see :ref:`liver-tissues`. Defaults to 'UE'.
@@ -1018,11 +1024,12 @@ class AortaLiver2scan(ui.Model):
               - Free
     """
 
-    def __init__(self, stationary=None, sequence='SS', free=None, **params):
+    def __init__(self, kinetics = '1I-IC-D', stationary=None, sequence='SS', 
+                 free=None, **params):
 
         # Configuration
         self.organs = '2cxm' # fixed
-        self.kinetics = '1I-IC-D' # fixed
+        self.kinetics = kinetics
         self.sequence = sequence 
         self.stationary = stationary
 
@@ -1271,7 +1278,7 @@ class AortaLiver2scan(ui.Model):
                         color=['cornflowerblue', 'darkblue'],
                         test=None if ref is None else ref[1])
         _plot_conc_aorta(t, cb, ax2, xlim)
-        _plot_conc_liver(t, C, ax4, xlim)
+        _plot_conc_liver(self, t, C, ax4, xlim)
         if fname is not None:
             plt.savefig(fname=fname)
         if show:
@@ -1326,7 +1333,10 @@ def _relax_liver(self):
     Cl = self._conc_liver(sum=False)
     rp = lib.relaxivity(self.field_strength, 'plasma', self.agent)
     rh = lib.relaxivity(self.field_strength, 'hepatocytes', self.agent)
-    return t, self.R10l + rp*Cl[0, :] + rh*Cl[1, :]
+    if 'IC' in self.kinetics:
+        return t, self.R10l + rp*Cl[0, :] + rh*Cl[1, :]
+    else:
+        return t, self.R10l + rp*Cl
 
 
 
@@ -1343,19 +1353,23 @@ def _plot_conc_aorta(t: np.ndarray, cb: np.ndarray, ax, xlim=None):
             color='darkred', linewidth=2.0, label='Aorta')
     ax.legend()
 
-def _plot_conc_liver(t: np.ndarray, C: np.ndarray, ax, xlim=None):
+def _plot_conc_liver(self, t, C, ax, xlim=None):
     color = 'darkblue'
     if xlim is None:
         xlim = [t[0], t[-1]]
     ax.set(xlabel='Time (min)', ylabel='Tissue concentration (mM)',
            xlim=np.array(xlim)/60)
     ax.plot(t/60, 0*t, color='gray')
-    ax.plot(t/60, 1000*C[0, :], linestyle='-.',
-            color=color, linewidth=2.0, label='Extracellular')
-    ax.plot(t/60, 1000*C[1, :], linestyle='--',
-            color=color, linewidth=2.0, label='Hepatocytes')
-    ax.plot(t/60, 1000*(C[0, :]+C[1, :]), linestyle='-',
-            color=color, linewidth=2.0, label='Tissue')
+    if 'IC' in self.kinetics:
+        ax.plot(t/60, 1000*C[0, :], linestyle='-.',
+                color=color, linewidth=2.0, label='Extracellular')
+        ax.plot(t/60, 1000*C[1, :], linestyle='--',
+                color=color, linewidth=2.0, label='Hepatocytes')
+        ax.plot(t/60, 1000*(C[0, :]+C[1, :]), linestyle='-',
+                color=color, linewidth=2.0, label='Tissue')
+    else:
+        ax.plot(t/60, 1000*C, linestyle='-',
+                color=color, linewidth=2.0, label='Tissue')        
     ax.legend()
 
 def _plot_data2scan(t: tuple[np.ndarray, np.ndarray], 
@@ -1400,6 +1414,8 @@ def _check_config(self):
     if self.sequence not in ['SS', 'SR']:
         raise ValueError(
             'Sequence ' + str(self.sequence) + ' is not available.')
+    if self.kinetics[0] != '1':
+        raise ValueError('Only single-inlet models are allowed.')
     liver.params_liver(self.kinetics, self.stationary)
 
 
@@ -1459,6 +1475,17 @@ def _par_values(self, kin=False, export=False, seq=None):
         p['kbh_f'] = _div(1-p['ve'], p['Th_f'])
     except KeyError:
         pass
+        try:
+            p['E'] = p['khe']/(p['khe']+p['Fp'])
+        except KeyError:
+            try:
+                p['E'] = p['khe']/(p['khe']+self.Fp)
+            except:
+                pass
+        try:
+            p['Ktrans'] = (1-p['E'])*p['khe']
+        except KeyError:
+            pass   
     if p['vol'] is not None:
         try:
             p['CL'] = p['khe']*p['vol']
@@ -1802,16 +1829,20 @@ PARAMS_DERIVED = {
         'name': 'Final biliary excretion rate',
         'unit': 'mL/sec/cm3',
     },
-    'kbh': {
-        'name': 'Biliary excretion rate',
-        'unit': 'mL/sec/cm3',
-    },
     'Kbh': {
         'name': 'Biliary tissue excretion rate',
         'unit': 'mL/sec/cm3',
     },
     'Khe': {
         'name': 'Hepatocellular tissue uptake rate',
+        'unit': 'mL/sec/cm3',
+    },
+    'E': {
+        'name': 'Liver extraction fraction',
+        'unit': '',
+    },
+    'Ktrans': {
+        'name': 'Hepatic plasma clearance',
         'unit': 'mL/sec/cm3',
     },
     'CL': {

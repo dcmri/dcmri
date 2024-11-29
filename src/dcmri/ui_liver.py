@@ -16,9 +16,9 @@ class Liver(ui.Model):
     Args:
         kinetics (str, optional): Tracer-kinetic model. See table 
           :ref:`table-liver-models` for options. Defaults to '2I-EC'.
-        stationary (str, optional): Stationarity regime of the hepatocytes. 
-          The options are 'UE', 'E', 'U' or None. For more detail 
-          see :ref:`liver-tissues`. Defaults to 'UE'.
+        stationary (str, optional): For intracellular tracers - stationarity 
+          regime of the hepatocytes. The options are 'UE', 'E', 'U' or None. 
+          For more detail see :ref:`liver-tissues`. Defaults to 'UE'.
         sequence (str, optional): imaging sequence. Possible values are 'SS'
           and 'SR'. Defaults to 'SS'.
         config (str, optional): configuration option for using pre-defined
@@ -384,19 +384,19 @@ class Liver(ui.Model):
         p = {par: getattr(self, par) for par in pars}
 
         try:
-            p['Fa'] = p['fa']*p['Fp']
-            p['Fv'] = (1-p['fa'])*p['Fp']
+            p['Fa'] = p['Fp']*p['fa']
         except KeyError:
             pass
         try:
-            p['Kbh'] = np.mean([
-                _div(1, p['Th_i']), 
-                _div(1, p['Th_f']),
-            ])
+            p['Fv'] = p['Fp']*(1-p['fa'])
         except KeyError:
             pass
         try:
-            p['Kbh'] = _div(1, p['Th'])
+            p['Te'] = _div(p['ve'], p['Fp'])
+        except KeyError:
+            pass
+        try:
+            p['Th'] = np.mean([p['Th_i'], p['Th_f']])
         except KeyError:
             pass
         try:
@@ -404,13 +404,26 @@ class Liver(ui.Model):
         except KeyError:
             pass
         try:
+            p['Kbh'] = _div(1, p['Th'])
+        except KeyError:
+            pass
+        try:
             p['Khe'] = _div(p['khe'], p['ve'])
         except KeyError:
             pass
         try:
-            p['kbh'] = (1-p['ve'])*p['Kbh']
+            p['kbh'] = _div(1-p['ve'], p['Th'])
         except KeyError:
             pass
+        try:
+            p['kbh_i'] = _div(1-p['ve'], p['Th_i'])
+        except KeyError:
+            pass
+        try:
+            p['kbh_f'] = _div(1-p['ve'], p['Th_f'])
+        except KeyError:
+            pass
+
         try:
             p['E'] = p['khe']/(p['khe']+p['Fp'])
         except KeyError:
@@ -854,14 +867,7 @@ PARAMS = {
         'unit': 'cm3',
         'pixel_par': False,
     },
-    'E': {
-        'init': 0.4,
-        'default_free': False,
-        'bounds': [0.0, 1.0],
-        'name': 'Liver extraction fraction',
-        'unit': 'unitless',
-        'pixel_par': False,
-    },
+
 
     # Derived parameters
     'Fa': {
@@ -876,12 +882,12 @@ PARAMS = {
         'name': 'Biliary excretion rate',
         'unit': 'mL/sec/cm3',
     },
-    'kbh': {
-        'name': 'Biliary excretion rate',
+    'kbh_i': {
+        'name': 'Initial biliary excretion rate',
         'unit': 'mL/sec/cm3',
     },
-    'Ktrans': {
-        'name': 'Hepatic plasma clearance',
+    'kbh_f': {
+        'name': 'Final biliary excretion rate',
         'unit': 'mL/sec/cm3',
     },
     'Kbh': {
@@ -890,6 +896,14 @@ PARAMS = {
     },
     'Khe': {
         'name': 'Hepatocellular tissue uptake rate',
+        'unit': 'mL/sec/cm3',
+    },
+    'E': {
+        'name': 'Liver extraction fraction',
+        'unit': '',
+    },
+    'Ktrans': {
+        'name': 'Hepatic plasma clearance',
         'unit': 'mL/sec/cm3',
     },
     'CL': {
