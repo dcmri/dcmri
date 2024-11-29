@@ -556,7 +556,7 @@ confounder.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 33.442 seconds)
+   **Total running time of the script:** (0 minutes 26.212 seconds)
 
 
 .. _sphx_glr_download_generated_examples_tutorials_plot_wex.py:

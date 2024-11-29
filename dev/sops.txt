@@ -102,8 +102,8 @@ Building release notes
 - Get a personal token on https://github.com/settings/tokens (does not need any permissions)
 - Save the token in the environment variable GH_TOKEN. On windows:
 >>> $env:GH_TOKEN='token'
-- Build the changelog from current version to current main. For instance:
->>> changelist QIB-Sheffield/dcmri 0.6.2 main --format rst
+- Build the changelog from current version to current dev. For instance:
+>>> changelist QIB-Sheffield/dcmri 0.6.2 dev --format rst
 - Copy-paste the terminal output in an .rst file and save it in docs/source/releases
 - Edit the content of the file manually as needed
 - Add an entry in the index of docs/source/releases
@@ -113,20 +113,23 @@ Creating a new release (from a fork)
 ------------------------------------
 
 = Enforce PEP8 (see above)
-- Run the test suite in a clean environment (see above) and check test coverage (see above)
+- Run the test suite in a clean environment (see above) and check test 
+  coverage (see above)
 - Add any new contributors to the teams.inc file (About)
-- Build the documentation (see above)
-- Update the version number in the below locations, push and check that the test action passes. If it passes, make a pull-request to push to dev.
+- Update the version number in the below locations, push to dev and check that 
+  all tests pass. Fix issues if not.
     - pyproject.toml
     - docs/source/conf.py
-- Merge the dev branch with the main branch. Check that the documentation builds OK. 
-  NOTE: after deploying the documentation the website must be set back to dcmri.org
-  Got to https://github.com/dcmri/dcmri/settings/pages and enter https://dcmri.org as custom domain.
-- Build release notes (see above) and push changes to dev and main. Check 
-  docs, actions, and badges on README.
-- Create a release on github, with the main branch as target
+- Build release notes (see above), build and check the documentation (see 
+  above), and push changes to dev. 
+- Merge the dev branch with the main branch. 
+  Check that the documentation builds OK. Check README.
+- Set the website back to dcmri.org: Go to 
+  https://github.com/dcmri/dcmri/settings/pages and enter 
+  https://dcmri.org as custom domain.
+- Create a release on github, with the main branch as target. 
 - Create a release on PyPI (see below)
-- Create a release on Zenodo (v1.0 and onwards)
+- v1.0 and onwards: Create a versioned release on Zenodo
 
 
 Creating a PyPi release
