@@ -120,8 +120,8 @@ Creating a new release (from a fork)
   all tests pass. Fix issues if not.
     - pyproject.toml
     - docs/source/conf.py
-- Build release notes (see above), build and check the documentation (see 
-  above), and push changes to dev. 
+- Build release notes (see above), build and check the documentation, and push 
+  changes to dev. 
 - Merge the dev branch with the main branch. 
   Check that the documentation builds OK. Check README.
 - Set the website back to dcmri.org: Go to 
