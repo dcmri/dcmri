@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**112:58.845** total execution time for 10 files **from all galleries**:
+**98:06.342** total execution time for 10 files **from all galleries**:
 
 .. container::
 
@@ -33,32 +33,32 @@ Computation times
      - Time
      - Mem (MB)
    * - :ref:`sphx_glr_generated_examples_liver_plot_tristan_volunteers_2scan.py` (``..\examples\liver\plot_tristan_volunteers_2scan.py``)
-     - 78:10.151
+     - 68:14.648
      - 0.0
    * - :ref:`sphx_glr_generated_examples_liver_plot_tristan_patients.py` (``..\examples\liver\plot_tristan_patients.py``)
-     - 16:05.388
+     - 13:36.366
      - 0.0
    * - :ref:`sphx_glr_generated_examples_liver_plot_tristan_volunteers.py` (``..\examples\liver\plot_tristan_volunteers.py``)
-     - 14:40.363
+     - 13:02.585
      - 0.0
    * - :ref:`sphx_glr_generated_examples_liver_plot_tristan_repro.py` (``..\examples\liver\plot_tristan_repro.py``)
-     - 01:08.887
+     - 00:56.176
      - 0.0
    * - :ref:`sphx_glr_generated_examples_liver_plot_tristan_mdosing.py` (``..\examples\liver\plot_tristan_mdosing.py``)
-     - 00:57.137
+     - 00:48.950
      - 0.0
    * - :ref:`sphx_glr_generated_examples_liver_plot_tristan6drugs.py` (``..\examples\liver\plot_tristan6drugs.py``)
-     - 00:43.364
+     - 00:33.962
      - 0.0
    * - :ref:`sphx_glr_generated_examples_tutorials_plot_wex.py` (``..\examples\tutorials\plot_wex.py``)
-     - 00:33.442
+     - 00:26.212
      - 0.0
    * - :ref:`sphx_glr_generated_examples_kidney_plot_gfr_validation.py` (``..\examples\kidney\plot_gfr_validation.py``)
-     - 00:28.685
+     - 00:20.074
      - 0.0
    * - :ref:`sphx_glr_generated_examples_tutorials_plot_aif.py` (``..\examples\tutorials\plot_aif.py``)
-     - 00:06.577
+     - 00:03.892
      - 0.0
    * - :ref:`sphx_glr_generated_examples_tutorials_plot_convolution.py` (``..\examples\tutorials\plot_convolution.py``)
-     - 00:04.851
+     - 00:03.476
      - 0.0

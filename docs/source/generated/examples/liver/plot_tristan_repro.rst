@@ -245,7 +245,7 @@ value, indicating that the parameters are measured reliably:
     Biliary tissue excretion rate (Kbh): 0.004 mL/sec/cm3
     Hepatocellular tissue uptake rate (Khe): 0.099 mL/sec/cm3
     Biliary excretion rate (kbh): 0.003 mL/sec/cm3
-    Liver extraction fraction (E): 0.508 unitless
+    Liver extraction fraction (E): 0.508 
     Hepatic plasma clearance (Ktrans): 0.011 mL/sec/cm3
 
 
@@ -306,7 +306,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     4          Biliary tissue excretion rate      0.003747  mL/sec/cm3       0.000000       Kbh      1      1        1
     5      Hepatocellular tissue uptake rate      0.098699  mL/sec/cm3       0.000000       Khe      1      1        1
     6                 Biliary excretion rate      0.002885  mL/sec/cm3       0.000000       kbh      1      1        1
-    7              Liver extraction fraction      0.507622    unitless       0.000000         E      1      1        1
+    7              Liver extraction fraction      0.507622                   0.000000         E      1      1        1
     8               Hepatic plasma clearance      0.011177  mL/sec/cm3       0.000000    Ktrans      1      1        1
     9                             Hematocrit      0.418000                   0.000000         H      1      2        1
     10   Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      1      2        1
@@ -315,7 +315,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     13         Biliary tissue excretion rate      0.004100  mL/sec/cm3       0.000000       Kbh      1      2        1
     14     Hepatocellular tissue uptake rate      0.090949  mL/sec/cm3       0.000000       Khe      1      2        1
     15                Biliary excretion rate      0.003157  mL/sec/cm3       0.000000       kbh      1      2        1
-    16             Liver extraction fraction      0.487183    unitless       0.000000         E      1      2        1
+    16             Liver extraction fraction      0.487183                   0.000000         E      1      2        1
     17              Hepatic plasma clearance      0.010727  mL/sec/cm3       0.000000    Ktrans      1      2        1
     18                            Hematocrit      0.418000                   0.000000         H      1      1        2
     19   Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      1      1        2
@@ -324,7 +324,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     22         Biliary tissue excretion rate      0.003844  mL/sec/cm3       0.000000       Kbh      1      1        2
     23     Hepatocellular tissue uptake rate      0.101603  mL/sec/cm3       0.000000       Khe      1      1        2
     24                Biliary excretion rate      0.002960  mL/sec/cm3       0.000000       kbh      1      1        2
-    25             Liver extraction fraction      0.514869    unitless       0.000000         E      1      1        2
+    25             Liver extraction fraction      0.514869                   0.000000         E      1      1        2
     26              Hepatic plasma clearance      0.011337  mL/sec/cm3       0.000000    Ktrans      1      1        2
     27                            Hematocrit      0.418000                   0.000000         H      1      2        2
     28   Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      1      2        2
@@ -333,7 +333,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     31         Biliary tissue excretion rate      0.003830  mL/sec/cm3       0.000000       Kbh      1      2        2
     32     Hepatocellular tissue uptake rate      0.097860  mL/sec/cm3       0.000000       Khe      1      2        2
     33                Biliary excretion rate      0.002949  mL/sec/cm3       0.000000       kbh      1      2        2
-    34             Liver extraction fraction      0.505490    unitless       0.000000         E      1      2        2
+    34             Liver extraction fraction      0.505490                   0.000000         E      1      2        2
     35              Hepatic plasma clearance      0.011130  mL/sec/cm3       0.000000    Ktrans      1      2        2
     36                            Hematocrit      0.418000                   0.000000         H      1      1        3
     37   Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      1      1        3
@@ -342,7 +342,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     40         Biliary tissue excretion rate      0.003913  mL/sec/cm3       0.000000       Kbh      1      1        3
     41     Hepatocellular tissue uptake rate      0.090140  mL/sec/cm3       0.000000       Khe      1      1        3
     42                Biliary excretion rate      0.003013  mL/sec/cm3       0.000000       kbh      1      1        3
-    43             Liver extraction fraction      0.484950    unitless       0.000000         E      1      1        3
+    43             Liver extraction fraction      0.484950                   0.000000         E      1      1        3
     44              Hepatic plasma clearance      0.010678  mL/sec/cm3       0.000000    Ktrans      1      1        3
     45                            Hematocrit      0.418000                   0.000000         H      1      2        3
     46   Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      1      2        3
@@ -351,7 +351,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     49         Biliary tissue excretion rate      0.002550  mL/sec/cm3       0.000000       Kbh      1      2        3
     50     Hepatocellular tissue uptake rate      0.077352  mL/sec/cm3       0.000000       Khe      1      2        3
     51                Biliary excretion rate      0.001964  mL/sec/cm3       0.000000       kbh      1      2        3
-    52             Liver extraction fraction      0.446896    unitless       0.000000         E      1      2        3
+    52             Liver extraction fraction      0.446896                   0.000000         E      1      2        3
     53              Hepatic plasma clearance      0.009840  mL/sec/cm3       0.000000    Ktrans      1      2        3
     54                            Hematocrit      0.418000                   0.000000         H      1      1        4
     55   Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      1      1        4
@@ -360,7 +360,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     58         Biliary tissue excretion rate      0.002444  mL/sec/cm3       0.000000       Kbh      1      1        4
     59     Hepatocellular tissue uptake rate      0.049726  mL/sec/cm3       0.000000       Khe      1      1        4
     60                Biliary excretion rate      0.001882  mL/sec/cm3       0.000000       kbh      1      1        4
-    61             Liver extraction fraction      0.341853    unitless       0.000000         E      1      1        4
+    61             Liver extraction fraction      0.341853                   0.000000         E      1      1        4
     62              Hepatic plasma clearance      0.007527  mL/sec/cm3       0.000000    Ktrans      1      1        4
     63                            Hematocrit      0.418000                   0.000000         H      1      2        4
     64   Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      1      2        4
@@ -369,7 +369,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     67         Biliary tissue excretion rate      0.001404  mL/sec/cm3       0.000000       Kbh      1      2        4
     68     Hepatocellular tissue uptake rate      0.026308  mL/sec/cm3       0.000000       Khe      1      2        4
     69                Biliary excretion rate      0.001081  mL/sec/cm3       0.000000       kbh      1      2        4
-    70             Liver extraction fraction      0.215562    unitless       0.000000         E      1      2        4
+    70             Liver extraction fraction      0.215562                   0.000000         E      1      2        4
     71              Hepatic plasma clearance      0.004746  mL/sec/cm3       0.000000    Ktrans      1      2        4
     72                            Hematocrit      0.418000                   0.000000         H      1      1        5
     73   Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      1      1        5
@@ -378,7 +378,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     76         Biliary tissue excretion rate      0.004817  mL/sec/cm3       0.000000       Kbh      1      1        5
     77     Hepatocellular tissue uptake rate      0.107352  mL/sec/cm3       0.000000       Khe      1      1        5
     78                Biliary excretion rate      0.003709  mL/sec/cm3       0.000000       kbh      1      1        5
-    79             Liver extraction fraction      0.528601    unitless       0.000000         E      1      1        5
+    79             Liver extraction fraction      0.528601                   0.000000         E      1      1        5
     80              Hepatic plasma clearance      0.011639  mL/sec/cm3       0.000000    Ktrans      1      1        5
     81                            Hematocrit      0.418000                   0.000000         H      1      2        5
     82   Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      1      2        5
@@ -387,7 +387,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     85         Biliary tissue excretion rate      0.001357  mL/sec/cm3       0.000000       Kbh      1      2        5
     86     Hepatocellular tissue uptake rate      0.012161  mL/sec/cm3       0.000000       Khe      1      2        5
     87                Biliary excretion rate      0.001045  mL/sec/cm3       0.000000       kbh      1      2        5
-    88             Liver extraction fraction      0.112714    unitless       0.000000         E      1      2        5
+    88             Liver extraction fraction      0.112714                   0.000000         E      1      2        5
     89              Hepatic plasma clearance      0.002482  mL/sec/cm3       0.000000    Ktrans      1      2        5
     90                            Hematocrit      0.418000                   0.000000         H      1      1        6
     91   Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      1      1        6
@@ -396,7 +396,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     94         Biliary tissue excretion rate      0.004243  mL/sec/cm3       0.000000       Kbh      1      1        6
     95     Hepatocellular tissue uptake rate      0.087239  mL/sec/cm3       0.000000       Khe      1      1        6
     96                Biliary excretion rate      0.003267  mL/sec/cm3       0.000000       kbh      1      1        6
-    97             Liver extraction fraction      0.476784    unitless       0.000000         E      1      1        6
+    97             Liver extraction fraction      0.476784                   0.000000         E      1      1        6
     98              Hepatic plasma clearance      0.010498  mL/sec/cm3       0.000000    Ktrans      1      1        6
     99                            Hematocrit      0.418000                   0.000000         H      1      2        6
     100  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      1      2        6
@@ -405,7 +405,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     103        Biliary tissue excretion rate      0.001752  mL/sec/cm3       0.000000       Kbh      1      2        6
     104    Hepatocellular tissue uptake rate      0.018401  mL/sec/cm3       0.000000       Khe      1      2        6
     105               Biliary excretion rate      0.001349  mL/sec/cm3       0.000000       kbh      1      2        6
-    106            Liver extraction fraction      0.161218    unitless       0.000000         E      1      2        6
+    106            Liver extraction fraction      0.161218                   0.000000         E      1      2        6
     107             Hepatic plasma clearance      0.003550  mL/sec/cm3       0.000000    Ktrans      1      2        6
     108                           Hematocrit      0.418000                   0.000000         H      2      1        1
     109  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      2      1        1
@@ -414,7 +414,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     112        Biliary tissue excretion rate      0.003804  mL/sec/cm3       0.000000       Kbh      2      1        1
     113    Hepatocellular tissue uptake rate      0.163274  mL/sec/cm3       0.000000       Khe      2      1        1
     114               Biliary excretion rate      0.002929  mL/sec/cm3       0.000000       kbh      2      1        1
-    115            Liver extraction fraction      0.630380    unitless       0.000000         E      2      1        1
+    115            Liver extraction fraction      0.630380                   0.000000         E      2      1        1
     116             Hepatic plasma clearance      0.013880  mL/sec/cm3       0.000000    Ktrans      2      1        1
     117                           Hematocrit      0.418000                   0.000000         H      2      2        1
     118  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      2      2        1
@@ -423,7 +423,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     121        Biliary tissue excretion rate      0.003663  mL/sec/cm3       0.000000       Kbh      2      2        1
     122    Hepatocellular tissue uptake rate      0.039617  mL/sec/cm3       0.000000       Khe      2      2        1
     123               Biliary excretion rate      0.002821  mL/sec/cm3       0.000000       kbh      2      2        1
-    124            Liver extraction fraction      0.292696    unitless       0.000000         E      2      2        1
+    124            Liver extraction fraction      0.292696                   0.000000         E      2      2        1
     125             Hepatic plasma clearance      0.006445  mL/sec/cm3       0.000000    Ktrans      2      2        1
     126                           Hematocrit      0.418000                   0.000000         H      2      1        2
     127  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      2      1        2
@@ -432,7 +432,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     130        Biliary tissue excretion rate      0.006921  mL/sec/cm3       0.000000       Kbh      2      1        2
     131    Hepatocellular tissue uptake rate      0.201472  mL/sec/cm3       0.000000       Khe      2      1        2
     132               Biliary excretion rate      0.005329  mL/sec/cm3       0.000000       kbh      2      1        2
-    133            Liver extraction fraction      0.677885    unitless       0.000000         E      2      1        2
+    133            Liver extraction fraction      0.677885                   0.000000         E      2      1        2
     134             Hepatic plasma clearance      0.014926  mL/sec/cm3       0.000000    Ktrans      2      1        2
     135                           Hematocrit      0.418000                   0.000000         H      2      2        2
     136  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      2      2        2
@@ -441,7 +441,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     139        Biliary tissue excretion rate      0.003730  mL/sec/cm3       0.000000       Kbh      2      2        2
     140    Hepatocellular tissue uptake rate      0.116470  mL/sec/cm3       0.000000       Khe      2      2        2
     141               Biliary excretion rate      0.002872  mL/sec/cm3       0.000000       kbh      2      2        2
-    142            Liver extraction fraction      0.548856    unitless       0.000000         E      2      2        2
+    142            Liver extraction fraction      0.548856                   0.000000         E      2      2        2
     143             Hepatic plasma clearance      0.012085  mL/sec/cm3       0.000000    Ktrans      2      2        2
     144                           Hematocrit      0.418000                   0.000000         H      2      1        3
     145  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      2      1        3
@@ -450,7 +450,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     148        Biliary tissue excretion rate      0.006440  mL/sec/cm3       0.000000       Kbh      2      1        3
     149    Hepatocellular tissue uptake rate      0.185268  mL/sec/cm3       0.000000       Khe      2      1        3
     150               Biliary excretion rate      0.004959  mL/sec/cm3       0.000000       kbh      2      1        3
-    151            Liver extraction fraction      0.659310    unitless       0.000000         E      2      1        3
+    151            Liver extraction fraction      0.659310                   0.000000         E      2      1        3
     152             Hepatic plasma clearance      0.014517  mL/sec/cm3       0.000000    Ktrans      2      1        3
     153                           Hematocrit      0.418000                   0.000000         H      2      2        3
     154  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      2      2        3
@@ -459,7 +459,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     157        Biliary tissue excretion rate      0.005990  mL/sec/cm3       0.000000       Kbh      2      2        3
     158    Hepatocellular tissue uptake rate      0.128199  mL/sec/cm3       0.000000       Khe      2      2        3
     159               Biliary excretion rate      0.004613  mL/sec/cm3       0.000000       kbh      2      2        3
-    160            Liver extraction fraction      0.572485    unitless       0.000000         E      2      2        3
+    160            Liver extraction fraction      0.572485                   0.000000         E      2      2        3
     161             Hepatic plasma clearance      0.012606  mL/sec/cm3       0.000000    Ktrans      2      2        3
     162                           Hematocrit      0.418000                   0.000000         H      2      1        4
     163  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      2      1        4
@@ -468,7 +468,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     166        Biliary tissue excretion rate      0.005657  mL/sec/cm3       0.000000       Kbh      2      1        4
     167    Hepatocellular tissue uptake rate      0.106649  mL/sec/cm3       0.000000       Khe      2      1        4
     168               Biliary excretion rate      0.004356  mL/sec/cm3       0.000000       kbh      2      1        4
-    169            Liver extraction fraction      0.526963    unitless       0.000000         E      2      1        4
+    169            Liver extraction fraction      0.526963                   0.000000         E      2      1        4
     170             Hepatic plasma clearance      0.011603  mL/sec/cm3       0.000000    Ktrans      2      1        4
     171                           Hematocrit      0.418000                   0.000000         H      2      2        4
     172  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      2      2        4
@@ -477,7 +477,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     175        Biliary tissue excretion rate      0.001502  mL/sec/cm3       0.000000       Kbh      2      2        4
     176    Hepatocellular tissue uptake rate      0.008747  mL/sec/cm3       0.000000       Khe      2      2        4
     177               Biliary excretion rate      0.001157  mL/sec/cm3       0.000000       kbh      2      2        4
-    178            Liver extraction fraction      0.083720    unitless       0.000000         E      2      2        4
+    178            Liver extraction fraction      0.083720                   0.000000         E      2      2        4
     179             Hepatic plasma clearance      0.001843  mL/sec/cm3       0.000000    Ktrans      2      2        4
     180                           Hematocrit      0.418000                   0.000000         H      2      1        5
     181  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      2      1        5
@@ -486,7 +486,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     184        Biliary tissue excretion rate      0.007250  mL/sec/cm3       0.000000       Kbh      2      1        5
     185    Hepatocellular tissue uptake rate      0.067334  mL/sec/cm3       0.000000       Khe      2      1        5
     186               Biliary excretion rate      0.005582  mL/sec/cm3       0.000000       kbh      2      1        5
-    187            Liver extraction fraction      0.412917    unitless       0.000000         E      2      1        5
+    187            Liver extraction fraction      0.412917                   0.000000         E      2      1        5
     188             Hepatic plasma clearance      0.009092  mL/sec/cm3       0.000000    Ktrans      2      1        5
     189                           Hematocrit      0.418000                   0.000000         H      2      2        5
     190  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      2      2        5
@@ -495,7 +495,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     193        Biliary tissue excretion rate      0.002241  mL/sec/cm3       0.000000       Kbh      2      2        5
     194    Hepatocellular tissue uptake rate      0.022292  mL/sec/cm3       0.000000       Khe      2      2        5
     195               Biliary excretion rate      0.001725  mL/sec/cm3       0.000000       kbh      2      2        5
-    196            Liver extraction fraction      0.188871    unitless       0.000000         E      2      2        5
+    196            Liver extraction fraction      0.188871                   0.000000         E      2      2        5
     197             Hepatic plasma clearance      0.004159  mL/sec/cm3       0.000000    Ktrans      2      2        5
     198                           Hematocrit      0.418000                   0.000000         H      2      1        6
     199  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      2      1        6
@@ -504,7 +504,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     202        Biliary tissue excretion rate      0.003658  mL/sec/cm3       0.000000       Kbh      2      1        6
     203    Hepatocellular tissue uptake rate      0.107989  mL/sec/cm3       0.000000       Khe      2      1        6
     204               Biliary excretion rate      0.002817  mL/sec/cm3       0.000000       kbh      2      1        6
-    205            Liver extraction fraction      0.530077    unitless       0.000000         E      2      1        6
+    205            Liver extraction fraction      0.530077                   0.000000         E      2      1        6
     206             Hepatic plasma clearance      0.011672  mL/sec/cm3       0.000000    Ktrans      2      1        6
     207                           Hematocrit      0.418000                   0.000000         H      2      2        6
     208  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      2      2        6
@@ -513,7 +513,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     211        Biliary tissue excretion rate      0.001919  mL/sec/cm3       0.000000       Kbh      2      2        6
     212    Hepatocellular tissue uptake rate      0.023633  mL/sec/cm3       0.000000       Khe      2      2        6
     213               Biliary excretion rate      0.001478  mL/sec/cm3       0.000000       kbh      2      2        6
-    214            Liver extraction fraction      0.197984    unitless       0.000000         E      2      2        6
+    214            Liver extraction fraction      0.197984                   0.000000         E      2      2        6
     215             Hepatic plasma clearance      0.004359  mL/sec/cm3       0.000000    Ktrans      2      2        6
     216                           Hematocrit      0.418000                   0.000000         H      3      1        1
     217  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      3      1        1
@@ -522,7 +522,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     220        Biliary tissue excretion rate      0.003203  mL/sec/cm3       0.000000       Kbh      3      1        1
     221    Hepatocellular tissue uptake rate      0.104449  mL/sec/cm3       0.000000       Khe      3      1        1
     222               Biliary excretion rate      0.002466  mL/sec/cm3       0.000000       kbh      3      1        1
-    223            Liver extraction fraction      0.521766    unitless       0.000000         E      3      1        1
+    223            Liver extraction fraction      0.521766                   0.000000         E      3      1        1
     224             Hepatic plasma clearance      0.011489  mL/sec/cm3       0.000000    Ktrans      3      1        1
     225                           Hematocrit      0.418000                   0.000000         H      3      2        1
     226  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      3      2        1
@@ -531,7 +531,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     229        Biliary tissue excretion rate      0.004350  mL/sec/cm3       0.000000       Kbh      3      2        1
     230    Hepatocellular tissue uptake rate      0.148137  mL/sec/cm3       0.000000       Khe      3      2        1
     231               Biliary excretion rate      0.003349  mL/sec/cm3       0.000000       kbh      3      2        1
-    232            Liver extraction fraction      0.607438    unitless       0.000000         E      3      2        1
+    232            Liver extraction fraction      0.607438                   0.000000         E      3      2        1
     233             Hepatic plasma clearance      0.013375  mL/sec/cm3       0.000000    Ktrans      3      2        1
     234                           Hematocrit      0.418000                   0.000000         H      3      1        2
     235  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      3      1        2
@@ -540,7 +540,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     238        Biliary tissue excretion rate      0.003120  mL/sec/cm3       0.000000       Kbh      3      1        2
     239    Hepatocellular tissue uptake rate      0.118505  mL/sec/cm3       0.000000       Khe      3      1        2
     240               Biliary excretion rate      0.002403  mL/sec/cm3       0.000000       kbh      3      1        2
-    241            Liver extraction fraction      0.553141    unitless       0.000000         E      3      1        2
+    241            Liver extraction fraction      0.553141                   0.000000         E      3      1        2
     242             Hepatic plasma clearance      0.012180  mL/sec/cm3       0.000000    Ktrans      3      1        2
     243                           Hematocrit      0.418000                   0.000000         H      3      2        2
     244  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      3      2        2
@@ -549,7 +549,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     247        Biliary tissue excretion rate      0.002609  mL/sec/cm3       0.000000       Kbh      3      2        2
     248    Hepatocellular tissue uptake rate      0.082578  mL/sec/cm3       0.000000       Khe      3      2        2
     249               Biliary excretion rate      0.002009  mL/sec/cm3       0.000000       kbh      3      2        2
-    250            Liver extraction fraction      0.463107    unitless       0.000000         E      3      2        2
+    250            Liver extraction fraction      0.463107                   0.000000         E      3      2        2
     251             Hepatic plasma clearance      0.010197  mL/sec/cm3       0.000000    Ktrans      3      2        2
     252                           Hematocrit      0.418000                   0.000000         H      3      1        3
     253  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      3      1        3
@@ -558,7 +558,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     256        Biliary tissue excretion rate      0.003117  mL/sec/cm3       0.000000       Kbh      3      1        3
     257    Hepatocellular tissue uptake rate      0.094503  mL/sec/cm3       0.000000       Khe      3      1        3
     258               Biliary excretion rate      0.002400  mL/sec/cm3       0.000000       kbh      3      1        3
-    259            Liver extraction fraction      0.496764    unitless       0.000000         E      3      1        3
+    259            Liver extraction fraction      0.496764                   0.000000         E      3      1        3
     260             Hepatic plasma clearance      0.010938  mL/sec/cm3       0.000000    Ktrans      3      1        3
     261                           Hematocrit      0.418000                   0.000000         H      3      2        3
     262  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      3      2        3
@@ -567,7 +567,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     265        Biliary tissue excretion rate      0.003616  mL/sec/cm3       0.000000       Kbh      3      2        3
     266    Hepatocellular tissue uptake rate      0.077258  mL/sec/cm3       0.000000       Khe      3      2        3
     267               Biliary excretion rate      0.002784  mL/sec/cm3       0.000000       kbh      3      2        3
-    268            Liver extraction fraction      0.446596    unitless       0.000000         E      3      2        3
+    268            Liver extraction fraction      0.446596                   0.000000         E      3      2        3
     269             Hepatic plasma clearance      0.009834  mL/sec/cm3       0.000000    Ktrans      3      2        3
     270                           Hematocrit      0.418000                   0.000000         H      3      1        4
     271  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      3      1        4
@@ -576,7 +576,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     274        Biliary tissue excretion rate      0.003555  mL/sec/cm3       0.000000       Kbh      3      1        4
     275    Hepatocellular tissue uptake rate      0.148656  mL/sec/cm3       0.000000       Khe      3      1        4
     276               Biliary excretion rate      0.002737  mL/sec/cm3       0.000000       kbh      3      1        4
-    277            Liver extraction fraction      0.608271    unitless       0.000000         E      3      1        4
+    277            Liver extraction fraction      0.608271                   0.000000         E      3      1        4
     278             Hepatic plasma clearance      0.013394  mL/sec/cm3       0.000000    Ktrans      3      1        4
     279                           Hematocrit      0.418000                   0.000000         H      3      2        4
     280  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      3      2        4
@@ -585,7 +585,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     283        Biliary tissue excretion rate      0.000015  mL/sec/cm3       0.000000       Kbh      3      2        4
     284    Hepatocellular tissue uptake rate      0.003837  mL/sec/cm3       0.000000       Khe      3      2        4
     285               Biliary excretion rate      0.000012  mL/sec/cm3       0.000000       kbh      3      2        4
-    286            Liver extraction fraction      0.038533    unitless       0.000000         E      3      2        4
+    286            Liver extraction fraction      0.038533                   0.000000         E      3      2        4
     287             Hepatic plasma clearance      0.000848  mL/sec/cm3       0.000000    Ktrans      3      2        4
     288                           Hematocrit      0.418000                   0.000000         H      3      1        5
     289  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      3      1        5
@@ -594,7 +594,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     292        Biliary tissue excretion rate      0.003659  mL/sec/cm3       0.000000       Kbh      3      1        5
     293    Hepatocellular tissue uptake rate      0.084532  mL/sec/cm3       0.000000       Khe      3      1        5
     294               Biliary excretion rate      0.002818  mL/sec/cm3       0.000000       kbh      3      1        5
-    295            Liver extraction fraction      0.468929    unitless       0.000000         E      3      1        5
+    295            Liver extraction fraction      0.468929                   0.000000         E      3      1        5
     296             Hepatic plasma clearance      0.010325  mL/sec/cm3       0.000000    Ktrans      3      1        5
     297                           Hematocrit      0.418000                   0.000000         H      3      2        5
     298  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      3      2        5
@@ -603,7 +603,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     301        Biliary tissue excretion rate      0.000477  mL/sec/cm3       0.000000       Kbh      3      2        5
     302    Hepatocellular tissue uptake rate      0.011575  mL/sec/cm3       0.000000       Khe      3      2        5
     303               Biliary excretion rate      0.000367  mL/sec/cm3       0.000000       kbh      3      2        5
-    304            Liver extraction fraction      0.107865    unitless       0.000000         E      3      2        5
+    304            Liver extraction fraction      0.107865                   0.000000         E      3      2        5
     305             Hepatic plasma clearance      0.002375  mL/sec/cm3       0.000000    Ktrans      3      2        5
     306                           Hematocrit      0.418000                   0.000000         H      3      1        6
     307  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      3      1        6
@@ -612,7 +612,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     310        Biliary tissue excretion rate      0.002769  mL/sec/cm3       0.000000       Kbh      3      1        6
     311    Hepatocellular tissue uptake rate      0.081959  mL/sec/cm3       0.000000       Khe      3      1        6
     312               Biliary excretion rate      0.002132  mL/sec/cm3       0.000000       kbh      3      1        6
-    313            Liver extraction fraction      0.461238    unitless       0.000000         E      3      1        6
+    313            Liver extraction fraction      0.461238                   0.000000         E      3      1        6
     314             Hepatic plasma clearance      0.010156  mL/sec/cm3       0.000000    Ktrans      3      1        6
     315                           Hematocrit      0.418000                   0.000000         H      3      2        6
     316  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      3      2        6
@@ -621,7 +621,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     319        Biliary tissue excretion rate      0.000547  mL/sec/cm3       0.000000       Kbh      3      2        6
     320    Hepatocellular tissue uptake rate      0.011257  mL/sec/cm3       0.000000       Khe      3      2        6
     321               Biliary excretion rate      0.000421  mL/sec/cm3       0.000000       kbh      3      2        6
-    322            Liver extraction fraction      0.105215    unitless       0.000000         E      3      2        6
+    322            Liver extraction fraction      0.105215                   0.000000         E      3      2        6
     323             Hepatic plasma clearance      0.002317  mL/sec/cm3       0.000000    Ktrans      3      2        6
     324                           Hematocrit      0.418000                   0.000000         H      4      1        1
     325  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      4      1        1
@@ -630,7 +630,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     328        Biliary tissue excretion rate      0.003320  mL/sec/cm3       0.000000       Kbh      4      1        1
     329    Hepatocellular tissue uptake rate      0.089909  mL/sec/cm3       0.000000       Khe      4      1        1
     330               Biliary excretion rate      0.002557  mL/sec/cm3       0.000000       kbh      4      1        1
-    331            Liver extraction fraction      0.484309    unitless       0.000000         E      4      1        1
+    331            Liver extraction fraction      0.484309                   0.000000         E      4      1        1
     332             Hepatic plasma clearance      0.010664  mL/sec/cm3       0.000000    Ktrans      4      1        1
     333                           Hematocrit      0.418000                   0.000000         H      4      2        1
     334  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      4      2        1
@@ -639,7 +639,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     337        Biliary tissue excretion rate      0.002526  mL/sec/cm3       0.000000       Kbh      4      2        1
     338    Hepatocellular tissue uptake rate      0.108874  mL/sec/cm3       0.000000       Khe      4      2        1
     339               Biliary excretion rate      0.001945  mL/sec/cm3       0.000000       kbh      4      2        1
-    340            Liver extraction fraction      0.532108    unitless       0.000000         E      4      2        1
+    340            Liver extraction fraction      0.532108                   0.000000         E      4      2        1
     341             Hepatic plasma clearance      0.011716  mL/sec/cm3       0.000000    Ktrans      4      2        1
     342                           Hematocrit      0.418000                   0.000000         H      4      1        2
     343  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      4      1        2
@@ -648,7 +648,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     346        Biliary tissue excretion rate      0.003636  mL/sec/cm3       0.000000       Kbh      4      1        2
     347    Hepatocellular tissue uptake rate      0.079591  mL/sec/cm3       0.000000       Khe      4      1        2
     348               Biliary excretion rate      0.002800  mL/sec/cm3       0.000000       kbh      4      1        2
-    349            Liver extraction fraction      0.453961    unitless       0.000000         E      4      1        2
+    349            Liver extraction fraction      0.453961                   0.000000         E      4      1        2
     350             Hepatic plasma clearance      0.009996  mL/sec/cm3       0.000000    Ktrans      4      1        2
     351                           Hematocrit      0.418000                   0.000000         H      4      2        2
     352  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      4      2        2
@@ -657,7 +657,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     355        Biliary tissue excretion rate      0.004632  mL/sec/cm3       0.000000       Kbh      4      2        2
     356    Hepatocellular tissue uptake rate      0.111647  mL/sec/cm3       0.000000       Khe      4      2        2
     357               Biliary excretion rate      0.003567  mL/sec/cm3       0.000000       kbh      4      2        2
-    358            Liver extraction fraction      0.538365    unitless       0.000000         E      4      2        2
+    358            Liver extraction fraction      0.538365                   0.000000         E      4      2        2
     359             Hepatic plasma clearance      0.011854  mL/sec/cm3       0.000000    Ktrans      4      2        2
     360                           Hematocrit      0.418000                   0.000000         H      4      1        3
     361  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      4      1        3
@@ -666,7 +666,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     364        Biliary tissue excretion rate      0.006001  mL/sec/cm3       0.000000       Kbh      4      1        3
     365    Hepatocellular tissue uptake rate      0.130887  mL/sec/cm3       0.000000       Khe      4      1        3
     366               Biliary excretion rate      0.004621  mL/sec/cm3       0.000000       kbh      4      1        3
-    367            Liver extraction fraction      0.577556    unitless       0.000000         E      4      1        3
+    367            Liver extraction fraction      0.577556                   0.000000         E      4      1        3
     368             Hepatic plasma clearance      0.012717  mL/sec/cm3       0.000000    Ktrans      4      1        3
     369                           Hematocrit      0.418000                   0.000000         H      4      2        3
     370  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      4      2        3
@@ -675,7 +675,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     373        Biliary tissue excretion rate      0.004969  mL/sec/cm3       0.000000       Kbh      4      2        3
     374    Hepatocellular tissue uptake rate      0.138099  mL/sec/cm3       0.000000       Khe      4      2        3
     375               Biliary excretion rate      0.003826  mL/sec/cm3       0.000000       kbh      4      2        3
-    376            Liver extraction fraction      0.590586    unitless       0.000000         E      4      2        3
+    376            Liver extraction fraction      0.590586                   0.000000         E      4      2        3
     377             Hepatic plasma clearance      0.013004  mL/sec/cm3       0.000000    Ktrans      4      2        3
     378                           Hematocrit      0.418000                   0.000000         H      4      1        4
     379  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      4      1        4
@@ -684,7 +684,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     382        Biliary tissue excretion rate      0.004641  mL/sec/cm3       0.000000       Kbh      4      1        4
     383    Hepatocellular tissue uptake rate      0.107745  mL/sec/cm3       0.000000       Khe      4      1        4
     384               Biliary excretion rate      0.003574  mL/sec/cm3       0.000000       kbh      4      1        4
-    385            Liver extraction fraction      0.529513    unitless       0.000000         E      4      1        4
+    385            Liver extraction fraction      0.529513                   0.000000         E      4      1        4
     386             Hepatic plasma clearance      0.011659  mL/sec/cm3       0.000000    Ktrans      4      1        4
     387                           Hematocrit      0.418000                   0.000000         H      4      2        4
     388  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      4      2        4
@@ -693,7 +693,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     391        Biliary tissue excretion rate      0.004518  mL/sec/cm3       0.000000       Kbh      4      2        4
     392    Hepatocellular tissue uptake rate      0.137139  mL/sec/cm3       0.000000       Khe      4      2        4
     393               Biliary excretion rate      0.003479  mL/sec/cm3       0.000000       kbh      4      2        4
-    394            Liver extraction fraction      0.588899    unitless       0.000000         E      4      2        4
+    394            Liver extraction fraction      0.588899                   0.000000         E      4      2        4
     395             Hepatic plasma clearance      0.012967  mL/sec/cm3       0.000000    Ktrans      4      2        4
     396                           Hematocrit      0.418000                   0.000000         H      4      1        5
     397  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      4      1        5
@@ -702,7 +702,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     400        Biliary tissue excretion rate      0.003139  mL/sec/cm3       0.000000       Kbh      4      1        5
     401    Hepatocellular tissue uptake rate      0.101067  mL/sec/cm3       0.000000       Khe      4      1        5
     402               Biliary excretion rate      0.002417  mL/sec/cm3       0.000000       kbh      4      1        5
-    403            Liver extraction fraction      0.513548    unitless       0.000000         E      4      1        5
+    403            Liver extraction fraction      0.513548                   0.000000         E      4      1        5
     404             Hepatic plasma clearance      0.011308  mL/sec/cm3       0.000000    Ktrans      4      1        5
     405                           Hematocrit      0.418000                   0.000000         H      4      2        5
     406  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      4      2        5
@@ -711,7 +711,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     409        Biliary tissue excretion rate      0.001198  mL/sec/cm3       0.000000       Kbh      4      2        5
     410    Hepatocellular tissue uptake rate      0.027908  mL/sec/cm3       0.000000       Khe      4      2        5
     411               Biliary excretion rate      0.000922  mL/sec/cm3       0.000000       kbh      4      2        5
-    412            Liver extraction fraction      0.225716    unitless       0.000000         E      4      2        5
+    412            Liver extraction fraction      0.225716                   0.000000         E      4      2        5
     413             Hepatic plasma clearance      0.004970  mL/sec/cm3       0.000000    Ktrans      4      2        5
     414                           Hematocrit      0.418000                   0.000000         H      4      1        6
     415  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      4      1        6
@@ -720,7 +720,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     418        Biliary tissue excretion rate      0.004955  mL/sec/cm3       0.000000       Kbh      4      1        6
     419    Hepatocellular tissue uptake rate      0.113624  mL/sec/cm3       0.000000       Khe      4      1        6
     420               Biliary excretion rate      0.003816  mL/sec/cm3       0.000000       kbh      4      1        6
-    421            Liver extraction fraction      0.542725    unitless       0.000000         E      4      1        6
+    421            Liver extraction fraction      0.542725                   0.000000         E      4      1        6
     422             Hepatic plasma clearance      0.011950  mL/sec/cm3       0.000000    Ktrans      4      1        6
     423                           Hematocrit      0.418000                   0.000000         H      4      2        6
     424  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      4      2        6
@@ -729,7 +729,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     427        Biliary tissue excretion rate      0.001658  mL/sec/cm3       0.000000       Kbh      4      2        6
     428    Hepatocellular tissue uptake rate      0.021100  mL/sec/cm3       0.000000       Khe      4      2        6
     429               Biliary excretion rate      0.001277  mL/sec/cm3       0.000000       kbh      4      2        6
-    430            Liver extraction fraction      0.180600    unitless       0.000000         E      4      2        6
+    430            Liver extraction fraction      0.180600                   0.000000         E      4      2        6
     431             Hepatic plasma clearance      0.003977  mL/sec/cm3       0.000000    Ktrans      4      2        6
     432                           Hematocrit      0.418000                   0.000000         H      4      1        7
     433  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      4      1        7
@@ -738,7 +738,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     436        Biliary tissue excretion rate      0.005015  mL/sec/cm3       0.000000       Kbh      4      1        7
     437    Hepatocellular tissue uptake rate      0.125230  mL/sec/cm3       0.000000       Khe      4      1        7
     438               Biliary excretion rate      0.003862  mL/sec/cm3       0.000000       kbh      4      1        7
-    439            Liver extraction fraction      0.566742    unitless       0.000000         E      4      1        7
+    439            Liver extraction fraction      0.566742                   0.000000         E      4      1        7
     440             Hepatic plasma clearance      0.012479  mL/sec/cm3       0.000000    Ktrans      4      1        7
     441                           Hematocrit      0.418000                   0.000000         H      4      2        7
     442  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      4      2        7
@@ -747,7 +747,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     445        Biliary tissue excretion rate      0.001671  mL/sec/cm3       0.000000       Kbh      4      2        7
     446    Hepatocellular tissue uptake rate      0.028719  mL/sec/cm3       0.000000       Khe      4      2        7
     447               Biliary excretion rate      0.001286  mL/sec/cm3       0.000000       kbh      4      2        7
-    448            Liver extraction fraction      0.230758    unitless       0.000000         E      4      2        7
+    448            Liver extraction fraction      0.230758                   0.000000         E      4      2        7
     449             Hepatic plasma clearance      0.005081  mL/sec/cm3       0.000000    Ktrans      4      2        7
     450                           Hematocrit      0.418000                   0.000000         H      4      1        8
     451  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      4      1        8
@@ -756,7 +756,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     454        Biliary tissue excretion rate      0.004683  mL/sec/cm3       0.000000       Kbh      4      1        8
     455    Hepatocellular tissue uptake rate      0.093788  mL/sec/cm3       0.000000       Khe      4      1        8
     456               Biliary excretion rate      0.003606  mL/sec/cm3       0.000000       kbh      4      1        8
-    457            Liver extraction fraction      0.494865    unitless       0.000000         E      4      1        8
+    457            Liver extraction fraction      0.494865                   0.000000         E      4      1        8
     458             Hepatic plasma clearance      0.010896  mL/sec/cm3       0.000000    Ktrans      4      1        8
     459                           Hematocrit      0.418000                   0.000000         H      4      2        8
     460  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      4      2        8
@@ -765,7 +765,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     463        Biliary tissue excretion rate      0.001511  mL/sec/cm3       0.000000       Kbh      4      2        8
     464    Hepatocellular tissue uptake rate      0.028915  mL/sec/cm3       0.000000       Khe      4      2        8
     465               Biliary excretion rate      0.001163  mL/sec/cm3       0.000000       kbh      4      2        8
-    466            Liver extraction fraction      0.231968    unitless       0.000000         E      4      2        8
+    466            Liver extraction fraction      0.231968                   0.000000         E      4      2        8
     467             Hepatic plasma clearance      0.005108  mL/sec/cm3       0.000000    Ktrans      4      2        8
     468                           Hematocrit      0.418000                   0.000000         H      5      1        1
     469  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      5      1        1
@@ -774,7 +774,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     472        Biliary tissue excretion rate      0.004053  mL/sec/cm3       0.000000       Kbh      5      1        1
     473    Hepatocellular tissue uptake rate      0.119189  mL/sec/cm3       0.000000       Khe      5      1        1
     474               Biliary excretion rate      0.003121  mL/sec/cm3       0.000000       kbh      5      1        1
-    475            Liver extraction fraction      0.554563    unitless       0.000000         E      5      1        1
+    475            Liver extraction fraction      0.554563                   0.000000         E      5      1        1
     476             Hepatic plasma clearance      0.012211  mL/sec/cm3       0.000000    Ktrans      5      1        1
     477                           Hematocrit      0.418000                   0.000000         H      5      1        2
     478  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      5      1        2
@@ -783,7 +783,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     481        Biliary tissue excretion rate      0.005202  mL/sec/cm3       0.000000       Kbh      5      1        2
     482    Hepatocellular tissue uptake rate      0.126911  mL/sec/cm3       0.000000       Khe      5      1        2
     483               Biliary excretion rate      0.004005  mL/sec/cm3       0.000000       kbh      5      1        2
-    484            Liver extraction fraction      0.570014    unitless       0.000000         E      5      1        2
+    484            Liver extraction fraction      0.570014                   0.000000         E      5      1        2
     485             Hepatic plasma clearance      0.012551  mL/sec/cm3       0.000000    Ktrans      5      1        2
     486                           Hematocrit      0.418000                   0.000000         H      5      1        3
     487  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      5      1        3
@@ -792,7 +792,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     490        Biliary tissue excretion rate      0.006474  mL/sec/cm3       0.000000       Kbh      5      1        3
     491    Hepatocellular tissue uptake rate      0.100536  mL/sec/cm3       0.000000       Khe      5      1        3
     492               Biliary excretion rate      0.004985  mL/sec/cm3       0.000000       kbh      5      1        3
-    493            Liver extraction fraction      0.512232    unitless       0.000000         E      5      1        3
+    493            Liver extraction fraction      0.512232                   0.000000         E      5      1        3
     494             Hepatic plasma clearance      0.011279  mL/sec/cm3       0.000000    Ktrans      5      1        3
     495                           Hematocrit      0.418000                   0.000000         H      5      1        4
     496  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      5      1        4
@@ -801,7 +801,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     499        Biliary tissue excretion rate      0.005395  mL/sec/cm3       0.000000       Kbh      5      1        4
     500    Hepatocellular tissue uptake rate      0.077715  mL/sec/cm3       0.000000       Khe      5      1        4
     501               Biliary excretion rate      0.004154  mL/sec/cm3       0.000000       kbh      5      1        4
-    502            Liver extraction fraction      0.448054    unitless       0.000000         E      5      1        4
+    502            Liver extraction fraction      0.448054                   0.000000         E      5      1        4
     503             Hepatic plasma clearance      0.009866  mL/sec/cm3       0.000000    Ktrans      5      1        4
     504                           Hematocrit      0.418000                   0.000000         H      5      1        5
     505  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      5      1        5
@@ -810,7 +810,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     508        Biliary tissue excretion rate      0.005138  mL/sec/cm3       0.000000       Kbh      5      1        5
     509    Hepatocellular tissue uptake rate      0.068477  mL/sec/cm3       0.000000       Khe      5      1        5
     510               Biliary excretion rate      0.003956  mL/sec/cm3       0.000000       kbh      5      1        5
-    511            Liver extraction fraction      0.417006    unitless       0.000000         E      5      1        5
+    511            Liver extraction fraction      0.417006                   0.000000         E      5      1        5
     512             Hepatic plasma clearance      0.009182  mL/sec/cm3       0.000000    Ktrans      5      1        5
     513                           Hematocrit      0.418000                   0.000000         H      5      1        6
     514  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      5      1        6
@@ -819,7 +819,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     517        Biliary tissue excretion rate      0.005818  mL/sec/cm3       0.000000       Kbh      5      1        6
     518    Hepatocellular tissue uptake rate      0.076888  mL/sec/cm3       0.000000       Khe      5      1        6
     519               Biliary excretion rate      0.004480  mL/sec/cm3       0.000000       kbh      5      1        6
-    520            Liver extraction fraction      0.445411    unitless       0.000000         E      5      1        6
+    520            Liver extraction fraction      0.445411                   0.000000         E      5      1        6
     521             Hepatic plasma clearance      0.009808  mL/sec/cm3       0.000000    Ktrans      5      1        6
     522                           Hematocrit      0.418000                   0.000000         H      6      1        1
     523  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      6      1        1
@@ -828,7 +828,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     526        Biliary tissue excretion rate      0.005553  mL/sec/cm3       0.000000       Kbh      6      1        1
     527    Hepatocellular tissue uptake rate      0.100406  mL/sec/cm3       0.000000       Khe      6      1        1
     528               Biliary excretion rate      0.004276  mL/sec/cm3       0.000000       kbh      6      1        1
-    529            Liver extraction fraction      0.511909    unitless       0.000000         E      6      1        1
+    529            Liver extraction fraction      0.511909                   0.000000         E      6      1        1
     530             Hepatic plasma clearance      0.011272  mL/sec/cm3       0.000000    Ktrans      6      1        1
     531                           Hematocrit      0.418000                   0.000000         H      6      1        2
     532  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      6      1        2
@@ -837,7 +837,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     535        Biliary tissue excretion rate      0.004750  mL/sec/cm3       0.000000       Kbh      6      1        2
     536    Hepatocellular tissue uptake rate      0.129094  mL/sec/cm3       0.000000       Khe      6      1        2
     537               Biliary excretion rate      0.003658  mL/sec/cm3       0.000000       kbh      6      1        2
-    538            Liver extraction fraction      0.574188    unitless       0.000000         E      6      1        2
+    538            Liver extraction fraction      0.574188                   0.000000         E      6      1        2
     539             Hepatic plasma clearance      0.012643  mL/sec/cm3       0.000000    Ktrans      6      1        2
     540                           Hematocrit      0.418000                   0.000000         H      6      1        3
     541  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      6      1        3
@@ -846,7 +846,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     544        Biliary tissue excretion rate      0.006139  mL/sec/cm3       0.000000       Kbh      6      1        3
     545    Hepatocellular tissue uptake rate      0.110399  mL/sec/cm3       0.000000       Khe      6      1        3
     546               Biliary excretion rate      0.004727  mL/sec/cm3       0.000000       kbh      6      1        3
-    547            Liver extraction fraction      0.535569    unitless       0.000000         E      6      1        3
+    547            Liver extraction fraction      0.535569                   0.000000         E      6      1        3
     548             Hepatic plasma clearance      0.011793  mL/sec/cm3       0.000000    Ktrans      6      1        3
     549                           Hematocrit      0.418000                   0.000000         H      6      1        4
     550  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      6      1        4
@@ -855,7 +855,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     553        Biliary tissue excretion rate      0.005767  mL/sec/cm3       0.000000       Kbh      6      1        4
     554    Hepatocellular tissue uptake rate      0.089759  mL/sec/cm3       0.000000       Khe      6      1        4
     555               Biliary excretion rate      0.004440  mL/sec/cm3       0.000000       kbh      6      1        4
-    556            Liver extraction fraction      0.483893    unitless       0.000000         E      6      1        4
+    556            Liver extraction fraction      0.483893                   0.000000         E      6      1        4
     557             Hepatic plasma clearance      0.010655  mL/sec/cm3       0.000000    Ktrans      6      1        4
     558                           Hematocrit      0.418000                   0.000000         H      6      1        5
     559  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      6      1        5
@@ -864,7 +864,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     562        Biliary tissue excretion rate      0.005857  mL/sec/cm3       0.000000       Kbh      6      1        5
     563    Hepatocellular tissue uptake rate      0.086031  mL/sec/cm3       0.000000       Khe      6      1        5
     564               Biliary excretion rate      0.004510  mL/sec/cm3       0.000000       kbh      6      1        5
-    565            Liver extraction fraction      0.473306    unitless       0.000000         E      6      1        5
+    565            Liver extraction fraction      0.473306                   0.000000         E      6      1        5
     566             Hepatic plasma clearance      0.010422  mL/sec/cm3       0.000000    Ktrans      6      1        5
     567                           Hematocrit      0.418000                   0.000000         H      6      1        6
     568  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      6      1        6
@@ -873,7 +873,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     571        Biliary tissue excretion rate      0.004316  mL/sec/cm3       0.000000       Kbh      6      1        6
     572    Hepatocellular tissue uptake rate      0.090499  mL/sec/cm3       0.000000       Khe      6      1        6
     573               Biliary excretion rate      0.003323  mL/sec/cm3       0.000000       kbh      6      1        6
-    574            Liver extraction fraction      0.485944    unitless       0.000000         E      6      1        6
+    574            Liver extraction fraction      0.485944                   0.000000         E      6      1        6
     575             Hepatic plasma clearance      0.010700  mL/sec/cm3       0.000000    Ktrans      6      1        6
     576                           Hematocrit      0.418000                   0.000000         H      7      1        1
     577  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      7      1        1
@@ -882,7 +882,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     580        Biliary tissue excretion rate      0.003484  mL/sec/cm3       0.000000       Kbh      7      1        1
     581    Hepatocellular tissue uptake rate      0.053298  mL/sec/cm3       0.000000       Khe      7      1        1
     582               Biliary excretion rate      0.002682  mL/sec/cm3       0.000000       kbh      7      1        1
-    583            Liver extraction fraction      0.357627    unitless       0.000000         E      7      1        1
+    583            Liver extraction fraction      0.357627                   0.000000         E      7      1        1
     584             Hepatic plasma clearance      0.007875  mL/sec/cm3       0.000000    Ktrans      7      1        1
     585                           Hematocrit      0.418000                   0.000000         H      7      1        2
     586  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      7      1        2
@@ -891,7 +891,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     589        Biliary tissue excretion rate      0.003407  mL/sec/cm3       0.000000       Kbh      7      1        2
     590    Hepatocellular tissue uptake rate      0.095958  mL/sec/cm3       0.000000       Khe      7      1        2
     591               Biliary excretion rate      0.002623  mL/sec/cm3       0.000000       kbh      7      1        2
-    592            Liver extraction fraction      0.500582    unitless       0.000000         E      7      1        2
+    592            Liver extraction fraction      0.500582                   0.000000         E      7      1        2
     593             Hepatic plasma clearance      0.011022  mL/sec/cm3       0.000000    Ktrans      7      1        2
     594                           Hematocrit      0.418000                   0.000000         H      7      1        3
     595  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      7      1        3
@@ -900,7 +900,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     598        Biliary tissue excretion rate      0.003542  mL/sec/cm3       0.000000       Kbh      7      1        3
     599    Hepatocellular tissue uptake rate      0.089409  mL/sec/cm3       0.000000       Khe      7      1        3
     600               Biliary excretion rate      0.002727  mL/sec/cm3       0.000000       kbh      7      1        3
-    601            Liver extraction fraction      0.482917    unitless       0.000000         E      7      1        3
+    601            Liver extraction fraction      0.482917                   0.000000         E      7      1        3
     602             Hepatic plasma clearance      0.010633  mL/sec/cm3       0.000000    Ktrans      7      1        3
     603                           Hematocrit      0.418000                   0.000000         H      7      1        4
     604  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      7      1        4
@@ -909,7 +909,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     607        Biliary tissue excretion rate      0.003351  mL/sec/cm3       0.000000       Kbh      7      1        4
     608    Hepatocellular tissue uptake rate      0.057074  mL/sec/cm3       0.000000       Khe      7      1        4
     609               Biliary excretion rate      0.002580  mL/sec/cm3       0.000000       kbh      7      1        4
-    610            Liver extraction fraction      0.373498    unitless       0.000000         E      7      1        4
+    610            Liver extraction fraction      0.373498                   0.000000         E      7      1        4
     611             Hepatic plasma clearance      0.008224  mL/sec/cm3       0.000000    Ktrans      7      1        4
     612                           Hematocrit      0.418000                   0.000000         H      7      1        5
     613  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      7      1        5
@@ -918,7 +918,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     616        Biliary tissue excretion rate      0.004593  mL/sec/cm3       0.000000       Kbh      7      1        5
     617    Hepatocellular tissue uptake rate      0.090411  mL/sec/cm3       0.000000       Khe      7      1        5
     618               Biliary excretion rate      0.003536  mL/sec/cm3       0.000000       kbh      7      1        5
-    619            Liver extraction fraction      0.485700    unitless       0.000000         E      7      1        5
+    619            Liver extraction fraction      0.485700                   0.000000         E      7      1        5
     620             Hepatic plasma clearance      0.010695  mL/sec/cm3       0.000000    Ktrans      7      1        5
     621                           Hematocrit      0.418000                   0.000000         H      7      1        6
     622  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      7      1        6
@@ -927,7 +927,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     625        Biliary tissue excretion rate      0.003878  mL/sec/cm3       0.000000       Kbh      7      1        6
     626    Hepatocellular tissue uptake rate      0.098553  mL/sec/cm3       0.000000       Khe      7      1        6
     627               Biliary excretion rate      0.002986  mL/sec/cm3       0.000000       kbh      7      1        6
-    628            Liver extraction fraction      0.507254    unitless       0.000000         E      7      1        6
+    628            Liver extraction fraction      0.507254                   0.000000         E      7      1        6
     629             Hepatic plasma clearance      0.011169  mL/sec/cm3       0.000000    Ktrans      7      1        6
     630                           Hematocrit      0.418000                   0.000000         H      8      1        1
     631  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      8      1        1
@@ -936,7 +936,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     634        Biliary tissue excretion rate      0.002449  mL/sec/cm3       0.000000       Kbh      8      1        1
     635    Hepatocellular tissue uptake rate      0.127585  mL/sec/cm3       0.000000       Khe      8      1        1
     636               Biliary excretion rate      0.001886  mL/sec/cm3       0.000000       kbh      8      1        1
-    637            Liver extraction fraction      0.571310    unitless       0.000000         E      8      1        1
+    637            Liver extraction fraction      0.571310                   0.000000         E      8      1        1
     638             Hepatic plasma clearance      0.012580  mL/sec/cm3       0.000000    Ktrans      8      1        1
     639                           Hematocrit      0.418000                   0.000000         H      8      1        2
     640  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      8      1        2
@@ -945,7 +945,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     643        Biliary tissue excretion rate      0.003717  mL/sec/cm3       0.000000       Kbh      8      1        2
     644    Hepatocellular tissue uptake rate      0.121082  mL/sec/cm3       0.000000       Khe      8      1        2
     645               Biliary excretion rate      0.002862  mL/sec/cm3       0.000000       kbh      8      1        2
-    646            Liver extraction fraction      0.558453    unitless       0.000000         E      8      1        2
+    646            Liver extraction fraction      0.558453                   0.000000         E      8      1        2
     647             Hepatic plasma clearance      0.012297  mL/sec/cm3       0.000000    Ktrans      8      1        2
     648                           Hematocrit      0.418000                   0.000000         H      8      1        3
     649  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      8      1        3
@@ -954,7 +954,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     652        Biliary tissue excretion rate      0.002605  mL/sec/cm3       0.000000       Kbh      8      1        3
     653    Hepatocellular tissue uptake rate      0.085774  mL/sec/cm3       0.000000       Khe      8      1        3
     654               Biliary excretion rate      0.002006  mL/sec/cm3       0.000000       kbh      8      1        3
-    655            Liver extraction fraction      0.472562    unitless       0.000000         E      8      1        3
+    655            Liver extraction fraction      0.472562                   0.000000         E      8      1        3
     656             Hepatic plasma clearance      0.010405  mL/sec/cm3       0.000000    Ktrans      8      1        3
     657                           Hematocrit      0.418000                   0.000000         H      8      1        4
     658  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      8      1        4
@@ -963,7 +963,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     661        Biliary tissue excretion rate      0.002297  mL/sec/cm3       0.000000       Kbh      8      1        4
     662    Hepatocellular tissue uptake rate      0.081878  mL/sec/cm3       0.000000       Khe      8      1        4
     663               Biliary excretion rate      0.001769  mL/sec/cm3       0.000000       kbh      8      1        4
-    664            Liver extraction fraction      0.460991    unitless       0.000000         E      8      1        4
+    664            Liver extraction fraction      0.460991                   0.000000         E      8      1        4
     665             Hepatic plasma clearance      0.010151  mL/sec/cm3       0.000000    Ktrans      8      1        4
     666                           Hematocrit      0.418000                   0.000000         H      8      1        5
     667  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      8      1        5
@@ -972,7 +972,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     670        Biliary tissue excretion rate      0.003815  mL/sec/cm3       0.000000       Kbh      8      1        5
     671    Hepatocellular tissue uptake rate      0.112874  mL/sec/cm3       0.000000       Khe      8      1        5
     672               Biliary excretion rate      0.002938  mL/sec/cm3       0.000000       kbh      8      1        5
-    673            Liver extraction fraction      0.541079    unitless       0.000000         E      8      1        5
+    673            Liver extraction fraction      0.541079                   0.000000         E      8      1        5
     674             Hepatic plasma clearance      0.011914  mL/sec/cm3       0.000000    Ktrans      8      1        5
     675                           Hematocrit      0.418000                   0.000000         H      8      1        6
     676  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      8      1        6
@@ -981,7 +981,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     679        Biliary tissue excretion rate      0.003387  mL/sec/cm3       0.000000       Kbh      8      1        6
     680    Hepatocellular tissue uptake rate      0.110613  mL/sec/cm3       0.000000       Khe      8      1        6
     681               Biliary excretion rate      0.002608  mL/sec/cm3       0.000000       kbh      8      1        6
-    682            Liver extraction fraction      0.536050    unitless       0.000000         E      8      1        6
+    682            Liver extraction fraction      0.536050                   0.000000         E      8      1        6
     683             Hepatic plasma clearance      0.011803  mL/sec/cm3       0.000000    Ktrans      8      1        6
     684                           Hematocrit      0.418000                   0.000000         H      9      1        1
     685  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      9      1        1
@@ -990,7 +990,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     688        Biliary tissue excretion rate      0.002674  mL/sec/cm3       0.000000       Kbh      9      1        1
     689    Hepatocellular tissue uptake rate      0.087087  mL/sec/cm3       0.000000       Khe      9      1        1
     690               Biliary excretion rate      0.002059  mL/sec/cm3       0.000000       kbh      9      1        1
-    691            Liver extraction fraction      0.476350    unitless       0.000000         E      9      1        1
+    691            Liver extraction fraction      0.476350                   0.000000         E      9      1        1
     692             Hepatic plasma clearance      0.010489  mL/sec/cm3       0.000000    Ktrans      9      1        1
     693                           Hematocrit      0.418000                   0.000000         H      9      1        2
     694  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      9      1        2
@@ -999,7 +999,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     697        Biliary tissue excretion rate      0.004319  mL/sec/cm3       0.000000       Kbh      9      1        2
     698    Hepatocellular tissue uptake rate      0.074433  mL/sec/cm3       0.000000       Khe      9      1        2
     699               Biliary excretion rate      0.003326  mL/sec/cm3       0.000000       kbh      9      1        2
-    700            Liver extraction fraction      0.437408    unitless       0.000000         E      9      1        2
+    700            Liver extraction fraction      0.437408                   0.000000         E      9      1        2
     701             Hepatic plasma clearance      0.009631  mL/sec/cm3       0.000000    Ktrans      9      1        2
     702                           Hematocrit      0.418000                   0.000000         H      9      1        3
     703  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      9      1        3
@@ -1008,7 +1008,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     706        Biliary tissue excretion rate      0.003362  mL/sec/cm3       0.000000       Kbh      9      1        3
     707    Hepatocellular tissue uptake rate      0.123073  mL/sec/cm3       0.000000       Khe      9      1        3
     708               Biliary excretion rate      0.002589  mL/sec/cm3       0.000000       kbh      9      1        3
-    709            Liver extraction fraction      0.562470    unitless       0.000000         E      9      1        3
+    709            Liver extraction fraction      0.562470                   0.000000         E      9      1        3
     710             Hepatic plasma clearance      0.012385  mL/sec/cm3       0.000000    Ktrans      9      1        3
     711                           Hematocrit      0.418000                   0.000000         H      9      1        4
     712  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve      9      1        4
@@ -1017,7 +1017,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     715        Biliary tissue excretion rate      0.003614  mL/sec/cm3       0.000000       Kbh      9      1        4
     716    Hepatocellular tissue uptake rate      0.138388  mL/sec/cm3       0.000000       Khe      9      1        4
     717               Biliary excretion rate      0.002783  mL/sec/cm3       0.000000       kbh      9      1        4
-    718            Liver extraction fraction      0.591092    unitless       0.000000         E      9      1        4
+    718            Liver extraction fraction      0.591092                   0.000000         E      9      1        4
     719             Hepatic plasma clearance      0.013015  mL/sec/cm3       0.000000    Ktrans      9      1        4
     720                           Hematocrit      0.418000                   0.000000         H     10      1        1
     721  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     10      1        1
@@ -1026,7 +1026,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     724        Biliary tissue excretion rate      0.004900  mL/sec/cm3       0.000000       Kbh     10      1        1
     725    Hepatocellular tissue uptake rate      0.141969  mL/sec/cm3       0.000000       Khe     10      1        1
     726               Biliary excretion rate      0.003773  mL/sec/cm3       0.000000       kbh     10      1        1
-    727            Liver extraction fraction      0.597252    unitless       0.000000         E     10      1        1
+    727            Liver extraction fraction      0.597252                   0.000000         E     10      1        1
     728             Hepatic plasma clearance      0.013151  mL/sec/cm3       0.000000    Ktrans     10      1        1
     729                           Hematocrit      0.418000                   0.000000         H     10      1        2
     730  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     10      1        2
@@ -1035,7 +1035,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     733        Biliary tissue excretion rate      0.003832  mL/sec/cm3       0.000000       Kbh     10      1        2
     734    Hepatocellular tissue uptake rate      0.112917  mL/sec/cm3       0.000000       Khe     10      1        2
     735               Biliary excretion rate      0.002951  mL/sec/cm3       0.000000       kbh     10      1        2
-    736            Liver extraction fraction      0.541175    unitless       0.000000         E     10      1        2
+    736            Liver extraction fraction      0.541175                   0.000000         E     10      1        2
     737             Hepatic plasma clearance      0.011916  mL/sec/cm3       0.000000    Ktrans     10      1        2
     738                           Hematocrit      0.418000                   0.000000         H     10      1        3
     739  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     10      1        3
@@ -1044,7 +1044,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     742        Biliary tissue excretion rate      0.005206  mL/sec/cm3       0.000000       Kbh     10      1        3
     743    Hepatocellular tissue uptake rate      0.159880  mL/sec/cm3       0.000000       Khe     10      1        3
     744               Biliary excretion rate      0.004008  mL/sec/cm3       0.000000       kbh     10      1        3
-    745            Liver extraction fraction      0.625472    unitless       0.000000         E     10      1        3
+    745            Liver extraction fraction      0.625472                   0.000000         E     10      1        3
     746             Hepatic plasma clearance      0.013772  mL/sec/cm3       0.000000    Ktrans     10      1        3
     747                           Hematocrit      0.418000                   0.000000         H     10      1        4
     748  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     10      1        4
@@ -1053,7 +1053,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     751        Biliary tissue excretion rate      0.004520  mL/sec/cm3       0.000000       Kbh     10      1        4
     752    Hepatocellular tissue uptake rate      0.150275  mL/sec/cm3       0.000000       Khe     10      1        4
     753               Biliary excretion rate      0.003481  mL/sec/cm3       0.000000       kbh     10      1        4
-    754            Liver extraction fraction      0.610850    unitless       0.000000         E     10      1        4
+    754            Liver extraction fraction      0.610850                   0.000000         E     10      1        4
     755             Hepatic plasma clearance      0.013450  mL/sec/cm3       0.000000    Ktrans     10      1        4
     756                           Hematocrit      0.418000                   0.000000         H     10      1        5
     757  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     10      1        5
@@ -1062,7 +1062,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     760        Biliary tissue excretion rate      0.004918  mL/sec/cm3       0.000000       Kbh     10      1        5
     761    Hepatocellular tissue uptake rate      0.142280  mL/sec/cm3       0.000000       Khe     10      1        5
     762               Biliary excretion rate      0.003787  mL/sec/cm3       0.000000       kbh     10      1        5
-    763            Liver extraction fraction      0.597778    unitless       0.000000         E     10      1        5
+    763            Liver extraction fraction      0.597778                   0.000000         E     10      1        5
     764             Hepatic plasma clearance      0.013162  mL/sec/cm3       0.000000    Ktrans     10      1        5
     765                           Hematocrit      0.418000                   0.000000         H     10      1        6
     766  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     10      1        6
@@ -1071,7 +1071,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     769        Biliary tissue excretion rate      0.004437  mL/sec/cm3       0.000000       Kbh     10      1        6
     770    Hepatocellular tissue uptake rate      0.173767  mL/sec/cm3       0.000000       Khe     10      1        6
     771               Biliary excretion rate      0.003416  mL/sec/cm3       0.000000       kbh     10      1        6
-    772            Liver extraction fraction      0.644771    unitless       0.000000         E     10      1        6
+    772            Liver extraction fraction      0.644771                   0.000000         E     10      1        6
     773             Hepatic plasma clearance      0.014197  mL/sec/cm3       0.000000    Ktrans     10      1        6
     774                           Hematocrit      0.418000                   0.000000         H     11      1        1
     775  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     11      1        1
@@ -1080,7 +1080,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     778        Biliary tissue excretion rate      0.004404  mL/sec/cm3       0.000000       Kbh     11      1        1
     779    Hepatocellular tissue uptake rate      0.060920  mL/sec/cm3       0.000000       Khe     11      1        1
     780               Biliary excretion rate      0.003391  mL/sec/cm3       0.000000       kbh     11      1        1
-    781            Liver extraction fraction      0.388880    unitless       0.000000         E     11      1        1
+    781            Liver extraction fraction      0.388880                   0.000000         E     11      1        1
     782             Hepatic plasma clearance      0.008563  mL/sec/cm3       0.000000    Ktrans     11      1        1
     783                           Hematocrit      0.418000                   0.000000         H     11      1        2
     784  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     11      1        2
@@ -1089,7 +1089,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     787        Biliary tissue excretion rate      0.003712  mL/sec/cm3       0.000000       Kbh     11      1        2
     788    Hepatocellular tissue uptake rate      0.123322  mL/sec/cm3       0.000000       Khe     11      1        2
     789               Biliary excretion rate      0.002859  mL/sec/cm3       0.000000       kbh     11      1        2
-    790            Liver extraction fraction      0.562969    unitless       0.000000         E     11      1        2
+    790            Liver extraction fraction      0.562969                   0.000000         E     11      1        2
     791             Hepatic plasma clearance      0.012396  mL/sec/cm3       0.000000    Ktrans     11      1        2
     792                           Hematocrit      0.418000                   0.000000         H     11      1        3
     793  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     11      1        3
@@ -1098,7 +1098,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     796        Biliary tissue excretion rate      0.004555  mL/sec/cm3       0.000000       Kbh     11      1        3
     797    Hepatocellular tissue uptake rate      0.130592  mL/sec/cm3       0.000000       Khe     11      1        3
     798               Biliary excretion rate      0.003508  mL/sec/cm3       0.000000       kbh     11      1        3
-    799            Liver extraction fraction      0.577006    unitless       0.000000         E     11      1        3
+    799            Liver extraction fraction      0.577006                   0.000000         E     11      1        3
     800             Hepatic plasma clearance      0.012705  mL/sec/cm3       0.000000    Ktrans     11      1        3
     801                           Hematocrit      0.418000                   0.000000         H     11      1        4
     802  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     11      1        4
@@ -1107,7 +1107,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     805        Biliary tissue excretion rate      0.004260  mL/sec/cm3       0.000000       Kbh     11      1        4
     806    Hepatocellular tissue uptake rate      0.126451  mL/sec/cm3       0.000000       Khe     11      1        4
     807               Biliary excretion rate      0.003280  mL/sec/cm3       0.000000       kbh     11      1        4
-    808            Liver extraction fraction      0.569124    unitless       0.000000         E     11      1        4
+    808            Liver extraction fraction      0.569124                   0.000000         E     11      1        4
     809             Hepatic plasma clearance      0.012532  mL/sec/cm3       0.000000    Ktrans     11      1        4
     810                           Hematocrit      0.418000                   0.000000         H     11      1        5
     811  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     11      1        5
@@ -1116,7 +1116,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     814        Biliary tissue excretion rate      0.003191  mL/sec/cm3       0.000000       Kbh     11      1        5
     815    Hepatocellular tissue uptake rate      0.103590  mL/sec/cm3       0.000000       Khe     11      1        5
     816               Biliary excretion rate      0.002457  mL/sec/cm3       0.000000       kbh     11      1        5
-    817            Liver extraction fraction      0.519703    unitless       0.000000         E     11      1        5
+    817            Liver extraction fraction      0.519703                   0.000000         E     11      1        5
     818             Hepatic plasma clearance      0.011443  mL/sec/cm3       0.000000    Ktrans     11      1        5
     819                           Hematocrit      0.418000                   0.000000         H     11      1        6
     820  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     11      1        6
@@ -1125,7 +1125,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     823        Biliary tissue excretion rate      0.003780  mL/sec/cm3       0.000000       Kbh     11      1        6
     824    Hepatocellular tissue uptake rate      0.127557  mL/sec/cm3       0.000000       Khe     11      1        6
     825               Biliary excretion rate      0.002910  mL/sec/cm3       0.000000       kbh     11      1        6
-    826            Liver extraction fraction      0.571256    unitless       0.000000         E     11      1        6
+    826            Liver extraction fraction      0.571256                   0.000000         E     11      1        6
     827             Hepatic plasma clearance      0.012578  mL/sec/cm3       0.000000    Ktrans     11      1        6
     828                           Hematocrit      0.418000                   0.000000         H     12      1        1
     829  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     12      1        1
@@ -1134,7 +1134,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     832        Biliary tissue excretion rate      0.003066  mL/sec/cm3       0.000000       Kbh     12      1        1
     833    Hepatocellular tissue uptake rate      0.130435  mL/sec/cm3       0.000000       Khe     12      1        1
     834               Biliary excretion rate      0.002361  mL/sec/cm3       0.000000       kbh     12      1        1
-    835            Liver extraction fraction      0.576713    unitless       0.000000         E     12      1        1
+    835            Liver extraction fraction      0.576713                   0.000000         E     12      1        1
     836             Hepatic plasma clearance      0.012699  mL/sec/cm3       0.000000    Ktrans     12      1        1
     837                           Hematocrit      0.418000                   0.000000         H     12      1        2
     838  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     12      1        2
@@ -1143,7 +1143,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     841        Biliary tissue excretion rate      0.003813  mL/sec/cm3       0.000000       Kbh     12      1        2
     842    Hepatocellular tissue uptake rate      0.119340  mL/sec/cm3       0.000000       Khe     12      1        2
     843               Biliary excretion rate      0.002936  mL/sec/cm3       0.000000       kbh     12      1        2
-    844            Liver extraction fraction      0.554877    unitless       0.000000         E     12      1        2
+    844            Liver extraction fraction      0.554877                   0.000000         E     12      1        2
     845             Hepatic plasma clearance      0.012218  mL/sec/cm3       0.000000    Ktrans     12      1        2
     846                           Hematocrit      0.418000                   0.000000         H     12      1        3
     847  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     12      1        3
@@ -1152,7 +1152,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     850        Biliary tissue excretion rate      0.003824  mL/sec/cm3       0.000000       Kbh     12      1        3
     851    Hepatocellular tissue uptake rate      0.133755  mL/sec/cm3       0.000000       Khe     12      1        3
     852               Biliary excretion rate      0.002945  mL/sec/cm3       0.000000       kbh     12      1        3
-    853            Liver extraction fraction      0.582837    unitless       0.000000         E     12      1        3
+    853            Liver extraction fraction      0.582837                   0.000000         E     12      1        3
     854             Hepatic plasma clearance      0.012833  mL/sec/cm3       0.000000    Ktrans     12      1        3
     855                           Hematocrit      0.418000                   0.000000         H     12      1        4
     856  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     12      1        4
@@ -1161,7 +1161,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     859        Biliary tissue excretion rate      0.003711  mL/sec/cm3       0.000000       Kbh     12      1        4
     860    Hepatocellular tissue uptake rate      0.123788  mL/sec/cm3       0.000000       Khe     12      1        4
     861               Biliary excretion rate      0.002858  mL/sec/cm3       0.000000       kbh     12      1        4
-    862            Liver extraction fraction      0.563896    unitless       0.000000         E     12      1        4
+    862            Liver extraction fraction      0.563896                   0.000000         E     12      1        4
     863             Hepatic plasma clearance      0.012416  mL/sec/cm3       0.000000    Ktrans     12      1        4
     864                           Hematocrit      0.418000                   0.000000         H     13      1        1
     865  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     13      1        1
@@ -1170,7 +1170,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     868        Biliary tissue excretion rate      0.006409  mL/sec/cm3       0.000000       Kbh     13      1        1
     869    Hepatocellular tissue uptake rate      0.082977  mL/sec/cm3       0.000000       Khe     13      1        1
     870               Biliary excretion rate      0.004935  mL/sec/cm3       0.000000       kbh     13      1        1
-    871            Liver extraction fraction      0.464307    unitless       0.000000         E     13      1        1
+    871            Liver extraction fraction      0.464307                   0.000000         E     13      1        1
     872             Hepatic plasma clearance      0.010224  mL/sec/cm3       0.000000    Ktrans     13      1        1
     873                           Hematocrit      0.418000                   0.000000         H     13      2        1
     874  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     13      2        1
@@ -1179,7 +1179,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     877        Biliary tissue excretion rate      0.004087  mL/sec/cm3       0.000000       Kbh     13      2        1
     878    Hepatocellular tissue uptake rate      0.107860  mL/sec/cm3       0.000000       Khe     13      2        1
     879               Biliary excretion rate      0.003147  mL/sec/cm3       0.000000       kbh     13      2        1
-    880            Liver extraction fraction      0.529778    unitless       0.000000         E     13      2        1
+    880            Liver extraction fraction      0.529778                   0.000000         E     13      2        1
     881             Hepatic plasma clearance      0.011665  mL/sec/cm3       0.000000    Ktrans     13      2        1
     882                           Hematocrit      0.418000                   0.000000         H     13      1        2
     883  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     13      1        2
@@ -1188,7 +1188,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     886        Biliary tissue excretion rate      0.005331  mL/sec/cm3       0.000000       Kbh     13      1        2
     887    Hepatocellular tissue uptake rate      0.115452  mL/sec/cm3       0.000000       Khe     13      1        2
     888               Biliary excretion rate      0.004105  mL/sec/cm3       0.000000       kbh     13      1        2
-    889            Liver extraction fraction      0.546681    unitless       0.000000         E     13      1        2
+    889            Liver extraction fraction      0.546681                   0.000000         E     13      1        2
     890             Hepatic plasma clearance      0.012037  mL/sec/cm3       0.000000    Ktrans     13      1        2
     891                           Hematocrit      0.418000                   0.000000         H     13      2        2
     892  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     13      2        2
@@ -1197,7 +1197,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     895        Biliary tissue excretion rate      0.004210  mL/sec/cm3       0.000000       Kbh     13      2        2
     896    Hepatocellular tissue uptake rate      0.119980  mL/sec/cm3       0.000000       Khe     13      2        2
     897               Biliary excretion rate      0.003242  mL/sec/cm3       0.000000       kbh     13      2        2
-    898            Liver extraction fraction      0.556197    unitless       0.000000         E     13      2        2
+    898            Liver extraction fraction      0.556197                   0.000000         E     13      2        2
     899             Hepatic plasma clearance      0.012247  mL/sec/cm3       0.000000    Ktrans     13      2        2
     900                           Hematocrit      0.418000                   0.000000         H     13      1        3
     901  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     13      1        3
@@ -1206,7 +1206,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     904        Biliary tissue excretion rate      0.004658  mL/sec/cm3       0.000000       Kbh     13      1        3
     905    Hepatocellular tissue uptake rate      0.105988  mL/sec/cm3       0.000000       Khe     13      1        3
     906               Biliary excretion rate      0.003587  mL/sec/cm3       0.000000       kbh     13      1        3
-    907            Liver extraction fraction      0.525415    unitless       0.000000         E     13      1        3
+    907            Liver extraction fraction      0.525415                   0.000000         E     13      1        3
     908             Hepatic plasma clearance      0.011569  mL/sec/cm3       0.000000    Ktrans     13      1        3
     909                           Hematocrit      0.418000                   0.000000         H     13      2        3
     910  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     13      2        3
@@ -1215,7 +1215,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     913        Biliary tissue excretion rate      0.004411  mL/sec/cm3       0.000000       Kbh     13      2        3
     914    Hepatocellular tissue uptake rate      0.096435  mL/sec/cm3       0.000000       Khe     13      2        3
     915               Biliary excretion rate      0.003396  mL/sec/cm3       0.000000       kbh     13      2        3
-    916            Liver extraction fraction      0.501822    unitless       0.000000         E     13      2        3
+    916            Liver extraction fraction      0.501822                   0.000000         E     13      2        3
     917             Hepatic plasma clearance      0.011050  mL/sec/cm3       0.000000    Ktrans     13      2        3
     918                           Hematocrit      0.418000                   0.000000         H     13      1        4
     919  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     13      1        4
@@ -1224,7 +1224,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     922        Biliary tissue excretion rate      0.003932  mL/sec/cm3       0.000000       Kbh     13      1        4
     923    Hepatocellular tissue uptake rate      0.163407  mL/sec/cm3       0.000000       Khe     13      1        4
     924               Biliary excretion rate      0.003028  mL/sec/cm3       0.000000       kbh     13      1        4
-    925            Liver extraction fraction      0.630570    unitless       0.000000         E     13      1        4
+    925            Liver extraction fraction      0.630570                   0.000000         E     13      1        4
     926             Hepatic plasma clearance      0.013885  mL/sec/cm3       0.000000    Ktrans     13      1        4
     927                           Hematocrit      0.418000                   0.000000         H     13      2        4
     928  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     13      2        4
@@ -1233,7 +1233,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     931        Biliary tissue excretion rate      0.004147  mL/sec/cm3       0.000000       Kbh     13      2        4
     932    Hepatocellular tissue uptake rate      0.141253  mL/sec/cm3       0.000000       Khe     13      2        4
     933               Biliary excretion rate      0.003193  mL/sec/cm3       0.000000       kbh     13      2        4
-    934            Liver extraction fraction      0.596035    unitless       0.000000         E     13      2        4
+    934            Liver extraction fraction      0.596035                   0.000000         E     13      2        4
     935             Hepatic plasma clearance      0.013124  mL/sec/cm3       0.000000    Ktrans     13      2        4
     936                           Hematocrit      0.418000                   0.000000         H     13      1        5
     937  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     13      1        5
@@ -1242,7 +1242,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     940        Biliary tissue excretion rate      0.005283  mL/sec/cm3       0.000000       Kbh     13      1        5
     941    Hepatocellular tissue uptake rate      0.173150  mL/sec/cm3       0.000000       Khe     13      1        5
     942               Biliary excretion rate      0.004068  mL/sec/cm3       0.000000       kbh     13      1        5
-    943            Liver extraction fraction      0.643956    unitless       0.000000         E     13      1        5
+    943            Liver extraction fraction      0.643956                   0.000000         E     13      1        5
     944             Hepatic plasma clearance      0.014179  mL/sec/cm3       0.000000    Ktrans     13      1        5
     945                           Hematocrit      0.418000                   0.000000         H     13      2        5
     946  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     13      2        5
@@ -1251,7 +1251,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     949        Biliary tissue excretion rate      0.005538  mL/sec/cm3       0.000000       Kbh     13      2        5
     950    Hepatocellular tissue uptake rate      0.125312  mL/sec/cm3       0.000000       Khe     13      2        5
     951               Biliary excretion rate      0.004265  mL/sec/cm3       0.000000       kbh     13      2        5
-    952            Liver extraction fraction      0.566902    unitless       0.000000         E     13      2        5
+    952            Liver extraction fraction      0.566902                   0.000000         E     13      2        5
     953             Hepatic plasma clearance      0.012483  mL/sec/cm3       0.000000    Ktrans     13      2        5
     954                           Hematocrit      0.418000                   0.000000         H     13      1        6
     955  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     13      1        6
@@ -1260,7 +1260,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     958        Biliary tissue excretion rate      0.004901  mL/sec/cm3       0.000000       Kbh     13      1        6
     959    Hepatocellular tissue uptake rate      0.161406  mL/sec/cm3       0.000000       Khe     13      1        6
     960               Biliary excretion rate      0.003774  mL/sec/cm3       0.000000       kbh     13      1        6
-    961            Liver extraction fraction      0.627695    unitless       0.000000         E     13      1        6
+    961            Liver extraction fraction      0.627695                   0.000000         E     13      1        6
     962             Hepatic plasma clearance      0.013821  mL/sec/cm3       0.000000    Ktrans     13      1        6
     963                           Hematocrit      0.418000                   0.000000         H     13      2        6
     964  Liver extracellular volume fraction      0.230000      mL/cm3       0.000000        ve     13      2        6
@@ -1269,7 +1269,7 @@ with fitting all the data. Results are stored in a dataframe in long format:
     967        Biliary tissue excretion rate      0.004706  mL/sec/cm3       0.000000       Kbh     13      2        6
     968    Hepatocellular tissue uptake rate      0.118990  mL/sec/cm3       0.000000       Khe     13      2        6
     969               Biliary excretion rate      0.003624  mL/sec/cm3       0.000000       kbh     13      2        6
-    970            Liver extraction fraction      0.554151    unitless       0.000000         E     13      2        6
+    970            Liver extraction fraction      0.554151                   0.000000         E     13      2        6
     971             Hepatic plasma clearance      0.012202  mL/sec/cm3       0.000000    Ktrans     13      2        6
 
 
@@ -1386,7 +1386,7 @@ with these benchmarks.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (1 minutes 8.887 seconds)
+   **Total running time of the script:** (0 minutes 56.176 seconds)
 
 
 .. _sphx_glr_download_generated_examples_liver_plot_tristan_repro.py:
