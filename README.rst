@@ -32,8 +32,6 @@ and features may be deprecated without warning.
 Installation
 ------------
 
-Install the latest version of dcmri:
-
 .. code-block:: console
 
     pip install dcmri

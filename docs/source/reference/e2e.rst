@@ -14,7 +14,7 @@ Exchange tissues
 ================
 
 Suitable for a range of applications including brain, cancer,
-muscle, lung and more.
+muscle, lung, myocardium, and more.
 
 
 .. autosummary::
