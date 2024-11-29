@@ -158,6 +158,7 @@ def test_ui_tissue_array():
     # Train array
     image = dc.TissueArray((n,n), **params)
     image.train(time, signal, xtol=1e-4)
+    pars = image.export_params()
     #image.save(path=tmp(), filename='TissueArray')
     #image = dc.TissueArray().load(filename=file)
 
