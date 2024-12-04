@@ -300,7 +300,7 @@ def inttrap(f, t, t0, t1):
     ti = t[(t0 < t)*(t < t1)]
     ti = np.concatenate(([t0], ti, [t1]))
     fi = np.interp(ti, t, f, left=0, right=0)
-    return np.trapezoid(fi, ti)
+    return trapezoid(fi, ti)
 
 
 def stepconv(f, T, D, t=None, dt=1.0):

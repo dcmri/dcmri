@@ -1,4 +1,6 @@
 import numpy as np
+from scipy.integrate import trapezoid
+
 import dcmri.pk as pk
 import dcmri.lib as lib
 
@@ -179,7 +181,7 @@ def flux_aorta(J_vena: np.ndarray,
         plt.show()
     """
 
-    dose = np.trapezoid(J_vena, x=t, dx=dt)
+    dose = trapezoid(J_vena, x=t, dx=dt)
     min_dose = tol*dose
 
     # Residuals of each pathway
@@ -210,6 +212,6 @@ def flux_aorta(J_vena: np.ndarray,
                 J_aorta, *kidneys[1], t=t, dt=dt, model=kidneys[0])
 
         # Get residual dose in current pass
-        dose = np.trapezoid(J_vena, x=t, dx=dt)
+        dose = trapezoid(J_vena, x=t, dx=dt)
 
     return J_aorta_total
