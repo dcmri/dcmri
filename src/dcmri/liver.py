@@ -44,10 +44,10 @@ def params_liver(kinetics='2I-EC', stationary='UE') -> list:
         elif stationary is None:
             return ['H', 've', 'Fp', 'fa', 'Ta', 'khe_i', 'khe_f', 'Th_i', 'Th_f']
     if kinetics == '2I-IC-U':
-        if stationary == 'U':
-            return ['H', 've', 'Fp', 'fa', 'Ta', 'khe']
-        elif stationary == None:
+        if stationary is None:
             return ['H', 've', 'Fp', 'fa', 'Ta', 'khe_i', 'khe_f']
+        elif stationary in ['UE', 'U', 'E']:
+            return ['H', 've', 'Fp', 'fa', 'Ta', 'khe']
     if kinetics == '2I-IC-HF':
         if stationary == 'UE':
             return ['H', 've', 'fa', 'Ta', 'khe', 'Th']
