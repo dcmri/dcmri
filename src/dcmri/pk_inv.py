@@ -7,9 +7,9 @@ from scipy import integrate
 
 
 def ddint(c, t):
-    ci = integrate.cumtrapz(c, t)
+    ci = integrate.cumulative_trapezoid(c, t, initial=0)
     ci = np.insert(ci, 0, 0)
-    cii = integrate.cumtrapz(ci, t)
+    cii = integrate.cumulative_trapezoid(ci, t, initial=0)
     cii = np.insert(cii, 0, 0)
     return cii, ci
 

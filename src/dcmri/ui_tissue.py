@@ -140,8 +140,8 @@ class TissueArray(ui.ArrayModel):
         for par in self.free:
             setattr(self, 'sdev_' + par, np.zeros(shape).astype(np.float32))
 
-    def _params(self, p):
-        return PARAMS[p]
+    def _params(self):
+        return (PARAMS | PARAMS_DERIVED)
 
     def _par_values(self, *args, **kwargs):
         return _par_values(self, *args, **kwargs)
@@ -209,7 +209,7 @@ class TissueArray(ui.ArrayModel):
             --> Bounds: [0, inf]
             B1corr_a
             --> Full name: Arterial B1-correction factor
-            --> Units:
+            --> Units: 
             --> Initial value: 1
             --> Current value: 1
             --> Free parameter: No
@@ -223,7 +223,7 @@ class TissueArray(ui.ArrayModel):
             --> Bounds: [0, inf]
             B1corr
             --> Full name: Tissue B1-correction factor
-            --> Units:
+            --> Units: 
             --> Initial value: 1
             --> Current value: 1
             --> Free parameter: No
@@ -251,7 +251,7 @@ class TissueArray(ui.ArrayModel):
             --> Bounds: [0, inf]
             H
             --> Full name: Tissue Hematocrit
-            --> Units:
+            --> Units: 
             --> Initial value: 0.45
             --> Current value: 0.45
             --> Free parameter: No
@@ -286,7 +286,7 @@ class TissueArray(ui.ArrayModel):
             --> Bounds: [0, inf]
             n0
             --> Full name: Number of precontrast acquisitions
-            --> Units:
+            --> Units: 
             --> Initial value: 1
             --> Current value: 1
             --> Free parameter: No
@@ -359,8 +359,29 @@ class TissueArray(ui.ArrayModel):
         return super().params(*args, round_to=round_to)
 
     def export_params(self):
+        """Model parameters with descriptions.
+
+        Returns:
+            dict: Dictionary with one item for each model parameter. The key 
+              is the parameter symbol (short name), and the value is a 
+              4-element list with [parameter name, value, unit, sdev].
+            
+        Example:
+
+            List the parameters that are exported for a given model:
+
+            >>> import dcmri as dc
+            >>> tissue = dc.TissueArray((8,8), 
+            ...     kinetics = '2CU', 
+            ...     water_exchange = 'FR',
+            ... )
+            >>> print(tissue.export_params().keys())
+            dict_keys(['PSc', 'H', 'vb', 'vi', 'Fb', 'PS', 'Fp', 'vp', 'Ktrans', 'E', 'Ti', 'Tp', 'Tb', 'Twc', 'FAcorr'])
+
+        """
         pars = self._par_values(export=True)
-        pars = {p: [PARAMS[p]['name'], pars[p], PARAMS[p]['unit']]
+        params = self._params()
+        pars = {p: [params[p]['name'], pars[p], params[p]['unit']]
                 for p in pars}
         return self._add_sdev(pars)
 
@@ -784,16 +805,16 @@ class Tissue(ui.Model):
         --------------------------------
         <BLANKLINE>
         Blood volume (vb): 0.03 (0.0) mL/cm3
-        Interstitial volume (vi): 0.2 (0.01) mL/cm3
+        Interstitial volume (vi): 0.2 (0.0) mL/cm3
         Permeability-surface area product (PS): 0.0 (0.0) mL/sec/cm3
         <BLANKLINE>
         ----------------------------
         Fixed and derived parameters
         ----------------------------
         <BLANKLINE>
-        Tissue Hematocrit (H): 0.45
+        Tissue Hematocrit (H): 0.45 
         Plasma volume (vp): 0.02 mL/cm3
-        Interstitial mean transit time (Ti): 71.01 sec
+        Interstitial mean transit time (Ti): 58.92 sec
         B1-corrected Flip Angle (FAcorr): 15 deg
 
         Plot the fit to the data and the reconstructed concentrations, using
@@ -977,7 +998,7 @@ class Tissue(ui.Model):
         self._set_defaults(free=free, **params)
 
     def _params(self):
-        return PARAMS
+        return (PARAMS | PARAMS_DERIVED)
     
     def _model_pars(self):
         return _model_pars(self.kinetics, self.water_exchange, self.sequence)
@@ -1021,7 +1042,7 @@ class Tissue(ui.Model):
             --> Bounds: [0, inf]
             B1corr_a
             --> Full name: Arterial B1-correction factor
-            --> Units:
+            --> Units: 
             --> Initial value: 1
             --> Current value: 1
             --> Free parameter: No
@@ -1035,7 +1056,7 @@ class Tissue(ui.Model):
             --> Bounds: [0, inf]
             B1corr
             --> Full name: Tissue B1-correction factor
-            --> Units:
+            --> Units: 
             --> Initial value: 1
             --> Current value: 1
             --> Free parameter: No
@@ -1063,7 +1084,7 @@ class Tissue(ui.Model):
             --> Bounds: [0, inf]
             H
             --> Full name: Tissue Hematocrit
-            --> Units:
+            --> Units: 
             --> Initial value: 0.45
             --> Current value: 0.45
             --> Free parameter: No
@@ -1098,7 +1119,7 @@ class Tissue(ui.Model):
             --> Bounds: [0, inf]
             n0
             --> Full name: Number of precontrast acquisitions
-            --> Units:
+            --> Units: 
             --> Initial value: 1
             --> Current value: 1
             --> Free parameter: No
@@ -1214,7 +1235,7 @@ class Tissue(ui.Model):
             array([0.1, 0.3, 0.6])
 
             >>> Fw
-            array([[0.  , 0.03, 0.  ],
+            array([[0.02, 0.03, 0.  ],
                    [0.03, 0.  , 0.03],
                    [0.  , 0.03, 0.  ]])
 
@@ -1407,7 +1428,7 @@ class Tissue(ui.Model):
             >>> tissue = dc.Tissue('HF','RR', t=t, aif=aif).train(t, roi)
             >>> pars = tissue.export_params()
             >>> pars['vb']
-            ['Blood volume', np.float64(0.05735355675475683), 'mL/cm3', np.float64(0.016039245654090793)]
+            ['Blood volume', np.float64(0.057353556774612346), 'mL/cm3', np.float64(0.016039267825598856)]
 
         """
         return super().export_params()
@@ -1442,12 +1463,12 @@ class Tissue(ui.Model):
             Fixed and derived parameters
             ----------------------------
             <BLANKLINE>
-            Tissue Hematocrit (H): 0.45
+            Tissue Hematocrit (H): 0.45 
             Plasma volume (vp): 0.03 mL/cm3
             Interstitial mean transit time (Ti): 83.27 sec
-            Intracellular water mean transit time (Twc): 1.3232576345772858e+16 sec
-            Interstitial water mean transit time (Twi): 186652627701867.1 sec
-            Intravascular water mean transit time (Twb): 47283940807705.62 sec
+            Intracellular water mean transit time (Twc): 2.0286801463500572e+16 sec
+            Interstitial water mean transit time (Twi): 192369049604988.53 sec
+            Intravascular water mean transit time (Twb): 48039233752083.68 sec
             B1-corrected Flip Angle (FAcorr): 15 deg
         """
         super().print_params(round_to=round_to)
@@ -1482,10 +1503,10 @@ class Tissue(ui.Model):
             >>> tissue2 = dc.Tissue('HFU','RR', t=t, aif=aif).train(t, roi)
 
             >>> tissue1.cost(t, roi, 'AIC')
-            np.float64(-967.4477371121604)
+            np.float64(-955.251136014227)
 
             >>> tissue2.cost(t, roi, 'AIC')
-            np.float64(-375.7766916566553)
+            np.float64(-375.77667730867216)
 
             tissue1 achieves the lowest cost and is therefore the optimal
             configuration according to the Akaike Information Criterion.
@@ -1771,7 +1792,10 @@ def _par_values(self, *args, tiss=False, kin=False, seq=False,
     if export:
         p0 = _model_pars(self.kinetics, self.water_exchange, self.sequence)
         p1 = tissue.params_tissue(self.kinetics, self.water_exchange)
-        discard = set(p0) - set(p1) - set(self.free.keys())
+        p2 = list(PARAMS_DERIVED.keys())
+        p3 = list(self.free.keys())
+        retain = p1 + p2 + p3
+        discard = set(p0) - set(retain)
         return {p: pars[p] for p in pars if p not in discard}
 
     return pars
@@ -1974,8 +1998,9 @@ PARAMS = {
         'unit': '',
         'pixel_par': False,
     },
+}
 
-    # Derived parameters
+PARAMS_DERIVED = {
     'vp': {
         'name': 'Plasma volume',
         'unit': 'mL/cm3',

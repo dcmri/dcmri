@@ -6,9 +6,9 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 project = 'dcmri'
-copyright = '2024, dcmri maintainers'
-author = 'dcmri maintainers'
-release = '0.6.13'
+copyright = '2024-2025, dcmri contributors'
+author = 'dcmri contributors'
+release = '0.6.14'
 
 # -- Path setup --------------------------------------------------------------
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -65,6 +65,9 @@ sphinx_gallery_conf = {
 
     # Disabling download button of all scripts
     'download_all_examples': False,
+
+    # Default setting disables animations. Set to True to enable
+    'matplotlib_animations': (True, 'jshtml'),
 }
 
 # This way a link to other methods, classes, or modules can be made with back ticks so that you don't have to use qualifiers like :class:, :func:, :meth: and the likes

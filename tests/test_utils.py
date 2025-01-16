@@ -1,4 +1,6 @@
 import numpy as np
+from scipy.integrate import trapezoid
+
 import dcmri as dc
 
 
@@ -95,11 +97,11 @@ def test_intprod():
     t1 = np.linspace(t[0],t[1],n)
     f1 = np.interp(t1, t[0:2], f[0:2])
     h1 = np.interp(t1, t[0:2], h[0:2])
-    i1 = np.trapezoid(f1*h1, t1)
+    i1 = trapezoid(f1*h1, t1)
     t2 = np.linspace(t[1],t[2],n)
     f2 = np.interp(t2, t[1:3], f[1:3])
     h2 = np.interp(t2, t[1:3],h[1:3])
-    i2 = np.trapezoid(f2*h2, t2)
+    i2 = trapezoid(f2*h2, t2)
     assert (i-(i1+i2))**2/(i1+i2)**2 < 1e-12
 
     # Uniform time interval: compare to numerical integration.
@@ -112,11 +114,11 @@ def test_intprod():
     t1 = np.linspace(t[0],t[1],n)
     f1 = np.interp(t1, t[0:2], f[0:2])
     h1 = np.interp(t1, t[0:2], h[0:2])
-    i1 = np.trapezoid(f1*h1, t1)
+    i1 = trapezoid(f1*h1, t1)
     t2 = np.linspace(t[1],t[2],n)
     f2 = np.interp(t2, t[1:3], f[1:3])
     h2 = np.interp(t2, t[1:3], h[1:3])
-    i2 = np.trapezoid(f2*h2, t2)
+    i2 = trapezoid(f2*h2, t2)
     assert (i-(i1+i2))**2/(i1+i2)**2 < 1e-12
 
 
@@ -187,10 +189,10 @@ def test_conv():
         dt = t[1]-t[0]
         f = np.exp(-t/10)
         h = np.exp(-((t-30)/15)**2)
-        area = np.trapezoid(f,t)*np.trapezoid(h,t)
+        area = trapezoid(f,t)*trapezoid(h,t)
         g0 = dc.conv(f, h, dt=dt)
         g1 = dc.conv(h, f, dt=dt)
-        assert (np.trapezoid(g0,t)-area)**2/area**2 < 5*prec_area[i]
+        assert (trapezoid(g0,t)-area)**2/area**2 < 5*prec_area[i]
         assert np.linalg.norm(g0-g1)/np.linalg.norm(g0)  < prec_symm
 
     # Non-uniform time grid: check area preserving and symmetric
@@ -202,10 +204,10 @@ def test_conv():
         t = tfib(n, tmax)
         f = np.exp(-t/10)
         h = np.exp(-((t-30)/15)**2)
-        area = np.trapezoid(f,t)*np.trapezoid(h,t)
+        area = trapezoid(f,t)*trapezoid(h,t)
         g0 = dc.conv(f, h, t)
         g1 = dc.conv(h, f, t)
-        assert (np.trapezoid(g0,t)-area)**2/area**2 < prec_area
+        assert (trapezoid(g0,t)-area)**2/area**2 < prec_area
         assert np.linalg.norm(g0-g1)/np.linalg.norm(g0)  < prec_symm
 
     # compare trap and step solvers - should be identical at high temporal resolution
@@ -260,33 +262,33 @@ def test_nexpconv():
     g0 = dc.expconv(np.exp(-t/T)/T, T, t)
     assert np.linalg.norm(g-g0) < 1e-4
     # Check area = 1
-    assert np.abs(np.trapezoid(g,t)-1) < 1e-3
+    assert np.abs(trapezoid(g,t)-1) < 1e-3
     # Check MTT
-    assert np.abs(np.trapezoid(t*g,t)-MTT) < 1e-5
+    assert np.abs(trapezoid(t*g,t)-MTT) < 1e-5
     
     n=20
     T=MTT/n
     g = dc.nexpconv(n, T, t)
     # Check area = 1
-    assert np.abs(np.trapezoid(g,t)-1) < 1e-12
+    assert np.abs(trapezoid(g,t)-1) < 1e-12
     # Check MTT
-    assert np.abs(np.trapezoid(t*g,t)-MTT) < 1e-12
+    assert np.abs(trapezoid(t*g,t)-MTT) < 1e-12
 
     # In this case the numerical approximation is used
     n=200
     T=MTT/n
     g = dc.nexpconv(n, T, t)
     # Check area = 1
-    assert np.abs(np.trapezoid(g,t)-1) < 1e-12
+    assert np.abs(trapezoid(g,t)-1) < 1e-12
     # Check MTT
-    assert np.abs(np.trapezoid(t*g,t)-MTT) < 0.1
+    assert np.abs(trapezoid(t*g,t)-MTT) < 0.1
     # Check case of non-integer n
     g = dc.nexpconv(200.5, T, t)
-    assert np.abs(np.trapezoid(g,t)-1) < 1e-12
+    assert np.abs(trapezoid(g,t)-1) < 1e-12
 
     # Test list input format
     g = dc.nexpconv(200.5, T, list(t))
-    assert np.abs(np.trapezoid(g,t)-1) < 1e-12
+    assert np.abs(trapezoid(g,t)-1) < 1e-12
 
     # Test exceptions
     try:
@@ -306,15 +308,15 @@ def test_ddelta():
     assert np.array_equal(h, [0,0,0,0])
     h = dc.ddelta(0, t)
     assert np.array_equal(h, [1,0,0,0])
-    assert np.trapezoid(h,t) == 1
+    assert trapezoid(h,t) == 1
     h = dc.ddelta(1, t)
-    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
+    assert np.abs(trapezoid(h,t)-1) < 1e-12
     h = dc.ddelta(2, t)
-    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
+    assert np.abs(trapezoid(h,t)-1) < 1e-12
     h = dc.ddelta(3.5, t)
-    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
+    assert np.abs(trapezoid(h,t)-1) < 1e-12
     h = dc.ddelta(4, t)
-    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
+    assert np.abs(trapezoid(h,t)-1) < 1e-12
 
     # Check that this is a unit for the convolution.
     t = tfib(10, 30)
@@ -327,32 +329,32 @@ def test_dstep():
     t = [0,2,3,4]
     h = dc.dstep(0, 4, t)
     assert np.array_equal(h, [0.25,0.25,0.25,0.25])
-    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
+    assert np.abs(trapezoid(h,t)-1) < 1e-12
     h = dc.dstep(0.5, 3.5, t)
-    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
+    assert np.abs(trapezoid(h,t)-1) < 1e-12
     t = [0,1,2,3]
     h = dc.dstep(0.5, 2.5, t)
     assert np.array_equal(h, [0.2,0.4,0.4,0.2])
-    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
+    assert np.abs(trapezoid(h,t)-1) < 1e-12
     t = [-1,0,1,2]
     h = dc.dstep(0.5, 2.5, t)
     assert np.array_equal(h, [0, 0.25, 0.5, 0.5])
-    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
+    assert np.abs(trapezoid(h,t)-1) < 1e-12
     t = [1,2,3,4]
     h = dc.dstep(0.5, 2.5, t)
     assert np.array_equal(h, [0.5, 0.5, 0.25, 0])
-    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
+    assert np.abs(trapezoid(h,t)-1) < 1e-12
 
 def test_ddist():
     t = [0,2,3,4]
     h = dc.ddist([1/3,1/3,1/3], [0,2,3,4], t)
-    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
+    assert np.abs(trapezoid(h,t)-1) < 1e-12
     t = [0,1,2,3]
     h = dc.ddist([1/3,1/3,1/3], [0,1,2,3], t)
     assert np.array_equal(h, [1/3,1/3,1/3,1/3])
-    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
+    assert np.abs(trapezoid(h,t)-1) < 1e-12
     h = dc.ddist([0.25,0.5,0.25], [0,1,2,3], t)
-    assert np.abs(np.trapezoid(h,t)-1) < 1e-12
+    assert np.abs(trapezoid(h,t)-1) < 1e-12
 
 
 def test_interp():
