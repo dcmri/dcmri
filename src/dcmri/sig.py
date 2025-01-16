@@ -4,10 +4,6 @@ import numpy as np
 
 
 
-
-
-
-
 # TODO handle the case where F of one or more compartments is infinite
 def _Mz_K(R1, v, Fw):
     if np.isscalar(R1):
@@ -423,7 +419,7 @@ def _Nz_ss_aex(R1, TR, FA, v, Fw=0, j=None):
 
 
 
-def Mz_spgr(R1, T, TR, FA, v=1, Fw=0, j=None, n0=0, me=1):
+def Mz_spgr(R1, T, TR, FA, TP=0, v=1, Fw=0, j=None, n0=0, me=1):
     """Longitudinal tissue magnetization of a spoiled gradient-echo sequence.
 
     See section :ref:`basics-relaxation-T1` for more detail.
@@ -435,6 +431,7 @@ def Mz_spgr(R1, T, TR, FA, v=1, Fw=0, j=None, n0=0, me=1):
         T (float): time since the first rf-pulse.
         TR (float): repetition time between rf-pulses.
         FA (float): flip angle of the rf-pulse.
+        TP (float, optional): preparation delay. Default is 0.
         v (array-like, optional): volume fractions of the compartments. For a 
           one-compartment tissue this is a scalar - otherwise it is an 
           array with one value for each compartment. Defaults to 1.
@@ -475,7 +472,7 @@ def Mz_spgr(R1, T, TR, FA, v=1, Fw=0, j=None, n0=0, me=1):
 
         Define constants:
 
-        >>> FA, TR = 12, 0.005
+        >>> FA, TR, TP = 12, 0.005, 0
         >>> TI = np.linspace(0,3,100)
         >>> R1 = [1, 0.5]
         >>> v = [0.3, 0.7]
@@ -484,7 +481,7 @@ def Mz_spgr(R1, T, TR, FA, v=1, Fw=0, j=None, n0=0, me=1):
 
         Compute magnetization:
 
-        >>> Mspgr = dc.Mz_spgr(R1, TI, TR, FA, v, Fw, j=[f, 0], n0=-1) 
+        >>> Mspgr = dc.Mz_spgr(R1, TI, TR, FA, TP, v, Fw, j=[f, 0], n0=-1) 
         >>> Mfree = dc.Mz_free(R1, TI, v, Fw, j=[f, 0], n0=-1)
         >>> Mss = dc.Mz_ss(R1, TR, FA, v, Fw, j=[f, 0])
 
@@ -510,11 +507,11 @@ def Mz_spgr(R1, T, TR, FA, v=1, Fw=0, j=None, n0=0, me=1):
         if np.isscalar(R1):
             M = np.empty(np.size(T))
             for k, Tk in enumerate(T):
-                M[k] = Mz_spgr(R1, Tk, TR, FA, v, Fw, j, n0, me)
+                M[k] = Mz_spgr(R1, Tk, TR, FA, TP, v, Fw, j, n0, me)
         else:
             M = np.empty(np.shape(R1) + (np.size(T), ))
             for k, Tk in enumerate(T):
-                M[...,k] = Mz_spgr(R1, Tk, TR, FA, v, Fw, j, n0, me)
+                M[...,k] = Mz_spgr(R1, Tk, TR, FA, TP, v, Fw, j, n0, me)
         return M
 
     if np.isscalar(R1):
@@ -534,7 +531,7 @@ def Mz_spgr(R1, T, TR, FA, v=1, Fw=0, j=None, n0=0, me=1):
             for t in range(nt):
                 jt = None if j is None else j[t]
                 n0t = n0 if np.isscalar(n0) else n0[t]
-                M[t] = Mz_spgr(R1[t], T, TR, FA, v, Fw, jt, n0t, me)
+                M[t] = Mz_spgr(R1[t], T, TR, FA, TP, v, Fw, jt, n0t, me)
             return M
     
         nx = T/TR
@@ -559,7 +556,7 @@ def Mz_spgr(R1, T, TR, FA, v=1, Fw=0, j=None, n0=0, me=1):
             n0t = n0[:,t]
         else:
             n0t = n0
-        M[:,t] = Mz_spgr(R1[:,t], T, TR, FA, v, Fw, jt, n0t, me)
+        M[:,t] = Mz_spgr(R1[:,t], T, TR, FA, TP, v, Fw, jt, n0t, me)
     return M.reshape(n) 
 
 
@@ -755,7 +752,7 @@ def signal_spgr(S0, R1, T, TR, FA, TP=0.0,
                 n0[:,t] = np.divide(N0[:,t], v)
         else:
             n0 = np.divide(N0, v)
-    Mz = Mz_spgr(R1, T, TR, FA, v, Fw, j, n0)
+    Mz = Mz_spgr(R1, T, TR, FA, TP, v, Fw, j, n0)
     if np.isscalar(Mz):
         return S0 * np.sin(FA*np.pi/180) * np.abs(Mz)
     elif np.ndim(Mz)==1:

@@ -415,37 +415,37 @@ def test_relax_tissue():
     H = 0.45
 
     # Test WV limit - exact
-    p = {'H':H, 'vb':0.0, 'vi':0.3, 'Fb':0.01, 'PS':0.005}
+    p = {'H':H, 'vb':0.0, 'vi':0.3, 'Fb':0.01, 'PS':0.005, 'PSe':0.01, 'PSc':0.01}
     R1_0, _, _ = dc.relax_tissue(ca*(1-H), R10, r1, t=t, 
                                  kinetics='2CX', water_exchange='RR', **p)
-    p = {'H':H, 'vi':0.3, 'Ktrans':0.01*(1-H)*0.005/(0.01*(1-H)+0.005)}
+    p = {'H':H, 'vi':0.3, 'Ktrans':0.01*(1-H)*0.005/(0.01*(1-H)+0.005), 'PSc':0.01}
     R1_1, _, _ = dc.relax_tissue(ca*(1-H), R10, r1, t=t, 
                                  kinetics='WV', water_exchange='RR', **p)
     assert np.linalg.norm(R1_0[1:,:]-R1_1) < 1e-9
 
     # Test WV limit - approx
-    p = {'H':H, 'vb':0.5*1e-3, 'vi':0.3, 'Fb':0.01, 'PS':0.005}
+    p = {'H':H, 'vb':0.5*1e-3, 'vi':0.3, 'Fb':0.01, 'PS':0.005, 'PSe':0.01, 'PSc':0.01}
     R1_0, _, _ = dc.relax_tissue(ca*(1-H), R10, r1, t=t, 
                                  kinetics='2CX', water_exchange='RR', **p)
-    p = {'H':H, 'vi':0.3, 'Ktrans':0.01*(1-H)*0.005/(0.01*(1-H)+0.005)}
+    p = {'H':H, 'vi':0.3, 'Ktrans':0.01*(1-H)*0.005/(0.01*(1-H)+0.005), 'PSc':0.01}
     R1_1, _, _ = dc.relax_tissue(ca*(1-H), R10, r1, t=t, 
                                  kinetics='WV', water_exchange='RR', **p)
     assert np.linalg.norm(R1_0[1:,:]-R1_1)< 1e-3*np.linalg.norm(R1_0[1:,:])
 
     # Test HF limit - exact
-    p = {'H':H, 'vb':0.05, 'vi':0.3, 'Fb':np.inf, 'PS':0.005}
+    p = {'H':H, 'vb':0.05, 'vi':0.3, 'Fb':np.inf, 'PS':0.005, 'PSe':0.01, 'PSc':0.01}
     R1_0, _, _ = dc.relax_tissue(ca, R10, r1, t=t, 
                                  kinetics='2CX', water_exchange='RR', **p)
-    p = {'H':H, 'vb':0.05, 'vi':0.3, 'PS':0.005}
+    p = {'H':H, 'vb':0.05, 'vi':0.3, 'PS':0.005, 'PSe':0.01, 'PSc':0.01}
     R1_1, _, _ = dc.relax_tissue(ca, R10, r1, t=t, 
                                  kinetics='HF', water_exchange='RR', **p)
     assert np.linalg.norm(R1_0-R1_1) < 1e-9
 
     # Test HF limit - approx
-    p = {'H':0.4, 'vb':0.05, 'vi':0.3, 'Fb':1000, 'PS':0.005}
+    p = {'H':0.4, 'vb':0.05, 'vi':0.3, 'Fb':1000, 'PS':0.005, 'PSe':0.01, 'PSc':0.01}
     R1_0, _, _ = dc.relax_tissue(ca, R10, r1, t=t, 
                                  kinetics='2CX', water_exchange='RR', **p)
-    p = {'H':0.4, 'vb':0.05, 'vi':0.3, 'PS':0.005}
+    p = {'H':0.4, 'vb':0.05, 'vi':0.3, 'PS':0.005, 'PSe':0.01, 'PSc':0.01}
     R1_1, _, _ = dc.relax_tissue(ca, R10, r1, t=t, 
                                  kinetics='HF', water_exchange='RR', **p)
     assert np.linalg.norm(R1_0-R1_1) < 1e-3*np.linalg.norm(R1_0)
@@ -534,10 +534,17 @@ def test_signal_tissue():
                          water_exchange='FF', sequence=seq, **pars)
     assert 0.007 < S[0] < 0.008
     inflow = {'R10a': 0.7, 'B1corr_a':1}
+
     try:
+        pars_2cu = {
+            'H':0.45, 
+            'vb': 0.1,
+            'Fb': 0.5,
+            'PS': 0.005,
+        }
         dc.signal_tissue(
             ca, R10, r1, dt=1.0, kinetics='2CU', water_exchange='FF', 
-            sequence=seq, inflow=inflow, **pars)
+            sequence=seq, inflow=inflow, **pars_2cu)
     except:
         assert True
     else:
@@ -546,6 +553,10 @@ def test_signal_tissue():
         ca, R10, r1, dt=1.0, kinetics='2CX', water_exchange='FF', 
         sequence=seq, inflow=inflow, **pars)
     assert 0.007 < S[0] < 0.008
+    S = dc.signal_tissue(
+        ca, R10, r1, dt=1.0, kinetics='2CX', water_exchange='FR', 
+        sequence=seq, inflow=inflow, PSc=0.01, **pars)
+    assert 0.00735 < S[0] < 0.00736
     
     seq = {
         'model': 'SR', 
@@ -561,9 +572,15 @@ def test_signal_tissue():
     assert 0.007 < S[0] < 0.008
     inflow = {'R10a': 0.7, 'B1corr_a':1}
     try:
+        pars_2cu = {
+            'H':0.45, 
+            'vb': 0.1,
+            'Fb': 0.5,
+            'PS': 0.005,
+        }
         dc.signal_tissue(
             ca, R10, r1, dt=1.0, kinetics='2CU', water_exchange='FF', 
-            sequence=seq, inflow=inflow, **pars)
+            sequence=seq, inflow=inflow, **pars_2cu)
     except:
         assert True
     else:
@@ -572,12 +589,106 @@ def test_signal_tissue():
         ca, R10, r1, dt=1.0, kinetics='2CX', water_exchange='FF', 
         sequence=seq, inflow=inflow, **pars)
     assert 0.007 < S[0] < 0.008
+    S = dc.signal_tissue(
+        ca, R10, r1, dt=1.0, kinetics='2CX', water_exchange='FR', 
+        sequence=seq, inflow=inflow, PSc=0.01, **pars)
+    assert 0.0072 < S[0] < 0.0074
+
+
+def test_Mz_tissue():
+    nt = 10
+    R10 = 1
+    r1 = 0.005
+    ca = np.ones(nt)
+    try:
+        dc.Mz_tissue(ca, R10, r1, dt=1.0, kinetics='2CX', 
+                         water_exchange='FF')
+    except:
+        assert True
+    else:
+        assert False
+    pars = {
+        'H':0.45, 
+        'vb': 0.1,
+        'vi': 0.3,
+        'Fb': 0.5,
+        'PS': 0.005,
+    }
+    seq = {
+        'model': 'SS', 
+        'S0':1, 
+        'FA':15, 
+        'TR': 0.001, 
+        'B1corr':1,
+    }
+    Mz = dc.Mz_tissue(ca, R10, r1, dt=1.0, kinetics='2CX', 
+                         water_exchange='FF', sequence=seq, **pars)
+    assert 0.02 < Mz[0] < 0.03
+    inflow = {'R10a': 0.7, 'B1corr_a':1}
+
+    try:
+        pars_2cu = {
+            'H':0.45, 
+            'vb': 0.1,
+            'Fb': 0.5,
+            'PS': 0.005,
+        }
+        dc.Mz_tissue(
+            ca, R10, r1, dt=1.0, kinetics='2CU', water_exchange='FF', 
+            sequence=seq, inflow=inflow, **pars_2cu)
+    except:
+        assert True
+    else:
+        assert False
+    Mz = dc.Mz_tissue(
+        ca, R10, r1, dt=1.0, kinetics='2CX', water_exchange='FF', 
+        sequence=seq, inflow=inflow, **pars)
+    assert 0.02 < Mz[0] < 0.03
+    Mz = dc.Mz_tissue(
+        ca, R10, r1, dt=1.0, kinetics='2CX', water_exchange='FR', 
+        sequence=seq, inflow=inflow, PSc=0.01, **pars)
+    assert 0.01 < Mz[0,0] < 0.02
+    
+    seq = {
+        'model': 'SR', 
+        'S0':1, 
+        'FA':15, 
+        'TR': 0.001, 
+        'TC': 0.2,
+        'TP': 0.1,
+        'B1corr':1,
+    }
+    Mz = dc.Mz_tissue(ca, R10, r1, dt=1.0, kinetics='2CX', 
+                         water_exchange='FF', sequence=seq, **pars)
+    assert 0.02 < Mz[0] < 0.03
+    inflow = {'R10a': 0.7, 'B1corr_a':1}
+    try:
+        pars_2cu = {
+            'H':0.45, 
+            'vb': 0.1,
+            'Fb': 0.5,
+            'PS': 0.005,
+        }
+        dc.Mz_tissue(
+            ca, R10, r1, dt=1.0, kinetics='2CU', water_exchange='FF', 
+            sequence=seq, inflow=inflow, **pars_2cu)
+    except:
+        assert True
+    else:
+        assert False
+    Mz = dc.Mz_tissue(
+        ca, R10, r1, dt=1.0, kinetics='2CX', water_exchange='FF', 
+        sequence=seq, inflow=inflow, **pars)
+    assert 0.02 < Mz[0] < 0.03
+    Mz = dc.Mz_tissue(
+        ca, R10, r1, dt=1.0, kinetics='2CX', water_exchange='FR', 
+        sequence=seq, inflow=inflow, PSc=0.01, **pars)
+    assert 0.01 < Mz[0,0] < 0.02
 
 
 if __name__ == "__main__":
 
-    test_signal_tissue()
-    test_params_tissue()
+
 
     test__conc_u()
     test__flux_u()
@@ -604,6 +715,9 @@ if __name__ == "__main__":
     test_flux_tissue()
 
     test_relax_tissue()
+    test_Mz_tissue()
+    test_signal_tissue()
+    test_params_tissue()
 
 
     print('All pk_tissue tests passing!')

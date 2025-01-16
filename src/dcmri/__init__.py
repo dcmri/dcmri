@@ -14,6 +14,9 @@ from dcmri.tissue import *
 from dcmri import pk_aorta
 from dcmri.pk_aorta import *
 
+from dcmri import pk_lib
+from dcmri.pk_lib import *
+
 from dcmri import kidney
 from dcmri.kidney import *
 

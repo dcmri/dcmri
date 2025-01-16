@@ -1,10 +1,8 @@
-"""PK models built from PK blocks defined in dcmri.pk"""
+
 
 import numpy as np
-import dcmri.pk as pk
-import dcmri.utils as utils
-import dcmri.rel as rel
-import dcmri.sig as sig
+
+from dcmri import pk, utils, rel, sig
 
 
 
@@ -730,6 +728,13 @@ def relax_tissue(ca: np.ndarray, R10: float, r1: float, t=None, dt=1.0,
             str(water_exchange) + "' is not recognised.\n" + 
             "Possible values are: 'FF','RF','NF','FR','RR','NR','FN','RN','NN'"
         )
+
+    req = params_tissue(kinetics, water_exchange)
+    if set(req) != set(params.keys()):
+        raise ValueError(
+            "Model parameters are incorrect or incomplete. A model with "
+            "kinetics " + kinetics + " and water_exchange "+water_exchange+" requires "
+            "parameters " + str(req) + " but you have provided "+str(list(params.keys())))
 
     if water_exchange[0] == 'N':
         if kinetics != 'WV':
