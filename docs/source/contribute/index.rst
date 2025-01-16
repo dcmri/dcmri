@@ -67,14 +67,14 @@ Types of examples
 Examples can be 
 different things but we generally consider the following types:
 
-- **Tutorial**: an educational notebook on an aspect of DCMRI that is explained 
-using methods in the package.
+- **Tutorial**: an educational notebook on an aspect of DCMRI that is 
+  explained using methods in the package.
 - **Methodological study**: this can be an aspect of method development or 
-evaluation, such as sensitivity analysis, model comparisons etc. 
+  evaluation, such as sensitivity analysis, model comparisons etc.
 - **Use case**: this is an application of `dcmri` in a real world problem, 
-typically an analysis of real data with sufficient power to show an effect 
-(or absence thereof) on meaningful endpoints - such as effect of treatment, 
-differences between groups, changes over time or predictions of outcomes. 
+  typically an analysis of real data with sufficient power to show an effect 
+  (or absence thereof) on meaningful endpoints - such as effect of treatment, 
+  differences between groups, changes over time or predictions of outcomes. 
 
 Methological studies or use cases can also be replications of published work, 
 or serve as supplementary material with published papers or abstracts. 
