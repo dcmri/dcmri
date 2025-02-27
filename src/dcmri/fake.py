@@ -579,7 +579,7 @@ def fake_kidney(
     """
     t = np.arange(0, tacq+dt, dt_sim)
     cp = pk_lib.aif_parker(t, BAT)
-    Cc, Cm = kidney.conc_kidney_cortex_medulla(
+    Cc, Cm = kidney.conc_kidney_cm(
         cp, Fp, Eg, fc, Tg, Tv, Tpt, Tlh, Tdt, Tcd, dt=dt_sim, kinetics='7C')
     rp = lib.relaxivity(field_strength, 'plasma', agent)
     R1b = R10a + rp*cp*(1-Hct)

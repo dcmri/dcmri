@@ -46,7 +46,7 @@ Kidney tissue
    :template: autosummary.rst
 
    conc_kidney
-   conc_kidney_cortex_medulla   
+   conc_kidney_cm 
 
 
 Aorta whole blood

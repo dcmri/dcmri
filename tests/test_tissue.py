@@ -3,6 +3,18 @@ from scipy.integrate import cumulative_trapezoid
 import numpy as np
 import dcmri as dc
 
+def test__flux_nx():
+    n = 10
+    Ta = 10
+    Fb = 2
+    vb = 0.1
+    t = np.linspace(0, 20, n)
+    ca = np.exp(-t/Ta)/Ta
+    J = dc.flux_tissue(ca, t=t, kinetics='NX', vb=vb, Fb=Fb)
+    assert J[0] == 0
+    Fb = 0
+    J = dc.flux_tissue(ca, t=t, kinetics='NX', vb=vb, Fb=Fb)
+    assert J[0] == 0
 
 
 def test__conc_u():
@@ -341,6 +353,10 @@ def test__flux_2cx():
                         vb=vb, Fb=Fb)
     assert np.linalg.norm(Jo-Jo0[0,0,:])/np.linalg.norm(Jo) < 1e-3
 
+    Jo = dc.flux_tissue(ca*(1-H), t=t, kinetics='2CX', 
+                        H=H, vb=vb, vi=vi, Fb=Fb, PS=0) 
+    assert Jo[0,0,0] == 0
+
     # Test boundary
     Fb = np.inf
     vb = 0.1
@@ -449,6 +465,84 @@ def test_relax_tissue():
     R1_1, _, _ = dc.relax_tissue(ca, R10, r1, t=t, 
                                  kinetics='HF', water_exchange='RR', **p)
     assert np.linalg.norm(R1_0-R1_1) < 1e-3*np.linalg.norm(R1_0)
+
+    # Test NN
+    p = {'H':0.4, 'vb':0.05, 'vi':0.3, 'PS':0.005}
+    R1_1, _, _ = dc.relax_tissue(ca, R10, r1, t=t, 
+                                 kinetics='HF', water_exchange='NN', **p)
+    assert 0.6 < R1_1[0,0] < 0.7
+
+    # Run all cases
+    for wex in ['FF','RF','FR','RR']:
+        for kin in ['U', 'FX', 'NX', 'WV', 'HFU', 'HF', '2CU', '2CX']:
+            p = dc.params_tissue(kin, wex)
+            p = {key:0.01 for key in p}
+            try:
+                dc.relax_tissue(ca, R10, r1, t=t, kinetics=kin, 
+                                water_exchange=wex, **p)
+            except:
+                False
+            else:
+                True
+            p = {key:0.0 for key in p}
+            try:
+                dc.relax_tissue(ca, R10, r1, t=t, kinetics=kin, 
+                                water_exchange=wex, **p)
+            except:
+                False
+            else:
+                True
+
+    wex = 'RR'
+    kin = 'U'
+    p = dc.params_tissue(kin, wex)
+    p = {key:0 for key in p}
+    p['Fb'] = 0.01
+    R1, _, _ =dc.relax_tissue(ca, R10, r1, t=t, kinetics=kin, 
+                              water_exchange=wex, **p)
+    assert 0.6 < R1[0,0] < 0.7
+
+    wex = 'FF'
+    kin = '2CU'
+    p = dc.params_tissue(kin, wex)
+    p = {key:0.01 for key in p}
+    p['Fb'] = np.inf
+    R1, _, _ =dc.relax_tissue(ca, R10, r1, t=t, kinetics=kin, 
+                              water_exchange=wex, **p)
+    assert 0.6 < R1[0] < 0.7
+
+    wex = 'FF'
+    kin = 'NX'
+    p = dc.params_tissue(kin, wex)
+    p = {key:0.01 for key in p}
+    p['Fb'] = 0
+    R1, _, _ =dc.relax_tissue(ca, R10, r1, t=t, kinetics=kin, 
+                              water_exchange=wex, **p)
+    assert 0.6 < R1[0] < 0.7
+
+
+
+    # test exceptions
+    try:
+        dc.relax_tissue(ca, R10, r1, t=t, kinetics='XX', water_exchange='RR', 
+                        **p)
+    except:
+        assert True
+    else:
+        assert False
+    try:
+        dc.relax_tissue(ca, R10, r1, t=t, kinetics='U', water_exchange='XX', 
+                        **p)
+    except:
+        assert True
+    else:
+        assert False
+    try:
+        dc.relax_tissue(ca, R10, r1, t=t, kinetics='U', water_exchange='FF')
+    except:
+        assert True
+    else:
+        assert False
 
 
 
@@ -688,7 +782,7 @@ def test_Mz_tissue():
 
 if __name__ == "__main__":
 
-
+    test__flux_nx()
 
     test__conc_u()
     test__flux_u()

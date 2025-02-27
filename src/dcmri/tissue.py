@@ -840,12 +840,6 @@ def _relax_2cx_ff(ca, R10, r1, t=None, dt=1.0,
     R1 = rel.relax(C, R10, r1)
     return R1, 1, Fb
 
-def __relax_2cx_ff(ca, R10, r1, t=None, dt=1.0, 
-                  H=None, vi=None, vb=None, Fb=None, PS=None):
-    C = _conc_2cx(ca, t=t, dt=dt, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
-    R1 = rel.relax(C, R10, r1)
-    return R1, 1, 0
-
 def _relax_2cu_ff(ca, R10, r1, t=None, dt=1.0, 
                   H=None, vb=None, Fb=None, PS=None):
     C = _conc_2cu(ca, t=t, dt=dt, H=H, vb=vb, Fb=Fb, PS=PS)
@@ -900,17 +894,6 @@ def _relax_2cx_fr(ca, R10, r1, t=None, dt=1.0,
         rel.relax(ca*0, R10, r1), 
     )
     Fw = [[Fb, PSc], [PSc, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw)
-
-def __relax_2cx_fr(ca, R10, r1, t=None, dt=1.0, 
-                  H=None, vb=None, vi=None, Fb=None, PS=None, PSc=None):
-    C = _conc_2cx(ca, t=t, dt=dt, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
-    v = [vb+vi, 1-vb-vi]
-    R1 = (
-        rel.relax(_c(C, v[0]), R10, r1),
-        rel.relax(ca*0, R10, r1), 
-    )
-    Fw = [[0, PSc], [PSc, 0]]
     return np.stack(R1), np.array(v), np.array(Fw)
 
 def _relax_2cu_fr(ca, R10, r1, t=None, dt=1.0, 
@@ -1011,17 +994,6 @@ def _relax_2cx_rf(ca, R10, r1, t=None, dt=1.0,
     Fw = [[Fb, PSe], [PSe, 0]]
     return np.stack(R1), np.array(v), np.array(Fw)
 
-def __relax_2cx_rf(ca, R10, r1, t=None, dt=1.0, 
-                  H=None, vb=None, vi=None, Fb=None, PS=None, PSe=None):
-    C = _conc_2cx(ca, t=t, dt=dt, sum=False, 
-                  H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
-    v = [vb, 1-vb]
-    R1 = (
-        rel.relax(_c(C[0,:], v[0]), R10, r1),
-        rel.relax(_c(C[1,:], v[1]), R10, r1),
-    )
-    Fw = [[0, PSe], [PSe, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw)
 
 def _relax_2cu_rf(ca, R10, r1, t=None, dt=1.0, 
                   H=None, vb=None, Fb=None, PS=None, PSe=None):
@@ -1069,8 +1041,12 @@ def _relax_fx_rf(ca, R10, r1, t=None, dt=1.0,
     ve = vp + vi
     C = _conc_fx(ca, t=t, dt=dt, H=H, ve=ve, Fb=Fb)
     v = [vb, 1-vb]
-    Cp = C*vp/ve
-    Ci = C*vi/ve
+    if ve==0:
+        Cp = C*0
+        Ci = C*0
+    else:
+        Cp = C*vp/ve
+        Ci = C*vi/ve
     R1 = (
         rel.relax(_c(Cp, v[0]), R10, r1),
         rel.relax(_c(Ci, v[1]), R10, r1),
@@ -1118,20 +1094,6 @@ def _relax_2cx_rr(ca, R10, r1, t=None, dt=1.0,
     Fw = [[Fb, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]]
     return np.stack(R1), np.array(v), np.array(Fw)
 
-
-def __relax_2cx_rr(ca, R10, r1, t=None, dt=1.0, 
-                  H=None, vb=None, vi=None, 
-                  Fb=None, PS=None, PSe=None, PSc=None):
-    C = _conc_2cx(ca, t=t, dt=dt, sum=False, 
-                  H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
-    v = [vb, vi, 1-vb-vi]
-    R1 = (
-        rel.relax(_c(C[0,:], v[0]), R10, r1),
-        rel.relax(_c(C[1,:], v[1]), R10, r1), 
-        rel.relax(ca*0, R10, r1), 
-    )
-    Fw = [[0, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw)
 
 def _relax_2cu_rr(ca, R10, r1, t=None, dt=1.0, 
                   H=None, vb=None, vi=None, 
@@ -1189,8 +1151,12 @@ def _relax_fx_rr(ca, R10, r1, t=None, dt=1.0,
     ve = vp + vi
     C = _conc_fx(ca, t=t, dt=dt, H=H, ve=ve, Fb=Fb)
     v = [vb, vi, 1-vb-vi]
-    Cp = C*vp/ve
-    Ci = C*vi/ve
+    if ve==0:
+        Cp = C*0
+        Ci = C*0
+    else:
+        Cp = C*vp/ve
+        Ci = C*vi/ve
     R1 = (
         rel.relax(_c(Cp, v[0]), R10, r1),
         rel.relax(_c(Ci, v[1]), R10, r1), 
@@ -1355,10 +1321,6 @@ def conc_tissue(ca: np.ndarray, t=None, dt=1.0, kinetics='2CX', sum=True,
 
 
 def _conc_u(ca, t=None, dt=1.0, Fb=None):
-    if Fb is None:
-        raise ValueError(
-            'Fp is a required parameter for the tissue concentration '
-            + 'in an uptake model. \nPlease provide a value.')
     C = pk.conc_trap(Fb*ca, t=t, dt=dt)
     return C
     
@@ -1366,18 +1328,9 @@ def _conc_u(ca, t=None, dt=1.0, Fb=None):
 def _conc_fx(ca, t=None, dt=1.0, 
              H=None, ve=None, Fb=None):
     # Te = ve/Fp
-    if Fb is None:
-        raise ValueError(
-            'Fb is a required parameter for the tissue concentration '
-            + 'in a fast exchange model. \nPlease provide a value.')
     if Fb == 0:
         ce = ca*0
     else:
-        if ve is None:
-            raise ValueError(
-                've is a required parameter for the tissue '
-                + 'concentration in a fast exchange model. '
-                + '\nPlease provide a value.')
         Fp = (1-H)*Fb
         ce = pk.flux_comp(ca/(1-H), ve/Fp, t=t, dt=dt)
     return ve*ce
@@ -1385,18 +1338,9 @@ def _conc_fx(ca, t=None, dt=1.0,
 
 def _conc_nx(ca, t=None, dt=1.0, 
              vb=None, Fb=None):
-    if Fb is None:
-        raise ValueError(
-            'Fb is a required parameter for the tissue concentration '
-            + 'in a no exchange model. \nPlease provide a value.')
     if Fb == 0:
         Cp = ca*0
     else:
-        if vb is None:
-            raise ValueError(
-                'vb is a required parameter for the tissue ' 
-                + 'concentration in a no exchange model. '
-                + '\nPlease provide a value.')
         Cp = pk.conc_comp(Fb*ca, vb/Fb, t=t, dt=dt)
     return Cp 
 
@@ -1441,7 +1385,7 @@ def _conc_2cu(ca, t=None, dt=1.0, sum=True,
     vp = (1-H)*vb
     Fp = (1-H)*Fb
     if np.isinf(Fp):
-        return _conc_hfu(ca, t=t, dt=dt, sum=sum, vp=vp, PS=PS)
+        return _conc_hfu(ca, t=t, dt=dt, sum=sum, H=H, vb=vb, PS=PS)
     ca = ca/(1-H)
     if Fp+PS == 0:
         if sum:
@@ -1501,108 +1445,100 @@ def _conc_2cx(ca, t=None, dt=1.0, sum=True,
         return C
     
 
-def _conc_2cf(ca, t=None, dt=1.0, sum=True, 
-              vp=None, Fp=None, PS=None, Te=None):
-    if Fp+PS == 0:
-        if sum:
-            return np.zeros(len(ca))
-        else:
-            return np.zeros((2, len(ca)))
-    # Derive standard parameters
-    Tp = vp/(Fp+PS)
-    E = PS/(Fp+PS)
-    J = Fp*ca
-    T = [Tp, Te]
-    # Solve the system explicitly
-    t = utils.tarray(len(J), t=t, dt=dt)
-    C0 = pk.conc_comp(J, T[0], t)
-    if E == 0:
-        C1 = np.zeros(len(t))
-    elif T[0] == 0:
-        J10 = E*J
-        C1 = pk.conc_comp(J10, T[1], t)
-    else:
-        J10 = C0*E/T[0]
-        C1 = pk.conc_comp(J10, T[1], t)
-    if sum:
-        return C0+C1
-    else:
-        return np.stack((C0, C1))
+# def _conc_2cf(ca, t=None, dt=1.0, sum=True, 
+#               vp=None, Fp=None, PS=None, Te=None):
+#     if Fp+PS == 0:
+#         if sum:
+#             return np.zeros(len(ca))
+#         else:
+#             return np.zeros((2, len(ca)))
+#     # Derive standard parameters
+#     Tp = vp/(Fp+PS)
+#     E = PS/(Fp+PS)
+#     J = Fp*ca
+#     T = [Tp, Te]
+#     # Solve the system explicitly
+#     t = utils.tarray(len(J), t=t, dt=dt)
+#     C0 = pk.conc_comp(J, T[0], t)
+#     if E == 0:
+#         C1 = np.zeros(len(t))
+#     elif T[0] == 0:
+#         J10 = E*J
+#         C1 = pk.conc_comp(J10, T[1], t)
+#     else:
+#         J10 = C0*E/T[0]
+#         C1 = pk.conc_comp(J10, T[1], t)
+#     if sum:
+#         return C0+C1
+#     else:
+#         return np.stack((C0, C1))
     
 
-def _lconc_fx(ca, t=None, dt=1.0, Te=None):
-    # Te = ve/Fp
-    if Te is None:
-        msg = ('Te is a required parameter for the concentration'
-                + 'in a fast exchange model. \nPlease provide a value.')
-        raise ValueError(msg)
-    ce = pk.flux_comp(ca, Te, t=t, dt=dt)
-    return ce
+# def _lconc_fx(ca, t=None, dt=1.0, Te=None):
+#     # Te = ve/Fp
+#     ce = pk.flux_comp(ca, Te, t=t, dt=dt)
+#     return ce
 
 
-def _lconc_u(ca, t=None, dt=1.0, Tb=None):
-    # Tb = vp/Fp
-    if Tb is None:
-        msg = ('Tb is a required parameter for the concentration'
-                + 'in an uptake model. \nPlease provide a value.')
-        raise ValueError(msg)
-    if Tb==0:
-        msg = ('An uptake tissue with Tb=0 is not well-defined. \n'
-                + 'Consider constraining the parameters.')
-        raise ValueError(msg)
-    cp = pk.conc_trap(ca, t=t, dt=dt)/Tb
-    return cp
+# def _lconc_u(ca, t=None, dt=1.0, Tb=None):
+#     # Tb = vp/Fp
+#     if Tb==0:
+#         msg = ('An uptake tissue with Tb=0 is not well-defined. \n'
+#                 + 'Consider constraining the parameters.')
+#         raise ValueError(msg)
+#     cp = pk.conc_trap(ca, t=t, dt=dt)/Tb
+#     return cp
 
     
-def _lconc_nx(ca, t=None, dt=1.0, Tb=None):
-    cp = pk.flux_comp(ca, Tb, t=t, dt=dt)
-    return cp
+# def _lconc_nx(ca, t=None, dt=1.0, Tb=None):
+#     cp = pk.flux_comp(ca, Tb, t=t, dt=dt)
+#     return cp
 
     
-def _lconc_wv(ca, t=None, dt=1.0, Ti=None):
-    # Note cp is non-zero and equal to (1-E)*ca
-    # But is not returned as it sits in a compartment without dimensions
-    # Ti = vi/Ktrans
-    ci = pk.flux_comp(ca, Ti, t=t, dt=dt)
-    return ci
+# def _lconc_wv(ca, t=None, dt=1.0, Ti=None):
+#     # Note cp is non-zero and equal to (1-E)*ca
+#     # But is not returned as it sits in a compartment without dimensions
+#     # Ti = vi/Ktrans
+#     ci = pk.flux_comp(ca, Ti, t=t, dt=dt)
+#     return ci
 
         
-def _lconc_hfu(ca, t=None, dt=1.0, Ti=None):
-    # Ti=vi/PS
-    # up = vp / (vp + vi)
-    cp = ca
-    if Ti==0:
-        msg = 'An uptake tissue with Ti=0 is not well-defined. \n'
-        msg += 'Consider constraining the parameters.'
-        raise ValueError(msg)
-    ci = pk.conc_trap(cp, t=t, dt=dt)/Ti
-    return np.stack((cp, ci))
+# def _lconc_hfu(ca, t=None, dt=1.0, Ti=None):
+#     # Ti=vi/PS
+#     # up = vp / (vp + vi)
+#     cp = ca
+#     if Ti==0:
+#         msg = 'An uptake tissue with Ti=0 is not well-defined. \n'
+#         msg += 'Consider constraining the parameters.'
+#         raise ValueError(msg)
+#     ci = pk.conc_trap(cp, t=t, dt=dt)/Ti
+#     return np.stack((cp, ci))
 
         
-def _lconc_hf(ca, t=None, dt=1.0, Ti=None):
-    # Ti = vi/PS
-    # up = vp/ve
-    cp = ca
-    ci = pk.flux_comp(cp, Ti, t=t, dt=dt)
-    return np.stack((cp, ci))
+# def _lconc_hf(ca, t=None, dt=1.0, Ti=None):
+#     # Ti = vi/PS
+#     # up = vp/ve
+#     cp = ca
+#     ci = pk.flux_comp(cp, Ti, t=t, dt=dt)
+#     return np.stack((cp, ci))
 
 
-def _lconc_2cu(ca, t=None, dt=1.0, 
-               Tp=None, E=None, Ti=None):
-    # Ti = vi/PS
-    cp = (1-E)*pk.flux_comp(ca, Tp, t=t, dt=dt)
-    ci = pk.conc_trap(cp, t=t, dt=dt)/Ti
-    return np.stack((cp, ci))
+# def _lconc_2cu(ca, t=None, dt=1.0, 
+#                Tp=None, E=None, Ti=None):
+#     # Ti = vi/PS
+#     cp = (1-E)*pk.flux_comp(ca, Tp, t=t, dt=dt)
+#     ci = pk.conc_trap(cp, t=t, dt=dt)/Ti
+#     return np.stack((cp, ci))
 
         
-def _lconc_2cx(ca, t=None, dt=1.0, Tp=None, Ti=None, E=None):
-    # c = C/Fp
-    # cp = C0/vp = c0*Fp/vp = c0 * (1-E)/Tp
-    # ci = C1/vi = c1*Fp/vi = c1 * (1-E)/E/Ti
-    c = pk.conc_2cxm(ca, [Tp, Ti], E, t=t, dt=dt)
-    cp = c[0,:] * (1-E) / Tp
-    ci = c[1,:] * (1-E) / E / Ti
-    return np.stack((cp, ci))
+# def _lconc_2cx(ca, t=None, dt=1.0, Tp=None, Ti=None, E=None):
+#     # c = C/Fp
+#     # cp = C0/vp = c0*Fp/vp = c0 * (1-E)/Tp
+#     # ci = C1/vi = c1*Fp/vi = c1 * (1-E)/E/Ti
+#     c = pk.conc_2cxm(ca, [Tp, Ti], E, t=t, dt=dt)
+#     cp = c[0,:] * (1-E) / Tp
+#     ci = c[1,:] * (1-E) / E / Ti
+#     return np.stack((cp, ci))
 
 
 def flux_tissue(ca: np.ndarray, t=None, dt=1.0, kinetics='2CX', **params) -> np.ndarray:
@@ -1724,8 +1660,7 @@ def _flux_2cx(ca, t=None, dt=1.0, H=None, vb=None, vi=None, Fb=None, PS=None):
         return np.zeros((2, 2, len(ca)))
 
     Fp = Fb*(1-H)
-    if Fp+PS == 0:
-        return np.zeros((2, 2, len(ca)))
+
     if PS == 0:
         Jp = _flux_nx(ca, t=t, dt=dt, vb=vb, Fb=Fb)
         J = np.zeros((2, 2, len(ca)))
@@ -1746,20 +1681,20 @@ def _flux_2cx(ca, t=None, dt=1.0, H=None, vb=None, vi=None, Fb=None, PS=None):
     return pk._J_ncomp(C, T, E)
 
 
-def _flux_2cf(ca, t=None, dt=1.0, vp=None, Fp=None, PS=None, Te=None):
-    if Fp+PS == 0:
-        return np.zeros((2, 2, len(ca)))
-    # Derive standard parameters
-    Tp = vp/(Fp+PS)
-    E = PS/(Fp+PS)
-    J = Fp*ca
-    T = [Tp, Te]
-    # Solve the system explicitly
-    t = utils.tarray(len(J), t=t, dt=dt)
-    Jo = np.zeros((2, 2, len(t)))
-    J0 = pk.flux(J, T[0], t=t, model='comp')
-    J10 = E*J0
-    Jo[1, 0, :] = J10
-    Jo[1, 1, :] = pk.flux(J10, T[1], t=t, model='comp')
-    Jo[0, 0, :] = (1-E)*J0
-    return Jo
+# def _flux_2cf(ca, t=None, dt=1.0, vp=None, Fp=None, PS=None, Te=None):
+#     if Fp+PS == 0:
+#         return np.zeros((2, 2, len(ca)))
+#     # Derive standard parameters
+#     Tp = vp/(Fp+PS)
+#     E = PS/(Fp+PS)
+#     J = Fp*ca
+#     T = [Tp, Te]
+#     # Solve the system explicitly
+#     t = utils.tarray(len(J), t=t, dt=dt)
+#     Jo = np.zeros((2, 2, len(t)))
+#     J0 = pk.flux(J, T[0], t=t, model='comp')
+#     J10 = E*J0
+#     Jo[1, 0, :] = J10
+#     Jo[1, 1, :] = pk.flux(J10, T[1], t=t, model='comp')
+#     Jo[0, 0, :] = (1-E)*J0
+#     return Jo
