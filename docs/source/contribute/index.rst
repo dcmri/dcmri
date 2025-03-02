@@ -4,11 +4,6 @@
 Contribute
 ##########
 
-.. note::
-
-   dcmri is under construction. At this stage, the API may still change and 
-   features may be deprecated without warning.
-
 
 The ``dcmri`` source code is freely accessible on 
 `github <https://github.com/dcmri/dcmri>`_. We welcome contributions of any 
@@ -121,7 +116,7 @@ dostring of the `dcmri.fetch()` function with some background on the dataset,
 where it comes from and what the dictionary items represent. 
   
 Note while currently data are distributed as part of the package's source 
-code, these will move to a dedicated `OSF <https://osf.io/>`_ repository in 
+code, these will move to a dedicated ` <https://osf.io/>`_ repository in 
 future versions.
 
 If you are planning to include data with your example, please consider 
