@@ -197,10 +197,10 @@ class KidneyCortMed(ui.Model):
                 raise NotImplementedError(
                     'Signal model ' + self.sequence + 'is not (yet) supported.')
             self.ca = cb/(1-self.Hct)
-        return pkk.conc_kidney_cortex_medulla(self.ca,
-                                              self.Fp, self.Eg, self.fc, self.Tg, self.Tv,
-                                              self.Tpt, self.Tlh, self.Tdt, self.Tcd,
-                                              t=self.t, dt=self.dt, sum=sum, kinetics='7C')
+        return pkk.conc_kidney_cm(self.ca,
+                                  self.Fp, self.Eg, self.fc, self.Tg, self.Tv,
+                                  self.Tpt, self.Tlh, self.Tdt, self.Tcd,
+                                  t=self.t, dt=self.dt, sum=sum, kinetics='7C')
 
     def predict(self, xdata: np.ndarray) -> tuple:
         """Predict the data at given xdata

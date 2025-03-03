@@ -108,8 +108,8 @@ def conc_kidney(ca: np.ndarray, *params, t=None, dt=1.0, sum=True, kinetics='2CF
         # TT = [15,30,60,90,150,300,600]
         return _conc_kidney_fn(ca, *params, t=t, dt=dt, sum=sum, **kwargs)
     else:
-        raise ValueError('Kinetic model ' + kinetics +
-                         ' is not currently implemented.')
+        raise ValueError(
+            'Kinetic model ' + kinetics + ' is not currently implemented.')
 
 
 def _conc_kidney_2cf(ca, Fp, vp, Ft, Tt, t=None, dt=1.0, sum=True):
@@ -151,29 +151,48 @@ def _conc_kidney_fn(ca, Fp, Tp, Ft, h, t=None, dt=1.0, sum=True, TT=None):
         return np.stack((Cp, Ct))
 
 
-def conc_kidney_cortex_medulla(ca: np.ndarray, *params, t=None, dt=1.0, sum=True, kinetics='7C'):
+def conc_kidney_cm(ca: np.ndarray, *params, t=None, dt=1.0, sum=True, 
+                   kinetics='7C'):
     """Concentration in kidney cortex and medulla tissues.
 
     Args:
         ca (array-like): concentration in the arterial input.
         params (tuple): free model parameters.
-        t (array_like, optional): the time points in sec of the input function *ca*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
-        dt (float, optional): spacing in seconds between time points for uniformly spaced time points. This parameter is ignored if *t* is explicity provided. Defaults to 1.0.
-        sum (bool, optional): For two-compartment tissues, set to True to return the total tissue concentration. Defaults to True.
-        kinetics (str, optional): Kinetics of the tissue, currently only '7C' available - see below for detail. Defaults to '7F'. 
+        t (array_like, optional): the time points in sec of the input 
+          function *ca*. If *t* is not provided, the time points are assumed 
+          to be uniformly spaced with spacing *dt*. Defaults to None.
+        dt (float, optional): spacing in seconds between time points for 
+          uniformly spaced time points. This parameter is ignored if *t* is 
+          explicity provided. Defaults to 1.0.
+        sum (bool, optional): For two-compartment tissues, set to True to 
+          return the total tissue concentration. Defaults to True.
+        kinetics (str, optional): Kinetics of the tissue, currently only '7C' 
+          available - see below for detail. Defaults to '7F'. 
 
     Returns:
-        tuple[numpy.ndarray, numpy.ndarray]: If sum=True, each return value is a 1D array with the total concentration at each time point, in cortex and medulla, respectively. If sum=False each return value is the concentration in each compartment, and at each time point, of cortex and medulla as a 2D array with dimensions *(n,k)*, where n is the number of compartments and *k* is the number of time points in *ca*. The concentration is returned in units of M.
+        tuple[numpy.ndarray, numpy.ndarray]: If sum=True, each return value 
+        is a 1D array with the total concentration at each time point, in 
+        cortex and medulla, respectively. If sum=False each return value is 
+        the concentration in each compartment, and at each time point, of 
+        cortex and medulla as a 2D array with dimensions *(n,k)*, where n is 
+        the number of compartments and *k* is the number of time points in 
+        *ca*. The concentration is returned in units of M.
 
 
     Notes:
         Currently implemented kinetic models are: 
 
-        - '7CF': 7-compartment model. params = (Fp, Eg, fc, Tg, Tv, Tpt, Tlh, Tdt, Tcd,). Cortico-medullary model with 4 cortical compartments (glomeruli, peritubular capillaries & veins, proximal tubuli and distal tubuli) and 3 medullary compartments (peritubular capillaries & veins, list of Henle and collecting ducts). 
+        - '7CF': 7-compartment model. 
+          params = (Fp, Eg, fc, Tg, Tv, Tpt, Tlh, Tdt, Tcd,). 
+          Cortico-medullary model with 4 cortical compartments (glomeruli, 
+          peritubular capillaries & veins, proximal tubuli and distal tubuli) 
+          and 3 medullary compartments (peritubular capillaries & veins, 
+          list of Henle and collecting ducts). 
 
         The 9 model parameters are:
 
-        - **Fp** (float): Plasma flow into the tissue, in units of mL plasma per sec and per mL tissue (mL/sec/mL).
+        - **Fp** (float): Plasma flow into the tissue, in units of mL 
+          plasma per sec and per mL tissue (mL/sec/mL).
         - **Eg** (float): Glomerular extraction fraction
         - **fc** (float): Cortical flow fraction
         - **Tg** (float): Glomerular mean transit time in sec
@@ -202,7 +221,7 @@ def conc_kidney_cortex_medulla(ca: np.ndarray, *params, t=None, dt=1.0, sum=True
         Use the function to generate total cortex and medulla tissue concentrations:
 
         >>> Fp, Eg, fc, Tg, Tv, Tpt, Tlh, Tdt, Tcd = 0.03, 0.15, 0.8, 4, 10, 60, 60, 30, 30
-        >>> Cc, Cm = dc.conc_kidney_cortex_medulla(ca, Fp, Eg, fc, Tg, Tv, Tpt, Tlh, Tdt, Tcd, t=t, kinetics='7C')
+        >>> Cc, Cm = dc.conc_kidney_cm(ca, Fp, Eg, fc, Tg, Tv, Tpt, Tlh, Tdt, Tcd, t=t, kinetics='7C')
 
         Plot all concentrations:
 
@@ -219,8 +238,8 @@ def conc_kidney_cortex_medulla(ca: np.ndarray, *params, t=None, dt=1.0, sum=True
     if kinetics == '7C':
         return _conc_kidney_cm9(ca, *params, t=t, dt=dt, sum=sum)
     else:
-        raise ValueError('Kinetic model ' + kinetics +
-                         ' is not currently implemented.')
+        raise ValueError(
+            'Kinetic model ' + kinetics + ' is not currently implemented.')
 
 
 def _conc_kidney_cm9(ca, Fp, Eg, fc, Tg, Tv, Tpt, Tlh, Tdt, Tcd, t=None, dt=1.0, sum=True):

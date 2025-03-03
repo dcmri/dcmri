@@ -407,7 +407,7 @@ original study exactly..
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 20.074 seconds)
+   **Total running time of the script:** (0 minutes 48.528 seconds)
 
 
 .. _sphx_glr_download_generated_examples_kidney_plot_gfr_validation.py:
