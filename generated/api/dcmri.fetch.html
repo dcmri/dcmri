@@ -1,0 +1,1010 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>dcmri.fetch &#8212; dcmri 0.6.15 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=cd8af66b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=9ea1f4c8"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-64ZSJ8Z1MX"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'generated/api/dcmri.fetch';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="dcmri.fake_aif" href="dcmri.fake_aif.html" />
+    <link rel="prev" title="Utilities" href="../../reference/utils.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/tristan-logo.jpg" class="logo__image only-light" alt="dcmri 0.6.15 documentation - Home"/>
+    <img src="../../_static/tristan-logo.jpg" class="logo__image only-dark pst-js-only" alt="dcmri 0.6.15 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../releases/index.html">
+    Releases
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../about/index.html">
+    About
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../releases/index.html">
+    Releases
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../about/index.html">
+    About
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../reference/e2e.html">Tissue bank</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/tissues.html">Tissue models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/sig.html">MRI signal models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/relaxation.html">Relaxation models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/pk_blocks.html">PK blocks</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../../reference/utils.html">Utilities</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">dcmri.fetch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.fake_aif.html">dcmri.fake_aif</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.fake_brain.html">dcmri.fake_brain</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.fake_tissue.html">dcmri.fake_tissue</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.fake_liver.html">dcmri.fake_liver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.fake_kidney.html">dcmri.fake_kidney</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.fake_tissue2scan.html">dcmri.fake_tissue2scan</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.shepp_logan.html">dcmri.shepp_logan</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.aif_parker.html">dcmri.aif_parker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.aif_tristan.html">dcmri.aif_tristan</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.aif_tristan_rat.html">dcmri.aif_tristan_rat</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.ca_injection.html">dcmri.ca_injection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.ca_conc.html">dcmri.ca_conc</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.ca_std_dose.html">dcmri.ca_std_dose</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.relaxivity.html">dcmri.relaxivity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.T1.html">dcmri.T1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.T2.html">dcmri.T2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.PD.html">dcmri.PD</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.perfusion.html">dcmri.perfusion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.conv.html">dcmri.conv</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.expconv.html">dcmri.expconv</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.biexpconv.html">dcmri.biexpconv</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.nexpconv.html">dcmri.nexpconv</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.stepconv.html">dcmri.stepconv</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.sample.html">dcmri.sample</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.add_noise.html">dcmri.add_noise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.interp.html">dcmri.interp</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../reference/index.html" class="nav-link">Reference</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../reference/utils.html" class="nav-link">Utilities</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">dcmri.fetch</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="dcmri-fetch">
+<h1>dcmri.fetch<a class="headerlink" href="#dcmri-fetch" title="Link to this heading">#</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="dcmri.fetch">
+<span class="sig-prename descclassname"><span class="pre">dcmri.</span></span><span class="sig-name descname"><span class="pre">fetch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clear_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">download_all</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><span class="pre">dict</span></a></span></span><a class="reference internal" href="../../_modules/dcmri/data.html#fetch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.fetch" title="Link to this definition">#</a></dt>
+<dd><p>Fetch a dataset included in dcmri</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataset</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – name of the dataset. See below for options.</p></li>
+<li><p><strong>clear_cache</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – When a dataset is fetched, it is
+downloaded and then stored in a local cache memory for faster access
+next time it is fetched. Set clear_cache=True to delete all data
+in the cache memory. Default is False.</p></li>
+<li><p><strong>download_all</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – By default only the dataset that is
+fetched is downloaded. Set download_all=True to download all
+datasets at once. This will cost some time but then offers fast and
+offline access to all datasets afterwards. This will take up around
+300 MB of space on your hard drive. Default is False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Data as a dictionary.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The following datasets are currently available:</p>
+<p><strong>tristan_rifampicin</strong></p>
+<blockquote>
+<div><p><strong>Background</strong>: data are provided by the liver work package of the
+<a class="reference external" href="https://www.imi-tristan.eu/liver">TRISTAN project</a>  which
+develops imaging biomarkers for drug safety assessment. The data
+and analysis was first presented at the ISMRM in 2024 (Min et al
+2024, manuscript in press).</p>
+<p>The data were acquired in the aorta and liver of 10 healthy
+volunteers with dynamic gadoxetate-enhanced MRI, before and after
+administration of a drug (rifampicin) which is known to inhibit
+liver function. The assessments were done on two separate visits
+at least 2 weeks apart. On each visit, the volunteer had two scans
+each with a separate contrast agent injection of a quarter dose
+each. the scans were separated by a gap of about 1 hour to enable
+gadoxetate to clear from the liver. This design was deemed
+necessary for reliable measurement of excretion rate when liver
+function was inhibited.</p>
+<p>The research question was to what extent rifampicin inhibits
+gadoxetate uptake rate from the extracellular space into the
+liver hepatocytes (khe, mL/min/100mL) and excretion rate from
+hepatocytes to bile (kbh, mL/100mL/min). 2 of the volunteers only
+had the baseline assessment, the other 8 volunteers completed the
+full study. The results showed consistent and strong inhibition of
+khe (95%) and kbh (40%) by rifampicin. This implies that
+rifampicin poses a risk of drug-drug interactions (DDI), meaning
+it can cause another drug to circulate in the body for far longer
+than expected, potentially causing harm or raising a need for dose
+adjustment.</p>
+<p><strong>Data format</strong>: The fetch function returns a list of dictionaries,
+one per subject visit. Each dictionary contains the following items:</p>
+<ul class="simple">
+<li><p><strong>time1aorta</strong>: array of signals in arbitrary units, for the
+aorta in the first scan.</p></li>
+<li><p><strong>time2aorta</strong>: array of signals in arbitrary units, for the
+aorta in the second scan.</p></li>
+<li><p><strong>time1liver</strong>: array of signals in arbitrary units, for the
+liver in the first scan.</p></li>
+<li><p><strong>time2liver</strong>: array of signals in arbitrary units, for the
+liver in the second scan.</p></li>
+<li><p><strong>signal1aorta</strong>: array of signals in arbitrary units, for the
+aorta in the first scan.</p></li>
+<li><p><strong>signal2aorta</strong>: array of signals in arbitrary units, for the
+aorta in the second scan.</p></li>
+<li><p><strong>signal1liver</strong>: array of signals in arbitrary units, for the
+liver in the first scan.</p></li>
+<li><p><strong>signal2liver</strong>: array of signals in arbitrary units, for the
+liver in the second scan.</p></li>
+<li><p><strong>weight</strong>: subject weight in kg.</p></li>
+<li><p><strong>agent</strong>: contrast agent generic name (str).</p></li>
+<li><p><strong>dose</strong>: 2-element list with contrast agent doses of first scan
+and second scan in mL/kg.</p></li>
+<li><p><strong>rate</strong>: contrast agent injection rate in mL/sec.</p></li>
+<li><p><strong>FA</strong>: Flip angle in degrees</p></li>
+<li><p><strong>TR</strong>: repretition time in sec</p></li>
+<li><p><strong>t0</strong>: baseline length in subject</p></li>
+<li><p><strong>subject</strong>: Volunteer number.</p></li>
+<li><p><strong>visit</strong>: either ‘baseline’ or ‘rifampicin’.</p></li>
+<li><p><strong>field_strength</strong>: B0-field of scanner.</p></li>
+<li><p><strong>R10b</strong>: precontrast R1 of blood (1st scan).</p></li>
+<li><p><strong>R10l</strong>: precontrast R1 of liver (1st scan).</p></li>
+<li><p><strong>R102b</strong>:  precontrast R1 of blood (2nd scan).</p></li>
+<li><p><strong>R102l</strong>: precontrast R1 of liver (2nd scan).</p></li>
+<li><p><strong>Hct</strong>: hematocrit.</p></li>
+<li><p><strong>vol</strong>: liver volume in mL.</p></li>
+</ul>
+<p>Please reference the following abstract when using these data:</p>
+<p>Thazin Min, Marta Tibiletti, Paul Hockings, Aleksandra Galetin,
+Ebony Gunwhy, Gerry Kenna, Nicola Melillo, Geoff JM Parker, Gunnar
+Schuetz, Daniel Scotcher, John Waterton, Ian Rowe, and Steven
+Sourbron. <em>Measurement of liver function with dynamic gadoxetate-
+enhanced MRI: a validation study in healthy volunteers</em>. Proc
+Intl Soc Mag Reson Med, Singapore 2024.</p>
+</div></blockquote>
+<p><strong>tristan_gothenburg</strong></p>
+<blockquote>
+<div><p><strong>Background</strong>: The data aimed to demonstrates the effect of
+rifampicin on liver function of patients with impaired function.
+The data are provided by the liver work package of the
+<a class="reference external" href="https://www.imi-tristan.eu/liver">TRISTAN project</a>  which
+develops imaging biomarkers for drug safety assessment.</p>
+<p>The data were acquired in the aorta and liver in 3 patients with
+dynamic gadoxetate-enhanced MRI. The study participants take
+rifampicin as part of their routine clinical workup, with an aim
+to promote their liver function. For this study, they were taken
+off rifampicin 3 days before the first scan, and placed back on
+rifampicin 3 days before the second scan. The aim was to
+determine the effect if rifampicin in uptake and
+excretion function of the liver.</p>
+<p>The data confirmed that patients had significantly reduced uptake
+and excretion function in the absence of rifampicin. Rifampicin
+adminstration promoted their excretory function but had no effect
+on their uptake function.</p>
+<p><strong>Data format</strong>: The fetch function returns a list of dictionaries,
+one per subject visit. Each dictionary contains the following items:</p>
+<ul class="simple">
+<li><p><strong>time1aorta</strong>: array of signals in arbitrary units, for the
+aorta in the first scan.</p></li>
+<li><p><strong>time2aorta</strong>: array of signals in arbitrary units, for the
+aorta in the second scan.</p></li>
+<li><p><strong>time1liver</strong>: array of signals in arbitrary units, for the
+liver in the first scan.</p></li>
+<li><p><strong>time2liver</strong>: array of signals in arbitrary units, for the
+liver in the second scan.</p></li>
+<li><p><strong>signal1aorta</strong>: array of signals in arbitrary units, for the
+aorta in the first scan.</p></li>
+<li><p><strong>signal2aorta</strong>: array of signals in arbitrary units, for the
+aorta in the second scan.</p></li>
+<li><p><strong>signal1liver</strong>: array of signals in arbitrary units, for the
+liver in the first scan.</p></li>
+<li><p><strong>signal2liver</strong>: array of signals in arbitrary units, for the
+liver in the second scan.</p></li>
+<li><p><strong>weight</strong>: subject weight in kg.</p></li>
+<li><p><strong>agent</strong>: contrast agent generic name (str).</p></li>
+<li><p><strong>dose</strong>: 2-element list with contrast agent doses of first scan
+and second scan in mL/kg.</p></li>
+<li><p><strong>rate</strong>: contrast agent injection rate in mL/sec.</p></li>
+<li><p><strong>FA</strong>: Flip angle in degrees</p></li>
+<li><p><strong>TR</strong>: repretition time in sec</p></li>
+<li><p><strong>t0</strong>: baseline length in subject</p></li>
+<li><p><strong>subject</strong>: Volunteer number.</p></li>
+<li><p><strong>visit</strong>: either ‘control’ or ‘drug’.</p></li>
+<li><p><strong>field_strength</strong>: B0-field of scanner.</p></li>
+<li><p><strong>R10b</strong>: precontrast R1 of blood (1st scan).</p></li>
+<li><p><strong>R10l</strong>: precontrast R1 of liver (1st scan).</p></li>
+<li><p><strong>R102b</strong>:  precontrast R1 of blood (2nd scan).</p></li>
+<li><p><strong>R102l</strong>: precontrast R1 of liver (2nd scan).</p></li>
+<li><p><strong>Hct</strong>: hematocrit.</p></li>
+<li><p><strong>vol</strong>: liver volume in mL.</p></li>
+</ul>
+</div></blockquote>
+<p><strong>tristan6drugs</strong></p>
+<blockquote>
+<div><p><strong>Background</strong>: data are provided by the liver work package of the
+<a class="reference external" href="https://www.imi-tristan.eu/liver">TRISTAN project</a>  which
+develops imaging biomarkers for drug safety assessment. The data
+and analysis were first published in Melillo et al (2023).</p>
+<p>The study presented here measured gadoxetate uptake and excretion
+in healthy rats before and after injection of 6 test drugs (up to
+6 rats per drug). Studies were performed in preclinical MRI
+scanners at 3 different centers and 2 different field strengths.</p>
+<p>Results demonstrated that two of the tested drugs (rifampicin and
+cyclosporine) showed strong inhibition of both uptake and
+excretion. One drug (ketoconazole) inhibited uptake but not
+excretion. Three drugs (pioglitazone, bosentan and asunaprevir)
+inhibited excretion but not uptake.</p>
+<p><strong>Data format</strong>: The fetch function returns a list of
+dictionaries, one per scan. Each dictionary contains the
+following items:</p>
+<ul class="simple">
+<li><p><strong>time</strong>: array of time points in sec</p></li>
+<li><p><strong>spleen</strong>: array of spleen signals in arbitrary units</p></li>
+<li><p><strong>liver</strong>: array of liver signals in arbitrary units.</p></li>
+<li><p><strong>FA</strong>: Flip angle in degrees</p></li>
+<li><p><strong>TR</strong>: repretition time in sec</p></li>
+<li><p><strong>n0</strong>: number of precontrast acquisitions</p></li>
+<li><p><strong>study</strong>: an integer identifying the substudy the scan was
+taken in</p></li>
+<li><p><strong>subject</strong>: a study-specific identifier of the subject in
+the range 1-6.</p></li>
+<li><p><strong>visit</strong>: either 1 (baseline) or 2 (drug or vehicle/saline).</p></li>
+<li><p><strong>center</strong>: center wehere the study was performed, either
+E, G or D.</p></li>
+<li><p><strong>field_strength</strong>: B0-field of scanner on whuch the study
+was performed</p></li>
+<li><p><strong>substance</strong>: what was injected, eg. saline, vehicle or
+drug name.</p></li>
+<li><p><strong>BAT</strong>: Bolus arrival time</p></li>
+<li><p><strong>duration</strong>: duration on the injection in sec.</p></li>
+</ul>
+<p>Please reference the following paper when using these data:</p>
+<p>Melillo N, Scotcher D, Kenna JG, Green C, Hines CDG, Laitinen I,
+Hockings PD, Ogungbenro K, Gunwhy ER, Sourbron S, et al. Use of
+In Vivo Imaging and Physiologically-Based Kinetic Modelling to
+Predict Hepatic Transporter Mediated Drug–Drug Interactions in
+Rats. Pharmaceutics. 2023; 15(3):896.
+<a class="reference external" href="https://doi.org/10.3390/pharmaceutics15030896">[DOI]</a></p>
+<p>The data were first released as supplementary material in csv
+format with this paper on Zenodo. Use this DOI to reference the
+data themselves:</p>
+<p>Gunwhy, E. R., &amp; Sourbron, S. (2023). TRISTAN-RAT (v3.0.0).
+<a class="reference external" href="https://doi.org/10.5281/zenodo.8372595">Zenodo</a></p>
+</div></blockquote>
+<p><strong>tristan_repro</strong></p>
+<blockquote>
+<div><p><strong>Background</strong>: data are provided by the liver work package of
+the <a class="reference external" href="https://www.imi-tristan.eu/liver">TRISTAN project</a>  which
+develops imaging biomarkers for drug safety assessment. The data
+and analysis were first published in Gunwhy et al (2024).</p>
+<p>The study presented here aimed to determine the repreducibility
+and rpeatability of gadoxetate uptake and excretion measurements
+in healthy rats. Data were acquired in different centers and field
+strengths to identify contributing factors. Some of the studies
+involved repeat scans in the same subject. In some studies data
+on the second day were taken after adminstration of a drug
+(rifampicin) to test if effect sizes were reproducible.</p>
+<p><strong>Data format</strong>: The fetch function returns a list of
+dictionaries, one per scan. The dictionaries in the list contain
+the following items:</p>
+<ul class="simple">
+<li><p><strong>time</strong>: array of time points in sec</p></li>
+<li><p><strong>spleen</strong>: array of spleen signals in arbitrary units</p></li>
+<li><p><strong>liver</strong>: array of liver signals in arbitrary units.</p></li>
+<li><p><strong>FA</strong>: Flip angle in degrees</p></li>
+<li><p><strong>TR</strong>: repretition time in sec</p></li>
+<li><p><strong>n0</strong>: number of precontrast acquisitions</p></li>
+<li><p><strong>study</strong>: an integer identifying the substudy the scan was
+taken in</p></li>
+<li><p><strong>subject</strong>: a study-specific identifier of the subject in
+the range 1-6.</p></li>
+<li><p><strong>visit</strong>: either 1 (baseline) or 2 (drug or vehicle/saline).</p></li>
+<li><p><strong>center</strong>: center wehere the study was performed, either
+E, G or D.</p></li>
+<li><p><strong>field_strength</strong>: B0-field of scanner on whuch the study
+was performed</p></li>
+<li><p><strong>substance</strong>: what was injected, eg. saline, vehicle or
+drug name.</p></li>
+<li><p><strong>BAT</strong>: Bolus arrival time</p></li>
+<li><p><strong>duration</strong>: duration on the injection in sec.</p></li>
+</ul>
+<p>Please reference the following paper when using these data:</p>
+<p>Ebony R. Gunwhy, Catherine D. G. Hines, Claudia Green, Iina
+Laitinen, Sirisha Tadimalla, Paul D. Hockings, Gunnar Schütz,
+J. Gerry Kenna, Steven Sourbron, and John C. Waterton. Assessment
+of hepatic transporter function in rats using dynamic gadoxetate-
+enhanced MRI: A reproducibility study. In review.</p>
+<p>The data were first released as supplementary material in csv
+format with this paper on Zenodo. Use this to reference the data
+themselves:</p>
+<p>Gunwhy, E. R., Hines, C. D. G., Green, C., Laitinen, I.,
+Tadimalla, S., Hockings, P. D., Schütz, G., Kenna, J. G.,
+Sourbron, S., &amp; Waterton, J. C. (2023). Rat gadoxetate MRI signal
+dataset for the IMI-WP2-TRISTAN Reproducibility study [Data set].
+<a class="reference external" href="https://doi.org/10.5281/zenodo.7838397">Zenodo.</a></p>
+</div></blockquote>
+<p><strong>tristan_mdosing</strong></p>
+<blockquote>
+<div><p><strong>Background</strong> These data were taken from a preclinical study
+which aimed to investigate the potential of gadoxetate-enhanced
+DCE-MRI to study acute inhibition of hepatocyte transporters of
+drug-induced liver injury (DILI) causing drugs, and to study
+potential changes in transporter function after chronic dosing.</p>
+<p><strong>Data format</strong>: The fetch function returns a list of
+dictionaries, one per scan.The dictionaries in the list contain
+the following items:</p>
+<ul class="simple">
+<li><p><strong>time</strong>: array of time points in sec</p></li>
+<li><p><strong>spleen</strong>: array of spleen signals in arbitrary units</p></li>
+<li><p><strong>liver</strong>: array of liver signals in arbitrary units.</p></li>
+<li><p><strong>FA</strong>: Flip angle in degrees</p></li>
+<li><p><strong>TR</strong>: repretition time in sec</p></li>
+<li><p><strong>n0</strong>: number of precontrast acquisitions</p></li>
+<li><p><strong>study</strong>: an integer identifying the substudy the scan was
+taken in</p></li>
+<li><p><strong>subject</strong>: a study-specific identifier of the subject in
+the range 1-6.</p></li>
+<li><p><strong>visit</strong>: either 1 (baseline) or 2 (drug or vehicle/saline).</p></li>
+<li><p><strong>center</strong>: center wehere the study was performed, either
+E, G or D.</p></li>
+<li><p><strong>field_strength</strong>: B0-field of scanner on whuch the study
+was performed</p></li>
+<li><p><strong>substance</strong>: what was injected, eg. saline, vehicle or
+drug name.</p></li>
+<li><p><strong>BAT</strong>: Bolus arrival time</p></li>
+<li><p><strong>duration</strong>: duration on the injection in sec.</p></li>
+</ul>
+<p>Please reference the following abstract when using these data:</p>
+<p>Mikael Montelius, Steven Sourbron, Nicola Melillo, Daniel Scotcher,
+Aleksandra Galetin, Gunnar Schuetz, Claudia Green, Edvin Johansson,
+John C. Waterton, and Paul Hockings. Acute and chronic rifampicin
+effect on gadoxetate uptake in rats using gadoxetate DCE-MRI. Int
+Soc Mag Reson Med 2021; 2674.</p>
+</div></blockquote>
+<p><strong>kruk_sk_gfr</strong></p>
+<blockquote>
+<div><p><strong>Background</strong>: data taken from supplementary material of Basak et
+al (2018), a study funded by Kidney Research UK. The dataset
+includes signal-time curves for aorta, left- and right kidney as
+well as sequence parameters and radio-isotope single kidney GFR
+values for 114 scans on 100 different subjects. This includes 14
+subjects who have had a scan before and after revascularization
+treatment.</p>
+<p><strong>Data format</strong>: The fetch function returns a list of
+dictionaries, one per scan. The dictionaries in the list contain
+the following items:</p>
+<ul class="simple">
+<li><p><strong>subject</strong>: unique study ID of the participant</p></li>
+<li><p><strong>time</strong>: array of time points in sec</p></li>
+<li><p><strong>aorta</strong>: signal curve in the aorta (arbitrary units)</p></li>
+<li><p><strong>visit</strong>: for participants that had just a single visit, this
+has the value ‘single’. For those that had multiple visits, the
+value is either ‘pre’ (before treatment) or ‘post’ (after
+treatment).</p></li>
+<li><p><strong>LK</strong>: signal curve in the left kidney (arbitrary units).</p></li>
+<li><p><strong>RK</strong>: signal curve in the right kidney (arbitrary units).</p></li>
+<li><p><strong>LK vol</strong>: volume of the left kidney (mL).</p></li>
+<li><p><strong>RK vol</strong>: volume of the right kidney (mL).</p></li>
+<li><p><strong>LK iso-SK-GFR</strong>: radio-isotope SK-GFR for the left kidney
+(mL/min).</p></li>
+<li><p><strong>RK iso-SK-GFR</strong>: radio-isotope SK-GFR for the right kidney
+(mL/min).</p></li>
+<li><p><strong>LK T1</strong>: precontrast T1-value of the left kidney (sec).</p></li>
+<li><p><strong>RK T1</strong>: precontrast T1-value of the right kidney (sec).</p></li>
+<li><p><strong>TR</strong>: repetition time or time between rf-pulses (sec)</p></li>
+<li><p><strong>FA</strong>: flip angle (degrees)</p></li>
+<li><p><strong>n0</strong>: number of precontrast acquisitions.</p></li>
+<li><p><strong>field_strength</strong>: Magnetic field strength of the scanner (T)</p></li>
+<li><p><strong>agent</strong>: Contrast agent generic name</p></li>
+<li><p><strong>dose</strong>: contrast agent dose injected (mmol/kg)</p></li>
+<li><p><strong>rate</strong>: rate of contrast agent injection (mL/sec)</p></li>
+<li><p><strong>weight</strong>: participant weight (kg)</p></li>
+</ul>
+<p>Note: if data are missing for a particular scan, they will not be
+in the dictionary for that scan. For instance, if a participant
+does not have a right kidney, the items starting with <em>RK</em> are
+not present.</p>
+<p>Please reference the following paper when using these data:</p>
+<p>Basak S, Buckley DL, Chrysochou C, Banerji A, Vassallo D, Odudu A,
+Kalra PA, Sourbron SP. Analytical validation of single-kidney
+glomerular filtration rate and split renal function as measured
+with magnetic resonance renography. Magn Reson Imaging. 2019
+Jun;59:53-60. doi: 10.1016/j.mri.2019.03.005.
+<a class="reference external" href="https://pubmed.ncbi.nlm.nih.gov/30849485/">[URL]</a>.</p>
+</div></blockquote>
+<p>Example:</p>
+<p>Use the AortaLiver model to fit one of the <strong>tristan_rifampicin</strong> datasets:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">dcmri</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dc</span>
+</pre></div>
+</div>
+<p>Get the data for the baseline visit of the first subject in the study:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">dc</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="s1">&#39;tristan_rifampicin&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>Initialize the AortaLiver model with the available data:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">dc</span><span class="o">.</span><span class="n">AortaLiver</span><span class="p">(</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="c1">#</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="c1"># Injection parameters</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="c1">#</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">weight</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">agent</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;agent&#39;</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">dose</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;dose&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">rate</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;rate&#39;</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="c1">#</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="c1"># Acquisition parameters</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="c1">#</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">field_strength</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;field_strength&#39;</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">t0</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;t0&#39;</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">TR</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;TR&#39;</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">FA</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;FA&#39;</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="c1">#</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="c1"># Signal parameters</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="c1">#</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">R10a</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;R10b&#39;</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">R10l</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;R10l&#39;</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="c1">#</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="c1"># Tissue parameters</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="c1">#</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">H</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Hct&#39;</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">vol</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;vol&#39;</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">)</span>
+</pre></div>
+</div>
+<p>We are only fitting here the first scan data, so the xdata are the
+aorta- and liver time points of the first scan, and the ydata are
+the signals at these time points:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">xdata</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;time1aorta&#39;</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;time1liver&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ydata</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;signal1aorta&#39;</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;signal1liver&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>Train the model using these data and plot the results to check that
+the model has fitted the data:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">xdata</span><span class="p">,</span> <span class="n">ydata</span><span class="p">,</span> <span class="n">xtol</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xdata</span><span class="p">,</span> <span class="n">ydata</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference download internal" download="" href="../../_downloads/0f4cc6e0280249aeb0f7bdb34e95959e/dcmri-fetch-1.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>, <a class="reference download internal" download="" href="../../_downloads/6de5346f31d570fa781d211bb5097637/dcmri-fetch-1.png"><code class="xref download docutils literal notranslate"><span class="pre">png</span></code></a>, <a class="reference download internal" download="" href="../../_downloads/f6bb17359917a35eca5e89660bc749e3/dcmri-fetch-1.hires.png"><code class="xref download docutils literal notranslate"><span class="pre">hires.png</span></code></a>, <a class="reference download internal" download="" href="../../_downloads/fb8b08fce24ca1b1bfe86fdc0b4d870f/dcmri-fetch-1.pdf"><code class="xref download docutils literal notranslate"><span class="pre">pdf</span></code></a>)</p>
+<figure class="align-default">
+<img alt="../../_images/dcmri-fetch-1.png" class="plot-directive" src="../../_images/dcmri-fetch-1.png" />
+</figure>
+</dd></dl>
+
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../../reference/utils.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Utilities</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="dcmri.fake_aif.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">dcmri.fake_aif</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.fetch"><code class="docutils literal notranslate"><span class="pre">fetch()</span></code></a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/generated/api/dcmri.fetch.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024-2025, dcmri contributors.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

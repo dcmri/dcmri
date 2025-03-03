@@ -1,0 +1,1003 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>dcmri.AortaKidneys &#8212; dcmri 0.6.15 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=cd8af66b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=9ea1f4c8"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-64ZSJ8Z1MX"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'generated/api/dcmri.AortaKidneys';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="dcmri.Aorta" href="dcmri.Aorta.html" />
+    <link rel="prev" title="dcmri.KidneyCortMed" href="dcmri.KidneyCortMed.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/tristan-logo.jpg" class="logo__image only-light" alt="dcmri 0.6.15 documentation - Home"/>
+    <img src="../../_static/tristan-logo.jpg" class="logo__image only-dark pst-js-only" alt="dcmri 0.6.15 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../releases/index.html">
+    Releases
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../about/index.html">
+    About
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../releases/index.html">
+    Releases
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../about/index.html">
+    About
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../../reference/e2e.html">Tissue bank</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="dcmri.Tissue.html">dcmri.Tissue</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.TissueArray.html">dcmri.TissueArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.Liver.html">dcmri.Liver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.AortaLiver.html">dcmri.AortaLiver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.AortaLiver2scan.html">dcmri.AortaLiver2scan</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.AortaPortalLiver.html">dcmri.AortaPortalLiver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.Kidney.html">dcmri.Kidney</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.KidneyCortMed.html">dcmri.KidneyCortMed</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">dcmri.AortaKidneys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.Aorta.html">dcmri.Aorta</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/tissues.html">Tissue models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/sig.html">MRI signal models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/relaxation.html">Relaxation models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/pk_blocks.html">PK blocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/utils.html">Utilities</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../reference/index.html" class="nav-link">Reference</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../reference/e2e.html" class="nav-link">Tissue bank</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">dcmri.AortaKidneys</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="dcmri-aortakidneys">
+<h1>dcmri.AortaKidneys<a class="headerlink" href="#dcmri-aortakidneys" title="Link to this heading">#</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="dcmri.AortaKidneys">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dcmri.</span></span><span class="sig-name descname"><span class="pre">AortaKidneys</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">organs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'comp'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heartlung</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'pfcomp'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kidneys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'2CF'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sequence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'SS'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dcmri/ui_aorta_kidneys.html#AortaKidneys"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.AortaKidneys" title="Link to this definition">#</a></dt>
+<dd><p>Joint model for aorta and kidneys signals.</p>
+<p>The model represents the kidneys as a two-compartment filtration system and the body as a leaky loop with a heart-lung system and an organ system. The heart-lung system is modelled as a chain compartment and the organs are modelled as a compartment or a two-compartment exchange model. Bolus injection into the system is modelled as a step function.</p>
+<blockquote>
+<div><p><strong>Injection parameters</strong></p>
+<ul class="simple">
+<li><p><strong>weight</strong> (float, default=70): Subject weight in kg.</p></li>
+<li><p><strong>agent</strong> (str, default=’gadoterate’): Contrast agent generic name.</p></li>
+<li><p><strong>dose</strong> (float, default=0.2): Injected contrast agent dose in mL per kg bodyweight.</p></li>
+<li><p><strong>rate</strong> (float, default=1): Contrast agent injection rate in mL per sec.</p></li>
+</ul>
+<p><strong>Acquisition parameters</strong></p>
+<ul class="simple">
+<li><p><strong>sequence</strong> (str, default=’SS’): Signal model.</p></li>
+<li><p><strong>tmax</strong> (float, default=120): Maximum acquisition time in sec.</p></li>
+<li><p><strong>tacq</strong> (float, default=None): Time to acquire a single dynamic in the first scan (sec). If this is not provided, tacq is taken from the difference between the first two data points.</p></li>
+<li><p><strong>field_strength</strong> (float, default=3.0): Magnetic field strength in T.</p></li>
+<li><p><strong>n0</strong> (float, default=1): Baseline length in nr of scans.</p></li>
+<li><p><strong>TR</strong> (float, default=0.005): Repetition time, or time between excitation pulses, in sec.</p></li>
+<li><p><strong>FA</strong> (float, default=15): Nominal flip angle in degrees.</p></li>
+<li><p><strong>TC</strong> (float, default=0.1): Time to the center of k-space in a saturation-recovery sequence.</p></li>
+</ul>
+<p><strong>Signal parameters</strong></p>
+<ul class="simple">
+<li><p><strong>R10a</strong> (float, default=1): Precontrast arterial relaxation rate in 1/sec.</p></li>
+<li><p><strong>S0b</strong> (float, default=1): scale factor for the arterial MR signal in the first scan.</p></li>
+<li><p><strong>R10_lk</strong> (float, default=1): Baseline R1 for the left kidney.</p></li>
+<li><p><strong>S0_lk</strong> (float, default=1): Scale factor for the left kidney signal.</p></li>
+<li><p><strong>R10_rk</strong> (float, default=1): Baseline R1 for the right kidney.</p></li>
+<li><p><strong>S0_rk</strong> (float, default=1): Scale factor for the right kidney signal.</p></li>
+</ul>
+<p><strong>Whole body kinetic parameters</strong></p>
+<ul class="simple">
+<li><p><strong>organs</strong> (str, default=’2cxm’): Kinetic model for the organs.</p></li>
+<li><p><strong>BAT</strong> (float, default=60): Bolus arrival time, i.e. time point where the indicator first arrives in the body.</p></li>
+<li><p><strong>BAT2</strong> (float, default=1200): Bolus arrival time in the second scan, i.e. time point where the indicator first arrives in the body.</p></li>
+<li><p><strong>CO</strong> (float, default=100): Cardiac output in mL/sec.</p></li>
+<li><p><strong>Eb</strong> (float, default=0.05): fraction of indicator extracted from the vasculature in a single pass.</p></li>
+<li><p><strong>Thl</strong> (float, default=10): Mean transit time through heart and lungs.</p></li>
+<li><p><strong>Dhl</strong> (float, default=0.2): Dispersion through the heart-lung system, with a value in the range [0,1].</p></li>
+<li><p><strong>To</strong> (float, default=20): average time to travel through the organ’s vasculature.</p></li>
+<li><p><strong>Eo</strong> (float, default=0.15): Fraction of indicator entering the organs which is extracted from the blood pool.</p></li>
+<li><p><strong>Teb</strong> (float, default=120): Average time to travel through the organs extravascular space.</p></li>
+</ul>
+<p><strong>Kidney kinetic parameters</strong></p>
+<ul class="simple">
+<li><p><strong>kinetics</strong> (str, default=’2CFM’). Kidney kinetic model (only one option at this stage).</p></li>
+<li><p><strong>Hct</strong> (float, default=0.45): Hematocrit.</p></li>
+<li><p><strong>Fp_lk</strong> (Plasma flow, mL/sec/cm3): Flow of plasma into the plasma compartment (left kidney).</p></li>
+<li><p><strong>Tp_lk</strong> (Plasma mean transit time, sec): Transit time of the plasma compartment (left kidney).</p></li>
+<li><p><strong>Ft_lk</strong> (Tubular flow, mL/sec/cm3): Flow of fluid into the tubuli (left kidney).</p></li>
+<li><p><strong>Tt_lk</strong> (Tubular mean transit time, sec): Transit time of the tubular compartment (left kidney).</p></li>
+<li><p><strong>Ta_lk</strong> (Arterial delay time, sec): Transit time through the arterial compartment (left kidney).</p></li>
+<li><p><strong>Fp_rk</strong> (Plasma flow, mL/sec/cm3): Flow of plasma into the plasma compartment (right kidney).</p></li>
+<li><p><strong>Tp_rk</strong> (Plasma mean transit time, sec): Transit time of the plasma compartment (right kidney).</p></li>
+<li><p><strong>Ft_rk</strong> (Tubular flow, mL/sec/cm3): Flow of fluid into the tubuli (right kidney).</p></li>
+<li><p><strong>Tt_rk</strong> (Tubular mean transit time, sec): Transit time of the tubular compartment (right kidney).</p></li>
+<li><p><strong>Ta_rk</strong> (Arterial delay time, sec): Transit time through the arterial compartment (right kidney).</p></li>
+</ul>
+<p><strong>Prediction and training parameters</strong></p>
+<ul class="simple">
+<li><p><strong>dt</strong> (float, default=1): Internal time resolution of the AIF in sec.</p></li>
+<li><p><strong>dose_tolerance</strong> (fload, default=0.1): Stopping criterion for the whole-body model.</p></li>
+<li><p><strong>free</strong> (array-like): list of free parameters. The default depends on the kinetics parameter.</p></li>
+<li><p><strong>free</strong> (array-like): 2-element list with lower and upper free of the free parameters. The default depends on the kinetics parameter.</p></li>
+</ul>
+<p><strong>Additional parameters</strong></p>
+<ul class="simple">
+<li><p><strong>vol_lk</strong> (float, optional): Kidney volume in cm3 (left kidney).</p></li>
+<li><p><strong>vol_rk</strong> (float, optional): Kidney volume in cm3 (right kidney).</p></li>
+</ul>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>, </em><em>optional</em>) – override defaults for any of the parameters.</p>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="dcmri.AortaLiver.html#dcmri.AortaLiver" title="dcmri.AortaLiver"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AortaLiver</span></code></a></p>
+</div>
+<p class="rubric">Example</p>
+<p>Use the model to reconstruct concentrations from experimentally derived signals.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">dcmri</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dc</span>
+</pre></div>
+</div>
+<p>Use <a class="reference internal" href="dcmri.fake_tissue.html#dcmri.fake_tissue" title="dcmri.fake_tissue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fake_tissue</span></code></a> to generate synthetic test data from experimentally-derived concentrations:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">time</span><span class="p">,</span> <span class="n">aif</span><span class="p">,</span> <span class="n">roi</span><span class="p">,</span> <span class="n">gt</span> <span class="o">=</span> <span class="n">dc</span><span class="o">.</span><span class="n">fake_tissue</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">xdata</span><span class="p">,</span> <span class="n">ydata</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span><span class="p">,</span><span class="n">time</span><span class="p">,</span><span class="n">time</span><span class="p">),</span> <span class="p">(</span><span class="n">aif</span><span class="p">,</span><span class="n">roi</span><span class="p">,</span><span class="n">roi</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Build an aorta-kidney model and parameters to match the conditions of the fake tissue data:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">dc</span><span class="o">.</span><span class="n">AortaKidneys</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">dt</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">tmax</span> <span class="o">=</span> <span class="mi">180</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">weight</span> <span class="o">=</span> <span class="mi">70</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">agent</span> <span class="o">=</span> <span class="s1">&#39;gadodiamide&#39;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">dose</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">rate</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">field_strength</span> <span class="o">=</span> <span class="mf">3.0</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">t0</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">TR</span> <span class="o">=</span> <span class="mf">0.005</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">FA</span> <span class="o">=</span> <span class="mi">15</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Train the model on the data:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">xdata</span><span class="p">,</span> <span class="n">ydata</span><span class="p">,</span> <span class="n">xtol</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Plot the reconstructed signals and concentrations and compare against the experimentally derived data:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xdata</span><span class="p">,</span> <span class="n">ydata</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference download internal" download="" href="../../_downloads/129ade20b551543ee872d1b61bb30af4/dcmri-AortaKidneys-1.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>, <a class="reference download internal" download="" href="../../_downloads/3380ae670988bb3b66e914fc38d2fe48/dcmri-AortaKidneys-1.png"><code class="xref download docutils literal notranslate"><span class="pre">png</span></code></a>, <a class="reference download internal" download="" href="../../_downloads/b4deaa379e1316882ef2adaef24c41cc/dcmri-AortaKidneys-1.hires.png"><code class="xref download docutils literal notranslate"><span class="pre">hires.png</span></code></a>, <a class="reference download internal" download="" href="../../_downloads/78e40417c7ab9d56129797f33007703e/dcmri-AortaKidneys-1.pdf"><code class="xref download docutils literal notranslate"><span class="pre">pdf</span></code></a>)</p>
+<figure class="align-default">
+<img alt="../../_images/dcmri-AortaKidneys-1.png" class="plot-directive" src="../../_images/dcmri-AortaKidneys-1.png" />
+</figure>
+<p class="rubric">Methods</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table autosummary">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dcmri.AortaKidneys.conc" title="dcmri.AortaKidneys.conc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">conc</span></code></a>([sum])</p></td>
+<td><p>Concentrations in aorta and kidney.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dcmri.AortaKidneys.cost" title="dcmri.AortaKidneys.cost"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cost</span></code></a>(xdata, ydata[, metric])</p></td>
+<td><p>Return the goodness-of-fit</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dcmri.AortaKidneys.export_params" title="dcmri.AortaKidneys.export_params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">export_params</span></code></a>()</p></td>
+<td><p>Return model parameters with their descriptions</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dcmri.AortaKidneys.load" title="dcmri.AortaKidneys.load"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load</span></code></a>([file, path, filename])</p></td>
+<td><p>Load the saved state of the model</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dcmri.AortaKidneys.params" title="dcmri.AortaKidneys.params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">params</span></code></a>(*args[, round_to])</p></td>
+<td><p>Return the parameter values</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dcmri.AortaKidneys.plot" title="dcmri.AortaKidneys.plot"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot</span></code></a>(xdata, ydata[, xlim, ref, fname, show])</p></td>
+<td><p>Plot the model fit against data</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dcmri.AortaKidneys.predict" title="dcmri.AortaKidneys.predict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict</span></code></a>(xdata)</p></td>
+<td><p>Predict the data at given xdata</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dcmri.AortaKidneys.print_params" title="dcmri.AortaKidneys.print_params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">print_params</span></code></a>([round_to])</p></td>
+<td><p>Print the model parameters and their uncertainties</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dcmri.AortaKidneys.relax" title="dcmri.AortaKidneys.relax"><code class="xref py py-obj docutils literal notranslate"><span class="pre">relax</span></code></a>()</p></td>
+<td><p>Relaxation rates in aorta and kidney.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dcmri.AortaKidneys.save" title="dcmri.AortaKidneys.save"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save</span></code></a>([file, path, filename])</p></td>
+<td><p>Save the current state of the model</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dcmri.AortaKidneys.set_free" title="dcmri.AortaKidneys.set_free"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_free</span></code></a>([pop])</p></td>
+<td><p>Set the free model parameters.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dcmri.AortaKidneys.train" title="dcmri.AortaKidneys.train"><code class="xref py py-obj docutils literal notranslate"><span class="pre">train</span></code></a>(xdata, ydata, **kwargs)</p></td>
+<td><p>Train the free parameters</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.AortaKidneys.conc">
+<span class="sig-name descname"><span class="pre">conc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dcmri/ui_aorta_kidneys.html#AortaKidneys.conc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.AortaKidneys.conc" title="Link to this definition">#</a></dt>
+<dd><p>Concentrations in aorta and kidney.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sum</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – If set to true, the kidney concentrations are the sum over all compartments. If set to false, the compartmental concentrations are returned individually. Defaults to True.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>time points, aorta blood concentrations, left kidney concentrations, right kidney concentrations.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)">tuple</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.AortaKidneys.cost">
+<span class="sig-name descname"><span class="pre">cost</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xdata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><span class="pre">tuple</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ydata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><span class="pre">tuple</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">metric</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'NRMS'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></span><a class="reference internal" href="../../_modules/dcmri/ui_aorta_kidneys.html#AortaKidneys.cost"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.AortaKidneys.cost" title="Link to this definition">#</a></dt>
+<dd><p>Return the goodness-of-fit</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xdata</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – Tuple of 3 arrays with time points for aorta, left kidney and right kidney, in that order. The three arrays can all be different in length and value.</p></li>
+<li><p><strong>ydata</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – Tuple of 3 arrays with signals for aorta, left kidney and right kidney, in that order. The three arrays can all be different in length and values but each has to have the same length as its corresponding array of time points.</p></li>
+<li><p><strong>metric</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Which metric to use - options are:
+<strong>RMS</strong> (Root-mean-square);
+<strong>NRMS</strong> (Normalized root-mean-square);
+<strong>AIC</strong> (Akaike information criterion);
+<strong>cAIC</strong> (Corrected Akaike information criterion for small models);
+<strong>BIC</strong> (Baysian information criterion). Defaults to ‘NRMS’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>goodness of fit.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.AortaKidneys.export_params">
+<span class="sig-name descname"><span class="pre">export_params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dcmri/ui_aorta_kidneys.html#AortaKidneys.export_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.AortaKidneys.export_params" title="Link to this definition">#</a></dt>
+<dd><p>Return model parameters with their descriptions</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dictionary with one item for each model parameter. The key
+is the parameter symbol (short name), and the value is a
+4-element list with [parameter name, value, unit, sdev].</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.AortaKidneys.load">
+<span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Model'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dcmri.AortaKidneys.load" title="Link to this definition">#</a></dt>
+<dd><p>Load the saved state of the model</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – complete path of the file. If this is not
+provided, a file is constructure from path and filename
+variables. Defaults to None.</p></li>
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – path to store the state if file is not
+provided. Thos variable is ignored if file is provided.
+Defaults to current working directory.</p></li>
+<li><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – filename to store the state if file is
+not provided. If no extension is included, the extension
+‘.pkl’ is automatically added. This variable is ignored if file
+is provided. Defaults to ‘Model’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>class instance</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.AortaKidneys.params">
+<span class="sig-name descname"><span class="pre">params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">round_to</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dcmri.AortaKidneys.params" title="Link to this definition">#</a></dt>
+<dd><p>Return the parameter values</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – parameters to get</p></li>
+<li><p><strong>round_to</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – Round to how many digits. If this is</p></li>
+<li><p><strong>provided</strong> (<em>not</em>)</p></li>
+<li><p><strong>None.</strong> (<em>the values are not rounded. Defaults to</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>values of parameter values, or a scalar value if
+only one parameter is required.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)">list</a> or <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.AortaKidneys.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xdata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><span class="pre">tuple</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ydata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><span class="pre">tuple</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">xlim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dcmri/ui_aorta_kidneys.html#AortaKidneys.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.AortaKidneys.plot" title="Link to this definition">#</a></dt>
+<dd><p>Plot the model fit against data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xdata</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – Tuple of 3 arrays with time points for aorta, left kidney and right kidney, in that order. The three arrays can all be different in length and value.</p></li>
+<li><p><strong>ydata</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – Tuple of 3 arrays with signals for aorta, left kidney and right kidney, in that order. The three arrays can all be different in length and values but each has to have the same length as its corresponding array of time points.</p></li>
+<li><p><strong>xlim</strong> (<em>array_like</em><em>, </em><em>optional</em>) – 2-element array with lower and upper boundaries of the x-axis. Defaults to None.</p></li>
+<li><p><strong>ref</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a><em>, </em><em>optional</em>) – Tuple of optional test data in the form (x,y), where x is an array with x-values and y is an array with y-values. Defaults to None.</p></li>
+<li><p><strong>fname</strong> (<em>path</em><em>, </em><em>optional</em>) – Filepath to save the image. If no value is provided, the image is not saved. Defaults to None.</p></li>
+<li><p><strong>show</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, the plot is shown. Defaults to True.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.AortaKidneys.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xdata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><span class="pre">tuple</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><span class="pre">tuple</span></a></span></span><a class="reference internal" href="../../_modules/dcmri/ui_aorta_kidneys.html#AortaKidneys.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.AortaKidneys.predict" title="Link to this definition">#</a></dt>
+<dd><p>Predict the data at given xdata</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>xdata</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – Tuple of 3 arrays with time points for aorta, left kidney and right kidney, in that order. The three arrays can all be different in length and value.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple of 3 arrays with signals for aorta, left kidney and right kidney, in that order. The three arrays can all be different in length and value but each has to have the same length as its corresponding array of time points.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)">tuple</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.AortaKidneys.print_params">
+<span class="sig-name descname"><span class="pre">print_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">round_to</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dcmri.AortaKidneys.print_params" title="Link to this definition">#</a></dt>
+<dd><p>Print the model parameters and their uncertainties</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>round_to</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – Round to how many digits. If this is
+not provided, the values are not rounded. Defaults to None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.AortaKidneys.relax">
+<span class="sig-name descname"><span class="pre">relax</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dcmri/ui_aorta_kidneys.html#AortaKidneys.relax"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.AortaKidneys.relax" title="Link to this definition">#</a></dt>
+<dd><p>Relaxation rates in aorta and kidney.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>time points, aorta relaxation rate, left kidney relaxation rate, right kidney relaxation rate.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)">tuple</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.AortaKidneys.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Model'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dcmri.AortaKidneys.save" title="Link to this definition">#</a></dt>
+<dd><p>Save the current state of the model</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – complete path of the file. If this is not
+provided, a file is constructure from path and filename
+variables. Defaults to None.</p></li>
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – path to store the state if file is not
+provided. Thos variable is ignored if file is provided.
+Defaults to current working directory.</p></li>
+<li><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – filename to store the state if file is
+not provided. If no extension is included, the extension ‘.pkl’
+is automatically added. This variable is ignored if file is
+provided. Defaults to ‘Model’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>class instance</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.AortaKidneys.set_free">
+<span class="sig-name descname"><span class="pre">set_free</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dcmri.AortaKidneys.set_free" title="Link to this definition">#</a></dt>
+<dd><p>Set the free model parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pop</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a>) – a single variable or a list of variables to
+remove from the list of free parameters.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – if the pop argument contains a parameter that is not
+    in the list of free parameters.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If the parameter is not a model parameter, or bounds
+    are not properly formatted.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.AortaKidneys.train">
+<span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xdata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><span class="pre">tuple</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ydata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><span class="pre">tuple</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dcmri/ui_aorta_kidneys.html#AortaKidneys.train"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.AortaKidneys.train" title="Link to this definition">#</a></dt>
+<dd><p>Train the free parameters</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xdata</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – Tuple of 3 arrays with time points for aorta, left kidney and right kidney, in that order. The three arrays can all be different in length and value.</p></li>
+<li><p><strong>ydata</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – Tuple of 3 arrays with signals for aorta, left kidney and right kidney, in that order. The three arrays can all be different in length and values but each has to have the same length as its corresponding array of time points.</p></li>
+<li><p><strong>kwargs</strong> – any keyword parameters accepted by <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html#scipy.optimize.curve_fit" title="(in SciPy v1.15.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">scipy.optimize.curve_fit</span></code></a>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A reference to the model instance.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Model</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="dcmri.KidneyCortMed.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">dcmri.KidneyCortMed</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="dcmri.Aorta.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">dcmri.Aorta</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.AortaKidneys"><code class="docutils literal notranslate"><span class="pre">AortaKidneys</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.AortaKidneys.conc"><code class="docutils literal notranslate"><span class="pre">AortaKidneys.conc()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.AortaKidneys.cost"><code class="docutils literal notranslate"><span class="pre">AortaKidneys.cost()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.AortaKidneys.export_params"><code class="docutils literal notranslate"><span class="pre">AortaKidneys.export_params()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.AortaKidneys.load"><code class="docutils literal notranslate"><span class="pre">AortaKidneys.load()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.AortaKidneys.params"><code class="docutils literal notranslate"><span class="pre">AortaKidneys.params()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.AortaKidneys.plot"><code class="docutils literal notranslate"><span class="pre">AortaKidneys.plot()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.AortaKidneys.predict"><code class="docutils literal notranslate"><span class="pre">AortaKidneys.predict()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.AortaKidneys.print_params"><code class="docutils literal notranslate"><span class="pre">AortaKidneys.print_params()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.AortaKidneys.relax"><code class="docutils literal notranslate"><span class="pre">AortaKidneys.relax()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.AortaKidneys.save"><code class="docutils literal notranslate"><span class="pre">AortaKidneys.save()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.AortaKidneys.set_free"><code class="docutils literal notranslate"><span class="pre">AortaKidneys.set_free()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.AortaKidneys.train"><code class="docutils literal notranslate"><span class="pre">AortaKidneys.train()</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/generated/api/dcmri.AortaKidneys.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024-2025, dcmri contributors.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

@@ -1,0 +1,1006 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Clinical - rifampicin effect in subjects with impaired liver function &#8212; dcmri 0.6.15 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=cd8af66b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=9ea1f4c8"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-64ZSJ8Z1MX"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'generated/examples/liver/plot_tristan_patients';</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Clinical - rifampicin induced inhibition of liver function" href="plot_tristan_volunteers_2scan.html" />
+    <link rel="prev" title="Preclinical - repeat dosing effects on liver function" href="plot_tristan_mdosing.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/tristan-logo.jpg" class="logo__image only-light" alt="dcmri 0.6.15 documentation - Home"/>
+    <img src="../../../_static/tristan-logo.jpg" class="logo__image only-dark pst-js-only" alt="dcmri 0.6.15 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../releases/index.html">
+    Releases
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../about/index.html">
+    About
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../releases/index.html">
+    Releases
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../about/index.html">
+    About
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../kidney/index.html">Kidney applications</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">Liver function: drug effects</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="plot_tristan_volunteers.html">Clinical - rifampicin induced inhibition (short protocol)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_tristan_mdosing.html">Preclinical - repeat dosing effects on liver function</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">Clinical - rifampicin effect in subjects with impaired liver function</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_tristan_volunteers_2scan.html">Clinical - rifampicin induced inhibition of liver function</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_tristan_repro.html">Preclinical - reproducibility of hepatocellular function</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_tristan6drugs.html">Preclinical - effect on liver function of 6 test drugs</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/index.html">Tutorials</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Examples</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Liver function: drug effects</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Clinical - rifampicin effect in subjects with impaired liver function</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="#sphx-glr-download-generated-examples-liver-plot-tristan-patients-py"><span class="std std-ref">Go to the end</span></a>
+to download the full example code.</p>
+</div>
+<section class="sphx-glr-example-title" id="clinical-rifampicin-effect-in-subjects-with-impaired-liver-function">
+<span id="sphx-glr-generated-examples-liver-plot-tristan-patients-py"></span><h1>Clinical - rifampicin effect in subjects with impaired liver function<a class="headerlink" href="#clinical-rifampicin-effect-in-subjects-with-impaired-liver-function" title="Link to this heading">#</a></h1>
+<p>The data show in this example aimed to demonstrates the effect of rifampicin
+on liver function of patients with impaired function. The use
+case is provided by the liver work package of the
+<a class="reference external" href="https://www.imi-tristan.eu/liver">TRISTAN project</a>  which develops imaging
+biomarkers for drug safety assessment.</p>
+<p>The data were acquired in the aorta and liver in 3 patients with
+dynamic gadoxetate-enhanced MRI. The study participants take rifampicin
+as part of their routine clinical workup, with an aim to promote their liver
+function. For this study, they were taken off rifampicin 3 days before the
+first scan, and placed back on rifampicin 3 days before the second scan. The
+aim was to determine the effect if rifampicin in uptake and
+excretion function of the liver.</p>
+<p>The data confirmed that patients had significantly reduced uptake and excretion
+function in the absence of rifampicin. Rifampicin adminstration promoted their
+excretory function but had no effect on their uptake function.</p>
+<section id="reference">
+<h2>Reference<a class="headerlink" href="#reference" title="Link to this heading">#</a></h2>
+<p>Manuscript in preparation..</p>
+</section>
+<section id="setup">
+<h2>Setup<a class="headerlink" href="#setup" title="Link to this heading">#</a></h2>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import packages</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">dcmri</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dc</span>
+
+<span class="c1"># Fetch the data from the TRISTAN rifampicin study:</span>
+<a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a> <span class="o">=</span> <span class="n">dc</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="s1">&#39;tristan_gothenburg&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="model-definition">
+<h2>Model definition<a class="headerlink" href="#model-definition" title="Link to this heading">#</a></h2>
+<p>In order to avoid some repetition in this script, we define a function that
+returns a trained model for a single dataset with 2 scans:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">tristan_human_2scan</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+    <span class="n">model</span> <span class="o">=</span> <span class="n">dc</span><span class="o">.</span><span class="n">AortaLiver2scan</span><span class="p">(</span>
+
+        <span class="c1"># Injection parameters</span>
+        <span class="n">weight</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">],</span>
+        <span class="n">agent</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;agent&#39;</span><span class="p">],</span>
+        <span class="n">dose</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;dose&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+        <span class="n">dose2</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;dose&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span>
+        <span class="n">rate</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;rate&#39;</span><span class="p">],</span>
+
+        <span class="c1"># Acquisition parameters</span>
+        <span class="n">field_strength</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;field_strength&#39;</span><span class="p">],</span>
+        <span class="n">t0</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;t0&#39;</span><span class="p">],</span>
+        <span class="n">TR</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;TR&#39;</span><span class="p">],</span>
+        <span class="n">FA</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;FA&#39;</span><span class="p">],</span>
+
+        <span class="c1"># Signal parameters</span>
+        <span class="n">R10a</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;R10b&#39;</span><span class="p">],</span>
+        <span class="n">R102a</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;R102b&#39;</span><span class="p">],</span>
+        <span class="n">R10l</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;R10l&#39;</span><span class="p">],</span>
+        <span class="n">R102l</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;R102l&#39;</span><span class="p">],</span>
+
+        <span class="c1"># Tissue parameters</span>
+        <span class="n">H</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;Hct&#39;</span><span class="p">],</span>
+        <span class="n">vol</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;vol&#39;</span><span class="p">],</span>
+    <span class="p">)</span>
+
+    <a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">xdata</span></a> <span class="o">=</span> <span class="p">(</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;time1aorta&#39;</span><span class="p">],</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;time2aorta&#39;</span><span class="p">],</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;time1liver&#39;</span><span class="p">],</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;time2liver&#39;</span><span class="p">],</span>
+    <span class="p">)</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ydata</span></a> <span class="o">=</span> <span class="p">(</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;signal1aorta&#39;</span><span class="p">],</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;signal2aorta&#39;</span><span class="p">],</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;signal1liver&#39;</span><span class="p">],</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;signal2liver&#39;</span><span class="p">],</span>
+    <span class="p">)</span>
+
+    <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">xdata</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ydata</span></a><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">return</span> <a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">xdata</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ydata</span></a><span class="p">,</span> <span class="n">model</span>
+</pre></div>
+</div>
+<p>Before running the full analysis on all cases, lets illustrate the results
+by fitting the baseline visit for the first subject. We use maximum
+verbosity to get some feedback about the iterations:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">xdata</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ydata</span></a><span class="p">,</span> <span class="n">model</span> <span class="o">=</span> <span class="n">tristan_human_2scan</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">xtol</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>   Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality
+       0              1         1.8931e+15                                    2.87e+17
+       1              2         5.2215e+14      1.37e+15       6.96e+06       4.71e+17
+       2              3         1.9291e+14      3.29e+14       5.60e+06       1.88e+17
+       3              4         1.1164e+14      8.13e+13       7.47e+06       8.18e+16
+       4              5         8.1816e+13      2.98e+13       3.02e+06       1.03e+17
+       5              6         5.8094e+13      2.37e+13       1.36e+05       1.63e+17
+`xtol` termination condition is satisfied.
+Function evaluations 6, initial cost 1.8931e+15, final cost 5.8094e+13, first-order optimality 1.63e+17.
+   Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality
+       0              1         3.3436e+14                                    5.37e+14
+       1              2         7.6468e+13      2.58e+14       5.54e+06       1.30e+14
+       2              3         2.8660e+13      4.78e+13       1.07e+04       7.03e+13
+`xtol` termination condition is satisfied.
+Function evaluations 3, initial cost 3.3436e+14, final cost 2.8660e+13, first-order optimality 7.03e+13.
+   Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality
+       0              1         8.6754e+13                                    1.63e+17
+       1              2         6.0975e+13      2.58e+13       9.44e+06       8.62e+16
+       2              3         5.3686e+13      7.29e+12       7.06e+05       1.44e+16
+       3              5         5.3686e+13      0.00e+00       0.00e+00       1.44e+16
+`xtol` termination condition is satisfied.
+Function evaluations 5, initial cost 8.6754e+13, final cost 5.3686e+13, first-order optimality 1.44e+16.
+</pre></div>
+</div>
+<p>Plot the results to check that the model has fitted the data. The plot also
+shows the concentration in the two liver compartments separately:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">xdata</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ydata</span></a><span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../../_images/sphx_glr_plot_tristan_patients_001.png" srcset="../../../_images/sphx_glr_plot_tristan_patients_001.png" alt="plot tristan patients" class = "sphx-glr-single-img"/><p>Print the measured model parameters and any derived parameters. Standard
+deviations are included as a measure of parameter uncertainty, indicate that
+all parameters are identified robustly:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">print_params</span><span class="p">(</span><span class="n">round_to</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>--------------------------------
+Free parameters with their stdev
+--------------------------------
+
+Aorta second signal scale factor (S02a): 199242357.488 (498013.539) a.u.
+Liver second signal scale factor (S02l): 127994807.149 (754161.353) a.u.
+Second bolus arrival time (BAT2): 7640.635 (0.23) sec
+First bolus arrival time (BAT): 75.837 (0.227) sec
+Cardiac output (CO): 208.349 (2.916) mL/sec
+Heart-lung mean transit time (Thl): 17.215 (0.311) sec
+Heart-lung dispersion (Dhl): 0.442 (0.008)
+Organs blood mean transit time (To): 22.575 (0.985) sec
+Organs extraction fraction (Eo): 0.168 (0.007)
+Organs extravascular mean transit time (Toe): 244.098 (23.262) sec
+Body extraction fraction (Eb): 0.04 (0.003)
+Liver extracellular volume fraction (ve): 0.156 (0.015) mL/cm3
+Extracellular mean transit time (Te): 35.613 (5.478) sec
+Extracellular dispersion (De): 0.787 (0.059)
+Initial hepatocellular uptake rate (khe_i): 0.001 (0.0) mL/sec/cm3
+Final hepatocellular uptake rate (khe_f): 0.001 (0.0) mL/sec/cm3
+Initial hepatocellular mean transit time (Th_i): 911.225 (335.541) sec
+Final hepatocellular mean transit time (Th_f): 1161.939 (1031.816) sec
+
+----------------------------
+Fixed and derived parameters
+----------------------------
+
+Hematocrit (H): 0.45
+Hepatocellular mean transit time (Th): 1036.582 sec
+Hepatocellular uptake rate (khe): 0.001 mL/sec/cm3
+Biliary tissue excretion rate (Kbh): 0.001 mL/sec/cm3
+Hepatocellular tissue uptake rate (Khe): 0.005 mL/sec/cm3
+Biliary excretion rate (kbh): 0.001 mL/sec/cm3
+Initial biliary excretion rate (kbh_i): 0.001 mL/sec/cm3
+Final biliary excretion rate (kbh_f): 0.001 mL/sec/cm3
+Liver blood clearance (CL): 0.582 mL/sec
+</pre></div>
+</div>
+</section>
+<section id="fit-all-data">
+<h2>Fit all data<a class="headerlink" href="#fit-all-data" title="Link to this heading">#</a></h2>
+<p>Now that we have illustrated an individual result in some detail, we
+proceed with fitting the data for all 3 patients, at baseline and
+rifampicin visit. We do not print output for these individual computations
+and instead store results in one single dataframe:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="c1"># Loop over all datasets</span>
+<span class="k">for</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">scan</span></a> <span class="ow">in</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">:</span>
+
+    <span class="c1"># Generate a trained model for the scan:</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">_</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">_</span></a><span class="p">,</span> <span class="n">model</span> <span class="o">=</span> <span class="n">tristan_human_2scan</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">scan</span></a><span class="p">,</span> <span class="n">xtol</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+
+    <span class="c1"># Convert the parameter dictionary to a dataframe</span>
+    <span class="n">pars</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">export_params</span><span class="p">()</span>
+    <span class="n">pars</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">pars</span><span class="p">,</span>
+        <span class="n">orient</span> <span class="o">=</span> <span class="s1">&#39;index&#39;</span><span class="p">,</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="s2">&quot;unit&quot;</span><span class="p">,</span> <span class="s1">&#39;stdev&#39;</span><span class="p">])</span>
+    <span class="n">pars</span><span class="p">[</span><span class="s1">&#39;parameter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pars</span><span class="o">.</span><span class="n">index</span>
+    <span class="n">pars</span><span class="p">[</span><span class="s1">&#39;visit&#39;</span><span class="p">]</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">scan</span></a><span class="p">[</span><span class="s1">&#39;visit&#39;</span><span class="p">]</span>
+    <span class="n">pars</span><span class="p">[</span><span class="s1">&#39;subject&#39;</span><span class="p">]</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">scan</span></a><span class="p">[</span><span class="s1">&#39;subject&#39;</span><span class="p">]</span>
+
+    <span class="c1"># Add the dataframe to the list of results</span>
+    <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pars</span><span class="p">)</span>
+
+<span class="c1"># Combine all results into a single dataframe.</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">results</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># Print all results</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">to_string</span><span class="p">())</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>                                         name         value        unit         stdev parameter    visit subject
+0            Aorta second signal scale factor  1.992424e+08        a.u.  4.980135e+05      S02a  control     001
+1            Liver second signal scale factor  1.279948e+08        a.u.  7.541614e+05      S02l  control     001
+2                   Second bolus arrival time  7.640635e+03         sec  2.302443e-01      BAT2  control     001
+3                    First bolus arrival time  7.583656e+01         sec  2.269671e-01       BAT  control     001
+4                              Cardiac output  2.083493e+02      mL/sec  2.915613e+00        CO  control     001
+5                Heart-lung mean transit time  1.721467e+01         sec  3.107741e-01       Thl  control     001
+6                       Heart-lung dispersion  4.421340e-01              7.770281e-03       Dhl  control     001
+7              Organs blood mean transit time  2.257539e+01         sec  9.847605e-01        To  control     001
+8                  Organs extraction fraction  1.678356e-01              7.170859e-03        Eo  control     001
+9      Organs extravascular mean transit time  2.440985e+02         sec  2.326207e+01       Toe  control     001
+10                   Body extraction fraction  4.022306e-02              3.422418e-03        Eb  control     001
+11                                 Hematocrit  4.500000e-01              0.000000e+00         H  control     001
+12        Liver extracellular volume fraction  1.556820e-01      mL/cm3  1.495657e-02        ve  control     001
+13            Extracellular mean transit time  3.561343e+01         sec  5.478327e+00        Te  control     001
+14                   Extracellular dispersion  7.871338e-01              5.949972e-02        De  control     001
+15         Initial hepatocellular uptake rate  7.043189e-04  mL/sec/cm3  1.387267e-04     khe_i  control     001
+16           Final hepatocellular uptake rate  6.992077e-04  mL/sec/cm3  1.671761e-04     khe_f  control     001
+17   Initial hepatocellular mean transit time  9.112253e+02         sec  3.355405e+02      Th_i  control     001
+18     Final hepatocellular mean transit time  1.161939e+03         sec  1.031816e+03      Th_f  control     001
+19           Hepatocellular mean transit time  1.036582e+03         sec  0.000000e+00        Th  control     001
+20                 Hepatocellular uptake rate  7.017633e-04  mL/sec/cm3  0.000000e+00       khe  control     001
+21              Biliary tissue excretion rate  9.647089e-04  mL/sec/cm3  0.000000e+00       Kbh  control     001
+22          Hepatocellular tissue uptake rate  4.507672e-03  mL/sec/cm3  0.000000e+00       Khe  control     001
+23                     Biliary excretion rate  8.145211e-04  mL/sec/cm3  0.000000e+00       kbh  control     001
+24             Initial biliary excretion rate  9.265743e-04  mL/sec/cm3  0.000000e+00     kbh_i  control     001
+25               Final biliary excretion rate  7.266458e-04  mL/sec/cm3  0.000000e+00     kbh_f  control     001
+26                      Liver blood clearance  5.818990e-01      mL/sec  0.000000e+00        CL  control     001
+27           Aorta second signal scale factor  2.403381e+08        a.u.  1.927638e+06      S02a  control     002
+28           Liver second signal scale factor  1.093829e+08        a.u.  6.345021e+06      S02l  control     002
+29                  Second bolus arrival time  7.580515e+03         sec  6.668222e-01      BAT2  control     002
+30                   First bolus arrival time  8.028901e+01         sec  8.048596e-01       BAT  control     002
+31                             Cardiac output  1.899930e+02      mL/sec  3.381674e+00        CO  control     002
+32               Heart-lung mean transit time  2.248593e+01         sec  1.027472e+00       Thl  control     002
+33                      Heart-lung dispersion  4.278589e-01              1.320897e-02       Dhl  control     002
+34             Organs blood mean transit time  2.479895e+01         sec  1.467220e+00        To  control     002
+35                 Organs extraction fraction  1.783381e-01              7.799905e-03        Eo  control     002
+36     Organs extravascular mean transit time  4.919636e+02         sec  4.973204e+01       Toe  control     002
+37                   Body extraction fraction  3.181506e-02              7.150850e-03        Eb  control     002
+38                                 Hematocrit  4.500000e-01              0.000000e+00         H  control     002
+39        Liver extracellular volume fraction  3.524859e-01      mL/cm3  3.169676e-02        ve  control     002
+40            Extracellular mean transit time  3.926668e+01         sec  5.312582e+00        Te  control     002
+41                   Extracellular dispersion  8.030705e-01              4.983339e-02        De  control     002
+42         Initial hepatocellular uptake rate  2.535043e-03  mL/sec/cm3  3.880098e-04     khe_i  control     002
+43           Final hepatocellular uptake rate  1.761714e-03  mL/sec/cm3  1.427542e-04     khe_f  control     002
+44   Initial hepatocellular mean transit time  8.486214e+02         sec  7.878068e+02      Th_i  control     002
+45     Final hepatocellular mean transit time  9.973917e+03         sec  4.965847e+03      Th_f  control     002
+46           Hepatocellular mean transit time  5.411269e+03         sec  0.000000e+00        Th  control     002
+47                 Hepatocellular uptake rate  2.148378e-03  mL/sec/cm3  0.000000e+00       khe  control     002
+48              Biliary tissue excretion rate  1.847995e-04  mL/sec/cm3  0.000000e+00       Kbh  control     002
+49          Hepatocellular tissue uptake rate  6.094934e-03  mL/sec/cm3  0.000000e+00       Khe  control     002
+50                     Biliary excretion rate  1.196603e-04  mL/sec/cm3  0.000000e+00       kbh  control     002
+51             Initial biliary excretion rate  7.630188e-04  mL/sec/cm3  0.000000e+00     kbh_i  control     002
+52               Final biliary excretion rate  6.492075e-05  mL/sec/cm3  0.000000e+00     kbh_f  control     002
+53                      Liver blood clearance  2.748173e+00      mL/sec  0.000000e+00        CL  control     002
+54           Aorta second signal scale factor  2.267418e+08        a.u.  5.846613e+05      S02a  control     003
+55           Liver second signal scale factor  1.487343e+08        a.u.  1.235888e+06      S02l  control     003
+56                  Second bolus arrival time  6.852440e+03         sec  6.208581e-01      BAT2  control     003
+57                   First bolus arrival time  7.232176e+01         sec  5.988455e-01       BAT  control     003
+58                             Cardiac output  1.743725e+02      mL/sec  2.140203e+00        CO  control     003
+59               Heart-lung mean transit time  1.096090e+01         sec  6.627178e-01       Thl  control     003
+60                      Heart-lung dispersion  3.789489e-01              1.778646e-02       Dhl  control     003
+61             Organs blood mean transit time  3.195749e+01         sec  1.285467e+00        To  control     003
+62                 Organs extraction fraction  1.397348e-01              8.344810e-03        Eo  control     003
+63     Organs extravascular mean transit time  2.592389e+02         sec  3.494318e+01       Toe  control     003
+64                   Body extraction fraction  6.328560e-02              4.056266e-03        Eb  control     003
+65                                 Hematocrit  4.500000e-01              0.000000e+00         H  control     003
+66        Liver extracellular volume fraction  3.366765e-01      mL/cm3  2.097851e-02        ve  control     003
+67            Extracellular mean transit time  5.567088e+01         sec  4.989146e+00        Te  control     003
+68                   Extracellular dispersion  8.911246e-01              1.899964e-02        De  control     003
+69         Initial hepatocellular uptake rate  1.057429e-03  mL/sec/cm3  1.211856e-04     khe_i  control     003
+70           Final hepatocellular uptake rate  3.027705e-03  mL/sec/cm3  1.871704e-04     khe_f  control     003
+71   Initial hepatocellular mean transit time  2.614921e+03         sec  9.578130e+02      Th_i  control     003
+72     Final hepatocellular mean transit time  6.000000e+02         sec  9.311993e+01      Th_f  control     003
+73           Hepatocellular mean transit time  1.607460e+03         sec  0.000000e+00        Th  control     003
+74                 Hepatocellular uptake rate  2.042567e-03  mL/sec/cm3  0.000000e+00       khe  control     003
+75              Biliary tissue excretion rate  6.220993e-04  mL/sec/cm3  0.000000e+00       Kbh  control     003
+76          Hepatocellular tissue uptake rate  6.066853e-03  mL/sec/cm3  0.000000e+00       Khe  control     003
+77                     Biliary excretion rate  4.126531e-04  mL/sec/cm3  0.000000e+00       kbh  control     003
+78             Initial biliary excretion rate  2.536687e-04  mL/sec/cm3  0.000000e+00     kbh_i  control     003
+79               Final biliary excretion rate  1.105539e-03  mL/sec/cm3  0.000000e+00     kbh_f  control     003
+80                      Liver blood clearance  2.033806e+00      mL/sec  0.000000e+00        CL  control     003
+81           Aorta second signal scale factor  1.619912e+08        a.u.  6.232932e+05      S02a     drug     001
+82           Liver second signal scale factor  1.147753e+08        a.u.  6.674490e+05      S02l     drug     001
+83                  Second bolus arrival time  6.901073e+03         sec  1.711258e-01      BAT2     drug     001
+84                   First bolus arrival time  7.625469e+01         sec  1.710004e-01       BAT     drug     001
+85                             Cardiac output  1.911090e+02      mL/sec  3.536017e+00        CO     drug     001
+86               Heart-lung mean transit time  1.297264e+01         sec  2.857888e-01       Thl     drug     001
+87                      Heart-lung dispersion  4.250882e-01              8.928510e-03       Dhl     drug     001
+88             Organs blood mean transit time  2.046576e+01         sec  9.933413e-01        To     drug     001
+89                 Organs extraction fraction  1.305558e-01              7.600983e-03        Eo     drug     001
+90     Organs extravascular mean transit time  2.386942e+02         sec  2.774625e+01       Toe     drug     001
+91                   Body extraction fraction  3.225480e-02              2.969841e-03        Eb     drug     001
+92                                 Hematocrit  4.500000e-01              0.000000e+00         H     drug     001
+93        Liver extracellular volume fraction  1.474575e-01      mL/cm3  1.688086e-02        ve     drug     001
+94            Extracellular mean transit time  4.452130e+01         sec  7.713305e+00        Te     drug     001
+95                   Extracellular dispersion  7.326356e-01              6.784303e-02        De     drug     001
+96         Initial hepatocellular uptake rate  4.686835e-04  mL/sec/cm3  1.528837e-04     khe_i     drug     001
+97           Final hepatocellular uptake rate  5.532236e-04  mL/sec/cm3  2.045911e-04     khe_f     drug     001
+98   Initial hepatocellular mean transit time  8.188752e+02         sec  4.209293e+02      Th_i     drug     001
+99     Final hepatocellular mean transit time  8.919273e+02         sec  9.333918e+02      Th_f     drug     001
+100          Hepatocellular mean transit time  8.554012e+02         sec  0.000000e+00        Th     drug     001
+101                Hepatocellular uptake rate  5.109535e-04  mL/sec/cm3  0.000000e+00       khe     drug     001
+102             Biliary tissue excretion rate  1.169042e-03  mL/sec/cm3  0.000000e+00       Kbh     drug     001
+103         Hepatocellular tissue uptake rate  3.465090e-03  mL/sec/cm3  0.000000e+00       Khe     drug     001
+104                    Biliary excretion rate  9.966581e-04  mL/sec/cm3  0.000000e+00       kbh     drug     001
+105            Initial biliary excretion rate  1.041114e-03  mL/sec/cm3  0.000000e+00     kbh_i     drug     001
+106              Final biliary excretion rate  9.558431e-04  mL/sec/cm3  0.000000e+00     kbh_f     drug     001
+107                     Liver blood clearance  4.466927e-01      mL/sec  0.000000e+00        CL     drug     001
+108          Aorta second signal scale factor  2.013421e+08        a.u.  7.742127e+05      S02a     drug     002
+109          Liver second signal scale factor  1.289544e+08        a.u.  6.340100e+05      S02l     drug     002
+110                 Second bolus arrival time  7.047597e+03         sec  2.091382e-01      BAT2     drug     002
+111                  First bolus arrival time  8.128192e+01         sec  2.678799e-01       BAT     drug     002
+112                            Cardiac output  1.910242e+02      mL/sec  4.212239e+00        CO     drug     002
+113              Heart-lung mean transit time  1.394512e+01         sec  4.404304e-01       Thl     drug     002
+114                     Heart-lung dispersion  4.357685e-01              1.129772e-02       Dhl     drug     002
+115            Organs blood mean transit time  2.034010e+01         sec  1.484667e+00        To     drug     002
+116                Organs extraction fraction  1.656891e-01              1.385397e-02        Eo     drug     002
+117    Organs extravascular mean transit time  1.829893e+02         sec  2.683857e+01       Toe     drug     002
+118                  Body extraction fraction  6.700816e-02              4.154776e-03        Eb     drug     002
+119                                Hematocrit  4.500000e-01              0.000000e+00         H     drug     002
+120       Liver extracellular volume fraction  1.537814e-01      mL/cm3  3.468108e-02        ve     drug     002
+121           Extracellular mean transit time  4.124682e+01         sec  1.308810e+01        Te     drug     002
+122                  Extracellular dispersion  7.690209e-01              1.132437e-01        De     drug     002
+123        Initial hepatocellular uptake rate  1.431656e-03  mL/sec/cm3  2.298980e-04     khe_i     drug     002
+124          Final hepatocellular uptake rate  2.305792e-03  mL/sec/cm3  3.383085e-04     khe_f     drug     002
+125  Initial hepatocellular mean transit time  1.469190e+03         sec  5.443912e+02      Th_i     drug     002
+126    Final hepatocellular mean transit time  9.759390e+02         sec  4.362707e+02      Th_f     drug     002
+127          Hepatocellular mean transit time  1.222565e+03         sec  0.000000e+00        Th     drug     002
+128                Hepatocellular uptake rate  1.868724e-03  mL/sec/cm3  0.000000e+00       khe     drug     002
+129             Biliary tissue excretion rate  8.179527e-04  mL/sec/cm3  0.000000e+00       Kbh     drug     002
+130         Hepatocellular tissue uptake rate  1.215182e-02  mL/sec/cm3  0.000000e+00       Khe     drug     002
+131                    Biliary excretion rate  6.921668e-04  mL/sec/cm3  0.000000e+00       kbh     drug     002
+132            Initial biliary excretion rate  5.759762e-04  mL/sec/cm3  0.000000e+00     kbh_i     drug     002
+133              Final biliary excretion rate  8.670814e-04  mL/sec/cm3  0.000000e+00     kbh_f     drug     002
+134                     Liver blood clearance  2.641283e+00      mL/sec  0.000000e+00        CL     drug     002
+135          Aorta second signal scale factor  2.461252e+08        a.u.  9.753483e+05      S02a     drug     003
+136          Liver second signal scale factor  1.516859e+08        a.u.  7.478764e+05      S02l     drug     003
+137                 Second bolus arrival time  7.323665e+03         sec  5.632807e-01      BAT2     drug     003
+138                  First bolus arrival time  6.847094e+01         sec  7.236456e-01       BAT     drug     003
+139                            Cardiac output  2.102836e+02      mL/sec  6.133358e+00        CO     drug     003
+140              Heart-lung mean transit time  1.470847e+01         sec  5.725803e-01       Thl     drug     003
+141                     Heart-lung dispersion  3.151611e-01              1.247583e-02       Dhl     drug     003
+142            Organs blood mean transit time  1.647924e+01         sec  1.283423e+00        To     drug     003
+143                Organs extraction fraction  1.678818e-01              1.773208e-02        Eo     drug     003
+144    Organs extravascular mean transit time  1.385754e+02         sec  1.971961e+01       Toe     drug     003
+145                  Body extraction fraction  3.570999e-02              2.687032e-03        Eb     drug     003
+146                                Hematocrit  4.500000e-01              0.000000e+00         H     drug     003
+147       Liver extracellular volume fraction  2.531379e-01      mL/cm3  3.913259e-02        ve     drug     003
+148           Extracellular mean transit time  5.787234e+01         sec  1.501888e+01        Te     drug     003
+149                  Extracellular dispersion  9.502423e-01              4.893993e-02        De     drug     003
+150        Initial hepatocellular uptake rate  4.003029e-04  mL/sec/cm3  3.242286e-04     khe_i     drug     003
+151          Final hepatocellular uptake rate  2.865731e-04  mL/sec/cm3  4.688460e-04     khe_f     drug     003
+152  Initial hepatocellular mean transit time  7.608810e+02         sec  8.235358e+02      Th_i     drug     003
+153    Final hepatocellular mean transit time  7.613988e+02         sec  2.570422e+03      Th_f     drug     003
+154          Hepatocellular mean transit time  7.611399e+02         sec  0.000000e+00        Th     drug     003
+155                Hepatocellular uptake rate  3.434380e-04  mL/sec/cm3  0.000000e+00       khe     drug     003
+156             Biliary tissue excretion rate  1.313819e-03  mL/sec/cm3  0.000000e+00       Kbh     drug     003
+157         Hepatocellular tissue uptake rate  1.356723e-03  mL/sec/cm3  0.000000e+00       Khe     drug     003
+158                    Biliary excretion rate  9.812416e-04  mL/sec/cm3  0.000000e+00       kbh     drug     003
+159            Initial biliary excretion rate  9.815754e-04  mL/sec/cm3  0.000000e+00     kbh_i     drug     003
+160              Final biliary excretion rate  9.809079e-04  mL/sec/cm3  0.000000e+00     kbh_f     drug     003
+161                     Liver blood clearance  3.474537e-01      mL/sec  0.000000e+00        CL     drug     003
+</pre></div>
+</div>
+</section>
+<section id="plot-individual-results">
+<h2>Plot individual results<a class="headerlink" href="#plot-individual-results" title="Link to this heading">#</a></h2>
+<p>Now lets visualise the main results from the study by plotting the drug
+effect for all volunteers, and for both biomarkers: uptake rate <code class="docutils literal notranslate"><span class="pre">khe</span></code>
+and excretion rate <code class="docutils literal notranslate"><span class="pre">kbh</span></code>:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Set up the figure</span>
+<a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">clr</span></a> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;tab:blue&#39;</span><span class="p">,</span> <span class="s1">&#39;tab:orange&#39;</span><span class="p">,</span> <span class="s1">&#39;tab:green&#39;</span><span class="p">,</span> <span class="s1">&#39;tab:red&#39;</span><span class="p">,</span> <span class="s1">&#39;tab:purple&#39;</span><span class="p">,</span>
+       <span class="s1">&#39;tab:brown&#39;</span><span class="p">,</span> <span class="s1">&#39;tab:pink&#39;</span><span class="p">,</span> <span class="s1">&#39;tab:gray&#39;</span><span class="p">,</span> <span class="s1">&#39;tab:olive&#39;</span><span class="p">,</span> <span class="s1">&#39;tab:cyan&#39;</span><span class="p">]</span>
+<a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fs</span></a> <span class="o">=</span> <span class="mi">10</span>
+<span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax1</span><span class="p">,</span> <span class="n">ax2</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">subplots_adjust</span><span class="p">(</span><span class="n">wspace</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Hepatocellular uptake rate&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fs</span></a><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;khe (mL/min/100mL)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fs</span></a><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">60</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">labelsize</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fs</span></a><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">labelsize</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fs</span></a><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Biliary excretion rate&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fs</span></a><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;kbh (mL/min/100mL)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fs</span></a><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">labelsize</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fs</span></a><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">labelsize</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fs</span></a><span class="p">)</span>
+
+<span class="c1"># Pivot data for both visits to wide format for easy access:</span>
+<span class="n">v1</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="n">results</span><span class="o">.</span><span class="n">visit</span><span class="o">==</span><span class="s1">&#39;control&#39;</span><span class="p">],</span> <span class="n">values</span><span class="o">=</span><span class="s1">&#39;value&#39;</span><span class="p">,</span>
+                    <span class="n">columns</span><span class="o">=</span><span class="s1">&#39;parameter&#39;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="s1">&#39;subject&#39;</span><span class="p">)</span>
+<span class="n">v2</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="n">results</span><span class="o">.</span><span class="n">visit</span><span class="o">==</span><span class="s1">&#39;drug&#39;</span><span class="p">],</span> <span class="n">values</span><span class="o">=</span><span class="s1">&#39;value&#39;</span><span class="p">,</span>
+                    <span class="n">columns</span><span class="o">=</span><span class="s1">&#39;parameter&#39;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="s1">&#39;subject&#39;</span><span class="p">)</span>
+
+<span class="c1"># Plot the rate constants in units of mL/min/100mL</span>
+<span class="k">for</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">s</span></a> <span class="ow">in</span> <span class="n">v1</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;control&#39;</span><span class="p">]</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">khe</span></a> <span class="o">=</span> <span class="p">[</span><span class="mi">6000</span><span class="o">*</span><span class="n">v1</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">s</span></a><span class="p">,</span><span class="s1">&#39;khe&#39;</span><span class="p">]]</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">kbh</span></a> <span class="o">=</span> <span class="p">[</span><span class="mi">6000</span><span class="o">*</span><span class="n">v1</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">s</span></a><span class="p">,</span><span class="s1">&#39;kbh&#39;</span><span class="p">]]</span>
+    <span class="k">if</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">s</span></a> <span class="ow">in</span> <span class="n">v2</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;drug&#39;</span><span class="p">]</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">khe</span></a> <span class="o">+=</span> <span class="p">[</span><span class="mi">6000</span><span class="o">*</span><span class="n">v2</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">s</span></a><span class="p">,</span><span class="s1">&#39;khe&#39;</span><span class="p">]]</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">kbh</span></a> <span class="o">+=</span> <span class="p">[</span><span class="mi">6000</span><span class="o">*</span><span class="n">v2</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">s</span></a><span class="p">,</span><span class="s1">&#39;kbh&#39;</span><span class="p">]]</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">color</span></a> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">clr</span></a><span class="p">[</span><span class="nb">int</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">s</span></a><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">khe</span></a><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">s</span></a><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">color</span></a><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">color</span></a><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">kbh</span></a><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">s</span></a><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">color</span></a><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">color</span></a><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="c1"># Choose the last image as a thumbnail for the gallery</span>
+<span class="c1"># sphinx_gallery_thumbnail_number = -1</span>
+</pre></div>
+</div>
+<img src="../../../_images/sphx_glr_plot_tristan_patients_002.png" srcset="../../../_images/sphx_glr_plot_tristan_patients_002.png" alt="Hepatocellular uptake rate, Biliary excretion rate" class = "sphx-glr-single-img"/><p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (32 minutes 38.602 seconds)</p>
+<div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-generated-examples-liver-plot-tristan-patients-py">
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../../../_downloads/2c669491d21c5e61a82cf4a43e4b8a3c/plot_tristan_patients.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">plot_tristan_patients.ipynb</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../../../_downloads/be4b6dafc660bdb4900df1e52f8150f4/plot_tristan_patients.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">plot_tristan_patients.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-zip docutils container">
+<p><a class="reference download internal" download="" href="../../../_downloads/80f329866debf5df77d5bd55a7f73c51/plot_tristan_patients.zip"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">zipped:</span> <span class="pre">plot_tristan_patients.zip</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="plot_tristan_mdosing.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Preclinical - repeat dosing effects on liver function</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="plot_tristan_volunteers_2scan.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Clinical - rifampicin induced inhibition of liver function</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reference">Reference</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#setup">Setup</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#model-definition">Model definition</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fit-all-data">Fit all data</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#plot-individual-results">Plot individual results</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../../_sources/generated/examples/liver/plot_tristan_patients.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024-2025, dcmri contributors.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
