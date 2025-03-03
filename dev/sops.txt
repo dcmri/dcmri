@@ -76,7 +76,7 @@ To run a specific file (eg. test_utils) only, do:
 Check tests in docstrings
 -------------------------
 
-To test file.py, cd to directpory of file.py, then do:
+To test file.py, cd to directory of file.py, then do:
 >>> pytest --doctest-modules file.py
 
 To insert the expected test results, do:

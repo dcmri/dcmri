@@ -8,7 +8,7 @@
 project = 'dcmri'
 copyright = '2024-2025, dcmri contributors'
 author = 'dcmri contributors'
-release = '0.6.14'
+release = '0.6.15'
 
 # -- Path setup --------------------------------------------------------------
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -108,14 +108,20 @@ always_document_param_types = True
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-# The theme to use for HTML and HTML Help pages.  See the documentation for a list of builtin themes
+# The theme to use for HTML and HTML Help pages. See the documentation for a 
+# list of builtin themes
 html_theme = 'pydata_sphinx_theme'
 html_theme_options = {
     "github_url": "https://github.com/dcmri/dcmri",
     "collapse_navigation": True,
-    }
+    "analytics": {
+        "google_analytics_id": "G-64ZSJ8Z1MX",
+    },
+}
 
-# Add any paths that contain custom static files (such as style sheets) here, relative to this directory. They are copied after the builtin static files, so a file named "default.css" will overwrite the builtin "default.css"
+# Add any paths that contain custom static files (such as style sheets) here, 
+# relative to this directory. They are copied after the builtin static files, 
+# so a file named "default.css" will overwrite the builtin "default.css"
 html_static_path = ['_static']
 
 # The suffix(es) of source filenames.

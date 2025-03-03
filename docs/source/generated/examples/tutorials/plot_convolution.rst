@@ -188,8 +188,8 @@ in each case:
 
  .. code-block:: none
 
-    Computation time for conv():  1.1724777221679688 sec
-    Computation time for expconv():  0.03907656669616699 sec
+    Computation time for conv():  4.231736183166504 sec
+    Computation time for expconv():  0.11535263061523438 sec
 
 
 
@@ -221,7 +221,7 @@ the performance remains far below `~dcmri.expconv`:
 
  .. code-block:: none
 
-    Computation time for conv():  0.5115406513214111 sec
+    Computation time for conv():  1.0502066612243652 sec
 
 
 
@@ -305,8 +305,8 @@ convolution:
 
  .. code-block:: none
 
-    Computation time for expconv():  0.03711819648742676 sec
-    Computation time for biexpconv():  0.00797891616821289 sec
+    Computation time for expconv():  0.12709331512451172 sec
+    Computation time for biexpconv():  0.024053096771240234 sec
 
 
 
@@ -472,8 +472,8 @@ above, but there is a more substantial gain in computation time:
 
  .. code-block:: none
 
-    Computation time for conv():  0.4879117012023926 sec
-    Computation time for stepconv():  0.2529292106628418 sec
+    Computation time for conv():  0.8384895324707031 sec
+    Computation time for stepconv():  0.6410198211669922 sec
 
 
 
@@ -481,7 +481,7 @@ above, but there is a more substantial gain in computation time:
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 3.476 seconds)
+   **Total running time of the script:** (0 minutes 9.408 seconds)
 
 
 .. _sphx_glr_download_generated_examples_tutorials_plot_convolution.py:

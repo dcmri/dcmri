@@ -61,3 +61,6 @@ from dcmri.ui_kidney_cortmed import *
 
 from dcmri import ui_liver
 from dcmri.ui_liver import *
+
+from dcmri import data
+from dcmri.data import *

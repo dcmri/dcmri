@@ -6,6 +6,8 @@
 docs/build
 tests/tmp/*
 tests/export/*
+src/dcmri/datafiles/*.pkl
+src/dcmri/datafiles/*.zip
 
 ### Python ###
 # Byte-compiled / optimized / DLL files

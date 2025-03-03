@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**97:12.688** total execution time for 6 files **from generated\examples\liver**:
+**221:41.970** total execution time for 6 files **from generated\examples\liver**:
 
 .. container::
 
@@ -33,20 +33,20 @@ Computation times
      - Time
      - Mem (MB)
    * - :ref:`sphx_glr_generated_examples_liver_plot_tristan_volunteers_2scan.py` (``plot_tristan_volunteers_2scan.py``)
-     - 68:14.648
+     - 154:11.313
      - 0.0
    * - :ref:`sphx_glr_generated_examples_liver_plot_tristan_patients.py` (``plot_tristan_patients.py``)
-     - 13:36.366
+     - 32:38.602
      - 0.0
    * - :ref:`sphx_glr_generated_examples_liver_plot_tristan_volunteers.py` (``plot_tristan_volunteers.py``)
-     - 13:02.585
+     - 30:53.325
      - 0.0
    * - :ref:`sphx_glr_generated_examples_liver_plot_tristan_repro.py` (``plot_tristan_repro.py``)
-     - 00:56.176
-     - 0.0
-   * - :ref:`sphx_glr_generated_examples_liver_plot_tristan_mdosing.py` (``plot_tristan_mdosing.py``)
-     - 00:48.950
+     - 02:03.048
      - 0.0
    * - :ref:`sphx_glr_generated_examples_liver_plot_tristan6drugs.py` (``plot_tristan6drugs.py``)
-     - 00:33.962
+     - 01:55.682
+     - 0.0
+   * - :ref:`sphx_glr_generated_examples_liver_plot_tristan_mdosing.py` (``plot_tristan_mdosing.py``)
+     - 00:00.000
      - 0.0
