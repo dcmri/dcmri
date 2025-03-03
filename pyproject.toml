@@ -13,6 +13,7 @@ dependencies = [
   'numpy',
   'scipy',
   'matplotlib',
+  "requests",
 ]
 # optional information
 description = "A python toolbox for dynamic contrast MRI"
@@ -62,29 +63,3 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
-# [project.optional-dependencies]
-# dev = [
-#   'changelist==0.4',
-# ]
-# test = [
-#   "pytest",
-#   "pytest-cov",
-# ]
-# docs = [
-#   "sphinx",
-#   "matplotlib",
-#   "autodocsumm",
-#   "docutils",
-#   "myst-parser",
-#   "pydata-sphinx-theme",
-#   "sphinx-copybutton",
-#   "sphinx-design",
-#   "sphinxcontrib-applehelp",
-#   "sphinxcontrib-devhelp",
-#   "sphinxcontrib-htmlhelp",
-#   "sphinxcontrib-jsmath",
-#   "sphinxcontrib-qthelp",
-#   "sphinxcontrib-serializinghtml",
-#   "sphinx-gallery",
-# ]

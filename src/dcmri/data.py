@@ -17,7 +17,7 @@ else:
 
 
 KRUK_DATASETS = [
-    'kruk_sk_gfr',
+    'KRUK',
 ]
 TRISTAN_DATASETS = [
     'tristan_rifampicin',
