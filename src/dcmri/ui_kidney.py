@@ -10,93 +10,236 @@ import dcmri.utils as utils
 
 
 class Kidney(ui.Model):
-    """General model for whole kidney signals.
-
-        **Input function**
-
-        - **aif** (array-like, default=None): Signal-time curve in a feeding artery. If AIF is set to None, then the parameter ca must be provided (arterial concentrations).
-        - **ca** (array-like, default=None): Concentration (M) in the arterial input. Must be provided when aif = None, ignored otherwise. 
-
-        **Acquisition parameters**
-
-        - **t** (array-like, default=None): Time points (sec) of the aif. If t is not provided, the temporal sampling is uniform with interval dt.
-        - **dt** (float, default=1.0): Sampling interval of the AIF in sec.
-        - **field_strength** (float, default=3.0): Magnetic field strength in T.
-        - **agent** (str, default='gadoterate'): Contrast agent generic name.
-        - **n0** (int, default=1): Baseline length in nr of acquisitions.
-        - **TR** (float, default=0.005): Repetition time, or time between excitation pulses, in sec.
-        - **FA** (float, default=15): Nominal flip angle in degrees.
-
-        **Tracer-kinetic parameters**
-
-        - **H** (float, optional): Hematocrit. 
-        - **Fp** (Plasma flow, mL/sec/cm3): Flow of plasma into the plasma compartment.
-        - **Tp** (Plasma mean transit time, sec): Transit time of the plasma compartment. 
-        - **Ft** (Tubular flow, mL/sec/cm3): Flow of fluid into the tubuli.
-        - **Ta** (Arterial delay time, sec): Transit time through the arterial compartment.
-        - **Tt** (Tubular mean transit time, sec): Transit time of the tubular compartment. 
-
-        **Signal parameters**
-
-        - **R10** (float, default=1): Precontrast tissue relaxation rate in 1/sec.
-        - **R10a** (float, default=1): Precontrast arterial relaxation rate in 1/sec. 
-        - **S0** (float, default=1): Scale factor for the MR signal (a.u.).
-
-        **Prediction and training parameters**
-
-        - **free** (array-like): list of free parameters. The default depends on the kinetics parameter.
-        - **free** (array-like): 2-element list with lower and upper free of the free parameters. The default depends on the kinetics parameter.
-
-        **Additional parameters**
-
-        - **vol** (float, optional): Kidney volume in mL.
+    """General model for whole-kidney signals.
 
     See Also:
-        `Liver`
+        `Liver`, `Tissue`
+
+    Args:
+        kinetics (str, optional): Kinetic model for the kidneys. 
+          Options are '2CF' (Two-compartment filtration) and 'HF' 
+          (High-flow). Defaults to '2CF'. 
+        sequence (str, optional): imaging sequence model. Possible 
+          values are 'SS' (steady-state), 'SR' (saturation-recovery), 
+          and 'lin' (linear). Defaults to 'SS'.
+        params (dict, optional): values for the model parameters,
+          specified as keyword parameters. Defaults are used for any 
+          that are not provided. See table 
+          :ref:`Kidney-defaults` for a list of parameters and 
+          their default values.
+
+    Notes:
+
+        In the table below, if **Bounds** is None, the parameter is fixed 
+        during training. Otherwise it is allowed to vary between the 
+        bounds given.
+
+        .. _Kidney-defaults:
+        .. list-table:: Kidney parameters. 
+            :widths: 15 10 10 10
+            :header-rows: 1
+
+            * - Parameter
+              - Value
+              - Bounds
+              - Usage
+            * - **General**
+              - 
+              - 
+              - 
+            * - field_strength
+              - 3
+              - None
+              - Always
+            * - agent
+              - 'gadoterate'
+              - None
+              - Always
+            * - t0
+              - 0
+              - None
+              - Always
+            * - **Sequence**
+              -
+              - 
+              - 
+            * - TS
+              - 0
+              - None
+              - Always
+            * - B1corr
+              - 1
+              - None
+              - sequence in ['SS']
+            * - FA
+              - 15
+              - None
+              - sequence in ['SR', 'SS']
+            * - TR
+              - 0.005
+              - None
+              - sequence in ['SS']
+            * - TC
+              - 0.1
+              - None
+              - sequence == 'SR'
+            * - TP
+              - 0.05
+              - None
+              - sequence == 'SR'
+            * - **AIF**
+              - 
+              - 
+              - 
+            * - B1corr_a
+              - 1
+              - None
+              - sequence in ['SS']
+            * - R10a
+              - 0.7
+              - None
+              - Always
+            * - **Kidney**
+              -
+              - 
+              - 
+            * - H
+              - 0.45
+              - None
+              - Always
+            * - Ta
+              - 0
+              - [0, 3]
+              - Always
+            * - vol
+              - 150
+              - None
+              - Always
+            * - Fp
+              - 0.02
+              - [0, 0.05]
+              - kinetics == '2CF'
+            * - vp
+              - 0.15
+              - [0, 0.3]
+              - Always
+            * - FF
+              - 0.1
+              - [0, 0.3]
+              - kinetics == '2CF'
+            * - Tt
+              - 120
+              - [0, inf]
+              - Always
+            * - Ft
+              - 0.005
+              - [0, 0.05]
+              - Always
+            * - R10
+              - 0.65
+              - None
+              - Always
+            * - S0
+              - 1.0
+              - [0, inf]
+              - Always
 
     Example:
 
-        Derive model parameters from simulated data:
+        Use the model to fit minipig data. The AIF is corrupted by 
+        inflow effects so for the purpose of this example we will 
+        use a standard input function:
 
     .. plot::
         :include-source:
         :context: close-figs
 
-        >>> import matplotlib.pyplot as plt
+        >>> import numpy as np
         >>> import dcmri as dc
 
-        Use `fake_tissue` to generate synthetic test data:
+        Read the dataset:
 
-        >>> time, aif, roi, gt = dc.fake_tissue(R10=1/dc.T1(3.0,'kidney'))
+        >>> datafile = dc.fetch('minipig_renal_fibrosis')
+        >>> rois, pars = dc.read_dmr(datafile, nest=True, valsonly=True)
+        >>> rois, pars = rois['Pig']['Test'], pars['Pig']['Test']
+        >>> time = pars['TS'] * np.arange(len(rois['LeftKidney']))
 
-        Override the parameter defaults to match the experimental conditions of the synthetic test data:
+        Generate an AIF at high temporal resolution (250 msec):
 
-        >>> params = {
-        ...     'aif':aif, 
-        ...     'dt':time[1], 
-        ...     'agent': 'gadodiamide', 
-        ...     'TR': 0.005, 
-        ...     'FA': 15, 
-        ...     'R10': 1/dc.T1(3.0,'kidney'), 
-        ...     'n0': 15,
-        ... }
+        >>> dt = 0.25
+        >>> t = np.arange(0, np.amax(time) + dt, dt) 
+        >>> ca = dc.aif_tristan(
+        ...    t, 
+        ...    agent="gadoterate",
+        ...    dose=pars['dose'],
+        ...    rate=pars['rate'],
+        ...    weight=pars['weight'],
+        ...    CO=60,
+        ...    BAT=time[np.argmax(rois['Aorta'])] - 20,
+        >>> )        
 
-        Train a two-compartment filtration model on the ROI data and plot the fit:
+        Initialize the tissue:
 
-        >>> params['kinetics'] = '2CF'
-        >>> model = dc.Kidney(**params).train(time, roi)
-        >>> model.plot(time, roi, ref=gt)
+        >>> kidney = dc.Kidney(
+        ...    ca=ca,
+        ...    dt=dt,
+        ...    kinetics='HF',
+        ...    field_strength=pars['B0'],
+        ...    agent="gadoterate",
+        ...    t0=pars['TS'] * pars['n0'],
+        ...    TS=pars['TS'], 
+        ...    TR=pars['TR'],
+        ...    FA=pars['FA'],
+        ...    R10a=1/dc.T1(pars['B0'], 'blood'),
+        ...    R10=1/dc.T1(pars['B0'], 'kidney'),
+        >>> )
+
+        Train the kidney on the data:
+
+        >>> kidney.set_free(Ta=[0,30])
+        >>> kidney.train(time, rois['LeftKidney'])
+        
+        Plot the reconstructed signals and concentrations:
+
+        >>> kidney.plot(time, rois['LeftKidney'])
+
+        Print the model parameters:
+
+        >>> kidney.print_params(round_to=4)
+        --------------------------------
+        Free parameters with their stdev
+        --------------------------------
+        Arterial mean transit time (Ta): 13.8658 (0.1643) sec
+        Plasma volume (vp): 0.0856 (0.003) mL/cm3
+        Tubular flow (Ft): 0.0024 (0.0001) mL/sec/cm3
+        Tubular mean transit time (Tt): 116.296 (7.6526) sec
+
     """
 
-    def __init__(self, 
-                 kinetics='2CF', sequence='SS', 
-                 aif=None, ca=None, t=None, dt=1.0,
-                 free=None, **params):
+    def __init__(
+            self, 
+            kinetics='2CF', 
+            sequence='SS', 
+            aif=None, 
+            ca=None, 
+            t=None, 
+            dt=1.0,
+            **params,
+        ):
 
+        # Check configuration
+        if kinetics not in ['2CF', 'HF']:
+            raise ValueError(
+                f"Kinetic model {kinetics} is not available."
+            )
+        if sequence not in ['SS', 'SR', 'lin']:
+            raise ValueError(
+                f"Sequence ' + str(sequence) + ' is not available."
+            )
+        
         # Config
         self.kinetics = kinetics
         self.sequence = sequence
-        self._check_config()
         
         # Input function
         self.aif = aif
@@ -105,73 +248,65 @@ class Kidney(ui.Model):
         self.dt = dt
 
         # overide defaults
-        self._set_defaults(free=free, **params)
+        self._set_defaults(**params)
 
-
-    def _check_config(self):
-        if self.kinetics not in ['2CF']:
-            msg = 'Kinetic model ' + str(self.kinetics) + ' is not available.'
-            raise ValueError(msg)
-        if self.sequence not in ['SS', 'SR', 'lin']:
-            msg = 'Sequence ' + str(self.sequence) + ' is not available.'
-            raise ValueError(msg)
 
     def _params(self):
         return PARAMS
     
     def _model_pars(self):
-        seq_pars = {
-            'SS': ['B1corr', 'FA', 'TR'],
-            'SR': ['B1corr', 'FA', 'TR', 'TC', 'TP'],
-            'lin': [],
-        }
-        pars = ['field_strength', 'agent', 'vol', 'H']
-        pars += ['R10a', 'B1corr_a']
-        pars += ['S0', 'TS'] + seq_pars[self.sequence]
+
+        # General
+        pars = ['field_strength', 'agent', 't0']
+
+        # Sequence
+        pars += ['TS']
+        if self.sequence == 'SR':
+            pars += ['B1corr', 'FA', 'TR', 'TC', 'TP']
+        elif self.sequence=='SS':
+            pars += ['B1corr', 'FA', 'TR']
+
+        # AIF
+        if self.aif is not None:
+            pars += ['B1corr_a', 'R10a']
+
+        # Kidney
+        pars += ['H', 'Ta', 'vol']
         pars += kidney.params_kidney(self.kinetics)
-        pars += ['Ta', 'R10', 'n0']
+        pars += ['R10', 'S0']
+        
         return pars
-    
+
+
     def _par_values(self, export=False):
 
         if export:
+            discard = [
+                'field_strength', 'agent', 't0', 'TS', 'FA', 'TR', 
+                'TC', 'TP', 'H', 'vol', 'R10', 'S0',
+            ]
             pars = self._par_values()
-            p0 = self._model_pars()
-            p1 = kidney.params_kidney(self.kinetics)
-            discard = set(p0) - set(p1) - set(self.free.keys())
             return {p: pars[p] for p in pars.keys() if p not in discard}
         
         pars = self._model_pars()
         p = {par: getattr(self, par) for par in pars}
-        try:
+
+        if {'Fp', 'H'}.issubset(p):
             p['Fb'] = _div(p['Fp'], 1 - p['H'])
-        except KeyError:
-            pass
-        try:
+        if {'FF', 'Fp'}.issubset(p):
             p['Ft'] = p['FF']*p['Fp']
-        except KeyError:
-            pass
-        try:
+        if {'vp', 'Fp', 'Tt'}.issubset(p):
             p['Tp'] = _div(p['vp'], p['Fp']+p['Ft'])
-        except KeyError:
-            pass
-        try:
-            p['ve'] = p['Fp'] * p['Tp']
-        except KeyError:
-            pass
-        try:
+        if {'vp', 'Fp'}.issubset(p):
+            p['Tv'] = _div(p['vp'], p['Fp'])
+        if {'Ft', 'Fp'}.issubset(p):
             p['E'] = _div(p['Ft'], p['Ft'] + p['Fp'])
-        except KeyError:
-            pass
         if p['vol'] is not None:
-            try:
-                p['SK-GFR'] = p['Ft'] * p['vol']  
-            except KeyError:
-                pass      
-            try:
-                p['SK-RBF'] = _div(p['Fp']*p['vol'], 1-p['H'])
-            except KeyError:
-                pass  
+            if {'Ft'}.issubset(p):
+                p['GFR'] = p['Ft'] * p['vol']      
+            if {'Fp', 'H', 'vol'}.issubset(p):
+                p['RBF'] = _div(p['Fp']*p['vol'], 1-p['H'])
+                p['RPF'] = p['Fp']*p['vol']
 
         return p
     
@@ -190,7 +325,7 @@ class Kidney(ui.Model):
         else:
             return self.t
         
-    def _check_ca(self):
+    def _compute_ca(self):
 
         # Arterial blood concentrations
         if self.ca is None:
@@ -200,36 +335,48 @@ class Kidney(ui.Model):
                     to predict signal data.")
             else:
                 r1 = lib.relaxivity(self.field_strength, 'blood', self.agent)
+                t = self.time()
+                n0 = int(max([np.sum(t < self.t0), 1]))
                 if self.sequence == 'SR':
                     self.ca = sig.conc_src(
-                        self.aif, self.TC, 1 / self.R10a, r1, self.n0)
+                        self.aif, self.TC, 1 / self.R10a, r1, n0)
                 elif self.sequence == 'SS':
                     self.ca = sig.conc_ss(
                         self.aif, self.TR, self.B1corr_a * self.FA,
-                        1 / self.R10a, r1, self.n0)
+                        1 / self.R10a, r1, n0)
                 elif self.sequence == 'lin':
-                    self.ca = sig.conc_lin(self.aif, 1/self.R10a, r1, self.n0)
+                    self.ca = sig.conc_lin(self.aif, 1/self.R10a, r1, n0)
 
 
     def conc(self, sum=True):
         """Tissue concentration
 
         Args:
-            sum (bool, optional): If True, returns the total concentrations. 
-              Else returns the concentration in the individual compartments. 
-              Defaults to True.
+            sum (bool, optional): If True, this returns the total 
+              concentration. Else the function returns the 
+              concentration in the individual compartments. Defaults 
+              to True.
 
         Returns:
             numpy.ndarray: Concentration in M
         """
 
-        self._check_ca()
+        self._compute_ca()
+        ca = pk.flux(
+            self.ca, self.Ta, t=self.t, dt=self.dt, model='plug',
+        )
         if self.kinetics == '2CF':
-            ca = pk.flux(self.ca, self.Ta, t=self.t, dt=self.dt, model='plug')
             return kidney.conc_kidney(
                 ca / (1-self.H), 
                 self.Fp, self.vp, self.FF*self.Fp, self.Tt, 
-                t=self.t, dt=self.dt, sum=sum, kinetics='2CF')
+                t=self.t, dt=self.dt, sum=sum, kinetics='2CF',
+            )
+        elif self.kinetics == 'HF':
+            return kidney.conc_kidney(
+                ca / (1-self.H), 
+                self.vp, self.Ft, self.Tt,
+                t=self.t, dt=self.dt, sum=sum, kinetics='HF',
+            )
 
     def relax(self):
         """Longitudinal relaxation rate R1(t).
@@ -240,9 +387,8 @@ class Kidney(ui.Model):
               outside the fast water exchange limit.
         """
         C = self.conc()
-        r1 = lib.relaxivity(self.field_strength, 'blood', self.agent)
-        R1 = self.R10 + r1*C
-        return R1
+        rb = lib.relaxivity(self.field_strength, 'blood', self.agent)
+        return self.R10 + rb*C
 
     def signal(self) -> np.ndarray:
         """Pseudocontinuous signal S(t) as a function of time.
@@ -253,31 +399,41 @@ class Kidney(ui.Model):
         R1 = self.relax()
         if self.sequence == 'SR':
             return sig.signal_spgr(
-                self.S0, R1, self.TC, self.TR, self.B1corr * self.FA, self.TP)
+                self.S0, R1, self.TC, self.TR, 
+                self.B1corr * self.FA, self.TP,
+            )
         elif self.sequence == 'SS':
-            return sig.signal_ss(self.S0, R1, self.TR, self.B1corr * self.FA)
+            return sig.signal_ss(
+                self.S0, R1, self.TR, self.B1corr * self.FA,
+            )
         elif self.sequence == 'lin':
-            return sig.signal_lin(R1, self.S0)
+            return sig.signal_lin(self.S0, R1)
 
     def predict(self, xdata):
         t = self.time()
         if np.amax(xdata) > np.amax(t):
             raise ValueError(
-                'The acquisition window is longer than the duration of '
-                'the AIF. The largest time point that can be '
-                'predicted is ' + str(np.amax(t)/60) + 'min.')
+                f"The acquisition window is longer than the duration "
+                f"of the AIF. The largest time point that can be "
+                f"predicted is {np.amax(t)/60} min."
+            )
         sig = self.signal()
         return utils.sample(xdata, t, sig, self.TS)
 
     def train(self, xdata, ydata, **kwargs):
         if self.sequence == 'SR':
             Sref = sig.signal_spgr(
-                1, self.R10, self.TR, self.TC, self.B1corr * self.FA, self.TP)
+                1, self.R10, self.TR, self.TC, 
+                self.B1corr * self.FA, self.TP,
+            )
         elif self.sequence == 'SS':
-            Sref = sig.signal_ss(1, self.R10, self.TR, self.B1corr * self.FA)
+            Sref = sig.signal_ss(
+                1, self.R10, self.TR, self.B1corr * self.FA,
+            )
         elif self.sequence == 'lin':
-            Sref = sig.signal_lin(self.R10, 1)
-        self.S0 = np.mean(ydata[:self.n0]) / Sref
+            Sref = sig.signal_lin(1, self.R10)
+        n0 = int(max([np.sum(xdata < self.t0), 1]))
+        self.S0 = np.mean(ydata[:n0]) / Sref
         return ui.train(self, xdata, ydata, **kwargs)
 
     def plot(self,
@@ -298,7 +454,7 @@ class Kidney(ui.Model):
         ax0.legend()
 
         C = self.conc(sum=False)
-        ax1.set_title('Reconstruction of concentrations.')
+        ax1.set_title('Reconstruction of concentrations')
         if ref is not None:
             ax1.plot(ref['t']/60, 1000*ref['C'], marker='o', linestyle='None',
                      color='cornflowerblue', label='Tissue ground truth')
@@ -308,8 +464,11 @@ class Kidney(ui.Model):
                  color='lightcoral', label='Artery')
         # ax1.plot(time/60, 1000*(C[0,:]+C[1,:]), linestyle='-', linewidth=3.0,
         #          color='darkblue', label='Tissue')
+        #vb = self.vp / (1-self.H)
         ax1.plot(time/60, 1000*C[0,:], linestyle='-', linewidth=3.0,
-                 color='darkred', label='Plasma')
+                 color='darkred', label='Blood')
+        # ax1.plot(time/60, 1000*C[0,:], linestyle='-', linewidth=3.0,
+        #          color='darkred', label='Blood')
         ax1.plot(time/60, 1000*C[1,:], linestyle='-', linewidth=3.0,
                  color='darkcyan', label='Tubuli')
         ax1.set(xlabel='Time (min)', ylabel='Concentration (mM)',
@@ -324,6 +483,9 @@ class Kidney(ui.Model):
 
     
 PARAMS = {
+
+    # General
+
     'field_strength': {
         'init': 3,
         'default_free': False,
@@ -338,75 +500,22 @@ PARAMS = {
         'name': 'Contrast agent',
         'unit': '',
     },
-    'R10a': {
-        'init': 1/lib.T1(3.0, 'blood'),
-        'default_free': False,
-        'bounds': [0, np.inf],
-        'name': 'Arterial precontrast R1',
-        'unit': 'Hz',
-    },
-    'B1corr_a': {
-        'init': 1,
-        'default_free': False,
-        'bounds': [0, np.inf],
-        'name': 'Arterial B1-correction factor',
-        'unit': '',
-    },
-    'Ta': {
+    't0': {
         'init': 0,
-        'default_free': True,
-        'bounds': [0, 3],
-        'name': 'Arterial mean transit time',
-        'unit': 'sec',
-    },
-    'Fp': {
-        'init': 0.02,
-        'default_free': True,
-        'bounds': [0, 0.05],
-        'name': 'Plasma flow',
-        'unit': 'mL/sec/cm3',
-    },
-    'vp': {
-        'init': 0.15,
-        'default_free': True,
-        'bounds': [0,0.3],
-        'name': 'Plasma volume',
-        'unit': 'mL/cm3',
-    },
-    'Tp': {
-        'init': 5,
-        'default_free': True,
-        'bounds': [0, 10],
-        'name': 'Plasma mean transit time',
-        'unit': 'sec',
-    },
-    'FF': {
-        'init': 0.1,
-        'default_free': True,
-        'bounds': [0, 0.3],
-        'name': 'Filtration fraction',
-        'unit': '',
-    },
-    'Ft': {
-        'init': 30/6000,
-        'default_free': True,
-        'bounds': [0, np.inf],
-        'name': 'Tubular flow',
-        'unit': 'mL/sec/cm3',
-    },
-    'Tt': {
-        'init': 120,
-        'default_free': True,
-        'bounds': [0, np.inf],
-        'name': 'Tubular mean transit time',
-        'unit': 'sec',
-    },
-    'H': {
-        'init': 0.45,
         'default_free': False,
-        'bounds': [1e-3, 1 - 1e-3],
-        'name': 'Tissue Hematocrit',
+        'bounds': [0, np.inf],
+        'name': 'Baseline duration',
         'unit': '',
+    },
+
+    # Sequence
+
+    'TS': {
+        'init': 0,
+        'default_free': False,
+        'bounds': [0, np.inf],
+        'name': 'Sampling time',
+        'unit': 'sec',
     },
     'B1corr': {
         'init': 1,
@@ -443,12 +552,81 @@ PARAMS = {
         'name': 'Preparation delay',
         'unit': 'sec',
     },
-    'TS': {
-        'init': 0,
+
+    # AIF
+
+    'B1corr_a': {
+        'init': 1,
         'default_free': False,
         'bounds': [0, np.inf],
-        'name': 'Sampling time',
+        'name': 'Arterial B1-correction factor',
+        'unit': '',
+    },
+    'R10a': {
+        'init': 1/lib.T1(3.0, 'blood'),
+        'default_free': False,
+        'bounds': [0, np.inf],
+        'name': 'Arterial precontrast R1',
+        'unit': 'Hz',
+    },
+
+    # Kidney
+
+    'H': {
+        'init': 0.45,
+        'default_free': False,
+        'bounds': [1e-3, 1 - 1e-3],
+        'name': 'Tissue Hematocrit',
+        'unit': '',
+    },
+    'Ta': {
+        'init': 0,
+        'default_free': True,
+        'bounds': [0, 3],
+        'name': 'Arterial mean transit time',
         'unit': 'sec',
+    },
+    'vol': {
+        'init': None,
+        'default_free': False,
+        'bounds': None,
+        'name': 'Single-kidney volume',
+        'unit': 'mL',
+    },
+    'Fp': {
+        'init': 0.02,
+        'default_free': True,
+        'bounds': [0, 0.05],
+        'name': 'Plasma flow',
+        'unit': 'mL/sec/cm3',
+    },
+    'vp': {
+        'init': 0.15,
+        'default_free': True,
+        'bounds': [0, 0.3],
+        'name': 'Plasma volume',
+        'unit': 'mL/cm3',
+    },
+    'FF': {
+        'init': 0.1,
+        'default_free': True,
+        'bounds': [0, 0.3],
+        'name': 'Filtration fraction',
+        'unit': '',
+    },
+    'Tt': {
+        'init': 120,
+        'default_free': True,
+        'bounds': [0, np.inf],
+        'name': 'Tubular mean transit time',
+        'unit': 'sec',
+    },
+    'Ft': {
+        'init': 0.005,
+        'default_free': True,
+        'bounds': [0, 0.05],
+        'name': 'Tubular flow',
+        'unit': 'mL/sec/cm3',
     },
     'R10': {
         'init': 1/lib.T1(3.0, 'kidney'),
@@ -464,20 +642,7 @@ PARAMS = {
         'name': 'Signal scaling factor',
         'unit': 'a.u.',
     },
-    'n0': {
-        'init': 1,
-        'default_free': False,
-        'bounds': None,
-        'name': 'Number of precontrast acquisitions',
-        'unit': '',
-    },
-    'vol': {
-        'init': None,
-        'default_free': False,
-        'bounds': None,
-        'name': 'Single-kidney volume',
-        'unit': 'mL',
-    },
+
 
     # Derived parameters
 
@@ -485,20 +650,28 @@ PARAMS = {
         'name': 'Blood flow',
         'unit': 'mL/sec/cm3',
     },
-    've': {
-        'name': 'Extracellular volume',
-        'unit': 'mL/cm3',
+    'Tv': {
+        'name': 'Vascular mean transit time',
+        'unit': 'sec',
+    },
+    'Tp': {
+        'name': 'Plasma mean transit time',
+        'unit': 'sec',
     },
     'E': {
         'name': 'Extraction fraction',
         'unit': '',
     },
-    'SK-GFR': {
-        'name': 'Single-kidney glomerular filtration rate',
+    'GFR': {
+        'name': 'Glomerular filtration rate',
         'unit': 'mL/sec',
     },
-    'SK-RBF': {
-        'name': 'Single-kidney renal blood flow',
+    'RBF': {
+        'name': 'Renal blood flow',
+        'unit': 'mL/sec',
+    },
+    'RPF': {
+        'name': 'Renal plasma flow',
         'unit': 'mL/sec',
     },
     'FAcorr': {

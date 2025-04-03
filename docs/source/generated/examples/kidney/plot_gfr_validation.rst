@@ -22,15 +22,16 @@
 Single-kidney glomerular filtration rate
 ========================================
 
-This examples illustrates the use of `~dcmri.Kidney` for measurement of 
-single kidney glomerular filtration rate (SK-GFR). The script aims to 
-replicate a validation study comparing MRI-derived measurement of SK-GFR 
-against reference measurement performed with radio-isotopes Basak et al 2018). 
-The study used 124 historical datasets collected in between the years 2000 and 
-2010 at 1 Tesla and 3 Tesla MRI. The study concluded that while the 
-MRI-derived values were unbiased, the precision was low and significant 
-improvements in data quality would be needed before this technique can be 
-applied in clinical practice. The study was funded by 
+This example illustrates the use of `~dcmri.Kidney` for measurement of 
+single-kidney glomerular filtration rate (SK-GFR). 
+
+The script uses data from a validation study comparing MRI-derived 
+measurement of SK-GFR against reference measurements performed with 
+radio-isotopes (Basak et al 2018). The study used 124 historical 
+datasets collected in between the years 2000 and 2010 at 1 Tesla and 
+3 Tesla MRI. 
+
+The study was funded by 
 `Kidney Research UK <https://www.kidneyresearchuk.org/>`_.
 
 **Reference**
@@ -41,12 +42,12 @@ rate and split renal function as measured with magnetic resonance renography.
 Magn Reson Imaging. 2019 Jun;59:53-60. doi: 10.1016/j.mri.2019.03.005. 
 `[URL] <https://pubmed.ncbi.nlm.nih.gov/30849485/>`_.
 
-.. GENERATED FROM PYTHON SOURCE LINES 27-29
+.. GENERATED FROM PYTHON SOURCE LINES 28-30
 
 Setup
 -----
 
-.. GENERATED FROM PYTHON SOURCE LINES 29-40
+.. GENERATED FROM PYTHON SOURCE LINES 30-41
 
 .. code-block:: Python
 
@@ -68,14 +69,14 @@ Setup
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 41-45
+.. GENERATED FROM PYTHON SOURCE LINES 42-46
 
 Model definition
 ----------------
 In order to avoid some repetition in this script, we define a function that 
 returns a trained model for a single dataset:
 
-.. GENERATED FROM PYTHON SOURCE LINES 45-83
+.. GENERATED FROM PYTHON SOURCE LINES 46-89
 
 .. code-block:: Python
 
@@ -87,26 +88,31 @@ returns a trained model for a single dataset:
         T1 = scan[kidney+' T1']
         T1 = dc.T1(B0, 'kidney') if T1 is None else T1
 
-        # Set kidney model parameters
+        # Define tissue model
         model = dc.Kidney(
+
+            # Configuration
             aif = scan['aorta'], 
             t = scan['time'],
+
+            # General parameters
+            field_strength = B0,
+            agent = scan['agent'],
+            t0 = scan['time'][scan['n0']],
+
+            # Sequence parameters
+            TR = scan['TR'],
+            FA = scan['FA'],
+
+            # Tissue parameters
             vol = scan[kidney+' vol'],
             R10 = 1/T1,
             R10a = 1/dc.T1(B0, 'blood'),
-            sequence = 'SS',
-            TR = scan['TR'],
-            FA = scan['FA'],
-            field_strength = B0,
-            agent = scan['agent'],
-            n0 = scan['n0'],
         )
 
         # Customize free parameter ranges
         model.set_free(
             pop = 'Ta', 
-            Fp = [0, 0.05], 
-            FF = [0, 0.3], 
             Tt = [30, np.inf],
         )
 
@@ -124,14 +130,14 @@ returns a trained model for a single dataset:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 84-88
+.. GENERATED FROM PYTHON SOURCE LINES 90-94
 
 Check model fit
 ---------------
 Before running the full analysis on all cases, lets illustrate the results 
 by fitting the left kidney of the first subject:
 
-.. GENERATED FROM PYTHON SOURCE LINES 88-91
+.. GENERATED FROM PYTHON SOURCE LINES 94-97
 
 .. code-block:: Python
 
@@ -145,11 +151,11 @@ by fitting the left kidney of the first subject:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 92-93
+.. GENERATED FROM PYTHON SOURCE LINES 98-99
 
 Plot the results to check that the model has fitted the data:
 
-.. GENERATED FROM PYTHON SOURCE LINES 93-96
+.. GENERATED FROM PYTHON SOURCE LINES 99-102
 
 .. code-block:: Python
 
@@ -160,7 +166,7 @@ Plot the results to check that the model has fitted the data:
 
 
 .. image-sg:: /generated/examples/kidney/images/sphx_glr_plot_gfr_validation_001.png
-   :alt: Prediction of the MRI signals., Reconstruction of concentrations.
+   :alt: Prediction of the MRI signals., Reconstruction of concentrations
    :srcset: /generated/examples/kidney/images/sphx_glr_plot_gfr_validation_001.png
    :class: sphx-glr-single-img
 
@@ -168,13 +174,13 @@ Plot the results to check that the model has fitted the data:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 97-100
+.. GENERATED FROM PYTHON SOURCE LINES 103-106
 
 Print the measured model parameters and any derived parameters and check 
 that standard deviations of measured parameters are small relative to the 
 value, indicating that the parameters are measured reliably:
 
-.. GENERATED FROM PYTHON SOURCE LINES 100-103
+.. GENERATED FROM PYTHON SOURCE LINES 106-109
 
 .. code-block:: Python
 
@@ -203,23 +209,28 @@ value, indicating that the parameters are measured reliably:
     Fixed and derived parameters
     ----------------------------
 
+    Tissue B1-correction factor (B1corr): 1 
+    Arterial B1-correction factor (B1corr_a): 1 
+    Arterial precontrast R1 (R10a): 0.614 Hz
+    Arterial mean transit time (Ta): 0 sec
     Blood flow (Fb): 0.063 mL/sec/cm3
     Tubular flow (Ft): 0.004 mL/sec/cm3
     Plasma mean transit time (Tp): 7.239 sec
-    Extracellular volume (ve): 0.252 mL/cm3
+    Vascular mean transit time (Tv): 7.988 sec
     Extraction fraction (E): 0.094 
-    Single-kidney glomerular filtration rate (SK-GFR): 0.431 mL/sec
-    Single-kidney renal blood flow (SK-RBF): 7.58 mL/sec
+    Glomerular filtration rate (GFR): 0.431 mL/sec
+    Renal blood flow (RBF): 7.58 mL/sec
+    Renal plasma flow (RPF): 4.169 mL/sec
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 104-106
+.. GENERATED FROM PYTHON SOURCE LINES 110-112
 
 The measured SK-GFR for this kidney (0.43) is somewhat higher than the 
 radio-isotope reference value (0.28):
 
-.. GENERATED FROM PYTHON SOURCE LINES 106-113
+.. GENERATED FROM PYTHON SOURCE LINES 112-119
 
 .. code-block:: Python
 
@@ -246,14 +257,14 @@ radio-isotope reference value (0.28):
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 114-118
+.. GENERATED FROM PYTHON SOURCE LINES 120-124
 
 Fit all data
 ------------
 Now that we have illustrated an individual result in some detail, we proceed 
 to determine SK-GFR for all datasets:
 
-.. GENERATED FROM PYTHON SOURCE LINES 118-154
+.. GENERATED FROM PYTHON SOURCE LINES 124-160
 
 .. code-block:: Python
 
@@ -300,11 +311,11 @@ to determine SK-GFR for all datasets:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 155-156
+.. GENERATED FROM PYTHON SOURCE LINES 161-162
 
 Plot MRI values and reference values
 
-.. GENERATED FROM PYTHON SOURCE LINES 156-176
+.. GENERATED FROM PYTHON SOURCE LINES 162-182
 
 .. code-block:: Python
 
@@ -314,7 +325,7 @@ Plot MRI values and reference values
     v3T = pd.pivot_table(results[results.B0==3], values='value', columns='parameter', index=['subject','kidney','visit'])
 
     iso1T, iso3T = 60*v1T['iso-SK-GFR'].values, 60*v3T['iso-SK-GFR'].values
-    mri1T, mri3T = 60*v1T['SK-GFR'].values, 60*v3T['SK-GFR'].values
+    mri1T, mri3T = 60*v1T['GFR'].values, 60*v3T['GFR'].values
 
     plt.title('Single-kidney GFR (SK-GFR)')
     plt.plot(iso1T, mri1T, 'bo', linestyle='None', markersize=4, label='1T')
@@ -340,11 +351,11 @@ Plot MRI values and reference values
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 177-178
+.. GENERATED FROM PYTHON SOURCE LINES 183-184
 
 Compute bias and accuracy
 
-.. GENERATED FROM PYTHON SOURCE LINES 178-195
+.. GENERATED FROM PYTHON SOURCE LINES 184-201
 
 .. code-block:: Python
 
@@ -352,18 +363,18 @@ Compute bias and accuracy
     v = pd.pivot_table(results, values='value', columns='parameter', index=['subject','kidney','visit'])
 
     iso = 60*v['iso-SK-GFR'].values
-    mri = 60*v['SK-GFR'].values
+    mri = 60*v['GFR'].values
 
     diff = mri-iso
-    bias = np.mean(diff)
-    err =  1.96*np.std(diff)
-    bias_err = 1.96*np.std(diff)/np.sqrt(np.size(diff))
+    bias = round(np.mean(diff),0)
+    err =  round(1.96*np.std(diff),0)
+    bias_err = round(1.96*np.std(diff)/np.sqrt(np.size(diff)),0)
 
     print('-----------------')
     print('Single-kidney GFR')
     print('-----------------')
-    print('95% CI on the bias (ml/min): ', bias-bias_err, bias+bias_err) # paper 0.56
-    print('95% CI on individual error (ml/min): ', bias-err, bias+err) # paper [-28, 29]
+    print(f"The bias in an MRI-based SK-GFR measurement is {bias} +/- {bias_err} ml/min") # paper 0.56
+    print(f"After bias correction, the error on an SK-GFR measurement is +/- {err} mL/min") # paper [-28, 29]
 
 
 
@@ -376,38 +387,24 @@ Compute bias and accuracy
     -----------------
     Single-kidney GFR
     -----------------
-    95% CI on the bias (ml/min):  7.391160008329153 13.99521953118509
-    95% CI on individual error (ml/min):  -39.166366228478346 60.55274576799258
+    The bias in an MRI-based SK-GFR measurement is 11.0 +/- 3.0 ml/min
+    After bias correction, the error on an SK-GFR measurement is +/- 50.0 mL/min
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 196-200
+.. GENERATED FROM PYTHON SOURCE LINES 202-207
 
-As the results show, these data do not replicate the results from the 
-original study exactly..
-
-[ ...more results coming soon... ]
-
-.. GENERATED FROM PYTHON SOURCE LINES 200-204
-
-.. code-block:: Python
-
-
-    # Choose the last image as a thumbnail for the gallery
-    # sphinx_gallery_thumbnail_number = -1
-
-
-
-
-
-
-
+The results confirm the conclusion from the original study that 
+the precision of MR-derived SK-GFR with these historical data was 
+too low for clinical use. The exact numerical values are different 
+from those in the original study, showing the importance of 
+implementation detail.
 
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 48.528 seconds)
+   **Total running time of the script:** (0 minutes 7.851 seconds)
 
 
 .. _sphx_glr_download_generated_examples_kidney_plot_gfr_validation.py:

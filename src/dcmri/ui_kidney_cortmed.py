@@ -12,6 +12,9 @@ class KidneyCortMed(ui.Model):
     """
     General model for renal cortico-medullary data.
 
+    **warning**: This model is functional but under active 
+    development. Future versions may change without warning.
+
         **Kinetic parameters**
 
         - **Hct** (float, optional): Hematocrit. 

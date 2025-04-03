@@ -37,7 +37,7 @@ Kidney applications
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This examples illustrates the use of Kidney for measurement of  single kidney glomerular filtration rate (SK-GFR). The script aims to  replicate a validation study comparing MRI-derived measurement of SK-GFR  against reference measurement performed with radio-isotopes Basak et al 2018).  The study used 124 historical datasets collected in between the years 2000 and  2010 at 1 Tesla and 3 Tesla MRI. The study concluded that while the  MRI-derived values were unbiased, the precision was low and significant  improvements in data quality would be needed before this technique can be  applied in clinical practice. The study was funded by  Kidney Research UK.">
+    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of Kidney for measurement of  single-kidney glomerular filtration rate (SK-GFR). ">
 
 .. only:: html
 
@@ -230,6 +230,23 @@ Tutorials
 .. raw:: html
 
       <div class="sphx-glr-thumbnail-title">An exploration of water exchange effects</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Nichlas Vous Christensen,  Mohsen Redda,  Steven Sourbron.">
+
+.. only:: html
+
+  .. image:: /generated/examples/tutorials/images/thumb/sphx_glr_plot_minipig_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_generated_examples_tutorials_plot_minipig.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Dealing with inflow effects</div>
     </div>
 
 

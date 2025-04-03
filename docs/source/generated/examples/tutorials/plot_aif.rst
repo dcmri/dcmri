@@ -485,20 +485,18 @@ We can also have a look at the fitted parameters:
     Free parameters with their stdev
     --------------------------------
 
-    Bolus arrival time (BAT): 15.76 (0.47) sec
-    Cardiac output (CO): 162.22 (3.05) mL/sec
-    Heart-lung mean transit time (Thl): 12.56 (0.5) sec
-    Heart-lung transit time dispersion (Dhl): 0.08 (0.01) 
-    Organs mean transit time (To): 15.0 (4.53) sec
-    Extraction fraction (Eb): 0.03 (0.21) 
-    Organs extraction fraction (Eo): 0.5 (0.06) 
-    Extracellular mean transit time (Te): 29.06 (23.74) sec
+    Bolus arrival time (BAT): 17.82 (0.6) sec
+    Cardiac output (CO): 165.95 (4.45) mL/sec
+    Heart-lung mean transit time (Thl): 10.55 (0.65) sec
+    Organs blood mean transit time (To): 39.38 (2.67) sec
+    Body extraction fraction (Eb): 0.15 (0.02) 
+    Heart-lung dispersion (Dhl): 0.11 (0.01) 
 
     ----------------------------
     Fixed and derived parameters
     ----------------------------
 
-    Mean circulation time (Tc): 27.56 sec
+    Signal scaling factor (S0): 0.89 a.u.
 
 
 
@@ -527,7 +525,7 @@ underestimation in the blood flow values observed.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 7.074 seconds)
+   **Total running time of the script:** (0 minutes 0.987 seconds)
 
 
 .. _sphx_glr_download_generated_examples_tutorials_plot_aif.py:

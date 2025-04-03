@@ -1,4 +1,5 @@
 matplotlib
+seaborn
 pandas
 autodocsumm
 docutils
