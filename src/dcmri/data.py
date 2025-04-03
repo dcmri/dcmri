@@ -1,7 +1,13 @@
 import os
 import sys
 import pickle
+import shutil
+import zipfile
+import csv
+from io import TextIOWrapper
+
 import requests
+import numpy as np
 
 # filepaths need to be identified with importlib_resources
 # rather than __file__ as the latter does not work at runtime
@@ -26,6 +32,212 @@ TRISTAN_DATASETS = [
     'tristan_repro',
     'tristan_mdosing',
 ]
+DMR_DATASETS = [
+    'minipig_renal_fibrosis',
+]
+
+
+def write_dmr(path:str, rois:dict, pars=None, nest=False):
+    """Write region-of-interest (ROI) data to disk in .dmr format.
+
+    Args:
+        path (str): path to .dmr file. If the extension .dmr is not 
+          included, it is added automatically.
+        rois (dict): ROI data as a dictionary with one item per ROI. 
+          Each ROI is a dictionary on itself which has a required key 
+          'signal' containing the signal data. Other keys are optional 
+          but when included their values must have the same length 
+          as signal. 
+        pars (dict, optional): Dictionary with additional parameters 
+          such as sequence parameters or subject characteristics. 
+          Defaults to None.
+        nest ((bool): If True, a nested dictionary is returned. 
+          Defaults to False.
+ 
+    Raises:
+        ValueError: if the data are not correctly formatted.
+    """
+
+    if not isinstance(rois, dict):
+        raise ValueError("ROIs must be a dictionary")
+    
+    if nest:
+        rois = _nested_dict_to_multi_index(rois)
+        if pars is not None:
+            pars = _nested_dict_to_multi_index(pars)
+    
+    if path[-4:] == ".dmr":
+        path = path[:-4]
+
+    if not os.path.exists(path):
+        os.makedirs(path)
+    
+    # Write ROI curves
+
+    # Check format
+    for roi, value in rois.items():
+        if len(roi) != 3:
+            raise ValueError("Each ROI key must be a 3-element tuple")
+
+    # Find the longest array length
+    max_len = max(len(arr) for arr in rois.values())
+
+    # Prepare CSV data (convert dictionary to column format)
+    columns = []
+
+    # First 3 rows: keys (tuple elements)
+    for key, values in rois.items():
+        col = list(key) + list(values) + [""] * (max_len - len(values))  # Pad shorter columns
+        columns.append(col)
+
+    # Transpose to get row-wise structure
+    rows = list(map(list, zip(*columns)))
+
+    # Write to CSV
+    file = os.path.join(path, "rois.csv")
+    with open(file, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerows(rows)
+
+    # Write parameters
+
+    if pars is not None:
+        rows = [
+            ['subject', 'study', 'parameter', 'description', 'value', 'unit'],
+        ]
+        for key, values in pars.items():
+            if len(key) != 3:
+                raise ValueError("Each parameter key must be a 2-element tuple")
+            if len(values) != 3:
+                raise ValueError(
+                    "Each parameter value must be a 3-element list "
+                    "[description: str, value: float, unit: str].")
+            row = list(key) + list(values)
+            rows.append(row)
+        file = os.path.join(path, "pars.csv")
+        with open(file, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerows(rows)
+
+    # Zip and delete original
+    shutil.make_archive(path + ".dmr", "zip", path)
+    shutil.rmtree(path)
+
+
+
+def read_dmr(path:str, nest=False, valsonly=False):
+    """Read .dmr data from disk.
+
+    Args:
+        path (str): Path to .dmr file where the data are 
+        saved. 
+        nest (bool): If True, a nested dictionary is returned. 
+          Defaults to False.
+        valsonly (bool): If True, only parameter values are returned. 
+          Otherwise the full list is returned including description, 
+          values and units. Defaults to False.
+
+    Raises:
+        ValueError: If the data on disk are not correctly formatted.
+
+    Returns:
+        tuple: Two dictionaries (rois, pars) containing the ROIs and 
+          the parameters stored in the .dmr file.
+    """
+
+    rois = {}
+    pars = None
+
+    with zipfile.ZipFile(path + ".zip", "r") as z:
+        csv_files = [f for f in z.namelist() if f.endswith(".csv")]
+        if len(csv_files) == 0:
+            raise ValueError("No CSV files found in .dmr file")
+        if len(csv_files) > 2:
+            raise ValueError("A .dmr file must contain 1 or 2 csv files.")    
+        if 'rois.csv' not in csv_files:
+            raise ValueError("A .dmr file must contain a rois.csv file.")    
+        for csv_filename in csv_files:
+            with z.open(csv_filename) as file:
+                # Read binary file without extracting first
+                text = TextIOWrapper(file, encoding="utf-8")
+                # Decode with csv reader
+                reader = csv.reader(text)
+                if csv_filename == "pars.csv":
+                    pars = list(reader)
+                    pars = pars[1:] # do not return headers
+                    if valsonly:
+                        pars = {tuple(p[:3]): float(p[4]) for p in pars}
+                    else:
+                        pars = {tuple(p[:3]): [p[3], float(p[4]), p[5]] for p in pars}
+                elif csv_filename == "rois.csv":
+                    data = list(reader)
+                    if len(data)==0:
+                        raise ValueError("Empty CSV file")
+                    # Extract headers (first 3 rows)
+                    headers = list(zip(*data[:3]))  # Transpose first 3 rows to get column-wise headers
+                    # Extract data (from row 3 onward) and convert to NumPy arrays
+                    rois = {tuple(header): np.array([val for val in col if val]).astype(np.float64) 
+                            for header, col in zip(headers, zip(*data[3:]))}
+                else:
+                    raise ValueError(f"{csv_filename} is not a valid name.")
+
+    if rois == {}:
+        raise ValueError("No ROI data found in .dmr file")
+    
+    if nest:
+        rois = _multi_index_to_nested_dict(rois)
+        if pars is not None:
+          pars = _multi_index_to_nested_dict(pars)
+    
+    return rois, pars  
+
+
+def _multi_index_to_nested_dict(multi_index_dict):
+    """
+    Converts a dictionary with tuple keys (multi-index) into a nested dictionary.
+    
+    Parameters:
+        multi_index_dict (dict): A dictionary where keys are tuples of indices.
+
+    Returns:
+        dict: A nested dictionary where each level corresponds to an index in the tuple.
+    """
+    nested_dict = {}
+
+    for key_tuple, value in multi_index_dict.items():
+        current_level = nested_dict  # Start at the root level
+        for key in key_tuple[:-1]:  # Iterate through all but the last key
+            current_level = current_level.setdefault(key, {})  # Go deeper/create dict
+        current_level[key_tuple[-1]] = value  # Assign the final value
+
+    return nested_dict
+
+
+def _nested_dict_to_multi_index(nested_dict, parent_keys=()):
+    """
+    Converts a nested dictionary into a dictionary with tuple keys (multi-index).
+
+    Parameters:
+        nested_dict (dict): A nested dictionary.
+        parent_keys (tuple): Used for recursion to keep track of the current key path.
+
+    Returns:
+        dict: A dictionary where keys are tuples representing the hierarchy.
+    """
+    flat_dict = {}
+
+    for key, value in nested_dict.items():
+        new_keys = parent_keys + (key,)  # Append the current key to the path
+
+        if isinstance(value, dict):  # If the value is a dict, recurse
+            flat_dict.update(_nested_dict_to_multi_index(value, new_keys))
+        else:  # If it's a final value, store it with the multi-index key
+            flat_dict[new_keys] = value
+
+    return flat_dict
+
+
+
 
 
 def fetch(dataset=None, clear_cache=False, download_all=False) -> dict:
@@ -455,6 +667,8 @@ def fetch(dataset=None, clear_cache=False, download_all=False) -> dict:
 
     if dataset is None:
         v = None
+    elif dataset in DMR_DATASETS:
+        v = _fetch_dmr(dataset)
     else:
         v = _fetch_dataset(dataset)
 
@@ -466,7 +680,6 @@ def fetch(dataset=None, clear_cache=False, download_all=False) -> dict:
             _download(d)
 
     return v
-
 
 
 def _clear_cache():
@@ -482,6 +695,17 @@ def _clear_cache():
         if item.is_file(): 
             item.unlink() # Delete the file
 
+
+def _fetch_dmr(dataset):
+
+    f = importlib_resources.files('dcmri.datafiles')
+    datafile = str(f.joinpath(dataset + '.dmr'))
+
+    # If this is the first time the data are accessed, download them.
+    if not os.path.exists(datafile + '.zip'):
+        _download(dataset)
+
+    return datafile
 
 
 def _fetch_dataset(dataset):
