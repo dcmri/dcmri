@@ -94,7 +94,7 @@ Building release notes
 - Save the token in the environment variable GH_TOKEN. On windows:
 >>> $env:GH_TOKEN='token'
 - Build the changelog from current version to current dev. For instance:
->>> changelist dcmri/dcmri 0.6.14 dev --format rst
+>>> changelist dcmri/dcmri 0.6.15 dev --format rst
 - Copy-paste the terminal output in an .rst file and save it in docs/source/releases
 - Edit the content of the file manually as needed
 - Add an entry in the index of docs/source/releases
