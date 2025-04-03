@@ -54,6 +54,23 @@ Tutorials
 
 .. raw:: html
 
+    <div class="sphx-glr-thumbcontainer" tooltip="Nichlas Vous Christensen,  Mohsen Redda,  Steven Sourbron.">
+
+.. only:: html
+
+  .. image:: /generated/examples/tutorials/images/thumb/sphx_glr_plot_minipig_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_generated_examples_tutorials_plot_minipig.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Dealing with inflow effects</div>
+    </div>
+
+
+.. raw:: html
+
     <div class="sphx-glr-thumbcontainer" tooltip="Convolution is a key operation in any application of pharmacokinetic  analysis. The reason for this central role is that the solution of a linear  and stationary system can always be written as a convolution. dcmri includes  functions that  perform convolution in the most general context, but also includes solutions  that are optimized for common special cases. ">
 
 .. only:: html
@@ -81,5 +98,6 @@ Tutorials
 
    /generated/examples/tutorials/plot_aif
    /generated/examples/tutorials/plot_wex
+   /generated/examples/tutorials/plot_minipig
    /generated/examples/tutorials/plot_convolution
 
