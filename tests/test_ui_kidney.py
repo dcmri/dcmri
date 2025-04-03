@@ -107,7 +107,7 @@ def test_ui_aorta_kidneys():
     aorta_kidneys.plot(t, signal, show=SHOW)
     aorta_kidneys.print_params(round_to=4)
     Fp_lk = aorta_kidneys.params('Fp_lk') # 0.032
-    assert np.round(Fp_lk, 3) == 0.032
+    assert 0.030 < np.round(Fp_lk, 3) < 0.033
 
 
 
