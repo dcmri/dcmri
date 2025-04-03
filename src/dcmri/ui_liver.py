@@ -296,9 +296,19 @@ class Liver(ui.Model):
 
     def __init__(
             self, 
-            kinetics='2I-EC', stationary='UE', sequence='SS', config=None,
-            aif=None, ca=None, vif=None, cv=None, t=None, dt=0.5,
-            free=None, **params):
+            kinetics='2I-EC', 
+            stationary='UE', 
+            sequence='SS', 
+            config=None,
+            aif=None, 
+            ca=None, 
+            vif=None, 
+            cv=None, 
+            t=None, 
+            dt=0.5,
+            free=None, 
+            **params,
+        ):
 
         # Configuration
         if config == 'TRISTAN-rat':

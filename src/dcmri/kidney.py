@@ -13,7 +13,9 @@ def params_kidney(kinetics) -> list:
     """
     if kinetics == '2CF':
         return ['Fp', 'vp', 'FF', 'Tt']
-
+    elif kinetics == 'HF':
+        return ['vp', 'Ft', 'Tt']
+    
 
 def conc_kidney(ca: np.ndarray, *params, t=None, dt=1.0, sum=True, kinetics='2CF', **kwargs) -> np.ndarray:
     """Concentration in kidney tissues.
