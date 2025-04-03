@@ -1,6 +1,5 @@
 import os
 import shutil
-from copy import deepcopy
 import numpy as np
 import dcmri as dc
 
@@ -194,83 +193,6 @@ def test_ui_tissue_array():
 
 
 
-def test_ui_aorta():
-
-    truth = {'BAT': 20}
-    time, aif, _, _ = dc.fake_tissue(**truth)
-    aorta = dc.Aorta(
-        dt = 1.5,
-        weight = 70,
-        agent = 'gadodiamide',
-        dose = 0.2,
-        rate = 3,
-        field_strength = 3.0,
-        TR = 0.005,
-        FA = 15,
-        TS = 1.5,
-        R10 = 1/dc.T1(3.0,'blood'), 
-        heartlung = 'chain',
-    )
-    aorta.train(time, aif, xtol=1e-3)
-    aorta.plot(time, aif, show=SHOW)
-    rec = aorta.export_params()
-    rec_aif = aorta.predict(time)
-    assert rec['BAT'][1] == aorta.params('BAT')
-    assert np.linalg.norm(aif-rec_aif) < 0.1*np.linalg.norm(aif)
-    assert np.abs(rec['BAT'][1]-truth['BAT']) < 0.2*truth['BAT']
-
-
-
-
-
-
-def test_ui_kidney():
-    time, aif, roi, gt = dc.fake_tissue(R10=1/dc.T1(3.0,'kidney'))
-    #
-    # Override the parameter defaults to match the experimental conditions of 
-    # the synthetic test data:
-    #
-    params = {
-        'aif':aif,
-        'dt':time[1],
-        'agent': 'gadodiamide',
-        'TR': 0.005,
-        'FA': 15,
-        'TS': time[1],
-        'R10': 1/dc.T1(3.0,'kidney'),
-        'n0': 10,
-    }
-    #
-    # Train a two-compartment filtration model on the ROI data and plot the fit:
-    #
-    model = dc.Kidney(kinetics='2CF', **params)
-    model.train(time, roi)
-    model.plot(time, roi, ref=gt, show=SHOW)
-    assert model.cost(time, roi) < 0.5
-    assert 80 < model.params('Tt', round_to=0) < 90
-
-
-def test_ui_kidney_cort_med():
-
-    time, aif, roi, gt = dc.fake_kidney()
-
-    model = dc.KidneyCortMed(
-        aif = aif,
-        dt = time[1],
-        agent = 'gadoterate',
-        TR = 0.005,
-        FA = 15,
-        TC = 0.2,
-        TS = time[1],
-        n0 = 10,
-    )
-
-    model.train(time, roi)
-    model.plot(time, roi, ref=gt, show=SHOW)
-
-    assert model.cost(time, roi) < 1
-    assert model.params('Tdt', round_to=0) == 27
-
 
 
 
@@ -281,8 +203,5 @@ if __name__ == "__main__":
     # test_model()
     test_ui_tissue()
     # test_ui_tissue_array()
-    # test_ui_aorta()
-    # test_ui_kidney()
-    # test_ui_kidney_cort_med()
 
-    print('All mods tests passed!!')
+    print('All ui_tissue tests passed!!')
