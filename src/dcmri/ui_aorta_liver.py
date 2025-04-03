@@ -711,6 +711,7 @@ class AortaLiver2scan(ui.Model):
         ...     t0 = 10,
         ...     TR = 0.005,
         ...     FA = 15,
+        ...     FA2 = 15,
         ... )
 
         Train the model on the data:
@@ -786,7 +787,7 @@ class AortaLiver2scan(ui.Model):
               - Always
               - Precontrast R1 (:ref:`relaxation-params`) and 
                 S0 (:ref:`params-per-sequence`) for aorta and liver 
-            * - FA, TR, TS
+            * - FA, TR, TS, FA2
               - Always
               - :ref:`params-per-sequence`
             * - TC
@@ -893,6 +894,11 @@ class AortaLiver2scan(ui.Model):
               - 
               - 
             * - FA
+              - Sequence
+              - 15
+              - [0, inf]
+              - Fixed
+            * - FA2
               - Sequence
               - 15
               - [0, inf]
@@ -1059,6 +1065,40 @@ class AortaLiver2scan(ui.Model):
         pars += ['vol']
         return pars
     
+    def _sequence_parameters_first_scan(self):
+        if self.sequence == 'SR':
+            return {
+                'FA': self.FA, 
+                'TR': self.TR, 
+                'TC': self.TC, 
+            }
+        if self.sequence == 'SS':
+            return {
+                'FA': self.FA, 
+                'TR': self.TR, 
+            }
+        if self.sequence == 'SRC':
+            return {
+                'TC': self.TC, 
+            }
+
+    def _sequence_parameters_second_scan(self):
+        if self.sequence == 'SR': 
+            return {
+                'FA': self.FA2, 
+                'TR': self.TR, 
+                'TC': self.TC, 
+            }
+        if self.sequence == 'SS':
+            return {
+                'FA': self.FA2, 
+                'TR': self.TR, 
+            }
+        if self.sequence == 'SRC':
+            return {
+                'TC': self.TC, 
+            }
+    
     def _par_values(*args, **kwargs):
         return _par_values(*args, **kwargs)
 
@@ -1095,8 +1135,10 @@ class AortaLiver2scan(ui.Model):
         R11 = R1[t1]
         R12 = R1[t2]
         #seq = 'SRC' if self.sequence=='SR' else 'SS'
-        pars = self._par_values(seq=self.sequence)
+        #pars = self._par_values(seq=self.sequence)
+        pars = self._sequence_parameters_first_scan()
         signal1 = sig.signal(self.sequence, R11, self.S0a, **pars)
+        pars = self._sequence_parameters_second_scan()
         signal2 = sig.signal(self.sequence, R12, self.S02a, **pars)
         return (
             utils.sample(xdata[0], t[t1], signal1, self.TS),
@@ -1116,8 +1158,10 @@ class AortaLiver2scan(ui.Model):
         t2 = t >= xdata[1][0]
         R11 = R1[t1]
         R12 = R1[t2]
-        pars = self._par_values(seq=self.sequence)
+        #pars = self._par_values(seq=self.sequence)
+        pars = self._sequence_parameters_first_scan()
         signal1 = sig.signal(self.sequence, R11, self.S0l, **pars)
+        pars = self._sequence_parameters_second_scan()
         signal2 = sig.signal(self.sequence, R12, self.S02l, **pars)
         return (
             utils.sample(xdata[0], t[t1], signal1, self.TS),
@@ -1203,11 +1247,12 @@ class AortaLiver2scan(ui.Model):
         self.BAT2 = xdata[1][np.argmax(ydata[1])] - (1-D)*T
 
         # Estimate S0
-        pars = self._par_values(seq=self.sequence)
+        pars = self._sequence_parameters_first_scan()
         Srefb = sig.signal(self.sequence, self.R10a, 1, **pars)
-        Sref2b = sig.signal(self.sequence, self.R102a, 1, **pars)
         Srefl = sig.signal(self.sequence, self.R10l, 1, **pars)
+        pars = self._sequence_parameters_second_scan()
         Sref2l = sig.signal(self.sequence, self.R102l, 1, **pars)
+        Sref2b = sig.signal(self.sequence, self.R102a, 1, **pars)
 
         n0 = max([np.sum(xdata[0] < self.t0), 2])
         self.S0a = np.mean(ydata[0][1:n0]) / Srefb
@@ -1227,7 +1272,6 @@ class AortaLiver2scan(ui.Model):
         self._predict = 'liver'
         pars = list(PARAMS_LIVER.keys()) + ['S02l']
         self.free = {s: free[s] for s in pars if s in free}
-        # added if s in free - add everywhere after testing
         ui.train(self, (xdata[2], xdata[3]), (ydata[2], ydata[3]), **kwargs)
 
         # Train all parameters on all data
@@ -1605,6 +1649,13 @@ PARAMS_2SCAN = {
         'bounds': [0, np.inf],
         'name': 'Second contrast agent dose',
         'unit': 'mL/kg',
+    },
+    'FA2': {
+        'init': 15.0,
+        'default_free': False,
+        'bounds': [0, np.inf],
+        'name': 'Second flip angle',
+        'unit': 'deg',
     },
     'R102a': {
         'init': 1/lib.T1(3.0, 'blood'),

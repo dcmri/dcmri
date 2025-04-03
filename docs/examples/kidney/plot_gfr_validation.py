@@ -3,15 +3,16 @@
 Single-kidney glomerular filtration rate
 ========================================
 
-This examples illustrates the use of `~dcmri.Kidney` for measurement of 
-single kidney glomerular filtration rate (SK-GFR). The script aims to 
-replicate a validation study comparing MRI-derived measurement of SK-GFR 
-against reference measurement performed with radio-isotopes Basak et al 2018). 
-The study used 124 historical datasets collected in between the years 2000 and 
-2010 at 1 Tesla and 3 Tesla MRI. The study concluded that while the 
-MRI-derived values were unbiased, the precision was low and significant 
-improvements in data quality would be needed before this technique can be 
-applied in clinical practice. The study was funded by 
+This example illustrates the use of `~dcmri.Kidney` for measurement of 
+single-kidney glomerular filtration rate (SK-GFR). 
+
+The script uses data from a validation study comparing MRI-derived 
+measurement of SK-GFR against reference measurements performed with 
+radio-isotopes (Basak et al 2018). The study used 124 historical 
+datasets collected in between the years 2000 and 2010 at 1 Tesla and 
+3 Tesla MRI. 
+
+The study was funded by 
 `Kidney Research UK <https://www.kidneyresearchuk.org/>`_.
 
 **Reference**
@@ -50,26 +51,31 @@ def kidney_model(scan, kidney):
     T1 = scan[kidney+' T1']
     T1 = dc.T1(B0, 'kidney') if T1 is None else T1
 
-    # Set kidney model parameters
+    # Define tissue model
     model = dc.Kidney(
+
+        # Configuration
         aif = scan['aorta'], 
         t = scan['time'],
+
+        # General parameters
+        field_strength = B0,
+        agent = scan['agent'],
+        t0 = scan['time'][scan['n0']],
+
+        # Sequence parameters
+        TR = scan['TR'],
+        FA = scan['FA'],
+
+        # Tissue parameters
         vol = scan[kidney+' vol'],
         R10 = 1/T1,
         R10a = 1/dc.T1(B0, 'blood'),
-        sequence = 'SS',
-        TR = scan['TR'],
-        FA = scan['FA'],
-        field_strength = B0,
-        agent = scan['agent'],
-        n0 = scan['n0'],
     )
 
     # Customize free parameter ranges
     model.set_free(
         pop = 'Ta', 
-        Fp = [0, 0.05], 
-        FF = [0, 0.3], 
         Tt = [30, np.inf],
     )
 
@@ -159,7 +165,7 @@ v1T = pd.pivot_table(results[results.B0==1], values='value', columns='parameter'
 v3T = pd.pivot_table(results[results.B0==3], values='value', columns='parameter', index=['subject','kidney','visit'])
 
 iso1T, iso3T = 60*v1T['iso-SK-GFR'].values, 60*v3T['iso-SK-GFR'].values
-mri1T, mri3T = 60*v1T['SK-GFR'].values, 60*v3T['SK-GFR'].values
+mri1T, mri3T = 60*v1T['GFR'].values, 60*v3T['GFR'].values
 
 plt.title('Single-kidney GFR (SK-GFR)')
 plt.plot(iso1T, mri1T, 'bo', linestyle='None', markersize=4, label='1T')
@@ -179,25 +185,28 @@ plt.show()
 v = pd.pivot_table(results, values='value', columns='parameter', index=['subject','kidney','visit'])
 
 iso = 60*v['iso-SK-GFR'].values
-mri = 60*v['SK-GFR'].values
+mri = 60*v['GFR'].values
 
 diff = mri-iso
-bias = np.mean(diff)
-err =  1.96*np.std(diff)
-bias_err = 1.96*np.std(diff)/np.sqrt(np.size(diff))
+bias = round(np.mean(diff),0)
+err =  round(1.96*np.std(diff),0)
+bias_err = round(1.96*np.std(diff)/np.sqrt(np.size(diff)),0)
 
 print('-----------------')
 print('Single-kidney GFR')
 print('-----------------')
-print('95% CI on the bias (ml/min): ', bias-bias_err, bias+bias_err) # paper 0.56
-print('95% CI on individual error (ml/min): ', bias-err, bias+err) # paper [-28, 29]
+print(f"The bias in an MRI-based SK-GFR measurement is {bias} +/- {bias_err} ml/min") # paper 0.56
+print(f"After bias correction, the error on an SK-GFR measurement is +/- {err} mL/min") # paper [-28, 29]
 
 # %%
-# As the results show, these data do not replicate the results from the 
-# original study exactly..
-# 
-# [ ...more results coming soon... ]
+# The results confirm the conclusion from the original study that 
+# the precision of MR-derived SK-GFR with these historical data was 
+# too low for clinical use. The exact numerical values are different 
+# from those in the original study, showing the importance of 
+# implementation detail.
 
+# sphinx_gallery_start_ignore
 # Choose the last image as a thumbnail for the gallery
 # sphinx_gallery_thumbnail_number = -1
+# sphinx_gallery_end_ignore
 

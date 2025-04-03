@@ -518,7 +518,7 @@ def test_signal_free():
 def test_signal_lin():
     R1 = 2
     S0 = 3
-    assert 6 == dc.signal_lin(R1, S0)
+    assert 6 == dc.signal_lin(S0, R1)
 
 
 def test_conc_t2w():

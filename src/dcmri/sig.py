@@ -764,13 +764,13 @@ def signal_spgr(S0, R1, T, TR, FA, TP=0.0,
         return S0 * np.sin(FA*np.pi/180) * np.abs(np.sum(Mz, axis=0))
 
 
-def signal_lin(R1, S0: float) -> np.ndarray:
+def signal_lin(S0, R1) -> np.ndarray:
     """Signal for any sequence operating in the linear regime.
 
     Args:
-        R1 (array-like): Longitudinal relaxation rate in 1/sec.
         S0 (float): Signal scaling factor (arbitrary units).
-
+        R1 (array-like): Longitudinal relaxation rate in 1/sec.
+        
     Returns:
         np.ndarray: Signal in arbitrary units, of the same length as R1.
     """

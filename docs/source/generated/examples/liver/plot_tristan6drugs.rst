@@ -958,7 +958,7 @@ inhibition was detected with 95% confidence (0% in the 95% CI):
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (1 minutes 55.682 seconds)
+   **Total running time of the script:** (0 minutes 13.698 seconds)
 
 
 .. _sphx_glr_download_generated_examples_liver_plot_tristan6drugs.py:

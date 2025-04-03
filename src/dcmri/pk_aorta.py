@@ -62,7 +62,7 @@ def aif_tristan(
         dtol (float, optional): Dose tolerance. Defaults to 0.01.
 
     Returns:
-        np.ndarray: Aorta concentrations in mmol/mL.
+        np.ndarray: Aorta blood concentrations in mmol/mL.
 
     Example:
 
