@@ -512,21 +512,47 @@ class Model:
             vals = np.append(vals, np.ravel(v))
         return vals
 
-    def _setflat(self, vals: np.ndarray, attr: np.ndarray = None):
+    def _setflat(self, vals: np.ndarray, pcov: np.ndarray = None, attr: np.ndarray = None):
         if attr is None:
             attr = self.free.keys()
+        if pcov is not None:
+            perr = np.sqrt(np.diag(pcov))
+        else:
+            perr = np.zeros(np.size(vals))
         i = 0
         for p in attr:
             v = getattr(self, p)
             if np.isscalar(v):
                 v = vals[i]
+                e = perr[i]
                 i += 1
-            else:
+            else: # Needs a better solution
                 n = np.size(v)
                 v = np.reshape(vals[i:i+n], np.shape(v))
+                e = np.reshape(perr[i:i+n], np.shape(v))
                 i += n
             setattr(self, p, v)
+            setattr(self, p + '_sdev', e)
 
+
+    def _add_sdev(self, pars):
+        for par in pars:
+            pars[par].append(0)
+        # if not hasattr(self, 'pcov'):
+        #     perr = np.zeros(len(self.free.keys()))
+        # elif self.pcov is None:
+        #     perr = np.zeros(len(self.free.keys()))
+        # else:
+        #     perr = np.sqrt(np.diag(self.pcov))
+        # for i, par in enumerate(self.free.keys()):
+        #     if par in pars:
+        #         pars[par][-1] = perr[i]
+        for par in self.free.keys():
+            if par in pars:
+                if hasattr(self, par + '_sdev'):
+                    pars[par][-1] = getattr(self, par + '_sdev')
+        return pars
+    
     # def _x_scale(self):
     #     n = len(self.free)
     #     xscale = np.ones(n)
@@ -542,20 +568,6 @@ class Model:
     #         if (not np.isinf(lb)) and (not np.isinf(ub)):
     #             xscale[p] = ub-lb
     #     return xscale
-
-    def _add_sdev(self, pars):
-        for par in pars:
-            pars[par].append(0)
-        if not hasattr(self, 'pcov'):
-            perr = np.zeros(len(self.free.keys()))
-        elif self.pcov is None:
-            perr = np.zeros(len(self.free.keys()))
-        else:
-            perr = np.sqrt(np.diag(self.pcov))
-        for i, par in enumerate(self.free.keys()):
-            if par in pars:
-                pars[par][-1] = perr[i]
-        return pars
     
 
 def params(self, *args, round_to=None):
@@ -687,7 +699,8 @@ def train(model: Model, xdata, ydata, **kwargs):
         pars = p0
         model.pcov = np.zeros((np.size(p0), np.size(p0)))
 
-    model._setflat(pars)
+    # Note pcov does not have to be an attribuite
+    model._setflat(pars, pcov=model.pcov)
 
     return model
 
