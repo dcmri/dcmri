@@ -307,20 +307,36 @@ class Model:
             self.free = {}
             self.set_free(**free)
 
-    def export_params(self) -> list:
+    def export_params(self, type='dict') -> dict:
         """Return model parameters with their descriptions
+
+        Args:
+            type (str, optional): Type of output. If 'dict', a dictionary is 
+              returned. If 'list', a list is returned. Defaults to 'dict'.
 
         Returns:
             dict: Dictionary with one item for each model parameter. The key 
-            is the parameter symbol (short name), and the value is a 
-            4-element list with [parameter name, value, unit, sdev].
+            is the short parameter name, and the value is a 
+            4-element list with [long parameter name, value, unit, sdev].
+
+            or:
+
+            list: List with one element for each model parameter. Each 
+            element is a list with [short parameter name, 
+            long parameter name, value, unit, sdev].
         """
         # Short name, full name, value, units.
         pars = self._par_values(export=True)
         params = self._params()
         pars = {p: [params[p]['name'], pars[p], params[p]['unit']]
                 for p in pars}
-        return self._add_sdev(pars)
+        pars = self._add_sdev(pars)
+        if type == 'dict':
+            return pars
+        elif type == 'list':
+            return [[k] + v for k, v in pars.items()]
+        else:
+            raise ValueError('Type must be either "dict" or "list".')
 
     def save(self, file=None, path=None, filename='Model'):
         """Save the current state of the model
