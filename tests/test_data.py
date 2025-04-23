@@ -6,6 +6,15 @@ import dcmri as dc
 
 def test_dmr():
 
+    data_dict = {
+        'time': ['Acquisition times', 'sec', 'float'],
+        'signal': ['Acquired signals', 'sec', 'float'],
+        'FA': ['Flip angle', 'deg', 'float'],
+        'TR': ['Repetition time', 'msec', 'float'],
+        'Checked': ['Have the data been checked', '', 'bool'],
+        'Checker': ['Who has checked the data', '', 'str'],
+        'n0': ['Baseline length', '', 'int'],
+    }
     rois = {
         '001': {
             'Baseline': {
@@ -31,29 +40,39 @@ def test_dmr():
     pars = {
         '001': {
             'Baseline': {
-                'FA': ['Flip angle', 50, 'deg'],
-                'TR': ['Repetition time', 5.4, 'msec'],
+                'FA': 50,
+                'TR': 5.4,
             },
             'Followup': {
-                'FA': ['Flip angle', 40, 'deg'],
-                'TR': ['Repetition time', 5.4, 'msec'],
+                'FA': 40,
+                'TR': 5.4,
             },
         },
         '002': {
             'Baseline': {
-                'FA': ['Flip angle', 45, 'deg'],
-                'TR': ['Repetition time', 5.4, 'msec'],
+                'FA': 45,
+                'TR': 5.4,
+                'Checked': True,
+                'Checker': 'John Doe',
             },
             'Followup': {
-                'FA': ['Flip angle', 50, 'deg'],
-                'TR': ['Repetition time', 5.4, 'msec'],
+                'FA': 50,
+                'TR': 5.4,
+                'n0': 10,
+                'Checked': False,
             },
         },
     }
-    file = os.path.join(os.getcwd(), 'test.dmr')
-    dc.write_dmr(file, rois, pars, nest=True)
-    rois_read, pars_read = dc.read_dmr(file, nest=True)
 
+    file = os.path.join(os.getcwd(), 'test.dmr')
+    dc.write_dmr(file, data_dict, rois, pars, nest=True)
+
+    dict_read, rois_read, pars_read = dc.read_dmr(file, nest=True)
+
+    assert np.array_equal(
+        dict_read['FA'],
+        ['Flip angle', 'deg', 'float'],
+    )
     assert np.array_equal(
         rois_read['001']['Baseline']['signal'],
         [5, 6, 7, 8],
@@ -62,6 +81,11 @@ def test_dmr():
         rois_read['001']['Followup']['signal'],
         [12, 13, 14],
     )
+    assert pars_read['001']['Followup']['FA'] == 40
+    assert pars_read['002']['Followup']['FA'] == 50
+    assert pars_read['002']['Baseline']['Checked'] is True
+    assert pars_read['002']['Followup']['n0'] == 10
+    assert pars_read['002']['Followup']['Checked'] is False
 
     # Cleanup
     os.remove(file + '.zip')

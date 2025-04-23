@@ -26,23 +26,37 @@ KRUK_DATASETS = [
     'KRUK',
 ]
 TRISTAN_DATASETS = [
-    'tristan_rifampicin',
-    'tristan_gothenburg',
-    'tristan6drugs',
-    'tristan_repro',
-    'tristan_mdosing',
+    'tristan_humans_healthy_ciclosporin',
+    'tristan_humans_healthy_controls_leeds',
+    'tristan_humans_healthy_controls_sheffield',
+    'tristan_humans_healthy_metformin',
+    'tristan_humans_healthy_rifampicin',
+    'tristan_humans_patients_rifampicin',
+    'tristan_rats_healthy_multiple_dosing',
+    'tristan_rats_healthy_reproducibility',
+    'tristan_rats_healthy_six_drugs',
 ]
+# TRISTAN_DATASETS = [
+#     'tristan_rifampicin',
+#     'tristan_gothenburg',
+#     'tristan6drugs',
+#     'tristan_repro',
+#     'tristan_mdosing',
+# ]
 DMR_DATASETS = [
     'minipig_renal_fibrosis',
-]
+] + KRUK_DATASETS + TRISTAN_DATASETS
 
 
-def write_dmr(path:str, rois:dict, pars=None, nest=False):
+def write_dmr(path:str, data_dict: dict, rois=None, pars=None, nest=False):
     """Write region-of-interest (ROI) data to disk in .dmr format.
 
     Args:
         path (str): path to .dmr file. If the extension .dmr is not 
           included, it is added automatically.
+        data_dict (dict): Data dictionary with one item for each 
+          parameter. The key is the parameter and the value is a list 
+          of containing description, unit and python data type.
         rois (dict): ROI data as a dictionary with one item per ROI. 
           Each ROI is a dictionary on itself which has a required key 
           'signal' containing the signal data. Other keys are optional 
@@ -58,61 +72,182 @@ def write_dmr(path:str, rois:dict, pars=None, nest=False):
         ValueError: if the data are not correctly formatted.
     """
 
-    if not isinstance(rois, dict):
-        raise ValueError("ROIs must be a dictionary")
+    # Check data types
+    if not isinstance(data_dict, dict):
+        raise ValueError("data_dict must be a dictionary")
+    if rois is not None:
+      if not isinstance(rois, dict):
+          raise ValueError("rois must be a dictionary or None")
+    if pars is not None:
+      if not isinstance(pars, dict):
+          raise ValueError("pars must be a dictionary or None")
     
+    # Convert to multi-index if needed
     if nest:
-        rois = _nested_dict_to_multi_index(rois)
+        if rois is not None:
+            rois = _nested_dict_to_multi_index(rois)
         if pars is not None:
             pars = _nested_dict_to_multi_index(pars)
     
     if path[-4:] == ".dmr":
         path = path[:-4]
 
+    #
+    # Check dmr compliance
+    #
+
+    params = list(data_dict.keys())
+    if rois is not None:
+        for roi in rois.keys():
+            if len(roi) != 3:
+                raise ValueError("Each rois key must be a 3-element tuple")
+            if roi[-1] not in params:
+                raise ValueError(
+                    f"rois parameter {roi[-1]} not in data_dict. "
+                    "Please add it to the dictionary."
+                )
+    if pars is not None:
+        for par in pars.keys():
+            if len(par) != 3:
+                raise ValueError("Each pars key must be a 3-element tuple")
+            if par[-1] not in params:
+                raise ValueError(
+                    f"pars parameter {par[-1]} not in data_dict. "
+                    "Please add it to the dictionary."
+                )
+
+    # make folder
     if not os.path.exists(path):
         os.makedirs(path)
-    
-    # Write ROI curves
 
-    # Check format
-    for roi, value in rois.items():
-        if len(roi) != 3:
-            raise ValueError("Each ROI key must be a 3-element tuple")
 
-    # Find the longest array length
-    max_len = max(len(arr) for arr in rois.values())
+    #
+    # Write dictionary
+    #
 
-    # Prepare CSV data (convert dictionary to column format)
-    columns = []
 
-    # First 3 rows: keys (tuple elements)
-    for key, values in rois.items():
-        col = list(key) + list(values) + [""] * (max_len - len(values))  # Pad shorter columns
-        columns.append(col)
+    # Build rows
+    header = ['parameter', 'description', 'unit', 'type']
+    rows = [header]
+    for key, values in data_dict.items():
+        if not isinstance(values, list):
+            raise ValueError(
+                f"Each data_dict value must be a list"
+            )         
+        if len(values) != len(header[1:]):
+            raise ValueError(
+                f"Each data_dict value must have elements "
+                f"{[attr + ', ' for attr in header[1:]]}"
+            )
+        row = [key] + values
+        rows.append(row)
 
-    # Transpose to get row-wise structure
-    rows = list(map(list, zip(*columns)))
-
-    # Write to CSV
-    file = os.path.join(path, "rois.csv")
+    # Write rows to dict.csv
+    file = os.path.join(path, "dict.csv")
     with open(file, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerows(rows)
 
+    #
+    # Write ROI curves
+    #
+
+    if rois is not None:
+        
+        # Find the longest array length
+        max_len = max(len(arr) for arr in rois.values())
+
+        # Prepare CSV data (convert dictionary to column format)
+        columns = []
+
+        # First 3 rows: keys (tuple elements)
+        for key, values in rois.items():
+            if key[-1] not in data_dict:
+                raise ValueError(
+                    f"rois parameter {key[-1]} not in data_dict. "
+                    "Please add it to the dictionary."
+                )
+            data_type = np.dtype(data_dict[key[-1]][2])
+            write_values = np.asarray(values).astype(data_type)
+            if not np.array_equal(write_values, values):
+                raise ValueError(
+                    f"rois parameter {key[-1]} has wrong data type. "
+                    "Please correct the data in rois.csv "
+                    "or correct the data type in dict.csv"
+                )
+            col = list(key) + list(write_values) + [""] * (max_len - len(values))  # Pad shorter columns
+            columns.append(col)
+
+        # Transpose to get row-wise structure
+        rows = list(map(list, zip(*columns)))
+
+        # Write to CSV
+        file = os.path.join(path, "rois.csv")
+        with open(file, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerows(rows)
+
+    #
     # Write parameters
+    # 
 
     if pars is not None:
         rows = [
-            ['subject', 'study', 'parameter', 'description', 'value', 'unit'],
+            ['subject', 'study', 'parameter', 'value'],
         ]
-        for key, values in pars.items():
-            if len(key) != 3:
-                raise ValueError("Each parameter key must be a 2-element tuple")
-            if len(values) != 3:
+        for key, value in pars.items():
+            if key[-1] not in data_dict:
                 raise ValueError(
-                    "Each parameter value must be a 3-element list "
-                    "[description: str, value: float, unit: str].")
-            row = list(key) + list(values)
+                    f"pars parameter {key[-1]} not in data_dict. "
+                    "Please add it to the dictionary."
+                )
+            data_type = data_dict[key[-1]][2]
+            if data_type == 'str':
+                if not isinstance(value, str):
+                    raise ValueError(
+                        f"pars parameter {key[-1]} must be a string. "
+                        "Please correct the data in pars.csv "
+                        "or correct the data type in dict.csv"
+                    )
+                else:
+                    write_value = value
+            elif data_type == 'float':
+                if not isinstance(value, (float, int)):
+                    raise ValueError(
+                        f"pars parameter {key[-1]} must be a float. "
+                        "Please correct the data in pars.csv "
+                        "or correct the data type in dict.csv"
+                    )
+                else:
+                    write_value = value
+            elif data_type == 'bool':
+                if not isinstance(value, bool):
+                    raise ValueError(
+                        f"pars parameter {key[-1]} must be a boolean. "
+                        "Please correct the data in pars.csv "
+                        "or correct the data type in dict.csv"
+                    )
+                else:
+                    write_value = '1' if value else '0'
+            elif data_type == 'int':
+                if not isinstance(value, int):
+                    raise ValueError(
+                        f"pars parameter {key[-1]} must be an integer. "
+                        "Please correct the data in pars.csv "
+                        "or correct the data type in dict.csv"
+                    )
+                else:
+                    write_value = value
+            elif data_type == 'complex':
+                if not isinstance(value, complex):
+                    raise ValueError(
+                        f"pars parameter {key[-1]} must be a complex number. "
+                        "Please correct the data in pars.csv "
+                        "or correct the data type in dict.csv"
+                    )
+                else:
+                    write_value = value
+            row = list(key) + [write_value]
             rows.append(row)
         file = os.path.join(path, "pars.csv")
         with open(file, "w", newline="") as f:
@@ -125,7 +260,7 @@ def write_dmr(path:str, rois:dict, pars=None, nest=False):
 
 
 
-def read_dmr(path:str, nest=False, valsonly=False):
+def read_dmr(path:str, nest=False):
     """Read .dmr data from disk.
 
     Args:
@@ -133,63 +268,121 @@ def read_dmr(path:str, nest=False, valsonly=False):
         saved. 
         nest (bool): If True, a nested dictionary is returned. 
           Defaults to False.
-        valsonly (bool): If True, only parameter values are returned. 
-          Otherwise the full list is returned including description, 
-          values and units. Defaults to False.
 
     Raises:
         ValueError: If the data on disk are not correctly formatted.
 
     Returns:
-        tuple: Two dictionaries (rois, pars) containing the ROIs and 
-          the parameters stored in the .dmr file.
+        tuple: three dictionaries (data_dict, rois, pars) containing 
+          the data dictionary, ROI data and parameters stored in 
+          the .dmr file.
     """
 
-    rois = {}
-    pars = None
-
     with zipfile.ZipFile(path + ".zip", "r") as z:
-        csv_files = [f for f in z.namelist() if f.endswith(".csv")]
-        if len(csv_files) == 0:
-            raise ValueError("No CSV files found in .dmr file")
-        if len(csv_files) > 2:
-            raise ValueError("A .dmr file must contain 1 or 2 csv files.")    
-        if 'rois.csv' not in csv_files:
-            raise ValueError("A .dmr file must contain a rois.csv file.")    
-        for csv_filename in csv_files:
-            with z.open(csv_filename) as file:
-                # Read binary file without extracting first
-                text = TextIOWrapper(file, encoding="utf-8")
-                # Decode with csv reader
-                reader = csv.reader(text)
-                if csv_filename == "pars.csv":
-                    pars = list(reader)
-                    pars = pars[1:] # do not return headers
-                    if valsonly:
-                        pars = {tuple(p[:3]): float(p[4]) for p in pars}
-                    else:
-                        pars = {tuple(p[:3]): [p[3], float(p[4]), p[5]] for p in pars}
-                elif csv_filename == "rois.csv":
-                    data = list(reader)
-                    if len(data)==0:
-                        raise ValueError("Empty CSV file")
-                    # Extract headers (first 3 rows)
-                    headers = list(zip(*data[:3]))  # Transpose first 3 rows to get column-wise headers
-                    # Extract data (from row 3 onward) and convert to NumPy arrays
-                    rois = {tuple(header): np.array([val for val in col if val]).astype(np.float64) 
-                            for header, col in zip(headers, zip(*data[3:]))}
-                else:
-                    raise ValueError(f"{csv_filename} is not a valid name.")
+        
+        # Check files
+        csv_files = [f for f in z.namelist() if f.endswith(".csv")]  
+        if 'dict.csv' not in csv_files:
+            raise ValueError("A .dmr file must contain a dict.csv file.")    
+        if ('pars.csv' not in csv_files) and ('rois.csv' not in csv_files):
+            raise ValueError("A .dmr file must contain a pars.csv, a rois.csv file, or both.") 
+        
+        # Read data dictionary
+        with z.open('dict.csv') as file:
+            text = TextIOWrapper(file, encoding="utf-8")
+            reader = csv.reader(text)
+            dict_list = list(reader)
+            dict_list = dict_list[1:] # do not return headers
+            data_dict = {}
+            for d in dict_list:
+                if len(d) != 4:
+                    raise ValueError(
+                        f"Each data_dict row must have 4 elements: "
+                        f"parameter, description, unit, type. "
+                        f"Correct the data dictionary in dict.csv"
+                    )
+                if d[3] not in ['str', 'float', 'bool', 'int', 'complex']:
+                    raise ValueError(
+                        f"data type {d[3]} is not allowed. Correct "
+                        f"the data dictionary in dict.csv"
+                    )
+                data_dict[d[0]] = [d[1], d[2], d[3]]
 
-    if rois == {}:
-        raise ValueError("No ROI data found in .dmr file")
-    
+        pars = None
+        if 'pars.csv' in csv_files: 
+            with z.open('pars.csv') as file:
+                text = TextIOWrapper(file, encoding="utf-8")
+                reader = csv.reader(text)
+                pars_list = list(reader)
+                pars_list = pars_list[1:] # do not return headers
+                pars = {}
+                for p in pars_list:
+                    if len(p) != 4:
+                        raise ValueError(
+                            f"Each pars row must have 4 elements: "
+                            f"subject, study, parameter, value. "
+                            f"Correct the data in pars.csv"
+                        )
+                    if p[2] not in data_dict:
+                        raise ValueError(
+                            f"parameter {p[2]} is not listed in the "
+                            f"data dictionary in dict.csv"
+                        )
+                    data_type = data_dict[p[2]][2]
+                    if data_type=='str':
+                        value = p[3]
+                    elif data_type=='float':
+                        value = float(p[3])
+                    elif data_type=='bool':
+                        if p[3]=='1':
+                            value = True
+                        elif p[3]=='0':
+                            value = False
+                        else:
+                            raise ValueError(
+                                f"Boolean value {p[3]} is not allowed. "
+                                "Possible values are 1 or 0. "
+                                "Correct the data in pars.csv"
+                            )
+                    elif data_type=='int':
+                        value = int(p[3])
+                    elif data_type=='complex':
+                        value = complex(p[3])
+                    pars[tuple(p[:3])] = value
+
+        rois = None
+        if 'rois.csv' in csv_files: 
+            with z.open('rois.csv') as file:
+                text = TextIOWrapper(file, encoding="utf-8")
+                reader = csv.reader(text)
+                data = list(reader)
+                rois = {}
+                if len(data)!=0:
+                    # Extract headers (first 3 rows)
+                    # Transpose first 3 rows to get column-wise headers
+                    headers = list(zip(*data[:3]))  
+                    # Extract data (from row 3 onward) and convert to NumPy arrays
+                    rois = {}
+                    for header, col in zip(headers, zip(*data[3:])):
+                        if header[2] not in data_dict:
+                            raise ValueError(
+                                f"roi parameter {header[2]} is not listed in the "
+                                f"data dictionary in dict.csv. Please update the dictionary."
+                            )
+                        values = np.array([val for val in col if val])
+                        data_type = data_dict[header[2]][2]
+                        if data_type == 'bool':
+                            rois[header] = values.astype(int).astype(bool)
+                        else:
+                            rois[header] = values.astype(np.dtype(data_type))
+
     if nest:
-        rois = _multi_index_to_nested_dict(rois)
+        if rois is not None:
+            rois = _multi_index_to_nested_dict(rois)
         if pars is not None:
-          pars = _multi_index_to_nested_dict(pars)
+            pars = _multi_index_to_nested_dict(pars)
     
-    return rois, pars  
+    return data_dict, rois, pars  
 
 
 def _multi_index_to_nested_dict(multi_index_dict):
@@ -553,7 +746,7 @@ def fetch(dataset=None, clear_cache=False, download_all=False) -> dict:
             effect on gadoxetate uptake in rats using gadoxetate DCE-MRI. Int 
             Soc Mag Reson Med 2021; 2674.
 
-        **kruk_sk_gfr**
+        **KRUK**
 
             **Background**: data taken from supplementary material of Basak et 
             al (2018), a study funded by Kidney Research UK. The dataset 
@@ -723,25 +916,33 @@ def _fetch_dataset(dataset):
     return v
 
 
-def _download(dataset):
+def _download(dataset): # add version keyword
         
     f = importlib_resources.files('dcmri.datafiles')
-    datafile = str(f.joinpath(dataset + '.pkl'))
+
+    if dataset in DMR_DATASETS:
+        datafile = str(f.joinpath(dataset + '.dmr.zip'))
+    else:
+        datafile = str(f.joinpath(dataset + '.pkl'))
 
     if os.path.exists(datafile):
         return
 
     # Dataset location
     if dataset in KRUK_DATASETS:
-        version_doi = "14957345" # This will change if a new version is created on zenodo
+        version_doi = "14957345" # v0.0.0
+        #version_doi = "15254891" # v0.0.1
     elif dataset in TRISTAN_DATASETS:
-        version_doi = "14957321" # This will change if a new version is created on zenodo
+        version_doi = "14957321" # v0.0.0
     else:
         raise ValueError(
             f'Dataset {dataset} does not exist. Please choose one of '
             f'{KRUK_DATASETS+TRISTAN_DATASETS}'
         )
-    file_url = "https://zenodo.org/records/" + version_doi + "/files/" + dataset + ".pkl"
+    if dataset in DMR_DATASETS:
+        file_url = "https://zenodo.org/records/" + version_doi + "/files/" + dataset + ".dmr.zip"
+    else:
+        file_url = "https://zenodo.org/records/" + version_doi + "/files/" + dataset + ".pkl"
 
     # Make the request and check for connection error
     try:
