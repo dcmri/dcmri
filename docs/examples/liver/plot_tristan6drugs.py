@@ -49,7 +49,8 @@ import matplotlib.pyplot as plt
 import dcmri as dc
 
 # Fetch the data
-data = dc.fetch('tristan6drugs')
+dmrfile = dc.fetch('tristan_rats_healthy_six_drugs')
+data, rois, pars = dc.read_dmr(dmrfile, nest=True)
 
 
 # %%
@@ -62,13 +63,13 @@ data = dc.fetch('tristan6drugs')
 # for only 2 parameters, fixing all other free parameters to typical values 
 # for this rat model:
 
-def tristan_rat(data, **kwargs):
+def tristan_rat(roi, par, **kwargs):
 
     # High-resolution time points for prediction
-    t = np.arange(0, np.amax(data['time'])+0.5, 0.5)
+    t = np.arange(0, np.amax(roi['time'])+0.5, 0.5)
 
     # Standard input function
-    ca = dc.aif_tristan_rat(t, BAT=data['BAT'], duration=data['duration'])
+    ca = dc.aif_tristan_rat(t, BAT=par['BAT'], duration=par['duration'])
 
     # Liver model with population input function
     model = dc.Liver(
@@ -78,25 +79,15 @@ def tristan_rat(data, **kwargs):
         ca = ca,
 
         # Acquisition parameters
-        field_strength = data['field_strength'],
-        agent = 'gadoxetate',
-        TR = data['TR'],
-        FA = data['FA'],
-        n0 = data['n0'],
+        field_strength = par['field_strength'],
+        TR = par['TR'],
+        FA = par['FA'],
+        n0 = par['n0'],
 
-        # Kinetic parameters
-        kinetics = '1I-IC-HF',
-        H = 0.418,
-        ve = 0.23,
-        free = {
-            'khe': [0, np.inf], 
-            'Th': [0, np.inf],
-        },
-
-        # Tissue parameters
-        R10 = 1/dc.T1(data['field_strength'], 'liver'),
+        # Configure as in the TRISTAN-rat study
+        config = 'TRISTAN-rat',
     )
-    return model.train(data['time'], data['liver'], **kwargs)
+    return model.train(roi['time'], roi['liver'], **kwargs)
 
 
 # %%
@@ -106,12 +97,20 @@ def tristan_rat(data, **kwargs):
 # by fitting the baseline visit for the first subject. We use maximum 
 # verbosity to get some feedback about the iterations: 
 
-model = tristan_rat(data[0], xtol=1e-3, verbose=2)
+model = tristan_rat(
+    rois['S05-02']['Day_1'], 
+    pars['S05-02']['Day_1'],
+    xtol=1e-3, 
+    verbose=2,
+)
 
 # %%
 # Plot the results to check that the model has fitted the data:
 
-model.plot(data[0]['time'], data[0]['liver'])
+model.plot(
+    rois['S05-02']['Day_1']['time'], 
+    rois['S05-02']['Day_1']['liver'],
+)
 
 # %%
 # Print the measured model parameters and any derived parameters and check 
@@ -130,26 +129,28 @@ model.print_params(round_to=3)
 results = []
 
 # Loop over all datasets
-for scan in data:
+for subj in rois.keys():
+    for visit in rois[subj].keys():
 
-    # Generate a trained model for scan i:
-    model = tristan_rat(scan, xtol=1e-3)
-    
-    # Save fitted parameters as a dataframe.
-    pars = model.export_params()
-    pars = pd.DataFrame.from_dict(pars, 
-        orient = 'index', 
-        columns = ["name", "value", "unit", 'stdev'])
-    pars['parameter'] = pars.index
-    pars['study'] = scan['study']
-    pars['visit'] = scan['visit']
-    pars['subject'] = scan['subject']
-    
-    # Add the dataframe to the list of results
-    results.append(pars)
+        roi = rois[subj][visit]
+        par = pars[subj][visit]
+
+        # Generate a trained model
+        model = tristan_rat(roi, par, xtol=1e-3)
+        
+        # Export fitted parameters as lists
+        rows = model.export_params(type='list')
+
+        # Add study, visit and subject info
+        rows = [row + [par['study'], par['visit'], subj] for row in rows]
+
+        # Add to the list of all results
+        results += rows
 
 # Combine all results into a single dataframe.
-results = pd.concat(results).reset_index(drop=True)
+cols = ['parameter', 'name', 'value', 'unit', 'stdev', 'study',
+        'visit', 'subject']
+results = pd.DataFrame(results, columns=cols)
 
 # Print all results
 print(results.to_string())
@@ -206,7 +207,7 @@ for i, s in enumerate(studies):
             x += [2]
             khe += [6000*v2.at[s,'khe']]
             kbh += [6000*v2.at[s,'kbh']] 
-        color = clr[int(s)-1]
+        color = clr[int(s[-2:])-1]
         ax[0,i].plot(x, khe, '-', label=s, marker='o', markersize=6, 
                      color=color)
         ax[1,i].plot(x, kbh, '-', label=s, marker='o', markersize=6, 

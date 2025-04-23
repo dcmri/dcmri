@@ -50,7 +50,8 @@ import matplotlib.pyplot as plt
 import dcmri as dc
 
 # Fetch the data from the TRISTAN rifampicin study:
-data = dc.fetch('tristan_rifampicin')
+dmrfile = dc.fetch('tristan_humans_healthy_rifampicin')
+data, rois, pars = dc.read_dmr(dmrfile, nest=True)
 
 # %%
 # Model definition
@@ -58,33 +59,39 @@ data = dc.fetch('tristan_rifampicin')
 # In order to avoid some repetition in this script, we define a function 
 # that returns a trained model for a single dataset:
 
-def tristan_human_1scan(data, **kwargs):
+def tristan_human_1scan(roi, par, **kwargs):
 
     model = dc.AortaLiver(
 
         # Injection parameters
-        weight = data['weight'],
-        agent = data['agent'],
-        dose = data['dose'][0],
-        rate = data['rate'],
+        weight = par['weight'],
+        agent = 'gadoxetate',
+        dose = par['dose_1'],
+        rate = 1,
 
         # Acquisition parameters
-        field_strength = data['field_strength'],
-        t0 = data['t0'],
-        TR = data['TR'],
-        FA = data['FA'],
+        field_strength = 3,
+        t0 = par['t0'],
+        TR = par['TR'],
+        FA = par['FA_1'],
+        TS = roi['time_1'][1]-roi['time_1'][0],
 
         # Signal parameters
-        R10a = data['R10b'],
-        R10l = data['R10l'],
+        R10a = 1/par['T1_aorta_1'],
+        R10l = 1/par['T1_liver_1'],
 
         # Tissue parameters
-        H = data['Hct'],
-        vol = data['vol'],
+        vol = par['liver_volume'],
     )
 
-    xdata = (data['time1aorta'], data['time1liver'])
-    ydata = (data['signal1aorta'], data['signal1liver'])
+    xdata = (
+        roi['time_1'][roi['aorta_1_accept']] - roi['time_1'][0], 
+        roi['time_1'][roi['liver_1_accept']] - roi['time_1'][0],
+    )
+    ydata = (
+        roi['aorta_1'][roi['aorta_1_accept']], 
+        roi['liver_1'][roi['liver_1_accept']],
+    )
 
     model.train(xdata, ydata, **kwargs)
 
@@ -98,7 +105,12 @@ def tristan_human_1scan(data, **kwargs):
 # by fitting the baseline visit for the first subject. We use maximum 
 # verbosity to get some feedback about the iterations: 
 
-xdata, ydata, model = tristan_human_1scan(data[0], xtol=1e-3, verbose=2)
+xdata, ydata, model = tristan_human_1scan(
+    rois['001']['control'], 
+    pars['001']['control'],
+    xtol=1e-3, 
+    verbose=2,
+)
 
 # %%
 # Plot the results to check that the model has fitted the data. The plot also 
@@ -124,25 +136,28 @@ model.print_params(round_to=3)
 results = []
 
 # Loop over all datasets
-for scan in data:
+for subj in rois.keys():
+    for visit in rois[subj].keys():
 
-    # Generate a trained model for the scan:
-    _, _, model = tristan_human_1scan(scan, xtol=1e-3)
+        roi = rois[subj][visit]
+        par = pars[subj][visit]
 
-    # Save fitted parameters as a dataframe.
-    pars = model.export_params()
-    pars = pd.DataFrame.from_dict(pars, 
-        orient = 'index', 
-        columns = ["name", "value", "unit", 'stdev'])
-    pars['parameter'] = pars.index
-    pars['visit'] = scan['visit']
-    pars['subject'] = scan['subject']
-    
-    # Add the dataframe to the list of results
-    results.append(pars)
+        # Generate a trained model for the scan:
+        _, _, model = tristan_human_1scan(roi, par, xtol=1e-3)
+
+        # Export fitted parameters as lists
+        rows = model.export_params(type='list')
+
+        # Add study, visit and subject info
+        rows = [row + [visit, subj] for row in rows]
+
+        # Add to the list of all results
+        results += rows
 
 # Combine all results into a single dataframe.
-results = pd.concat(results).reset_index(drop=True)
+cols = ['parameter', 'name', 'value', 'unit', 'stdev',
+        'visit', 'subject']
+results = pd.DataFrame(results, columns=cols)
 
 # Print all results
 print(results.to_string())
@@ -173,9 +188,9 @@ ax2.tick_params(axis='x', labelsize=fs)
 ax2.tick_params(axis='y', labelsize=fs)
 
 # Pivot data for both visits to wide format for easy access:
-v1 = pd.pivot_table(results[results.visit=='baseline'], values='value', 
+v1 = pd.pivot_table(results[results.visit=='control'], values='value', 
                     columns='parameter', index='subject')
-v2 = pd.pivot_table(results[results.visit=='rifampicin'], values='value', 
+v2 = pd.pivot_table(results[results.visit=='drug'], values='value', 
                     columns='parameter', index='subject')
 
 # Plot the rate constants in units of mL/min/100mL

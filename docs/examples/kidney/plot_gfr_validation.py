@@ -36,7 +36,8 @@ import matplotlib.pyplot as plt
 import dcmri as dc
 
 # Fetch the data
-data = dc.fetch('KRUK')
+datafile = dc.fetch('KRUK')
+data_dict, rois, pars = dc.read_dmr(datafile, nest=True)
 
 # %%
 # Model definition
@@ -44,31 +45,30 @@ data = dc.fetch('KRUK')
 # In order to avoid some repetition in this script, we define a function that 
 # returns a trained model for a single dataset:
 
-def kidney_model(scan, kidney):
+def kidney_model(roi, par, kidney):
 
     # Get B0 and precontrast T1
-    B0 = scan['field_strength']
-    T1 = scan[kidney+' T1']
-    T1 = dc.T1(B0, 'kidney') if T1 is None else T1
+    B0 = par['field_strength']
+    T1 = par[kidney+' T1'] if kidney+' T1' in par else dc.T1(B0, 'kidney')
 
     # Define tissue model
     model = dc.Kidney(
 
         # Configuration
-        aif = scan['aorta'], 
-        t = scan['time'],
+        aif = roi['aorta'], 
+        t = roi['time'],
 
         # General parameters
         field_strength = B0,
-        agent = scan['agent'],
-        t0 = scan['time'][scan['n0']],
+        agent = par['agent'],
+        t0 = roi['time'][par['n0']],
 
         # Sequence parameters
-        TR = scan['TR'],
-        FA = scan['FA'],
+        TR = par['TR'],
+        FA = par['FA'],
 
         # Tissue parameters
-        vol = scan[kidney+' vol'],
+        vol = par[kidney+' vol'],
         R10 = 1/T1,
         R10a = 1/dc.T1(B0, 'blood'),
     )
@@ -80,8 +80,8 @@ def kidney_model(scan, kidney):
     )
 
     # Train the kidney model on the data
-    xdata = scan['time']
-    ydata = scan[kidney]
+    xdata = roi['time']
+    ydata = roi[kidney]
     model.train(xdata, ydata)
 
     return xdata, ydata, model
@@ -92,7 +92,11 @@ def kidney_model(scan, kidney):
 # Before running the full analysis on all cases, lets illustrate the results 
 # by fitting the left kidney of the first subject:
 
-time, signal, model = kidney_model(data[0], 'LK')
+time, signal, model = kidney_model(
+    rois['001']['pre'], 
+    pars['001']['pre'], 
+    'LK',
+)
 
 # %%
 # Plot the results to check that the model has fitted the data:
@@ -113,7 +117,7 @@ model.print_params(round_to=3)
 print('-----------------------------')
 print('Comparison to reference value')
 print('-----------------------------')
-print('Radio-isotope SK-GFR: ', data[0]['LK iso-SK-GFR'])
+print('Radio-isotope SK-GFR: ', pars['001']['pre']['LK iso-SK-GFR'])
 
 
 # %%
@@ -124,34 +128,36 @@ print('Radio-isotope SK-GFR: ', data[0]['LK iso-SK-GFR'])
 
 results = []
 
-for scan in data:
-    for kidney in ['LK', 'RK']:
-        if kidney not in scan:
-            continue
-        xdata, ydata, model = kidney_model(scan, kidney)
+for subj in rois.keys():
+    for visit in rois[subj].keys():
+        for kidney in ['LK', 'RK']:
+            roi = rois[subj][visit]
+            par = pars[subj][visit]
+            if kidney not in roi:
+                continue
+            xdata, ydata, model = kidney_model(roi, par, kidney)
 
-        # Export parameters and add reference value
-        pars = model.export_params()
-        pars['iso-SK-GFR'] = [
-            'Isotope single-kidney GFR', 
-            scan[kidney + ' iso-SK-GFR'], 
-            'mL/sec', 
-            0,
-        ]
+            # Export parameters and add reference value
+            params = model.export_params()
+            params['iso-SK-GFR'] = [
+                'Isotope single-kidney GFR', 
+                par[kidney + ' iso-SK-GFR'], 
+                'mL/sec', 
+                0,
+            ]
+            # Convert to a dataframe
+            df = pd.DataFrame.from_dict(
+                params, 
+                orient = 'index', 
+                columns = ["name", "value", "unit", "stdev"])
+            df['subject'] = subj
+            df['kidney'] = kidney
+            df['visit'] = visit
+            df['parameter'] = df.index
+            df['B0'] = par['field_strength']
 
-        # Convert to a dataframe
-        pars = pd.DataFrame.from_dict(
-            pars, 
-            orient = 'index', 
-            columns = ["name", "value", "unit", "stdev"])
-        pars['subject'] = scan['subject']
-        pars['kidney'] = kidney
-        pars['visit'] = scan['visit']
-        pars['parameter'] = pars.index
-        pars['B0'] = scan['field_strength']
-
-        # Append to results
-        results.append(pars)
+            # Append to results
+            results.append(df)
 
 # Combine all results into a single dataframe
 results = pd.concat(results).reset_index(drop=True)

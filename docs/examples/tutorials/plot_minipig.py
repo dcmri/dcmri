@@ -88,8 +88,8 @@ import matplotlib.image as mpimg
 import dcmri as dc
 
 # Read the dataset
-datafile = dc.fetch('minipig_renal_fibrosis')
-rois, pars = dc.read_dmr(datafile, nest=True, valsonly=True)
+dmrfile = dc.fetch('minipig_renal_fibrosis')
+data, rois, pars = dc.read_dmr(dmrfile, nest=True)
 rois, pars = rois['Pig']['Test'], pars['Pig']['Test']
 
 # %%
