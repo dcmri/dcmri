@@ -37,7 +37,8 @@ import dcmri as dc
 
 # Fetch the data
 datafile = dc.fetch('KRUK')
-data_dict, rois, pars = dc.read_dmr(datafile, nest=True)
+dmr = dc.read_dmr(datafile, 'nest')
+rois, pars = dmr['rois'], dmr['pars']
 
 # %%
 # Model definition

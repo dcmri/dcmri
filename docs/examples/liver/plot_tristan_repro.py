@@ -52,7 +52,8 @@ import dcmri as dc
 
 # Fetch the data
 dmrfile = dc.fetch('tristan_rats_healthy_reproducibility')
-data, rois, pars = dc.read_dmr(dmrfile, nest=True)
+data = dc.read_dmr(dmrfile, 'nest')
+rois, pars = data['rois'], data['pars']
 
 
 # %%

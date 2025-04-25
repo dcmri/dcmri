@@ -38,7 +38,8 @@ import dcmri as dc
 
 # Fetch the data from the TRISTAN rifampicin study:
 dmrfile = dc.fetch('tristan_humans_patients_rifampicin')
-data, rois, pars = dc.read_dmr(dmrfile, nest=True)
+data = dc.read_dmr(dmrfile, 'nest')
+rois, pars = data['rois'], data['pars']
 
 # %%
 # Model definition

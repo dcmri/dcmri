@@ -43,7 +43,8 @@ import dcmri as dc
 
 # Fetch the data
 dmrfile = dc.fetch('tristan_rats_healthy_multiple_dosing')
-data, rois, pars = dc.read_dmr(dmrfile, nest=True)
+dmr = dc.read_dmr(dmrfile, 'nest')
+rois, pars = dmr['rois'], dmr['pars']
 
 # %%
 # Model definition
