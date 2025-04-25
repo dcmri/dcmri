@@ -99,8 +99,13 @@ intersphinx_mapping = {
 
 autosummary_generate = True # enable autosummary extension
 
-# Tell sphinx-autodoc-typehints to generate stub parameter annotations including types, even if the parameters aren't explicitly documented.
+# Tell sphinx-autodoc-typehints to generate stub parameter annotations 
+# including types, even if the parameters aren't explicitly documented.
 always_document_param_types = True
+
+# Include type hints in the parameter/return descriptions but not in the 
+# signature of the function.
+autodoc_typehints = 'description'
 
 # Remove auto-generated API docs from sidebars.
 #remove_from_toctrees = ["_autosummary/*"]
