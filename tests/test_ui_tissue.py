@@ -13,51 +13,6 @@ VERBOSE = 0
 SHOW = False
 
 
-def tmp():
-    return os.path.join(os.getcwd(),'tmp')
-
-def make_tmp():
-    os.makedirs(tmp(), exist_ok=True)
-
-def delete_tmp():
-    shutil.rmtree(tmp())
-
-class VoidModel(dc.Model):
-    pass
-
-class TestModel(dc.Model):
-    def __init__(self):
-        self.free = {'a':[-np.inf,np.inf]}
-        self.a=1
-        self.b=2
-        self.c=[3,4]
-        self.d=5*np.ones((2,3))
-
-def test_model():
-
-    t = VoidModel()
-    try:
-        t.predict(None)
-    except:
-        assert True
-
-    t = TestModel()
-    a = [1,2,3,4] + 6*[5]
-    assert np.array_equal(t._getflat(), [1.0])
-    assert np.array_equal(t._getflat(['a','b','c','d']), a)
-    f = t._getflat(['b','c','d'])
-    f[-1] = 0
-    t._setflat(f, ['b','c','d'])
-    a = [1,2,3,4] + 5*[5] + [0]
-    assert np.array_equal(t._getflat(['a','b','c','d']), a)
-
-    # make_tmp()
-    # t.save(path=tmp())
-    # t.a=2
-    # assert t.params('a')==2
-    # t.load(path=tmp())
-    # assert t.params('a')==1
-    # delete_tmp()
 
 
 def test_ui_tissue():
@@ -198,9 +153,7 @@ def test_ui_tissue_array():
 
 if __name__ == "__main__":
 
-    # make_tmp()
 
-    # test_model()
     test_ui_tissue()
     # test_ui_tissue_array()
 

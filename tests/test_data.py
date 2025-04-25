@@ -6,7 +6,7 @@ import dcmri as dc
 
 def test_dmr():
 
-    data_dict = {
+    data = {
         'time': ['Acquisition times', 'sec', 'float'],
         'signal': ['Acquired signals', 'sec', 'float'],
         'FA': ['Flip angle', 'deg', 'float'],
@@ -64,28 +64,29 @@ def test_dmr():
         },
     }
 
+    dmr = {'data':data, 'pars':pars, 'rois':rois}
     file = os.path.join(os.getcwd(), 'test.dmr')
-    dc.write_dmr(file, data_dict, rois, pars, nest=True)
+    dc.write_dmr(file, dmr, 'nest')
 
-    dict_read, rois_read, pars_read = dc.read_dmr(file, nest=True)
+    dmr = dc.read_dmr(file, 'nest')
 
     assert np.array_equal(
-        dict_read['FA'],
+        dmr['data']['FA'],
         ['Flip angle', 'deg', 'float'],
     )
     assert np.array_equal(
-        rois_read['001']['Baseline']['signal'],
+        dmr['rois']['001']['Baseline']['signal'],
         [5, 6, 7, 8],
     )
     assert np.array_equal(
-        rois_read['001']['Followup']['signal'],
+        dmr['rois']['001']['Followup']['signal'],
         [12, 13, 14],
     )
-    assert pars_read['001']['Followup']['FA'] == 40
-    assert pars_read['002']['Followup']['FA'] == 50
-    assert pars_read['002']['Baseline']['Checked'] is True
-    assert pars_read['002']['Followup']['n0'] == 10
-    assert pars_read['002']['Followup']['Checked'] is False
+    assert dmr['pars']['001']['Followup']['FA'] == 40
+    assert dmr['pars']['002']['Followup']['FA'] == 50
+    assert dmr['pars']['002']['Baseline']['Checked'] is True
+    assert dmr['pars']['002']['Followup']['n0'] == 10
+    assert dmr['pars']['002']['Followup']['Checked'] is False
 
     # Cleanup
     os.remove(file + '.zip')
