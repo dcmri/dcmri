@@ -61,7 +61,7 @@ Mediated Drug–Drug Interactions in Rats. Pharmaceutics. 2023; 15(3):896.
 Setup
 -----
 
-.. GENERATED FROM PYTHON SOURCE LINES 44-55
+.. GENERATED FROM PYTHON SOURCE LINES 44-57
 
 .. code-block:: Python
 
@@ -73,7 +73,9 @@ Setup
     import dcmri as dc
 
     # Fetch the data
-    data = dc.fetch('tristan6drugs')
+    dmrfile = dc.fetch('tristan_rats_healthy_six_drugs')
+    dmr = dc.read_dmr(dmrfile, 'nest')
+    rois, pars = dmr['rois'], dmr['pars']
 
 
 
@@ -83,7 +85,7 @@ Setup
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 56-64
+.. GENERATED FROM PYTHON SOURCE LINES 58-66
 
 Model definition
 ----------------
@@ -94,18 +96,18 @@ The model uses a standardized, population-average input function and fits
 for only 2 parameters, fixing all other free parameters to typical values 
 for this rat model:
 
-.. GENERATED FROM PYTHON SOURCE LINES 64-102
+.. GENERATED FROM PYTHON SOURCE LINES 66-94
 
 .. code-block:: Python
 
 
-    def tristan_rat(data, **kwargs):
+    def tristan_rat(roi, par, **kwargs):
 
         # High-resolution time points for prediction
-        t = np.arange(0, np.amax(data['time'])+0.5, 0.5)
+        t = np.arange(0, np.amax(roi['time'])+0.5, 0.5)
 
         # Standard input function
-        ca = dc.aif_tristan_rat(t, BAT=data['BAT'], duration=data['duration'])
+        ca = dc.aif_tristan_rat(t, BAT=par['BAT'], duration=par['duration'])
 
         # Liver model with population input function
         model = dc.Liver(
@@ -115,25 +117,15 @@ for this rat model:
             ca = ca,
 
             # Acquisition parameters
-            field_strength = data['field_strength'],
-            agent = 'gadoxetate',
-            TR = data['TR'],
-            FA = data['FA'],
-            n0 = data['n0'],
+            field_strength = par['field_strength'],
+            TR = par['TR'],
+            FA = par['FA'],
+            n0 = par['n0'],
 
-            # Kinetic parameters
-            kinetics = '1I-IC-HF',
-            H = 0.418,
-            ve = 0.23,
-            free = {
-                'khe': [0, np.inf], 
-                'Th': [0, np.inf],
-            },
-
-            # Tissue parameters
-            R10 = 1/dc.T1(data['field_strength'], 'liver'),
+            # Configure as in the TRISTAN-rat study
+            config = 'TRISTAN-rat',
         )
-        return model.train(data['time'], data['liver'], **kwargs)
+        return model.train(roi['time'], roi['liver'], **kwargs)
 
 
 
@@ -143,7 +135,7 @@ for this rat model:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 103-108
+.. GENERATED FROM PYTHON SOURCE LINES 95-100
 
 Check model fit
 ---------------
@@ -151,12 +143,17 @@ Before running the full analysis on all cases, lets illustrate the results
 by fitting the baseline visit for the first subject. We use maximum 
 verbosity to get some feedback about the iterations: 
 
-.. GENERATED FROM PYTHON SOURCE LINES 108-111
+.. GENERATED FROM PYTHON SOURCE LINES 100-108
 
 .. code-block:: Python
 
 
-    model = tristan_rat(data[0], xtol=1e-3, verbose=2)
+    model = tristan_rat(
+        rois['S05-02']['Day_1'], 
+        pars['S05-02']['Day_1'],
+        xtol=1e-3, 
+        verbose=2,
+    )
 
 
 
@@ -182,16 +179,19 @@ verbosity to get some feedback about the iterations:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 112-113
+.. GENERATED FROM PYTHON SOURCE LINES 109-110
 
 Plot the results to check that the model has fitted the data:
 
-.. GENERATED FROM PYTHON SOURCE LINES 113-116
+.. GENERATED FROM PYTHON SOURCE LINES 110-116
 
 .. code-block:: Python
 
 
-    model.plot(data[0]['time'], data[0]['liver'])
+    model.plot(
+        rois['S05-02']['Day_1']['time'], 
+        rois['S05-02']['Day_1']['liver'],
+    )
 
 
 
@@ -244,6 +244,8 @@ value, indicating that the parameters are measured reliably:
     Biliary tissue excretion rate (Kbh): 0.005 mL/sec/cm3
     Hepatocellular tissue uptake rate (Khe): 0.127 mL/sec/cm3
     Biliary excretion rate (kbh): 0.004 mL/sec/cm3
+    Liver extraction fraction (E): 0.57 
+    Hepatic plasma clearance (Ktrans): 0.013 mL/sec/cm3
 
 
 
@@ -255,7 +257,7 @@ Fit all data
 Now that we have illustrated an individual result in some detail, we proceed 
 with fitting all the data. Results are stored in a dataframe in long format:
 
-.. GENERATED FROM PYTHON SOURCE LINES 129-158
+.. GENERATED FROM PYTHON SOURCE LINES 129-160
 
 .. code-block:: Python
 
@@ -263,26 +265,28 @@ with fitting all the data. Results are stored in a dataframe in long format:
     results = []
 
     # Loop over all datasets
-    for scan in data:
+    for subj in rois.keys():
+        for visit in rois[subj].keys():
 
-        # Generate a trained model for scan i:
-        model = tristan_rat(scan, xtol=1e-3)
-    
-        # Save fitted parameters as a dataframe.
-        pars = model.export_params()
-        pars = pd.DataFrame.from_dict(pars, 
-            orient = 'index', 
-            columns = ["name", "value", "unit", 'stdev'])
-        pars['parameter'] = pars.index
-        pars['study'] = scan['study']
-        pars['visit'] = scan['visit']
-        pars['subject'] = scan['subject']
-    
-        # Add the dataframe to the list of results
-        results.append(pars)
+            roi = rois[subj][visit]
+            par = pars[subj][visit]
+
+            # Generate a trained model
+            model = tristan_rat(roi, par, xtol=1e-3)
+        
+            # Export fitted parameters as lists
+            rows = model.export_params(type='list')
+
+            # Add study, visit and subject info
+            rows = [row + [par['study'], par['visit'], subj] for row in rows]
+
+            # Add to the list of all results
+            results += rows
 
     # Combine all results into a single dataframe.
-    results = pd.concat(results).reset_index(drop=True)
+    cols = ['parameter', 'name', 'value', 'unit', 'stdev', 'study',
+            'visit', 'subject']
+    results = pd.DataFrame(results, columns=cols)
 
     # Print all results
     print(results.to_string())
@@ -296,488 +300,624 @@ with fitting all the data. Results are stored in a dataframe in long format:
 
  .. code-block:: none
 
-                                        name        value        unit       stdev parameter  study  visit  subject
-    0                             Hematocrit     0.418000                0.000000         H      5      1        2
-    1    Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      5      1        2
-    2             Hepatocellular uptake rate     0.029190  mL/sec/cm3    0.000690       khe      5      1        2
-    3       Hepatocellular mean transit time   192.246433         sec    4.836834        Th      5      1        2
-    4          Biliary tissue excretion rate     0.005202  mL/sec/cm3    0.000000       Kbh      5      1        2
-    5      Hepatocellular tissue uptake rate     0.126911  mL/sec/cm3    0.000000       Khe      5      1        2
-    6                 Biliary excretion rate     0.004005  mL/sec/cm3    0.000000       kbh      5      1        2
-    7                             Hematocrit     0.418000                0.000000         H      5      2        2
-    8    Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      5      2        2
-    9             Hepatocellular uptake rate     0.017053  mL/sec/cm3    0.000899       khe      5      2        2
-    10      Hepatocellular mean transit time   316.554650         sec   19.042915        Th      5      2        2
-    11         Biliary tissue excretion rate     0.003159  mL/sec/cm3    0.000000       Kbh      5      2        2
-    12     Hepatocellular tissue uptake rate     0.074145  mL/sec/cm3    0.000000       Khe      5      2        2
-    13                Biliary excretion rate     0.002432  mL/sec/cm3    0.000000       kbh      5      2        2
-    14                            Hematocrit     0.418000                0.000000         H      5      1        3
-    15   Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      5      1        3
-    16            Hepatocellular uptake rate     0.023123  mL/sec/cm3    0.002281       khe      5      1        3
-    17      Hepatocellular mean transit time   154.454455         sec   16.290498        Th      5      1        3
-    18         Biliary tissue excretion rate     0.006474  mL/sec/cm3    0.000000       Kbh      5      1        3
-    19     Hepatocellular tissue uptake rate     0.100536  mL/sec/cm3    0.000000       Khe      5      1        3
-    20                Biliary excretion rate     0.004985  mL/sec/cm3    0.000000       kbh      5      1        3
-    21                            Hematocrit     0.418000                0.000000         H      5      2        3
-    22   Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      5      2        3
-    23            Hepatocellular uptake rate     0.010411  mL/sec/cm3    0.000681       khe      5      2        3
-    24      Hepatocellular mean transit time   385.263252         sec   30.439907        Th      5      2        3
-    25         Biliary tissue excretion rate     0.002596  mL/sec/cm3    0.000000       Kbh      5      2        3
-    26     Hepatocellular tissue uptake rate     0.045265  mL/sec/cm3    0.000000       Khe      5      2        3
-    27                Biliary excretion rate     0.001999  mL/sec/cm3    0.000000       kbh      5      2        3
-    28                            Hematocrit     0.418000                0.000000         H      5      1        4
-    29   Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      5      1        4
-    30            Hepatocellular uptake rate     0.017874  mL/sec/cm3    0.000788       khe      5      1        4
-    31      Hepatocellular mean transit time   185.344175         sec    8.871480        Th      5      1        4
-    32         Biliary tissue excretion rate     0.005395  mL/sec/cm3    0.000000       Kbh      5      1        4
-    33     Hepatocellular tissue uptake rate     0.077715  mL/sec/cm3    0.000000       Khe      5      1        4
-    34                Biliary excretion rate     0.004154  mL/sec/cm3    0.000000       kbh      5      1        4
-    35                            Hematocrit     0.418000                0.000000         H      5      2        4
-    36   Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      5      2        4
-    37            Hepatocellular uptake rate     0.015201  mL/sec/cm3    0.000948       khe      5      2        4
-    38      Hepatocellular mean transit time   205.798967         sec   14.080670        Th      5      2        4
-    39         Biliary tissue excretion rate     0.004859  mL/sec/cm3    0.000000       Kbh      5      2        4
-    40     Hepatocellular tissue uptake rate     0.066089  mL/sec/cm3    0.000000       Khe      5      2        4
-    41                Biliary excretion rate     0.003742  mL/sec/cm3    0.000000       kbh      5      2        4
-    42                            Hematocrit     0.418000                0.000000         H      5      1        5
-    43   Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      5      1        5
-    44            Hepatocellular uptake rate     0.015750  mL/sec/cm3    0.001193       khe      5      1        5
-    45      Hepatocellular mean transit time   194.627433         sec   16.106847        Th      5      1        5
-    46         Biliary tissue excretion rate     0.005138  mL/sec/cm3    0.000000       Kbh      5      1        5
-    47     Hepatocellular tissue uptake rate     0.068477  mL/sec/cm3    0.000000       Khe      5      1        5
-    48                Biliary excretion rate     0.003956  mL/sec/cm3    0.000000       kbh      5      1        5
-    49                            Hematocrit     0.418000                0.000000         H      5      2        5
-    50   Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      5      2        5
-    51            Hepatocellular uptake rate     0.014848  mL/sec/cm3    0.000687       khe      5      2        5
-    52      Hepatocellular mean transit time   257.645715         sec   13.315206        Th      5      2        5
-    53         Biliary tissue excretion rate     0.003881  mL/sec/cm3    0.000000       Kbh      5      2        5
-    54     Hepatocellular tissue uptake rate     0.064556  mL/sec/cm3    0.000000       Khe      5      2        5
-    55                Biliary excretion rate     0.002989  mL/sec/cm3    0.000000       kbh      5      2        5
-    56                            Hematocrit     0.418000                0.000000         H      5      1        6
-    57   Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      5      1        6
-    58            Hepatocellular uptake rate     0.017684  mL/sec/cm3    0.001342       khe      5      1        6
-    59      Hepatocellular mean transit time   171.878130         sec   14.125022        Th      5      1        6
-    60         Biliary tissue excretion rate     0.005818  mL/sec/cm3    0.000000       Kbh      5      1        6
-    61     Hepatocellular tissue uptake rate     0.076888  mL/sec/cm3    0.000000       Khe      5      1        6
-    62                Biliary excretion rate     0.004480  mL/sec/cm3    0.000000       kbh      5      1        6
-    63                            Hematocrit     0.418000                0.000000         H      5      2        6
-    64   Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      5      2        6
-    65            Hepatocellular uptake rate     0.019304  mL/sec/cm3    0.001365       khe      5      2        6
-    66      Hepatocellular mean transit time   208.105645         sec   16.012430        Th      5      2        6
-    67         Biliary tissue excretion rate     0.004805  mL/sec/cm3    0.000000       Kbh      5      2        6
-    68     Hepatocellular tissue uptake rate     0.083928  mL/sec/cm3    0.000000       Khe      5      2        6
-    69                Biliary excretion rate     0.003700  mL/sec/cm3    0.000000       kbh      5      2        6
-    70                            Hematocrit     0.418000                0.000000         H     10      1        1
-    71   Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve     10      1        1
-    72            Hepatocellular uptake rate     0.032653  mL/sec/cm3    0.002459       khe     10      1        1
-    73      Hepatocellular mean transit time   204.095965         sec   16.306195        Th     10      1        1
-    74         Biliary tissue excretion rate     0.004900  mL/sec/cm3    0.000000       Kbh     10      1        1
-    75     Hepatocellular tissue uptake rate     0.141969  mL/sec/cm3    0.000000       Khe     10      1        1
-    76                Biliary excretion rate     0.003773  mL/sec/cm3    0.000000       kbh     10      1        1
-    77                            Hematocrit     0.418000                0.000000         H     10      2        1
-    78   Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve     10      2        1
-    79            Hepatocellular uptake rate     0.010368  mL/sec/cm3    0.000343       khe     10      2        1
-    80      Hepatocellular mean transit time   409.183856         sec   16.626224        Th     10      2        1
-    81         Biliary tissue excretion rate     0.002444  mL/sec/cm3    0.000000       Kbh     10      2        1
-    82     Hepatocellular tissue uptake rate     0.045078  mL/sec/cm3    0.000000       Khe     10      2        1
-    83                Biliary excretion rate     0.001882  mL/sec/cm3    0.000000       kbh     10      2        1
-    84                            Hematocrit     0.418000                0.000000         H     10      1        2
-    85   Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve     10      1        2
-    86            Hepatocellular uptake rate     0.025971  mL/sec/cm3    0.001777       khe     10      1        2
-    87      Hepatocellular mean transit time   260.964310         sec   19.500936        Th     10      1        2
-    88         Biliary tissue excretion rate     0.003832  mL/sec/cm3    0.000000       Kbh     10      1        2
-    89     Hepatocellular tissue uptake rate     0.112917  mL/sec/cm3    0.000000       Khe     10      1        2
-    90                Biliary excretion rate     0.002951  mL/sec/cm3    0.000000       kbh     10      1        2
-    91                            Hematocrit     0.418000                0.000000         H     10      2        2
-    92   Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve     10      2        2
-    93            Hepatocellular uptake rate     0.027056  mL/sec/cm3    0.001882       khe     10      2        2
-    94      Hepatocellular mean transit time   345.740734         sec   27.331373        Th     10      2        2
-    95         Biliary tissue excretion rate     0.002892  mL/sec/cm3    0.000000       Kbh     10      2        2
-    96     Hepatocellular tissue uptake rate     0.117634  mL/sec/cm3    0.000000       Khe     10      2        2
-    97                Biliary excretion rate     0.002227  mL/sec/cm3    0.000000       kbh     10      2        2
-    98                            Hematocrit     0.418000                0.000000         H     10      1        3
-    99   Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve     10      1        3
-    100           Hepatocellular uptake rate     0.036772  mL/sec/cm3    0.002993       khe     10      1        3
-    101     Hepatocellular mean transit time   192.094645         sec   16.432004        Th     10      1        3
-    102        Biliary tissue excretion rate     0.005206  mL/sec/cm3    0.000000       Kbh     10      1        3
-    103    Hepatocellular tissue uptake rate     0.159880  mL/sec/cm3    0.000000       Khe     10      1        3
-    104               Biliary excretion rate     0.004008  mL/sec/cm3    0.000000       kbh     10      1        3
-    105                           Hematocrit     0.418000                0.000000         H     10      2        3
-    106  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve     10      2        3
-    107           Hepatocellular uptake rate     0.033378  mL/sec/cm3    0.001953       khe     10      2        3
-    108     Hepatocellular mean transit time   253.681764         sec   15.936704        Th     10      2        3
-    109        Biliary tissue excretion rate     0.003942  mL/sec/cm3    0.000000       Kbh     10      2        3
-    110    Hepatocellular tissue uptake rate     0.145124  mL/sec/cm3    0.000000       Khe     10      2        3
-    111               Biliary excretion rate     0.003035  mL/sec/cm3    0.000000       kbh     10      2        3
-    112                           Hematocrit     0.418000                0.000000         H     10      1        4
-    113  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve     10      1        4
-    114           Hepatocellular uptake rate     0.034563  mL/sec/cm3    0.003415       khe     10      1        4
-    115     Hepatocellular mean transit time   221.220680         sec   23.197005        Th     10      1        4
-    116        Biliary tissue excretion rate     0.004520  mL/sec/cm3    0.000000       Kbh     10      1        4
-    117    Hepatocellular tissue uptake rate     0.150275  mL/sec/cm3    0.000000       Khe     10      1        4
-    118               Biliary excretion rate     0.003481  mL/sec/cm3    0.000000       kbh     10      1        4
-    119                           Hematocrit     0.418000                0.000000         H     10      2        4
-    120  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve     10      2        4
-    121           Hepatocellular uptake rate     0.027510  mL/sec/cm3    0.001591       khe     10      2        4
-    122     Hepatocellular mean transit time   248.825391         sec   15.598687        Th     10      2        4
-    123        Biliary tissue excretion rate     0.004019  mL/sec/cm3    0.000000       Kbh     10      2        4
-    124    Hepatocellular tissue uptake rate     0.119610  mL/sec/cm3    0.000000       Khe     10      2        4
-    125               Biliary excretion rate     0.003095  mL/sec/cm3    0.000000       kbh     10      2        4
-    126                           Hematocrit     0.418000                0.000000         H     10      1        5
-    127  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve     10      1        5
-    128           Hepatocellular uptake rate     0.032724  mL/sec/cm3    0.002464       khe     10      1        5
-    129     Hepatocellular mean transit time   203.321189         sec   16.233566        Th     10      1        5
-    130        Biliary tissue excretion rate     0.004918  mL/sec/cm3    0.000000       Kbh     10      1        5
-    131    Hepatocellular tissue uptake rate     0.142280  mL/sec/cm3    0.000000       Khe     10      1        5
-    132               Biliary excretion rate     0.003787  mL/sec/cm3    0.000000       kbh     10      1        5
-    133                           Hematocrit     0.418000                0.000000         H     10      2        5
-    134  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve     10      2        5
-    135           Hepatocellular uptake rate     0.034150  mL/sec/cm3    0.002115       khe     10      2        5
-    136     Hepatocellular mean transit time   256.904592         sec   17.077545        Th     10      2        5
-    137        Biliary tissue excretion rate     0.003892  mL/sec/cm3    0.000000       Kbh     10      2        5
-    138    Hepatocellular tissue uptake rate     0.148477  mL/sec/cm3    0.000000       Khe     10      2        5
-    139               Biliary excretion rate     0.002997  mL/sec/cm3    0.000000       kbh     10      2        5
-    140                           Hematocrit     0.418000                0.000000         H     10      1        6
-    141  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve     10      1        6
-    142           Hepatocellular uptake rate     0.039966  mL/sec/cm3    0.002838       khe     10      1        6
-    143     Hepatocellular mean transit time   225.378400         sec   16.843082        Th     10      1        6
-    144        Biliary tissue excretion rate     0.004437  mL/sec/cm3    0.000000       Kbh     10      1        6
-    145    Hepatocellular tissue uptake rate     0.173767  mL/sec/cm3    0.000000       Khe     10      1        6
-    146               Biliary excretion rate     0.003416  mL/sec/cm3    0.000000       kbh     10      1        6
-    147                           Hematocrit     0.418000                0.000000         H     10      2        6
-    148  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve     10      2        6
-    149           Hepatocellular uptake rate     0.036884  mL/sec/cm3    0.002698       khe     10      2        6
-    150     Hepatocellular mean transit time   268.185300         sec   21.041762        Th     10      2        6
-    151        Biliary tissue excretion rate     0.003729  mL/sec/cm3    0.000000       Kbh     10      2        6
-    152    Hepatocellular tissue uptake rate     0.160366  mL/sec/cm3    0.000000       Khe     10      2        6
-    153               Biliary excretion rate     0.002871  mL/sec/cm3    0.000000       kbh     10      2        6
-    154                           Hematocrit     0.418000                0.000000         H      9      1        1
-    155  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      9      1        1
-    156           Hepatocellular uptake rate     0.020030  mL/sec/cm3    0.000709       khe      9      1        1
-    157     Hepatocellular mean transit time   373.947283         sec   15.530816        Th      9      1        1
-    158        Biliary tissue excretion rate     0.002674  mL/sec/cm3    0.000000       Kbh      9      1        1
-    159    Hepatocellular tissue uptake rate     0.087087  mL/sec/cm3    0.000000       Khe      9      1        1
-    160               Biliary excretion rate     0.002059  mL/sec/cm3    0.000000       kbh      9      1        1
-    161                           Hematocrit     0.418000                0.000000         H      9      2        1
-    162  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      9      2        1
-    163           Hepatocellular uptake rate     0.019136  mL/sec/cm3    0.000890       khe      9      2        1
-    164     Hepatocellular mean transit time   331.575221         sec   17.678724        Th      9      2        1
-    165        Biliary tissue excretion rate     0.003016  mL/sec/cm3    0.000000       Kbh      9      2        1
-    166    Hepatocellular tissue uptake rate     0.083200  mL/sec/cm3    0.000000       Khe      9      2        1
-    167               Biliary excretion rate     0.002322  mL/sec/cm3    0.000000       kbh      9      2        1
-    168                           Hematocrit     0.418000                0.000000         H      9      1        2
-    169  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      9      1        2
-    170           Hepatocellular uptake rate     0.017119  mL/sec/cm3    0.001287       khe      9      1        2
-    171     Hepatocellular mean transit time   231.522778         sec   19.151147        Th      9      1        2
-    172        Biliary tissue excretion rate     0.004319  mL/sec/cm3    0.000000       Kbh      9      1        2
-    173    Hepatocellular tissue uptake rate     0.074433  mL/sec/cm3    0.000000       Khe      9      1        2
-    174               Biliary excretion rate     0.003326  mL/sec/cm3    0.000000       kbh      9      1        2
-    175                           Hematocrit     0.418000                0.000000         H      9      2        2
-    176  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      9      2        2
-    177           Hepatocellular uptake rate     0.022700  mL/sec/cm3    0.001491       khe      9      2        2
-    178     Hepatocellular mean transit time   326.272113         sec   24.293174        Th      9      2        2
-    179        Biliary tissue excretion rate     0.003065  mL/sec/cm3    0.000000       Kbh      9      2        2
-    180    Hepatocellular tissue uptake rate     0.098694  mL/sec/cm3    0.000000       Khe      9      2        2
-    181               Biliary excretion rate     0.002360  mL/sec/cm3    0.000000       kbh      9      2        2
-    182                           Hematocrit     0.418000                0.000000         H      9      1        3
-    183  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      9      1        3
-    184           Hepatocellular uptake rate     0.028307  mL/sec/cm3    0.002243       khe      9      1        3
-    185     Hepatocellular mean transit time   297.434220         sec   26.028315        Th      9      1        3
-    186        Biliary tissue excretion rate     0.003362  mL/sec/cm3    0.000000       Kbh      9      1        3
-    187    Hepatocellular tissue uptake rate     0.123073  mL/sec/cm3    0.000000       Khe      9      1        3
-    188               Biliary excretion rate     0.002589  mL/sec/cm3    0.000000       kbh      9      1        3
-    189                           Hematocrit     0.418000                0.000000         H      9      2        3
-    190  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      9      2        3
-    191           Hepatocellular uptake rate     0.025216  mL/sec/cm3    0.001579       khe      9      2        3
-    192     Hepatocellular mean transit time   327.688375         sec   23.156375        Th      9      2        3
-    193        Biliary tissue excretion rate     0.003052  mL/sec/cm3    0.000000       Kbh      9      2        3
-    194    Hepatocellular tissue uptake rate     0.109635  mL/sec/cm3    0.000000       Khe      9      2        3
-    195               Biliary excretion rate     0.002350  mL/sec/cm3    0.000000       kbh      9      2        3
-    196                           Hematocrit     0.418000                0.000000         H      8      1        1
-    197  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      8      1        1
-    198           Hepatocellular uptake rate     0.029344  mL/sec/cm3    0.001970       khe      8      1        1
-    199     Hepatocellular mean transit time   408.262045         sec   31.838820        Th      8      1        1
-    200        Biliary tissue excretion rate     0.002449  mL/sec/cm3    0.000000       Kbh      8      1        1
-    201    Hepatocellular tissue uptake rate     0.127585  mL/sec/cm3    0.000000       Khe      8      1        1
-    202               Biliary excretion rate     0.001886  mL/sec/cm3    0.000000       kbh      8      1        1
-    203                           Hematocrit     0.418000                0.000000         H      8      2        1
-    204  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      8      2        1
-    205           Hepatocellular uptake rate     0.003034  mL/sec/cm3    0.000466       khe      8      2        1
-    206     Hepatocellular mean transit time   850.042766         sec  227.108547        Th      8      2        1
-    207        Biliary tissue excretion rate     0.001176  mL/sec/cm3    0.000000       Kbh      8      2        1
-    208    Hepatocellular tissue uptake rate     0.013192  mL/sec/cm3    0.000000       Khe      8      2        1
-    209               Biliary excretion rate     0.000906  mL/sec/cm3    0.000000       kbh      8      2        1
-    210                           Hematocrit     0.418000                0.000000         H      8      1        2
-    211  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      8      1        2
-    212           Hepatocellular uptake rate     0.027849  mL/sec/cm3    0.002515       khe      8      1        2
-    213     Hepatocellular mean transit time   269.048876         sec   26.131604        Th      8      1        2
-    214        Biliary tissue excretion rate     0.003717  mL/sec/cm3    0.000000       Kbh      8      1        2
-    215    Hepatocellular tissue uptake rate     0.121082  mL/sec/cm3    0.000000       Khe      8      1        2
-    216               Biliary excretion rate     0.002862  mL/sec/cm3    0.000000       kbh      8      1        2
-    217                           Hematocrit     0.418000                0.000000         H      8      2        2
-    218  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      8      2        2
-    219           Hepatocellular uptake rate     0.003093  mL/sec/cm3    0.000567       khe      8      2        2
-    220     Hepatocellular mean transit time   742.109715         sec  218.143697        Th      8      2        2
-    221        Biliary tissue excretion rate     0.001348  mL/sec/cm3    0.000000       Kbh      8      2        2
-    222    Hepatocellular tissue uptake rate     0.013450  mL/sec/cm3    0.000000       Khe      8      2        2
-    223               Biliary excretion rate     0.001038  mL/sec/cm3    0.000000       kbh      8      2        2
-    224                           Hematocrit     0.418000                0.000000         H      8      1        3
-    225  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      8      1        3
-    226           Hepatocellular uptake rate     0.019728  mL/sec/cm3    0.001371       khe      8      1        3
-    227     Hepatocellular mean transit time   383.872404         sec   31.160715        Th      8      1        3
-    228        Biliary tissue excretion rate     0.002605  mL/sec/cm3    0.000000       Kbh      8      1        3
-    229    Hepatocellular tissue uptake rate     0.085774  mL/sec/cm3    0.000000       Khe      8      1        3
-    230               Biliary excretion rate     0.002006  mL/sec/cm3    0.000000       kbh      8      1        3
-    231                           Hematocrit     0.418000                0.000000         H      8      2        3
-    232  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      8      2        3
-    233           Hepatocellular uptake rate     0.002214  mL/sec/cm3    0.000386       khe      8      2        3
-    234     Hepatocellular mean transit time  1076.771454         sec  381.975331        Th      8      2        3
-    235        Biliary tissue excretion rate     0.000929  mL/sec/cm3    0.000000       Kbh      8      2        3
-    236    Hepatocellular tissue uptake rate     0.009627  mL/sec/cm3    0.000000       Khe      8      2        3
-    237               Biliary excretion rate     0.000715  mL/sec/cm3    0.000000       kbh      8      2        3
-    238                           Hematocrit     0.418000                0.000000         H      8      1        4
-    239  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      8      1        4
-    240           Hepatocellular uptake rate     0.018832  mL/sec/cm3    0.001177       khe      8      1        4
-    241     Hepatocellular mean transit time   435.387822         sec   33.054295        Th      8      1        4
-    242        Biliary tissue excretion rate     0.002297  mL/sec/cm3    0.000000       Kbh      8      1        4
-    243    Hepatocellular tissue uptake rate     0.081878  mL/sec/cm3    0.000000       Khe      8      1        4
-    244               Biliary excretion rate     0.001769  mL/sec/cm3    0.000000       kbh      8      1        4
-    245                           Hematocrit     0.418000                0.000000         H      8      2        4
-    246  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      8      2        4
-    247           Hepatocellular uptake rate     0.002796  mL/sec/cm3    0.000413       khe      8      2        4
-    248     Hepatocellular mean transit time   759.109378         sec  182.021469        Th      8      2        4
-    249        Biliary tissue excretion rate     0.001317  mL/sec/cm3    0.000000       Kbh      8      2        4
-    250    Hepatocellular tissue uptake rate     0.012158  mL/sec/cm3    0.000000       Khe      8      2        4
-    251               Biliary excretion rate     0.001014  mL/sec/cm3    0.000000       kbh      8      2        4
-    252                           Hematocrit     0.418000                0.000000         H      8      1        5
-    253  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      8      1        5
-    254           Hepatocellular uptake rate     0.025961  mL/sec/cm3    0.002111       khe      8      1        5
-    255     Hepatocellular mean transit time   262.092578         sec   22.959490        Th      8      1        5
-    256        Biliary tissue excretion rate     0.003815  mL/sec/cm3    0.000000       Kbh      8      1        5
-    257    Hepatocellular tissue uptake rate     0.112874  mL/sec/cm3    0.000000       Khe      8      1        5
-    258               Biliary excretion rate     0.002938  mL/sec/cm3    0.000000       kbh      8      1        5
-    259                           Hematocrit     0.418000                0.000000         H      8      2        5
-    260  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      8      2        5
-    261           Hepatocellular uptake rate     0.002245  mL/sec/cm3    0.000343       khe      8      2        5
-    262     Hepatocellular mean transit time   958.806102         sec  275.583681        Th      8      2        5
-    263        Biliary tissue excretion rate     0.001043  mL/sec/cm3    0.000000       Kbh      8      2        5
-    264    Hepatocellular tissue uptake rate     0.009760  mL/sec/cm3    0.000000       Khe      8      2        5
-    265               Biliary excretion rate     0.000803  mL/sec/cm3    0.000000       kbh      8      2        5
-    266                           Hematocrit     0.418000                0.000000         H      8      1        6
-    267  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      8      1        6
-    268           Hepatocellular uptake rate     0.025441  mL/sec/cm3    0.002053       khe      8      1        6
-    269     Hepatocellular mean transit time   295.237391         sec   26.068654        Th      8      1        6
-    270        Biliary tissue excretion rate     0.003387  mL/sec/cm3    0.000000       Kbh      8      1        6
-    271    Hepatocellular tissue uptake rate     0.110613  mL/sec/cm3    0.000000       Khe      8      1        6
-    272               Biliary excretion rate     0.002608  mL/sec/cm3    0.000000       kbh      8      1        6
-    273                           Hematocrit     0.418000                0.000000         H      8      2        6
-    274  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      8      2        6
-    275           Hepatocellular uptake rate     0.001989  mL/sec/cm3    0.000369       khe      8      2        6
-    276     Hepatocellular mean transit time  1046.481399         sec  387.308456        Th      8      2        6
-    277        Biliary tissue excretion rate     0.000956  mL/sec/cm3    0.000000       Kbh      8      2        6
-    278    Hepatocellular tissue uptake rate     0.008648  mL/sec/cm3    0.000000       Khe      8      2        6
-    279               Biliary excretion rate     0.000736  mL/sec/cm3    0.000000       kbh      8      2        6
-    280                           Hematocrit     0.418000                0.000000         H      7      1        2
-    281  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      7      1        2
-    282           Hepatocellular uptake rate     0.022070  mL/sec/cm3    0.002018       khe      7      1        2
-    283     Hepatocellular mean transit time   293.503375         sec   29.624750        Th      7      1        2
-    284        Biliary tissue excretion rate     0.003407  mL/sec/cm3    0.000000       Kbh      7      1        2
-    285    Hepatocellular tissue uptake rate     0.095958  mL/sec/cm3    0.000000       Khe      7      1        2
-    286               Biliary excretion rate     0.002623  mL/sec/cm3    0.000000       kbh      7      1        2
-    287                           Hematocrit     0.418000                0.000000         H      7      2        2
-    288  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      7      2        2
-    289           Hepatocellular uptake rate     0.012012  mL/sec/cm3    0.001000       khe      7      2        2
-    290     Hepatocellular mean transit time   260.758709         sec   24.245170        Th      7      2        2
-    291        Biliary tissue excretion rate     0.003835  mL/sec/cm3    0.000000       Kbh      7      2        2
-    292    Hepatocellular tissue uptake rate     0.052225  mL/sec/cm3    0.000000       Khe      7      2        2
-    293               Biliary excretion rate     0.002953  mL/sec/cm3    0.000000       kbh      7      2        2
-    294                           Hematocrit     0.418000                0.000000         H      7      1        3
-    295  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      7      1        3
-    296           Hepatocellular uptake rate     0.020564  mL/sec/cm3    0.002026       khe      7      1        3
-    297     Hepatocellular mean transit time   282.354635         sec   30.659355        Th      7      1        3
-    298        Biliary tissue excretion rate     0.003542  mL/sec/cm3    0.000000       Kbh      7      1        3
-    299    Hepatocellular tissue uptake rate     0.089409  mL/sec/cm3    0.000000       Khe      7      1        3
-    300               Biliary excretion rate     0.002727  mL/sec/cm3    0.000000       kbh      7      1        3
-    301                           Hematocrit     0.418000                0.000000         H      7      2        3
-    302  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      7      2        3
-    303           Hepatocellular uptake rate     0.014715  mL/sec/cm3    0.001503       khe      7      2        3
-    304     Hepatocellular mean transit time   263.644766         sec   29.904439        Th      7      2        3
-    305        Biliary tissue excretion rate     0.003793  mL/sec/cm3    0.000000       Kbh      7      2        3
-    306    Hepatocellular tissue uptake rate     0.063980  mL/sec/cm3    0.000000       Khe      7      2        3
-    307               Biliary excretion rate     0.002921  mL/sec/cm3    0.000000       kbh      7      2        3
-    308                           Hematocrit     0.418000                0.000000         H      7      1        4
-    309  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      7      1        4
-    310           Hepatocellular uptake rate     0.013127  mL/sec/cm3    0.000953       khe      7      1        4
-    311     Hepatocellular mean transit time   298.416370         sec   24.534799        Th      7      1        4
-    312        Biliary tissue excretion rate     0.003351  mL/sec/cm3    0.000000       Kbh      7      1        4
-    313    Hepatocellular tissue uptake rate     0.057074  mL/sec/cm3    0.000000       Khe      7      1        4
-    314               Biliary excretion rate     0.002580  mL/sec/cm3    0.000000       kbh      7      1        4
-    315                           Hematocrit     0.418000                0.000000         H      7      2        4
-    316  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      7      2        4
-    317           Hepatocellular uptake rate     0.005471  mL/sec/cm3    0.000503       khe      7      2        4
-    318     Hepatocellular mean transit time   360.852747         sec   39.769304        Th      7      2        4
-    319        Biliary tissue excretion rate     0.002771  mL/sec/cm3    0.000000       Kbh      7      2        4
-    320    Hepatocellular tissue uptake rate     0.023788  mL/sec/cm3    0.000000       Khe      7      2        4
-    321               Biliary excretion rate     0.002134  mL/sec/cm3    0.000000       kbh      7      2        4
-    322                           Hematocrit     0.418000                0.000000         H      7      1        5
-    323  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      7      1        5
-    324           Hepatocellular uptake rate     0.020795  mL/sec/cm3    0.002349       khe      7      1        5
-    325     Hepatocellular mean transit time   217.745080         sec   26.492837        Th      7      1        5
-    326        Biliary tissue excretion rate     0.004593  mL/sec/cm3    0.000000       Kbh      7      1        5
-    327    Hepatocellular tissue uptake rate     0.090411  mL/sec/cm3    0.000000       Khe      7      1        5
-    328               Biliary excretion rate     0.003536  mL/sec/cm3    0.000000       kbh      7      1        5
-    329                           Hematocrit     0.418000                0.000000         H      7      2        5
-    330  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      7      2        5
-    331           Hepatocellular uptake rate     0.005198  mL/sec/cm3    0.000558       khe      7      2        5
-    332     Hepatocellular mean transit time   411.657352         sec   54.774945        Th      7      2        5
-    333        Biliary tissue excretion rate     0.002429  mL/sec/cm3    0.000000       Kbh      7      2        5
-    334    Hepatocellular tissue uptake rate     0.022600  mL/sec/cm3    0.000000       Khe      7      2        5
-    335               Biliary excretion rate     0.001870  mL/sec/cm3    0.000000       kbh      7      2        5
-    336                           Hematocrit     0.418000                0.000000         H      7      1        6
-    337  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      7      1        6
-    338           Hepatocellular uptake rate     0.022667  mL/sec/cm3    0.002503       khe      7      1        6
-    339     Hepatocellular mean transit time   257.860271         sec   30.914503        Th      7      1        6
-    340        Biliary tissue excretion rate     0.003878  mL/sec/cm3    0.000000       Kbh      7      1        6
-    341    Hepatocellular tissue uptake rate     0.098553  mL/sec/cm3    0.000000       Khe      7      1        6
-    342               Biliary excretion rate     0.002986  mL/sec/cm3    0.000000       kbh      7      1        6
-    343                           Hematocrit     0.418000                0.000000         H      7      2        6
-    344  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      7      2        6
-    345           Hepatocellular uptake rate     0.016662  mL/sec/cm3    0.001340       khe      7      2        6
-    346     Hepatocellular mean transit time   279.900091         sec   25.041638        Th      7      2        6
-    347        Biliary tissue excretion rate     0.003573  mL/sec/cm3    0.000000       Kbh      7      2        6
-    348    Hepatocellular tissue uptake rate     0.072444  mL/sec/cm3    0.000000       Khe      7      2        6
-    349               Biliary excretion rate     0.002751  mL/sec/cm3    0.000000       kbh      7      2        6
-    350                           Hematocrit     0.418000                0.000000         H      6      1        2
-    351  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      6      1        2
-    352           Hepatocellular uptake rate     0.029692  mL/sec/cm3    0.001751       khe      6      1        2
-    353     Hepatocellular mean transit time   210.523275         sec   13.254362        Th      6      1        2
-    354        Biliary tissue excretion rate     0.004750  mL/sec/cm3    0.000000       Kbh      6      1        2
-    355    Hepatocellular tissue uptake rate     0.129094  mL/sec/cm3    0.000000       Khe      6      1        2
-    356               Biliary excretion rate     0.003658  mL/sec/cm3    0.000000       kbh      6      1        2
-    357                           Hematocrit     0.418000                0.000000         H      6      2        2
-    358  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      6      2        2
-    359           Hepatocellular uptake rate     0.028013  mL/sec/cm3    0.001196       khe      6      2        2
-    360     Hepatocellular mean transit time   251.251402         sec   11.632323        Th      6      2        2
-    361        Biliary tissue excretion rate     0.003980  mL/sec/cm3    0.000000       Kbh      6      2        2
-    362    Hepatocellular tissue uptake rate     0.121795  mL/sec/cm3    0.000000       Khe      6      2        2
-    363               Biliary excretion rate     0.003065  mL/sec/cm3    0.000000       kbh      6      2        2
-    364                           Hematocrit     0.418000                0.000000         H      6      1        3
-    365  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      6      1        3
-    366           Hepatocellular uptake rate     0.025392  mL/sec/cm3    0.002823       khe      6      1        3
-    367     Hepatocellular mean transit time   162.886138         sec   19.312284        Th      6      1        3
-    368        Biliary tissue excretion rate     0.006139  mL/sec/cm3    0.000000       Kbh      6      1        3
-    369    Hepatocellular tissue uptake rate     0.110399  mL/sec/cm3    0.000000       Khe      6      1        3
-    370               Biliary excretion rate     0.004727  mL/sec/cm3    0.000000       kbh      6      1        3
-    371                           Hematocrit     0.418000                0.000000         H      6      2        3
-    372  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      6      2        3
-    373           Hepatocellular uptake rate     0.025035  mL/sec/cm3    0.001321       khe      6      2        3
-    374     Hepatocellular mean transit time   219.717326         sec   12.519368        Th      6      2        3
-    375        Biliary tissue excretion rate     0.004551  mL/sec/cm3    0.000000       Kbh      6      2        3
-    376    Hepatocellular tissue uptake rate     0.108848  mL/sec/cm3    0.000000       Khe      6      2        3
-    377               Biliary excretion rate     0.003505  mL/sec/cm3    0.000000       kbh      6      2        3
-    378                           Hematocrit     0.418000                0.000000         H      6      1        4
-    379  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      6      1        4
-    380           Hepatocellular uptake rate     0.020645  mL/sec/cm3    0.001435       khe      6      1        4
-    381     Hepatocellular mean transit time   173.413608         sec   12.984491        Th      6      1        4
-    382        Biliary tissue excretion rate     0.005767  mL/sec/cm3    0.000000       Kbh      6      1        4
-    383    Hepatocellular tissue uptake rate     0.089759  mL/sec/cm3    0.000000       Khe      6      1        4
-    384               Biliary excretion rate     0.004440  mL/sec/cm3    0.000000       kbh      6      1        4
-    385                           Hematocrit     0.418000                0.000000         H      6      2        4
-    386  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      6      2        4
-    387           Hepatocellular uptake rate     0.016584  mL/sec/cm3    0.001561       khe      6      2        4
-    388     Hepatocellular mean transit time   202.547253         sec   20.828141        Th      6      2        4
-    389        Biliary tissue excretion rate     0.004937  mL/sec/cm3    0.000000       Kbh      6      2        4
-    390    Hepatocellular tissue uptake rate     0.072105  mL/sec/cm3    0.000000       Khe      6      2        4
-    391               Biliary excretion rate     0.003802  mL/sec/cm3    0.000000       kbh      6      2        4
-    392                           Hematocrit     0.418000                0.000000         H      6      1        5
-    393  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      6      1        5
-    394           Hepatocellular uptake rate     0.019787  mL/sec/cm3    0.001499       khe      6      1        5
-    395     Hepatocellular mean transit time   170.731411         sec   13.947304        Th      6      1        5
-    396        Biliary tissue excretion rate     0.005857  mL/sec/cm3    0.000000       Kbh      6      1        5
-    397    Hepatocellular tissue uptake rate     0.086031  mL/sec/cm3    0.000000       Khe      6      1        5
-    398               Biliary excretion rate     0.004510  mL/sec/cm3    0.000000       kbh      6      1        5
-    399                           Hematocrit     0.418000                0.000000         H      6      2        5
-    400  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      6      2        5
-    401           Hepatocellular uptake rate     0.020136  mL/sec/cm3    0.001051       khe      6      2        5
-    402     Hepatocellular mean transit time   241.444429         sec   13.829168        Th      6      2        5
-    403        Biliary tissue excretion rate     0.004142  mL/sec/cm3    0.000000       Kbh      6      2        5
-    404    Hepatocellular tissue uptake rate     0.087547  mL/sec/cm3    0.000000       Khe      6      2        5
-    405               Biliary excretion rate     0.003189  mL/sec/cm3    0.000000       kbh      6      2        5
-    406                           Hematocrit     0.418000                0.000000         H      6      1        6
-    407  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      6      1        6
-    408           Hepatocellular uptake rate     0.020815  mL/sec/cm3    0.001524       khe      6      1        6
-    409     Hepatocellular mean transit time   231.684464         sec   18.526224        Th      6      1        6
-    410        Biliary tissue excretion rate     0.004316  mL/sec/cm3    0.000000       Kbh      6      1        6
-    411    Hepatocellular tissue uptake rate     0.090499  mL/sec/cm3    0.000000       Khe      6      1        6
-    412               Biliary excretion rate     0.003323  mL/sec/cm3    0.000000       kbh      6      1        6
-    413                           Hematocrit     0.418000                0.000000         H      6      2        6
-    414  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve      6      2        6
-    415           Hepatocellular uptake rate     0.023018  mL/sec/cm3    0.001236       khe      6      2        6
-    416     Hepatocellular mean transit time   234.548587         sec   13.712021        Th      6      2        6
-    417        Biliary tissue excretion rate     0.004264  mL/sec/cm3    0.000000       Kbh      6      2        6
-    418    Hepatocellular tissue uptake rate     0.100077  mL/sec/cm3    0.000000       Khe      6      2        6
-    419               Biliary excretion rate     0.003283  mL/sec/cm3    0.000000       kbh      6      2        6
-    420                           Hematocrit     0.418000                0.000000         H     12      1        1
-    421  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve     12      1        1
-    422           Hepatocellular uptake rate     0.030000  mL/sec/cm3    0.001981       khe     12      1        1
-    423     Hepatocellular mean transit time   326.139621         sec   23.676019        Th     12      1        1
-    424        Biliary tissue excretion rate     0.003066  mL/sec/cm3    0.000000       Kbh     12      1        1
-    425    Hepatocellular tissue uptake rate     0.130435  mL/sec/cm3    0.000000       Khe     12      1        1
-    426               Biliary excretion rate     0.002361  mL/sec/cm3    0.000000       kbh     12      1        1
-    427                           Hematocrit     0.418000                0.000000         H     12      2        1
-    428  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve     12      2        1
-    429           Hepatocellular uptake rate     0.015164  mL/sec/cm3    0.000936       khe     12      2        1
-    430     Hepatocellular mean transit time   457.120966         sec   35.138295        Th     12      2        1
-    431        Biliary tissue excretion rate     0.002188  mL/sec/cm3    0.000000       Kbh     12      2        1
-    432    Hepatocellular tissue uptake rate     0.065932  mL/sec/cm3    0.000000       Khe     12      2        1
-    433               Biliary excretion rate     0.001684  mL/sec/cm3    0.000000       kbh     12      2        1
-    434                           Hematocrit     0.418000                0.000000         H     12      1        2
-    435  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve     12      1        2
-    436           Hepatocellular uptake rate     0.027448  mL/sec/cm3    0.001948       khe     12      1        2
-    437     Hepatocellular mean transit time   262.269019         sec   19.984344        Th     12      1        2
-    438        Biliary tissue excretion rate     0.003813  mL/sec/cm3    0.000000       Kbh     12      1        2
-    439    Hepatocellular tissue uptake rate     0.119340  mL/sec/cm3    0.000000       Khe     12      1        2
-    440               Biliary excretion rate     0.002936  mL/sec/cm3    0.000000       kbh     12      1        2
-    441                           Hematocrit     0.418000                0.000000         H     12      2        2
-    442  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve     12      2        2
-    443           Hepatocellular uptake rate     0.012936  mL/sec/cm3    0.000524       khe     12      2        2
-    444     Hepatocellular mean transit time   490.460001         sec   25.525220        Th     12      2        2
-    445        Biliary tissue excretion rate     0.002039  mL/sec/cm3    0.000000       Kbh     12      2        2
-    446    Hepatocellular tissue uptake rate     0.056244  mL/sec/cm3    0.000000       Khe     12      2        2
-    447               Biliary excretion rate     0.001570  mL/sec/cm3    0.000000       kbh     12      2        2
-    448                           Hematocrit     0.418000                0.000000         H     12      1        3
-    449  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve     12      1        3
-    450           Hepatocellular uptake rate     0.030764  mL/sec/cm3    0.002113       khe     12      1        3
-    451     Hepatocellular mean transit time   261.478684         sec   19.132158        Th     12      1        3
-    452        Biliary tissue excretion rate     0.003824  mL/sec/cm3    0.000000       Kbh     12      1        3
-    453    Hepatocellular tissue uptake rate     0.133755  mL/sec/cm3    0.000000       Khe     12      1        3
-    454               Biliary excretion rate     0.002945  mL/sec/cm3    0.000000       kbh     12      1        3
-    455                           Hematocrit     0.418000                0.000000         H     12      2        3
-    456  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve     12      2        3
-    457           Hepatocellular uptake rate     0.013389  mL/sec/cm3    0.000746       khe     12      2        3
-    458     Hepatocellular mean transit time   445.116547         sec   30.753409        Th     12      2        3
-    459        Biliary tissue excretion rate     0.002247  mL/sec/cm3    0.000000       Kbh     12      2        3
-    460    Hepatocellular tissue uptake rate     0.058213  mL/sec/cm3    0.000000       Khe     12      2        3
-    461               Biliary excretion rate     0.001730  mL/sec/cm3    0.000000       kbh     12      2        3
-    462                           Hematocrit     0.418000                0.000000         H     12      1        4
-    463  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve     12      1        4
-    464           Hepatocellular uptake rate     0.028471  mL/sec/cm3    0.001859       khe     12      1        4
-    465     Hepatocellular mean transit time   269.447999         sec   18.903053        Th     12      1        4
-    466        Biliary tissue excretion rate     0.003711  mL/sec/cm3    0.000000       Kbh     12      1        4
-    467    Hepatocellular tissue uptake rate     0.123788  mL/sec/cm3    0.000000       Khe     12      1        4
-    468               Biliary excretion rate     0.002858  mL/sec/cm3    0.000000       kbh     12      1        4
-    469                           Hematocrit     0.418000                0.000000         H     12      2        4
-    470  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000        ve     12      2        4
-    471           Hepatocellular uptake rate     0.010416  mL/sec/cm3    0.000509       khe     12      2        4
-    472     Hepatocellular mean transit time   587.827030         sec   40.133174        Th     12      2        4
-    473        Biliary tissue excretion rate     0.001701  mL/sec/cm3    0.000000       Kbh     12      2        4
-    474    Hepatocellular tissue uptake rate     0.045289  mL/sec/cm3    0.000000       Khe     12      2        4
-    475               Biliary excretion rate     0.001310  mL/sec/cm3    0.000000       kbh     12      2        4
+        parameter                                 name        value        unit       stdev  study  visit subject
+    0           H                           Hematocrit     0.418000                0.000000      5      1  S05-02
+    1          ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      5      1  S05-02
+    2         khe           Hepatocellular uptake rate     0.029190  mL/sec/cm3    0.000690      5      1  S05-02
+    3          Th     Hepatocellular mean transit time   192.246433         sec    4.836834      5      1  S05-02
+    4         Kbh        Biliary tissue excretion rate     0.005202  mL/sec/cm3    0.000000      5      1  S05-02
+    5         Khe    Hepatocellular tissue uptake rate     0.126911  mL/sec/cm3    0.000000      5      1  S05-02
+    6         kbh               Biliary excretion rate     0.004005  mL/sec/cm3    0.000000      5      1  S05-02
+    7           E            Liver extraction fraction     0.570014                0.000000      5      1  S05-02
+    8      Ktrans             Hepatic plasma clearance     0.012551  mL/sec/cm3    0.000000      5      1  S05-02
+    9           H                           Hematocrit     0.418000                0.000000      5      2  S05-02
+    10         ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      5      2  S05-02
+    11        khe           Hepatocellular uptake rate     0.017053  mL/sec/cm3    0.000899      5      2  S05-02
+    12         Th     Hepatocellular mean transit time   316.554650         sec   19.042915      5      2  S05-02
+    13        Kbh        Biliary tissue excretion rate     0.003159  mL/sec/cm3    0.000000      5      2  S05-02
+    14        Khe    Hepatocellular tissue uptake rate     0.074145  mL/sec/cm3    0.000000      5      2  S05-02
+    15        kbh               Biliary excretion rate     0.002432  mL/sec/cm3    0.000000      5      2  S05-02
+    16          E            Liver extraction fraction     0.436457                0.000000      5      2  S05-02
+    17     Ktrans             Hepatic plasma clearance     0.009610  mL/sec/cm3    0.000000      5      2  S05-02
+    18          H                           Hematocrit     0.418000                0.000000      5      1  S05-03
+    19         ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      5      1  S05-03
+    20        khe           Hepatocellular uptake rate     0.023123  mL/sec/cm3    0.002281      5      1  S05-03
+    21         Th     Hepatocellular mean transit time   154.454455         sec   16.290498      5      1  S05-03
+    22        Kbh        Biliary tissue excretion rate     0.006474  mL/sec/cm3    0.000000      5      1  S05-03
+    23        Khe    Hepatocellular tissue uptake rate     0.100536  mL/sec/cm3    0.000000      5      1  S05-03
+    24        kbh               Biliary excretion rate     0.004985  mL/sec/cm3    0.000000      5      1  S05-03
+    25          E            Liver extraction fraction     0.512232                0.000000      5      1  S05-03
+    26     Ktrans             Hepatic plasma clearance     0.011279  mL/sec/cm3    0.000000      5      1  S05-03
+    27          H                           Hematocrit     0.418000                0.000000      5      2  S05-03
+    28         ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      5      2  S05-03
+    29        khe           Hepatocellular uptake rate     0.010411  mL/sec/cm3    0.000681      5      2  S05-03
+    30         Th     Hepatocellular mean transit time   385.263252         sec   30.439907      5      2  S05-03
+    31        Kbh        Biliary tissue excretion rate     0.002596  mL/sec/cm3    0.000000      5      2  S05-03
+    32        Khe    Hepatocellular tissue uptake rate     0.045265  mL/sec/cm3    0.000000      5      2  S05-03
+    33        kbh               Biliary excretion rate     0.001999  mL/sec/cm3    0.000000      5      2  S05-03
+    34          E            Liver extraction fraction     0.321029                0.000000      5      2  S05-03
+    35     Ktrans             Hepatic plasma clearance     0.007069  mL/sec/cm3    0.000000      5      2  S05-03
+    36          H                           Hematocrit     0.418000                0.000000      5      1  S05-04
+    37         ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      5      1  S05-04
+    38        khe           Hepatocellular uptake rate     0.017874  mL/sec/cm3    0.000788      5      1  S05-04
+    39         Th     Hepatocellular mean transit time   185.344175         sec    8.871480      5      1  S05-04
+    40        Kbh        Biliary tissue excretion rate     0.005395  mL/sec/cm3    0.000000      5      1  S05-04
+    41        Khe    Hepatocellular tissue uptake rate     0.077715  mL/sec/cm3    0.000000      5      1  S05-04
+    42        kbh               Biliary excretion rate     0.004154  mL/sec/cm3    0.000000      5      1  S05-04
+    43          E            Liver extraction fraction     0.448054                0.000000      5      1  S05-04
+    44     Ktrans             Hepatic plasma clearance     0.009866  mL/sec/cm3    0.000000      5      1  S05-04
+    45          H                           Hematocrit     0.418000                0.000000      5      2  S05-04
+    46         ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      5      2  S05-04
+    47        khe           Hepatocellular uptake rate     0.015201  mL/sec/cm3    0.000948      5      2  S05-04
+    48         Th     Hepatocellular mean transit time   205.798967         sec   14.080670      5      2  S05-04
+    49        Kbh        Biliary tissue excretion rate     0.004859  mL/sec/cm3    0.000000      5      2  S05-04
+    50        Khe    Hepatocellular tissue uptake rate     0.066089  mL/sec/cm3    0.000000      5      2  S05-04
+    51        kbh               Biliary excretion rate     0.003742  mL/sec/cm3    0.000000      5      2  S05-04
+    52          E            Liver extraction fraction     0.408402                0.000000      5      2  S05-04
+    53     Ktrans             Hepatic plasma clearance     0.008993  mL/sec/cm3    0.000000      5      2  S05-04
+    54          H                           Hematocrit     0.418000                0.000000      5      1  S05-05
+    55         ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      5      1  S05-05
+    56        khe           Hepatocellular uptake rate     0.015750  mL/sec/cm3    0.001193      5      1  S05-05
+    57         Th     Hepatocellular mean transit time   194.627433         sec   16.106847      5      1  S05-05
+    58        Kbh        Biliary tissue excretion rate     0.005138  mL/sec/cm3    0.000000      5      1  S05-05
+    59        Khe    Hepatocellular tissue uptake rate     0.068477  mL/sec/cm3    0.000000      5      1  S05-05
+    60        kbh               Biliary excretion rate     0.003956  mL/sec/cm3    0.000000      5      1  S05-05
+    61          E            Liver extraction fraction     0.417006                0.000000      5      1  S05-05
+    62     Ktrans             Hepatic plasma clearance     0.009182  mL/sec/cm3    0.000000      5      1  S05-05
+    63          H                           Hematocrit     0.418000                0.000000      5      2  S05-05
+    64         ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      5      2  S05-05
+    65        khe           Hepatocellular uptake rate     0.014848  mL/sec/cm3    0.000687      5      2  S05-05
+    66         Th     Hepatocellular mean transit time   257.645715         sec   13.315206      5      2  S05-05
+    67        Kbh        Biliary tissue excretion rate     0.003881  mL/sec/cm3    0.000000      5      2  S05-05
+    68        Khe    Hepatocellular tissue uptake rate     0.064556  mL/sec/cm3    0.000000      5      2  S05-05
+    69        kbh               Biliary excretion rate     0.002989  mL/sec/cm3    0.000000      5      2  S05-05
+    70          E            Liver extraction fraction     0.402744                0.000000      5      2  S05-05
+    71     Ktrans             Hepatic plasma clearance     0.008868  mL/sec/cm3    0.000000      5      2  S05-05
+    72          H                           Hematocrit     0.418000                0.000000      5      1  S05-06
+    73         ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      5      1  S05-06
+    74        khe           Hepatocellular uptake rate     0.017684  mL/sec/cm3    0.001342      5      1  S05-06
+    75         Th     Hepatocellular mean transit time   171.878130         sec   14.125022      5      1  S05-06
+    76        Kbh        Biliary tissue excretion rate     0.005818  mL/sec/cm3    0.000000      5      1  S05-06
+    77        Khe    Hepatocellular tissue uptake rate     0.076888  mL/sec/cm3    0.000000      5      1  S05-06
+    78        kbh               Biliary excretion rate     0.004480  mL/sec/cm3    0.000000      5      1  S05-06
+    79          E            Liver extraction fraction     0.445411                0.000000      5      1  S05-06
+    80     Ktrans             Hepatic plasma clearance     0.009808  mL/sec/cm3    0.000000      5      1  S05-06
+    81          H                           Hematocrit     0.418000                0.000000      5      2  S05-06
+    82         ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      5      2  S05-06
+    83        khe           Hepatocellular uptake rate     0.019304  mL/sec/cm3    0.001365      5      2  S05-06
+    84         Th     Hepatocellular mean transit time   208.105645         sec   16.012430      5      2  S05-06
+    85        Kbh        Biliary tissue excretion rate     0.004805  mL/sec/cm3    0.000000      5      2  S05-06
+    86        Khe    Hepatocellular tissue uptake rate     0.083928  mL/sec/cm3    0.000000      5      2  S05-06
+    87        kbh               Biliary excretion rate     0.003700  mL/sec/cm3    0.000000      5      2  S05-06
+    88          E            Liver extraction fraction     0.467143                0.000000      5      2  S05-06
+    89     Ktrans             Hepatic plasma clearance     0.010286  mL/sec/cm3    0.000000      5      2  S05-06
+    90          H                           Hematocrit     0.418000                0.000000     10      1  S10-01
+    91         ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000     10      1  S10-01
+    92        khe           Hepatocellular uptake rate     0.032653  mL/sec/cm3    0.002459     10      1  S10-01
+    93         Th     Hepatocellular mean transit time   204.095965         sec   16.306195     10      1  S10-01
+    94        Kbh        Biliary tissue excretion rate     0.004900  mL/sec/cm3    0.000000     10      1  S10-01
+    95        Khe    Hepatocellular tissue uptake rate     0.141969  mL/sec/cm3    0.000000     10      1  S10-01
+    96        kbh               Biliary excretion rate     0.003773  mL/sec/cm3    0.000000     10      1  S10-01
+    97          E            Liver extraction fraction     0.597252                0.000000     10      1  S10-01
+    98     Ktrans             Hepatic plasma clearance     0.013151  mL/sec/cm3    0.000000     10      1  S10-01
+    99          H                           Hematocrit     0.418000                0.000000     10      2  S10-01
+    100        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000     10      2  S10-01
+    101       khe           Hepatocellular uptake rate     0.010368  mL/sec/cm3    0.000343     10      2  S10-01
+    102        Th     Hepatocellular mean transit time   409.183856         sec   16.626224     10      2  S10-01
+    103       Kbh        Biliary tissue excretion rate     0.002444  mL/sec/cm3    0.000000     10      2  S10-01
+    104       Khe    Hepatocellular tissue uptake rate     0.045078  mL/sec/cm3    0.000000     10      2  S10-01
+    105       kbh               Biliary excretion rate     0.001882  mL/sec/cm3    0.000000     10      2  S10-01
+    106         E            Liver extraction fraction     0.320129                0.000000     10      2  S10-01
+    107    Ktrans             Hepatic plasma clearance     0.007049  mL/sec/cm3    0.000000     10      2  S10-01
+    108         H                           Hematocrit     0.418000                0.000000     10      1  S10-02
+    109        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000     10      1  S10-02
+    110       khe           Hepatocellular uptake rate     0.025971  mL/sec/cm3    0.001777     10      1  S10-02
+    111        Th     Hepatocellular mean transit time   260.964310         sec   19.500936     10      1  S10-02
+    112       Kbh        Biliary tissue excretion rate     0.003832  mL/sec/cm3    0.000000     10      1  S10-02
+    113       Khe    Hepatocellular tissue uptake rate     0.112917  mL/sec/cm3    0.000000     10      1  S10-02
+    114       kbh               Biliary excretion rate     0.002951  mL/sec/cm3    0.000000     10      1  S10-02
+    115         E            Liver extraction fraction     0.541175                0.000000     10      1  S10-02
+    116    Ktrans             Hepatic plasma clearance     0.011916  mL/sec/cm3    0.000000     10      1  S10-02
+    117         H                           Hematocrit     0.418000                0.000000     10      2  S10-02
+    118        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000     10      2  S10-02
+    119       khe           Hepatocellular uptake rate     0.027056  mL/sec/cm3    0.001882     10      2  S10-02
+    120        Th     Hepatocellular mean transit time   345.740734         sec   27.331373     10      2  S10-02
+    121       Kbh        Biliary tissue excretion rate     0.002892  mL/sec/cm3    0.000000     10      2  S10-02
+    122       Khe    Hepatocellular tissue uptake rate     0.117634  mL/sec/cm3    0.000000     10      2  S10-02
+    123       kbh               Biliary excretion rate     0.002227  mL/sec/cm3    0.000000     10      2  S10-02
+    124         E            Liver extraction fraction     0.551318                0.000000     10      2  S10-02
+    125    Ktrans             Hepatic plasma clearance     0.012139  mL/sec/cm3    0.000000     10      2  S10-02
+    126         H                           Hematocrit     0.418000                0.000000     10      1  S10-03
+    127        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000     10      1  S10-03
+    128       khe           Hepatocellular uptake rate     0.036772  mL/sec/cm3    0.002993     10      1  S10-03
+    129        Th     Hepatocellular mean transit time   192.094645         sec   16.432004     10      1  S10-03
+    130       Kbh        Biliary tissue excretion rate     0.005206  mL/sec/cm3    0.000000     10      1  S10-03
+    131       Khe    Hepatocellular tissue uptake rate     0.159880  mL/sec/cm3    0.000000     10      1  S10-03
+    132       kbh               Biliary excretion rate     0.004008  mL/sec/cm3    0.000000     10      1  S10-03
+    133         E            Liver extraction fraction     0.625472                0.000000     10      1  S10-03
+    134    Ktrans             Hepatic plasma clearance     0.013772  mL/sec/cm3    0.000000     10      1  S10-03
+    135         H                           Hematocrit     0.418000                0.000000     10      2  S10-03
+    136        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000     10      2  S10-03
+    137       khe           Hepatocellular uptake rate     0.033378  mL/sec/cm3    0.001953     10      2  S10-03
+    138        Th     Hepatocellular mean transit time   253.681764         sec   15.936704     10      2  S10-03
+    139       Kbh        Biliary tissue excretion rate     0.003942  mL/sec/cm3    0.000000     10      2  S10-03
+    140       Khe    Hepatocellular tissue uptake rate     0.145124  mL/sec/cm3    0.000000     10      2  S10-03
+    141       kbh               Biliary excretion rate     0.003035  mL/sec/cm3    0.000000     10      2  S10-03
+    142         E            Liver extraction fraction     0.602527                0.000000     10      2  S10-03
+    143    Ktrans             Hepatic plasma clearance     0.013267  mL/sec/cm3    0.000000     10      2  S10-03
+    144         H                           Hematocrit     0.418000                0.000000     10      1  S10-04
+    145        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000     10      1  S10-04
+    146       khe           Hepatocellular uptake rate     0.034563  mL/sec/cm3    0.003415     10      1  S10-04
+    147        Th     Hepatocellular mean transit time   221.220680         sec   23.197005     10      1  S10-04
+    148       Kbh        Biliary tissue excretion rate     0.004520  mL/sec/cm3    0.000000     10      1  S10-04
+    149       Khe    Hepatocellular tissue uptake rate     0.150275  mL/sec/cm3    0.000000     10      1  S10-04
+    150       kbh               Biliary excretion rate     0.003481  mL/sec/cm3    0.000000     10      1  S10-04
+    151         E            Liver extraction fraction     0.610850                0.000000     10      1  S10-04
+    152    Ktrans             Hepatic plasma clearance     0.013450  mL/sec/cm3    0.000000     10      1  S10-04
+    153         H                           Hematocrit     0.418000                0.000000     10      2  S10-04
+    154        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000     10      2  S10-04
+    155       khe           Hepatocellular uptake rate     0.027510  mL/sec/cm3    0.001591     10      2  S10-04
+    156        Th     Hepatocellular mean transit time   248.825391         sec   15.598687     10      2  S10-04
+    157       Kbh        Biliary tissue excretion rate     0.004019  mL/sec/cm3    0.000000     10      2  S10-04
+    158       Khe    Hepatocellular tissue uptake rate     0.119610  mL/sec/cm3    0.000000     10      2  S10-04
+    159       kbh               Biliary excretion rate     0.003095  mL/sec/cm3    0.000000     10      2  S10-04
+    160         E            Liver extraction fraction     0.555435                0.000000     10      2  S10-04
+    161    Ktrans             Hepatic plasma clearance     0.012230  mL/sec/cm3    0.000000     10      2  S10-04
+    162         H                           Hematocrit     0.418000                0.000000     10      1  S10-05
+    163        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000     10      1  S10-05
+    164       khe           Hepatocellular uptake rate     0.032724  mL/sec/cm3    0.002464     10      1  S10-05
+    165        Th     Hepatocellular mean transit time   203.321189         sec   16.233566     10      1  S10-05
+    166       Kbh        Biliary tissue excretion rate     0.004918  mL/sec/cm3    0.000000     10      1  S10-05
+    167       Khe    Hepatocellular tissue uptake rate     0.142280  mL/sec/cm3    0.000000     10      1  S10-05
+    168       kbh               Biliary excretion rate     0.003787  mL/sec/cm3    0.000000     10      1  S10-05
+    169         E            Liver extraction fraction     0.597778                0.000000     10      1  S10-05
+    170    Ktrans             Hepatic plasma clearance     0.013162  mL/sec/cm3    0.000000     10      1  S10-05
+    171         H                           Hematocrit     0.418000                0.000000     10      2  S10-05
+    172        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000     10      2  S10-05
+    173       khe           Hepatocellular uptake rate     0.034150  mL/sec/cm3    0.002115     10      2  S10-05
+    174        Th     Hepatocellular mean transit time   256.904592         sec   17.077545     10      2  S10-05
+    175       Kbh        Biliary tissue excretion rate     0.003892  mL/sec/cm3    0.000000     10      2  S10-05
+    176       Khe    Hepatocellular tissue uptake rate     0.148477  mL/sec/cm3    0.000000     10      2  S10-05
+    177       kbh               Biliary excretion rate     0.002997  mL/sec/cm3    0.000000     10      2  S10-05
+    178         E            Liver extraction fraction     0.607985                0.000000     10      2  S10-05
+    179    Ktrans             Hepatic plasma clearance     0.013387  mL/sec/cm3    0.000000     10      2  S10-05
+    180         H                           Hematocrit     0.418000                0.000000     10      1  S10-06
+    181        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000     10      1  S10-06
+    182       khe           Hepatocellular uptake rate     0.039966  mL/sec/cm3    0.002838     10      1  S10-06
+    183        Th     Hepatocellular mean transit time   225.378400         sec   16.843082     10      1  S10-06
+    184       Kbh        Biliary tissue excretion rate     0.004437  mL/sec/cm3    0.000000     10      1  S10-06
+    185       Khe    Hepatocellular tissue uptake rate     0.173767  mL/sec/cm3    0.000000     10      1  S10-06
+    186       kbh               Biliary excretion rate     0.003416  mL/sec/cm3    0.000000     10      1  S10-06
+    187         E            Liver extraction fraction     0.644771                0.000000     10      1  S10-06
+    188    Ktrans             Hepatic plasma clearance     0.014197  mL/sec/cm3    0.000000     10      1  S10-06
+    189         H                           Hematocrit     0.418000                0.000000     10      2  S10-06
+    190        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000     10      2  S10-06
+    191       khe           Hepatocellular uptake rate     0.036884  mL/sec/cm3    0.002698     10      2  S10-06
+    192        Th     Hepatocellular mean transit time   268.185300         sec   21.041762     10      2  S10-06
+    193       Kbh        Biliary tissue excretion rate     0.003729  mL/sec/cm3    0.000000     10      2  S10-06
+    194       Khe    Hepatocellular tissue uptake rate     0.160366  mL/sec/cm3    0.000000     10      2  S10-06
+    195       kbh               Biliary excretion rate     0.002871  mL/sec/cm3    0.000000     10      2  S10-06
+    196         E            Liver extraction fraction     0.626183                0.000000     10      2  S10-06
+    197    Ktrans             Hepatic plasma clearance     0.013788  mL/sec/cm3    0.000000     10      2  S10-06
+    198         H                           Hematocrit     0.418000                0.000000      9      1  S09-01
+    199        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      9      1  S09-01
+    200       khe           Hepatocellular uptake rate     0.020030  mL/sec/cm3    0.000709      9      1  S09-01
+    201        Th     Hepatocellular mean transit time   373.947283         sec   15.530816      9      1  S09-01
+    202       Kbh        Biliary tissue excretion rate     0.002674  mL/sec/cm3    0.000000      9      1  S09-01
+    203       Khe    Hepatocellular tissue uptake rate     0.087087  mL/sec/cm3    0.000000      9      1  S09-01
+    204       kbh               Biliary excretion rate     0.002059  mL/sec/cm3    0.000000      9      1  S09-01
+    205         E            Liver extraction fraction     0.476350                0.000000      9      1  S09-01
+    206    Ktrans             Hepatic plasma clearance     0.010489  mL/sec/cm3    0.000000      9      1  S09-01
+    207         H                           Hematocrit     0.418000                0.000000      9      2  S09-01
+    208        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      9      2  S09-01
+    209       khe           Hepatocellular uptake rate     0.019136  mL/sec/cm3    0.000890      9      2  S09-01
+    210        Th     Hepatocellular mean transit time   331.575221         sec   17.678724      9      2  S09-01
+    211       Kbh        Biliary tissue excretion rate     0.003016  mL/sec/cm3    0.000000      9      2  S09-01
+    212       Khe    Hepatocellular tissue uptake rate     0.083200  mL/sec/cm3    0.000000      9      2  S09-01
+    213       kbh               Biliary excretion rate     0.002322  mL/sec/cm3    0.000000      9      2  S09-01
+    214         E            Liver extraction fraction     0.464975                0.000000      9      2  S09-01
+    215    Ktrans             Hepatic plasma clearance     0.010238  mL/sec/cm3    0.000000      9      2  S09-01
+    216         H                           Hematocrit     0.418000                0.000000      9      1  S09-02
+    217        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      9      1  S09-02
+    218       khe           Hepatocellular uptake rate     0.017119  mL/sec/cm3    0.001287      9      1  S09-02
+    219        Th     Hepatocellular mean transit time   231.522778         sec   19.151147      9      1  S09-02
+    220       Kbh        Biliary tissue excretion rate     0.004319  mL/sec/cm3    0.000000      9      1  S09-02
+    221       Khe    Hepatocellular tissue uptake rate     0.074433  mL/sec/cm3    0.000000      9      1  S09-02
+    222       kbh               Biliary excretion rate     0.003326  mL/sec/cm3    0.000000      9      1  S09-02
+    223         E            Liver extraction fraction     0.437408                0.000000      9      1  S09-02
+    224    Ktrans             Hepatic plasma clearance     0.009631  mL/sec/cm3    0.000000      9      1  S09-02
+    225         H                           Hematocrit     0.418000                0.000000      9      2  S09-02
+    226        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      9      2  S09-02
+    227       khe           Hepatocellular uptake rate     0.022700  mL/sec/cm3    0.001491      9      2  S09-02
+    228        Th     Hepatocellular mean transit time   326.272113         sec   24.293174      9      2  S09-02
+    229       Kbh        Biliary tissue excretion rate     0.003065  mL/sec/cm3    0.000000      9      2  S09-02
+    230       Khe    Hepatocellular tissue uptake rate     0.098694  mL/sec/cm3    0.000000      9      2  S09-02
+    231       kbh               Biliary excretion rate     0.002360  mL/sec/cm3    0.000000      9      2  S09-02
+    232         E            Liver extraction fraction     0.507611                0.000000      9      2  S09-02
+    233    Ktrans             Hepatic plasma clearance     0.011177  mL/sec/cm3    0.000000      9      2  S09-02
+    234         H                           Hematocrit     0.418000                0.000000      9      1  S09-03
+    235        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      9      1  S09-03
+    236       khe           Hepatocellular uptake rate     0.028307  mL/sec/cm3    0.002243      9      1  S09-03
+    237        Th     Hepatocellular mean transit time   297.434220         sec   26.028315      9      1  S09-03
+    238       Kbh        Biliary tissue excretion rate     0.003362  mL/sec/cm3    0.000000      9      1  S09-03
+    239       Khe    Hepatocellular tissue uptake rate     0.123073  mL/sec/cm3    0.000000      9      1  S09-03
+    240       kbh               Biliary excretion rate     0.002589  mL/sec/cm3    0.000000      9      1  S09-03
+    241         E            Liver extraction fraction     0.562470                0.000000      9      1  S09-03
+    242    Ktrans             Hepatic plasma clearance     0.012385  mL/sec/cm3    0.000000      9      1  S09-03
+    243         H                           Hematocrit     0.418000                0.000000      9      2  S09-03
+    244        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      9      2  S09-03
+    245       khe           Hepatocellular uptake rate     0.025216  mL/sec/cm3    0.001579      9      2  S09-03
+    246        Th     Hepatocellular mean transit time   327.688375         sec   23.156375      9      2  S09-03
+    247       Kbh        Biliary tissue excretion rate     0.003052  mL/sec/cm3    0.000000      9      2  S09-03
+    248       Khe    Hepatocellular tissue uptake rate     0.109635  mL/sec/cm3    0.000000      9      2  S09-03
+    249       kbh               Biliary excretion rate     0.002350  mL/sec/cm3    0.000000      9      2  S09-03
+    250         E            Liver extraction fraction     0.533843                0.000000      9      2  S09-03
+    251    Ktrans             Hepatic plasma clearance     0.011755  mL/sec/cm3    0.000000      9      2  S09-03
+    252         H                           Hematocrit     0.418000                0.000000      8      1  S08-01
+    253        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      8      1  S08-01
+    254       khe           Hepatocellular uptake rate     0.029344  mL/sec/cm3    0.001970      8      1  S08-01
+    255        Th     Hepatocellular mean transit time   408.262045         sec   31.838820      8      1  S08-01
+    256       Kbh        Biliary tissue excretion rate     0.002449  mL/sec/cm3    0.000000      8      1  S08-01
+    257       Khe    Hepatocellular tissue uptake rate     0.127585  mL/sec/cm3    0.000000      8      1  S08-01
+    258       kbh               Biliary excretion rate     0.001886  mL/sec/cm3    0.000000      8      1  S08-01
+    259         E            Liver extraction fraction     0.571310                0.000000      8      1  S08-01
+    260    Ktrans             Hepatic plasma clearance     0.012580  mL/sec/cm3    0.000000      8      1  S08-01
+    261         H                           Hematocrit     0.418000                0.000000      8      2  S08-01
+    262        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      8      2  S08-01
+    263       khe           Hepatocellular uptake rate     0.003034  mL/sec/cm3    0.000466      8      2  S08-01
+    264        Th     Hepatocellular mean transit time   850.042766         sec  227.108547      8      2  S08-01
+    265       Kbh        Biliary tissue excretion rate     0.001176  mL/sec/cm3    0.000000      8      2  S08-01
+    266       Khe    Hepatocellular tissue uptake rate     0.013192  mL/sec/cm3    0.000000      8      2  S08-01
+    267       kbh               Biliary excretion rate     0.000906  mL/sec/cm3    0.000000      8      2  S08-01
+    268         E            Liver extraction fraction     0.121106                0.000000      8      2  S08-01
+    269    Ktrans             Hepatic plasma clearance     0.002667  mL/sec/cm3    0.000000      8      2  S08-01
+    270         H                           Hematocrit     0.418000                0.000000      8      1  S08-02
+    271        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      8      1  S08-02
+    272       khe           Hepatocellular uptake rate     0.027849  mL/sec/cm3    0.002515      8      1  S08-02
+    273        Th     Hepatocellular mean transit time   269.048876         sec   26.131604      8      1  S08-02
+    274       Kbh        Biliary tissue excretion rate     0.003717  mL/sec/cm3    0.000000      8      1  S08-02
+    275       Khe    Hepatocellular tissue uptake rate     0.121082  mL/sec/cm3    0.000000      8      1  S08-02
+    276       kbh               Biliary excretion rate     0.002862  mL/sec/cm3    0.000000      8      1  S08-02
+    277         E            Liver extraction fraction     0.558453                0.000000      8      1  S08-02
+    278    Ktrans             Hepatic plasma clearance     0.012297  mL/sec/cm3    0.000000      8      1  S08-02
+    279         H                           Hematocrit     0.418000                0.000000      8      2  S08-02
+    280        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      8      2  S08-02
+    281       khe           Hepatocellular uptake rate     0.003093  mL/sec/cm3    0.000567      8      2  S08-02
+    282        Th     Hepatocellular mean transit time   742.109715         sec  218.143697      8      2  S08-02
+    283       Kbh        Biliary tissue excretion rate     0.001348  mL/sec/cm3    0.000000      8      2  S08-02
+    284       Khe    Hepatocellular tissue uptake rate     0.013450  mL/sec/cm3    0.000000      8      2  S08-02
+    285       kbh               Biliary excretion rate     0.001038  mL/sec/cm3    0.000000      8      2  S08-02
+    286         E            Liver extraction fraction     0.123182                0.000000      8      2  S08-02
+    287    Ktrans             Hepatic plasma clearance     0.002712  mL/sec/cm3    0.000000      8      2  S08-02
+    288         H                           Hematocrit     0.418000                0.000000      8      1  S08-03
+    289        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      8      1  S08-03
+    290       khe           Hepatocellular uptake rate     0.019728  mL/sec/cm3    0.001371      8      1  S08-03
+    291        Th     Hepatocellular mean transit time   383.872404         sec   31.160715      8      1  S08-03
+    292       Kbh        Biliary tissue excretion rate     0.002605  mL/sec/cm3    0.000000      8      1  S08-03
+    293       Khe    Hepatocellular tissue uptake rate     0.085774  mL/sec/cm3    0.000000      8      1  S08-03
+    294       kbh               Biliary excretion rate     0.002006  mL/sec/cm3    0.000000      8      1  S08-03
+    295         E            Liver extraction fraction     0.472562                0.000000      8      1  S08-03
+    296    Ktrans             Hepatic plasma clearance     0.010405  mL/sec/cm3    0.000000      8      1  S08-03
+    297         H                           Hematocrit     0.418000                0.000000      8      2  S08-03
+    298        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      8      2  S08-03
+    299       khe           Hepatocellular uptake rate     0.002214  mL/sec/cm3    0.000386      8      2  S08-03
+    300        Th     Hepatocellular mean transit time  1076.771454         sec  381.975331      8      2  S08-03
+    301       Kbh        Biliary tissue excretion rate     0.000929  mL/sec/cm3    0.000000      8      2  S08-03
+    302       Khe    Hepatocellular tissue uptake rate     0.009627  mL/sec/cm3    0.000000      8      2  S08-03
+    303       kbh               Biliary excretion rate     0.000715  mL/sec/cm3    0.000000      8      2  S08-03
+    304         E            Liver extraction fraction     0.091372                0.000000      8      2  S08-03
+    305    Ktrans             Hepatic plasma clearance     0.002012  mL/sec/cm3    0.000000      8      2  S08-03
+    306         H                           Hematocrit     0.418000                0.000000      8      1  S08-04
+    307        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      8      1  S08-04
+    308       khe           Hepatocellular uptake rate     0.018832  mL/sec/cm3    0.001177      8      1  S08-04
+    309        Th     Hepatocellular mean transit time   435.387822         sec   33.054295      8      1  S08-04
+    310       Kbh        Biliary tissue excretion rate     0.002297  mL/sec/cm3    0.000000      8      1  S08-04
+    311       Khe    Hepatocellular tissue uptake rate     0.081878  mL/sec/cm3    0.000000      8      1  S08-04
+    312       kbh               Biliary excretion rate     0.001769  mL/sec/cm3    0.000000      8      1  S08-04
+    313         E            Liver extraction fraction     0.460991                0.000000      8      1  S08-04
+    314    Ktrans             Hepatic plasma clearance     0.010151  mL/sec/cm3    0.000000      8      1  S08-04
+    315         H                           Hematocrit     0.418000                0.000000      8      2  S08-04
+    316        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      8      2  S08-04
+    317       khe           Hepatocellular uptake rate     0.002796  mL/sec/cm3    0.000413      8      2  S08-04
+    318        Th     Hepatocellular mean transit time   759.109378         sec  182.021469      8      2  S08-04
+    319       Kbh        Biliary tissue excretion rate     0.001317  mL/sec/cm3    0.000000      8      2  S08-04
+    320       Khe    Hepatocellular tissue uptake rate     0.012158  mL/sec/cm3    0.000000      8      2  S08-04
+    321       kbh               Biliary excretion rate     0.001014  mL/sec/cm3    0.000000      8      2  S08-04
+    322         E            Liver extraction fraction     0.112685                0.000000      8      2  S08-04
+    323    Ktrans             Hepatic plasma clearance     0.002481  mL/sec/cm3    0.000000      8      2  S08-04
+    324         H                           Hematocrit     0.418000                0.000000      8      1  S08-05
+    325        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      8      1  S08-05
+    326       khe           Hepatocellular uptake rate     0.025961  mL/sec/cm3    0.002111      8      1  S08-05
+    327        Th     Hepatocellular mean transit time   262.092578         sec   22.959490      8      1  S08-05
+    328       Kbh        Biliary tissue excretion rate     0.003815  mL/sec/cm3    0.000000      8      1  S08-05
+    329       Khe    Hepatocellular tissue uptake rate     0.112874  mL/sec/cm3    0.000000      8      1  S08-05
+    330       kbh               Biliary excretion rate     0.002938  mL/sec/cm3    0.000000      8      1  S08-05
+    331         E            Liver extraction fraction     0.541079                0.000000      8      1  S08-05
+    332    Ktrans             Hepatic plasma clearance     0.011914  mL/sec/cm3    0.000000      8      1  S08-05
+    333         H                           Hematocrit     0.418000                0.000000      8      2  S08-05
+    334        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      8      2  S08-05
+    335       khe           Hepatocellular uptake rate     0.002245  mL/sec/cm3    0.000343      8      2  S08-05
+    336        Th     Hepatocellular mean transit time   958.806102         sec  275.583681      8      2  S08-05
+    337       Kbh        Biliary tissue excretion rate     0.001043  mL/sec/cm3    0.000000      8      2  S08-05
+    338       Khe    Hepatocellular tissue uptake rate     0.009760  mL/sec/cm3    0.000000      8      2  S08-05
+    339       kbh               Biliary excretion rate     0.000803  mL/sec/cm3    0.000000      8      2  S08-05
+    340         E            Liver extraction fraction     0.092514                0.000000      8      2  S08-05
+    341    Ktrans             Hepatic plasma clearance     0.002037  mL/sec/cm3    0.000000      8      2  S08-05
+    342         H                           Hematocrit     0.418000                0.000000      8      1  S08-06
+    343        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      8      1  S08-06
+    344       khe           Hepatocellular uptake rate     0.025441  mL/sec/cm3    0.002053      8      1  S08-06
+    345        Th     Hepatocellular mean transit time   295.237391         sec   26.068654      8      1  S08-06
+    346       Kbh        Biliary tissue excretion rate     0.003387  mL/sec/cm3    0.000000      8      1  S08-06
+    347       Khe    Hepatocellular tissue uptake rate     0.110613  mL/sec/cm3    0.000000      8      1  S08-06
+    348       kbh               Biliary excretion rate     0.002608  mL/sec/cm3    0.000000      8      1  S08-06
+    349         E            Liver extraction fraction     0.536050                0.000000      8      1  S08-06
+    350    Ktrans             Hepatic plasma clearance     0.011803  mL/sec/cm3    0.000000      8      1  S08-06
+    351         H                           Hematocrit     0.418000                0.000000      8      2  S08-06
+    352        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      8      2  S08-06
+    353       khe           Hepatocellular uptake rate     0.001989  mL/sec/cm3    0.000369      8      2  S08-06
+    354        Th     Hepatocellular mean transit time  1046.481399         sec  387.308456      8      2  S08-06
+    355       Kbh        Biliary tissue excretion rate     0.000956  mL/sec/cm3    0.000000      8      2  S08-06
+    356       Khe    Hepatocellular tissue uptake rate     0.008648  mL/sec/cm3    0.000000      8      2  S08-06
+    357       kbh               Biliary excretion rate     0.000736  mL/sec/cm3    0.000000      8      2  S08-06
+    358         E            Liver extraction fraction     0.082846                0.000000      8      2  S08-06
+    359    Ktrans             Hepatic plasma clearance     0.001824  mL/sec/cm3    0.000000      8      2  S08-06
+    360         H                           Hematocrit     0.418000                0.000000      7      1  S07-02
+    361        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      7      1  S07-02
+    362       khe           Hepatocellular uptake rate     0.022070  mL/sec/cm3    0.002018      7      1  S07-02
+    363        Th     Hepatocellular mean transit time   293.503375         sec   29.624750      7      1  S07-02
+    364       Kbh        Biliary tissue excretion rate     0.003407  mL/sec/cm3    0.000000      7      1  S07-02
+    365       Khe    Hepatocellular tissue uptake rate     0.095958  mL/sec/cm3    0.000000      7      1  S07-02
+    366       kbh               Biliary excretion rate     0.002623  mL/sec/cm3    0.000000      7      1  S07-02
+    367         E            Liver extraction fraction     0.500582                0.000000      7      1  S07-02
+    368    Ktrans             Hepatic plasma clearance     0.011022  mL/sec/cm3    0.000000      7      1  S07-02
+    369         H                           Hematocrit     0.418000                0.000000      7      2  S07-02
+    370        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      7      2  S07-02
+    371       khe           Hepatocellular uptake rate     0.012012  mL/sec/cm3    0.001000      7      2  S07-02
+    372        Th     Hepatocellular mean transit time   260.758709         sec   24.245170      7      2  S07-02
+    373       Kbh        Biliary tissue excretion rate     0.003835  mL/sec/cm3    0.000000      7      2  S07-02
+    374       Khe    Hepatocellular tissue uptake rate     0.052225  mL/sec/cm3    0.000000      7      2  S07-02
+    375       kbh               Biliary excretion rate     0.002953  mL/sec/cm3    0.000000      7      2  S07-02
+    376         E            Liver extraction fraction     0.352967                0.000000      7      2  S07-02
+    377    Ktrans             Hepatic plasma clearance     0.007772  mL/sec/cm3    0.000000      7      2  S07-02
+    378         H                           Hematocrit     0.418000                0.000000      7      1  S07-03
+    379        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      7      1  S07-03
+    380       khe           Hepatocellular uptake rate     0.020564  mL/sec/cm3    0.002026      7      1  S07-03
+    381        Th     Hepatocellular mean transit time   282.354635         sec   30.659355      7      1  S07-03
+    382       Kbh        Biliary tissue excretion rate     0.003542  mL/sec/cm3    0.000000      7      1  S07-03
+    383       Khe    Hepatocellular tissue uptake rate     0.089409  mL/sec/cm3    0.000000      7      1  S07-03
+    384       kbh               Biliary excretion rate     0.002727  mL/sec/cm3    0.000000      7      1  S07-03
+    385         E            Liver extraction fraction     0.482917                0.000000      7      1  S07-03
+    386    Ktrans             Hepatic plasma clearance     0.010633  mL/sec/cm3    0.000000      7      1  S07-03
+    387         H                           Hematocrit     0.418000                0.000000      7      2  S07-03
+    388        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      7      2  S07-03
+    389       khe           Hepatocellular uptake rate     0.014715  mL/sec/cm3    0.001503      7      2  S07-03
+    390        Th     Hepatocellular mean transit time   263.644766         sec   29.904439      7      2  S07-03
+    391       Kbh        Biliary tissue excretion rate     0.003793  mL/sec/cm3    0.000000      7      2  S07-03
+    392       Khe    Hepatocellular tissue uptake rate     0.063980  mL/sec/cm3    0.000000      7      2  S07-03
+    393       kbh               Biliary excretion rate     0.002921  mL/sec/cm3    0.000000      7      2  S07-03
+    394         E            Liver extraction fraction     0.400588                0.000000      7      2  S07-03
+    395    Ktrans             Hepatic plasma clearance     0.008821  mL/sec/cm3    0.000000      7      2  S07-03
+    396         H                           Hematocrit     0.418000                0.000000      7      1  S07-04
+    397        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      7      1  S07-04
+    398       khe           Hepatocellular uptake rate     0.013127  mL/sec/cm3    0.000953      7      1  S07-04
+    399        Th     Hepatocellular mean transit time   298.416370         sec   24.534799      7      1  S07-04
+    400       Kbh        Biliary tissue excretion rate     0.003351  mL/sec/cm3    0.000000      7      1  S07-04
+    401       Khe    Hepatocellular tissue uptake rate     0.057074  mL/sec/cm3    0.000000      7      1  S07-04
+    402       kbh               Biliary excretion rate     0.002580  mL/sec/cm3    0.000000      7      1  S07-04
+    403         E            Liver extraction fraction     0.373498                0.000000      7      1  S07-04
+    404    Ktrans             Hepatic plasma clearance     0.008224  mL/sec/cm3    0.000000      7      1  S07-04
+    405         H                           Hematocrit     0.418000                0.000000      7      2  S07-04
+    406        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      7      2  S07-04
+    407       khe           Hepatocellular uptake rate     0.005471  mL/sec/cm3    0.000503      7      2  S07-04
+    408        Th     Hepatocellular mean transit time   360.852747         sec   39.769304      7      2  S07-04
+    409       Kbh        Biliary tissue excretion rate     0.002771  mL/sec/cm3    0.000000      7      2  S07-04
+    410       Khe    Hepatocellular tissue uptake rate     0.023788  mL/sec/cm3    0.000000      7      2  S07-04
+    411       kbh               Biliary excretion rate     0.002134  mL/sec/cm3    0.000000      7      2  S07-04
+    412         E            Liver extraction fraction     0.199027                0.000000      7      2  S07-04
+    413    Ktrans             Hepatic plasma clearance     0.004382  mL/sec/cm3    0.000000      7      2  S07-04
+    414         H                           Hematocrit     0.418000                0.000000      7      1  S07-05
+    415        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      7      1  S07-05
+    416       khe           Hepatocellular uptake rate     0.020795  mL/sec/cm3    0.002349      7      1  S07-05
+    417        Th     Hepatocellular mean transit time   217.745080         sec   26.492837      7      1  S07-05
+    418       Kbh        Biliary tissue excretion rate     0.004593  mL/sec/cm3    0.000000      7      1  S07-05
+    419       Khe    Hepatocellular tissue uptake rate     0.090411  mL/sec/cm3    0.000000      7      1  S07-05
+    420       kbh               Biliary excretion rate     0.003536  mL/sec/cm3    0.000000      7      1  S07-05
+    421         E            Liver extraction fraction     0.485700                0.000000      7      1  S07-05
+    422    Ktrans             Hepatic plasma clearance     0.010695  mL/sec/cm3    0.000000      7      1  S07-05
+    423         H                           Hematocrit     0.418000                0.000000      7      2  S07-05
+    424        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      7      2  S07-05
+    425       khe           Hepatocellular uptake rate     0.005198  mL/sec/cm3    0.000558      7      2  S07-05
+    426        Th     Hepatocellular mean transit time   411.657352         sec   54.774945      7      2  S07-05
+    427       Kbh        Biliary tissue excretion rate     0.002429  mL/sec/cm3    0.000000      7      2  S07-05
+    428       Khe    Hepatocellular tissue uptake rate     0.022600  mL/sec/cm3    0.000000      7      2  S07-05
+    429       kbh               Biliary excretion rate     0.001870  mL/sec/cm3    0.000000      7      2  S07-05
+    430         E            Liver extraction fraction     0.190986                0.000000      7      2  S07-05
+    431    Ktrans             Hepatic plasma clearance     0.004205  mL/sec/cm3    0.000000      7      2  S07-05
+    432         H                           Hematocrit     0.418000                0.000000      7      1  S07-06
+    433        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      7      1  S07-06
+    434       khe           Hepatocellular uptake rate     0.022667  mL/sec/cm3    0.002503      7      1  S07-06
+    435        Th     Hepatocellular mean transit time   257.860271         sec   30.914503      7      1  S07-06
+    436       Kbh        Biliary tissue excretion rate     0.003878  mL/sec/cm3    0.000000      7      1  S07-06
+    437       Khe    Hepatocellular tissue uptake rate     0.098553  mL/sec/cm3    0.000000      7      1  S07-06
+    438       kbh               Biliary excretion rate     0.002986  mL/sec/cm3    0.000000      7      1  S07-06
+    439         E            Liver extraction fraction     0.507254                0.000000      7      1  S07-06
+    440    Ktrans             Hepatic plasma clearance     0.011169  mL/sec/cm3    0.000000      7      1  S07-06
+    441         H                           Hematocrit     0.418000                0.000000      7      2  S07-06
+    442        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      7      2  S07-06
+    443       khe           Hepatocellular uptake rate     0.016662  mL/sec/cm3    0.001340      7      2  S07-06
+    444        Th     Hepatocellular mean transit time   279.900091         sec   25.041638      7      2  S07-06
+    445       Kbh        Biliary tissue excretion rate     0.003573  mL/sec/cm3    0.000000      7      2  S07-06
+    446       Khe    Hepatocellular tissue uptake rate     0.072444  mL/sec/cm3    0.000000      7      2  S07-06
+    447       kbh               Biliary excretion rate     0.002751  mL/sec/cm3    0.000000      7      2  S07-06
+    448         E            Liver extraction fraction     0.430756                0.000000      7      2  S07-06
+    449    Ktrans             Hepatic plasma clearance     0.009485  mL/sec/cm3    0.000000      7      2  S07-06
+    450         H                           Hematocrit     0.418000                0.000000      6      1  S06-02
+    451        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      6      1  S06-02
+    452       khe           Hepatocellular uptake rate     0.029692  mL/sec/cm3    0.001751      6      1  S06-02
+    453        Th     Hepatocellular mean transit time   210.523275         sec   13.254362      6      1  S06-02
+    454       Kbh        Biliary tissue excretion rate     0.004750  mL/sec/cm3    0.000000      6      1  S06-02
+    455       Khe    Hepatocellular tissue uptake rate     0.129094  mL/sec/cm3    0.000000      6      1  S06-02
+    456       kbh               Biliary excretion rate     0.003658  mL/sec/cm3    0.000000      6      1  S06-02
+    457         E            Liver extraction fraction     0.574188                0.000000      6      1  S06-02
+    458    Ktrans             Hepatic plasma clearance     0.012643  mL/sec/cm3    0.000000      6      1  S06-02
+    459         H                           Hematocrit     0.418000                0.000000      6      2  S06-02
+    460        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      6      2  S06-02
+    461       khe           Hepatocellular uptake rate     0.028013  mL/sec/cm3    0.001196      6      2  S06-02
+    462        Th     Hepatocellular mean transit time   251.251402         sec   11.632323      6      2  S06-02
+    463       Kbh        Biliary tissue excretion rate     0.003980  mL/sec/cm3    0.000000      6      2  S06-02
+    464       Khe    Hepatocellular tissue uptake rate     0.121795  mL/sec/cm3    0.000000      6      2  S06-02
+    465       kbh               Biliary excretion rate     0.003065  mL/sec/cm3    0.000000      6      2  S06-02
+    466         E            Liver extraction fraction     0.559901                0.000000      6      2  S06-02
+    467    Ktrans             Hepatic plasma clearance     0.012328  mL/sec/cm3    0.000000      6      2  S06-02
+    468         H                           Hematocrit     0.418000                0.000000      6      1  S06-03
+    469        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      6      1  S06-03
+    470       khe           Hepatocellular uptake rate     0.025392  mL/sec/cm3    0.002823      6      1  S06-03
+    471        Th     Hepatocellular mean transit time   162.886138         sec   19.312284      6      1  S06-03
+    472       Kbh        Biliary tissue excretion rate     0.006139  mL/sec/cm3    0.000000      6      1  S06-03
+    473       Khe    Hepatocellular tissue uptake rate     0.110399  mL/sec/cm3    0.000000      6      1  S06-03
+    474       kbh               Biliary excretion rate     0.004727  mL/sec/cm3    0.000000      6      1  S06-03
+    475         E            Liver extraction fraction     0.535569                0.000000      6      1  S06-03
+    476    Ktrans             Hepatic plasma clearance     0.011793  mL/sec/cm3    0.000000      6      1  S06-03
+    477         H                           Hematocrit     0.418000                0.000000      6      2  S06-03
+    478        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      6      2  S06-03
+    479       khe           Hepatocellular uptake rate     0.025035  mL/sec/cm3    0.001321      6      2  S06-03
+    480        Th     Hepatocellular mean transit time   219.717326         sec   12.519368      6      2  S06-03
+    481       Kbh        Biliary tissue excretion rate     0.004551  mL/sec/cm3    0.000000      6      2  S06-03
+    482       Khe    Hepatocellular tissue uptake rate     0.108848  mL/sec/cm3    0.000000      6      2  S06-03
+    483       kbh               Biliary excretion rate     0.003505  mL/sec/cm3    0.000000      6      2  S06-03
+    484         E            Liver extraction fraction     0.532048                0.000000      6      2  S06-03
+    485    Ktrans             Hepatic plasma clearance     0.011715  mL/sec/cm3    0.000000      6      2  S06-03
+    486         H                           Hematocrit     0.418000                0.000000      6      1  S06-04
+    487        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      6      1  S06-04
+    488       khe           Hepatocellular uptake rate     0.020645  mL/sec/cm3    0.001435      6      1  S06-04
+    489        Th     Hepatocellular mean transit time   173.413608         sec   12.984491      6      1  S06-04
+    490       Kbh        Biliary tissue excretion rate     0.005767  mL/sec/cm3    0.000000      6      1  S06-04
+    491       Khe    Hepatocellular tissue uptake rate     0.089759  mL/sec/cm3    0.000000      6      1  S06-04
+    492       kbh               Biliary excretion rate     0.004440  mL/sec/cm3    0.000000      6      1  S06-04
+    493         E            Liver extraction fraction     0.483893                0.000000      6      1  S06-04
+    494    Ktrans             Hepatic plasma clearance     0.010655  mL/sec/cm3    0.000000      6      1  S06-04
+    495         H                           Hematocrit     0.418000                0.000000      6      2  S06-04
+    496        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      6      2  S06-04
+    497       khe           Hepatocellular uptake rate     0.016584  mL/sec/cm3    0.001561      6      2  S06-04
+    498        Th     Hepatocellular mean transit time   202.547253         sec   20.828141      6      2  S06-04
+    499       Kbh        Biliary tissue excretion rate     0.004937  mL/sec/cm3    0.000000      6      2  S06-04
+    500       Khe    Hepatocellular tissue uptake rate     0.072105  mL/sec/cm3    0.000000      6      2  S06-04
+    501       kbh               Biliary excretion rate     0.003802  mL/sec/cm3    0.000000      6      2  S06-04
+    502         E            Liver extraction fraction     0.429607                0.000000      6      2  S06-04
+    503    Ktrans             Hepatic plasma clearance     0.009460  mL/sec/cm3    0.000000      6      2  S06-04
+    504         H                           Hematocrit     0.418000                0.000000      6      1  S06-05
+    505        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      6      1  S06-05
+    506       khe           Hepatocellular uptake rate     0.019787  mL/sec/cm3    0.001499      6      1  S06-05
+    507        Th     Hepatocellular mean transit time   170.731411         sec   13.947304      6      1  S06-05
+    508       Kbh        Biliary tissue excretion rate     0.005857  mL/sec/cm3    0.000000      6      1  S06-05
+    509       Khe    Hepatocellular tissue uptake rate     0.086031  mL/sec/cm3    0.000000      6      1  S06-05
+    510       kbh               Biliary excretion rate     0.004510  mL/sec/cm3    0.000000      6      1  S06-05
+    511         E            Liver extraction fraction     0.473306                0.000000      6      1  S06-05
+    512    Ktrans             Hepatic plasma clearance     0.010422  mL/sec/cm3    0.000000      6      1  S06-05
+    513         H                           Hematocrit     0.418000                0.000000      6      2  S06-05
+    514        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      6      2  S06-05
+    515       khe           Hepatocellular uptake rate     0.020136  mL/sec/cm3    0.001051      6      2  S06-05
+    516        Th     Hepatocellular mean transit time   241.444429         sec   13.829168      6      2  S06-05
+    517       Kbh        Biliary tissue excretion rate     0.004142  mL/sec/cm3    0.000000      6      2  S06-05
+    518       Khe    Hepatocellular tissue uptake rate     0.087547  mL/sec/cm3    0.000000      6      2  S06-05
+    519       kbh               Biliary excretion rate     0.003189  mL/sec/cm3    0.000000      6      2  S06-05
+    520         E            Liver extraction fraction     0.477662                0.000000      6      2  S06-05
+    521    Ktrans             Hepatic plasma clearance     0.010518  mL/sec/cm3    0.000000      6      2  S06-05
+    522         H                           Hematocrit     0.418000                0.000000      6      1  S06-06
+    523        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      6      1  S06-06
+    524       khe           Hepatocellular uptake rate     0.020815  mL/sec/cm3    0.001524      6      1  S06-06
+    525        Th     Hepatocellular mean transit time   231.684464         sec   18.526224      6      1  S06-06
+    526       Kbh        Biliary tissue excretion rate     0.004316  mL/sec/cm3    0.000000      6      1  S06-06
+    527       Khe    Hepatocellular tissue uptake rate     0.090499  mL/sec/cm3    0.000000      6      1  S06-06
+    528       kbh               Biliary excretion rate     0.003323  mL/sec/cm3    0.000000      6      1  S06-06
+    529         E            Liver extraction fraction     0.485944                0.000000      6      1  S06-06
+    530    Ktrans             Hepatic plasma clearance     0.010700  mL/sec/cm3    0.000000      6      1  S06-06
+    531         H                           Hematocrit     0.418000                0.000000      6      2  S06-06
+    532        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000      6      2  S06-06
+    533       khe           Hepatocellular uptake rate     0.023018  mL/sec/cm3    0.001236      6      2  S06-06
+    534        Th     Hepatocellular mean transit time   234.548587         sec   13.712021      6      2  S06-06
+    535       Kbh        Biliary tissue excretion rate     0.004264  mL/sec/cm3    0.000000      6      2  S06-06
+    536       Khe    Hepatocellular tissue uptake rate     0.100077  mL/sec/cm3    0.000000      6      2  S06-06
+    537       kbh               Biliary excretion rate     0.003283  mL/sec/cm3    0.000000      6      2  S06-06
+    538         E            Liver extraction fraction     0.511089                0.000000      6      2  S06-06
+    539    Ktrans             Hepatic plasma clearance     0.011254  mL/sec/cm3    0.000000      6      2  S06-06
+    540         H                           Hematocrit     0.418000                0.000000     12      1  S12-01
+    541        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000     12      1  S12-01
+    542       khe           Hepatocellular uptake rate     0.030000  mL/sec/cm3    0.001981     12      1  S12-01
+    543        Th     Hepatocellular mean transit time   326.139621         sec   23.676019     12      1  S12-01
+    544       Kbh        Biliary tissue excretion rate     0.003066  mL/sec/cm3    0.000000     12      1  S12-01
+    545       Khe    Hepatocellular tissue uptake rate     0.130435  mL/sec/cm3    0.000000     12      1  S12-01
+    546       kbh               Biliary excretion rate     0.002361  mL/sec/cm3    0.000000     12      1  S12-01
+    547         E            Liver extraction fraction     0.576713                0.000000     12      1  S12-01
+    548    Ktrans             Hepatic plasma clearance     0.012699  mL/sec/cm3    0.000000     12      1  S12-01
+    549         H                           Hematocrit     0.418000                0.000000     12      2  S12-01
+    550        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000     12      2  S12-01
+    551       khe           Hepatocellular uptake rate     0.015164  mL/sec/cm3    0.000936     12      2  S12-01
+    552        Th     Hepatocellular mean transit time   457.120966         sec   35.138295     12      2  S12-01
+    553       Kbh        Biliary tissue excretion rate     0.002188  mL/sec/cm3    0.000000     12      2  S12-01
+    554       Khe    Hepatocellular tissue uptake rate     0.065932  mL/sec/cm3    0.000000     12      2  S12-01
+    555       kbh               Biliary excretion rate     0.001684  mL/sec/cm3    0.000000     12      2  S12-01
+    556         E            Liver extraction fraction     0.407827                0.000000     12      2  S12-01
+    557    Ktrans             Hepatic plasma clearance     0.008980  mL/sec/cm3    0.000000     12      2  S12-01
+    558         H                           Hematocrit     0.418000                0.000000     12      1  S12-02
+    559        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000     12      1  S12-02
+    560       khe           Hepatocellular uptake rate     0.027448  mL/sec/cm3    0.001948     12      1  S12-02
+    561        Th     Hepatocellular mean transit time   262.269019         sec   19.984344     12      1  S12-02
+    562       Kbh        Biliary tissue excretion rate     0.003813  mL/sec/cm3    0.000000     12      1  S12-02
+    563       Khe    Hepatocellular tissue uptake rate     0.119340  mL/sec/cm3    0.000000     12      1  S12-02
+    564       kbh               Biliary excretion rate     0.002936  mL/sec/cm3    0.000000     12      1  S12-02
+    565         E            Liver extraction fraction     0.554877                0.000000     12      1  S12-02
+    566    Ktrans             Hepatic plasma clearance     0.012218  mL/sec/cm3    0.000000     12      1  S12-02
+    567         H                           Hematocrit     0.418000                0.000000     12      2  S12-02
+    568        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000     12      2  S12-02
+    569       khe           Hepatocellular uptake rate     0.012936  mL/sec/cm3    0.000524     12      2  S12-02
+    570        Th     Hepatocellular mean transit time   490.460001         sec   25.525220     12      2  S12-02
+    571       Kbh        Biliary tissue excretion rate     0.002039  mL/sec/cm3    0.000000     12      2  S12-02
+    572       Khe    Hepatocellular tissue uptake rate     0.056244  mL/sec/cm3    0.000000     12      2  S12-02
+    573       kbh               Biliary excretion rate     0.001570  mL/sec/cm3    0.000000     12      2  S12-02
+    574         E            Liver extraction fraction     0.370079                0.000000     12      2  S12-02
+    575    Ktrans             Hepatic plasma clearance     0.008149  mL/sec/cm3    0.000000     12      2  S12-02
+    576         H                           Hematocrit     0.418000                0.000000     12      1  S12-03
+    577        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000     12      1  S12-03
+    578       khe           Hepatocellular uptake rate     0.030764  mL/sec/cm3    0.002113     12      1  S12-03
+    579        Th     Hepatocellular mean transit time   261.478684         sec   19.132158     12      1  S12-03
+    580       Kbh        Biliary tissue excretion rate     0.003824  mL/sec/cm3    0.000000     12      1  S12-03
+    581       Khe    Hepatocellular tissue uptake rate     0.133755  mL/sec/cm3    0.000000     12      1  S12-03
+    582       kbh               Biliary excretion rate     0.002945  mL/sec/cm3    0.000000     12      1  S12-03
+    583         E            Liver extraction fraction     0.582837                0.000000     12      1  S12-03
+    584    Ktrans             Hepatic plasma clearance     0.012833  mL/sec/cm3    0.000000     12      1  S12-03
+    585         H                           Hematocrit     0.418000                0.000000     12      2  S12-03
+    586        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000     12      2  S12-03
+    587       khe           Hepatocellular uptake rate     0.013389  mL/sec/cm3    0.000746     12      2  S12-03
+    588        Th     Hepatocellular mean transit time   445.116547         sec   30.753409     12      2  S12-03
+    589       Kbh        Biliary tissue excretion rate     0.002247  mL/sec/cm3    0.000000     12      2  S12-03
+    590       Khe    Hepatocellular tissue uptake rate     0.058213  mL/sec/cm3    0.000000     12      2  S12-03
+    591       kbh               Biliary excretion rate     0.001730  mL/sec/cm3    0.000000     12      2  S12-03
+    592         E            Liver extraction fraction     0.378135                0.000000     12      2  S12-03
+    593    Ktrans             Hepatic plasma clearance     0.008326  mL/sec/cm3    0.000000     12      2  S12-03
+    594         H                           Hematocrit     0.418000                0.000000     12      1  S12-04
+    595        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000     12      1  S12-04
+    596       khe           Hepatocellular uptake rate     0.028471  mL/sec/cm3    0.001859     12      1  S12-04
+    597        Th     Hepatocellular mean transit time   269.447999         sec   18.903053     12      1  S12-04
+    598       Kbh        Biliary tissue excretion rate     0.003711  mL/sec/cm3    0.000000     12      1  S12-04
+    599       Khe    Hepatocellular tissue uptake rate     0.123788  mL/sec/cm3    0.000000     12      1  S12-04
+    600       kbh               Biliary excretion rate     0.002858  mL/sec/cm3    0.000000     12      1  S12-04
+    601         E            Liver extraction fraction     0.563896                0.000000     12      1  S12-04
+    602    Ktrans             Hepatic plasma clearance     0.012416  mL/sec/cm3    0.000000     12      1  S12-04
+    603         H                           Hematocrit     0.418000                0.000000     12      2  S12-04
+    604        ve  Liver extracellular volume fraction     0.230000      mL/cm3    0.000000     12      2  S12-04
+    605       khe           Hepatocellular uptake rate     0.010416  mL/sec/cm3    0.000509     12      2  S12-04
+    606        Th     Hepatocellular mean transit time   587.827030         sec   40.133174     12      2  S12-04
+    607       Kbh        Biliary tissue excretion rate     0.001701  mL/sec/cm3    0.000000     12      2  S12-04
+    608       Khe    Hepatocellular tissue uptake rate     0.045289  mL/sec/cm3    0.000000     12      2  S12-04
+    609       kbh               Biliary excretion rate     0.001310  mL/sec/cm3    0.000000     12      2  S12-04
+    610         E            Liver extraction fraction     0.321143                0.000000     12      2  S12-04
+    611    Ktrans             Hepatic plasma clearance     0.007071  mL/sec/cm3    0.000000     12      2  S12-04
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 159-164
+.. GENERATED FROM PYTHON SOURCE LINES 161-166
 
 Plot individual results
 -----------------------
@@ -785,7 +925,7 @@ Now lets visualise the main results from the study by plotting the drug
 effect for all rats, and for both biomarkers: uptake rate ``khe`` and 
 excretion rate ``kbh``:
 
-.. GENERATED FROM PYTHON SOURCE LINES 164-217
+.. GENERATED FROM PYTHON SOURCE LINES 166-219
 
 .. code-block:: Python
 
@@ -834,7 +974,7 @@ excretion rate ``kbh``:
                 x += [2]
                 khe += [6000*v2.at[s,'khe']]
                 kbh += [6000*v2.at[s,'kbh']] 
-            color = clr[int(s)-1]
+            color = clr[int(s[-2:])-1]
             ax[0,i].plot(x, khe, '-', label=s, marker='o', markersize=6, 
                          color=color)
             ax[1,i].plot(x, kbh, '-', label=s, marker='o', markersize=6, 
@@ -854,7 +994,7 @@ excretion rate ``kbh``:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 218-226
+.. GENERATED FROM PYTHON SOURCE LINES 220-228
 
 Plot effect sizes
 -----------------
@@ -865,7 +1005,7 @@ the 95% CI is less than -20%), in **orange** if inhbition is less than 20%
 (i.e. upper value of the 95% CI is less than 0%), and in **green** if no 
 inhibition was detected with 95% confidence (0% in the 95% CI):
 
-.. GENERATED FROM PYTHON SOURCE LINES 226-300
+.. GENERATED FROM PYTHON SOURCE LINES 228-302
 
 .. code-block:: Python
 
@@ -958,7 +1098,7 @@ inhibition was detected with 95% confidence (0% in the 95% CI):
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 13.698 seconds)
+   **Total running time of the script:** (0 minutes 14.377 seconds)
 
 
 .. _sphx_glr_download_generated_examples_liver_plot_tristan6drugs.py:

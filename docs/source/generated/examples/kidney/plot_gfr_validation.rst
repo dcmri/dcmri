@@ -47,7 +47,7 @@ Magn Reson Imaging. 2019 Jun;59:53-60. doi: 10.1016/j.mri.2019.03.005.
 Setup
 -----
 
-.. GENERATED FROM PYTHON SOURCE LINES 30-41
+.. GENERATED FROM PYTHON SOURCE LINES 30-43
 
 .. code-block:: Python
 
@@ -60,7 +60,9 @@ Setup
     import dcmri as dc
 
     # Fetch the data
-    data = dc.fetch('KRUK')
+    datafile = dc.fetch('KRUK')
+    dmr = dc.read_dmr(datafile, 'nest')
+    rois, pars = dmr['rois'], dmr['pars']
 
 
 
@@ -69,43 +71,42 @@ Setup
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 42-46
+.. GENERATED FROM PYTHON SOURCE LINES 44-48
 
 Model definition
 ----------------
 In order to avoid some repetition in this script, we define a function that 
 returns a trained model for a single dataset:
 
-.. GENERATED FROM PYTHON SOURCE LINES 46-89
+.. GENERATED FROM PYTHON SOURCE LINES 48-90
 
 .. code-block:: Python
 
 
-    def kidney_model(scan, kidney):
+    def kidney_model(roi, par, kidney):
 
         # Get B0 and precontrast T1
-        B0 = scan['field_strength']
-        T1 = scan[kidney+' T1']
-        T1 = dc.T1(B0, 'kidney') if T1 is None else T1
+        B0 = par['field_strength']
+        T1 = par[kidney+' T1'] if kidney+' T1' in par else dc.T1(B0, 'kidney')
 
         # Define tissue model
         model = dc.Kidney(
 
             # Configuration
-            aif = scan['aorta'], 
-            t = scan['time'],
+            aif = roi['aorta'], 
+            t = roi['time'],
 
             # General parameters
             field_strength = B0,
-            agent = scan['agent'],
-            t0 = scan['time'][scan['n0']],
+            agent = par['agent'],
+            t0 = roi['time'][par['n0']],
 
             # Sequence parameters
-            TR = scan['TR'],
-            FA = scan['FA'],
+            TR = par['TR'],
+            FA = par['FA'],
 
             # Tissue parameters
-            vol = scan[kidney+' vol'],
+            vol = par[kidney+' vol'],
             R10 = 1/T1,
             R10a = 1/dc.T1(B0, 'blood'),
         )
@@ -117,8 +118,8 @@ returns a trained model for a single dataset:
         )
 
         # Train the kidney model on the data
-        xdata = scan['time']
-        ydata = scan[kidney]
+        xdata = roi['time']
+        ydata = roi[kidney]
         model.train(xdata, ydata)
 
         return xdata, ydata, model
@@ -130,19 +131,23 @@ returns a trained model for a single dataset:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 90-94
+.. GENERATED FROM PYTHON SOURCE LINES 91-95
 
 Check model fit
 ---------------
 Before running the full analysis on all cases, lets illustrate the results 
 by fitting the left kidney of the first subject:
 
-.. GENERATED FROM PYTHON SOURCE LINES 94-97
+.. GENERATED FROM PYTHON SOURCE LINES 95-102
 
 .. code-block:: Python
 
 
-    time, signal, model = kidney_model(data[0], 'LK')
+    time, signal, model = kidney_model(
+        rois['001']['pre'], 
+        pars['001']['pre'], 
+        'LK',
+    )
 
 
 
@@ -151,11 +156,11 @@ by fitting the left kidney of the first subject:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 98-99
+.. GENERATED FROM PYTHON SOURCE LINES 103-104
 
 Plot the results to check that the model has fitted the data:
 
-.. GENERATED FROM PYTHON SOURCE LINES 99-102
+.. GENERATED FROM PYTHON SOURCE LINES 104-107
 
 .. code-block:: Python
 
@@ -174,13 +179,13 @@ Plot the results to check that the model has fitted the data:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 103-106
+.. GENERATED FROM PYTHON SOURCE LINES 108-111
 
 Print the measured model parameters and any derived parameters and check 
 that standard deviations of measured parameters are small relative to the 
 value, indicating that the parameters are measured reliably:
 
-.. GENERATED FROM PYTHON SOURCE LINES 106-109
+.. GENERATED FROM PYTHON SOURCE LINES 111-114
 
 .. code-block:: Python
 
@@ -200,10 +205,10 @@ value, indicating that the parameters are measured reliably:
     Free parameters with their stdev
     --------------------------------
 
-    Plasma flow (Fp): 0.035 (0.003) mL/sec/cm3
-    Plasma volume (vp): 0.278 (0.019) mL/cm3
-    Filtration fraction (FF): 0.103 (0.017) 
-    Tubular mean transit time (Tt): 304.622 (149.971) sec
+    Plasma flow (Fp): 0.019 (0.002) mL/sec/cm3
+    Plasma volume (vp): 0.221 (0.029) mL/cm3
+    Filtration fraction (FF): 0.179 (0.052) 
+    Tubular mean transit time (Tt): 183.212 (101.263) sec
 
     ----------------------------
     Fixed and derived parameters
@@ -213,24 +218,24 @@ value, indicating that the parameters are measured reliably:
     Arterial B1-correction factor (B1corr_a): 1 
     Arterial precontrast R1 (R10a): 0.614 Hz
     Arterial mean transit time (Ta): 0 sec
-    Blood flow (Fb): 0.063 mL/sec/cm3
-    Tubular flow (Ft): 0.004 mL/sec/cm3
-    Plasma mean transit time (Tp): 7.239 sec
-    Vascular mean transit time (Tv): 7.988 sec
-    Extraction fraction (E): 0.094 
-    Glomerular filtration rate (GFR): 0.431 mL/sec
-    Renal blood flow (RBF): 7.58 mL/sec
-    Renal plasma flow (RPF): 4.169 mL/sec
+    Blood flow (Fb): 0.034 mL/sec/cm3
+    Tubular flow (Ft): 0.003 mL/sec/cm3
+    Plasma mean transit time (Tp): 9.947 sec
+    Vascular mean transit time (Tv): 11.728 sec
+    Extraction fraction (E): 0.152 
+    Glomerular filtration rate (GFR): 0.454 mL/sec
+    Renal blood flow (RBF): 4.609 mL/sec
+    Renal plasma flow (RPF): 2.535 mL/sec
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 110-112
+.. GENERATED FROM PYTHON SOURCE LINES 115-117
 
 The measured SK-GFR for this kidney (0.43) is somewhat higher than the 
 radio-isotope reference value (0.28):
 
-.. GENERATED FROM PYTHON SOURCE LINES 112-119
+.. GENERATED FROM PYTHON SOURCE LINES 117-124
 
 .. code-block:: Python
 
@@ -238,7 +243,7 @@ radio-isotope reference value (0.28):
     print('-----------------------------')
     print('Comparison to reference value')
     print('-----------------------------')
-    print('Radio-isotope SK-GFR: ', data[0]['LK iso-SK-GFR'])
+    print('Radio-isotope SK-GFR: ', pars['001']['pre']['LK iso-SK-GFR'])
 
 
 
@@ -252,53 +257,55 @@ radio-isotope reference value (0.28):
     -----------------------------
     Comparison to reference value
     -----------------------------
-    Radio-isotope SK-GFR:  0.2779460500963383
+    Radio-isotope SK-GFR:  0.350666667
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 120-124
+.. GENERATED FROM PYTHON SOURCE LINES 125-129
 
 Fit all data
 ------------
 Now that we have illustrated an individual result in some detail, we proceed 
 to determine SK-GFR for all datasets:
 
-.. GENERATED FROM PYTHON SOURCE LINES 124-160
+.. GENERATED FROM PYTHON SOURCE LINES 129-167
 
 .. code-block:: Python
 
 
     results = []
 
-    for scan in data:
-        for kidney in ['LK', 'RK']:
-            if kidney not in scan:
-                continue
-            xdata, ydata, model = kidney_model(scan, kidney)
+    for subj in rois.keys():
+        for visit in rois[subj].keys():
+            for kidney in ['LK', 'RK']:
+                roi = rois[subj][visit]
+                par = pars[subj][visit]
+                if kidney not in roi:
+                    continue
+                xdata, ydata, model = kidney_model(roi, par, kidney)
 
-            # Export parameters and add reference value
-            pars = model.export_params()
-            pars['iso-SK-GFR'] = [
-                'Isotope single-kidney GFR', 
-                scan[kidney + ' iso-SK-GFR'], 
-                'mL/sec', 
-                0,
-            ]
+                # Export parameters and add reference value
+                params = model.export_params()
+                params['iso-SK-GFR'] = [
+                    'Isotope single-kidney GFR', 
+                    par[kidney + ' iso-SK-GFR'], 
+                    'mL/sec', 
+                    0,
+                ]
+                # Convert to a dataframe
+                df = pd.DataFrame.from_dict(
+                    params, 
+                    orient = 'index', 
+                    columns = ["name", "value", "unit", "stdev"])
+                df['subject'] = subj
+                df['kidney'] = kidney
+                df['visit'] = visit
+                df['parameter'] = df.index
+                df['B0'] = par['field_strength']
 
-            # Convert to a dataframe
-            pars = pd.DataFrame.from_dict(
-                pars, 
-                orient = 'index', 
-                columns = ["name", "value", "unit", "stdev"])
-            pars['subject'] = scan['subject']
-            pars['kidney'] = kidney
-            pars['visit'] = scan['visit']
-            pars['parameter'] = pars.index
-            pars['B0'] = scan['field_strength']
-
-            # Append to results
-            results.append(pars)
+                # Append to results
+                results.append(df)
 
     # Combine all results into a single dataframe
     results = pd.concat(results).reset_index(drop=True)
@@ -311,11 +318,11 @@ to determine SK-GFR for all datasets:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 161-162
+.. GENERATED FROM PYTHON SOURCE LINES 168-169
 
 Plot MRI values and reference values
 
-.. GENERATED FROM PYTHON SOURCE LINES 162-182
+.. GENERATED FROM PYTHON SOURCE LINES 169-189
 
 .. code-block:: Python
 
@@ -351,11 +358,11 @@ Plot MRI values and reference values
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 183-184
+.. GENERATED FROM PYTHON SOURCE LINES 190-191
 
 Compute bias and accuracy
 
-.. GENERATED FROM PYTHON SOURCE LINES 184-201
+.. GENERATED FROM PYTHON SOURCE LINES 191-208
 
 .. code-block:: Python
 
@@ -393,7 +400,7 @@ Compute bias and accuracy
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 202-207
+.. GENERATED FROM PYTHON SOURCE LINES 209-214
 
 The results confirm the conclusion from the original study that 
 the precision of MR-derived SK-GFR with these historical data was 
@@ -404,7 +411,7 @@ implementation detail.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 7.851 seconds)
+   **Total running time of the script:** (0 minutes 8.071 seconds)
 
 
 .. _sphx_glr_download_generated_examples_kidney_plot_gfr_validation.py:

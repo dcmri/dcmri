@@ -112,9 +112,9 @@ Setup
     import dcmri as dc
 
     # Read the dataset
-    datafile = dc.fetch('minipig_renal_fibrosis')
-    rois, pars = dc.read_dmr(datafile, nest=True, valsonly=True)
-    rois, pars = rois['Pig']['Test'], pars['Pig']['Test']
+    dmrfile = dc.fetch('minipig_renal_fibrosis')
+    data = dc.read_dmr(dmrfile, 'nest')
+    rois, pars = data['rois']['Pig']['Test'], data['pars']['Pig']['Test']
 
 
 
@@ -845,7 +845,7 @@ identical - to those produced from a separate Aorta and Kidneys fit.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 31.021 seconds)
+   **Total running time of the script:** (0 minutes 30.425 seconds)
 
 
 .. _sphx_glr_download_generated_examples_tutorials_plot_minipig.py:

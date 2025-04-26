@@ -89,8 +89,8 @@ import dcmri as dc
 
 # Read the dataset
 dmrfile = dc.fetch('minipig_renal_fibrosis')
-data, rois, pars = dc.read_dmr(dmrfile, nest=True)
-rois, pars = rois['Pig']['Test'], pars['Pig']['Test']
+data = dc.read_dmr(dmrfile, 'nest')
+rois, pars = data['rois']['Pig']['Test'], data['pars']['Pig']['Test']
 
 # %%
 # Plot data

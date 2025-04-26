@@ -250,13 +250,13 @@
    "name": "ndarray"
   }
  ],
- "datafile": [
+ "data": [
   {
    "is_class": false,
    "is_explicit": false,
    "module": "builtins",
    "module_short": "builtins",
-   "name": "str"
+   "name": "dict"
   }
  ],
  "dc.Aorta": [
@@ -450,6 +450,15 @@
    "module": "dcmri",
    "module_short": "dcmri",
    "name": "aif_tristan"
+  }
+ ],
+ "dmrfile": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "str"
   }
  ],
  "dt": [

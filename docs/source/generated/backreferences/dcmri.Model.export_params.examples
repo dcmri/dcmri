@@ -36,6 +36,27 @@ Examples using ``dcmri.Model.export_params``
 
 .. raw:: html
 
+    <div class="sphx-glr-thumbcontainer" tooltip="Ebony Gunwhy.">
+
+.. only:: html
+
+  .. image:: /generated/examples/liver/images/thumb/sphx_glr_plot_tristan_mdosing_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_generated_examples_liver_plot_tristan_mdosing.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Preclinical - repeat dosing effects on liver function</div>
+    </div>
+
+
+.. only:: not html
+
+ * :ref:`sphx_glr_generated_examples_liver_plot_tristan_mdosing.py`
+
+.. raw:: html
+
     <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of AortaLiver for joint fitting of  aorta and liver signals to a whole-body model. The use case is provided by the  liver work package of the  TRISTAN project  which develops imaging  biomarkers for drug safety assessment. The data and analysis was first  presented at the ISMRM in 2024 (Min et al 2024, manuscript in press). ">
 
 .. only:: html
@@ -54,27 +75,6 @@ Examples using ``dcmri.Model.export_params``
 .. only:: not html
 
  * :ref:`sphx_glr_generated_examples_liver_plot_tristan_volunteers.py`
-
-.. raw:: html
-
-    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of Liver for fitting of signals  measured in liver. The use case is provided by the liver work package of the  TRISTAN project  which develops imaging  biomarkers for drug safety assessment. The manuscript relating to this data and analysis is currently in preparation. ">
-
-.. only:: html
-
-  .. image:: /generated/examples/liver/images/thumb/sphx_glr_plot_tristan_mdosing_thumb.png
-    :alt:
-
-  :ref:`sphx_glr_generated_examples_liver_plot_tristan_mdosing.py`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">Preclinical - repeat dosing effects on liver function</div>
-    </div>
-
-
-.. only:: not html
-
- * :ref:`sphx_glr_generated_examples_liver_plot_tristan_mdosing.py`
 
 .. raw:: html
 
@@ -120,7 +120,7 @@ Examples using ``dcmri.Model.export_params``
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of Liver for fitting of signals  measured in liver. The use case is provided by the liver work package of the  TRISTAN project  which develops imaging  biomarkers for drug safety assessment. The data and analysis were first  published in Gunwhy et al. (2024). ">
+    <div class="sphx-glr-thumbcontainer" tooltip="Ebony Gunwhy.">
 
 .. only:: html
 

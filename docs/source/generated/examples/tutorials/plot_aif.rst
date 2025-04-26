@@ -525,7 +525,7 @@ underestimation in the blood flow values observed.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 0.987 seconds)
+   **Total running time of the script:** (0 minutes 0.994 seconds)
 
 
 .. _sphx_glr_download_generated_examples_tutorials_plot_aif.py:

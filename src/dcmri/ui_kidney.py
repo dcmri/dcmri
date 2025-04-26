@@ -160,8 +160,8 @@ class Kidney(ui.Model):
         Read the dataset:
 
         >>> datafile = dc.fetch('minipig_renal_fibrosis')
-        >>> rois, pars = dc.read_dmr(datafile, nest=True, valsonly=True)
-        >>> rois, pars = rois['Pig']['Test'], pars['Pig']['Test']
+        >>> data = dc.read_dmr(datafile, 'nest')
+        >>> rois, pars = data['rois']['Pig']['Test'], data['pars']['Pig']['Test']
         >>> time = pars['TS'] * np.arange(len(rois['LeftKidney']))
 
         Generate an AIF at high temporal resolution (250 msec):

@@ -652,13 +652,22 @@
    "name": "str"
   }
  ],
- "data": [
+ "cols": [
   {
    "is_class": false,
    "is_explicit": false,
    "module": "builtins",
    "module_short": "builtins",
    "name": "list"
+  }
+ ],
+ "data": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "dict"
   }
  ],
  "dc.AortaLiver2scan": [
@@ -714,6 +723,22 @@
    "name": "fetch"
   }
  ],
+ "dc.read_dmr": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "function"
+  },
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "dcmri",
+   "module_short": "dcmri",
+   "name": "read_dmr"
+  }
+ ],
  "dcmri.AortaLiver2scan": [
   {
    "is_class": false,
@@ -721,6 +746,15 @@
    "module": "dcmri",
    "module_short": "dcmri",
    "name": "AortaLiver2scan"
+  }
+ ],
+ "dmrfile": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "str"
   }
  ],
  "fig": [
@@ -955,208 +989,157 @@
    "name": "Model.train"
   }
  ],
+ "par": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "dict"
+  }
+ ],
  "pars": [
   {
    "is_class": false,
    "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "dict"
+  }
+ ],
+ "pd.DataFrame": [
+  {
+   "is_class": true,
+   "is_explicit": false,
    "module": "pandas.core.frame",
    "module_short": "pandas.core.frame",
    "name": "DataFrame"
   },
   {
-   "is_class": false,
+   "is_class": true,
    "is_explicit": false,
    "module": "pandas.core",
    "module_short": "pandas.core",
    "name": "DataFrame"
   },
   {
-   "is_class": false,
+   "is_class": true,
    "is_explicit": false,
    "module": "pandas",
    "module_short": "pandas",
    "name": "DataFrame"
-  }
- ],
- "pars.index": [
-  {
-   "is_class": false,
-   "is_explicit": false,
-   "module": "pandas.core.indexes.base",
-   "module_short": "pandas.core.indexes.base",
-   "name": "Index"
-  },
-  {
-   "is_class": false,
-   "is_explicit": false,
-   "module": "pandas.core.indexes",
-   "module_short": "pandas.core.indexes",
-   "name": "Index"
-  },
-  {
-   "is_class": false,
-   "is_explicit": false,
-   "module": "pandas.core",
-   "module_short": "pandas.core",
-   "name": "Index"
-  },
-  {
-   "is_class": false,
-   "is_explicit": false,
-   "module": "pandas",
-   "module_short": "pandas",
-   "name": "Index"
-  }
- ],
- "pd.DataFrame.from_dict": [
-  {
-   "is_class": true,
-   "is_explicit": false,
-   "module": "pandas.core.frame",
-   "module_short": "pandas.core.frame",
-   "name": "DataFrame.from_dict"
-  },
-  {
-   "is_class": true,
-   "is_explicit": false,
-   "module": "pandas.core",
-   "module_short": "pandas.core",
-   "name": "DataFrame.from_dict"
-  },
-  {
-   "is_class": true,
-   "is_explicit": false,
-   "module": "pandas",
-   "module_short": "pandas",
-   "name": "DataFrame.from_dict"
   },
   {
    "is_class": true,
    "is_explicit": false,
    "module": "pandas.core.generic",
    "module_short": "pandas.core.generic",
-   "name": "NDFrame.from_dict"
+   "name": "NDFrame"
   },
   {
    "is_class": true,
    "is_explicit": false,
    "module": "pandas.core",
    "module_short": "pandas.core",
-   "name": "NDFrame.from_dict"
+   "name": "NDFrame"
   },
   {
    "is_class": true,
    "is_explicit": false,
    "module": "pandas",
    "module_short": "pandas",
-   "name": "NDFrame.from_dict"
+   "name": "NDFrame"
   },
   {
    "is_class": true,
    "is_explicit": false,
    "module": "pandas.core.arraylike",
    "module_short": "pandas.core.arraylike",
-   "name": "OpsMixin.from_dict"
+   "name": "OpsMixin"
   },
   {
    "is_class": true,
    "is_explicit": false,
    "module": "pandas.core",
    "module_short": "pandas.core",
-   "name": "OpsMixin.from_dict"
+   "name": "OpsMixin"
   },
   {
    "is_class": true,
    "is_explicit": false,
    "module": "pandas",
    "module_short": "pandas",
-   "name": "OpsMixin.from_dict"
+   "name": "OpsMixin"
   },
   {
    "is_class": true,
    "is_explicit": false,
    "module": "pandas.core.base",
    "module_short": "pandas.core.base",
-   "name": "PandasObject.from_dict"
+   "name": "PandasObject"
   },
   {
    "is_class": true,
    "is_explicit": false,
    "module": "pandas.core",
    "module_short": "pandas.core",
-   "name": "PandasObject.from_dict"
+   "name": "PandasObject"
   },
   {
    "is_class": true,
    "is_explicit": false,
    "module": "pandas",
    "module_short": "pandas",
-   "name": "PandasObject.from_dict"
+   "name": "PandasObject"
   },
   {
    "is_class": true,
    "is_explicit": false,
    "module": "pandas.core.indexing",
    "module_short": "pandas.core.indexing",
-   "name": "IndexingMixin.from_dict"
+   "name": "IndexingMixin"
   },
   {
    "is_class": true,
    "is_explicit": false,
    "module": "pandas.core",
    "module_short": "pandas.core",
-   "name": "IndexingMixin.from_dict"
+   "name": "IndexingMixin"
   },
   {
    "is_class": true,
    "is_explicit": false,
    "module": "pandas",
    "module_short": "pandas",
-   "name": "IndexingMixin.from_dict"
+   "name": "IndexingMixin"
   },
   {
    "is_class": true,
    "is_explicit": false,
    "module": "pandas.core.accessor",
    "module_short": "pandas.core.accessor",
-   "name": "DirNamesMixin.from_dict"
+   "name": "DirNamesMixin"
   },
   {
    "is_class": true,
    "is_explicit": false,
    "module": "pandas.core",
    "module_short": "pandas.core",
-   "name": "DirNamesMixin.from_dict"
+   "name": "DirNamesMixin"
   },
   {
    "is_class": true,
    "is_explicit": false,
    "module": "pandas",
    "module_short": "pandas",
-   "name": "DirNamesMixin.from_dict"
-  },
-  {
-   "is_class": false,
-   "is_explicit": false,
-   "module": "pandas.DataFrame",
-   "module_short": "pandas.DataFrame",
-   "name": "from_dict"
-  }
- ],
- "pd.concat": [
-  {
-   "is_class": false,
-   "is_explicit": false,
-   "module": "builtins",
-   "module_short": "builtins",
-   "name": "function"
+   "name": "DirNamesMixin"
   },
   {
    "is_class": false,
    "is_explicit": false,
    "module": "pandas",
    "module_short": "pandas",
-   "name": "concat"
+   "name": "DataFrame"
   }
  ],
  "pd.pivot_table": [
@@ -1208,29 +1191,6 @@
   }
  ],
  "results": [
-  {
-   "is_class": false,
-   "is_explicit": false,
-   "module": "pandas.core.frame",
-   "module_short": "pandas.core.frame",
-   "name": "DataFrame"
-  },
-  {
-   "is_class": false,
-   "is_explicit": false,
-   "module": "pandas.core",
-   "module_short": "pandas.core",
-   "name": "DataFrame"
-  },
-  {
-   "is_class": false,
-   "is_explicit": false,
-   "module": "pandas",
-   "module_short": "pandas",
-   "name": "DataFrame"
-  }
- ],
- "results.append": [
   {
    "is_class": false,
    "is_explicit": false,
@@ -1404,6 +1364,42 @@
    "name": "Series"
   }
  ],
+ "roi": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "dict"
+  }
+ ],
+ "rois": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "dict"
+  }
+ ],
+ "rois.keys": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "builtin_function_or_method"
+  }
+ ],
+ "rows": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "list"
+  }
+ ],
  "s": [
   {
    "is_class": false,
@@ -1413,13 +1409,13 @@
    "name": "str"
   }
  ],
- "scan": [
+ "subj": [
   {
    "is_class": false,
    "is_explicit": false,
    "module": "builtins",
    "module_short": "builtins",
-   "name": "dict"
+   "name": "str"
   }
  ],
  "tristan_human_2scan": [
@@ -1791,6 +1787,15 @@
    "module": "pandas",
    "module_short": "pandas",
    "name": "Index"
+  }
+ ],
+ "visit": [
+  {
+   "is_class": false,
+   "is_explicit": false,
+   "module": "builtins",
+   "module_short": "builtins",
+   "name": "str"
   }
  ],
  "x": [

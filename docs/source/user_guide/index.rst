@@ -13,4 +13,5 @@ User guide
    units
    basics/index
    tissues/index
+   dmr
 

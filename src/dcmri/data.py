@@ -676,7 +676,7 @@ def fetch(dataset=None, clear_cache=False, download_all=False) -> dict:
 
     Example:
 
-    Use the AortaLiver model to fit one of the **tristan_rifampicin** datasets:
+    Fetch one of the **tristan_humans_healthy_rifampicin** datasets:
 
     .. plot::
         :include-source:
@@ -686,50 +686,10 @@ def fetch(dataset=None, clear_cache=False, download_all=False) -> dict:
 
         Get the data for the baseline visit of the first subject in the study:
 
-        >>> data = dc.fetch('tristan_rifampicin')
-        >>> data = data[0]
+        >>> file = dc.fetch('tristan_humans_healthy_rifampicin')
+        >>> data = dc.read_dmr(file, 'nest')
 
-        Initialize the AortaLiver model with the available data:
 
-        >>> model = dc.AortaLiver(
-        >>>     #
-        >>>     # Injection parameters
-        >>>     #
-        >>>     weight = data['weight'],
-        >>>     agent = data['agent'],
-        >>>     dose = data['dose'][0],
-        >>>     rate = data['rate'],
-        >>>     #
-        >>>     # Acquisition parameters
-        >>>     #
-        >>>     field_strength = data['field_strength'],
-        >>>     t0 = data['t0'],
-        >>>     TR = data['TR'],
-        >>>     FA = data['FA'],
-        >>>     #
-        >>>     # Signal parameters
-        >>>     #
-        >>>     R10a = data['R10b'],
-        >>>     R10l = data['R10l'],
-        >>>     #
-        >>>     # Tissue parameters
-        >>>     #
-        >>>     H = data['Hct'],
-        >>>     vol = data['vol'],
-        >>> )
-
-        We are only fitting here the first scan data, so the xdata are the 
-        aorta- and liver time points of the first scan, and the ydata are 
-        the signals at these time points:
-
-        >>> xdata = (data['time1aorta'], data['time1liver'])
-        >>> ydata = (data['signal1aorta'], data['signal1liver'])
-
-        Train the model using these data and plot the results to check that 
-        the model has fitted the data:
-
-        >>> model.train(xdata, ydata, xtol=1e-3)
-        >>> model.plot(xdata, ydata)
     """
 
     if dataset is None:

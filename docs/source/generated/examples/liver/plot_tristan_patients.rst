@@ -50,7 +50,7 @@ Manuscript in preparation..
 Setup
 -----
 
-.. GENERATED FROM PYTHON SOURCE LINES 33-42
+.. GENERATED FROM PYTHON SOURCE LINES 33-44
 
 .. code-block:: Python
 
@@ -61,7 +61,9 @@ Setup
     import dcmri as dc
 
     # Fetch the data from the TRISTAN rifampicin study:
-    data = dc.fetch('tristan_gothenburg')
+    dmrfile = dc.fetch('tristan_humans_patients_rifampicin')
+    data = dc.read_dmr(dmrfile, 'nest')
+    rois, pars = data['rois'], data['pars']
 
 
 
@@ -70,57 +72,58 @@ Setup
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 43-47
+.. GENERATED FROM PYTHON SOURCE LINES 45-49
 
 Model definition
 ----------------
 In order to avoid some repetition in this script, we define a function that 
 returns a trained model for a single dataset with 2 scans:
 
-.. GENERATED FROM PYTHON SOURCE LINES 47-93
+.. GENERATED FROM PYTHON SOURCE LINES 49-96
 
 .. code-block:: Python
 
 
-    def tristan_human_2scan(data, **kwargs):
+    def tristan_human_2scan(roi, par, **kwargs):
 
         model = dc.AortaLiver2scan(
 
             # Injection parameters
-            weight = data['weight'],
-            agent = data['agent'],
-            dose = data['dose'][0],
-            dose2 = data['dose'][1],
-            rate = data['rate'],
+            weight = par['weight'],
+            agent = 'gadoxetate',
+            dose = par['dose_1'],
+            dose2 = par['dose_2'],
+            rate = 1,
 
             # Acquisition parameters
-            field_strength = data['field_strength'],
-            t0 = data['t0'],
-            TR = data['TR'],
-            FA = data['FA'],
+            field_strength = 3,
+            t0 = par['t0'],
+            TR = par['TR'],
+            FA = par['FA_1'],
+            FA2 = par['FA_2'],
+            TS = roi['time_1'][1]-roi['time_1'][0],
 
             # Signal parameters
-            R10a = data['R10b'],
-            R102a = data['R102b'],
-            R10l = data['R10l'],
-            R102l = data['R102l'],
+            R10a = 1/par['T1_aorta_1'],
+            R10l = 1/par['T1_liver_1'],
+            R102a = 1/par['T1_aorta_3'],
+            R102l = 1/par['T1_liver_3'],
 
             # Tissue parameters
-            H = data['Hct'],
-            vol = data['vol'],
+            vol = par['liver_volume'],
         )
 
         xdata = (
-            data['time1aorta'], 
-            data['time2aorta'], 
-            data['time1liver'], 
-            data['time2liver'],
+            roi['time_1'][roi['aorta_1_accept']] - roi['time_1'][0], 
+            roi['time_2'][roi['aorta_2_accept']] - roi['time_1'][0], 
+            roi['time_1'][roi['liver_1_accept']] - roi['time_1'][0],
+            roi['time_2'][roi['liver_2_accept']] - roi['time_1'][0],
         )
         ydata = (
-            data['signal1aorta'], 
-            data['signal2aorta'], 
-            data['signal1liver'], 
-            data['signal2liver'],
+            roi['aorta_1'][roi['aorta_1_accept']], 
+            roi['aorta_2'][roi['aorta_2_accept']], 
+            roi['liver_1'][roi['liver_1_accept']],
+            roi['liver_2'][roi['liver_2_accept']],
         )
     
         model.train(xdata, ydata, **kwargs)
@@ -134,18 +137,23 @@ returns a trained model for a single dataset with 2 scans:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 94-97
+.. GENERATED FROM PYTHON SOURCE LINES 97-100
 
 Before running the full analysis on all cases, lets illustrate the results 
 by fitting the baseline visit for the first subject. We use maximum 
 verbosity to get some feedback about the iterations: 
 
-.. GENERATED FROM PYTHON SOURCE LINES 97-100
+.. GENERATED FROM PYTHON SOURCE LINES 100-108
 
 .. code-block:: Python
 
 
-    xdata, ydata, model = tristan_human_2scan(data[0], xtol=1e-3, verbose=2)
+    xdata, ydata, model = tristan_human_2scan(
+        rois['001']['control'], 
+        pars['001']['control'],
+        xtol=1e-3, 
+        verbose=2,
+    )
 
 
 
@@ -156,37 +164,39 @@ verbosity to get some feedback about the iterations:
  .. code-block:: none
 
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         1.8931e+15                                    2.87e+17    
-           1              2         5.2215e+14      1.37e+15       6.96e+06       4.71e+17    
-           2              3         1.9291e+14      3.29e+14       5.60e+06       1.88e+17    
-           3              4         1.1164e+14      8.13e+13       7.47e+06       8.18e+16    
-           4              5         8.1816e+13      2.98e+13       3.02e+06       1.03e+17    
-           5              6         5.8094e+13      2.37e+13       1.36e+05       1.63e+17    
+           0              1         1.2841e+15                                    2.82e+17    
+           1              2         3.1276e+14      9.71e+14       3.15e+06       2.17e+17    
+           2              3         1.3675e+14      1.76e+14       4.61e+06       1.67e+17    
+           3              4         7.9008e+13      5.77e+13       4.37e+06       1.03e+17    
+           4              5         5.8651e+13      2.04e+13       1.38e+06       1.25e+17    
+           5              6         4.1743e+13      1.69e+13       2.89e+05       1.09e+17    
+           6              7         3.1627e+13      1.01e+13       1.24e+04       7.94e+16    
     `xtol` termination condition is satisfied.
-    Function evaluations 6, initial cost 1.8931e+15, final cost 5.8094e+13, first-order optimality 1.63e+17.
+    Function evaluations 7, initial cost 1.2841e+15, final cost 3.1627e+13, first-order optimality 7.94e+16.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         3.3436e+14                                    5.37e+14    
-           1              2         7.6468e+13      2.58e+14       5.54e+06       1.30e+14    
-           2              3         2.8660e+13      4.78e+13       1.07e+04       7.03e+13    
+           0              1         3.1152e+14                                    5.45e+14    
+           1              2         6.4619e+13      2.47e+14       2.66e+06       1.24e+14    
+           2              3         1.6642e+13      4.80e+13       9.88e+03       1.06e+14    
     `xtol` termination condition is satisfied.
-    Function evaluations 3, initial cost 3.3436e+14, final cost 2.8660e+13, first-order optimality 7.03e+13.
+    Function evaluations 3, initial cost 3.1152e+14, final cost 1.6642e+13, first-order optimality 1.06e+14.
        Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
-           0              1         8.6754e+13                                    1.63e+17    
-           1              2         6.0975e+13      2.58e+13       9.44e+06       8.62e+16    
-           2              3         5.3686e+13      7.29e+12       7.06e+05       1.44e+16    
-           3              5         5.3686e+13      0.00e+00       0.00e+00       1.44e+16    
+           0              1         4.8270e+13                                    7.97e+16    
+           1              2         2.8963e+13      1.93e+13       1.09e+07       5.62e+16    
+           2              3         2.4603e+13      4.36e+12       1.88e+06       6.19e+16    
+           3              4         2.3178e+13      1.42e+12       3.57e+05       5.34e+16    
+           4              5         2.2740e+13      4.38e+11       5.83e+04       4.61e+16    
     `xtol` termination condition is satisfied.
-    Function evaluations 5, initial cost 8.6754e+13, final cost 5.3686e+13, first-order optimality 1.44e+16.
+    Function evaluations 5, initial cost 4.8270e+13, final cost 2.2740e+13, first-order optimality 4.61e+16.
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 101-103
+.. GENERATED FROM PYTHON SOURCE LINES 109-111
 
 Plot the results to check that the model has fitted the data. The plot also 
 shows the concentration in the two liver compartments separately:
 
-.. GENERATED FROM PYTHON SOURCE LINES 103-106
+.. GENERATED FROM PYTHON SOURCE LINES 111-114
 
 .. code-block:: Python
 
@@ -205,13 +215,13 @@ shows the concentration in the two liver compartments separately:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 107-110
+.. GENERATED FROM PYTHON SOURCE LINES 115-118
 
 Print the measured model parameters and any derived parameters. Standard 
 deviations are included as a measure of parameter uncertainty, indicate that 
 all parameters are identified robustly:
 
-.. GENERATED FROM PYTHON SOURCE LINES 110-113
+.. GENERATED FROM PYTHON SOURCE LINES 118-121
 
 .. code-block:: Python
 
@@ -231,43 +241,43 @@ all parameters are identified robustly:
     Free parameters with their stdev
     --------------------------------
 
-    Aorta second signal scale factor (S02a): 199242357.488 (498013.539) a.u.
-    Liver second signal scale factor (S02l): 127994807.149 (754161.353) a.u.
-    Second bolus arrival time (BAT2): 7640.635 (0.23) sec
-    First bolus arrival time (BAT): 75.837 (0.227) sec
-    Cardiac output (CO): 208.349 (2.916) mL/sec
-    Heart-lung mean transit time (Thl): 17.215 (0.311) sec
-    Heart-lung dispersion (Dhl): 0.442 (0.008) 
-    Organs blood mean transit time (To): 22.575 (0.985) sec
-    Organs extraction fraction (Eo): 0.168 (0.007) 
-    Organs extravascular mean transit time (Toe): 244.098 (23.262) sec
-    Body extraction fraction (Eb): 0.04 (0.003) 
-    Liver extracellular volume fraction (ve): 0.156 (0.015) mL/cm3
-    Extracellular mean transit time (Te): 35.613 (5.478) sec
-    Extracellular dispersion (De): 0.787 (0.059) 
-    Initial hepatocellular uptake rate (khe_i): 0.001 (0.0) mL/sec/cm3
-    Final hepatocellular uptake rate (khe_f): 0.001 (0.0) mL/sec/cm3
-    Initial hepatocellular mean transit time (Th_i): 911.225 (335.541) sec
-    Final hepatocellular mean transit time (Th_f): 1161.939 (1031.816) sec
+    Aorta second signal scale factor (S02a): 163286585.61 (263658.446) a.u.
+    Liver second signal scale factor (S02l): 107959241.632 (944770.548) a.u.
+    Second bolus arrival time (BAT2): 7641.273 (0.443) sec
+    First bolus arrival time (BAT): 76.792 (0.435) sec
+    Cardiac output (CO): 172.573 (2.078) mL/sec
+    Heart-lung mean transit time (Thl): 15.818 (0.571) sec
+    Heart-lung dispersion (Dhl): 0.473 (0.009) 
+    Organs blood mean transit time (To): 30.691 (0.83) sec
+    Organs extraction fraction (Eo): 0.172 (0.005) 
+    Organs extravascular mean transit time (Toe): 270.994 (19.275) sec
+    Body extraction fraction (Eb): 0.044 (0.003) 
+    Liver extracellular volume fraction (ve): 0.2 (0.012) mL/cm3
+    Extracellular mean transit time (Te): 54.082 (4.59) sec
+    Extracellular dispersion (De): 0.831 (0.026) 
+    Initial hepatocellular uptake rate (khe_i): 0.0 (0.0) mL/sec/cm3
+    Final hepatocellular uptake rate (khe_f): 0.0 (0.0) mL/sec/cm3
+    Initial hepatocellular mean transit time (Th_i): 926.384 (385.901) sec
+    Final hepatocellular mean transit time (Th_f): 1517.281 (1841.527) sec
 
     ----------------------------
     Fixed and derived parameters
     ----------------------------
 
     Hematocrit (H): 0.45 
-    Hepatocellular mean transit time (Th): 1036.582 sec
-    Hepatocellular uptake rate (khe): 0.001 mL/sec/cm3
+    Hepatocellular mean transit time (Th): 1221.832 sec
+    Hepatocellular uptake rate (khe): 0.0 mL/sec/cm3
     Biliary tissue excretion rate (Kbh): 0.001 mL/sec/cm3
-    Hepatocellular tissue uptake rate (Khe): 0.005 mL/sec/cm3
+    Hepatocellular tissue uptake rate (Khe): 0.002 mL/sec/cm3
     Biliary excretion rate (kbh): 0.001 mL/sec/cm3
     Initial biliary excretion rate (kbh_i): 0.001 mL/sec/cm3
     Final biliary excretion rate (kbh_f): 0.001 mL/sec/cm3
-    Liver blood clearance (CL): 0.582 mL/sec
+    Liver blood clearance (CL): 0.35 mL/sec
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 114-120
+.. GENERATED FROM PYTHON SOURCE LINES 122-128
 
 Fit all data
 ------------
@@ -276,7 +286,7 @@ proceed with fitting the data for all 3 patients, at baseline and
 rifampicin visit. We do not print output for these individual computations 
 and instead store results in one single dataframe:
 
-.. GENERATED FROM PYTHON SOURCE LINES 120-148
+.. GENERATED FROM PYTHON SOURCE LINES 128-159
 
 .. code-block:: Python
 
@@ -284,25 +294,28 @@ and instead store results in one single dataframe:
     results = []
 
     # Loop over all datasets
-    for scan in data:
+    for subj in rois.keys():
+        for visit in rois[subj].keys():
 
-        # Generate a trained model for the scan:
-        _, _, model = tristan_human_2scan(scan, xtol=1e-3)
+            roi = rois[subj][visit]
+            par = pars[subj][visit]
 
-        # Convert the parameter dictionary to a dataframe
-        pars = model.export_params()
-        pars = pd.DataFrame.from_dict(pars, 
-            orient = 'index', 
-            columns = ["name", "value", "unit", 'stdev'])
-        pars['parameter'] = pars.index
-        pars['visit'] = scan['visit']
-        pars['subject'] = scan['subject']
+            # Generate a trained model for the scan:
+            _, _, model = tristan_human_2scan(roi, par, xtol=1e-3)
 
-        # Add the dataframe to the list of results
-        results.append(pars)
+            # Export fitted parameters as lists
+            rows = model.export_params(type='list')
+
+            # Add visit and subject info
+            rows = [row + [visit, subj] for row in rows]
+
+            # Add to the list of all results
+            results += rows
 
     # Combine all results into a single dataframe.
-    results = pd.concat(results).reset_index(drop=True)
+    cols = ['parameter', 'name', 'value', 'unit', 'stdev',
+            'visit', 'subject']
+    results = pd.DataFrame(results, columns=cols)
 
     # Print all results
     print(results.to_string())
@@ -316,174 +329,174 @@ and instead store results in one single dataframe:
 
  .. code-block:: none
 
-                                             name         value        unit         stdev parameter    visit subject
-    0            Aorta second signal scale factor  1.992424e+08        a.u.  4.980135e+05      S02a  control     001
-    1            Liver second signal scale factor  1.279948e+08        a.u.  7.541614e+05      S02l  control     001
-    2                   Second bolus arrival time  7.640635e+03         sec  2.302443e-01      BAT2  control     001
-    3                    First bolus arrival time  7.583656e+01         sec  2.269671e-01       BAT  control     001
-    4                              Cardiac output  2.083493e+02      mL/sec  2.915613e+00        CO  control     001
-    5                Heart-lung mean transit time  1.721467e+01         sec  3.107741e-01       Thl  control     001
-    6                       Heart-lung dispersion  4.421340e-01              7.770281e-03       Dhl  control     001
-    7              Organs blood mean transit time  2.257539e+01         sec  9.847605e-01        To  control     001
-    8                  Organs extraction fraction  1.678356e-01              7.170859e-03        Eo  control     001
-    9      Organs extravascular mean transit time  2.440985e+02         sec  2.326207e+01       Toe  control     001
-    10                   Body extraction fraction  4.022306e-02              3.422418e-03        Eb  control     001
-    11                                 Hematocrit  4.500000e-01              0.000000e+00         H  control     001
-    12        Liver extracellular volume fraction  1.556820e-01      mL/cm3  1.495657e-02        ve  control     001
-    13            Extracellular mean transit time  3.561343e+01         sec  5.478327e+00        Te  control     001
-    14                   Extracellular dispersion  7.871338e-01              5.949972e-02        De  control     001
-    15         Initial hepatocellular uptake rate  7.043189e-04  mL/sec/cm3  1.387267e-04     khe_i  control     001
-    16           Final hepatocellular uptake rate  6.992077e-04  mL/sec/cm3  1.671761e-04     khe_f  control     001
-    17   Initial hepatocellular mean transit time  9.112253e+02         sec  3.355405e+02      Th_i  control     001
-    18     Final hepatocellular mean transit time  1.161939e+03         sec  1.031816e+03      Th_f  control     001
-    19           Hepatocellular mean transit time  1.036582e+03         sec  0.000000e+00        Th  control     001
-    20                 Hepatocellular uptake rate  7.017633e-04  mL/sec/cm3  0.000000e+00       khe  control     001
-    21              Biliary tissue excretion rate  9.647089e-04  mL/sec/cm3  0.000000e+00       Kbh  control     001
-    22          Hepatocellular tissue uptake rate  4.507672e-03  mL/sec/cm3  0.000000e+00       Khe  control     001
-    23                     Biliary excretion rate  8.145211e-04  mL/sec/cm3  0.000000e+00       kbh  control     001
-    24             Initial biliary excretion rate  9.265743e-04  mL/sec/cm3  0.000000e+00     kbh_i  control     001
-    25               Final biliary excretion rate  7.266458e-04  mL/sec/cm3  0.000000e+00     kbh_f  control     001
-    26                      Liver blood clearance  5.818990e-01      mL/sec  0.000000e+00        CL  control     001
-    27           Aorta second signal scale factor  2.403381e+08        a.u.  1.927638e+06      S02a  control     002
-    28           Liver second signal scale factor  1.093829e+08        a.u.  6.345021e+06      S02l  control     002
-    29                  Second bolus arrival time  7.580515e+03         sec  6.668222e-01      BAT2  control     002
-    30                   First bolus arrival time  8.028901e+01         sec  8.048596e-01       BAT  control     002
-    31                             Cardiac output  1.899930e+02      mL/sec  3.381674e+00        CO  control     002
-    32               Heart-lung mean transit time  2.248593e+01         sec  1.027472e+00       Thl  control     002
-    33                      Heart-lung dispersion  4.278589e-01              1.320897e-02       Dhl  control     002
-    34             Organs blood mean transit time  2.479895e+01         sec  1.467220e+00        To  control     002
-    35                 Organs extraction fraction  1.783381e-01              7.799905e-03        Eo  control     002
-    36     Organs extravascular mean transit time  4.919636e+02         sec  4.973204e+01       Toe  control     002
-    37                   Body extraction fraction  3.181506e-02              7.150850e-03        Eb  control     002
-    38                                 Hematocrit  4.500000e-01              0.000000e+00         H  control     002
-    39        Liver extracellular volume fraction  3.524859e-01      mL/cm3  3.169676e-02        ve  control     002
-    40            Extracellular mean transit time  3.926668e+01         sec  5.312582e+00        Te  control     002
-    41                   Extracellular dispersion  8.030705e-01              4.983339e-02        De  control     002
-    42         Initial hepatocellular uptake rate  2.535043e-03  mL/sec/cm3  3.880098e-04     khe_i  control     002
-    43           Final hepatocellular uptake rate  1.761714e-03  mL/sec/cm3  1.427542e-04     khe_f  control     002
-    44   Initial hepatocellular mean transit time  8.486214e+02         sec  7.878068e+02      Th_i  control     002
-    45     Final hepatocellular mean transit time  9.973917e+03         sec  4.965847e+03      Th_f  control     002
-    46           Hepatocellular mean transit time  5.411269e+03         sec  0.000000e+00        Th  control     002
-    47                 Hepatocellular uptake rate  2.148378e-03  mL/sec/cm3  0.000000e+00       khe  control     002
-    48              Biliary tissue excretion rate  1.847995e-04  mL/sec/cm3  0.000000e+00       Kbh  control     002
-    49          Hepatocellular tissue uptake rate  6.094934e-03  mL/sec/cm3  0.000000e+00       Khe  control     002
-    50                     Biliary excretion rate  1.196603e-04  mL/sec/cm3  0.000000e+00       kbh  control     002
-    51             Initial biliary excretion rate  7.630188e-04  mL/sec/cm3  0.000000e+00     kbh_i  control     002
-    52               Final biliary excretion rate  6.492075e-05  mL/sec/cm3  0.000000e+00     kbh_f  control     002
-    53                      Liver blood clearance  2.748173e+00      mL/sec  0.000000e+00        CL  control     002
-    54           Aorta second signal scale factor  2.267418e+08        a.u.  5.846613e+05      S02a  control     003
-    55           Liver second signal scale factor  1.487343e+08        a.u.  1.235888e+06      S02l  control     003
-    56                  Second bolus arrival time  6.852440e+03         sec  6.208581e-01      BAT2  control     003
-    57                   First bolus arrival time  7.232176e+01         sec  5.988455e-01       BAT  control     003
-    58                             Cardiac output  1.743725e+02      mL/sec  2.140203e+00        CO  control     003
-    59               Heart-lung mean transit time  1.096090e+01         sec  6.627178e-01       Thl  control     003
-    60                      Heart-lung dispersion  3.789489e-01              1.778646e-02       Dhl  control     003
-    61             Organs blood mean transit time  3.195749e+01         sec  1.285467e+00        To  control     003
-    62                 Organs extraction fraction  1.397348e-01              8.344810e-03        Eo  control     003
-    63     Organs extravascular mean transit time  2.592389e+02         sec  3.494318e+01       Toe  control     003
-    64                   Body extraction fraction  6.328560e-02              4.056266e-03        Eb  control     003
-    65                                 Hematocrit  4.500000e-01              0.000000e+00         H  control     003
-    66        Liver extracellular volume fraction  3.366765e-01      mL/cm3  2.097851e-02        ve  control     003
-    67            Extracellular mean transit time  5.567088e+01         sec  4.989146e+00        Te  control     003
-    68                   Extracellular dispersion  8.911246e-01              1.899964e-02        De  control     003
-    69         Initial hepatocellular uptake rate  1.057429e-03  mL/sec/cm3  1.211856e-04     khe_i  control     003
-    70           Final hepatocellular uptake rate  3.027705e-03  mL/sec/cm3  1.871704e-04     khe_f  control     003
-    71   Initial hepatocellular mean transit time  2.614921e+03         sec  9.578130e+02      Th_i  control     003
-    72     Final hepatocellular mean transit time  6.000000e+02         sec  9.311993e+01      Th_f  control     003
-    73           Hepatocellular mean transit time  1.607460e+03         sec  0.000000e+00        Th  control     003
-    74                 Hepatocellular uptake rate  2.042567e-03  mL/sec/cm3  0.000000e+00       khe  control     003
-    75              Biliary tissue excretion rate  6.220993e-04  mL/sec/cm3  0.000000e+00       Kbh  control     003
-    76          Hepatocellular tissue uptake rate  6.066853e-03  mL/sec/cm3  0.000000e+00       Khe  control     003
-    77                     Biliary excretion rate  4.126531e-04  mL/sec/cm3  0.000000e+00       kbh  control     003
-    78             Initial biliary excretion rate  2.536687e-04  mL/sec/cm3  0.000000e+00     kbh_i  control     003
-    79               Final biliary excretion rate  1.105539e-03  mL/sec/cm3  0.000000e+00     kbh_f  control     003
-    80                      Liver blood clearance  2.033806e+00      mL/sec  0.000000e+00        CL  control     003
-    81           Aorta second signal scale factor  1.619912e+08        a.u.  6.232932e+05      S02a     drug     001
-    82           Liver second signal scale factor  1.147753e+08        a.u.  6.674490e+05      S02l     drug     001
-    83                  Second bolus arrival time  6.901073e+03         sec  1.711258e-01      BAT2     drug     001
-    84                   First bolus arrival time  7.625469e+01         sec  1.710004e-01       BAT     drug     001
-    85                             Cardiac output  1.911090e+02      mL/sec  3.536017e+00        CO     drug     001
-    86               Heart-lung mean transit time  1.297264e+01         sec  2.857888e-01       Thl     drug     001
-    87                      Heart-lung dispersion  4.250882e-01              8.928510e-03       Dhl     drug     001
-    88             Organs blood mean transit time  2.046576e+01         sec  9.933413e-01        To     drug     001
-    89                 Organs extraction fraction  1.305558e-01              7.600983e-03        Eo     drug     001
-    90     Organs extravascular mean transit time  2.386942e+02         sec  2.774625e+01       Toe     drug     001
-    91                   Body extraction fraction  3.225480e-02              2.969841e-03        Eb     drug     001
-    92                                 Hematocrit  4.500000e-01              0.000000e+00         H     drug     001
-    93        Liver extracellular volume fraction  1.474575e-01      mL/cm3  1.688086e-02        ve     drug     001
-    94            Extracellular mean transit time  4.452130e+01         sec  7.713305e+00        Te     drug     001
-    95                   Extracellular dispersion  7.326356e-01              6.784303e-02        De     drug     001
-    96         Initial hepatocellular uptake rate  4.686835e-04  mL/sec/cm3  1.528837e-04     khe_i     drug     001
-    97           Final hepatocellular uptake rate  5.532236e-04  mL/sec/cm3  2.045911e-04     khe_f     drug     001
-    98   Initial hepatocellular mean transit time  8.188752e+02         sec  4.209293e+02      Th_i     drug     001
-    99     Final hepatocellular mean transit time  8.919273e+02         sec  9.333918e+02      Th_f     drug     001
-    100          Hepatocellular mean transit time  8.554012e+02         sec  0.000000e+00        Th     drug     001
-    101                Hepatocellular uptake rate  5.109535e-04  mL/sec/cm3  0.000000e+00       khe     drug     001
-    102             Biliary tissue excretion rate  1.169042e-03  mL/sec/cm3  0.000000e+00       Kbh     drug     001
-    103         Hepatocellular tissue uptake rate  3.465090e-03  mL/sec/cm3  0.000000e+00       Khe     drug     001
-    104                    Biliary excretion rate  9.966581e-04  mL/sec/cm3  0.000000e+00       kbh     drug     001
-    105            Initial biliary excretion rate  1.041114e-03  mL/sec/cm3  0.000000e+00     kbh_i     drug     001
-    106              Final biliary excretion rate  9.558431e-04  mL/sec/cm3  0.000000e+00     kbh_f     drug     001
-    107                     Liver blood clearance  4.466927e-01      mL/sec  0.000000e+00        CL     drug     001
-    108          Aorta second signal scale factor  2.013421e+08        a.u.  7.742127e+05      S02a     drug     002
-    109          Liver second signal scale factor  1.289544e+08        a.u.  6.340100e+05      S02l     drug     002
-    110                 Second bolus arrival time  7.047597e+03         sec  2.091382e-01      BAT2     drug     002
-    111                  First bolus arrival time  8.128192e+01         sec  2.678799e-01       BAT     drug     002
-    112                            Cardiac output  1.910242e+02      mL/sec  4.212239e+00        CO     drug     002
-    113              Heart-lung mean transit time  1.394512e+01         sec  4.404304e-01       Thl     drug     002
-    114                     Heart-lung dispersion  4.357685e-01              1.129772e-02       Dhl     drug     002
-    115            Organs blood mean transit time  2.034010e+01         sec  1.484667e+00        To     drug     002
-    116                Organs extraction fraction  1.656891e-01              1.385397e-02        Eo     drug     002
-    117    Organs extravascular mean transit time  1.829893e+02         sec  2.683857e+01       Toe     drug     002
-    118                  Body extraction fraction  6.700816e-02              4.154776e-03        Eb     drug     002
-    119                                Hematocrit  4.500000e-01              0.000000e+00         H     drug     002
-    120       Liver extracellular volume fraction  1.537814e-01      mL/cm3  3.468108e-02        ve     drug     002
-    121           Extracellular mean transit time  4.124682e+01         sec  1.308810e+01        Te     drug     002
-    122                  Extracellular dispersion  7.690209e-01              1.132437e-01        De     drug     002
-    123        Initial hepatocellular uptake rate  1.431656e-03  mL/sec/cm3  2.298980e-04     khe_i     drug     002
-    124          Final hepatocellular uptake rate  2.305792e-03  mL/sec/cm3  3.383085e-04     khe_f     drug     002
-    125  Initial hepatocellular mean transit time  1.469190e+03         sec  5.443912e+02      Th_i     drug     002
-    126    Final hepatocellular mean transit time  9.759390e+02         sec  4.362707e+02      Th_f     drug     002
-    127          Hepatocellular mean transit time  1.222565e+03         sec  0.000000e+00        Th     drug     002
-    128                Hepatocellular uptake rate  1.868724e-03  mL/sec/cm3  0.000000e+00       khe     drug     002
-    129             Biliary tissue excretion rate  8.179527e-04  mL/sec/cm3  0.000000e+00       Kbh     drug     002
-    130         Hepatocellular tissue uptake rate  1.215182e-02  mL/sec/cm3  0.000000e+00       Khe     drug     002
-    131                    Biliary excretion rate  6.921668e-04  mL/sec/cm3  0.000000e+00       kbh     drug     002
-    132            Initial biliary excretion rate  5.759762e-04  mL/sec/cm3  0.000000e+00     kbh_i     drug     002
-    133              Final biliary excretion rate  8.670814e-04  mL/sec/cm3  0.000000e+00     kbh_f     drug     002
-    134                     Liver blood clearance  2.641283e+00      mL/sec  0.000000e+00        CL     drug     002
-    135          Aorta second signal scale factor  2.461252e+08        a.u.  9.753483e+05      S02a     drug     003
-    136          Liver second signal scale factor  1.516859e+08        a.u.  7.478764e+05      S02l     drug     003
-    137                 Second bolus arrival time  7.323665e+03         sec  5.632807e-01      BAT2     drug     003
-    138                  First bolus arrival time  6.847094e+01         sec  7.236456e-01       BAT     drug     003
-    139                            Cardiac output  2.102836e+02      mL/sec  6.133358e+00        CO     drug     003
-    140              Heart-lung mean transit time  1.470847e+01         sec  5.725803e-01       Thl     drug     003
-    141                     Heart-lung dispersion  3.151611e-01              1.247583e-02       Dhl     drug     003
-    142            Organs blood mean transit time  1.647924e+01         sec  1.283423e+00        To     drug     003
-    143                Organs extraction fraction  1.678818e-01              1.773208e-02        Eo     drug     003
-    144    Organs extravascular mean transit time  1.385754e+02         sec  1.971961e+01       Toe     drug     003
-    145                  Body extraction fraction  3.570999e-02              2.687032e-03        Eb     drug     003
-    146                                Hematocrit  4.500000e-01              0.000000e+00         H     drug     003
-    147       Liver extracellular volume fraction  2.531379e-01      mL/cm3  3.913259e-02        ve     drug     003
-    148           Extracellular mean transit time  5.787234e+01         sec  1.501888e+01        Te     drug     003
-    149                  Extracellular dispersion  9.502423e-01              4.893993e-02        De     drug     003
-    150        Initial hepatocellular uptake rate  4.003029e-04  mL/sec/cm3  3.242286e-04     khe_i     drug     003
-    151          Final hepatocellular uptake rate  2.865731e-04  mL/sec/cm3  4.688460e-04     khe_f     drug     003
-    152  Initial hepatocellular mean transit time  7.608810e+02         sec  8.235358e+02      Th_i     drug     003
-    153    Final hepatocellular mean transit time  7.613988e+02         sec  2.570422e+03      Th_f     drug     003
-    154          Hepatocellular mean transit time  7.611399e+02         sec  0.000000e+00        Th     drug     003
-    155                Hepatocellular uptake rate  3.434380e-04  mL/sec/cm3  0.000000e+00       khe     drug     003
-    156             Biliary tissue excretion rate  1.313819e-03  mL/sec/cm3  0.000000e+00       Kbh     drug     003
-    157         Hepatocellular tissue uptake rate  1.356723e-03  mL/sec/cm3  0.000000e+00       Khe     drug     003
-    158                    Biliary excretion rate  9.812416e-04  mL/sec/cm3  0.000000e+00       kbh     drug     003
-    159            Initial biliary excretion rate  9.815754e-04  mL/sec/cm3  0.000000e+00     kbh_i     drug     003
-    160              Final biliary excretion rate  9.809079e-04  mL/sec/cm3  0.000000e+00     kbh_f     drug     003
-    161                     Liver blood clearance  3.474537e-01      mL/sec  0.000000e+00        CL     drug     003
+        parameter                                      name         value        unit         stdev    visit subject
+    0        S02a          Aorta second signal scale factor  1.632866e+08        a.u.  2.636584e+05  control     001
+    1        S02l          Liver second signal scale factor  1.079592e+08        a.u.  9.447705e+05  control     001
+    2        BAT2                 Second bolus arrival time  7.641273e+03         sec  4.432600e-01  control     001
+    3         BAT                  First bolus arrival time  7.679155e+01         sec  4.350714e-01  control     001
+    4          CO                            Cardiac output  1.725733e+02      mL/sec  2.077570e+00  control     001
+    5         Thl              Heart-lung mean transit time  1.581789e+01         sec  5.711453e-01  control     001
+    6         Dhl                     Heart-lung dispersion  4.728497e-01              8.677433e-03  control     001
+    7          To            Organs blood mean transit time  3.069064e+01         sec  8.304487e-01  control     001
+    8          Eo                Organs extraction fraction  1.715850e-01              5.219545e-03  control     001
+    9         Toe    Organs extravascular mean transit time  2.709938e+02         sec  1.927540e+01  control     001
+    10         Eb                  Body extraction fraction  4.375584e-02              2.869370e-03  control     001
+    11          H                                Hematocrit  4.500000e-01              0.000000e+00  control     001
+    12         ve       Liver extracellular volume fraction  1.998686e-01      mL/cm3  1.190225e-02  control     001
+    13         Te           Extracellular mean transit time  5.408241e+01         sec  4.589613e+00  control     001
+    14         De                  Extracellular dispersion  8.312908e-01              2.604401e-02  control     001
+    15      khe_i        Initial hepatocellular uptake rate  4.820300e-04  mL/sec/cm3  1.010929e-04  control     001
+    16      khe_f          Final hepatocellular uptake rate  3.622122e-04  mL/sec/cm3  8.886465e-05  control     001
+    17       Th_i  Initial hepatocellular mean transit time  9.263840e+02         sec  3.859014e+02  control     001
+    18       Th_f    Final hepatocellular mean transit time  1.517281e+03         sec  1.841527e+03  control     001
+    19         Th          Hepatocellular mean transit time  1.221832e+03         sec  0.000000e+00  control     001
+    20        khe                Hepatocellular uptake rate  4.221211e-04  mL/sec/cm3  0.000000e+00  control     001
+    21        Kbh             Biliary tissue excretion rate  8.184429e-04  mL/sec/cm3  0.000000e+00  control     001
+    22        Khe         Hepatocellular tissue uptake rate  2.111993e-03  mL/sec/cm3  0.000000e+00  control     001
+    23        kbh                    Biliary excretion rate  6.548618e-04  mL/sec/cm3  0.000000e+00  control     001
+    24      kbh_i            Initial biliary excretion rate  8.637146e-04  mL/sec/cm3  0.000000e+00  control     001
+    25      kbh_f              Final biliary excretion rate  5.273457e-04  mL/sec/cm3  0.000000e+00  control     001
+    26         CL                     Liver blood clearance  3.500209e-01      mL/sec  0.000000e+00  control     001
+    27       S02a          Aorta second signal scale factor  1.328103e+08        a.u.  5.846473e+05     drug     001
+    28       S02l          Liver second signal scale factor  9.688988e+07        a.u.  9.548153e+05     drug     001
+    29       BAT2                 Second bolus arrival time  6.904645e+03         sec  1.710079e-01     drug     001
+    30        BAT                  First bolus arrival time  7.979890e+01         sec  1.687411e-01     drug     001
+    31         CO                            Cardiac output  1.721139e+02      mL/sec  3.152113e+00     drug     001
+    32        Thl              Heart-lung mean transit time  8.264760e+00         sec  2.712979e-01     drug     001
+    33        Dhl                     Heart-lung dispersion  5.218754e-01              1.019463e-02     drug     001
+    34         To            Organs blood mean transit time  2.752833e+01         sec  9.750224e-01     drug     001
+    35         Eo                Organs extraction fraction  1.222519e-01              5.434559e-03     drug     001
+    36        Toe    Organs extravascular mean transit time  3.209690e+02         sec  2.949666e+01     drug     001
+    37         Eb                  Body extraction fraction  2.789956e-02              2.807268e-03     drug     001
+    38          H                                Hematocrit  4.500000e-01              0.000000e+00     drug     001
+    39         ve       Liver extracellular volume fraction  1.421242e-01      mL/cm3  1.574084e-02     drug     001
+    40         Te           Extracellular mean transit time  4.783043e+01         sec  7.656008e+00     drug     001
+    41         De                  Extracellular dispersion  7.576965e-01              5.673443e-02     drug     001
+    42      khe_i        Initial hepatocellular uptake rate  5.044245e-04  mL/sec/cm3  1.387541e-04     drug     001
+    43      khe_f          Final hepatocellular uptake rate  5.822585e-04  mL/sec/cm3  1.616184e-04     drug     001
+    44       Th_i  Initial hepatocellular mean transit time  8.043769e+02         sec  3.424670e+02     drug     001
+    45       Th_f    Final hepatocellular mean transit time  9.579056e+02         sec  8.400133e+02     drug     001
+    46         Th          Hepatocellular mean transit time  8.811412e+02         sec  0.000000e+00     drug     001
+    47        khe                Hepatocellular uptake rate  5.433415e-04  mL/sec/cm3  0.000000e+00     drug     001
+    48        Kbh             Biliary tissue excretion rate  1.134892e-03  mL/sec/cm3  0.000000e+00     drug     001
+    49        Khe         Hepatocellular tissue uptake rate  3.823005e-03  mL/sec/cm3  0.000000e+00     drug     001
+    50        kbh                    Biliary excretion rate  9.735963e-04  mL/sec/cm3  0.000000e+00     drug     001
+    51      kbh_i            Initial biliary excretion rate  1.066510e-03  mL/sec/cm3  0.000000e+00     drug     001
+    52      kbh_f              Final biliary excretion rate  8.955745e-04  mL/sec/cm3  0.000000e+00     drug     001
+    53         CL                     Liver blood clearance  4.750073e-01      mL/sec  0.000000e+00     drug     001
+    54       S02a          Aorta second signal scale factor  1.882574e+08        a.u.  1.691088e+06  control     002
+    55       S02l          Liver second signal scale factor  7.844688e+07        a.u.  2.974411e+06  control     002
+    56       BAT2                 Second bolus arrival time  7.585136e+03         sec  8.029937e-01  control     002
+    57        BAT                  First bolus arrival time  8.501632e+01         sec  8.290006e-01  control     002
+    58         CO                            Cardiac output  1.758135e+02      mL/sec  3.654334e+00  control     002
+    59        Thl              Heart-lung mean transit time  1.666173e+01         sec  1.033130e+00  control     002
+    60        Dhl                     Heart-lung dispersion  5.146619e-01              1.861645e-02  control     002
+    61         To            Organs blood mean transit time  3.171744e+01         sec  1.038976e+00  control     002
+    62         Eo                Organs extraction fraction  1.859614e-01              5.589371e-03  control     002
+    63        Toe    Organs extravascular mean transit time  6.509501e+02         sec  3.903126e+01  control     002
+    64         Eb                  Body extraction fraction  1.193749e-02              3.665511e-03  control     002
+    65          H                                Hematocrit  4.500000e-01              0.000000e+00  control     002
+    66         ve       Liver extracellular volume fraction  3.896929e-01      mL/cm3  2.920617e-02  control     002
+    67         Te           Extracellular mean transit time  4.337504e+01         sec  4.792783e+00  control     002
+    68         De                  Extracellular dispersion  8.058836e-01              3.688731e-02  control     002
+    69      khe_i        Initial hepatocellular uptake rate  2.460186e-03  mL/sec/cm3  4.084303e-04  control     002
+    70      khe_f          Final hepatocellular uptake rate  2.120268e-03  mL/sec/cm3  1.474294e-04  control     002
+    71       Th_i  Initial hepatocellular mean transit time  6.029080e+02         sec  7.314390e+02  control     002
+    72       Th_f    Final hepatocellular mean transit time  1.383018e+04         sec  4.816187e+03  control     002
+    73         Th          Hepatocellular mean transit time  7.216545e+03         sec  0.000000e+00  control     002
+    74        khe                Hepatocellular uptake rate  2.290227e-03  mL/sec/cm3  0.000000e+00  control     002
+    75        Kbh             Biliary tissue excretion rate  1.385705e-04  mL/sec/cm3  0.000000e+00  control     002
+    76        Khe         Hepatocellular tissue uptake rate  5.877005e-03  mL/sec/cm3  0.000000e+00  control     002
+    77        kbh                    Biliary excretion rate  8.457055e-05  mL/sec/cm3  0.000000e+00  control     002
+    78      kbh_i            Initial biliary excretion rate  1.012272e-03  mL/sec/cm3  0.000000e+00  control     002
+    79      kbh_f              Final biliary excretion rate  4.412864e-05  mL/sec/cm3  0.000000e+00  control     002
+    80         CL                     Liver blood clearance  2.929624e+00      mL/sec  0.000000e+00  control     002
+    81       S02a          Aorta second signal scale factor  1.662998e+08        a.u.  4.315369e+05     drug     002
+    82       S02l          Liver second signal scale factor  1.039724e+08        a.u.  3.938801e+06     drug     002
+    83       BAT2                 Second bolus arrival time  7.040979e+03         sec  1.800162e-01     drug     002
+    84        BAT                  First bolus arrival time  7.460534e+01         sec  1.854488e-01     drug     002
+    85         CO                            Cardiac output  1.419702e+02      mL/sec  1.934519e+00     drug     002
+    86        Thl              Heart-lung mean transit time  2.146588e+01         sec  2.643157e-01     drug     002
+    87        Dhl                     Heart-lung dispersion  3.913142e-01              6.718867e-03     drug     002
+    88         To            Organs blood mean transit time  2.214418e+01         sec  1.215683e+00     drug     002
+    89         Eo                Organs extraction fraction  2.077079e-01              1.116015e-02     drug     002
+    90        Toe    Organs extravascular mean transit time  1.860298e+02         sec  1.863163e+01     drug     002
+    91         Eb                  Body extraction fraction  8.817654e-02              3.672526e-03     drug     002
+    92          H                                Hematocrit  4.500000e-01              0.000000e+00     drug     002
+    93         ve       Liver extracellular volume fraction  2.040219e-01      mL/cm3  1.953743e-02     drug     002
+    94         Te           Extracellular mean transit time  4.962744e+01         sec  6.220009e+00     drug     002
+    95         De                  Extracellular dispersion  7.524833e-01              4.927369e-02     drug     002
+    96      khe_i        Initial hepatocellular uptake rate  9.605064e-04  mL/sec/cm3  8.933224e-05     drug     002
+    97      khe_f          Final hepatocellular uptake rate  2.666436e-03  mL/sec/cm3  2.504474e-04     drug     002
+    98       Th_i  Initial hepatocellular mean transit time  9.437895e+03         sec  7.435618e+03     drug     002
+    99       Th_f    Final hepatocellular mean transit time  9.924794e+02         sec  3.095791e+02     drug     002
+    100        Th          Hepatocellular mean transit time  5.215187e+03         sec  0.000000e+00     drug     002
+    101       khe                Hepatocellular uptake rate  1.813471e-03  mL/sec/cm3  0.000000e+00     drug     002
+    102       Kbh             Biliary tissue excretion rate  1.917477e-04  mL/sec/cm3  0.000000e+00     drug     002
+    103       Khe         Hepatocellular tissue uptake rate  8.888609e-03  mL/sec/cm3  0.000000e+00     drug     002
+    104       kbh                    Biliary excretion rate  1.526269e-04  mL/sec/cm3  0.000000e+00     drug     002
+    105     kbh_i            Initial biliary excretion rate  8.433852e-05  mL/sec/cm3  0.000000e+00     drug     002
+    106     kbh_f              Final biliary excretion rate  8.020096e-04  mL/sec/cm3  0.000000e+00     drug     002
+    107        CL                     Liver blood clearance  2.563188e+00      mL/sec  0.000000e+00     drug     002
+    108      S02a          Aorta second signal scale factor  1.862461e+08        a.u.  3.712136e+05  control     003
+    109      S02l          Liver second signal scale factor  1.250913e+08        a.u.  6.908284e+05  control     003
+    110      BAT2                 Second bolus arrival time  6.850662e+03         sec  1.501683e-01  control     003
+    111       BAT                  First bolus arrival time  7.028508e+01         sec  1.266807e-01  control     003
+    112        CO                            Cardiac output  1.482700e+02      mL/sec  1.456552e+00  control     003
+    113       Thl              Heart-lung mean transit time  1.250971e+01         sec  1.579453e-01  control     003
+    114       Dhl                     Heart-lung dispersion  2.833172e-01              2.891299e-03  control     003
+    115        To            Organs blood mean transit time  3.126957e+01         sec  9.019442e-01  control     003
+    116        Eo                Organs extraction fraction  1.749912e-01              7.080471e-03  control     003
+    117       Toe    Organs extravascular mean transit time  2.266253e+02         sec  1.933431e+01  control     003
+    118        Eb                  Body extraction fraction  7.161903e-02              2.944341e-03  control     003
+    119         H                                Hematocrit  4.500000e-01              0.000000e+00  control     003
+    120        ve       Liver extracellular volume fraction  3.274133e-01      mL/cm3  1.735971e-02  control     003
+    121        Te           Extracellular mean transit time  5.979239e+01         sec  4.391825e+00  control     003
+    122        De                  Extracellular dispersion  9.008297e-01              1.336760e-02  control     003
+    123     khe_i        Initial hepatocellular uptake rate  1.107121e-03  mL/sec/cm3  9.981758e-05  control     003
+    124     khe_f          Final hepatocellular uptake rate  3.091978e-03  mL/sec/cm3  1.516869e-04  control     003
+    125      Th_i  Initial hepatocellular mean transit time  2.434978e+03         sec  6.620161e+02  control     003
+    126      Th_f    Final hepatocellular mean transit time  6.003804e+02         sec  7.102712e+01  control     003
+    127        Th          Hepatocellular mean transit time  1.517679e+03         sec  0.000000e+00  control     003
+    128       khe                Hepatocellular uptake rate  2.099549e-03  mL/sec/cm3  0.000000e+00  control     003
+    129       Kbh             Biliary tissue excretion rate  6.589009e-04  mL/sec/cm3  0.000000e+00  control     003
+    130       Khe         Hepatocellular tissue uptake rate  6.412536e-03  mL/sec/cm3  0.000000e+00  control     003
+    131       kbh                    Biliary excretion rate  4.431680e-04  mL/sec/cm3  0.000000e+00  control     003
+    132     kbh_i            Initial biliary excretion rate  2.762189e-04  mL/sec/cm3  0.000000e+00  control     003
+    133     kbh_f              Final biliary excretion rate  1.120268e-03  mL/sec/cm3  0.000000e+00  control     003
+    134        CL                     Liver blood clearance  2.090544e+00      mL/sec  0.000000e+00  control     003
+    135      S02a          Aorta second signal scale factor  2.054986e+08        a.u.  5.597670e+05     drug     003
+    136      S02l          Liver second signal scale factor  1.278214e+08        a.u.  4.813088e+05     drug     003
+    137      BAT2                 Second bolus arrival time  7.323074e+03         sec  1.454085e-01     drug     003
+    138       BAT                  First bolus arrival time  6.827140e+01         sec  1.530142e-01     drug     003
+    139        CO                            Cardiac output  1.889740e+02      mL/sec  3.093162e+00     drug     003
+    140       Thl              Heart-lung mean transit time  1.433676e+01         sec  2.500115e-01     drug     003
+    141       Dhl                     Heart-lung dispersion  3.813946e-01              7.301855e-03     drug     003
+    142        To            Organs blood mean transit time  2.093434e+01         sec  1.092181e+00     drug     003
+    143        Eo                Organs extraction fraction  1.660923e-01              1.017878e-02     drug     003
+    144       Toe    Organs extravascular mean transit time  1.871734e+02         sec  1.960309e+01     drug     003
+    145        Eb                  Body extraction fraction  3.293534e-02              2.653356e-03     drug     003
+    146         H                                Hematocrit  4.500000e-01              0.000000e+00     drug     003
+    147        ve       Liver extracellular volume fraction  2.623260e-01      mL/cm3  2.812384e-02     drug     003
+    148        Te           Extracellular mean transit time  5.991617e+01         sec  9.896264e+00     drug     003
+    149        De                  Extracellular dispersion  8.822647e-01              3.928749e-02     drug     003
+    150     khe_i        Initial hepatocellular uptake rate  4.189590e-04  mL/sec/cm3  2.469740e-04     drug     003
+    151     khe_f          Final hepatocellular uptake rate  2.710768e-04  mL/sec/cm3  3.335262e-04     drug     003
+    152      Th_i  Initial hepatocellular mean transit time  6.816298e+02         sec  5.081504e+02     drug     003
+    153      Th_f    Final hepatocellular mean transit time  7.154843e+02         sec  1.738251e+03     drug     003
+    154        Th          Hepatocellular mean transit time  6.985571e+02         sec  0.000000e+00     drug     003
+    155       khe                Hepatocellular uptake rate  3.450179e-04  mL/sec/cm3  0.000000e+00     drug     003
+    156       Kbh             Biliary tissue excretion rate  1.431522e-03  mL/sec/cm3  0.000000e+00     drug     003
+    157       Khe         Hepatocellular tissue uptake rate  1.315226e-03  mL/sec/cm3  0.000000e+00     drug     003
+    158       kbh                    Biliary excretion rate  1.055997e-03  mL/sec/cm3  0.000000e+00     drug     003
+    159     kbh_i            Initial biliary excretion rate  1.082221e-03  mL/sec/cm3  0.000000e+00     drug     003
+    160     kbh_f              Final biliary excretion rate  1.031013e-03  mL/sec/cm3  0.000000e+00     drug     003
+    161        CL                     Liver blood clearance  3.490520e-01      mL/sec  0.000000e+00     drug     003
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 149-154
+.. GENERATED FROM PYTHON SOURCE LINES 160-165
 
 Plot individual results
 -----------------------
@@ -491,7 +504,7 @@ Now lets visualise the main results from the study by plotting the drug
 effect for all volunteers, and for both biomarkers: uptake rate ``khe`` 
 and excretion rate ``kbh``:
 
-.. GENERATED FROM PYTHON SOURCE LINES 154-194
+.. GENERATED FROM PYTHON SOURCE LINES 165-205
 
 .. code-block:: Python
 
@@ -550,7 +563,7 @@ and excretion rate ``kbh``:
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (5 minutes 4.744 seconds)
+   **Total running time of the script:** (6 minutes 52.666 seconds)
 
 
 .. _sphx_glr_download_generated_examples_liver_plot_tristan_patients.py:

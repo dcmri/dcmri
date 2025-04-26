@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**00:37.365** total execution time for 4 files **from generated\examples\tutorials**:
+**00:30.425** total execution time for 4 files **from generated\examples\tutorials**:
 
 .. container::
 
@@ -33,14 +33,14 @@ Computation times
      - Time
      - Mem (MB)
    * - :ref:`sphx_glr_generated_examples_tutorials_plot_minipig.py` (``plot_minipig.py``)
-     - 00:31.021
-     - 0.0
-   * - :ref:`sphx_glr_generated_examples_tutorials_plot_wex.py` (``plot_wex.py``)
-     - 00:04.565
+     - 00:30.425
      - 0.0
    * - :ref:`sphx_glr_generated_examples_tutorials_plot_aif.py` (``plot_aif.py``)
-     - 00:00.987
+     - 00:00.000
      - 0.0
    * - :ref:`sphx_glr_generated_examples_tutorials_plot_convolution.py` (``plot_convolution.py``)
-     - 00:00.792
+     - 00:00.000
+     - 0.0
+   * - :ref:`sphx_glr_generated_examples_tutorials_plot_wex.py` (``plot_wex.py``)
+     - 00:00.000
      - 0.0

@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**37:16.280** total execution time for 11 files **from all galleries**:
+**00:30.425** total execution time for 11 files **from all galleries**:
 
 .. container::
 
@@ -32,36 +32,36 @@ Computation times
    * - Example
      - Time
      - Mem (MB)
-   * - :ref:`sphx_glr_generated_examples_liver_plot_tristan_volunteers_2scan.py` (``..\examples\liver\plot_tristan_volunteers_2scan.py``)
-     - 25:41.310
-     - 0.0
-   * - :ref:`sphx_glr_generated_examples_liver_plot_tristan_patients.py` (``..\examples\liver\plot_tristan_patients.py``)
-     - 05:04.744
-     - 0.0
-   * - :ref:`sphx_glr_generated_examples_liver_plot_tristan_volunteers.py` (``..\examples\liver\plot_tristan_volunteers.py``)
-     - 04:48.632
-     - 0.0
    * - :ref:`sphx_glr_generated_examples_tutorials_plot_minipig.py` (``..\examples\tutorials\plot_minipig.py``)
-     - 00:31.021
-     - 0.0
-   * - :ref:`sphx_glr_generated_examples_liver_plot_tristan_repro.py` (``..\examples\liver\plot_tristan_repro.py``)
-     - 00:23.984
-     - 0.0
-   * - :ref:`sphx_glr_generated_examples_liver_plot_tristan_mdosing.py` (``..\examples\liver\plot_tristan_mdosing.py``)
-     - 00:18.697
-     - 0.0
-   * - :ref:`sphx_glr_generated_examples_liver_plot_tristan6drugs.py` (``..\examples\liver\plot_tristan6drugs.py``)
-     - 00:13.698
+     - 00:30.425
      - 0.0
    * - :ref:`sphx_glr_generated_examples_kidney_plot_gfr_validation.py` (``..\examples\kidney\plot_gfr_validation.py``)
-     - 00:07.851
+     - 00:00.000
      - 0.0
-   * - :ref:`sphx_glr_generated_examples_tutorials_plot_wex.py` (``..\examples\tutorials\plot_wex.py``)
-     - 00:04.565
+   * - :ref:`sphx_glr_generated_examples_liver_plot_tristan6drugs.py` (``..\examples\liver\plot_tristan6drugs.py``)
+     - 00:00.000
+     - 0.0
+   * - :ref:`sphx_glr_generated_examples_liver_plot_tristan_mdosing.py` (``..\examples\liver\plot_tristan_mdosing.py``)
+     - 00:00.000
+     - 0.0
+   * - :ref:`sphx_glr_generated_examples_liver_plot_tristan_patients.py` (``..\examples\liver\plot_tristan_patients.py``)
+     - 00:00.000
+     - 0.0
+   * - :ref:`sphx_glr_generated_examples_liver_plot_tristan_repro.py` (``..\examples\liver\plot_tristan_repro.py``)
+     - 00:00.000
+     - 0.0
+   * - :ref:`sphx_glr_generated_examples_liver_plot_tristan_volunteers.py` (``..\examples\liver\plot_tristan_volunteers.py``)
+     - 00:00.000
+     - 0.0
+   * - :ref:`sphx_glr_generated_examples_liver_plot_tristan_volunteers_2scan.py` (``..\examples\liver\plot_tristan_volunteers_2scan.py``)
+     - 00:00.000
      - 0.0
    * - :ref:`sphx_glr_generated_examples_tutorials_plot_aif.py` (``..\examples\tutorials\plot_aif.py``)
-     - 00:00.987
+     - 00:00.000
      - 0.0
    * - :ref:`sphx_glr_generated_examples_tutorials_plot_convolution.py` (``..\examples\tutorials\plot_convolution.py``)
-     - 00:00.792
+     - 00:00.000
+     - 0.0
+   * - :ref:`sphx_glr_generated_examples_tutorials_plot_wex.py` (``..\examples\tutorials\plot_wex.py``)
+     - 00:00.000
      - 0.0
