@@ -1,4 +1,5 @@
 import numpy as np
+import pydmr
 import dcmri as dc
 
 
@@ -61,7 +62,7 @@ def test_ui_kidney_cort_med():
 def test_ui_aorta_kidneys():
 
     datafile = dc.fetch('minipig_renal_fibrosis')
-    dmr = dc.read_dmr(datafile, 'nest')
+    dmr = pydmr.read(datafile, 'nest')
     rois, pars = dmr['rois']['Pig']['Test'], dmr['pars']['Pig']['Test']
 
     aorta_kidneys = dc.AortaKidneys(

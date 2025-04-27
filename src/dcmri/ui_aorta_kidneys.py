@@ -353,12 +353,13 @@ class AortaKidneys(ui.Model):
         :context: close-figs
 
         >>> import numpy as np
+        >>> import pydmr
         >>> import dcmri as dc
 
         Read the dataset:
 
         >>> datafile = dc.fetch('minipig_renal_fibrosis')
-        >>> data = dc.read_dmr(datafile, 'nest')
+        >>> data = pydmr.read(datafile, 'nest')
         >>> rois, pars = data['rois']['Pig']['Test'], data['pars']['Pig']['Test']
 
         Create an array of time points:

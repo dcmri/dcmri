@@ -16,5 +16,6 @@ sphinxcontrib-qthelp
 sphinxcontrib-serializinghtml
 sphinx-gallery
 sphinx-exec-code
+pydmr
 
 

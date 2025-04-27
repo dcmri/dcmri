@@ -85,11 +85,12 @@ of Fibrogenic Kidney Metabolism.
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
+import pydmr
 import dcmri as dc
 
 # Read the dataset
 dmrfile = dc.fetch('minipig_renal_fibrosis')
-data = dc.read_dmr(dmrfile, 'nest')
+data = pydmr.read(dmrfile, 'nest')
 rois, pars = data['rois']['Pig']['Test'], data['pars']['Pig']['Test']
 
 # %%

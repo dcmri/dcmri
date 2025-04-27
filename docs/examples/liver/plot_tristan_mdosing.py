@@ -39,11 +39,12 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pydmr
 import dcmri as dc
 
 # Fetch the data
 dmrfile = dc.fetch('tristan_rats_healthy_multiple_dosing')
-dmr = dc.read_dmr(dmrfile, 'nest')
+dmr = pydmr.read(dmrfile, 'nest')
 rois, pars = dmr['rois'], dmr['pars']
 
 # %%

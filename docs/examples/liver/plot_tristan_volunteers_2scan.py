@@ -51,11 +51,12 @@ volunteers*. Proc Intl Soc Mag Reson Med, Singapore 2024.
 # Import packages
 import pandas as pd
 import matplotlib.pyplot as plt
+import pydmr
 import dcmri as dc
 
 # Fetch the data from the TRISTAN rifampicin study:
 dmrfile = dc.fetch('tristan_humans_healthy_rifampicin')
-data = dc.read_dmr(dmrfile, 'nest')
+data = pydmr.read(dmrfile, 'nest')
 rois, pars = data['rois'], data['pars']
 
 # %%

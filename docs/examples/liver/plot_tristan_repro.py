@@ -48,11 +48,12 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pydmr
 import dcmri as dc
 
 # Fetch the data
 dmrfile = dc.fetch('tristan_rats_healthy_reproducibility')
-data = dc.read_dmr(dmrfile, 'nest')
+data = pydmr.read(dmrfile, 'nest')
 rois, pars = data['rois'], data['pars']
 
 

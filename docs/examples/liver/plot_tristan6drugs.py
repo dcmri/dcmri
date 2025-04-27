@@ -46,11 +46,12 @@ Mediated Drug–Drug Interactions in Rats. Pharmaceutics. 2023; 15(3):896.
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import pydmr
 import dcmri as dc
 
 # Fetch the data
 dmrfile = dc.fetch('tristan_rats_healthy_six_drugs')
-dmr = dc.read_dmr(dmrfile, 'nest')
+dmr = pydmr.read(dmrfile, 'nest')
 rois, pars = dmr['rois'], dmr['pars']
 
 

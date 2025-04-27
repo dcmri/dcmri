@@ -12,16 +12,6 @@ building examples, or to construct new models.
 .. _real-data:
 
 
-Reading and writing
-===================
-
-.. autosummary::
-   :toctree: ../generated/api/
-   :template: autosummary.rst
-
-   read_dmr
-   write_dmr
-
 
 Real data
 =========

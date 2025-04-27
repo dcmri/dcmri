@@ -32,12 +32,13 @@ Magn Reson Imaging. 2019 Jun;59:53-60. doi: 10.1016/j.mri.2019.03.005.
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import pydmr
 
 import dcmri as dc
 
 # Fetch the data
 datafile = dc.fetch('KRUK')
-dmr = dc.read_dmr(datafile, 'nest')
+dmr = pydmr.read(datafile, 'nest')
 rois, pars = dmr['rois'], dmr['pars']
 
 # %%
