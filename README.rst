@@ -90,10 +90,14 @@ Typical usage: pixel-based analysis
     n = 128
     time, signal, aif, _ = dc.fake_brain(n) 
 
-    # Construct an array of tissues
-    image = dc.TissueArray((n,n),               
-        aif = aif, t = time, 
-        kinetics = '2CU', verbose = 1)   
+    # Construct a tissue array
+    image = dc.TissueArray(
+        (n,n),               
+        aif=aif, 
+        t=time, 
+        kinetics='2CU', 
+        verbose=1,
+    )   
 
     # Train the tissue array on the data
     image.train(time, signal)  
