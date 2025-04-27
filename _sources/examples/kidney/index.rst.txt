@@ -1,0 +1,49 @@
+
+
+.. _sphx_glr_examples_kidney:
+
+.. _kidney-applications:
+
+*******************
+Kidney applications
+*******************
+
+
+
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example illustrates the use of Kidney for measurement of  single-kidney glomerular filtration rate (SK-GFR). ">
+
+.. only:: html
+
+  .. image:: /examples/kidney/images/thumb/sphx_glr_plot_gfr_validation_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_examples_kidney_plot_gfr_validation.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Single-kidney glomerular filtration rate</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /examples/kidney/plot_gfr_validation
+

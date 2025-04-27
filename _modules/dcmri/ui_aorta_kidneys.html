@@ -1,0 +1,1856 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>dcmri.ui_aorta_kidneys &#8212; dcmri 0.6.17 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=cd8af66b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=0d21fabb"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-64ZSJ8Z1MX"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/dcmri/ui_aorta_kidneys';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/tristan-logo.jpg" class="logo__image only-light" alt="dcmri 0.6.17 documentation - Home"/>
+    <img src="../../_static/tristan-logo.jpg" class="logo__image only-dark pst-js-only" alt="dcmri 0.6.17 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../releases/index.html">
+    Releases
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../about/index.html">
+    About
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../releases/index.html">
+    Releases
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../about/index.html">
+    About
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">dcmri.ui_aorta_kidneys</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for dcmri.ui_aorta_kidneys</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">copy</span><span class="w"> </span><span class="kn">import</span> <span class="n">deepcopy</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">dcmri.ui</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ui</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">dcmri.lib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">lib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">dcmri.sig</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sig</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">dcmri.utils</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">utils</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">dcmri.pk</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pk</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">dcmri.pk_aorta</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pk_aorta</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">dcmri.kidney</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">kidney</span>
+
+
+<div class="viewcode-block" id="AortaKidneys">
+<a class="viewcode-back" href="../../api/dcmri.AortaKidneys.html#dcmri.AortaKidneys">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AortaKidneys</span><span class="p">(</span><span class="n">ui</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Joint model for signals from aorta and both kidneys.</span>
+
+<span class="sd">    This model uses a whole body model to simultaneously predict </span>
+<span class="sd">    signals in aorta and kidneys (see :ref:`whole-body-tissues`). </span>
+
+<span class="sd">    See Also:</span>
+<span class="sd">        `Aorta`, `Kidney`</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        organs (str, optional): Model for the organs in the whole-body </span>
+<span class="sd">          model. The options are &#39;comp&#39; (one compartment) and &#39;2cxm&#39; </span>
+<span class="sd">          (two-compartment exchange). Defaults to &#39;comp&#39;.</span>
+<span class="sd">        heartlung (str, optional): Model for the heart-lung system in </span>
+<span class="sd">          the whole-body model. Options are &#39;pfcomp&#39; (plug-flow </span>
+<span class="sd">          compartment) or &#39;chain&#39;. Defaults to &#39;pfcomp&#39;.</span>
+<span class="sd">        kidneys (str, optional): Model for the kidneys. Options are </span>
+<span class="sd">          &#39;2CF&#39; (Two-compartment filtration) and &#39;HF&#39; (High-flow). </span>
+<span class="sd">          Defaults to &#39;2CF&#39;. </span>
+<span class="sd">        sequence (str, optional): imaging sequence model. Possible </span>
+<span class="sd">          values are &#39;SS&#39; (steady-state), &#39;SR&#39; (saturation-recovery), </span>
+<span class="sd">          &#39;SSI&#39; (steady state with inflow correction) and &#39;lin&#39; </span>
+<span class="sd">          (linear). Defaults to &#39;SS&#39;.</span>
+<span class="sd">        agent (str, optional): Generic name of the contrast agent </span>
+<span class="sd">          injected. Defaults to &#39;gadoterate&#39;.</span>
+<span class="sd">        params (dict, optional): values for the model parameters,</span>
+<span class="sd">          specified as keyword parameters. Defaults are used for any </span>
+<span class="sd">          that are not provided. See table </span>
+<span class="sd">          :ref:`AortaKidneys-defaults` for a list of parameters and </span>
+<span class="sd">          their default values.</span>
+
+<span class="sd">    Notes:</span>
+
+<span class="sd">        In the table below, if **Bounds** is None, the parameter is fixed </span>
+<span class="sd">        during training. Otherwise it is allowed to vary between the </span>
+<span class="sd">        bounds given.</span>
+
+<span class="sd">        .. _AortaKidneys-defaults:</span>
+<span class="sd">        .. list-table:: AortaKidneys parameters. </span>
+<span class="sd">            :widths: 5 10 5 5 5 10</span>
+<span class="sd">            :header-rows: 1</span>
+
+<span class="sd">            * - Parameter</span>
+<span class="sd">              - Description</span>
+<span class="sd">              - Value</span>
+<span class="sd">              - Unit</span>
+<span class="sd">              - Bounds</span>
+<span class="sd">              - Usage</span>
+<span class="sd">            * - **General**</span>
+<span class="sd">              - </span>
+<span class="sd">              - </span>
+<span class="sd">              - </span>
+<span class="sd">              - </span>
+<span class="sd">              - </span>
+<span class="sd">            * - dt</span>
+<span class="sd">              - Prediction time step</span>
+<span class="sd">              - 0.25</span>
+<span class="sd">              - sec</span>
+<span class="sd">              - None</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - tmax</span>
+<span class="sd">              - Maximum time predicted</span>
+<span class="sd">              - 120</span>
+<span class="sd">              - sec</span>
+<span class="sd">              - None</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - dose_tolerance</span>
+<span class="sd">              - Stopping criterion whole body model</span>
+<span class="sd">              - 0.1</span>
+<span class="sd">              -</span>
+<span class="sd">              - None</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - t0</span>
+<span class="sd">              - Baseline duration</span>
+<span class="sd">              - 0</span>
+<span class="sd">              - </span>
+<span class="sd">              - None</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - field_strength</span>
+<span class="sd">              - B0-field</span>
+<span class="sd">              - 3</span>
+<span class="sd">              - T</span>
+<span class="sd">              - None</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - **Injection**</span>
+<span class="sd">              - </span>
+<span class="sd">              -</span>
+<span class="sd">              - </span>
+<span class="sd">              - </span>
+<span class="sd">              -</span>
+<span class="sd">            * - weight</span>
+<span class="sd">              - Subject weight</span>
+<span class="sd">              - 70</span>
+<span class="sd">              - kg</span>
+<span class="sd">              - None</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - dose</span>
+<span class="sd">              - Contrast agent dose</span>
+<span class="sd">              - 0.0125</span>
+<span class="sd">              - mL/kg</span>
+<span class="sd">              - None</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - rate</span>
+<span class="sd">              - Contrast agent injection rate</span>
+<span class="sd">              - 1</span>
+<span class="sd">              - mL/kg</span>
+<span class="sd">              - None</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - **Sequence**</span>
+<span class="sd">              - </span>
+<span class="sd">              -</span>
+<span class="sd">              - </span>
+<span class="sd">              - </span>
+<span class="sd">              - </span>
+<span class="sd">            * - TR</span>
+<span class="sd">              - Repetition time</span>
+<span class="sd">              - 0.005</span>
+<span class="sd">              - sec</span>
+<span class="sd">              - None</span>
+<span class="sd">              - sequence in [&#39;SS&#39;, &#39;SSI&#39;]</span>
+<span class="sd">            * - FA</span>
+<span class="sd">              - Flip angle</span>
+<span class="sd">              - 15</span>
+<span class="sd">              - deg</span>
+<span class="sd">              - None</span>
+<span class="sd">              - sequence in [&#39;SR&#39;, &#39;SS&#39;, &#39;SSI&#39;]</span>
+<span class="sd">            * - TC</span>
+<span class="sd">              - Time to k-space center</span>
+<span class="sd">              - 0.1</span>
+<span class="sd">              - sec</span>
+<span class="sd">              - None</span>
+<span class="sd">              - sequence == &#39;SR&#39;</span>
+<span class="sd">            * - TS</span>
+<span class="sd">              - Sampling duration</span>
+<span class="sd">              - 0</span>
+<span class="sd">              - sec</span>
+<span class="sd">              - None</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - TF</span>
+<span class="sd">              - Inflow time</span>
+<span class="sd">              - 0</span>
+<span class="sd">              - sec</span>
+<span class="sd">              - None</span>
+<span class="sd">              - sequence == &#39;SSI&#39;</span>
+<span class="sd">            * - **Aorta**</span>
+<span class="sd">              - </span>
+<span class="sd">              -</span>
+<span class="sd">              - </span>
+<span class="sd">              - </span>
+<span class="sd">              -</span>
+<span class="sd">            * - BAT</span>
+<span class="sd">              - Bolus arrival time</span>
+<span class="sd">              - 60</span>
+<span class="sd">              - sec</span>
+<span class="sd">              - [0, inf]</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - CO</span>
+<span class="sd">              - Cardiac output</span>
+<span class="sd">              - 100</span>
+<span class="sd">              - mL/sec</span>
+<span class="sd">              - [0, 300]</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - Thl</span>
+<span class="sd">              - Heart-lung transit time</span>
+<span class="sd">              - 10</span>
+<span class="sd">              - sec</span>
+<span class="sd">              - [0, 30]</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - Dhl</span>
+<span class="sd">              - Heart-lung dispersion</span>
+<span class="sd">              - 0.2</span>
+<span class="sd">              - </span>
+<span class="sd">              - [0.05, 0.95]</span>
+<span class="sd">              - heartlung in [&#39;pfcomp&#39;, &#39;chain&#39;]</span>
+<span class="sd">            * - To</span>
+<span class="sd">              - Organs transit time</span>
+<span class="sd">              - 20</span>
+<span class="sd">              - sec</span>
+<span class="sd">              - [0, 60]</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - Eo</span>
+<span class="sd">              - Organs extraction fraction</span>
+<span class="sd">              - 0.15</span>
+<span class="sd">              - </span>
+<span class="sd">              - [0, 0.5]</span>
+<span class="sd">              - organs == &#39;2cxm&#39;</span>
+<span class="sd">            * - Toe</span>
+<span class="sd">              - Organs extracellular transit time</span>
+<span class="sd">              - 120</span>
+<span class="sd">              - sec</span>
+<span class="sd">              - [0, 800]</span>
+<span class="sd">              - organs == &#39;2cxm&#39;</span>
+<span class="sd">            * - Eb</span>
+<span class="sd">              - Body extraction fraction</span>
+<span class="sd">              - 0.05</span>
+<span class="sd">              - </span>
+<span class="sd">              - [0.01, 0.15]</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - R10a</span>
+<span class="sd">              - Arterial precontrast R1</span>
+<span class="sd">              - 0.7</span>
+<span class="sd">              - /sec</span>
+<span class="sd">              - None</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - S0a</span>
+<span class="sd">              - Arterial signal scale factor</span>
+<span class="sd">              - 1</span>
+<span class="sd">              - a.u.</span>
+<span class="sd">              - None</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - **Kidneys**</span>
+<span class="sd">              -</span>
+<span class="sd">              -</span>
+<span class="sd">              - </span>
+<span class="sd">              - </span>
+<span class="sd">              -</span>
+<span class="sd">            * - H</span>
+<span class="sd">              - Hematocrit</span>
+<span class="sd">              - 0.45</span>
+<span class="sd">              - </span>
+<span class="sd">              - None</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - RPF</span>
+<span class="sd">              - Renal plasma flow</span>
+<span class="sd">              - 20</span>
+<span class="sd">              - mL/sec</span>
+<span class="sd">              - [0, 100]</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - DRF</span>
+<span class="sd">              - Differential renal function</span>
+<span class="sd">              - 0.5</span>
+<span class="sd">              - </span>
+<span class="sd">              - [0, 1.0]</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - DRPF</span>
+<span class="sd">              - Differential renal plasma flow</span>
+<span class="sd">              - 0.5</span>
+<span class="sd">              - </span>
+<span class="sd">              - [0, 1.0]</span>
+<span class="sd">              - kidneys == &#39;2CF&#39;</span>
+<span class="sd">            * - FF</span>
+<span class="sd">              - Filtration fraction</span>
+<span class="sd">              - 0.1</span>
+<span class="sd">              - </span>
+<span class="sd">              - [0, 0.3]</span>
+<span class="sd">              - agent in [&#39;gadoxetate&#39;, &#39;gadobenate&#39;]</span>
+<span class="sd">            * - **Left kidney**</span>
+<span class="sd">              - </span>
+<span class="sd">              -</span>
+<span class="sd">              - </span>
+<span class="sd">              - </span>
+<span class="sd">              - </span>
+<span class="sd">            * - Ta_lk</span>
+<span class="sd">              - Left kidney arterial delay</span>
+<span class="sd">              - 0</span>
+<span class="sd">              - sec</span>
+<span class="sd">              - [0, 3]</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - vp_lk</span>
+<span class="sd">              - Left kidney plasma volume</span>
+<span class="sd">              - 0.15</span>
+<span class="sd">              - mL/cm3</span>
+<span class="sd">              - [0, 0.3]</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - Tt_lk</span>
+<span class="sd">              - Left kidney tubular transit time</span>
+<span class="sd">              - 120</span>
+<span class="sd">              - sec</span>
+<span class="sd">              - [0, inf]</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - R10_lk</span>
+<span class="sd">              - Left kidney precontrast R1</span>
+<span class="sd">              - 0.65</span>
+<span class="sd">              - 1/sec</span>
+<span class="sd">              - None</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - S0_lk</span>
+<span class="sd">              - Left kidney signal scale factor</span>
+<span class="sd">              - 1.0</span>
+<span class="sd">              - a.u.</span>
+<span class="sd">              - [0, inf]</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - vol_lk</span>
+<span class="sd">              - Left kidney volume</span>
+<span class="sd">              - 150</span>
+<span class="sd">              - cm3</span>
+<span class="sd">              - None</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - **Right kidney**</span>
+<span class="sd">              - </span>
+<span class="sd">              -</span>
+<span class="sd">              - </span>
+<span class="sd">              - </span>
+<span class="sd">              -</span>
+<span class="sd">            * - Ta_rk</span>
+<span class="sd">              - Right kidney arterial delay</span>
+<span class="sd">              - 0</span>
+<span class="sd">              - sec</span>
+<span class="sd">              - [0, 3]</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - vp_rk</span>
+<span class="sd">              - Right kidney plasma volume</span>
+<span class="sd">              - 0.15</span>
+<span class="sd">              - mL/cm3</span>
+<span class="sd">              - [0, 0.3]</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - Tt_rk</span>
+<span class="sd">              - Right kidney tubular transit time</span>
+<span class="sd">              - 120</span>
+<span class="sd">              - sec</span>
+<span class="sd">              - [0, inf]</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - R10_rk</span>
+<span class="sd">              - Right kidney precontrast R1</span>
+<span class="sd">              - 0.65</span>
+<span class="sd">              - /sec</span>
+<span class="sd">              - None</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - S0_rk</span>
+<span class="sd">              - Right kidney signal scale factor</span>
+<span class="sd">              - 1.0</span>
+<span class="sd">              - a.u.</span>
+<span class="sd">              - [0, inf]</span>
+<span class="sd">              - Always</span>
+<span class="sd">            * - vol_rk</span>
+<span class="sd">              - Right kidney volume</span>
+<span class="sd">              - 150</span>
+<span class="sd">              - cm3</span>
+<span class="sd">              - None</span>
+<span class="sd">              - Always</span>
+
+
+<span class="sd">    Example:</span>
+
+<span class="sd">        Use the model to fit minipig data with inflow correction:</span>
+
+<span class="sd">    .. plot::</span>
+<span class="sd">        :include-source:</span>
+<span class="sd">        :context: close-figs</span>
+
+<span class="sd">        &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">        &gt;&gt;&gt; import pydmr</span>
+<span class="sd">        &gt;&gt;&gt; import dcmri as dc</span>
+
+<span class="sd">        Read the dataset:</span>
+
+<span class="sd">        &gt;&gt;&gt; datafile = dc.fetch(&#39;minipig_renal_fibrosis&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; data = pydmr.read(datafile, &#39;nest&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; rois, pars = data[&#39;rois&#39;][&#39;Pig&#39;][&#39;Test&#39;], data[&#39;pars&#39;][&#39;Pig&#39;][&#39;Test&#39;]</span>
+
+<span class="sd">        Create an array of time points:</span>
+
+<span class="sd">        &gt;&gt;&gt; time = pars[&#39;TS&#39;] * np.arange(len(rois[&#39;Aorta&#39;]))</span>
+
+<span class="sd">        Initialize the tissue:</span>
+
+<span class="sd">        &gt;&gt;&gt; aorta_kidneys = dc.AortaKidneys(</span>
+<span class="sd">        ...     sequence=&#39;SSI&#39;,</span>
+<span class="sd">        ...     heartlung=&#39;chain&#39;,</span>
+<span class="sd">        ...     organs=&#39;comp&#39;,</span>
+<span class="sd">        ...     agent=&quot;gadoterate&quot;,</span>
+<span class="sd">        ...     dt=0.25,</span>
+<span class="sd">        ...     field_strength=pars[&#39;B0&#39;],</span>
+<span class="sd">        ...     weight=pars[&#39;weight&#39;],</span>
+<span class="sd">        ...     dose=pars[&#39;dose&#39;],</span>
+<span class="sd">        ...     rate=pars[&#39;rate&#39;],</span>
+<span class="sd">        ...     R10a=1/dc.T1(pars[&#39;B0&#39;], &#39;blood&#39;),</span>
+<span class="sd">        ...     R10_lk=1/dc.T1(pars[&#39;B0&#39;], &#39;kidney&#39;),</span>
+<span class="sd">        ...     R10_rk=1/dc.T1(pars[&#39;B0&#39;], &#39;kidney&#39;),</span>
+<span class="sd">        ...     vol_lk=85,</span>
+<span class="sd">        ...     vol_rk=85,</span>
+<span class="sd">        ...     TR=pars[&#39;TR&#39;],</span>
+<span class="sd">        ...     FA=pars[&#39;FA&#39;],</span>
+<span class="sd">        ...     TS=pars[&#39;TS&#39;],</span>
+<span class="sd">        ...     CO=60,   </span>
+<span class="sd">        ...     t0=15, </span>
+<span class="sd">        ... )</span>
+
+<span class="sd">        Define time and signal data</span>
+
+<span class="sd">        &gt;&gt;&gt; t = (time, time, time)</span>
+<span class="sd">        &gt;&gt;&gt; signal = (rois[&#39;Aorta&#39;], rois[&#39;LeftKidney&#39;], rois[&#39;RightKidney&#39;])</span>
+
+<span class="sd">        Train the system to the data:</span>
+
+<span class="sd">        &gt;&gt;&gt; aorta_kidneys.train(t, signal)</span>
+
+<span class="sd">        Plot the reconstructed signals and concentrations:</span>
+
+<span class="sd">        &gt;&gt;&gt; aorta_kidneys.plot(t, signal)</span>
+
+<span class="sd">        Print the model parameters:</span>
+
+<span class="sd">        &gt;&gt;&gt; aorta_kidneys.print_params(round_to=4)</span>
+<span class="sd">        --------------------------------</span>
+<span class="sd">        Free parameters with their stdev</span>
+<span class="sd">        --------------------------------</span>
+<span class="sd">        Bolus arrival time (BAT): 16.7422 (0.2853) sec</span>
+<span class="sd">        Inflow time (TF): 0.2801 (0.0133) sec</span>
+<span class="sd">        Cardiac output (CO): 72.762 (12.4426) mL/sec</span>
+<span class="sd">        Heart-lung mean transit time (Thl): 16.2249 (0.3069) sec</span>
+<span class="sd">        Organs blood mean transit time (To): 14.3793 (1.2492) sec</span>
+<span class="sd">        Body extraction fraction (Eb): 0.0751 (0.0071)</span>
+<span class="sd">        Heart-lung dispersion (Dhl): 0.0795 (0.0041)</span>
+<span class="sd">        Renal plasma flow (RPF): 3.3489 (0.7204) mL/sec</span>
+<span class="sd">        Differential renal function (DRF): 0.9085 (0.0212)</span>
+<span class="sd">        Differential renal plasma flow (DRPF): 0.812 (0.0169)</span>
+<span class="sd">        Left kidney arterial mean transit time (Ta_lk): 0.6509 (0.2228) sec</span>
+<span class="sd">        Left kidney plasma volume (vp_lk): 0.099 (0.0186) mL/cm3</span>
+<span class="sd">        Left kidney tubular mean transit time (Tt_lk): 46.9705 (3.3684) sec</span>
+<span class="sd">        Right kidney arterial mean transit time (Ta_rk): 1.4206 (0.2023) sec</span>
+<span class="sd">        Right kidney plasma volume (vp_rk): 0.1294 (0.0175) mL/cm3</span>
+<span class="sd">        Right kidney tubular mean transit time (Tt_rk): 4497.8301 (39890.3818) sec</span>
+<span class="sd">        Aorta signal scaling factor (S0a): 4912.776 (254.2363) a.u.</span>
+<span class="sd">        ----------------------------</span>
+<span class="sd">        Fixed and derived parameters</span>
+<span class="sd">        ----------------------------</span>
+<span class="sd">        Filtration fraction (FF): 0.0812</span>
+<span class="sd">        Glomerular Filtration Rate (GFR): 0.2719 mL/sec</span>
+<span class="sd">        Left kidney plasma flow (RPF_lk): 2.7194 mL/sec</span>
+<span class="sd">        Right kidney plasma flow (RPF_rk): 0.6295 mL/sec</span>
+<span class="sd">        Left kidney glomerular filtration rate (GFR_lk): 0.247 mL/sec</span>
+<span class="sd">        Right kidney glomerular filtration rate (GFR_rk): 0.0249 mL/sec</span>
+<span class="sd">        Left kidney plasma flow (Fp_lk): 0.032 mL/sec/cm3</span>
+<span class="sd">        Left kidney plasma mean transit time (Tp_lk): 2.838 sec</span>
+<span class="sd">        Left kidney vascular mean transit time (Tv_lk): 3.0958 sec</span>
+<span class="sd">        Left kidney tubular flow (Ft_lk): 0.0029 mL/sec/cm3</span>
+<span class="sd">        Left kidney filtration fraction (FF_lk): 0.0908</span>
+<span class="sd">        Left kidney extraction fraction (E_lk): 0.0833</span>
+<span class="sd">        Right kidney plasma flow (Fp_rk): 0.0074 mL/sec/cm3</span>
+<span class="sd">        Right kidney plasma mean transit time (Tp_rk): 16.8121 sec</span>
+<span class="sd">        Right kidney vascular mean transit time (Tv_rk): 17.4762 sec</span>
+<span class="sd">        Right kidney tubular flow (Ft_rk): 0.0003 mL/sec/cm3</span>
+<span class="sd">        Right kidney filtration fraction (FF_rk): 0.0395</span>
+<span class="sd">        Right kidney extraction fraction (E_rk): 0.038</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> 
+            <span class="n">organs</span><span class="o">=</span><span class="s1">&#39;comp&#39;</span><span class="p">,</span> 
+            <span class="n">heartlung</span><span class="o">=</span><span class="s1">&#39;pfcomp&#39;</span><span class="p">,</span> 
+            <span class="n">kidneys</span><span class="o">=</span><span class="s1">&#39;2CF&#39;</span><span class="p">,</span> 
+            <span class="n">sequence</span><span class="o">=</span><span class="s1">&#39;SS&#39;</span><span class="p">,</span> 
+            <span class="n">agent</span><span class="o">=</span><span class="s1">&#39;gadoterate&#39;</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">params</span><span class="p">,</span>
+        <span class="p">):</span>
+
+        <span class="c1"># Check configuration</span>
+        <span class="k">if</span> <span class="n">organs</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;comp&#39;</span><span class="p">,</span><span class="s1">&#39;2cxm&#39;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">organs</span><span class="si">}</span><span class="s2"> is not a valid model for the organs. &quot;</span>
+                <span class="s2">&quot;Current options are &#39;comp&#39; and &#39;2cxm&#39;.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">heartlung</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;pfcomp&#39;</span><span class="p">,</span> <span class="s1">&#39;chain&#39;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">heartlung</span><span class="si">}</span><span class="s2"> is not a valid heart-lung system. &quot;</span>
+                <span class="s2">&quot;Current options are &#39;pfcomp&#39; and &#39;chain&#39;.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">kidneys</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;2CF&#39;</span><span class="p">,</span> <span class="s1">&#39;HF&#39;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Kinetic model </span><span class="si">{</span><span class="n">kidneys</span><span class="si">}</span><span class="s2"> is not available.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">sequence</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;SS&#39;</span><span class="p">,</span> <span class="s1">&#39;SR&#39;</span><span class="p">,</span> <span class="s1">&#39;SSI&#39;</span><span class="p">,</span> <span class="s1">&#39;lin&#39;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Sequence </span><span class="si">{</span><span class="n">sequence</span><span class="si">}</span><span class="s2"> is not available.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Set configuration</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sequence</span> <span class="o">=</span> <span class="n">sequence</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">organs</span> <span class="o">=</span> <span class="n">organs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">heartlung</span> <span class="o">=</span> <span class="n">heartlung</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kidneys</span> <span class="o">=</span> <span class="n">kidneys</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">agent</span> <span class="o">=</span> <span class="n">agent</span>
+    
+        <span class="c1"># Set defaults</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_defaults</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">)</span>
+        <span class="c1"># For SSI, S0 needs to be free because TF affects the baseline</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence</span> <span class="o">==</span> <span class="s1">&#39;SSI&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">free</span><span class="p">[</span><span class="s1">&#39;S0a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">]</span>
+
+        <span class="c1"># Internal flag</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_predict</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">PARAMS_AORTA</span> <span class="o">|</span> <span class="n">PARAMS_KIDNEYS</span> <span class="o">|</span> <span class="n">PARAMS_DERIVED</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_model_pars</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="c1"># General</span>
+        <span class="n">pars</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;dt&#39;</span><span class="p">,</span> <span class="s1">&#39;tmax&#39;</span><span class="p">,</span> <span class="s1">&#39;dose_tolerance&#39;</span><span class="p">,</span> <span class="s1">&#39;t0&#39;</span><span class="p">,</span> <span class="s1">&#39;field_strength&#39;</span><span class="p">]</span>
+
+        <span class="c1"># Injection</span>
+        <span class="n">pars</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="s1">&#39;dose&#39;</span><span class="p">,</span> <span class="s1">&#39;rate&#39;</span><span class="p">,</span> <span class="s1">&#39;BAT&#39;</span><span class="p">]</span>
+
+        <span class="c1"># Sequence</span>
+        <span class="n">pars</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;TS&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence</span> <span class="o">==</span> <span class="s1">&#39;SR&#39;</span><span class="p">:</span>
+            <span class="n">pars</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;TC&#39;</span><span class="p">,</span> <span class="s1">&#39;FA&#39;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence</span><span class="o">==</span><span class="s1">&#39;SS&#39;</span><span class="p">:</span>
+            <span class="n">pars</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;TR&#39;</span><span class="p">,</span> <span class="s1">&#39;FA&#39;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence</span><span class="o">==</span><span class="s1">&#39;SSI&#39;</span><span class="p">:</span>
+            <span class="n">pars</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;TF&#39;</span><span class="p">,</span> <span class="s1">&#39;TR&#39;</span><span class="p">,</span> <span class="s1">&#39;FA&#39;</span><span class="p">]</span>
+
+        <span class="c1"># Aorta</span>
+        <span class="n">pars</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;CO&#39;</span><span class="p">,</span> <span class="s1">&#39;Thl&#39;</span><span class="p">,</span> <span class="s1">&#39;To&#39;</span><span class="p">,</span> <span class="s1">&#39;Eb&#39;</span><span class="p">,</span> <span class="s1">&#39;R10a&#39;</span><span class="p">,</span> <span class="s1">&#39;S0a&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">heartlung</span> <span class="o">==</span> <span class="s1">&#39;pfcomp&#39;</span><span class="p">:</span>
+            <span class="n">pars</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;Dhl&#39;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">heartlung</span> <span class="o">==</span> <span class="s1">&#39;chain&#39;</span><span class="p">:</span>
+            <span class="n">pars</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;Dhl&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">organs</span><span class="o">==</span><span class="s1">&#39;2cxm&#39;</span><span class="p">:</span>
+            <span class="n">pars</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;Toe&#39;</span><span class="p">,</span> <span class="s1">&#39;Eo&#39;</span><span class="p">]</span>
+
+        <span class="c1"># Kidneys</span>
+        <span class="n">pars</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;RPF&#39;</span><span class="p">,</span> <span class="s1">&#39;DRF&#39;</span><span class="p">,</span> <span class="s1">&#39;H&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;gadoxetate&#39;</span><span class="p">,</span> <span class="s1">&#39;gadobenate&#39;</span><span class="p">]:</span>
+            <span class="n">pars</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;FF&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kidneys</span> <span class="o">==</span> <span class="s1">&#39;2CF&#39;</span><span class="p">:</span>
+            <span class="n">pars</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;DRPF&#39;</span><span class="p">]</span>
+        <span class="n">pars</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;Ta_lk&#39;</span><span class="p">,</span> <span class="s1">&#39;vol_lk&#39;</span><span class="p">,</span> <span class="s1">&#39;vp_lk&#39;</span><span class="p">,</span> <span class="s1">&#39;Tt_lk&#39;</span><span class="p">,</span> <span class="s1">&#39;R10_lk&#39;</span><span class="p">]</span>
+        <span class="n">pars</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;Ta_rk&#39;</span><span class="p">,</span> <span class="s1">&#39;vol_rk&#39;</span><span class="p">,</span> <span class="s1">&#39;vp_rk&#39;</span><span class="p">,</span> <span class="s1">&#39;Tt_rk&#39;</span><span class="p">,</span> <span class="s1">&#39;R10_rk&#39;</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">pars</span>
+    
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_par_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">export</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">export</span><span class="p">:</span>
+            <span class="n">discard</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="s1">&#39;dt&#39;</span><span class="p">,</span> <span class="s1">&#39;tmax&#39;</span><span class="p">,</span> <span class="s1">&#39;t0&#39;</span><span class="p">,</span> <span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="s1">&#39;dose&#39;</span><span class="p">,</span> 
+                <span class="s1">&#39;rate&#39;</span><span class="p">,</span> <span class="s1">&#39;field_strength&#39;</span><span class="p">,</span> <span class="s1">&#39;dose_tolerance&#39;</span><span class="p">,</span> <span class="s1">&#39;R10a&#39;</span><span class="p">,</span> 
+                <span class="s1">&#39;TS&#39;</span> <span class="p">,</span> <span class="s1">&#39;TC&#39;</span><span class="p">,</span> <span class="s1">&#39;TR&#39;</span><span class="p">,</span> <span class="s1">&#39;FA&#39;</span><span class="p">,</span> 
+                <span class="s1">&#39;R10_lk&#39;</span><span class="p">,</span> <span class="s1">&#39;R10_rk&#39;</span><span class="p">,</span> <span class="s1">&#39;H&#39;</span><span class="p">,</span> 
+                <span class="s1">&#39;vol_rk&#39;</span><span class="p">,</span> <span class="s1">&#39;vol_lk&#39;</span><span class="p">,</span>
+            <span class="p">]</span>
+            <span class="n">pars</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_par_values</span><span class="p">()</span>
+            <span class="k">return</span> <span class="p">{</span><span class="n">p</span><span class="p">:</span> <span class="n">pars</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pars</span> <span class="k">if</span> <span class="n">p</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">discard</span><span class="p">}</span>
+
+        <span class="n">pars</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_pars</span><span class="p">()</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="p">{</span><span class="n">par</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">par</span><span class="p">)</span> <span class="k">for</span> <span class="n">par</span> <span class="ow">in</span> <span class="n">pars</span><span class="p">}</span>
+
+        <span class="c1"># Kidneys</span>
+        <span class="k">if</span> <span class="s1">&#39;FF&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">p</span><span class="p">:</span>
+            <span class="n">p</span><span class="p">[</span><span class="s1">&#39;FF&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_div</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;Eb&#39;</span><span class="p">],</span> <span class="mi">1</span><span class="o">-</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;Eb&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="p">{</span><span class="s1">&#39;RPF&#39;</span><span class="p">,</span> <span class="s1">&#39;FF&#39;</span><span class="p">}</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>   
+            <span class="n">p</span><span class="p">[</span><span class="s1">&#39;GFR&#39;</span><span class="p">]</span> <span class="o">=</span>  <span class="n">p</span><span class="p">[</span><span class="s1">&#39;RPF&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;FF&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="p">{</span><span class="s1">&#39;DRPF&#39;</span><span class="p">,</span> <span class="s1">&#39;RPF&#39;</span><span class="p">}</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">p</span><span class="p">):</span> 
+            <span class="n">p</span><span class="p">[</span><span class="s1">&#39;RPF_lk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;DRPF&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;RPF&#39;</span><span class="p">]</span>
+            <span class="n">p</span><span class="p">[</span><span class="s1">&#39;RPF_rk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;DRPF&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;RPF&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="p">{</span><span class="s1">&#39;DRF&#39;</span><span class="p">,</span> <span class="s1">&#39;GFR&#39;</span><span class="p">}</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+            <span class="n">p</span><span class="p">[</span><span class="s1">&#39;GFR_lk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;DRF&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;GFR&#39;</span><span class="p">]</span>
+            <span class="n">p</span><span class="p">[</span><span class="s1">&#39;GFR_rk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;DRF&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;GFR&#39;</span><span class="p">]</span>
+
+        <span class="c1"># Kidney LK</span>
+        <span class="k">if</span> <span class="p">{</span><span class="s1">&#39;RPF_lk&#39;</span><span class="p">,</span> <span class="s1">&#39;vol_lk&#39;</span><span class="p">}</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+            <span class="n">p</span><span class="p">[</span><span class="s1">&#39;Fp_lk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_div</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;RPF_lk&#39;</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;vol_lk&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="p">{</span><span class="s1">&#39;RPF_lk&#39;</span><span class="p">,</span> <span class="s1">&#39;GFR_lk&#39;</span><span class="p">,</span> <span class="s1">&#39;vp_lk&#39;</span><span class="p">,</span> <span class="s1">&#39;vol_lk&#39;</span><span class="p">}</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+            <span class="n">p</span><span class="p">[</span><span class="s1">&#39;Tp_lk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_div</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;vp_lk&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;vol_lk&#39;</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;RPF_lk&#39;</span><span class="p">]</span><span class="o">+</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;GFR_lk&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="p">{</span><span class="s1">&#39;RPF_lk&#39;</span><span class="p">,</span> <span class="s1">&#39;vp_lk&#39;</span><span class="p">,</span> <span class="s1">&#39;vol_lk&#39;</span><span class="p">}</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+            <span class="n">p</span><span class="p">[</span><span class="s1">&#39;Tv_lk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_div</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;vp_lk&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;vol_lk&#39;</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;RPF_lk&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="p">{</span><span class="s1">&#39;GFR_lk&#39;</span><span class="p">,</span> <span class="s1">&#39;vol_lk&#39;</span><span class="p">}</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+            <span class="n">p</span><span class="p">[</span><span class="s1">&#39;Ft_lk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_div</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;GFR_lk&#39;</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;vol_lk&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="p">{</span><span class="s1">&#39;GFR_lk&#39;</span><span class="p">,</span> <span class="s1">&#39;RPF_lk&#39;</span><span class="p">}</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+            <span class="n">p</span><span class="p">[</span><span class="s1">&#39;FF_lk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_div</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;GFR_lk&#39;</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;RPF_lk&#39;</span><span class="p">])</span>
+            <span class="n">p</span><span class="p">[</span><span class="s1">&#39;E_lk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_div</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;GFR_lk&#39;</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;GFR_lk&#39;</span><span class="p">]</span><span class="o">+</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;RPF_lk&#39;</span><span class="p">])</span>
+
+        <span class="c1"># Kidney RK</span>
+        <span class="k">if</span> <span class="p">{</span><span class="s1">&#39;RPF_rk&#39;</span><span class="p">,</span> <span class="s1">&#39;vol_rk&#39;</span><span class="p">}</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+            <span class="n">p</span><span class="p">[</span><span class="s1">&#39;Fp_rk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_div</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;RPF_rk&#39;</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;vol_rk&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="p">{</span><span class="s1">&#39;RPF_rk&#39;</span><span class="p">,</span> <span class="s1">&#39;GFR_rk&#39;</span><span class="p">,</span> <span class="s1">&#39;vp_rk&#39;</span><span class="p">,</span> <span class="s1">&#39;vol_rk&#39;</span><span class="p">}</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+            <span class="n">p</span><span class="p">[</span><span class="s1">&#39;Tp_rk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_div</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;vp_rk&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;vol_rk&#39;</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;RPF_rk&#39;</span><span class="p">]</span><span class="o">+</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;GFR_rk&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="p">{</span><span class="s1">&#39;RPF_rk&#39;</span><span class="p">,</span> <span class="s1">&#39;vp_rk&#39;</span><span class="p">,</span> <span class="s1">&#39;vol_rk&#39;</span><span class="p">}</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+            <span class="n">p</span><span class="p">[</span><span class="s1">&#39;Tv_rk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_div</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;vp_rk&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;vol_rk&#39;</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;RPF_rk&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="p">{</span><span class="s1">&#39;GFR_rk&#39;</span><span class="p">,</span> <span class="s1">&#39;vol_rk&#39;</span><span class="p">}</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+            <span class="n">p</span><span class="p">[</span><span class="s1">&#39;Ft_rk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_div</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;GFR_rk&#39;</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;vol_rk&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="p">{</span><span class="s1">&#39;GFR_rk&#39;</span><span class="p">,</span> <span class="s1">&#39;RPF_rk&#39;</span><span class="p">}</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+            <span class="n">p</span><span class="p">[</span><span class="s1">&#39;FF_rk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_div</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;GFR_rk&#39;</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;RPF_rk&#39;</span><span class="p">])</span>
+            <span class="n">p</span><span class="p">[</span><span class="s1">&#39;E_rk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_div</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;GFR_rk&#39;</span><span class="p">],</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;GFR_rk&#39;</span><span class="p">]</span><span class="o">+</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;RPF_rk&#39;</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">p</span>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_conc_aorta</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">organs</span> <span class="o">==</span> <span class="s1">&#39;comp&#39;</span><span class="p">:</span>
+            <span class="n">organs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;comp&#39;</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">To</span><span class="p">,)]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">organs</span><span class="o">==</span><span class="s1">&#39;2cxm&#39;</span><span class="p">:</span>
+            <span class="n">organs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;2cxm&#39;</span><span class="p">,</span> <span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">To</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Toe</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">Eo</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">heartlung</span> <span class="o">==</span> <span class="s1">&#39;comp&#39;</span><span class="p">:</span>
+            <span class="n">heartlung</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;comp&#39;</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Thl</span><span class="p">,)]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">heartlung</span> <span class="o">==</span> <span class="s1">&#39;pfcomp&#39;</span><span class="p">:</span>
+            <span class="n">heartlung</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;pfcomp&#39;</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Thl</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Dhl</span><span class="p">)]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">heartlung</span> <span class="o">==</span> <span class="s1">&#39;chain&#39;</span><span class="p">:</span>
+            <span class="n">heartlung</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;chain&#39;</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Thl</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Dhl</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tmax</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">)</span>
+        <span class="n">conc</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">ca_conc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent</span><span class="p">)</span>
+        <span class="n">Ji</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">ca_injection</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">conc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dose</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rate</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">BAT</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">Jb</span> <span class="o">=</span> <span class="n">pk_aorta</span><span class="o">.</span><span class="n">flux_aorta</span><span class="p">(</span>
+            <span class="n">Ji</span><span class="p">,</span> <span class="n">E</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Eb</span><span class="p">,</span> <span class="n">heartlung</span><span class="o">=</span><span class="n">heartlung</span><span class="p">,</span> <span class="n">organs</span><span class="o">=</span><span class="n">organs</span><span class="p">,</span>
+            <span class="n">dt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dose_tolerance</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ca</span> <span class="o">=</span> <span class="n">Jb</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">CO</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ca</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_relax_aorta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">t</span><span class="p">,</span> <span class="n">cb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conc_aorta</span><span class="p">()</span>
+        <span class="n">rb</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">relaxivity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">field_strength</span><span class="p">,</span> <span class="s1">&#39;blood&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R10a</span> <span class="o">+</span> <span class="n">rb</span><span class="o">*</span><span class="n">cb</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_predict_aorta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xdata</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="n">tacq</span> <span class="o">=</span> <span class="n">xdata</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">xdata</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tmax</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">xdata</span><span class="p">)</span><span class="o">+</span><span class="n">tacq</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">TS</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tmax</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">TS</span>
+        <span class="n">t</span><span class="p">,</span> <span class="n">R1a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_relax_aorta</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence</span> <span class="o">==</span> <span class="s1">&#39;SR&#39;</span><span class="p">:</span>
+            <span class="n">signal</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_free</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">S0a</span><span class="p">,</span> <span class="n">R1a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TC</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">FA</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence</span><span class="o">==</span><span class="s1">&#39;SS&#39;</span><span class="p">:</span>
+            <span class="n">signal</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_ss</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">S0a</span><span class="p">,</span> <span class="n">R1a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TR</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">FA</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence</span><span class="o">==</span><span class="s1">&#39;SSI&#39;</span><span class="p">:</span>
+            <span class="n">signal</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_spgr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">S0a</span><span class="p">,</span> <span class="n">R1a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TF</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TR</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">FA</span><span class="p">,</span> <span class="n">n0</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence</span> <span class="o">==</span> <span class="s1">&#39;lin&#39;</span><span class="p">:</span>
+            <span class="n">signal</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_lin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">S0a</span><span class="p">,</span> <span class="n">R1a</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">utils</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">xdata</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">signal</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TS</span><span class="p">)</span>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_conc_kidneys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">sum</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;gadoxetate&#39;</span><span class="p">,</span> <span class="s1">&#39;gadobenate&#39;</span><span class="p">]:</span>
+            <span class="n">FF</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FF</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">FF</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Eb</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">Eb</span><span class="p">)</span>
+
+        <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span>
+        <span class="n">ca_lk</span> <span class="o">=</span> <span class="n">pk</span><span class="o">.</span><span class="n">flux</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ca</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Ta_lk</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s1">&#39;plug&#39;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">ca_rk</span> <span class="o">=</span> <span class="n">pk</span><span class="o">.</span><span class="n">flux</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ca</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Ta_rk</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s1">&#39;plug&#39;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">GFR</span> <span class="o">=</span> <span class="n">FF</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">RPF</span>
+        <span class="n">Ft_lk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DRF</span> <span class="o">*</span> <span class="n">GFR</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">vol_lk</span>
+        <span class="n">Ft_rk</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">DRF</span><span class="p">)</span> <span class="o">*</span> <span class="n">GFR</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">vol_rk</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kidneys</span> <span class="o">==</span> <span class="s1">&#39;2CF&#39;</span><span class="p">:</span>
+            <span class="n">Fp_lk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DRPF</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">RPF</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">vol_lk</span>
+            <span class="n">C_lk</span> <span class="o">=</span> <span class="n">kidney</span><span class="o">.</span><span class="n">conc_kidney</span><span class="p">(</span>
+                <span class="n">ca_lk</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">),</span> 
+                <span class="n">Fp_lk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vp_lk</span><span class="p">,</span> <span class="n">Ft_lk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Tt_lk</span><span class="p">,</span>
+                <span class="n">t</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="nb">sum</span><span class="o">=</span><span class="nb">sum</span><span class="p">,</span> <span class="n">kinetics</span><span class="o">=</span><span class="s1">&#39;2CF&#39;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">Fp_rk</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">DRPF</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">RPF</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">vol_rk</span>
+            <span class="n">C_rk</span> <span class="o">=</span> <span class="n">kidney</span><span class="o">.</span><span class="n">conc_kidney</span><span class="p">(</span>
+                <span class="n">ca_rk</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">),</span> 
+                <span class="n">Fp_rk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vp_rk</span><span class="p">,</span> <span class="n">Ft_rk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Tt_rk</span><span class="p">,</span>
+                <span class="n">t</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="nb">sum</span><span class="o">=</span><span class="nb">sum</span><span class="p">,</span> <span class="n">kinetics</span><span class="o">=</span><span class="s1">&#39;2CF&#39;</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kidneys</span> <span class="o">==</span> <span class="s1">&#39;HF&#39;</span><span class="p">:</span>
+            <span class="n">C_lk</span> <span class="o">=</span> <span class="n">kidney</span><span class="o">.</span><span class="n">conc_kidney</span><span class="p">(</span>
+                <span class="n">ca_lk</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">),</span> 
+                <span class="bp">self</span><span class="o">.</span><span class="n">vp_lk</span><span class="p">,</span> <span class="n">Ft_lk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Tt_lk</span><span class="p">,</span>
+                <span class="n">t</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="nb">sum</span><span class="o">=</span><span class="nb">sum</span><span class="p">,</span> <span class="n">kinetics</span><span class="o">=</span><span class="s1">&#39;HF&#39;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">C_rk</span> <span class="o">=</span> <span class="n">kidney</span><span class="o">.</span><span class="n">conc_kidney</span><span class="p">(</span>
+                <span class="n">ca_rk</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">),</span> 
+                <span class="bp">self</span><span class="o">.</span><span class="n">vp_rk</span><span class="p">,</span> <span class="n">Ft_rk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Tt_rk</span><span class="p">,</span>
+                <span class="n">t</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="nb">sum</span><span class="o">=</span><span class="nb">sum</span><span class="p">,</span> <span class="n">kinetics</span><span class="o">=</span><span class="s1">&#39;HF&#39;</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">t</span><span class="p">,</span> <span class="n">C_lk</span><span class="p">,</span> <span class="n">C_rk</span>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_relax_kidneys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">t</span><span class="p">,</span> <span class="n">Clk</span><span class="p">,</span> <span class="n">Crk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conc_kidneys</span><span class="p">()</span>
+        <span class="n">rb</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">relaxivity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">field_strength</span><span class="p">,</span> <span class="s1">&#39;blood&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R10_lk</span> <span class="o">+</span> <span class="n">rb</span><span class="o">*</span><span class="n">Clk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R10_rk</span> <span class="o">+</span> <span class="n">rb</span><span class="o">*</span><span class="n">Crk</span>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_predict_kidneys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xdata</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+        <span class="n">t</span><span class="p">,</span> <span class="n">R1_lk</span><span class="p">,</span> <span class="n">R1_rk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_relax_kidneys</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence</span> <span class="o">==</span> <span class="s1">&#39;SR&#39;</span><span class="p">:</span>
+            <span class="n">signal_lk</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_spgr</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">S0_lk</span><span class="p">,</span> <span class="n">R1_lk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TC</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TR</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">FA</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">signal_rk</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_spgr</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">S0_rk</span><span class="p">,</span> <span class="n">R1_rk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TC</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TR</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">FA</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;SS&#39;</span><span class="p">,</span> <span class="s1">&#39;SSI&#39;</span><span class="p">]:</span>
+            <span class="n">signal_lk</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_ss</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">S0_lk</span><span class="p">,</span> <span class="n">R1_lk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TR</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">FA</span><span class="p">)</span>
+            <span class="n">signal_rk</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_ss</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">S0_rk</span><span class="p">,</span> <span class="n">R1_rk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TR</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">FA</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence</span> <span class="o">==</span> <span class="s1">&#39;lin&#39;</span><span class="p">:</span>
+            <span class="n">signal_lk</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_lin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">S0_lk</span><span class="p">,</span> <span class="n">R1_lk</span><span class="p">)</span>
+            <span class="n">signal_rk</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_lin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">S0_rk</span><span class="p">,</span> <span class="n">R1_rk</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">xdata</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">t</span><span class="p">,</span> <span class="n">signal_lk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TS</span><span class="p">),</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">xdata</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">t</span><span class="p">,</span> <span class="n">signal_rk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TS</span><span class="p">))</span>
+
+<div class="viewcode-block" id="AortaKidneys.conc">
+<a class="viewcode-back" href="../../api/dcmri.AortaKidneys.html#dcmri.AortaKidneys.conc">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">conc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">sum</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Concentrations in aorta and kidney.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            sum (bool, optional): If set to true, the kidney </span>
+<span class="sd">              concentrations are the sum over all compartments. If </span>
+<span class="sd">              set to false, the compartmental concentrations are </span>
+<span class="sd">              returned individually. Defaults to True.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: time points, aorta blood concentrations, left </span>
+<span class="sd">              kidney concentrations, right kidney concentrations.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">t</span><span class="p">,</span> <span class="n">cb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conc_aorta</span><span class="p">()</span>
+        <span class="n">t</span><span class="p">,</span> <span class="n">Clk</span><span class="p">,</span> <span class="n">Crk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conc_kidneys</span><span class="p">(</span><span class="nb">sum</span><span class="o">=</span><span class="nb">sum</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">t</span><span class="p">,</span> <span class="n">cb</span><span class="p">,</span> <span class="n">Clk</span><span class="p">,</span> <span class="n">Crk</span></div>
+
+
+<div class="viewcode-block" id="AortaKidneys.relax">
+<a class="viewcode-back" href="../../api/dcmri.AortaKidneys.html#dcmri.AortaKidneys.relax">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">relax</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Relaxation rates in aorta and kidney.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: time points, aorta relaxation rate, left kidney </span>
+<span class="sd">              relaxation rate, right kidney relaxation rate.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">t</span><span class="p">,</span> <span class="n">R1b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_relax_aorta</span><span class="p">()</span>
+        <span class="n">t</span><span class="p">,</span> <span class="n">R1_lk</span><span class="p">,</span> <span class="n">R1_rk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_relax_kidneys</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">t</span><span class="p">,</span> <span class="n">R1b</span><span class="p">,</span> <span class="n">R1_lk</span><span class="p">,</span> <span class="n">R1_rk</span></div>
+
+
+<div class="viewcode-block" id="AortaKidneys.predict">
+<a class="viewcode-back" href="../../api/dcmri.AortaKidneys.html#dcmri.AortaKidneys.predict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xdata</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Predict the data at given xdata</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            xdata (tuple): Tuple of 3 arrays with time points for </span>
+<span class="sd">              aorta, left kidney and right kidney, in that order. </span>
+<span class="sd">              The three arrays can all be different in length and value.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: Tuple of 3 arrays with signals for aorta, left </span>
+<span class="sd">              kidney and right kidney, in that order. The three </span>
+<span class="sd">              arrays can all be different in length and value but </span>
+<span class="sd">              each has to have the same length as its corresponding </span>
+<span class="sd">              array of time points.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Public interface</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">signala</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict_aorta</span><span class="p">(</span><span class="n">xdata</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">signal_lk</span><span class="p">,</span> <span class="n">signal_rk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict_kidneys</span><span class="p">((</span><span class="n">xdata</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">xdata</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+            <span class="k">return</span> <span class="n">signala</span><span class="p">,</span> <span class="n">signal_lk</span><span class="p">,</span> <span class="n">signal_rk</span>
+        <span class="c1"># Private interface with different input &amp; output types</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict</span> <span class="o">==</span> <span class="s1">&#39;aorta&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict_aorta</span><span class="p">(</span><span class="n">xdata</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict</span> <span class="o">==</span> <span class="s1">&#39;kidneys&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict_kidneys</span><span class="p">(</span><span class="n">xdata</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="AortaKidneys.train">
+<a class="viewcode-back" href="../../api/dcmri.AortaKidneys.html#dcmri.AortaKidneys.train">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xdata</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">ydata</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Train the free parameters</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            xdata (tuple): Tuple of 3 arrays with time points for </span>
+<span class="sd">              aorta, left kidney and right kidney, in that order. </span>
+<span class="sd">              The three arrays can all be different in length and value.</span>
+<span class="sd">            ydata (tuple): Tuple of 3 arrays with signals for aorta, </span>
+<span class="sd">              left kidney and right kidney, in that order. The three </span>
+<span class="sd">              arrays can all be different in length and values but </span>
+<span class="sd">              each has to have the same length as its corresponding </span>
+<span class="sd">              array of time points.</span>
+<span class="sd">            kwargs: any keyword parameters accepted by `scipy.optimize.curve_fit`.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Model: A reference to the model instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Estimate BAT and S0a from data</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence</span> <span class="o">==</span> <span class="s1">&#39;SR&#39;</span><span class="p">:</span>
+            <span class="n">Srefb</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_spgr</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R10a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TC</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TR</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">FA</span><span class="p">)</span>
+            <span class="n">Sref_lk</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_spgr</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R10_lk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TC</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TR</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">FA</span><span class="p">)</span>
+            <span class="n">Sref_rk</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_spgr</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R10_rk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TC</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TR</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">FA</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence</span><span class="o">==</span><span class="s1">&#39;SS&#39;</span><span class="p">:</span>
+            <span class="n">Srefb</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_ss</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R10a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TR</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">FA</span><span class="p">)</span>
+            <span class="n">Sref_lk</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_ss</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R10_lk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TR</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">FA</span><span class="p">)</span>
+            <span class="n">Sref_rk</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_ss</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R10_rk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TR</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">FA</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence</span><span class="o">==</span><span class="s1">&#39;SSI&#39;</span><span class="p">:</span>
+            <span class="n">Srefb</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_spgr</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R10a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TF</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TR</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">FA</span><span class="p">)</span>
+            <span class="n">Sref_lk</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_ss</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R10_lk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TR</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">FA</span><span class="p">)</span>
+            <span class="n">Sref_rk</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_ss</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R10_rk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TR</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">FA</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence</span><span class="o">==</span><span class="s1">&#39;lin&#39;</span><span class="p">:</span>
+            <span class="n">Srefb</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_lin</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R10a</span><span class="p">)</span>
+            <span class="n">Sref_lk</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_lin</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R10_lk</span><span class="p">)</span>
+            <span class="n">Sref_rk</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_lin</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R10_rk</span><span class="p">)</span>
+        <span class="n">n0</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">xdata</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">t0</span><span class="p">),</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">S0a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">ydata</span><span class="p">[</span><span class="mi">0</span><span class="p">][:</span><span class="n">n0</span><span class="p">])</span> <span class="o">/</span> <span class="n">Srefb</span>
+        <span class="n">n0</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">xdata</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">t0</span><span class="p">),</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">S0_lk</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">ydata</span><span class="p">[</span><span class="mi">1</span><span class="p">][:</span><span class="n">n0</span><span class="p">])</span> <span class="o">/</span> <span class="n">Sref_lk</span>
+        <span class="n">n0</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">xdata</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">t0</span><span class="p">),</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">S0_rk</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">ydata</span><span class="p">[</span><span class="mi">2</span><span class="p">][:</span><span class="n">n0</span><span class="p">])</span> <span class="o">/</span> <span class="n">Sref_rk</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">BAT</span> <span class="o">=</span> <span class="n">xdata</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">ydata</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">Dhl</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">Thl</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">BAT</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">BAT</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+
+        <span class="c1"># Copy all free to restor at the end</span>
+        <span class="n">free</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">free</span><span class="p">)</span>
+
+        <span class="c1"># Train free aorta parameters on aorta data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_predict</span> <span class="o">=</span> <span class="s1">&#39;aorta&#39;</span>
+        <span class="n">pars</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">PARAMS_AORTA</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">free</span> <span class="o">=</span> <span class="p">{</span><span class="n">s</span><span class="p">:</span> <span class="n">free</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">pars</span> <span class="k">if</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">free</span><span class="p">}</span>
+        <span class="n">ui</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xdata</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ydata</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Train free kidney parameters on kidney data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_predict</span> <span class="o">=</span> <span class="s1">&#39;kidneys&#39;</span>
+        <span class="n">pars</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">PARAMS_KIDNEYS</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">free</span> <span class="o">=</span> <span class="p">{</span><span class="n">s</span><span class="p">:</span> <span class="n">free</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">pars</span> <span class="k">if</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">free</span><span class="p">}</span>
+        <span class="n">ui</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="p">(</span><span class="n">xdata</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">xdata</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="p">(</span><span class="n">ydata</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">ydata</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Train all parameters on all data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_predict</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">free</span> <span class="o">=</span> <span class="n">free</span>
+        <span class="k">return</span> <span class="n">ui</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xdata</span><span class="p">,</span> <span class="n">ydata</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AortaKidneys.plot">
+<a class="viewcode-back" href="../../api/dcmri.AortaKidneys.html#dcmri.AortaKidneys.plot">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+             <span class="n">xdata</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span>
+             <span class="n">ydata</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span>
+             <span class="n">xlim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ref</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+             <span class="n">fname</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Plot the model fit against data</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            xdata (tuple): Tuple of 3 arrays with time points for aorta, left kidney and right kidney, in that order. The three arrays can all be different in length and value.</span>
+<span class="sd">            ydata (tuple): Tuple of 3 arrays with signals for aorta, left kidney and right kidney, in that order. The three arrays can all be different in length and values but each has to have the same length as its corresponding array of time points.</span>
+<span class="sd">            xlim (array_like, optional): 2-element array with lower and upper boundaries of the x-axis. Defaults to None.</span>
+<span class="sd">            ref (tuple, optional): Tuple of optional test data in the form (x,y), where x is an array with x-values and y is an array with y-values. Defaults to None.</span>
+<span class="sd">            fname (path, optional): Filepath to save the image. If no value is provided, the image is not saved. Defaults to None.</span>
+<span class="sd">            show (bool, optional): If True, the plot is shown. Defaults to True.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">t</span><span class="p">,</span> <span class="n">cb</span><span class="p">,</span> <span class="n">Clk</span><span class="p">,</span> <span class="n">Crk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conc</span><span class="p">(</span><span class="nb">sum</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">sig</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict</span><span class="p">((</span><span class="n">t</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">t</span><span class="p">))</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="p">((</span><span class="n">ax1</span><span class="p">,</span> <span class="n">ax2</span><span class="p">),</span> <span class="p">(</span><span class="n">ax3</span><span class="p">,</span> <span class="n">ax4</span><span class="p">),</span> <span class="p">(</span><span class="n">ax5</span><span class="p">,</span> <span class="n">ax6</span><span class="p">)</span>
+              <span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">12</span><span class="p">))</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">subplots_adjust</span><span class="p">(</span><span class="n">wspace</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+        <span class="n">_plot_data1scan</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">sig</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">xdata</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ydata</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                        <span class="s1">&#39;Aorta&#39;</span><span class="p">,</span> <span class="n">ax1</span><span class="p">,</span> <span class="n">xlim</span><span class="p">,</span>
+                        <span class="n">color</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;lightcoral&#39;</span><span class="p">,</span> <span class="s1">&#39;darkred&#39;</span><span class="p">],</span>
+                        <span class="n">test</span><span class="o">=</span><span class="kc">None</span> <span class="k">if</span> <span class="n">ref</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ref</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">_plot_data1scan</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">sig</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">xdata</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">ydata</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                        <span class="s1">&#39;Left kidney&#39;</span><span class="p">,</span> <span class="n">ax3</span><span class="p">,</span> <span class="n">xlim</span><span class="p">,</span>
+                        <span class="n">color</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;cornflowerblue&#39;</span><span class="p">,</span> <span class="s1">&#39;darkblue&#39;</span><span class="p">],</span>
+                        <span class="n">test</span><span class="o">=</span><span class="kc">None</span> <span class="k">if</span> <span class="n">ref</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ref</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">_plot_data1scan</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">sig</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">xdata</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">ydata</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                        <span class="s1">&#39;Right kidney&#39;</span><span class="p">,</span> <span class="n">ax5</span><span class="p">,</span> <span class="n">xlim</span><span class="p">,</span>
+                        <span class="n">color</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;cornflowerblue&#39;</span><span class="p">,</span> <span class="s1">&#39;darkblue&#39;</span><span class="p">],</span>
+                        <span class="n">test</span><span class="o">=</span><span class="kc">None</span> <span class="k">if</span> <span class="n">ref</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ref</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">cb_lk</span> <span class="o">=</span> <span class="n">Clk</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vp_lk</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">))</span>
+        <span class="n">cb_rk</span> <span class="o">=</span> <span class="n">Crk</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vp_rk</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">))</span>
+        <span class="n">_plot_conc_aorta</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">cb</span><span class="p">,</span> <span class="n">cb_lk</span><span class="p">,</span> <span class="n">cb_rk</span><span class="p">,</span> <span class="n">ax2</span><span class="p">,</span> <span class="n">xlim</span><span class="p">)</span>
+        <span class="n">_plot_conc_kidney</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">Clk</span><span class="p">,</span> <span class="s1">&#39;Left kidney&#39;</span><span class="p">,</span> <span class="n">ax4</span><span class="p">,</span> <span class="n">xlim</span><span class="p">)</span>
+        <span class="n">_plot_conc_kidney</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">Crk</span><span class="p">,</span> <span class="s1">&#39;Right kidney&#39;</span><span class="p">,</span> <span class="n">ax6</span><span class="p">,</span> <span class="n">xlim</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">fname</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">fname</span><span class="o">=</span><span class="n">fname</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">show</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="AortaKidneys.cost">
+<a class="viewcode-back" href="../../api/dcmri.AortaKidneys.html#dcmri.AortaKidneys.cost">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cost</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xdata</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">ydata</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;NRMS&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the goodness-of-fit</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            xdata (tuple): Tuple of 3 arrays with time points for aorta, left kidney and right kidney, in that order. The three arrays can all be different in length and value.</span>
+<span class="sd">            ydata (tuple): Tuple of 3 arrays with signals for aorta, left kidney and right kidney, in that order. The three arrays can all be different in length and values but each has to have the same length as its corresponding array of time points.</span>
+<span class="sd">            metric (str, optional): Which metric to use - options are: </span>
+<span class="sd">                **RMS** (Root-mean-square);</span>
+<span class="sd">                **NRMS** (Normalized root-mean-square); </span>
+<span class="sd">                **AIC** (Akaike information criterion); </span>
+<span class="sd">                **cAIC** (Corrected Akaike information criterion for small models);</span>
+<span class="sd">                **BIC** (Baysian information criterion). Defaults to &#39;NRMS&#39;.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            float: goodness of fit.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">cost</span><span class="p">(</span><span class="n">xdata</span><span class="p">,</span> <span class="n">ydata</span><span class="p">,</span> <span class="n">metric</span><span class="p">)</span></div>
+</div>
+
+
+
+
+    
+
+
+<span class="c1"># Helper functions for plotting</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_plot_conc_aorta</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">cb</span><span class="p">,</span> <span class="n">cb_lk</span><span class="p">,</span> <span class="n">cb_rk</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">xlim</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">xlim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">xlim</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">t</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;Time (min)&#39;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s1">&#39;Blood concentration (mM)&#39;</span><span class="p">,</span>
+           <span class="n">xlim</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xlim</span><span class="p">)</span><span class="o">/</span><span class="mi">60</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t</span><span class="o">/</span><span class="mi">60</span><span class="p">,</span> <span class="mi">0</span><span class="o">*</span><span class="n">t</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;gray&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t</span><span class="o">/</span><span class="mi">60</span><span class="p">,</span> <span class="mi">1000</span><span class="o">*</span><span class="n">cb</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="s1">&#39;darkred&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Aorta&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t</span><span class="o">/</span><span class="mi">60</span><span class="p">,</span> <span class="mi">1000</span><span class="o">*</span><span class="n">cb_lk</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="s1">&#39;lightcoral&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Left kidney&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t</span><span class="o">/</span><span class="mi">60</span><span class="p">,</span> <span class="mi">1000</span><span class="o">*</span><span class="n">cb_rk</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-.&#39;</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="s1">&#39;lightcoral&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Right kidney&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_plot_conc_kidney</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">kid</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">xlim</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">xlim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">xlim</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">t</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+    
+    <span class="n">ax</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;Time (min)&#39;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">kid</span><span class="si">}</span><span class="s1"> concentration (mM)&#39;</span><span class="p">,</span>
+           <span class="n">xlim</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xlim</span><span class="p">)</span><span class="o">/</span><span class="mi">60</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t</span><span class="o">/</span><span class="mi">60</span><span class="p">,</span> <span class="mi">0</span><span class="o">*</span><span class="n">t</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;gray&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t</span><span class="o">/</span><span class="mi">60</span><span class="p">,</span> <span class="mi">1000</span><span class="o">*</span><span class="n">C</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:],</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="s1">&#39;darkred&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Blood&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t</span><span class="o">/</span><span class="mi">60</span><span class="p">,</span> <span class="mi">1000</span><span class="o">*</span><span class="n">C</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:],</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="s1">&#39;darkcyan&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Tubuli&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t</span><span class="o">/</span><span class="mi">60</span><span class="p">,</span> <span class="mi">1000</span><span class="o">*</span><span class="p">(</span><span class="n">C</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span><span class="o">+</span><span class="n">C</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]),</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="s1">&#39;darkblue&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Tissue&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_plot_data1scan</span><span class="p">(</span><span class="n">t</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">sig</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                    <span class="n">xdata</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">ydata</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                    <span class="n">roi</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">xlim</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="s1">&#39;black&#39;</span><span class="p">],</span>
+                    <span class="n">test</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">xlim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">xlim</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">t</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;Time (min)&#39;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">roi</span><span class="si">}</span><span class="s1"> signal (a.u.)&#39;</span><span class="p">,</span> <span class="n">xlim</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xlim</span><span class="p">)</span><span class="o">/</span><span class="mi">60</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xdata</span><span class="o">/</span><span class="mi">60</span><span class="p">,</span> <span class="n">ydata</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;o&#39;</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Data&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;None&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t</span><span class="o">/</span><span class="mi">60</span><span class="p">,</span> <span class="n">sig</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Prediction&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">test</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">test</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">/</span><span class="mi">60</span><span class="p">,</span> <span class="n">test</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span>
+                <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;D&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;None&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Test data&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+
+
+<span class="n">PARAMS_AORTA</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;dt&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mf">0.25</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Forward model time step&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;sec&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;tmax&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mi">120</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Maximum acquisition time&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;sec&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;dose_tolerance&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Dose tolerance&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;t0&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Baseline duration&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;sec&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;field_strength&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mf">3.0</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Magnetic field strength&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;T&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+
+    <span class="c1"># Injection</span>
+    <span class="s1">&#39;weight&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mi">70</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Subject weight&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;kg&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;dose&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="n">lib</span><span class="o">.</span><span class="n">ca_std_dose</span><span class="p">(</span><span class="s1">&#39;gadoterate&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Contrast agent dose&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;mL/kg&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;rate&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Contrast agent injection rate&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;mL/sec&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+
+    <span class="c1"># Sequence</span>
+    <span class="s1">&#39;TR&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mf">0.005</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Repetition time&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;sec&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;pixel_par&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;FA&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Flip angle&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;deg&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;pixel_par&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;TC&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Time to k-space center&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;sec&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;pixel_par&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;TS&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Sampling time&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;sec&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;pixel_par&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;TF&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mf">0.50</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Inflow time&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;sec&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;pixel_par&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">},</span>
+
+    <span class="c1"># Kinetics</span>
+    <span class="s1">&#39;BAT&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mi">60</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Bolus arrival time&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;sec&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;CO&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">300</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Cardiac output&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;mL/sec&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;Thl&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">30</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Heart-lung mean transit time&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;sec&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;Dhl&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Heart-lung dispersion&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;To&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">60</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Organs blood mean transit time&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;sec&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;Eo&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mf">0.15</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Organs extraction fraction&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;Toe&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mi">120</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">800</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Organs extravascular mean transit time&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;sec&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;Eb&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mf">0.05</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Body extraction fraction&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+
+
+    <span class="c1"># Signal</span>
+    <span class="s1">&#39;R10a&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mf">0.7</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Aorta precontrast R1&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;Hz&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;pixel_par&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;S0a&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Aorta signal scaling factor&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;a.u.&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;pixel_par&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">},</span>
+
+<span class="p">}</span>
+
+
+<span class="n">PARAMS_KIDNEYS</span> <span class="o">=</span> <span class="p">{</span>
+
+    <span class="c1"># Both kidneys</span>
+    <span class="s1">&#39;H&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mf">0.45</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1e-3</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="mf">1e-3</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Tissue Hematocrit&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;RPF&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Renal plasma flow&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;mL/sec&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;DRPF&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Differential renal plasma flow&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;DRF&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Differential renal function&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;FF&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mf">0.10</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Filtration fraction&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+
+    <span class="c1"># Left kidney</span>
+
+    <span class="s1">&#39;Ta_lk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Left kidney arterial mean transit time&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;sec&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;vp_lk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mf">0.15</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Left kidney plasma volume&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;mL/cm3&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;Tt_lk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mi">120</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Left kidney tubular mean transit time&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;sec&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;R10_lk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="o">/</span><span class="n">lib</span><span class="o">.</span><span class="n">T1</span><span class="p">(</span><span class="mf">3.0</span><span class="p">,</span> <span class="s1">&#39;kidney&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Left kidney tissue precontrast R1&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;Hz&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;S0_lk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Left kidney signal scaling factor&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;a.u.&#39;</span><span class="p">,</span>
+    <span class="p">},</span> 
+    <span class="s1">&#39;vol_lk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mi">150</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Left kidney volume&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;mL&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    
+    <span class="c1"># Right kidney</span>
+
+    <span class="s1">&#39;Ta_rk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Right kidney arterial mean transit time&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;sec&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;vp_rk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mf">0.15</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Right kidney plasma volume&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;mL/cm3&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;Tt_rk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mi">120</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Right kidney tubular mean transit time&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;sec&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;R10_rk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="o">/</span><span class="n">lib</span><span class="o">.</span><span class="n">T1</span><span class="p">(</span><span class="mf">3.0</span><span class="p">,</span> <span class="s1">&#39;kidney&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Right kidney tissue precontrast R1&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;Hz&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;S0_rk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Right kidney signal scaling factor&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;a.u.&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;vol_rk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;default_free&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Right kidney volume&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;mL&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">}</span>
+
+<span class="n">PARAMS_DERIVED</span> <span class="o">=</span> <span class="p">{</span>
+
+    <span class="c1"># Derived parameters</span>
+
+    <span class="s1">&#39;GFR&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Glomerular Filtration Rate&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;mL/sec&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;RPF_lk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Left kidney plasma flow&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;mL/sec&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;GFR_lk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Left kidney glomerular filtration rate&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;mL/sec&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;Fp_lk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Left kidney plasma flow&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;mL/sec/cm3&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;Tp_lk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Left kidney plasma mean transit time&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;sec&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;Tv_lk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Left kidney vascular mean transit time&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;sec&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;Ft_lk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Left kidney tubular flow&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;mL/sec/cm3&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;FF_lk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Left kidney filtration fraction&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;E_lk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Left kidney extraction fraction&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;RPF_rk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Right kidney plasma flow&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;mL/sec&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;GFR_rk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Right kidney glomerular filtration rate&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;mL/sec&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;Fp_rk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Right kidney plasma flow&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;mL/sec/cm3&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;Tp_rk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Right kidney plasma mean transit time&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;sec&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;Tv_rk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Right kidney vascular mean transit time&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;sec&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;Ft_rk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Right kidney tubular flow&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;mL/sec/cm3&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;FF_rk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Right kidney filtration fraction&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;E_rk&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Right kidney extraction fraction&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_div</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">,</span> <span class="n">invalid</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">b</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">))</span>
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024-2025, dcmri contributors.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

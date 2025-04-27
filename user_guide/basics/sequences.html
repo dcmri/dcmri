@@ -1,0 +1,825 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Signals &#8212; dcmri 0.6.17 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=cd8af66b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=0d21fabb"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-64ZSJ8Z1MX"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'user_guide/basics/sequences';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Optimization" href="optimization.html" />
+    <link rel="prev" title="Relaxation" href="relaxation.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/tristan-logo.jpg" class="logo__image only-light" alt="dcmri 0.6.17 documentation - Home"/>
+    <img src="../../_static/tristan-logo.jpg" class="logo__image only-dark pst-js-only" alt="dcmri 0.6.17 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../releases/index.html">
+    Releases
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../about/index.html">
+    About
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../releases/index.html">
+    Releases
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../about/index.html">
+    About
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">How to use dcmri</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../units.html">Units</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">Basic concepts</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="summary.html">Summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pharmacokinetics.html">Pharmacokinetics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="relaxation.html">Relaxation</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">Signals</a></li>
+<li class="toctree-l2"><a class="reference internal" href="optimization.html">Optimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="inversion.html">Inversion</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../tissues/index.html">Tissue types</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">User guide</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Basic concepts</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Signals</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="signals">
+<span id="imaging-sequences"></span><h1>Signals<a class="headerlink" href="#signals" title="Link to this heading">#</a></h1>
+<p>The measured MRI signal is determined by the free relaxation of tissue,
+but also by the impact of magnetic pulses and gradients applied during an
+MRI acquisition to generate transverse magnetization and localize the signals.</p>
+<p>This section discusses the effect of these pulses on the tissue magnetization
+and the measured signal for common pulse sequences. See the
+<a class="reference internal" href="#sequence-params"><span class="std std-ref">table with definitions</span></a> for a summary of relevant
+terms and definitions.</p>
+<section id="definitions-and-notations">
+<h2>Definitions and notations<a class="headerlink" href="#definitions-and-notations" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><span id="sequence-params"></span><table class="table" id="id1">
+<caption><span class="caption-text"><strong>List of sequence parameters</strong></span><a class="headerlink" href="#id1" title="Link to this table">#</a></caption>
+<colgroup>
+<col style="width: 15.8%" />
+<col style="width: 21.1%" />
+<col style="width: 42.1%" />
+<col style="width: 10.5%" />
+<col style="width: 10.5%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Short name</p></th>
+<th class="head"><p>Full name</p></th>
+<th class="head"><p>Definition</p></th>
+<th class="head"><p>Units</p></th>
+<th class="head"><p>Sequences</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>TS</p></td>
+<td><p>Sampling time</p></td>
+<td><p>Duration of the signal readout for a single time point. If TS=0, the
+signals are sampled by interpolation. If TS is a finite value, the
+signals are averaged over a time TS around the acquisition time.
+Defaults to None.</p></td>
+<td><p>sec</p></td>
+<td><p>SS, SR</p></td>
+</tr>
+<tr class="row-odd"><td><p>S0</p></td>
+<td><p>Signal scale factor</p></td>
+<td><p>Amplitude of the signal model</p></td>
+<td><p>a.u.</p></td>
+<td><p>SS, SR</p></td>
+</tr>
+<tr class="row-even"><td><p>FA</p></td>
+<td><p>Flip angle</p></td>
+<td><p>Angle of magnetization after excitation</p></td>
+<td><p>degrees</p></td>
+<td><p>SS, SR</p></td>
+</tr>
+<tr class="row-odd"><td><p>TR</p></td>
+<td><p>Repetition time</p></td>
+<td><p>Time between excitation pulses</p></td>
+<td><p>sec</p></td>
+<td><p>SS, SR</p></td>
+</tr>
+<tr class="row-even"><td><p>TC</p></td>
+<td><p>Time to center</p></td>
+<td><p>Time between the preparation pulse and the k-space center</p></td>
+<td><p>sec</p></td>
+<td><p>SR</p></td>
+</tr>
+<tr class="row-odd"><td><p>TP</p></td>
+<td><p>Preparation delay</p></td>
+<td><p>Time between the preparation pulse and the first k-space line</p></td>
+<td><p>sec</p></td>
+<td><p>SR</p></td>
+</tr>
+<tr class="row-even"><td><p>B1corr</p></td>
+<td><p>B1 correction factor</p></td>
+<td><p>Factor to correct flip angles for B1-variations</p></td>
+<td><p>dimensionless</p></td>
+<td><p>SR, SS</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="pst-scrollable-table-container"><span id="params-per-sequence"></span><table class="table" id="id2">
+<caption><span class="caption-text"><strong>Sequence parameters</strong></span><a class="headerlink" href="#id2" title="Link to this table">#</a></caption>
+<colgroup>
+<col style="width: 33.3%" />
+<col style="width: 66.7%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>sequence</p></th>
+<th class="head"><p>parameters</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>SS</p></td>
+<td><p>S0, FA, TR</p></td>
+</tr>
+<tr class="row-odd"><td><p>SR</p></td>
+<td><p>S0, FA, TR, TC, TP</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="spoiled-gradient-echo-steady-state">
+<h2>Spoiled gradient-echo steady state<a class="headerlink" href="#spoiled-gradient-echo-steady-state" title="Link to this heading">#</a></h2>
+<p>The most common pulse sequence for T1-weighted DC-MRI involves applying
+selective radiofrequency pulses with a low flip angle (FA) in rapid succession,
+typically with a repetition time (TR) in the range of a few msec. After each
+pulse the signal is collected and any residual transverse magnetization is
+actively destroyed before applying the next pulse.</p>
+<p>The pulses are initially applied to the
+equilibrium magnetization <span class="math notranslate nohighlight">\(M_{ze}\)</span>, but after a short number of
+pulses a new equilibrium arises where the regrowth after each
+pulse exactly equals the reduction in <span class="math notranslate nohighlight">\(M_z\)</span> by the pulse itself. This
+is called the steady-state, and in a steady-state sequence, it is in this
+regime that data are collected.</p>
+<section id="fast-water-exchange">
+<h3>Fast water exchange<a class="headerlink" href="#fast-water-exchange" title="Link to this heading">#</a></h3>
+<p>We first consider the steady-state longitudinal magnetization in a
+tissue with fast water exchange (section <a class="reference internal" href="relaxation.html#t1-fx"><span class="std std-ref">Fast water exchange</span></a>). If the longitudinal
+magnetization is <span class="math notranslate nohighlight">\(M_z\)</span> before a pulse with flip
+angle <span class="math notranslate nohighlight">\(\alpha\)</span>, it has a value <span class="math notranslate nohighlight">\(M_z\cos\alpha\)</span> afterwards. Until
+the next pulse is applied, it relaxes freely to equilibrium. In the
+steady-state, the end result of that free relaxation is again the initial
+state <span class="math notranslate nohighlight">\(M_z\)</span> before the pulse. Using the explicit solution in
+Eq. <a class="reference internal" href="relaxation.html#equation-mz-fx-solution-const-j">(5)</a> with <span class="math notranslate nohighlight">\(M_z(0)=M_z\cos\alpha\)</span>, where
+<span class="math notranslate nohighlight">\(\alpha\)</span> is the flip angle:</p>
+<div class="math notranslate nohighlight">
+\[M_z = e^{-T_RK}M_z\cos\alpha + \left(1-e^{-T_RK}\right)K^{-1} J\]</div>
+<p>The parameters <span class="math notranslate nohighlight">\(K, J\)</span> are a function of <span class="math notranslate nohighlight">\(R_1\)</span> and are therefore
+changing during contrast agent injection. However, since the period of free
+relaxation TR is much shorter than typical T1-values,
+we have assumed here that <span class="math notranslate nohighlight">\(K, J\)</span> are constant during this time.</p>
+<p>Solving the equation for <span class="math notranslate nohighlight">\(M_z\)</span> produces the steady-state magnetization
+under a series of repeated pulses:</p>
+<div class="math notranslate nohighlight">
+\[M_z = \frac{1-e^{-T_R\,K}}{1-\cos\alpha\; e^{-T_R\,K}} K^{-1} J\]</div>
+<p>In this context it is safe to ignore flow effects so that
+<span class="math notranslate nohighlight">\(J/K\approx M_{ze}\)</span>, which is constant, and <span class="math notranslate nohighlight">\(K\approx R_1\)</span> (see
+section <a class="reference internal" href="relaxation.html#t1-fx"><span class="std std-ref">Fast water exchange</span></a>). The signal itself is proportional to the transverse
+magnetization
+<span class="math notranslate nohighlight">\(M_z\sin\alpha\)</span> after the pulse, with a proportionality constant
+that depends on factors such as coil sensitivity. In
+practice all constants are assembled into
+a single scaling factor <span class="math notranslate nohighlight">\(S_\infty\)</span> to produce the final signal
+model for the spoiled gradient echo in steady state:</p>
+<div class="math notranslate nohighlight">
+\[S = S_\infty\sin\alpha\frac{1-e^{-T_R\,R_1}}{1-\cos\alpha\; e^{-T_R\,R_1}}\]</div>
+<p>In <code class="xref py py-obj docutils literal notranslate"><span class="pre">dcmri</span></code> this model is implemented in the function <a class="reference internal" href="../../api/dcmri.signal_ss.html#dcmri.signal_ss" title="dcmri.signal_ss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dcmri.signal_ss</span></code></a>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">S</span> <span class="o">=</span> <span class="n">signal_ss</span><span class="p">(</span><span class="n">Sinf</span><span class="p">,</span> <span class="n">R1</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Here <em>R1</em> is either a scalar, or a 1D array if it is variable. The other
+variables are scalar.</p>
+</section>
+<section id="restricted-water-exchange">
+<h3>Restricted water exchange<a class="headerlink" href="#restricted-water-exchange" title="Link to this heading">#</a></h3>
+<p>If water exchange is restricted, the signal derivation is similar except that
+now we must use the vector form of the magnetization (see section
+<a class="reference internal" href="relaxation.html#t1-rx"><span class="std std-ref">Restricted water exchange</span></a>):</p>
+<div class="math notranslate nohighlight">
+\[\mathbf{M} = e^{-T_R\,\mathbf{K}}\mathbf{M}\cos\alpha
++ \left(\mathbf{I}-e^{-T_R\,\mathbf{K}}\right) \mathbf{K}^{-1}\mathbf{J}\]</div>
+<p>The solution is also similar, though we must take care not to commute the
+matrices:</p>
+<div class="math notranslate nohighlight">
+\[\mathbf{M} = \left(\mathbf{I} - \cos\alpha\, e^{-T_R\,\mathbf{K}}\right)^{-1}
+\left(\mathbf{I}-e^{-T_R\,\mathbf{K}}\right) \mathbf{K}^{-1}\mathbf{J}\]</div>
+<p>As before the signal is proportional to the total magnetization with now
+takes the form <span class="math notranslate nohighlight">\(\mathbf{e}^T\mathbf{M}\)</span> with <span class="math notranslate nohighlight">\(\mathbf{e}^T=[1,1]\)</span>.
+Assuming the equilibrium magnetization is the same <span class="math notranslate nohighlight">\(m_e\)</span> in both
+compartments we can extract it by
+defining <span class="math notranslate nohighlight">\(\mathbf{j}=\mathbf{J}/m_e\)</span> and absorbing the constant
+<span class="math notranslate nohighlight">\(m_e\)</span> in the global scaling factor <span class="math notranslate nohighlight">\(S_\infty\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[S = S_\infty\, \sin\alpha\, \mathbf{e}^T
+\left(\mathbf{I} - \cos\alpha\, e^{-T_R\,\mathbf{K}}\right)^{-1}
+\left(\mathbf{I}-e^{-T_R\,\mathbf{K}}\right) \mathbf{K}^{-1}\mathbf{j}\]</div>
+<p>If we ignore the inflow effects then <span class="math notranslate nohighlight">\(\mathbf{j}\)</span> is determined by
+relaxation rates <span class="math notranslate nohighlight">\(R_{1,k}\)</span> and volume fractions <span class="math notranslate nohighlight">\(v_{k}\)</span> of
+both compartments, and
+<span class="math notranslate nohighlight">\(\mathbf{K}\)</span> additionally depends on the water permeabilities
+<span class="math notranslate nohighlight">\(PS_{kl}\)</span> between the compartments.</p>
+<p>This signal model is available
+in <code class="xref py py-obj docutils literal notranslate"><span class="pre">dcmri</span></code> through the same function <a class="reference internal" href="../../api/dcmri.signal_ss.html#dcmri.signal_ss" title="dcmri.signal_ss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dcmri.signal_ss</span></code></a>. The calling sequence
+is the same as in fast water exchange, except that now the volume fractions of
+the compartments need to be provided, and the water PS values across the
+barriers between them:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">S</span> <span class="o">=</span> <span class="n">signal_ss</span><span class="p">(</span><span class="n">Sinf</span><span class="p">,</span> <span class="n">R1</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">PS</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In this case <em>R1</em> is a 2-element array, or a 2xn array with <em>n</em> time points if
+<em>R1</em> is variable, <em>v</em> is a 2-element array, and <em>PS</em> is a
+2x2 array with zeros on the diagonal and water PS values on
+the off-diagonal. The same function also applies when the
+number of compartments is larger than 2.</p>
+<p>As mentioned flow effects can usually be ignored in steady-state sequences,
+but it is possible to include them by adding the water outflow from
+each compartment on the diagonal of <em>PS</em>, and providing the influx of
+normalized magnetization <em>j</em> with the same dimensions as <em>R1</em>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">S</span> <span class="o">=</span> <span class="n">signal_ss</span><span class="p">(</span><span class="n">Sinf</span><span class="p">,</span> <span class="n">R1</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">PS</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="spoiled-gradient-echo-outside-the-steady-state">
+<h2>Spoiled gradient-echo outside the steady state<a class="headerlink" href="#spoiled-gradient-echo-outside-the-steady-state" title="Link to this heading">#</a></h2>
+<p>If the magnetization is not in steady-state, then we have a different value
+<span class="math notranslate nohighlight">\(\mathbf{M}_n\)</span> before each pulse <em>n</em>, and we are left with an iteration:</p>
+<div class="math notranslate nohighlight">
+\[\mathbf{M}_{n+1} = \cos\alpha e^{-T_R\,\mathbf{K}_n}\mathbf{M}_n
++ \left(\mathbf{I}-e^{-T_R\,\mathbf{K}_n}\right) \mathbf{K}_n^{-1}\mathbf{J}\]</div>
+<p>Since we are considering larger time scales than the short interval TR, we
+accounted here for the possibility that the matrix <span class="math notranslate nohighlight">\(\mathbf{K}\)</span> depends
+on <em>n</em> as well. However, it is common at this point to assume that any
+time dependence of <span class="math notranslate nohighlight">\(\mathbf{K}\)</span> can be ignored. In an imaging context
+that is often justifiable when time scales are sufficiently short and the
+signal is dominated by a single time point corresponding to the center of
+k-space.</p>
+<p>With a constant <span class="math notranslate nohighlight">\(\mathbf{K}\)</span>, the difference from one iteration to the
+next can be written in terms of the steady-state magnetization
+<span class="math notranslate nohighlight">\(\mathbf{M}_{ss}\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\mathbf{M}_{n+1} - \mathbf{M}_n =
+\left(\mathbf{I}-\cos\alpha e^{-T_R\,\mathbf{K}}\right)
+\left(\mathbf{M}_{ss}-\mathbf{M}_n\right)\]</div>
+<p>In terms of
+the difference <span class="math notranslate nohighlight">\(\mathbf{D}_n=\mathbf{M}_n-\mathbf{M}_{ss}\)</span> this
+reduces to:</p>
+<div class="math notranslate nohighlight">
+\[\mathbf{D}_{n+1} = \cos\alpha e^{-T_R\,\mathbf{K}}\mathbf{D}_n\]</div>
+<p>This equation is readily solved for any <em>n</em>. Reverting back to the
+magnetization in the solution gives:</p>
+<div class="math notranslate nohighlight">
+\[\mathbf{M}_n =
+\mathbf{M}_{ss} + \cos^n\alpha e^{-nT_R\,\mathbf{K}}
+\left(\mathbf{M}_0-\mathbf{M}_{ss}\right)\]</div>
+<p>Extracting the equilibrium magnetization by defining
+<span class="math notranslate nohighlight">\(\mathbf{N}=\mathbf{M}/m_{e}\)</span>, and absorbing it in the scale factor
+again we have the formula for the signal of a spoiled gradient-echo sequence:</p>
+<div class="math notranslate nohighlight">
+\[S = S_\infty\sin\alpha\,\mathbf{e}^T\left[
+\mathbf{N}_{ss} + \cos^n\alpha\, e^{-nT_R\,\mathbf{K}}
+\left(\mathbf{N}_0-\mathbf{N}_{ss}\right)\right]\]</div>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="relaxation.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Relaxation</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="optimization.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Optimization</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#definitions-and-notations">Definitions and notations</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#spoiled-gradient-echo-steady-state">Spoiled gradient-echo steady state</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#fast-water-exchange">Fast water exchange</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#restricted-water-exchange">Restricted water exchange</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#spoiled-gradient-echo-outside-the-steady-state">Spoiled gradient-echo outside the steady state</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/user_guide/basics/sequences.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024-2025, dcmri contributors.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

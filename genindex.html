@@ -1,0 +1,1088 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Index &#8212; dcmri 0.6.17 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=cd8af66b" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="_static/documentation_options.js?v=0d21fabb"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-64ZSJ8Z1MX"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'genindex';</script>
+    <link rel="index" title="Index" href="#" />
+    <link rel="search" title="Search" href="search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="_static/tristan-logo.jpg" class="logo__image only-light" alt="dcmri 0.6.17 documentation - Home"/>
+    <img src="_static/tristan-logo.jpg" class="logo__image only-dark pst-js-only" alt="dcmri 0.6.17 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="releases/index.html">
+    Releases
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="about/index.html">
+    About
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="releases/index.html">
+    Releases
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="about/index.html">
+    About
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none"></div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+
+<h1 id="index">Index</h1>
+
+<div class="genindex-jumpbox">
+ <a href="#A"><strong>A</strong></a>
+ | <a href="#B"><strong>B</strong></a>
+ | <a href="#C"><strong>C</strong></a>
+ | <a href="#E"><strong>E</strong></a>
+ | <a href="#F"><strong>F</strong></a>
+ | <a href="#I"><strong>I</strong></a>
+ | <a href="#K"><strong>K</strong></a>
+ | <a href="#L"><strong>L</strong></a>
+ | <a href="#M"><strong>M</strong></a>
+ | <a href="#N"><strong>N</strong></a>
+ | <a href="#P"><strong>P</strong></a>
+ | <a href="#R"><strong>R</strong></a>
+ | <a href="#S"><strong>S</strong></a>
+ | <a href="#T"><strong>T</strong></a>
+ 
+</div>
+<h2 id="A">A</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/dcmri.add_noise.html#dcmri.add_noise">add_noise() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.aif_parker.html#dcmri.aif_parker">aif_parker() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.aif_tristan.html#dcmri.aif_tristan">aif_tristan() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.aif_tristan_rat.html#dcmri.aif_tristan_rat">aif_tristan_rat() (in module dcmri)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/dcmri.Aorta.html#dcmri.Aorta">Aorta (class in dcmri)</a>
+</li>
+      <li><a href="api/dcmri.AortaKidneys.html#dcmri.AortaKidneys">AortaKidneys (class in dcmri)</a>
+</li>
+      <li><a href="api/dcmri.AortaLiver.html#dcmri.AortaLiver">AortaLiver (class in dcmri)</a>
+</li>
+      <li><a href="api/dcmri.AortaLiver2scan.html#dcmri.AortaLiver2scan">AortaLiver2scan (class in dcmri)</a>
+</li>
+      <li><a href="api/dcmri.AortaPortalLiver.html#dcmri.AortaPortalLiver">AortaPortalLiver (class in dcmri)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="B">B</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/dcmri.biexpconv.html#dcmri.biexpconv">biexpconv() (in module dcmri)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="C">C</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/dcmri.ca_conc.html#dcmri.ca_conc">ca_conc() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.ca_injection.html#dcmri.ca_injection">ca_injection() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.ca_std_dose.html#dcmri.ca_std_dose">ca_std_dose() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.Aorta.html#dcmri.Aorta.conc">conc() (dcmri.Aorta method)</a>
+
+      <ul>
+        <li><a href="api/dcmri.AortaKidneys.html#dcmri.AortaKidneys.conc">(dcmri.AortaKidneys method)</a>
+</li>
+        <li><a href="api/dcmri.AortaLiver.html#dcmri.AortaLiver.conc">(dcmri.AortaLiver method)</a>
+</li>
+        <li><a href="api/dcmri.AortaLiver2scan.html#dcmri.AortaLiver2scan.conc">(dcmri.AortaLiver2scan method)</a>
+</li>
+        <li><a href="api/dcmri.AortaPortalLiver.html#dcmri.AortaPortalLiver.conc">(dcmri.AortaPortalLiver method)</a>
+</li>
+        <li><a href="api/dcmri.Kidney.html#dcmri.Kidney.conc">(dcmri.Kidney method)</a>
+</li>
+        <li><a href="api/dcmri.KidneyCortMed.html#dcmri.KidneyCortMed.conc">(dcmri.KidneyCortMed method)</a>
+</li>
+        <li><a href="api/dcmri.Liver.html#dcmri.Liver.conc">(dcmri.Liver method)</a>
+</li>
+        <li><a href="api/dcmri.Tissue.html#dcmri.Tissue.conc">(dcmri.Tissue method)</a>
+</li>
+        <li><a href="api/dcmri.conc.html#dcmri.conc">(in module dcmri)</a>
+</li>
+      </ul></li>
+      <li><a href="api/dcmri.conc_2cxm.html#dcmri.conc_2cxm">conc_2cxm() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.conc_chain.html#dcmri.conc_chain">conc_chain() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.conc_comp.html#dcmri.conc_comp">conc_comp() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.conc_free.html#dcmri.conc_free">conc_free() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.conc_kidney.html#dcmri.conc_kidney">conc_kidney() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.conc_kidney_cm.html#dcmri.conc_kidney_cm">conc_kidney_cm() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.conc_lin.html#dcmri.conc_lin">conc_lin() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.conc_liver.html#dcmri.conc_liver">conc_liver() (in module dcmri)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/dcmri.conc_mmcomp.html#dcmri.conc_mmcomp">conc_mmcomp() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.conc_ncomp.html#dcmri.conc_ncomp">conc_ncomp() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.conc_nscomp.html#dcmri.conc_nscomp">conc_nscomp() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.conc_pass.html#dcmri.conc_pass">conc_pass() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.conc_plug.html#dcmri.conc_plug">conc_plug() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.conc_src.html#dcmri.conc_src">conc_src() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.conc_ss.html#dcmri.conc_ss">conc_ss() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.conc_step.html#dcmri.conc_step">conc_step() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.conc_t2w.html#dcmri.conc_t2w">conc_t2w() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.conc_tissue.html#dcmri.conc_tissue">conc_tissue() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.conc_trap.html#dcmri.conc_trap">conc_trap() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.conv.html#dcmri.conv">conv() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.Aorta.html#dcmri.Aorta.cost">cost() (dcmri.Aorta method)</a>
+
+      <ul>
+        <li><a href="api/dcmri.AortaKidneys.html#dcmri.AortaKidneys.cost">(dcmri.AortaKidneys method)</a>
+</li>
+        <li><a href="api/dcmri.AortaLiver.html#dcmri.AortaLiver.cost">(dcmri.AortaLiver method)</a>
+</li>
+        <li><a href="api/dcmri.AortaLiver2scan.html#dcmri.AortaLiver2scan.cost">(dcmri.AortaLiver2scan method)</a>
+</li>
+        <li><a href="api/dcmri.AortaPortalLiver.html#dcmri.AortaPortalLiver.cost">(dcmri.AortaPortalLiver method)</a>
+</li>
+        <li><a href="api/dcmri.Kidney.html#dcmri.Kidney.cost">(dcmri.Kidney method)</a>
+</li>
+        <li><a href="api/dcmri.KidneyCortMed.html#dcmri.KidneyCortMed.cost">(dcmri.KidneyCortMed method)</a>
+</li>
+        <li><a href="api/dcmri.Liver.html#dcmri.Liver.cost">(dcmri.Liver method)</a>
+</li>
+        <li><a href="api/dcmri.Tissue.html#dcmri.Tissue.cost">(dcmri.Tissue method)</a>
+</li>
+        <li><a href="api/dcmri.TissueArray.html#dcmri.TissueArray.cost">(dcmri.TissueArray method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="E">E</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/dcmri.expconv.html#dcmri.expconv">expconv() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.Aorta.html#dcmri.Aorta.export_params">export_params() (dcmri.Aorta method)</a>
+
+      <ul>
+        <li><a href="api/dcmri.AortaKidneys.html#dcmri.AortaKidneys.export_params">(dcmri.AortaKidneys method)</a>
+</li>
+        <li><a href="api/dcmri.AortaLiver.html#dcmri.AortaLiver.export_params">(dcmri.AortaLiver method)</a>
+</li>
+        <li><a href="api/dcmri.AortaLiver2scan.html#dcmri.AortaLiver2scan.export_params">(dcmri.AortaLiver2scan method)</a>
+</li>
+        <li><a href="api/dcmri.AortaPortalLiver.html#dcmri.AortaPortalLiver.export_params">(dcmri.AortaPortalLiver method)</a>
+</li>
+        <li><a href="api/dcmri.Kidney.html#dcmri.Kidney.export_params">(dcmri.Kidney method)</a>
+</li>
+        <li><a href="api/dcmri.KidneyCortMed.html#dcmri.KidneyCortMed.export_params">(dcmri.KidneyCortMed method)</a>
+</li>
+        <li><a href="api/dcmri.Liver.html#dcmri.Liver.export_params">(dcmri.Liver method)</a>
+</li>
+        <li><a href="api/dcmri.Tissue.html#dcmri.Tissue.export_params">(dcmri.Tissue method)</a>
+</li>
+        <li><a href="api/dcmri.TissueArray.html#dcmri.TissueArray.export_params">(dcmri.TissueArray method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="F">F</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/dcmri.fake_aif.html#dcmri.fake_aif">fake_aif() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.fake_brain.html#dcmri.fake_brain">fake_brain() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.fake_kidney.html#dcmri.fake_kidney">fake_kidney() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.fake_liver.html#dcmri.fake_liver">fake_liver() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.fake_tissue.html#dcmri.fake_tissue">fake_tissue() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.fake_tissue2scan.html#dcmri.fake_tissue2scan">fake_tissue2scan() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.fetch.html#dcmri.fetch">fetch() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.flux.html#dcmri.flux">flux() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.flux_2cxm.html#dcmri.flux_2cxm">flux_2cxm() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.flux_aorta.html#dcmri.flux_aorta">flux_aorta() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.flux_chain.html#dcmri.flux_chain">flux_chain() (in module dcmri)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/dcmri.flux_comp.html#dcmri.flux_comp">flux_comp() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.flux_free.html#dcmri.flux_free">flux_free() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.flux_mmcomp.html#dcmri.flux_mmcomp">flux_mmcomp() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.flux_ncomp.html#dcmri.flux_ncomp">flux_ncomp() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.flux_nscomp.html#dcmri.flux_nscomp">flux_nscomp() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.flux_pass.html#dcmri.flux_pass">flux_pass() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.flux_pfcomp.html#dcmri.flux_pfcomp">flux_pfcomp() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.flux_plug.html#dcmri.flux_plug">flux_plug() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.flux_step.html#dcmri.flux_step">flux_step() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.flux_tissue.html#dcmri.flux_tissue">flux_tissue() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.flux_trap.html#dcmri.flux_trap">flux_trap() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.KidneyCortMed.html#dcmri.KidneyCortMed.free">free (dcmri.KidneyCortMed attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="I">I</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/dcmri.Tissue.html#dcmri.Tissue.info">info() (dcmri.Tissue method)</a>
+
+      <ul>
+        <li><a href="api/dcmri.TissueArray.html#dcmri.TissueArray.info">(dcmri.TissueArray method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/dcmri.interp.html#dcmri.interp">interp() (in module dcmri)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="K">K</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/dcmri.Kidney.html#dcmri.Kidney">Kidney (class in dcmri)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/dcmri.KidneyCortMed.html#dcmri.KidneyCortMed">KidneyCortMed (class in dcmri)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="L">L</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/dcmri.Liver.html#dcmri.Liver">Liver (class in dcmri)</a>
+</li>
+      <li><a href="api/dcmri.Aorta.html#dcmri.Aorta.load">load() (dcmri.Aorta method)</a>
+
+      <ul>
+        <li><a href="api/dcmri.AortaKidneys.html#dcmri.AortaKidneys.load">(dcmri.AortaKidneys method)</a>
+</li>
+        <li><a href="api/dcmri.AortaLiver.html#dcmri.AortaLiver.load">(dcmri.AortaLiver method)</a>
+</li>
+        <li><a href="api/dcmri.AortaLiver2scan.html#dcmri.AortaLiver2scan.load">(dcmri.AortaLiver2scan method)</a>
+</li>
+        <li><a href="api/dcmri.AortaPortalLiver.html#dcmri.AortaPortalLiver.load">(dcmri.AortaPortalLiver method)</a>
+</li>
+        <li><a href="api/dcmri.Kidney.html#dcmri.Kidney.load">(dcmri.Kidney method)</a>
+</li>
+        <li><a href="api/dcmri.KidneyCortMed.html#dcmri.KidneyCortMed.load">(dcmri.KidneyCortMed method)</a>
+</li>
+        <li><a href="api/dcmri.Liver.html#dcmri.Liver.load">(dcmri.Liver method)</a>
+</li>
+        <li><a href="api/dcmri.Tissue.html#dcmri.Tissue.load">(dcmri.Tissue method)</a>
+</li>
+        <li><a href="api/dcmri.TissueArray.html#dcmri.TissueArray.load">(dcmri.TissueArray method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="M">M</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/dcmri.Tissue.html#dcmri.Tissue.magnetization">magnetization() (dcmri.Tissue method)</a>
+</li>
+      <li><a href="api/dcmri.Mz_free.html#dcmri.Mz_free">Mz_free() (in module dcmri)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/dcmri.Mz_spgr.html#dcmri.Mz_spgr">Mz_spgr() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.Mz_ss.html#dcmri.Mz_ss">Mz_ss() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.Mz_tissue.html#dcmri.Mz_tissue">Mz_tissue() (in module dcmri)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="N">N</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/dcmri.nexpconv.html#dcmri.nexpconv">nexpconv() (in module dcmri)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="P">P</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/dcmri.Aorta.html#dcmri.Aorta.params">params() (dcmri.Aorta method)</a>
+
+      <ul>
+        <li><a href="api/dcmri.AortaKidneys.html#dcmri.AortaKidneys.params">(dcmri.AortaKidneys method)</a>
+</li>
+        <li><a href="api/dcmri.AortaLiver.html#dcmri.AortaLiver.params">(dcmri.AortaLiver method)</a>
+</li>
+        <li><a href="api/dcmri.AortaLiver2scan.html#dcmri.AortaLiver2scan.params">(dcmri.AortaLiver2scan method)</a>
+</li>
+        <li><a href="api/dcmri.AortaPortalLiver.html#dcmri.AortaPortalLiver.params">(dcmri.AortaPortalLiver method)</a>
+</li>
+        <li><a href="api/dcmri.Kidney.html#dcmri.Kidney.params">(dcmri.Kidney method)</a>
+</li>
+        <li><a href="api/dcmri.KidneyCortMed.html#dcmri.KidneyCortMed.params">(dcmri.KidneyCortMed method)</a>
+</li>
+        <li><a href="api/dcmri.Liver.html#dcmri.Liver.params">(dcmri.Liver method)</a>
+</li>
+        <li><a href="api/dcmri.Tissue.html#dcmri.Tissue.params">(dcmri.Tissue method)</a>
+</li>
+        <li><a href="api/dcmri.TissueArray.html#dcmri.TissueArray.params">(dcmri.TissueArray method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/dcmri.params_tissue.html#dcmri.params_tissue">params_tissue() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.PD.html#dcmri.PD">PD() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.perfusion.html#dcmri.perfusion">perfusion() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.Aorta.html#dcmri.Aorta.plot">plot() (dcmri.Aorta method)</a>
+
+      <ul>
+        <li><a href="api/dcmri.AortaKidneys.html#dcmri.AortaKidneys.plot">(dcmri.AortaKidneys method)</a>
+</li>
+        <li><a href="api/dcmri.AortaLiver.html#dcmri.AortaLiver.plot">(dcmri.AortaLiver method)</a>
+</li>
+        <li><a href="api/dcmri.AortaLiver2scan.html#dcmri.AortaLiver2scan.plot">(dcmri.AortaLiver2scan method)</a>
+</li>
+        <li><a href="api/dcmri.AortaPortalLiver.html#dcmri.AortaPortalLiver.plot">(dcmri.AortaPortalLiver method)</a>
+</li>
+        <li><a href="api/dcmri.Kidney.html#dcmri.Kidney.plot">(dcmri.Kidney method)</a>
+</li>
+        <li><a href="api/dcmri.KidneyCortMed.html#dcmri.KidneyCortMed.plot">(dcmri.KidneyCortMed method)</a>
+</li>
+        <li><a href="api/dcmri.Liver.html#dcmri.Liver.plot">(dcmri.Liver method)</a>
+</li>
+        <li><a href="api/dcmri.Tissue.html#dcmri.Tissue.plot">(dcmri.Tissue method)</a>
+</li>
+        <li><a href="api/dcmri.TissueArray.html#dcmri.TissueArray.plot">(dcmri.TissueArray method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/dcmri.TissueArray.html#dcmri.TissueArray.plot_fit">plot_fit() (dcmri.TissueArray method)</a>
+</li>
+      <li><a href="api/dcmri.TissueArray.html#dcmri.TissueArray.plot_params">plot_params() (dcmri.TissueArray method)</a>
+</li>
+      <li><a href="api/dcmri.TissueArray.html#dcmri.TissueArray.plot_signals">plot_signals() (dcmri.TissueArray method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/dcmri.Aorta.html#dcmri.Aorta.predict">predict() (dcmri.Aorta method)</a>
+
+      <ul>
+        <li><a href="api/dcmri.AortaKidneys.html#dcmri.AortaKidneys.predict">(dcmri.AortaKidneys method)</a>
+</li>
+        <li><a href="api/dcmri.AortaLiver.html#dcmri.AortaLiver.predict">(dcmri.AortaLiver method)</a>
+</li>
+        <li><a href="api/dcmri.AortaLiver2scan.html#dcmri.AortaLiver2scan.predict">(dcmri.AortaLiver2scan method)</a>
+</li>
+        <li><a href="api/dcmri.AortaPortalLiver.html#dcmri.AortaPortalLiver.predict">(dcmri.AortaPortalLiver method)</a>
+</li>
+        <li><a href="api/dcmri.Kidney.html#dcmri.Kidney.predict">(dcmri.Kidney method)</a>
+</li>
+        <li><a href="api/dcmri.KidneyCortMed.html#dcmri.KidneyCortMed.predict">(dcmri.KidneyCortMed method)</a>
+</li>
+        <li><a href="api/dcmri.Liver.html#dcmri.Liver.predict">(dcmri.Liver method)</a>
+</li>
+        <li><a href="api/dcmri.Tissue.html#dcmri.Tissue.predict">(dcmri.Tissue method)</a>
+</li>
+        <li><a href="api/dcmri.TissueArray.html#dcmri.TissueArray.predict">(dcmri.TissueArray method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/dcmri.Aorta.html#dcmri.Aorta.print_params">print_params() (dcmri.Aorta method)</a>
+
+      <ul>
+        <li><a href="api/dcmri.AortaKidneys.html#dcmri.AortaKidneys.print_params">(dcmri.AortaKidneys method)</a>
+</li>
+        <li><a href="api/dcmri.AortaLiver.html#dcmri.AortaLiver.print_params">(dcmri.AortaLiver method)</a>
+</li>
+        <li><a href="api/dcmri.AortaLiver2scan.html#dcmri.AortaLiver2scan.print_params">(dcmri.AortaLiver2scan method)</a>
+</li>
+        <li><a href="api/dcmri.AortaPortalLiver.html#dcmri.AortaPortalLiver.print_params">(dcmri.AortaPortalLiver method)</a>
+</li>
+        <li><a href="api/dcmri.Kidney.html#dcmri.Kidney.print_params">(dcmri.Kidney method)</a>
+</li>
+        <li><a href="api/dcmri.KidneyCortMed.html#dcmri.KidneyCortMed.print_params">(dcmri.KidneyCortMed method)</a>
+</li>
+        <li><a href="api/dcmri.Liver.html#dcmri.Liver.print_params">(dcmri.Liver method)</a>
+</li>
+        <li><a href="api/dcmri.Tissue.html#dcmri.Tissue.print_params">(dcmri.Tissue method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/dcmri.prop_chain.html#dcmri.prop_chain">prop_chain() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.prop_comp.html#dcmri.prop_comp">prop_comp() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.prop_free.html#dcmri.prop_free">prop_free() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.prop_ncomp.html#dcmri.prop_ncomp">prop_ncomp() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.prop_pass.html#dcmri.prop_pass">prop_pass() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.prop_plug.html#dcmri.prop_plug">prop_plug() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.prop_step.html#dcmri.prop_step">prop_step() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.prop_trap.html#dcmri.prop_trap">prop_trap() (in module dcmri)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="R">R</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/dcmri.Aorta.html#dcmri.Aorta.relax">relax() (dcmri.Aorta method)</a>
+
+      <ul>
+        <li><a href="api/dcmri.AortaKidneys.html#dcmri.AortaKidneys.relax">(dcmri.AortaKidneys method)</a>
+</li>
+        <li><a href="api/dcmri.AortaLiver.html#dcmri.AortaLiver.relax">(dcmri.AortaLiver method)</a>
+</li>
+        <li><a href="api/dcmri.AortaLiver2scan.html#dcmri.AortaLiver2scan.relax">(dcmri.AortaLiver2scan method)</a>
+</li>
+        <li><a href="api/dcmri.AortaPortalLiver.html#dcmri.AortaPortalLiver.relax">(dcmri.AortaPortalLiver method)</a>
+</li>
+        <li><a href="api/dcmri.Kidney.html#dcmri.Kidney.relax">(dcmri.Kidney method)</a>
+</li>
+        <li><a href="api/dcmri.Liver.html#dcmri.Liver.relax">(dcmri.Liver method)</a>
+</li>
+        <li><a href="api/dcmri.Tissue.html#dcmri.Tissue.relax">(dcmri.Tissue method)</a>
+</li>
+        <li><a href="api/dcmri.relax.html#dcmri.relax">(in module dcmri)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/dcmri.relax_tissue.html#dcmri.relax_tissue">relax_tissue() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.relaxivity.html#dcmri.relaxivity">relaxivity() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.res_chain.html#dcmri.res_chain">res_chain() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.res_comp.html#dcmri.res_comp">res_comp() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.res_free.html#dcmri.res_free">res_free() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.res_ncomp.html#dcmri.res_ncomp">res_ncomp() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.res_pass.html#dcmri.res_pass">res_pass() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.res_plug.html#dcmri.res_plug">res_plug() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.res_step.html#dcmri.res_step">res_step() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.res_trap.html#dcmri.res_trap">res_trap() (in module dcmri)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="S">S</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/dcmri.sample.html#dcmri.sample">sample() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.Aorta.html#dcmri.Aorta.save">save() (dcmri.Aorta method)</a>
+
+      <ul>
+        <li><a href="api/dcmri.AortaKidneys.html#dcmri.AortaKidneys.save">(dcmri.AortaKidneys method)</a>
+</li>
+        <li><a href="api/dcmri.AortaLiver.html#dcmri.AortaLiver.save">(dcmri.AortaLiver method)</a>
+</li>
+        <li><a href="api/dcmri.AortaLiver2scan.html#dcmri.AortaLiver2scan.save">(dcmri.AortaLiver2scan method)</a>
+</li>
+        <li><a href="api/dcmri.AortaPortalLiver.html#dcmri.AortaPortalLiver.save">(dcmri.AortaPortalLiver method)</a>
+</li>
+        <li><a href="api/dcmri.Kidney.html#dcmri.Kidney.save">(dcmri.Kidney method)</a>
+</li>
+        <li><a href="api/dcmri.KidneyCortMed.html#dcmri.KidneyCortMed.save">(dcmri.KidneyCortMed method)</a>
+</li>
+        <li><a href="api/dcmri.Liver.html#dcmri.Liver.save">(dcmri.Liver method)</a>
+</li>
+        <li><a href="api/dcmri.Tissue.html#dcmri.Tissue.save">(dcmri.Tissue method)</a>
+</li>
+        <li><a href="api/dcmri.TissueArray.html#dcmri.TissueArray.save">(dcmri.TissueArray method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/dcmri.Aorta.html#dcmri.Aorta.set_free">set_free() (dcmri.Aorta method)</a>
+
+      <ul>
+        <li><a href="api/dcmri.AortaKidneys.html#dcmri.AortaKidneys.set_free">(dcmri.AortaKidneys method)</a>
+</li>
+        <li><a href="api/dcmri.AortaLiver.html#dcmri.AortaLiver.set_free">(dcmri.AortaLiver method)</a>
+</li>
+        <li><a href="api/dcmri.AortaLiver2scan.html#dcmri.AortaLiver2scan.set_free">(dcmri.AortaLiver2scan method)</a>
+</li>
+        <li><a href="api/dcmri.AortaPortalLiver.html#dcmri.AortaPortalLiver.set_free">(dcmri.AortaPortalLiver method)</a>
+</li>
+        <li><a href="api/dcmri.Kidney.html#dcmri.Kidney.set_free">(dcmri.Kidney method)</a>
+</li>
+        <li><a href="api/dcmri.KidneyCortMed.html#dcmri.KidneyCortMed.set_free">(dcmri.KidneyCortMed method)</a>
+</li>
+        <li><a href="api/dcmri.Liver.html#dcmri.Liver.set_free">(dcmri.Liver method)</a>
+</li>
+        <li><a href="api/dcmri.Tissue.html#dcmri.Tissue.set_free">(dcmri.Tissue method)</a>
+</li>
+        <li><a href="api/dcmri.TissueArray.html#dcmri.TissueArray.set_free">(dcmri.TissueArray method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/dcmri.shepp_logan.html#dcmri.shepp_logan">shepp_logan() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.Kidney.html#dcmri.Kidney.signal">signal() (dcmri.Kidney method)</a>
+
+      <ul>
+        <li><a href="api/dcmri.Liver.html#dcmri.Liver.signal">(dcmri.Liver method)</a>
+</li>
+        <li><a href="api/dcmri.Tissue.html#dcmri.Tissue.signal">(dcmri.Tissue method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/dcmri.signal_dsc.html#dcmri.signal_dsc">signal_dsc() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.signal_free.html#dcmri.signal_free">signal_free() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.signal_lin.html#dcmri.signal_lin">signal_lin() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.signal_spgr.html#dcmri.signal_spgr">signal_spgr() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.signal_ss.html#dcmri.signal_ss">signal_ss() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.signal_t2w.html#dcmri.signal_t2w">signal_t2w() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.signal_tissue.html#dcmri.signal_tissue">signal_tissue() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.stepconv.html#dcmri.stepconv">stepconv() (in module dcmri)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="T">T</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/dcmri.T1.html#dcmri.T1">T1() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.T2.html#dcmri.T2">T2() (in module dcmri)</a>
+</li>
+      <li><a href="api/dcmri.Kidney.html#dcmri.Kidney.time">time() (dcmri.Kidney method)</a>
+
+      <ul>
+        <li><a href="api/dcmri.KidneyCortMed.html#dcmri.KidneyCortMed.time">(dcmri.KidneyCortMed method)</a>
+</li>
+        <li><a href="api/dcmri.Liver.html#dcmri.Liver.time">(dcmri.Liver method)</a>
+</li>
+        <li><a href="api/dcmri.Tissue.html#dcmri.Tissue.time">(dcmri.Tissue method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/dcmri.Tissue.html#dcmri.Tissue">Tissue (class in dcmri)</a>
+</li>
+      <li><a href="api/dcmri.TissueArray.html#dcmri.TissueArray">TissueArray (class in dcmri)</a>
+</li>
+      <li><a href="api/dcmri.Aorta.html#dcmri.Aorta.train">train() (dcmri.Aorta method)</a>
+
+      <ul>
+        <li><a href="api/dcmri.AortaKidneys.html#dcmri.AortaKidneys.train">(dcmri.AortaKidneys method)</a>
+</li>
+        <li><a href="api/dcmri.AortaLiver.html#dcmri.AortaLiver.train">(dcmri.AortaLiver method)</a>
+</li>
+        <li><a href="api/dcmri.AortaLiver2scan.html#dcmri.AortaLiver2scan.train">(dcmri.AortaLiver2scan method)</a>
+</li>
+        <li><a href="api/dcmri.AortaPortalLiver.html#dcmri.AortaPortalLiver.train">(dcmri.AortaPortalLiver method)</a>
+</li>
+        <li><a href="api/dcmri.Kidney.html#dcmri.Kidney.train">(dcmri.Kidney method)</a>
+</li>
+        <li><a href="api/dcmri.KidneyCortMed.html#dcmri.KidneyCortMed.train">(dcmri.KidneyCortMed method)</a>
+</li>
+        <li><a href="api/dcmri.Liver.html#dcmri.Liver.train">(dcmri.Liver method)</a>
+</li>
+        <li><a href="api/dcmri.Tissue.html#dcmri.Tissue.train">(dcmri.Tissue method)</a>
+</li>
+        <li><a href="api/dcmri.TissueArray.html#dcmri.TissueArray.train">(dcmri.TissueArray method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024-2025, dcmri contributors.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

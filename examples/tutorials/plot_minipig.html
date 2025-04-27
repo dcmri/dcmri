@@ -1,0 +1,1173 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Dealing with inflow effects &#8212; dcmri 0.6.17 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=cd8af66b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=0d21fabb"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-64ZSJ8Z1MX"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/tutorials/plot_minipig';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="A comparison of convolution functions" href="plot_convolution.html" />
+    <link rel="prev" title="An exploration of water exchange effects" href="plot_wex.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/tristan-logo.jpg" class="logo__image only-light" alt="dcmri 0.6.17 documentation - Home"/>
+    <img src="../../_static/tristan-logo.jpg" class="logo__image only-dark pst-js-only" alt="dcmri 0.6.17 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../releases/index.html">
+    Releases
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../about/index.html">
+    About
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../releases/index.html">
+    Releases
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../about/index.html">
+    About
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../kidney/index.html">Kidney applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../liver/index.html">Liver function: drug effects</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">Tutorials</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="plot_aif.html">The role of Arterial Input Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_wex.html">An exploration of water exchange effects</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">Dealing with inflow effects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_convolution.html">A comparison of convolution functions</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Examples</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Tutorials</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Dealing with inflow effects</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="#sphx-glr-download-examples-tutorials-plot-minipig-py"><span class="std std-ref">Go to the end</span></a>
+to download the full example code.</p>
+</div>
+<section class="sphx-glr-example-title" id="dealing-with-inflow-effects">
+<span id="sphx-glr-examples-tutorials-plot-minipig-py"></span><h1>Dealing with inflow effects<a class="headerlink" href="#dealing-with-inflow-effects" title="Link to this heading">#</a></h1>
+<p><a class="reference external" href="https://www.au.dk/en/nvc&#64;clin.au.dk">Nichlas Vous Christensen</a>,
+<a class="reference external" href="https://www.au.dk/en/au569527&#64;biomed.au.dk">Mohsen Redda</a>,
+<a class="reference external" href="https://www.sheffield.ac.uk/smph/people/academic/clinical-medicine/steven-sourbron">Steven Sourbron</a>.</p>
+<section id="what-are-inflow-effects">
+<h2>What are inflow effects?<a class="headerlink" href="#what-are-inflow-effects" title="Link to this heading">#</a></h2>
+<p>Inflow effects in the arterial input function (AIF) are a common
+type of artefact in DCE-MRI which severely biases the results if it
+is not properly acccounted for. The effect is caused by unsaturated
+blood flowing into the imaging slab causing an artefactual increase
+of the baseline signal. A naive analysis of inflow-corrupted data
+underestimates the arterial concentration and consequently
+overestimates tissue perfusion parameters.</p>
+<p>Inflow effects can be detected visually by
+inspecting a precontrast image. Since blood has a long T1, arteries
+should be dark on a T1-weighted image. If they are instead
+brighter than surrounding tissue, this is evidence of inflow effects.
+The brightness typically shows a gradient with the vessel being
+brightest at the edge of the slab where flow-induced enhancement is
+most severe, then gradually darking as the blood travels down the slab
+and is pushed into steady-state by the excitation pulses.</p>
+</section>
+<section id="minimizing-inflow-effects">
+<h2>Minimizing inflow effects<a class="headerlink" href="#minimizing-inflow-effects" title="Link to this heading">#</a></h2>
+<p>The most robust approach to dealing with inflow effects is by
+eliminating them at the source, by optimizing the acquisition. In
+abdominal imaging this can often be achieved by positioning the slab
+coronally and extending the field of view to include the heart.</p>
+<p>This may not always be possible though, for instance for prostate imaging
+where the heart is too far from the region of interest. Even when it
+is technically possible, such as for liver or renal imaging, it may
+require compromises in other areas: the approach forbids axial
+imaging, which is sometimes preferred, and may also come at a cost of
+spatial resolution.</p>
+<p>Other approaches may be possible, such as
+increasing the flip angle to accelerate transition to steady-state;
+but this comes with other compromises such as increased tissue
+heating and reduced signal enhancement.</p>
+</section>
+<section id="correcting-inflow-effects">
+<h2>Correcting inflow effects<a class="headerlink" href="#correcting-inflow-effects" title="Link to this heading">#</a></h2>
+<p>If inflow effects cannot be fully avoided by optimizing the
+acquisition, or data with inflow effects are analysed retrospectively,
+the problem must be addressed at image analysis stage.</p>
+<p>One approach
+that has sometimes been applied is to measure the input function
+deeper down in the slab where inflow effects have largely decayed.
+This is not always feasible and may cause variability in result for
+instance due to differences in blood velocity.</p>
+<p>This tutorial illustrates two alternative approaches: using a
+standardised input function rather than attempting to measure it;
+and correcting for inflow by adding flow-related enhancement in the
+signal model.</p>
+<p>The solutions are illustrated for the use case of MR renography in a
+minipig with unilateral kidney fibrosis. The data are taken from
+Bøgh et al (2024).</p>
+</section>
+<section id="reference">
+<h2>Reference<a class="headerlink" href="#reference" title="Link to this heading">#</a></h2>
+<p>Nikolaj Bøgh, Lotte B Bertelsen,
+Camilla W Rasmussen, Sabrina K Bech, Anna K Keller, Mia G Madsen,
+Frederik Harving, Thomas H Thorsen, Ida K Mieritz, Esben Ss Hansen,
+Alkwin Wanders, Christoffer Laustsen. Metabolic MRI With
+Hyperpolarized 13C-Pyruvate for Early Detection
+of Fibrogenic Kidney Metabolism.
+[<a class="reference external" href="https://doi.org/10.1097/rli.0000000000001094">DOI</a>].</p>
+</section>
+<section id="setup">
+<h2>Setup<a class="headerlink" href="#setup" title="Link to this heading">#</a></h2>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import packages</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.image</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mpimg</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pydmr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">dcmri</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dc</span>
+
+<span class="c1"># Read the dataset</span>
+<a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dmrfile</span></a> <span class="o">=</span> <span class="n">dc</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="s1">&#39;minipig_renal_fibrosis&#39;</span><span class="p">)</span>
+<a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a> <span class="o">=</span> <span class="n">pydmr</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dmrfile</span></a><span class="p">,</span> <span class="s1">&#39;nest&#39;</span><span class="p">)</span>
+<a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;rois&#39;</span><span class="p">][</span><span class="s1">&#39;Pig&#39;</span><span class="p">][</span><span class="s1">&#39;Test&#39;</span><span class="p">],</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;pars&#39;</span><span class="p">][</span><span class="s1">&#39;Pig&#39;</span><span class="p">][</span><span class="s1">&#39;Test&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+</section>
+<section id="plot-data">
+<h2>Plot data<a class="headerlink" href="#plot-data" title="Link to this heading">#</a></h2>
+<p>Let’s start by plotting the data:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">time</span></a> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;TS&#39;</span><span class="p">]</span> <span class="o">*</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.arange.html#numpy.arange" title="numpy.arange" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">arange</span></a><span class="p">(</span><span class="nb">len</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="p">[</span><span class="s1">&#39;Aorta&#39;</span><span class="p">]))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">time</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="p">[</span><span class="s1">&#39;Aorta&#39;</span><span class="p">],</span> <span class="s1">&#39;r-&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Aorta&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">time</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="p">[</span><span class="s1">&#39;LeftKidney&#39;</span><span class="p">],</span> <span class="s1">&#39;g-&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;LeftKidney&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">time</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="p">[</span><span class="s1">&#39;RightKidney&#39;</span><span class="p">],</span> <span class="s1">&#39;b-&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;RightKidney&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Time (sec)&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Signal (a.u.)&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_plot_minipig_001.png" srcset="../../_images/sphx_glr_plot_minipig_001.png" alt="plot minipig" class = "sphx-glr-single-img"/><p>We see a clear difference between left kidney (healthy) and right
+kidney (fibrotic). We also
+see that the peak signal change in the aorta is similar to that in
+the kidney. As peak aorta concentrations in pure blood are always
+substantially higher than those in tissue, this shows that
+signal changes underestimate concentrations - consistent with the
+effect of inflow artefacts.</p>
+<p>Verification on the data confirms this suspicion: looking at a
+precontrast slice through the aorta (below) we see that the aorta
+is bright compared to the surrounding tissue, and gradually becomes
+darker as we move further down into the slab - this is the signature
+sign of inflow artefacts.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">img</span></a> <span class="o">=</span> <span class="n">mpimg</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="s1">&#39;../../source/_static/tutorial-inflow.png&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">img</span></a><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Baseline image&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_plot_minipig_002.png" srcset="../../_images/sphx_glr_plot_minipig_002.png" alt="Baseline image" class = "sphx-glr-single-img"/></section>
+<section id="standard-analysis">
+<h2>Standard analysis<a class="headerlink" href="#standard-analysis" title="Link to this heading">#</a></h2>
+<p>Ignoring the inflow effects leads to significant bias in the
+results. For the kidney
+the most common modelling approach is implemented in the function
+<a class="reference internal" href="../../api/dcmri.Kidney.html#dcmri.Kidney" title="dcmri.Kidney"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dcmri.Kidney</span></code></a>. Let’s run it on the left kidney and see what we get:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">kidney</span> <span class="o">=</span> <span class="n">dc</span><span class="o">.</span><span class="n">Kidney</span><span class="p">(</span>
+
+    <span class="c1"># Configuration</span>
+    <span class="n">aif</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="p">[</span><span class="s1">&#39;Aorta&#39;</span><span class="p">],</span>
+    <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dt</span></a><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;TS&#39;</span><span class="p">],</span>
+
+    <span class="c1"># General parameters</span>
+    <span class="n">field_strength</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;B0&#39;</span><span class="p">],</span>
+    <span class="n">agent</span><span class="o">=</span><span class="s2">&quot;gadoterate&quot;</span><span class="p">,</span>
+    <span class="n">t0</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;TS&#39;</span><span class="p">]</span> <span class="o">*</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;n0&#39;</span><span class="p">],</span>
+
+    <span class="c1"># Sequence parameters</span>
+    <span class="n">TS</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;TS&#39;</span><span class="p">],</span>
+    <span class="n">TR</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;TR&#39;</span><span class="p">],</span>
+    <span class="n">FA</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;FA&#39;</span><span class="p">],</span>
+
+    <span class="c1"># Tissue parameters</span>
+    <span class="n">R10</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="n">dc</span><span class="o">.</span><span class="n">T1</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;B0&#39;</span><span class="p">],</span> <span class="s1">&#39;kidney&#39;</span><span class="p">),</span>
+    <span class="n">R10a</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="n">dc</span><span class="o">.</span><span class="n">T1</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;B0&#39;</span><span class="p">],</span> <span class="s1">&#39;blood&#39;</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">kidney</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">time</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="p">[</span><span class="s1">&#39;LeftKidney&#39;</span><span class="p">])</span>
+<span class="n">kidney</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">time</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="p">[</span><span class="s1">&#39;LeftKidney&#39;</span><span class="p">])</span>
+<span class="n">kidney</span><span class="o">.</span><span class="n">print_params</span><span class="p">(</span><span class="n">round_to</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_plot_minipig_003.png" srcset="../../_images/sphx_glr_plot_minipig_003.png" alt="Prediction of the MRI signals., Reconstruction of concentrations" class = "sphx-glr-single-img"/><div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>--------------------------------
+Free parameters with their stdev
+--------------------------------
+
+Arterial mean transit time (Ta): 0.0 (7.8382) sec
+Plasma flow (Fp): 0.05 (0.1345) mL/sec/cm3
+Plasma volume (vp): 0.3 (0.5037) mL/cm3
+Filtration fraction (FF): 0.3 (0.9345)
+Tubular mean transit time (Tt): 107.1126 (58.6456) sec
+
+----------------------------
+Fixed and derived parameters
+----------------------------
+
+Tissue B1-correction factor (B1corr): 1
+Arterial B1-correction factor (B1corr_a): 1
+Arterial precontrast R1 (R10a): 0.614 Hz
+Blood flow (Fb): 0.0909 mL/sec/cm3
+Tubular flow (Ft): 0.015 mL/sec/cm3
+Plasma mean transit time (Tp): 4.6154 sec
+Vascular mean transit time (Tv): 6.0 sec
+Extraction fraction (E): 0.2308
+</pre></div>
+</div>
+<p>The model is not fitting the data because by default the model
+parameters are not allowed to enter into unphysical regimes. So
+the model stops converging when they hit their bounds, as
+can be seen from the plasma flow which converged to its upper
+bound of 0.05 mL/sec/cm3.</p>
+<p>If we free up the parameters then the model will fit, albeit
+with unphysical values for the parameters:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">kidney</span><span class="o">.</span><span class="n">set_free</span><span class="p">(</span><span class="n">Fp</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">np</span><span class="o">.</span><span class="n">inf</span></a><span class="p">],</span> <span class="n">vp</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="n">FF</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">kidney</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">time</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="p">[</span><span class="s1">&#39;LeftKidney&#39;</span><span class="p">])</span>
+<span class="n">kidney</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">time</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="p">[</span><span class="s1">&#39;LeftKidney&#39;</span><span class="p">])</span>
+<span class="n">kidney</span><span class="o">.</span><span class="n">print_params</span><span class="p">(</span><span class="n">round_to</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_plot_minipig_004.png" srcset="../../_images/sphx_glr_plot_minipig_004.png" alt="Prediction of the MRI signals., Reconstruction of concentrations" class = "sphx-glr-single-img"/><div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>--------------------------------
+Free parameters with their stdev
+--------------------------------
+
+Arterial mean transit time (Ta): 3.0 (0.7536) sec
+Plasma flow (Fp): 1.1894 (1.5291) mL/sec/cm3
+Plasma volume (vp): 0.7688 (0.0259) mL/cm3
+Filtration fraction (FF): 0.0074 (0.0092)
+Tubular mean transit time (Tt): 48.3554 (5.2081) sec
+
+----------------------------
+Fixed and derived parameters
+----------------------------
+
+Tissue B1-correction factor (B1corr): 1
+Arterial B1-correction factor (B1corr_a): 1
+Arterial precontrast R1 (R10a): 0.614 Hz
+Blood flow (Fb): 2.1626 mL/sec/cm3
+Tubular flow (Ft): 0.0088 mL/sec/cm3
+Plasma mean transit time (Tp): 0.6416 sec
+Vascular mean transit time (Tv): 0.6464 sec
+Extraction fraction (E): 0.0073
+</pre></div>
+</div>
+<p>The plasma flow now has a value of 1.2 mL/sec/cm3 or
+7200 mL/min/100cm3. This is around 40 times higher than what
+is realistic for a kidney - confirming the massive bias caused by
+inflow artefacts. This is separately evidenced by the peak
+concentration around 0.8mM (right of plot) - substantially lower
+than the values of 4-5mM that are typically seen after injection
+of a standard dose.</p>
+</section>
+<section id="using-a-standard-input-function">
+<h2>Using a standard input function<a class="headerlink" href="#using-a-standard-input-function" title="Link to this heading">#</a></h2>
+<p>One approach that can always be considered if arterial
+concentrations are not reliable is to use a modelled rather than a
+measured input function.</p>
+<p>There are no input function models available for minipigs so
+our best option is to use one derived for humans and adjust the
+parameters. We will use the function <a class="reference internal" href="../../api/dcmri.aif_tristan.html#dcmri.aif_tristan" title="dcmri.aif_tristan"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dcmri.aif_tristan</span></code></a> which is
+built on a model of the circulation and thefore defined in terms
+of physiological parameters.</p>
+<p>We set the cardiac output (CO) to a typical value for the
+minipig (3.6 L/min or 60 mL/sec). The bolus arrival time (BAT) can
+be estimated from the
+peak of the aorta concentration - it does not have to be exact as the
+value is optimized in the fit. All other parameters are left at
+default values as no data exist for the minipig:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dt</span></a> <span class="o">=</span> <span class="mf">0.25</span>
+<a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t</span></a> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.arange.html#numpy.arange" title="numpy.arange" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">arange</span></a><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.amax.html#numpy.amax" title="numpy.amax" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">amax</span></a><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">time</span></a><span class="p">)</span> <span class="o">+</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dt</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dt</span></a><span class="p">)</span>
+<a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ca</span></a> <span class="o">=</span> <span class="n">dc</span><span class="o">.</span><span class="n">aif_tristan</span><span class="p">(</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t</span></a><span class="p">,</span>
+    <span class="n">agent</span><span class="o">=</span><span class="s2">&quot;gadoterate&quot;</span><span class="p">,</span>
+    <span class="n">dose</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;dose&#39;</span><span class="p">],</span>
+    <span class="n">rate</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;rate&#39;</span><span class="p">],</span>
+    <span class="n">weight</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">],</span>
+    <span class="n">CO</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span>
+    <span class="n">BAT</span><span class="o">=</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">time</span></a><span class="p">[</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.argmax.html#numpy.argmax" title="numpy.argmax" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">argmax</span></a><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="p">[</span><span class="s1">&#39;Aorta&#39;</span><span class="p">])]</span> <span class="o">-</span> <span class="mi">20</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Now we can use this fixed concentration as input in the kidney
+model instead of the measured aorta signal. Since the
+artery signal is not measured in the aorta we will allow the
+arterial transit time to vary over a larger range than the default
+of [0, 3] sec:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">kidney</span> <span class="o">=</span> <span class="n">dc</span><span class="o">.</span><span class="n">Kidney</span><span class="p">(</span>
+
+    <span class="c1"># Configuration</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ca</span></a><span class="o">=</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ca</span></a><span class="p">,</span>
+    <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dt</span></a><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dt</span></a><span class="p">,</span>
+
+    <span class="c1"># General parameters</span>
+    <span class="n">field_strength</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;B0&#39;</span><span class="p">],</span>
+    <span class="n">agent</span><span class="o">=</span><span class="s2">&quot;gadoterate&quot;</span><span class="p">,</span>
+    <span class="n">t0</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;TS&#39;</span><span class="p">]</span> <span class="o">*</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;n0&#39;</span><span class="p">],</span>
+
+    <span class="c1"># Sequence parameters</span>
+    <span class="n">TS</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;TS&#39;</span><span class="p">],</span>
+    <span class="n">TR</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;TR&#39;</span><span class="p">],</span>
+    <span class="n">FA</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;FA&#39;</span><span class="p">],</span>
+
+    <span class="c1"># Tissue parameters</span>
+    <span class="n">R10</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="n">dc</span><span class="o">.</span><span class="n">T1</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;B0&#39;</span><span class="p">],</span> <span class="s1">&#39;kidney&#39;</span><span class="p">),</span>
+    <span class="n">R10a</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="n">dc</span><span class="o">.</span><span class="n">T1</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;B0&#39;</span><span class="p">],</span> <span class="s1">&#39;blood&#39;</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">kidney</span><span class="o">.</span><span class="n">set_free</span><span class="p">(</span><span class="n">Ta</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">30</span><span class="p">])</span>
+<span class="n">kidney</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">time</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="p">[</span><span class="s1">&#39;LeftKidney&#39;</span><span class="p">])</span>
+<span class="n">kidney</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">time</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="p">[</span><span class="s1">&#39;LeftKidney&#39;</span><span class="p">])</span>
+<span class="n">kidney</span><span class="o">.</span><span class="n">print_params</span><span class="p">(</span><span class="n">round_to</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_plot_minipig_005.png" srcset="../../_images/sphx_glr_plot_minipig_005.png" alt="Prediction of the MRI signals., Reconstruction of concentrations" class = "sphx-glr-single-img"/><div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>--------------------------------
+Free parameters with their stdev
+--------------------------------
+
+Arterial mean transit time (Ta): 12.3292 (0.5285) sec
+Plasma flow (Fp): 0.05 (0.0203) mL/sec/cm3
+Plasma volume (vp): 0.0905 (0.0054) mL/cm3
+Filtration fraction (FF): 0.0498 (0.0203)
+Tubular mean transit time (Tt): 116.6984 (8.9146) sec
+
+----------------------------
+Fixed and derived parameters
+----------------------------
+
+Tissue B1-correction factor (B1corr): 1
+Blood flow (Fb): 0.0909 mL/sec/cm3
+Tubular flow (Ft): 0.0025 mL/sec/cm3
+Plasma mean transit time (Tp): 1.725 sec
+Vascular mean transit time (Tv): 1.8109 sec
+Extraction fraction (E): 0.0474
+</pre></div>
+</div>
+<p>This now fits a lot better without unphysical
+parameter values, but the plasma flow still hits the upper limit,
+and the fit remains poor - indicating the input function does not
+represent reality very well even after adapting the parameters.</p>
+</section>
+<section id="model-based-inflow-correction">
+<h2>Model-based inflow correction<a class="headerlink" href="#model-based-inflow-correction" title="Link to this heading">#</a></h2>
+<p>An alternative solution is to fit an
+aorta model to the data and use a signal model (SSI) that
+accounts for inflow effects.</p>
+<p>The CO is set to the same values as for the modelled AIF above,
+but here this serves as initial guess rather than a fixed
+parameter:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">aorta</span> <span class="o">=</span> <span class="n">dc</span><span class="o">.</span><span class="n">Aorta</span><span class="p">(</span>
+
+    <span class="c1"># Configuration</span>
+    <span class="n">sequence</span><span class="o">=</span><span class="s1">&#39;SSI&#39;</span><span class="p">,</span>
+    <span class="n">heartlung</span><span class="o">=</span><span class="s1">&#39;chain&#39;</span><span class="p">,</span>
+    <span class="n">organs</span><span class="o">=</span><span class="s1">&#39;comp&#39;</span><span class="p">,</span>
+
+    <span class="c1"># General parameters</span>
+    <a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dt</span></a><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dt</span></a><span class="p">,</span>
+    <span class="n">field_strength</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;B0&#39;</span><span class="p">],</span>
+    <span class="n">t0</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;TS&#39;</span><span class="p">]</span><span class="o">*</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;n0&#39;</span><span class="p">],</span>
+
+    <span class="c1"># Injection protocol</span>
+    <span class="n">agent</span><span class="o">=</span><span class="s2">&quot;gadoterate&quot;</span><span class="p">,</span>
+    <span class="n">weight</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">],</span>
+    <span class="n">dose</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;dose&#39;</span><span class="p">],</span>
+    <span class="n">rate</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;rate&#39;</span><span class="p">],</span>
+
+    <span class="c1"># Sequence parameters</span>
+    <span class="n">TR</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;TR&#39;</span><span class="p">],</span>
+    <span class="n">FA</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;FA&#39;</span><span class="p">],</span>
+    <span class="n">TS</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;TS&#39;</span><span class="p">],</span>
+
+    <span class="c1"># Aorta parameters</span>
+    <span class="n">CO</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span>
+    <span class="n">R10</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="n">dc</span><span class="o">.</span><span class="n">T1</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;B0&#39;</span><span class="p">],</span> <span class="s1">&#39;blood&#39;</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">aorta</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">time</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="p">[</span><span class="s1">&#39;Aorta&#39;</span><span class="p">])</span>
+<span class="n">aorta</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">time</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="p">[</span><span class="s1">&#39;Aorta&#39;</span><span class="p">])</span>
+<span class="n">aorta</span><span class="o">.</span><span class="n">print_params</span><span class="p">(</span><span class="n">round_to</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_plot_minipig_006.png" srcset="../../_images/sphx_glr_plot_minipig_006.png" alt="Prediction of the MRI signals., Prediction of the concentrations." class = "sphx-glr-single-img"/><div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>--------------------------------
+Free parameters with their stdev
+--------------------------------
+
+Bolus arrival time (BAT): 16.6452 (0.1696) sec
+Inflow time (TF): 0.2802 (0.0246) sec
+Cardiac output (CO): 72.8315 (23.6757) mL/sec
+Heart-lung mean transit time (Thl): 16.3275 (0.2062) sec
+Organs blood mean transit time (To): 14.2438 (2.4745) sec
+Body extraction fraction (Eb): 0.0752 (0.0126)
+Heart-lung dispersion (Dhl): 0.0782 (0.0065)
+Signal scaling factor (S0): 4914.1799 (476.4379) a.u.
+
+----------------------------
+Fixed and derived parameters
+----------------------------
+</pre></div>
+</div>
+<p>This produces a good fit to the data and also reasonable
+values for the parameters. A cardiac output of 73 mL/sec
+equates to 4.4 L/min, which is in the right range for a minipig.
+Also a travel time of 280 msec (Inflow time) from heart to kidneys
+seems reasonable. The peak concentrations (right) are also in the
+expected range for a standard injection (5mM).</p>
+</section>
+<section id="kidney-model">
+<h2>Kidney model<a class="headerlink" href="#kidney-model" title="Link to this heading">#</a></h2>
+<p>We can now use the trained aorta model to generate
+concentrations and use those as input for the kidney model,
+instead of the modelled concentration:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ca</span></a> <span class="o">=</span> <span class="n">aorta</span><span class="o">.</span><span class="n">conc</span><span class="p">()</span> <span class="c1"># get arterial concentrations</span>
+
+<span class="n">kidney</span> <span class="o">=</span> <span class="n">dc</span><span class="o">.</span><span class="n">Kidney</span><span class="p">(</span>
+
+    <span class="c1"># Configuration</span>
+    <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ca</span></a><span class="o">=</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ca</span></a><span class="p">,</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t</span></a><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t</span></a><span class="p">,</span>
+
+    <span class="c1"># General parameters</span>
+    <span class="n">field_strength</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;B0&#39;</span><span class="p">],</span>
+    <span class="n">agent</span><span class="o">=</span><span class="s2">&quot;gadoterate&quot;</span><span class="p">,</span>
+    <span class="n">t0</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;TS&#39;</span><span class="p">]</span><span class="o">*</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;n0&#39;</span><span class="p">],</span>
+
+    <span class="c1"># Sequence parameters</span>
+    <span class="n">TS</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;TS&#39;</span><span class="p">],</span>
+    <span class="n">TR</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;TR&#39;</span><span class="p">],</span>
+    <span class="n">FA</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;FA&#39;</span><span class="p">],</span>
+
+    <span class="c1"># Tissue parameters</span>
+    <span class="n">R10</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="n">dc</span><span class="o">.</span><span class="n">T1</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;B0&#39;</span><span class="p">],</span> <span class="s1">&#39;kidney&#39;</span><span class="p">),</span>
+    <span class="n">R10a</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="n">dc</span><span class="o">.</span><span class="n">T1</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;B0&#39;</span><span class="p">],</span> <span class="s1">&#39;blood&#39;</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">kidney</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">time</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="p">[</span><span class="s1">&#39;LeftKidney&#39;</span><span class="p">])</span>
+<span class="n">kidney</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">time</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="p">[</span><span class="s1">&#39;LeftKidney&#39;</span><span class="p">])</span>
+<span class="n">kidney</span><span class="o">.</span><span class="n">print_params</span><span class="p">(</span><span class="n">round_to</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_plot_minipig_007.png" srcset="../../_images/sphx_glr_plot_minipig_007.png" alt="Prediction of the MRI signals., Reconstruction of concentrations" class = "sphx-glr-single-img"/><div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>--------------------------------
+Free parameters with their stdev
+--------------------------------
+
+Arterial mean transit time (Ta): 0.803 (0.1935) sec
+Plasma flow (Fp): 0.035 (0.0037) mL/sec/cm3
+Plasma volume (vp): 0.0985 (0.0033) mL/cm3
+Filtration fraction (FF): 0.0812 (0.0078)
+Tubular mean transit time (Tt): 47.5675 (2.0172) sec
+
+----------------------------
+Fixed and derived parameters
+----------------------------
+
+Tissue B1-correction factor (B1corr): 1
+Blood flow (Fb): 0.0637 mL/sec/cm3
+Tubular flow (Ft): 0.0028 mL/sec/cm3
+Plasma mean transit time (Tp): 2.6008 sec
+Vascular mean transit time (Tv): 2.812 sec
+Extraction fraction (E): 0.0751
+</pre></div>
+</div>
+<p>This now gives a good fit with reasonable values for all parameters.
+Let’s run it on the right kidney as well so we can compare
+parameters:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">kidney</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">time</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="p">[</span><span class="s1">&#39;RightKidney&#39;</span><span class="p">])</span>
+<span class="n">kidney</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">time</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="p">[</span><span class="s1">&#39;RightKidney&#39;</span><span class="p">])</span>
+<span class="n">kidney</span><span class="o">.</span><span class="n">print_params</span><span class="p">(</span><span class="n">round_to</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_plot_minipig_008.png" srcset="../../_images/sphx_glr_plot_minipig_008.png" alt="Prediction of the MRI signals., Reconstruction of concentrations" class = "sphx-glr-single-img"/><div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>--------------------------------
+Free parameters with their stdev
+--------------------------------
+
+Arterial mean transit time (Ta): 1.4288 (0.0873) sec
+Plasma flow (Fp): 0.0074 (0.0007) mL/sec/cm3
+Plasma volume (vp): 0.1296 (0.0102) mL/cm3
+Filtration fraction (FF): 0.0387 (0.0012)
+Tubular mean transit time (Tt): 16498.7417 (308336.8495) sec
+
+----------------------------
+Fixed and derived parameters
+----------------------------
+
+Tissue B1-correction factor (B1corr): 1
+Blood flow (Fb): 0.0135 mL/sec/cm3
+Tubular flow (Ft): 0.0003 mL/sec/cm3
+Plasma mean transit time (Tp): 16.7971 sec
+Vascular mean transit time (Tv): 17.4468 sec
+Extraction fraction (E): 0.0372
+</pre></div>
+</div>
+<p>The right (fibrotic) kidney now shows a substantially lower
+perfusion and function than the left. The perfusion of the left
+kidney has not hit the maximum value. It is still relatively high
+(Fp = 0.035 mL/sec/cm3 or 210 mL/min/100mL) but it is possible
+that it is overcompensating to some extent for the damage on the
+right kidney.</p>
+</section>
+<section id="joint-aorta-kidneys-fit">
+<h2>Joint aorta-kidneys fit<a class="headerlink" href="#joint-aorta-kidneys-fit" title="Link to this heading">#</a></h2>
+<p>The method above produces a good solution for these data, but if the
+volumes of the kidneys are known this can be further refined
+by performing a joint fit of aorta and both kidneys.</p>
+<p>This is not only more compact but should also be more robust
+as shared parameters can be eliminated and all data are accounted
+for equally. In this example the volumes are not actually known,
+so for the purpose of illustration we use a typical value of
+85mL:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">aorta_kidneys</span> <span class="o">=</span> <span class="n">dc</span><span class="o">.</span><span class="n">AortaKidneys</span><span class="p">(</span>
+
+    <span class="c1"># Configuration</span>
+    <span class="n">sequence</span><span class="o">=</span><span class="s1">&#39;SSI&#39;</span><span class="p">,</span>
+    <span class="n">heartlung</span><span class="o">=</span><span class="s1">&#39;chain&#39;</span><span class="p">,</span>
+    <span class="n">organs</span><span class="o">=</span><span class="s1">&#39;comp&#39;</span><span class="p">,</span>
+    <span class="n">agent</span><span class="o">=</span><span class="s2">&quot;gadoterate&quot;</span><span class="p">,</span>
+
+    <span class="c1"># General parameters</span>
+    <span class="n">field_strength</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;B0&#39;</span><span class="p">],</span>
+    <span class="n">t0</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;TS&#39;</span><span class="p">]</span><span class="o">*</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;n0&#39;</span><span class="p">],</span>
+
+    <span class="c1"># Injection protocol</span>
+    <span class="n">weight</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">],</span>
+    <span class="n">dose</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;dose&#39;</span><span class="p">],</span>
+    <span class="n">rate</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;rate&#39;</span><span class="p">],</span>
+
+    <span class="c1"># Sequence parameters</span>
+    <span class="n">TR</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;TR&#39;</span><span class="p">],</span>
+    <span class="n">FA</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;FA&#39;</span><span class="p">],</span>
+    <span class="n">TS</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;TS&#39;</span><span class="p">],</span>
+
+    <span class="c1"># Aorta parameters</span>
+    <span class="n">CO</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span>
+    <span class="n">R10a</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="n">dc</span><span class="o">.</span><span class="n">T1</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;B0&#39;</span><span class="p">],</span> <span class="s1">&#39;blood&#39;</span><span class="p">),</span>
+
+    <span class="c1"># Kidney parameters</span>
+    <span class="n">vol_lk</span><span class="o">=</span><span class="mi">85</span><span class="p">,</span>
+    <span class="n">vol_rk</span><span class="o">=</span><span class="mi">85</span><span class="p">,</span>
+    <span class="n">R10_lk</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="n">dc</span><span class="o">.</span><span class="n">T1</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;B0&#39;</span><span class="p">],</span> <span class="s1">&#39;kidney&#39;</span><span class="p">),</span>
+    <span class="n">R10_rk</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="n">dc</span><span class="o">.</span><span class="n">T1</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;B0&#39;</span><span class="p">],</span> <span class="s1">&#39;kidney&#39;</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Define time and signal data</span>
+<a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t</span></a> <span class="o">=</span> <span class="p">(</span><a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">time</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">time</span></a><span class="p">,</span> <a href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">time</span></a><span class="p">)</span>
+<a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">signal</span></a> <span class="o">=</span> <span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="p">[</span><span class="s1">&#39;Aorta&#39;</span><span class="p">],</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="p">[</span><span class="s1">&#39;LeftKidney&#39;</span><span class="p">],</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="p">[</span><span class="s1">&#39;RightKidney&#39;</span><span class="p">])</span>
+
+<span class="c1"># Train model and show result</span>
+<span class="n">aorta_kidneys</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">signal</span></a><span class="p">)</span>
+<span class="n">aorta_kidneys</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">t</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">signal</span></a><span class="p">)</span>
+<span class="n">aorta_kidneys</span><span class="o">.</span><span class="n">print_params</span><span class="p">(</span><span class="n">round_to</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_plot_minipig_009.png" srcset="../../_images/sphx_glr_plot_minipig_009.png" alt="plot minipig" class = "sphx-glr-single-img"/><div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>--------------------------------
+Free parameters with their stdev
+--------------------------------
+
+Bolus arrival time (BAT): 16.7422 (0.2853) sec
+Inflow time (TF): 0.2801 (0.0133) sec
+Cardiac output (CO): 72.762 (12.4426) mL/sec
+Heart-lung mean transit time (Thl): 16.2249 (0.3069) sec
+Organs blood mean transit time (To): 14.3793 (1.2492) sec
+Body extraction fraction (Eb): 0.0751 (0.0071)
+Heart-lung dispersion (Dhl): 0.0795 (0.0041)
+Renal plasma flow (RPF): 3.3489 (0.7204) mL/sec
+Differential renal function (DRF): 0.9085 (0.0212)
+Differential renal plasma flow (DRPF): 0.812 (0.0169)
+Left kidney arterial mean transit time (Ta_lk): 0.6509 (0.2228) sec
+Left kidney plasma volume (vp_lk): 0.099 (0.0186) mL/cm3
+Left kidney tubular mean transit time (Tt_lk): 46.9705 (3.3684) sec
+Right kidney arterial mean transit time (Ta_rk): 1.4206 (0.2023) sec
+Right kidney plasma volume (vp_rk): 0.1294 (0.0175) mL/cm3
+Right kidney tubular mean transit time (Tt_rk): 4497.8301 (39890.3818) sec
+Aorta signal scaling factor (S0a): 4912.776 (254.2363) a.u.
+
+----------------------------
+Fixed and derived parameters
+----------------------------
+
+Filtration fraction (FF): 0.0812
+Glomerular Filtration Rate (GFR): 0.2719 mL/sec
+Left kidney plasma flow (RPF_lk): 2.7194 mL/sec
+Right kidney plasma flow (RPF_rk): 0.6295 mL/sec
+Left kidney glomerular filtration rate (GFR_lk): 0.247 mL/sec
+Right kidney glomerular filtration rate (GFR_rk): 0.0249 mL/sec
+Left kidney plasma flow (Fp_lk): 0.032 mL/sec/cm3
+Left kidney plasma mean transit time (Tp_lk): 2.838 sec
+Left kidney vascular mean transit time (Tv_lk): 3.0958 sec
+Left kidney tubular flow (Ft_lk): 0.0029 mL/sec/cm3
+Left kidney filtration fraction (FF_lk): 0.0908
+Left kidney extraction fraction (E_lk): 0.0833
+Right kidney plasma flow (Fp_rk): 0.0074 mL/sec/cm3
+Right kidney plasma mean transit time (Tp_rk): 16.8121 sec
+Right kidney vascular mean transit time (Tv_rk): 17.4762 sec
+Right kidney tubular flow (Ft_rk): 0.0003 mL/sec/cm3
+Right kidney filtration fraction (FF_rk): 0.0395
+Right kidney extraction fraction (E_rk): 0.038
+</pre></div>
+</div>
+<p>This produces all results for aorta and kidneys in one go, which
+also allows to derive some secondary parameters such as
+differential function which would otherwise have to be computed
+from separate results. Since the model uses the volumes this can
+also automatically output important whole kidney parameters such
+as GFR and RPF. Numaerically the values are similar - though not
+identical - to those produced from a separate Aorta and Kidneys fit.</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 31.889 seconds)</p>
+<div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-examples-tutorials-plot-minipig-py">
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/580c3be099452fcfbf7fcbdae0696e9e/plot_minipig.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">plot_minipig.ipynb</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/dbcf6b6d84e9f2bd1a630f1165edbcb7/plot_minipig.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">plot_minipig.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-zip docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/535c674ce70c23feb9c85c82311689a3/plot_minipig.zip"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">zipped:</span> <span class="pre">plot_minipig.zip</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="plot_wex.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">An exploration of water exchange effects</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="plot_convolution.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">A comparison of convolution functions</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#what-are-inflow-effects">What are inflow effects?</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#minimizing-inflow-effects">Minimizing inflow effects</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#correcting-inflow-effects">Correcting inflow effects</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reference">Reference</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#setup">Setup</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#plot-data">Plot data</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#standard-analysis">Standard analysis</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#using-a-standard-input-function">Using a standard input function</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#model-based-inflow-correction">Model-based inflow correction</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#kidney-model">Kidney model</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#joint-aorta-kidneys-fit">Joint aorta-kidneys fit</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/examples/tutorials/plot_minipig.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024-2025, dcmri contributors.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
