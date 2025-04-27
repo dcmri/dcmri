@@ -13,7 +13,7 @@ Longitudinal relaxation
 =======================
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    Mz_free
@@ -25,7 +25,7 @@ Relaxivity
 ==========
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    relax

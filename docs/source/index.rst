@@ -91,7 +91,7 @@ distribute the software without restrictions.
    
    user_guide/index
    reference/index
-   generated/examples/index
+   examples/index
    contribute/index
    releases/index
    about/index

@@ -18,7 +18,7 @@ muscle, lung, myocardium, and more.
 
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: custom-class-template.rst
    :recursive:
 
@@ -30,7 +30,7 @@ Liver
 =====
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: custom-class-template.rst
    :recursive:
 
@@ -45,7 +45,7 @@ Kidney
 
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: custom-class-template.rst
    :recursive:
 
@@ -58,7 +58,7 @@ Aorta
 =====
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: custom-class-template.rst
    :recursive:
 

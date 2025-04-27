@@ -48,10 +48,10 @@ sphinx_gallery_conf = {
     'examples_dirs': '../examples',   
 
     # path to where to save gallery generated output
-    'gallery_dirs': 'generated/examples',  
+    'gallery_dirs': 'examples',  
     
     # directory where function/class granular galleries are stored
-    'backreferences_dir': 'generated/backreferences',
+    'backreferences_dir': 'backreferences',
 
     # Modules for which function/class level galleries are created. 
     'doc_module': ('dcmri', ),

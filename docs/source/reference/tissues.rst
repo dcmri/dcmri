@@ -17,7 +17,7 @@ Exchange tissues
 ================
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    params_tissue
@@ -32,7 +32,7 @@ Liver tissue
 ============
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    conc_liver
@@ -42,7 +42,7 @@ Kidney tissue
 =============
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    conc_kidney
@@ -53,7 +53,7 @@ Aorta whole blood
 =================
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    flux_aorta
