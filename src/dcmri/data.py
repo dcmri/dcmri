@@ -22,31 +22,27 @@ else:
     import importlib.resources as importlib_resources
 
 
-KRUK_DATASETS = [
-    'KRUK',
-]
-TRISTAN_DATASETS = [
-    'tristan_humans_healthy_ciclosporin',
-    'tristan_humans_healthy_controls_leeds',
-    'tristan_humans_healthy_controls_sheffield',
-    'tristan_humans_healthy_metformin',
-    'tristan_humans_healthy_rifampicin',
-    'tristan_humans_patients_rifampicin',
-    'tristan_rats_healthy_multiple_dosing',
-    'tristan_rats_healthy_reproducibility',
-    'tristan_rats_healthy_six_drugs',
-]
-# TRISTAN_DATASETS = [
-#     'tristan_rifampicin',
-#     'tristan_gothenburg',
-#     'tristan6drugs',
-#     'tristan_repro',
-#     'tristan_mdosing',
-# ]
-DMR_DATASETS = [
-    'minipig_renal_fibrosis',
-] + KRUK_DATASETS + TRISTAN_DATASETS
+# Zenodo DOI of the repository
+# DOIs need to be updated when new versions are created
+DOI = {
+    'MRR': "15285017",      # v0.0.3
+    'TRISTAN': "15285027"   # v0.0.1
+}
 
+# Datasets available via fetch()
+DATASETS = {
+    'KRUK': {'doi': DOI['MRR'], 'ext': '.dmr.zip'},
+    'tristan_humans_healthy_ciclosporin': {'doi': DOI['TRISTAN'], 'ext': '.dmr.zip'},
+    'tristan_humans_healthy_controls_leeds': {'doi': DOI['TRISTAN'], 'ext': '.dmr.zip'},
+    'tristan_humans_healthy_controls_sheffield': {'doi': DOI['TRISTAN'], 'ext': '.dmr.zip'},
+    'tristan_humans_healthy_metformin': {'doi': DOI['TRISTAN'], 'ext': '.dmr.zip'},
+    'tristan_humans_healthy_rifampicin': {'doi': DOI['TRISTAN'], 'ext': '.dmr.zip'},
+    'tristan_humans_patients_rifampicin': {'doi': DOI['TRISTAN'], 'ext': '.dmr.zip'},
+    'tristan_rats_healthy_multiple_dosing': {'doi': DOI['TRISTAN'], 'ext': '.dmr.zip'},
+    'tristan_rats_healthy_reproducibility': {'doi': DOI['TRISTAN'], 'ext': '.dmr.zip'},
+    'tristan_rats_healthy_six_drugs': {'doi': DOI['TRISTAN'], 'ext': '.dmr.zip'},
+    'minipig_renal_fibrosis': {'doi': None, 'ext': '.dmr.zip'},
+}
 
 
 def fetch(dataset=None, clear_cache=False, download_all=False) -> dict:
@@ -113,8 +109,11 @@ def fetch(dataset=None, clear_cache=False, download_all=False) -> dict:
 
     if dataset is None:
         v = None
-    elif dataset in DMR_DATASETS:
-        v = _fetch_dmr(dataset)
+    elif dataset not in DATASETS:
+        raise ValueError(
+            f'Dataset {dataset} is unknown. Please choose one of '
+            f'{DATASETS}'
+        )        
     else:
         v = _fetch_dataset(dataset)
 
@@ -122,7 +121,7 @@ def fetch(dataset=None, clear_cache=False, download_all=False) -> dict:
         _clear_cache()
 
     if download_all:
-        for d in KRUK_DATASETS+TRISTAN_DATASETS:
+        for d in DATASETS.keys():
             _download(d)
 
     return v
@@ -142,63 +141,36 @@ def _clear_cache():
             item.unlink() # Delete the file
 
 
-def _fetch_dmr(dataset):
-
-    f = importlib_resources.files('dcmri.datafiles')
-    datafile = str(f.joinpath(dataset + '.dmr'))
-
-    # If this is the first time the data are accessed, download them.
-    if not os.path.exists(datafile + '.zip'):
-        _download(dataset)
-
-    return datafile
-
-
 def _fetch_dataset(dataset):
 
     f = importlib_resources.files('dcmri.datafiles')
-    datafile = str(f.joinpath(dataset + '.pkl'))
+    datafile = str(f.joinpath(dataset + DATASETS[dataset]['ext']))
 
     # If this is the first time the data are accessed, download them.
     if not os.path.exists(datafile):
         _download(dataset)
 
-    with open(datafile, 'rb') as f:
-        v = pickle.load(f)
+    return datafile
 
-    return v
 
 
 def _download(dataset): # add version keyword
         
     f = importlib_resources.files('dcmri.datafiles')
-
-    if dataset in DMR_DATASETS:
-        datafile = str(f.joinpath(dataset + '.dmr.zip'))
-    else:
-        datafile = str(f.joinpath(dataset + '.pkl'))
+    datafile = str(f.joinpath(dataset + DATASETS[dataset]['ext']))
 
     if os.path.exists(datafile):
         return
 
-    # Dataset location
-    if dataset in KRUK_DATASETS:
-        # version_doi = "14957345" # 0.0.0
-        # version_doi = "15254891" # 0.0.1
-        # version_doi = "15284968" # 0.0.2
-        version_doi = "15285017" # 0.0.3
-    elif dataset in TRISTAN_DATASETS:
-        # version_doi = "14957321" # v0.0.0
-        version_doi = "15285027" # v0.0.1
-    else:
+    # Dataset repository
+    version_doi = DATASETS[dataset]['doi']
+    if version_doi is None:
         raise ValueError(
-            f'Dataset {dataset} does not exist. Please choose one of '
-            f'{KRUK_DATASETS+TRISTAN_DATASETS}'
+            f'Dataset {dataset} is not online and not stored in dcmri/datafiles.'
         )
-    if dataset in DMR_DATASETS:
-        file_url = "https://zenodo.org/records/" + version_doi + "/files/" + dataset + ".dmr.zip"
-    else:
-        file_url = "https://zenodo.org/records/" + version_doi + "/files/" + dataset + ".pkl"
+
+    # Dataset download link
+    file_url = "https://zenodo.org/records/" + version_doi + "/files/" + dataset + DATASETS[dataset]['ext']
 
     # Make the request and check for connection error
     try:
