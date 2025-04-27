@@ -18,7 +18,7 @@ These are high-level wrappers for all many of the other functions in this
 section.
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    conc
@@ -34,7 +34,7 @@ No-parameter models
 ------
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    conc_trap
@@ -52,7 +52,7 @@ One-parameter models
 ------
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    conc_pass
@@ -67,7 +67,7 @@ One-parameter models
 -------------
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    conc_comp
@@ -81,7 +81,7 @@ One-parameter models
 -----------
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    conc_plug
@@ -99,7 +99,7 @@ Two-parameter models
 -------
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    conc_chain
@@ -113,7 +113,7 @@ Two-parameter models
 -----------------------
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    flux_pfcomp
@@ -124,7 +124,7 @@ Two-parameter models
 ------
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    conc_step
@@ -138,7 +138,7 @@ Two-parameter models
 ------------------------------
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    conc_mmcomp
@@ -154,7 +154,7 @@ Three-parameter models
 ------------------------
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    conc_2cxm
@@ -170,7 +170,7 @@ N-parameter models
 ------
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    conc_free
@@ -184,7 +184,7 @@ N-parameter models
 ----------------------
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    conc_ncomp
@@ -199,7 +199,7 @@ N-parameter models
 ----------------------------
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    conc_nscomp

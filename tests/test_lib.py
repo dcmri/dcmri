@@ -1,10 +1,12 @@
 import numpy as np
+import pydmr
 import dcmri as dc
 
 
 def test_fetch():
-    data = dc.fetch('tristan6drugs')
-    assert 'FA' in data[0]
+    data = dc.fetch('tristan_rats_healthy_six_drugs')
+    dmr = pydmr.read(data)
+    assert 'FA' in dmr['data']
 
 
 def test_ca_injection():
