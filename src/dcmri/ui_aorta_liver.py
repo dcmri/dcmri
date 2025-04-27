@@ -516,7 +516,7 @@ class AortaLiver(ui.Model):
         elif self._predict == 'liver':
             return self._predict_liver(xdata)
 
-    def train(self, xdata: tuple, ydata: tuple, **kwargs):
+    def train(self, xdata: tuple, ydata: tuple, joint=True, **kwargs):
         """Train the free parameters
 
         Args:
@@ -527,6 +527,9 @@ class AortaLiver(ui.Model):
               liver, in that order. The arrays can be different in length and 
               value but each has to have the same length as its corresponding 
               array of time points.
+            joint (bool, optional): If True, the aorta and liver 
+              parameters are trained simultaneously after training 
+              them separately. Defaults to True.
             kwargs: any keyword parameters accepted by 
               `scipy.optimize.curve_fit`.
 
@@ -562,7 +565,10 @@ class AortaLiver(ui.Model):
         # Train all parameters on all data
         self._predict = None
         self.free = free
-        return ui.train(self, xdata, ydata, **kwargs)
+        if joint:
+            return ui.train(self, xdata, ydata, **kwargs)
+        else:
+            return self
 
     def plot(self,
              xdata: tuple,
@@ -1221,7 +1227,7 @@ class AortaLiver2scan(ui.Model):
         elif self._predict == 'liver':
             return self._predict_liver(xdata)
 
-    def train(self, xdata: tuple, ydata: tuple, **kwargs):
+    def train(self, xdata: tuple, ydata: tuple, joint=True, **kwargs):
         # x,y: (aorta scan 1, aorta scan 2, liver scan 1, liver scan 2)
         """Train the free parameters
 
@@ -1235,6 +1241,9 @@ class AortaLiver2scan(ui.Model):
               and liver in the second scan, in that order. The arrays can be 
               different in length but each has to have the same length as its 
               corresponding array of time points.
+            joint (bool, optional): If True, aorta and liver parameters 
+              are trained jointly after training them separately. 
+              Defaults to True.
             kwargs: any keyword parameters accepted by 
               `scipy.optimize.curve_fit`.
 
@@ -1277,7 +1286,10 @@ class AortaLiver2scan(ui.Model):
         # Train all parameters on all data
         self._predict = None
         self.free = free
-        return ui.train(self, xdata, ydata, **kwargs)
+        if joint:
+            return ui.train(self, xdata, ydata, **kwargs)
+        else:
+            return self
     
 
     def plot(self, xdata: tuple, ydata: tuple,

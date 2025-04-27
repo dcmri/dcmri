@@ -15,7 +15,7 @@ Signal models
 =============
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    signal_dsc
@@ -32,7 +32,7 @@ Inverse signal models
 =====================
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    conc_t2w

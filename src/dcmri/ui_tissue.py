@@ -725,9 +725,6 @@ class TissueArray(ui.ArrayModel):
             plt.close()
 
 
-# TODO: iex and wex instead of kinetics and water_exchange? Water exchange
-# is also kinetics.
-
 class Tissue(ui.Model):
     """Vascular-interstitial tissue.
 

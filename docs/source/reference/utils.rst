@@ -12,22 +12,12 @@ building examples, or to construct new models.
 .. _real-data:
 
 
-Reading and writing
-===================
-
-.. autosummary::
-   :toctree: ../generated/api/
-   :template: autosummary.rst
-
-   read_dmr
-   write_dmr
-
 
 Real data
 =========
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    fetch
@@ -38,7 +28,7 @@ Synthetic data
 ==============
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    fake_aif
@@ -54,7 +44,7 @@ Synthetic images
 ================
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    shepp_logan
@@ -66,7 +56,7 @@ Input functions
 ===============
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    aif_parker
@@ -80,7 +70,7 @@ Useful constants
 ================
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    ca_conc
@@ -104,7 +94,7 @@ more accurate functions for use in special cases where one or both of the
 factors have a known form.
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    conv
@@ -121,7 +111,7 @@ Helper functions
 
 
 .. autosummary::
-   :toctree: ../generated/api/
+   :toctree: ../api/
    :template: autosummary.rst
 
    sample

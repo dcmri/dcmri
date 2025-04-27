@@ -307,20 +307,36 @@ class Model:
             self.free = {}
             self.set_free(**free)
 
-    def export_params(self) -> list:
+    def export_params(self, type='dict') -> dict:
         """Return model parameters with their descriptions
+
+        Args:
+            type (str, optional): Type of output. If 'dict', a dictionary is 
+              returned. If 'list', a list is returned. Defaults to 'dict'.
 
         Returns:
             dict: Dictionary with one item for each model parameter. The key 
-            is the parameter symbol (short name), and the value is a 
-            4-element list with [parameter name, value, unit, sdev].
+            is the short parameter name, and the value is a 
+            4-element list with [long parameter name, value, unit, sdev].
+
+            or:
+
+            list: List with one element for each model parameter. Each 
+            element is a list with [short parameter name, 
+            long parameter name, value, unit, sdev].
         """
         # Short name, full name, value, units.
         pars = self._par_values(export=True)
         params = self._params()
         pars = {p: [params[p]['name'], pars[p], params[p]['unit']]
                 for p in pars}
-        return self._add_sdev(pars)
+        pars = self._add_sdev(pars)
+        if type == 'dict':
+            return pars
+        elif type == 'list':
+            return [[k] + v for k, v in pars.items()]
+        else:
+            raise ValueError('Type must be either "dict" or "list".')
 
     def save(self, file=None, path=None, filename='Model'):
         """Save the current state of the model
@@ -512,21 +528,47 @@ class Model:
             vals = np.append(vals, np.ravel(v))
         return vals
 
-    def _setflat(self, vals: np.ndarray, attr: np.ndarray = None):
+    def _setflat(self, vals: np.ndarray, pcov: np.ndarray = None, attr: np.ndarray = None):
         if attr is None:
             attr = self.free.keys()
+        if pcov is not None:
+            perr = np.sqrt(np.diag(pcov))
+        else:
+            perr = np.zeros(np.size(vals))
         i = 0
         for p in attr:
             v = getattr(self, p)
             if np.isscalar(v):
                 v = vals[i]
+                e = perr[i]
                 i += 1
-            else:
+            else: # Needs a better solution
                 n = np.size(v)
                 v = np.reshape(vals[i:i+n], np.shape(v))
+                e = np.reshape(perr[i:i+n], np.shape(v))
                 i += n
             setattr(self, p, v)
+            setattr(self, p + '_sdev', e)
 
+
+    def _add_sdev(self, pars):
+        for par in pars:
+            pars[par].append(0)
+        # if not hasattr(self, 'pcov'):
+        #     perr = np.zeros(len(self.free.keys()))
+        # elif self.pcov is None:
+        #     perr = np.zeros(len(self.free.keys()))
+        # else:
+        #     perr = np.sqrt(np.diag(self.pcov))
+        # for i, par in enumerate(self.free.keys()):
+        #     if par in pars:
+        #         pars[par][-1] = perr[i]
+        for par in self.free.keys():
+            if par in pars:
+                if hasattr(self, par + '_sdev'):
+                    pars[par][-1] = getattr(self, par + '_sdev')
+        return pars
+    
     # def _x_scale(self):
     #     n = len(self.free)
     #     xscale = np.ones(n)
@@ -542,20 +584,6 @@ class Model:
     #         if (not np.isinf(lb)) and (not np.isinf(ub)):
     #             xscale[p] = ub-lb
     #     return xscale
-
-    def _add_sdev(self, pars):
-        for par in pars:
-            pars[par].append(0)
-        if not hasattr(self, 'pcov'):
-            perr = np.zeros(len(self.free.keys()))
-        elif self.pcov is None:
-            perr = np.zeros(len(self.free.keys()))
-        else:
-            perr = np.sqrt(np.diag(self.pcov))
-        for i, par in enumerate(self.free.keys()):
-            if par in pars:
-                pars[par][-1] = perr[i]
-        return pars
     
 
 def params(self, *args, round_to=None):
@@ -687,7 +715,8 @@ def train(model: Model, xdata, ydata, **kwargs):
         pars = p0
         model.pcov = np.zeros((np.size(p0), np.size(p0)))
 
-    model._setflat(pars)
+    # Note pcov does not have to be an attribuite
+    model._setflat(pars, pcov=model.pcov)
 
     return model
 

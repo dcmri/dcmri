@@ -134,7 +134,7 @@ def fake_brain(
         >>>     repeat_delay=0)
         >>> plt.show()
 
-        .. image:: ../../_static/animations/fake_brain.gif
+        .. image:: ../_static/animations/fake_brain.gif
             :alt: Example animation
 
     """
