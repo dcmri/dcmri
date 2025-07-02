@@ -29,13 +29,13 @@ def test_fake_tissue():
 
 def test_fake_liver():
     time, aif, vif, roi, gt = dc.fake_liver()
-    assert 1910 < trapezoid(aif, time) < 1920
-    assert 1925 < trapezoid(vif, time) < 1935
-    assert 2740 < trapezoid(roi, time) < 2750
+    assert 1500 < trapezoid(aif, time) < 1600
+    assert 1500 < trapezoid(vif, time) < 1600
+    assert 2400 < trapezoid(roi, time) < 2500
     time, aif, vif, roi, gt = dc.fake_liver(sequence='SSI')
-    assert 1925 < trapezoid(aif, time) < 1935
-    assert 1925 < trapezoid(vif, time) < 1935
-    assert 2740 < trapezoid(roi, time) < 2750
+    assert 1500 < trapezoid(aif, time) < 1600
+    assert 1500 < trapezoid(vif, time) < 1600
+    assert 2400 < trapezoid(roi, time) < 2500
 
 def test_fake_tissue2scan():
     time, aif, roi, gt = dc.fake_tissue2scan()

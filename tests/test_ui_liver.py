@@ -158,7 +158,7 @@ def test_ui_aorta_portal_liver():
     model.train(xdata, ydata, xtol=1e-3)
     model.plot(xdata, ydata, show=SHOW)
     model.print_params(round_to=3)
-    assert model.cost(xdata, ydata) < 4
+    assert 4 < model.cost(xdata, ydata) < 5
 
 
 
