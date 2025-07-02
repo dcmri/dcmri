@@ -1,4 +1,5 @@
 
+import copy
 import numpy as np
 
 AGENTS = [
@@ -307,7 +308,7 @@ def relaxivity(field_strength=3.0, tissue='plasma',
             },
         },
     }
-    rel['T1']['hepatocytes'] = rel['T1']['plasma']
+    rel['T1']['hepatocytes'] = copy.deepcopy(rel['T1']['plasma'])
     rel['T1']['hepatocytes']['gadoxetate'] = {
         1.5: 14.6,
         3.0: 9.8,
