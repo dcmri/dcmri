@@ -1,4 +1,3 @@
-changelist==0.4
 autopep8
 pycodestyle
 build
