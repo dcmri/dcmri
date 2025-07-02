@@ -1,0 +1,1399 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>dcmri.AortaLiver2scan &#8212; dcmri 0.6.17 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=cd8af66b" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../_static/documentation_options.js?v=0d21fabb"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-64ZSJ8Z1MX"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/dcmri.AortaLiver2scan';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="dcmri.AortaPortalLiver" href="dcmri.AortaPortalLiver.html" />
+    <link rel="prev" title="dcmri.AortaLiver" href="dcmri.AortaLiver.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/tristan-logo.jpg" class="logo__image only-light" alt="dcmri 0.6.17 documentation - Home"/>
+    <img src="../_static/tristan-logo.jpg" class="logo__image only-dark pst-js-only" alt="dcmri 0.6.17 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../releases/index.html">
+    Releases
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../about/index.html">
+    About
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../releases/index.html">
+    Releases
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../about/index.html">
+    About
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../reference/e2e.html">Tissue bank</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="dcmri.Tissue.html">dcmri.Tissue</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.TissueArray.html">dcmri.TissueArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.Liver.html">dcmri.Liver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.AortaLiver.html">dcmri.AortaLiver</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">dcmri.AortaLiver2scan</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.AortaPortalLiver.html">dcmri.AortaPortalLiver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.Kidney.html">dcmri.Kidney</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.KidneyCortMed.html">dcmri.KidneyCortMed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.AortaKidneys.html">dcmri.AortaKidneys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.Aorta.html">dcmri.Aorta</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/tissues.html">Tissue models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/sig.html">MRI signal models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/relaxation.html">Relaxation models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/pk_blocks.html">PK blocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/utils.html">Utilities</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../reference/index.html" class="nav-link">Reference</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../reference/e2e.html" class="nav-link">Tissue bank</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">dcmri.AortaLiver2scan</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="dcmri-aortaliver2scan">
+<h1>dcmri.AortaLiver2scan<a class="headerlink" href="#dcmri-aortaliver2scan" title="Link to this heading">#</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="dcmri.AortaLiver2scan">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dcmri.</span></span><span class="sig-name descname"><span class="pre">AortaLiver2scan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kinetics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'1I-IC-D'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stationary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sequence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'SS'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">free</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/dcmri/ui_aorta_liver.html#AortaLiver2scan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.AortaLiver2scan" title="Link to this definition">#</a></dt>
+<dd><p>Joint model for aorta and liver signals measured over two scans.</p>
+<p>This model uses a whole-body model to simultaneously predict signals in
+aorta and liver, measured over two separate scans.</p>
+<p>For more detail on the whole-body model, see <a class="reference internal" href="../user_guide/tissues/whole_body.html#whole-body-tissues"><span class="std std-ref">Whole body</span></a>.
+For more detail on the liver model, see <a class="reference internal" href="../user_guide/tissues/liver.html#liver-tissues"><span class="std std-ref">Liver</span></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>kinetics</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Tracer-kinetic liver model. See table
+<a class="reference internal" href="../user_guide/tissues/liver.html#table-liver-models"><span class="std std-ref">Kinetic models for the liver</span></a> for options - only single-inlet models
+are allowed. Defaults to ‘1I-IC-D’.</p></li>
+<li><p><strong>stationary</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – For intracellular tracers - stationarity
+regime of the hepatocytes. The options are ‘UE’, ‘E’, ‘U’ or None.
+For more detail see <a class="reference internal" href="../user_guide/tissues/liver.html#liver-tissues"><span class="std std-ref">Liver</span></a>. Defaults to ‘UE’.</p></li>
+<li><p><strong>stationary</strong> – Stationarity regime of the hepatocytes.
+The options are ‘UE’, ‘E’, ‘U’ or None. For more detail
+see <a class="reference internal" href="../user_guide/tissues/liver.html#liver-tissues"><span class="std std-ref">Liver</span></a>. Defaults to ‘UE’.</p></li>
+<li><p><strong>sequence</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – imaging sequence. Possible values are ‘SS’
+and ‘SR’. Defaults to ‘SS’.</p></li>
+<li><p><strong>free</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>, </em><em>optional</em>) – Dictionary with free parameters and their
+bounds. If not provided, a default set of free parameters is used.
+Defaults to None.</p></li>
+<li><p><strong>params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>, </em><em>optional</em>) – values for the parameters of the tissue,
+specified as keyword parameters. Defaults are used for any that are
+not provided. See tables <a class="reference internal" href="#aortaliver2scan-parameters"><span class="std std-ref">Aorta-Liver 2-scan parameters</span></a> and
+<a class="reference internal" href="#aortaliver2scan-defaults"><span class="std std-ref">Aorta-Liver 2-scan parameter defaults</span></a> for a list of parameters and their
+default values.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="dcmri.AortaLiver.html#dcmri.AortaLiver" title="dcmri.AortaLiver"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AortaLiver</span></code></a></p>
+</div>
+<p class="rubric">Example</p>
+<p>Use the model to reconstruct concentrations from experimentally
+derived signals.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">dcmri</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dc</span>
+</pre></div>
+</div>
+<p>Use <a class="reference internal" href="dcmri.fake_tissue.html#dcmri.fake_tissue" title="dcmri.fake_tissue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fake_tissue</span></code></a> to generate synthetic test data from
+experimentally-derived concentrations:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">time</span><span class="p">,</span> <span class="n">aif</span><span class="p">,</span> <span class="n">roi</span><span class="p">,</span> <span class="n">gt</span> <span class="o">=</span> <span class="n">dc</span><span class="o">.</span><span class="n">fake_tissue2scan</span><span class="p">(</span><span class="n">R10</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="n">dc</span><span class="o">.</span><span class="n">T1</span><span class="p">(</span><span class="mf">3.0</span><span class="p">,</span><span class="s1">&#39;liver&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>Since this model generates four time curves, the x- and y-data are
+tuples:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">xdata</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">time</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">time</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">time</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ydata</span> <span class="o">=</span> <span class="p">(</span><span class="n">aif</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">aif</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">roi</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">roi</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>Build an aorta-liver model and parameters to match the conditions of
+the fake tissue data:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">dc</span><span class="o">.</span><span class="n">AortaLiver2scan</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">dt</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">weight</span> <span class="o">=</span> <span class="mi">70</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">agent</span> <span class="o">=</span> <span class="s1">&#39;gadodiamide&#39;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">dose</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">dose2</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">rate</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">field_strength</span> <span class="o">=</span> <span class="mf">3.0</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">t0</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">TR</span> <span class="o">=</span> <span class="mf">0.005</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">FA</span> <span class="o">=</span> <span class="mi">15</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">FA2</span> <span class="o">=</span> <span class="mi">15</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Train the model on the data:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">xdata</span><span class="p">,</span> <span class="n">ydata</span><span class="p">,</span> <span class="n">xtol</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Plot the reconstructed signals and concentrations and compare against
+the experimentally derived data:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xdata</span><span class="p">,</span> <span class="n">ydata</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>We can also have a look at the model parameters after training:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">print_params</span><span class="p">(</span><span class="n">round_to</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="go">-----------------------------------------</span>
+<span class="go">Free parameters with their errors (stdev)</span>
+<span class="go">-----------------------------------------</span>
+<span class="go">Bolus arrival time (BAT): 17.13 (1.771) sec</span>
+<span class="go">Cardiac output (CO): 208.547 (9.409) mL/sec</span>
+<span class="go">Heart-lung mean transit time (Thl): 12.406 (2.137) sec</span>
+<span class="go">Heart-lung transit time dispersion (Dhl): 0.459 (0.04)</span>
+<span class="go">Organs mean transit time (To): 30.912 (3.999) sec</span>
+<span class="go">Extraction fraction (Eb): 0.064 (0.032)</span>
+<span class="go">Liver extracellular mean transit time (Te): 2.957 (0.452) sec</span>
+<span class="go">Liver extracellular dispersion (De): 1.0 (0.146)</span>
+<span class="go">Liver extracellular volume fraction (ve): 0.077 (0.007) mL/cm3</span>
+<span class="go">Hepatocellular uptake rate (khe): 0.002 (0.001) mL/sec/cm3</span>
+<span class="go">Hepatocellular transit time (Th): 600.0 (1173.571) sec</span>
+<span class="go">Organs extraction fraction (Eo): 0.2 (0.057)</span>
+<span class="go">Organs extracellular mean transit time (Toe): 87.077 (56.882) sec</span>
+<span class="go">Hepatocellular uptake rate (final) (khe_f): 0.001 (0.001) mL/sec/cm3</span>
+<span class="go">Hepatocellular transit time (final) (Th_f): 600.0 (623.364) sec</span>
+<span class="go">------------------</span>
+<span class="go">Derived parameters</span>
+<span class="go">------------------</span>
+<span class="go">Blood precontrast T1 (T10a): 1.629 sec</span>
+<span class="go">Mean circulation time (Tc): 43.318 sec</span>
+<span class="go">Liver precontrast T1 (T10l): 0.752 sec</span>
+<span class="go">Biliary excretion rate (kbh): 0.002 mL/sec/cm3</span>
+<span class="go">Hepatocellular tissue uptake rate (Khe): 0.023 mL/sec/cm3</span>
+<span class="go">Biliary tissue excretion rate (Kbh): 0.002 mL/sec/cm3</span>
+<span class="go">Hepatocellular uptake rate (initial) (khe_i): 0.003 mL/sec/cm3</span>
+<span class="go">Hepatocellular transit time (initial) (Th_i): 600.0 sec</span>
+<span class="go">Hepatocellular uptake rate variance (khe_var): 0.934</span>
+<span class="go">Biliary tissue excretion rate variance (Kbh_var): 0.0</span>
+<span class="go">Biliary excretion rate (initial) (kbh_i): 0.002 mL/sec/cm3</span>
+<span class="go">Biliary excretion rate (final) (kbh_f): 0.002 mL/sec/cm3</span>
+</pre></div>
+</div>
+<p>(<a class="reference download internal" download="" href="../_downloads/53ff5f5a69233b1b13362172a0e5bab7/dcmri-AortaLiver2scan-1.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>, <a class="reference download internal" download="" href="../_downloads/8e0f91e10271a203776b45568559ce5d/dcmri-AortaLiver2scan-1.png"><code class="xref download docutils literal notranslate"><span class="pre">png</span></code></a>, <a class="reference download internal" download="" href="../_downloads/396ed9712398b6f5f6d88b26e5f6ea4b/dcmri-AortaLiver2scan-1.hires.png"><code class="xref download docutils literal notranslate"><span class="pre">hires.png</span></code></a>, <a class="reference download internal" download="" href="../_downloads/63bbd933919ff85ab2ba973a25d7c7c8/dcmri-AortaLiver2scan-1.pdf"><code class="xref download docutils literal notranslate"><span class="pre">pdf</span></code></a>)</p>
+<figure class="align-default">
+<img alt="../_images/dcmri-AortaLiver2scan-1.png" class="plot-directive" src="../_images/dcmri-AortaLiver2scan-1.png" />
+</figure>
+<p class="rubric">Notes</p>
+<p>Table <a class="reference internal" href="dcmri.AortaLiver.html#aortaliver-parameters"><span class="std std-ref">Aorta-Liver parameters</span></a> lists the parameters that are
+relevant in each regime. Table <a class="reference internal" href="dcmri.AortaLiver.html#aortaliver-defaults"><span class="std std-ref">Aorta-Liver parameter defaults</span></a> list all
+possible parameters and their default settings.</p>
+<div class="pst-scrollable-table-container"><span id="aortaliver2scan-parameters"></span><table class="table" id="id1">
+<caption><span class="caption-text"><strong>Aorta-Liver 2-scan parameters</strong></span><a class="headerlink" href="#id1" title="Link to this table">#</a></caption>
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 37.5%" />
+<col style="width: 37.5%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameters</p></th>
+<th class="head"><p>When to use</p></th>
+<th class="head"><p>Further detail</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>dt, tmax</p></td>
+<td><p>Always</p></td>
+<td><p>Time axis for forward model</p></td>
+</tr>
+<tr class="row-odd"><td><p>t0, dose_tolerance</p></td>
+<td><p>Always</p></td>
+<td><p>For estimating baseline signal</p></td>
+</tr>
+<tr class="row-even"><td><p>field_strength, weight, agent, dose, dose2, rate</p></td>
+<td><p>Always</p></td>
+<td><p>Injection protocol</p></td>
+</tr>
+<tr class="row-odd"><td><p>R10a, R102a, R10l, R102l, S0a, S02a, S0l, S02l</p></td>
+<td><p>Always</p></td>
+<td><p>Precontrast R1 (<a class="reference internal" href="../user_guide/basics/relaxation.html#relaxation-params"><span class="std std-ref">Relaxation model parameters</span></a>) and
+S0 (<a class="reference internal" href="../user_guide/basics/sequences.html#params-per-sequence"><span class="std std-ref">Sequence parameters</span></a>) for aorta and liver</p></td>
+</tr>
+<tr class="row-even"><td><p>FA, TR, TS, FA2</p></td>
+<td><p>Always</p></td>
+<td><p><a class="reference internal" href="../user_guide/basics/sequences.html#params-per-sequence"><span class="std std-ref">Sequence parameters</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>TC</p></td>
+<td><p>If <strong>sequence</strong> is ‘SR’</p></td>
+<td><p><a class="reference internal" href="../user_guide/basics/sequences.html#params-per-sequence"><span class="std std-ref">Sequence parameters</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>BAT, BAT2, CO, Thl, Dhl, To, Eo, Tie, Eb</p></td>
+<td><p>Always</p></td>
+<td><p><a class="reference internal" href="../user_guide/tissues/whole_body.html#whole-body-tissues"><span class="std std-ref">Whole body</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>H, ve, De</p></td>
+<td><p>Always</p></td>
+<td><p><a class="reference internal" href="../user_guide/tissues/liver.html#table-liver-models"><span class="std std-ref">Kinetic models for the liver</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>khe, khe_i, kh_f, Th, Th_i, Th_f</p></td>
+<td><p>Depends on <strong>stationary</strong></p></td>
+<td><p><a class="reference internal" href="../user_guide/tissues/liver.html#table-liver-models"><span class="std std-ref">Kinetic models for the liver</span></a></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="pst-scrollable-table-container"><span id="aortaliver2scan-defaults"></span><table class="table" id="id2">
+<caption><span class="caption-text"><strong>Aorta-Liver 2-scan parameter defaults</strong></span><a class="headerlink" href="#id2" title="Link to this table">#</a></caption>
+<colgroup>
+<col style="width: 11.1%" />
+<col style="width: 22.2%" />
+<col style="width: 22.2%" />
+<col style="width: 22.2%" />
+<col style="width: 22.2%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Value</p></th>
+<th class="head"><p>Bounds</p></th>
+<th class="head"><p>Free/Fixed</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td></td>
+<td><p><strong>Simulation</strong></p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>dt</p></td>
+<td><p>Simulation</p></td>
+<td><p>0.5</p></td>
+<td><p>[0, inf]</p></td>
+<td><p>Fixed</p></td>
+</tr>
+<tr class="row-even"><td><p>tmax</p></td>
+<td><p>Simulation</p></td>
+<td><p>120</p></td>
+<td><p>[0, inf]</p></td>
+<td><p>Fixed</p></td>
+</tr>
+<tr class="row-odd"><td><p>dose_tolerance</p></td>
+<td><p>Simulation</p></td>
+<td><p>0.1</p></td>
+<td><p>[0, 1]</p></td>
+<td><p>Fixed</p></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p><strong>Injection</strong></p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>field_strength</p></td>
+<td><p>Injection</p></td>
+<td><p>3</p></td>
+<td><p>[0, inf]</p></td>
+<td><p>Fixed</p></td>
+</tr>
+<tr class="row-even"><td><p>weight</p></td>
+<td><p>Injection</p></td>
+<td><p>70</p></td>
+<td><p>[0, inf]</p></td>
+<td><p>Fixed</p></td>
+</tr>
+<tr class="row-odd"><td><p>agent</p></td>
+<td><p>Injection</p></td>
+<td><p>‘gadoxetate’</p></td>
+<td><p>None</p></td>
+<td><p>Fixed</p></td>
+</tr>
+<tr class="row-even"><td><p>dose</p></td>
+<td><p>Injection</p></td>
+<td><p>0.0125</p></td>
+<td><p>[0, inf]</p></td>
+<td><p>Fixed</p></td>
+</tr>
+<tr class="row-odd"><td><p>rate</p></td>
+<td><p>Injection</p></td>
+<td><p>1</p></td>
+<td><p>[0, inf]</p></td>
+<td><p>Fixed</p></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p><strong>Signal</strong></p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R10a</p></td>
+<td><p>Signal</p></td>
+<td><p>0.7</p></td>
+<td><p>[0, inf]</p></td>
+<td><p>Fixed</p></td>
+</tr>
+<tr class="row-even"><td><p>R10l</p></td>
+<td><p>Signal</p></td>
+<td><p>0.7</p></td>
+<td><p>[0, inf]</p></td>
+<td><p>Fixed</p></td>
+</tr>
+<tr class="row-odd"><td><p>S0a</p></td>
+<td><p>Signal</p></td>
+<td><p>1</p></td>
+<td><p>[0, inf]</p></td>
+<td><p>Free</p></td>
+</tr>
+<tr class="row-even"><td><p>S0l</p></td>
+<td><p>Signal</p></td>
+<td><p>1</p></td>
+<td><p>[0, inf]</p></td>
+<td><p>Free</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p><strong>Sequence</strong></p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>FA</p></td>
+<td><p>Sequence</p></td>
+<td><p>15</p></td>
+<td><p>[0, inf]</p></td>
+<td><p>Fixed</p></td>
+</tr>
+<tr class="row-odd"><td><p>FA2</p></td>
+<td><p>Sequence</p></td>
+<td><p>15</p></td>
+<td><p>[0, inf]</p></td>
+<td><p>Fixed</p></td>
+</tr>
+<tr class="row-even"><td><p>S0</p></td>
+<td><p>Sequence</p></td>
+<td><p>1</p></td>
+<td><p>[0, inf]</p></td>
+<td><p>Fixed</p></td>
+</tr>
+<tr class="row-odd"><td><p>TC</p></td>
+<td><p>Sequence</p></td>
+<td><p>0.1</p></td>
+<td><p>[0, inf]</p></td>
+<td><p>Fixed</p></td>
+</tr>
+<tr class="row-even"><td><p>TR</p></td>
+<td><p>Sequence</p></td>
+<td><p>0.005</p></td>
+<td><p>[0, inf]</p></td>
+<td><p>Fixed</p></td>
+</tr>
+<tr class="row-odd"><td><p>TS</p></td>
+<td><p>Sequence</p></td>
+<td><p>0</p></td>
+<td><p>[0, inf]</p></td>
+<td><p>Fixed</p></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p><strong>Whole body</strong></p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>BAT</p></td>
+<td><p>Whole body</p></td>
+<td><p>1200</p></td>
+<td><p>[0, inf]</p></td>
+<td><p>Free</p></td>
+</tr>
+<tr class="row-even"><td><p>CO</p></td>
+<td><p>Whole body</p></td>
+<td><p>100</p></td>
+<td><p>[0, inf]</p></td>
+<td><p>Free</p></td>
+</tr>
+<tr class="row-odd"><td><p>Thl</p></td>
+<td><p>Whole body</p></td>
+<td><p>10</p></td>
+<td><p>[0, 30]</p></td>
+<td><p>Free</p></td>
+</tr>
+<tr class="row-even"><td><p>Dhl</p></td>
+<td><p>Whole body</p></td>
+<td><p>0.2</p></td>
+<td><p>[0.05, 0.95]</p></td>
+<td><p>Free</p></td>
+</tr>
+<tr class="row-odd"><td><p>To</p></td>
+<td><p>Whole body</p></td>
+<td><p>20</p></td>
+<td><p>[0, 60]</p></td>
+<td><p>Free</p></td>
+</tr>
+<tr class="row-even"><td><p>Eo</p></td>
+<td><p>Whole body</p></td>
+<td><p>0.15</p></td>
+<td><p>[0, 0.5]</p></td>
+<td><p>Free</p></td>
+</tr>
+<tr class="row-odd"><td><p>Toe</p></td>
+<td><p>Whole body</p></td>
+<td><p>120</p></td>
+<td><p>[0, 800]</p></td>
+<td><p>Free</p></td>
+</tr>
+<tr class="row-even"><td><p>Eb</p></td>
+<td><p>Whole body</p></td>
+<td><p>0.05</p></td>
+<td><p>[0.01, 0.15]</p></td>
+<td><p>Free</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p><strong>Liver</strong></p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>H</p></td>
+<td><p>Kinetic</p></td>
+<td><p>0.45</p></td>
+<td><p>[0, 1]</p></td>
+<td><p>Fixed</p></td>
+</tr>
+<tr class="row-odd"><td><p>Te</p></td>
+<td><p>Kinetic</p></td>
+<td><p>30</p></td>
+<td><p>[0.1, 60]</p></td>
+<td><p>Free</p></td>
+</tr>
+<tr class="row-even"><td><p>De</p></td>
+<td><p>Kinetic</p></td>
+<td><p>0.85</p></td>
+<td><p>[0, 1]</p></td>
+<td><p>Free</p></td>
+</tr>
+<tr class="row-odd"><td><p>ve</p></td>
+<td><p>Kinetic</p></td>
+<td><p>0.3</p></td>
+<td><p>[0.01, 0.6]</p></td>
+<td><p>Free</p></td>
+</tr>
+<tr class="row-even"><td><p>khe</p></td>
+<td><p>Kinetic</p></td>
+<td><p>0.003</p></td>
+<td><p>[0, 0.1]</p></td>
+<td><p>Free</p></td>
+</tr>
+<tr class="row-odd"><td><p>khe_i</p></td>
+<td><p>Kinetic</p></td>
+<td><p>0.003</p></td>
+<td><p>[0, 0.1]</p></td>
+<td><p>Free</p></td>
+</tr>
+<tr class="row-even"><td><p>khe_f</p></td>
+<td><p>Kinetic</p></td>
+<td><p>0.003</p></td>
+<td><p>[0, 0.1]</p></td>
+<td><p>Free</p></td>
+</tr>
+<tr class="row-odd"><td><p>Th</p></td>
+<td><p>Kinetic</p></td>
+<td><p>1800</p></td>
+<td><p>[600, 36000]</p></td>
+<td><p>Free</p></td>
+</tr>
+<tr class="row-even"><td><p>Th_i</p></td>
+<td><p>Kinetic</p></td>
+<td><p>1800</p></td>
+<td><p>[600, 36000]</p></td>
+<td><p>Free</p></td>
+</tr>
+<tr class="row-odd"><td><p>Th_f</p></td>
+<td><p>Kinetic</p></td>
+<td><p>1800</p></td>
+<td><p>[600, 36000]</p></td>
+<td><p>Free</p></td>
+</tr>
+<tr class="row-even"><td><p>vol</p></td>
+<td><p>Kinetic</p></td>
+<td><p>1000</p></td>
+<td><p>[0, 10000]</p></td>
+<td><p>Free</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Methods</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table autosummary">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dcmri.AortaLiver2scan.conc" title="dcmri.AortaLiver2scan.conc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">conc</span></code></a>([sum])</p></td>
+<td><p>Concentrations in aorta and liver.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dcmri.AortaLiver2scan.cost" title="dcmri.AortaLiver2scan.cost"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cost</span></code></a>(xdata, ydata[, metric])</p></td>
+<td><p>Return the goodness-of-fit</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dcmri.AortaLiver2scan.export_params" title="dcmri.AortaLiver2scan.export_params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">export_params</span></code></a>([type])</p></td>
+<td><p>Return model parameters with their descriptions</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dcmri.AortaLiver2scan.load" title="dcmri.AortaLiver2scan.load"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load</span></code></a>([file, path, filename])</p></td>
+<td><p>Load the saved state of the model</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dcmri.AortaLiver2scan.params" title="dcmri.AortaLiver2scan.params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">params</span></code></a>(*args[, round_to])</p></td>
+<td><p>Return the parameter values</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dcmri.AortaLiver2scan.plot" title="dcmri.AortaLiver2scan.plot"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot</span></code></a>(xdata, ydata[, ref, xlim, fname, show])</p></td>
+<td><p>Plot the model fit against data</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dcmri.AortaLiver2scan.predict" title="dcmri.AortaLiver2scan.predict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict</span></code></a>(xdata)</p></td>
+<td><p>Predict the data at given time points</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dcmri.AortaLiver2scan.print_params" title="dcmri.AortaLiver2scan.print_params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">print_params</span></code></a>([round_to])</p></td>
+<td><p>Print the model parameters and their uncertainties</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dcmri.AortaLiver2scan.relax" title="dcmri.AortaLiver2scan.relax"><code class="xref py py-obj docutils literal notranslate"><span class="pre">relax</span></code></a>()</p></td>
+<td><p>Relaxation rates in aorta and liver.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dcmri.AortaLiver2scan.save" title="dcmri.AortaLiver2scan.save"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save</span></code></a>([file, path, filename])</p></td>
+<td><p>Save the current state of the model</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dcmri.AortaLiver2scan.set_free" title="dcmri.AortaLiver2scan.set_free"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_free</span></code></a>([pop])</p></td>
+<td><p>Set the free model parameters.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dcmri.AortaLiver2scan.train" title="dcmri.AortaLiver2scan.train"><code class="xref py py-obj docutils literal notranslate"><span class="pre">train</span></code></a>(xdata, ydata[, joint])</p></td>
+<td><p>Train the free parameters</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.AortaLiver2scan.conc">
+<span class="sig-name descname"><span class="pre">conc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/dcmri/ui_aorta_liver.html#AortaLiver2scan.conc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.AortaLiver2scan.conc" title="Link to this definition">#</a></dt>
+<dd><p>Concentrations in aorta and liver.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sum</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – If set to true, the liver concentrations
+are the sum over both compartments. If set to false, the
+compartmental concentrations are returned individually.
+Defaults to True.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>time points, aorta blood concentrations, liver</dt><dd><p>concentrations.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)">tuple</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.AortaLiver2scan.cost">
+<span class="sig-name descname"><span class="pre">cost</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xdata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ydata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metric</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'NRMS'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/dcmri/ui_aorta_liver.html#AortaLiver2scan.cost"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.AortaLiver2scan.cost" title="Link to this definition">#</a></dt>
+<dd><p>Return the goodness-of-fit</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xdata</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – tuple of 4 arrays with time points for aorta in the
+first scan, aorta in the second stand, liver in the first scan,
+and liver in the second scan, in that order. The four arrays can
+be different in length and value.</p></li>
+<li><p><strong>ydata</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – tuple of 4 arrays with signals for aorta in the
+first scan, aorta in the second stand, liver in the first scan,
+and liver in the second scan, in that order. The arrays can be
+different in length but each has to have the same length as its
+corresponding array of time points.</p></li>
+<li><p><strong>metric</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Which metric to use (see notes for
+possible values). Defaults to ‘NRMS’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>goodness of fit.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Available options are:</p>
+<ul class="simple">
+<li><p>‘RMS’: Root-mean-square.</p></li>
+<li><p>‘NRMS’: Normalized root-mean-square.</p></li>
+<li><p>‘AIC’: Akaike information criterion.</p></li>
+<li><p>‘cAIC’: Corrected Akaike information criterion for small
+models.</p></li>
+<li><p>‘BIC’: Baysian information criterion.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.AortaLiver2scan.export_params">
+<span class="sig-name descname"><span class="pre">export_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'dict'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dcmri.AortaLiver2scan.export_params" title="Link to this definition">#</a></dt>
+<dd><p>Return model parameters with their descriptions</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Type of output. If ‘dict’, a dictionary is
+returned. If ‘list’, a list is returned. Defaults to ‘dict’.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>Dictionary with one item for each model parameter. The key
+is the short parameter name, and the value is a
+4-element list with [long parameter name, value, unit, sdev].</p>
+<p>or:</p>
+<p>list: List with one element for each model parameter. Each
+element is a list with [short parameter name,
+long parameter name, value, unit, sdev].</p>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.AortaLiver2scan.load">
+<span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Model'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dcmri.AortaLiver2scan.load" title="Link to this definition">#</a></dt>
+<dd><p>Load the saved state of the model</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – complete path of the file. If this is not
+provided, a file is constructure from path and filename
+variables. Defaults to None.</p></li>
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – path to store the state if file is not
+provided. Thos variable is ignored if file is provided.
+Defaults to current working directory.</p></li>
+<li><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – filename to store the state if file is
+not provided. If no extension is included, the extension
+‘.pkl’ is automatically added. This variable is ignored if file
+is provided. Defaults to ‘Model’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>class instance</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.AortaLiver2scan.params">
+<span class="sig-name descname"><span class="pre">params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">round_to</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dcmri.AortaLiver2scan.params" title="Link to this definition">#</a></dt>
+<dd><p>Return the parameter values</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – parameters to get</p></li>
+<li><p><strong>round_to</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – Round to how many digits. If this is</p></li>
+<li><p><strong>provided</strong> (<em>not</em>)</p></li>
+<li><p><strong>None.</strong> (<em>the values are not rounded. Defaults to</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>values of parameter values, or a scalar value if
+only one parameter is required.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)">list</a> or <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.AortaLiver2scan.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xdata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ydata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xlim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/dcmri/ui_aorta_liver.html#AortaLiver2scan.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.AortaLiver2scan.plot" title="Link to this definition">#</a></dt>
+<dd><p>Plot the model fit against data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xdata</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – tuple of 4 arrays with time points for aorta in the
+first scan, aorta in the second stand, liver in the first scan,
+and liver in the second scan, in that order. The four arrays can
+be different in length and value.</p></li>
+<li><p><strong>ydata</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – tuple of 4 arrays with signals for aorta in the
+first scan, aorta in the second stand, liver in the first scan,
+and liver in the second scan, in that order. The arrays can be
+different in length but each has to have the same length as its
+corresponding array of time points.</p></li>
+<li><p><strong>xlim</strong> (<em>array_like</em><em>, </em><em>optional</em>) – 2-element array with lower and upper
+boundaries of the x-axis. Defaults to None.</p></li>
+<li><p><strong>ref</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a><em>, </em><em>optional</em>) – Tuple of optional test data in the form
+(x,y), where x is an array with x-values and y is an array with
+y-values. Defaults to None.</p></li>
+<li><p><strong>fname</strong> (<em>path</em><em>, </em><em>optional</em>) – Filepath to save the image. If no value
+is provided, the image is not saved. Defaults to None.</p></li>
+<li><p><strong>show</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, the plot is shown. Defaults to
+True.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.AortaLiver2scan.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xdata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/dcmri/ui_aorta_liver.html#AortaLiver2scan.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.AortaLiver2scan.predict" title="Link to this definition">#</a></dt>
+<dd><p>Predict the data at given time points</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>xdata</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – tuple of 4 arrays with time points for aorta in
+the first scan, aorta in the second stand, liver in the first
+scan, and liver in the second scan, in that order. The four
+arrays can be different in length and value.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>tuple of 4 arrays with signals for aorta in the first
+scan, aorta in the second stand, liver in the first scan, and
+liver in the second scan, in that order. The arrays have the
+same length as its corresponding array of time points.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)">tuple</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.AortaLiver2scan.print_params">
+<span class="sig-name descname"><span class="pre">print_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">round_to</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dcmri.AortaLiver2scan.print_params" title="Link to this definition">#</a></dt>
+<dd><p>Print the model parameters and their uncertainties</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>round_to</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – Round to how many digits. If this is
+not provided, the values are not rounded. Defaults to None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.AortaLiver2scan.relax">
+<span class="sig-name descname"><span class="pre">relax</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/dcmri/ui_aorta_liver.html#AortaLiver2scan.relax"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.AortaLiver2scan.relax" title="Link to this definition">#</a></dt>
+<dd><p>Relaxation rates in aorta and liver.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>time points, aorta blood R1, liver R1.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)">tuple</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.AortaLiver2scan.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Model'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dcmri.AortaLiver2scan.save" title="Link to this definition">#</a></dt>
+<dd><p>Save the current state of the model</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – complete path of the file. If this is not
+provided, a file is constructure from path and filename
+variables. Defaults to None.</p></li>
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – path to store the state if file is not
+provided. Thos variable is ignored if file is provided.
+Defaults to current working directory.</p></li>
+<li><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – filename to store the state if file is
+not provided. If no extension is included, the extension ‘.pkl’
+is automatically added. This variable is ignored if file is
+provided. Defaults to ‘Model’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>class instance</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.AortaLiver2scan.set_free">
+<span class="sig-name descname"><span class="pre">set_free</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dcmri.AortaLiver2scan.set_free" title="Link to this definition">#</a></dt>
+<dd><p>Set the free model parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pop</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a>) – a single variable or a list of variables to
+remove from the list of free parameters.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – if the pop argument contains a parameter that is not
+    in the list of free parameters.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If the parameter is not a model parameter, or bounds
+    are not properly formatted.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.AortaLiver2scan.train">
+<span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xdata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ydata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">joint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/dcmri/ui_aorta_liver.html#AortaLiver2scan.train"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.AortaLiver2scan.train" title="Link to this definition">#</a></dt>
+<dd><p>Train the free parameters</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xdata</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – tuple of 4 arrays with time points for aorta in
+the first scan, aorta in the second stand, liver in the first
+scan, and liver in the second scan, in that order. The four
+arrays can be different in length and value.</p></li>
+<li><p><strong>ydata</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – tuple of 4 arrays with signals for aorta in the
+first scan, aorta in the second stand, liver in the first scan,
+and liver in the second scan, in that order. The arrays can be
+different in length but each has to have the same length as its
+corresponding array of time points.</p></li>
+<li><p><strong>joint</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, aorta and liver parameters
+are trained jointly after training them separately.
+Defaults to True.</p></li>
+<li><p><strong>kwargs</strong> – any keyword parameters accepted by
+<a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html#scipy.optimize.curve_fit" title="(in SciPy v1.16.0)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">scipy.optimize.curve_fit</span></code></a>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A reference to the model instance.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#dcmri.AortaLiver2scan" title="dcmri.AortaLiver2scan">AortaLiver2scan</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="dcmri.AortaLiver.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">dcmri.AortaLiver</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="dcmri.AortaPortalLiver.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">dcmri.AortaPortalLiver</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.AortaLiver2scan"><code class="docutils literal notranslate"><span class="pre">AortaLiver2scan</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.AortaLiver2scan.conc"><code class="docutils literal notranslate"><span class="pre">AortaLiver2scan.conc()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.AortaLiver2scan.cost"><code class="docutils literal notranslate"><span class="pre">AortaLiver2scan.cost()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.AortaLiver2scan.export_params"><code class="docutils literal notranslate"><span class="pre">AortaLiver2scan.export_params()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.AortaLiver2scan.load"><code class="docutils literal notranslate"><span class="pre">AortaLiver2scan.load()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.AortaLiver2scan.params"><code class="docutils literal notranslate"><span class="pre">AortaLiver2scan.params()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.AortaLiver2scan.plot"><code class="docutils literal notranslate"><span class="pre">AortaLiver2scan.plot()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.AortaLiver2scan.predict"><code class="docutils literal notranslate"><span class="pre">AortaLiver2scan.predict()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.AortaLiver2scan.print_params"><code class="docutils literal notranslate"><span class="pre">AortaLiver2scan.print_params()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.AortaLiver2scan.relax"><code class="docutils literal notranslate"><span class="pre">AortaLiver2scan.relax()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.AortaLiver2scan.save"><code class="docutils literal notranslate"><span class="pre">AortaLiver2scan.save()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.AortaLiver2scan.set_free"><code class="docutils literal notranslate"><span class="pre">AortaLiver2scan.set_free()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.AortaLiver2scan.train"><code class="docutils literal notranslate"><span class="pre">AortaLiver2scan.train()</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/api/dcmri.AortaLiver2scan.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024-2025, dcmri contributors.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

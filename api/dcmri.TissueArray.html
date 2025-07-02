@@ -1,0 +1,1126 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>dcmri.TissueArray &#8212; dcmri 0.6.17 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=cd8af66b" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../_static/documentation_options.js?v=0d21fabb"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-64ZSJ8Z1MX"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/dcmri.TissueArray';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="dcmri.Liver" href="dcmri.Liver.html" />
+    <link rel="prev" title="dcmri.Tissue" href="dcmri.Tissue.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/tristan-logo.jpg" class="logo__image only-light" alt="dcmri 0.6.17 documentation - Home"/>
+    <img src="../_static/tristan-logo.jpg" class="logo__image only-dark pst-js-only" alt="dcmri 0.6.17 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../releases/index.html">
+    Releases
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../about/index.html">
+    About
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../releases/index.html">
+    Releases
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../about/index.html">
+    About
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../reference/e2e.html">Tissue bank</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="dcmri.Tissue.html">dcmri.Tissue</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">dcmri.TissueArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.Liver.html">dcmri.Liver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.AortaLiver.html">dcmri.AortaLiver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.AortaLiver2scan.html">dcmri.AortaLiver2scan</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.AortaPortalLiver.html">dcmri.AortaPortalLiver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.Kidney.html">dcmri.Kidney</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.KidneyCortMed.html">dcmri.KidneyCortMed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.AortaKidneys.html">dcmri.AortaKidneys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dcmri.Aorta.html">dcmri.Aorta</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/tissues.html">Tissue models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/sig.html">MRI signal models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/relaxation.html">Relaxation models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/pk_blocks.html">PK blocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/utils.html">Utilities</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../reference/index.html" class="nav-link">Reference</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../reference/e2e.html" class="nav-link">Tissue bank</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">dcmri.TissueArray</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="dcmri-tissuearray">
+<h1>dcmri.TissueArray<a class="headerlink" href="#dcmri-tissuearray" title="Link to this heading">#</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="dcmri.TissueArray">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dcmri.</span></span><span class="sig-name descname"><span class="pre">TissueArray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kinetics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'HF'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">water_exchange</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'FF'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sequence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'SS'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aif</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ca</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">free</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/dcmri/ui_tissue.html#TissueArray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.TissueArray" title="Link to this definition">#</a></dt>
+<dd><p>Pixel-based vascular-interstitial tissue.</p>
+<p>This is the most common tissue type as found in for instance brain,
+cancer, lung, muscle, prostate, skin, and more. For more detail see
+<a class="reference internal" href="../user_guide/tissues/exchange.html#two-site-exchange"><span class="std std-ref">Exchange tissues</span></a>.</p>
+<p>Usage of this class is mostly identical to <a class="reference internal" href="dcmri.Tissue.html#dcmri.Tissue" title="dcmri.Tissue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dcmri.Tissue</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>shape</strong> (<em>array-like</em>) – shape of the tissue array in dimensions. Any
+number of dimensions is allowed but the last must be time.</p></li>
+<li><p><strong>kinetics</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Tracer-kinetic model. Possible values are
+‘2CX’, ‘2CU’, ‘HF’, ‘HFU’, ‘NX’, ‘FX’, ‘WV’, ‘U’. Defaults to ‘HF’.</p></li>
+<li><p><strong>water_exchange</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Water exchange regime, Any combination
+of two of the letters ‘F’, ‘N’, ‘R’ is allowed. Defaults to ‘FF’.</p></li>
+<li><p><strong>sequence</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – imaging sequence. Possible values are ‘SS’
+and ‘SR’. Defaults to ‘SS’.</p></li>
+<li><p><strong>aif</strong> (<em>array-like</em><em>, </em><em>optional</em>) – Signal-time curve in the blood of the
+feeding artery. If <em>aif</em> is not provided, the arterial
+blood concentration is <em>ca</em>. Defaults to None.</p></li>
+<li><p><strong>ca</strong> (<em>array-like</em><em>, </em><em>optional</em>) – Blood concentration in the arterial
+input. <em>ca</em> is ignored if <em>aif</em> is provided, but is required
+otherwise. Defaults to None.</p></li>
+<li><p><strong>t</strong> (<em>array-like</em><em>, </em><em>optional</em>) – Time points of the arterial input function.
+If <em>t</em> is not provided, the temporal sampling is uniform with
+interval <em>dt</em>. Defaults to None.</p></li>
+<li><p><strong>dt</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><em>optional</em>) – Time interval between values of the arterial
+input function. <em>dt</em> is ignored if <em>t</em> is provided. Defaults to 1.0.</p></li>
+<li><p><strong>free</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>, </em><em>optional</em>) – Dictionary with free parameters and their
+bounds. If not provided, a default set of free parameters is used.
+Defaults to None.</p></li>
+<li><p><strong>parallel</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, computations are parallelized.
+Defaults to False.</p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – verbosity of the computation. With verbose=0,
+no feedback is given; with verbose=1, a status bar is shown.
+Defaults to 0.</p></li>
+<li><p><strong>params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>, </em><em>optional</em>) – values for the parameters of the tissue,
+specified as keyword parameters. Defaults are used for any that are
+not provided. The parameters are the same as in <a class="reference internal" href="dcmri.Tissue.html#dcmri.Tissue" title="dcmri.Tissue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dcmri.Tissue</span></code></a>.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="dcmri.Tissue.html#dcmri.Tissue" title="dcmri.Tissue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Tissue</span></code></a></p>
+</div>
+<p class="rubric">Example</p>
+<p>Fit a coarse image of the brain using a 2-compartment exchange model.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">dcmri</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dc</span>
+</pre></div>
+</div>
+<p>Use <a class="reference internal" href="dcmri.fake_brain.html#dcmri.fake_brain" title="dcmri.fake_brain"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fake_brain</span></code></a> to generate synthetic test data:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">n</span><span class="o">=</span><span class="mi">8</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">time</span><span class="p">,</span> <span class="n">signal</span><span class="p">,</span> <span class="n">aif</span><span class="p">,</span> <span class="n">gt</span> <span class="o">=</span> <span class="n">dc</span><span class="o">.</span><span class="n">fake_brain</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Build a tissue array and set the constants to match the
+experimental conditions of the synthetic test data:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">n</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tissue</span> <span class="o">=</span> <span class="n">dc</span><span class="o">.</span><span class="n">TissueArray</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">shape</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">kinetics</span> <span class="o">=</span> <span class="s1">&#39;2CX&#39;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">aif</span> <span class="o">=</span> <span class="n">aif</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">dt</span> <span class="o">=</span> <span class="n">time</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="n">r1</span> <span class="o">=</span> <span class="n">dc</span><span class="o">.</span><span class="n">relaxivity</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;blood&#39;</span><span class="p">,</span> <span class="s1">&#39;gadodiamide&#39;</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">TR</span> <span class="o">=</span> <span class="mf">0.005</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">FA</span> <span class="o">=</span> <span class="mi">15</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">R10a</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="n">dc</span><span class="o">.</span><span class="n">T1</span><span class="p">(</span><span class="mf">3.0</span><span class="p">,</span><span class="s1">&#39;blood&#39;</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">R10</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="n">gt</span><span class="p">[</span><span class="s1">&#39;T1&#39;</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="n">n0</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Train the tissue on the data:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">tissue</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">signal</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Plot the reconstructed maps, along with their standard deviations
+and the ground truth for reference:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">tissue</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">signal</span><span class="p">,</span> <span class="n">ref</span><span class="o">=</span><span class="n">gt</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference download internal" download="" href="../_downloads/70bf52fbad2b05fb2bb4dceda800fae2/dcmri-TissueArray-1.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>, <a class="reference download internal" download="" href="../_downloads/ff677893156406d50bba16992c6b1699/dcmri-TissueArray-1.png"><code class="xref download docutils literal notranslate"><span class="pre">png</span></code></a>, <a class="reference download internal" download="" href="../_downloads/26de2d809d75ef4c16bc05cc8d4d71bf/dcmri-TissueArray-1.hires.png"><code class="xref download docutils literal notranslate"><span class="pre">hires.png</span></code></a>, <a class="reference download internal" download="" href="../_downloads/442af45ad05a0db0bdb4a9b745ed610a/dcmri-TissueArray-1.pdf"><code class="xref download docutils literal notranslate"><span class="pre">pdf</span></code></a>)</p>
+<figure class="align-default">
+<img alt="../_images/dcmri-TissueArray-1.png" class="plot-directive" src="../_images/dcmri-TissueArray-1.png" />
+</figure>
+<p class="rubric">Methods</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table autosummary">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dcmri.TissueArray.cost" title="dcmri.TissueArray.cost"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cost</span></code></a>(time, signal[, metric])</p></td>
+<td><p>Return the goodness-of-fit</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dcmri.TissueArray.export_params" title="dcmri.TissueArray.export_params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">export_params</span></code></a>()</p></td>
+<td><p>Model parameters with descriptions.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dcmri.TissueArray.info" title="dcmri.TissueArray.info"><code class="xref py py-obj docutils literal notranslate"><span class="pre">info</span></code></a>()</p></td>
+<td><p>Print detailed information about the tissue</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dcmri.TissueArray.load" title="dcmri.TissueArray.load"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load</span></code></a>([file, path, filename])</p></td>
+<td><p>Load the saved state of the model</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dcmri.TissueArray.params" title="dcmri.TissueArray.params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">params</span></code></a>(*args[, round_to])</p></td>
+<td><p>Return the parameter values</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dcmri.TissueArray.plot" title="dcmri.TissueArray.plot"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot</span></code></a>(time, signal[, vmin, vmax, cmap, ref, ...])</p></td>
+<td><p>Plot parameter maps</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dcmri.TissueArray.plot_fit" title="dcmri.TissueArray.plot_fit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_fit</span></code></a>(time, signal[, hist_kwargs, roi, ...])</p></td>
+<td><p>Plot time curves and fits in representative pixels.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dcmri.TissueArray.plot_params" title="dcmri.TissueArray.plot_params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_params</span></code></a>([roi, vmin, vmax, ref, fname, show])</p></td>
+<td><p>Show parameter distributions in regions of interest.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dcmri.TissueArray.plot_signals" title="dcmri.TissueArray.plot_signals"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_signals</span></code></a>(time, signal[, cmap, ref, ...])</p></td>
+<td><p>Plot measured and reconstructed dynamic signals.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dcmri.TissueArray.predict" title="dcmri.TissueArray.predict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict</span></code></a>(time)</p></td>
+<td><p>Predict the data at given time points</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dcmri.TissueArray.save" title="dcmri.TissueArray.save"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save</span></code></a>([file, path, filename])</p></td>
+<td><p>Save the current state of the model</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dcmri.TissueArray.set_free" title="dcmri.TissueArray.set_free"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_free</span></code></a>([pop])</p></td>
+<td><p>Set the free model parameters.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dcmri.TissueArray.train" title="dcmri.TissueArray.train"><code class="xref py py-obj docutils literal notranslate"><span class="pre">train</span></code></a>(time, signal, **kwargs)</p></td>
+<td><p>Train the free parameters</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.TissueArray.cost">
+<span class="sig-name descname"><span class="pre">cost</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metric</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'NRMS'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/dcmri/ui_tissue.html#TissueArray.cost"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.TissueArray.cost" title="Link to this definition">#</a></dt>
+<dd><p>Return the goodness-of-fit</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>time</strong> (<em>array-like</em>) – Array with time points.</p></li>
+<li><p><strong>signal</strong> (<em>array-like</em>) – Array with measured signals for each element
+of <em>time</em>.</p></li>
+<li><p><strong>metric</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Which metric to use.
+Possible metrics are ‘RMS’ (Root-mean-square); ‘NRMS’
+(Normalized root-mean-square); ‘AIC’ (Akaike information
+criterion); ‘cAIC’ (Corrected Akaike information criterion for
+small models); ‘BIC’ (Bayesian information criterion). Defaults
+to ‘NRMS’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>goodness of fit in each element of the data array.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.TissueArray.export_params">
+<span class="sig-name descname"><span class="pre">export_params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/dcmri/ui_tissue.html#TissueArray.export_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.TissueArray.export_params" title="Link to this definition">#</a></dt>
+<dd><p>Model parameters with descriptions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>Dictionary with one item for each model parameter. The key</dt><dd><p>is the parameter symbol (short name), and the value is a
+4-element list with [parameter name, value, unit, sdev].</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<p>List the parameters that are exported for a given model:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">dcmri</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dc</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tissue</span> <span class="o">=</span> <span class="n">dc</span><span class="o">.</span><span class="n">TissueArray</span><span class="p">((</span><span class="mi">8</span><span class="p">,</span><span class="mi">8</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">kinetics</span> <span class="o">=</span> <span class="s1">&#39;2CU&#39;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">water_exchange</span> <span class="o">=</span> <span class="s1">&#39;FR&#39;</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">tissue</span><span class="o">.</span><span class="n">export_params</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+<span class="go">dict_keys([&#39;PSc&#39;, &#39;H&#39;, &#39;vb&#39;, &#39;vi&#39;, &#39;Fb&#39;, &#39;PS&#39;, &#39;Fp&#39;, &#39;vp&#39;, &#39;Ktrans&#39;, &#39;E&#39;, &#39;Ti&#39;, &#39;Tp&#39;, &#39;Tb&#39;, &#39;Twc&#39;, &#39;FAcorr&#39;])</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.TissueArray.info">
+<span class="sig-name descname"><span class="pre">info</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/dcmri/ui_tissue.html#TissueArray.info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.TissueArray.info" title="Link to this definition">#</a></dt>
+<dd><p>Print detailed information about the tissue</p>
+<p class="rubric">Example</p>
+<p>List all parameters of a default tissue:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">dcmri</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dc</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tissue</span> <span class="o">=</span> <span class="n">dc</span><span class="o">.</span><span class="n">Tissue</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tissue</span><span class="o">.</span><span class="n">info</span><span class="p">()</span>
+<span class="go">-------------</span>
+<span class="go">Configuration</span>
+<span class="go">-------------</span>
+<span class="go">Kinetics: HF</span>
+<span class="go">Water exchange regime: FF</span>
+<span class="go">Imaging sequence: SS</span>
+<span class="go">----------</span>
+<span class="go">Parameters</span>
+<span class="go">----------</span>
+<span class="go">r1</span>
+<span class="go">--&gt; Full name: Contrast agent relaxivity</span>
+<span class="go">--&gt; Units: Hz/M</span>
+<span class="go">--&gt; Initial value: 5000.0</span>
+<span class="go">--&gt; Current value: 5000.0</span>
+<span class="go">--&gt; Free parameter: No</span>
+<span class="go">--&gt; Bounds: [0, inf]</span>
+<span class="go">R10a</span>
+<span class="go">--&gt; Full name: Arterial precontrast R1</span>
+<span class="go">--&gt; Units: Hz</span>
+<span class="go">--&gt; Initial value: 0.7</span>
+<span class="go">--&gt; Current value: 0.7</span>
+<span class="go">--&gt; Free parameter: No</span>
+<span class="go">--&gt; Bounds: [0, inf]</span>
+<span class="go">B1corr_a</span>
+<span class="go">--&gt; Full name: Arterial B1-correction factor</span>
+<span class="go">--&gt; Units:</span>
+<span class="go">--&gt; Initial value: 1</span>
+<span class="go">--&gt; Current value: 1</span>
+<span class="go">--&gt; Free parameter: No</span>
+<span class="go">--&gt; Bounds: [0, inf]</span>
+<span class="go">S0</span>
+<span class="go">--&gt; Full name: Signal scaling factor</span>
+<span class="go">--&gt; Units: a.u.</span>
+<span class="go">--&gt; Initial value: 1.0</span>
+<span class="go">--&gt; Current value: 1.0</span>
+<span class="go">--&gt; Free parameter: No</span>
+<span class="go">--&gt; Bounds: [0, inf]</span>
+<span class="go">B1corr</span>
+<span class="go">--&gt; Full name: Tissue B1-correction factor</span>
+<span class="go">--&gt; Units:</span>
+<span class="go">--&gt; Initial value: 1</span>
+<span class="go">--&gt; Current value: 1</span>
+<span class="go">--&gt; Free parameter: No</span>
+<span class="go">--&gt; Bounds: [0, inf]</span>
+<span class="go">FA</span>
+<span class="go">--&gt; Full name: Flip angle</span>
+<span class="go">--&gt; Units: deg</span>
+<span class="go">--&gt; Initial value: 15</span>
+<span class="go">--&gt; Current value: 15</span>
+<span class="go">--&gt; Free parameter: No</span>
+<span class="go">--&gt; Bounds: [0, inf]</span>
+<span class="go">TR</span>
+<span class="go">--&gt; Full name: Repetition time</span>
+<span class="go">--&gt; Units: sec</span>
+<span class="go">--&gt; Initial value: 0.005</span>
+<span class="go">--&gt; Current value: 0.005</span>
+<span class="go">--&gt; Free parameter: No</span>
+<span class="go">--&gt; Bounds: [0, inf]</span>
+<span class="go">TS</span>
+<span class="go">--&gt; Full name: Sampling time</span>
+<span class="go">--&gt; Units: sec</span>
+<span class="go">--&gt; Initial value: 0</span>
+<span class="go">--&gt; Current value: 0</span>
+<span class="go">--&gt; Free parameter: No</span>
+<span class="go">--&gt; Bounds: [0, inf]</span>
+<span class="go">H</span>
+<span class="go">--&gt; Full name: Tissue Hematocrit</span>
+<span class="go">--&gt; Units:</span>
+<span class="go">--&gt; Initial value: 0.45</span>
+<span class="go">--&gt; Current value: 0.45</span>
+<span class="go">--&gt; Free parameter: No</span>
+<span class="go">--&gt; Bounds: [0.001, 0.999]</span>
+<span class="go">vb</span>
+<span class="go">--&gt; Full name: Blood volume</span>
+<span class="go">--&gt; Units: mL/cm3</span>
+<span class="go">--&gt; Initial value: 0.1</span>
+<span class="go">--&gt; Current value: 0.1</span>
+<span class="go">--&gt; Free parameter: Yes</span>
+<span class="go">--&gt; Bounds: [0.001, 0.999]</span>
+<span class="go">vi</span>
+<span class="go">--&gt; Full name: Interstitial volume</span>
+<span class="go">--&gt; Units: mL/cm3</span>
+<span class="go">--&gt; Initial value: 0.3</span>
+<span class="go">--&gt; Current value: 0.3</span>
+<span class="go">--&gt; Free parameter: Yes</span>
+<span class="go">--&gt; Bounds: [0.001, 0.999]</span>
+<span class="go">PS</span>
+<span class="go">--&gt; Full name: Permeability-surface area product</span>
+<span class="go">--&gt; Units: mL/sec/cm3</span>
+<span class="go">--&gt; Initial value: 0.003</span>
+<span class="go">--&gt; Current value: 0.003</span>
+<span class="go">--&gt; Free parameter: Yes</span>
+<span class="go">--&gt; Bounds: [0, inf]</span>
+<span class="go">R10</span>
+<span class="go">--&gt; Full name: Tissue precontrast R1</span>
+<span class="go">--&gt; Units: Hz</span>
+<span class="go">--&gt; Initial value: 0.7</span>
+<span class="go">--&gt; Current value: 0.7</span>
+<span class="go">--&gt; Free parameter: No</span>
+<span class="go">--&gt; Bounds: [0, inf]</span>
+<span class="go">n0</span>
+<span class="go">--&gt; Full name: Number of precontrast acquisitions</span>
+<span class="go">--&gt; Units:</span>
+<span class="go">--&gt; Initial value: 1</span>
+<span class="go">--&gt; Current value: 1</span>
+<span class="go">--&gt; Free parameter: No</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.TissueArray.load">
+<span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Model'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dcmri.TissueArray.load" title="Link to this definition">#</a></dt>
+<dd><p>Load the saved state of the model</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – complete path of the file. If this is not
+provided, a file is constructure from path amd filename
+variables. Defaults to None.</p></li>
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – path to store the state if file is not
+provided. This variable is ignored if file is provided.
+Defaults to current working directory.</p></li>
+<li><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – filename to store the state if file is
+not provided. If no extension is included, the extension
+‘.pkl’ is automatically added. This variable is ignored if
+file is provided. Defaults to ‘Model’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>class instance</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.TissueArray.params">
+<span class="sig-name descname"><span class="pre">params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">round_to</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/dcmri/ui_tissue.html#TissueArray.params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.TissueArray.params" title="Link to this definition">#</a></dt>
+<dd><p>Return the parameter values</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>args</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – parameters to get</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>values of parameter values, or a scalar value if
+only one parameter is required.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)">list</a> or <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.TissueArray.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'gray'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/dcmri/ui_tissue.html#TissueArray.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.TissueArray.plot" title="Link to this definition">#</a></dt>
+<dd><p>Plot parameter maps</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>time</strong> (<em>array-like</em>) – 1D array with time points.</p></li>
+<li><p><strong>signal</strong> (<em>array-like</em>) – Array of signal curves. Any number of dimensions is allowed but the last dimension is time.</p></li>
+<li><p><strong>vmin</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>, </em><em>optional</em>) – Minimum values on display for given parameters. Defaults to {}.</p></li>
+<li><p><strong>vmax</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>, </em><em>optional</em>) – Maximum values on display for given parameters. Defaults to {}.</p></li>
+<li><p><strong>cmap</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – matplotlib colormap. Defaults to ‘gray’.</p></li>
+<li><p><strong>ref</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>, </em><em>optional</em>) – Reference images - typically used to display ground truth data when available. Keys are ‘signal’ (array of data in the same shape as signal), and the parameter maps to show. Defaults to None.</p></li>
+<li><p><strong>fname</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – File path to save image. Defaults to None.</p></li>
+<li><p><strong>show</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – Determine whether the image is shown or not. Defaults to True.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#NotImplementedError" title="(in Python v3.13)"><strong>NotImplementedError</strong></a> – Features that are not currently implemented.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.TissueArray.plot_fit">
+<span class="sig-name descname"><span class="pre">plot_fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hist_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">roi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/dcmri/ui_tissue.html#TissueArray.plot_fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.TissueArray.plot_fit" title="Link to this definition">#</a></dt>
+<dd><p>Plot time curves and fits in representative pixels.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>time</strong> (<em>array-like</em>) – 1D array with time points.</p></li>
+<li><p><strong>signal</strong> (<em>array-like</em>) – Array of signal curves. Any number of dimensions is allowed but the last dimension is time.</p></li>
+<li><p><strong>hist_kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>, </em><em>optional</em>) – Keyword arguments to be passed on the matlotlib’s hist() finction. Defaults to {}.</p></li>
+<li><p><strong>roi</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>, </em><em>optional</em>) – Dictionary with masks for regions-of-interest to be shown in the plot. if none is provided, the entire array is shown. Defaults to None.</p></li>
+<li><p><strong>ref</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>, </em><em>optional</em>) – Reference images - typically used to display ground truth data when available. Keys are ‘signal’ (array of data in the same shape as signal), and the parameter maps to show. Defaults to None.</p></li>
+<li><p><strong>fname</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – File path to save image. Defaults to None.</p></li>
+<li><p><strong>show</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – Determine whether the image is shown or not. Defaults to True.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.TissueArray.plot_params">
+<span class="sig-name descname"><span class="pre">plot_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">roi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/dcmri/ui_tissue.html#TissueArray.plot_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.TissueArray.plot_params" title="Link to this definition">#</a></dt>
+<dd><p>Show parameter distributions in regions of interest.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>roi</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>, </em><em>optional</em>) – Dictionary with masks for regions-of-interest to be shown in the plot. if none is provided, the entire array is shown. Defaults to None.</p></li>
+<li><p><strong>vmin</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>, </em><em>optional</em>) – Minimum values on display for given parameters. Defaults to {}.</p></li>
+<li><p><strong>vmax</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>, </em><em>optional</em>) – Maximum values on display for given parameters. Defaults to {}.</p></li>
+<li><p><strong>cmap</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – matplotlib colormap. Defaults to ‘gray’.</p></li>
+<li><p><strong>ref</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>, </em><em>optional</em>) – Reference images - typically used to display ground truth data when available. Keys are ‘signal’ (array of data in the same shape as ydata), and the parameter maps to show. Defaults to None.</p></li>
+<li><p><strong>fname</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – File path to save image. Defaults to None.</p></li>
+<li><p><strong>show</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – Determine whether the image is shown or not. Defaults to True.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.TissueArray.plot_signals">
+<span class="sig-name descname"><span class="pre">plot_signals</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'gray'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/dcmri/ui_tissue.html#TissueArray.plot_signals"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.TissueArray.plot_signals" title="Link to this definition">#</a></dt>
+<dd><p>Plot measured and reconstructed dynamic signals.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>time</strong> (<em>array-like</em>) – 1D array with time points.</p></li>
+<li><p><strong>signal</strong> (<em>array-like</em>) – Array of signal curves. Any number of dimensions is allowed but the last dimension is time.</p></li>
+<li><p><strong>cmap</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – matplotlib colormap. Defaults to ‘gray’.</p></li>
+<li><p><strong>ref</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>, </em><em>optional</em>) – Reference images - typically used to display ground truth data when available. Keys are ‘signal’ (array of data in the same shape as signal), and the parameter maps to show. Defaults to None.</p></li>
+<li><p><strong>fname</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – File path to save image. Defaults to None.</p></li>
+<li><p><strong>show</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – Determine whether the image is shown or not. Defaults to True.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#NotImplementedError" title="(in Python v3.13)"><strong>NotImplementedError</strong></a> – Features that are not currently implemented.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.TissueArray.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/dcmri/ui_tissue.html#TissueArray.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.TissueArray.predict" title="Link to this definition">#</a></dt>
+<dd><p>Predict the data at given time points</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>time</strong> (<em>array-like</em>) – 1D array with time points.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Array of predicted y-values.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.TissueArray.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Model'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dcmri.TissueArray.save" title="Link to this definition">#</a></dt>
+<dd><p>Save the current state of the model</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – complete path of the file. If this is not
+provided, a file is constructure from path amd filename
+variables. Defaults to None.</p></li>
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – path to store the state if file is not
+provided. This variable is ignored if file is provided.
+Defaults to current working directory.</p></li>
+<li><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – filename to store the state if file is
+not provided. If no extension is included, the extension ‘.pkl’
+is automatically added. This variable is ignored if file is
+provided. Defaults to ‘Model’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>class instance</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.TissueArray.set_free">
+<span class="sig-name descname"><span class="pre">set_free</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dcmri.TissueArray.set_free" title="Link to this definition">#</a></dt>
+<dd><p>Set the free model parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pop</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a>) – a single variable or a list of variables to
+remove from the list of free parameters.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – if the pop argument contains a parameter that is not
+    in the list of free parameters.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If the parameter is not a model parameter, or bounds
+    are not properly formatted.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dcmri.TissueArray.train">
+<span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signal</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/dcmri/ui_tissue.html#TissueArray.train"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dcmri.TissueArray.train" title="Link to this definition">#</a></dt>
+<dd><p>Train the free parameters</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>time</strong> (<em>array-like</em>) – 1D array with time points.</p></li>
+<li><p><strong>signal</strong> (<em>array-like</em>) – Array of signal curves. Any number of
+dimensions is allowed but the last dimension must be time.</p></li>
+<li><p><strong>kwargs</strong> – any keyword parameters accepted by <a class="reference internal" href="dcmri.Tissue.html#dcmri.Tissue.train" title="dcmri.Tissue.train"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Tissue.train</span></code></a>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A reference to the model instance.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#dcmri.TissueArray" title="dcmri.TissueArray">TissueArray</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="dcmri.Tissue.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">dcmri.Tissue</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="dcmri.Liver.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">dcmri.Liver</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.TissueArray"><code class="docutils literal notranslate"><span class="pre">TissueArray</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.TissueArray.cost"><code class="docutils literal notranslate"><span class="pre">TissueArray.cost()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.TissueArray.export_params"><code class="docutils literal notranslate"><span class="pre">TissueArray.export_params()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.TissueArray.info"><code class="docutils literal notranslate"><span class="pre">TissueArray.info()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.TissueArray.load"><code class="docutils literal notranslate"><span class="pre">TissueArray.load()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.TissueArray.params"><code class="docutils literal notranslate"><span class="pre">TissueArray.params()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.TissueArray.plot"><code class="docutils literal notranslate"><span class="pre">TissueArray.plot()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.TissueArray.plot_fit"><code class="docutils literal notranslate"><span class="pre">TissueArray.plot_fit()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.TissueArray.plot_params"><code class="docutils literal notranslate"><span class="pre">TissueArray.plot_params()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.TissueArray.plot_signals"><code class="docutils literal notranslate"><span class="pre">TissueArray.plot_signals()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.TissueArray.predict"><code class="docutils literal notranslate"><span class="pre">TissueArray.predict()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.TissueArray.save"><code class="docutils literal notranslate"><span class="pre">TissueArray.save()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.TissueArray.set_free"><code class="docutils literal notranslate"><span class="pre">TissueArray.set_free()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dcmri.TissueArray.train"><code class="docutils literal notranslate"><span class="pre">TissueArray.train()</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/api/dcmri.TissueArray.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024-2025, dcmri contributors.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

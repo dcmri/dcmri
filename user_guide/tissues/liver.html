@@ -1,0 +1,868 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Liver &#8212; dcmri 0.6.17 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=cd8af66b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=0d21fabb"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-64ZSJ8Z1MX"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'user_guide/tissues/liver';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Kidney" href="kidney.html" />
+    <link rel="prev" title="Exchange tissues" href="exchange.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/tristan-logo.jpg" class="logo__image only-light" alt="dcmri 0.6.17 documentation - Home"/>
+    <img src="../../_static/tristan-logo.jpg" class="logo__image only-dark pst-js-only" alt="dcmri 0.6.17 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../releases/index.html">
+    Releases
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../about/index.html">
+    About
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../releases/index.html">
+    Releases
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../about/index.html">
+    About
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">How to use dcmri</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../units.html">Units</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/index.html">Basic concepts</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">Tissue types</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="exchange.html">Exchange tissues</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">Liver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kidney.html">Kidney</a></li>
+<li class="toctree-l2"><a class="reference internal" href="whole_body.html">Whole body</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">User guide</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Tissue types</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Liver</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="liver">
+<span id="liver-tissues"></span><h1>Liver<a class="headerlink" href="#liver" title="Link to this heading">#</a></h1>
+<p>Pharmacokinetic models in DC-MRI assume that the liver consists of at most
+three spaces, as shown in the <a class="reference internal" href="#liver-image"><span class="std std-ref">diagram</span></a> below.</p>
+<figure class="align-default" id="id1">
+<span id="liver-image"></span><a class="reference internal image-reference" href="../../_images/liver.png"><img alt="../../_images/liver.png" src="../../_images/liver.png" style="width: 600px;" />
+</a>
+<figcaption>
+<p><span class="caption-text">A diagram of the indicator transport into and out of the liver compartments,
+showing their inputs and outputs. The free model parameters are shown in red.
+A plasma compartment recieves inflow of plasma from the hepatic artery (<em>Fa</em>)
+and the portal vein (<em>Fv</em>), which collects venous blood that has passed
+through the gut. The plasma exchanges indicator with the liver’s
+interstitium with a bi-directional exchange rate (<em>PS</em>). The interstitium
+exchanges with the hepatocytes which evacuate indicator to the gall bladder.
+Any indicator that is not evacuated in this way will be cleared from the
+plasma compartment through the venous outlet.</span><a class="headerlink" href="#id1" title="Link to this image">#</a></p>
+</figcaption>
+</figure>
+<p>All models currently implemented in <code class="docutils literal notranslate"><span class="pre">dcmri</span></code> assume that the hepatic artery
+can be modelled as a <a class="reference internal" href="../basics/pharmacokinetics.html#define-plug-flow"><span class="std std-ref">plug flow system</span></a> with mean
+transit time <em>Ta</em>. They also assume that the walls of
+the liver capillaries are highly permeable to contrast agent so that plasma and
+interstitium are well-mixed (<span class="math notranslate nohighlight">\(PS\to\infty\)</span>). Future versions will
+generalize to include models with finite <em>PS</em>.</p>
+<section id="definitions-and-notations">
+<h2>Definitions and notations<a class="headerlink" href="#definitions-and-notations" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><span id="table-liver-params"></span><table class="table" id="id2">
+<caption><span class="caption-text"><strong>Tissue parameters</strong></span><a class="headerlink" href="#id2" title="Link to this table">#</a></caption>
+<colgroup>
+<col style="width: 15.0%" />
+<col style="width: 25.0%" />
+<col style="width: 40.0%" />
+<col style="width: 20.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Short name</p></th>
+<th class="head"><p>Full name</p></th>
+<th class="head"><p>Definition</p></th>
+<th class="head"><p>Units</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Ta</p></td>
+<td><p>Arterial mean transit time</p></td>
+<td><p>Time for blood to travel through the hepatic artery</p></td>
+<td><p>sec</p></td>
+</tr>
+<tr class="row-odd"><td><p>fa</p></td>
+<td><p>Arterial flow fraction</p></td>
+<td><p>Arterial fraction of the total blood flow into the liver</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-even"><td><p>Fp</p></td>
+<td><p>Liver plasma flow</p></td>
+<td><p>Total flow of plasma into the liver tissue, per unit tissue volume.</p></td>
+<td><p>mL/sec/cm3</p></td>
+</tr>
+<tr class="row-odd"><td><p>ve</p></td>
+<td><p>liver extracellular volume fraction</p></td>
+<td><p>Part of the liver tissue taken up by the extracellular space</p></td>
+<td><p>mL/cm3</p></td>
+</tr>
+<tr class="row-even"><td><p>De</p></td>
+<td><p>Extracellular dispersion</p></td>
+<td><p>Bolus broadening in the extracellular space of the liver</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-odd"><td><p>Te</p></td>
+<td><p>Extracellular mean transit time</p></td>
+<td><p>Average time to for an indicator molecule to travel through the liver
+extracellular space</p></td>
+<td><p>sec</p></td>
+</tr>
+<tr class="row-even"><td><p>khe</p></td>
+<td><p>Intracellular uptake rate</p></td>
+<td><p>volume of extracellular fluid fully cleared of indicator per unit
+time and tissue</p></td>
+<td><p>mL/sec/cm3</p></td>
+</tr>
+<tr class="row-odd"><td><p>kbh</p></td>
+<td><p>Biliary excretion rate</p></td>
+<td><p>volume of intracellular fluid fully cleared of indicator per unit
+time and tissue, by transport to bile</p></td>
+<td><p>mL/sec/cm3</p></td>
+</tr>
+<tr class="row-even"><td><p>Th</p></td>
+<td><p>Hepatocellular mean transit time</p></td>
+<td><p>Average time for an indicator molecule to travel through the
+hepatocytes</p></td>
+<td><p>sec.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="pst-scrollable-table-container"><span id="table-liver-models"></span><table class="table" id="id3">
+<caption><span class="caption-text"><strong>Kinetic models for the liver</strong></span><a class="headerlink" href="#id3" title="Link to this table">#</a></caption>
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 40.0%" />
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Short name</p></th>
+<th class="head"><p>Full name</p></th>
+<th class="head"><p>Parameters</p></th>
+<th class="head"><p>Solution</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Dual-inlet extracellular</strong></p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>2I-EC</p></td>
+<td><p>Dual-inlet extracellular</p></td>
+<td><p>ve, Fp, fa, Ta</p></td>
+<td><p>Eq. <a class="reference internal" href="#equation-liver-extracellular">(4)</a></p></td>
+</tr>
+<tr class="row-even"><td><p>2I-EC-HF</p></td>
+<td><p>Dual-inlet extracellular high-flow</p></td>
+<td><p>ve, fa, Ta</p></td>
+<td><p>Eq. <a class="reference internal" href="#equation-liver-extracellular-hf">(6)</a></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Single-inlet extracellular</strong></p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>1I-EC</p></td>
+<td><p>Single-inlet extracellular</p></td>
+<td><p>ve, Fp, fa, Ta, Tg</p></td>
+<td><p>Eq. <a class="reference internal" href="#equation-liver-extracellular-1i">(7)</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>1I-EC-D</p></td>
+<td><p>Single-inlet extracellular dispersion</p></td>
+<td><p>ve, Te, De</p></td>
+<td><p>Eq. <a class="reference internal" href="#equation-liver-extracellular-disp">(8)</a></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Dual-inlet intracellular</strong></p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>2I-IC</p></td>
+<td><p>Dual-inlet intracellular</p></td>
+<td><p>ve, Fp, fa, Ta, khe, Th</p></td>
+<td><p>Eqs. <a class="reference internal" href="#equation-liver-extracellular">(4)</a> and <a class="reference internal" href="#equation-liver-hepatocytes">(11)</a></p></td>
+</tr>
+<tr class="row-even"><td><p>2I-IC-HF</p></td>
+<td><p>Dual-inlet intracellular high-flow</p></td>
+<td><p>ve, fa, Ta, khe, Th</p></td>
+<td><p>Eqs. <a class="reference internal" href="#equation-liver-extracellular-hf">(6)</a> and <a class="reference internal" href="#equation-liver-hepatocytes">(11)</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>2I-IC-U</p></td>
+<td><p>Dual-inlet intracellular uptake</p></td>
+<td><p>ve, Fp, fa, Ta, khe</p></td>
+<td><p>Eqs. <a class="reference internal" href="#equation-liver-extracellular">(4)</a> and <a class="reference internal" href="#equation-liver-hepatocytes-uptake">(12)</a></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Single-inlet intracellular</strong></p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>1I-IC-D</p></td>
+<td><p>Single-inlet intracellular dispersion</p></td>
+<td><p>ve, Te, De, khe, Th</p></td>
+<td><p>Eqs. <a class="reference internal" href="#equation-liver-extracellular-disp">(8)</a> and <a class="reference internal" href="#equation-liver-hepatocytes">(11)</a></p></td>
+</tr>
+<tr class="row-even"><td><p>1I-IC-DU</p></td>
+<td><p>Single-inlet intracellular dispersion uptake</p></td>
+<td><p>ve, Te, De, khe</p></td>
+<td><p>Eqs. <a class="reference internal" href="#equation-liver-extracellular-disp">(8)</a> and <a class="reference internal" href="#equation-liver-hepatocytes-uptake">(12)</a></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="extracellular-agents">
+<h2>Extracellular agents<a class="headerlink" href="#extracellular-agents" title="Link to this heading">#</a></h2>
+<section id="dual-inlet">
+<h3>Dual inlet<a class="headerlink" href="#dual-inlet" title="Link to this heading">#</a></h3>
+<p>If the contrast agent is extracellular, then by definition <span class="math notranslate nohighlight">\(k_{he}=0\)</span>
+and the hepatocyte compartment plays no role in the analysis. Since we assume
+fast exchange of indicator across the capillary wall, the liver can then
+be modelled as a single extracellular
+<a class="reference internal" href="../basics/pharmacokinetics.html#define-compartment"><span class="std std-ref">compartment</span></a> with volume fraction <em>ve</em>. A
+physical interpretation for the rate constant can be derived by expressing
+mass conservation for the compartment in terms of the extracellular
+concentration <em>c_e</em>. Since the indicator is evacuated by the total plasma flow
+we have:</p>
+<div class="math notranslate nohighlight" id="equation-liver-extracellular-mc">
+<span class="eqno">(1)<a class="headerlink" href="#equation-liver-extracellular-mc" title="Link to this equation">#</a></span>\[v_e\frac{dc_e}{dt}(t) = J_\mathrm{in}(t) - (F_a+F_v)c_e(t)\]</div>
+<p>Writing this in terms of the tissue concentration <span class="math notranslate nohighlight">\(C_e=v_ec_e\)</span> we get an
+equation as in section <a class="reference internal" href="../basics/pharmacokinetics.html#define-compartment"><span class="std std-ref">Compartment</span></a> with mean transit time:</p>
+<div class="math notranslate nohighlight" id="equation-liver-extracellular-mtt">
+<span class="eqno">(2)<a class="headerlink" href="#equation-liver-extracellular-mtt" title="Link to this equation">#</a></span>\[T_e = \frac{v_e}{F_a+F_v}\]</div>
+<p>If a reliable concentration can be measured in the aorta (<em>ca</em>) and in the
+portal vein (<em>cv</em>), then:</p>
+<div class="math notranslate nohighlight" id="equation-liver-influx">
+<span class="eqno">(3)<a class="headerlink" href="#equation-liver-influx" title="Link to this equation">#</a></span>\[J_\mathrm{in}(t) = F_ac_a(t-T_a) + F_vc_v(t)\]</div>
+<p>And the solution is:</p>
+<div class="math notranslate nohighlight" id="equation-liver-extracellular">
+<span class="eqno">(4)<a class="headerlink" href="#equation-liver-extracellular" title="Link to this equation">#</a></span>\[C_e(t) = e^{-t/T_e}*\left(F_ac_a(t-T_a) + F_vc_v(t)\right)\]</div>
+<p>In this case the model is fully defined by the four parameters <em>ve</em>, <em>Fa</em>,
+<em>Fv</em> and <em>Ta</em>. An alternative parametrization uses the total plasma flow <em>Fp</em>
+and the arterial flow fraction <em>fa</em>:</p>
+<div class="math notranslate nohighlight" id="equation-arterial-flow-fraction">
+<span class="eqno">(5)<a class="headerlink" href="#equation-arterial-flow-fraction" title="Link to this equation">#</a></span>\[F_p = F_a+F_v
+\qquad\textrm{and}\qquad
+f_a = \frac{F_a}{F_a+F_v}\]</div>
+<p>Eq. <a class="reference internal" href="#equation-liver-extracellular">(4)</a> is the <em>dual-inlet model for
+extracellular tracer</em>, or <strong>2I-EC</strong>.</p>
+<p>If the plasma flow is very high then the bolus dispersion in the liver is not
+separately measureable. The extracellular space is then a simple
+<a class="reference internal" href="../basics/pharmacokinetics.html#define-pass"><span class="std std-ref">pass</span></a>:</p>
+<div class="math notranslate nohighlight" id="equation-liver-extracellular-hf">
+<span class="eqno">(6)<a class="headerlink" href="#equation-liver-extracellular-hf" title="Link to this equation">#</a></span>\[C_e(t) = v_e\left(f_ac_a(t-T_a) + (1-f_a)c_v(t)\right)\]</div>
+<p>This is the <em>dual-inlet extracellular high-flow</em> model, or <strong>2I-EC-HF</strong>.</p>
+</section>
+<section id="single-inlet">
+<h3>Single inlet<a class="headerlink" href="#single-inlet" title="Link to this heading">#</a></h3>
+<p>If the acquisition is not optimized for data collection in the portal vein,
+then a portal-venous concentration may not be available. In theory this can
+be addressed by modelling the passage through the gut. If we model the gut as
+a compartment then Eq. <a class="reference internal" href="#equation-liver-extracellular">(4)</a> becomes:</p>
+<div class="math notranslate nohighlight" id="equation-liver-extracellular-1i">
+<span class="eqno">(7)<a class="headerlink" href="#equation-liver-extracellular-1i" title="Link to this equation">#</a></span>\[C_e(t) = e^{-t/T_e}*\left(F_ac_a(t-T_a)
+       + F_v\;\frac{e^{-t/T_g}}{T_g}*c_a(t)\right)\]</div>
+<p>This is a single-inlet extracellular model (<strong>1I-EC</strong>). If the dispersion in
+liver and gut cannot be separated, an alternative approach is to
+simplify the model by considering the extracellular space of liver and gut
+as a single combined space, and model it for instance as a
+<a class="reference internal" href="../basics/pharmacokinetics.html#define-pfcomp"><span class="std std-ref">plug-flow compartment</span></a>: with mean transit time <em>Te</em> and
+dispersion <em>De</em>. Using the propagator <span class="math notranslate nohighlight">\(h\)</span> of a plug-flow
+compartment the solution is a 3-parameter model:</p>
+<div class="math notranslate nohighlight" id="equation-liver-extracellular-disp">
+<span class="eqno">(8)<a class="headerlink" href="#equation-liver-extracellular-disp" title="Link to this equation">#</a></span>\[C_e = v_e\; h(T_e, D_e) * c_a\]</div>
+<p>This is the single-inlet extracellular dispersion model
+(<strong>1I-EC-D</strong>). Out of the 3 parameters, only the extracellular volume
+<span class="math notranslate nohighlight">\(v_e\)</span> is a liver characteristic.
+The other two (<span class="math notranslate nohighlight">\(T_e\)</span> and <span class="math notranslate nohighlight">\(D_e\)</span>) are determined by
+the properties of the gut and the liver. In particular the blood flow into the
+liver is not measureable under these conditions.</p>
+</section>
+</section>
+<section id="intracellular-agents">
+<h2>Intracellular agents<a class="headerlink" href="#intracellular-agents" title="Link to this heading">#</a></h2>
+<p>For contrast agents that enter the hepatocytes, the models must be extended
+with a hepatocyte compartment. In the case where backflux from hepatocytes is
+negligible (<span class="math notranslate nohighlight">\(k_{hb}=0\)</span>) this is a straightforward extension of the
+models for extracellular agents. The hepatocytes are modelled as a
+compartment (see <a class="reference internal" href="../basics/pharmacokinetics.html#define-compartment"><span class="std std-ref">Compartment</span></a>) and an interpretation of the rate
+constants can be found from the conservation of indicator mass in terms of
+the concentration <span class="math notranslate nohighlight">\(c_h\)</span>:</p>
+<div class="math notranslate nohighlight" id="equation-liver-hepatocytes-mc">
+<span class="eqno">(9)<a class="headerlink" href="#equation-liver-hepatocytes-mc" title="Link to this equation">#</a></span>\[v_h\frac{dc_h}{dt} = k_{he}c_e - k_{bh}c_h\]</div>
+<p>Expressing this in terms of the tissue concentration <span class="math notranslate nohighlight">\(C_h\)</span> we find the
+mean transit time of the hepatocytes:</p>
+<div class="math notranslate nohighlight" id="equation-liver-hepatocytes-mtt">
+<span class="eqno">(10)<a class="headerlink" href="#equation-liver-hepatocytes-mtt" title="Link to this equation">#</a></span>\[T_h = \frac{v_h}{k_{bh}}\]</div>
+<p>Since there is no backflux into the extracellular space, the solution for
+<span class="math notranslate nohighlight">\(c_e\)</span> can be used as an input function to the hepatocellular
+compartment:</p>
+<div class="math notranslate nohighlight" id="equation-liver-hepatocytes">
+<span class="eqno">(11)<a class="headerlink" href="#equation-liver-hepatocytes" title="Link to this equation">#</a></span>\[C_h(t) = e^{-t/T_h}*k_{he}c_e(t)\]</div>
+<p>When acquisition times are short, the excretion from the hepatocytes is
+negligible and the hepatocytes are modelled as a trap with uptake only:</p>
+<div class="math notranslate nohighlight" id="equation-liver-hepatocytes-uptake">
+<span class="eqno">(12)<a class="headerlink" href="#equation-liver-hepatocytes-uptake" title="Link to this equation">#</a></span>\[C_h(t) = \int_0^{\infty} k_{he}c_e(t)\]</div>
+<p>The total tissue concentration is <span class="math notranslate nohighlight">\(C=C_e+C_h\)</span>. The intracellular models
+<strong>2I-IC</strong>, <strong>2I-IC-HF</strong>, <strong>2I-IC-U</strong>, <strong>1I-IC-D</strong> and <strong>1I-IC-DU</strong> are direct
+extensions of the extracellular models, with the additional parameters
+<span class="math notranslate nohighlight">\(k_{he}\)</span> and <span class="math notranslate nohighlight">\(T_h\)</span> (see table <a class="reference internal" href="#table-liver-models"><span class="std std-ref">Kinetic models for the liver</span></a>).</p>
+<p>Passage through the hepatocytes is a slow process, especially when the
+excretion rate is substantially impaired by disease or drugs. Measuring
+excretion rates reliably under such conditions is challenging and requires
+very long acquisition times (hours). Under those conditions the actual state of
+the liver may change during the acquisition, requiring a non-stationary model
+for the hepatocyte compartment. In the simplest scenario this can be modelled
+by interpolating linearly between <em>initial</em> values for the parameters
+<span class="math notranslate nohighlight">\(k_{he, i}\)</span> and <span class="math notranslate nohighlight">\(T_{h, i}\)</span> and <em>final</em> values
+<span class="math notranslate nohighlight">\(k_{he, f}\)</span> and <span class="math notranslate nohighlight">\(T_{h, f}\)</span>.</p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="exchange.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Exchange tissues</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="kidney.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Kidney</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#definitions-and-notations">Definitions and notations</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#extracellular-agents">Extracellular agents</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dual-inlet">Dual inlet</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#single-inlet">Single inlet</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#intracellular-agents">Intracellular agents</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/user_guide/tissues/liver.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024-2025, dcmri contributors.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

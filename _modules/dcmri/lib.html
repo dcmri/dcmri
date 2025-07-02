@@ -1,0 +1,1509 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>dcmri.lib &#8212; dcmri 0.6.17 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=cd8af66b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=0d21fabb"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-64ZSJ8Z1MX"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/dcmri/lib';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/tristan-logo.jpg" class="logo__image only-light" alt="dcmri 0.6.17 documentation - Home"/>
+    <img src="../../_static/tristan-logo.jpg" class="logo__image only-dark pst-js-only" alt="dcmri 0.6.17 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../releases/index.html">
+    Releases
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../about/index.html">
+    About
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../releases/index.html">
+    Releases
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../about/index.html">
+    About
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">dcmri.lib</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for dcmri.lib</h1><div class="highlight"><pre>
+<span></span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">AGENTS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">&#39;gadoxetate&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;gadobutrol&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;gadopentetate&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;gadobenate&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;gadodiamide&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;gadoterate&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;gadoteridol&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;gadopiclenol&#39;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="ca_injection">
+<a class="viewcode-back" href="../../api/dcmri.ca_injection.html#dcmri.ca_injection">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">ca_injection</span><span class="p">(</span><span class="n">t</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">conc</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+                <span class="n">dose</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">rate</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">t0</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Contrast agent flux (mmol/sec) generated by step injection.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        t (numpy.ndarray): time points in sec where the flux is to be calculated.</span>
+<span class="sd">        weight (float): weight of the subject in kg.</span>
+<span class="sd">        conc (float): concentration of the contrast agent in mmol/mL.</span>
+<span class="sd">        dose (float): injected dose in mL/kg body weight.</span>
+<span class="sd">        rate (float): rate of contrast agent injection in mL/sec.</span>
+<span class="sd">        t0 (float): start of the injection in sec.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: if the injection duration is zero, or smaller than the time step of the time array.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        numpy.ndarray: contrast agent flux for each time point in units of mmol/sec.</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">        &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">        &gt;&gt;&gt; import dcmri as dc</span>
+
+<span class="sd">        Create an array of time points covering 20sec in steps of 1.5sec.</span>
+
+<span class="sd">        &gt;&gt;&gt; t = np.arange(0, 20, 1.5)</span>
+
+<span class="sd">        Inject a dose of 0.2 mL/kg bodyweight at a rate of 3mL/sec starting at t=5sec.</span>
+<span class="sd">        For a subject weighing 70 kg and a contrast agent with concentration 0.5M, this produces the flux:</span>
+
+<span class="sd">        &gt;&gt;&gt; dc.ca_injection(t, 70, 0.5, 5, 0.2, 3)</span>
+<span class="sd">        array([0. , 0. , 0. , 0. , 1.5, 1.5, 1.5, 0. , 0. , 0. , 0. , 0. , 0. ,0. ])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Get timings</span>
+    <span class="n">duration</span> <span class="o">=</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">dose</span> <span class="o">/</span> <span class="n">rate</span>     <span class="c1"># sec = kg * (mL/kg) / (mL/sec)</span>
+    <span class="n">dt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">amin</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">t</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="c1"># Check consistency of timings</span>
+    <span class="k">if</span> <span class="n">dose</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">duration</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;Invalid input variables. &#39;</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s1">&#39;The injection duration is zero.&#39;</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dt</span> <span class="o">&gt;=</span> <span class="n">duration</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;Invalid input variables. </span><span class="se">\n</span><span class="s1">&#39;</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s1">&#39;The smallest time step dt (&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span>
+                <span class="n">dt</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; sec) is larger than the injection duration 1 (&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">duration</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;sec). </span><span class="se">\n</span><span class="s1">&#39;</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s1">&#39;We would recommend dt to be at least 5 times smaller.&#39;</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="c1"># Build flux</span>
+    <span class="n">Jmax</span> <span class="o">=</span> <span class="n">conc</span> <span class="o">*</span> <span class="n">rate</span>                <span class="c1"># mmol/sec = (mmol/ml) * (ml/sec)</span>
+    <span class="n">J</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+    <span class="n">J</span><span class="p">[(</span><span class="mi">0</span> <span class="o">&lt;</span> <span class="n">t</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">t</span> <span class="o">&lt;</span> <span class="n">duration</span><span class="p">)]</span> <span class="o">=</span> <span class="n">Jmax</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="n">t0</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">J</span><span class="p">,</span> <span class="n">left</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="ca_conc">
+<a class="viewcode-back" href="../../api/dcmri.ca_conc.html#dcmri.ca_conc">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">ca_conc</span><span class="p">(</span><span class="n">agent</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Contrast agent concentration</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        agent (str): Generic contrast agent name, all lower case. Examples are &#39;gadobutrol&#39;, &#39;gadobenate&#39;, etc.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If no data are available for the agent.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: concentration in mmol/mL</span>
+
+<span class="sd">    Sources:</span>
+<span class="sd">        - `mri questions &lt;https://mriquestions.com/so-many-gd-agents.html&gt;`_</span>
+<span class="sd">        - `gadoxetate &lt;https://www.bayer.com/sites/default/files/2020-11/primovist-pm-en.pdf&gt;`_</span>
+<span class="sd">        - `gadobutrol &lt;https://www.medicines.org.uk/emc/product/2876/smpc#gref&gt;`_</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">        Print the concentration of the agents gadobutrol and gadoterate:</span>
+
+<span class="sd">    .. exec_code::</span>
+
+<span class="sd">        import dcmri as dc</span>
+
+<span class="sd">        print(&#39;gadobutrol is available in a solution of&#39;, dc.ca_conc(&#39;gadobutrol&#39;), &#39;M&#39;)</span>
+<span class="sd">        print(&#39;gadoterate is available in a solution of&#39;, dc.ca_conc(&#39;gadoterate&#39;), &#39;M&#39;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">agent</span> <span class="o">==</span> <span class="s1">&#39;gadoxetate&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mf">0.25</span>     <span class="c1"># mmol/mL</span>
+    <span class="k">if</span> <span class="n">agent</span> <span class="o">==</span> <span class="s1">&#39;gadobutrol&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mf">1.0</span>      <span class="c1"># mmol/mL</span>
+    <span class="k">if</span> <span class="n">agent</span> <span class="ow">in</span> <span class="p">[</span>
+        <span class="s1">&#39;gadopentetate&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;gadobenate&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;gadodiamide&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;gadoterate&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;gadoteridol&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;gadopiclenol&#39;</span><span class="p">,</span>
+    <span class="p">]:</span>
+        <span class="k">return</span> <span class="mf">0.5</span>  <span class="c1"># mmol/mL</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;No concentration data for contrast agent </span><span class="si">{</span><span class="n">agent</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;Possible values are </span><span class="si">{</span><span class="n">AGENTS</span><span class="si">}</span><span class="s2">.&quot;</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="ca_std_dose">
+<a class="viewcode-back" href="../../api/dcmri.ca_std_dose.html#dcmri.ca_std_dose">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">ca_std_dose</span><span class="p">(</span><span class="n">agent</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Standard injection volume (dose) in mL per kg body weight.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        agent (str): Generic contrast agent name, all lower case. Examples are &#39;gadobutrol&#39;, &#39;gadobenate&#39;, etc.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If no data are available for the agent.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: Standard injection volume in mL/kg.</span>
+
+<span class="sd">    Note:</span>
+
+<span class="sd">        Available agents:</span>
+<span class="sd">            - gadoxetate</span>
+<span class="sd">            - gadobutrol</span>
+<span class="sd">            - gadopiclenol</span>
+<span class="sd">            - gadopentetate</span>
+<span class="sd">            - gadobenate</span>
+<span class="sd">            - gadodiamide</span>
+<span class="sd">            - gadoterate</span>
+<span class="sd">            - gadoteridol</span>
+
+<span class="sd">        Sources:</span>
+<span class="sd">            - `mri questions &lt;https://mriquestions.com/so-many-gd-agents.html&gt;`_</span>
+<span class="sd">            - `gadoxetate &lt;https://www.bayer.com/sites/default/files/2020-11/primovist-pm-en.pdf&gt;`_</span>
+<span class="sd">            - `gadobutrol &lt;https://www.medicines.org.uk/emc/product/2876/smpc#gref&gt;`_</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">        &gt;&gt;&gt; import dcmri as dc</span>
+<span class="sd">        &gt;&gt;&gt; print(&#39;The standard clinical dose of gadobutrol is&#39;, dc.ca_std_dose(&#39;gadobutrol&#39;), &#39;mL/kg&#39;)</span>
+<span class="sd">        The standard clinical dose of gadobutrol is 0.1 mL/kg</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># &quot;&quot;&quot;Standard dose in mL/kg&quot;&quot;&quot; # better in mmol/kg, or offer it as an option</span>
+    <span class="k">if</span> <span class="n">agent</span> <span class="o">==</span> <span class="s1">&#39;gadoxetate&#39;</span><span class="p">:</span>
+        <span class="c1"># https://www.bayer.com/sites/default/files/2020-11/primovist-pm-en.pdf</span>
+        <span class="k">return</span> <span class="mf">0.1</span>  <span class="c1"># mL/kg</span>
+    <span class="k">if</span> <span class="n">agent</span> <span class="o">==</span> <span class="s1">&#39;gadobutrol&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mf">0.1</span>      <span class="c1"># mL/kg</span>
+    <span class="k">if</span> <span class="n">agent</span> <span class="o">==</span> <span class="s1">&#39;gadopiclenol&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mf">0.1</span>      <span class="c1"># mL/kg</span>
+    <span class="k">if</span> <span class="n">agent</span> <span class="ow">in</span> <span class="p">[</span>
+            <span class="s1">&#39;gadopentetate&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;gadobenate&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;gadodiamide&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;gadoterate&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;gadoteridol&#39;</span><span class="p">,</span>
+    <span class="p">]:</span>
+        <span class="k">return</span> <span class="mf">0.2</span>      <span class="c1"># mL/kg  # 0.5 mmol/mL = 0.1 mmol/kg</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;No data available for contrast agent </span><span class="si">{</span><span class="n">agent</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;Possible values are </span><span class="si">{</span><span class="n">AGENTS</span><span class="si">}</span><span class="s2">.&quot;</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="relaxivity">
+<a class="viewcode-back" href="../../api/dcmri.relaxivity.html#dcmri.relaxivity">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">relaxivity</span><span class="p">(</span><span class="n">field_strength</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span> <span class="n">tissue</span><span class="o">=</span><span class="s1">&#39;plasma&#39;</span><span class="p">,</span>
+               <span class="n">agent</span><span class="o">=</span><span class="s1">&#39;gadoxetate&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;T1&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Contrast agent relaxivity values in units of Hz/M</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        field_strength (float, optional): Field strength in Tesla. Defaults to 3.0.</span>
+<span class="sd">        tissue (str, optional): Tissue type - options are &#39;plasma&#39;, &#39;hepatocytes&#39;. Defaults to &#39;plasma&#39;.</span>
+<span class="sd">        agent (str, optional): Generic contrast agent name, all lower case. Examples are &#39;gadobutrol&#39;, &#39;gadobenate&#39;, etc.. Defaults to &#39;gadoxetate&#39;.</span>
+<span class="sd">        type (str, optional): transverse (T2 or T2*) or longitudinal (T1) relaxivity. Defaults to &#39;T1&#39;.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: relaxivity in Hz/M or 1/(sec*M)</span>
+
+<span class="sd">    Note:</span>
+
+<span class="sd">        This library is in construction and not all known values are currently available through this function.</span>
+
+<span class="sd">        Available contrasts:</span>
+<span class="sd">            - T1</span>
+
+<span class="sd">        Available tissues:</span>
+<span class="sd">            - blood</span>
+<span class="sd">            - plasma</span>
+<span class="sd">            - hepatocytes</span>
+
+<span class="sd">        Available agents:</span>
+<span class="sd">            - gadopentetate</span>
+<span class="sd">            - gadobutrol</span>
+<span class="sd">            - gadoteridol</span>
+<span class="sd">            - gadobenade</span>
+<span class="sd">            - gadoterate</span>
+<span class="sd">            - gadodiamide</span>
+<span class="sd">            - mangafodipir</span>
+<span class="sd">            - gadoversetamide</span>
+<span class="sd">            - ferucarbotran</span>
+<span class="sd">            - ferumoxide</span>
+<span class="sd">            - gadoxetate</span>
+
+<span class="sd">        Available field strengths:</span>
+<span class="sd">            - 0.47</span>
+<span class="sd">            - 1.5</span>
+<span class="sd">            - 3</span>
+<span class="sd">            - 4.7</span>
+<span class="sd">            - 7.0 (gadoxetate)</span>
+<span class="sd">            - 9.0 (gadoxetate)</span>
+
+<span class="sd">        Sources:</span>
+<span class="sd">            - Rohrer M, et al. Comparison of Magnetic Properties of MRI Contrast Media Solutions at Different Magnetic Field Strengths. Investigative Radiology 40(11):p 715-724, November 2005. DOI: `10.1097/01.rli.0000184756.66360.d3 &lt;https://journals.lww.com/investigativeradiology/FullText/2005/11000/Comparison_of_Magnetic_Properties_of_MRI_Contrast.5.aspx&gt;`_</span>
+<span class="sd">            - Szomolanyi P, et al. Comparison of the Relaxivities of Macrocyclic Gadolinium-Based Contrast Agents in Human Plasma at 1.5, 3, and 7 T, and Blood at 3 T. Invest Radiol. 2019 Sep;54(9):559-564. doi: `10.1097/RLI.0000000000000577 &lt;https://pubmed.ncbi.nlm.nih.gov/31124800/&gt;`_</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">        &gt;&gt;&gt; import dcmri as dc</span>
+<span class="sd">        &gt;&gt;&gt; print(&#39;The plasma relaxivity of gadobutrol at 3T is&#39;, 1e-3*dc.relaxivity(3.0, &#39;plasma&#39;, &#39;gadobutrol&#39;), &#39;Hz/mM&#39;)</span>
+<span class="sd">        The plasma relaxivity of gadobutrol at 3T is 5.0 Hz/mM</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Blood and plasma have (theoretically) the same relaxivity</span>
+    <span class="k">if</span> <span class="n">tissue</span> <span class="o">==</span> <span class="s1">&#39;blood&#39;</span><span class="p">:</span>
+        <span class="n">tissue</span> <span class="o">=</span> <span class="s1">&#39;plasma&#39;</span>
+    <span class="n">rel</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">rel</span><span class="p">[</span><span class="s1">&#39;T1&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;plasma&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;gadopentetate&#39;</span><span class="p">:</span> <span class="p">{</span>  <span class="c1"># Magnevist</span>
+                <span class="mf">0.47</span><span class="p">:</span> <span class="mf">3.8</span><span class="p">,</span>
+                <span class="mf">1.5</span><span class="p">:</span> <span class="mf">4.1</span><span class="p">,</span>
+                <span class="mf">3.0</span><span class="p">:</span> <span class="mf">3.7</span><span class="p">,</span>
+                <span class="mf">4.7</span><span class="p">:</span> <span class="mf">3.8</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="s1">&#39;gadobutrol&#39;</span><span class="p">:</span> <span class="p">{</span>  <span class="c1"># Gadovist</span>
+                <span class="mf">0.47</span><span class="p">:</span> <span class="mf">6.1</span><span class="p">,</span>
+                <span class="mf">1.5</span><span class="p">:</span> <span class="mf">5.2</span><span class="p">,</span>
+                <span class="mf">3.0</span><span class="p">:</span> <span class="mf">5.0</span><span class="p">,</span>
+                <span class="mf">4.7</span><span class="p">:</span> <span class="mf">4.7</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="s1">&#39;gadoteridol&#39;</span><span class="p">:</span> <span class="p">{</span>  <span class="c1"># Prohance</span>
+                <span class="mf">0.47</span><span class="p">:</span> <span class="mf">4.8</span><span class="p">,</span>
+                <span class="mf">1.5</span><span class="p">:</span> <span class="mf">4.1</span><span class="p">,</span>
+                <span class="mf">3.0</span><span class="p">:</span> <span class="mf">3.7</span><span class="p">,</span>
+                <span class="mf">4.7</span><span class="p">:</span> <span class="mf">3.7</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="s1">&#39;gadobenade&#39;</span><span class="p">:</span> <span class="p">{</span>  <span class="c1"># Multihance</span>
+                <span class="mf">0.47</span><span class="p">:</span> <span class="mf">9.2</span><span class="p">,</span>
+                <span class="mf">1.5</span><span class="p">:</span> <span class="mf">6.3</span><span class="p">,</span>
+                <span class="mf">3.0</span><span class="p">:</span> <span class="mf">5.5</span><span class="p">,</span>
+                <span class="mf">4.7</span><span class="p">:</span> <span class="mf">5.2</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="s1">&#39;gadoterate&#39;</span><span class="p">:</span> <span class="p">{</span>  <span class="c1"># Dotarem</span>
+                <span class="mf">0.47</span><span class="p">:</span> <span class="mf">4.3</span><span class="p">,</span>
+                <span class="mf">1.5</span><span class="p">:</span> <span class="mf">3.6</span><span class="p">,</span>
+                <span class="mf">3.0</span><span class="p">:</span> <span class="mf">3.5</span><span class="p">,</span>
+                <span class="mf">4.7</span><span class="p">:</span> <span class="mf">3.3</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="s1">&#39;gadodiamide&#39;</span><span class="p">:</span> <span class="p">{</span>  <span class="c1"># Omniscan</span>
+                <span class="mf">0.47</span><span class="p">:</span> <span class="mf">4.4</span><span class="p">,</span>
+                <span class="mf">1.0</span><span class="p">:</span> <span class="mf">4.35</span><span class="p">,</span>  <span class="c1"># Interpolated</span>
+                <span class="mf">1.5</span><span class="p">:</span> <span class="mf">4.3</span><span class="p">,</span>
+                <span class="mf">3.0</span><span class="p">:</span> <span class="mf">4.0</span><span class="p">,</span>
+                <span class="mf">4.7</span><span class="p">:</span> <span class="mf">3.9</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="s1">&#39;mangafodipir&#39;</span><span class="p">:</span> <span class="p">{</span>  <span class="c1"># Teslascan</span>
+                <span class="mf">0.47</span><span class="p">:</span> <span class="mf">3.6</span><span class="p">,</span>
+                <span class="mf">1.5</span><span class="p">:</span> <span class="mf">3.6</span><span class="p">,</span>
+                <span class="mf">3.0</span><span class="p">:</span> <span class="mf">2.7</span><span class="p">,</span>
+                <span class="mf">4.7</span><span class="p">:</span> <span class="mf">2.2</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="s1">&#39;gadoversetamide&#39;</span><span class="p">:</span> <span class="p">{</span>  <span class="c1"># Optimark</span>
+                <span class="mf">0.47</span><span class="p">:</span> <span class="mf">5.7</span><span class="p">,</span>
+                <span class="mf">1.5</span><span class="p">:</span> <span class="mf">4.7</span><span class="p">,</span>
+                <span class="mf">3.0</span><span class="p">:</span> <span class="mf">4.5</span><span class="p">,</span>
+                <span class="mf">4.7</span><span class="p">:</span> <span class="mf">4.4</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="s1">&#39;ferucarbotran&#39;</span><span class="p">:</span> <span class="p">{</span>  <span class="c1"># Resovist</span>
+                <span class="mf">0.47</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>
+                <span class="mf">1.5</span><span class="p">:</span> <span class="mf">7.4</span><span class="p">,</span>
+                <span class="mf">3.0</span><span class="p">:</span> <span class="mf">3.3</span><span class="p">,</span>
+                <span class="mf">4.7</span><span class="p">:</span> <span class="mf">1.7</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="s1">&#39;ferumoxide&#39;</span><span class="p">:</span> <span class="p">{</span>  <span class="c1"># Feridex</span>
+                <span class="mf">1.5</span><span class="p">:</span> <span class="mf">4.5</span><span class="p">,</span>
+                <span class="mf">3.0</span><span class="p">:</span> <span class="mf">2.7</span><span class="p">,</span>
+                <span class="mf">4.7</span><span class="p">:</span> <span class="mf">1.2</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="s1">&#39;gadoxetate&#39;</span><span class="p">:</span> <span class="p">{</span>  <span class="c1"># Primovist</span>
+                <span class="mf">0.47</span><span class="p">:</span> <span class="mf">8.7</span><span class="p">,</span>
+                <span class="mf">1.5</span><span class="p">:</span> <span class="mf">8.1</span><span class="p">,</span>
+                <span class="mf">3.0</span><span class="p">:</span> <span class="mf">6.4</span><span class="p">,</span>
+                <span class="mf">4.7</span><span class="p">:</span> <span class="mf">6.4</span><span class="p">,</span>
+                <span class="mf">7.0</span><span class="p">:</span> <span class="mf">6.2</span><span class="p">,</span>
+                <span class="mf">9.0</span><span class="p">:</span> <span class="mf">6.1</span>
+            <span class="p">},</span>
+        <span class="p">},</span>
+    <span class="p">}</span>
+    <span class="n">rel</span><span class="p">[</span><span class="s1">&#39;T1&#39;</span><span class="p">][</span><span class="s1">&#39;hepatocytes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">rel</span><span class="p">[</span><span class="s1">&#39;T1&#39;</span><span class="p">][</span><span class="s1">&#39;plasma&#39;</span><span class="p">])</span>
+    <span class="n">rel</span><span class="p">[</span><span class="s1">&#39;T1&#39;</span><span class="p">][</span><span class="s1">&#39;hepatocytes&#39;</span><span class="p">][</span><span class="s1">&#39;gadoxetate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="mf">1.5</span><span class="p">:</span> <span class="mf">14.6</span><span class="p">,</span>
+        <span class="mf">3.0</span><span class="p">:</span> <span class="mf">9.8</span><span class="p">,</span>
+        <span class="mf">4.7</span><span class="p">:</span> <span class="mf">7.6</span><span class="p">,</span>
+        <span class="mf">7.0</span><span class="p">:</span> <span class="mf">6.0</span><span class="p">,</span>
+        <span class="mf">9.0</span><span class="p">:</span> <span class="mf">6.1</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">1000</span> <span class="o">*</span> <span class="n">rel</span><span class="p">[</span><span class="nb">type</span><span class="p">][</span><span class="n">tissue</span><span class="p">][</span><span class="n">agent</span><span class="p">][</span><span class="n">field_strength</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;No relaxivity data for &#39;</span> <span class="o">+</span> <span class="n">agent</span> <span class="o">+</span> \
+            <span class="s1">&#39; at &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">field_strength</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; T.&#39;</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="T1">
+<a class="viewcode-back" href="../../api/dcmri.T1.html#dcmri.T1">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">T1</span><span class="p">(</span><span class="n">field_strength</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span> <span class="n">tissue</span><span class="o">=</span><span class="s1">&#39;blood&#39;</span><span class="p">,</span> <span class="n">Hct</span><span class="o">=</span><span class="mf">0.45</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;T1 value of selected tissue types.</span>
+
+<span class="sd">    Values are taken from literature, mostly from `Stanisz et al 2005 &lt;https://doi.org/10.1002/mrm.20605&gt;`_</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        field_strength (float, optional): Field strength in Tesla (see below for options). Defaults to 3.0.</span>
+<span class="sd">        tissue (str, optional): Tissue type (see below for options). Defaults to &#39;blood&#39;.</span>
+<span class="sd">        Hct (float, optional): Hematocrit value - ignored when tissue is not blood. Defaults to 0.45.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If the requested T1 values are not available.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: T1 values in sec</span>
+
+<span class="sd">    Note:</span>
+
+<span class="sd">        This library is in construction and not all known values are currently available through this function.</span>
+
+<span class="sd">        Available tissue types:</span>
+<span class="sd">            - skin</span>
+<span class="sd">            - bone marrow</span>
+<span class="sd">            - csf</span>
+<span class="sd">            - muscle</span>
+<span class="sd">            - heart</span>
+<span class="sd">            - cartilage</span>
+<span class="sd">            - white matter</span>
+<span class="sd">            - gray matter</span>
+<span class="sd">            - optic nerve</span>
+<span class="sd">            - spinal cord</span>
+<span class="sd">            - blood</span>
+<span class="sd">            - spleen</span>
+<span class="sd">            - liver</span>
+<span class="sd">            - kidney</span>
+
+<span class="sd">        Available field strengths:</span>
+<span class="sd">            - 1.5</span>
+<span class="sd">            - 3</span>
+<span class="sd">            - 4.7 (spleen, liver)</span>
+<span class="sd">            - 7.0 (spleen, liver)</span>
+<span class="sd">            - 9.0 (spleen, liver)</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">        &gt;&gt;&gt; import dcmri as dc</span>
+<span class="sd">        &gt;&gt;&gt; print(&#39;The T1 of liver at 1.5T is&#39;, 1e3*dc.T1(1.5, &#39;liver&#39;), &#39;msec&#39;)</span>
+<span class="sd">        The T1 of liver at 1.5T is 602.0 msec</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># H. M. Gach, C. Tanase and F. Boada, &quot;2D &amp; 3D Shepp-Logan Phantom</span>
+    <span class="c1"># Standards for MRI,&quot; 2008 19th International Conference on Systems</span>
+    <span class="c1"># Engineering, Las Vegas, NV, USA, 2008, pp. 521-526, doi:</span>
+    <span class="c1"># 10.1109/ICSEng.2008.15.</span>
+
+    <span class="n">T1val</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;skin&#39;</span><span class="p">:</span> <span class="p">{</span>  <span class="c1"># Gach 2008 (scalp)</span>
+            <span class="mf">1.5</span><span class="p">:</span> <span class="mf">0.324</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.5</span><span class="o">**</span><span class="mf">0.137</span><span class="p">),</span>
+            <span class="mf">3.0</span><span class="p">:</span> <span class="mf">0.324</span> <span class="o">*</span> <span class="p">(</span><span class="mf">3.0</span><span class="o">**</span><span class="mf">0.137</span><span class="p">),</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;bone marrow&#39;</span><span class="p">:</span> <span class="p">{</span>  <span class="c1"># Gach 2008</span>
+            <span class="mf">1.5</span><span class="p">:</span> <span class="mf">0.533</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.5</span><span class="o">**</span><span class="mf">0.088</span><span class="p">),</span>
+            <span class="mf">3.0</span><span class="p">:</span> <span class="mf">0.533</span> <span class="o">*</span> <span class="p">(</span><span class="mf">3.0</span><span class="o">**</span><span class="mf">0.088</span><span class="p">),</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;csf&#39;</span><span class="p">:</span> <span class="p">{</span>  <span class="c1"># Gach 2008</span>
+            <span class="mf">1.5</span><span class="p">:</span> <span class="mf">4.20</span><span class="p">,</span>
+            <span class="mf">3.0</span><span class="p">:</span> <span class="mf">4.20</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;muscle&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="mf">1.5</span><span class="p">:</span> <span class="mf">1.008</span><span class="p">,</span>
+            <span class="mf">3.0</span><span class="p">:</span> <span class="mf">1.412</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;heart&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="mf">1.5</span><span class="p">:</span> <span class="mf">1.030</span><span class="p">,</span>
+            <span class="mf">3.0</span><span class="p">:</span> <span class="mf">1.471</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;cartilage&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="mf">1.5</span><span class="p">:</span> <span class="mf">1.024</span><span class="p">,</span>
+            <span class="mf">3.0</span><span class="p">:</span> <span class="mf">1.168</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;white matter&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="mf">1.5</span><span class="p">:</span> <span class="mf">0.884</span><span class="p">,</span>
+            <span class="mf">3.0</span><span class="p">:</span> <span class="mf">1.084</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;gray matter&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="mf">1.5</span><span class="p">:</span> <span class="mf">1.124</span><span class="p">,</span>
+            <span class="mf">3.0</span><span class="p">:</span> <span class="mf">1.820</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;optic nerve&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="mf">1.5</span><span class="p">:</span> <span class="mf">0.815</span><span class="p">,</span>
+            <span class="mf">3.0</span><span class="p">:</span> <span class="mf">1.083</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;spinal cord&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="mf">1.5</span><span class="p">:</span> <span class="mf">0.745</span><span class="p">,</span>
+            <span class="mf">3.0</span><span class="p">:</span> <span class="mf">0.993</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;blood&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="mf">1.0</span><span class="p">:</span> <span class="mf">1.378</span><span class="p">,</span>  <span class="c1"># Extrapolated</span>
+            <span class="mf">1.5</span><span class="p">:</span> <span class="mf">1.441</span><span class="p">,</span>
+            <span class="mf">3.0</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mf">0.52</span> <span class="o">*</span> <span class="n">Hct</span> <span class="o">+</span> <span class="mf">0.38</span><span class="p">),</span>  <span class="c1"># Lu MRM 2004</span>
+            <span class="mf">4.7</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="mf">1.70</span><span class="p">,</span>  <span class="c1"># https://cds.ismrm.org/ismrm-2002/PDF4/1048.PDF</span>
+            <span class="mf">7.0</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="mf">2.29</span><span class="p">,</span>  <span class="c1"># 10.1016/j.mri.2012.08.008</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;spleen&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="mf">4.7</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="mf">0.631</span><span class="p">,</span>
+            <span class="mf">7.0</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="mf">0.611</span><span class="p">,</span>
+            <span class="mf">9.0</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="mf">0.600</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;liver&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="mf">1.5</span><span class="p">:</span> <span class="mf">0.602</span><span class="p">,</span>  <span class="c1"># liver R1 in 1/sec (Waterton 2021)</span>
+            <span class="mf">3.0</span><span class="p">:</span> <span class="mf">0.752</span><span class="p">,</span>  <span class="c1"># liver R1 in 1/sec (Waterton 2021)</span>
+            <span class="c1"># liver R1 in 1/sec (Changed from 1.285 on 06/08/2020)</span>
+            <span class="mf">4.7</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="mf">1.281</span><span class="p">,</span>
+            <span class="c1"># liver R1 in 1/sec (Changed from 0.8350 on 06/08/2020)</span>
+            <span class="mf">7.0</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="mf">1.109</span><span class="p">,</span>
+            <span class="c1"># per sec - liver R1 (https://doi.org/10.1007/s10334-021-00928-x)</span>
+            <span class="mf">9.0</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="mf">0.920</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;kidney&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="c1"># Reference values average over cortex and medulla from Cox et al</span>
+            <span class="c1"># https://academic.oup.com/ndt/article/33/suppl_2/ii41/5078406</span>
+            <span class="mf">1.0</span><span class="p">:</span> <span class="mf">1.017</span><span class="p">,</span>  <span class="c1"># Extrapolated</span>
+            <span class="mf">1.5</span><span class="p">:</span> <span class="p">(</span><span class="mf">1.024</span> <span class="o">+</span> <span class="mf">1.272</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="mf">3.0</span><span class="p">:</span> <span class="p">(</span><span class="mf">1.399</span> <span class="o">+</span> <span class="mf">1.685</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">}</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">T1val</span><span class="p">[</span><span class="n">tissue</span><span class="p">][</span><span class="n">field_strength</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">BaseException</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;No T1 values for &#39;</span> <span class="o">+</span> <span class="n">tissue</span> <span class="o">+</span> \
+            <span class="s1">&#39; at &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">field_strength</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; T.&#39;</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="T2">
+<a class="viewcode-back" href="../../api/dcmri.T2.html#dcmri.T2">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">T2</span><span class="p">(</span><span class="n">field_strength</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span> <span class="n">tissue</span><span class="o">=</span><span class="s1">&#39;gray matter&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;T2 value of selected tissue types.</span>
+
+<span class="sd">    Values are taken from `Gach et al 2008 &lt;https://ieeexplore.ieee.org/document/4616690&gt;`_</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        field_strength (float, optional): Field strength in Tesla. Defaults to 3.0.</span>
+<span class="sd">        tissue (str, optional): Tissue type. Defaults to &#39;gray matter&#39;.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If the requested T2 values are not available.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: T2 values in sec</span>
+
+<span class="sd">    Note:</span>
+
+<span class="sd">        This library is in construction and not all known values are currently available through this function.</span>
+
+<span class="sd">        Available tissue types:</span>
+<span class="sd">            - skin</span>
+<span class="sd">            - bone marrow</span>
+<span class="sd">            - csf</span>
+<span class="sd">            - white matter</span>
+<span class="sd">            - gray matter</span>
+
+<span class="sd">        Available field strengths:</span>
+<span class="sd">            - 1.5</span>
+<span class="sd">            - 3</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">        &gt;&gt;&gt; import dcmri as dc</span>
+<span class="sd">        &gt;&gt;&gt; print(&#39;The T2 of skin at 1.5T is&#39;, 1e3*dc.T2(1.5, &#39;skin&#39;), &#39;msec&#39;)</span>
+<span class="sd">        The T2 of skin at 1.5T is 70.0 msec</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># H. M. Gach, C. Tanase and F. Boada, &quot;2D &amp; 3D Shepp-Logan Phantom</span>
+    <span class="c1"># Standards for MRI,&quot; 2008 19th International Conference on Systems</span>
+    <span class="c1"># Engineering, Las Vegas, NV, USA, 2008, pp. 521-526, doi:</span>
+    <span class="c1"># 10.1109/ICSEng.2008.15.</span>
+
+    <span class="n">T2val</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;skin&#39;</span><span class="p">:</span> <span class="p">{</span>  <span class="c1"># Gach 2008 (scalp)</span>
+            <span class="mf">1.5</span><span class="p">:</span> <span class="mf">0.07</span><span class="p">,</span>
+            <span class="mf">3.0</span><span class="p">:</span> <span class="mf">0.07</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;bone marrow&#39;</span><span class="p">:</span> <span class="p">{</span>  <span class="c1"># Gach 2008</span>
+            <span class="mf">1.5</span><span class="p">:</span> <span class="mf">0.05</span><span class="p">,</span>
+            <span class="mf">3.0</span><span class="p">:</span> <span class="mf">0.05</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;csf&#39;</span><span class="p">:</span> <span class="p">{</span>  <span class="c1"># Gach 2008</span>
+            <span class="mf">1.5</span><span class="p">:</span> <span class="mf">1.99</span><span class="p">,</span>
+            <span class="mf">3.0</span><span class="p">:</span> <span class="mf">1.99</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;white matter&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="mf">1.5</span><span class="p">:</span> <span class="mf">0.08</span><span class="p">,</span>
+            <span class="mf">3.0</span><span class="p">:</span> <span class="mf">0.08</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;gray matter&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="mf">1.5</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+            <span class="mf">3.0</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">}</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">T2val</span><span class="p">[</span><span class="n">tissue</span><span class="p">][</span><span class="n">field_strength</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">BaseException</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;No T2 values for &#39;</span> <span class="o">+</span> <span class="n">tissue</span> <span class="o">+</span> \
+            <span class="s1">&#39; at &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">field_strength</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; T.&#39;</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="PD">
+<a class="viewcode-back" href="../../api/dcmri.PD.html#dcmri.PD">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">PD</span><span class="p">(</span><span class="n">tissue</span><span class="o">=</span><span class="s1">&#39;gray matter&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Relative proton density (PD) value of selected tissue types.</span>
+
+<span class="sd">    Values are taken from `Gach et al 2008 &lt;https://ieeexplore.ieee.org/document/4616690&gt;`_</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        tissue (str, optional): Tissue type. Defaults to &#39;gray matter&#39;.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If the requested PD values are not available.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: PD values (dimensionless, range 0-1)</span>
+
+<span class="sd">    Note:</span>
+
+<span class="sd">        This library is in construction and not all known values are currently available through this function.</span>
+
+<span class="sd">        Available tissue types:</span>
+<span class="sd">            - skin</span>
+<span class="sd">            - bone marrow</span>
+<span class="sd">            - csf</span>
+<span class="sd">            - white matter</span>
+<span class="sd">            - gray matter</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">        &gt;&gt;&gt; import dcmri as dc</span>
+<span class="sd">        &gt;&gt;&gt; print(&#39;The PD of skin is&#39;, dc.PD(&#39;skin&#39;))</span>
+<span class="sd">        The PD of skin is 0.8</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># H. M. Gach, C. Tanase and F. Boada, &quot;2D &amp; 3D Shepp-Logan Phantom</span>
+    <span class="c1"># Standards for MRI,&quot; 2008 19th International Conference on Systems</span>
+    <span class="c1"># Engineering, Las Vegas, NV, USA, 2008, pp. 521-526, doi:</span>
+    <span class="c1"># 10.1109/ICSEng.2008.15.</span>
+
+    <span class="n">PDval</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;skin&#39;</span><span class="p">:</span> <span class="mf">0.8</span><span class="p">,</span>
+        <span class="s1">&#39;bone marrow&#39;</span><span class="p">:</span> <span class="mf">0.12</span><span class="p">,</span>
+        <span class="s1">&#39;csf&#39;</span><span class="p">:</span> <span class="mf">0.98</span><span class="p">,</span>
+        <span class="s1">&#39;white matter&#39;</span><span class="p">:</span> <span class="mf">0.617</span><span class="p">,</span>
+        <span class="s1">&#39;gray matter&#39;</span><span class="p">:</span> <span class="mf">0.745</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">PDval</span><span class="p">[</span><span class="n">tissue</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">BaseException</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;No PD values for &#39;</span> <span class="o">+</span> <span class="n">tissue</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="perfusion">
+<a class="viewcode-back" href="../../api/dcmri.perfusion.html#dcmri.perfusion">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">perfusion</span><span class="p">(</span><span class="n">parameter</span><span class="o">=</span><span class="s1">&#39;Fb&#39;</span><span class="p">,</span> <span class="n">tissue</span><span class="o">=</span><span class="s1">&#39;gray matter&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;perfusion parameters of selected tissue types.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        parameter (str, optional): perfusion parameter. Options are &#39;Fb&#39; (blood flow), &#39;vb&#39; (Blood volume), &#39;PS&#39; (permeability-surface area product) and &#39;vi&#39; (interstitial volume). Defaults to &#39;Fb&#39;.</span>
+<span class="sd">        tissue (str, optional): Tissue type. Defaults to &#39;gray matter&#39;.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If the requested parameter values are not available.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: parameter value in standard units</span>
+
+<span class="sd">    Note:</span>
+
+<span class="sd">        This library is in construction and not all known values are currently available through this function.</span>
+
+<span class="sd">        Available tissue types:</span>
+<span class="sd">            - skin</span>
+<span class="sd">            - bone marrow</span>
+<span class="sd">            - csf</span>
+<span class="sd">            - white matter</span>
+<span class="sd">            - gray matter</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">        &gt;&gt;&gt; import dcmri as dc</span>
+<span class="sd">        &gt;&gt;&gt; print(&#39;The BF of gray matter is&#39;, dc.perfusion(&#39;Fb&#39;, &#39;gray matter&#39;), &#39;mL/sec/mL&#39;)</span>
+<span class="sd">        The BF of gray matter is 0.01 mL/sec/mL</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">parameter</span> <span class="o">==</span> <span class="s1">&#39;Fb&#39;</span><span class="p">:</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;skin&#39;</span><span class="p">:</span> <span class="mf">0.005</span><span class="p">,</span>  <span class="c1"># 5 kg/s/m**3 = 5000mL/sec/100*100*100 mL = 0.005mL/sec/mL</span>
+            <span class="s1">&#39;bone marrow&#39;</span><span class="p">:</span> <span class="mf">0.0013</span><span class="p">,</span>  <span class="c1"># 0.08 ml/ml/min</span>
+            <span class="s1">&#39;csf&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s1">&#39;white matter&#39;</span><span class="p">:</span> <span class="mf">0.0033</span><span class="p">,</span>
+            <span class="s1">&#39;gray matter&#39;</span><span class="p">:</span> <span class="mf">0.01</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="k">elif</span> <span class="n">parameter</span> <span class="o">==</span> <span class="s1">&#39;vb&#39;</span><span class="p">:</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;skin&#39;</span><span class="p">:</span> <span class="mf">0.03</span><span class="p">,</span>
+            <span class="s1">&#39;bone marrow&#39;</span><span class="p">:</span> <span class="mf">0.25</span><span class="p">,</span>
+            <span class="s1">&#39;csf&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s1">&#39;white matter&#39;</span><span class="p">:</span> <span class="mf">0.02</span><span class="p">,</span>
+            <span class="s1">&#39;gray matter&#39;</span><span class="p">:</span> <span class="mf">0.05</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="k">elif</span> <span class="n">parameter</span> <span class="o">==</span> <span class="s1">&#39;PS&#39;</span><span class="p">:</span>  <span class="c1"># Needs verification</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;skin&#39;</span><span class="p">:</span> <span class="mf">0.001</span><span class="p">,</span>
+            <span class="s1">&#39;bone marrow&#39;</span><span class="p">:</span> <span class="mf">0.0002</span><span class="p">,</span>
+            <span class="s1">&#39;csf&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s1">&#39;white matter&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s1">&#39;gray matter&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="k">elif</span> <span class="n">parameter</span> <span class="o">==</span> <span class="s1">&#39;vi&#39;</span><span class="p">:</span>  <span class="c1"># Needs verification</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;skin&#39;</span><span class="p">:</span> <span class="mf">0.03</span><span class="p">,</span>
+            <span class="s1">&#39;bone marrow&#39;</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span>
+            <span class="s1">&#39;csf&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s1">&#39;white matter&#39;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>
+            <span class="s1">&#39;gray matter&#39;</span><span class="p">:</span> <span class="mf">0.35</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">val</span><span class="p">[</span><span class="n">tissue</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">BaseException</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;No &#39;</span> <span class="o">+</span> <span class="n">parameter</span> <span class="o">+</span> <span class="s1">&#39; values for &#39;</span> <span class="o">+</span> <span class="n">tissue</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">center</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">angle</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">major</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+    <span class="n">minor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">amin</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">major</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">minor</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">dx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span><span class="p">)</span>
+    <span class="n">dy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span><span class="p">)</span>
+    <span class="n">f1</span> <span class="o">=</span> <span class="p">[</span><span class="n">center</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">dx</span> <span class="o">*</span> <span class="n">c</span><span class="p">,</span> <span class="n">center</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">dy</span> <span class="o">*</span> <span class="n">c</span><span class="p">]</span>
+    <span class="n">f2</span> <span class="o">=</span> <span class="p">[</span><span class="n">center</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">dx</span> <span class="o">*</span> <span class="n">c</span><span class="p">,</span> <span class="n">center</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">dy</span> <span class="o">*</span> <span class="n">c</span><span class="p">]</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">/</span> <span class="n">n</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">d</span> <span class="o">*</span> <span class="p">(</span><span class="n">i</span> <span class="o">-</span> <span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">d</span> <span class="o">*</span> <span class="p">(</span><span class="n">j</span> <span class="o">-</span> <span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">d1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">f1</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">f1</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">d2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">f2</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">f2</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">d1</span> <span class="o">+</span> <span class="n">d2</span> <span class="o">&lt;=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">major</span><span class="p">:</span>
+                <span class="n">array</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+    <span class="k">return</span> <span class="n">array</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_shepp_logan_mask</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">256</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+
+    <span class="n">mask</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># Background</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.72</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">mask</span><span class="p">[</span><span class="s1">&#39;background&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># 1 Scalp</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span>
+        <span class="nb">bool</span><span class="p">),</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.72</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.69</span><span class="p">,</span> <span class="mf">0.92</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">mask</span><span class="p">[</span><span class="s1">&#39;scalp&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># 2 Bone and marrow</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span>
+        <span class="nb">bool</span><span class="p">),</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.69</span><span class="p">,</span> <span class="mf">0.92</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.0184</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.6624</span><span class="p">,</span> <span class="mf">0.874</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">mask</span><span class="p">[</span><span class="s1">&#39;bone&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># 3 CSF</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">),</span>
+                     <span class="p">[</span><span class="o">-</span><span class="mf">0.0184</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.6624</span><span class="p">,</span> <span class="mf">0.874</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.0184</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.6524</span><span class="p">,</span> <span class="mf">0.864</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">mask</span><span class="p">[</span><span class="s1">&#39;CSF skull&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># 4 Gray matter</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">),</span>
+                     <span class="p">[</span><span class="o">-</span><span class="mf">0.0184</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.6524</span><span class="p">,</span> <span class="mf">0.864</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.22</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.41</span><span class="p">,</span> <span class="mf">0.16</span><span class="p">],</span> <span class="mi">180</span> <span class="o">-</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.22</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.31</span><span class="p">,</span> <span class="mf">0.11</span><span class="p">],</span> <span class="mi">180</span> <span class="o">+</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.35</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.21</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.046</span><span class="p">,</span> <span class="mf">0.046</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.605</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.08</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.046</span><span class="p">,</span> <span class="mf">0.023</span><span class="p">],</span> <span class="mi">90</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.605</span><span class="p">,</span> <span class="mf">0.06</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.023</span><span class="p">,</span> <span class="mf">0.046</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.046</span><span class="p">,</span> <span class="mf">0.046</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.605</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.023</span><span class="p">,</span> <span class="mf">0.023</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.83</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.66</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.02</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">mask</span><span class="p">[</span><span class="s1">&#39;gray matter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># 5 CSF</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">),</span> <span class="p">[</span>
+                     <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.22</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.41</span><span class="p">,</span> <span class="mf">0.16</span><span class="p">],</span> <span class="mi">180</span> <span class="o">-</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.35</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.21</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.046</span><span class="p">,</span> <span class="mf">0.046</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">mask</span><span class="p">[</span><span class="s1">&#39;CSF right&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># 6 CSF</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">),</span> <span class="p">[</span>
+                     <span class="mi">0</span><span class="p">,</span> <span class="mf">0.22</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.31</span><span class="p">,</span> <span class="mf">0.11</span><span class="p">],</span> <span class="mi">180</span> <span class="o">+</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">mask</span><span class="p">[</span><span class="s1">&#39;CSF left&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># 7 Tumor</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span>
+        <span class="nb">bool</span><span class="p">),</span> <span class="p">[</span><span class="mf">0.35</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.21</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.046</span><span class="p">,</span> <span class="mf">0.046</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">mask</span><span class="p">[</span><span class="s1">&#39;tumor 1&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># 8 Tumor</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">),</span>
+                     <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.046</span><span class="p">,</span> <span class="mf">0.046</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">mask</span><span class="p">[</span><span class="s1">&#39;tumor 2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># 9 Tumor</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">),</span>
+                     <span class="p">[</span><span class="o">-</span><span class="mf">0.605</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.08</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.046</span><span class="p">,</span> <span class="mf">0.023</span><span class="p">],</span> <span class="mi">90</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">mask</span><span class="p">[</span><span class="s1">&#39;tumor 4&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># 10 Tumor</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">),</span>
+                     <span class="p">[</span><span class="o">-</span><span class="mf">0.605</span><span class="p">,</span> <span class="mf">0.06</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.023</span><span class="p">,</span> <span class="mf">0.046</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">mask</span><span class="p">[</span><span class="s1">&#39;tumor 6&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># 11 Tumor</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">),</span>
+                     <span class="p">[</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.046</span><span class="p">,</span> <span class="mf">0.046</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">mask</span><span class="p">[</span><span class="s1">&#39;tumor 3&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># 12 Tumor</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">),</span>
+                     <span class="p">[</span><span class="o">-</span><span class="mf">0.605</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.023</span><span class="p">,</span> <span class="mf">0.023</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">mask</span><span class="p">[</span><span class="s1">&#39;tumor 5&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># 13 Sagittal sinus</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">),</span>
+                     <span class="p">[</span><span class="o">-</span><span class="mf">0.83</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">mask</span><span class="p">[</span><span class="s1">&#39;sagittal sinus&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># 14 Anterior cerebral artery</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span>
+        <span class="nb">bool</span><span class="p">),</span> <span class="p">[</span><span class="mf">0.66</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.02</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">mask</span><span class="p">[</span><span class="s1">&#39;anterior artery&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">mask</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_shepp_logan</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">B0</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">param</span> <span class="o">==</span> <span class="s1">&#39;PD&#39;</span><span class="p">:</span>
+        <span class="n">scalp</span> <span class="o">=</span> <span class="n">PD</span><span class="p">(</span><span class="s1">&#39;skin&#39;</span><span class="p">)</span>
+        <span class="n">bone</span> <span class="o">=</span> <span class="n">PD</span><span class="p">(</span><span class="s1">&#39;bone marrow&#39;</span><span class="p">)</span>
+        <span class="n">csf</span> <span class="o">=</span> <span class="n">PD</span><span class="p">(</span><span class="s1">&#39;csf&#39;</span><span class="p">)</span>
+        <span class="n">gm</span> <span class="o">=</span> <span class="n">PD</span><span class="p">(</span><span class="s1">&#39;gray matter&#39;</span><span class="p">)</span>
+        <span class="n">tumor</span> <span class="o">=</span> <span class="mf">0.95</span>
+        <span class="n">blood</span> <span class="o">=</span> <span class="mf">0.9</span>
+    <span class="k">elif</span> <span class="n">param</span> <span class="o">==</span> <span class="s1">&#39;T2&#39;</span><span class="p">:</span>
+        <span class="n">scalp</span> <span class="o">=</span> <span class="n">T2</span><span class="p">(</span><span class="n">B0</span><span class="p">,</span> <span class="s1">&#39;skin&#39;</span><span class="p">)</span>
+        <span class="n">bone</span> <span class="o">=</span> <span class="n">T2</span><span class="p">(</span><span class="n">B0</span><span class="p">,</span> <span class="s1">&#39;bone marrow&#39;</span><span class="p">)</span>
+        <span class="n">csf</span> <span class="o">=</span> <span class="n">T2</span><span class="p">(</span><span class="n">B0</span><span class="p">,</span> <span class="s1">&#39;csf&#39;</span><span class="p">)</span>
+        <span class="n">gm</span> <span class="o">=</span> <span class="n">T2</span><span class="p">(</span><span class="n">B0</span><span class="p">,</span> <span class="s1">&#39;gray matter&#39;</span><span class="p">)</span>
+        <span class="n">tumor</span> <span class="o">=</span> <span class="mf">0.25</span>
+        <span class="n">blood</span> <span class="o">=</span> <span class="mf">0.1</span>
+    <span class="k">elif</span> <span class="n">param</span> <span class="o">==</span> <span class="s1">&#39;T1&#39;</span><span class="p">:</span>
+        <span class="n">scalp</span> <span class="o">=</span> <span class="n">T1</span><span class="p">(</span><span class="n">B0</span><span class="p">,</span> <span class="s1">&#39;skin&#39;</span><span class="p">)</span>
+        <span class="n">bone</span> <span class="o">=</span> <span class="n">T1</span><span class="p">(</span><span class="n">B0</span><span class="p">,</span> <span class="s1">&#39;bone marrow&#39;</span><span class="p">)</span>
+        <span class="n">csf</span> <span class="o">=</span> <span class="n">T1</span><span class="p">(</span><span class="n">B0</span><span class="p">,</span> <span class="s1">&#39;csf&#39;</span><span class="p">)</span>
+        <span class="n">gm</span> <span class="o">=</span> <span class="n">T1</span><span class="p">(</span><span class="n">B0</span><span class="p">,</span> <span class="s1">&#39;gray matter&#39;</span><span class="p">)</span>
+        <span class="n">tumor</span> <span class="o">=</span> <span class="mf">0.926</span> <span class="o">*</span> <span class="p">(</span><span class="n">B0</span><span class="o">**</span><span class="mf">0.217</span><span class="p">)</span>
+        <span class="n">blood</span> <span class="o">=</span> <span class="n">T1</span><span class="p">(</span><span class="n">B0</span><span class="p">,</span> <span class="s1">&#39;blood&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">param</span> <span class="o">==</span> <span class="s1">&#39;Fb&#39;</span><span class="p">:</span>
+        <span class="n">scalp</span> <span class="o">=</span> <span class="n">perfusion</span><span class="p">(</span><span class="s1">&#39;Fb&#39;</span><span class="p">,</span> <span class="s1">&#39;skin&#39;</span><span class="p">)</span>
+        <span class="n">bone</span> <span class="o">=</span> <span class="n">perfusion</span><span class="p">(</span><span class="s1">&#39;Fb&#39;</span><span class="p">,</span> <span class="s1">&#39;bone marrow&#39;</span><span class="p">)</span>
+        <span class="n">csf</span> <span class="o">=</span> <span class="n">perfusion</span><span class="p">(</span><span class="s1">&#39;Fb&#39;</span><span class="p">,</span> <span class="s1">&#39;csf&#39;</span><span class="p">)</span>
+        <span class="n">gm</span> <span class="o">=</span> <span class="n">perfusion</span><span class="p">(</span><span class="s1">&#39;Fb&#39;</span><span class="p">,</span> <span class="s1">&#39;gray matter&#39;</span><span class="p">)</span>
+        <span class="n">tumor</span> <span class="o">=</span> <span class="mf">0.02</span>
+        <span class="n">blood</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">elif</span> <span class="n">param</span> <span class="o">==</span> <span class="s1">&#39;vb&#39;</span><span class="p">:</span>
+        <span class="n">scalp</span> <span class="o">=</span> <span class="n">perfusion</span><span class="p">(</span><span class="s1">&#39;vb&#39;</span><span class="p">,</span> <span class="s1">&#39;skin&#39;</span><span class="p">)</span>
+        <span class="n">bone</span> <span class="o">=</span> <span class="n">perfusion</span><span class="p">(</span><span class="s1">&#39;vb&#39;</span><span class="p">,</span> <span class="s1">&#39;bone marrow&#39;</span><span class="p">)</span>
+        <span class="n">csf</span> <span class="o">=</span> <span class="n">perfusion</span><span class="p">(</span><span class="s1">&#39;vb&#39;</span><span class="p">,</span> <span class="s1">&#39;csf&#39;</span><span class="p">)</span>
+        <span class="n">gm</span> <span class="o">=</span> <span class="n">perfusion</span><span class="p">(</span><span class="s1">&#39;vb&#39;</span><span class="p">,</span> <span class="s1">&#39;gray matter&#39;</span><span class="p">)</span>
+        <span class="n">tumor</span> <span class="o">=</span> <span class="mf">0.1</span>
+        <span class="n">blood</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">elif</span> <span class="n">param</span> <span class="o">==</span> <span class="s1">&#39;PS&#39;</span><span class="p">:</span>
+        <span class="n">scalp</span> <span class="o">=</span> <span class="n">perfusion</span><span class="p">(</span><span class="s1">&#39;PS&#39;</span><span class="p">,</span> <span class="s1">&#39;skin&#39;</span><span class="p">)</span>
+        <span class="n">bone</span> <span class="o">=</span> <span class="n">perfusion</span><span class="p">(</span><span class="s1">&#39;PS&#39;</span><span class="p">,</span> <span class="s1">&#39;bone marrow&#39;</span><span class="p">)</span>
+        <span class="n">csf</span> <span class="o">=</span> <span class="n">perfusion</span><span class="p">(</span><span class="s1">&#39;PS&#39;</span><span class="p">,</span> <span class="s1">&#39;csf&#39;</span><span class="p">)</span>
+        <span class="n">gm</span> <span class="o">=</span> <span class="n">perfusion</span><span class="p">(</span><span class="s1">&#39;PS&#39;</span><span class="p">,</span> <span class="s1">&#39;gray matter&#39;</span><span class="p">)</span>
+        <span class="n">tumor</span> <span class="o">=</span> <span class="mf">0.001</span>
+        <span class="n">blood</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">elif</span> <span class="n">param</span> <span class="o">==</span> <span class="s1">&#39;vi&#39;</span><span class="p">:</span>
+        <span class="n">scalp</span> <span class="o">=</span> <span class="n">perfusion</span><span class="p">(</span><span class="s1">&#39;vi&#39;</span><span class="p">,</span> <span class="s1">&#39;skin&#39;</span><span class="p">)</span>
+        <span class="n">bone</span> <span class="o">=</span> <span class="n">perfusion</span><span class="p">(</span><span class="s1">&#39;vi&#39;</span><span class="p">,</span> <span class="s1">&#39;bone marrow&#39;</span><span class="p">)</span>
+        <span class="n">csf</span> <span class="o">=</span> <span class="n">perfusion</span><span class="p">(</span><span class="s1">&#39;vi&#39;</span><span class="p">,</span> <span class="s1">&#39;csf&#39;</span><span class="p">)</span>
+        <span class="n">gm</span> <span class="o">=</span> <span class="n">perfusion</span><span class="p">(</span><span class="s1">&#39;vi&#39;</span><span class="p">,</span> <span class="s1">&#39;gray matter&#39;</span><span class="p">)</span>
+        <span class="n">tumor</span> <span class="o">=</span> <span class="mf">0.3</span>
+        <span class="n">blood</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="c1"># 1 Scalp</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.72</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="n">scalp</span><span class="p">)</span>
+    <span class="c1"># 2 Bone and marrow</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.69</span><span class="p">,</span> <span class="mf">0.92</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="n">bone</span><span class="p">)</span>
+    <span class="c1"># 3 CSF</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.0184</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.6624</span><span class="p">,</span> <span class="mf">0.874</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="n">csf</span><span class="p">)</span>
+    <span class="c1"># 4 Gray matter</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.0184</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.6524</span><span class="p">,</span> <span class="mf">0.864</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="n">gm</span><span class="p">)</span>
+    <span class="c1"># 5 CSF</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.22</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.41</span><span class="p">,</span> <span class="mf">0.16</span><span class="p">],</span> <span class="mi">180</span> <span class="o">-</span> <span class="mi">18</span><span class="p">,</span> <span class="n">csf</span><span class="p">)</span>
+    <span class="c1"># 6 CSF</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.22</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.31</span><span class="p">,</span> <span class="mf">0.11</span><span class="p">],</span> <span class="mi">180</span> <span class="o">+</span> <span class="mi">18</span><span class="p">,</span> <span class="n">csf</span><span class="p">)</span>
+    <span class="c1"># 7 Tumor</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.35</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.21</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="n">tumor</span><span class="p">)</span>
+    <span class="c1"># 8 Tumor</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.046</span><span class="p">,</span> <span class="mf">0.046</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="n">tumor</span><span class="p">)</span>
+    <span class="c1"># 9 Tumor</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.605</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.08</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.046</span><span class="p">,</span> <span class="mf">0.023</span><span class="p">],</span> <span class="mi">90</span><span class="p">,</span> <span class="n">tumor</span><span class="p">)</span>
+    <span class="c1"># 10 Tumor</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.605</span><span class="p">,</span> <span class="mf">0.06</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.023</span><span class="p">,</span> <span class="mf">0.046</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="n">tumor</span><span class="p">)</span>
+    <span class="c1"># 11 Tumor</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.046</span><span class="p">,</span> <span class="mf">0.046</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="n">tumor</span><span class="p">)</span>
+    <span class="c1"># 12 Tumor</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.605</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.023</span><span class="p">,</span> <span class="mf">0.023</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="n">tumor</span><span class="p">)</span>
+    <span class="c1"># 13 Sagittal sinus</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.83</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="n">blood</span><span class="p">)</span>
+    <span class="c1"># 14 Anterior cerebral artery</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">_ellipse</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.66</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.02</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="n">blood</span><span class="p">)</span>
+    <span class="c1"># Flip</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">array</span>
+
+
+<div class="viewcode-block" id="shepp_logan">
+<a class="viewcode-back" href="../../api/dcmri.shepp_logan.html#dcmri.shepp_logan">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">shepp_logan</span><span class="p">(</span><span class="o">*</span><span class="n">params</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">B0</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Modified Shepp-Logan phantom mimicking an axial slice through the brain.</span>
+
+<span class="sd">    The phantom is based on an MRI adaptation of the Shepp-Logan phantom </span>
+<span class="sd">    (Gach et al 2008), but with added features for use in a DC-MRI setting: </span>
+<span class="sd">    (1) additional regions for anterior cerebral artery and sinus sagittalis; </span>
+<span class="sd">    (2) additional optional contrasts blood flow (BF), blood volume (BV), </span>
+<span class="sd">    permeability-surface area product (PS) and interstitial volume (IV).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        params (str or tuple): parameter or parameters shown in the image. </span>
+<span class="sd">          The options are &#39;PD&#39; (proton density), &#39;T1&#39;, &#39;T2&#39;, &#39;Fb&#39; (blood flow), </span>
+<span class="sd">          &#39;vb&#39; (Blood volume), &#39;PS&#39; (permeability-surface area product) and </span>
+<span class="sd">          &#39;vi&#39; (interstitial volume). If no parameters are provided, the </span>
+<span class="sd">          function returns a dictionary with 14 masks, one for each region.</span>
+<span class="sd">        n (int, optional): matrix size. Defaults to 256.</span>
+<span class="sd">        B0 (int, optional): field strength in T. Defaults to 3.</span>
+
+<span class="sd">    Reference:</span>
+<span class="sd">        H. M. Gach, C. Tanase and F. Boada, &quot;2D &amp; 3D Shepp-Logan Phantom </span>
+<span class="sd">        Standards for MRI,&quot; 2008 19th International Conference on Systems </span>
+<span class="sd">        Engineering, Las Vegas, NV, USA, 2008, pp. 521-526, </span>
+<span class="sd">        `doi 10.1109/ICSEng.2008.15 &lt;https://ieeexplore.ieee.org/document/4616690&gt;`_.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        numpy.array or dict: if only one parameter is provided, this returns </span>
+<span class="sd">        an array. In all other conditions this returns a dictionary where keys </span>
+<span class="sd">        are the parameter- or region names, and values are square arrays with </span>
+<span class="sd">        image values.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        Mask names:</span>
+<span class="sd">            - background</span>
+<span class="sd">            - scalp</span>
+<span class="sd">            - bone</span>
+<span class="sd">            - CSF skull</span>
+<span class="sd">            - CSF left</span>
+<span class="sd">            - CSF right</span>
+<span class="sd">            - gray matter</span>
+<span class="sd">            - tumor 1 to tumor 6</span>
+<span class="sd">            - sagittal sinus</span>
+<span class="sd">            - anterior artery</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">    Generate a single contrast:</span>
+
+<span class="sd">    .. plot::</span>
+<span class="sd">        :include-source:</span>
+
+<span class="sd">        &gt;&gt;&gt; import matplotlib.pyplot as plt</span>
+<span class="sd">        &gt;&gt;&gt; import dcmri as dc</span>
+
+<span class="sd">        Simulate a synthetic blood flow image:</span>
+
+<span class="sd">        &gt;&gt;&gt; im = dc.shepp_logan(&#39;Fb&#39;)</span>
+
+<span class="sd">        Plot the result in units of mL/min/100mL:</span>
+
+<span class="sd">        &gt;&gt;&gt; fig, ax = plt.subplots(figsize=(5, 5), ncols=1)</span>
+<span class="sd">        &gt;&gt;&gt; pos = ax.imshow(6000*im, cmap=&#39;gray&#39;, vmin=0.0, vmax=80)</span>
+<span class="sd">        &gt;&gt;&gt; fig.colorbar(pos, ax=ax, label=&#39;blood flow (mL/min/100mL)&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.show()</span>
+
+<span class="sd">    Generate multiple contrasts in one function call:</span>
+
+<span class="sd">    .. plot::</span>
+<span class="sd">        :include-source:</span>
+
+<span class="sd">        &gt;&gt;&gt; import matplotlib.pyplot as plt</span>
+<span class="sd">        &gt;&gt;&gt; import dcmri as dc</span>
+
+<span class="sd">        Generate the MR Shepp-Logan phantom in low resolution:</span>
+
+<span class="sd">        &gt;&gt;&gt; im = dc.shepp_logan(&#39;PD&#39;, &#39;T1&#39;, &#39;T2&#39;, n=64)</span>
+
+<span class="sd">        Plot the result:</span>
+
+<span class="sd">        &gt;&gt;&gt; fig, (ax1, ax2, ax3) = plt.subplots(figsize=(12, 5), ncols=3)</span>
+<span class="sd">        &gt;&gt;&gt; ax1.imshow(im[&#39;PD&#39;], cmap=&#39;gray&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; ax2.imshow(im[&#39;T1&#39;], cmap=&#39;gray&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; ax3.imshow(im[&#39;T2&#39;], cmap=&#39;gray&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.show()</span>
+
+<span class="sd">    Generate masks for the different regions-of-interest:</span>
+
+<span class="sd">    .. plot::</span>
+<span class="sd">        :include-source:</span>
+
+<span class="sd">        &gt;&gt;&gt; import matplotlib.pyplot as plt</span>
+<span class="sd">        &gt;&gt;&gt; import dcmri as dc</span>
+
+<span class="sd">        Generate the MR Shepp-Logan phantom masks:</span>
+
+<span class="sd">        &gt;&gt;&gt; im = dc.shepp_logan(n=128)</span>
+
+<span class="sd">        Plot all masks:</span>
+
+<span class="sd">        &gt;&gt;&gt; fig, ax = plt.subplots(figsize=(8, 8), ncols=4, nrows=4)</span>
+<span class="sd">        &gt;&gt;&gt; ax[0,0].imshow(im[&#39;background&#39;], cmap=&#39;gray&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; ax[0,1].imshow(im[&#39;scalp&#39;], cmap=&#39;gray&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; ax[0,2].imshow(im[&#39;bone&#39;], cmap=&#39;gray&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; ax[0,3].imshow(im[&#39;CSF skull&#39;], cmap=&#39;gray&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; ax[1,0].imshow(im[&#39;CSF left&#39;], cmap=&#39;gray&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; ax[1,1].imshow(im[&#39;CSF right&#39;], cmap=&#39;gray&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; ax[1,2].imshow(im[&#39;gray matter&#39;], cmap=&#39;gray&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; ax[1,3].imshow(im[&#39;tumor 1&#39;], cmap=&#39;gray&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; ax[2,0].imshow(im[&#39;tumor 2&#39;], cmap=&#39;gray&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; ax[2,1].imshow(im[&#39;tumor 3&#39;], cmap=&#39;gray&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; ax[2,2].imshow(im[&#39;tumor 4&#39;], cmap=&#39;gray&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; ax[2,3].imshow(im[&#39;tumor 5&#39;], cmap=&#39;gray&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; ax[3,0].imshow(im[&#39;tumor 6&#39;], cmap=&#39;gray&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; ax[3,1].imshow(im[&#39;sagittal sinus&#39;], cmap=&#39;gray&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; ax[3,2].imshow(im[&#39;anterior artery&#39;], cmap=&#39;gray&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; for i in range(4):</span>
+<span class="sd">        &gt;&gt;&gt;     for j in range(4):</span>
+<span class="sd">        &gt;&gt;&gt;         ax[i,j].set_yticklabels([])</span>
+<span class="sd">        &gt;&gt;&gt;         ax[i,j].set_xticklabels([])</span>
+<span class="sd">        &gt;&gt;&gt; plt.show()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">params</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_shepp_logan_mask</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">params</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_shepp_logan</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">n</span><span class="o">=</span><span class="n">n</span><span class="p">,</span> <span class="n">B0</span><span class="o">=</span><span class="n">B0</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">phantom</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
+            <span class="n">phantom</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">_shepp_logan</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="n">n</span><span class="p">,</span> <span class="n">B0</span><span class="o">=</span><span class="n">B0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">phantom</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024-2025, dcmri contributors.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

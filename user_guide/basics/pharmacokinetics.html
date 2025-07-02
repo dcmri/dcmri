@@ -1,0 +1,919 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Pharmacokinetics &#8212; dcmri 0.6.17 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=cd8af66b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=0d21fabb"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-64ZSJ8Z1MX"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'user_guide/basics/pharmacokinetics';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Relaxation" href="relaxation.html" />
+    <link rel="prev" title="Summary" href="summary.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/tristan-logo.jpg" class="logo__image only-light" alt="dcmri 0.6.17 documentation - Home"/>
+    <img src="../../_static/tristan-logo.jpg" class="logo__image only-dark pst-js-only" alt="dcmri 0.6.17 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../releases/index.html">
+    Releases
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../about/index.html">
+    About
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../releases/index.html">
+    Releases
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../about/index.html">
+    About
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">How to use dcmri</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../units.html">Units</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">Basic concepts</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="summary.html">Summary</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">Pharmacokinetics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="relaxation.html">Relaxation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sequences.html">Signals</a></li>
+<li class="toctree-l2"><a class="reference internal" href="optimization.html">Optimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="inversion.html">Inversion</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../tissues/index.html">Tissue types</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">User guide</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Basic concepts</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Pharmacokinetics</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="pharmacokinetics">
+<span id="basics-pharmacokinetics"></span><h1>Pharmacokinetics<a class="headerlink" href="#pharmacokinetics" title="Link to this heading">#</a></h1>
+<p>An <strong>indicator</strong> is a foreign substance added to a body fluid
+which is separately detectable. A <strong>tracer</strong> is a special kind of indicator
+which behaves in exactly the same way as a component of the body fluid.
+Labelled water such as that used in arterial spin labelling is a tracer. MRI
+contrast agents are an example of an indicator that is <em>not</em> a tracer.</p>
+<p>Pharmacokinetics creates the critical link between tissue parameters and
+concentration-time profiles of an indicator. In
+DC-MRI the indicator is usually an MR contrast agent. It is initially
+added to venous blood, and then carried through the circulation and
+distributed through the rest of the body.</p>
+<p><code class="docutils literal notranslate"><span class="pre">dcmri</span></code> provides a library of simple pharmacokinetic models, which can be
+assembled to build more complex pharmacokinetic models (see section
+<a class="reference internal" href="../../reference/pk_blocks.html#pk-blocks"><span class="std std-ref">PK blocks</span></a>). For each system, functions are included which return the
+tissue concentration <em>C(t)</em> and outflux <em>J(t)</em> of the system.</p>
+<p>The sections
+below define the models and their solutions in more detail.
+See the <a class="reference internal" href="#pk-terms"><span class="std std-ref">table with definitions</span></a> for a summary of
+relevant terms and notations. This introduction aims to provide sufficient
+detail to unambiguously define all models included in <code class="docutils literal notranslate"><span class="pre">dcmri</span></code>, but is not
+intended to provide a full introduction to pharmacokinetics. For that we
+refer to classic textbooks or review papers.</p>
+<section id="definitions-and-notations">
+<h2>Definitions and notations<a class="headerlink" href="#definitions-and-notations" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><span id="pk-terms"></span><table class="table" id="id1">
+<caption><span class="caption-text"><strong>Pharmacokinetic models: definitions and notations</strong></span><a class="headerlink" href="#id1" title="Link to this table">#</a></caption>
+<colgroup>
+<col style="width: 17.6%" />
+<col style="width: 23.5%" />
+<col style="width: 47.1%" />
+<col style="width: 11.8%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Short name</p></th>
+<th class="head"><p>Full name</p></th>
+<th class="head"><p>Definition</p></th>
+<th class="head"><p>Units</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>J</p></td>
+<td><p>Indicator flux</p></td>
+<td><p>The amount of indicator molecules entering or leaving
+a system in a unit of time.</p></td>
+<td><p>mmol/sec</p></td>
+</tr>
+<tr class="row-odd"><td><p>c</p></td>
+<td><p>Indicator concentration</p></td>
+<td><p>The amount of indicator molecules relative to the volume of
+distribution.</p></td>
+<td><p>mmol/mL</p></td>
+</tr>
+<tr class="row-even"><td><p>C</p></td>
+<td><p>Indicator tissue concentration</p></td>
+<td><p>The amount of indicator molecules relative to the volume of tissue.</p></td>
+<td><p>mmol/cm3</p></td>
+</tr>
+<tr class="row-odd"><td><p>v</p></td>
+<td><p>Indicator volume of distribution</p></td>
+<td><p>The fraction of the tissue accessible to the indicator.</p></td>
+<td><p>mL/cm3</p></td>
+</tr>
+<tr class="row-even"><td><p>T</p></td>
+<td><p>Indicator mean transit time</p></td>
+<td><p>The average time an indicator molecule needs to pass through the tissue.</p></td>
+<td><p>sec</p></td>
+</tr>
+<tr class="row-odd"><td><p>R</p></td>
+<td><p>Residue function</p></td>
+<td><p>The fraction of indicator left at time t of an injection at time t=0.</p></td>
+<td><p>dimensionless</p></td>
+</tr>
+<tr class="row-even"><td><p>h</p></td>
+<td><p>Propagator</p></td>
+<td><p>The transit time distribution</p></td>
+<td><p>1/sec</p></td>
+</tr>
+<tr class="row-odd"><td><p>K</p></td>
+<td><p>Compartment rate constant</p></td>
+<td><p>The ratio between outflux and tissue concentration.</p></td>
+<td><p>1/sec</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="indicator-transit-times">
+<h2>Indicator transit times<a class="headerlink" href="#indicator-transit-times" title="Link to this heading">#</a></h2>
+<p>Explicit definitions of pharmacokinetic models are built on the conservation
+of indicator mass:</p>
+<div class="math notranslate nohighlight">
+\[\frac{dC}{dt}(t) = J_\mathrm{in}(t) - J_\mathrm{out}(t)\]</div>
+<p>For linear and stationary systems, solutions can always be written in terms
+of the residue function <em>R(t)</em> and the propagator <em>h(t)</em>:</p>
+<div class="math notranslate nohighlight">
+\[J_\mathrm{out}(t) = h(t)*J_\mathrm{in}(t)
+\qquad\textrm{and}\qquad
+C(t) = R(t)*J_\mathrm{in}(t)\]</div>
+<p>Here the symbol <span class="math notranslate nohighlight">\(*\)</span> denotes the <strong>convolution product</strong> of two
+functions, which is defined in this context as:</p>
+<div class="math notranslate nohighlight">
+\[(f*g)(t) = \int_0^t d\tau f(\tau)g(t-\tau)\]</div>
+<p>The propagator <em>h(t)</em> can be interpreted as the probability distribution of
+transit times through the tissue. The expectation value of <em>h(t)</em> is
+therefore the <strong>mean transit time</strong> <em>T</em> of the
+system. Substituting the definitions of <em>R(t)</em> and <em>h(t)</em> in the equation
+of mass conservation we find a relationship between them:</p>
+<div class="math notranslate nohighlight">
+\[R(t) = 1 - \int_0^t h(\tau) d\tau\]</div>
+<p>This implies that the mean transit time is also the area under <em>R(t)</em>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">dcmri</span></code> includes discrete approximations of <em>R(t)</em> and <em>h(t)</em> for most
+systems. In some cases these are trivial, but implementations are nevertheless
+provided for completeness. We are assuming throughout this section and all
+implementations that <em>t=0</em> at the start of the acquisition and the system
+contains no indicator concentrations at that time.</p>
+</section>
+<section id="trap">
+<span id="define-trap"></span><h2>Trap<a class="headerlink" href="#trap" title="Link to this heading">#</a></h2>
+<p>The simplest pharmacokinetic system is the <strong>trap</strong>, which captures all the
+indicator that enters it (see section <a class="reference internal" href="../../reference/pk_blocks.html#reference-trap"><span class="std std-ref">Trap</span></a>
+for implementations):</p>
+<div class="math notranslate nohighlight">
+\[C(t) = \int_0^t J_\mathrm{in}(\tau)d\tau\]</div>
+<p>In practice a system behaves like a trap when the shortest transit times are
+longer than the acquisition time. In that case any loss of indicator falls
+beyond the measurement window and the concentrations are accurately predicted
+by modelling the system as a trap.</p>
+</section>
+<section id="pass">
+<span id="define-pass"></span><h2>Pass<a class="headerlink" href="#pass" title="Link to this heading">#</a></h2>
+<p>A <strong>pass</strong> is a space where the concentration is proportional to the input
+(see section <a class="reference internal" href="../../reference/pk_blocks.html#reference-pass"><span class="std std-ref">Pass</span></a> for implementations). For a
+pass with mean transit time <em>T</em> and volume fraction <em>v</em>, the tissue
+concentration is proportional to the influx or inlet concentration:</p>
+<div class="math notranslate nohighlight">
+\[C(t) = T J_\mathrm{in}(t) = vc_\mathrm{in}(t)\]</div>
+<p>In practice it is used to model tissues where the transit times are shorter
+than the temporal sampling interval. Under these conditions any bolus
+broadening is not detectable.</p>
+</section>
+<section id="compartment">
+<span id="define-compartment"></span><h2>Compartment<a class="headerlink" href="#compartment" title="Link to this heading">#</a></h2>
+<p>A <strong>compartment</strong> is a space where the outflux is proportional to the
+concentration (see section <a class="reference internal" href="../../reference/pk_blocks.html#reference-compartment"><span class="std std-ref">Compartment</span></a> for implementations).
+This is particularly true in systems that are <em>well-mixed</em>, i.e. have a
+uniform concentration throughout.</p>
+<p>Expressing conservation of indicator mass provides the mathematical
+definition of a compartment:</p>
+<div class="math notranslate nohighlight">
+\[\frac{dC}{dt}(t) = J_\mathrm{in}(t) - KC(t)\]</div>
+<p>Here <em>K</em> is the <strong>rate constant</strong> of the compartment. The solution is:</p>
+<div class="math notranslate nohighlight">
+\[C(t) = e^{-Kt}*J_\mathrm{in}(t)\]</div>
+<p>This shows that the residue function of a compartment is a mono-exponential,
+and its mean transit time is therefore the reciprocal <em>1/K</em>. The propagator
+of a compartment is a normalized exponential:</p>
+<div class="math notranslate nohighlight">
+\[h(t) = \frac{e^{-t/T}}{T}\]</div>
+</section>
+<section id="plug-flow">
+<span id="define-plug-flow"></span><h2>Plug flow<a class="headerlink" href="#plug-flow" title="Link to this heading">#</a></h2>
+<p>A <strong>plug-flow system</strong> is a space where all indicator particles have a
+constant velocity <em>u</em> (see section <a class="reference internal" href="../../reference/pk_blocks.html#reference-plug-flow"><span class="std std-ref">Plug flow</span></a> for
+implementations). Indicator motion through a plug-flow system can be
+modelled as a one-dimensional system with mass conservation at each point:</p>
+<div class="math notranslate nohighlight">
+\[\frac{\partial C}{\partial t}(x,t) =
+-u\frac{\partial C}{\partial x}(x,t)\]</div>
+<p>A plug flow system is in many ways the opposite of a compartment as it
+does not allow for any mixing at all. Indicator concentrations at the outlet
+are shifted in time but are not otherwise distorted:</p>
+<div class="math notranslate nohighlight">
+\[J_\mathrm{out} (t) = J_\mathrm{in}(t-T)\]</div>
+<p>The mean transit time <em>T</em> equals <em>u/L</em>, where <em>L</em> is the distance between in-
+and outlet. The concentration inside a plug flow system is found by
+integrating the mass conservation:</p>
+<div class="math notranslate nohighlight">
+\[C(t) = \int_0^t d\tau \left(J_\mathrm{in}(\tau) - J_\mathrm{in}(\tau-T)\right)\]</div>
+</section>
+<section id="chain">
+<span id="define-chain"></span><h2>Chain<a class="headerlink" href="#chain" title="Link to this heading">#</a></h2>
+<p>A <strong>chain</strong> is a serial arrangement of <em>n</em> identical compartments, each with a
+transit time <em>T/n</em> (see section <a class="reference internal" href="../../reference/pk_blocks.html#reference-chain"><span class="std std-ref">Chain</span></a> for
+implementations). The mean transit time of a chain is <em>T</em> and the
+propagator is a convolution of <em>n</em> exponentials (see also <a class="reference internal" href="../../api/dcmri.nexpconv.html#dcmri.nexpconv" title="dcmri.nexpconv"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dcmri.nexpconv</span></code></a>).
+This takes the form of a normalized gamma-variate function which is known to
+provide a good model for concentration-time curves after rapid indicator
+injection:</p>
+<div class="math notranslate nohighlight">
+\[h(t) = \frac{1}{\Gamma(n)}\left(\frac{t}{T/n}\right)^{n-1} \frac{e^{-t/T/n}}{T/n}\]</div>
+<p>With <span class="math notranslate nohighlight">\(n\to\infty\)</span> a chain becomes a plug flow system, and with
+<span class="math notranslate nohighlight">\(n=1\)</span> a chain is a single compartment. If we introduce a <strong>dispersion
+parameter</strong> <em>D = 1/n</em> with values in the range of [0,1], then a chain is
+fully characterized by two numbers <em>(T,D)</em> which has a compartment (D=1) and a
+plug flow system (D=0) as special cases. Moreover while the physical definition
+involves a discrete system of n compartments, the solution allows for D to take
+any value in the range [0,1].</p>
+<p>In practice a chain can therefore be used to model tissues that
+cause an unknown level of indicator dispersion in between the extremes of no
+dispersion (D=0) and maximal dispersion (D=1).</p>
+</section>
+<section id="plug-flow-compartment">
+<span id="define-pfcomp"></span><h2>Plug-flow compartment<a class="headerlink" href="#plug-flow-compartment" title="Link to this heading">#</a></h2>
+<p>A <strong>plug-flow compartment</strong> is a serial arrangement of a compartment with
+mean transit time <em>DT</em> and and plug-flow system with mean transit time
+<em>(1-D)T</em> (see section <a class="reference internal" href="../../reference/pk_blocks.html#reference-pfcomp"><span class="std std-ref">Plug-flow compartment</span></a> for implementations). The total
+mean transit time of a plug-flow compartment is <em>T</em>. The dimensionless
+parameter <em>D</em> can take any values in the interval [0,1] and the system has
+a plug-flow system (D=0) and a compartment (D=1) as special cases.</p>
+<p>The propagator of a plug-flow compartment is a delayed
+exponential function:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}h(t&lt;(1-D)T) &amp;= 0
+\\
+h(t&gt;(1-D)T) &amp;= \frac{e^{-(t-(1-D)T)/DT}}{DT}\end{split}\]</div>
+<p>A plug-flow compartment is similar to a chain in that it
+can be used to model tissues with an unknown level of dispersion by varying
+the dispersion parameter <em>D</em>. Its internal structure is coarser but it
+is computationally more efficient than a chain.</p>
+</section>
+<section id="step">
+<span id="define-step"></span><h2>Step<a class="headerlink" href="#step" title="Link to this heading">#</a></h2>
+<p>A <strong>step</strong> is a system where the transit time distribution is a step function
+with a constant non-zero value between the time points <em>(1-D)T</em> and <em>(1+D)T</em>
+(see section <a class="reference internal" href="../../reference/pk_blocks.html#reference-step"><span class="std std-ref">Step</span></a> for implementations):</p>
+<div class="math notranslate nohighlight">
+\[h( (1-D)T &lt; t &lt; (1+D)T ) = 1/(2DT)\]</div>
+<p>And h(t)=0 otherwise. The mean transit time of a step is T and just like the
+chain and the plug-flow compartment, the dispersion parameter <em>D</em> takes
+values in the range [0,1] where <em>D=1</em> represents maximum dispersion,
+and <em>D=0</em> is a plug-flow system without dispersion.</p>
+</section>
+<section id="free">
+<span id="define-free"></span><h2>Free<a class="headerlink" href="#free" title="Link to this heading">#</a></h2>
+<p>A <strong>free</strong> system is one where the transit time distribution can take any
+required form. The transit time distribution is parametrized as a histogram
+with any number of bins. The model parameters are the n+1 boundaries of the
+n bins, and the n frequencies of each bin (see section <a class="reference internal" href="../../reference/pk_blocks.html#reference-free"><span class="std std-ref">Free</span></a>
+for the available functions). For model fitting the boundaries are
+usually treated as fixed parameters, and the frequencies are treated as
+unknowns.</p>
+</section>
+<section id="n-compartment-system">
+<span id="define-ncomp"></span><h2>N-compartment system<a class="headerlink" href="#n-compartment-system" title="Link to this heading">#</a></h2>
+<p>An <strong>n-compartment system</strong> is a collection of <em>n</em> interacting compartments (see
+section <a class="reference internal" href="../../reference/pk_blocks.html#reference-ncomp"><span class="std std-ref">N-compartment models</span></a> for the available functions). Each compartment
+in the system can exchange with any other compartment, and with the external
+environment. The system is therefore characterized by <em>n</em> equations of the
+following form:</p>
+<div class="math notranslate nohighlight">
+\[\frac{dC_i}{dt}(t) = J_i(t) - \sum_{j=1}^n K_{ji}C_i(t) + \sum_{j\neq i}K_{ij}C_j(t)\]</div>
+<p>Here <span class="math notranslate nohighlight">\(J_i(t)\)</span> is the influx into compartment <em>i</em> fom the environment.
+The system is fully determined by the <span class="math notranslate nohighlight">\(n^2\)</span> rate constants <span class="math notranslate nohighlight">\(K_{ji}\)</span>
+which represent the rate constants for the outflux from
+<em>i</em> to <em>j</em> if <span class="math notranslate nohighlight">\(i\neq j\)</span>, and the rate constant for the outflux from
+<em>i</em> to the environment if <span class="math notranslate nohighlight">\(i= j\)</span>. Arranging the <em>n</em> concentrations and
+influxes in arrays <span class="math notranslate nohighlight">\(\mathbf{C}\)</span> and <span class="math notranslate nohighlight">\(\mathbf{J}\)</span> we can write this
+in a form very similar to the one-compartment case:</p>
+<div class="math notranslate nohighlight">
+\[\frac{d\mathbf{C}}{dt} = \mathbf{J} - \mathbf{\Lambda} \mathbf{C}\]</div>
+<p>Here <span class="math notranslate nohighlight">\(\Lambda\)</span> is a square matrix which has off-diagonal elements
+<span class="math notranslate nohighlight">\(-K_{ij}\)</span> and diagonal elements <span class="math notranslate nohighlight">\(K_i = \sum_j K_{ji}\)</span>. The general
+solution also has the same form as the one-compartment case, except that
+it now involves a matrix exponential:</p>
+<div class="math notranslate nohighlight">
+\[\mathbf{C}(t) = e^{-\mathbf{\Lambda}t} * \mathbf{J}(t)\]</div>
+<p>The mean transit time of each compartment is <span class="math notranslate nohighlight">\(T_i=1/K_i\)</span> and the
+extraction fraction <span class="math notranslate nohighlight">\(E_{ji}\)</span> from <em>i</em> to <em>j</em> is the ratio
+<span class="math notranslate nohighlight">\(K_{ji}/K_i\)</span>. An alternative way of characterizing the system is
+therefore in terms of the <em>n</em> mean transit times <span class="math notranslate nohighlight">\(T_i\)</span> and the <em>n(n-1)</em>
+extraction fractions <span class="math notranslate nohighlight">\(E_{ji}\)</span>.</p>
+</section>
+<section id="compartment-exchange">
+<span id="define-2comp"></span><h2>2-compartment exchange<a class="headerlink" href="#compartment-exchange" title="Link to this heading">#</a></h2>
+<p>A two-compartment exchange model is a 2-compartment model with a central
+compartment that exchanges with the environment, and a second compartment that
+only exchanges with the central compartment (see section
+<a class="reference internal" href="../../reference/pk_blocks.html#reference-2comp"><span class="std std-ref">2-compartment exchange</span></a>). It is characterised by 3
+parameters: the mean transit times of both compartments, and the extraction
+fraction from the central compartment into the second compartment. Since this
+is an example of an n-compartment model, the solution can be obtained from
+these more general functions, but a dedicated solution for the 2-compartment
+exchange model is more convenient to use.</p>
+</section>
+<section id="non-stationary-compartment">
+<span id="define-nscomp"></span><h2>Non-stationary compartment<a class="headerlink" href="#non-stationary-compartment" title="Link to this heading">#</a></h2>
+<p>A non-stationary compartment is a compartment with a rate constant that is a
+function of time (see section <a class="reference internal" href="../../reference/pk_blocks.html#reference-nscomp"><span class="std std-ref">Non-stationary compartment</span></a> for implementations):</p>
+<div class="math notranslate nohighlight">
+\[\frac{dC}{dt}(t) = J_\mathrm{in}(t) - K(t) C(t)\]</div>
+<p>In this case the solution can no longer be expressed as a convolution. Instead
+the equation must be solved numerically, for instance by forward propagation
+over small time steps <em>dt</em>:</p>
+<div class="math notranslate nohighlight">
+\[C(t+dt) = dt J_\mathrm{in}(t) + (1 - dt K(t)) C(t)\]</div>
+<p>The solution is stable if the time steps are small enough, i.e.
+<span class="math notranslate nohighlight">\(dt K(t) &lt; 1\)</span> for any time <em>t</em>. This also states that the time step <em>dt</em>
+must be smaller than the shortest mean transit time <em>T(t)</em> of the compartment.
+When fitting data with unknown transit time, suitable lower-bounds must be
+placed on the values of <em>T(t)</em> to avoid very small values of <em>dt</em> and
+correspondingly large computation times.</p>
+<p>A non-stationary compartment would be used in situations where the tissue
+properties themselves change in the course of the measurement - for instance
+because the acquisition is very long, or because rapid physiological changes
+are taking place. In practice the number of free parameters can be reduced
+by interpolating between values at particular times. For instance, parameters
+<span class="math notranslate nohighlight">\(K(t)\)</span> can be determined for each <span class="math notranslate nohighlight">\(t\)</span> by interpolating between
+two values <span class="math notranslate nohighlight">\((K_i, K_f)\)</span> at the initial and final time points,
+respectively. When the model is used to explain measured data, those two
+values would then be treated as free parameters.</p>
+</section>
+<section id="michaelis-menten-compartment">
+<span id="define-mmcomp"></span><h2>Michaelis-Menten compartment<a class="headerlink" href="#michaelis-menten-compartment" title="Link to this heading">#</a></h2>
+<p>The Michaelis-Menten compartment is a compartment where the rate constant
+depends on the concentration (see section <a class="reference internal" href="../../reference/pk_blocks.html#reference-mmcomp"><span class="std std-ref">Michaelis-Menten compartment</span></a> for
+implementations):</p>
+<div class="math notranslate nohighlight">
+\[\frac{dC}{dt} = -K(C) C
+\qquad\textrm{with}\qquad
+K(C) = \frac{V_\max}{K_m+C}\]</div>
+<p>For small enough concentrations <span class="math notranslate nohighlight">\(C &lt;&lt; K_m\)</span> this reduces to a standard
+linear compartment with <span class="math notranslate nohighlight">\(K=V_\max/K_m\)</span>. The Michaelis-Menten compartment
+would therefore mainly be used in situations where higher doses of contrast
+agent are injected. It is a classic example of a non-linear system and
+an analytical solution is available through the work of
+<a class="reference external" href="https://www.sciencedirect.com/science/article/pii/S0022519397904252">Schnell and Mendoza</a>.</p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="summary.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Summary</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="relaxation.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Relaxation</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#definitions-and-notations">Definitions and notations</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#indicator-transit-times">Indicator transit times</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#trap">Trap</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pass">Pass</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#compartment">Compartment</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#plug-flow">Plug flow</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#chain">Chain</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#plug-flow-compartment">Plug-flow compartment</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#step">Step</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#free">Free</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#n-compartment-system">N-compartment system</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#compartment-exchange">2-compartment exchange</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#non-stationary-compartment">Non-stationary compartment</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#michaelis-menten-compartment">Michaelis-Menten compartment</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/user_guide/basics/pharmacokinetics.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024-2025, dcmri contributors.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

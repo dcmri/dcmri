@@ -1,0 +1,42 @@
+﻿dcmri.Tissue
+============
+
+.. currentmodule:: dcmri
+
+.. autoclass:: Tissue
+   :members:                                                    
+   :inherited-members: 
+
+   
+   
+   
+
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~Tissue.conc
+      ~Tissue.cost
+      ~Tissue.export_params
+      ~Tissue.info
+      ~Tissue.load
+      ~Tissue.magnetization
+      ~Tissue.params
+      ~Tissue.plot
+      ~Tissue.predict
+      ~Tissue.print_params
+      ~Tissue.relax
+      ~Tissue.save
+      ~Tissue.set_free
+      ~Tissue.signal
+      ~Tissue.time
+      ~Tissue.train
+   
+   
+
+
+.. minigallery:: dcmri.Tissue
+   :add-heading:

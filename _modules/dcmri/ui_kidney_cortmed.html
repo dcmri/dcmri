@@ -1,0 +1,886 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>dcmri.ui_kidney_cortmed &#8212; dcmri 0.6.17 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=cd8af66b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=0d21fabb"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-64ZSJ8Z1MX"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/dcmri/ui_kidney_cortmed';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/tristan-logo.jpg" class="logo__image only-light" alt="dcmri 0.6.17 documentation - Home"/>
+    <img src="../../_static/tristan-logo.jpg" class="logo__image only-dark pst-js-only" alt="dcmri 0.6.17 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../releases/index.html">
+    Releases
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../about/index.html">
+    About
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../releases/index.html">
+    Releases
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../about/index.html">
+    About
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">dcmri.ui_kidney_cortmed</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for dcmri.ui_kidney_cortmed</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">dcmri.kidney</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pkk</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">dcmri.lib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">lib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">dcmri.ui</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ui</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">dcmri.sig</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sig</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">dcmri.utils</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">utils</span>
+
+
+<div class="viewcode-block" id="KidneyCortMed">
+<a class="viewcode-back" href="../../api/dcmri.KidneyCortMed.html#dcmri.KidneyCortMed">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">KidneyCortMed</span><span class="p">(</span><span class="n">ui</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    General model for renal cortico-medullary data.</span>
+
+<span class="sd">    **warning**: This model is functional but under active </span>
+<span class="sd">    development. Future versions may change without warning.</span>
+
+<span class="sd">        **Kinetic parameters**</span>
+
+<span class="sd">        - **Hct** (float, optional): Hematocrit. </span>
+<span class="sd">        - **Fp** Plasma flow in mL/sec/mL. </span>
+<span class="sd">        - **Eg** Glomerular extraction fraction. </span>
+<span class="sd">        - **fc** Cortical flow fraction. </span>
+<span class="sd">        - **Tg** Glomerular mean transit time in sec. </span>
+<span class="sd">        - **Tv** Peritubular &amp; venous mean transit time in sec. </span>
+<span class="sd">        - **Tpt** Proximal tubuli mean transit time in sec. </span>
+<span class="sd">        - **Tlh** Lis of Henle mean transit time in sec. </span>
+<span class="sd">        - **Tdt** Distal tubuli mean transit time in sec. </span>
+<span class="sd">        - **Tcd** Collecting duct mean transit time in sec.</span>
+
+<span class="sd">        **Input function**</span>
+
+<span class="sd">        - **aif** (array-like, default=None): Signal-time curve in a feeding artery. If AIF is set to None, then the parameter ca must be provided (arterial concentrations).</span>
+<span class="sd">        - **ca** (array-like, default=None): Concentration (M) in the arterial input. Must be provided when aif = None, ignored otherwise.</span>
+
+<span class="sd">        **Acquisition parameters**</span>
+
+<span class="sd">        - **sequence** (str, default=&#39;SR&#39;): imaging sequence.</span>
+<span class="sd">        - **dt** (float, optional): Sampling interval of the AIF in sec. </span>
+<span class="sd">        - **agent** (str, optional): Contrast agent generic name.</span>
+<span class="sd">        - **field_strength** (float, optional): Magnetic field strength in T. </span>
+<span class="sd">        - **TR** (float, optional): Repetition time, or time between excitation pulses, in sec. </span>
+<span class="sd">        - **FA** (float, optional): Nominal flip angle in degrees.</span>
+<span class="sd">        - **Tsat** (float, optional): Time before start of readout (sec).</span>
+<span class="sd">        - **TC** (float, optional): Time to the center of the readout pulse</span>
+<span class="sd">        - **n0** (float, optional): Baseline length in number of acquisitions.</span>
+
+<span class="sd">        **Signal parameters**</span>
+
+<span class="sd">        - **R10c** (float, optional): Precontrast cortex relaxation rate in 1/sec. </span>
+<span class="sd">        - **R10m** (float, optional): Precontrast medulla relaxation rate in 1/sec.</span>
+<span class="sd">        - **R10a** (float, optional): Precontrast arterial relaxation rate in 1/sec. </span>
+<span class="sd">        - **S0c** (float, optional): Signal scaling factor in the cortex (a.u.).</span>
+<span class="sd">        - **S0m** (float, optional): Signal scaling factor in the medulla (a.u.).</span>
+
+<span class="sd">        **Prediction and training parameters**</span>
+
+<span class="sd">        - **free** (array-like): list of free parameters. The default depends on the kinetics parameter.</span>
+<span class="sd">        - **free** (array-like): 2-element list with lower and upper free of the free parameters. The default depends on the kinetics parameter.</span>
+
+<span class="sd">        **Other parameters**</span>
+
+<span class="sd">        - **vol** (float, optional): Liver volume in mL.</span>
+
+
+<span class="sd">    See Also:</span>
+<span class="sd">        `Kidney`, `Liver`</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">        Derive model parameters from simulated data:</span>
+
+<span class="sd">    .. plot::</span>
+<span class="sd">        :include-source:</span>
+<span class="sd">        :context: close-figs</span>
+
+<span class="sd">        &gt;&gt;&gt; import dcmri as dc</span>
+
+<span class="sd">        Use `fake_kidney` to generate synthetic test data:</span>
+
+<span class="sd">        &gt;&gt;&gt; time, aif, roi, gt = dc.fake_kidney(CNR=100)</span>
+
+<span class="sd">        Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:</span>
+
+<span class="sd">        &gt;&gt;&gt; model = dc.KidneyCortMed(</span>
+<span class="sd">        ...     aif = aif,</span>
+<span class="sd">        ...     dt = time[1],</span>
+<span class="sd">        ...     agent = &#39;gadoterate&#39;,</span>
+<span class="sd">        ...     TR = 0.005,</span>
+<span class="sd">        ...     FA = 15,</span>
+<span class="sd">        ...     TC = 0.2,</span>
+<span class="sd">        ...     n0 = 10,</span>
+<span class="sd">        ... )</span>
+
+<span class="sd">        Train the model on the ROI data and predict signals and concentrations:</span>
+
+<span class="sd">        &gt;&gt;&gt; model.train(time, roi)</span>
+
+<span class="sd">        Plot the reconstructed signals (left) and concentrations (right) and compare the concentrations against the noise-free ground truth:</span>
+
+<span class="sd">        &gt;&gt;&gt; model.plot(time, roi, ref=gt)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">free</span> <span class="o">=</span> <span class="p">{}</span>   <span class="c1">#: lower- and upper free for all free parameters.</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sequence</span><span class="o">=</span><span class="s1">&#39;SR&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">):</span>
+
+        <span class="c1"># Config</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sequence</span> <span class="o">=</span> <span class="n">sequence</span>
+
+        <span class="c1"># Input function</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aif</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ca</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Acquisition parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">field_strength</span> <span class="o">=</span> <span class="mf">3.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">=</span> <span class="mf">0.5</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">agent</span> <span class="o">=</span> <span class="s1">&#39;gadoterate&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n0</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">TR</span> <span class="o">=</span> <span class="mf">0.005</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">FA</span> <span class="o">=</span> <span class="mf">15.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Tsat</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">TC</span> <span class="o">=</span> <span class="mf">0.085</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">TS</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Tracer-kinetic parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Hct</span> <span class="o">=</span> <span class="mf">0.45</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Fp</span> <span class="o">=</span> <span class="mf">0.03</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Eg</span> <span class="o">=</span> <span class="mf">0.15</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fc</span> <span class="o">=</span> <span class="mf">0.8</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Tg</span> <span class="o">=</span> <span class="mi">4</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Tv</span> <span class="o">=</span> <span class="mi">10</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Tpt</span> <span class="o">=</span> <span class="mi">60</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Tlh</span> <span class="o">=</span> <span class="mi">60</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Tdt</span> <span class="o">=</span> <span class="mi">30</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Tcd</span> <span class="o">=</span> <span class="mi">30</span>
+
+        <span class="c1"># Signal parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">R10c</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="n">lib</span><span class="o">.</span><span class="n">T1</span><span class="p">(</span><span class="mf">3.0</span><span class="p">,</span> <span class="s1">&#39;kidney&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">R10m</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="n">lib</span><span class="o">.</span><span class="n">T1</span><span class="p">(</span><span class="mf">3.0</span><span class="p">,</span> <span class="s1">&#39;kidney&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">R10a</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="n">lib</span><span class="o">.</span><span class="n">T1</span><span class="p">(</span><span class="mf">3.0</span><span class="p">,</span> <span class="s1">&#39;blood&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">S0c</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">S0m</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="c1"># Other parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vol</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># training parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">free</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;Fp&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+            <span class="s1">&#39;Eg&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+            <span class="s1">&#39;fc&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+            <span class="s1">&#39;Tg&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">],</span>
+            <span class="s1">&#39;Tv&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">30</span><span class="p">],</span>
+            <span class="s1">&#39;Tpt&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span>
+            <span class="s1">&#39;Tlh&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span>
+            <span class="s1">&#39;Tdt&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span>
+            <span class="s1">&#39;Tcd&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span>
+        <span class="p">}</span>
+
+        <span class="c1"># overide defaults</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+
+        <span class="c1"># Check inputs</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">aif</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ca</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s1">&#39;Please provide either an arterial sigal (aif) or an arterial concentration (ca).&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="KidneyCortMed.time">
+<a class="viewcode-back" href="../../api/dcmri.KidneyCortMed.html#dcmri.KidneyCortMed.time">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Array of time points</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            np.ndarray: time points in seconds.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">aif</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ca</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">aif</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span></div>
+
+
+<div class="viewcode-block" id="KidneyCortMed.conc">
+<a class="viewcode-back" href="../../api/dcmri.KidneyCortMed.html#dcmri.KidneyCortMed.conc">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">conc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">sum</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Cortical and medullary concentration</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: Concentration in cortex, concentration in medulla, in M</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">aif</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">r1</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">relaxivity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">field_strength</span><span class="p">,</span> <span class="s1">&#39;blood&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence</span> <span class="o">==</span> <span class="s1">&#39;SR&#39;</span><span class="p">:</span>
+                <span class="n">cb</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">conc_src</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">aif</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TC</span><span class="p">,</span> <span class="mi">1</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">R10a</span><span class="p">,</span> <span class="n">r1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n0</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence</span> <span class="o">==</span> <span class="s1">&#39;SS&#39;</span><span class="p">:</span>
+                <span class="n">cb</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">conc_ss</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">aif</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TR</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">FA</span><span class="p">,</span>
+                                 <span class="mi">1</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">R10a</span><span class="p">,</span> <span class="n">r1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n0</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                    <span class="s1">&#39;Signal model &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence</span> <span class="o">+</span> <span class="s1">&#39;is not (yet) supported.&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ca</span> <span class="o">=</span> <span class="n">cb</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">Hct</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pkk</span><span class="o">.</span><span class="n">conc_kidney_cm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ca</span><span class="p">,</span>
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">Fp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Eg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Tg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Tv</span><span class="p">,</span>
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">Tpt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Tlh</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Tdt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Tcd</span><span class="p">,</span>
+                                  <span class="n">t</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="nb">sum</span><span class="o">=</span><span class="nb">sum</span><span class="p">,</span> <span class="n">kinetics</span><span class="o">=</span><span class="s1">&#39;7C&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="KidneyCortMed.predict">
+<a class="viewcode-back" href="../../api/dcmri.KidneyCortMed.html#dcmri.KidneyCortMed.predict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xdata</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Predict the data at given xdata</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            xdata (array-like): Either an array with x-values (time points) or a tuple with multiple such arrays</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple[np.ndarray,np.ndarray]: tuple of two 1D arrays with signal in corex and medulla, respectively.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Cc</span><span class="p">,</span> <span class="n">Cm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conc</span><span class="p">()</span>
+        <span class="n">r1</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">relaxivity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">field_strength</span><span class="p">,</span> <span class="s1">&#39;blood&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent</span><span class="p">)</span>
+        <span class="n">R1c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">R10c</span> <span class="o">+</span> <span class="n">r1</span><span class="o">*</span><span class="n">Cc</span>
+        <span class="n">R1m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">R10m</span> <span class="o">+</span> <span class="n">r1</span><span class="o">*</span><span class="n">Cm</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence</span> <span class="o">==</span> <span class="s1">&#39;SR&#39;</span><span class="p">:</span>
+            <span class="n">Sc</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_spgr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">S0c</span><span class="p">,</span> <span class="n">R1c</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TC</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TR</span><span class="p">,</span>
+                               <span class="bp">self</span><span class="o">.</span><span class="n">FA</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Tsat</span><span class="p">)</span>
+            <span class="n">Sm</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_spgr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">S0m</span><span class="p">,</span> <span class="n">R1m</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TC</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TR</span><span class="p">,</span>
+                               <span class="bp">self</span><span class="o">.</span><span class="n">FA</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Tsat</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence</span> <span class="o">==</span> <span class="s1">&#39;SS&#39;</span><span class="p">:</span>
+            <span class="n">Sc</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_ss</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">S0c</span><span class="p">,</span> <span class="n">R1c</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TR</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">FA</span><span class="p">)</span>
+            <span class="n">Sm</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_ss</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">S0m</span><span class="p">,</span> <span class="n">R1m</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TR</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">FA</span><span class="p">)</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">xdata</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">Sc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TS</span><span class="p">),</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">xdata</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">Sm</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TS</span><span class="p">),</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="KidneyCortMed.train">
+<a class="viewcode-back" href="../../api/dcmri.KidneyCortMed.html#dcmri.KidneyCortMed.train">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xdata</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">ydata</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Train the free parameters</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            xdata (array-like): Array with x-data (time points)</span>
+<span class="sd">            ydata (tuple): Tuple of two 1D arrays (signal_cortex, signal_mdeulla) with signals in cortex and medulla, respectively.</span>
+<span class="sd">            kwargs: any keyword parameters accepted by `scipy.optimize.curve_fit`.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Model: A reference to the model instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence</span> <span class="o">==</span> <span class="s1">&#39;SR&#39;</span><span class="p">:</span>
+            <span class="n">Scref</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_spgr</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R10c</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TC</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TR</span><span class="p">,</span>
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">FA</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Tsat</span><span class="p">)</span>
+            <span class="n">Smref</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_spgr</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R10m</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TC</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TR</span><span class="p">,</span>
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">FA</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Tsat</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence</span> <span class="o">==</span> <span class="s1">&#39;SS&#39;</span><span class="p">:</span>
+            <span class="n">Scref</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_ss</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R10c</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TR</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">FA</span><span class="p">)</span>
+            <span class="n">Smref</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">signal_ss</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R10m</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TR</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">FA</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">S0c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">ydata</span><span class="p">[</span><span class="mi">0</span><span class="p">][:</span><span class="bp">self</span><span class="o">.</span><span class="n">n0</span><span class="p">])</span> <span class="o">/</span> <span class="n">Scref</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">S0m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">ydata</span><span class="p">[</span><span class="mi">1</span><span class="p">][:</span><span class="bp">self</span><span class="o">.</span><span class="n">n0</span><span class="p">])</span> <span class="o">/</span> <span class="n">Smref</span>
+        <span class="k">return</span> <span class="n">ui</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xdata</span><span class="p">,</span> <span class="n">ydata</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="KidneyCortMed.export_params">
+<a class="viewcode-back" href="../../api/dcmri.KidneyCortMed.html#dcmri.KidneyCortMed.export_params">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">export_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">pars</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">pars</span><span class="p">[</span><span class="s1">&#39;Fp&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Plasma flow&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Fp</span><span class="p">,</span> <span class="s1">&#39;mL/sec/cm3&#39;</span><span class="p">]</span>
+        <span class="n">pars</span><span class="p">[</span><span class="s1">&#39;Eg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Glomerular extraction fraction&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Eg</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">]</span>
+        <span class="n">pars</span><span class="p">[</span><span class="s1">&#39;fc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Cortical flow fraction&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">]</span>
+        <span class="n">pars</span><span class="p">[</span><span class="s1">&#39;Tg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Glomerular mean transit time&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Tg</span><span class="p">,</span> <span class="s1">&#39;sec&#39;</span><span class="p">]</span>
+        <span class="n">pars</span><span class="p">[</span><span class="s1">&#39;Tv&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Peritubular &amp; venous mean transit time&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Tv</span><span class="p">,</span> <span class="s1">&#39;sec&#39;</span><span class="p">]</span>
+        <span class="n">pars</span><span class="p">[</span><span class="s1">&#39;Tpt&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Proximal tubuli mean transit time&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Tpt</span><span class="p">,</span> <span class="s1">&#39;sec&#39;</span><span class="p">]</span>
+        <span class="n">pars</span><span class="p">[</span><span class="s1">&#39;Tlh&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Lis of Henle mean transit time&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Tlh</span><span class="p">,</span> <span class="s1">&#39;sec&#39;</span><span class="p">]</span>
+        <span class="n">pars</span><span class="p">[</span><span class="s1">&#39;Tdt&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Distal tubuli mean transit time&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Tdt</span><span class="p">,</span> <span class="s1">&#39;sec&#39;</span><span class="p">]</span>
+        <span class="n">pars</span><span class="p">[</span><span class="s1">&#39;Tcd&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Collecting duct mean transit time&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Tcd</span><span class="p">,</span> <span class="s1">&#39;sec&#39;</span><span class="p">]</span>
+        <span class="n">pars</span><span class="p">[</span><span class="s1">&#39;FF&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Filtration fraction&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Eg</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">Eg</span><span class="p">),</span> <span class="s1">&#39;&#39;</span><span class="p">]</span>
+        <span class="n">pars</span><span class="p">[</span><span class="s1">&#39;Ft&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Tubular flow&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Fp</span> <span class="o">*</span>
+                      <span class="bp">self</span><span class="o">.</span><span class="n">Eg</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">Eg</span><span class="p">),</span> <span class="s1">&#39;mL/sec/cm3&#39;</span><span class="p">]</span>
+        <span class="n">pars</span><span class="p">[</span><span class="s1">&#39;CBF&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Cortical blood flow&#39;</span><span class="p">,</span>
+                       <span class="bp">self</span><span class="o">.</span><span class="n">Fp</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">Hct</span><span class="p">),</span> <span class="s1">&#39;mL/sec/cm3&#39;</span><span class="p">]</span>
+        <span class="n">pars</span><span class="p">[</span><span class="s1">&#39;MBF&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Medullary blood flow&#39;</span><span class="p">,</span>
+                       <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">fc</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">Eg</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">Fp</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">Hct</span><span class="p">),</span> <span class="s1">&#39;mL/sec/cm3&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">vol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_sdev</span><span class="p">(</span><span class="n">pars</span><span class="p">)</span>
+        <span class="n">pars</span><span class="p">[</span><span class="s1">&#39;SKGFR&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Single-kidney glomerular filtration rate&#39;</span><span class="p">,</span>
+                         <span class="bp">self</span><span class="o">.</span><span class="n">vol</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">Fp</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">Eg</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">Eg</span><span class="p">),</span> <span class="s1">&#39;mL/sec&#39;</span><span class="p">]</span>
+        <span class="n">pars</span><span class="p">[</span><span class="s1">&#39;SKBF&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Single-kidney blood flow&#39;</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">vol</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">Fp</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">Hct</span><span class="p">),</span> <span class="s1">&#39;mL/sec&#39;</span><span class="p">]</span>
+        <span class="n">pars</span><span class="p">[</span><span class="s1">&#39;SKMBF&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Single-kidney medullary blood flow&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vol</span> <span class="o">*</span>
+                         <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">fc</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">Eg</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">Fp</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">Hct</span><span class="p">),</span> <span class="s1">&#39;mL/sec&#39;</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_sdev</span><span class="p">(</span><span class="n">pars</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="KidneyCortMed.plot">
+<a class="viewcode-back" href="../../api/dcmri.KidneyCortMed.html#dcmri.KidneyCortMed.plot">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xdata</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">ydata</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+             <span class="n">ref</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">xlim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fname</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Plot the model fit against data</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            xdata (array-like): Array with x-data (time points)</span>
+<span class="sd">            ydata (tuple of arrays): Tuple of two 1D arrays (signal_cortex, signal_mdeulla) with signals in cortex and medulla, respectively.</span>
+<span class="sd">            xlim (array_like, optional): 2-element array with lower and upper boundaries of the x-axis. Defaults to None.</span>
+<span class="sd">            ref (tuple, optional): Tuple of optional test data in the form (x,y), where x is an array with x-values and y is an array with y-values. Defaults to None.</span>
+<span class="sd">            fname (path, optional): Filepath to save the image. If no value is provided, the image is not saved. Defaults to None.</span>
+<span class="sd">            show (bool, optional): If True, the plot is shown. Defaults to True.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">xlim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">xlim</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">amin</span><span class="p">(</span><span class="n">time</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">time</span><span class="p">)]</span>
+        <span class="n">roic_pred</span><span class="p">,</span> <span class="n">roim_pred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">time</span><span class="p">)</span>
+        <span class="n">concc</span><span class="p">,</span> <span class="n">concm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conc</span><span class="p">()</span>
+
+        <span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax0</span><span class="p">,</span> <span class="n">ax1</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+        <span class="n">ax0</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Prediction of the MRI signals.&#39;</span><span class="p">)</span>
+        <span class="n">ax0</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xdata</span><span class="o">/</span><span class="mi">60</span><span class="p">,</span> <span class="n">ydata</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;None&#39;</span><span class="p">,</span>
+                 <span class="n">color</span><span class="o">=</span><span class="s1">&#39;cornflowerblue&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Cortex data&#39;</span><span class="p">)</span>
+        <span class="n">ax0</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xdata</span><span class="o">/</span><span class="mi">60</span><span class="p">,</span> <span class="n">ydata</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;None&#39;</span><span class="p">,</span>
+                 <span class="n">color</span><span class="o">=</span><span class="s1">&#39;cornflowerblue&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Medulla data&#39;</span><span class="p">)</span>
+        <span class="n">ax0</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time</span><span class="o">/</span><span class="mi">60</span><span class="p">,</span> <span class="n">roic_pred</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
+                 <span class="n">color</span><span class="o">=</span><span class="s1">&#39;darkblue&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Cortex prediction&#39;</span><span class="p">)</span>
+        <span class="n">ax0</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time</span><span class="o">/</span><span class="mi">60</span><span class="p">,</span> <span class="n">roim_pred</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
+                 <span class="n">color</span><span class="o">=</span><span class="s1">&#39;darkblue&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Medulla prediction&#39;</span><span class="p">)</span>
+        <span class="n">ax0</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;Time (min)&#39;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s1">&#39;MRI signal (a.u.)&#39;</span><span class="p">,</span>
+                <span class="n">xlim</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xlim</span><span class="p">)</span><span class="o">/</span><span class="mi">60</span><span class="p">)</span>
+        <span class="n">ax0</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+        <span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Reconstruction of concentrations.&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ref</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ref</span><span class="p">[</span><span class="s1">&#39;t&#39;</span><span class="p">]</span><span class="o">/</span><span class="mi">60</span><span class="p">,</span> <span class="mi">1000</span><span class="o">*</span><span class="n">ref</span><span class="p">[</span><span class="s1">&#39;Cc&#39;</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;None&#39;</span><span class="p">,</span>
+                     <span class="n">color</span><span class="o">=</span><span class="s1">&#39;cornflowerblue&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Cortex ground truth&#39;</span><span class="p">)</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ref</span><span class="p">[</span><span class="s1">&#39;t&#39;</span><span class="p">]</span><span class="o">/</span><span class="mi">60</span><span class="p">,</span> <span class="mi">1000</span><span class="o">*</span><span class="n">ref</span><span class="p">[</span><span class="s1">&#39;Cm&#39;</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;None&#39;</span><span class="p">,</span>
+                     <span class="n">color</span><span class="o">=</span><span class="s1">&#39;cornflowerblue&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Medulla ground truth&#39;</span><span class="p">)</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ref</span><span class="p">[</span><span class="s1">&#39;t&#39;</span><span class="p">]</span><span class="o">/</span><span class="mi">60</span><span class="p">,</span> <span class="mi">1000</span><span class="o">*</span><span class="n">ref</span><span class="p">[</span><span class="s1">&#39;cp&#39;</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;None&#39;</span><span class="p">,</span>
+                     <span class="n">color</span><span class="o">=</span><span class="s1">&#39;lightcoral&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Arterial ground truth&#39;</span><span class="p">)</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time</span><span class="o">/</span><span class="mi">60</span><span class="p">,</span> <span class="mi">1000</span><span class="o">*</span><span class="n">concc</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
+                 <span class="n">color</span><span class="o">=</span><span class="s1">&#39;darkblue&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Cortex prediction&#39;</span><span class="p">)</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time</span><span class="o">/</span><span class="mi">60</span><span class="p">,</span> <span class="mi">1000</span><span class="o">*</span><span class="n">concm</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
+                 <span class="n">color</span><span class="o">=</span><span class="s1">&#39;darkblue&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Medulla prediction&#39;</span><span class="p">)</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time</span><span class="o">/</span><span class="mi">60</span><span class="p">,</span> <span class="mi">1000</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">ca</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
+                 <span class="n">color</span><span class="o">=</span><span class="s1">&#39;darkred&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Arterial prediction&#39;</span><span class="p">)</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;Time (min)&#39;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s1">&#39;Concentration (mM)&#39;</span><span class="p">,</span>
+                <span class="n">xlim</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xlim</span><span class="p">)</span><span class="o">/</span><span class="mi">60</span><span class="p">)</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">fname</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">fname</span><span class="o">=</span><span class="n">fname</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">show</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="KidneyCortMed.cost">
+<a class="viewcode-back" href="../../api/dcmri.KidneyCortMed.html#dcmri.KidneyCortMed.cost">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cost</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xdata</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">ydata</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;NRMS&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the goodness-of-fit</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            xdata (array-like): Array with x-data (time points).</span>
+<span class="sd">            ydata (tuple): Tuple of two 1D arrays (signal_cortex, signal_mdeulla) with signals in cortex and medulla, respectively.</span>
+<span class="sd">            metric (str, optional): Which metric to use - options are: </span>
+<span class="sd">                **RMS** (Root-mean-square);</span>
+<span class="sd">                **NRMS** (Normalized root-mean-square); </span>
+<span class="sd">                **AIC** (Akaike information criterion); </span>
+<span class="sd">                **cAIC** (Corrected Akaike information criterion for small models);</span>
+<span class="sd">                **BIC** (Baysian information criterion). Defaults to &#39;NRMS&#39;.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            float: goodness of fit.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">cost</span><span class="p">(</span><span class="n">xdata</span><span class="p">,</span> <span class="n">ydata</span><span class="p">,</span> <span class="n">metric</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024-2025, dcmri contributors.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

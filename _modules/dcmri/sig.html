@@ -1,0 +1,1459 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>dcmri.sig &#8212; dcmri 0.6.17 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=cd8af66b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=0d21fabb"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-64ZSJ8Z1MX"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/dcmri/sig';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/tristan-logo.jpg" class="logo__image only-light" alt="dcmri 0.6.17 documentation - Home"/>
+    <img src="../../_static/tristan-logo.jpg" class="logo__image only-dark pst-js-only" alt="dcmri 0.6.17 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../releases/index.html">
+    Releases
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../about/index.html">
+    About
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../releases/index.html">
+    Releases
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../about/index.html">
+    About
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">dcmri.sig</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for dcmri.sig</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">scipy.linalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">expm</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+
+
+<span class="c1"># TODO handle the case where F of one or more compartments is infinite</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_Mz_K</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">R1</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">R1</span> <span class="o">+</span> <span class="n">Fw</span><span class="o">/</span><span class="n">v</span>
+    <span class="n">nc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">R1</span><span class="p">)</span>
+    <span class="n">K</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nc</span><span class="p">,</span> <span class="n">nc</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">Fw</span><span class="p">):</span>
+        <span class="n">Fw</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">nc</span><span class="p">,</span> <span class="n">nc</span><span class="p">),</span> <span class="n">Fw</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">nc</span><span class="p">,</span> <span class="n">Fw</span><span class="p">))</span>  
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">Fw</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">Fw</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">Fw</span><span class="p">)</span>
+    <span class="n">F</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Fw</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nc</span><span class="p">):</span>
+        <span class="n">K</span><span class="p">[</span><span class="n">c</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">R1</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">+</span> <span class="n">F</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">/</span><span class="n">v</span><span class="p">[</span><span class="n">c</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nc</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">d</span> <span class="o">!=</span> <span class="n">c</span><span class="p">:</span>
+                <span class="n">K</span><span class="p">[</span><span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">Fw</span><span class="p">[</span><span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">]</span><span class="o">/</span><span class="n">v</span><span class="p">[</span><span class="n">d</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">K</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_Mz_J</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">me</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">J</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">v</span><span class="p">),</span> <span class="n">me</span><span class="p">)</span>
+    <span class="n">J</span> <span class="o">=</span> <span class="n">J</span> <span class="k">if</span> <span class="n">j</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">J</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">me</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">J</span>
+
+
+<div class="viewcode-block" id="Mz_free">
+<a class="viewcode-back" href="../../api/dcmri.Mz_free.html#dcmri.Mz_free">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">Mz_free</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">Fw</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n0</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">me</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Free longitudinal magnetization.</span>
+
+<span class="sd">    See section :ref:`basics-relaxation-T1` for more detail.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        R1 (array-like): Longitudinal relaxation rates in 1/sec. For a tissue </span>
+<span class="sd">          with n compartments, the first dimension of R1 must be n. For a</span>
+<span class="sd">          single compartment, R1 can be scalar or a 1D time-array.</span>
+<span class="sd">        T (array-like): duration of free recovery.</span>
+<span class="sd">        v (array-like, optional): volume fractions of the compartments. For a </span>
+<span class="sd">          one-compartment tissue this is a scalar - otherwise it is an </span>
+<span class="sd">          array with one value for each compartment. Defaults to 1.</span>
+<span class="sd">        Fw (array-like, optional): Water flow between the compartments and to </span>
+<span class="sd">          the environment, in units of mL/sec/cm3. Generally Fw must be a nxn </span>
+<span class="sd">          array, where n is the number of compartments, and the off-diagonal </span>
+<span class="sd">          elements Fw[j,i] are the permeability for water moving from </span>
+<span class="sd">          compartment i into j. The diagonal elements Fw[i,i] quantify the </span>
+<span class="sd">          flow of water from compartment i to outside. For a closed system </span>
+<span class="sd">          with equal permeabilities between all compartments, a scalar value </span>
+<span class="sd">          for Fw can be provided. Defaults to 0.</span>
+<span class="sd">        j (array-like, optional): normalized tissue magnetization flux. j has </span>
+<span class="sd">          to have the same shape as R1. Defaults to None.</span>
+<span class="sd">        n0 (array-like, optional): initial relative magnetization at T=0. </span>
+<span class="sd">          If this is a scalar, all compartments are assumed to have the same </span>
+<span class="sd">          initial magnetization. Defaults to 0.</span>
+<span class="sd">        me (array-like, optional): equilibrium magnetization of the tissue </span>
+<span class="sd">          compartments. If a scalar value is provided, all compartments are </span>
+<span class="sd">          assumed to have the same equilibrium magnetization. Defaults to 1.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.ndarray: Magnetization in the compartments after a time T.</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">        Magnetization recovery after inversion.</span>
+
+<span class="sd">    .. plot::</span>
+<span class="sd">        :include-source:</span>
+<span class="sd">        :context: close-figs</span>
+
+<span class="sd">        &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">        &gt;&gt;&gt; import matplotlib.pyplot as plt</span>
+<span class="sd">        &gt;&gt;&gt; import dcmri as dc</span>
+
+<span class="sd">        Plot magnetization recovery for the first 10 seconds after an </span>
+<span class="sd">        inversion pulse, for a closed tissue with R1 = 1 sec, and for an open </span>
+<span class="sd">        tissue with equilibrium inflow and inverted inflow:</span>
+
+<span class="sd">        &gt;&gt;&gt; TI = 0.1*np.arange(100)</span>
+<span class="sd">        &gt;&gt;&gt; R1 = 1</span>
+<span class="sd">        &gt;&gt;&gt; f = 0.5</span>
+
+<span class="sd">        &gt;&gt;&gt; Mz = dc.Mz_free(R1, TI, n0=-1)</span>
+<span class="sd">        &gt;&gt;&gt; Mz_e = dc.Mz_free(R1, TI, n0=-1, Fw=f, j=f)</span>
+<span class="sd">        &gt;&gt;&gt; Mz_i = dc.Mz_free(R1, TI, n0=-1, Fw=f, j=-f)</span>
+
+<span class="sd">        &gt;&gt;&gt; plt.plot(TI, Mz, label=&#39;No flow&#39;, linewidth=3)</span>
+<span class="sd">        &gt;&gt;&gt; plt.plot(TI, Mz_e, label=&#39;Equilibrium inflow&#39;, linewidth=3)</span>
+<span class="sd">        &gt;&gt;&gt; plt.plot(TI, Mz_i, label=&#39;Inverted inflow&#39;, linewidth=3)</span>
+<span class="sd">        &gt;&gt;&gt; plt.xlabel(&#39;Inversion time (sec)&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.ylabel(&#39;Magnetization (A/cm)&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.legend()</span>
+<span class="sd">        &gt;&gt;&gt; plt.show()</span>
+
+<span class="sd">        Now consider a two-compartment model, with a central compartment </span>
+<span class="sd">        that has in- and outflow, and a peripheral compartment that only </span>
+<span class="sd">        exchanges with the central compartment:</span>
+
+<span class="sd">        &gt;&gt;&gt; R1 = [1,2]</span>
+<span class="sd">        &gt;&gt;&gt; v = [0.3, 0.7]</span>
+<span class="sd">        &gt;&gt;&gt; PS = 0.1</span>
+<span class="sd">        &gt;&gt;&gt; Fw = [[f, PS], [PS, 0]]</span>
+<span class="sd">        &gt;&gt;&gt; Mz = dc.Mz_free(R1, TI, v, Fw, n0=-1, j=[f, 0])</span>
+
+<span class="sd">        &gt;&gt;&gt; plt.plot(TI, Mz[0,:], label=&#39;Central compartment&#39;, linewidth=3)</span>
+<span class="sd">        &gt;&gt;&gt; plt.plot(TI, Mz[1,:], label=&#39;Peripheral compartment&#39;, linewidth=3)</span>
+<span class="sd">        &gt;&gt;&gt; plt.xlabel(&#39;Inversion time (sec)&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.ylabel(&#39;Magnetization (A/cm)&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.legend()</span>
+<span class="sd">        &gt;&gt;&gt; plt.show()</span>
+
+<span class="sd">        In DC-MRI the more usual situation is one where TI is fixed and the </span>
+<span class="sd">        relaxation rates are variable due to the effect of a contrast agent. </span>
+<span class="sd">        As an illustration, consider the previous result again at TI=500 msec </span>
+<span class="sd">        and an R1 that is linearly declining in the central compartment and </span>
+<span class="sd">        constant in the peripheral compartment:</span>
+
+<span class="sd">        &gt;&gt;&gt; TI = 0.5</span>
+<span class="sd">        &gt;&gt;&gt; nt = 1000</span>
+<span class="sd">        &gt;&gt;&gt; t = 0.1*np.arange(nt)</span>
+<span class="sd">        &gt;&gt;&gt; R1 = np.stack((1-t/np.amax(t), np.ones(nt)))</span>
+<span class="sd">        &gt;&gt;&gt; j = np.stack((f*np.ones(nt), np.zeros(nt)))</span>
+<span class="sd">        &gt;&gt;&gt; Mz = dc.Mz_free(R1, TI, v, Fw, n0=-1, j=j)</span>
+
+<span class="sd">        &gt;&gt;&gt; plt.plot(t, Mz[0,:], label=&#39;Central compartment&#39;, linewidth=3)</span>
+<span class="sd">        &gt;&gt;&gt; plt.plot(t, Mz[1,:], label=&#39;Peripheral compartment&#39;, linewidth=3)</span>
+<span class="sd">        &gt;&gt;&gt; plt.xlabel(&#39;Time (sec)&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.ylabel(&#39;Magnetization (A/cm)&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.legend()</span>
+<span class="sd">        &gt;&gt;&gt; plt.show()   </span>
+
+<span class="sd">        The function allows for R1 and TI to be both variable. Computing the </span>
+<span class="sd">        result for 10 different TI values and extracting the result </span>
+<span class="sd">        corresponding to TI=0.5 gives again the same result:</span>
+
+<span class="sd">        &gt;&gt;&gt; TI = 0.1*np.arange(10)</span>
+<span class="sd">        &gt;&gt;&gt; Mz = dc.Mz_free(R1, TI, v, Fw, n0=-1, j=j)</span>
+
+<span class="sd">        &gt;&gt;&gt; plt.plot(t, Mz[0,:,5], label=&#39;Central compartment&#39;, linewidth=3)</span>
+<span class="sd">        &gt;&gt;&gt; plt.plot(t, Mz[1,:,5], label=&#39;Peripheral compartment&#39;, linewidth=3)</span>
+<span class="sd">        &gt;&gt;&gt; plt.xlabel(&#39;Time (sec)&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.ylabel(&#39;Magnetization (A/cm)&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.legend()</span>
+<span class="sd">        &gt;&gt;&gt; plt.show()      </span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">R1</span><span class="p">):</span>
+            <span class="n">Mz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">T</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">Tk</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
+                <span class="n">Mz</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">Mz_free</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">Tk</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">n0</span><span class="p">,</span> <span class="n">me</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">Mz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">R1</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">T</span><span class="p">),</span> <span class="p">))</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">Tk</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
+                <span class="n">Mz</span><span class="p">[</span><span class="o">...</span><span class="p">,</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">Mz_free</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">Tk</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">n0</span><span class="p">,</span> <span class="n">me</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Mz</span>
+
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">R1</span><span class="p">):</span>
+        <span class="n">K</span> <span class="o">=</span> <span class="n">_Mz_K</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">)</span>
+        <span class="n">J</span> <span class="o">=</span> <span class="n">_Mz_J</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">me</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="n">j</span><span class="p">)</span>
+        <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">T</span><span class="o">*</span><span class="n">K</span><span class="p">)</span>
+        <span class="n">Kinv</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="n">K</span>
+        <span class="n">M0</span> <span class="o">=</span> <span class="n">n0</span><span class="o">*</span><span class="n">me</span><span class="o">*</span><span class="n">v</span>
+        <span class="k">return</span> <span class="n">E</span><span class="o">*</span><span class="n">M0</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">E</span><span class="p">)</span><span class="o">*</span><span class="n">Kinv</span><span class="o">*</span><span class="n">J</span>
+
+    <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">ndim</span><span class="p">(</span><span class="n">R1</span><span class="p">)</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+            <span class="n">nt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">R1</span><span class="p">)</span>
+            <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">nt</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nt</span><span class="p">):</span>
+                <span class="n">jt</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">j</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">j</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
+                <span class="n">n0t</span> <span class="o">=</span> <span class="n">n0</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">n0</span><span class="p">)</span> <span class="k">else</span> <span class="n">n0</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
+                <span class="n">M</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">Mz_free</span><span class="p">(</span><span class="n">R1</span><span class="p">[</span><span class="n">t</span><span class="p">],</span> <span class="n">T</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="o">=</span><span class="n">Fw</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="n">jt</span><span class="p">,</span> <span class="n">n0</span><span class="o">=</span><span class="n">n0t</span><span class="p">,</span> <span class="n">me</span><span class="o">=</span><span class="n">me</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">M</span>
+        
+        <span class="n">K</span> <span class="o">=</span> <span class="n">_Mz_K</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">)</span>
+        <span class="n">J</span> <span class="o">=</span> <span class="n">_Mz_J</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">me</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="n">j</span><span class="p">)</span>
+        <span class="n">E</span> <span class="o">=</span> <span class="n">expm</span><span class="p">(</span><span class="o">-</span><span class="n">T</span><span class="o">*</span><span class="n">K</span><span class="p">)</span>
+        <span class="n">Kinv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">K</span><span class="p">)</span>
+        <span class="n">I</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">R1</span><span class="p">))</span>
+        <span class="n">M0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">n0</span><span class="p">,</span> <span class="n">me</span><span class="p">),</span> <span class="n">v</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">E</span><span class="p">,</span> <span class="n">M0</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">I</span><span class="o">-</span><span class="n">E</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Kinv</span><span class="p">,</span> <span class="n">J</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s1">&#39;In a tissue with n compartments, v must be an n-element array.&#39;</span><span class="p">)</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">R1</span><span class="p">)</span>
+    <span class="n">R1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="p">(</span><span class="n">n</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">j</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="p">(</span><span class="n">n</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">R1</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">R1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="n">jt</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">j</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">j</span><span class="p">[:,</span><span class="n">t</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">ndim</span><span class="p">(</span><span class="n">n0</span><span class="p">)</span><span class="o">==</span><span class="mi">2</span><span class="p">:</span>
+            <span class="n">n0t</span> <span class="o">=</span> <span class="n">n0</span><span class="p">[:,</span><span class="n">t</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">n0t</span> <span class="o">=</span> <span class="n">n0</span>
+        <span class="n">M</span><span class="p">[:,</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">Mz_free</span><span class="p">(</span><span class="n">R1</span><span class="p">[:,</span><span class="n">t</span><span class="p">],</span> <span class="n">T</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="o">=</span><span class="n">Fw</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="n">jt</span><span class="p">,</span> <span class="n">n0</span><span class="o">=</span><span class="n">n0t</span><span class="p">,</span> <span class="n">me</span><span class="o">=</span><span class="n">me</span><span class="p">)</span> 
+    <span class="k">return</span> <span class="n">M</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>  </div>
+
+
+
+<div class="viewcode-block" id="Mz_ss">
+<a class="viewcode-back" href="../../api/dcmri.Mz_ss.html#dcmri.Mz_ss">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">Mz_ss</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">Fw</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">me</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Steady-state longitudinal tissue magnetization.</span>
+
+<span class="sd">    See section :ref:`basics-relaxation-T1` for more detail.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        R1 (array-like): Longitudinal relaxation rates in 1/sec. For a tissue </span>
+<span class="sd">          with n compartments, the first dimension of R1 must be n. For a</span>
+<span class="sd">          single compartment, R1 can be scalar or a 1D time-array.</span>
+<span class="sd">        TR (float): repetition time.</span>
+<span class="sd">        FA (float): flip angle.</span>
+<span class="sd">        v (array-like, optional): volume fractions of the compartments. For a </span>
+<span class="sd">          one-compartment tissue this is a scalar - otherwise it is an </span>
+<span class="sd">          array with one value for each compartment. Defaults to 1.</span>
+<span class="sd">        Fw (array-like, optional): Water flow between the compartments and to </span>
+<span class="sd">          the environment, in units of mL/sec/cm3. Generally Fw must be a nxn </span>
+<span class="sd">          array, where n is the number of compartments, and the off-diagonal </span>
+<span class="sd">          elements Fw[j,i] are the permeability for water moving from </span>
+<span class="sd">          compartment i into j. The diagonal elements Fw[i,i] quantify the </span>
+<span class="sd">          flow of water from compartment i to outside. For a closed system </span>
+<span class="sd">          with equal permeabilities between all compartments, a scalar value </span>
+<span class="sd">          for Fw can be provided. Defaults to 0.</span>
+<span class="sd">        j (array-like, optional): normalized tissue magnetization flux. j has </span>
+<span class="sd">          to have the same shape as R1. Defaults to None.</span>
+<span class="sd">        me (array-like, optional): equilibrium magnetization of the tissue </span>
+<span class="sd">          compartments. If a scalar value is provided, all compartments are </span>
+<span class="sd">          assumed to have the same equilibrium magnetization. Defaults to 1.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.ndarray: Magnetization in the compartments after a time T.</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">        Compute steady-state magnetization with inflow magnetization (mi) </span>
+<span class="sd">        ranging from fully inverted to equilibrium. Compare against </span>
+<span class="sd">        magnetization of an isolated tissue without flow.</span>
+
+<span class="sd">    .. plot::</span>
+<span class="sd">        :include-source:</span>
+<span class="sd">        :context: close-figs</span>
+
+<span class="sd">        Import packages:</span>
+
+<span class="sd">        &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">        &gt;&gt;&gt; import matplotlib.pyplot as plt</span>
+<span class="sd">        &gt;&gt;&gt; import dcmri as dc</span>
+
+<span class="sd">        Define constants:</span>
+
+<span class="sd">        &gt;&gt;&gt; FA, TR = 12, 0.005</span>
+<span class="sd">        &gt;&gt;&gt; R1 = 1</span>
+<span class="sd">        &gt;&gt;&gt; f, v = 0.5, 0.7</span>
+<span class="sd">        &gt;&gt;&gt; mi = np.linspace(-1, 1, 100)</span>
+
+<span class="sd">        Compute magnetization without/with inflow:</span>
+
+<span class="sd">        &gt;&gt;&gt; m_c = dc.Mz_ss(R1, TR, FA, v)/v</span>
+<span class="sd">        &gt;&gt;&gt; m_f = [dc.Mz_ss(R1, TR, FA, v, f, j=f*m)/v for m in mi]</span>
+
+<span class="sd">        Plot the results:</span>
+
+<span class="sd">        &gt;&gt;&gt; plt.plot(mi, mi*0+m_c, label=&#39;No inflow&#39;, linewidth=3)</span>
+<span class="sd">        &gt;&gt;&gt; plt.plot(mi, m_f, label=&#39;Inflow&#39;, linewidth=3)</span>
+<span class="sd">        &gt;&gt;&gt; plt.xlabel(&#39;Inflow magnetization (A/cm/mL)&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.ylabel(&#39;Steady-state magnetization (A/cm/mL)&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.legend()</span>
+<span class="sd">        &gt;&gt;&gt; plt.show()</span>
+
+<span class="sd">        Note the magnetization of the two tissues is the same when the </span>
+<span class="sd">        inflow is at the steady-state of the isolated tissue: </span>
+
+<span class="sd">        &gt;&gt;&gt; m_f = dc.Mz_ss(R1, TR, FA, v, f, j=f*m_c)/v</span>
+<span class="sd">        &gt;&gt;&gt; print(m_f - m_c)</span>
+<span class="sd">        0.00023950879616352339</span>
+
+<span class="sd">        Now we consider the same situation again, this time for a two-</span>
+<span class="sd">        compartment tissue with one central compartment that exchanges with </span>
+<span class="sd">        the enviroment. </span>
+
+<span class="sd">        &gt;&gt;&gt; R1 = [0.5, 1.5]</span>
+<span class="sd">        &gt;&gt;&gt; v = [0.3, 0.6]</span>
+<span class="sd">        &gt;&gt;&gt; PS = 0.1</span>
+<span class="sd">        </span>
+<span class="sd">        Compute magnetization without inflow:</span>
+
+<span class="sd">        &gt;&gt;&gt; Fw = [[0, PS], [PS, 0]]</span>
+<span class="sd">        &gt;&gt;&gt; M_c = dc.Mz_ss(R1, TR, FA, v, Fw)</span>
+
+<span class="sd">        Compute magnetization with flow through the first compartment:</span>
+
+<span class="sd">        &gt;&gt;&gt; Fw = [[f, PS], [PS, 0]]</span>
+<span class="sd">        &gt;&gt;&gt; M_f = np.zeros((2, 100))</span>
+<span class="sd">        &gt;&gt;&gt; for i, m in enumerate(mi):</span>
+<span class="sd">        &gt;&gt;&gt;     M_f[:,i] = dc.Mz_ss(R1, TR, FA, v, Fw, j=[f*m, 0])</span>
+
+<span class="sd">        Plot the results for the central compartment:</span>
+
+<span class="sd">        &gt;&gt;&gt; plt.plot(mi, M_c[0]/v[0] + mi*0, label=&#39;No inflow&#39;, linewidth=3)</span>
+<span class="sd">        &gt;&gt;&gt; plt.plot(mi, M_f[0,:]/v[0], label=&#39;Inflow&#39;, linewidth=3)</span>
+<span class="sd">        &gt;&gt;&gt; plt.xlabel(&#39;Inflow magnetization (A/cm/mL)&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.ylabel(&#39;Steady-state magnetization (A/cm/mL)&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.legend()</span>
+<span class="sd">        &gt;&gt;&gt; plt.show()</span>
+
+<span class="sd">        We can verify again that the magnetization is the same as that of the </span>
+<span class="sd">        isolated tissue when the inflow is at the isolated steady-state: </span>
+
+<span class="sd">        &gt;&gt;&gt; m_c = M_c[0]/v[0]</span>
+<span class="sd">        &gt;&gt;&gt; M_f = dc.Mz_ss(R1, TR, FA, v, Fw=f, j=f*m_c)</span>
+<span class="sd">        &gt;&gt;&gt; print(M_f[0]/v[0] - m_c) </span>
+<span class="sd">        0.0002984954839493209      </span>
+<span class="sd">     </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># One compartment</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">R1</span><span class="p">):</span> 
+        <span class="k">return</span> <span class="n">me</span><span class="o">*</span><span class="n">_Nz_ss_1c</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+    
+    <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">ndim</span><span class="p">(</span><span class="n">R1</span><span class="p">)</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+            <span class="n">nt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">R1</span><span class="p">)</span>
+            <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">nt</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nt</span><span class="p">):</span>
+                <span class="n">jt</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">j</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">j</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
+                <span class="n">M</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">Mz_ss</span><span class="p">(</span><span class="n">R1</span><span class="p">[</span><span class="n">t</span><span class="p">],</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">,</span> <span class="n">jt</span><span class="p">,</span> <span class="n">me</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">M</span>
+        <span class="k">return</span> <span class="n">me</span><span class="o">*</span><span class="n">_Nz_ss</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s1">&#39;In a tissue with n compartments, v must be an n-element array.&#39;</span><span class="p">)</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">R1</span><span class="p">)</span>
+    <span class="n">R1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="p">(</span><span class="n">n</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">j</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="p">(</span><span class="n">n</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">R1</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">R1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="n">jt</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">j</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">j</span><span class="p">[:,</span><span class="n">t</span><span class="p">]</span>
+        <span class="n">M</span><span class="p">[:,</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">Mz_ss</span><span class="p">(</span><span class="n">R1</span><span class="p">[:,</span><span class="n">t</span><span class="p">],</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">,</span> <span class="n">jt</span><span class="p">,</span> <span class="n">me</span><span class="p">)</span> 
+    <span class="k">return</span> <span class="n">M</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>   </div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_Nz_ss_1c</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">K</span> <span class="o">=</span> <span class="n">R1</span> <span class="o">+</span> <span class="n">Fw</span><span class="o">/</span><span class="n">v</span>
+    <span class="n">J</span> <span class="o">=</span> <span class="n">R1</span><span class="o">*</span><span class="n">v</span> <span class="k">if</span> <span class="n">j</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">R1</span><span class="o">*</span><span class="n">v</span> <span class="o">+</span> <span class="n">j</span>
+    <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">TR</span><span class="p">,</span> <span class="n">K</span><span class="p">))</span>
+    <span class="n">cFA</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">FA</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span><span class="p">)</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">E</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">cFA</span><span class="o">*</span><span class="n">E</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">K</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">n</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">n</span> <span class="o">*</span> <span class="n">J</span><span class="o">/</span><span class="n">K</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_Nz_ss</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>   
+    <span class="n">nc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">R1</span><span class="p">)</span>
+
+    <span class="c1"># Closed tissue with constant permeabilities</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">Fw</span><span class="p">):</span> 
+        <span class="k">if</span> <span class="n">Fw</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">:</span> 
+            <span class="k">return</span> <span class="n">_Nz_ss_fex</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">Fw</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> 
+            <span class="k">return</span> <span class="n">_Nz_ss_nex</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">Fw</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">nc</span><span class="p">,</span> <span class="n">nc</span><span class="p">),</span> <span class="n">Fw</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">nc</span><span class="p">,</span> <span class="n">Fw</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">_Nz_ss_aex</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+        
+    <span class="c1"># Open tissue</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">Fw</span><span class="p">)</span> <span class="o">!=</span> <span class="p">(</span><span class="n">nc</span><span class="p">,</span> <span class="n">nc</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Fw must be a square array with size equal to the &#39;</span>
+                         <span class="s1">&#39;number of compartments.&#39;</span><span class="p">)</span>
+    <span class="n">PSw</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">Fw</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">Fw</span><span class="p">))</span>
+    <span class="n">ninf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">PSw</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">PSw</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_Nz_ss_nex</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">ninf</span> <span class="o">==</span> <span class="n">nc</span><span class="o">*</span><span class="n">nc</span><span class="o">-</span><span class="n">nc</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_Nz_ss_fex</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="n">ninf</span> <span class="o">&lt;</span> <span class="n">nc</span><span class="o">*</span><span class="n">nc</span><span class="o">-</span><span class="n">nc</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s1">&#39;Water exchange with some (but not all) infinite PS &#39;</span>
+            <span class="s1">&#39;values is currently not implemented.&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_Nz_ss_aex</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_Nz_ss_fex</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">R1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">R1</span><span class="p">))</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">j</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="n">_Nz_ss_1c</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">Fw</span><span class="p">)</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="n">_Nz_ss_1c</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">fo</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">j</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">N</span><span class="o">*</span><span class="n">vc</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">vc</span> <span class="ow">in</span> <span class="n">v</span><span class="p">])</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_Nz_ss_nex</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">j</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="p">[</span><span class="n">_Nz_ss_1c</span><span class="p">(</span><span class="n">R1</span><span class="p">[</span><span class="n">c</span><span class="p">],</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="p">[</span><span class="n">c</span><span class="p">])</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">v</span><span class="p">))]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">fo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">Fw</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">v</span><span class="p">)):</span>
+            <span class="n">Nc</span> <span class="o">=</span> <span class="n">_Nz_ss_1c</span><span class="p">(</span><span class="n">R1</span><span class="p">[</span><span class="n">c</span><span class="p">],</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="p">[</span><span class="n">c</span><span class="p">],</span> <span class="n">fo</span><span class="p">[</span><span class="n">c</span><span class="p">],</span> <span class="n">j</span><span class="p">[</span><span class="n">c</span><span class="p">])</span> 
+            <span class="n">N</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Nc</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+      
+<span class="k">def</span><span class="w"> </span><span class="nf">_Nz_ss_aex</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">K</span> <span class="o">=</span> <span class="n">_Mz_K</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">)</span>
+    <span class="n">J</span> <span class="o">=</span> <span class="n">_Mz_J</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="n">j</span><span class="p">)</span>
+    <span class="n">E</span> <span class="o">=</span> <span class="n">expm</span><span class="p">(</span><span class="o">-</span><span class="n">TR</span><span class="o">*</span><span class="n">K</span><span class="p">)</span>
+    <span class="n">I</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">R1</span><span class="p">))</span>
+    <span class="n">cFA</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">FA</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span><span class="p">)</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K</span><span class="p">,</span> <span class="n">I</span><span class="o">-</span><span class="n">cFA</span><span class="o">*</span><span class="n">E</span><span class="p">)</span>
+    <span class="n">Ainv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Ainv</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">I</span><span class="o">-</span><span class="n">E</span><span class="p">,</span> <span class="n">J</span><span class="p">))</span>        
+
+
+
+
+<div class="viewcode-block" id="Mz_spgr">
+<a class="viewcode-back" href="../../api/dcmri.Mz_spgr.html#dcmri.Mz_spgr">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">Mz_spgr</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">TP</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">Fw</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n0</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">me</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Longitudinal tissue magnetization of a spoiled gradient-echo sequence.</span>
+
+<span class="sd">    See section :ref:`basics-relaxation-T1` for more detail.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        R1 (array-like): Longitudinal relaxation rates in 1/sec. For a tissue </span>
+<span class="sd">          with n compartments, the first dimension of R1 must be n. For a</span>
+<span class="sd">          single compartment, R1 can be scalar or a 1D time-array.</span>
+<span class="sd">        T (float): time since the first rf-pulse.</span>
+<span class="sd">        TR (float): repetition time between rf-pulses.</span>
+<span class="sd">        FA (float): flip angle of the rf-pulse.</span>
+<span class="sd">        TP (float, optional): preparation delay. Default is 0.</span>
+<span class="sd">        v (array-like, optional): volume fractions of the compartments. For a </span>
+<span class="sd">          one-compartment tissue this is a scalar - otherwise it is an </span>
+<span class="sd">          array with one value for each compartment. Defaults to 1.</span>
+<span class="sd">        Fw (array-like, optional): Water flow between the compartments and to </span>
+<span class="sd">          the environment, in units of mL/sec/cm3. Generally Fw must be a nxn </span>
+<span class="sd">          array, where n is the number of compartments, and the off-diagonal </span>
+<span class="sd">          elements Fw[j,i] are the permeability for water moving from </span>
+<span class="sd">          compartment i into j. The diagonal elements Fw[i,i] quantify the </span>
+<span class="sd">          flow of water from compartment i to outside. For a closed system </span>
+<span class="sd">          with equal permeabilities between all compartments, a scalar value </span>
+<span class="sd">          for Fw can be provided. Defaults to 0.</span>
+<span class="sd">        j (array-like, optional): normalized tissue magnetization flux. j has </span>
+<span class="sd">          to have the same shape as R1. Defaults to None.</span>
+<span class="sd">        n0 (array-like, optional): initial relative magnetization at T=0. </span>
+<span class="sd">          If this is a scalar, all compartments are assumed to have the same </span>
+<span class="sd">          initial magnetization. Defaults to 0.</span>
+<span class="sd">        me (array-like, optional): equilibrium magnetization of the tissue </span>
+<span class="sd">          compartments. If a scalar value is provided, all compartments are </span>
+<span class="sd">          assumed to have the same equilibrium magnetization. Defaults to 1.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.ndarray: Tissue magnetization in the compartments after a time T.</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">        Compare SPGR tissue magnetization of a two-compartment tissue</span>
+<span class="sd">        after inversion against free recovery and steady-state:</span>
+
+<span class="sd">    .. plot::</span>
+<span class="sd">        :include-source:</span>
+<span class="sd">        :context: close-figs</span>
+
+<span class="sd">        Import packages:</span>
+
+<span class="sd">        &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">        &gt;&gt;&gt; import matplotlib.pyplot as plt</span>
+<span class="sd">        &gt;&gt;&gt; import dcmri as dc</span>
+
+<span class="sd">        Define constants:</span>
+
+<span class="sd">        &gt;&gt;&gt; FA, TR, TP = 12, 0.005, 0</span>
+<span class="sd">        &gt;&gt;&gt; TI = np.linspace(0,3,100)</span>
+<span class="sd">        &gt;&gt;&gt; R1 = [1, 0.5]</span>
+<span class="sd">        &gt;&gt;&gt; v = [0.3, 0.7]</span>
+<span class="sd">        &gt;&gt;&gt; f, PS = 0.5, 0.1</span>
+<span class="sd">        &gt;&gt;&gt; Fw = [[f, PS], [PS, 0]]</span>
+
+<span class="sd">        Compute magnetization:</span>
+
+<span class="sd">        &gt;&gt;&gt; Mspgr = dc.Mz_spgr(R1, TI, TR, FA, TP, v, Fw, j=[f, 0], n0=-1) </span>
+<span class="sd">        &gt;&gt;&gt; Mfree = dc.Mz_free(R1, TI, v, Fw, j=[f, 0], n0=-1)</span>
+<span class="sd">        &gt;&gt;&gt; Mss = dc.Mz_ss(R1, TR, FA, v, Fw, j=[f, 0])</span>
+
+<span class="sd">        Plot the results for the peripheral compartment:</span>
+
+<span class="sd">        &gt;&gt;&gt; c = 1</span>
+<span class="sd">        &gt;&gt;&gt; plt.title(&#39;Peripheral compartment&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.plot(TI, Mfree[c,:], label=&#39;Free&#39;, linewidth=3)</span>
+<span class="sd">        &gt;&gt;&gt; plt.plot(TI, v[c]+0*TI, label=&#39;Equilibrium&#39;, linewidth=3)</span>
+<span class="sd">        &gt;&gt;&gt; plt.plot(TI, Mspgr[c,:], label=&#39;SPGR&#39;, linewidth=3)</span>
+<span class="sd">        &gt;&gt;&gt; plt.plot(TI, Mss[c]+0*TI, label=&#39;Steady-state&#39;, linewidth=3)</span>
+<span class="sd">        &gt;&gt;&gt; plt.xlabel(&#39;Time since start of pulse sequence (sec)&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.ylabel(&#39;Tissue magnetization (A/cm/cm3)&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.legend()</span>
+<span class="sd">        &gt;&gt;&gt; plt.show()</span>
+
+<span class="sd">        This verifies that the free recovery magnetization goes to equilibrium, </span>
+<span class="sd">        and that the SPGR magnetization relaxes to the steady state at a </span>
+<span class="sd">        shorter time than the free recovery.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">R1</span><span class="p">):</span>
+            <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">T</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">Tk</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
+                <span class="n">M</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">Mz_spgr</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">Tk</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">TP</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">n0</span><span class="p">,</span> <span class="n">me</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">R1</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">T</span><span class="p">),</span> <span class="p">))</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">Tk</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
+                <span class="n">M</span><span class="p">[</span><span class="o">...</span><span class="p">,</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">Mz_spgr</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">Tk</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">TP</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">n0</span><span class="p">,</span> <span class="n">me</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">M</span>
+
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">R1</span><span class="p">):</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">T</span><span class="o">/</span><span class="n">TR</span>
+        <span class="n">ncFA</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">FA</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span><span class="p">)</span><span class="o">**</span><span class="n">nx</span>
+        <span class="n">M0</span> <span class="o">=</span> <span class="n">n0</span><span class="o">*</span><span class="n">v</span><span class="o">*</span><span class="n">me</span>
+        <span class="n">Mss</span> <span class="o">=</span> <span class="n">Mz_ss</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">me</span><span class="p">)</span>
+        <span class="n">K</span> <span class="o">=</span> <span class="n">_Mz_K</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">)</span>
+        <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">T</span><span class="o">*</span><span class="n">K</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Mss</span> <span class="o">+</span> <span class="n">ncFA</span><span class="o">*</span><span class="n">E</span><span class="o">*</span><span class="p">(</span><span class="n">M0</span><span class="o">-</span><span class="n">Mss</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">ndim</span><span class="p">(</span><span class="n">R1</span><span class="p">)</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+            <span class="n">nt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">R1</span><span class="p">)</span>
+            <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">nt</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nt</span><span class="p">):</span>
+                <span class="n">jt</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">j</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">j</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
+                <span class="n">n0t</span> <span class="o">=</span> <span class="n">n0</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">n0</span><span class="p">)</span> <span class="k">else</span> <span class="n">n0</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
+                <span class="n">M</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">Mz_spgr</span><span class="p">(</span><span class="n">R1</span><span class="p">[</span><span class="n">t</span><span class="p">],</span> <span class="n">T</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">TP</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">,</span> <span class="n">jt</span><span class="p">,</span> <span class="n">n0t</span><span class="p">,</span> <span class="n">me</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">M</span>
+    
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">T</span><span class="o">/</span><span class="n">TR</span>
+        <span class="n">ncFA</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">FA</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span><span class="p">)</span><span class="o">**</span><span class="n">nx</span>
+        <span class="n">M0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">n0</span><span class="p">,</span> <span class="n">v</span><span class="p">),</span> <span class="n">me</span><span class="p">)</span>
+        <span class="n">Mss</span> <span class="o">=</span> <span class="n">Mz_ss</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">me</span><span class="p">)</span>
+        <span class="n">K</span> <span class="o">=</span> <span class="n">_Mz_K</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">)</span>
+        <span class="n">E</span> <span class="o">=</span> <span class="n">expm</span><span class="p">(</span><span class="o">-</span><span class="n">T</span><span class="o">*</span><span class="n">K</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Mss</span> <span class="o">+</span> <span class="n">ncFA</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">E</span><span class="p">,</span> <span class="n">M0</span><span class="o">-</span><span class="n">Mss</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s1">&#39;In a tissue with n compartments, v must be an n-element array.&#39;</span><span class="p">)</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">R1</span><span class="p">)</span>
+    <span class="n">R1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="p">(</span><span class="n">n</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">j</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="p">(</span><span class="n">n</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">R1</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">R1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="n">jt</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">j</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">j</span><span class="p">[:,</span><span class="n">t</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">ndim</span><span class="p">(</span><span class="n">n0</span><span class="p">)</span><span class="o">==</span><span class="mi">2</span><span class="p">:</span>
+            <span class="n">n0t</span> <span class="o">=</span> <span class="n">n0</span><span class="p">[:,</span><span class="n">t</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">n0t</span> <span class="o">=</span> <span class="n">n0</span>
+        <span class="n">M</span><span class="p">[:,</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">Mz_spgr</span><span class="p">(</span><span class="n">R1</span><span class="p">[:,</span><span class="n">t</span><span class="p">],</span> <span class="n">T</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">TP</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">,</span> <span class="n">jt</span><span class="p">,</span> <span class="n">n0t</span><span class="p">,</span> <span class="n">me</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">M</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> </div>
+
+
+
+
+
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">signal</span><span class="p">(</span><span class="n">sequence</span><span class="p">,</span> <span class="n">R1</span><span class="p">,</span> <span class="n">S0</span><span class="p">,</span> <span class="n">TR</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">FA</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">TC</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="c1"># Private for now - generalize to umbrella signal function</span>
+    <span class="k">if</span> <span class="n">sequence</span> <span class="o">==</span> <span class="s1">&#39;SRC&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">signal_free</span><span class="p">(</span><span class="n">S0</span><span class="p">,</span> <span class="n">R1</span><span class="p">,</span> <span class="n">TC</span><span class="p">,</span> <span class="n">FA</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">sequence</span> <span class="o">==</span> <span class="s1">&#39;SR&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">signal_spgr</span><span class="p">(</span><span class="n">S0</span><span class="p">,</span> <span class="n">R1</span><span class="p">,</span> <span class="n">TC</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">sequence</span> <span class="o">==</span> <span class="s1">&#39;SS&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">signal_ss</span><span class="p">(</span><span class="n">S0</span><span class="p">,</span> <span class="n">R1</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s1">&#39;Sequence &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">sequence</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; is not recognised.&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="signal_dsc">
+<a class="viewcode-back" href="../../api/dcmri.signal_dsc.html#dcmri.signal_dsc">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">signal_dsc</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">R2</span><span class="p">,</span> <span class="n">S0</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">TE</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Signal model for a DSC scan with T2 and T2-weighting.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        R1 (array-like): Longitudinal relaxation rate in 1/sec. Must have the same size as R2.</span>
+<span class="sd">        R2 (array-like): Transverse relaxation rate in 1/sec. Must have the same size as R1.</span>
+<span class="sd">        S0 (float): Signal scaling factor (arbitrary units).</span>
+<span class="sd">        TR (array-like): Repetition time, or time between successive selective excitations, in sec. If TR is an array, it must have the same size as R1 and R2.</span>
+<span class="sd">        TE (array-like): Echo time, in sec. If TE is an array, it must have the same size as R1 and R2.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.ndarray: Signal in arbitrary units, same length as R1 and R2.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">S0</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">TE</span><span class="p">,</span> <span class="n">R2</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">TR</span><span class="p">,</span> <span class="n">R1</span><span class="p">)))</span></div>
+
+
+
+<div class="viewcode-block" id="signal_t2w">
+<a class="viewcode-back" href="../../api/dcmri.signal_t2w.html#dcmri.signal_t2w">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">signal_t2w</span><span class="p">(</span><span class="n">R2</span><span class="p">,</span> <span class="n">S0</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">TE</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Signal model for a DSC scan with T2-weighting.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        R2 (array-like): Transverse relaxation rate in 1/sec. Must have the same size as R1.</span>
+<span class="sd">        S0 (float): Signal scaling factor (arbitrary units).</span>
+<span class="sd">        TE (array-like): Echo time, in sec. If TE is an array, it must have the same size as R1 and R2.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.ndarray: Signal in arbitrary units, same length as R1 and R2.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">S0</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">TE</span><span class="p">,</span> <span class="n">R2</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="signal_free">
+<a class="viewcode-back" href="../../api/dcmri.signal_free.html#dcmri.signal_free">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">signal_free</span><span class="p">(</span><span class="n">S0</span><span class="p">,</span> <span class="n">R1</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">Fw</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n0</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">R10</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Signal with readout after a free recovery.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        S0 (float): Signal scaling factor (arbitrary units).</span>
+<span class="sd">        R1 (array-like): Longitudinal relaxation rates in 1/sec. For a tissue </span>
+<span class="sd">          with n compartments, the first dimension of R1 must be n. For a </span>
+<span class="sd">          tissue with a single compartment, R1 can have any shape. If R1 is a </span>
+<span class="sd">          scalar, the result for a well-mixed tissue is returned.</span>
+<span class="sd">        T (float): time to center of k-space</span>
+<span class="sd">        FA (float): flip angle</span>
+<span class="sd">        v (array-like, optional): volume fractions of the compartments. For a </span>
+<span class="sd">          one-compartment tissue this is a scalar - otherwise it is an </span>
+<span class="sd">          array with one value for each compartment. Defaults to 1.</span>
+<span class="sd">        Fw (array-like, optional): Water flow between the compartments and to </span>
+<span class="sd">          the environment, in units of mL/sec/cm3. Generally Fw must be a nxn </span>
+<span class="sd">          array, where n is the number of compartments, and the off-diagonal </span>
+<span class="sd">          elements Fw[j,i] are the permeability for water moving from </span>
+<span class="sd">          compartment i into j. The diagonal elements Fw[i,i] quantify the </span>
+<span class="sd">          flow of water from compartment i to outside. For a closed system </span>
+<span class="sd">          with equal permeabilities between all compartments, a scalar value </span>
+<span class="sd">          for Fw can be provided. Defaults to 0.</span>
+<span class="sd">        j (array-like, optional): normalized tissue magnetization flux. j has </span>
+<span class="sd">          to have the same shape as R1. Defaults to None.</span>
+<span class="sd">        n0 (array-like, optional): initial relative magnetization at T=0. </span>
+<span class="sd">          If this is a scalar, all compartments are assumed to have the same </span>
+<span class="sd">          initial magnetization. Defaults to 0.</span>
+<span class="sd">        R10 (float, optional): R1-value where S0 is defined. If not provided, </span>
+<span class="sd">          S0 is the scaling factor corresponding to infinite R10. Defaults </span>
+<span class="sd">          to None.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.ndarray: Signal in the same units as S0 and with the same </span>
+<span class="sd">        dimensions as R1.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">R10</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">S0</span> <span class="o">=</span> <span class="n">S0</span><span class="o">/</span><span class="n">signal_free</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">R10</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">n0</span><span class="p">)</span>
+    <span class="n">Mz</span> <span class="o">=</span> <span class="n">Mz_free</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">n0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">Mz</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">S0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">FA</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">Mz</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">ndim</span><span class="p">(</span><span class="n">Mz</span><span class="p">)</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">S0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">FA</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">Mz</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">S0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">FA</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Mz</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">S0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">FA</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Mz</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="signal_ss">
+<a class="viewcode-back" href="../../api/dcmri.signal_ss.html#dcmri.signal_ss">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">signal_ss</span><span class="p">(</span><span class="n">S0</span><span class="p">,</span> <span class="n">R1</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">Fw</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">R10</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Signal of a spoiled gradient echo sequence applied in steady state.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        S0 (float): Signal scaling factor (arbitrary units).</span>
+<span class="sd">        R1 (array-like): Longitudinal relaxation rates in 1/sec. For a tissue </span>
+<span class="sd">          with n compartments, the first dimension of R1 must be n. For a </span>
+<span class="sd">          tissue with a single compartment, R1 can have any shape. If R1 is a </span>
+<span class="sd">          scalar, the result for a well-mixed tissue is returned.</span>
+<span class="sd">        TR (float): Repetition time, or time between successive selective </span>
+<span class="sd">          excitations, in sec. </span>
+<span class="sd">        FA (float): Flip angle in degrees.</span>
+<span class="sd">        v (array-like, optional): volume fractions of the compartments. For a </span>
+<span class="sd">          one-compartment tissue this is a scalar - otherwise it is an </span>
+<span class="sd">          array with one value for each compartment. Defaults to 1.</span>
+<span class="sd">        Fw (array-like, optional): Water flow between the compartments and to </span>
+<span class="sd">          the environment, in units of mL/sec/cm3. Generally Fw must be a nxn </span>
+<span class="sd">          array, where n is the number of compartments, and the off-diagonal </span>
+<span class="sd">          elements Fw[j,i] are the permeability for water moving from </span>
+<span class="sd">          compartment i into j. The diagonal elements Fw[i,i] quantify the </span>
+<span class="sd">          flow of water from compartment i to outside. For a closed system </span>
+<span class="sd">          with equal permeabilities between all compartments, a scalar value </span>
+<span class="sd">          for Fw can be provided. Defaults to 0.</span>
+<span class="sd">        j (array-like, optional): normalized tissue magnetization flux. j has </span>
+<span class="sd">          to have the same shape as R1. Defaults to None.</span>
+<span class="sd">        R10 (float, optional): R1-value where S0 is defined. If not provided, </span>
+<span class="sd">          S0 is the scaling factor corresponding to infinite R10. Defaults </span>
+<span class="sd">          to None.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.ndarray: Signal in the same units as S0</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">R10</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">S0</span> <span class="o">=</span> <span class="n">S0</span><span class="o">/</span><span class="n">signal_ss</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">R10</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+    <span class="n">Mz</span> <span class="o">=</span> <span class="n">Mz_ss</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">Mz</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">S0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">FA</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">Mz</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">ndim</span><span class="p">(</span><span class="n">Mz</span><span class="p">)</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">S0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">FA</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">Mz</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">S0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">FA</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Mz</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">S0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">FA</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Mz</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="signal_spgr">
+<a class="viewcode-back" href="../../api/dcmri.signal_spgr.html#dcmri.signal_spgr">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">signal_spgr</span><span class="p">(</span><span class="n">S0</span><span class="p">,</span> <span class="n">R1</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">TP</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> 
+                  <span class="n">v</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">Fw</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n0</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">R10</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Signal of an SPGR sequence.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        S0 (float): Signal scaling factor (arbitrary units).</span>
+<span class="sd">        R1 (array-like): Longitudinal relaxation rate in 1/sec.</span>
+<span class="sd">        T (float): time since the first readout rf-pulse.</span>
+<span class="sd">        TR (float): Repetition time, or time between successive selective </span>
+<span class="sd">          excitations, in sec. </span>
+<span class="sd">        FA (array-like): Flip angle in degrees.</span>
+<span class="sd">        TP (float, optional): Time (sec) between the preparation pre-pulse and </span>
+<span class="sd">          the first readout pulse. Defaults to 0.</span>
+<span class="sd">        v (array-like, optional): volume fractions of the compartments. For a </span>
+<span class="sd">          one-compartment tissue this is a scalar - otherwise it is an </span>
+<span class="sd">          array with one value for each compartment. Defaults to 1.</span>
+<span class="sd">        Fw (array-like, optional): Water flow between the compartments and to </span>
+<span class="sd">          the environment, in units of mL/sec/cm3. Generally Fw must be a nxn </span>
+<span class="sd">          array, where n is the number of compartments, and the off-diagonal </span>
+<span class="sd">          elements Fw[j,i] are the permeability for water moving from </span>
+<span class="sd">          compartment i into j. The diagonal elements Fw[i,i] quantify the </span>
+<span class="sd">          flow of water from compartment i to outside. For a closed system </span>
+<span class="sd">          with equal permeabilities between all compartments, a scalar value </span>
+<span class="sd">          for Fw can be provided. Defaults to 0.</span>
+<span class="sd">        j (array-like, optional): normalized tissue magnetization flux. j has </span>
+<span class="sd">          to have the same shape as R1. Defaults to None.</span>
+<span class="sd">        n0 (array-like, optional): initial relative magnetization at T=0. </span>
+<span class="sd">          If this is a scalar, all compartments are assumed to have the same </span>
+<span class="sd">          initial magnetization. Defaults to 0.</span>
+<span class="sd">        R10 (float, optional): R1-value where S0 is defined. If not provided, </span>
+<span class="sd">          S0 is the scaling factor corresponding to infinite R10. Defaults to </span>
+<span class="sd">          None.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If TP is larger than TC.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.ndarray: Signal in arbitrary units, of the same length as R1.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">R10</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">S0</span> <span class="o">=</span> <span class="n">S0</span><span class="o">/</span><span class="n">signal_spgr</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">R10</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">TP</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">n0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">TP</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+        <span class="n">N0</span> <span class="o">=</span> <span class="n">Mz_free</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">TP</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">n0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">ndim</span><span class="p">(</span><span class="n">N0</span><span class="p">)</span><span class="o">==</span><span class="mi">2</span><span class="p">:</span>
+            <span class="n">n0</span> <span class="o">=</span> <span class="n">N0</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N0</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                <span class="n">n0</span><span class="p">[:,</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="n">N0</span><span class="p">[:,</span><span class="n">t</span><span class="p">],</span> <span class="n">v</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">n0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="n">N0</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+    <span class="n">Mz</span> <span class="o">=</span> <span class="n">Mz_spgr</span><span class="p">(</span><span class="n">R1</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">TR</span><span class="p">,</span> <span class="n">FA</span><span class="p">,</span> <span class="n">TP</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Fw</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">n0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">Mz</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">S0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">FA</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">Mz</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">ndim</span><span class="p">(</span><span class="n">Mz</span><span class="p">)</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">S0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">FA</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">Mz</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">S0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">FA</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Mz</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">S0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">FA</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Mz</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="signal_lin">
+<a class="viewcode-back" href="../../api/dcmri.signal_lin.html#dcmri.signal_lin">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">signal_lin</span><span class="p">(</span><span class="n">S0</span><span class="p">,</span> <span class="n">R1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Signal for any sequence operating in the linear regime.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        S0 (float): Signal scaling factor (arbitrary units).</span>
+<span class="sd">        R1 (array-like): Longitudinal relaxation rate in 1/sec.</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        np.ndarray: Signal in arbitrary units, of the same length as R1.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">S0</span> <span class="o">*</span> <span class="n">R1</span></div>
+
+
+
+
+
+
+<div class="viewcode-block" id="conc_t2w">
+<a class="viewcode-back" href="../../api/dcmri.conc_t2w.html#dcmri.conc_t2w">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">conc_t2w</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">TE</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">r2</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">n0</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Concentration for a DSC scan with T2-weighting.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        S (array-like): Signal in arbitrary units.</span>
+<span class="sd">        TE (float): Echo time in sec.</span>
+<span class="sd">        r2 (float, optional): Transverse relaxivity in Hz/M. Defaults to 0.5.</span>
+<span class="sd">        n0 (int, optional): Baseline length. Defaults to 1.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.ndarray: Concentration in M, same length as S.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># S/Sb = exp(-TE(R2-R2b))</span>
+    <span class="c1">#   ln(S/Sb) = -TE(R2-R2b)</span>
+    <span class="c1">#   R2-R2b = -ln(S/Sb)/TE</span>
+    <span class="c1"># R2 = R2b + r2C</span>
+    <span class="c1">#   C = (R2-R2b)/r2</span>
+    <span class="c1">#   C = -ln(S/Sb)/TE/r2</span>
+    <span class="n">Sb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">S</span><span class="p">[:</span><span class="n">n0</span><span class="p">])</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">S</span><span class="o">/</span><span class="n">Sb</span><span class="p">)</span><span class="o">/</span><span class="n">TE</span><span class="o">/</span><span class="n">r2</span>
+    <span class="k">return</span> <span class="n">C</span></div>
+
+
+
+<div class="viewcode-block" id="conc_ss">
+<a class="viewcode-back" href="../../api/dcmri.conc_ss.html#dcmri.conc_ss">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">conc_ss</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">TR</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">FA</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">T10</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">r1</span><span class="o">=</span><span class="mf">0.005</span><span class="p">,</span> <span class="n">n0</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Concentration of a spoiled gradient echo sequence applied in steady state.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        S (array-like): Signal in arbitrary units.</span>
+<span class="sd">        TR (float): Repetition time, or time between successive selective excitations, in sec.</span>
+<span class="sd">        FA (float): Flip angle in degrees.</span>
+<span class="sd">        T10 (float): baseline T1 value in sec.</span>
+<span class="sd">        r1 (float, optional): Longitudinal relaxivity in Hz/M. Defaults to 0.005.</span>
+<span class="sd">        n0 (int, optional): Baseline length. Defaults to 1.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.ndarray: Concentration inM , same length as S.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># S = Sinf * (1-exp(-TR*R1)) / (1-cFA*exp(-TR*R1))</span>
+    <span class="c1"># Sb = Sinf * (1-exp(-TR*R10)) / (1-cFA*exp(-TR*R10))</span>
+    <span class="c1"># Sn = (1-exp(-TR*R1)) / (1-cFA*exp(-TR*R1))</span>
+    <span class="c1"># Sn * (1-cFA*exp(-TR*R1)) = 1-exp(-TR*R1)</span>
+    <span class="c1"># exp(-TR*R1) - Sn *cFA*exp(-TR*R1) = 1-Sn</span>
+    <span class="c1"># (1-Sn*cFA) * exp(-TR*R1) = 1-Sn</span>
+    <span class="n">Sb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">S</span><span class="p">[:</span><span class="n">n0</span><span class="p">])</span>
+    <span class="n">E0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">TR</span><span class="o">/</span><span class="n">T10</span><span class="p">)</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">FA</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span><span class="p">)</span>
+    <span class="n">Sn</span> <span class="o">=</span> <span class="p">(</span><span class="n">S</span><span class="o">/</span><span class="n">Sb</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">E0</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">c</span><span class="o">*</span><span class="n">E0</span><span class="p">)</span>	        <span class="c1"># normalized signal</span>
+    <span class="c1"># Replace any Nan values by interpolating between nearest neighbours</span>
+    <span class="n">outrange</span> <span class="o">=</span> <span class="n">Sn</span> <span class="o">&gt;=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">outrange</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">inrange</span> <span class="o">=</span> <span class="n">Sn</span> <span class="o">&lt;</span> <span class="mi">1</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">Sn</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+        <span class="n">Sn</span><span class="p">[</span><span class="n">outrange</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">outrange</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="n">inrange</span><span class="p">],</span> <span class="n">Sn</span><span class="p">[</span><span class="n">inrange</span><span class="p">])</span>
+    <span class="n">R1</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">((</span><span class="mi">1</span><span class="o">-</span><span class="n">Sn</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">c</span><span class="o">*</span><span class="n">Sn</span><span class="p">))</span><span class="o">/</span><span class="n">TR</span>  <span class="c1"># relaxation rate in 1/msec</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">R1</span> <span class="o">-</span> <span class="mi">1</span><span class="o">/</span><span class="n">T10</span><span class="p">)</span><span class="o">/</span><span class="n">r1</span></div>
+
+
+
+<div class="viewcode-block" id="conc_src">
+<a class="viewcode-back" href="../../api/dcmri.conc_src.html#dcmri.conc_src">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">conc_src</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">TC</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">T10</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">r1</span><span class="o">=</span><span class="mf">0.005</span><span class="p">,</span> <span class="n">n0</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Concentration of a saturation-recovery sequence with a center-encoded readout.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        S (array-like): Signal in arbitrary units.</span>
+<span class="sd">        TC (float): Time (sec) between the saturation pulse and the acquisition of the k-space center.</span>
+<span class="sd">        T10 (float): baseline T1 value in sec.</span>
+<span class="sd">        r1 (float, optional): Longitudinal relaxivity in Hz/M. Defaults to 0.005.</span>
+<span class="sd">        n0 (int, optional): Baseline length. Defaults to 1.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.ndarray: Concentration in M, same length as S.</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">        We generate some signals from ground-truth concentrations, then reconstruct the concentrations and check against the ground truth:</span>
+
+<span class="sd">    .. plot::</span>
+<span class="sd">        :include-source:</span>
+
+<span class="sd">        &gt;&gt;&gt; import matplotlib.pyplot as plt</span>
+<span class="sd">        &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">        &gt;&gt;&gt; import dcmri as dc</span>
+
+<span class="sd">        First define some constants:</span>
+
+<span class="sd">        &gt;&gt;&gt; T10 = 1         # sec</span>
+<span class="sd">        &gt;&gt;&gt; TC = 0.2        # sec</span>
+<span class="sd">        &gt;&gt;&gt; r1 = 0.005      # Hz/M</span>
+<span class="sd">        &gt;&gt;&gt; FA = 15         # deg</span>
+
+<span class="sd">        Generate ground truth concentrations and signal data:</span>
+
+<span class="sd">        &gt;&gt;&gt; t = np.arange(0, 5*60, 0.1)     # sec</span>
+<span class="sd">        &gt;&gt;&gt; C = 0.003*(1-np.exp(-t/60))     # M</span>
+<span class="sd">        &gt;&gt;&gt; R1 = 1/T10 + r1*C               # Hz</span>
+<span class="sd">        &gt;&gt;&gt; S = dc.signal_free(100, R1, TC, FA)  # au</span>
+
+<span class="sd">        Reconstruct the concentrations from the signal data:</span>
+
+<span class="sd">        &gt;&gt;&gt; Crec = dc.conc_src(S, TC, T10, r1)</span>
+
+<span class="sd">        Check results by plotting ground truth against reconstruction:</span>
+
+<span class="sd">        &gt;&gt;&gt; plt.plot(t/60, 1000*C, &#39;ro&#39;, label=&#39;Ground truth&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.plot(t/60, 1000*Crec, &#39;b-&#39;, label=&#39;Reconstructed&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.title(&#39;SRC signal inverse&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.xlabel(&#39;Time (min)&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.ylabel(&#39;Concentration (mM)&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.legend()</span>
+<span class="sd">        &gt;&gt;&gt; plt.show()</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># S = S0*(1-exp(-TC*R1))</span>
+    <span class="c1"># S/Sb = (1-exp(-TC*R1))/(1-exp(-TC*R10))</span>
+    <span class="c1"># (1-exp(-TC*R10))*S/Sb = 1-exp(-TC*R1)</span>
+    <span class="c1"># 1-(1-exp(-TC*R10))*S/Sb = exp(-TC*R1)</span>
+    <span class="c1"># ln(1-(1-exp(-TC*R10))*S/Sb) = -TC*R1</span>
+    <span class="c1"># -ln(1-(1-exp(-TC*R10))*S/Sb)/TC = R1</span>
+    <span class="n">Sb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">S</span><span class="p">[:</span><span class="n">n0</span><span class="p">])</span>
+    <span class="n">E</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">TC</span><span class="o">/</span><span class="n">T10</span><span class="p">)</span>
+    <span class="n">R1</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">E</span><span class="p">)</span><span class="o">*</span><span class="n">S</span><span class="o">/</span><span class="n">Sb</span><span class="p">)</span><span class="o">/</span><span class="n">TC</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">R1</span> <span class="o">-</span> <span class="mi">1</span><span class="o">/</span><span class="n">T10</span><span class="p">)</span><span class="o">/</span><span class="n">r1</span></div>
+
+
+
+<div class="viewcode-block" id="conc_lin">
+<a class="viewcode-back" href="../../api/dcmri.conc_lin.html#dcmri.conc_lin">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">conc_lin</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">T10</span><span class="p">,</span> <span class="n">r1</span><span class="o">=</span><span class="mf">0.005</span><span class="p">,</span> <span class="n">n0</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Concentration for any sequence operating in the linear regime.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        S (array-like): Signal in arbitrary units.</span>
+<span class="sd">        T10 (float): baseline T1 value in sec.</span>
+<span class="sd">        r1 (float, optional): Longitudinal relaxivity in Hz/M. Defaults to 0.005.</span>
+<span class="sd">        n0 (int, optional): Baseline length. Defaults to 1.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.ndarray: Concentration in M, same length as S.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">Sb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">S</span><span class="p">[:</span><span class="n">n0</span><span class="p">])</span>
+    <span class="n">R10</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="n">T10</span>
+    <span class="n">R1</span> <span class="o">=</span> <span class="n">R10</span><span class="o">*</span><span class="n">S</span><span class="o">/</span><span class="n">Sb</span>  <span class="c1"># relaxation rate in 1/msec</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">R1</span> <span class="o">-</span> <span class="n">R10</span><span class="p">)</span><span class="o">/</span><span class="n">r1</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024-2025, dcmri contributors.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

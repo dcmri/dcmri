@@ -1,0 +1,1371 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Clinical - rifampicin induced inhibition of liver function &#8212; dcmri 0.6.17 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=cd8af66b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=0d21fabb"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-64ZSJ8Z1MX"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-64ZSJ8Z1MX');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/liver/plot_tristan_volunteers_2scan';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Preclinical - reproducibility of hepatocellular function" href="plot_tristan_repro.html" />
+    <link rel="prev" title="Clinical - rifampicin effect in subjects with impaired liver function" href="plot_tristan_patients.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/tristan-logo.jpg" class="logo__image only-light" alt="dcmri 0.6.17 documentation - Home"/>
+    <img src="../../_static/tristan-logo.jpg" class="logo__image only-dark pst-js-only" alt="dcmri 0.6.17 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../releases/index.html">
+    Releases
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../about/index.html">
+    About
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide/index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../reference/index.html">
+    Reference
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contribute/index.html">
+    Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../releases/index.html">
+    Releases
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../about/index.html">
+    About
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/dcmri/dcmri" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../kidney/index.html">Kidney applications</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">Liver function: drug effects</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="plot_tristan_mdosing.html">Preclinical - repeat dosing effects on liver function</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_tristan_volunteers.html">Clinical - rifampicin induced inhibition (short protocol)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_tristan_patients.html">Clinical - rifampicin effect in subjects with impaired liver function</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">Clinical - rifampicin induced inhibition of liver function</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_tristan_repro.html">Preclinical - reproducibility of hepatocellular function</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plot_tristan6drugs.html">Preclinical - effect on liver function of 6 test drugs</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/index.html">Tutorials</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Examples</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Liver function: drug effects</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Clinical - rifampicin induced inhibition of liver function</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="#sphx-glr-download-examples-liver-plot-tristan-volunteers-2scan-py"><span class="std std-ref">Go to the end</span></a>
+to download the full example code.</p>
+</div>
+<section class="sphx-glr-example-title" id="clinical-rifampicin-induced-inhibition-of-liver-function">
+<span id="sphx-glr-examples-liver-plot-tristan-volunteers-2scan-py"></span><h1>Clinical - rifampicin induced inhibition of liver function<a class="headerlink" href="#clinical-rifampicin-induced-inhibition-of-liver-function" title="Link to this heading">#</a></h1>
+<p>This example illustrates the use of <a class="reference internal" href="../../api/dcmri.AortaLiver2scan.html#dcmri.AortaLiver2scan" title="dcmri.AortaLiver2scan"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AortaLiver2scan</span></code></a> for joint
+fitting of aorta and liver signals measured over 2 separate scans. The use
+case is provided by the liver work package of the
+<a class="reference external" href="https://www.imi-tristan.eu/liver">TRISTAN project</a>  which develops imaging
+biomarkers for drug safety assessment. The data and analysis was first
+presented at the ISMRM in 2024 (Min et al 2024, manuscript in press).</p>
+<p>The data were acquired in the aorta and liver of 10 healthy volunteers with
+dynamic gadoxetate-enhanced MRI, before and after administration of a drug
+(rifampicin) which is known to inhibit liver function. The assessments were
+done on two separate visits at least 2 weeks apart. On each visit, the
+volunteer had two scans each with a separate contrast agent injection of a
+quarter dose each. the scans were separated by a gap of about 1 hour to enable
+gadoxetate to clear from the liver. This design was deemed necessary for
+reliable measurement of excretion rate when liver function was inhibited.</p>
+<p>The research question was to what extent rifampicin inhibits gadoxetate uptake
+rate from the extracellular space into the liver hepatocytes
+(khe, mL/min/100mL) and excretion rate from hepatocytes to bile
+(kbh, mL/100mL/min).</p>
+<p>2 of the volunteers only had the baseline assessment, the other 8 volunteers
+completed the full study. The results showed consistent and strong inhibition
+of khe (95%) and kbh (40%) by rifampicin. This implies that rifampicin poses
+a risk of drug-drug interactions (DDI), meaning it can cause another drug to
+circulate in the body for far longer than expected, potentially causing harm
+or raising a need for dose adjustment.</p>
+<p><strong>Note</strong>: this example is different to the 1 scan example of the same study in
+that this uses both scans to fit the model.</p>
+<section id="reference">
+<h2>Reference<a class="headerlink" href="#reference" title="Link to this heading">#</a></h2>
+<p>Thazin Min, Marta Tibiletti, Paul Hockings, Aleksandra Galetin, Ebony Gunwhy,
+Gerry Kenna, Nicola Melillo, Geoff JM Parker, Gunnar Schuetz, Daniel Scotcher,
+John Waterton, Ian Rowe, and Steven Sourbron. <em>Measurement of liver function
+with dynamic gadoxetate-enhanced MRI: a validation study in healthy
+volunteers</em>. Proc Intl Soc Mag Reson Med, Singapore 2024.</p>
+</section>
+<section id="setup">
+<h2>Setup<a class="headerlink" href="#setup" title="Link to this heading">#</a></h2>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import packages</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pydmr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">dcmri</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dc</span>
+
+<span class="c1"># Fetch the data from the TRISTAN rifampicin study:</span>
+<a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dmrfile</span></a> <span class="o">=</span> <span class="n">dc</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="s1">&#39;tristan_humans_healthy_rifampicin&#39;</span><span class="p">)</span>
+<a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a> <span class="o">=</span> <span class="n">pydmr</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dmrfile</span></a><span class="p">,</span> <span class="s1">&#39;nest&#39;</span><span class="p">)</span>
+<a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;rois&#39;</span><span class="p">],</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data</span></a><span class="p">[</span><span class="s1">&#39;pars&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+</section>
+<section id="model-definition">
+<h2>Model definition<a class="headerlink" href="#model-definition" title="Link to this heading">#</a></h2>
+<p>In order to avoid some repetition in this script, we define a function that
+returns a trained model for a single dataset with 2 scans:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">tristan_human_2scan</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">roi</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">par</span></a><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+    <span class="n">model</span> <span class="o">=</span> <span class="n">dc</span><span class="o">.</span><span class="n">AortaLiver2scan</span><span class="p">(</span>
+
+        <span class="c1"># Injection parameters</span>
+        <span class="n">weight</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">par</span></a><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">],</span>
+        <span class="n">agent</span> <span class="o">=</span> <span class="s1">&#39;gadoxetate&#39;</span><span class="p">,</span>
+        <span class="n">dose</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">par</span></a><span class="p">[</span><span class="s1">&#39;dose_1&#39;</span><span class="p">],</span>
+        <span class="n">dose2</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">par</span></a><span class="p">[</span><span class="s1">&#39;dose_2&#39;</span><span class="p">],</span>
+        <span class="n">rate</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+
+        <span class="c1"># Acquisition parameters</span>
+        <span class="n">field_strength</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="n">t0</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">par</span></a><span class="p">[</span><span class="s1">&#39;t0&#39;</span><span class="p">],</span>
+        <span class="n">TR</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">par</span></a><span class="p">[</span><span class="s1">&#39;TR&#39;</span><span class="p">],</span>
+        <span class="n">FA</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">par</span></a><span class="p">[</span><span class="s1">&#39;FA_1&#39;</span><span class="p">],</span>
+        <span class="n">FA2</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">par</span></a><span class="p">[</span><span class="s1">&#39;FA_2&#39;</span><span class="p">],</span>
+        <span class="n">TS</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">roi</span></a><span class="p">[</span><span class="s1">&#39;time_1&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">roi</span></a><span class="p">[</span><span class="s1">&#39;time_1&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+
+        <span class="c1"># Signal parameters</span>
+        <span class="n">R10a</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">par</span></a><span class="p">[</span><span class="s1">&#39;T1_aorta_1&#39;</span><span class="p">],</span>
+        <span class="n">R10l</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">par</span></a><span class="p">[</span><span class="s1">&#39;T1_liver_1&#39;</span><span class="p">],</span>
+        <span class="n">R102a</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">par</span></a><span class="p">[</span><span class="s1">&#39;T1_aorta_3&#39;</span><span class="p">],</span>
+        <span class="n">R102l</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">par</span></a><span class="p">[</span><span class="s1">&#39;T1_liver_3&#39;</span><span class="p">],</span>
+
+        <span class="c1"># Tissue parameters</span>
+        <span class="n">vol</span> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">par</span></a><span class="p">[</span><span class="s1">&#39;liver_volume&#39;</span><span class="p">],</span>
+    <span class="p">)</span>
+
+    <a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">xdata</span></a> <span class="o">=</span> <span class="p">(</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">roi</span></a><span class="p">[</span><span class="s1">&#39;time_1&#39;</span><span class="p">][</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">roi</span></a><span class="p">[</span><span class="s1">&#39;aorta_1_accept&#39;</span><span class="p">]]</span> <span class="o">-</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">roi</span></a><span class="p">[</span><span class="s1">&#39;time_1&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">roi</span></a><span class="p">[</span><span class="s1">&#39;time_2&#39;</span><span class="p">][</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">roi</span></a><span class="p">[</span><span class="s1">&#39;aorta_2_accept&#39;</span><span class="p">]]</span> <span class="o">-</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">roi</span></a><span class="p">[</span><span class="s1">&#39;time_1&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">roi</span></a><span class="p">[</span><span class="s1">&#39;time_1&#39;</span><span class="p">][</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">roi</span></a><span class="p">[</span><span class="s1">&#39;liver_1_accept&#39;</span><span class="p">]]</span> <span class="o">-</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">roi</span></a><span class="p">[</span><span class="s1">&#39;time_1&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">roi</span></a><span class="p">[</span><span class="s1">&#39;time_2&#39;</span><span class="p">][</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">roi</span></a><span class="p">[</span><span class="s1">&#39;liver_2_accept&#39;</span><span class="p">]]</span> <span class="o">-</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">roi</span></a><span class="p">[</span><span class="s1">&#39;time_1&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+    <span class="p">)</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ydata</span></a> <span class="o">=</span> <span class="p">(</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">roi</span></a><span class="p">[</span><span class="s1">&#39;aorta_1&#39;</span><span class="p">][</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">roi</span></a><span class="p">[</span><span class="s1">&#39;aorta_1_accept&#39;</span><span class="p">]],</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">roi</span></a><span class="p">[</span><span class="s1">&#39;aorta_2&#39;</span><span class="p">][</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">roi</span></a><span class="p">[</span><span class="s1">&#39;aorta_2_accept&#39;</span><span class="p">]],</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">roi</span></a><span class="p">[</span><span class="s1">&#39;liver_1&#39;</span><span class="p">][</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">roi</span></a><span class="p">[</span><span class="s1">&#39;liver_1_accept&#39;</span><span class="p">]],</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">roi</span></a><span class="p">[</span><span class="s1">&#39;liver_2&#39;</span><span class="p">][</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">roi</span></a><span class="p">[</span><span class="s1">&#39;liver_2_accept&#39;</span><span class="p">]],</span>
+    <span class="p">)</span>
+
+    <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">xdata</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ydata</span></a><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">return</span> <a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">xdata</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ydata</span></a><span class="p">,</span> <span class="n">model</span>
+</pre></div>
+</div>
+<p>Before running the full analysis on all cases, lets illustrate the results
+by fitting the baseline visit for the first subject. We use maximum
+verbosity to get some feedback about the iterations:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">xdata</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ydata</span></a><span class="p">,</span> <span class="n">model</span> <span class="o">=</span> <span class="n">tristan_human_2scan</span><span class="p">(</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="p">[</span><span class="s1">&#39;001&#39;</span><span class="p">][</span><span class="s1">&#39;control&#39;</span><span class="p">],</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><span class="s1">&#39;001&#39;</span><span class="p">][</span><span class="s1">&#39;control&#39;</span><span class="p">],</span>
+    <span class="n">xtol</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>   Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality
+       0              1         5.3415e+07                                    3.38e+09
+       1              2         9.9859e+06      4.34e+07       8.67e+02       1.81e+09
+       2              3         3.2916e+06      6.69e+06       1.07e+02       1.78e+09
+       3              4         1.6009e+06      1.69e+06       5.18e+02       1.21e+09
+       4              5         6.6515e+05      9.36e+05       1.61e+02       8.78e+08
+       5              6         3.0099e+05      3.64e+05       2.76e+02       5.83e+08
+       6              7         1.9439e+05      1.07e+05       1.87e+02       2.56e+08
+       7              8         1.7496e+05      1.94e+04       3.49e+01       9.09e+07
+       8              9         1.7421e+05      7.50e+02       2.32e+01       7.86e+06
+       9             10         1.7163e+05      2.57e+03       9.84e+00       1.00e+07
+`xtol` termination condition is satisfied.
+Function evaluations 10, initial cost 5.3415e+07, final cost 1.7163e+05, first-order optimality 1.00e+07.
+   Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality
+       0              1         3.3611e+07                                    7.15e+08
+       1              2         1.8747e+06      3.17e+07       4.50e+03       4.21e+08
+       2              3         3.0743e+05      1.57e+06       1.73e+03       1.03e+08
+       3              4         1.6184e+05      1.46e+05       1.12e+03       2.34e+07
+       4              5         1.4500e+05      1.68e+04       1.32e+03       2.52e+07
+       5              6         1.3137e+05      1.36e+04       8.44e+02       8.46e+06
+       6              7         1.2801e+05      3.37e+03       8.92e+02       8.63e+06
+       7              8         1.2564e+05      2.37e+03       5.61e+02       2.89e+06
+       8              9         1.2496e+05      6.81e+02       4.56e+02       1.78e+06
+       9             10         1.2473e+05      2.31e+02       2.59e+02       5.23e+05
+      10             11         1.2468e+05      5.33e+01       1.41e+02       1.46e+05
+      11             12         1.2466e+05      1.18e+01       6.78e+01       3.10e+04
+      12             13         1.2466e+05      2.59e+00       3.18e+01       5.80e+03
+      13             14         1.2466e+05      6.00e-01       1.50e+01       1.07e+03
+      14             15         1.2466e+05      1.32e-01       7.11e+00       1.58e+02
+`xtol` termination condition is satisfied.
+Function evaluations 15, initial cost 3.3611e+07, final cost 1.2466e+05, first-order optimality 1.58e+02.
+   Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality
+       0              1         2.9629e+05                                    4.56e+06
+       1              5         2.9591e+05      3.82e+02       9.70e+00       8.98e+06
+`xtol` termination condition is satisfied.
+Function evaluations 5, initial cost 2.9629e+05, final cost 2.9591e+05, first-order optimality 8.98e+06.
+</pre></div>
+</div>
+<p>Plot the results to check that the model has fitted the data. The plot also
+shows the concentration in the two liver compartments separately:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">xdata</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ydata</span></a><span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_plot_tristan_volunteers_2scan_001.png" srcset="../../_images/sphx_glr_plot_tristan_volunteers_2scan_001.png" alt="plot tristan volunteers 2scan" class = "sphx-glr-single-img"/><p>Print the measured model parameters and any derived parameters. Standard
+deviations are included as a measure of parameter uncertainty, indicate that
+all parameters are identified robustly:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">print_params</span><span class="p">(</span><span class="n">round_to</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>--------------------------------
+Free parameters with their stdev
+--------------------------------
+
+Aorta second signal scale factor (S02a): 9790.934 (18.233) a.u.
+Liver second signal scale factor (S02l): 7650.161 (65.958) a.u.
+Second bolus arrival time (BAT2): 8601.994 (0.391) sec
+First bolus arrival time (BAT): 71.593 (0.408) sec
+Cardiac output (CO): 216.167 (3.751) mL/sec
+Heart-lung mean transit time (Thl): 26.336 (0.702) sec
+Heart-lung dispersion (Dhl): 0.653 (0.011)
+Organs blood mean transit time (To): 23.11 (0.625) sec
+Organs extraction fraction (Eo): 0.141 (0.003)
+Organs extravascular mean transit time (Toe): 453.462 (13.281) sec
+Body extraction fraction (Eb): 0.062 (0.002)
+Liver extracellular volume fraction (ve): 0.298 (0.008) mL/cm3
+Extracellular mean transit time (Te): 39.7 (1.408) sec
+Extracellular dispersion (De): 0.722 (0.02)
+Initial hepatocellular uptake rate (khe_i): 0.006 (0.0) mL/sec/cm3
+Final hepatocellular uptake rate (khe_f): 0.001 (0.0) mL/sec/cm3
+Initial hepatocellular mean transit time (Th_i): 1155.441 (57.0) sec
+Final hepatocellular mean transit time (Th_f): 8478.617 (255.599) sec
+
+----------------------------
+Fixed and derived parameters
+----------------------------
+
+Hematocrit (H): 0.45
+Hepatocellular mean transit time (Th): 4817.029 sec
+Hepatocellular uptake rate (khe): 0.004 mL/sec/cm3
+Biliary tissue excretion rate (Kbh): 0.0 mL/sec/cm3
+Hepatocellular tissue uptake rate (Khe): 0.013 mL/sec/cm3
+Biliary excretion rate (kbh): 0.0 mL/sec/cm3
+Initial biliary excretion rate (kbh_i): 0.001 mL/sec/cm3
+Final biliary excretion rate (kbh_f): 0.0 mL/sec/cm3
+Liver blood clearance (CL): 4.244 mL/sec
+</pre></div>
+</div>
+</section>
+<section id="fit-all-data">
+<h2>Fit all data<a class="headerlink" href="#fit-all-data" title="Link to this heading">#</a></h2>
+<p>Now that we have illustrated an individual result in some detail, we
+proceed with fitting the data for all 10 volunteers, at baseline and
+rifampicin visit. We do not print output for these individual computations
+and instead store results in one single dataframe:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="c1"># Loop over all datasets</span>
+<span class="k">for</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">subj</span></a> <span class="ow">in</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+    <span class="k">for</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">visit</span></a> <span class="ow">in</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="p">[</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">subj</span></a><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+
+        <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">roi</span></a> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rois</span></a><span class="p">[</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">subj</span></a><span class="p">][</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">visit</span></a><span class="p">]</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">par</span></a> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">pars</span></a><span class="p">[</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">subj</span></a><span class="p">][</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">visit</span></a><span class="p">]</span>
+
+        <span class="c1"># Generate a trained model for the scan:</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">_</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#tuple" title="builtins.tuple" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">_</span></a><span class="p">,</span> <span class="n">model</span> <span class="o">=</span> <span class="n">tristan_human_2scan</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">roi</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">par</span></a><span class="p">,</span> <span class="n">xtol</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+
+        <span class="c1"># Export fitted parameters as lists</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rows</span></a> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">export_params</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s1">&#39;list&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Add visit and subject info</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rows</span></a> <span class="o">=</span> <span class="p">[</span><span class="n">row</span> <span class="o">+</span> <span class="p">[</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">visit</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">subj</span></a><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rows</span></a><span class="p">]</span>
+
+        <span class="c1"># Add to the list of all results</span>
+        <span class="n">results</span> <span class="o">+=</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rows</span></a>
+
+<span class="c1"># Combine all results into a single dataframe.</span>
+<a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">cols</span></a> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;parameter&#39;</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="s1">&#39;unit&#39;</span><span class="p">,</span> <span class="s1">&#39;stdev&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;visit&#39;</span><span class="p">,</span> <span class="s1">&#39;subject&#39;</span><span class="p">]</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">cols</span></a><span class="p">)</span>
+
+<span class="c1"># Print all results</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">to_string</span><span class="p">())</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>    parameter                                      name         value        unit         stdev    visit subject
+0        S02a          Aorta second signal scale factor   9790.934419        a.u.  1.823324e+01  control     001
+1        S02l          Liver second signal scale factor   7650.160914        a.u.  6.595781e+01  control     001
+2        BAT2                 Second bolus arrival time   8601.993881         sec  3.906963e-01  control     001
+3         BAT                  First bolus arrival time     71.592718         sec  4.079589e-01  control     001
+4          CO                            Cardiac output    216.167347      mL/sec  3.750884e+00  control     001
+5         Thl              Heart-lung mean transit time     26.335814         sec  7.019960e-01  control     001
+6         Dhl                     Heart-lung dispersion      0.653321              1.089965e-02  control     001
+7          To            Organs blood mean transit time     23.109502         sec  6.246586e-01  control     001
+8          Eo                Organs extraction fraction      0.140860              2.659502e-03  control     001
+9         Toe    Organs extravascular mean transit time    453.461876         sec  1.328061e+01  control     001
+10         Eb                  Body extraction fraction      0.062193              1.788962e-03  control     001
+11          H                                Hematocrit      0.450000              0.000000e+00  control     001
+12         ve       Liver extracellular volume fraction      0.298000      mL/cm3  7.691598e-03  control     001
+13         Te           Extracellular mean transit time     39.700026         sec  1.407854e+00  control     001
+14         De                  Extracellular dispersion      0.721896              1.979420e-02  control     001
+15      khe_i        Initial hepatocellular uptake rate      0.006318  mL/sec/cm3  6.579695e-05  control     001
+16      khe_f          Final hepatocellular uptake rate      0.001354  mL/sec/cm3  3.271103e-05  control     001
+17       Th_i  Initial hepatocellular mean transit time   1155.440624         sec  5.699956e+01  control     001
+18       Th_f    Final hepatocellular mean transit time   8478.616541         sec  2.555989e+02  control     001
+19         Th          Hepatocellular mean transit time   4817.028582         sec  0.000000e+00  control     001
+20        khe                Hepatocellular uptake rate      0.003836  mL/sec/cm3  0.000000e+00  control     001
+21        Kbh             Biliary tissue excretion rate      0.000208  mL/sec/cm3  0.000000e+00  control     001
+22        Khe         Hepatocellular tissue uptake rate      0.012873  mL/sec/cm3  0.000000e+00  control     001
+23        kbh                    Biliary excretion rate      0.000146  mL/sec/cm3  0.000000e+00  control     001
+24      kbh_i            Initial biliary excretion rate      0.000608  mL/sec/cm3  0.000000e+00  control     001
+25      kbh_f              Final biliary excretion rate      0.000083  mL/sec/cm3  0.000000e+00  control     001
+26         CL                     Liver blood clearance      4.243751      mL/sec  0.000000e+00  control     001
+27       S02a          Aorta second signal scale factor  10671.336173        a.u.  2.434266e+01  control     002
+28       S02l          Liver second signal scale factor   7790.669099        a.u.  1.951871e+01  control     002
+29       BAT2                 Second bolus arrival time  17165.045516         sec  2.548165e-01  control     002
+30        BAT                  First bolus arrival time     81.041756         sec  2.623909e-01  control     002
+31         CO                            Cardiac output     60.115880      mL/sec  1.508466e+00  control     002
+32        Thl              Heart-lung mean transit time     14.640800         sec  5.677166e-01  control     002
+33        Dhl                     Heart-lung dispersion      0.642081              1.184908e-02  control     002
+34         To            Organs blood mean transit time     32.917918         sec  1.795293e+00  control     002
+35         Eo                Organs extraction fraction      0.195323              7.293563e-03  control     002
+36        Toe    Organs extravascular mean transit time    480.230658         sec  3.688903e+01  control     002
+37         Eb                  Body extraction fraction      0.069362              4.324001e-03  control     002
+38          H                                Hematocrit      0.450000              0.000000e+00  control     002
+39         ve       Liver extracellular volume fraction      0.010025      mL/cm3  1.692230e-02  control     002
+40         Te           Extracellular mean transit time      3.302522         sec  3.623786e+00  control     002
+41         De                  Extracellular dispersion      0.030623              9.581622e+00  control     002
+42      khe_i        Initial hepatocellular uptake rate      0.004325  mL/sec/cm3  9.072047e-05  control     002
+43      khe_f          Final hepatocellular uptake rate      0.010522  mL/sec/cm3  1.949406e-04  control     002
+44       Th_i  Initial hepatocellular mean transit time   2918.413141         sec  1.764314e+02  control     002
+45       Th_f    Final hepatocellular mean transit time   1822.554367         sec  7.348929e+01  control     002
+46         Th          Hepatocellular mean transit time   2370.483754         sec  0.000000e+00  control     002
+47        khe                Hepatocellular uptake rate      0.007423  mL/sec/cm3  0.000000e+00  control     002
+48        Kbh             Biliary tissue excretion rate      0.000422  mL/sec/cm3  0.000000e+00  control     002
+49        Khe         Hepatocellular tissue uptake rate      0.740469  mL/sec/cm3  0.000000e+00  control     002
+50        kbh                    Biliary excretion rate      0.000418  mL/sec/cm3  0.000000e+00  control     002
+51      kbh_i            Initial biliary excretion rate      0.000339  mL/sec/cm3  0.000000e+00  control     002
+52      kbh_f              Final biliary excretion rate      0.000543  mL/sec/cm3  0.000000e+00  control     002
+53         CL                     Liver blood clearance      5.075129      mL/sec  0.000000e+00  control     002
+54       S02a          Aorta second signal scale factor  10242.854730        a.u.  1.524076e+01     drug     002
+55       S02l          Liver second signal scale factor   8507.372437        a.u.  1.478798e+02     drug     002
+56       BAT2                 Second bolus arrival time  10285.972988         sec  2.240934e-01     drug     002
+57        BAT                  First bolus arrival time     79.517132         sec  2.136695e-01     drug     002
+58         CO                            Cardiac output     95.899717      mL/sec  2.038414e+00     drug     002
+59        Thl              Heart-lung mean transit time      8.236782         sec  3.239664e-01     drug     002
+60        Dhl                     Heart-lung dispersion      0.686726              1.866349e-02     drug     002
+61         To            Organs blood mean transit time     25.395756         sec  1.116554e+00     drug     002
+62         Eo                Organs extraction fraction      0.140573              6.575912e-03     drug     002
+63        Toe    Organs extravascular mean transit time    298.952633         sec  2.181414e+01     drug     002
+64         Eb                  Body extraction fraction      0.053063              2.143465e-03     drug     002
+65          H                                Hematocrit      0.450000              0.000000e+00     drug     002
+66         ve       Liver extracellular volume fraction      0.184750      mL/cm3  8.777018e-03     drug     002
+67         Te           Extracellular mean transit time     36.196451         sec  3.203711e+00     drug     002
+68         De                  Extracellular dispersion      0.721727              4.119809e-02     drug     002
+69      khe_i        Initial hepatocellular uptake rate      0.000420  mL/sec/cm3  2.105265e-05     drug     002
+70      khe_f          Final hepatocellular uptake rate      0.000572  mL/sec/cm3  8.102396e-05     drug     002
+71       Th_i  Initial hepatocellular mean transit time  35999.999364         sec  4.276818e+04     drug     002
+72       Th_f    Final hepatocellular mean transit time   1813.808240         sec  8.237296e+02     drug     002
+73         Th          Hepatocellular mean transit time  18906.903802         sec  0.000000e+00     drug     002
+74        khe                Hepatocellular uptake rate      0.000496  mL/sec/cm3  0.000000e+00     drug     002
+75        Kbh             Biliary tissue excretion rate      0.000053  mL/sec/cm3  0.000000e+00     drug     002
+76        Khe         Hepatocellular tissue uptake rate      0.002685  mL/sec/cm3  0.000000e+00     drug     002
+77        kbh                    Biliary excretion rate      0.000043  mL/sec/cm3  0.000000e+00     drug     002
+78      kbh_i            Initial biliary excretion rate      0.000023  mL/sec/cm3  0.000000e+00     drug     002
+79      kbh_f              Final biliary excretion rate      0.000449  mL/sec/cm3  0.000000e+00     drug     002
+80         CL                     Liver blood clearance      0.398093      mL/sec  0.000000e+00     drug     002
+81       S02a          Aorta second signal scale factor  11060.089573        a.u.  1.452751e+01  control     003
+82       S02l          Liver second signal scale factor   8740.671100        a.u.  1.585448e+01  control     003
+83       BAT2                 Second bolus arrival time     11.585872         sec  1.925190e-10  control     003
+84        BAT                  First bolus arrival time     72.793087         sec  2.810475e-01  control     003
+85         CO                            Cardiac output    122.744855      mL/sec  2.526674e+00  control     003
+86        Thl              Heart-lung mean transit time     10.604073         sec  3.862853e-01  control     003
+87        Dhl                     Heart-lung dispersion      0.347172              1.185073e-02  control     003
+88         To            Organs blood mean transit time     17.458970         sec  1.331625e+00  control     003
+89         Eo                Organs extraction fraction      0.175522              1.696888e-02  control     003
+90        Toe    Organs extravascular mean transit time    138.850693         sec  1.571693e+01  control     003
+91         Eb                  Body extraction fraction      0.070321              2.365494e-03  control     003
+92          H                                Hematocrit      0.450000              0.000000e+00  control     003
+93         ve       Liver extracellular volume fraction      0.366245      mL/cm3  1.016336e-01  control     003
+94         Te           Extracellular mean transit time     59.999592         sec  1.955640e+01  control     003
+95         De                  Extracellular dispersion      0.883987              5.238300e-02  control     003
+96      khe_i        Initial hepatocellular uptake rate      0.007250  mL/sec/cm3  2.953519e-04  control     003
+97      khe_f          Final hepatocellular uptake rate      0.000755  mL/sec/cm3  9.379836e-03  control     003
+98       Th_i  Initial hepatocellular mean transit time   3071.404090         sec  4.493190e+02  control     003
+99       Th_f    Final hepatocellular mean transit time    600.001201         sec  6.035895e+02  control     003
+100        Th          Hepatocellular mean transit time   1835.702646         sec  0.000000e+00  control     003
+101       khe                Hepatocellular uptake rate      0.004003  mL/sec/cm3  0.000000e+00  control     003
+102       Kbh             Biliary tissue excretion rate      0.000545  mL/sec/cm3  0.000000e+00  control     003
+103       Khe         Hepatocellular tissue uptake rate      0.010929  mL/sec/cm3  0.000000e+00  control     003
+104       kbh                    Biliary excretion rate      0.000345  mL/sec/cm3  0.000000e+00  control     003
+105     kbh_i            Initial biliary excretion rate      0.000206  mL/sec/cm3  0.000000e+00  control     003
+106     kbh_f              Final biliary excretion rate      0.001056  mL/sec/cm3  0.000000e+00  control     003
+107        CL                     Liver blood clearance      3.498530      mL/sec  0.000000e+00  control     003
+108      S02a          Aorta second signal scale factor  12800.798139        a.u.  1.733993e+01     drug     003
+109      S02l          Liver second signal scale factor   9275.908606        a.u.  4.300342e+01     drug     003
+110      BAT2                 Second bolus arrival time   7309.034035         sec  8.918973e-01     drug     003
+111       BAT                  First bolus arrival time     66.820493         sec  8.661482e-01     drug     003
+112        CO                            Cardiac output    101.704834      mL/sec  2.643412e+00     drug     003
+113       Thl              Heart-lung mean transit time     13.178063         sec  1.057709e+00     drug     003
+114       Dhl                     Heart-lung dispersion      0.483333              2.481106e-02     drug     003
+115        To            Organs blood mean transit time     26.818815         sec  8.902457e-01     drug     003
+116        Eo                Organs extraction fraction      0.108082              5.288332e-03     drug     003
+117       Toe    Organs extravascular mean transit time    382.395589         sec  2.523390e+01     drug     003
+118        Eb                  Body extraction fraction      0.033981              1.499285e-03     drug     003
+119         H                                Hematocrit      0.450000              0.000000e+00     drug     003
+120        ve       Liver extracellular volume fraction      0.201188      mL/cm3  9.107253e-03     drug     003
+121        Te           Extracellular mean transit time     28.283414         sec  2.076741e+00     drug     003
+122        De                  Extracellular dispersion      0.651324              3.893911e-02     drug     003
+123     khe_i        Initial hepatocellular uptake rate      0.000535  mL/sec/cm3  3.986718e-05     drug     003
+124     khe_f          Final hepatocellular uptake rate      0.000719  mL/sec/cm3  8.642389e-05     drug     003
+125      Th_i  Initial hepatocellular mean transit time   3911.162553         sec  9.292226e+02     drug     003
+126      Th_f    Final hepatocellular mean transit time   3329.206656         sec  7.369997e+02     drug     003
+127        Th          Hepatocellular mean transit time   3620.184605         sec  0.000000e+00     drug     003
+128       khe                Hepatocellular uptake rate      0.000627  mL/sec/cm3  0.000000e+00     drug     003
+129       Kbh             Biliary tissue excretion rate      0.000276  mL/sec/cm3  0.000000e+00     drug     003
+130       Khe         Hepatocellular tissue uptake rate      0.003116  mL/sec/cm3  0.000000e+00     drug     003
+131       kbh                    Biliary excretion rate      0.000221  mL/sec/cm3  0.000000e+00     drug     003
+132     kbh_i            Initial biliary excretion rate      0.000204  mL/sec/cm3  0.000000e+00     drug     003
+133     kbh_f              Final biliary excretion rate      0.000240  mL/sec/cm3  0.000000e+00     drug     003
+134        CL                     Liver blood clearance      0.540308      mL/sec  0.000000e+00     drug     003
+135      S02a          Aorta second signal scale factor   6219.149887        a.u.  1.931371e+01  control     004
+136      S02l          Liver second signal scale factor   5710.574590        a.u.  8.534483e+01  control     004
+137      BAT2                 Second bolus arrival time   9540.019772         sec  9.818194e-02  control     004
+138       BAT                  First bolus arrival time     65.069593         sec  9.492482e-02  control     004
+139        CO                            Cardiac output     68.911685      mL/sec  6.581894e-01  control     004
+140       Thl              Heart-lung mean transit time     18.755945         sec  1.378055e-01  control     004
+141       Dhl                     Heart-lung dispersion      0.311481              3.259450e-03  control     004
+142        To            Organs blood mean transit time     26.328184         sec  7.976896e-01  control     004
+143        Eo                Organs extraction fraction      0.308982              5.800547e-03  control     004
+144       Toe    Organs extravascular mean transit time    336.223017         sec  1.364775e+01  control     004
+145        Eb                  Body extraction fraction      0.149090              3.849349e-03  control     004
+146         H                                Hematocrit      0.450000              0.000000e+00  control     004
+147        ve       Liver extracellular volume fraction      0.058004      mL/cm3  1.119300e-02  control     004
+148        Te           Extracellular mean transit time     25.544342         sec  4.137143e+00  control     004
+149        De                  Extracellular dispersion      0.564506              8.497573e-02  control     004
+150     khe_i        Initial hepatocellular uptake rate      0.003271  mL/sec/cm3  4.185160e-05  control     004
+151     khe_f          Final hepatocellular uptake rate      0.004691  mL/sec/cm3  9.984423e-05  control     004
+152      Th_i  Initial hepatocellular mean transit time   8464.522325         sec  8.035784e+02  control     004
+153      Th_f    Final hepatocellular mean transit time  13068.511125         sec  1.708535e+03  control     004
+154        Th          Hepatocellular mean transit time  10766.516725         sec  0.000000e+00  control     004
+155       khe                Hepatocellular uptake rate      0.003981  mL/sec/cm3  0.000000e+00  control     004
+156       Kbh             Biliary tissue excretion rate      0.000093  mL/sec/cm3  0.000000e+00  control     004
+157       Khe         Hepatocellular tissue uptake rate      0.068634  mL/sec/cm3  0.000000e+00  control     004
+158       kbh                    Biliary excretion rate      0.000087  mL/sec/cm3  0.000000e+00  control     004
+159     kbh_i            Initial biliary excretion rate      0.000111  mL/sec/cm3  0.000000e+00  control     004
+160     kbh_f              Final biliary excretion rate      0.000072  mL/sec/cm3  0.000000e+00  control     004
+161        CL                     Liver blood clearance      3.527408      mL/sec  0.000000e+00  control     004
+162      S02a          Aorta second signal scale factor   7026.727859        a.u.  1.567943e+01     drug     004
+163      S02l          Liver second signal scale factor   6217.504058        a.u.  8.205473e+01     drug     004
+164      BAT2                 Second bolus arrival time   9206.710196         sec  3.893817e-01     drug     004
+165       BAT                  First bolus arrival time     61.133823         sec  4.017895e-01     drug     004
+166        CO                            Cardiac output    100.020489      mL/sec  8.732162e-01     drug     004
+167       Thl              Heart-lung mean transit time     21.095380         sec  4.275415e-01     drug     004
+168       Dhl                     Heart-lung dispersion      0.330783              6.674247e-03     drug     004
+169        To            Organs blood mean transit time     36.580942         sec  1.171773e+00     drug     004
+170        Eo                Organs extraction fraction      0.221921              6.172299e-03     drug     004
+171       Toe    Organs extravascular mean transit time    336.749526         sec  1.709564e+01     drug     004
+172        Eb                  Body extraction fraction      0.051085              1.696052e-03     drug     004
+173         H                                Hematocrit      0.450000              0.000000e+00     drug     004
+174        ve       Liver extracellular volume fraction      0.195565      mL/cm3  7.730865e-03     drug     004
+175        Te           Extracellular mean transit time     52.598786         sec  3.165851e+00     drug     004
+176        De                  Extracellular dispersion      0.804033              2.075377e-02     drug     004
+177     khe_i        Initial hepatocellular uptake rate      0.000290  mL/sec/cm3  3.498378e-05     drug     004
+178     khe_f          Final hepatocellular uptake rate      0.000472  mL/sec/cm3  4.050197e-05     drug     004
+179      Th_i  Initial hepatocellular mean transit time   4489.309093         sec  2.149318e+03     drug     004
+180      Th_f    Final hepatocellular mean transit time   4974.723906         sec  1.737329e+03     drug     004
+181        Th          Hepatocellular mean transit time   4732.016500         sec  0.000000e+00     drug     004
+182       khe                Hepatocellular uptake rate      0.000381  mL/sec/cm3  0.000000e+00     drug     004
+183       Kbh             Biliary tissue excretion rate      0.000211  mL/sec/cm3  0.000000e+00     drug     004
+184       Khe         Hepatocellular tissue uptake rate      0.001948  mL/sec/cm3  0.000000e+00     drug     004
+185       kbh                    Biliary excretion rate      0.000170  mL/sec/cm3  0.000000e+00     drug     004
+186     kbh_i            Initial biliary excretion rate      0.000179  mL/sec/cm3  0.000000e+00     drug     004
+187     kbh_f              Final biliary excretion rate      0.000162  mL/sec/cm3  0.000000e+00     drug     004
+188        CL                     Liver blood clearance      0.374622      mL/sec  0.000000e+00     drug     004
+189      S02a          Aorta second signal scale factor   7722.011983        a.u.  1.594685e+01  control     005
+190      S02l          Liver second signal scale factor   9106.659223        a.u.  2.545156e+01  control     005
+191      BAT2                 Second bolus arrival time  10030.933973         sec  2.426730e-01  control     005
+192       BAT                  First bolus arrival time     77.094470         sec  2.390070e-01  control     005
+193        CO                            Cardiac output    110.256295      mL/sec  1.762775e+00  control     005
+194       Thl              Heart-lung mean transit time     10.351666         sec  3.318049e-01  control     005
+195       Dhl                     Heart-lung dispersion      0.560296              1.363821e-02  control     005
+196        To            Organs blood mean transit time     22.440342         sec  7.844999e-01  control     005
+197        Eo                Organs extraction fraction      0.174995              5.168874e-03  control     005
+198       Toe    Organs extravascular mean transit time    276.533384         sec  1.070957e+01  control     005
+199        Eb                  Body extraction fraction      0.066208              1.867639e-03  control     005
+200         H                                Hematocrit      0.450000              0.000000e+00  control     005
+201        ve       Liver extracellular volume fraction      0.181840      mL/cm3  1.865470e-02  control     005
+202        Te           Extracellular mean transit time     39.047365         sec  4.803580e+00  control     005
+203        De                  Extracellular dispersion      0.795296              3.563663e-02  control     005
+204     khe_i        Initial hepatocellular uptake rate      0.005808  mL/sec/cm3  7.198479e-05  control     005
+205     khe_f          Final hepatocellular uptake rate      0.004030  mL/sec/cm3  6.744164e-05  control     005
+206      Th_i  Initial hepatocellular mean transit time   1926.154799         sec  4.593931e+01  control     005
+207      Th_f    Final hepatocellular mean transit time   2131.976052         sec  7.820918e+01  control     005
+208        Th          Hepatocellular mean transit time   2029.065426         sec  0.000000e+00  control     005
+209       khe                Hepatocellular uptake rate      0.004919  mL/sec/cm3  0.000000e+00  control     005
+210       Kbh             Biliary tissue excretion rate      0.000493  mL/sec/cm3  0.000000e+00  control     005
+211       Khe         Hepatocellular tissue uptake rate      0.027053  mL/sec/cm3  0.000000e+00  control     005
+212       kbh                    Biliary excretion rate      0.000403  mL/sec/cm3  0.000000e+00  control     005
+213     kbh_i            Initial biliary excretion rate      0.000425  mL/sec/cm3  0.000000e+00  control     005
+214     kbh_f              Final biliary excretion rate      0.000384  mL/sec/cm3  0.000000e+00  control     005
+215        CL                     Liver blood clearance      3.469732      mL/sec  0.000000e+00  control     005
+216      S02a          Aorta second signal scale factor   6295.830888        a.u.  1.704941e+01  control     006
+217      S02l          Liver second signal scale factor   6545.682550        a.u.  4.726661e+01  control     006
+218      BAT2                 Second bolus arrival time   8584.261320         sec  1.115094e-01  control     006
+219       BAT                  First bolus arrival time     69.741668         sec  1.290837e-01  control     006
+220        CO                            Cardiac output     73.751910      mL/sec  8.431445e-01  control     006
+221       Thl              Heart-lung mean transit time     16.643284         sec  1.473588e-01  control     006
+222       Dhl                     Heart-lung dispersion      0.334284              5.757799e-03  control     006
+223        To            Organs blood mean transit time     30.412667         sec  1.114161e+00  control     006
+224        Eo                Organs extraction fraction      0.207680              6.710160e-03  control     006
+225       Toe    Organs extravascular mean transit time    364.223946         sec  1.886125e+01  control     006
+226        Eb                  Body extraction fraction      0.085050              2.757826e-03  control     006
+227         H                                Hematocrit      0.450000              0.000000e+00  control     006
+228        ve       Liver extracellular volume fraction      0.192713      mL/cm3  3.482855e-02  control     006
+229        Te           Extracellular mean transit time     45.262078         sec  7.805308e+00  control     006
+230        De                  Extracellular dispersion      0.712105              5.677684e-02  control     006
+231     khe_i        Initial hepatocellular uptake rate      0.006770  mL/sec/cm3  1.027779e-04  control     006
+232     khe_f          Final hepatocellular uptake rate      0.005570  mL/sec/cm3  1.068684e-04  control     006
+233      Th_i  Initial hepatocellular mean transit time   2753.659869         sec  1.017744e+02  control     006
+234      Th_f    Final hepatocellular mean transit time   2419.494138         sec  1.146600e+02  control     006
+235        Th          Hepatocellular mean transit time   2586.577004         sec  0.000000e+00  control     006
+236       khe                Hepatocellular uptake rate      0.006170  mL/sec/cm3  0.000000e+00  control     006
+237       Kbh             Biliary tissue excretion rate      0.000387  mL/sec/cm3  0.000000e+00  control     006
+238       Khe         Hepatocellular tissue uptake rate      0.032015  mL/sec/cm3  0.000000e+00  control     006
+239       kbh                    Biliary excretion rate      0.000312  mL/sec/cm3  0.000000e+00  control     006
+240     kbh_i            Initial biliary excretion rate      0.000293  mL/sec/cm3  0.000000e+00  control     006
+241     kbh_f              Final biliary excretion rate      0.000334  mL/sec/cm3  0.000000e+00  control     006
+242        CL                     Liver blood clearance      4.264152      mL/sec  0.000000e+00  control     006
+243      S02a          Aorta second signal scale factor   8295.700603        a.u.  1.230345e+01     drug     006
+244      S02l          Liver second signal scale factor   6021.891658        a.u.  1.063486e+02     drug     006
+245      BAT2                 Second bolus arrival time   9499.177432         sec  2.761099e-01     drug     006
+246       BAT                  First bolus arrival time     70.190975         sec  2.757276e-01     drug     006
+247        CO                            Cardiac output    134.099358      mL/sec  1.504694e+00     drug     006
+248       Thl              Heart-lung mean transit time     15.983929         sec  2.990061e-01     drug     006
+249       Dhl                     Heart-lung dispersion      0.400261              9.604272e-03     drug     006
+250        To            Organs blood mean transit time     27.737030         sec  8.473802e-01     drug     006
+251        Eo                Organs extraction fraction      0.120766              3.937925e-03     drug     006
+252       Toe    Organs extravascular mean transit time    396.328044         sec  2.385095e+01     drug     006
+253        Eb                  Body extraction fraction      0.026863              1.304140e-03     drug     006
+254         H                                Hematocrit      0.450000              0.000000e+00     drug     006
+255        ve       Liver extracellular volume fraction      0.317006      mL/cm3  9.372450e-03     drug     006
+256        Te           Extracellular mean transit time     42.251496         sec  1.802612e+00     drug     006
+257        De                  Extracellular dispersion      0.659987              2.061727e-02     drug     006
+258     khe_i        Initial hepatocellular uptake rate      0.000233  mL/sec/cm3  3.673165e-05     drug     006
+259     khe_f          Final hepatocellular uptake rate      0.000403  mL/sec/cm3  5.727707e-05     drug     006
+260      Th_i  Initial hepatocellular mean transit time   7719.835351         sec  6.914926e+03     drug     006
+261      Th_f    Final hepatocellular mean transit time   4869.002997         sec  2.877688e+03     drug     006
+262        Th          Hepatocellular mean transit time   6294.419174         sec  0.000000e+00     drug     006
+263       khe                Hepatocellular uptake rate      0.000318  mL/sec/cm3  0.000000e+00     drug     006
+264       Kbh             Biliary tissue excretion rate      0.000159  mL/sec/cm3  0.000000e+00     drug     006
+265       Khe         Hepatocellular tissue uptake rate      0.001003  mL/sec/cm3  0.000000e+00     drug     006
+266       kbh                    Biliary excretion rate      0.000109  mL/sec/cm3  0.000000e+00     drug     006
+267     kbh_i            Initial biliary excretion rate      0.000088  mL/sec/cm3  0.000000e+00     drug     006
+268     kbh_f              Final biliary excretion rate      0.000140  mL/sec/cm3  0.000000e+00     drug     006
+269        CL                     Liver blood clearance      0.224457      mL/sec  0.000000e+00     drug     006
+270      S02a          Aorta second signal scale factor   6497.575709        a.u.  1.853389e+01  control     007
+271      S02l          Liver second signal scale factor   7461.439286        a.u.  5.112693e+01  control     007
+272      BAT2                 Second bolus arrival time   7269.856681         sec  3.810147e-01  control     007
+273       BAT                  First bolus arrival time     67.671663         sec  3.856380e-01  control     007
+274        CO                            Cardiac output    156.547433      mL/sec  2.556568e+00  control     007
+275       Thl              Heart-lung mean transit time     12.141419         sec  4.218885e-01  control     007
+276       Dhl                     Heart-lung dispersion      0.326002              1.086707e-02  control     007
+277        To            Organs blood mean transit time     19.123169         sec  9.251488e-01  control     007
+278        Eo                Organs extraction fraction      0.198161              7.074518e-03  control     007
+279       Toe    Organs extravascular mean transit time    273.992812         sec  1.018059e+01  control     007
+280        Eb                  Body extraction fraction      0.032021              1.062373e-03  control     007
+281         H                                Hematocrit      0.450000              0.000000e+00  control     007
+282        ve       Liver extracellular volume fraction      0.211756      mL/cm3  9.526870e-02  control     007
+283        Te           Extracellular mean transit time     57.968115         sec  2.771260e+01  control     007
+284        De                  Extracellular dispersion      0.951109              3.549710e-02  control     007
+285     khe_i        Initial hepatocellular uptake rate      0.005969  mL/sec/cm3  1.569296e-04  control     007
+286     khe_f          Final hepatocellular uptake rate      0.004998  mL/sec/cm3  1.822207e-04  control     007
+287      Th_i  Initial hepatocellular mean transit time   1431.849591         sec  4.064952e+01  control     007
+288      Th_f    Final hepatocellular mean transit time   2137.138147         sec  7.723734e+01  control     007
+289        Th          Hepatocellular mean transit time   1784.493869         sec  0.000000e+00  control     007
+290       khe                Hepatocellular uptake rate      0.005483  mL/sec/cm3  0.000000e+00  control     007
+291       Kbh             Biliary tissue excretion rate      0.000560  mL/sec/cm3  0.000000e+00  control     007
+292       Khe         Hepatocellular tissue uptake rate      0.025894  mL/sec/cm3  0.000000e+00  control     007
+293       kbh                    Biliary excretion rate      0.000442  mL/sec/cm3  0.000000e+00  control     007
+294     kbh_i            Initial biliary excretion rate      0.000551  mL/sec/cm3  0.000000e+00  control     007
+295     kbh_f              Final biliary excretion rate      0.000369  mL/sec/cm3  0.000000e+00  control     007
+296        CL                     Liver blood clearance      5.176949      mL/sec  0.000000e+00  control     007
+297      S02a          Aorta second signal scale factor   4954.439511        a.u.  1.211956e+01     drug     007
+298      S02l          Liver second signal scale factor   4990.203998        a.u.  5.676518e+01     drug     007
+299      BAT2                 Second bolus arrival time   8061.452858         sec  1.570378e-01     drug     007
+300       BAT                  First bolus arrival time     65.969042         sec  1.325721e-01     drug     007
+301        CO                            Cardiac output    140.233990      mL/sec  2.109303e+00     drug     007
+302       Thl              Heart-lung mean transit time     12.949065         sec  1.812152e-01     drug     007
+303       Dhl                     Heart-lung dispersion      0.365361              8.409829e-03     drug     007
+304        To            Organs blood mean transit time     15.418435         sec  6.615729e-01     drug     007
+305        Eo                Organs extraction fraction      0.193954              6.130415e-03     drug     007
+306       Toe    Organs extravascular mean transit time    244.676442         sec  1.077572e+01     drug     007
+307        Eb                  Body extraction fraction      0.030674              8.578046e-04     drug     007
+308         H                                Hematocrit      0.450000              0.000000e+00     drug     007
+309        ve       Liver extracellular volume fraction      0.189473      mL/cm3  9.812447e-03     drug     007
+310        Te           Extracellular mean transit time     38.902768         sec  3.117168e+00     drug     007
+311        De                  Extracellular dispersion      0.771301              3.075811e-02     drug     007
+312     khe_i        Initial hepatocellular uptake rate      0.000383  mL/sec/cm3  1.726750e-04     drug     007
+313     khe_f          Final hepatocellular uptake rate      0.000222  mL/sec/cm3  2.268977e-05     drug     007
+314      Th_i  Initial hepatocellular mean transit time    603.937831         sec  1.725449e+03     drug     007
+315      Th_f    Final hepatocellular mean transit time  17295.372131         sec  7.754504e+03     drug     007
+316        Th          Hepatocellular mean transit time   8949.654981         sec  0.000000e+00     drug     007
+317       khe                Hepatocellular uptake rate      0.000303  mL/sec/cm3  0.000000e+00     drug     007
+318       Kbh             Biliary tissue excretion rate      0.000112  mL/sec/cm3  0.000000e+00     drug     007
+319       Khe         Hepatocellular tissue uptake rate      0.001598  mL/sec/cm3  0.000000e+00     drug     007
+320       kbh                    Biliary excretion rate      0.000091  mL/sec/cm3  0.000000e+00     drug     007
+321     kbh_i            Initial biliary excretion rate      0.001342  mL/sec/cm3  0.000000e+00     drug     007
+322     kbh_f              Final biliary excretion rate      0.000047  mL/sec/cm3  0.000000e+00     drug     007
+323        CL                     Liver blood clearance      0.337666      mL/sec  0.000000e+00     drug     007
+324      S02a          Aorta second signal scale factor   9768.903912        a.u.  1.612522e+01  control     008
+325      S02l          Liver second signal scale factor   7668.743833        a.u.  2.784512e+01  control     008
+326      BAT2                 Second bolus arrival time   7592.225028         sec  3.990310e-01  control     008
+327       BAT                  First bolus arrival time     74.610732         sec  4.224254e-01  control     008
+328        CO                            Cardiac output    178.955348      mL/sec  2.561237e+00  control     008
+329       Thl              Heart-lung mean transit time     16.264252         sec  5.240403e-01  control     008
+330       Dhl                     Heart-lung dispersion      0.424062              9.220781e-03  control     008
+331        To            Organs blood mean transit time     22.623824         sec  8.044012e-01  control     008
+332        Eo                Organs extraction fraction      0.155219              5.596021e-03  control     008
+333       Toe    Organs extravascular mean transit time    277.940927         sec  1.226200e+01  control     008
+334        Eb                  Body extraction fraction      0.047646              1.222307e-03  control     008
+335         H                                Hematocrit      0.450000              0.000000e+00  control     008
+336        ve       Liver extracellular volume fraction      0.136661      mL/cm3  1.057739e-02  control     008
+337        Te           Extracellular mean transit time     18.811915         sec  1.935913e+00  control     008
+338        De                  Extracellular dispersion      0.473502              7.197238e-02  control     008
+339     khe_i        Initial hepatocellular uptake rate      0.006597  mL/sec/cm3  8.077788e-05  control     008
+340     khe_f          Final hepatocellular uptake rate      0.004080  mL/sec/cm3  6.971263e-05  control     008
+341      Th_i  Initial hepatocellular mean transit time   1379.248473         sec  3.399717e+01  control     008
+342      Th_f    Final hepatocellular mean transit time   2649.257701         sec  1.016058e+02  control     008
+343        Th          Hepatocellular mean transit time   2014.253087         sec  0.000000e+00  control     008
+344       khe                Hepatocellular uptake rate      0.005338  mL/sec/cm3  0.000000e+00  control     008
+345       Kbh             Biliary tissue excretion rate      0.000496  mL/sec/cm3  0.000000e+00  control     008
+346       Khe         Hepatocellular tissue uptake rate      0.039061  mL/sec/cm3  0.000000e+00  control     008
+347       kbh                    Biliary excretion rate      0.000429  mL/sec/cm3  0.000000e+00  control     008
+348     kbh_i            Initial biliary excretion rate      0.000626  mL/sec/cm3  0.000000e+00  control     008
+349     kbh_f              Final biliary excretion rate      0.000326  mL/sec/cm3  0.000000e+00  control     008
+350        CL                     Liver blood clearance      5.494632      mL/sec  0.000000e+00  control     008
+351      S02a          Aorta second signal scale factor   7213.223768        a.u.  1.250583e+01     drug     008
+352      S02l          Liver second signal scale factor   5896.520454        a.u.  9.520784e+01     drug     008
+353      BAT2                 Second bolus arrival time   8206.330887         sec  4.600787e-01     drug     008
+354       BAT                  First bolus arrival time     70.797927         sec  4.748325e-01     drug     008
+355        CO                            Cardiac output    158.335908      mL/sec  2.180287e+00     drug     008
+356       Thl              Heart-lung mean transit time     14.676193         sec  5.474237e-01     drug     008
+357       Dhl                     Heart-lung dispersion      0.439445              1.279271e-02     drug     008
+358        To            Organs blood mean transit time     26.042066         sec  7.133236e-01     drug     008
+359        Eo                Organs extraction fraction      0.090136              2.688561e-03     drug     008
+360       Toe    Organs extravascular mean transit time    532.547382         sec  2.631766e+01     drug     008
+361        Eb                  Body extraction fraction      0.026214              9.049309e-04     drug     008
+362         H                                Hematocrit      0.450000              0.000000e+00     drug     008
+363        ve       Liver extracellular volume fraction      0.165721      mL/cm3  5.903685e-03     drug     008
+364        Te           Extracellular mean transit time     32.118697         sec  2.011880e+00     drug     008
+365        De                  Extracellular dispersion      0.592658              3.675697e-02     drug     008
+366     khe_i        Initial hepatocellular uptake rate      0.000209  mL/sec/cm3  1.599233e-05     drug     008
+367     khe_f          Final hepatocellular uptake rate      0.000489  mL/sec/cm3  4.647717e-05     drug     008
+368      Th_i  Initial hepatocellular mean transit time  20877.785983         sec  1.922568e+04     drug     008
+369      Th_f    Final hepatocellular mean transit time   4267.646017         sec  1.000713e+03     drug     008
+370        Th          Hepatocellular mean transit time  12572.716000         sec  0.000000e+00     drug     008
+371       khe                Hepatocellular uptake rate      0.000349  mL/sec/cm3  0.000000e+00     drug     008
+372       Kbh             Biliary tissue excretion rate      0.000080  mL/sec/cm3  0.000000e+00     drug     008
+373       Khe         Hepatocellular tissue uptake rate      0.002105  mL/sec/cm3  0.000000e+00     drug     008
+374       kbh                    Biliary excretion rate      0.000066  mL/sec/cm3  0.000000e+00     drug     008
+375     kbh_i            Initial biliary excretion rate      0.000040  mL/sec/cm3  0.000000e+00     drug     008
+376     kbh_f              Final biliary excretion rate      0.000195  mL/sec/cm3  0.000000e+00     drug     008
+377        CL                     Liver blood clearance      0.307174      mL/sec  0.000000e+00     drug     008
+378      S02a          Aorta second signal scale factor   5614.095990        a.u.  1.278572e+01  control     009
+379      S02l          Liver second signal scale factor   4185.823333        a.u.  1.608186e+01  control     009
+380      BAT2                 Second bolus arrival time   7764.953323         sec  1.244043e-01  control     009
+381       BAT                  First bolus arrival time     78.184332         sec  1.247983e-01  control     009
+382        CO                            Cardiac output    189.815749      mL/sec  2.682260e+00  control     009
+383       Thl              Heart-lung mean transit time      9.418273         sec  1.675108e-01  control     009
+384       Dhl                     Heart-lung dispersion      0.517182              1.081273e-02  control     009
+385        To            Organs blood mean transit time     35.438649         sec  1.172468e+00  control     009
+386        Eo                Organs extraction fraction      0.138256              5.645369e-03  control     009
+387       Toe    Organs extravascular mean transit time    398.745514         sec  2.420868e+01  control     009
+388        Eb                  Body extraction fraction      0.057011              1.766908e-03  control     009
+389         H                                Hematocrit      0.450000              0.000000e+00  control     009
+390        ve       Liver extracellular volume fraction      0.158843      mL/cm3  1.980078e-02  control     009
+391        Te           Extracellular mean transit time     36.248496         sec  5.868621e+00  control     009
+392        De                  Extracellular dispersion      0.727236              5.857299e-02  control     009
+393     khe_i        Initial hepatocellular uptake rate      0.003823  mL/sec/cm3  7.816188e-05  control     009
+394     khe_f          Final hepatocellular uptake rate      0.003446  mL/sec/cm3  1.004097e-04  control     009
+395      Th_i  Initial hepatocellular mean transit time   1827.076173         sec  6.021221e+01  control     009
+396      Th_f    Final hepatocellular mean transit time   1600.370393         sec  6.971216e+01  control     009
+397        Th          Hepatocellular mean transit time   1713.723283         sec  0.000000e+00  control     009
+398       khe                Hepatocellular uptake rate      0.003635  mL/sec/cm3  0.000000e+00  control     009
+399       Kbh             Biliary tissue excretion rate      0.000584  mL/sec/cm3  0.000000e+00  control     009
+400       Khe         Hepatocellular tissue uptake rate      0.022881  mL/sec/cm3  0.000000e+00  control     009
+401       kbh                    Biliary excretion rate      0.000491  mL/sec/cm3  0.000000e+00  control     009
+402     kbh_i            Initial biliary excretion rate      0.000460  mL/sec/cm3  0.000000e+00  control     009
+403     kbh_f              Final biliary excretion rate      0.000526  mL/sec/cm3  0.000000e+00  control     009
+404        CL                     Liver blood clearance      4.310945      mL/sec  0.000000e+00  control     009
+405      S02a          Aorta second signal scale factor   5523.416976        a.u.  1.133359e+01     drug     009
+406      S02l          Liver second signal scale factor   4208.138998        a.u.  3.057133e+01     drug     009
+407      BAT2                 Second bolus arrival time   9222.412807         sec  1.305075e-01     drug     009
+408       BAT                  First bolus arrival time     77.324044         sec  1.381512e-01     drug     009
+409        CO                            Cardiac output    173.062127      mL/sec  2.070423e+00     drug     009
+410       Thl              Heart-lung mean transit time     14.795897         sec  1.980589e-01     drug     009
+411       Dhl                     Heart-lung dispersion      0.556340              9.254525e-03     drug     009
+412        To            Organs blood mean transit time     45.449484         sec  1.177511e+00     drug     009
+413        Eo                Organs extraction fraction      0.102133              3.903546e-03     drug     009
+414       Toe    Organs extravascular mean transit time    482.066899         sec  2.897489e+01     drug     009
+415        Eb                  Body extraction fraction      0.026188              1.039769e-03     drug     009
+416         H                                Hematocrit      0.450000              0.000000e+00     drug     009
+417        ve       Liver extracellular volume fraction      0.226161      mL/cm3  7.911607e-03     drug     009
+418        Te           Extracellular mean transit time     58.179047         sec  3.320640e+00     drug     009
+419        De                  Extracellular dispersion      0.698639              2.587196e-02     drug     009
+420     khe_i        Initial hepatocellular uptake rate      0.000137  mL/sec/cm3  3.032187e-05     drug     009
+421     khe_f          Final hepatocellular uptake rate      0.000250  mL/sec/cm3  4.299505e-05     drug     009
+422      Th_i  Initial hepatocellular mean transit time   3446.228190         sec  1.794918e+03     drug     009
+423      Th_f    Final hepatocellular mean transit time   2128.715626         sec  8.619840e+02     drug     009
+424        Th          Hepatocellular mean transit time   2787.471908         sec  0.000000e+00     drug     009
+425       khe                Hepatocellular uptake rate      0.000194  mL/sec/cm3  0.000000e+00     drug     009
+426       Kbh             Biliary tissue excretion rate      0.000359  mL/sec/cm3  0.000000e+00     drug     009
+427       Khe         Hepatocellular tissue uptake rate      0.000856  mL/sec/cm3  0.000000e+00     drug     009
+428       kbh                    Biliary excretion rate      0.000278  mL/sec/cm3  0.000000e+00     drug     009
+429     kbh_i            Initial biliary excretion rate      0.000225  mL/sec/cm3  0.000000e+00     drug     009
+430     kbh_f              Final biliary excretion rate      0.000364  mL/sec/cm3  0.000000e+00     drug     009
+431        CL                     Liver blood clearance      0.232166      mL/sec  0.000000e+00     drug     009
+432      S02a          Aorta second signal scale factor   6967.478796        a.u.  1.780706e+01  control     010
+433      S02l          Liver second signal scale factor   5657.792190        a.u.  6.964524e+01  control     010
+434      BAT2                 Second bolus arrival time   8512.439468         sec  1.870033e-01  control     010
+435       BAT                  First bolus arrival time     77.623629         sec  1.847257e-01  control     010
+436        CO                            Cardiac output    118.699844      mL/sec  1.586037e+00  control     010
+437       Thl              Heart-lung mean transit time      9.730773         sec  2.343620e-01  control     010
+438       Dhl                     Heart-lung dispersion      0.587696              1.326081e-02  control     010
+439        To            Organs blood mean transit time     46.747598         sec  1.441071e+00  control     010
+440        Eo                Organs extraction fraction      0.142409              5.074930e-03  control     010
+441       Toe    Organs extravascular mean transit time    537.679308         sec  3.019484e+01  control     010
+442        Eb                  Body extraction fraction      0.034614              1.571578e-03  control     010
+443         H                                Hematocrit      0.450000              0.000000e+00  control     010
+444        ve       Liver extracellular volume fraction      0.152253      mL/cm3  2.931518e-02  control     010
+445        Te           Extracellular mean transit time     39.061743         sec  8.401429e+00  control     010
+446        De                  Extracellular dispersion      0.746072              6.747360e-02  control     010
+447     khe_i        Initial hepatocellular uptake rate      0.004405  mL/sec/cm3  9.682610e-05  control     010
+448     khe_f          Final hepatocellular uptake rate      0.005014  mL/sec/cm3  1.631444e-04  control     010
+449      Th_i  Initial hepatocellular mean transit time   1560.172305         sec  4.873335e+01  control     010
+450      Th_f    Final hepatocellular mean transit time   1566.114782         sec  4.899252e+01  control     010
+451        Th          Hepatocellular mean transit time   1563.143543         sec  0.000000e+00  control     010
+452       khe                Hepatocellular uptake rate      0.004710  mL/sec/cm3  0.000000e+00  control     010
+453       Kbh             Biliary tissue excretion rate      0.000640  mL/sec/cm3  0.000000e+00  control     010
+454       Khe         Hepatocellular tissue uptake rate      0.030933  mL/sec/cm3  0.000000e+00  control     010
+455       kbh                    Biliary excretion rate      0.000542  mL/sec/cm3  0.000000e+00  control     010
+456     kbh_i            Initial biliary excretion rate      0.000543  mL/sec/cm3  0.000000e+00  control     010
+457     kbh_f              Final biliary excretion rate      0.000541  mL/sec/cm3  0.000000e+00  control     010
+458        CL                     Liver blood clearance      5.067060      mL/sec  0.000000e+00  control     010
+459      S02a          Aorta second signal scale factor   7287.338690        a.u.  2.510896e+01     drug     010
+460      S02l          Liver second signal scale factor   5037.251988        a.u.  6.665220e+01     drug     010
+461      BAT2                 Second bolus arrival time   7706.359765         sec  5.282948e-01     drug     010
+462       BAT                  First bolus arrival time     82.850654         sec  5.228489e-01     drug     010
+463        CO                            Cardiac output    123.530053      mL/sec  1.709752e+00     drug     010
+464       Thl              Heart-lung mean transit time     14.778586         sec  6.562222e-01     drug     010
+465       Dhl                     Heart-lung dispersion      0.530941              1.629523e-02     drug     010
+466        To            Organs blood mean transit time     43.355999         sec  1.189318e+00     drug     010
+467        Eo                Organs extraction fraction      0.147236              4.362527e-03     drug     010
+468       Toe    Organs extravascular mean transit time    553.233689         sec  2.985996e+01     drug     010
+469        Eb                  Body extraction fraction      0.029055              1.537949e-03     drug     010
+470         H                                Hematocrit      0.450000              0.000000e+00     drug     010
+471        ve       Liver extracellular volume fraction      0.242355      mL/cm3  9.597265e-03     drug     010
+472        Te           Extracellular mean transit time     55.140279         sec  3.626849e+00     drug     010
+473        De                  Extracellular dispersion      0.736130              2.753632e-02     drug     010
+474     khe_i        Initial hepatocellular uptake rate      0.000161  mL/sec/cm3  5.436753e-05     drug     010
+475     khe_f          Final hepatocellular uptake rate      0.000280  mL/sec/cm3  7.194538e-05     drug     010
+476      Th_i  Initial hepatocellular mean transit time   3580.259458         sec  8.007875e+03     drug     010
+477      Th_f    Final hepatocellular mean transit time  15924.901908         sec  2.177323e+04     drug     010
+478        Th          Hepatocellular mean transit time   9752.580683         sec  0.000000e+00     drug     010
+479       khe                Hepatocellular uptake rate      0.000221  mL/sec/cm3  0.000000e+00     drug     010
+480       Kbh             Biliary tissue excretion rate      0.000103  mL/sec/cm3  0.000000e+00     drug     010
+481       Khe         Hepatocellular tissue uptake rate      0.000911  mL/sec/cm3  0.000000e+00     drug     010
+482       kbh                    Biliary excretion rate      0.000078  mL/sec/cm3  0.000000e+00     drug     010
+483     kbh_i            Initial biliary excretion rate      0.000212  mL/sec/cm3  0.000000e+00     drug     010
+484     kbh_f              Final biliary excretion rate      0.000048  mL/sec/cm3  0.000000e+00     drug     010
+485        CL                     Liver blood clearance      0.244889      mL/sec  0.000000e+00     drug     010
+</pre></div>
+</div>
+</section>
+<section id="plot-individual-results">
+<h2>Plot individual results<a class="headerlink" href="#plot-individual-results" title="Link to this heading">#</a></h2>
+<p>Now lets visualise the main results from the study by plotting the drug
+effect for all volunteers, and for both biomarkers: uptake rate <code class="docutils literal notranslate"><span class="pre">khe</span></code>
+and excretion rate <code class="docutils literal notranslate"><span class="pre">kbh</span></code>:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Set up the figure</span>
+<a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">clr</span></a> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;tab:blue&#39;</span><span class="p">,</span> <span class="s1">&#39;tab:orange&#39;</span><span class="p">,</span> <span class="s1">&#39;tab:green&#39;</span><span class="p">,</span> <span class="s1">&#39;tab:red&#39;</span><span class="p">,</span> <span class="s1">&#39;tab:purple&#39;</span><span class="p">,</span>
+       <span class="s1">&#39;tab:brown&#39;</span><span class="p">,</span> <span class="s1">&#39;tab:pink&#39;</span><span class="p">,</span> <span class="s1">&#39;tab:gray&#39;</span><span class="p">,</span> <span class="s1">&#39;tab:olive&#39;</span><span class="p">,</span> <span class="s1">&#39;tab:cyan&#39;</span><span class="p">]</span>
+<a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fs</span></a> <span class="o">=</span> <span class="mi">10</span>
+<span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax1</span><span class="p">,</span> <span class="n">ax2</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">subplots_adjust</span><span class="p">(</span><span class="n">wspace</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Hepatocellular uptake rate&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fs</span></a><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;khe (mL/min/100mL)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fs</span></a><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">60</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">labelsize</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fs</span></a><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">labelsize</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fs</span></a><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Biliary excretion rate&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fs</span></a><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;kbh (mL/min/100mL)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fs</span></a><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">labelsize</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fs</span></a><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">labelsize</span><span class="o">=</span><a href="https://docs.python.org/3/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">fs</span></a><span class="p">)</span>
+
+<span class="c1"># Pivot data for both visits to wide format for easy access:</span>
+<span class="n">v1</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="n">results</span><span class="o">.</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">visit</span></a><span class="o">==</span><span class="s1">&#39;control&#39;</span><span class="p">],</span> <span class="n">values</span><span class="o">=</span><span class="s1">&#39;value&#39;</span><span class="p">,</span>
+                    <span class="n">columns</span><span class="o">=</span><span class="s1">&#39;parameter&#39;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="s1">&#39;subject&#39;</span><span class="p">)</span>
+<span class="n">v2</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="n">results</span><span class="o">.</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">visit</span></a><span class="o">==</span><span class="s1">&#39;drug&#39;</span><span class="p">],</span> <span class="n">values</span><span class="o">=</span><span class="s1">&#39;value&#39;</span><span class="p">,</span>
+                    <span class="n">columns</span><span class="o">=</span><span class="s1">&#39;parameter&#39;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="s1">&#39;subject&#39;</span><span class="p">)</span>
+
+<span class="c1"># Plot the rate constants in units of mL/min/100mL</span>
+<span class="k">for</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">s</span></a> <span class="ow">in</span> <span class="n">v1</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;baseline&#39;</span><span class="p">]</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">khe</span></a> <span class="o">=</span> <span class="p">[</span><span class="mi">6000</span><span class="o">*</span><span class="n">v1</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">s</span></a><span class="p">,</span><span class="s1">&#39;khe&#39;</span><span class="p">]]</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">kbh</span></a> <span class="o">=</span> <span class="p">[</span><span class="mi">6000</span><span class="o">*</span><span class="n">v1</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">s</span></a><span class="p">,</span><span class="s1">&#39;kbh&#39;</span><span class="p">]]</span>
+    <span class="k">if</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">s</span></a> <span class="ow">in</span> <span class="n">v2</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;rifampicin&#39;</span><span class="p">]</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">khe</span></a> <span class="o">+=</span> <span class="p">[</span><span class="mi">6000</span><span class="o">*</span><span class="n">v2</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">s</span></a><span class="p">,</span><span class="s1">&#39;khe&#39;</span><span class="p">]]</span>
+        <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">kbh</span></a> <span class="o">+=</span> <span class="p">[</span><span class="mi">6000</span><span class="o">*</span><span class="n">v2</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">s</span></a><span class="p">,</span><span class="s1">&#39;kbh&#39;</span><span class="p">]]</span>
+    <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">color</span></a> <span class="o">=</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">clr</span></a><span class="p">[</span><span class="nb">int</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">s</span></a><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">khe</span></a><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">s</span></a><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">color</span></a><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">color</span></a><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">kbh</span></a><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">s</span></a><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">color</span></a><span class="o">=</span><a href="https://docs.python.org/3/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">color</span></a><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="c1"># Choose the last image as a thumbnail for the gallery</span>
+<span class="c1"># sphinx_gallery_thumbnail_number = -1</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_plot_tristan_volunteers_2scan_002.png" srcset="../../_images/sphx_glr_plot_tristan_volunteers_2scan_002.png" alt="Hepatocellular uptake rate, Biliary excretion rate" class = "sphx-glr-single-img"/><p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (30 minutes 13.362 seconds)</p>
+<div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-examples-liver-plot-tristan-volunteers-2scan-py">
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/0d415d51ecf5de8c3c698748f90b7cc4/plot_tristan_volunteers_2scan.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">plot_tristan_volunteers_2scan.ipynb</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/5be487a6f7f25182fb71552f8ecb2c0a/plot_tristan_volunteers_2scan.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">plot_tristan_volunteers_2scan.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-zip docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/f0ebd0013656c36449f08044ca68d9b6/plot_tristan_volunteers_2scan.zip"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">zipped:</span> <span class="pre">plot_tristan_volunteers_2scan.zip</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="plot_tristan_patients.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Clinical - rifampicin effect in subjects with impaired liver function</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="plot_tristan_repro.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Preclinical - reproducibility of hepatocellular function</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reference">Reference</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#setup">Setup</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#model-definition">Model definition</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fit-all-data">Fit all data</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#plot-individual-results">Plot individual results</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/examples/liver/plot_tristan_volunteers_2scan.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024-2025, dcmri contributors.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
