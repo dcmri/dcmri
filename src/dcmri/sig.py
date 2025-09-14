@@ -913,7 +913,7 @@ def conc_ss(S, TR: float, FA: float, T10: float, r1=0.005, n0=1, S0=None) -> np.
         # If S0 is not provided, estimate from the data
         Sb = np.mean(S[:, :n0], axis=-1)
         Sb = np.broadcast_to(Sb[..., None], S.shape)
-        T10 = np.broadcast_to(T10[..., None], S.shape)
+        R10 = np.broadcast_to(R10[..., None], S.shape)
         Sn = np.zeros(S.shape)
         nozero = Sb > 0
         E0 = np.exp(-TR*R10)
@@ -930,10 +930,10 @@ def conc_ss(S, TR: float, FA: float, T10: float, r1=0.005, n0=1, S0=None) -> np.
         S0 = np.broadcast_to(S0[..., None], S.shape)
         with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
             Sn = np.where(S0>0, S/S0/np.sin(np.deg2rad(FA)), 0)
+        R10 = np.broadcast_to(R10[..., None], S.shape)
     Sn = (1-Sn)/(1-cFA*Sn)
     with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
         R1 = np.where(Sn==0, 0, -np.log(Sn)/TR)  
-    R10 = np.broadcast_to(R10[..., None], S.shape)
     C = (R1 - R10)/r1
     return C.reshape(shape)
 
@@ -1004,18 +1004,21 @@ def conc_src(S, TC: float, T10: float, r1=0.005, n0=1, S0=None) -> np.ndarray:
         T10 = np.full(S.shape[0], T10)
     else:
         T10 = T10.reshape(S.shape[0])
+    with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
+        R10 = np.where(T10==0, 0, 1/T10)
     R1 = np.zeros(S.shape)
     if S0 is None:
         Sb = np.mean(S[:, :n0], axis=-1)
         Sb = np.broadcast_to(Sb[..., None], S.shape)
-        T10 = np.broadcast_to(T10[..., None], S.shape)
-        E = np.exp(-TC/T10)
+        R10 = np.broadcast_to(R10[..., None], S.shape)
+        E = np.exp(-TC*R10)
         nozero = Sb > 0
         R1[nozero] = -np.log(1-(1-E[nozero])*S[nozero]/Sb[nozero])/TC
     else:
         nozero = S0 > 0
         R1[nozero] = - np.log(1 - S[nozero] / S0[nozero]) / TC
-    C = (R1 - 1/T10)/r1
+        R10 = np.broadcast_to(R10[..., None], S.shape)
+    C = (R1 - R10)/r1
     return C.reshape(shape)
 
 
@@ -1040,7 +1043,8 @@ def conc_lin(S, T10, r1=0.005, n0=1, S0=None):
     else:
         T10 = T10.reshape(S.shape[0])
     T10 = np.broadcast_to(T10[..., None], S.shape)
-    R10 = 1/T10
+    with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
+        R10 = np.where(T10==0, 0, 1/T10)
     R1 = np.zeros(S.shape)
     if S0 is None:
         Sb = np.mean(S[:, :n0], axis=-1)
@@ -1048,6 +1052,8 @@ def conc_lin(S, T10, r1=0.005, n0=1, S0=None):
         nozero = Sb > 0
         R1[nozero] = R10[nozero]*S[nozero]/Sb[nozero]  # relaxation rate in 1/msec
     else:
+        S0 = S0.reshape(S.shape[0])
+        S0 = np.broadcast_to(S0[..., None], S.shape)
         nozero = S0 > 0
         R1[nozero] = S[nozero] / S0[nozero]
     C = (R1 - R10)/r1

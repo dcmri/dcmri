@@ -21,20 +21,18 @@ def test_ui_tissue_ls():
     gt['ve'] = gt['vp'] + gt['vi'] if gt['PS'] > 0 else gt['vp']
 
     params = {
-        'aif': aif,
         'dt': time[1],
         'sequence': 'SS',
         'r1': dc.relaxivity(3,'blood','gadodiamide'),
         'TR': 0.005,
         'FA': 15,
-        'n0': 10,
         'R10a': 1/dc.T1(3.0,'blood'),
         'R10': 1/dc.T1(3.0,'muscle'),
     }
 
     # Train model and check results
     model = dc.TissueLS(**params)
-    model.train(roi, tol=0.01)
+    model.train(roi, aif, n0=10, tol=0.01)
     model.plot(roi, show=SHOW)
     pars = model.params()
     
@@ -57,34 +55,32 @@ def test_ui_tissue_ls_array():
 
     # Define model parameters
     params = {
-        'aif': aif,
         'dt': time[1],
         'sequence': 'SS',
         'r1': dc.relaxivity(3,'blood','gadodiamide'),
         'TR': 0.005,
         'FA': 15,
-        'n0': 10,
         'R10a': 1/dc.T1(3.0,'blood'),
         'R10': R10,
     }
 
     # Train array and show results
     image = dc.TissueLSArray((n,n), **params)
-    image.train(signal, tol=0.01)
-    image.plot(signal, vmin=vmin, vmax=vmax, ref=gt, show=SHOW)
+    image.train(signal, aif, n0=10, tol=0.01)
+    image.plot(vmin=vmin, vmax=vmax, ref=gt, show=SHOW)
     assert np.linalg.norm(image.params('Fb')-gt['Fb'])/np.linalg.norm(gt['Fb']) < 0.1
 
     # Repeat with linear model (different than ground truth model -> less accurate result)
     params['sequence'] = 'lin'
     image = dc.TissueLSArray((n,n), **params)
-    image.train(signal, tol=0.01)
-    image.plot(signal, vmin=vmin, vmax=vmax, ref=gt, show=SHOW)
+    image.train(signal, aif, n0=10, tol=0.01)
+    image.plot(vmin=vmin, vmax=vmax, ref=gt, show=SHOW)
     assert np.linalg.norm(image.params('Fb')-gt['Fb'])/np.linalg.norm(gt['Fb']) < 1
 
 
 if __name__ == "__main__":
 
-    test_ui_tissue_ls()
+    # test_ui_tissue_ls()
     test_ui_tissue_ls_array()
 
     print('All ui_tissue tests passed!!')

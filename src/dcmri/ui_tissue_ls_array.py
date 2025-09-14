@@ -193,6 +193,7 @@ class TissueLSArray():
                 f"Sequence {sequence} is not recognized. "
                 f"Current options are 'SS', 'SR', 'lin'."
             )
+        self.shape=shape
         self.sequence = sequence
         self.pars = {}
         
@@ -263,7 +264,7 @@ class TissueLSArray():
         signal = np.zeros(R1.shape)
         for x in tqdm(range(R1.shape[0]), 'Predicting signals'):
             if self.sequence == 'SS':
-                signal[x,:] = sig.signal_ss(S0[x], R1[x,:], self.pars['TR'], self.pars['B1corr']*self.pars['FA'])
+                signal[x,:] = sig.signal_ss(S0[x], R1[x,:], self.pars['TR'], self.pars['B1corr'].ravel()[x]*self.pars['FA'])
             elif self.sequence == 'SR':
                 signal[x,:] = sig.signal_src(S0[x], R1[x,:], self.pars['TC'])
             elif self.sequence == 'lin':
