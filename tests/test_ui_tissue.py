@@ -154,7 +154,7 @@ def test_ui_tissue_array():
 if __name__ == "__main__":
 
 
-    test_ui_tissue()
-    # test_ui_tissue_array()
+    # test_ui_tissue()
+    test_ui_tissue_array()
 
     print('All ui_tissue tests passed!!')

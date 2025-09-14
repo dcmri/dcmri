@@ -1,6 +1,20 @@
-from scipy.linalg import expm
 
+from scipy.linalg import expm
+from scipy.special import i0, i1
 import numpy as np
+from tqdm import tqdm
+
+
+def _signal_rice(nu, sigma):
+    if sigma==0:
+        return nu
+    with np.errstate(divide='ignore', over='ignore', invalid='ignore'):
+        K = nu**2 / (2*sigma**2)
+        arg = K/2
+        pref = sigma * np.sqrt(np.pi/2)
+        rice_mean = pref * np.exp(-K/2) * ((1+K)*i0(arg) + K*i1(arg))
+    # Nan values are points where the distribution is indistinguisable from Gaussian
+    return np.where(np.isnan(rice_mean) | np.isinf(rice_mean), nu, rice_mean)
 
 
 
@@ -146,7 +160,7 @@ def Mz_free(R1, T, v=1, Fw=0, j=None, n0=0, me=1):
         >>> plt.show()      
 
     """
-    if not np.isscalar(T):
+    if not np.isscalar(T): # Do we need this?
         if np.isscalar(R1):
             Mz = np.empty(np.size(T))
             for k, Tk in enumerate(T):
@@ -157,49 +171,59 @@ def Mz_free(R1, T, v=1, Fw=0, j=None, n0=0, me=1):
                 Mz[...,k] = Mz_free(R1, Tk, v, Fw, j, n0, me)
         return Mz
 
-    if np.isscalar(R1):
-        K = _Mz_K(R1, v, Fw)
-        J = _Mz_J(R1, v, me, j=j)
-        E = np.exp(-T*K)
-        Kinv = 1/K
-        M0 = n0*me*v
-        return E*M0 + (1-E)*Kinv*J
-
-    elif np.ndim(R1)==1:
-
-        if np.isscalar(v):
+    # One compartment
+    if np.isscalar(v):
+        if np.isscalar(R1):
+            K = _Mz_K(R1, v, Fw)
+            J = _Mz_J(R1, v, me, j=j)
+            E = np.exp(-T*K)
+            Kinv = 1/K
+            M0 = n0*me*v
+            return E*M0 + (1-E)*Kinv*J
+        else:
+            R1 = np.array(R1)
             nt = np.size(R1)
             M = np.empty(nt)
             for t in range(nt):
                 jt = None if j is None else j[t]
                 n0t = n0 if np.isscalar(n0) else n0[t]
-                M[t] = Mz_free(R1[t], T, v=v, Fw=Fw, j=jt, n0=n0t, me=me)
+                M[t] = Mz_free(R1.reshape(-1)[t], T, v, Fw, jt, n0t, me)
             return M
         
-        K = _Mz_K(R1, v, Fw)
-        J = _Mz_J(R1, v, me, j=j)
-        E = expm(-T*K)
-        Kinv = np.linalg.inv(K)
-        I = np.eye(np.size(R1))
-        M0 = np.multiply(np.multiply(n0, me), v)
-        return np.dot(E, M0) + np.dot(I-E, np.dot(Kinv, J))
+    # Multiple compartments  
+    else:
+        
+        n = len(v)
+        if np.isscalar(R1):
+            raise ValueError(
+                'In a tissue with n compartments, R1 must have at least n elements.')
+        R1 = np.array(R1)
+        if R1.shape[0] != n:
+            raise ValueError(
+                'In a tissue with n compartments, the first dimension of R1 must have size n.')
 
-    if np.isscalar(v):
-        raise ValueError(
-            'In a tissue with n compartments, v must be an n-element array.')
-    n = np.shape(R1)
-    R1 = np.reshape(R1, (n[0], -1))
-    if j is not None:
-        j = np.reshape(j, (n[0], -1))
-    M = np.empty(R1.shape)
-    for t in range(R1.shape[1]):
-        jt = None if j is None else j[:,t]
-        if np.ndim(n0)==2:
-            n0t = n0[:,t]
-        else:
-            n0t = n0
-        M[:,t] = Mz_free(R1[:,t], T, v=v, Fw=Fw, j=jt, n0=n0t, me=me) 
-    return M.reshape(n)  
+        if np.ndim(R1)==1:
+            K = _Mz_K(R1, v, Fw)
+            J = _Mz_J(R1, v, me, j=j)
+            E = expm(-T*K)
+            Kinv = np.linalg.inv(K)
+            I = np.eye(np.size(R1))
+            M0 = np.multiply(np.multiply(n0, me), v)
+            return np.dot(E, M0) + np.dot(I-E, np.dot(Kinv, J))
+
+        shape = R1.shape
+        R1 = R1.reshape(n, -1)
+        if j is not None:
+            j = j.reshape(n, -1)
+        M = np.zeros(R1.shape)
+        for t in range(R1.shape[1]):
+            jt = None if j is None else j[:,t]
+            if np.ndim(n0)==2:
+                n0t = n0[:,t]
+            else:
+                n0t = n0
+            M[:,t] = Mz_free(R1[:,t], T, v, Fw, jt, n0t, me) 
+        return M.reshape(shape)  
 
 
 def Mz_ss(R1, TR, FA, v=1, Fw=0, j=None, me=1) -> np.ndarray:
@@ -316,35 +340,49 @@ def Mz_ss(R1, TR, FA, v=1, Fw=0, j=None, me=1) -> np.ndarray:
      
     """
     # One compartment
-    if np.isscalar(R1): 
-        return me*_Nz_ss_1c(R1, TR, FA, v, Fw, j)
-    
-    elif np.ndim(R1)==1:
-        if np.isscalar(v):
+    if np.isscalar(v):
+        if np.isscalar(R1): 
+            return me*_Nz_ss_1c(R1, TR, FA, v, Fw, j)
+        else:
+            R1 = np.array(R1)
             nt = np.size(R1)
-            M = np.empty(nt)
+            M = np.zeros(nt)
             for t in range(nt):
                 jt = None if j is None else j[t]
-                M[t] = Mz_ss(R1[t], TR, FA, v, Fw, jt, me)
-            return M
-        return me*_Nz_ss(R1, TR, FA, v, Fw, j)
-
-    if np.isscalar(v):
-        raise ValueError(
-            'In a tissue with n compartments, v must be an n-element array.')
-    n = np.shape(R1)
-    R1 = np.reshape(R1, (n[0], -1))
-    if j is not None:
-        j = np.reshape(j, (n[0], -1))
-    M = np.empty(R1.shape)
-    for t in range(R1.shape[1]):
-        jt = None if j is None else j[:,t]
-        M[:,t] = Mz_ss(R1[:,t], TR, FA, v, Fw, jt, me) 
-    return M.reshape(n)   
+                if np.isscalar(FA):
+                    M[t] = Mz_ss(R1.reshape(-1)[t], TR, FA, v, Fw, jt, me)
+                else:
+                    M[t] = Mz_ss(R1.reshape(-1)[t], TR, FA.reshape(-1)[t], v, Fw, jt, me)
+            return M.reshape(R1.shape)
+    
+    # Multiple compartments  
+    else:
+        
+        n = len(v)
+        if np.isscalar(R1):
+            raise ValueError(
+                'In a tissue with n compartments, R1 must have at least n elements.')
+        R1 = np.array(R1)
+        if R1.shape[0] != n:
+            raise ValueError(
+                'In a tissue with n compartments, the first dimension of R1 must have size n.')
+        
+        if np.ndim(R1)==1:
+            return me*_Nz_ss(R1, TR, FA, v, Fw, j)
+        
+        shape = R1.shape
+        R1 = R1.reshape(n, -1)
+        if j is not None:
+            j = j.reshape(n, -1)
+        M = np.zeros(R1.shape)
+        for t in range(R1.shape[1]):
+            jt = None if j is None else j[:,t]
+            M[:,t] = Mz_ss(R1[:,t], TR, FA, v, Fw, jt, me) 
+        return M.reshape(shape)   
 
 
 def _Nz_ss_1c(R1, TR, FA, v, Fw=0, j=None):
-    K = R1 + Fw/v
+    K = R1 + Fw/v if v > 0 else R1
     J = R1*v if j is None else R1*v + j
     E = np.exp(-np.multiply(TR, K))
     cFA = np.cos(FA*np.pi/180)
@@ -503,7 +541,8 @@ def Mz_spgr(R1, T, TR, FA, TP=0, v=1, Fw=0, j=None, n0=0, me=1):
         shorter time than the free recovery.
 
     """
-    if not np.isscalar(T):
+
+    if not np.isscalar(T): # Do we need this?
         if np.isscalar(R1):
             M = np.empty(np.size(T))
             for k, Tk in enumerate(T):
@@ -514,54 +553,60 @@ def Mz_spgr(R1, T, TR, FA, TP=0, v=1, Fw=0, j=None, n0=0, me=1):
                 M[...,k] = Mz_spgr(R1, Tk, TR, FA, TP, v, Fw, j, n0, me)
         return M
 
-    if np.isscalar(R1):
-        nx = T/TR
-        ncFA = np.cos(FA*np.pi/180)**nx
-        M0 = n0*v*me
-        Mss = Mz_ss(R1, TR, FA, v, Fw, j, me)
-        K = _Mz_K(R1, v, Fw)
-        E = np.exp(-T*K)
-        return Mss + ncFA*E*(M0-Mss)
-
-    elif np.ndim(R1)==1:
-
-        if np.isscalar(v):
+    # One compartment
+    if np.isscalar(v):
+        if np.isscalar(R1):
+            nx = T/TR
+            ncFA = np.cos(FA*np.pi/180)**nx
+            M0 = n0*v*me
+            Mss = Mz_ss(R1, TR, FA, v, Fw, j, me)
+            K = _Mz_K(R1, v, Fw)
+            E = np.exp(-T*K)
+            return Mss + ncFA*E*(M0-Mss)
+        else:
+            R1 = np.array(R1)
             nt = np.size(R1)
             M = np.empty(nt)
             for t in range(nt):
                 jt = None if j is None else j[t]
                 n0t = n0 if np.isscalar(n0) else n0[t]
-                M[t] = Mz_spgr(R1[t], T, TR, FA, TP, v, Fw, jt, n0t, me)
+                M[t] = Mz_spgr(R1.reshape(-1)[t], T, TR, FA, TP, v, Fw, jt, n0t, me)
             return M
-    
-        nx = T/TR
-        ncFA = np.cos(FA*np.pi/180)**nx
-        M0 = np.multiply(np.multiply(n0, v), me)
-        Mss = Mz_ss(R1, TR, FA, v, Fw, j, me)
-        K = _Mz_K(R1, v, Fw)
-        E = expm(-T*K)
-        return Mss + ncFA*np.dot(E, M0-Mss)
 
-    if np.isscalar(v):
-        raise ValueError(
-            'In a tissue with n compartments, v must be an n-element array.')
-    n = np.shape(R1)
-    R1 = np.reshape(R1, (n[0], -1))
-    if j is not None:
-        j = np.reshape(j, (n[0], -1))
-    M = np.empty(R1.shape)
-    for t in range(R1.shape[1]):
-        jt = None if j is None else j[:,t]
-        if np.ndim(n0)==2:
-            n0t = n0[:,t]
-        else:
-            n0t = n0
-        M[:,t] = Mz_spgr(R1[:,t], T, TR, FA, TP, v, Fw, jt, n0t, me)
-    return M.reshape(n) 
+    # Multiple compartments  
+    else:
 
+        n = len(v)
+        if np.isscalar(R1):
+            raise ValueError(
+                'In a tissue with n compartments, R1 must have at least n elements.')
+        R1 = np.array(R1)
+        if R1.shape[0] != n:
+            raise ValueError(
+                'In a tissue with n compartments, the first dimension of R1 must have size n.')
 
+        if np.ndim(R1)==1:
+            nx = T/TR
+            ncFA = np.cos(FA*np.pi/180)**nx
+            M0 = np.multiply(np.multiply(n0, v), me)
+            Mss = Mz_ss(R1, TR, FA, v, Fw, j, me)
+            K = _Mz_K(R1, v, Fw)
+            E = expm(-T*K)
+            return Mss + ncFA*np.dot(E, M0-Mss)
 
-
+        shape = R1.shape
+        R1 = R1.reshape(n, -1)
+        if j is not None:
+            j = j.reshape(n, -1)
+        M = np.zeros(R1.shape)
+        for t in range(R1.shape[1]):
+            jt = None if j is None else j[:,t]
+            if np.ndim(n0)==2:
+                n0t = n0[:,t]
+            else:
+                n0t = n0
+            M[:,t] = Mz_spgr(R1[:,t], T, TR, FA, TP, v, Fw, jt, n0t, me)
+        return M.reshape(shape) 
 
 
 
@@ -608,7 +653,7 @@ def signal_t2w(R2, S0: float, TE) -> np.ndarray:
     return S0*np.exp(-np.multiply(TE, R2))
 
 
-def signal_free(S0, R1, T, FA, v=1, Fw=0, j=None, n0=0, R10=None):
+def signal_free(S0, R1, T, FA, v=1, Fw=0, j=None, n0=0, R10=None, noise_sdev=0):
     """Signal with readout after a free recovery.
 
     Args:
@@ -638,6 +683,9 @@ def signal_free(S0, R1, T, FA, v=1, Fw=0, j=None, n0=0, R10=None):
         R10 (float, optional): R1-value where S0 is defined. If not provided, 
           S0 is the scaling factor corresponding to infinite R10. Defaults 
           to None.
+        noise_sdev (float, optional): standard deviation of the signal noise. 
+          If this is non-zero, the signal is computed from the mean of the 
+          Rician distributions. A noise_sdev=0 has no effect.
 
     Returns:
         np.ndarray: Signal in the same units as S0 and with the same 
@@ -646,18 +694,18 @@ def signal_free(S0, R1, T, FA, v=1, Fw=0, j=None, n0=0, R10=None):
     if R10 is not None:
         S0 = S0/signal_free(1, R10, T, FA, v, Fw, j, n0)
     Mz = Mz_free(R1, T, v, Fw, j, n0)
-    if np.isscalar(Mz):
-        return S0 * np.sin(FA*np.pi/180) * np.abs(Mz)
-    elif np.ndim(Mz)==1:
-        if np.isscalar(v):
-            return S0 * np.sin(FA*np.pi/180) * np.abs(Mz)
-        else:
-            return S0 * np.sin(FA*np.pi/180) * np.abs(np.sum(Mz))
+    sFA = np.sin(FA*np.pi/180)
+
+    # One compartment
+    if np.isscalar(v):
+        return _signal_rice(S0 * sFA * np.abs(Mz), noise_sdev)
+    
+    # Multiple compartments - sum over compartments (first dim)
     else:
-        return S0 * np.sin(FA*np.pi/180) * np.abs(np.sum(Mz, axis=0))
+        return _signal_rice(S0 * sFA * np.abs(np.sum(Mz, axis=0)), noise_sdev)
 
 
-def signal_ss(S0, R1, TR, FA, v=1, Fw=0, j=None, R10=None) -> np.ndarray:
+def signal_ss(S0, R1, TR, FA, v=1, Fw=0, j=None, R10=None, noise_sdev=0) -> np.ndarray:
     """Signal of a spoiled gradient echo sequence applied in steady state.
 
     Args:
@@ -685,6 +733,9 @@ def signal_ss(S0, R1, TR, FA, v=1, Fw=0, j=None, R10=None) -> np.ndarray:
         R10 (float, optional): R1-value where S0 is defined. If not provided, 
           S0 is the scaling factor corresponding to infinite R10. Defaults 
           to None.
+        noise_sdev (float, optional): standard deviation of the signal noise. 
+          If this is non-zero, the signal is computed from the mean of the 
+          Rician distributions. A noise_sdev=0 has no effect.
 
     Returns:
         np.ndarray: Signal in the same units as S0
@@ -692,19 +743,19 @@ def signal_ss(S0, R1, TR, FA, v=1, Fw=0, j=None, R10=None) -> np.ndarray:
     if R10 is not None:
         S0 = S0/signal_ss(1, R10, TR, FA, v, Fw, j)
     Mz = Mz_ss(R1, TR, FA, v, Fw, j)
-    if np.isscalar(Mz):
-        return S0 * np.sin(FA*np.pi/180) * np.abs(Mz)
-    elif np.ndim(Mz)==1:
-        if np.isscalar(v):
-            return S0 * np.sin(FA*np.pi/180) * np.abs(Mz)
-        else:
-            return S0 * np.sin(FA*np.pi/180) * np.abs(np.sum(Mz))
+    
+    sFA = np.sin(FA*np.pi/180)
+    # One compartment
+    if np.isscalar(v):
+        return _signal_rice(S0 * sFA * np.abs(Mz), noise_sdev)
+    
+    # Multiple compartments - sum over compartments (first dim)
     else:
-        return S0 * np.sin(FA*np.pi/180) * np.abs(np.sum(Mz, axis=0))
+        return _signal_rice(S0 * sFA * np.abs(np.sum(Mz, axis=0)), noise_sdev)
 
 
 def signal_spgr(S0, R1, T, TR, FA, TP=0.0, 
-                  v=1, Fw=0, j=None, n0=0, R10=None) -> np.ndarray:
+                  v=1, Fw=0, j=None, n0=0, R10=None, noise_sdev=0) -> np.ndarray:
     """Signal of an SPGR sequence.
 
     Args:
@@ -735,6 +786,9 @@ def signal_spgr(S0, R1, T, TR, FA, TP=0.0,
         R10 (float, optional): R1-value where S0 is defined. If not provided, 
           S0 is the scaling factor corresponding to infinite R10. Defaults to 
           None.
+        noise_sdev (float, optional): standard deviation of the signal noise. 
+          If this is non-zero, the signal is computed from the mean of the 
+          Rician distributions. A noise_sdev=0 has no effect.
 
     Raises:
         ValueError: If TP is larger than TC.
@@ -753,28 +807,48 @@ def signal_spgr(S0, R1, T, TR, FA, TP=0.0,
         else:
             n0 = np.divide(N0, v)
     Mz = Mz_spgr(R1, T, TR, FA, TP, v, Fw, j, n0)
-    if np.isscalar(Mz):
-        return S0 * np.sin(FA*np.pi/180) * np.abs(Mz)
-    elif np.ndim(Mz)==1:
-        if np.isscalar(v):
-            return S0 * np.sin(FA*np.pi/180) * np.abs(Mz)
-        else:
-            return S0 * np.sin(FA*np.pi/180) * np.abs(np.sum(Mz))
+
+    sFA = np.sin(FA*np.pi/180)
+    # One compartment
+    if np.isscalar(v):
+        return _signal_rice(S0 * sFA * np.abs(Mz), noise_sdev)
+    
+    # Multiple compartments - sum over compartments (first dim)
     else:
-        return S0 * np.sin(FA*np.pi/180) * np.abs(np.sum(Mz, axis=0))
+        return _signal_rice(S0 * sFA * np.abs(np.sum(Mz, axis=0)), noise_sdev)
 
 
-def signal_lin(S0, R1) -> np.ndarray:
+def signal_src(S0, R1, TC, noise_sdev=0)-> np.ndarray:
+    """Signal of a saturation-recovery sequence with a center-encoded readout.
+
+    Args:
+        S0 (float): Signal scaling factor (arbitrary units).
+        R1 (array-like): Longitudinal relaxation rate in 1/sec.
+        TC (float): Time (sec) between the saturation pulse and the acquisition of the k-space center.
+        noise_sdev (float, optional): standard deviation of the signal noise. 
+          If this is non-zero, the signal is computed from the mean of the 
+          Rician distributions. A noise_sdev=0 has no effect.
+
+    Returns:
+        np.ndarray: Signal in arbitrary units, same length as R1.
+    """
+    return _signal_rice(S0 * (1 - np.exp(-TC * R1)), noise_sdev)
+
+
+def signal_lin(S0, R1, noise_sdev=0) -> np.ndarray:
     """Signal for any sequence operating in the linear regime.
 
     Args:
         S0 (float): Signal scaling factor (arbitrary units).
         R1 (array-like): Longitudinal relaxation rate in 1/sec.
+        noise_sdev (float, optional): standard deviation of the signal noise. 
+          If this is non-zero, the signal is computed from the mean of the 
+          Rician distributions. A noise_sdev=0 has no effect.
         
     Returns:
         np.ndarray: Signal in arbitrary units, of the same length as R1.
     """
-    return S0 * R1
+    return _signal_rice(S0 * R1, noise_sdev)
 
 
 
@@ -803,14 +877,15 @@ def conc_t2w(S, TE: float, r2=0.5, n0=1) -> np.ndarray:
     return C
 
 
-def conc_ss(S, TR: float, FA: float, T10: float, r1=0.005, n0=1) -> np.ndarray:
+
+def conc_ss(S, TR: float, FA: float, T10: float, r1=0.005, n0=1, S0=None) -> np.ndarray:
     """Concentration of a spoiled gradient echo sequence applied in steady state.
 
     Args:
         S (array-like): Signal in arbitrary units.
         TR (float): Repetition time, or time between successive selective excitations, in sec.
         FA (float): Flip angle in degrees.
-        T10 (float): baseline T1 value in sec.
+        T10 (array-like): baseline T1 value in sec.
         r1 (float, optional): Longitudinal relaxivity in Hz/M. Defaults to 0.005.
         n0 (int, optional): Baseline length. Defaults to 1.
 
@@ -823,21 +898,47 @@ def conc_ss(S, TR: float, FA: float, T10: float, r1=0.005, n0=1) -> np.ndarray:
     # Sn * (1-cFA*exp(-TR*R1)) = 1-exp(-TR*R1)
     # exp(-TR*R1) - Sn *cFA*exp(-TR*R1) = 1-Sn
     # (1-Sn*cFA) * exp(-TR*R1) = 1-Sn
-    Sb = np.mean(S[:n0])
-    E0 = np.exp(-TR/T10)
-    c = np.cos(FA*np.pi/180)
-    Sn = (S/Sb)*(1-E0)/(1-c*E0)	        # normalized signal
-    # Replace any Nan values by interpolating between nearest neighbours
-    outrange = Sn >= 1
-    if np.sum(outrange) > 0:
-        inrange = Sn < 1
-        x = np.arange(Sn.size)
-        Sn[outrange] = np.interp(x[outrange], x[inrange], Sn[inrange])
-    R1 = -np.log((1-Sn)/(1-c*Sn))/TR  # relaxation rate in 1/msec
-    return (R1 - 1/T10)/r1
+    S = np.array(S)
+    shape = S.shape
+    S = S.reshape(-1, shape[-1])
+    if np.isscalar(T10):
+        T10 = np.full(S.shape[0], T10)
+    else:
+        T10 = T10.reshape(S.shape[0])
+    with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
+        R10 = np.where(T10==0, 0, 1/T10)
+
+    cFA = np.cos(FA*np.pi/180)
+    if S0 is None:
+        # If S0 is not provided, estimate from the data
+        Sb = np.mean(S[:, :n0], axis=-1)
+        Sb = np.broadcast_to(Sb[..., None], S.shape)
+        T10 = np.broadcast_to(T10[..., None], S.shape)
+        Sn = np.zeros(S.shape)
+        nozero = Sb > 0
+        E0 = np.exp(-TR*R10)
+        E0 = E0[nozero]
+        Sn[nozero] = (S[nozero]/Sb[nozero])*(1-E0)/(1-cFA*E0)	     
+        # Replace any Nan values by interpolating between nearest neighbours
+        outrange = Sn >= 1
+        if np.sum(outrange) > 0:
+            inrange = Sn < 1
+            x = np.arange(Sn.size).reshape(Sn.shape)
+            Sn[outrange] = np.interp(x[outrange], x[inrange], Sn[inrange])
+    else:
+        S0 = np.array(S0).reshape(-1)
+        S0 = np.broadcast_to(S0[..., None], S.shape)
+        with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
+            Sn = np.where(S0>0, S/S0/np.sin(np.deg2rad(FA)), 0)
+    Sn = (1-Sn)/(1-cFA*Sn)
+    with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
+        R1 = np.where(Sn==0, 0, -np.log(Sn)/TR)  
+    R10 = np.broadcast_to(R10[..., None], S.shape)
+    C = (R1 - R10)/r1
+    return C.reshape(shape)
 
 
-def conc_src(S, TC: float, T10: float, r1=0.005, n0=1) -> np.ndarray:
+def conc_src(S, TC: float, T10: float, r1=0.005, n0=1, S0=None) -> np.ndarray:
     """Concentration of a saturation-recovery sequence with a center-encoded readout.
 
     Args:
@@ -896,13 +997,29 @@ def conc_src(S, TC: float, T10: float, r1=0.005, n0=1) -> np.ndarray:
     # 1-(1-exp(-TC*R10))*S/Sb = exp(-TC*R1)
     # ln(1-(1-exp(-TC*R10))*S/Sb) = -TC*R1
     # -ln(1-(1-exp(-TC*R10))*S/Sb)/TC = R1
-    Sb = np.mean(S[:n0])
-    E = np.exp(-TC/T10)
-    R1 = -np.log(1-(1-E)*S/Sb)/TC
-    return (R1 - 1/T10)/r1
+    S = np.array(S)
+    shape = S.shape
+    S = S.reshape(-1, shape[-1])
+    if np.isscalar(T10):
+        T10 = np.full(S.shape[0], T10)
+    else:
+        T10 = T10.reshape(S.shape[0])
+    R1 = np.zeros(S.shape)
+    if S0 is None:
+        Sb = np.mean(S[:, :n0], axis=-1)
+        Sb = np.broadcast_to(Sb[..., None], S.shape)
+        T10 = np.broadcast_to(T10[..., None], S.shape)
+        E = np.exp(-TC/T10)
+        nozero = Sb > 0
+        R1[nozero] = -np.log(1-(1-E[nozero])*S[nozero]/Sb[nozero])/TC
+    else:
+        nozero = S0 > 0
+        R1[nozero] = - np.log(1 - S[nozero] / S0[nozero]) / TC
+    C = (R1 - 1/T10)/r1
+    return C.reshape(shape)
 
 
-def conc_lin(S, T10, r1=0.005, n0=1):
+def conc_lin(S, T10, r1=0.005, n0=1, S0=None):
     """Concentration for any sequence operating in the linear regime.
 
     Args:
@@ -914,7 +1031,26 @@ def conc_lin(S, T10, r1=0.005, n0=1):
     Returns:
         np.ndarray: Concentration in M, same length as S.
     """
-    Sb = np.mean(S[:n0])
+    # S = S0 * R10
+    S = np.array(S)
+    shape = S.shape
+    S = S.reshape(-1, shape[-1])
+    if np.isscalar(T10):
+        T10 = np.full(S.shape[0], T10)
+    else:
+        T10 = T10.reshape(S.shape[0])
+    T10 = np.broadcast_to(T10[..., None], S.shape)
     R10 = 1/T10
-    R1 = R10*S/Sb  # relaxation rate in 1/msec
-    return (R1 - R10)/r1
+    R1 = np.zeros(S.shape)
+    if S0 is None:
+        Sb = np.mean(S[:, :n0], axis=-1)
+        Sb = np.broadcast_to(Sb[..., None], S.shape)
+        nozero = Sb > 0
+        R1[nozero] = R10[nozero]*S[nozero]/Sb[nozero]  # relaxation rate in 1/msec
+    else:
+        nozero = S0 > 0
+        R1[nozero] = S[nozero] / S0[nozero]
+    C = (R1 - R10)/r1
+    return C.reshape(shape)
+
+

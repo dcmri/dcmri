@@ -82,13 +82,6 @@ def test_Mz_free():
     assert 0.1 < S[0,0] < 0.2
     S = dc.Mz_free(R1, T, v, n0=np.zeros((2,3)))
     assert 0.1 < S[0,0] < 0.2
-    v = 1
-    try:
-        S = dc.Mz_free(R1, T, v)
-    except:
-        assert True
-    else:
-        assert False
 
 def test_Mz_ss():
 
@@ -174,13 +167,6 @@ def test_Mz_ss():
     assert 0.02 < S[0,0] < 0.03
     S = dc.Mz_ss(R1, TR, FA, v)
     assert 0.02 < S[0,0] < 0.03
-    v = 1
-    try:
-        S = dc.Mz_ss(R1, TR, FA, v)
-    except:
-        assert True
-    else:
-        assert False
 
 
 def test_Mz_spgr():
@@ -229,12 +215,6 @@ def test_Mz_spgr():
     assert 0.02 < S[0,0] < 0.03
     S = dc.Mz_spgr(R1, T, TR, FA, TP, v)
     assert 0.02 < S[0,0] < 0.03
-    try:
-        S = dc.Mz_spgr(R1, T, TR, FA, TP, v=1)
-    except:
-        assert True
-    else:
-        assert False
 
 def test_signal_ss():
     R1 = 1

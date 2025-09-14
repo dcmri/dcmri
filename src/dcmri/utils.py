@@ -1,9 +1,12 @@
 import math
 
+
 import numpy as np
 from scipy.special import gamma
 from scipy.interpolate import CubicSpline
 from scipy.integrate import trapezoid
+
+
 
 
 def interp(y, x, pos=False, floor=False) -> np.ndarray:
@@ -220,6 +223,7 @@ def uconv(f, h, dt=1.0, solver='trap'):
         elif solver == 'step':
             g[k] = _intstep(f[:k+1], h[-(k+1):], dt=dt)
     return g
+
 
 
 def conv(f, h, t=None, dt=1.0, solver='step'):

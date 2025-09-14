@@ -208,9 +208,13 @@ def fake_brain(
           'Fb': im['Fb'], 'vb': im['vb'],
           'PS': im['PS'], 'vi': im['vi'],
           'T1': im['T1'], 'PD': im['PD'],
-          'TR': TR, 'FA': FA, 'S0': S0*im['PD']}
+          'TR': TR, 'FA': FA, 
+          'S0': S0*im['PD']}
 
     gt['ve'] = gt['vi'] + gt['vp']
+
+    # TODO: return the extracullar part of the distribution space
+    # gt['ve'] = np.where(gt['PS'] > 0, gt['vp'] + gt['vi'], gt['vp'])
 
     return time, signal, aif, gt
 

@@ -46,13 +46,44 @@ def relax(c, R10, r1) -> np.ndarray:
           compartment.
 
     Returns:
-        np.ndarray: Array with longitudinal relaxvities, same shape as C.
+        np.ndarray: Array with longitudinal relaxivities, same shape as C.
     """
 
-    if np.isscalar(R10):
-        return R10 + r1*c
+    # One compartment tissues
+    if np.isscalar(r1):
+        if np.isscalar(R10):
+            # c is scalar or 1D
+            return R10 + r1*c
+        else:
+            # concentrations at 1 time point
+            if c.shape == R10.shape:
+                return R10 + r1*c
+            # concentrations at multiple time points
+            else:
+                return R10[..., np.newaxis] + r1*c
+
+    # n-compartment tissues (compartment is first dimension)
     else:
+
+        r1 = np.array(r1)
+        R10 = np.array(R10)
+        c = np.array(c)
+
+        n = len(r1)
         R1 = np.zeros(c.shape)
-        for i in range(c.shape[0]):
-            R1[i, :] = R10[i] + r1[i] * c[i, :]
-        return R1
+        if R10.ndim == 1:
+            if c.shape == R10.shape:
+                return R10 + r1*c
+            else:
+                for i in range(n):
+                    R1[i, :] = R10[i] + r1[i] * c[i,:]
+                return R1
+        else:
+            if c.shape == R10.shape:
+                for i in range(n):
+                    R1[i,...] = R10[i,...] + r1[i] * c[i,...]
+                return R1
+            else:
+                for i in range(n):
+                    R1[i,...] = R10[i,...,np.newaxis] + r1[i] * c[i,...]
+                return R1

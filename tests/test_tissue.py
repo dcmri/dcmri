@@ -623,6 +623,7 @@ def test_signal_tissue():
         'FA':15, 
         'TR': 0.001, 
         'B1corr':1,
+        'noise_sdev': 0,
     }
     S = dc.signal_tissue(ca, R10, r1, dt=1.0, kinetics='2CX', 
                          water_exchange='FF', sequence=seq, **pars)
@@ -660,6 +661,7 @@ def test_signal_tissue():
         'TC': 0.2,
         'TP': 0.1,
         'B1corr':1,
+        'noise_sdev':0,
     }
     S = dc.signal_tissue(ca, R10, r1, dt=1.0, kinetics='2CX', 
                          water_exchange='FF', sequence=seq, **pars)

@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from dcmri import pk, utils, rel, sig
+from dcmri import pk, rel, sig
 
 
 
@@ -79,6 +79,10 @@ def params_tissue(kinetics='2CX', water_exchange='RR') -> list:
               - vb + vi + vc
               - vb, Fb  
             * - FF
+              - NXP
+              - vb + vi + vc
+              - vb, Fb  
+            * - FF
               - U
               - vb + vi + vc
               - Fb
@@ -115,6 +119,10 @@ def params_tissue(kinetics='2CX', water_exchange='RR') -> list:
               - vb, vi, vc 
               - PSe, vb, vi, Fb  
             * - RR
+              - NXP
+              - vb, vi, vc 
+              - PSe, vb, vi, Fb 
+            * - RR
               - U
               - vb, vi, vc 
               - PSe, vb, vi, Fb 
@@ -148,6 +156,10 @@ def params_tissue(kinetics='2CX', water_exchange='RR') -> list:
               - PSe, H, vb, vi, Fb
             * - RF
               - NX
+              - vb, vi+vc
+              - PSe, vb, Fb
+            * - RF
+              - NXP
               - vb, vi+vc
               - PSe, vb, Fb
             * - RF
@@ -187,6 +199,10 @@ def params_tissue(kinetics='2CX', water_exchange='RR') -> list:
               - vb+vi, vc 
               - PSc, vb, vi, Fb
             * - FR
+              - NXP
+              - vb+vi, vc 
+              - PSc, vb, vi, Fb
+            * - FR
               - U
               - vb+vi, vc 
               - PSc, vc, Fb
@@ -196,11 +212,11 @@ def params_tissue(kinetics='2CX', water_exchange='RR') -> list:
               - PSc, H, vi, Ktrans
     """
 
-    if kinetics not in ['2CX', '2CU', 'HF', 'HFU', 'WV', 'FX', 'NX', 'U']:
+    if kinetics not in ['2CX', '2CU', 'HF', 'HFU', 'WV', 'FX', 'NX', 'NXP', 'U']:
         raise ValueError(
             'The value ' + str(kinetics) + ' for the kinetics argument \
             is not recognised. \n Possible values are 2CX, 2CU, HF, HFU, WV, \
-            FX, NX, U.'
+            FX, NX, NXP, U.'
         )
 
     if water_exchange not in ['FF', 'NF','RF', 'FN', 'NN', 
@@ -248,6 +264,8 @@ def _relax_pars(kin, wex) -> list:
             return ['H', 've', 'Fb']
         if kin == 'NX':
             return ['vb', 'Fb']
+        if kin == 'NXP':
+            return ['vb', 'Fb']
         if kin == 'U':
             return ['Fb']
 
@@ -260,6 +278,8 @@ def _relax_pars(kin, wex) -> list:
         if kin == 'FX':
             return ['H', 'vb', 'vi', 'Fb']
         if kin == 'NX':
+            return ['vb', 'vi', 'Fb']
+        if kin == 'NXP':
             return ['vb', 'vi', 'Fb']
         if kin == 'U':
             return ['vb', 'vi', 'Fb']
@@ -274,6 +294,8 @@ def _relax_pars(kin, wex) -> list:
             return ['H', 'vb', 'vi', 'Fb']
         if kin == 'NX':
             return ['vb', 'Fb']
+        if kin == 'NXP':
+            return ['vb', 'Fb']
         if kin == 'U':
             return ['vb', 'Fb']
 
@@ -286,6 +308,8 @@ def _relax_pars(kin, wex) -> list:
         if kin == 'FX':
             return ['H', 'vb', 'vi', 'Fb']
         if kin == 'NX':
+            return ['vb', 'vi', 'Fb']
+        if kin == 'NXP':
             return ['vb', 'vi', 'Fb']
         if kin == 'U':
             return ['vc', 'Fb']
@@ -316,7 +340,7 @@ def signal_tissue(
           of two of the letters 'F', 'N', 'R' is allowed. Defaults to 'FF'.
         sequence (dict): the sequence model and its parameters. The 
           dictionary has one required key 'model' which specifies the signal 
-          model. Currently either 'SS' or 'SR'. The other keys are the values 
+          model. Currently either 'SS', 'SR' or 'lin'. The other keys are the values 
           of the signal parameter, which depend on the model. See table 
           :ref:`Tissue-signal-parameters` for detail. 
         inflow (dict, optional): inflow model. If not provided, the in- and 
@@ -352,7 +376,7 @@ def signal_tissue(
         Define constants and model parameters: 
 
         >>> R10, r1 = 1, 5000
-        >>> seq = {'model': 'SS', 'S0':1, 'FA':15, 'TR': 0.001, 'B1corr':1}
+        >>> seq = {'model': 'SS', 'S0':1, 'FA':15, 'TR': 0.001, 'B1corr':1, 'noise_sdev':0}
         >>> pars = {
         >>>     'sequence':seq, 'kinetics':'2CX', 'water_exchange':'NN', 
         >>>     'H':0.045, 'vb':0.05, 'vi':0.3, 'Fb':0.01, 'PS':0.005} 
@@ -392,8 +416,11 @@ def signal_tissue(
                 ve, vc, PSe, PSc.
               - Depends on **kinetics** and **water_exchange**
               - :ref:`tissue-kinetic-regimes`
-            * - S0, FA, TR, B1corr
+            * - S0, noise_sdev
               - Always
+              - :ref:`params-per-sequence`
+            * - FA, TR, B1corr
+              - If **sequence** in ['SR', 'SS']
               - :ref:`params-per-sequence`
             * - TP, TC
               - If **sequence** is 'SR'
@@ -429,7 +456,7 @@ def signal_tissue(
                 j[0, :] = Fw[0,0]*na
         FA = sequence['B1corr'] * sequence['FA']
         return sig.signal_ss(
-            sequence['S0'], R1, sequence['TR'], FA, v, Fw, j)
+            sequence['S0'], R1, sequence['TR'], FA, v, Fw, j, noise_sdev=sequence['noise_sdev'])
     
     elif sequence['model'] == 'SR':
         if inflow is None:
@@ -450,7 +477,7 @@ def signal_tissue(
         FA = sequence['B1corr'] * sequence['FA']
         return sig.signal_spgr(
             sequence['S0'], R1, sequence['TC'], sequence['TR'], FA, 
-            sequence['TP'], v=v, Fw=Fw)
+            sequence['TP'], v=v, Fw=Fw, noise_sdev=sequence['noise_sdev'])
     
 
 def Mz_tissue(
@@ -714,11 +741,11 @@ def relax_tissue(ca: np.ndarray, R10: float, r1: float, t=None, dt=1.0,
     """
 
     # Check configuration
-    if kinetics not in ['U', 'FX', 'NX', 'WV', 'HFU', 'HF', '2CU', '2CX']:
+    if kinetics not in ['U', 'FX', 'NX', 'NXP', 'WV', 'HFU', 'HF', '2CU', '2CX']:
         raise ValueError(
             "Kinetic model '" + str(kinetics) + 
             "' is not recognised.\n Possible values are: " +
-            "'U', 'FX', 'NX', 'WV', 'HFU', 'HF', '2CU' and '2CX'."
+            "'U', 'FX', 'NX', 'NXP', 'WV', 'HFU', 'HF', '2CU' and '2CX'."
         )
     
     if (water_exchange[0] not in ['F', 'R', 'N']) or (
@@ -754,6 +781,8 @@ def relax_tissue(ca: np.ndarray, R10: float, r1: float, t=None, dt=1.0,
             return _relax_fx_ff(ca, R10, r1, t=t, dt=dt, **params)
         elif kinetics == 'NX':
             return _relax_nx_ff(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics == 'NXP':
+            return _relax_nxp_ff(ca, R10, r1, t=t, dt=dt, **params)
         elif kinetics == 'WV':
             return _relax_wv_ff(ca, R10, r1, t=t, dt=dt, **params)
         elif kinetics == 'HFU':
@@ -773,6 +802,8 @@ def relax_tissue(ca: np.ndarray, R10: float, r1: float, t=None, dt=1.0,
             return _relax_fx_rf(ca, R10, r1, t=t, dt=dt, **params)
         elif kinetics == 'NX':
             return _relax_nx_rf(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics == 'NXP':
+            return _relax_nxp_rf(ca, R10, r1, t=t, dt=dt, **params)
         elif kinetics == 'WV':
             return _relax_wv_rf(ca, R10, r1, t=t, dt=dt, **params)
         elif kinetics == 'HFU':
@@ -792,6 +823,8 @@ def relax_tissue(ca: np.ndarray, R10: float, r1: float, t=None, dt=1.0,
             return _relax_fx_fr(ca, R10, r1, t=t, dt=dt, **params)
         elif kinetics == 'NX':
             return _relax_nx_fr(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics == 'NXP':
+            return _relax_nxp_fr(ca, R10, r1, t=t, dt=dt, **params)
         elif kinetics == 'WV':
             return _relax_wv_fr(ca, R10, r1, t=t, dt=dt, **params)
         elif kinetics == 'HFU':
@@ -811,6 +844,8 @@ def relax_tissue(ca: np.ndarray, R10: float, r1: float, t=None, dt=1.0,
             return _relax_fx_rr(ca, R10, r1, t=t, dt=dt, **params)
         elif kinetics == 'NX':
             return _relax_nx_rr(ca, R10, r1, t=t, dt=dt, **params)
+        elif kinetics == 'NXP':
+            return _relax_nxp_rr(ca, R10, r1, t=t, dt=dt, **params)
         elif kinetics == 'WV':
             return _relax_wv_rr(ca, R10, r1, t=t, dt=dt, **params)
         elif kinetics == 'HFU':
@@ -864,6 +899,18 @@ def _relax_nx_ff(ca, R10, r1, t=None, dt=1.0,
     R1 = rel.relax(C, R10, r1)
     return R1, 1, 0
 
+def _relax_nxp_ff(ca, R10, r1, t=None, dt=1.0, 
+                 vb=None, Fb=None):
+    C = _conc_nxp(ca, t=t, dt=dt, vb=vb, Fb=Fb)
+    R1 = rel.relax(C, R10, r1)
+    return R1, 1, 0
+
+def _relax_nxp_ff(ca, R10, r1, t=None, dt=1.0, 
+                 vb=None, Fb=None):
+    C = _conc_nxp(ca, t=t, dt=dt, vb=vb, Fb=Fb)
+    R1 = rel.relax(C, R10, r1)
+    return R1, 1, 0
+
 def _relax_wv_ff(ca, R10, r1, t=None, dt=1.0,
                  H=None, vi=None, Ktrans=None):
     C = _conc_wv(ca, t=t, dt=dt, H=H, vi=vi, Ktrans=Ktrans)
@@ -876,9 +923,9 @@ def _relax_u_ff(ca, R10, r1, t=None, dt=1.0,
     R1 = rel.relax(C, R10, r1)
     return R1, 1, 0
 
-def _relax_fx_ff(ca, R10, r1, t=None, dt=1.0, 
+def _relax_fx_ff(ca, R10, r1, t=None, dt=1.0,
                  H=None, ve=None, Fb=None):
-    C = _conc_fx(ca / (1-H), t=t, dt=dt, H=H, ve=ve, Fb=Fb)
+    C = _conc_fx(ca, t=t, dt=dt, H=H, ve=ve, Fb=Fb)
     R1 = rel.relax(C, R10, r1)
     return R1, 1, 0
 
@@ -960,6 +1007,18 @@ def _relax_nx_fr(ca, R10, r1, t=None, dt=1.0,
                  vi=None, vb=None, Fb=None, PSc=None):
     vc = 1-vb-vi
     C = _conc_nx(ca, t=t, dt=dt, vb=vb, Fb=Fb)
+    v = [1-vc, vc]
+    R1 = (
+        rel.relax(_c(C, v[0]), R10, r1),
+        rel.relax(ca*0, R10, r1), 
+    )
+    Fw = [[0, PSc], [PSc, 0]]
+    return np.stack(R1), np.array(v), np.array(Fw)
+
+def _relax_nxp_fr(ca, R10, r1, t=None, dt=1.0, 
+                 vi=None, vb=None, Fb=None, PSc=None):
+    vc = 1-vb-vi
+    C = _conc_nxp(ca, t=t, dt=dt, vb=vb, Fb=Fb)
     v = [1-vc, vc]
     R1 = (
         rel.relax(_c(C, v[0]), R10, r1),
@@ -1057,6 +1116,17 @@ def _relax_fx_rf(ca, R10, r1, t=None, dt=1.0,
 def _relax_nx_rf(ca, R10, r1, t=None, dt=1.0, 
                  vb=None, Fb=None, PSe=None):
     C = _conc_nx(ca, t=t, dt=dt, vb=vb, Fb=Fb)
+    v = [vb, 1-vb]
+    R1 = (
+        rel.relax(_c(C, v[0]), R10, r1),
+        rel.relax(ca*0, R10, r1),
+    )
+    Fw = [[0, PSe], [PSe, 0]]
+    return np.stack(R1), np.array(v), np.array(Fw)
+
+def _relax_nxp_rf(ca, R10, r1, t=None, dt=1.0, 
+                 vb=None, Fb=None, PSe=None):
+    C = _conc_nxp(ca, t=t, dt=dt, vb=vb, Fb=Fb)
     v = [vb, 1-vb]
     R1 = (
         rel.relax(_c(C, v[0]), R10, r1),
@@ -1169,6 +1239,19 @@ def _relax_nx_rr(ca, R10, r1, t=None, dt=1.0,
                  vb=None, vi=None, Fb=None, 
                  PSe=None, PSc=None):
     C = _conc_nx(ca, t=t, dt=dt, vb=vb, Fb=Fb)
+    v = [vb, vi, 1-vb-vi]
+    R1 = (
+        rel.relax(_c(C, v[0]), R10, r1),
+        rel.relax(ca*0, R10, r1),
+        rel.relax(ca*0, R10, r1), 
+    )
+    Fw = [[0, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]]
+    return np.stack(R1), np.array(v), np.array(Fw)
+
+def _relax_nxp_rr(ca, R10, r1, t=None, dt=1.0, 
+                 vb=None, vi=None, Fb=None, 
+                 PSe=None, PSc=None):
+    C = _conc_nxp(ca, t=t, dt=dt, vb=vb, Fb=Fb)
     v = [vb, vi, 1-vb-vi]
     R1 = (
         rel.relax(_c(C, v[0]), R10, r1),
@@ -1302,6 +1385,8 @@ def conc_tissue(ca: np.ndarray, t=None, dt=1.0, kinetics='2CX', sum=True,
         return _conc_fx(ca, t=t, dt=dt, **params)
     elif kinetics == 'NX':
         return _conc_nx(ca, t=t, dt=dt, **params)
+    elif kinetics == 'NXP':
+        return _conc_nxp(ca, t=t, dt=dt, **params)
     elif kinetics == 'WV':
         return _conc_wv(ca, t=t, dt=dt, **params)
     elif kinetics == 'HFU':
@@ -1327,7 +1412,6 @@ def _conc_u(ca, t=None, dt=1.0, Fb=None):
 
 def _conc_fx(ca, t=None, dt=1.0, 
              H=None, ve=None, Fb=None):
-    # Te = ve/Fp
     if Fb == 0:
         ce = ca*0
     else:
@@ -1342,6 +1426,14 @@ def _conc_nx(ca, t=None, dt=1.0,
         Cp = ca*0
     else:
         Cp = pk.conc_comp(Fb*ca, vb/Fb, t=t, dt=dt)
+    return Cp 
+
+def _conc_nxp(ca, t=None, dt=1.0, 
+             vb=None, Fb=None):
+    if Fb == 0:
+        Cp = ca*0
+    else:
+        Cp = pk.conc_plug(Fb*ca, vb/Fb, t=t, dt=dt)
     return Cp 
 
 

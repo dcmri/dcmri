@@ -54,7 +54,7 @@ class ArrayModel():
               are not properly formatted.
         """
         for p in kwargs:
-            if not self._params(p)['pixel_par']:
+            if not self._params()[p]['pixel_par']:
                 raise ValueError(
                     str(p) + ' is not a pixel-based parameter. ' +
                     'Only pixel-based parameters can be free.')
@@ -632,12 +632,12 @@ def set_free(self, pop=None, **kwargs):
         if k in self.__dict__:
             if np.size(v) == 2:
                 if v[0] < v[1]:
-                    if (v[0] <= getattr(self, k)) and (v[1] >= getattr(self, k)):
+                    if (v[0] <= np.min(getattr(self, k))) and (v[1] >= np.max(getattr(self, k))):
                         self.free[k] = v
                     else:
                         raise ValueError(
                             'Cannot set parameter bounds for ' + str(k) + '. '
-                            'The value current value'
+                            'The current value'
                             ' ' + str(getattr(self, k)) + ' is outside of '
                             'the bounds. ')
                 else:
@@ -710,6 +710,12 @@ def train(model: Model, xdata, ydata, **kwargs):
             **kwargs)
     except RuntimeError as e:
         msg = 'Runtime error in curve_fit -- \n'
+        msg += str(e) + ' Returning initial values.'
+        warnings.warn(msg)
+        pars = p0
+        model.pcov = np.zeros((np.size(p0), np.size(p0)))
+    except ValueError as e:
+        msg = 'Value error in curve_fit -- \n'
         msg += str(e) + ' Returning initial values.'
         warnings.warn(msg)
         pars = p0

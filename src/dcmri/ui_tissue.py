@@ -1,5 +1,4 @@
-
-from copy import deepcopy
+import os
 
 import matplotlib.pyplot as plt
 from matplotlib.animation import ArtistAnimation
@@ -10,6 +9,8 @@ import dcmri.sig as sig
 import dcmri.rel as rel
 import dcmri.tissue as tissue
 import dcmri.utils as utils
+import dcmri.pk_inv as pk_inv
+import dcmri.pk
 
 
 class TissueArray(ui.ArrayModel):
@@ -22,14 +23,14 @@ class TissueArray(ui.ArrayModel):
     Usage of this class is mostly identical to `dcmri.Tissue`.
 
     Args:
-        shape (array-like): shape of the tissue array in dimensions. Any
-          number of dimensions is allowed but the last must be time.
+        shape (array-like): shape of the tissue array (spatial dimensions only). 
+          Any number of dimensions is allowed.
         kinetics (str, optional): Tracer-kinetic model. Possible values are
          '2CX', '2CU', 'HF', 'HFU', 'NX', 'FX', 'WV', 'U'. Defaults to 'HF'.
         water_exchange (str, optional): Water exchange regime, Any combination
           of two of the letters 'F', 'N', 'R' is allowed. Defaults to 'FF'.
-        sequence (str, optional): imaging sequence. Possible values are 'SS'
-          and 'SR'. Defaults to 'SS'.
+        sequence (str, optional): imaging sequence. Possible values are 'SS', 
+          'SR'. Defaults to 'SS'.
         aif (array-like, optional): Signal-time curve in the blood of the
           feeding artery. If *aif* is not provided, the arterial
           blood concentration is *ca*. Defaults to None.
@@ -58,7 +59,8 @@ class TissueArray(ui.ArrayModel):
 
     Example:
 
-        Fit a coarse image of the brain using a 2-compartment exchange model.
+        Fit a coarse image of the brain using a linear and 
+        stationary tissue.
 
     .. plot::
         :include-source:
@@ -78,14 +80,12 @@ class TissueArray(ui.ArrayModel):
         >>> shape = (n,n)
         >>> tissue = dc.TissueArray(
         ...     shape,
-        ...     kinetics = '2CX',
+        ...     sequence = 'SS',
         ...     aif = aif,
         ...     dt = time[1],
         ...     r1 = dc.relaxivity(3, 'blood', 'gadodiamide'),
         ...     TR = 0.005,
         ...     FA = 15,
-        ...     R10a = 1/dc.T1(3.0,'blood'),
-        ...     R10 = 1/gt['T1'],
         ...     n0 = 10,
         ... )
 
@@ -170,6 +170,7 @@ class TissueArray(ui.ArrayModel):
             dt=self.dt,
 
             # Parameters
+            free = self.free,
             **kwargs,
         )
 
@@ -297,6 +298,7 @@ class TissueArray(ui.ArrayModel):
     def _train_curve(self, args):
         pix, p = super()._train_curve(args)
         self.S0[p] = pix.S0
+        self.noise_sdev[p] = pix.noise_sdev
         return pix, p
 
     def predict(self, time: np.ndarray) -> np.ndarray:
@@ -725,6 +727,101 @@ class TissueArray(ui.ArrayModel):
             plt.close()
 
 
+    def plot_overlay(self, signal, mask=None, vmin=None, vmax=None, aspect_ratio=16/9, cmap='magma', fname=None, show=True):
+        """Plot parameter maps (one image per parameter)
+
+        Note: this function is currently only available for 3D data.
+
+        Args:
+            signal (numpy.ndarray): dynamic signal
+            mask (numpy.ndarray): If provided, only pixels inside the mask are shown
+            vmin (dict, optional): Minimum values on display for the model parameters. Defaults to None.
+            vmax (dict, optional): Maximum values on display for the model parameters. Defaults to None.
+            aspect_ratio (float, optional): Aspect ratio of the mosaic. Defaults to 16/9.
+            cmap (str, optional): matplotlib colormap. Defaults to 'gray'.
+            fname (str, optional): File path to save image. Defaults to None.
+            show (bool, optional): Determine whether the image is shown or not. Defaults to True.
+
+        Raises:
+            NotImplementedError: Features that are not currently implemented.
+        """
+
+        if len(self.shape) != 3:
+            raise NotImplementedError('plot_params is only available for 3D data at this stage.')
+        
+        params = self._par_values(kin=True)
+
+        if self.S0.ndim==3:
+            for par in params:
+
+                if par not in self.free:
+                    continue
+
+                img = params[par]
+                alpha = img != 0 if mask is None else mask
+                width = self.S0.shape[0]
+                height = self.S0.shape[1]
+                n_mosaics = self.S0.shape[2]
+                nrows = int(np.round(np.sqrt((width*n_mosaics)/(aspect_ratio*height))))
+                ncols = int(np.ceil(n_mosaics/nrows))
+
+                # Set up figure 
+                fig, ax = plt.subplots(
+                    nrows=nrows, 
+                    ncols=ncols, 
+                    gridspec_kw = {'wspace':0, 'hspace':0}, 
+                    figsize=(ncols*width/max([width,height]), nrows*height/max([width,height])),
+                    dpi=300,
+                )
+                plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+
+                # Build figure
+                i = 0
+                for row in ax:
+                    for col in row:
+
+                        col.set_xticklabels([])
+                        col.set_yticklabels([])
+                        col.set_aspect('equal')
+                        col.axis("off")
+                        
+                        if i < img.shape[2]:
+                            col.imshow(
+                                self.S0[:,:,i].T, 
+                                cmap='gray', 
+                                interpolation='none', 
+                                vmin=np.amin(self.S0) if vmin is None else vmin['background'],
+                                vmax=np.amax(self.S0) if vmax is None else vmax['background'],
+                            )
+                            im = col.imshow(
+                                img[:,:,i].T, 
+                                cmap=cmap, 
+                                interpolation='none', 
+                                alpha = alpha[:,:,i].T.astype(np.float32),
+                                vmin=np.amin(img[alpha]) if vmin is None else vmin[par], 
+                                vmax=np.amax(img[alpha]) if vmax is None else vmax[par],
+                            )
+
+                        i += 1
+
+                # Add colorbar on the right
+                cbar = fig.colorbar(im, ax=ax.ravel().tolist(), location='right', fraction=0.046, pad=0.04)
+                cbar.set_label(f"{par} ({PARAMS[par]['unit']})")
+                cbar.ax.yaxis.set_label_position("left")
+                cbar.ax.yaxis.set_ticks_position("right")
+
+                if fname is not None:
+                    folder, filename = os.path.split(fname)
+                    name, ext = os.path.splitext(filename)
+                    new_filename = f"{par}_{name}{ext}"
+                    new_fullpath = os.path.join(folder, new_filename)
+                    fig.savefig(fname=new_fullpath, bbox_inches='tight', pad_inches=0)
+                if show:
+                    plt.show()
+                else:
+                    plt.close()
+
+
 class Tissue(ui.Model):
     """Vascular-interstitial tissue.
 
@@ -845,8 +942,11 @@ class Tissue(ui.Model):
             * - R10a, B1corr_a
               - When aif is provided
               - :ref:`relaxation-params`, :ref:`params-per-sequence`
-            * - S0, FA, TR, TS, B1corr
+            * - S0, TS
               - Always
+              - :ref:`params-per-sequence`
+            * - FA, TR, B1corr
+              - If **sequence** in ['SR','SS']
               - :ref:`params-per-sequence`
             * - TP, TC
               - If **sequence** is 'SR'
@@ -1151,11 +1251,11 @@ class Tissue(ui.Model):
             else:
                 if self.sequence == 'SR':
                     self.ca = sig.conc_src(
-                        self.aif, self.TC, 1 / self.R10a, self.r1, self.n0)
+                        self.aif, self.TC, 1 / self.R10a, self.r1, self.n0, S0=self.S0a)
                 elif self.sequence == 'SS':
                     self.ca = sig.conc_ss(
                         self.aif, self.TR, self.B1corr_a * self.FA,
-                        1 / self.R10a, self.r1, self.n0)
+                        1 / self.R10a, self.r1, self.n0, S0=self.S0a)
 
     def conc(self, sum=True):
         """Return the tissue concentration
@@ -1194,9 +1294,11 @@ class Tissue(ui.Model):
         """
         self._check_ca()
         pars = self._par_values(kin=True)
+        ca = dcmri.pk.flux_plug(self.ca, self.Ta, self.t)
         return tissue.conc_tissue(
-            self.ca, t=self.t, dt=self.dt, sum=sum, kinetics=self.kinetics,
+            ca, t=self.t, dt=self.dt, sum=sum, kinetics=self.kinetics,
             **pars)
+    
 
     def relax(self):
         """Compartmental relaxation rates, volume fractions and
@@ -1249,8 +1351,9 @@ class Tissue(ui.Model):
         """
         self._check_ca()
         pars = self._par_values(tiss=True)
+        ca = dcmri.pk.flux_plug(self.ca, self.Ta, self.t)
         R1, v, Fw = tissue.relax_tissue(
-            self.ca, self.R10, self.r1, t=self.t, dt=self.dt,
+            ca, self.R10, self.r1, t=self.t, dt=self.dt,
             kinetics=self.kinetics, water_exchange=self.water_exchange,
             **pars)
         return R1, v, Fw
@@ -1266,8 +1369,9 @@ class Tissue(ui.Model):
         spars = self._par_values(seq=True)
         spars.pop('S0')
         spars['model'] = self.sequence
+        ca = dcmri.pk.flux_plug(self.ca, self.Ta, self.t)
         return tissue.Mz_tissue(
-            self.ca, self.R10, self.r1, t=self.t, dt=self.dt,
+            ca, self.R10, self.r1, t=self.t, dt=self.dt,
             kinetics=self.kinetics,
             water_exchange=self.water_exchange,
             sequence=spars,
@@ -1287,8 +1391,9 @@ class Tissue(ui.Model):
         tpars = self._par_values(tiss=True)
         spars = self._par_values(seq=True)
         spars['model'] = self.sequence
+        ca = dcmri.pk.flux_plug(self.ca, self.Ta, self.t)
         return tissue.signal_tissue(
-            self.ca, self.R10, self.r1, t=self.t, dt=self.dt,
+            ca, self.R10, self.r1, t=self.t, dt=self.dt,
             kinetics=self.kinetics,
             water_exchange=self.water_exchange,
             sequence=spars,
@@ -1317,7 +1422,8 @@ class Tissue(ui.Model):
         sig = self.signal()
         return utils.sample(time, t, sig, self.TS)
 
-    def train(self, time, signal, method='NLLS', **kwargs):
+
+    def train(self, time, signal, method='NLLS', init_s0=True, **kwargs):
         """Train the free parameters
 
         Args:
@@ -1332,55 +1438,64 @@ class Tissue(ui.Model):
               `scipy.optimize.curve_fit`, except for bounds.
 
         Returns:
-            Tissue: A reference to the model instance.
+            self
         """
-        # Estimate S0
-        if self.sequence == 'SR':
-            Sref = sig.signal_spgr(
-                1, self.R10, self.TC, self.TR, self.B1corr * self.FA, self.TP)
-        elif self.sequence == 'SS':
-            Sref = sig.signal_ss(1, self.R10, self.TR, self.B1corr * self.FA)
-        else:
-            raise NotImplementedError(
-                'Signal model ' + self.sequence + 'is not (yet) supported.')
+        if init_s0: # Estimate S0
+            if self.sequence == 'SR':
+                scla = sig.signal_spgr(1, self.R10a, self.TC, self.TR, self.B1corr_a * self.FA, self.TP)
+                scl = sig.signal_spgr(1, self.R10, self.TC, self.TR, self.B1corr * self.FA, self.TP)
+            elif self.sequence == 'SS':
+                scla = sig.signal_ss(1, self.R10a, self.TR, self.B1corr_a * self.FA)
+                scl = sig.signal_ss(1, self.R10, self.TR, self.B1corr * self.FA)
+            # Compute baselines
+            self.ca = None # for recompute
+            Sba = np.mean(self.aif[:self.n0])
+            S0a = Sba / scla if scla > 0 else 0
+            self.S0a = 0 if S0a < 0 else S0a
+            
+            Sb = np.mean(signal[:self.n0])
+            S0 = Sb / scl if scl > 0 else 0
+            self.S0 = 0 if S0 < 0 else S0
 
-        self.S0 = np.mean(signal[:self.n0]) / Sref if Sref > 0 else 0
-
-        # If there is no signal, set all free parameters to zero
+        # If there is no signal, set all free parameters to their lower bound
         if self.S0 == 0:
             for par in self.free:
-                setattr(self, par, 0)
+                #setattr(self, par, 0)
+                v0 = self.free[par][0]
+                setattr(self, par, v0)
             return self
 
         if method == 'NLLS':
             return ui.train(self, time, signal, **kwargs)
 
-        if method == 'PSMS':  # Work in progress
-            # Fit the complete model
-            ui.train(self, time, signal, **kwargs)
-            # Fit an intravascular model with the same free parameters
-            iv = deepcopy(self)
-            # iv.kinetics = 'NX'
-            setattr(iv, 'PS', 0)
-            for par in ['ve', 'PS', 'PSc']:
-                if par in iv.free:
-                    iv.free.pop(par)
-            ui.train(iv, time, signal, **kwargs)
-            # If the intravascular model has a lower AIC, take the free
-            # parameters from there
-            if iv.cost(time, signal, metric='cAIC') < self.cost(
-                    time, signal, metric='cAIC'):
-                for par in self.free:
-                    setattr(self, par, getattr(iv, par))
-                # # If the tissue is 1-compartmental and the blood MTT > 30s
-                # # Assume the observed compartment is actually interstitial.
-                # if iv.vp/iv.Fp > 30:
-                #     self.vp = 0
-                #     self.Fp = 0
-                #     self.PS = 0
-                #     self.vi = iv.vp
-                #     self.Ktrans = iv.Fp
-                #     self.v = iv.vp
+        # # Model selection.
+        # # Work in progress - not exposed yet
+        # if method == 'PSMS':  
+        #     # Fit the complete model
+        #     ui.train(self, time, signal, **kwargs)
+        #     # Fit an intravascular model with the same free parameters
+        #     iv = deepcopy(self)
+        #     # iv.kinetics = 'NX'
+        #     setattr(iv, 'PS', 0)
+        #     for par in ['ve', 'PS', 'PSc']:
+        #         if par in iv.free:
+        #             iv.free.pop(par)
+        #     ui.train(iv, time, signal, **kwargs)
+        #     # If the intravascular model has a lower AIC, take the free
+        #     # parameters from there
+        #     if iv.cost(time, signal, metric='cAIC') < self.cost(
+        #             time, signal, metric='cAIC'):
+        #         for par in self.free:
+        #             setattr(self, par, getattr(iv, par))
+        #         # # If the tissue is 1-compartmental and the blood MTT > 30s
+        #         # # Assume the observed compartment is actually interstitial.
+        #         # if iv.vp/iv.Fp > 30:
+        #         #     self.vp = 0
+        #         #     self.Fp = 0
+        #         #     self.PS = 0
+        #         #     self.vi = iv.vp
+        #         #     self.Ktrans = iv.Fp
+        #         #     self.v = iv.vp
 
     def params(self, *args, round_to=None):
         """Return the parameter values
@@ -1511,7 +1626,7 @@ class Tissue(ui.Model):
         return super().cost(time, signal, metric=metric)
 
     def plot(self, time=None, signal=None,
-             xlim=None, ref=None, fname=None, show=True):
+             xlim=None, round_to=None, ref=None, fname=None, show=True):
         """Plot the model fit against data.
 
         Args:
@@ -1520,6 +1635,7 @@ class Tissue(ui.Model):
               each element of *time*.
             xlim (array_like, optional): 2-element array with lower and upper
               boundaries of the x-axis. Defaults to None.
+            round_to (int, optional): Rounding for the model parameters.
             ref (tuple, optional): Tuple of optional test data in the form
               (x,y), where x is an array with x-values and y is an array with
               y-values. Defaults to None.
@@ -1541,10 +1657,12 @@ class Tissue(ui.Model):
             ax01 = ax[0, 1]
             ax10 = ax[1, 0]
             ax11 = ax[1, 1]
+            ax_text = None
         else:
-            fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+            fig, ax = plt.subplots(1, 3, figsize=(15, 5))
             ax00 = ax[0]
             ax01 = ax[1]
+            ax_text = ax[2]
 
         ax00.set_title('MRI signals')
         if ref is not None:
@@ -1558,7 +1676,7 @@ class Tissue(ui.Model):
                       color='darkblue', label='Data')
         ax00.plot(t / 60, self.predict(t), linestyle='-',
                   linewidth=3.0, color='darkblue', label='Model')
-        ax00.set(ylabel='MRI signal (a.u.)', xlim=np.array(xlim) / 60)
+        ax00.set(ylabel='MRI signal (a.u.)', xlabel='Time (min)', xlim=np.array(xlim) / 60)
         ax00.legend()
 
         C = self.conc(sum=False)
@@ -1582,7 +1700,7 @@ class Tissue(ui.Model):
                           label=comps[k], color=_clr(comps[k]))
         # ax01.plot(t/60, 1000*np.sum(C,axis=0), linestyle='-',
         # linewidth=3.0, color='darkblue', label='Tissue')
-        ax01.set(ylabel='Concentration (mM)', xlim=np.array(xlim) / 60)
+        ax01.set(ylabel='Concentration (mM)', xlabel='Time (min)', xlim=np.array(xlim) / 60)
         ax01.legend()
 
         if self.water_exchange != 'FF':
@@ -1613,12 +1731,32 @@ class Tissue(ui.Model):
                      ylabel='Magnetization (a.u.)', xlim=np.array(xlim) / 60)
             ax10.legend()
 
+        if ax_text is not None:
+
+            pars = self.export_params()
+            msg = []
+            for par in self.free:
+                p = pars[par]
+                if round_to is None:
+                    v = p[1]
+                    verr = p[3]
+                else:
+                    v = round(p[1], round_to)
+                    verr = round(p[3], round_to)
+                msg.append(f"{p[0]} ({par}): {v} ({verr}) {p[2]} \n")
+            
+            msg = "\n".join(msg)
+            ax_text.set_title('Free parameters with their stdev')
+            ax_text.axis("off")  # hide axes
+            ax_text.text(0, 0.9, msg, fontsize=10, transform=ax_text.transAxes, ha="left", va="top")
+
         if fname is not None:
             plt.savefig(fname=fname)
         if show:
             plt.show()
         else:
             plt.close()
+
 
 
 # Helper functions
@@ -1655,6 +1793,8 @@ def _plot_labels_kin(kin):
     if kin == 'FX':
         return ['ve'], ['Extracellular']
     if kin == 'NX':
+        return ['vb'], ['Blood']
+    if kin == 'NXP':
         return ['vb'], ['Blood']
     if kin == 'U':
         return ['vb'], ['Blood']
@@ -1803,7 +1943,7 @@ def _par_values(self, *args, tiss=False, kin=False, seq=False,
 
 def _model_pars(kin, wex, seq):
     pars = ['r1']
-    pars += ['R10a', 'B1corr_a']
+    pars += ['S0a','R10a', 'B1corr_a','Ta']
     pars += _seq_pars(seq)
     pars += ['TS']
     pars += tissue.params_tissue(kin, wex)
@@ -1812,9 +1952,9 @@ def _model_pars(kin, wex, seq):
 
 def _seq_pars(seq):
     if seq == 'SS':
-        return ['S0', 'B1corr', 'FA', 'TR']
+        return ['S0', 'B1corr', 'FA', 'TR', 'noise_sdev']
     elif seq == 'SR':
-        return ['S0', 'B1corr', 'FA', 'TR', 'TC', 'TP']
+        return ['S0', 'B1corr', 'FA', 'TR', 'TC', 'TP', 'noise_sdev']
 
 
 
@@ -1841,6 +1981,14 @@ PARAMS = {
         'bounds': [0, np.inf],
         'name': 'Arterial B1-correction factor',
         'unit': '',
+        'pixel_par': False,
+    },
+    'Ta': {
+        'init': 0.0,
+        'default_free': False,
+        'bounds': [0, 5],
+        'name': 'Arterial delay',
+        'unit': 'sec',
         'pixel_par': False,
     },
     'Fb': {
@@ -1984,6 +2132,22 @@ PARAMS = {
         'default_free': False,
         'bounds': [0, np.inf],
         'name': 'Signal scaling factor',
+        'unit': 'a.u.',
+        'pixel_par': True,
+    },
+    'S0a': {
+        'init': None,
+        'default_free': False,
+        'bounds': [0, np.inf],
+        'name': 'Arterial signal scaling factor',
+        'unit': 'a.u.',
+        'pixel_par': False,
+    },
+    'noise_sdev': {
+        'init': 0.0,
+        'default_free': False,
+        'bounds': [0, np.inf],
+        'name': 'Standard deviation of the signal noise',
         'unit': 'a.u.',
         'pixel_par': True,
     },

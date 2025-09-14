@@ -393,25 +393,26 @@ def test_add_noise():
 
 
 
+
 if __name__ == "__main__":
 
     print('Testing utils..')
 
-    test_interp()
-    test_tarray()
-    test_trapz()
-    test_ddelta()
-    test_dstep()
-    test_ddist()
-    test_intprod()
-    test_uconv()
-    test_conv()
-    test_inttrap()
-    test_stepconv()
-    test_expconv()
-    test_biexpconv()
-    test_nexpconv()
-    test_sample()
-    test_add_noise()
+    # test_interp()
+    # test_tarray()
+    # test_trapz()
+    # test_ddelta()
+    # test_dstep()
+    # test_ddist()
+    # test_intprod()
+    # test_uconv()
+    # test_conv()
+    # test_inttrap()
+    # test_stepconv()
+    # test_expconv()
+    # test_biexpconv()
+    # test_nexpconv()
+    # test_sample()
+    # test_add_noise()
 
     print('All utils tests passed!!')
