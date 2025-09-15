@@ -38,6 +38,9 @@ from dcmri.fake import *
 from dcmri import ui
 from dcmri.ui import *
 
+from dcmri import ui_artery_tissue
+from dcmri.ui_artery_tissue import *
+
 from dcmri import ui_tissue
 from dcmri.ui_tissue import *
 
