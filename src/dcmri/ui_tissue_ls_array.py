@@ -117,9 +117,7 @@ class TissueLSArray():
           are 'SS', 'SR' and 'lin' (linear). Defaults to 'SS'.
         params (dict, optional): values for the parameters of the tissue,
           specified as keyword parameters. Defaults are used for any that are
-          not provided. See tables :ref:`TissueLS-parameters` and
-          :ref:`TissueLS-defaults` for a list of tissue parameters and their
-          default values.
+          not provided. 
 
     See Also:
         `TissueLS`, `TissueArray`
@@ -143,7 +141,7 @@ class TissueLSArray():
         The correct ground truth for ve in model-free analysis is the 
         extracellular part of the distribution space:
 
-        >>> gt['ve'] = np.where(gt['PS'] > 0, gt['vp'] + gt['vi'], gt['vp'])
+        >>> gt['ve'] = gt['ve'] = np.where(gt['PS'] > 0, gt['vp'] + gt['vi'], gt['vp'])
 
         Build a tissue array and set the constants to match the
         experimental conditions of the synthetic test data. We use 
@@ -151,13 +149,12 @@ class TissueLSArray():
 
         >>> tissue = dc.TissueLSArray(
         ...     (n,n),
-        ...     aif = aif,
         ...     dt = time[1],
         ...     sequence = 'SS',
         ...     r1 = dc.relaxivity(3, 'blood','gadodiamide'),
         ...     TR = 0.005,
         ...     FA = 15,
-        ...     n0 = 10,
+        ...     R10a = 1/dc.T1(3.0,'blood'),
         ...     R10 = np.where(gt['T1']==0, 0, 1/gt['T1']),
         ... )
 
@@ -165,12 +162,12 @@ class TissueLSArray():
         data we use a lower tolerance than the default, which is optimized 
         for noisy data:
 
-        >>> tissue.train(signal, tol=0.01)
+        >>> tissue.train(signal, aif, n0=10, tol=0.01)
 
         Plot the reconstructed maps, along with the ground truth for reference. 
         We set fixed scaling for the parameter maps so they are comparable. 
 
-        >>> vmin = {'Fb':0, 've':0, 'PS':0, 'S0':0}
+        >>> vmin = {'Fb':0, 've':0, 'S0':0}
         >>> vmax = {'Fb':0.02, 've':0.2, 'S0':np.amax(gt['S0'])}
         >>> tissue.plot(vmin=vmin, vmax=vmax, ref=gt)
 

@@ -1441,18 +1441,21 @@ class Tissue(ui.Model):
             self
         """
         if init_s0: # Estimate S0
+
+            if self.aif is not None:
+                if self.sequence == 'SR':
+                    scla = sig.signal_spgr(1, self.R10a, self.TC, self.TR, self.B1corr_a * self.FA, self.TP)
+                elif self.sequence == 'SS':
+                    scla = sig.signal_ss(1, self.R10a, self.TR, self.B1corr_a * self.FA)
+                self.ca = None # for recompute
+                Sba = np.mean(self.aif[:self.n0])
+                S0a = Sba / scla if scla > 0 else 0
+                self.S0a = 0 if S0a < 0 else S0a
+
             if self.sequence == 'SR':
-                scla = sig.signal_spgr(1, self.R10a, self.TC, self.TR, self.B1corr_a * self.FA, self.TP)
                 scl = sig.signal_spgr(1, self.R10, self.TC, self.TR, self.B1corr * self.FA, self.TP)
             elif self.sequence == 'SS':
-                scla = sig.signal_ss(1, self.R10a, self.TR, self.B1corr_a * self.FA)
-                scl = sig.signal_ss(1, self.R10, self.TR, self.B1corr * self.FA)
-            # Compute baselines
-            self.ca = None # for recompute
-            Sba = np.mean(self.aif[:self.n0])
-            S0a = Sba / scla if scla > 0 else 0
-            self.S0a = 0 if S0a < 0 else S0a
-            
+                scl = sig.signal_ss(1, self.R10, self.TR, self.B1corr * self.FA)            
             Sb = np.mean(signal[:self.n0])
             S0 = Sb / scl if scl > 0 else 0
             self.S0 = 0 if S0 < 0 else S0
