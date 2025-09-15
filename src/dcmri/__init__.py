@@ -50,9 +50,6 @@ from dcmri.ui_tissue_ls_array import *
 from dcmri import ui_aorta
 from dcmri.ui_aorta import *
 
-# from dcmri import ui_artery_tissue
-# from dcmri.ui_artery_tissue import *
-
 from dcmri import ui_aorta_kidneys
 from dcmri.ui_aorta_kidneys import *
 

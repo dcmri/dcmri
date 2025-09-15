@@ -27,11 +27,7 @@ Install dcmri from source:
 Install requirements for package management:
 
 >>> pip install -r tests/requirements.txt
->>> pip install -r docs/requirements.txt
 >>> pip install -r dev/requirements.txt
-
-To leave:
->>> deactivate
 
 
 Enforce PEP8
