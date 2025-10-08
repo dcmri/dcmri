@@ -385,14 +385,20 @@ class AortaLiver(ui.Model):
 
     """
 
-    def __init__(self, kinetics = '1I-IC-D', stationary='UE', sequence='SS', 
-                 free=None, **params):
+    def __init__(
+        self, 
+        kinetics = '1I-IC-D', 
+        non_stationary=None, 
+        sequence='SS', 
+        free=None, 
+        **params,
+    ):
 
         # Configuration
         self.organs = '2cxm' # fixed
         self.kinetics = kinetics
         self.sequence = sequence 
-        self.stationary = stationary
+        self.non_stationary = non_stationary
 
         self._check_config()
         self._set_defaults(free=free, **params)
@@ -415,7 +421,7 @@ class AortaLiver(ui.Model):
         pars = list(PARAMS.keys()) 
         pars += list(PARAMS_WHOLE_BODY.keys())
         pars += pars_sequence[self.sequence]
-        pars += liver.params_liver(self.kinetics, self.stationary)
+        pars += liver.params_liver(self.kinetics, self.non_stationary)
         pars += ['vol']
         return pars
     
@@ -1036,14 +1042,20 @@ class AortaLiver2scan(ui.Model):
               - Free
     """
 
-    def __init__(self, kinetics = '1I-IC-D', stationary=None, sequence='SS', 
-                 free=None, **params):
+    def __init__(
+        self, 
+        kinetics = '1I-IC-D', 
+        non_stationary='UE', 
+        sequence='SS', 
+        free=None, 
+        **params,
+      ):
 
         # Configuration
         self.organs = '2cxm' # fixed
         self.kinetics = kinetics
         self.sequence = sequence 
-        self.stationary = stationary
+        self.non_stationary = non_stationary
 
         self._check_config()
         self._set_defaults(free=free, **params)
@@ -1067,7 +1079,7 @@ class AortaLiver2scan(ui.Model):
         pars += list(PARAMS_2SCAN.keys())
         pars += list(PARAMS_WHOLE_BODY.keys())
         pars += pars_sequence[self.sequence]
-        pars += liver.params_liver(self.kinetics, self.stationary)
+        pars += liver.params_liver(self.kinetics, self.non_stationary)
         pars += ['vol']
         return pars
     
@@ -1382,7 +1394,7 @@ def _relax_aorta(self) -> np.ndarray:
 
 def _conc_liver(self, sum=True):
     pars = self._par_values(kin=True)
-    return liver.conc_liver(self.ca, dt=self.dt, sum=sum, **pars)
+    return liver.conc_liver(self.ca, dt=self.dt, sum=sum, kinetics=self.kinetics, non_stationary=self.non_stationary, **pars)
     
 def _relax_liver(self):
     t = np.arange(0, self.tmax, self.dt)
@@ -1472,7 +1484,7 @@ def _check_config(self):
             'Sequence ' + str(self.sequence) + ' is not available.')
     if self.kinetics[0] != '1':
         raise ValueError('Only single-inlet models are allowed.')
-    liver.params_liver(self.kinetics, self.stationary)
+    liver.params_liver(self.kinetics, self.non_stationary)
 
 
 def _par_values(self, kin=False, export=False, seq=None):
@@ -1487,13 +1499,13 @@ def _par_values(self, kin=False, export=False, seq=None):
         return {par: getattr(self, par) for par in pars}
     
     if kin:
-        pars = liver.params_liver(self.kinetics, self.stationary)
+        pars = liver.params_liver(self.kinetics, self.non_stationary)
         return {par: getattr(self, par) for par in pars}
     
     if export:
         pars = self._par_values()
         all = self._model_pars()
-        p1 = liver.params_liver(self.kinetics, self.stationary)
+        p1 = liver.params_liver(self.kinetics, self.non_stationary)
         p2 = list(PARAMS_WHOLE_BODY.keys())
         p3 = list(PARAMS_DERIVED.keys())
         retain = p1 + p2 + p3 + ['S02a', 'S02l', 'BAT2']
@@ -1828,6 +1840,34 @@ PARAMS_LIVER = {
         'name': 'Liver extracellular volume fraction',
         'unit': 'mL/cm3',
     },
+    've_app': {
+        'init': 0.3,
+        'default_free': True,
+        'bounds': [0.01, 0.6],
+        'name': 'Apparent liver extracellular volume fraction',
+        'unit': 'mL/cm3',
+    },
+    'Ktrans': {
+        'init': 0.015,
+        'default_free': True,
+        'bounds': [0.0, 0.1],
+        'name': 'Hepatic plasma clearance',
+        'unit': 'mL/sec/cm3',
+    },
+    'Ktrans_i': {
+        'init': 0.015,
+        'default_free': True,
+        'bounds': [0.0, 0.1],
+        'name': 'Initial hepatic plasma clearance',
+        'unit': 'mL/sec/cm3',
+    },
+    'Ktrans_f': {
+        'init': 0.015,
+        'default_free': True,
+        'bounds': [0.0, 0.1],
+        'name': 'Final hepatic plasma clearance',
+        'unit': 'mL/sec/cm3',
+    },
     'khe': {
         'init': 0.003,
         'default_free': True,
@@ -1903,10 +1943,6 @@ PARAMS_DERIVED = {
     'E': {
         'name': 'Liver extraction fraction',
         'unit': '',
-    },
-    'Ktrans': {
-        'name': 'Hepatic plasma clearance',
-        'unit': 'mL/sec/cm3',
     },
     'CL': {
         'name': 'Liver blood clearance',

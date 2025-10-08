@@ -376,8 +376,10 @@ def fake_liver(
     t = np.arange(0, tacq+dt, dt_sim)
     cp = pk_lib.aif_parker(t, BAT)
     cv = pk.flux_comp(cp, Tg, t)
-    C = liver.conc_liver(cp*(1-H), dt=dt_sim, cv=cv*(1-H), sum=False,
-                      H=H, ve=ve, Fp=Fp, fa=fa, Ta=Ta, khe=khe, Th=Th)
+    ci = (cp*(1-H), cv*(1-H))
+    C = liver.conc_liver(
+        ci, dt=dt_sim, sum=False, kinetics='2I-IC',
+        ve=ve, Fp=Fp, fa=fa, Ta=Ta, khe=khe, Th=Th)
     rp = lib.relaxivity(field_strength, 'plasma', agent)
     rh = lib.relaxivity(field_strength, 'hepatocytes', agent)
     R1a = R10a + rp*cp*(1-H)

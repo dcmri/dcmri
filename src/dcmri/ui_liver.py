@@ -1,10 +1,16 @@
+import warnings
+
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.optimize import curve_fit
+
 import dcmri.ui as ui
 import dcmri.lib as lib
 import dcmri.liver as liver
 import dcmri.sig as sig
 import dcmri.utils as utils
+import dcmri.pk_aorta as pk_aorta
+import dcmri.pk as pk
 
 
 class Liver(ui.Model):
@@ -76,14 +82,11 @@ class Liver(ui.Model):
 
         >>> model = dc.Liver(
         ...     kinetics = '2I-IC',
-        ...     aif = aif,
-        ...     vif = vif, 
-        ...     dt = time[1],
+        ...     t = time,
         ...     agent = 'gadoxetate',
         ...     field_strength = 3.0,
         ...     TR = 0.005,
         ...     FA = 15,
-        ...     n0 = 10,
         ...     R10 = 1/dc.T1(3.0,'liver'),
         ...     R10a = 1/dc.T1(3.0, 'blood'), 
         ...     R10v = 1/dc.T1(3.0, 'blood'), 
@@ -91,7 +94,7 @@ class Liver(ui.Model):
 
         Train the model on the ROI data:
 
-        >>> model.train(time, roi)
+        >>> model.train(time, roi, aif, vif, n0=10)
 
         Plot the reconstructed signals (left) and concentrations (right) and 
         compare the concentrations against the noise-free ground truth. Since 
@@ -114,9 +117,6 @@ class Liver(ui.Model):
             * - Parameters
               - When to use
               - Further detail
-            * - n0
-              - Always
-              - For estimating baseline signal
             * - field_strength, agent, R10
               - Always
               - :ref:`relaxation-params`
@@ -295,214 +295,130 @@ class Liver(ui.Model):
     """
 
     def __init__(
-            self, 
-            kinetics='2I-EC', 
-            stationary='UE', 
-            sequence='SS', 
-            config=None,
-            aif=None, 
-            ca=None, 
-            vif=None, 
-            cv=None, 
-            t=None, 
-            dt=0.5,
-            free=None, 
-            **params,
-        ):
+        self, 
+        kinetics='2I-EC', 
+        non_stationary=None, 
+        sequence='SS', 
+        config=None,
+        t=None, 
+        ca=None, 
+        cv=None, 
+        free=None, 
+        **params,
+    ):
 
-        # Configuration
         if config == 'TRISTAN-rat':
 
-            # Acquisition parameters
-            params['agent'] = 'gadoxetate'
+            # Configuration
+            kinetics = '1I-IC-HF'
+            non_stationary = None
+            sequence = 'SS'
 
-            # Kinetic paramaters
-            self.kinetics = '1I-IC-HF'
-            self.stationary = 'UE'
-            self.sequence = 'SS'
-            params['H'] = 0.418         # Cremer et al, J Cereb Blood Flow
-                                        # Metab 3, 254-256 (1983)
-            params['ve'] = 0.23
+            # Parameters
+            params['agent'] = 'gadoxetate'
+            params['R10'] = 1/lib.T1(params['field_strength'], 'liver')
+            params['H'] = 0.418         # Cremer et al, J Cereb Blood Flow Metab 3, 254-256 (1983)
+            params['ve'] = 0.23         # mL/cm3
             params['Fp'] = 0.022019     # mL/sec/cm3
                                         # Fp = (1-H)*Fb, where Fb=2.27 mL/min/mL
                                         # calculated from Table S2 in 
                                         # doi: 10.1021/acs.molpharmaceut.1c00206
             free = {
-                'khe': [0, np.inf], 
+                'Ktrans': [0, 0.9 * params['Fp']], 
                 'Th': [0, np.inf],
             }
+            
+        # Set configuration
+        if sequence not in ['SS', 'SR']:
+            raise ValueError(f'Sequence {sequence} is not available.')
+        self.kinetics = kinetics
+        self.non_stationary = non_stationary
+        self.sequence = sequence
 
-            # Tissue paramaters
-            params['R10'] = 1/lib.T1(params['field_strength'], 'liver'),
-        
-        else:
-            self.kinetics = kinetics
-            self.stationary = stationary
-            self.sequence = sequence
-        self._check_config()
+        # Set parameters
+        self.pars = {p: PARAMS[p]['init'] for p in self._model_pars()}
+        for p in params:
+            if p not in self.pars:
+                raise ValueError(
+                    f"{p} is not a valid model parameter in this configuration."
+                )                
+            self.pars[p] = params[p]
 
-        # Input function
-        self.aif = aif
-        self.ca = ca
-        self.vif = vif
-        self.cv = cv
+        # Set inputs
+        if t is None:
+            t = 1.0 * np.arange(120)
+        if ca is None:
+            ca = pk_aorta.aif_tristan(t, agent=self.pars['agent'], BAT=20)
+        if cv is None:
+            if self.kinetics[0] == '2':
+                cv = pk.flux_pfcomp(ca, 10, 0.5)
         self.t = t
-        self.dt = dt
+        self.ca = ca
+        self.cv = cv
 
-        # Set defaults
-        self._set_defaults(free=free, **params)
+        # Set free parameters
+        self.free = {}
+        if free is None:
+            for p in self.pars:
+                if PARAMS[p]['default_free']:
+                    self.free[p] = PARAMS[p]['bounds']
+        else:
+            for p in free:
+                if p not in self.pars:
+                    raise ValueError(
+                        f"{p} is not a valid free parameters in this configuration."
+                    ) 
+                self.free[p] = free[p]
+
+        # Parameter covariance not known until fit has been done
+        self.pcov = None
 
 
-    def _check_config(self):
-        if self.sequence not in ['SS', 'SR']:
-            raise ValueError(
-                'Sequence ' + str(self.sequence) + ' is not available.')
-        liver.params_liver(self.kinetics, self.stationary)
-
-    def _params(self):
-        return PARAMS
-    
     def _model_pars(self):
         pars_sequence = {
             'SR': ['S0', 'B1corr', 'FA', 'TR', 'TS', 'TC', 'TP'],
             'SS': ['S0', 'B1corr', 'FA', 'TR', 'TS'], 
         }    
-        pars = ['field_strength', 'agent']
+        pars = ['H', 'field_strength', 'agent']
         pars += ['R10a', 'B1corr_a']
         if self.kinetics[0] == '2':
             pars += ['R10v', 'B1corr_v']
         pars += pars_sequence[self.sequence]
-        pars += liver.params_liver(self.kinetics, self.stationary)
+        pars += liver.params_liver(self.kinetics, self.non_stationary)
         pars += ['vol']
-        pars += ['R10', 'n0']
+        pars += ['R10']
         return pars
-
-    def _par_values(self, kin=False, export=False):
-
-        if kin:
-            pars = liver.params_liver(self.kinetics, self.stationary)
-            return {par: getattr(self, par) for par in pars}
-        
-        if export:
-            pars = self._par_values()
-            p0 = self._model_pars()
-            p1 = liver.params_liver(self.kinetics, self.stationary)
-            discard = set(p0) - set(p1)
-            return {p: pars[p] for p in pars if p not in discard}
-        
-        pars = self._model_pars()
-        p = {par: getattr(self, par) for par in pars}
-
-        try:
-            p['Fa'] = p['Fp']*p['fa']
-        except KeyError:
-            pass
-        try:
-            p['Fv'] = p['Fp']*(1-p['fa'])
-        except KeyError:
-            pass
-        try:
-            p['Te'] = _div(p['ve'], p['Fp'])
-        except KeyError:
-            pass
-        try:
-            p['Th'] = np.mean([p['Th_i'], p['Th_f']])
-        except KeyError:
-            pass
-        try:
-            p['khe'] = np.mean([p['khe_i'], p['khe_f']])
-        except KeyError:
-            pass
-        try:
-            p['Kbh'] = _div(1, p['Th'])
-        except KeyError:
-            pass
-        try:
-            p['Khe'] = _div(p['khe'], p['ve'])
-        except KeyError:
-            pass
-        try:
-            p['kbh'] = _div(1-p['ve'], p['Th'])
-        except KeyError:
-            pass
-        try:
-            p['kbh_i'] = _div(1-p['ve'], p['Th_i'])
-        except KeyError:
-            pass
-        try:
-            p['kbh_f'] = _div(1-p['ve'], p['Th_f'])
-        except KeyError:
-            pass
-
-        try:
-            p['E'] = p['khe']/(p['khe']+p['Fp'])
-        except KeyError:
-            try:
-                p['E'] = p['khe']/(p['khe']+self.Fp)
-            except:
-                pass
-        try:
-            p['Ktrans'] = (1-p['E'])*p['khe']
-        except KeyError:
-            pass
-        if p['vol'] is not None:
-            try:
-                p['CL'] = p['khe']*p['vol']
-            except KeyError:
-                pass
-            
-        return p
     
     
-    def time(self):
-        """Array of time points.
+    def export_params(self) -> dict:
+        """Return model parameters with their descriptions
+
+        Args:
+            type (str, optional): Type of output. If 'dict', a dictionary is 
+              returned. If 'list', a list is returned. Defaults to 'dict'.
 
         Returns:
-            np.ndarray: time points in seconds.
+            dict: Dictionary with one item for each model parameter. The key 
+            is the short parameter name, and the value is a 
+            4-element list with [long parameter name, value, unit, sdev].
+
         """
-        if self.t is None:
-            if self.aif is None:
-                return self.dt*np.arange(np.size(self.ca))
-            else:
-                return self.dt*np.arange(np.size(self.aif))
-        else:
-            return self.t
-        
-    def _check_ca(self):
-        if self.ca is None:
-            if self.aif is None:
-                raise ValueError(
-                    "Either aif or ca must be provided "
-                    "to predict signal data.")
-            else:
-                r1 = lib.relaxivity(self.field_strength, 'blood', self.agent)
-                if self.sequence == 'SR':
-                    self.ca = sig.conc_src(
-                        self.aif, self.TC, 1 / self.R10a, r1, self.n0)
-                elif self.sequence == 'SS':
-                    self.ca = sig.conc_ss(
-                        self.aif, self.TR, self.B1corr_a * self.FA,
-                        1 / self.R10a, r1, self.n0)
-                    
-    def _check_cv(self):
-        if self.kinetics[0] == '1':
-            return
-        if self.cv is None:
-            if self.vif is None:
-                if self.kinetics[1]=='2':
-                    raise ValueError(
-                        "For a dual-inlet model, either vif or cv must be "
-                        "provided.")
-            else:
-                r1 = lib.relaxivity(self.field_strength, 'blood', self.agent)
-                if self.sequence == 'SR':
-                    self.cv = sig.conc_src(
-                        self.vif, self.TC, 1 / self.R10v, r1, self.n0)
-                elif self.sequence == 'SS':
-                    self.cv = sig.conc_ss(
-                        self.vif, self.TR, self.B1corr_v * self.FA,
-                        1 / self.R10v, r1, self.n0)
-                    
+        # Get derived parameters
+        pars = liver.params_liver(self.kinetics, self.non_stationary)
+        pars = {p: self.pars[p] for p in pars}
+        pars = liver.derived_params_liver(pars)
+        # Add short name, full name, value, units.
+        pars = {
+            p: [PARAMS[p]['name'], pars[p], PARAMS[p]['unit'], 0]
+            for p in pars
+        }
+        # Add standard deviation
+        if self.pcov is not None:
+            for i, p in enumerate(self.free):
+                pars[p][-1] = np.sqrt(self.pcov[i,i])
+        return pars
+    
+            
     def conc(self, sum=True):
         """Tissue concentrations
 
@@ -514,11 +430,14 @@ class Liver(ui.Model):
         Returns:
             numpy.ndarray: Concentration in M
         """
-        self._check_ca()
-        self._check_cv()
-        pars = self._par_values(kin=True)
+        ca = self.ca / (1 - self.pars['H'])
+        ci = ca if self.cv is None else (ca, self.cv / (1 - self.pars['H']))
+        pars = liver.params_liver(self.kinetics, self.non_stationary)
+        pars = {p: self.pars[p] for p in pars}
         return liver.conc_liver(
-            self.ca, t=self.t, dt=self.dt, sum=sum, cv=self.cv, **pars)
+            ci, t=self.t, kinetics=self.kinetics, 
+            non_stationary=self.non_stationary, sum=sum, **pars,
+        )
 
     def relax(self):
         """Tissue relaxation rate
@@ -526,14 +445,18 @@ class Liver(ui.Model):
         Returns:
             numpy.ndarray: Relaxation rate in 1/sec
         """
-        r1 = lib.relaxivity(self.field_strength, 'blood', self.agent)
+        r1 = lib.relaxivity(self.pars['field_strength'], 'blood', self.pars['agent'])
         C = self.conc(sum=False)
         if 'IC' in self.kinetics:
-            r1h = lib.relaxivity(self.field_strength, 'hepatocytes', 
-                                 self.agent)
-            return self.R10 + r1*C[0, :] + r1h*C[1, :]
+            r1h = lib.relaxivity(
+                self.pars['field_strength'], 'hepatocytes', self.pars['agent']
+            )
+            R1_liver = self.pars['R10'] + r1 * C[0, :] + r1h * C[1, :]
         else:
-            return self.R10 + r1*C
+            R1_liver = self.pars['R10'] + r1 * C
+
+        return R1_liver
+    
     
     def signal(self) -> np.ndarray:
         """Pseudocontinuous signal
@@ -543,11 +466,16 @@ class Liver(ui.Model):
         """
         R1 = self.relax()
         if self.sequence == 'SR':
-            return sig.signal_spgr(self.S0, R1, self.TC, self.TR, 
-                                 self.B1corr * self.FA)
+            return sig.signal_spgr(
+                self.pars['S0'], R1, self.pars['TC'], self.pars['TR'], 
+                self.pars['B1corr'] * self.pars['FA']
+            )
         else:
-            return sig.signal_ss(self.S0, R1, self.TR, 
-                                 self.B1corr * self.FA)
+            return sig.signal_ss(
+                self.pars['S0'], R1, self.pars['TR'], 
+                self.pars['B1corr'] * self.pars['FA']
+            )
+
 
     def predict(self, time: np.ndarray):
         """Predict the data at specific time points
@@ -558,16 +486,17 @@ class Liver(ui.Model):
         Returns:
             np.ndarray: Array of predicted data for each element of *time*.
         """
-        t = self.time()
-        if np.amax(time) > np.amax(t):
+        if np.amax(time) > np.amax(self.t):
             raise ValueError(
-                "The acquisition window is longer than the duration "
-                "of the AIF. The largest time point that can be "
-                "predicted is " + str(np.amax(t) / 60) + "min.")
+                f"The acquisition window is longer than the duration "
+                f"of the AIF. The largest time point that can be "
+                f"predicted is {np.amax(self.t) / 60} min."
+            )
         sig = self.signal()
-        return utils.sample(time, t, sig, self.TS)
+        return utils.sample(time, self.t, sig, self.pars['TS'])
+        
 
-    def train(self, time, signal, **kwargs):
+    def train(self, time, signal, aif, vif=None, n0=1, **kwargs):
         """Train the free parameters
 
         Args:
@@ -579,16 +508,79 @@ class Liver(ui.Model):
         Returns:
             Liver: A reference to the model instance.
         """
+        self.t = time
+        # Estimate arterial concentration
+        r1 = lib.relaxivity(self.pars['field_strength'], 'blood', self.pars['agent'])
+        if self.sequence == 'SR':
+            self.ca = sig.conc_src(
+                aif, self.pars['TC'], 1 / self.pars['R10a'], 
+                r1, n0,
+            )
+        elif self.sequence == 'SS':
+            self.ca = sig.conc_ss(
+                aif, self.pars['TR'], 
+                self.pars['B1corr_a'] * self.pars['FA'],
+                1 / self.pars['R10a'], r1, n0,
+            )
+
+        # Estimate portal-venous concentration
+        if vif is None:
+            if self.kinetics[1]=='2':
+                raise ValueError(
+                    "For a dual-inlet model, a vif must be provided."
+                )
+        elif self.sequence == 'SR':
+            self.cv = sig.conc_src(
+                vif, self.pars['TC'], 1 / self.pars['R10v'], 
+                r1, n0,
+            )
+        elif self.sequence == 'SS':
+            self.cv = sig.conc_ss(
+                vif, self.pars['TR'], 
+                self.pars['B1corr_v'] * self.pars['FA'],
+                1 / self.pars['R10v'], r1, n0,
+            )
+            
+        # Estimate liver S0
         if self.sequence == 'SR':
             Sref = sig.signal_spgr(
-                1, self.R10, self.TC, self.TR, self.B1corr * self.FA)
+                1, self.pars['R10'], self.pars['TC'], self.pars['TR'], 
+                self.pars['B1corr'] * self.pars['FA']
+            )
         else:
-            Sref = sig.signal_ss(1, self.R10, self.TR, 
-                                self.B1corr * self.FA)
-        self.S0 = np.mean(signal[:self.n0]) / Sref if Sref > 0 else 0
-        return ui.train(self, time, signal, **kwargs)
+            Sref = sig.signal_ss(
+                1, self.pars['R10'], self.pars['TR'], 
+                self.pars['B1corr'] * self.pars['FA']
+            )
+        self.pars['S0'] = np.mean(signal[:n0]) / Sref if Sref > 0 else 0
 
+        # Fit all free parameters
+        free = list(self.free.keys())
 
+        def fit_func(_, *p):
+            for i, v in enumerate(p):
+                self.pars[free[i]] = v
+            return self.predict(time)
+
+        p0 = [self.pars[p] for p in free]
+        bounds = [
+            [par[0] for par in self.free.values()],
+            [par[1] for par in self.free.values()],
+        ]
+        try:
+            pars, self.pcov = curve_fit(
+                fit_func, None, signal, p0, bounds=bounds, **kwargs,
+            )
+        except Exception as e:
+            msg = 'Runtime error in curve_fit -- \n'
+            msg += str(e) + ' Returning initial values.'
+            warnings.warn(msg)
+            for i, v in enumerate(p0):
+                self.pars[free[i]] = v
+            self.pcov = np.zeros((np.size(p0), np.size(p0)))
+
+        return self
+    
 
     def plot(self,
              time: np.ndarray,
@@ -596,7 +588,7 @@ class Liver(ui.Model):
              ref=None, xlim=None, fname=None, show=True):
 
         C = self.conc(sum=True)
-        t = self.time()
+        t = self.t
         if xlim is None:
             xlim = [np.amin(time), np.amax(time)]
         fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 5))
@@ -635,7 +627,6 @@ class Liver(ui.Model):
             plt.close()
 
 
-
     
     
 PARAMS = {
@@ -659,7 +650,6 @@ PARAMS = {
         'bounds': [0, np.inf],
         'name': 'Arterial precontrast R1',
         'unit': 'Hz',
-        'pixel_par': False,
     },
     'B1corr_a': {
         'init': 1,
@@ -667,7 +657,6 @@ PARAMS = {
         'bounds': [0, np.inf],
         'name': 'Arterial B1-correction factor',
         'unit': '',
-        'pixel_par': False,
     },
     'R10v': {
         'init': 0.7,
@@ -675,7 +664,6 @@ PARAMS = {
         'bounds': [0, np.inf],
         'name': 'Portal venous precontrast R1',
         'unit': 'Hz',
-        'pixel_par': False,
     },
     'B1corr_v': {
         'init': 1,
@@ -683,7 +671,6 @@ PARAMS = {
         'bounds': [0, np.inf],
         'name': 'Portal venous B1-correction factor',
         'unit': '',
-        'pixel_par': False,
     },
     'B1corr': {
         'init': 1,
@@ -691,7 +678,6 @@ PARAMS = {
         'bounds': [0, np.inf],
         'name': 'Tissue B1-correction factor',
         'unit': '',
-        'pixel_par': True,
     },
     'FA': {
         'init': 15,
@@ -699,7 +685,6 @@ PARAMS = {
         'bounds': [0, np.inf],
         'name': 'Flip angle',
         'unit': 'deg',
-        'pixel_par': False,
     },
     'TR': {
         'init': 0.005,
@@ -707,7 +692,6 @@ PARAMS = {
         'bounds': [0, np.inf],
         'name': 'Repetition time',
         'unit': 'sec',
-        'pixel_par': False,
     },
     'TC': {
         'init': 0.2,
@@ -715,7 +699,6 @@ PARAMS = {
         'bounds': [0, np.inf],
         'name': 'Time to k-space center',
         'unit': 'sec',
-        'pixel_par': False,
     },
     'TP': {
         'init': 0.05,
@@ -723,7 +706,6 @@ PARAMS = {
         'bounds': [0, np.inf],
         'name': 'Preparation delay',
         'unit': 'sec',
-        'pixel_par': False,
     },
     'TS': {
         'init': 0,
@@ -731,7 +713,6 @@ PARAMS = {
         'bounds': [0, np.inf],
         'name': 'Sampling time',
         'unit': 'sec',
-        'pixel_par': False,
     },
     'R10': {
         'init': 0.7,
@@ -739,7 +720,6 @@ PARAMS = {
         'bounds': [0, np.inf],
         'name': 'Tissue precontrast R1',
         'unit': 'Hz',
-        'pixel_par': True,
     },
     'S0': {
         'init': 1.0,
@@ -747,15 +727,6 @@ PARAMS = {
         'bounds': [0, np.inf],
         'name': 'Signal scaling factor',
         'unit': 'a.u.',
-        'pixel_par': True,
-    },
-    'n0': {
-        'init': 1,
-        'default_free': False,
-        'bounds': None,
-        'name': 'Number of precontrast acquisitions',
-        'unit': '',
-        'pixel_par': False,
     },
     'H': {
         'init': 0.45,
@@ -763,7 +734,6 @@ PARAMS = {
         'bounds': [0, 1],
         'name': 'Hematocrit',
         'unit': '',
-        'pixel_par': False,
     },
     'Te': {
         'init': 30.0,
@@ -771,7 +741,6 @@ PARAMS = {
         'bounds': [0.1, 60],
         'name': 'Extracellular mean transit time',
         'unit': 'sec',
-        'pixel_par': True,
     },
     'De': {
         'init': 0.85,
@@ -779,7 +748,6 @@ PARAMS = {
         'bounds': [0, 1],
         'name': 'Extracellular dispersion',
         'unit': '',
-        'pixel_par': True,
     },
     've': {
         'init': 0.3,
@@ -787,7 +755,13 @@ PARAMS = {
         'bounds': [0.01, 0.6],
         'name': 'Liver extracellular volume fraction',
         'unit': 'mL/cm3',
-        'pixel_par': True,
+    },
+    've_app': {
+        'init': 0.3,
+        'default_free': True,
+        'bounds': [0.01, 0.6],
+        'name': 'Apparent liver extracellular volume fraction',
+        'unit': 'mL/cm3',
     },
     'Ta': {
         'init': 2,
@@ -795,7 +769,6 @@ PARAMS = {
         'bounds': [0, np.inf],
         'name': 'Arterial mean transit time',
         'unit': 'sec',
-        'pixel_par': True,
     },
     'Tg': {
         'init': 10,
@@ -803,7 +776,6 @@ PARAMS = {
         'bounds': [0, np.inf],
         'name': 'Gut mean transit time',
         'unit': 'sec',
-        'pixel_par': True,
     },
     'Fp': {
         'init': 0.008,
@@ -811,7 +783,6 @@ PARAMS = {
         'bounds': [0, np.inf],
         'name': 'Liver plasma flow',
         'unit': 'mL/sec/cm3',
-        'pixel_par': True,
     },
     'fa': {
         'init': 0.2,
@@ -819,7 +790,27 @@ PARAMS = {
         'bounds': [0, 1],
         'name': 'Arterial flow fraction',
         'unit': '',
-        'pixel_par': True,
+    },
+    'Ktrans': {
+        'init': 0.015,
+        'default_free': True,
+        'bounds': [0.0, 0.1],
+        'name': 'Hepatic plasma clearance',
+        'unit': 'mL/sec/cm3',
+    },
+    'Ktrans_i': {
+        'init': 0.015,
+        'default_free': True,
+        'bounds': [0.0, 0.1],
+        'name': 'Initial hepatic plasma clearance',
+        'unit': 'mL/sec/cm3',
+    },
+    'Ktrans_f': {
+        'init': 0.015,
+        'default_free': True,
+        'bounds': [0.0, 0.1],
+        'name': 'Final hepatic plasma clearance',
+        'unit': 'mL/sec/cm3',
     },
     'khe': {
         'init': 0.003,
@@ -827,7 +818,6 @@ PARAMS = {
         'bounds': [0.0, 0.1],
         'name': 'Hepatocellular uptake rate',
         'unit': 'mL/sec/cm3',
-        'pixel_par': True,
     },
     'khe_i': {
         'init': 0.003,
@@ -835,7 +825,6 @@ PARAMS = {
         'bounds': [0.0, 0.1],
         'name': 'Initial hepatocellular uptake rate',
         'unit': 'mL/sec/cm3',
-        'pixel_par': True,
     },
     'khe_f': {
         'init': 0.003,
@@ -843,7 +832,6 @@ PARAMS = {
         'bounds': [0.0, 0.1],
         'name': 'Final hepatocellular uptake rate',
         'unit': 'mL/sec/cm3',
-        'pixel_par': True,
     },
     'Th': {
         'init': 30*60,
@@ -851,7 +839,6 @@ PARAMS = {
         'bounds': [10*60, 10*60*60],
         'name': 'Hepatocellular mean transit time',
         'unit': 'sec',
-        'pixel_par': True,
     },
     'Th_i': {
         'init': 30*60,
@@ -859,7 +846,6 @@ PARAMS = {
         'bounds': [10*60, 10*60*60],
         'name': 'Initial hepatocellular mean transit time',
         'unit': 'sec',
-        'pixel_par': True,
     },
     'Th_f': {
         'init': 30*60,
@@ -867,7 +853,6 @@ PARAMS = {
         'bounds': [10*60, 10*60*60],
         'name': 'Final hepatocellular mean transit time',
         'unit': 'sec',
-        'pixel_par': True,
     },
     'vol': {
         'init': None,
@@ -875,7 +860,6 @@ PARAMS = {
         'bounds': [0, 10000],
         'name': 'Liver volume',
         'unit': 'cm3',
-        'pixel_par': False,
     },
 
 
@@ -912,10 +896,6 @@ PARAMS = {
         'name': 'Liver extraction fraction',
         'unit': '',
     },
-    'Ktrans': {
-        'name': 'Hepatic plasma clearance',
-        'unit': 'mL/sec/cm3',
-    },
     'CL': {
         'name': 'Liver blood clearance',
         'unit': 'mL/sec',
@@ -923,6 +903,4 @@ PARAMS = {
 }
 
 
-def _div(a, b):
-    with np.errstate(divide='ignore', invalid='ignore'):
-        return np.divide(a, b)
+

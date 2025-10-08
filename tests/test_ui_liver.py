@@ -10,8 +10,8 @@ import dcmri as dc
 VERBOSE = 1
 SHOW = True
 
-VERBOSE = 0
-SHOW = False
+# VERBOSE = 0
+# SHOW = False
 
 
 
@@ -70,66 +70,66 @@ def test_ui_aorta_liver2scan():
     assert model.cost(xdata, ydata) < 5
     assert 60 < model.params('Th', round_to=0) < 80
 
+
 def test_ui_liver():
     time, aif, vif, roi, gt = dc.fake_liver()
 
     # Show dual-inlet model
     params = {
         'kinetics': '2I-IC',
-        'aif': aif,
-        'vif': vif,
-        'dt': time[1],
+        't': time,
         'H': 0.45,
         'field_strength': 3,
         'agent': 'gadoxetate',
         'TR': 0.005,
         'FA': 15,
-        'n0': 10,
         'R10': 1/dc.T1(3.0,'liver'),
-        'R10a': 1/dc.T1(3.0, 'blood'),  
-        'R10v': 1/dc.T1(3.0, 'blood'),      
+        'R10a': 1/dc.T1(3.0, 'blood'),
+        'R10v': 1/dc.T1(3.0, 'blood'),
     }
     model = dc.Liver(**params)
-    model.train(time, roi)
+    model.train(time, roi, aif, vif, n0=10)
     model.plot(time, roi, ref=gt, show=SHOW)
     assert model.cost(time, roi) < 0.1
 
     # Show single-inlet model
     params = {
         'kinetics': '1I-IC-D',
-        'aif': aif,
-        'dt': time[1],
+        't': time,
         'H': 0.45,
         'field_strength': 3,
         'agent': 'gadoxetate',
         'TR': 0.005,
         'FA': 15,
-        'n0': 10,
         'R10': 1/dc.T1(3.0,'liver'),
         'R10a': 1/dc.T1(3.0, 'blood'),        
     }
     model = dc.Liver(**params)
-    model.train(time, roi)
+    model.train(time, roi, aif, n0=10)
     model.plot(time, roi, ref=gt, show=SHOW)
     assert model.cost(time, roi) < 1.5
+    pars = model.export_params()
+    assert 0.2 < pars['ve_app'][1] < 0.3
+    model.print_params(round_to=3)
 
     # Loop over all models
     for k in ['2I-EC', '2I-EC-HF', '1I-EC', '1I-EC-D', 
               '2I-IC', '2I-IC-HF', '2I-IC-U', '1I-IC-HF', 
               '1I-IC-D', '1I-IC-DU']:
-        if k not in ['2I-IC-U', '1I-IC-DU']:
-            stat = ['UE','U','E', None]
+        params['kinetics'] = k
+        if '-EC' in k:
+            non_stat = [None]
+        elif k not in ['2I-IC-U', '1I-IC-DU']:
+            non_stat = ['UE','U','E', None]
         else:
-            stat = ['U', None]
-        for s in stat:
-            params_mdl = deepcopy(params)
+            non_stat = ['U', None]
+        for ns in non_stat:
+            params['non_stationary'] = ns
+            model = dc.Liver(**params)
             if k[0]=='2':
-                params_mdl['vif'] = vif
-            params_mdl['stationary'] = s
-            params_mdl['kinetics'] = k
-            model = dc.Liver(**params_mdl)
-            model.train(time, roi, xtol=1e-2)
-            # print(k, s, model.cost(time, roi))
+                model.train(time, roi, aif, vif, n0=10, xtol=1e-2)
+            else:
+                model.train(time, roi, aif, n0=10, xtol=1e-2)
             assert model.cost(time, roi) < 25
 
     # Display last result
@@ -168,7 +168,7 @@ if __name__ == "__main__":
 
     test_ui_aorta_liver()
     test_ui_aorta_liver2scan()
-    test_ui_liver()
-    test_ui_aorta_portal_liver()
+    # test_ui_liver()
+#    test_ui_aorta_portal_liver()
 
-    print('All mods tests passed!!')
+    print('All ui_liver tests passed!!')
