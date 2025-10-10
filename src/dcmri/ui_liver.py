@@ -13,7 +13,7 @@ import dcmri.pk_aorta as pk_aorta
 import dcmri.pk as pk
 
 
-class Liver(ui.Model):
+class Liver():
     """General model for liver tissue.
 
     This is the standard interface for liver tissues with known input 
@@ -22,31 +22,20 @@ class Liver(ui.Model):
     Args:
         kinetics (str, optional): Tracer-kinetic model. See table 
           :ref:`table-liver-models` for options. Defaults to '2I-EC'.
-        stationary (str, optional): For intracellular tracers - stationarity 
+        non_stationary (str, optional): For intracellular tracers - stationarity 
           regime of the hepatocytes. The options are 'UE', 'E', 'U' or None. 
-          For more detail see :ref:`liver-tissues`. Defaults to 'UE'.
+          For more detail see :ref:`liver-tissues`. Defaults to None.
         sequence (str, optional): imaging sequence. Possible values are 'SS'
           and 'SR'. Defaults to 'SS'.
-        config (str, optional): configuration option for using pre-defined
-          variable values from use cases. Currently, the available options
-          for this are 'TRISTAN-rat'. Defaults to None.
-        aif (array-like, optional): Signal-time curve in the blood of the
-          feeding artery. If *aif* is not provided, the arterial
-          blood concentration is *ca*. Defaults to None.
-        ca (array-like, optional): Blood concentration in the arterial
-          input. *ca* is ignored if *aif* is provided, but is required
-          otherwise. Defaults to None.
-        vif (array-like, optional): Signal-time curve in the blood of the
-          portal vein. If *vif* is not provided, the venous
-          blood concentration is *cv*. Defaults to None.
-        cv (array-like, optional): Blood concentration in the portal venous
-          input. *cv* is ignored if *vif* is provided, but is required
-          otherwise. Defaults to None.
         t (array-like, optional): Time points of the arterial input function.
           If *t* is not provided, the temporal sampling is uniform with
           interval *dt*. Defaults to None.
-        dt (float, optional): Time interval between values of the arterial
-          input function. *dt* is ignored if *t* is provided. Defaults to 1.0.
+        ca (array-like, optional): Blood concentration in the arterial
+          input. *ca* is ignored if *aif* is provided, but is required
+          otherwise. Defaults to None.
+        cv (array-like, optional): Blood concentration in the portal venous
+          input. *cv* is ignored if *vif* is provided, but is required
+          otherwise. Defaults to None.
         free (dict, optional): Dictionary with free parameters and their
           bounds. If not provided, a default set of free parameters is used.
           Defaults to None.
@@ -299,35 +288,13 @@ class Liver(ui.Model):
         kinetics='2I-EC', 
         non_stationary=None, 
         sequence='SS', 
-        config=None,
         t=None, 
         ca=None, 
         cv=None, 
         free=None, 
         **params,
     ):
-
-        if config == 'TRISTAN-rat':
-
-            # Configuration
-            kinetics = '1I-IC-HF'
-            non_stationary = None
-            sequence = 'SS'
-
-            # Parameters
-            params['agent'] = 'gadoxetate'
-            params['R10'] = 1/lib.T1(params['field_strength'], 'liver')
-            params['H'] = 0.418         # Cremer et al, J Cereb Blood Flow Metab 3, 254-256 (1983)
-            params['ve'] = 0.23         # mL/cm3
-            params['Fp'] = 0.022019     # mL/sec/cm3
-                                        # Fp = (1-H)*Fb, where Fb=2.27 mL/min/mL
-                                        # calculated from Table S2 in 
-                                        # doi: 10.1021/acs.molpharmaceut.1c00206
-            free = {
-                'Ktrans': [0, 0.9 * params['Fp']], 
-                'Th': [0, np.inf],
-            }
-            
+   
         # Set configuration
         if sequence not in ['SS', 'SR']:
             raise ValueError(f'Sequence {sequence} is not available.')
@@ -336,13 +303,8 @@ class Liver(ui.Model):
         self.sequence = sequence
 
         # Set parameters
-        self.pars = {p: PARAMS[p]['init'] for p in self._model_pars()}
-        for p in params:
-            if p not in self.pars:
-                raise ValueError(
-                    f"{p} is not a valid model parameter in this configuration."
-                )                
-            self.pars[p] = params[p]
+        P = PARAMS | liver.PARAMS_LIVER
+        self.pars = ui.init_parameters(P, self._model_pars(), **params)
 
         # Set inputs
         if t is None:
@@ -357,18 +319,7 @@ class Liver(ui.Model):
         self.cv = cv
 
         # Set free parameters
-        self.free = {}
-        if free is None:
-            for p in self.pars:
-                if PARAMS[p]['default_free']:
-                    self.free[p] = PARAMS[p]['bounds']
-        else:
-            for p in free:
-                if p not in self.pars:
-                    raise ValueError(
-                        f"{p} is not a valid free parameters in this configuration."
-                    ) 
-                self.free[p] = free[p]
+        self.free = ui.init_free_parameters(P, self.pars, free)
 
         # Parameter covariance not known until fit has been done
         self.pcov = None
@@ -404,14 +355,10 @@ class Liver(ui.Model):
 
         """
         # Get derived parameters
-        pars = liver.params_liver(self.kinetics, self.non_stationary)
-        pars = {p: self.pars[p] for p in pars}
-        pars = liver.derived_params_liver(pars)
+        pars = liver.derived_params_liver(self.pars, self.kinetics)
         # Add short name, full name, value, units.
-        pars = {
-            p: [PARAMS[p]['name'], pars[p], PARAMS[p]['unit'], 0]
-            for p in pars
-        }
+        P = liver.PARAMS_LIVER
+        pars = {p: [P[p]['name'], pars[p], P[p]['unit'], 0] for p in pars if p in P}
         # Add standard deviation
         if self.pcov is not None:
             for i, p in enumerate(self.free):
@@ -496,32 +443,35 @@ class Liver(ui.Model):
         return utils.sample(time, self.t, sig, self.pars['TS'])
         
 
-    def train(self, time, signal, aif, vif=None, n0=1, **kwargs):
+    def train(self, time, signal, aif=None, vif=None, n0=1, **kwargs):
         """Train the free parameters
 
         Args:
             time (array-like): Array with time points
             signal (array-like): Array with signal values
+            aif (array): arterial signal
+            vif (array): portal-venous signal
             kwargs: any keyword parameters accepted by 
               `scipy.optimize.curve_fit`, except for bounds.
 
         Returns:
             Liver: A reference to the model instance.
         """
-        self.t = time
         # Estimate arterial concentration
         r1 = lib.relaxivity(self.pars['field_strength'], 'blood', self.pars['agent'])
-        if self.sequence == 'SR':
-            self.ca = sig.conc_src(
-                aif, self.pars['TC'], 1 / self.pars['R10a'], 
-                r1, n0,
-            )
-        elif self.sequence == 'SS':
-            self.ca = sig.conc_ss(
-                aif, self.pars['TR'], 
-                self.pars['B1corr_a'] * self.pars['FA'],
-                1 / self.pars['R10a'], r1, n0,
-            )
+        if aif is not None:
+            self.t = time
+            if self.sequence == 'SR':
+                self.ca = sig.conc_src(
+                    aif, self.pars['TC'], 1 / self.pars['R10a'], 
+                    r1, n0,
+                )
+            elif self.sequence == 'SS':
+                self.ca = sig.conc_ss(
+                    aif, self.pars['TR'], 
+                    self.pars['B1corr_a'] * self.pars['FA'],
+                    1 / self.pars['R10a'], r1, n0,
+                )
 
         # Estimate portal-venous concentration
         if vif is None:
@@ -530,11 +480,13 @@ class Liver(ui.Model):
                     "For a dual-inlet model, a vif must be provided."
                 )
         elif self.sequence == 'SR':
+            self.t = time
             self.cv = sig.conc_src(
                 vif, self.pars['TC'], 1 / self.pars['R10v'], 
                 r1, n0,
             )
         elif self.sequence == 'SS':
+            self.t = time
             self.cv = sig.conc_ss(
                 vif, self.pars['TR'], 
                 self.pars['B1corr_v'] * self.pars['FA'],
@@ -554,30 +506,7 @@ class Liver(ui.Model):
             )
         self.pars['S0'] = np.mean(signal[:n0]) / Sref if Sref > 0 else 0
 
-        # Fit all free parameters
-        free = list(self.free.keys())
-
-        def fit_func(_, *p):
-            for i, v in enumerate(p):
-                self.pars[free[i]] = v
-            return self.predict(time)
-
-        p0 = [self.pars[p] for p in free]
-        bounds = [
-            [par[0] for par in self.free.values()],
-            [par[1] for par in self.free.values()],
-        ]
-        try:
-            pars, self.pcov = curve_fit(
-                fit_func, None, signal, p0, bounds=bounds, **kwargs,
-            )
-        except Exception as e:
-            msg = 'Runtime error in curve_fit -- \n'
-            msg += str(e) + ' Returning initial values.'
-            warnings.warn(msg)
-            for i, v in enumerate(p0):
-                self.pars[free[i]] = v
-            self.pcov = np.zeros((np.size(p0), np.size(p0)))
+        ui._train(self, time, signal, **kwargs)
 
         return self
     
@@ -626,6 +555,93 @@ class Liver(ui.Model):
         else:
             plt.close()
 
+    def save(self, file=None, path=None, filename='Model'):
+        """Save the current state of the model
+
+        Args:
+            file (str, optional): complete path of the file. If this is not 
+              provided, a file is constructure from path and filename 
+              variables. Defaults to None.
+            path (str, optional): path to store the state if file is not 
+              provided. Thos variable is ignored if file is provided. 
+              Defaults to current working directory.
+            filename (str, optional): filename to store the state if file is 
+              not provided. If no extension is included, the extension '.pkl' 
+              is automatically added. This variable is ignored if file is 
+              provided. Defaults to 'Model'.
+
+        Returns:
+            dict: class instance
+        """
+        return ui._save(self, file, path, filename)
+
+    def load(self, file=None, path=None, filename='Model'):
+        """Load the saved state of the model
+
+        Args:
+            file (str, optional): complete path of the file. If this is not 
+              provided, a file is constructure from path and filename 
+              variables. Defaults to None.
+            path (str, optional): path to store the state if file is not 
+              provided. Thos variable is ignored if file is provided. 
+              Defaults to current working directory.
+            filename (str, optional): filename to store the state if file is 
+              not provided. If no extension is included, the extension 
+              '.pkl' is automatically added. This variable is ignored if file 
+              is provided. Defaults to 'Model'.
+
+        Returns:
+            dict: class instance
+        """
+        return ui._load(self, file, path, filename)
+    
+    def cost(self, xdata, ydata, metric='NRMS') -> float:
+        """Return the goodness-of-fit
+
+        Args:
+            xdata (array-like): Array with x-data (time points).
+            ydata (array-like): Array with y-data (signal values)
+            metric (str, optional): Which metric to use (see notes for 
+              possible values). Defaults to 'NRMS'.
+
+        Returns:
+            float: goodness of fit.
+
+        Notes:
+
+            Available options are: 
+            
+            - 'RMS': Root-mean-square.
+            - 'NRMS': Normalized root-mean-square. 
+            - 'AIC': Akaike information criterion. 
+            - 'cAIC': Corrected Akaike information criterion for small 
+              models.
+            - 'BIC': Baysian information criterion.
+
+        """
+        return ui._cost(self, xdata, ydata, metric)
+    
+    def print_params(self, round_to=None):
+        """Print the model parameters and their uncertainties
+
+        Args:
+            round_to (int, optional): Round to how many digits. If this is 
+              not provided, the values are not rounded. Defaults to None.
+        """
+        return ui._print_params(self.export_params(), self.free, round_to=round_to)
+    
+    def params(self, *args, round_to=None):
+        """Return the parameter values
+
+        Args:
+            args (tuple): parameters to get
+
+        Returns:
+            list or float: values of parameter values, or a scalar value if 
+            only one parameter is required.
+        """
+        return ui._return_params(self.export_params(), *args, round_to=round_to)
+        
 
     
     
@@ -735,172 +751,5 @@ PARAMS = {
         'name': 'Hematocrit',
         'unit': '',
     },
-    'Te': {
-        'init': 30.0,
-        'default_free': True,
-        'bounds': [0.1, 60],
-        'name': 'Extracellular mean transit time',
-        'unit': 'sec',
-    },
-    'De': {
-        'init': 0.85,
-        'default_free': True,
-        'bounds': [0, 1],
-        'name': 'Extracellular dispersion',
-        'unit': '',
-    },
-    've': {
-        'init': 0.3,
-        'default_free': True,
-        'bounds': [0.01, 0.6],
-        'name': 'Liver extracellular volume fraction',
-        'unit': 'mL/cm3',
-    },
-    've_app': {
-        'init': 0.3,
-        'default_free': True,
-        'bounds': [0.01, 0.6],
-        'name': 'Apparent liver extracellular volume fraction',
-        'unit': 'mL/cm3',
-    },
-    'Ta': {
-        'init': 2,
-        'default_free': True,
-        'bounds': [0, np.inf],
-        'name': 'Arterial mean transit time',
-        'unit': 'sec',
-    },
-    'Tg': {
-        'init': 10,
-        'default_free': True,
-        'bounds': [0, np.inf],
-        'name': 'Gut mean transit time',
-        'unit': 'sec',
-    },
-    'Fp': {
-        'init': 0.008,
-        'default_free': True,
-        'bounds': [0, np.inf],
-        'name': 'Liver plasma flow',
-        'unit': 'mL/sec/cm3',
-    },
-    'fa': {
-        'init': 0.2,
-        'default_free': True,
-        'bounds': [0, 1],
-        'name': 'Arterial flow fraction',
-        'unit': '',
-    },
-    'Ktrans': {
-        'init': 0.015,
-        'default_free': True,
-        'bounds': [0.0, 0.1],
-        'name': 'Hepatic plasma clearance',
-        'unit': 'mL/sec/cm3',
-    },
-    'Ktrans_i': {
-        'init': 0.015,
-        'default_free': True,
-        'bounds': [0.0, 0.1],
-        'name': 'Initial hepatic plasma clearance',
-        'unit': 'mL/sec/cm3',
-    },
-    'Ktrans_f': {
-        'init': 0.015,
-        'default_free': True,
-        'bounds': [0.0, 0.1],
-        'name': 'Final hepatic plasma clearance',
-        'unit': 'mL/sec/cm3',
-    },
-    'khe': {
-        'init': 0.003,
-        'default_free': True,
-        'bounds': [0.0, 0.1],
-        'name': 'Hepatocellular uptake rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'khe_i': {
-        'init': 0.003,
-        'default_free': True,
-        'bounds': [0.0, 0.1],
-        'name': 'Initial hepatocellular uptake rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'khe_f': {
-        'init': 0.003,
-        'default_free': True,
-        'bounds': [0.0, 0.1],
-        'name': 'Final hepatocellular uptake rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'Th': {
-        'init': 30*60,
-        'default_free': True,
-        'bounds': [10*60, 10*60*60],
-        'name': 'Hepatocellular mean transit time',
-        'unit': 'sec',
-    },
-    'Th_i': {
-        'init': 30*60,
-        'default_free': True,
-        'bounds': [10*60, 10*60*60],
-        'name': 'Initial hepatocellular mean transit time',
-        'unit': 'sec',
-    },
-    'Th_f': {
-        'init': 30*60,
-        'default_free': True,
-        'bounds': [10*60, 10*60*60],
-        'name': 'Final hepatocellular mean transit time',
-        'unit': 'sec',
-    },
-    'vol': {
-        'init': None,
-        'default_free': False,
-        'bounds': [0, 10000],
-        'name': 'Liver volume',
-        'unit': 'cm3',
-    },
 
-
-    # Derived parameters
-    'Fa': {
-        'name': 'Arterial plasma flow',
-        'unit': 'mL/sec/cm3',
-    },
-    'Fv': {
-        'name': 'Venous plasma flow',
-        'unit': 'mL/sec/cm3',
-    },
-    'kbh': {
-        'name': 'Biliary excretion rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'kbh_i': {
-        'name': 'Initial biliary excretion rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'kbh_f': {
-        'name': 'Final biliary excretion rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'Kbh': {
-        'name': 'Biliary tissue excretion rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'Khe': {
-        'name': 'Hepatocellular tissue uptake rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'E': {
-        'name': 'Liver extraction fraction',
-        'unit': '',
-    },
-    'CL': {
-        'name': 'Liver blood clearance',
-        'unit': 'mL/sec',
-    }, 
 }
-
-
-

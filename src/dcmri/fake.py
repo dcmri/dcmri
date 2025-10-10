@@ -310,7 +310,7 @@ def fake_liver(
     Fp = 0.01,
     fa = 0.2,
     Ta = 2,
-    khe = 0.003,
+    E = 0.23,
     Th = 20*60,  
     field_strength = 3.0,
     agent = 'gadoxetate',
@@ -338,7 +338,7 @@ def fake_liver(
         Fp (float, optional): Plasma flow in mL/sec/mL. Defaults to 0.01.
         fa (float, optional): Arterial flow fraction. Defaults to 0.2.
         Ta (float, optional): Arterial mean transit time. Defaults to 2 sec.
-        khe (float, optional): Hepatocellular uptake rate. Defaults to 0.003.
+        E (float, optional): Hepatocellular extraction fraction. Defaults to 0.23.
         Th (float, optional): Hepatocyte mean transit time. Defaults to 20 
           mins.
         field_strength (float, optional): B0 field in T. Defaults to 3.0.
@@ -379,7 +379,7 @@ def fake_liver(
     ci = (cp*(1-H), cv*(1-H))
     C = liver.conc_liver(
         ci, dt=dt_sim, sum=False, kinetics='2I-IC',
-        ve=ve, Fp=Fp, fa=fa, Ta=Ta, khe=khe, Th=Th)
+        ve=ve, Fp=Fp, fa=fa, Ta=Ta, E=E, Th=Th)
     rp = lib.relaxivity(field_strength, 'plasma', agent)
     rh = lib.relaxivity(field_strength, 'hepatocytes', agent)
     R1a = R10a + rp*cp*(1-H)
@@ -404,7 +404,7 @@ def fake_liver(
     gt = {'t': t, 'cp': cp, 'cv':cv*(1-H), 
           'C': np.sum(C,axis=0), 'cb': cp*(1-H),
           've': ve, 'Fp': Fp, 
-          'Fb': Fp/(1-H), 'fa': fa, 'Ta': Ta, 'khe': khe, 'Th': Th,
+          'Fb': Fp/(1-H), 'fa': fa, 'Ta': Ta, 'E': E, 'Th': Th,
           'TR': TR, 'FA': FA, 'S0': S0}
     return time, aif, vif, roi, gt
 

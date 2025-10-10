@@ -14,6 +14,33 @@ except:
     num_workers = int(os.cpu_count())
 
 
+def init_parameters(parameter_dict, model_pars, **params):
+    pars = {p: parameter_dict[p]['init'] for p in model_pars}
+    for p in params:
+        # if p not in pars:
+        #     raise ValueError(
+        #         f"{p} is not a valid model parameter in this configuration."
+        #     )                
+        pars[p] = params[p]   
+    return pars
+
+
+def init_free_parameters(parameter_dict, pars, free):
+    free_dict = {}
+    if free is None:
+        for p in pars:
+            if parameter_dict[p]['default_free']:
+                free_dict[p] = parameter_dict[p]['bounds']
+    else:
+        for p in free:
+            if p not in pars:
+                raise ValueError(
+                    f"{p} is not a valid free parameters in this configuration."
+                ) 
+            free_dict[p] = free[p]
+    return free_dict
+
+
 class ArrayModel():
     # Abstract base class for end-to-end models with pixel-based analysis
 
@@ -459,35 +486,7 @@ class Model:
             round_to (int, optional): Round to how many digits. If this is 
               not provided, the values are not rounded. Defaults to None.
         """
-        pars = self.export_params()
-        print('')
-        print('--------------------------------')
-        print('Free parameters with their stdev')
-        print('--------------------------------')
-        print('')
-        for par in self.free:
-            p = pars[par]
-            if round_to is None:
-                v = p[1]
-                verr = p[3]
-            else:
-                v = round(p[1], round_to)
-                verr = round(p[3], round_to)
-            print(p[0] + ' ('+par+'): ' + str(v) +
-                  ' (' + str(verr) + ') ' + p[2])
-        print('')
-        print('----------------------------')
-        print('Fixed and derived parameters')
-        print('----------------------------')
-        print('')
-        for par in pars:
-            if par not in self.free:
-                p = pars[par]
-                if round_to is None:
-                    v = p[1]
-                else:
-                    v = np.round(p[1], round_to)
-                print(p[0] + ' ('+par+'): ' + str(v) + ' ' + p[2])
+        return print_params(self, round_to=round_to)
 
     def params(self, *args, round_to=None):
         """Return the parameter values
@@ -584,7 +583,94 @@ class Model:
     #         if (not np.isinf(lb)) and (not np.isinf(ub)):
     #             xscale[p] = ub-lb
     #     return xscale
+
+# Obsolete phase out
+def print_params(self, round_to=None):
+    """Print the model parameters and their uncertainties
+
+    Args:
+        round_to (int, optional): Round to how many digits. If this is 
+            not provided, the values are not rounded. Defaults to None.
+    """
+    pars = self.export_params()
+    print('')
+    print('--------------------------------')
+    print('Free parameters with their stdev')
+    print('--------------------------------')
+    print('')
+    for par in self.free:
+        p = pars[par]
+        if round_to is None:
+            v = p[1]
+            verr = p[3]
+        else:
+            v = round(p[1], round_to)
+            verr = round(p[3], round_to)
+        print(p[0] + ' ('+par+'): ' + str(v) +
+                ' (' + str(verr) + ') ' + p[2])
+    print('')
+    print('----------------------------')
+    print('Fixed and derived parameters')
+    print('----------------------------')
+    print('')
+    for par in pars:
+        if par not in self.free:
+            p = pars[par]
+            if round_to is None:
+                v = p[1]
+            else:
+                v = np.round(p[1], round_to)
+            print(p[0] + ' ('+par+'): ' + str(v) + ' ' + p[2])
+
+
+def _print_params(pars, free, round_to=None):
+    """Print the model parameters and their uncertainties
+
+    Args:
+        round_to (int, optional): Round to how many digits. If this is 
+            not provided, the values are not rounded. Defaults to None.
+    """
+    print('')
+    print('--------------------------------')
+    print('Free parameters with their stdev')
+    print('--------------------------------')
+    print('')
+    for par in free:
+        p = pars[par]
+        if round_to is None:
+            v = p[1]
+            verr = p[3]
+        else:
+            v = round(p[1], round_to)
+            verr = round(p[3], round_to)
+        print(p[0] + ' ('+par+'): ' + str(v) +
+                ' (' + str(verr) + ') ' + p[2])
+    print('')
+    print('----------------------------')
+    print('Fixed and derived parameters')
+    print('----------------------------')
+    print('')
+    for par in pars:
+        if par not in free:
+            p = pars[par]
+            if round_to is None:
+                v = p[1]
+            else:
+                v = np.round(p[1], round_to)
+            print(p[0] + ' ('+par+'): ' + str(v) + ' ' + p[2])
     
+
+def _return_params(pars, *args, round_to=None):
+    if len(args) == 1:
+        if round_to is None:
+            return pars[args[0]][1]
+        else:
+            return round(pars[args[0]][1], round_to)
+    if round_to is None:
+        return {p: v[1] for p, v in pars.items() if p in list(args)}
+    else:
+        return {p: round(v[1], round_to) for p, v in pars.items() if p in list(args)}
+
 
 def params(self, *args, round_to=None):
     p = self._par_values()
@@ -682,7 +768,7 @@ def _load(model, file=None, path=None, filename='Model'):
     f.close
     return model
 
-
+# Obsolete- phase out
 def train(model: Model, xdata, ydata, **kwargs):
 
     if isinstance(ydata, tuple):
@@ -725,6 +811,45 @@ def train(model: Model, xdata, ydata, **kwargs):
     model._setflat(pars, pcov=model.pcov)
 
     return model
+
+
+def _train(self, xdata, ydata, **kwargs):
+
+    if isinstance(ydata, tuple):
+        y = np.concatenate(ydata)
+    else:
+        y = ydata
+    
+    free = list(self.free.keys())
+
+    def fit_func(_, *p):
+        for i, v in enumerate(p):
+            self.pars[free[i]] = v
+        yp = self.predict(xdata)
+        if isinstance(yp, tuple):
+            return np.concatenate(yp)
+        else:
+            return yp
+
+    p0 = [self.pars[p] for p in free]
+    bounds = [
+        [par[0] for par in self.free.values()],
+        [par[1] for par in self.free.values()],
+    ]
+    try:
+        pars, self.pcov = curve_fit(
+            fit_func, None, y, p0,
+            bounds=bounds,  # x_scale=self._x_scale(),
+            **kwargs)
+    except Exception as e:
+        msg = 'Runtime error in curve_fit -- \n'
+        msg += str(e) + ' Returning initial values.'
+        warnings.warn(msg)
+        for i, v in enumerate(p0):
+            self.pars[free[i]] = v
+        self.pcov = np.zeros((np.size(p0), np.size(p0)))
+
+    return self
 
 
 def _cost(model, xdata, ydata, metric='NRMS') -> float:

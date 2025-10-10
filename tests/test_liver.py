@@ -60,104 +60,104 @@ def test_ic():
     t = np.linspace(0, tmax, nt)
     ca = np.exp(-t/Taif)/Taif
 
-    p = {'ve_app': 0.1, 
-         'Ktrans': 0.005, 
+    p = {'ve': 0.1, 
+         'khe': 0.005, 
          'Th': 15,
         }
     C0 = dc.conc_liver(ca, t, kinetics='1I-IC-HF', **p)
 
-    p = {'ve_app': 0.1, 
-         'Ktrans_i': 0.005, 
-         'Ktrans_f': 0.005, 
+    p = {'ve': 0.1, 
+         'khe_i': 0.005, 
+         'khe_f': 0.005, 
          'Th': 15,
         }
     C1 = dc.conc_liver(ca, t, kinetics='1I-IC-HF', non_stationary='U', **p)
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-3
 
-    p = {'ve_app': 0.1, 
-         'Ktrans': 0.005, 
+    p = {'ve': 0.1, 
+         'khe': 0.005, 
          'Th_i': 15,
          'Th_f': 15,
         }
     C1 = dc.conc_liver(ca, t, kinetics='1I-IC-HF', non_stationary='E', **p)
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-1
 
-    p = {'ve_app': 0.1, 
-         'Ktrans_i': 0.005, 
-         'Ktrans_f': 0.005,
+    p = {'ve': 0.1, 
+         'khe_i': 0.005, 
+         'khe_f': 0.005,
          'Th_i': 15,
          'Th_f': 15,
         }
     C1 = dc.conc_liver(ca, t, kinetics='1I-IC-HF', non_stationary='UE', **p)
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-1
 
-    p = {'ve_app': 0.1, 
-         'Ktrans': 0.005, 
+    p = {'ve': 0.1, 
+         'khe': 0.005, 
          'Th': 15,
-         'Te': 0,
-         'De': 1,
+         'Tg': 0,
+         'Dg': 1,
         }
-    C1 = dc.conc_liver(ca, t, kinetics='1I-IC-D', **p)
+    C1 = dc.conc_liver(ca, t, kinetics='1I-IC-HFD', **p)
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-1
 
-    p = {'ve_app': 0.1, 
-         'Ktrans_i': 0.005, 
-         'Ktrans_f': 0.005, 
+    p = {'ve': 0.1, 
+         'khe_i': 0.005, 
+         'khe_f': 0.005, 
          'Th': 15,
-         'Te': 0,
-         'De': 1,
+         'Tg': 0,
+         'Dg': 1,
         }
-    C1 = dc.conc_liver(ca, t, kinetics='1I-IC-D', non_stationary='U', **p)
+    C1 = dc.conc_liver(ca, t, kinetics='1I-IC-HFD', non_stationary='U', **p)
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-1
 
-    p = {'ve_app': 0.1, 
-         'Ktrans': 0.005, 
+    p = {'ve': 0.1, 
+         'khe': 0.005, 
          'Th_i': 15,
          'Th_f': 15,
-         'Te': 0,
-         'De': 1,
+         'Tg': 0,
+         'Dg': 1,
         }
-    C1 = dc.conc_liver(ca, t, kinetics='1I-IC-D', non_stationary='E', **p)
+    C1 = dc.conc_liver(ca, t, kinetics='1I-IC-HFD', non_stationary='E', **p)
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-1
 
-    p = {'ve_app': 0.1, 
-         'Ktrans_i': 0.005, 
-         'Ktrans_f': 0.005, 
+    p = {'ve': 0.1, 
+         'khe_i': 0.005, 
+         'khe_f': 0.005, 
          'Th_i': 15,
          'Th_f': 15,
-         'Te': 0,
-         'De': 1,
+         'Tg': 0,
+         'Dg': 1,
         }
-    C1 = dc.conc_liver(ca, t, kinetics='1I-IC-D', non_stationary='UE', **p)
+    C1 = dc.conc_liver(ca, t, kinetics='1I-IC-HFD', non_stationary='UE', **p)
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-1
 
-    p = {'ve_app': 0.1, 
-         'Ktrans': 0.005, 
+    p = {'ve': 0.1, 
+         'khe': 0.005, 
          'Th': 1500,
-         'Te': 10,
-         'De': 0.5,
+         'Tg': 10,
+         'Dg': 0.5,
         }
-    C0 = dc.conc_liver(ca, t, kinetics='1I-IC-D', **p)
+    C0 = dc.conc_liver(ca, t, kinetics='1I-IC-HFD', **p)
 
-    p = {'ve_app': 0.1, 
-         'Ktrans': 0.005, 
-         'Te': 10,
-         'De': 0.5,
+    p = {'ve': 0.1, 
+         'khe': 0.005, 
+         'Tg': 10,
+         'Dg': 0.5,
         }
-    C1 = dc.conc_liver(ca, t, kinetics='1I-IC-DU', **p)
+    C1 = dc.conc_liver(ca, t, kinetics='1I-IC-HFDU', **p)
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-1
 
-    p = {'ve_app': 0.1, 
-         'Ktrans_i': 0.005, 
-         'Ktrans_f': 0.005, 
-         'Te': 10,
-         'De': 0.5,
+    p = {'ve': 0.1, 
+         'khe_i': 0.005, 
+         'khe_f': 0.005, 
+         'Tg': 10,
+         'Dg': 0.5,
         }
-    C1 = dc.conc_liver(ca, t, kinetics='1I-IC-DU', non_stationary='U', **p)
+    C1 = dc.conc_liver(ca, t, kinetics='1I-IC-HFDU', non_stationary='U', **p)
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-1
 
-    p = {'ve_app': 0.1, 
-         'Ktrans': 0.005, 
+    p = {'ve': 0.1, 
+         'khe': 0.005, 
          'Th': 15,
         }
     C0 = dc.conc_liver(ca, t, kinetics='1I-IC-HF', **p)
@@ -165,17 +165,17 @@ def test_ic():
     C = dc.conc_liver(ca, t, kinetics='1I-IC-HF', sum=False, **p)
     assert np.array_equal(C[0,:] + C[1,:], C0)
 
-    p = {'ve_app': 0.1, 
-         'Ktrans': 0.005, 
+    p = {'ve': 0.1, 
+         'khe': 0.005, 
          'Th': 15,
          'Ta': 0,
          'fa': 1,
         }
     C1 = dc.conc_liver((ca, ca), t, kinetics='2I-IC-HF', **p)
 
-    p = {'ve_app': 0.1, 
-         'Ktrans_i': 0.005, 
-         'Ktrans_f': 0.005, 
+    p = {'ve': 0.1, 
+         'khe_i': 0.005, 
+         'khe_f': 0.005, 
          'Th': 15,
          'Ta': 0,
          'fa': 1,
@@ -183,8 +183,8 @@ def test_ic():
     C1 = dc.conc_liver((ca, ca), t, kinetics='2I-IC-HF', non_stationary='U', **p)
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-3
 
-    p = {'ve_app': 0.1, 
-         'Ktrans': 0.005, 
+    p = {'ve': 0.1, 
+         'khe': 0.005, 
          'Th_i': 15,
          'Th_f': 15,
          'Ta': 0,
@@ -193,9 +193,9 @@ def test_ic():
     C1 = dc.conc_liver((ca, ca), t, kinetics='2I-IC-HF', non_stationary='E', **p)
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-1
 
-    p = {'ve_app': 0.1, 
-         'Ktrans_i': 0.005,
-         'Ktrans_f': 0.005,
+    p = {'ve': 0.1, 
+         'khe_i': 0.005,
+         'khe_f': 0.005,
          'Th_i': 15,
          'Th_f': 15,
          'Ta': 0,
@@ -204,28 +204,28 @@ def test_ic():
     C1 = dc.conc_liver((ca, ca), t, kinetics='2I-IC-HF', non_stationary='UE', **p)
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-1
 
-    p = {'ve_app': 0.1, 
-         'Ktrans': 0.005, 
+    p = {'ve': 0.1, 
+         'khe': 0.005, 
          'Th': 15,
          'Ta': 0,
          'fa': 1,
         }
     C0 = dc.conc_liver((ca, ca), t, kinetics='2I-IC-HF', **p)
 
-    p = {'ve': 0.1, 
-         'Fp': 1000, 
-         'khe': 0.005, 
+    p = {'ve': 0.1 / (1 - 0.001), 
+         'Fp': 5, 
+         'E': 0.001, 
          'Th': 15,
          'Ta': 0,
          'fa': 1,
         }
     C1 = dc.conc_liver((ca, ca), t, kinetics='2I-IC', **p)
-    assert np.linalg.norm(C0[1:]-C1[1:]) / np.linalg.norm(C0[1:]) < 1e-1
+    assert np.linalg.norm(C0[1:]-C1[1:]) / np.linalg.norm(C0[1:]) < 0.1
 
-    p = {'ve': 0.1, 
-         'Fp': 1000, 
-         'khe_i': 0.005, 
-         'khe_f': 0.005, 
+    p = {'ve': 0.1 / (1 - 0.001), 
+         'Fp': 5, 
+         'E_i': 0.001, 
+         'E_f': 0.001,  
          'Th': 15,
          'Ta': 0,
          'fa': 1,
@@ -233,9 +233,9 @@ def test_ic():
     C1 = dc.conc_liver((ca, ca), t, kinetics='2I-IC', non_stationary='U', **p)
     assert np.linalg.norm(C0[1:]-C1[1:]) / np.linalg.norm(C0[1:]) < 1e-1
 
-    p = {'ve': 0.1, 
-         'Fp': 1000, 
-         'khe': 0.005, 
+    p = {'ve': 0.1 / (1 - 0.001), 
+         'Fp': 5, 
+         'E': 0.001,  
          'Th_i': 15,
          'Th_f': 15,
          'Ta': 0,
@@ -244,10 +244,10 @@ def test_ic():
     C1 = dc.conc_liver((ca, ca), t, kinetics='2I-IC', non_stationary='E', **p)
     assert np.linalg.norm(C0[1:]-C1[1:]) / np.linalg.norm(C0[1:]) < 1e-1
 
-    p = {'ve': 0.1, 
-         'Fp': 1000, 
-         'khe_i': 0.005, 
-         'khe_f': 0.005, 
+    p = {'ve': 0.1 / (1 - 0.001), 
+         'Fp': 5, 
+         'E_i': 0.001, 
+         'E_f': 0.001,  
          'Th_i': 15,
          'Th_f': 15,
          'Ta': 0,
@@ -256,9 +256,9 @@ def test_ic():
     C1 = dc.conc_liver((ca, ca), t, kinetics='2I-IC', non_stationary='UE', **p)
     assert np.linalg.norm(C0[1:]-C1[1:]) / np.linalg.norm(C0[1:]) < 1e-1
 
-    p = {'ve': 0.1, 
-         'Fp': 1000, 
-         'khe': 0.005, 
+    p = {'ve': 0.1 / (1 - 0.001), 
+         'Fp': 5, 
+         'E': 0.001, 
          'Th': 1500,
          'Ta': 0,
          'fa': 1,
@@ -268,19 +268,19 @@ def test_ic():
     C = dc.conc_liver((ca, ca), t, kinetics='2I-IC', sum=False, **p)
     assert np.array_equal(C[0,:] + C[1,:], C0)
 
-    p = {'ve': 0.1, 
-         'Fp': 1000, 
-         'khe': 0.005, 
+    p = {'ve': 0.1 / (1 - 0.001), 
+         'Fp': 5, 
+         'E': 0.001, 
          'Ta': 0,
          'fa': 1,
         }
     C1 = dc.conc_liver((ca, ca), t, kinetics='2I-IC-U', **p)
     assert np.linalg.norm(C0[1:]-C1[1:]) / np.linalg.norm(C0[1:]) < 1e-1
 
-    p = {'ve': 0.1, 
-         'Fp': 1000, 
-         'khe_i': 0.005, 
-         'khe_f': 0.005, 
+    p = {'ve': 0.1 / (1 - 0.001), 
+         'Fp': 5, 
+         'E_i': 0.001, 
+         'E_f': 0.001,
          'Ta': 0,
          'fa': 1,
         }
@@ -298,10 +298,11 @@ def test_ic():
         assert False
 
     try:
-        p = {'ve': 0.1, 
-            'Fp': 1000, 
-            'khe_i': 0.005, 
-            'khe_f': 0.005, 
+        p = {
+            've': 0.1 / (1 - 0.001), 
+            'Fp': 5, 
+            'E_i': 0.001, 
+            'E_f': 0.001, 
             'Ta': 0,
             }
         C1 = dc.conc_liver((ca, ca), t, kinetics='2I-IC-U', non_stationary='U', **p)

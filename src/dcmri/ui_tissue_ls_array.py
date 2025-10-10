@@ -293,7 +293,8 @@ class TissueLSArray():
                 scla = sig.signal_lin(1, self.pars['R10a'])
                 scl = sig.signal_lin(1, self.pars['R10'])
             self.pars['S0a'] = np.mean(signal_aif[:n0]) / scla if scla > 0 else 0
-            self.pars['S0'] = np.where(scl==0, 0, np.mean(signal[...,:n0], axis=-1)/scl)
+            baseline = np.mean(signal[..., :n0], axis=-1)
+            self.pars['S0'] = np.divide(baseline, scl, out=np.zeros_like(baseline), where=(scl != 0))
 
         # Derive concentrations
         with np.errstate(divide="ignore", invalid="ignore", over="ignore"):

@@ -11,7 +11,7 @@ import dcmri.pk_aorta as pk_aorta
 import dcmri.liver as liver
 
 
-class AortaLiver(ui.Model):
+class AortaLiver():
     """Joint model for aorta and liver signals.
 
     This model uses a whole-body model to simultaneously predict signals in 
@@ -23,10 +23,10 @@ class AortaLiver(ui.Model):
     Args:
         kinetics (str, optional): Tracer-kinetic liver model. See table 
           :ref:`table-liver-models` for options - only single-inlet models 
-          are allowed. Defaults to '1I-IC-D'.
-        stationary (str, optional): For intracellular tracers - stationarity 
+          are allowed. Defaults to '1I-IC-HFD'.
+        non_stationary (str, optional): For intracellular tracers - stationarity 
           regime of the hepatocytes. The options are 'UE', 'E', 'U' or None. 
-          For more detail see :ref:`liver-tissues`. Defaults to 'UE'.
+          For more detail see :ref:`liver-tissues`. Defaults to None.
         sequence (str, optional): imaging sequence. Possible values are 'SS'
           and 'SR'. Defaults to 'SS'.
         free (dict, optional): Dictionary with free parameters and their
@@ -76,14 +76,13 @@ class AortaLiver(ui.Model):
         ...     field_strength = 3.0,
         ...     dose = 0.2,
         ...     rate = 3,
-        ...     t0 = 10,
         ...     TR = 0.005,
         ...     FA = 15,
         ... )
 
         Train the model on the data:
 
-        >>> model.train(xdata, ydata, xtol=1e-3)
+        >>> model.train(xdata, ydata, n0=10, xtol=1e-3)
 
         Plot the reconstructed signals and concentrations and compare 
         against the experimentally derived data:
@@ -93,31 +92,31 @@ class AortaLiver(ui.Model):
         We can also have a look at the model parameters after training:
 
         >>> model.print_params(round_to=3)
-        -----------------------------------------
-        Free parameters with their errors (stdev)
-        -----------------------------------------
-        Bolus arrival time (BAT): 17.127 (2.838) sec
-        Cardiac output (CO): 211.047 (13.49) mL/sec
-        Heart-lung mean transit time (Thl): 12.503 (3.527) sec
-        Heart-lung transit time dispersion (Dhl): 0.465 (0.063)
-        Organs mean transit time (To): 28.413 (10.294) sec
-        Extraction fraction (Eb): 0.01 (0.623)
-        Liver extracellular mean transit time (Te): 2.915 (0.588) sec
-        Liver extracellular dispersion (De): 1.0 (0.19)
-        Liver extracellular volume fraction (ve): 0.176 (0.015) mL/cm3
-        Hepatocellular uptake rate (khe): 0.005 (0.001) mL/sec/cm3
-        Hepatocellular transit time (Th): 600.0 (747.22) sec
-        Organs extraction fraction (Eo): 0.261 (0.324)
-        Organs extracellular mean transit time (Toe): 81.765 (329.097) sec
-        ------------------
-        Derived parameters
-        ------------------
-        Blood precontrast T1 (T10a): 1.629 sec
-        Mean circulation time (Tc): 40.916 sec
-        Liver precontrast T1 (T10l): 0.752 sec
-        Biliary excretion rate (kbh): 0.001 mL/sec/cm3
-        Hepatocellular tissue uptake rate (Khe): 0.026 mL/sec/cm3
-        Biliary tissue excretion rate (Kbh): 0.002 mL/sec/cm3
+        --------------------------------
+        Free parameters with their stdev
+        --------------------------------
+        First bolus arrival time (BAT): 13.231 (0.266) sec
+        Cardiac output (CO): 102.893 (4.182) mL/sec
+        Heart-lung mean transit time (Thl): 16.285 (0.409) sec
+        Heart-lung dispersion (Dhl): 0.324 (0.016)
+        Organs blood mean transit time (To): 19.578 (5.583) sec
+        Organs extraction fraction (Eo): 0.363 (0.075)
+        Organs extravascular mean transit time (Toe): 46.775 (53.05) sec
+        Body extraction fraction (Eb): 0.029 (0.168)
+        Apparent liver extracellular volume fraction (ve_app): 0.307 (0.564) mL/cm3
+        Extracellular mean transit time (Te): 44.748 (79.644) sec
+        Extracellular dispersion (De): 0.916 (0.148)
+        Hepatic plasma clearance (Ktrans): 0.002 (0.003) mL/sec/cm3
+        Hepatocellular mean transit time (Th): 712.855 (5899.078) sec
+        ----------------------------
+        Fixed and derived parameters
+        ----------------------------
+        Aorta first baseline R1 (R10a): 0.614 Hz
+        Aorta first signal scale factor (S0a): 100.169 a.u.
+        Liver first baseline R1 (R10l): 1.33 Hz
+        Liver first signal scale factor (S0l): 150.0 a.u.
+        Liver volume (vol): 1000 cm3
+        Biliary tissue excretion rate (Kbh): 0.001 mL/sec/cm3
 
     Notes:
 
@@ -136,9 +135,9 @@ class AortaLiver(ui.Model):
             * - dt, tmax
               - Always
               - Time axis for forward model
-            * - t0, dose_tolerance
+            * - dose_tolerance
               - Always
-              - For estimating baseline signal
+              - Stopping criterion on whole-body model
             * - field_strength, weight, agent, dose, rate
               - Always
               - Injection protocol
@@ -387,7 +386,7 @@ class AortaLiver(ui.Model):
 
     def __init__(
         self, 
-        kinetics = '1I-IC-D', 
+        kinetics = '1I-IC-HFD', 
         non_stationary=None, 
         sequence='SS', 
         free=None, 
@@ -399,63 +398,94 @@ class AortaLiver(ui.Model):
         self.kinetics = kinetics
         self.sequence = sequence 
         self.non_stationary = non_stationary
+        _check_config(self)
 
-        self._check_config()
-        self._set_defaults(free=free, **params)
+        # Set parameters
+        P = (PARAMS | PARAMS_SIGNAL_1 | PARAMS_WHOLE_BODY | PARAMS_SEQUENCE 
+                | liver.PARAMS_LIVER)
+        
+        self.pars = ui.init_parameters(P, self._model_pars(), **params)
+        self.free = ui.init_free_parameters(P, self.pars, free)
+
+        # Parameter covariance not known until fit has been done
+        self.pcov = None
 
         # Internal flags
         self._predict = None
 
-    def _check_config(self):
-        _check_config(self)
-
-    def _params(self):
-        return (PARAMS | PARAMS_WHOLE_BODY | PARAMS_SEQUENCE 
-                | PARAMS_LIVER | PARAMS_DERIVED)
-    
-    def _model_pars(self):
-        pars_sequence = {
-            'SR': ['FA', 'TR', 'TS', 'TC'],
-            'SS': ['FA', 'TR', 'TS'], 
+    def _sequence_pars(self):
+        pars = {
+            'SR': ['FA', 'TR', 'TC'],
+            'SS': ['FA', 'TR'], 
         }
+        return pars[self.sequence]
+        
+    def _model_pars(self):
         pars = list(PARAMS.keys()) 
+        pars += list(PARAMS_SIGNAL_1.keys()) 
         pars += list(PARAMS_WHOLE_BODY.keys())
-        pars += pars_sequence[self.sequence]
+        pars += self._sequence_pars() + ['TS']
         pars += liver.params_liver(self.kinetics, self.non_stationary)
         pars += ['vol']
         return pars
     
-    def _par_values(*args, **kwargs):
-        return _par_values(*args, **kwargs)
+    def export_params(self) -> dict:
+        """Return model parameters with their descriptions
+
+        Args:
+            type (str, optional): Type of output. If 'dict', a dictionary is 
+              returned. If 'list', a list is returned. Defaults to 'dict'.
+
+        Returns:
+            dict: Dictionary with one item for each model parameter. The key 
+            is the short parameter name, and the value is a 
+            4-element list with [long parameter name, value, unit, sdev].
+
+        """
+        P = PARAMS_WHOLE_BODY | liver.PARAMS_LIVER | PARAMS_SIGNAL_1
+        # Add derived parameters
+        pars = liver.derived_params_liver(self.pars, self.kinetics)
+        # Add short name, full name, value, units.
+        pars = {
+            p: [P[p]['name'], pars[p], P[p]['unit'], 0]
+            for p in pars if p in P
+        }
+        # Add standard deviation
+        if self.pcov is not None:
+            for i, p in enumerate(self.free):
+                pars[p][-1] = np.sqrt(self.pcov[i,i])
+        return pars
+    
 
     def _conc_aorta(self) -> np.ndarray:
         if self.organs == 'comp':
-            organs = ['comp', (self.To,)]
+            organs = ['comp', (self.pars['To'],)]
         else:
-            organs = ['2cxm', ([self.To, self.Toe], self.Eo)]
-        self.t = np.arange(0, self.tmax, self.dt)
-        conc = lib.ca_conc(self.agent)
+            organs = ['2cxm', ([self.pars['To'], self.pars['Toe']], self.pars['Eo'])]
+        self.t = np.arange(0, self.pars['tmax'], self.pars['dt'])
+        conc = lib.ca_conc(self.pars['agent'])
         Ji = lib.ca_injection(
-            self.t, self.weight, conc, self.dose, self.rate, self.BAT)
+            self.t, self.pars['weight'], conc, self.pars['dose'], 
+            self.pars['rate'], self.pars['BAT']
+        )
         Jb = pk_aorta.flux_aorta(
-            Ji, E=self.Eb, dt=self.dt, tol=self.dose_tolerance,
-            heartlung = ['pfcomp', (self.Thl, self.Dhl)],
+            Ji, E=self.pars['Eb'], dt=self.pars['dt'], 
+            tol=self.pars['dose_tolerance'],
+            heartlung = ['pfcomp', (self.pars['Thl'], self.pars['Dhl'])],
             organs = organs)
-        self.ca = Jb/self.CO
+        self.ca = Jb/self.pars['CO']
         return self.t, self.ca
 
     def _relax_aorta(self):
         return _relax_aorta(self)
 
     def _predict_aorta(self, xdata: np.ndarray) -> np.ndarray:
-        self.tmax = max(xdata)+self.dt
-        if self.TS is not None:
-            self.tmax += self.TS
+
         t, R1b = self._relax_aorta()
         #seq = 'SRC' if self.sequence=='SR' else 'SS'
-        pars = self._par_values(seq=self.sequence)
-        signal = sig.signal(self.sequence, R1b, self.S0a, **pars)
-        return utils.sample(xdata, t, signal, self.TS)
+        pars = {k: v for k, v in self.pars.items() if k in self._sequence_pars()}
+        signal = sig.signal(self.sequence, R1b, self.pars['S0a'], **pars)
+        return utils.sample(xdata, t, signal, self.pars['TS'])
 
     def _conc_liver(*args, **kwargs):
         return _conc_liver(*args, **kwargs)
@@ -465,9 +495,9 @@ class AortaLiver(ui.Model):
 
     def _predict_liver(self, xdata: np.ndarray) -> np.ndarray:
         t, R1l = self._relax_liver()
-        pars = self._par_values(seq=self.sequence)
-        signal = sig.signal(self.sequence, R1l, self.S0l, **pars)
-        return utils.sample(xdata, t, signal, self.TS)
+        pars = {k: v for k, v in self.pars.items() if k in self._sequence_pars()}
+        signal = sig.signal(self.sequence, R1l, self.pars['S0l'], **pars)
+        return utils.sample(xdata, t, signal, self.pars['TS'])
 
     def conc(self, sum=True):
         """Concentrations in aorta and liver.
@@ -511,6 +541,14 @@ class AortaLiver(ui.Model):
               each has to have the same length as its corresponding array of 
               time points.
         """
+        tmax = max([max(x) for x in xdata])
+        if self.pars['tmax'] < tmax:
+            raise ValueError(
+                f"The largest time point that can be predicted with "
+                f"the current configuration is {self.pars['tmax']}. "
+                f"To predict these data, set tmax = {tmax} (or larger) " 
+                f"when creating the AortaLiver2Scan object."
+              )
         # Public interface
         if self._predict is None:
             signala = self._predict_aorta(xdata[0])
@@ -522,7 +560,7 @@ class AortaLiver(ui.Model):
         elif self._predict == 'liver':
             return self._predict_liver(xdata)
 
-    def train(self, xdata: tuple, ydata: tuple, joint=True, **kwargs):
+    def train(self, xdata: tuple, ydata: tuple, joint=True, n0=1, **kwargs):
         """Train the free parameters
 
         Args:
@@ -542,16 +580,24 @@ class AortaLiver(ui.Model):
         Returns:
             Model: A reference to the model instance.
         """
+        tmax = max([max(x) for x in xdata])
+        if self.pars['tmax'] < tmax:
+            raise ValueError(
+                f"The largest time point that can be predicted with "
+                f"the current configuration is {self.pars['tmax']}. "
+                f"To train on these data, set tmax = {tmax} (or larger) " 
+                f"when creating the AortaLiver2Scan object."
+              )
+        
         # Estimate BAT and S0a from data
-        pars = self._par_values(seq=self.sequence)
-        Srefb = sig.signal(self.sequence, self.R10a, 1, **pars)
-        Srefl = sig.signal(self.sequence, self.R10l, 1, **pars)
+        pars = {k: v for k,v in self.pars.items() if k in self._sequence_pars()} 
+        Srefb = sig.signal(self.sequence, self.pars['R10a'], 1, **pars)
+        Srefl = sig.signal(self.sequence, self.pars['R10l'], 1, **pars)
 
-        n0 = max([np.sum(xdata[0] < self.t0), 1])
-        self.S0a = np.mean(ydata[0][:n0]) / Srefb
-        self.S0l = np.mean(ydata[1][:n0]) / Srefl
-        self.BAT = xdata[0][np.argmax(ydata[0])] - (1-self.Dhl)*self.Thl
-        self.BAT = max([self.BAT, 0])
+        self.pars['S0a'] = np.mean(ydata[0][:n0]) / Srefb
+        self.pars['S0l'] = np.mean(ydata[1][:n0]) / Srefl
+        self.pars['BAT'] = xdata[0][np.argmax(ydata[0])] - (1-self.pars['Dhl'])*self.pars['Thl']
+        self.pars['BAT'] = max([self.pars['BAT'], 0])
 
         # Copy the original free to restore later
         free = deepcopy(self.free)
@@ -560,21 +606,22 @@ class AortaLiver(ui.Model):
         self._predict = 'aorta'
         pars = list(PARAMS_WHOLE_BODY.keys())
         self.free = {s: free[s] for s in pars if s in free}
-        ui.train(self, xdata[0], ydata[0], **kwargs)
+        ui._train(self, xdata[0], ydata[0], **kwargs)
 
         # Train free liver parameters on liver data
         self._predict = 'liver'
-        pars = list(PARAMS_LIVER.keys())
+        pars = list(liver.PARAMS_LIVER.keys())
         self.free = {s: free[s] for s in pars if s in free}
-        ui.train(self, xdata[1], ydata[1], **kwargs)
+        ui._train(self, xdata[1], ydata[1], **kwargs)
 
         # Train all parameters on all data
         self._predict = None
         self.free = free
         if joint:
-            return ui.train(self, xdata, ydata, **kwargs)
+            return ui._train(self, xdata, ydata, **kwargs)
         else:
             return self
+
 
     def plot(self,
              xdata: tuple,
@@ -601,6 +648,15 @@ class AortaLiver(ui.Model):
             show (bool, optional): If True, the plot is shown. Defaults to 
               True.
         """
+        tmax = max([max(x) for x in xdata])
+        if self.pars['tmax'] < tmax:
+            raise ValueError(
+                f"The largest time point that can be plotted with "
+                f"the current configuration is {self.pars['tmax']}. "
+                f"To plot these data, set tmax = {tmax} (or larger) " 
+                f"when creating the AortaLiver2Scan object."
+              )
+        
         t, cb, C = self.conc(sum=False)
         sig = self.predict((t, t))
         fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(10, 8))
@@ -650,10 +706,72 @@ class AortaLiver(ui.Model):
               models.
             - 'BIC': Baysian information criterion.
         """
-        return super().cost(xdata, ydata, metric)
+        return ui._cost(self, xdata, ydata, metric)
+    
+    def save(self, file=None, path=None, filename='Model'):
+        """Save the current state of the model
+
+        Args:
+            file (str, optional): complete path of the file. If this is not 
+              provided, a file is constructure from path and filename 
+              variables. Defaults to None.
+            path (str, optional): path to store the state if file is not 
+              provided. Thos variable is ignored if file is provided. 
+              Defaults to current working directory.
+            filename (str, optional): filename to store the state if file is 
+              not provided. If no extension is included, the extension '.pkl' 
+              is automatically added. This variable is ignored if file is 
+              provided. Defaults to 'Model'.
+
+        Returns:
+            dict: class instance
+        """
+        return ui._save(self, file, path, filename)
+
+    def load(self, file=None, path=None, filename='Model'):
+        """Load the saved state of the model
+
+        Args:
+            file (str, optional): complete path of the file. If this is not 
+              provided, a file is constructure from path and filename 
+              variables. Defaults to None.
+            path (str, optional): path to store the state if file is not 
+              provided. Thos variable is ignored if file is provided. 
+              Defaults to current working directory.
+            filename (str, optional): filename to store the state if file is 
+              not provided. If no extension is included, the extension 
+              '.pkl' is automatically added. This variable is ignored if file 
+              is provided. Defaults to 'Model'.
+
+        Returns:
+            dict: class instance
+        """
+        return ui._load(self, file, path, filename)
+    
+    def print_params(self, round_to=None):
+        """Print the model parameters and their uncertainties
+
+        Args:
+            round_to (int, optional): Round to how many digits. If this is 
+              not provided, the values are not rounded. Defaults to None.
+        """
+        return ui._print_params(self.export_params(), self.free, round_to=round_to)
+    
+    def params(self, *args, round_to=None):
+        """Return the parameter values
+
+        Args:
+            args (tuple): parameters to get
+
+        Returns:
+            list or float: values of parameter values, or a scalar value if 
+            only one parameter is required.
+        """
+        return ui._return_params(self.export_params(), *args, round_to=round_to)
+        
 
 
-class AortaLiver2scan(ui.Model):
+class AortaLiver2scan():
     """Joint model for aorta and liver signals measured over two scans.
 
     This model uses a whole-body model to simultaneously predict signals in 
@@ -665,7 +783,7 @@ class AortaLiver2scan(ui.Model):
     Args:
         kinetics (str, optional): Tracer-kinetic liver model. See table 
           :ref:`table-liver-models` for options - only single-inlet models 
-          are allowed. Defaults to '1I-IC-D'.
+          are allowed. Defaults to '1I-IC-HFD'.
         stationary (str, optional): For intracellular tracers - stationarity 
           regime of the hepatocytes. The options are 'UE', 'E', 'U' or None. 
           For more detail see :ref:`liver-tissues`. Defaults to 'UE'.
@@ -714,21 +832,31 @@ class AortaLiver2scan(ui.Model):
 
         >>> model = dc.AortaLiver2scan(
         ...     dt = 0.5,
+        ...     tmax = 420,
         ...     weight = 70,
         ...     agent = 'gadodiamide',
         ...     dose = 0.2,
         ...     dose2 = 0.2,
         ...     rate = 3,
         ...     field_strength = 3.0,
-        ...     t0 = 10,
         ...     TR = 0.005,
         ...     FA = 15,
         ...     FA2 = 15,
+        ...     TS = 0.5,
+        ...     Th_i = 120,
+        ...     Th_f = 120,
         ... )
+
+        In this case we have defined different initial values for Th as 
+        the defaults are optimized for the slow passage through hepatocytes. 
+        We also need to reset the parameter bounds:
+
+        >>> model.free['Th_i'] = [0, np.inf]
+        >>> model.free['Th_f'] = [0, np.inf]
 
         Train the model on the data:
 
-        >>> model.train(xdata, ydata, xtol=1e-3)
+        >>> model.train(xdata, ydata, n0=10, xtol=1e-3)
 
         Plot the reconstructed signals and concentrations and compare against 
         the experimentally derived data:
@@ -738,39 +866,37 @@ class AortaLiver2scan(ui.Model):
         We can also have a look at the model parameters after training:
 
         >>> model.print_params(round_to=3)
-        -----------------------------------------
-        Free parameters with their errors (stdev)  
-        -----------------------------------------  
-        Bolus arrival time (BAT): 17.13 (1.771) sec
-        Cardiac output (CO): 208.547 (9.409) mL/sec
-        Heart-lung mean transit time (Thl): 12.406 (2.137) sec
-        Heart-lung transit time dispersion (Dhl): 0.459 (0.04)
-        Organs mean transit time (To): 30.912 (3.999) sec
-        Extraction fraction (Eb): 0.064 (0.032)
-        Liver extracellular mean transit time (Te): 2.957 (0.452) sec
-        Liver extracellular dispersion (De): 1.0 (0.146)
-        Liver extracellular volume fraction (ve): 0.077 (0.007) mL/cm3
-        Hepatocellular uptake rate (khe): 0.002 (0.001) mL/sec/cm3
-        Hepatocellular transit time (Th): 600.0 (1173.571) sec
-        Organs extraction fraction (Eo): 0.2 (0.057)
-        Organs extracellular mean transit time (Toe): 87.077 (56.882) sec
-        Hepatocellular uptake rate (final) (khe_f): 0.001 (0.001) mL/sec/cm3
-        Hepatocellular transit time (final) (Th_f): 600.0 (623.364) sec
-        ------------------
-        Derived parameters
-        ------------------
-        Blood precontrast T1 (T10a): 1.629 sec
-        Mean circulation time (Tc): 43.318 sec
-        Liver precontrast T1 (T10l): 0.752 sec
-        Biliary excretion rate (kbh): 0.002 mL/sec/cm3
-        Hepatocellular tissue uptake rate (Khe): 0.023 mL/sec/cm3
-        Biliary tissue excretion rate (Kbh): 0.002 mL/sec/cm3
-        Hepatocellular uptake rate (initial) (khe_i): 0.003 mL/sec/cm3
-        Hepatocellular transit time (initial) (Th_i): 600.0 sec
-        Hepatocellular uptake rate variance (khe_var): 0.934
-        Biliary tissue excretion rate variance (Kbh_var): 0.0
-        Biliary excretion rate (initial) (kbh_i): 0.002 mL/sec/cm3
-        Biliary excretion rate (final) (kbh_f): 0.002 mL/sec/cm3
+        --------------------------------
+        Free parameters with their stdev
+        --------------------------------
+        Aorta second signal scale factor (S02a): 195.824 (2.025) a.u.
+        Liver second signal scale factor (S02l): 297.854 (4.9) a.u.
+        Second bolus arrival time (BAT2): 254.512 (0.137) sec
+        First bolus arrival time (BAT): 14.288 (0.132) sec
+        Cardiac output (CO): 203.199 (5.406) mL/sec
+        Heart-lung mean transit time (Thl): 15.236 (0.263) sec
+        Heart-lung dispersion (Dhl): 0.381 (0.009)
+        Organs blood mean transit time (To): 23.761 (3.052) sec
+        Organs extraction fraction (Eo): 0.287 (0.053)
+        Organs extravascular mean transit time (Toe): 50.274 (17.44) sec
+        Body extraction fraction (Eb): 0.078 (0.015)
+        Apparent liver extracellular volume fraction (ve_app): 0.053 (0.008) mL/cm3
+        Extracellular mean transit time (Te): 1.298 (0.552) sec
+        Extracellular dispersion (De): 1.0 (0.7)
+        Initial hepatic plasma clearance (Ktrans_i): 0.005 (0.001) mL/sec/cm3
+        Final hepatic plasma clearance (Ktrans_f): 0.005 (0.001) mL/sec/cm3
+        Initial hepatocellular mean transit time (Th_i): 70.022 (12.142) sec
+        Final hepatocellular mean transit time (Th_f): 72.227 (8.407) sec
+        ----------------------------
+        Fixed and derived parameters
+        ----------------------------
+        Aorta first baseline R1 (R10a): 0.614 Hz
+        Aorta first signal scale factor (S0a): 100.117 a.u.
+        Liver first baseline R1 (R10l): 1.33 Hz
+        Liver first signal scale factor (S0l): 150.003 a.u.
+        Initial hepatocellular mean transit time (Th_i): 70.022 (12.142) sec
+        Final hepatocellular mean transit time (Th_f): 72.227 (8.407) sec
+
 
     Notes:
 
@@ -789,9 +915,9 @@ class AortaLiver2scan(ui.Model):
             * - dt, tmax
               - Always
               - Time axis for forward model
-            * - t0, dose_tolerance
+            * - dose_tolerance
               - Always
-              - For estimating baseline signal
+              - Stopping criterion for whole-body model
             * - field_strength, weight, agent, dose, dose2, rate
               - Always
               - Injection protocol
@@ -1044,7 +1170,7 @@ class AortaLiver2scan(ui.Model):
 
     def __init__(
         self, 
-        kinetics = '1I-IC-D', 
+        kinetics = '1I-IC-HFD', 
         non_stationary='UE', 
         sequence='SS', 
         free=None, 
@@ -1056,86 +1182,119 @@ class AortaLiver2scan(ui.Model):
         self.kinetics = kinetics
         self.sequence = sequence 
         self.non_stationary = non_stationary
+        _check_config(self)
 
-        self._check_config()
-        self._set_defaults(free=free, **params)
+        P = (PARAMS | PARAMS_SIGNAL_1 | PARAMS_2SCAN | 
+             PARAMS_SIGNAL_2 | PARAMS_WHOLE_BODY | PARAMS_SEQUENCE | 
+             liver.PARAMS_LIVER)
+    
+        # Set parameters
+        self.pars = ui.init_parameters(P, self._model_pars(), **params)
+
+        # Set free parameters
+        self.free = ui.init_free_parameters(P, self.pars, free)
+
+        # Parameter covariance not known until fit has been done
+        self.pcov = None
 
         # Internal flags
         self._predict = None
 
-    def _check_config(self):
-        _check_config(self)
-        
-    def _params(self):
-        return (PARAMS | PARAMS_2SCAN | PARAMS_WHOLE_BODY | PARAMS_SEQUENCE 
-                | PARAMS_LIVER | PARAMS_DERIVED)
+    def _sequence_pars(self):
+        pars = {
+            'SR': ['FA', 'TR', 'TC'],
+            'SS': ['FA', 'TR'], 
+        }  
+        return pars[self.sequence]      
 
     def _model_pars(self):
-        pars_sequence = {
-            'SR': ['FA', 'TR', 'TS', 'TC'],
-            'SS': ['FA', 'TR', 'TS'], 
-        }
         pars = list(PARAMS.keys()) 
+        pars += list(PARAMS_SIGNAL_1.keys())
         pars += list(PARAMS_2SCAN.keys())
+        pars += list(PARAMS_SIGNAL_2.keys())
         pars += list(PARAMS_WHOLE_BODY.keys())
-        pars += pars_sequence[self.sequence]
+        pars += self._sequence_pars() + ['TS']
         pars += liver.params_liver(self.kinetics, self.non_stationary)
         pars += ['vol']
+        return pars
+    
+    def export_params(self) -> dict:
+        """Return model parameters with their descriptions
+
+        Args:
+            type (str, optional): Type of output. If 'dict', a dictionary is 
+              returned. If 'list', a list is returned. Defaults to 'dict'.
+
+        Returns:
+            dict: Dictionary with one item for each model parameter. The key 
+            is the short parameter name, and the value is a 
+            4-element list with [long parameter name, value, unit, sdev].
+
+        """
+        P = PARAMS_WHOLE_BODY | liver.PARAMS_LIVER | PARAMS_SIGNAL_1 | PARAMS_SIGNAL_2
+        # Add derived parameters
+        pars = liver.derived_params_liver(self.pars, self.kinetics)
+        # Add short name, full name, value, units.
+        pars = {
+            p: [P[p]['name'], pars[p], P[p]['unit'], 0]
+            for p in pars if p in P
+        }
+        # Add standard deviation
+        if self.pcov is not None:
+            for i, p in enumerate(self.free):
+                pars[p][-1] = np.sqrt(self.pcov[i,i])
         return pars
     
     def _sequence_parameters_first_scan(self):
         if self.sequence == 'SR':
             return {
-                'FA': self.FA, 
-                'TR': self.TR, 
-                'TC': self.TC, 
+                'FA': self.pars['FA'], 
+                'TR': self.pars['TR'], 
+                'TC': self.pars['TC'], 
             }
         if self.sequence == 'SS':
             return {
-                'FA': self.FA, 
-                'TR': self.TR, 
+                'FA': self.pars['FA'], 
+                'TR': self.pars['TR'], 
             }
         if self.sequence == 'SRC':
             return {
-                'TC': self.TC, 
+                'TC': self.pars['TC'], 
             }
 
     def _sequence_parameters_second_scan(self):
         if self.sequence == 'SR': 
             return {
-                'FA': self.FA2, 
-                'TR': self.TR, 
-                'TC': self.TC, 
+                'FA': self.pars['FA2'], 
+                'TR': self.pars['TR'], 
+                'TC': self.pars['TC'], 
             }
         if self.sequence == 'SS':
             return {
-                'FA': self.FA2, 
-                'TR': self.TR, 
+                'FA': self.pars['FA2'], 
+                'TR': self.pars['TR'], 
             }
         if self.sequence == 'SRC':
             return {
-                'TC': self.TC, 
+                'TC': self.pars['TC'], 
             }
-    
-    def _par_values(*args, **kwargs):
-        return _par_values(*args, **kwargs)
 
     def _conc_aorta(self) -> tuple[np.ndarray, np.ndarray]:
         if self.organs == 'comp':
-            organs = ['comp', (self.To,)]
+            organs = ['comp', (self.pars['To'],)]
         else:
-            organs = ['2cxm', ([self.To, self.Toe], self.Eo)]
-        self.t = np.arange(0, self.tmax, self.dt)
-        conc = lib.ca_conc(self.agent)
+            organs = ['2cxm', ([self.pars['To'], self.pars['Toe']], self.pars['Eo'])]
+        self.t = np.arange(0, self.pars['tmax'], self.pars['dt'])
+        conc = lib.ca_conc(self.pars['agent'])
         J1 = lib.ca_injection(
-            self.t, self.weight, conc, self.dose, self.rate, self.BAT)
+            self.t, self.pars['weight'], conc, self.pars['dose'], self.pars['rate'], self.pars['BAT'])
         J2 = lib.ca_injection(
-            self.t, self.weight, conc, self.dose2, self.rate, self.BAT2)
+            self.t, self.pars['weight'], conc, self.pars['dose2'], self.pars['rate'], self.pars['BAT2'])
         Jb = pk_aorta.flux_aorta(
-            J1 + J2, E=self.Eb, dt=self.dt, tol=self.dose_tolerance,
-            heartlung = ['pfcomp', (self.Thl, self.Dhl)],
+            J1 + J2, E=self.pars['Eb'], dt=self.pars['dt'], tol=self.pars['dose_tolerance'],
+            heartlung = ['pfcomp', (self.pars['Thl'], self.pars['Dhl'])],
             organs = organs)
-        self.ca = Jb/self.CO
+        self.ca = Jb/self.pars['CO']
         return self.t, self.ca
     
     def _relax_aorta(self):
@@ -1144,9 +1303,6 @@ class AortaLiver2scan(ui.Model):
     def _predict_aorta(self,
                        xdata: tuple[np.ndarray, np.ndarray],
                        ) -> tuple[np.ndarray, np.ndarray]:
-        self.tmax = max(xdata[1])+self.dt
-        if self.TS is not None:
-            self.tmax += self.TS
         t, R1 = self._relax_aorta()
         t1 = t <= xdata[0][-1]
         t2 = t >= xdata[1][0]
@@ -1155,12 +1311,12 @@ class AortaLiver2scan(ui.Model):
         #seq = 'SRC' if self.sequence=='SR' else 'SS'
         #pars = self._par_values(seq=self.sequence)
         pars = self._sequence_parameters_first_scan()
-        signal1 = sig.signal(self.sequence, R11, self.S0a, **pars)
+        signal1 = sig.signal(self.sequence, R11, self.pars['S0a'], **pars)
         pars = self._sequence_parameters_second_scan()
-        signal2 = sig.signal(self.sequence, R12, self.S02a, **pars)
+        signal2 = sig.signal(self.sequence, R12, self.pars['S02a'], **pars)
         return (
-            utils.sample(xdata[0], t[t1], signal1, self.TS),
-            utils.sample(xdata[1], t[t2], signal2, self.TS),
+            utils.sample(xdata[0], t[t1], signal1, self.pars['TS']),
+            utils.sample(xdata[1], t[t2], signal2, self.pars['TS']),
         )
 
     def _conc_liver(*args, **kwargs):
@@ -1178,12 +1334,12 @@ class AortaLiver2scan(ui.Model):
         R12 = R1[t2]
         #pars = self._par_values(seq=self.sequence)
         pars = self._sequence_parameters_first_scan()
-        signal1 = sig.signal(self.sequence, R11, self.S0l, **pars)
+        signal1 = sig.signal(self.sequence, R11, self.pars['S0l'], **pars)
         pars = self._sequence_parameters_second_scan()
-        signal2 = sig.signal(self.sequence, R12, self.S02l, **pars)
+        signal2 = sig.signal(self.sequence, R12, self.pars['S02l'], **pars)
         return (
-            utils.sample(xdata[0], t[t1], signal1, self.TS),
-            utils.sample(xdata[1], t[t2], signal2, self.TS),
+            utils.sample(xdata[0], t[t1], signal1, self.pars['TS']),
+            utils.sample(xdata[1], t[t2], signal2, self.pars['TS']),
         )
     
     def conc(self, sum=True):
@@ -1228,6 +1384,14 @@ class AortaLiver2scan(ui.Model):
             liver in the second scan, in that order. The arrays have the 
             same length as its corresponding array of time points.
         """
+        tmax = max([max(x) for x in xdata])
+        if self.pars['tmax'] < tmax:
+            raise ValueError(
+                f"The largest time point that can be predicted with "
+                f"the current configuration is {self.pars['tmax']}. "
+                f"To predict these data, set tmax = {tmax} (or larger) " 
+                f"when creating the AortaLiver2Scan object."
+              )
         # Public interface
         if self._predict is None:
             signal_a = self._predict_aorta((xdata[0], xdata[1]))
@@ -1239,7 +1403,7 @@ class AortaLiver2scan(ui.Model):
         elif self._predict == 'liver':
             return self._predict_liver(xdata)
 
-    def train(self, xdata: tuple, ydata: tuple, joint=True, **kwargs):
+    def train(self, xdata: tuple, ydata: tuple, joint=True, n0=1, **kwargs):
         # x,y: (aorta scan 1, aorta scan 2, liver scan 1, liver scan 2)
         """Train the free parameters
 
@@ -1262,24 +1426,31 @@ class AortaLiver2scan(ui.Model):
         Returns:
             AortaLiver2scan: A reference to the model instance.
         """
+        tmax = max([max(x) for x in xdata])
+        if self.pars['tmax'] < tmax:
+            raise ValueError(
+                f"The largest time point that can be predicted with "
+                f"the current configuration is {self.pars['tmax']}. "
+                f"To train on these data, set tmax = {tmax} (or larger) " 
+                f"when creating the AortaLiver2Scan object."
+              )
         # Estimate BAT
-        T, D = self.Thl, self.Dhl
-        self.BAT = xdata[0][np.argmax(ydata[0])] - (1-D)*T
-        self.BAT2 = xdata[1][np.argmax(ydata[1])] - (1-D)*T
+        T, D = self.pars['Thl'], self.pars['Dhl']
+        self.pars['BAT'] = xdata[0][np.argmax(ydata[0])] - (1-D)*T
+        self.pars['BAT2'] = xdata[1][np.argmax(ydata[1])] - (1-D)*T
 
         # Estimate S0
         pars = self._sequence_parameters_first_scan()
-        Srefb = sig.signal(self.sequence, self.R10a, 1, **pars)
-        Srefl = sig.signal(self.sequence, self.R10l, 1, **pars)
+        Srefb = sig.signal(self.sequence, self.pars['R10a'], 1, **pars)
+        Srefl = sig.signal(self.sequence, self.pars['R10l'], 1, **pars)
         pars = self._sequence_parameters_second_scan()
-        Sref2l = sig.signal(self.sequence, self.R102l, 1, **pars)
-        Sref2b = sig.signal(self.sequence, self.R102a, 1, **pars)
+        Sref2l = sig.signal(self.sequence, self.pars['R102l'], 1, **pars)
+        Sref2b = sig.signal(self.sequence, self.pars['R102a'], 1, **pars)
 
-        n0 = max([np.sum(xdata[0] < self.t0), 2])
-        self.S0a = np.mean(ydata[0][1:n0]) / Srefb
-        self.S02a = np.mean(ydata[1][1:n0]) / Sref2b
-        self.S0l = np.mean(ydata[2][1:n0]) / Srefl
-        self.S02l = np.mean(ydata[3][1:n0]) / Sref2l
+        self.pars['S0a'] = np.mean(ydata[0][1:n0]) / Srefb
+        self.pars['S02a'] = np.mean(ydata[1][1:n0]) / Sref2b
+        self.pars['S0l'] = np.mean(ydata[2][1:n0]) / Srefl
+        self.pars['S02l'] = np.mean(ydata[3][1:n0]) / Sref2l
 
         free = deepcopy(self.free)
 
@@ -1287,19 +1458,19 @@ class AortaLiver2scan(ui.Model):
         self._predict = 'aorta'
         pars = list(PARAMS_WHOLE_BODY.keys()) + ['BAT2', 'S02a']
         self.free = {s: free[s] for s in pars if s in free}
-        ui.train(self, (xdata[0], xdata[1]), (ydata[0], ydata[1]), **kwargs)
+        ui._train(self, (xdata[0], xdata[1]), (ydata[0], ydata[1]), **kwargs)
 
         # Train free liver parameters on liver data
         self._predict = 'liver'
-        pars = list(PARAMS_LIVER.keys()) + ['S02l']
+        pars = list(liver.PARAMS_LIVER.keys()) + ['S02l']
         self.free = {s: free[s] for s in pars if s in free}
-        ui.train(self, (xdata[2], xdata[3]), (ydata[2], ydata[3]), **kwargs)
+        ui._train(self, (xdata[2], xdata[3]), (ydata[2], ydata[3]), **kwargs)
 
         # Train all parameters on all data
         self._predict = None
         self.free = free
         if joint:
-            return ui.train(self, xdata, ydata, **kwargs)
+            return ui._train(self, xdata, ydata, **kwargs)
         else:
             return self
     
@@ -1328,7 +1499,13 @@ class AortaLiver2scan(ui.Model):
             show (bool, optional): If True, the plot is shown. Defaults to 
               True.
         """
-
+        tmax = max([max(x) for x in xdata])
+        if self.pars['tmax'] < tmax:
+            raise ValueError(
+                f"The largest time point that can be plotted with "
+                f"the current configuration is {tmax}. To increase set a larger " 
+                f"tmax value when creating the AortaLiver object."
+              )
         t, cb, C = self.conc(sum=False)
         ta1 = t[t <= xdata[1][0]]
         ta2 = t[(t > xdata[1][0]) & (t <= xdata[1][-1])]
@@ -1384,27 +1561,94 @@ class AortaLiver2scan(ui.Model):
               models.
             - 'BIC': Baysian information criterion.
         """
-        return super().cost(xdata, ydata, metric)
+        return ui._cost(self, xdata, ydata, metric)
+    
+    
+    def save(self, file=None, path=None, filename='Model'):
+        """Save the current state of the model
+
+        Args:
+            file (str, optional): complete path of the file. If this is not 
+              provided, a file is constructure from path and filename 
+              variables. Defaults to None.
+            path (str, optional): path to store the state if file is not 
+              provided. Thos variable is ignored if file is provided. 
+              Defaults to current working directory.
+            filename (str, optional): filename to store the state if file is 
+              not provided. If no extension is included, the extension '.pkl' 
+              is automatically added. This variable is ignored if file is 
+              provided. Defaults to 'Model'.
+
+        Returns:
+            dict: class instance
+        """
+        return ui._save(self, file, path, filename)
+
+    def load(self, file=None, path=None, filename='Model'):
+        """Load the saved state of the model
+
+        Args:
+            file (str, optional): complete path of the file. If this is not 
+              provided, a file is constructure from path and filename 
+              variables. Defaults to None.
+            path (str, optional): path to store the state if file is not 
+              provided. Thos variable is ignored if file is provided. 
+              Defaults to current working directory.
+            filename (str, optional): filename to store the state if file is 
+              not provided. If no extension is included, the extension 
+              '.pkl' is automatically added. This variable is ignored if file 
+              is provided. Defaults to 'Model'.
+
+        Returns:
+            dict: class instance
+        """
+        return ui._load(self, file, path, filename)
+    
+    def print_params(self, round_to=None):
+        """Print the model parameters and their uncertainties
+
+        Args:
+            round_to (int, optional): Round to how many digits. If this is 
+              not provided, the values are not rounded. Defaults to None.
+        """
+        return ui._print_params(self.export_params(), self.free, round_to=round_to)
+    
+    def params(self, *args, round_to=None):
+        """Return the parameter values
+
+        Args:
+            args (tuple): parameters to get
+
+        Returns:
+            list or float: values of parameter values, or a scalar value if 
+            only one parameter is required.
+        """
+        return ui._return_params(self.export_params(), *args, round_to=round_to)
+    
+
+
+
 
 
 def _relax_aorta(self) -> np.ndarray:
     t, cb = self._conc_aorta()
-    rb = lib.relaxivity(self.field_strength, 'blood', self.agent)
-    return t, self.R10a + rb*cb
+    rb = lib.relaxivity(self.pars['field_strength'], 'blood', self.pars['agent'])
+    return t, self.pars['R10a'] + rb*cb
 
 def _conc_liver(self, sum=True):
-    pars = self._par_values(kin=True)
-    return liver.conc_liver(self.ca, dt=self.dt, sum=sum, kinetics=self.kinetics, non_stationary=self.non_stationary, **pars)
+    pars = liver.params_liver(self.kinetics, self.non_stationary)
+    pars = {k:v for k, v in self.pars.items() if k in pars}
+    return liver.conc_liver(self.ca, dt=self.pars['dt'], sum=sum, kinetics=self.kinetics, non_stationary=self.non_stationary, **pars)
     
 def _relax_liver(self):
-    t = np.arange(0, self.tmax, self.dt)
+    t = np.arange(0, self.pars['tmax'], self.pars['dt'])
     Cl = self._conc_liver(sum=False)
-    rp = lib.relaxivity(self.field_strength, 'plasma', self.agent)
-    rh = lib.relaxivity(self.field_strength, 'hepatocytes', self.agent)
+    rp = lib.relaxivity(self.pars['field_strength'], 'plasma', self.pars['agent'])
+    rh = lib.relaxivity(self.pars['field_strength'], 'hepatocytes', self.pars['agent'])
     if 'IC' in self.kinetics:
-        return t, self.R10l + rp*Cl[0, :] + rh*Cl[1, :]
+        return t, self.pars['R10l'] + rp*Cl[0, :] + rh*Cl[1, :]
     else:
-        return t, self.R10l + rp*Cl
+        return t, self.pars['R10l'] + rp*Cl
 
 
 
@@ -1487,92 +1731,10 @@ def _check_config(self):
     liver.params_liver(self.kinetics, self.non_stationary)
 
 
-def _par_values(self, kin=False, export=False, seq=None):
-
-    if seq is not None:
-        pars = {
-            'SR': ['FA', 'TR', 'TC'],
-            'SS': ['FA', 'TR'], 
-            'SRC': ['TC'],
-        }
-        pars = pars[self.sequence]
-        return {par: getattr(self, par) for par in pars}
-    
-    if kin:
-        pars = liver.params_liver(self.kinetics, self.non_stationary)
-        return {par: getattr(self, par) for par in pars}
-    
-    if export:
-        pars = self._par_values()
-        all = self._model_pars()
-        p1 = liver.params_liver(self.kinetics, self.non_stationary)
-        p2 = list(PARAMS_WHOLE_BODY.keys())
-        p3 = list(PARAMS_DERIVED.keys())
-        retain = p1 + p2 + p3 + ['S02a', 'S02l', 'BAT2']
-        discard = set(all) - set(retain)
-        return {p: pars[p] for p in pars if p not in discard}
-    
-    pars = self._model_pars()
-    p = {par: getattr(self, par) for par in pars}
-
-    try:
-        p['Th'] = np.mean([p['Th_i'], p['Th_f']])
-    except KeyError:
-        pass
-    try:
-        p['khe'] = np.mean([p['khe_i'], p['khe_f']])
-    except KeyError:
-        pass
-    try:
-        p['Kbh'] = _div(1, p['Th'])
-    except KeyError:
-        pass
-    try:
-        p['Khe'] = _div(p['khe'], p['ve'])
-    except KeyError:
-        pass
-    try:
-        p['kbh'] = _div(1-p['ve'], p['Th'])
-    except KeyError:
-        pass
-    try:
-        p['kbh_i'] = _div(1-p['ve'], p['Th_i'])
-    except KeyError:
-        pass
-    try:
-        p['kbh_f'] = _div(1-p['ve'], p['Th_f'])
-    except KeyError:
-        pass
-        try:
-            p['E'] = p['khe']/(p['khe']+p['Fp'])
-        except KeyError:
-            try:
-                p['E'] = p['khe']/(p['khe']+self.Fp)
-            except:
-                pass
-        try:
-            p['Ktrans'] = (1-p['E'])*p['khe']
-        except KeyError:
-            pass   
-    if p['vol'] is not None:
-        try:
-            p['CL'] = p['khe']*p['vol']
-        except KeyError:
-            pass
-        
-    return p
-
 
 PARAMS = {
 
     # Prediction and training
-    't0': {
-        'init': 0,
-        'default_free': False,
-        'bounds': [0, np.inf],
-        'name': 'Baseline duration',
-        'unit': 'sec',
-    },
     'dt': {
         'init': 0.5,
         'default_free': False,
@@ -1581,7 +1743,7 @@ PARAMS = {
         'unit': 'sec',
     },
     'tmax': {
-        'init': 120,
+        'init': 180,
         'default_free': False,
         'bounds': [0, np.inf],
         'name': 'Maximum acquisition time',
@@ -1632,9 +1794,19 @@ PARAMS = {
         'name': 'Contrast agent injection rate',
         'unit': 'mL/sec',
     },
+    'H': {
+        'init': 0.45,
+        'default_free': False,
+        'bounds': [0, 1],
+        'name': 'Hematocrit',
+        'unit': '',
+    },
+
+}
 
 
-    # Signal
+PARAMS_SIGNAL_1 = {
+
     'R10a': {
         'init': 1/lib.T1(3.0, 'blood'),
         'default_free': False,
@@ -1681,6 +1853,10 @@ PARAMS_2SCAN = {
         'name': 'Second flip angle',
         'unit': 'deg',
     },
+}
+
+PARAMS_SIGNAL_2 = {
+    
     'R102a': {
         'init': 1/lib.T1(3.0, 'blood'),
         'default_free': False,
@@ -1811,146 +1987,3 @@ PARAMS_SEQUENCE = {
     },
 }
 
-PARAMS_LIVER = {
-    'H': {
-        'init': 0.45,
-        'default_free': False,
-        'bounds': [0, 1],
-        'name': 'Hematocrit',
-        'unit': '',
-    },
-    'Te': {
-        'init': 30.0,
-        'default_free': True,
-        'bounds': [0.1, 60],
-        'name': 'Extracellular mean transit time',
-        'unit': 'sec',
-    },
-    'De': {
-        'init': 0.85,
-        'default_free': True,
-        'bounds': [0, 1],
-        'name': 'Extracellular dispersion',
-        'unit': '',
-    },
-    've': {
-        'init': 0.3,
-        'default_free': True,
-        'bounds': [0.01, 0.6],
-        'name': 'Liver extracellular volume fraction',
-        'unit': 'mL/cm3',
-    },
-    've_app': {
-        'init': 0.3,
-        'default_free': True,
-        'bounds': [0.01, 0.6],
-        'name': 'Apparent liver extracellular volume fraction',
-        'unit': 'mL/cm3',
-    },
-    'Ktrans': {
-        'init': 0.015,
-        'default_free': True,
-        'bounds': [0.0, 0.1],
-        'name': 'Hepatic plasma clearance',
-        'unit': 'mL/sec/cm3',
-    },
-    'Ktrans_i': {
-        'init': 0.015,
-        'default_free': True,
-        'bounds': [0.0, 0.1],
-        'name': 'Initial hepatic plasma clearance',
-        'unit': 'mL/sec/cm3',
-    },
-    'Ktrans_f': {
-        'init': 0.015,
-        'default_free': True,
-        'bounds': [0.0, 0.1],
-        'name': 'Final hepatic plasma clearance',
-        'unit': 'mL/sec/cm3',
-    },
-    'khe': {
-        'init': 0.003,
-        'default_free': True,
-        'bounds': [0.0, 0.1],
-        'name': 'Hepatocellular uptake rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'khe_i': {
-        'init': 0.003,
-        'default_free': True,
-        'bounds': [0.0, 0.1],
-        'name': 'Initial hepatocellular uptake rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'khe_f': {
-        'init': 0.003,
-        'default_free': True,
-        'bounds': [0.0, 0.1],
-        'name': 'Final hepatocellular uptake rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'Th': {
-        'init': 30*60,
-        'default_free': True,
-        'bounds': [10*60, 10*60*60],
-        'name': 'Hepatocellular mean transit time',
-        'unit': 'sec',
-    },
-    'Th_i': {
-        'init': 30*60,
-        'default_free': True,
-        'bounds': [10*60, 10*60*60],
-        'name': 'Initial hepatocellular mean transit time',
-        'unit': 'sec',
-    },
-    'Th_f': {
-        'init': 30*60,
-        'default_free': True,
-        'bounds': [10*60, 10*60*60],
-        'name': 'Final hepatocellular mean transit time',
-        'unit': 'sec',
-    },
-    'vol': {
-        'init': None,
-        'default_free': False,
-        'bounds': [0, 10000],
-        'name': 'Liver volume',
-        'unit': 'cm3',
-    },
-}
-
-PARAMS_DERIVED = {
-    'kbh': {
-        'name': 'Biliary excretion rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'kbh_i': {
-        'name': 'Initial biliary excretion rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'kbh_f': {
-        'name': 'Final biliary excretion rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'Kbh': {
-        'name': 'Biliary tissue excretion rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'Khe': {
-        'name': 'Hepatocellular tissue uptake rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'E': {
-        'name': 'Liver extraction fraction',
-        'unit': '',
-    },
-    'CL': {
-        'name': 'Liver blood clearance',
-        'unit': 'mL/sec',
-    }, 
-}
-
-
-def _div(a, b):
-    with np.errstate(divide='ignore', invalid='ignore'):
-        return np.divide(a, b)
