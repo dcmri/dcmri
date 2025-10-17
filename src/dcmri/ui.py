@@ -836,12 +836,13 @@ def _train(self, xdata, ydata, **kwargs):
         [par[0] for par in self.free.values()],
         [par[1] for par in self.free.values()],
     ]
+
     try:
         pars, self.pcov = curve_fit(
             fit_func, None, y, p0,
             bounds=bounds,  # x_scale=self._x_scale(),
             **kwargs)
-    except Exception as e:
+    except RuntimeError as e:
         msg = 'Runtime error in curve_fit -- \n'
         msg += str(e) + ' Returning initial values.'
         warnings.warn(msg)

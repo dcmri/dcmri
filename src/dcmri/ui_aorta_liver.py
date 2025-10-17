@@ -1,4 +1,7 @@
 from copy import deepcopy
+import warnings
+
+from scipy.optimize import curve_fit
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -406,8 +409,7 @@ class AortaLiver():
         
         self.pars = ui.init_parameters(P, self._model_pars(), **params)
         self.free = ui.init_free_parameters(P, self.pars, free)
-
-        # Parameter covariance not known until fit has been done
+        self.sdev = {k:0 for k in self.free.keys()}
         self.pcov = None
 
         # Internal flags
@@ -451,9 +453,8 @@ class AortaLiver():
             for p in pars if p in P
         }
         # Add standard deviation
-        if self.pcov is not None:
-            for i, p in enumerate(self.free):
-                pars[p][-1] = np.sqrt(self.pcov[i,i])
+        for p in self.sdev:
+            pars[p][-1] = self.sdev[p]
         return pars
     
 
@@ -599,28 +600,30 @@ class AortaLiver():
         self.pars['BAT'] = xdata[0][np.argmax(ydata[0])] - (1-self.pars['Dhl'])*self.pars['Thl']
         self.pars['BAT'] = max([self.pars['BAT'], 0])
 
-        # Copy the original free to restore later
-        free = deepcopy(self.free)
-
         # Train free aorta parameters on aorta data
         self._predict = 'aorta'
         pars = list(PARAMS_WHOLE_BODY.keys())
-        self.free = {s: free[s] for s in pars if s in free}
-        ui._train(self, xdata[0], ydata[0], **kwargs)
+        free_aorta = {p:v for p, v in self.free.items() if p in pars}
+        pcov_aorta = _train(self, xdata[0], ydata[0], free=free_aorta, **kwargs)
 
         # Train free liver parameters on liver data
         self._predict = 'liver'
         pars = list(liver.PARAMS_LIVER.keys())
-        self.free = {s: free[s] for s in pars if s in free}
-        ui._train(self, xdata[1], ydata[1], **kwargs)
+        free_liver = {p:v for p, v in self.free.items() if p in pars}
+        pcov_liver = _train(self, xdata[1], ydata[1], free=free_liver, **kwargs)
 
         # Train all parameters on all data
         self._predict = None
-        self.free = free
         if joint:
-            return ui._train(self, xdata, ydata, **kwargs)
+            pcov = _train(self, xdata, ydata, self.free, **kwargs)
+            self.pcov = [(pcov, self.free.keys())]
         else:
-            return self
+            self.pcov = [
+                (pcov_aorta, free_aorta.keys()), 
+                (pcov_liver, free_liver.keys()),
+            ]
+
+        return self
 
 
     def plot(self,
@@ -1190,11 +1193,8 @@ class AortaLiver2scan():
     
         # Set parameters
         self.pars = ui.init_parameters(P, self._model_pars(), **params)
-
-        # Set free parameters
         self.free = ui.init_free_parameters(P, self.pars, free)
-
-        # Parameter covariance not known until fit has been done
+        self.sdev = {k:0 for k in self.free.keys()}
         self.pcov = None
 
         # Internal flags
@@ -1240,9 +1240,8 @@ class AortaLiver2scan():
             for p in pars if p in P
         }
         # Add standard deviation
-        if self.pcov is not None:
-            for i, p in enumerate(self.free):
-                pars[p][-1] = np.sqrt(self.pcov[i,i])
+        for p in self.sdev:
+            pars[p][-1] = self.sdev[p]
         return pars
     
     def _sequence_parameters_first_scan(self):
@@ -1403,7 +1402,7 @@ class AortaLiver2scan():
         elif self._predict == 'liver':
             return self._predict_liver(xdata)
 
-    def train(self, xdata: tuple, ydata: tuple, joint=True, n0=1, **kwargs):
+    def train(self, xdata: tuple, ydata: tuple, joint=True, n0=1, R102a=None, R102l=None, **kwargs):
         # x,y: (aorta scan 1, aorta scan 2, liver scan 1, liver scan 2)
         """Train the free parameters
 
@@ -1443,36 +1442,44 @@ class AortaLiver2scan():
         pars = self._sequence_parameters_first_scan()
         Srefb = sig.signal(self.sequence, self.pars['R10a'], 1, **pars)
         Srefl = sig.signal(self.sequence, self.pars['R10l'], 1, **pars)
-        pars = self._sequence_parameters_second_scan()
-        Sref2l = sig.signal(self.sequence, self.pars['R102l'], 1, **pars)
-        Sref2b = sig.signal(self.sequence, self.pars['R102a'], 1, **pars)
-
         self.pars['S0a'] = np.mean(ydata[0][1:n0]) / Srefb
-        self.pars['S02a'] = np.mean(ydata[1][1:n0]) / Sref2b
         self.pars['S0l'] = np.mean(ydata[2][1:n0]) / Srefl
-        self.pars['S02l'] = np.mean(ydata[3][1:n0]) / Sref2l
 
-        free = deepcopy(self.free)
-
+         # Estimate S02
+        pars = self._sequence_parameters_second_scan()
+        if R102a is not None:
+            Sref2b = sig.signal(self.sequence, R102a, 1, **pars)
+            self.pars['S02a'] = np.mean(ydata[1][1:n0]) / Sref2b
+        else:
+            self.pars['S02a'] = self.pars['S0a']
+        if R102l is not None:
+            Sref2l = sig.signal(self.sequence, R102l, 1, **pars)
+            self.pars['S02l'] = np.mean(ydata[3][1:n0]) / Sref2l
+        else:
+            self.pars['S02l'] = self.pars['S0l']
+            
         # Train free aorta parameters on aorta data
         self._predict = 'aorta'
         pars = list(PARAMS_WHOLE_BODY.keys()) + ['BAT2', 'S02a']
-        self.free = {s: free[s] for s in pars if s in free}
-        ui._train(self, (xdata[0], xdata[1]), (ydata[0], ydata[1]), **kwargs)
+        free_aorta = {p:v for p, v in self.free.items() if p in pars}
+        pcov_aorta = _train(self, (xdata[0], xdata[1]), (ydata[0], ydata[1]), free=free_aorta, **kwargs)
 
         # Train free liver parameters on liver data
         self._predict = 'liver'
         pars = list(liver.PARAMS_LIVER.keys()) + ['S02l']
-        self.free = {s: free[s] for s in pars if s in free}
-        ui._train(self, (xdata[2], xdata[3]), (ydata[2], ydata[3]), **kwargs)
+        free_liver = {p:v for p, v in self.free.items() if p in pars}
+        pcov_liver = _train(self, (xdata[2], xdata[3]), (ydata[2], ydata[3]), free=free_liver, **kwargs)
 
         # Train all parameters on all data
         self._predict = None
-        self.free = free
         if joint:
-            return ui._train(self, xdata, ydata, **kwargs)
+            pcov = _train(self, xdata, ydata, self.free, **kwargs)
+            self.pcov = [(pcov, self.free.keys())]
         else:
-            return self
+            self.pcov = [
+                (pcov_aorta, free_aorta.keys()), 
+                (pcov_liver, free_liver.keys()),
+            ]
     
 
     def plot(self, xdata: tuple, ydata: tuple,
@@ -1627,7 +1634,47 @@ class AortaLiver2scan():
     
 
 
+def _train(self, xdata, ydata, free, **kwargs):
 
+    if isinstance(ydata, tuple):
+        y = np.concatenate(ydata)
+    else:
+        y = ydata
+
+    free_pars = list(free.keys())
+
+    def fit_func(_, *p):
+        for i, v in enumerate(p):
+            self.pars[free_pars[i]] = v
+        yp = self.predict(xdata)
+        if isinstance(yp, tuple):
+            return np.concatenate(yp)
+        else:
+            return yp
+
+    p0 = [self.pars[p] for p in free_pars]
+    bounds = [
+        [par[0] for par in free.values()],
+        [par[1] for par in free.values()],
+    ]
+
+    try:
+        pars, pcov = curve_fit(
+            fit_func, None, y, p0,
+            bounds=bounds,  # x_scale=self._x_scale(),
+            **kwargs)
+        for i, v in enumerate(p0):
+            self.sdev[free_pars[i]] = np.sqrt(pcov[i,i])
+    except RuntimeError as e:
+        msg = 'Runtime error in curve_fit -- \n'
+        msg += str(e) + ' Returning initial values.'
+        warnings.warn(msg)
+        for i, v in enumerate(p0):
+            self.pars[free_pars[i]] = v
+            self.sdev[free_pars[i]] = 0
+        pcov = np.zeros((len(p0), len(p0)))
+
+    return pcov
 
 
 def _relax_aorta(self) -> np.ndarray:
@@ -1857,13 +1904,13 @@ PARAMS_2SCAN = {
 
 PARAMS_SIGNAL_2 = {
     
-    'R102a': {
-        'init': 1/lib.T1(3.0, 'blood'),
-        'default_free': False,
-        'bounds': [0, np.inf],
-        'name': 'Aorta second baseline R1',
-        'unit': 'Hz',
-    },
+    # 'R102a': {
+    #     'init': 1/lib.T1(3.0, 'blood'),
+    #     'default_free': False,
+    #     'bounds': [0, np.inf],
+    #     'name': 'Aorta second baseline R1',
+    #     'unit': 'Hz',
+    # },
     'S02a': {
         'init': 1,
         'default_free': True,
@@ -1871,13 +1918,13 @@ PARAMS_SIGNAL_2 = {
         'name': 'Aorta second signal scale factor',
         'unit': 'a.u.',
     },
-    'R102l': {
-        'init': 1/lib.T1(3.0, 'liver'),
-        'default_free': False,
-        'bounds': [0, np.inf],
-        'name': 'Liver second baseline R1',
-        'unit': 'Hz',
-    },
+    # 'R102l': {
+    #     'init': 1/lib.T1(3.0, 'liver'),
+    #     'default_free': False,
+    #     'bounds': [0, np.inf],
+    #     'name': 'Liver second baseline R1',
+    #     'unit': 'Hz',
+    # },
     'S02l': {
         'init': 1,
         'default_free': True,

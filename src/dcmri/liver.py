@@ -42,9 +42,9 @@ PARAMS_LIVER = {
         'unit': 'sec',
     },
     'Tg': {
-        'init': 10,
+        'init': 30,
         'default_free': True,
-        'bounds': [0, np.inf],
+        'bounds': [0.1, 60],
         'name': 'Gut mean transit time',
         'unit': 'sec',
     },
@@ -97,11 +97,25 @@ PARAMS_LIVER = {
         'name': 'Hepatocellular uptake rate',
         'unit': 'mL/sec/cm3',
     },
+    'Dkhe': {
+        'init': 0.000,
+        'default_free': True,
+        'bounds': [-0.001, +0.001],
+        'name': 'Hepatocellular uptake rate',
+        'unit': 'mL/sec/cm3',
+    },
     'khe_i': {
         'init': 0.003,
         'default_free': True,
         'bounds': [0.0, 0.1],
         'name': 'Initial hepatocellular uptake rate',
+        'unit': 'mL/sec/cm3',
+    },
+    'khe_f': {
+        'init': 0.003,
+        'default_free': True,
+        'bounds': [0.0, 0.1],
+        'name': 'Final hepatocellular uptake rate',
         'unit': 'mL/sec/cm3',
     },
     'E': {
@@ -125,18 +139,19 @@ PARAMS_LIVER = {
         'name': 'Final liver extraction fraction',
         'unit': '',
     },
-    'khe_f': {
-        'init': 0.003,
-        'default_free': True,
-        'bounds': [0.0, 0.1],
-        'name': 'Final hepatocellular uptake rate',
-        'unit': 'mL/sec/cm3',
-    },
+
     'Th': {
         'init': 30*60,
         'default_free': True,
         'bounds': [10*60, 10*60*60],
         'name': 'Hepatocellular mean transit time',
+        'unit': 'sec',
+    },
+    'DTh': {
+        'init': 30*60,
+        'default_free': True,
+        'bounds': [10*60, 10*60*60],
+        'name': 'Hepatocellular mean transit time increase',
         'unit': 'sec',
     },
     'Th_i': {
@@ -271,8 +286,10 @@ def params_liver(kinetics='2I-EC', non_stationary=None) -> list:
             return ['Tg', 'Dg', 've', 'khe_i', 'khe_f', 'Th']
         elif non_stationary == 'E':
             return ['Tg', 'Dg', 've', 'khe', 'Th_i', 'Th_f']
+        # elif non_stationary == 'UE':
+        #     return ['Tg', 'Dg', 've', 'khe', 'Dkhe', 'Th', 'DTh']
         elif non_stationary == 'UE':
-            return ['Tg', 'Dg', 've', 'khe_i', 'khe_f', 'Th_i', 'Th_f']
+            return ['Tg', 'Dg', 've', 'khe_i', 'khe_f', 'Th_i', 'Th_f']       
 
     if kinetics == '1I-IC-HFDU':
 
@@ -329,6 +346,14 @@ def derived_params_liver(p, kinetics):
         
     if {'Th_i', 'Th_f'} <= p.keys():
         p['Th'] = np.mean([p['Th_i'], p['Th_f']])
+
+    if {'Th', 'DTh'} <= p.keys():
+        p['Th_i'] = p['Th'] - p['DTh']/2
+        p['Th_f'] = p['Th'] + p['DTh']/2
+
+    if {'khe', 'Dkhe'} <= p.keys():
+        p['khe_i'] = p['khe'] - p['Dkhe']/2
+        p['khe_f'] = p['khe'] + p['Dkhe']/2
 
     if {'khe_i', 'khe_f'} <= p.keys():
         p['khe'] = np.mean([p['khe_i'], p['khe_f']])
