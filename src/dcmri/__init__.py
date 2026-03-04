@@ -56,6 +56,12 @@ from dcmri.ui_aorta_kidneys import *
 from dcmri import ui_aorta_liver
 from dcmri.ui_aorta_liver import *
 
+from dcmri import ui_aorta_liver_2scan
+from dcmri.ui_aorta_liver_2scan import *
+
+from dcmri import ui_liver_2scan_drug_effect
+from dcmri.ui_liver_2scan_drug_effect import *
+
 from dcmri import ui_aorta_portal_liver
 from dcmri.ui_aorta_portal_liver import *
 

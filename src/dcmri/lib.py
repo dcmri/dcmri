@@ -1,6 +1,7 @@
 
 import copy
 import numpy as np
+from scipy.integrate import trapezoid
 
 AGENTS = [
     'gadoxetate',
@@ -68,8 +69,19 @@ def ca_injection(t: np.ndarray, weight: float, conc: float,
     # Build flux
     Jmax = conc * rate                # mmol/sec = (mmol/ml) * (ml/sec)
     J = np.zeros(t.size)
+
+    # Create a step function between [t0, t0 + duration]
     J[(0 < t) & (t < duration)] = Jmax
-    return np.interp(t - t0, t, J, left=0)
+    J = np.interp(t - t0, t, J, left=0)
+
+    # Area needs to equal dose*weight*conc (mL/kg * kg * mmol/mL = mmol)
+    # With discrete time sampling this is not guaranteed so we must explicitly normalize
+    if max(t) > duration + t0:
+        dose_approx = trapezoid(J, dx=dt)
+        if dose_approx > 0:
+            J = J * (weight * dose * conc) / dose_approx
+
+    return J
 
 
 def ca_conc(agent: str) -> float:

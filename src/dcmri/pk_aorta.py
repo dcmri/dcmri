@@ -104,7 +104,9 @@ def flux_aorta(J_vena: np.ndarray,
                organs=['2cxm', ([20, 120], 0.15)],
                kidneys=['comp', (10,)],
                liver=['pfcomp', (10, 0.2)],
-               tol=0.001):
+               tol=0.001,
+               max_it=None,
+    ):
     
     """Whole-body model for indicator flux through the aorta.
 
@@ -138,6 +140,7 @@ def flux_aorta(J_vena: np.ndarray,
           propagates the input through the system, until the dose that is 
           left in the system is given by tol*dose0, where dose0 is the 
           initial dose. Defaults to 0.001.
+        max_it (int, optional): Maximum number of iterations.
 
     Returns:
         tuple: Indicator fluxes (mmol/sec) through the vena cava and aorta.
@@ -192,8 +195,9 @@ def flux_aorta(J_vena: np.ndarray,
     # Initialize output
     J_aorta_total = np.zeros(J_vena.size)
 
-    while dose > min_dose:
-
+    it=0
+    while True:
+      
         # Aorta flux of the current pass
         J_aorta = pk.flux(
             J_vena, *heartlung[1], t=t, dt=dt, model=heartlung[0])
@@ -204,14 +208,22 @@ def flux_aorta(J_vena: np.ndarray,
         # Venous flux of the current pass
         J_vena = Ro * pk.flux(
             J_aorta, *organs[1], t=t, dt=dt, model=organs[0])
-        if Rl > 0:
+        if np.sum(Rl) > 0:
             J_vena += Rl * pk.flux(
                 J_aorta, *liver[1], t=t, dt=dt, model=liver[0])
-        if Rk > 0:
+        if np.sum(Rk) > 0:
             J_vena += Rk * pk.flux(
                 J_aorta, *kidneys[1], t=t, dt=dt, model=kidneys[0])
 
         # Get residual dose in current pass
         dose = trapezoid(J_vena, x=t, dx=dt)
+
+        if dose <= min_dose:
+            break
+        
+        it += 1
+        if max_it is not None:
+            if it > max_it:
+                break
 
     return J_aorta_total

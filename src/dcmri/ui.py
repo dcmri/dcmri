@@ -17,10 +17,10 @@ except:
 def init_parameters(parameter_dict, model_pars, **params):
     pars = {p: parameter_dict[p]['init'] for p in model_pars}
     for p in params:
-        # if p not in pars:
-        #     raise ValueError(
-        #         f"{p} is not a valid model parameter in this configuration."
-        #     )                
+        if p not in pars:
+            raise ValueError(
+                f"{p} is not a valid model parameter in this configuration."
+            )                
         pars[p] = params[p]   
     return pars
 
@@ -35,7 +35,7 @@ def init_free_parameters(parameter_dict, pars, free):
         for p in free:
             if p not in pars:
                 raise ValueError(
-                    f"{p} is not a valid free parameters in this configuration."
+                    f"{p} is not a valid free parameter in this configuration."
                 ) 
             free_dict[p] = free[p]
     return free_dict

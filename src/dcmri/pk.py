@@ -109,7 +109,7 @@ def conc(J: np.ndarray, *params, t=None, dt=1.0, model='comp',
     if model == 'ncomp':
         return conc_ncomp(J, *params, t=t, dt=dt, **kwargs)
     if model == 'nscomp':
-        return conc_nscomp(J, *params, t=t, dt=dt)
+        return conc_nscomp(J, *params, t=t, dt=dt) # no need for this, check if rate constant is a scalar
     if model == 'mmcomp':
         return conc_mmcomp(J, *params, t=t, dt=dt, **kwargs)
     if model == '2cxm':
@@ -410,7 +410,9 @@ def conc_comp(J, T, t=None, dt=1.0):
     """
     if T == np.inf:
         return conc_trap(J, t=t, dt=dt)
-    return T*utils.expconv(J, T, t=t, dt=dt)
+    convexp = utils.expconv(J, T, t=t, dt=dt, tol=1e-6)
+    convexp[convexp < 0] = 0 # may have small negative values
+    return T * convexp
 
 
 def flux_comp(J, T, t=None, dt=1.0):

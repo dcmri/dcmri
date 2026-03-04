@@ -1,179 +1,203 @@
-import numpy as np
+import copy
 from typing import Optional, Tuple, Union, List, Dict, Any
+
+import numpy as np
 
 import dcmri.pk as pk
 import dcmri.utils as utils
 
 
+def _div(a, b):
+    with np.errstate(divide='ignore', invalid='ignore'):
+        return np.divide(a, b)
+
+
 PARAMS_LIVER = {
     'Te': {
         'init': 30.0,
-        'default_free': True,
         'bounds': [0.1, 60],
         'name': 'Extracellular mean transit time',
         'unit': 'sec',
     },
     'De': {
         'init': 0.85,
-        'default_free': True,
         'bounds': [0, 1],
         'name': 'Extracellular dispersion',
         'unit': '',
     },
     've': {
         'init': 0.3,
-        'default_free': True,
         'bounds': [0.01, 0.6],
         'name': 'Liver extracellular volume fraction',
         'unit': 'mL/cm3',
     },
     've_app': {
         'init': 0.3,
-        'default_free': True,
         'bounds': [0.01, 0.6],
         'name': 'Apparent liver extracellular volume fraction',
         'unit': 'mL/cm3',
     },
     'Ta': {
         'init': 2,
-        'default_free': True,
-        'bounds': [0, np.inf],
+        'bounds': [0, 30],
         'name': 'Arterial mean transit time',
         'unit': 'sec',
     },
     'Tg': {
         'init': 30,
-        'default_free': True,
         'bounds': [0.1, 60],
         'name': 'Gut mean transit time',
         'unit': 'sec',
     },
     'Dg': {
         'init': 0.85,
-        'default_free': True,
         'bounds': [0, 1],
         'name': 'Gut dispersion',
         'unit': '',
     },
     'Fp': {
         'init': 0.008,
-        'default_free': True,
-        'bounds': [0, np.inf],
+        'bounds': [0, 1],
         'name': 'Liver plasma flow',
         'unit': 'mL/sec/cm3',
     },
     'fa': {
         'init': 0.2,
-        'default_free': True,
         'bounds': [0, 1],
         'name': 'Arterial flow fraction',
         'unit': '',
     },
     'Ktrans': {
         'init': 0.015,
-        'default_free': True,
         'bounds': [0.0, 0.1],
         'name': 'Hepatic plasma clearance',
         'unit': 'mL/sec/cm3',
     },
     'Ktrans_i': {
         'init': 0.015,
-        'default_free': True,
         'bounds': [0.0, 0.1],
         'name': 'Initial hepatic plasma clearance',
         'unit': 'mL/sec/cm3',
     },
     'Ktrans_f': {
         'init': 0.015,
-        'default_free': True,
         'bounds': [0.0, 0.1],
         'name': 'Final hepatic plasma clearance',
         'unit': 'mL/sec/cm3',
     },
     'khe': {
         'init': 0.003,
-        'default_free': True,
         'bounds': [0.0, 0.1],
         'name': 'Hepatocellular uptake rate',
         'unit': 'mL/sec/cm3',
     },
     'Dkhe': {
         'init': 0.000,
-        'default_free': True,
-        'bounds': [-0.001, +0.001],
-        'name': 'Hepatocellular uptake rate',
-        'unit': 'mL/sec/cm3',
+        'bounds': [-1.5e-7, +1.5e-7],
+        'name': 'Rate of change in hepatocellular uptake rate',
+        'unit': 'mL/sec/cm3/sec',
     },
     'khe_i': {
-        'init': 0.003,
-        'default_free': True,
+        'init': 0.002,
         'bounds': [0.0, 0.1],
         'name': 'Initial hepatocellular uptake rate',
         'unit': 'mL/sec/cm3',
     },
     'khe_f': {
-        'init': 0.003,
-        'default_free': True,
+        'init': 0.002,
         'bounds': [0.0, 0.1],
         'name': 'Final hepatocellular uptake rate',
         'unit': 'mL/sec/cm3',
     },
+    'kbh': {
+        'init': 0.0004,
+        'bounds': [0.0, 0.001],
+        'name': 'Biliary excretion rate',
+        'unit': 'mL/sec/cm3',
+    },
+    'kbh_i': {
+        'init': 0.0004,
+        'bounds': [0.0, 0.001],
+        'name': 'Initial biliary excretion rate',
+        'unit': 'mL/sec/cm3',
+    },
+    'kbh_f': {
+        'init': 0.0004,
+        'bounds': [0.0, 0.001],
+        'name': 'Final biliary excretion rate',
+        'unit': 'mL/sec/cm3',
+    },
     'E': {
         'init': 0.1,
-        'default_free': True,
         'bounds': [0.0, 1.0],
         'name': 'Liver extraction fraction',
         'unit': '',
     },
     'E_i': {
         'init': 0.1,
-        'default_free': True,
         'bounds': [0.0, 1.0],
         'name': 'Initial liver extraction fraction',
         'unit': '',
     },
     'E_f': {
         'init': 0.1,
-        'default_free': True,
         'bounds': [0.0, 1.0],
         'name': 'Final liver extraction fraction',
         'unit': '',
     },
-
     'Th': {
         'init': 30*60,
-        'default_free': True,
         'bounds': [10*60, 10*60*60],
         'name': 'Hepatocellular mean transit time',
         'unit': 'sec',
     },
     'DTh': {
-        'init': 30*60,
-        'default_free': True,
-        'bounds': [10*60, 10*60*60],
-        'name': 'Hepatocellular mean transit time increase',
-        'unit': 'sec',
+        'init': 0,
+        'bounds': [-0.25, 0.25],
+        'name': 'Rate of change in hepatocellular mean transit time',
+        'unit': '',
     },
     'Th_i': {
         'init': 30*60,
-        'default_free': True,
         'bounds': [10*60, 10*60*60],
         'name': 'Initial hepatocellular mean transit time',
         'unit': 'sec',
     },
     'Th_f': {
         'init': 30*60,
-        'default_free': True,
         'bounds': [10*60, 10*60*60],
         'name': 'Final hepatocellular mean transit time',
         'unit': 'sec',
     },
     'vol': {
         'init': 1000,
-        'default_free': False,
         'bounds': [0, 10000],
         'name': 'Liver volume',
         'unit': 'cm3',
+    },
+    'kbh': {
+        'init': 0.0004,
+        'bounds': [0.0, 0.001],
+        'name': 'Biliary excretion rate',
+        'unit': 'mL/sec/cm3',
+    },
+    'Kbh': {
+        'init': 0.0001,
+        'bounds': [0.0, 0.001],
+        'name': 'Biliary tissue excretion rate',
+        'unit': '/sec',
+    },
+    'Kbh_i': {
+        'init': 0.0001,
+        'bounds': [0.0, 0.001],
+        'name': 'Initial biliary tissue excretion rate',
+        'unit': '/sec',
+    },
+    'Kbh_f': {
+        'init': 0.0001,
+        'bounds': [0.0, 0.001],
+        'name': 'Final biliary tissue excretion rate',
+        'unit': '/sec',
     },
 
     # Derived parameters
@@ -185,34 +209,19 @@ PARAMS_LIVER = {
         'name': 'Venous plasma flow',
         'unit': 'mL/sec/cm3',
     },
-    'kbh': {
-        'name': 'Biliary excretion rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'kbh_i': {
-        'name': 'Initial biliary excretion rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'kbh_f': {
-        'name': 'Final biliary excretion rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'Kbh': {
-        'name': 'Biliary tissue excretion rate',
-        'unit': 'mL/sec/cm3',
-    },
+
     'Khe': {
         'name': 'Hepatocellular tissue uptake rate',
-        'unit': 'mL/sec/cm3',
+        'unit': '/sec',
     },
     'CL': {
-        'name': 'Liver blood clearance',
+        'name': 'Liver plasma clearance',
         'unit': 'mL/sec',
     }, 
 }
 
 
-def params_liver(kinetics='2I-EC', non_stationary=None) -> list:
+def params_liver(kinetics='2I-EC', non_stationary=None) -> dict:
     """Parameters characterizing a liver tissue. 
 
     See section :ref:`liver-tissues` for background and 
@@ -240,92 +249,95 @@ def params_liver(kinetics='2I-EC', non_stationary=None) -> list:
         ['fa', 'Ta', 've', 'Fp']
     """
 
+    pars = None
+
     # --- Extracellular Models ---
 
     if kinetics == '1I-EC-D':
-        return ['ve', 'Te', 'De']
+        pars = ['ve', 'Te', 'De']
     
-    if kinetics == '1I-EC':
-        return ['fa', 'Ta', 'Tg', 've', 'Fp']
+    elif kinetics == '1I-EC':
+        pars = ['fa', 'Ta', 'Tg', 've', 'Fp']
     
-    if kinetics == '2I-EC-HF':
-        return ['fa', 'Ta', 've']
+    elif kinetics == '2I-EC-HF':
+        pars = ['fa', 'Ta', 've']
     
-    if kinetics == '2I-EC':
-        return ['fa', 'Ta', 've', 'Fp']
+    elif kinetics == '2I-EC':
+        pars = ['fa', 'Ta', 've', 'Fp']
     
     # --- Intracellular Models ---
 
-    if kinetics == '1I-IC':
+    elif kinetics == '1I-IC':
 
         if non_stationary is None:
-            return ['ve', 'Fp', 'E', 'Th']
+            pars = ['ve', 'Fp', 'E', 'Th']
         elif non_stationary == 'U':
-            return ['ve', 'Fp', 'E_i', 'E_f', 'Th']
+            pars = ['ve', 'Fp', 'E_i', 'E_f', 'Th']
         elif non_stationary == 'E':
-            return ['ve', 'Fp', 'E', 'Th_i', 'Th_f']
+            pars = ['ve', 'Fp', 'E', 'Th_i', 'Th_f']
         elif non_stationary == 'UE':
-            return ['ve', 'Fp', 'E_i', 'E_f', 'Th_i', 'Th_f']
+            pars = ['ve', 'Fp', 'E_i', 'E_f', 'Th_i', 'Th_f']
 
-    if kinetics == '1I-IC-HF': # Note E=0 at high Fp
+    elif kinetics == '1I-IC-HF': # Note E=0 at high Fp
 
         if non_stationary is None:
-            return ['ve', 'khe', 'Th']
+            pars = ['ve', 'khe', 'Th']
         elif non_stationary == 'U':
-            return ['ve', 'khe_i', 'khe_f', 'Th']
+            pars = ['ve', 'khe_i', 'khe_f', 'Th']
         elif non_stationary == 'E':
-            return ['ve', 'khe', 'Th_i', 'Th_f']
+            pars = ['ve', 'khe', 'Th_i', 'Th_f']
         elif non_stationary == 'UE':
-            return ['ve', 'khe_i', 'khe_f', 'Th_i', 'Th_f']
+            pars = ['ve', 'khe_i', 'khe_f', 'Th_i', 'Th_f']
 
-    if kinetics == '1I-IC-HFD':
+    elif kinetics == '1I-IC-HFD':
 
         if non_stationary is None:
-            return ['Tg', 'Dg', 've', 'khe', 'Th']
+            pars = ['Tg', 'Dg', 've', 'khe', 'Th']
         elif non_stationary == 'U':
-            return ['Tg', 'Dg', 've', 'khe_i', 'khe_f', 'Th']
+            pars = ['Tg', 'Dg', 've', 'khe_i', 'khe_f', 'Th']
         elif non_stationary == 'E':
-            return ['Tg', 'Dg', 've', 'khe', 'Th_i', 'Th_f']
-        # elif non_stationary == 'UE':
-        #     return ['Tg', 'Dg', 've', 'khe', 'Dkhe', 'Th', 'DTh']
+            pars = ['Tg', 'Dg', 've', 'khe', 'Th_i', 'Th_f']   
         elif non_stationary == 'UE':
-            return ['Tg', 'Dg', 've', 'khe_i', 'khe_f', 'Th_i', 'Th_f']       
-
-    if kinetics == '1I-IC-HFDU':
+            pars = ['Tg', 'Dg', 've', 'khe_i', 'khe_f', 'Th_i', 'Th_f']  
+            
+    elif kinetics == '1I-IC-HFDU':
 
         if non_stationary is None:
-            return ['Tg', 'Dg', 've', 'khe']
+            pars = ['Tg', 'Dg', 've', 'khe']
         elif non_stationary == 'U':
-            return ['Tg', 'Dg', 've', 'khe_i', 'khe_f']
+            pars = ['Tg', 'Dg', 've', 'khe_i', 'khe_f']
         
-    if kinetics == '2I-IC-HF':
+    elif kinetics == '2I-IC-HF':
 
         if non_stationary is None:
-            return ['fa', 'Ta', 've', 'khe', 'Th']
+            pars = ['fa', 'Ta', 've', 'khe', 'Th']
         elif non_stationary == 'U':
-            return ['fa', 'Ta', 've', 'khe_i', 'khe_f', 'Th']
+            pars = ['fa', 'Ta', 've', 'khe_i', 'khe_f', 'Th']
         elif non_stationary == 'E':
-            return ['fa', 'Ta', 've', 'khe', 'Th_i', 'Th_f']
+            pars = ['fa', 'Ta', 've', 'khe', 'Th_i', 'Th_f']
         elif non_stationary == 'UE':
-            return ['fa', 'Ta', 've', 'khe_i', 'khe_f', 'Th_i', 'Th_f']
+            pars = ['fa', 'Ta', 've', 'khe_i', 'khe_f', 'Th_i', 'Th_f']
         
-    if kinetics == '2I-IC':
+    elif kinetics == '2I-IC':
 
         if non_stationary is None:
-            return ['fa', 'Ta', 've', 'Fp', 'E', 'Th']
+            pars = ['fa', 'Ta', 've', 'Fp', 'E', 'Th']
         elif non_stationary == 'U':
-            return ['fa', 'Ta', 've', 'Fp', 'E_i', 'E_f', 'Th']
+            pars = ['fa', 'Ta', 've', 'Fp', 'E_i', 'E_f', 'Th']
         elif non_stationary == 'E':
-            return ['fa', 'Ta', 've', 'Fp', 'E', 'Th_i', 'Th_f']
+            pars = ['fa', 'Ta', 've', 'Fp', 'E', 'Th_i', 'Th_f']
         elif non_stationary == 'UE':
-            return ['fa', 'Ta', 've', 'Fp', 'E_i', 'E_f', 'Th_i', 'Th_f']
+            pars = ['fa', 'Ta', 've', 'Fp', 'E_i', 'E_f', 'Th_i', 'Th_f']
         
-    if kinetics == '2I-IC-U':
+    elif kinetics == '2I-IC-U':
 
         if non_stationary is None:
-            return ['fa', 'Ta', 've', 'Fp', 'E']
+            pars = ['fa', 'Ta', 've', 'Fp', 'E']
         elif non_stationary == 'U':
-            return ['fa', 'Ta', 've', 'Fp', 'E_i', 'E_f']
+            pars = ['fa', 'Ta', 've', 'Fp', 'E_i', 'E_f']
+        
+    if pars is not None:
+        return {p:PARAMS_LIVER[p] for p in pars}   
 
     raise ValueError(
         f"The model kinetics={kinetics}, non-stationary={non_stationary} "
@@ -333,43 +345,31 @@ def params_liver(kinetics='2I-EC', non_stationary=None) -> list:
     )
 
 
-def derived_params_liver(p, kinetics):
-        
-    def _div(a, b):
-        with np.errstate(divide='ignore', invalid='ignore'):
-            return np.divide(a, b)
+def derived_params_liver(p, kinetics, H=0.45):
+
+    p = copy.deepcopy(p)
         
     # Non-stationary options
-        
+
     if {'E_i', 'E_f'} <= p.keys():
         p['E'] = np.mean([p['E_i'], p['E_f']])
-        
-    if {'Th_i', 'Th_f'} <= p.keys():
-        p['Th'] = np.mean([p['Th_i'], p['Th_f']])
-
-    if {'Th', 'DTh'} <= p.keys():
-        p['Th_i'] = p['Th'] - p['DTh']/2
-        p['Th_f'] = p['Th'] + p['DTh']/2
-
-    if {'khe', 'Dkhe'} <= p.keys():
-        p['khe_i'] = p['khe'] - p['Dkhe']/2
-        p['khe_f'] = p['khe'] + p['Dkhe']/2
 
     if {'khe_i', 'khe_f'} <= p.keys():
         p['khe'] = np.mean([p['khe_i'], p['khe_f']])
 
-    if {'Ktrans_i', 'Ktrans_f'} <= p.keys():
-        p['Ktrans'] = np.mean([p['Ktrans_i'], p['Ktrans_f']])
-
+    if {'Th_i', 'Th_f'} <= p.keys():
+        p['Th'] = np.mean([p['Th_i'], p['Th_f']])
+    
     if {'Th_i', 'Th_f', 've'} <= p.keys():
-        p['kbh_i'] = _div(1 - p['ve'], p['Th_i'])
-        p['kbh_f'] = _div(1 - p['ve'], p['Th_f'])
+        vh = 1 - p['ve'] / (1 - H)
+        p['kbh_i'] = _div(vh, p['Th_i'])
+        p['kbh_f'] = _div(vh, p['Th_f'])
 
     # Dual-inlet models
 
     if {'Fp', 'fa'} <= p.keys():
         p['Fa'] = p['Fp'] * p['fa']
-        p['Fv'] = p['Fp'] * (1-p['fa'])
+        p['Fv'] = p['Fp'] * (1 - p['fa'])
 
     # Kinetic models
     
@@ -379,33 +379,40 @@ def derived_params_liver(p, kinetics):
     if kinetics == '2I-EC':
         p['Te'] = _div(p['ve'], p['Fp'])
 
-    if kinetics in ['1I-IC-HF', '1I-IC-D', '2I-IC-HF']:
-        p['Kbh'] = _div(1, p['Th'])
-
     if kinetics in ['1I-IC', '2I-IC']:
-        p['vh'] = 1 - p['ve']
         p['Ktrans'] = p['E'] * p['Fp']
         p['khe'] = _div(p['Fp'] * p['E'], 1 - p['E'])
-        p['Khe'] = _div(p['khe'], p['ve'])
-        p['kbh'] = _div(1 - p['ve'], p['Th'])
-        p['Kbh'] = _div(1, p['Th'])
         p['Te'] = _div(p['ve'], p['Fp'] + p['khe'])
+        p['Khe'] = _div(p['khe'], p['ve'])
+        p['vh'] = 1 - p['ve'] / (1 - H)
+        p['kbh'] = _div(p['vh'], p['Th']) 
+        p['Kbh'] = _div(1, p['Th'])
+        
+    if kinetics in ['1I-IC-HF', '1I-IC-D', '2I-IC-HF']:
+        p['vh'] = 1 - p['ve'] / (1 - H)
+        p['kbh'] = _div(p['vh'], p['Th']) 
+        p['Kbh'] = _div(1, p['Th'])
 
     if kinetics in ['1I-IC-HF', '2I-IC-HF', '1I-IC-HFD']:
-        p['vh'] = 1 - p['ve']
         p['Khe'] = _div(p['khe'], p['ve'])
-        p['kbh'] = _div(1 - p['ve'], p['Th'])
+        p['vh'] = 1 - p['ve'] / (1 - H)
+        p['kbh'] = _div(p['vh'], p['Th'])
         p['Kbh'] = _div(1, p['Th'])
 
     if kinetics in ['1I-IC-HFDU']:
-        p['vh'] = 1 - p['ve']
+        p['Khe'] = _div(p['khe'], p['ve'])
+        p['vh'] = 1 - p['ve'] / (1 - H)
         
     if kinetics == '2I-IC-U':
-        p['vh'] = 1 - p['ve']
+        p['vh'] = 1 - p['ve'] / (1 - H)
         p['Ktrans'] = p['E'] * p['Fp']
         p['khe'] = _div(p['Fp'] * p['E'], 1 - p['E'])
         p['Khe'] = _div(p['khe'], p['ve'])
         p['Te'] = _div(p['ve'], p['Fp'] + p['khe'])
+
+    if kinetics in ['2I-EC', '2I-IC', '2I-IC-U']:
+        p['Fa'] = p['fa'] * p['Fp']
+        p['Fv'] = (1 - p['fa']) * p['Fp']
 
     if {'khe', 'vol'} <= p.keys():
         p['CL'] = p['khe'] * p['vol']
@@ -488,7 +495,7 @@ def conc_liver(
         >>>     ve = 0.2, 
         >>>     Fp = 0.01, 
         >>>     E = 0.2, 
-        >>>     Th = 10 * 60,
+        >>>     Th = 20 * 60,
         >>> )
 
         Plot all concentrations:
@@ -603,7 +610,7 @@ def _conc_1i_ic_hf__ue(ca, t=None, dt=1.0, sum=True, **p):
 
 def _conc_1i_ic_hfd(ca, t=None, dt=1.0, sum=True, **p):
     return _conc_liver( # approx 1 - E = 1
-        ca, p['ve'], Ktrans=p['khe'], Th=p['Th'], 
+        ca, p['ve'], Ktrans=p['khe'], Th=p['Th'],
         Tg=p['Tg'], Dg=p['Dg'], t=t, dt=dt, sum=sum,
     )
 
@@ -701,9 +708,13 @@ def _conc_2i_ic_u__u(ci, t=None, dt=1.0, sum=True, **p):
     return _conc_2i_ic_u(ci, t=t, dt=dt, sum=sum, **p)
 
 
-def _interp_params(ca: np.ndarray, t: Optional[np.ndarray], dt: float, p):
+def _interp_params(ca: np.ndarray, t: Optional[np.ndarray], dt: float, p, lower_t=False):
     tarr = utils.tarray(np.size(ca), t=t, dt=dt)
-    return utils.interp(p, tarr)
+    if lower_t:
+        lower = tarr[1] - tarr[0]
+    else:
+        lower = None
+    return utils.interp(p, tarr, lower=lower)
 
 
 
@@ -751,6 +762,7 @@ def _conc_liver(
     if Tg is not None:
         if Dg is not None:
             ca = pk.flux_pfcomp(ca, Tg, Dg, t=t, dt=dt)
+            # ca = pk.flux_chain(ca, Tg, Dg, t=t, dt=dt)
         else:
             ca_prop = pk.flux_comp(ca, Tg, t=t, dt=dt)
             ca = fa * ca + (1 - fa) * ca_prop
@@ -776,68 +788,3 @@ def _conc_liver(
     else:
         return np.stack((Ce, Ch))
     
-
-# def _conc_liver_2i_ec(
-#     ca: np.ndarray,
-#     cv: np.ndarray,
-#     Ta: float,
-#     af: float,
-#     Fp: float,
-#     ve: float,
-#     t: Optional[np.ndarray] = None,
-#     dt: float = 1.0
-# ) -> np.ndarray:
-
-#     # Propagate arterial input through the arterial tree
-#     ca_propagated = pk.flux(ca, Ta, t=t, dt=dt, model='plug')
-    
-#     # Determine combined inlet concentration (arterial + venous)
-#     cp = af * ca_propagated + (1 - af) * cv
-    
-#     # Tissue concentration in the extracellular space
-#     Te = ve / Fp
-#     Ce = pk.conc_comp(Fp * cp, Te, t=t, dt=dt)
-    
-#     return Ce
-
-
-# def _conc_liver_1i_ic(
-#     ca: np.ndarray,
-#     ve_app: float,
-#     Ktrans: float,
-#     Th: float = None,
-#     Te: float = None,
-#     De: float = None,
-#     t: Optional[np.ndarray] = None,
-#     dt: float = 1.0,
-#     sum: bool = True,
-# ) -> np.ndarray:
-    
-#     # Propagate through the extracellular space
-#     if Te is None:
-#         extracellular=['pass', ()]
-#     elif De is None:
-#         if np.isscalar(Te):
-#             extracellular=['comp', (Te,)]
-#         else:
-#             extracellular=['nscomp', (Te,)]
-#     else:
-#         extracellular=['pfcomp', (Te, De)]
-#     ca_prop = pk.flux(ca, *extracellular[1], t=t, dt=dt, model=extracellular[0])
-    
-#     # Tissue concentration in the extracellular space
-#     Ce = ve_app * ca_prop
-    
-#     # Tissue concentration in the hepatocytes
-#     if Th is None:
-#         hepatocytes = ["trap", ()]
-#     elif np.isscalar(Th):
-#         hepatocytes = ["comp", (Th,)]
-#     else:
-#         hepatocytes = ["nscomp", (Th,)]
-#     Ch = pk.conc(Ktrans * ca_prop, *hepatocytes[1], t=t, dt=dt, model=hepatocytes[0])
-    
-#     if sum:
-#         return Ce + Ch
-#     else:
-#         return np.stack((Ce, Ch))

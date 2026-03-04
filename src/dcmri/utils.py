@@ -9,16 +9,19 @@ from scipy.integrate import trapezoid
 
 
 
-def interp(y, x, pos=False, floor=False) -> np.ndarray:
+
+def interp(y, x, pos=False, floor=False, lower=None, upper=None) -> np.ndarray:
     """Interpolate uniformly sampled data. 
 
     This function is a convenience wrapper for standard interpolation, used in dcmri for instance to parametrize non-stationat models.
 
     Args:
         y (array-like): List of values to interpolate. These are assumed to be uniformly distributed over x.
-        x (array-like): Interpolate y at these locations.
+        x (array-like): Interpolate y at these locations. 
         pos (bool, optional): return only positive values. Defaults to False.
         floor (bool, optional): Return only results higher than the lowest value in y. Defaults to False.
+        lower (float, optional): Lower bound for interpolation. If provided, values below this will be set to lower. Defaults to None.
+        upper (float, optional): Upper bound for interpolation. If provided, values above this will be set to upper. Defaults to None.
 
     Returns:
         np.ndarray: array of the same length as x, containing the values of y interpolated on x.
@@ -50,6 +53,10 @@ def interp(y, x, pos=False, floor=False) -> np.ndarray:
     if floor:
         y0 = np.amin(y)
         yi[yi < y0] = y0
+    if lower is not None:
+        yi[yi < lower] = lower
+    if upper is not None:
+        yi[yi > upper] = upper
     return yi
 
 
@@ -361,7 +368,7 @@ def stepconv(f, T, D, t=None, dt=1.0):
     return g/(2*TW)
 
 
-def expconv(f, T, t=None, dt=1.0):
+def expconv(f, T, t=None, dt=1.0, tol=0):
     """Convolve a 1D-array with a normalised exponential.
 
     This function returns the convolution :math:`f(t)\\otimes\\exp(-t/T)/T` using an efficient and accurate numerical formula, as detailed in the appendix of `Flouri et al (2016) <https://onlinelibrary.wiley.com/doi/full/10.1002/mrm.25991>`_ 
@@ -422,7 +429,21 @@ def expconv(f, T, t=None, dt=1.0):
     f = np.array(f)
     n = len(f)
     t = tarray(n, t=t, dt=dt)
-    x = (t[1:n] - t[0:n-1])/T
+    x = (t[1:n] - t[0:n-1])/T 
+    if 1/x.min() < tol: # very small T
+        return f
+    if t.max() / T < tol: # very large T
+        # Large T - exponential is linear over the interval
+        # g(t) = (1/T) * int_0^t du f(u) exp(-(t-u)/T)
+        # g(t) = (1/T) * int_0^t du f(u) (1 - (t-u)/T)
+        # g(t) = (1/T) * int_0^t du f(u) - (1/T^2) * int_0^t du f(u) (t-u)
+        # g(t) = (1/T) * int_0^t du f(u) - (1/T^2) * int_0^t du f(u) t + (1/T^2) * int_0^t du f(u) u
+        # g(t) = (1/T) * int_0^t du f(u) - (t/T^2) * int_0^t du f(u) + (1/T^2) * int_0^t du f(u) u
+        # g(t) = (1/T)[1 - (t/T)] * int_0^t du f(u) + (1/T^2) * int_0^t du f(u) u
+        # Tg = [1 - (t/T)] * int_0^t du f(u) + (1/T) * int_0^t du f(u) u 
+        f0 = trapz(f, t=t, dt=dt)
+        f1 = trapz(f*t, t=t, dt=dt)
+        return f0 / T + (f1 - t * f0) / T**2
     df = (f[1:n] - f[0:n-1])/x
     E = np.exp(-x)
     E0 = 1-E
@@ -432,6 +453,8 @@ def expconv(f, T, t=None, dt=1.0):
     for i in range(0, n-1):
         g[i+1] = E[i]*g[i] + add[i]
     return g
+
+
 
 
 def biexpconv(T1, T2, t):
@@ -570,6 +593,13 @@ def sample(t, tp, Sp, dt=None) -> np.ndarray:
     Returns:
         np.ndarray: Signals sampled at times t.
     """
+    tmax = max(t)
+    tpmax = max(tp)
+    if tpmax < tmax:
+        raise ValueError(
+            f"Cannot sample until time {tmax}. "
+            f"The largest time point that can be sampled is {tpmax}."  
+        )
     if dt is None:
         return np.interp(t, tp, Sp, left=0, right=0)
     if dt == 0:
@@ -606,3 +636,184 @@ def add_noise(signal, sdev: float) -> np.ndarray:
     noise_y = np.random.normal(0, sdev, np.size(signal))
     signal = np.sqrt((signal+noise_x)**2 + noise_y**2)
     return signal
+
+
+def loss(ypred, ydata, metric='NRMS', nfree=None) -> float:
+    """_summary_
+
+    Args:
+        ypred (array): predictions
+        ydata (array): data
+        metric (str, optional): either RMS (Root-mean-square), 
+            NRMS (normalised RMS), AIC (Akaike Information Criterion), 
+            cAIC (corrected AIC) or BIC (Bayesian Information Criterion). 
+            Defaults to 'NRMS'.
+        nfree (float, optional): Number of free parameters (required for 
+            AIC, cAIC and BIC). Defaults to None.
+
+    Raises:
+        ValueError: raised if nfree=None for loss functions that require it
+
+    Returns:
+        float: loss value
+    """
+    if metric == 'RMS':
+        loss = np.linalg.norm(ypred - ydata, axis=-1)
+    elif metric == 'NRMS':
+        ynorm = np.linalg.norm(ydata, axis=-1)
+        yerr = np.linalg.norm(ypred - ydata, axis=-1)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            loss = 100*yerr/ynorm
+    elif metric == 'AIC':
+        rss = np.sum((ypred-ydata)**2, axis=-1)
+        n = ydata.shape[-1]
+        if nfree is None:
+            raise ValueError('Please specify the number of free parameters.')
+        with np.errstate(divide='ignore'):
+            loss = nfree*2 + n*np.log(rss/n)
+    elif metric == 'cAIC':
+        rss = np.sum((ypred-ydata)**2)
+        n = ydata.shape[-1]
+        if nfree is None:
+            raise ValueError('Please specify the number of free parameters.')
+        with np.errstate(divide='ignore'):
+            loss = nfree*2 + n*np.log(rss/n) + 2*nfree*(nfree+1)/(n-nfree-1)
+    elif metric == 'BIC':
+        rss = np.sum((ypred-ydata)**2, axis=-1)
+        n = ydata.shape[-1]
+        if nfree is None:
+            raise ValueError('Please specify the number of free parameters.')
+        with np.errstate(divide='ignore'):
+            loss = nfree*np.log(n) + n*np.log(rss/n)
+    return loss
+
+
+# def transfer_rate(y, x, bounds=(-np.inf, np.inf)) -> np.ndarray:
+#     """Return a time-varying transfer rate k(t) defined by 
+
+#     .. math::
+
+#         k(x) = k_i \frac{1 + r * (x-x_0)}{1 + h * (x-x_0)}
+
+#     given :math:`k_i` and the values :math:`k_m, k_f` at the middle 
+#     and the end of the x-interval, respectively. The function derives 
+#     the values for r and h.
+        
+#     Args:
+#         y (array): 3-element array with values :math:`k_i, k_m, k_f`.
+#         x (array: x-values where the function is to be defined
+#         bounds (tuple, optional): Lower and upper bounds for the result. 
+#           The function is clipped to this range. Defaults to (-np.inf, np.inf).
+
+#     Returns:
+#         np.ndarray: k(x)
+#     """
+#     # Linear diurnal variation and MM-effect of drug concentration:
+
+#     # k(t) = k0 * (1 + r * t) / (1 + c(t) / cm)              -- with cm > 0 and 1 + r * t > 0
+
+#     # Linear variation in drug concentration:
+
+#     # k(t) = k0 * (1 + r * t) / (1 + (c0 + s * t) / cm)      -- with c0 + s * t > 0 and c0 > 0
+
+#     # Simplify:
+
+#     # k(t) = k0 * (1 + r * t) / (1 + c0 / cm + (s / cm) * t)
+#     # k(t) = [k0 / (1 + c0 / cm)] * (1 + r * t) / (1 + [ (s / cm) / (1 + c0 / cm )] * t)
+
+#     # Model:
+
+#     # k(t) = ki * (1 + r * t) / (1 + h * t)
+
+#     # r quantifies diurnal variation, h=drug dependence
+
+#     # khe: r!=0, h=?
+#     # kbh: r==0, h=?
+
+#     # baseline: h=0, kbh: r=0; khe  r != 0
+#     # drug visit 
+
+#     # # reparameterize with km (mid) and kf (end)
+
+#     # km = ki * (1 + r * tm) / (1 + h * tm)
+#     # kf = ki * (1 + r * tf) / (1 + h * tf)
+
+#     # solve for h, r:
+
+#     # km * (1 + h * tm) = ki * (1 + r * tm)
+#     # kf * (1 + h * tf) = ki * (1 + r * tf)
+
+#     # km + h * km * tm = ki + r * ki * tm
+#     # kf + h * kf * tf = ki + r * ki * tf
+
+#     # km - ki = r * ki * tm - h * km * tm
+#     # kf - ki = r * ki * tf - h * kf * tf
+
+#     # km - ki       ki * tm    - km * tm       r
+#     #           =
+#     # kf - ki       ki * tf    - kf * tf       h
+
+#     # det = - ki * tm * kf * tf + ki * tf * km * tm 
+#     # = (- kf + km) * tm * tf * ki = 0
+#     # iff
+#     # km = kf
+
+#     # First consider the case km=kf:
+
+#     # kf - ki = r * ki * tm - h * kf * tm
+#     # kf - ki = r * ki * tf - h * kf * tf
+
+#     # From the 1st:
+
+#     # h = (r * ki * tm - kf + ki) / (kf * tm)
+
+#     # Insert in the 2nd:
+
+#     # kf - ki = (kf - ki) * tf / tm
+
+#     # Since tf != tm this is only possible if kf=ki, ie. the constant solution
+
+#     # If km=kf => r=0 and h=0
+#     # else invert the matrix
+
+#     #y = [ki, km, kf]
+
+#     ki, km, kf = y[0], y[1], y[2]
+    
+#     tf = 1
+#     tm = 0.5
+
+#     if y[1] == y[2]:
+#         r = 0
+#         h = 0
+#     else:
+#         mat = np.array([[ki * tf, - kf * tf], [ki * tm, - km * tm]])
+#         Y = np.array([kf - ki, km - ki])
+#         X = np.linalg.inv(mat).dot(Y)
+#         r = X[0]
+#         h = X[1]
+
+#     t  =x-x[0]
+#     kt = ki * (1 + r * t) / (1 + h * t)
+
+#     kt[kt < bounds[0]] = bounds[0]
+#     kt[kt > bounds[1]] = bounds[1]
+
+#     return kt
+
+
+# if __name__=='__main__':
+
+#     import matplotlib.pyplot as plt
+
+#     y = [1, 2, 1]
+#     t = np.linspace(0,1,100)
+#     # k = transfer_rate(y, t, bounds=(-np.inf, np.inf))
+#     r, h = -100, -10
+#     k = y[0] * (1 + r * t) / (1 + h * t)
+
+#     plt.plot(t, k)
+#     plt.show()
+    
+
+#     #print(k)
