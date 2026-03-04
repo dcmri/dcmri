@@ -27,6 +27,10 @@ def test_ui_liver_bootstrap():
     liver.plot(time, signal, show=SHOW)
     assert liver.cost(time, signal) < 1e-6
 
+    liver = dc.Liver(kinetics='1I-EC')
+    time, ca, cv = liver.input()
+    assert cv is None
+
 
 def test_ui_liver():
 
@@ -49,6 +53,12 @@ def test_ui_liver():
     model.train(time, roi, aif, vif, n0=10)
     model.plot(time, roi, ref=gt, show=SHOW)
     assert model.cost(time, roi) < 0.1
+
+    model.train(time, roi, aif, vif, n0=10, bounds={'ve': [0,1]})
+    try:
+        model.train(time, roi, aif, vif, n0=10, bounds={'XX': [0,1]})
+    except ValueError:
+        pass
 
 
     # Show single-inlet model
@@ -207,7 +217,7 @@ def test_coverage_gaps():
 
     # 2. Trigger Upper Bound Error in train()
     # Initial 've' is 0.3, setting upper bound to 0.1
-    model = dc.Liver(t=time)
+    model = dc.Liver()
     try:
         model.train(time, signal, free={'ve': [0.0, 0.1]})
     except ValueError as e:
@@ -227,25 +237,32 @@ def test_coverage_gaps():
         assert "Version mismatch" in str(e)
     if os.path.exists(filename): os.remove(filename)
 
+    # 4. Trigger curve_fit ValueError 
+    # This failes because time and ca have different sizes
+    model_fail = dc.Liver(t=time)
+    try:
+        model_fail.train(time, signal)
+    except ValueError:
+        pass
+
     # 4. Trigger curve_fit RuntimeError (The 'except RuntimeError' block)
     # We provide data that is impossible to fit or nonsensical to force a failure
-    model_fail = dc.Liver(t=time)
-    # Passing an empty signal or incompatible shapes usually forces runtime issues
+    model_fail = dc.Liver()
     with warnings.catch_warnings(record=True) as w:
         # Force curve_fit to fail by using max_nfev=1
-        model_fail.train(time, signal, max_nfev=1)
+        model_fail.train(time, 0*signal - 1, max_nfev=1)
         assert len(w) > 0
         assert "Curve fit failed" in str(w[-1].message)
 
     # 5. Test SR paths for AIF and VIF estimation
     # This hits the 'elif self._sequence == 'SR'' blocks in _estimate_parameters
-    model_sr = dc.Liver(kinetics='2I-EC', sequence='SR', t=time)
+    model_sr = dc.Liver(kinetics='2I-EC', sequence='SR')
     # Providing aif and vif as signals (nparrays) triggers the estimation logic
     model_sr.train(time, signal, aif=signal, vif=signal, n0=2)
     
     # 6. Test Sref <= 0 branch
     # Manually force FA to 0 to make signal 0
-    model_zero = dc.Liver(t=time, FA=0)
+    model_zero = dc.Liver(FA=0)
     model_zero.train(time, signal, n0=2)
     assert model_zero._pars['S0'] == 0
 

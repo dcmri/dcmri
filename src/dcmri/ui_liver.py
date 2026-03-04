@@ -29,15 +29,6 @@ class Liver:
           For more detail see :ref:`liver-tissues`. Defaults to None.
         sequence (str, optional): imaging sequence. Possible values are 'SS'
           and 'SR'. Defaults to 'SS'.
-        t (array-like, optional): Time points of the arterial input function.
-          If *t* is not provided, the temporal sampling is uniform with
-          interval *dt*. Defaults to None.
-        ca (array-like, optional): Blood concentration in the arterial
-          input. *ca* is ignored if *aif* is provided, but is required
-          otherwise. Defaults to None.
-        cv (array-like, optional): Blood concentration in the portal venous
-          input. *cv* is ignored if *vif* is provided, but is required
-          otherwise. Defaults to None.
         free (dict, optional): Dictionary with free parameters and their
           bounds. If not provided, a default set of free parameters is used.
           Defaults to None.
@@ -284,15 +275,11 @@ class Liver:
               - Free
 
     """
-
     def __init__(
         self,
         kinetics: str = '2I-EC',
         non_stationary: Optional[str] = None,
         sequence: str = 'SS',
-        t: Optional[np.ndarray] = None,
-        ca: Optional[np.ndarray] = None,
-        cv: Optional[np.ndarray] = None,
         **params,
     ):
         """Initializes the Liver model with configuration and parameters."""
@@ -319,9 +306,9 @@ class Liver:
         pars_list = ['H', 'field_strength', 'agent', 'R10a', 'B1corr_a', 'R10', 'vol']
         pars_list += liver.params_liver(self._kinetics, self._non_stationary)
         pars_list += pars_sequence[self._sequence]
-        
+        pars_list += ['t', 'ca']
         if self._kinetics.startswith('2'):
-            pars_list += ['R10v', 'B1corr_v']
+            pars_list += ['R10v', 'B1corr_v', 'cv']
 
         # Initialize parameters
         defaults = PARAMS | liver.PARAMS_LIVER
@@ -334,17 +321,6 @@ class Liver:
             else:
                 raise ValueError(f"{p} is not a valid parameter for this config.")
 
-        # Initialize data variables
-        if t is None:
-            t = np.arange(120, dtype=float)
-        if ca is None:
-            ca = pk_aorta.aif_tristan(t, agent='gadoxetate', BAT=20)
-        if cv is None and self._kinetics.startswith('2'):
-            cv = pk.flux_pfcomp(ca, 10, 0.5)
-
-        self._t = t # TODO: Food these into pars
-        self._ca = ca
-        self._cv = cv
         self._free = None
         self._pcov = None
 
@@ -353,14 +329,14 @@ class Liver:
     def _compute_concentration(self):
         """Calculates internal liver concentrations."""
         hct = self._pars['H']
-        ca_plasma = self._ca / (1 - hct)
-        ci = ca_plasma if self._cv is None else (ca_plasma, self._cv / (1 - hct))
+        ca_plasma = self._pars['ca'] / (1 - hct)
+        ci = (ca_plasma, self._pars['cv'] / (1 - hct)) if 'cv' in self._pars else ca_plasma
         
         pars_keys = liver.params_liver(self._kinetics, self._non_stationary)
         pars = {p: self._pars[p] for p in pars_keys}
         
         self._Cl = liver.conc_liver(
-            ci, t=self._t, kinetics=self._kinetics,
+            ci, t=self._pars['t'], kinetics=self._kinetics,
             non_stationary=self._non_stationary, sum=False, **pars,
         )
 
@@ -393,40 +369,43 @@ class Liver:
     def _predict(self, time: np.ndarray) -> np.ndarray:
         """Internal prediction logic."""
         self._compute_signal()
-        return utils.sample(time, self._t, self._Sl, self._pars['TS'])
+        return utils.sample(time, self._pars['t'], self._Sl, self._pars['TS'])
 
     # ---- Public API ----
 
     def input(self) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
         """Returns the input functions (time, arterial, venous)."""
-        return self._t, self._ca, self._cv
-
+        if 'cv' in self._pars:
+            return self._pars['t'], self._pars['ca'], self._pars['cv']
+        else:
+            return self._pars['t'], self._pars['ca'], None
+        
     def conc(self) -> Tuple[np.ndarray, np.ndarray]:
         """Returns time points and liver concentrations."""
         self._compute_concentration()
-        return self._t, self._Cl
+        return self._pars['t'], self._Cl
 
     def relax(self) -> Tuple[np.ndarray, np.ndarray]:
         """Returns time points and liver relaxation rates (R1)."""
         self._compute_relaxation_rate()
-        return self._t, self._R1l
+        return self._pars['t'], self._R1l
 
     def signal(self) -> Tuple[np.ndarray, np.ndarray]:
         """Returns time points and predicted liver signal."""
         self._compute_signal()
-        return self._t, self._Sl
+        return self._pars['t'], self._Sl
 
     def predict(self, time: np.ndarray) -> np.ndarray:
         """Predicts liver signal at specific time points."""
-        if np.amax(time) > np.amax(self._t):
+        if np.amax(time) > np.amax(self._pars['t']):
             raise ValueError(
-                f"Acquisition window exceeds AIF duration. Max: {np.amax(self._t)/60:.2f} min."
+                f"Acquisition window exceeds AIF duration. Max: {np.amax(self._pars['t'])/60:.2f} min."
             )
         return self._predict(time)
     
     # ---- Inverse model API ----
 
-    def train(self, time, signal, aif=None, vif=None, n0=1, free=None, **kwargs):
+    def train(self, time, signal, aif=None, vif=None, n0=1, free=None, bounds:dict=None, **kwargs):
         """Train the free parameters
 
         Args:
@@ -438,6 +417,7 @@ class Liver:
             free (dict, optional): Dictionary with free parameters and their
               bounds. If not provided, a default set of free parameters is used.
               Defaults to None.
+            bounds (dict, optional): Override default bounds for specific parameters.
             kwargs: any keyword parameters accepted by 
               `scipy.optimize.curve_fit`, except for bounds.
 
@@ -450,12 +430,18 @@ class Liver:
             free_pars = liver.params_liver(self._kinetics, self._non_stationary)
             free = {p: defaults[p]['bounds'] for p in free_pars}
 
+            if bounds is not None:
+                for p, b in bounds.items():
+                    if p not in free:
+                        raise ValueError(f"'{p}' is not a free parameter. Use 'free' to define it.")
+                    free[p] = b
+
         # Parameter boundary validation
-        for p, bounds in free.items():
+        for p, bnds in free.items():
             if p not in self._pars:
                 raise ValueError(f"{p} is not a valid free parameter.")
-            if not (bounds[0] <= self._pars[p] <= bounds[1]):
-                raise ValueError(f"Initial value for {p} ({self._pars[p]}) is out of bounds {bounds}.")
+            if not (bnds[0] <= self._pars[p] <= bnds[1]):
+                raise ValueError(f"Initial value for {p} ({self._pars[p]}) is out of bounds {bnds}.")
 
         self._free = free
         self._estimate_parameters(time, signal, aif, vif, n0)
@@ -469,21 +455,21 @@ class Liver:
 
         # Arterial concentration estimation
         if aif is not None:
-            self._t = time
+            self._pars['t'] = time
             if self._sequence == 'SR':
-                self._ca = sig.conc_src(aif, self._pars['TC'], 1/self._pars['R10a'], r1, n0)
+                self._pars['ca'] = sig.conc_src(aif, self._pars['TC'], 1/self._pars['R10a'], r1, n0)
             elif self._sequence == 'SS':
                 fa_a = self._pars['B1corr_a'] * self._pars['FA']
-                self._ca = sig.conc_ss(aif, self._pars['TR'], fa_a, 1/self._pars['R10a'], r1, n0)
+                self._pars['ca'] = sig.conc_ss(aif, self._pars['TR'], fa_a, 1/self._pars['R10a'], r1, n0)
 
         # Venous concentration estimation
         if vif is not None:
-            self._t = time
+            self._pars['t'] = time
             if self._sequence == 'SR':
-                self._cv = sig.conc_src(vif, self._pars['TC'], 1/self._pars['R10v'], r1, n0)
+                self._pars['cv'] = sig.conc_src(vif, self._pars['TC'], 1/self._pars['R10v'], r1, n0)
             elif self._sequence == 'SS':
                 fa_v = self._pars['B1corr_v'] * self._pars['FA']
-                self._cv = sig.conc_ss(vif, self._pars['TR'], fa_v, 1/self._pars['R10v'], r1, n0)
+                self._pars['cv'] = sig.conc_ss(vif, self._pars['TR'], fa_v, 1/self._pars['R10v'], r1, n0)
 
         # Estimate liver S0
         fa_t = self._pars['B1corr'] * self._pars['FA']
@@ -501,16 +487,20 @@ class Liver:
         if not file.endswith('.json'):
             file += '.json'
 
+        # Convert arrays to lists
+        export_pars = deepcopy(self._pars)
+        export_pars['t'] = self._pars['t'].tolist()
+        export_pars['ca'] = self._pars['ca'].tolist()
+        if 'cv' in self._pars:
+            export_pars['cv'] = self._pars['cv'].tolist()
+
         state = {
             'model': self.__class__.__name__,
             'version': self._version,
             'kinetics': self._kinetics,
             'non_stationary': self._non_stationary,
             'sequence': self._sequence,
-            't': self._t.tolist(),
-            'ca': self._ca.tolist(),
-            'cv': self._cv.tolist() if self._cv is not None else None,
-            'pars': self._pars,
+            'pars': export_pars,
             'free': self._free,
             'pcov': self._pcov,
         }
@@ -534,10 +524,14 @@ class Liver:
         self._sequence = data['sequence']
         self._pars = data['pars']
         self._free = data['free']
-        self._t = np.array(data['t'])
-        self._ca = np.array(data['ca'])
-        self._cv = np.array(data['cv']) if data['cv'] is not None else None
         self._pcov = data['pcov']
+
+        # Convert lists to arrays
+        self._pars['t'] = np.array(self._pars['t'])
+        self._pars['ca'] = np.array(self._pars['ca'])
+        if 'cv' in self._pars:
+            self._pars['cv'] = np.array(self._pars['cv'])
+
         return self
 
     def export_params(self) -> Dict[str, list]:
@@ -603,7 +597,7 @@ class Liver:
         # Signals Plot
         ax0.set_title('MRI Signal Prediction')
         ax0.plot(time/60, signal, 'o', color='cornflowerblue', label='Data')
-        ax0.plot(self._t/60, self._Sl, '-', linewidth=3, color='darkblue', label='Prediction')
+        ax0.plot(self._pars['t']/60, self._Sl, '-', linewidth=3, color='darkblue', label='Prediction')
         ax0.set(xlabel='Time (min)', ylabel='Signal (a.u.)', xlim=np.array(xlim)/60)
         ax0.legend()
 
@@ -614,11 +608,11 @@ class Liver:
             ax1.plot(ref['t']/60, 1000*ref['cb'], 'o', color='lightcoral', label='Arterial GT')
         
         cl_total = self._Cl if self._Cl.ndim == 1 else self._Cl.sum(axis=0)
-        ax1.plot(self._t/60, 1000*cl_total, '-', linewidth=3, color='darkblue', label='Tissue Pred')
-        ax1.plot(self._t/60, 1000*self._ca, '-', linewidth=3, color='darkred', label='Arterial Pred')
+        ax1.plot(self._pars['t']/60, 1000*cl_total, '-', linewidth=3, color='darkblue', label='Tissue Pred')
+        ax1.plot(self._pars['t']/60, 1000*self._pars['ca'], '-', linewidth=3, color='darkred', label='Arterial Pred')
         
-        if self._cv is not None:
-            ax1.plot(self._t/60, 1000*self._cv, '-', linewidth=3, color='purple', label='Venous Pred')
+        if 'cv' in self._pars:
+            ax1.plot(self._pars['t']/60, 1000*self._pars['cv'], '-', linewidth=3, color='purple', label='Venous Pred')
 
         ax1.set(xlabel='Time (min)', ylabel='Conc (mM)', xlim=np.array(xlim)/60)
         ax1.legend()
@@ -649,6 +643,8 @@ def _train(predict, xdata, ydata, pars, free, **kwargs):
     except RuntimeError as e:
         warnings.warn(f"Curve fit failed: {e}. Using initial values.")
         fitted_pars, pcov = p0, None
+    except ValueError as e:
+        raise
 
     _update_original_pars(pars, fitted_pars, free)
     return pcov
@@ -669,7 +665,14 @@ def _update_original_pars(original_pars, normalized_pars, free):
 
 # ---- Constants ----
 
+t_init = np.arange(120, dtype=float)
+ca_init = pk_aorta.aif_tristan(t_init, agent='gadoxetate', BAT=20)
+cv_init = pk.flux_pfcomp(ca_init, 10, 0.5)
+
 PARAMS = {
+    't': {'init': t_init, 'bounds': None, 'name': 'Time', 'unit': 'sec'},
+    'ca': {'init': ca_init, 'bounds': None, 'name': 'Arterial blood concentration', 'unit': 'M'},
+    'cv': {'init': cv_init, 'bounds': None, 'name': 'Portal venous blood concentration', 'unit': 'M'},
     'field_strength': {'init': 3.0, 'bounds': [0, 1e9], 'name': 'Field strength', 'unit': 'T'},
     'agent': {'init': 'gadoxetate', 'bounds': None, 'name': 'Contrast agent', 'unit': None},
     'R10a': {'init': 0.7, 'bounds': [0, 1e9], 'name': 'Arterial R10', 'unit': 'Hz'},

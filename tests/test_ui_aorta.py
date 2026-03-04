@@ -51,6 +51,12 @@ def test_ui_aorta():
     assert np.linalg.norm(aif-rec_aif) < 0.1*np.linalg.norm(aif)
     assert np.abs(rec['BAT'][1]-truth['BAT']) < 0.2*truth['BAT']
 
+    aorta.train(time, aif, bounds={'BAT': [0,180]}, xtol=1e-3)
+    try:
+        aorta.train(time, aif, bounds={'XX': [0,180]}, xtol=1e-3)
+    except ValueError:
+        pass
+
 def test_aorta_configs_and_sequences():
     """Triggers different organ models and sequence math branches."""
     time = np.linspace(0, 60, 20)

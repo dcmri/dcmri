@@ -346,8 +346,22 @@ class Aorta:
             self._pars['tmax'] += self._pars['TS']
         return self._predict(time)
 
-    def train(self, time, signal, free=None, **kwargs):
-        """Trains the model to fit provided signal data."""
+    def train(self, time, signal, free=None, bounds:dict=None, **kwargs):
+        """Train the free parameters
+
+        Args:
+            time (array-like): Array with time points
+            signal (array-like): Array with signal values
+            free (dict, optional): Dictionary with free parameters and their
+              bounds. If not provided, a default set of free parameters is used.
+              Defaults to None.
+            bounds (dict, optional): Override default bounds for specific parameters.
+            kwargs: any keyword parameters accepted by 
+              `scipy.optimize.curve_fit`, except for bounds.
+
+        Returns:
+            Liver: A reference to the model instance.
+        """
         if free is None:
             # Determine defaults based on config
             free_pars_organs = {'comp': [], '2cxm': ['Toe', 'Eo']}
@@ -360,15 +374,21 @@ class Aorta:
             # Map names to their global PARAMS bounds
             free = {p: PARAMS[p]['bounds'] for p in base_free}
 
+            if bounds is not None:
+                for p, b in bounds.items():
+                    if p not in free:
+                        raise ValueError(f"'{p}' is not a free parameter. Use 'free' to define it.")
+                    free[p] = b
+
         # Validate Free Parameters
         if self._sequence == 'SSI' and 'S0' not in free:
             raise ValueError("For SSI sequence, 'S0' must be a free parameter.")
 
-        for p, bounds in free.items():
+        for p, bnds in free.items():
             if p not in self._pars:
                 raise ValueError(f"'{p}' is not a valid parameter for this configuration.")
-            if bounds[0] > self._pars[p] or bounds[1] < self._pars[p]:
-                raise ValueError(f"Initial value for '{p}' ({self._pars[p]}) is out of bounds {bounds}.")
+            if bnds[0] > self._pars[p] or bnds[1] < self._pars[p]:
+                raise ValueError(f"Initial value for '{p}' ({self._pars[p]}) is out of bounds {bnds}.")
 
         self._free = free
         self._estimate_parameters(time, signal)
