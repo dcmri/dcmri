@@ -1,12 +1,53 @@
 import math
-
+import warnings
 
 import numpy as np
 from scipy.special import gamma
 from scipy.interpolate import CubicSpline
 from scipy.integrate import trapezoid
+from scipy.optimize import curve_fit
 
 
+def train(predict, time, signal, pars, free, **kwargs):
+    """Internal optimization logic using normalized parameter values."""
+
+    if free == {}:
+        return 
+    
+    if isinstance(signal, tuple):
+        signal = np.concatenate(signal)
+
+    p0 = _compute_normalized_pars(pars, free)
+
+    def predict_normalized(_, *normalized_pars):
+        _update_original_pars(pars, normalized_pars, free)
+        ypred = predict(time)
+        return np.concatenate(ypred) if isinstance(ypred, tuple) else ypred
+
+    try:
+        fitted_pars, pcov = curve_fit(
+            predict_normalized, None, signal, p0, bounds=(0, 1), **kwargs
+        )
+        pcov = pcov.tolist()
+    except RuntimeError as e:
+        warnings.warn(f"Curve fit failed: {e}. Using initial values.")
+        fitted_pars, pcov = p0, None
+
+    _update_original_pars(pars, fitted_pars, free)
+    return pcov
+
+def normalize(v, bounds):
+    return (v - bounds[0]) / (bounds[1] - bounds[0])
+
+def renormalize(v, bounds):
+    return v * (bounds[1] - bounds[0]) + bounds[0]
+
+def _compute_normalized_pars(original_pars, free_pars):
+    return [normalize(original_pars[p], free_pars[p]) for p in free_pars]
+
+def _update_original_pars(original_pars, normalized_pars, free):
+    for i, p in enumerate(free):
+        original_pars[p] = renormalize(normalized_pars[i], free[p])
 
 
 

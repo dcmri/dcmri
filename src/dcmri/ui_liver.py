@@ -330,13 +330,13 @@ class Liver:
         """Calculates internal liver concentrations."""
         hct = self._pars['H']
         ca_plasma = self._pars['ca'] / (1 - hct)
-        ci = (ca_plasma, self._pars['cv'] / (1 - hct)) if 'cv' in self._pars else ca_plasma
+        c_plasma = (ca_plasma, self._pars['cv'] / (1 - hct)) if 'cv' in self._pars else ca_plasma
         
         pars_keys = liver.params_liver(self._kinetics, self._non_stationary)
         pars = {p: self._pars[p] for p in pars_keys}
         
         self._Cl = liver.conc_liver(
-            ci, t=self._pars['t'], kinetics=self._kinetics,
+            c_plasma, t=self._pars['t'], kinetics=self._kinetics,
             non_stationary=self._non_stationary, sum=False, **pars,
         )
 
@@ -366,8 +366,8 @@ class Liver:
                 self._pars['S0'], self._R1l, self._pars['TR'], fa_corr
             )
 
-    def _predict(self, time: np.ndarray) -> np.ndarray:
-        """Internal prediction logic."""
+    def _predict(self, time):
+        """Predict data at specific time points."""
         self._compute_signal()
         return utils.sample(time, self._pars['t'], self._Sl, self._pars['TS'])
 
@@ -445,7 +445,7 @@ class Liver:
 
         self._free = free
         self._estimate_parameters(time, signal, aif, vif, n0)
-        self._pcov = _train(self.predict, time, signal, self._pars, self._free, **kwargs)
+        self._pcov = utils.train(self.predict, time, signal, self._pars, self._free, **kwargs)
 
         return self
     
@@ -547,7 +547,7 @@ class Liver:
         # Add standard deviation
         if self._pcov is not None:
             for i, p in enumerate(self._free.keys()):
-                sdev = _renormalize(np.sqrt(np.array(self._pcov)[i, i]), self._free[p])
+                sdev = utils.renormalize(np.sqrt(np.array(self._pcov)[i, i]), self._free[p])
                 if p in exported:
                     exported[p][-1] = sdev
         return exported
@@ -623,44 +623,6 @@ class Liver:
             plt.show()
         else:
             plt.close()
-
-
-# ---- Helper Functions ----
-
-
-def _train(predict, xdata, ydata, pars, free, **kwargs):
-    p0 = _compute_normalized_pars(pars, free)
-
-    def predict_normalized(_, *normalized_pars):
-        _update_original_pars(pars, normalized_pars, free)
-        return predict(xdata)
-    
-    try:
-        fitted_pars, pcov = curve_fit(
-            predict_normalized, None, ydata, p0, bounds=(0, 1), **kwargs
-        )
-        pcov = pcov.tolist()
-    except RuntimeError as e:
-        warnings.warn(f"Curve fit failed: {e}. Using initial values.")
-        fitted_pars, pcov = p0, None
-    except ValueError as e:
-        raise
-
-    _update_original_pars(pars, fitted_pars, free)
-    return pcov
-
-def _normalize(v, bounds):
-    return (v - bounds[0]) / (bounds[1] - bounds[0])
-
-def _renormalize(v, bounds):
-    return v * (bounds[1] - bounds[0]) + bounds[0]
-
-def _compute_normalized_pars(original_pars, free_pars):
-    return [_normalize(original_pars[p], free_pars[p]) for p in free_pars]
-
-def _update_original_pars(original_pars, normalized_pars, free):
-    for i, p in enumerate(free):
-        original_pars[p] = _renormalize(normalized_pars[i], free[p])
 
 
 # ---- Constants ----

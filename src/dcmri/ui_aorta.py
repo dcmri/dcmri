@@ -392,7 +392,7 @@ class Aorta:
 
         self._free = free
         self._estimate_parameters(time, signal)
-        self._pcov = _train(self.predict, time, signal, self._pars, self._free, **kwargs)
+        self._pcov = utils.train(self.predict, time, signal, self._pars, self._free, **kwargs)
 
         return self
 
@@ -460,7 +460,7 @@ class Aorta:
         # Add standard deviation
         if self._pcov is not None:
             for i, p in enumerate(self._free.keys()):
-                sdev = _renormalize(np.sqrt(np.array(self._pcov)[i, i]), self._free[p])
+                sdev = utils.renormalize(np.sqrt(np.array(self._pcov)[i, i]), self._free[p])
                 if p in exported:
                     exported[p][-1] = sdev
         return exported
@@ -556,41 +556,6 @@ class Aorta:
         if fname: plt.savefig(fname)
         if show: plt.show()
         else: plt.close()
-
-# ---- Helper Functions ----
-
-def _train(predict, xdata, ydata, pars, free, **kwargs):
-
-    p0 = _compute_normalized_pars(pars, free)
-
-    def predict_normalized(xdata, *normalized_pars):
-        _update_original_pars(pars, normalized_pars, free)
-        return predict(xdata)
-
-    try:
-        fitted_pars, pcov = curve_fit(
-            predict_normalized, xdata, ydata, p0, bounds=(0, 1), **kwargs
-        )
-        pcov = pcov.tolist()
-    except RuntimeError as e:
-        warnings.warn(f"Curve fit failed: {e}. Using initial values.")
-        fitted_pars, pcov = p0, None
-
-    _update_original_pars(pars, fitted_pars, free)
-    return pcov
-
-def _normalize(v, bounds):
-    return (v - bounds[0]) / (bounds[1] - bounds[0])
-
-def _renormalize(v, bounds):
-    return v * (bounds[1] - bounds[0]) + bounds[0]
-
-def _compute_normalized_pars(original_pars, free_pars):
-    return [_normalize(original_pars[p], free_pars[p]) for p in free_pars]
-
-def _update_original_pars(original_pars, normalized_pars, free):
-    for i, p in enumerate(free):
-        original_pars[p] = _renormalize(normalized_pars[i], free[p])
 
 # ---- Global Parameter Definitions ----
 

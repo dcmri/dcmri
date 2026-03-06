@@ -60,7 +60,7 @@ class AortaLiver:
         Since this model generates two time curves, the x- and y-data are 
         tuples:
 
-        >>> xdata, ydata = (time,time), (aif,roi)
+        >>> time, signal = (time,time), (aif,roi)
 
         Build an aorta-liver model and parameters to match the 
         conditions of the fake liver data:
@@ -79,12 +79,12 @@ class AortaLiver:
 
         Train the model on the data:
 
-        >>> model.train(xdata, ydata, n0=10, xtol=1e-3)
+        >>> model.train(time, signal, n0=10, xtol=1e-3)
 
         Plot the reconstructed signals and concentrations and compare 
         against the experimentally derived data:
 
-        >>> model.plot(xdata, ydata)
+        >>> model.plot(time, signal)
 
         We can also have a look at the model parameters after training:
 
@@ -394,10 +394,8 @@ class AortaLiver:
             liver.params_liver(kinetics, non_stationary)
         except Exception as e:
             raise ValueError(f"Invalid kinetics/stationarity: {e}") from e
-            
         if sequence not in ['SS', 'SR']:
             raise ValueError(f"Sequence '{sequence}' is not available.")
-            
         if not kinetics.startswith('1'):
             raise ValueError('Only single-inlet models are allowed.')
 
@@ -432,7 +430,7 @@ class AortaLiver:
     # ==========================================
 
     def _compute_conc_aorta(self):
-        """Internal: Calculate blood concentration in the aorta."""
+        """Calculate blood concentration in the aorta."""
         organs = ['2cxm', ([self._pars['To'], self._pars['Toe']], self._pars['Eo'])]
         self._t = np.arange(0, self._pars['tmax'], self._pars['dt'])
         
@@ -450,31 +448,31 @@ class AortaLiver:
         self._ca = Jb / self._pars['CO']
 
     def _compute_relax_aorta(self):  
-        """Internal: Calculate longitudinal relaxation rate in the aorta."""
+        """Calculate longitudinal relaxation rate in the aorta."""
         self._compute_conc_aorta()
         rb = lib.relaxivity(self._pars['field_strength'], 'blood', self._pars['agent'])
         self._R1a = self._pars['R10a'] + rb * self._ca
 
     def _compute_signal_aorta(self):
-        """Internal: Calculate MRI signal in the aorta."""
+        """Calculate MRI signal in the aorta."""
         self._compute_relax_aorta()
         pars = {k: v for k, v in self._pars.items() if k in _sequence_pars(self._sequence)}
         self._Sa = sig.signal(self._sequence, self._R1a, self._pars['S0a'], **pars)
 
-    def _predict_aorta(self, xdata):
-        """Internal: Sample aorta signal at specific time points."""
-        tmax = max(xdata)
+    def _predict_aorta(self, time):
+        """Sample aorta signal at specific time points."""
+        tmax = max(time)
         if self._pars['tmax'] < tmax:
-            raise ValueError(f"xdata exceeds tmax ({self._pars['tmax']}). Increase tmax.")
+            raise ValueError(f"time exceeds tmax ({self._pars['tmax']}). Increase tmax.")
         self._compute_signal_aorta()
-        return utils.sample(xdata, self._t, self._Sa, self._pars['TS'])
+        return utils.sample(time, self._t, self._Sa, self._pars['TS'])
     
     # ==========================================
     # Forward Model: Liver
     # ==========================================
 
     def _compute_conc_liver(self):
-        """Internal: Calculate tissue concentration in the liver."""
+        """Calculate tissue concentration in the liver."""
         pars_keys = liver.params_liver(self._kinetics, self._non_stationary)
         pars = {p: self._pars[p] for p in pars_keys}
         
@@ -503,13 +501,13 @@ class AortaLiver:
         pars = {k: v for k, v in self._pars.items() if k in _sequence_pars(self._sequence)}
         self._Sl = sig.signal(self._sequence, self._R1l, self._pars['S0l'], **pars)
 
-    def _predict_liver(self, xdata: np.ndarray) -> np.ndarray:
+    def _predict_liver(self, time: np.ndarray) -> np.ndarray:
         """Internal: Sample liver signal at specific time points."""
-        tmax = max(xdata)
+        tmax = max(time)
         if self._pars['tmax'] < tmax:
-            raise ValueError(f"xdata exceeds tmax ({self._pars['tmax']}). Increase tmax.")
+            raise ValueError(f"time exceeds tmax ({self._pars['tmax']}). Increase tmax.")
         self._compute_signal_liver()
-        return utils.sample(xdata, self._t, self._Sl, self._pars['TS'])
+        return utils.sample(time, self._t, self._Sl, self._pars['TS'])
     
     # ==========================================
     # Public API: Data Extraction
@@ -545,29 +543,29 @@ class AortaLiver:
         self._compute_signal_liver()
         return self._t, self._Sa, self._Sl
 
-    def predict(self, xdata: tuple) -> tuple:
-        """Predict the signals at given xdata time points.
+    def predict(self, time: tuple) -> tuple:
+        """Predict the signals at given time time points.
 
         Args:
-            xdata (tuple): Tuple of (time_aorta, time_liver) arrays.
+            time (tuple): Tuple of (time_aorta, time_liver) arrays.
 
         Returns:
             tuple: Tuple of (signal_aorta, signal_liver) arrays.
         """
-        Sa = self._predict_aorta(xdata[0])
-        Sl = self._predict_liver(xdata[1])
+        Sa = self._predict_aorta(time[0])
+        Sl = self._predict_liver(time[1])
         return Sa, Sl
     
     # ==========================================
     # Inverse Model: Training
     # ==========================================
 
-    def train(self, xdata: tuple, ydata: tuple, free: dict=None, bounds:dict=None, n0=1, **kwargs):
+    def train(self, time: tuple, signal: tuple, free: dict=None, bounds:dict=None, n0=1, **kwargs):
         """Train the model free parameters.
 
         Args:
-            xdata (tuple): (time_aorta, time_liver) arrays.
-            ydata (tuple): (signal_aorta, signal_liver) arrays.
+            time (tuple): (time_aorta, time_liver) arrays.
+            signal (tuple): (signal_aorta, signal_liver) arrays.
             free (dict, optional): Free parameters and their bounds.
             bounds (dict, optional): Override default bounds for specific parameters.
             n0 (int, optional): Number of baseline time points for S0 estimation.
@@ -603,30 +601,28 @@ class AortaLiver:
         
         # --- 3. Step-wise Training ---
         # 3.1 Initial heuristics for BAT and S0
-        self._estimate_parameters(xdata, ydata, n0)
+        self._estimate_parameters(time, signal, n0)
 
         # 3.2 Optimize Aorta parameters
         pars_aorta = list(PARAMS_AORTA.keys())
         free_aorta = {p: v for p, v in self._free.items() if p in pars_aorta}
-        if free_aorta != {}:
-            _train(self._predict_aorta, xdata[0], ydata[0], self._pars, free_aorta, **kwargs)
+        utils.train(self._predict_aorta, time[0], signal[0], self._pars, free_aorta, **kwargs)
 
         # 3.3 Optimize Liver parameters
         pars_liver = list(liver.PARAMS_LIVER.keys())
         free_liver = {p: v for p, v in self._free.items() if p in pars_liver}
-        if free_liver != {}:
-            _train(self._predict_liver, xdata[1], ydata[1], self._pars, free_liver, **kwargs)
+        utils.train(self._predict_liver, time[1], signal[1], self._pars, free_liver, **kwargs)
 
         # 3.4 Joint Optimization
-        self._pcov = _train(self.predict, xdata, ydata, self._pars, self._free, **kwargs)
+        self._pcov = utils.train(self.predict, time, signal, self._pars, self._free, **kwargs)
 
         return self
     
-    def _estimate_parameters(self, xdata: tuple, ydata: tuple, n0: int):
+    def _estimate_parameters(self, time: tuple, signal: tuple, n0: int):
         """Internal: Heuristic estimation of BAT and signal scaling (S0)."""
         # 1. Bolus Arrival Time
         T, D = self._pars['Thl'], self._pars['Dhl']
-        self._pars['BAT'] = xdata[0][np.argmax(ydata[0])] - (1-D)*T
+        self._pars['BAT'] = time[0][np.argmax(signal[0])] - (1-D)*T
         self._pars['BAT'] = max([self._pars['BAT'], 0])
         
         # Shift BAT bounds relative to heuristic
@@ -639,8 +635,8 @@ class AortaLiver:
         s_pars = {k: v for k, v in self._pars.items() if k in _sequence_pars(self._sequence)} 
         Srefb = sig.signal(self._sequence, self._pars['R10a'], 1, **s_pars)
         Srefl = sig.signal(self._sequence, self._pars['R10l'], 1, **s_pars)
-        self._pars['S0a'] = np.mean(ydata[0][:n0]) / Srefb
-        self._pars['S0l'] = np.mean(ydata[1][:n0]) / Srefl
+        self._pars['S0a'] = np.mean(signal[0][:n0]) / Srefb
+        self._pars['S0l'] = np.mean(signal[1][:n0]) / Srefl
 
     # ==========================================
     # I/O and Reporting
@@ -698,7 +694,7 @@ class AortaLiver:
         # Map standard deviations from covariance matrix
         if self._pcov is not None:
             for i, p in enumerate(self._free.keys()):
-                sdev = _renormalize(np.sqrt(np.array(self._pcov)[i, i]), self._free[p])
+                sdev = utils.renormalize(np.sqrt(np.array(self._pcov)[i, i]), self._free[p])
                 if p in exported:
                     exported[p][-1] = sdev
         return exported
@@ -722,14 +718,14 @@ class AortaLiver:
             return {p: round(v, round_to) for p, v in subset.items()}
         return subset
     
-    def cost(self, xdata: tuple, ydata: tuple, metric='NRMS') -> float:
+    def cost(self, time: tuple, signal: tuple, metric='NRMS') -> float:
         """Return the goodness-of-fit
 
         Args:
-            xdata (tuple): tuple of 2 arrays with time points for aorta and 
+            time (tuple): tuple of 2 arrays with time points for aorta and 
               liver, in that order. The two arrays can be different in length 
               and value.
-            ydata (array-like): tuple of 2 arrays with signals for aorta and 
+            signal (array-like): tuple of 2 arrays with signals for aorta and 
               liver, in that order. The arrays can be different in length and 
               value but each has to have the same length as its corresponding 
               array of time points.
@@ -750,20 +746,20 @@ class AortaLiver:
               models.
             - 'BIC': Baysian information criterion.
         """
-        ypred = self.predict(xdata)
-        if isinstance(ydata, tuple):
+        ypred = self.predict(time)
+        if isinstance(signal, tuple):
             ypred = np.concatenate(ypred)
-            ydata = np.concatenate(ydata)
-        return utils.loss(ypred, ydata, metric)
+            signal = np.concatenate(signal)
+        return utils.loss(ypred, signal, metric)
     
-    def plot(self, xdata: tuple, ydata: tuple, xlim=None, ref=None, fname=None, show=True):
+    def plot(self, time: tuple, signal: tuple, xlim=None, ref=None, fname=None, show=True):
         """Plot the model fit against data
 
         Args:
-            xdata (tuple): tuple of 2 arrays with time points for aorta and 
+            time (tuple): tuple of 2 arrays with time points for aorta and 
               liver, in that order. The two arrays can be different in length 
               and value.
-            ydata (array-like): tuple of 2 arrays with signals for aorta and 
+            signal (array-like): tuple of 2 arrays with signals for aorta and 
               liver, in that order. The arrays can be different in length and 
               value but each has to have the same length as its corresponding 
               array of time points.
@@ -777,9 +773,9 @@ class AortaLiver:
             show (bool, optional): If True, the plot is shown. Defaults to 
               True.
         """
-        tmax = max([max(x) for x in xdata])
+        tmax = max([max(x) for x in time])
         if self._pars['tmax'] < tmax:
-            raise ValueError(f"xdata exceeds tmax ({self._pars['tmax']}). Increase tmax.")
+            raise ValueError(f"time exceeds tmax ({self._pars['tmax']}). Increase tmax.")
         
         self._compute_signal_aorta()
         self._compute_signal_liver()
@@ -790,12 +786,12 @@ class AortaLiver:
         fig.subplots_adjust(wspace=0.3)
         
         # Plot Aorta Data and Conc
-        _plot_data1scan(self._t, self._Sa, xdata[0], ydata[0], ax1, xlim,
+        _plot_data1scan(self._t, self._Sa, time[0], signal[0], ax1, xlim,
                         color=['lightcoral', 'darkred'], test=None if ref is None else ref[0])
         _plot_conc_aorta(self._t, self._ca, ax2, xlim)
         
         # Plot Liver Data and Conc
-        _plot_data1scan(self._t, self._Sl, xdata[1], ydata[1], ax3, xlim,
+        _plot_data1scan(self._t, self._Sl, time[1], signal[1], ax3, xlim,
                         color=['cornflowerblue', 'darkblue'], test=None if ref is None else ref[1])
         _plot_conc_liver(self._t, self._Cl, ax4, xlim)
         
@@ -813,43 +809,6 @@ class AortaLiver:
 def _sequence_pars(sequence):
     """Return parameters associated with specific sequences."""
     return {'SR': ['FA', 'TR', 'TC'], 'SS': ['FA', 'TR']}[sequence]
-
-def _train(predict, xdata, ydata, pars, free, **kwargs):
-    """Internal optimization logic using normalized parameter values."""
-    if isinstance(ydata, tuple):
-        ydata = np.concatenate(ydata)
-
-    p0 = _compute_normalized_pars(pars, free)
-
-    def predict_normalized(_, *normalized_pars):
-        _update_original_pars(pars, normalized_pars, free)
-        ypred = predict(xdata)
-        return np.concatenate(ypred) if isinstance(ypred, tuple) else ypred
-
-    try:
-        fitted_pars, pcov = curve_fit(
-            predict_normalized, None, ydata, p0, bounds=(0, 1), **kwargs
-        )
-        pcov = pcov.tolist()
-    except RuntimeError as e:
-        warnings.warn(f"Curve fit failed: {e}. Using initial values.")
-        fitted_pars, pcov = p0, None
-
-    _update_original_pars(pars, fitted_pars, free)
-    return pcov
-
-def _normalize(v, bounds):
-    return (v - bounds[0]) / (bounds[1] - bounds[0])
-
-def _renormalize(v, bounds):
-    return v * (bounds[1] - bounds[0]) + bounds[0]
-
-def _compute_normalized_pars(original_pars, free_pars):
-    return [_normalize(original_pars[p], free_pars[p]) for p in free_pars]
-
-def _update_original_pars(original_pars, normalized_pars, free):
-    for i, p in enumerate(free):
-        original_pars[p] = _renormalize(normalized_pars[i], free[p])
 
 # ==========================================
 # Private Plotting Helpers
@@ -875,14 +834,14 @@ def _plot_conc_liver(t, C, ax, xlim=None):
         ax.plot(t/60, 1000*C, linestyle='-', color=color, linewidth=2.0, label='Tissue')        
     ax.legend()
 
-def _plot_data1scan(t, sig, xdata, ydata, ax, xlim, color=['black', 'black'], test=None):
+def _plot_data1scan(t, sig, time, signal, ax, xlim, color=['black', 'black'], test=None):
     """Helper to plot fitted signal vs experimental data for a single scan.
 
     Args:
         t (np.ndarray): High-resolution time array (seconds).
         sig (np.ndarray): Predicted signal array.
-        xdata (np.ndarray): Observed time points (seconds).
-        ydata (np.ndarray): Observed signal values.
+        time (np.ndarray): Observed time points (seconds).
+        signal (np.ndarray): Observed signal values.
         ax (matplotlib.axes.Axes): Axis to plot on.
         xlim (list): Plotting limits for the x-axis.
         color (list, optional): Colors for [data_points, fit_line]. Defaults to ['black', 'black'].
@@ -895,7 +854,7 @@ def _plot_data1scan(t, sig, xdata, ydata, ax, xlim, color=['black', 'black'], te
     ax.set(xlabel='Time (min)', ylabel='MR Signal (a.u.)', xlim=np.array(xlim)/60)
     
     # Plot experimental data points
-    ax.plot(xdata/60, ydata, marker='o', color=color[0], 
+    ax.plot(time/60, signal, marker='o', color=color[0], 
             label='fitted data', linestyle='None')
     
     # Plot continuous fit line
