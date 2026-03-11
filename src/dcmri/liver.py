@@ -31,6 +31,12 @@ PARAMS_LIVER = {
         'name': 'Liver extracellular volume fraction',
         'unit': 'mL/cm3',
     },
+    'vh': {
+        'init': 0.6,
+        'bounds': [0.1, 1.0],
+        'name': 'Hepatocellular volume fraction',
+        'unit': 'mL/cm3',
+    },
     've_app': {
         'init': 0.3,
         'bounds': [0.01, 0.6],
@@ -345,7 +351,7 @@ def params_liver(kinetics='2I-EC', non_stationary=None) -> dict:
     )
 
 
-def derived_params_liver(p, kinetics, H=0.45):
+def derived_params_liver(p, kinetics, H=0.45) -> dict:
 
     p = copy.deepcopy(p)
         
@@ -531,6 +537,8 @@ def conc_liver(
     if '-IC' in kinetics:
         return globals()[conc](ci, t=t, dt=dt, sum=sum, **params)
     else:
+        if non_stationary is not None:
+            raise ValueError("For extracellular models non_stationary must be None")
         return globals()[conc](ci, t=t, dt=dt, **params)
 
 

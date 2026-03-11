@@ -1,14 +1,52 @@
-import warnings
-from copy import deepcopy
 import json
+from copy import deepcopy
+
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.optimize import curve_fit
 
 import dcmri.lib as lib
 import dcmri.sig as sig
 import dcmri.utils as utils
 import dcmri.pk_aorta as pk_aorta
+
+# ---- Global Parameter Definitions ----
+
+PARAMS = {
+    # --- Experimental Setup ---
+    'field_strength': {'init': 3.0, 'name': 'Field strength', 'unit': 'T'},
+
+    # --- Simulation Constants ---
+    'dt': {'init': 0.5, 'name': 'Time step', 'unit': 's'},
+    'tmax': {'init': 180, 'name': 'Max time', 'unit': 's'},
+    'dose_tolerance': {'init': 0.1, 'name': 'Dose tolerance', 'unit': ''},
+
+    # --- Injection & Contrast Agent ---
+    'agent': {'init': 'gadoterate', 'name': 'Contrast agent', 'unit': None},
+    'weight': {'init': 70, 'name': 'Weight', 'unit': 'kg'},
+    'dose': {'init': 0.1, 'name': 'Dose', 'unit': 'mL/kg'},
+    'rate': {'init': 1, 'name': 'Injection rate', 'unit': 'mL/s'},
+    'BAT': {'init': 60, 'bounds': [-30, 30], 'name': 'Bolus arrival time', 'unit': 's'},
+
+    # --- Physiological & Pharmacokinetic ---
+    'CO': {'init': 100, 'bounds': [0, 500], 'name': 'Cardiac output', 'unit': 'mL/s'},
+    'T(hl)': {'init': 10, 'bounds': [0, 30], 'name': 'Heart-lung MTT', 'unit': 's'},
+    'D(hl)': {'init': 0.2, 'bounds': [0.01, 0.99], 'name': 'Heart-lung dispersion', 'unit': ''},
+    'T(o)': {'init': 20, 'bounds': [0, 60], 'name': 'Organ blood MTT', 'unit': 's'},
+    'E(o)': {'init': 0.15, 'bounds': [0, 0.5], 'name': 'Organ extraction', 'unit': ''},
+    'T(o,e)': {'init': 120, 'bounds': [0, 800], 'name': 'Organ EES MTT', 'unit': 's'},
+    'E(b)': {'init': 0.05, 'bounds': [0.01, 0.15], 'name': 'Body extraction', 'unit': ''},
+
+    # --- MRI Sequence & Signal Parameters ---
+    'TR': {'init': 0.005, 'name': 'TR', 'unit': 's'},
+    'FA': {'init': 15, 'name': 'Flip angle', 'unit': 'deg'},
+    'TC': {'init': 0.2, 'name': 'Time to k-center', 'unit': 's'},
+    'TS': {'init': None, 'name': 'Sampling time', 'unit': 's'},
+    'TF': {'init': 0.5, 'bounds': [0, 10], 'name': 'Inflow time', 'unit': 's'},
+
+    # --- Baseline Relaxation & Scaling ---
+    'R10': {'init': 0.7, 'bounds': [0, 5], 'name': 'Precontrast R1', 'unit': 'Hz'},
+    'S0': {'init': 1.0, 'bounds': [0, 5], 'name': 'Signal scaling', 'unit': 'a.u.'},
+}
 
 class Aorta:
     """Whole-body model for the aorta signal.
@@ -220,10 +258,16 @@ class Aorta:
         >>> aorta.print_params(round_to=4)
     """
 
-    def __init__(self, organs='comp', heartlung='pfcomp', sequence='SS', **params):
+    def __init__(
+        self, 
+        organs='comp', 
+        heartlung='pfcomp', 
+        sequence='SS', 
+        **params,
+    ):
         self._version = '1.0'
         
-        # Configuration Validation
+        # Set Configuration
         valid_organs = ['comp', '2cxm']
         valid_hl = ['pfcomp', 'chain']
         valid_seq = ['SR', 'SS', 'SSI', 'lin']
@@ -239,114 +283,126 @@ class Aorta:
         self._heartlung = heartlung
         self._sequence = sequence
 
+        # Initialize parameters
+        self._pars = {p: deepcopy(PARAMS[p]['init']) for p in self._pars_list()}
+
+        # Override defaults with user-provided parameters
+        for p, val in params.items():
+            if p in self._pars:
+                self._pars[p] = val
+            else:
+                raise ValueError(f"'{p}' is not a valid parameter for this configuration.")
+
+    def _pars_list(self, select=None):
         # Build parameter list based on configuration
-        pars_organs = {'comp': [], '2cxm': ['Toe', 'Eo']}
+        pars_organs = {'comp': [], '2cxm': ['T(o,e)', 'E(o)']}
         pars_sequence = {
             'SR': ['TS', 'TC', 'FA'],
             'SS': ['TS', 'TR', 'FA'], 
             'SSI': ['TS', 'TF', 'TR', 'FA'],
             'lin': ['TS']
         } 
-        
-        pars_list = [
-            'dt', 'tmax', 'dose_tolerance', 't0', 'field_strength',
-            'agent', 'weight', 'dose', 'rate', 'BAT',
-            'CO', 'Thl', 'Dhl', 'To', 'Eb', 'R10', 'S0',
-        ]
-        pars_list += pars_sequence[self._sequence]
-        pars_list += pars_organs[self._organs]
-
-        # Initialize Parameters
-        self._pars = {p: PARAMS[p]['init'] for p in pars_list}
-
-        # Override with user values
-        for p, v in params.items():
-            if p in pars_list:
-                self._pars[p] = v
-            else:
-                raise ValueError(f"'{p}' is not a valid parameter for this configuration.")
-
-        self._free = None
-        self._pcov = None
+        if select is None:
+            pars_list = [
+                'dt', 'tmax', 'dose_tolerance', 'field_strength',
+                'agent', 'weight', 'dose', 'rate', 'BAT',
+                'CO', 'T(hl)', 'D(hl)', 'T(o)', 'E(b)', 'R10', 'S0',
+            ]
+            pars_list += pars_sequence[self._sequence]
+            pars_list += pars_organs[self._organs]
+        if select=='free':
+            # Determine defaults based on config
+            free_pars_sequence = {'SR': [], 'SS': [], 'SSI': ['TF'], 'lin': []}
+            pars_list = ['BAT', 'CO', 'T(hl)', 'D(hl)', 'T(o)', 'E(b)', 'S0']
+            pars_list += pars_organs[self._organs]
+            pars_list += free_pars_sequence[self._sequence]       
+        return pars_list
 
     # ---- Internal Forward Model ----
 
+    def _set_time(self):
+        """Build time axis"""
+        self._t = np.arange(0, self._pars['tmax'], self._pars['dt'])
+
     def _compute_concentration(self):
         """Calculates blood concentration (cb) over time."""
+        self._set_time()
         if self._organs=='comp':
-            organs_cfg = ['comp', (self._pars['To'],)]
+            organs_cfg = ['comp', (self._pars['T(o)'],)]
         elif self._organs=='2cxm':
-            organs_cfg = ['2cxm', ([self._pars['To'], self._pars['Toe']], self._pars['Eo'])]
+            organs_cfg = ['2cxm', ([self._pars['T(o)'], self._pars['T(o,e)']], self._pars['E(o)'])]
 
         if self._heartlung=='pfcomp':
-            hl_cfg = ['pfcomp', (self._pars['Thl'], self._pars['Dhl'])]
+            hl_cfg = ['pfcomp', (self._pars['T(hl)'], self._pars['D(hl)'])]
         elif self._heartlung=='chain':
-            hl_cfg = ['chain', (self._pars['Thl'], self._pars['Dhl'])]
+            hl_cfg = ['chain', (self._pars['T(hl)'], self._pars['D(hl)'])]
 
-        self._t = np.arange(0, self._pars['tmax'], self._pars['dt'])
         conc_mol = lib.ca_conc(self._pars['agent'])
-        
-        # Injection flux
         Ji = lib.ca_injection(
             self._t, self._pars['weight'], conc_mol, self._pars['dose'], 
             self._pars['rate'], self._pars['BAT']
         )
-        
-        # Aorta flux using whole-body PK model
         Jb = pk_aorta.flux_aorta(
-            Ji, E=self._pars['Eb'], 
+            Ji, E=self._pars['E(b)'], 
             heartlung=hl_cfg, 
             organs=organs_cfg, 
             dt=self._pars['dt'], 
             tol=self._pars['dose_tolerance'],
         )
-        self._cb = Jb / self._pars['CO']
+        self._ca = Jb / self._pars['CO']
 
     def _compute_relaxation_rate(self):
         """Calculates longitudinal relaxation rate (R1b)."""
         self._compute_concentration()
         rb = lib.relaxivity(self._pars['field_strength'], 'blood', self._pars['agent'])
-        self._R1b = self._pars['R10'] + rb * self._cb
+        self._R1a = self._pars['R10'] + rb * self._ca
 
     def _compute_signal(self):
         """Calculates MRI signal (Sb) based on the chosen sequence."""
         self._compute_relaxation_rate()
-        s0, r1 = self._pars['S0'], self._R1b
+        s0, r1 = self._pars['S0'], self._R1a
         
         if self._sequence == 'SR':
-            self._Sb = sig.signal_free(s0, r1, self._pars['TC'], self._pars['FA'])
+            self._Sa = sig.signal_free(s0, r1, self._pars['TC'], self._pars['FA'])
         elif self._sequence == 'SS':
-            self._Sb = sig.signal_ss(s0, r1, self._pars['TR'], self._pars['FA'])
+            self._Sa = sig.signal_ss(s0, r1, self._pars['TR'], self._pars['FA'])
         elif self._sequence == 'SSI':
-            self._Sb = sig.signal_spgr(s0, r1, self._pars['TF'], self._pars['TR'], self._pars['FA'], n0=1)
+            self._Sa = sig.signal_spgr(s0, r1, self._pars['TF'], self._pars['TR'], self._pars['FA'], n0=1)
         elif self._sequence == 'lin':
-            self._Sb = sig.signal_lin(s0, r1)
+            self._Sa = sig.signal_lin(s0, r1)
 
     def _predict(self, time):
         self._compute_signal()
-        return utils.sample(time, self._t, self._Sb, self._pars['TS'])
+        return utils.sample(time, self._t, self._Sa, self._pars['TS'])
 
     # ---- Public API ----
+
+    def time(self) -> np.ndarray:
+        """Internal time array"""
+        self._set_time()
+        return self._t
 
     def conc(self):
         """Returns the predicted aorta blood concentration."""
         self._compute_concentration()
-        return self._t, self._cb
+        return self._ca
 
     def relax(self):
         """Returns the predicted longitudinal relaxation rate."""
         self._compute_relaxation_rate()
-        return self._t, self._R1b
+        return self._R1a
 
-    def predict(self, time) -> np.ndarray:
+    def predict(self, time:np.ndarray=None) -> np.ndarray:
         """Predicts the aorta signal at specified time points."""
-        tacq = time[1] - time[0] if len(time) > 1 else 0
-        self._pars['tmax'] = max(time) + tacq + self._pars['dt']
-        if self._pars.get('TS') is not None:
-            self._pars['tmax'] += self._pars['TS']
+        if time is None:
+            time = self.time()
+        ts = self._pars['TS'] if self._pars['TS'] is not None else 0
+        self._pars['tmax'] = self._pars['dt'] + np.max(time) + ts
+        
         return self._predict(time)
 
-    def train(self, time, signal, free=None, bounds:dict=None, **kwargs):
+    def train(self, time: tuple, signal: tuple, free:dict=None, 
+              bounds:dict=None, n0=1, **kwargs):
         """Train the free parameters
 
         Args:
@@ -362,42 +418,30 @@ class Aorta:
         Returns:
             Liver: A reference to the model instance.
         """
-        if free is None:
-            # Determine defaults based on config
-            free_pars_organs = {'comp': [], '2cxm': ['Toe', 'Eo']}
-            free_pars_sequence = {'SR': [], 'SS': [], 'SSI': ['TF'], 'lin': []}
-            
-            base_free = ['BAT', 'CO', 'Thl', 'Dhl', 'To', 'Eb', 'S0']
-            base_free += free_pars_organs[self._organs]
-            base_free += free_pars_sequence[self._sequence]
-            
-            # Map names to their global PARAMS bounds
-            free = {p: PARAMS[p]['bounds'] for p in base_free}
+        # Initial heuristics for BAT and S0
+        self._estimate_parameters(time, signal, n0)
 
-            if bounds is not None:
-                for p, b in bounds.items():
-                    if p not in free:
-                        raise ValueError(f"'{p}' is not a free parameter. Use 'free' to define it.")
-                    free[p] = b
+        # Check and update free parameters
+        free = self._set_free_pars(free, bounds) 
 
-        # Validate Free Parameters
-        if self._sequence == 'SSI' and 'S0' not in free:
-            raise ValueError("For SSI sequence, 'S0' must be a free parameter.")
+        # Optimization
+        pcov, sdev = utils.train(self.predict, time, signal, self._pars, free, **kwargs)
+        pars = {
+            p: {
+                'name': deepcopy(PARAMS[p]['name']), 
+                'unit': deepcopy(PARAMS[p]['unit']), 
+                'value': self._pars[p], 
+                'sdev': sdev[p] if sdev is not None else None
+            } 
+            for p in free
+        }
+        return pars, pcov
 
-        for p, bnds in free.items():
-            if p not in self._pars:
-                raise ValueError(f"'{p}' is not a valid parameter for this configuration.")
-            if bnds[0] > self._pars[p] or bnds[1] < self._pars[p]:
-                raise ValueError(f"Initial value for '{p}' ({self._pars[p]}) is out of bounds {bnds}.")
-
-        self._free = free
-        self._estimate_parameters(time, signal)
-        self._pcov = utils.train(self.predict, time, signal, self._pars, self._free, **kwargs)
-
-        return self
-
-    def _estimate_parameters(self, time, signal):
+    def _estimate_parameters(self, time: tuple, signal: tuple, n0: int):
         """Initial heuristic estimation for S0 and BAT."""
+        ts = self._pars['TS'] if self._pars['TS'] is not None else 0
+        self._pars['tmax'] = self._pars['dt'] + np.max(time) + ts
+
         # Calculate reference signal for S0 normalization
         r10 = self._pars['R10']
         if self._sequence == 'SR':
@@ -409,10 +453,55 @@ class Aorta:
         else: # lin
             s_ref = sig.signal_lin(1, r10)
 
-        n0 = max([np.sum(time < self._pars['t0']), 1])
         self._pars['S0'] = np.mean(signal[:n0]) / s_ref
-        self._pars['BAT'] = time[np.argmax(signal)] - self._pars['Thl']
+        self._pars['BAT'] = time[np.argmax(signal)] - self._pars['T(hl)']
         self._pars['BAT'] = max([self._pars['BAT'], 0])
+
+    def _set_free_pars(self, free: dict=None, bounds: dict=None):
+        # --- 0. Set Defaults ---
+        if free is None:
+            free = {p: deepcopy(PARAMS[p]['bounds']) for p in self._pars_list('free')}
+        
+        # --- 1. Update Bounds ---
+        if bounds is not None:
+            for p, b in bounds.items():
+                if b is None:
+                    free.pop(p, None)
+                else:
+                    free[p] = b
+
+        # Validate Free Parameters
+        if self._sequence == 'SSI' and 'S0' not in free:
+            raise ValueError("For SSI sequence, 'S0' must be a free parameter.")
+
+        for p, bnds in free.items():
+            if p not in self._pars:
+                raise ValueError(f"'{p}' is not a valid parameter for this configuration.")
+            elif p=='BAT':
+                if (bnds[0] > 0) or (bnds[1] < 0):
+                    raise ValueError(f"Bounds on BAT must be (negative, positive).")
+            elif p in ['S0']: 
+                if not (0 <= bnds[0] < bnds[1]):
+                    raise ValueError(f"Invalid bounds on {p}: Bounds on S0 are relative and must be positive.")
+            elif not (bnds[0] <= self._pars[p] <= bnds[1]):
+                raise ValueError(f"Initial value for '{p}' ({self._pars[p]}) is out of bounds {bnds}.")
+
+        # --- 3. Relative to Absolute Bounds
+        # Additive
+        for par in ['BAT']:
+            if par in free:
+                free[par] = [  
+                    self._pars[par] + free[par][0],
+                    self._pars[par] + free[par][1],
+                ]
+        # Multiplicative
+        for par in ['S0']:
+            if par in free:
+                free[par] = [
+                    self._pars[par] * free[par][0],
+                    self._pars[par] * free[par][1],
+                ]
+        return free
 
     # ---- I/O and Reporting ----
 
@@ -428,8 +517,6 @@ class Aorta:
             'heartlung': self._heartlung,
             'sequence': self._sequence,
             'pars': self._pars,
-            'free': self._free,
-            'pcov': self._pcov,
         }
         with open(file, "w") as f:
             json.dump(state, f, indent=4)
@@ -445,58 +532,58 @@ class Aorta:
         if data['version'] != self._version:
             raise ValueError(f"Version mismatch: {data['version']} vs {self._version}.")
 
-        self._organs, self._heartlung, self._sequence = data['organs'], data['heartlung'], data['sequence']
-        self._pars, self._free = data['pars'], data['free']
-        self._pcov = data['pcov']
+        self._organs = data['organs']
+        self._heartlung = data['heartlung']
+        self._sequence = data['sequence']
+        self._pars = data['pars']
         return self
 
     def export_params(self) -> dict:
         """Returns parameters as a dict: {short_name: [long_name, value, unit, sdev]}."""
-        exported = {}
-        for p, val in self._pars.items():
-            if p in PARAMS:
-                exported[p] = [PARAMS[p]['name'], val, PARAMS[p]['unit'], 0.0]
-                
-        # Add standard deviation
-        if self._pcov is not None:
-            for i, p in enumerate(self._free.keys()):
-                sdev = utils.renormalize(np.sqrt(np.array(self._pcov)[i, i]), self._free[p])
-                if p in exported:
-                    exported[p][-1] = sdev
-        return exported
+        pars = {
+            p: {
+                'name': deepcopy(PARAMS[p]['name']),
+                'unit': deepcopy(PARAMS[p]['unit']),  
+                'value': self._pars[p], 
+            } for p in self._pars_list('free')
+        }
+        return pars 
 
     def print_params(self, round_to=None):
-        """Print the model parameters and their uncertainties
-
-        Args:
-            round_to (int, optional): Round to how many digits. If this is 
-              not provided, the values are not rounded. Defaults to None.
-        """
+        """Print parameters and uncertainties to console."""
         pars = self.export_params()
-        for p, (name, val, unit, sdev) in pars.items():
+        for p, v in pars.items():
+            val = v['value']
             if round_to is not None:
-                if not isinstance(val, str):
-                    val, sdev = round(val, round_to), round(sdev, round_to)
-            print(f"{name} ({p}): {val} (+/- {sdev}) {unit}")
+                val = round(val, round_to)
+            print(f"{v['name']} ({p}) = {val} {v['unit']}")
 
-    def params(self, *args, round_to=None):
+    def _pars_dict(self, *args, select=None):
+        """Return the parameter values"""
+        if len(args) == 0:
+            pars = deepcopy(self._pars)
+        else:
+            pars = {k: v for k, v in self._pars.items() if k in list(args)}
+        # if select is not None:
+        #     pars = {k: v for k, v in pars.items() if k in self._pars_list(select)}
+        return pars
+
+    def params(self, *args, as_dict=False):
         """Return the parameter values
 
         Args:
-            args (tuple): parameters to return
+            args (tuple): parameters to get
 
         Returns:
-            list or float: values of parameter values, or a scalar value if 
-            only one parameter is required.
+            tuple or dict: values of parameters
         """
-        if len(args) == 1:
-            val = self._pars[args[0]]
-            return round(val, round_to) if round_to else val
-        
-        subset = {p: self._pars[p] for p in args if p in self._pars}
-        if round_to:
-            return {p: round(v, round_to) for p, v in subset.items()}
-        return subset
+        pars = self._pars_dict(*args)
+        if as_dict:
+            return pars
+        elif len(pars)==1:
+            return list(pars.values())[0]
+        else:
+            return tuple(pars.values())
 
     def cost(self, time, signal, metric='NRMS') -> float:
         """Return the goodness-of-fit
@@ -529,26 +616,23 @@ class Aorta:
         y = self.predict(time)
         return utils.loss(y, signal, metric)
 
-    def plot(self, xdata, ydata, ref=None, fname=None, show=True):
+    def plot(self, xdata, ydata, fname=None, show=True):
         
-        pred_signal = self.predict(xdata)
-        t_cont, cb_cont = self.conc()
+        signal = self.predict(xdata)
         
         fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 5))
         
         # Signal Plot
         ax0.set_title('MRI Signal Prediction')
         ax0.plot(xdata/60, ydata, 'ko', alpha=0.5, label='Data')
-        ax0.plot(xdata/60, pred_signal, 'r-', linewidth=2, label='Fit')
+        ax0.plot(xdata/60, signal, 'r-', linewidth=2, label='Fit')
         ax0.set_xlabel('Time (min)')
         ax0.set_ylabel('Signal (a.u.)')
         ax0.legend()
 
         # Concentration Plot
         ax1.set_title('Concentration Prediction')
-        if ref is not None:
-            ax1.plot(ref['t']/60, 1000*ref['cb'], 'ks', label='Ground Truth')
-        ax1.plot(t_cont/60, 1000*cb_cont, 'r-', label='Prediction')
+        ax1.plot(self._t/60, 1000*self._ca, 'r-', label='Prediction')
         ax1.set_xlabel('Time (min)')
         ax1.set_ylabel('Concentration (mM)')
         ax1.legend()
@@ -556,32 +640,3 @@ class Aorta:
         if fname: plt.savefig(fname)
         if show: plt.show()
         else: plt.close()
-
-# ---- Global Parameter Definitions ----
-
-PARAMS = {
-    'dt': {'init': 0.25, 'bounds': [1e-3, 10], 'name': 'Time step', 'unit': 's'},
-    'tmax': {'init': 120, 'bounds': [10, 1000], 'name': 'Max time', 'unit': 's'},
-    'dose_tolerance': {'init': 0.1, 'bounds': [0, 1], 'name': 'Dose tolerance', 'unit': ''},
-    't0': {'init': 0, 'bounds': [0, 100], 'name': 'Baseline duration', 'unit': 's'},
-    'field_strength': {'init': 3.0, 'bounds': [0, 10], 'name': 'Field strength', 'unit': 'T'},
-    'agent': {'init': 'gadoterate', 'bounds': None, 'name': 'Contrast agent', 'unit': None},
-    'weight': {'init': 70, 'bounds': [1, 500], 'name': 'Weight', 'unit': 'kg'},
-    'dose': {'init': 0.1, 'bounds': [0, 1], 'name': 'Dose', 'unit': 'mL/kg'},
-    'rate': {'init': 1, 'bounds': [0, 10], 'name': 'Injection rate', 'unit': 'mL/s'},
-    'TR': {'init': 0.005, 'bounds': [0, 1], 'name': 'TR', 'unit': 's'},
-    'FA': {'init': 15, 'bounds': [0, 90], 'name': 'Flip angle', 'unit': 'deg'},
-    'TC': {'init': 0.2, 'bounds': [0, 10], 'name': 'Time to k-center', 'unit': 's'},
-    'TS': {'init': 0, 'bounds': [0, 10], 'name': 'Sampling time', 'unit': 's'},
-    'TF': {'init': 0.5, 'bounds': [0, 2], 'name': 'Inflow time', 'unit': 's'},
-    'BAT': {'init': 60, 'bounds': [0, 200], 'name': 'Bolus arrival time', 'unit': 's'},
-    'CO': {'init': 100, 'bounds': [0, 500], 'name': 'Cardiac output', 'unit': 'mL/s'},
-    'Thl': {'init': 10, 'bounds': [0, 50], 'name': 'Heart-lung MTT', 'unit': 's'},
-    'Dhl': {'init': 0.2, 'bounds': [0.01, 0.99], 'name': 'Heart-lung dispersion', 'unit': ''},
-    'To': {'init': 20, 'bounds': [0, 200], 'name': 'Organ blood MTT', 'unit': 's'},
-    'Eo': {'init': 0.15, 'bounds': [0, 1], 'name': 'Organ extraction', 'unit': ''},
-    'Toe': {'init': 120, 'bounds': [0, 1000], 'name': 'Organ EES MTT', 'unit': 's'},
-    'Eb': {'init': 0.05, 'bounds': [0, 1], 'name': 'Body extraction', 'unit': ''},
-    'R10': {'init': 0.7, 'bounds': [0, 5], 'name': 'Precontrast R1', 'unit': 'Hz'},
-    'S0': {'init': 1.0, 'bounds': [0, 1e6], 'name': 'Signal scaling', 'unit': 'a.u.'},
-}

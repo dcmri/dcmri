@@ -1,19 +1,101 @@
-import os
-import warnings
 from copy import deepcopy
 import json
 
-from scipy.optimize import curve_fit, minimize
-
 import matplotlib.pyplot as plt
 import numpy as np
-import pydmr
 
 import dcmri.lib as lib
 import dcmri.sig as sig
 import dcmri.utils as utils
 import dcmri.pk_aorta as pk_aorta
 import dcmri.pk as pk
+
+
+PARAMS = {
+    # Assay parameters
+    'dt': {'init': 0.5, 'name': 'Forward model time step', 'unit': 'sec'},
+    'C-tmax': {'init': 4 * 60 * 60, 'name': 'Control visit - maximum acquisition time', 'unit': 'sec'},
+    'D-tmax': {'init': 4 * 60 * 60, 'name': 'Drug visit - maximum acquisition time', 'unit': 'sec'},
+    'D-tmax_1': {'init': 2 * 60 * 60, 'name': 'Drug visit - first scan acquisition time', 'unit': 'sec'},
+    'C-t_scan2': {'init': 2 * 60 * 60, 'name': 'Control visit - start of second scan', 'unit': 'sec'},
+    'D-t_scan2': {'init': 2 * 60 * 60, 'name': 'Drug visit - start of second scan', 'unit': 'sec'},
+    'dose_tolerance': {'init': 0.1, 'name': 'Dose tolerance', 'unit': ''},
+    'field_strength': {'init': 3.0, 'name': 'Magnetic field strength', 'unit': 'T'},
+    'agent': {'init': 'gadoxetate', 'name': 'Contrast agent', 'unit': None},
+    'rate': {'init': 1, 'name': 'Contrast agent injection rate', 'unit': 'mL/sec'},
+    'C-dose': {'init': 0.05, 'name': 'Control visit - first contrast agent dose', 'unit': 'mL/kg'},
+    'D-dose': {'init': 0.05, 'name': 'Drug visit - first contrast agent dose', 'unit': 'mL/kg'},
+    'C-dose2': {'init': 0.05, 'name': 'Control - second contrast agent dose', 'unit': 'mL/kg'},
+    'D-dose2': {'init': 0.05, 'name': 'Drug - second contrast agent dose', 'unit': 'mL/kg'},
+    'FA': {'init': 15.0, 'name': 'Flip angle', 'unit': 'deg'},
+    'FA2': {'init': 15.0, 'name': 'Second flip angle', 'unit': 'deg'},
+    'TR': {'init': 0.005, 'name': 'Repetition time', 'unit': 'sec'},
+    'TS': {'init': None, 'name': 'Sampling time', 'unit': 'sec'},
+    'C-BAT': {'init': 120, 'bounds': [-60, 60], 'name': 'Control visit - first bolus arrival time', 'unit': 'sec'},
+    'C-BAT2': {'init': 7200 + 900, 'bounds': [-60, 60], 'name': 'Control visit - second bolus arrival time', 'unit': 'sec'},
+    'D-BAT': {'init': 120, 'bounds': [-60, 60], 'name': 'Drug visit - first bolus arrival time', 'unit': 'sec'},
+    'D-BAT2': {'init': 7200 + 900, 'bounds': [-60, 60], 'name': 'Drug visit - second bolus arrival time', 'unit': 'sec'},
+
+    # Subject parameters
+    'weight': {'init': 70.0, 'name': 'Subject weight', 'unit': 'kg'},
+    'H': {'init': 0.45, 'name': 'Hematocrit', 'unit': ''},
+
+    # MRI signal parameters - control visit
+    'C-R10(a)': {'init': 1/lib.T1(3.0, 'blood'), 'name': 'Control visit - aorta first baseline R1', 'unit': 'Hz'},
+    'C-R10(l)': {'init': 1/lib.T1(3.0, 'liver'), 'name': 'Control visit - liver first baseline R1', 'unit': 'Hz'},
+    'C-S0(a)': {'init': 1, 'name': 'Control visit - aorta first signal scale factor', 'unit': 'a.u.'},
+    'C-S0(l)': {'init': 1, 'name': 'Control visit - liver first signal scale factor', 'unit': 'a.u.'},
+    'C-S02(a)': {'init': 1, 'bounds': [0, 2], 'name': 'Control visit - aorta second signal scale factor', 'unit': 'a.u.'},
+    'C-S02(l)': {'init': 1, 'bounds': [0, 2], 'name': 'Control visit - liver second signal scale factor', 'unit': 'a.u.'},
+
+    # MRI signal parameters - drug visit
+    'D-R10(a)': {'init': 1/lib.T1(3.0, 'blood'), 'name': 'Drug visit - aorta first baseline R1', 'unit': 'Hz'},
+    'D-R10(l)': {'init': 1/lib.T1(3.0, 'liver'), 'name': 'Drug visit - liver first baseline R1', 'unit': 'Hz'},
+    'D-S0(a)': {'init': 1, 'name': 'Drug visit - aorta first signal scale factor', 'unit': 'a.u.'},
+    'D-S0(l)': {'init': 1, 'name': 'Drug visit - liver first signal scale factor', 'unit': 'a.u.'},
+    'D-S02(a)': {'init': 1, 'bounds': [0, 2], 'name': 'Drug visit - aorta second signal scale factor', 'unit': 'a.u.'},
+    'D-S02(l)': {'init': 1, 'bounds': [0, 2], 'name': 'Drug visit - liver second signal scale factor', 'unit': 'a.u.'},
+
+    # Kinetics - common
+    'CO': {'init': 100, 'bounds': [0, 300], 'name': 'Cardiac output', 'unit': 'mL/sec'},
+    'GFR': {'init': 2, 'name': 'Glomerular filtration rate', 'unit': 'mL/sec'},
+    'T(hl)': {'init': 10, 'bounds': [0, 30], 'name': 'Heart-lung mean transit time', 'unit': 'sec'},
+    'D(hl)': {'init': 0.2, 'bounds': [0.05, 0.95], 'name': 'Heart-lung dispersion', 'unit': ''},
+    'T(o)': {'init': 20, 'bounds': [0, 60], 'name': 'Organs blood mean transit time', 'unit': 'sec'},
+    'E(o)': {'init': 0.15, 'bounds': [0, 0.5], 'name': 'Organs extraction fraction', 'unit': ''},
+    'T(o,e)': {'init': 120, 'bounds': [0, 800], 'name': 'Organs extravascular mean transit time', 'unit': 'sec'},
+    'T(g)': {'init': 30, 'bounds': [0.1, 60], 'name': 'Gut mean transit time', 'unit': 'sec'},
+    'D(g)': {'init': 0.85, 'bounds': [0, 1], 'name': 'Gut dispersion', 'unit': ''},
+    'v(e)': {'init': 0.3, 'bounds': [0.01, 0.6], 'name': 'Liver extracellular volume fraction', 'unit': 'mL/cm3'},
+    'v(h)': {'name': 'Hepatocellular volume fraction', 'unit': 'mL/cm3'},
+    'RE-k(he)': {'name': 'Relative effect in hepatocellular uptake rate', 'unit': ''},
+    'RE-k(bh)': {'name': 'Relative effect in biliary excretion rate', 'unit': ''},
+    'RE-CL': {'name': 'Relative effect in liver plasma clearance', 'unit': ''},
+    'AE-k(he)': {'name': 'Absolute effect in hepatocellular uptake rate', 'unit': 'mL/sec/cm3'},
+    'AE-k(bh)': {'name': 'Absolute effect in biliary excretion rate', 'unit': 'mL/sec/cm3'},
+    'AE-CL': {'name': 'Absolute effect in liver plasma clearance', 'unit': 'mL/sec'},
+
+    # Kinetics - control visit
+    'C-vol': {'init': 1000, 'name': 'Control visit - liver volume', 'unit': 'cm3'},
+    'C-k(he,i)': {'init': 0.0025, 'bounds': [0.0, 0.005], 'name': 'Control visit - initial hepatocellular uptake rate', 'unit': 'mL/sec/cm3'},
+    'C-k(he,f)': {'init': 0.0025, 'bounds': [0.0, 0.005], 'name': 'Control visit - final hepatocellular uptake rate', 'unit': 'mL/sec/cm3'},
+    'C-k(he)': {'name': 'Control visit - Hepatocellular uptake rate', 'unit': 'mL/sec/cm3'},
+    'C-dk(he)': {'name': 'Control visit - change in hepatocellular uptake rate', 'unit': ''},
+    'C-k(bh)': {'init': 0.00025, 'bounds': [0, 0.0005], 'name': 'Control visit - biliary excretion rate', 'unit': 'mL/sec/cm3'},
+    'C-CL': {'name': 'Control visit - liver plasma clearance', 'unit': 'mL/sec'},
+
+    # Kinetics - drug visit
+    'D-vol': {'init': 1000, 'name': 'Drug visit - liver volume', 'unit': 'cm3'},
+    'D-k(he,i)': {'init': 0.0025, 'bounds': [0.0, 0.005], 'name': 'Drug visit - initial hepatocellular uptake rate', 'unit': 'mL/sec/cm3'},
+    'D-k(he,f)': {'init': 0.0025, 'bounds': [0.0, 0.005], 'name': 'Drug visit - final hepatocellular uptake rate', 'unit': 'mL/sec/cm3'},
+    'D-k(he)': {'name': 'Drug visit - Hepatocellular uptake rate', 'unit': 'mL/sec/cm3'},
+    'D-dk(he)': {'name': 'Drug visit - Change in hepatocellular uptake rate', 'unit': ''},
+    'D-k(bh,i)': {'init': 0.00025, 'bounds': [0, 0.0005], 'name': 'Drug visit - initial biliary excretion rate', 'unit': 'mL/sec/cm3'},
+    'D-k(bh,f)': {'init': 0.00025, 'bounds': [0, 0.0005], 'name': 'Drug visit - final biliary excretion rate', 'unit': 'mL/sec/cm3'},
+    'D-k(bh)': {'name': 'Drug visit - biliary excretion rate', 'unit': 'mL/sec/cm3'},
+    'D-dk(bh)': {'name': 'Drug visit - change in biliary excretion rate', 'unit': ''},
+    'D-CL': {'name': 'Drug visit - liver plasma clearance', 'unit': 'mL/sec'},
+}
 
 
 class Liver2scanDrugEffect():
@@ -66,8 +148,8 @@ class Liver2scanDrugEffect():
         Since this model generates four time curves, the x- and y-data are 
         tuples:
 
-        >>> xdata = (time[0], time[1], time[0], time[1])
-        >>> ydata = (aif[0], aif[1], roi[0], roi[1])
+        >>> time = (time[0], time[1], time[0], time[1])
+        >>> signal = (aif[0], aif[1], roi[0], roi[1])
 
         Build an aorta-liver model and parameters to match the conditions of 
         the fake tissue data:
@@ -98,12 +180,12 @@ class Liver2scanDrugEffect():
 
         Train the model on the data:
 
-        >>> model.train(xdata, ydata, n0=10, xtol=1e-3)
+        >>> model.train(time, signal, n0=10, xtol=1e-3)
 
         Plot the reconstructed signals and concentrations and compare against 
         the experimentally derived data:
 
-        >>> model.plot(xdata, ydata)
+        >>> model.plot(time, signal)
 
         We can also have a look at the model parameters after training:
 
@@ -412,212 +494,255 @@ class Liver2scanDrugEffect():
 
     def __init__(self, **params):
         self._version = '1.0'
-        self._pars = None
-        self._free = None
-        self._pcov = None
-        self._sdev = None
-        self._init_params(**params)
 
-    def _compute_conc_aorta(self):
-        self._t_control, self._ca_control = _conc_aorta(self._pars, visit=0)
-        self._t_drug, self._ca_drug = _conc_aorta(self._pars, visit=1)
+        # Initialize parameters
+        self._pars = {p: deepcopy(PARAMS[p]['init']) for p in self._pars_list()}
 
-    def _compute_relax_aorta(self):
-        self._compute_conc_aorta()
-        self._R1a_control = _relax_aorta(self._ca_control, self._pars, visit=0)
-        self._R1a_drug = _relax_aorta(self._ca_drug, self._pars, visit=1)
-
-    def _compute_signal_aorta(self):
-        self._compute_relax_aorta()
-        self._Sa_control = _signal(self._R1a_control, 'aorta', self._pars, visit=0)
-        self._Sa_drug = _signal(self._R1a_drug, 'aorta', self._pars, visit=1)
-
-    def _predict_aorta(self, xdata: tuple) -> tuple:
-        self._compute_signal_aorta()
-        return _sample_signal(self._Sa_control, self._Sa_drug, self._pars, xdata)
-
-    def _compute_conc_liver(self):
-        self._Cl_control = _conc_liver(self._ca_control, self._pars, visit=0)
-        self._Cl_drug = _conc_liver(self._ca_drug, self._pars, visit=1)
-
-    def _compute_relax_liver(self):
-        self._compute_conc_liver()
-        self._R1l_control = _relax_liver(self._Cl_control, self._pars, visit=0)
-        self._R1l_drug = _relax_liver(self._Cl_drug, self._pars, visit=1)
-
-    def _compute_signal_liver(self):
-        self._compute_relax_liver()
-        self._Sl_control = _signal(self._R1l_control, 'liver', self._pars, visit=0)
-        self._Sl_drug = _signal(self._R1l_drug, 'liver', self._pars, visit=1)
-
-    def _predict_liver(self, xdata: tuple) -> tuple:
-        self._compute_signal_liver()
-        return _sample_signal(self._Sl_control, self._Sl_drug, self._pars, xdata)
-
+        # Override defaults with user-provided parameters
+        for p, val in params.items():
+            if p in self._pars:
+                self._pars[p] = val
+            else:
+                raise ValueError(f"'{p}' is not a valid parameter for this configuration.")
+            
+    def _pars_list(self, select=None):
+        if select is None:
+            pars_list = [p for p in PARAMS.keys() if 'init' in PARAMS[p]]
+        elif select == 'free':
+            visit_pars = ['BAT', 'BAT2', 'S02(a)', 'S02(l)', 'k(he,i)', 'k(he,f)']
+            pars_list = [f'C-{p}' for p in visit_pars] + [f'D-{p}' for p in visit_pars]
+            pars_list += ['CO', 'T(hl)', 'D(hl)', 'T(o)', 'E(o)', 'T(o,e)']  # aorta
+            pars_list += ['T(g)', 'D(g)', 'v(e)', 'C-k(bh)', 'D-k(bh,i)', 'D-k(bh,f)']  # liver
+        elif select=='export':
+            pars_list = self._pars_list('free') + ['C-S0(a)', 'C-S0(l)', 'D-S0(a)', 'D-S0(l)']
+        elif select=='first_scan':
+            pars_list = ['FA', 'TR']
+        elif select=='second_scan':
+            pars_list = ['FA2', 'TR']
+        # elif select=='aorta_control_fit':
+        #     pars_list = ['C-S02(a)', 'C-BAT', 'C-BAT2', 'C-k(he,i)', 'C-k(he,f)']
+        #     pars_list += ['CO', 'T(hl)', 'D(hl)', 'T(o)', 'E(o)', 'T(o,e)']  # aorta
+        # elif select=='liver_control_fit':
+        #     pars_list = ['C-S02(l)', 'C-k(he,i)', 'C-k(he,f)']
+        #     pars_list += ['T(g)', 'D(g)', 'v(e)', 'C-k(bh)']  # liver
+        # elif select=='control_fit':
+        #     pars_list = ['C-S02(a)', 'C-BAT', 'C-BAT2', 'C-k(he,i)', 'C-k(he,f)']
+        #     pars_list += ['CO', 'T(hl)', 'D(hl)', 'T(o)', 'E(o)', 'T(o,e)']  # aorta
+        #     pars_list += ['C-S02(l)']
+        #     pars_list += ['T(g)', 'D(g)', 'v(e)', 'C-k(bh)']  # liver
+        # elif select=='aorta_drug_fit':
+        #     pars_list = ['D-BAT', 'D-BAT2', 'D-S02(a)', 'D-k(he,i)', 'D-k(he,f)']
+        # elif select=='liver_drug_fit':
+        #     pars_list = ['D-S02(l)', 'D-k(he,i)', 'D-k(he,f)']
+        #     pars_list += ['D-k(bh,i)', 'D-k(bh,f)']  # liver
+        # elif select=='drug_fit':
+        #     pars_list = ['D-BAT', 'D-BAT2', 'D-S02(a)', 'D-S02(l)', 'D-k(he,i)', 'D-k(he,f)']
+        #     pars_list += ['D-k(bh,i)', 'D-k(bh,f)']  # liver
+        # elif select=='aorta_fit':
+        #     visit_pars = ['BAT', 'BAT2', 'S02(a)', 'k(he,i)', 'k(he,f)']
+        #     pars_list = [f'C-{p}' for p in visit_pars] + [f'D-{p}' for p in visit_pars]
+        #     pars_list += ['CO', 'T(hl)', 'D(hl)', 'T(o)', 'E(o)', 'T(o,e)']  # aorta
+        # elif select=='liver_fit':
+        #     visit_pars = ['S02(l)', 'k(he,i)', 'k(he,f)']
+        #     pars_list = [f'C-{p}' for p in visit_pars] + [f'D-{p}' for p in visit_pars]
+        #     pars_list += ['T(g)', 'D(g)', 'v(e)', 'C-k(bh)', 'D-k(bh,i)', 'D-k(bh,f)']  # liver
+        return pars_list
     
-    def conc(self):
+
+    # ==========================================
+    # Forward Model: Aorta
+    # ==========================================
+
+    def _set_time(self):
+        self._t_control = _time(self._pars, 'C')
+        self._t_drug = _time(self._pars, 'D')
+
+    def _compute_conc_aorta_control(self):
+        self._t_control, self._ca_control = _conc_aorta(self._pars, 'C')
+
+    def _compute_relax_aorta_control(self):
+        self._compute_conc_aorta_control()
+        self._R1a_control = _relax_aorta(self._ca_control, self._pars, 'C')
+
+    def _compute_signal_aorta_control(self):
+        self._compute_relax_aorta_control()
+        self._Sa_control = _signal(self._t_control, self._R1a_control, 'aorta', self._pars, 'C')
+
+    def _predict_aorta_control(self, time):
+        self._compute_signal_aorta_control()
+        return _sample_signal(time, self._t_control, self._Sa_control, self._pars['TS'])
+
+    # Predict aorta signal in drug scan
+
+    def _compute_conc_aorta_drug(self):
+        self._t_drug, self._ca_drug = _conc_aorta(self._pars, 'D')
+
+    def _compute_relax_aorta_drug(self):
+        self._compute_conc_aorta_drug()
+        self._R1a_drug = _relax_aorta(self._ca_drug, self._pars, 'D')
+
+    def _compute_signal_aorta_drug(self):
+        self._compute_relax_aorta_drug()
+        self._Sa_drug = _signal(self._t_drug, self._R1a_drug, 'aorta', self._pars, 'D')
+
+    def _predict_aorta_drug(self, time):
+        self._compute_signal_aorta_drug()
+        return _sample_signal(time, self._t_drug, self._Sa_drug, self._pars['TS'])
+
+    # Predict liver signal in control scan
+
+    def _compute_conc_liver_control(self):
+        self._Cl_control = _conc_liver(self._ca_control, self._pars, 'C')
+
+    def _compute_relax_liver_control(self):
+        self._compute_conc_liver_control()
+        self._R1l_control = _relax_liver(self._Cl_control, self._pars, 'C')
+
+    def _compute_signal_liver_control(self):
+        self._compute_relax_liver_control()
+        self._Sl_control = _signal(self._t_control, self._R1l_control, 'liver', self._pars, 'C')
+
+    def _predict_liver_control(self, time):
+        self._compute_signal_liver_control()
+        return _sample_signal(time, self._t_control, self._Sl_control, self._pars['TS'])
+    
+    # Predict liver signal in drug scan
+
+    def _compute_conc_liver_drug(self):
+        self._Cl_drug = _conc_liver(self._ca_drug, self._pars, 'D')
+
+    def _compute_relax_liver_drug(self):
+        self._compute_conc_liver_drug()
+        self._R1l_drug = _relax_liver(self._Cl_drug, self._pars, 'D')
+
+    def _compute_signal_liver_drug(self):
+        self._compute_relax_liver_drug()
+        self._Sl_drug = _signal(self._t_drug, self._R1l_drug, 'liver', self._pars, 'D')
+
+    def _predict_liver_drug(self, time):
+        self._compute_signal_liver_drug()
+        return _sample_signal(time, self._t_drug, self._Sl_drug, self._pars['TS'])
+
+    # Predict all signals
+
+    def _predict_control(self, time):
+        Sa = self._predict_aorta_control(time[:2])
+        Sl = self._predict_liver_control(time[2:])
+        return Sa + Sl
+    
+    def _predict_drug(self, time):
+        Sa = self._predict_aorta_drug(time[:2])
+        Sl = self._predict_liver_drug(time[2:])
+        return Sa + Sl
+
+    # APIs
+
+    def time(self) -> tuple:
+        """Time points in aorta and liver for the two visits"""
+        self._set_time()
+        tc, td = self._t_control, self._t_drug
+        t2c, t2d = self._pars['C-t_scan2'], self._pars['D-t_scan2']
+        return (
+            tc[tc < t2c], tc[tc >= t2c], tc[tc < t2c], tc[tc >= t2c], 
+            td[td < t2d], td[td >= t2d], td[tc < t2d], td[tc >= t2d],
+        )
+
+    def conc(self) -> tuple:
         """Concentrations in aorta and liver.
 
         Returns:
-            dict: time points, aorta blood concentrations, liver 
-              concentrations.
+            dict: aorta blood concentrations, liver concentrations.
         """
-        self._compute_conc_aorta()
-        self._compute_conc_liver()
-        return self._t_control, self._ca_control, self._Cl_control, self._t_drug, self._ca_drug, self._Cl_drug
+        self._compute_conc_aorta_control()
+        self._compute_conc_liver_control()
+        self._compute_conc_aorta_drug()
+        self._compute_conc_liver_drug()
+
+        tc, td = self._t_control, self._t_drug
+        t2c, t2d = self._pars['C-t_scan2'], self._pars['D-t_scan2']
+        cac = self._ca_control[tc < t2c], self._ca_control[tc >= t2c]
+        cad = self._ca_drug[td < t2d], self._ca_drug[td >= t2d]
+        Clc = self._Cl_control[:, tc < t2c], self._Cl_control[:, tc >= t2c]
+        Cld = self._Cl_drug[:, td < t2d], self._Cl_drug[:, td >= t2d]            
+        return cac + Clc + cad + Cld
     
-    def relax(self):
+    def relax(self) -> tuple:
         """Relaxation rates in aorta and liver.
 
         Returns:
-            dict: time points, aorta blood R1, liver 
-              R1.
+            dict: aorta blood R1, liver R1.
         """
-        self._compute_relax_aorta()
-        self._compute_relax_liver()
-        return self._t_control, self._R1a_control, self._R1l_control, self._t_drug, self._R1a_drug, self._R1l_drug
+        self._compute_relax_aorta_control()
+        self._compute_relax_liver_control()
+        self._compute_relax_aorta_drug()
+        self._compute_relax_liver_drug()
+
+        tc, td = self._t_control, self._t_drug
+        t2c, t2d = self._pars['C-t_scan2'], self._pars['D-t_scan2']
+        R1ac = self._R1a_control[tc < t2c], self._R1a_control[tc >= t2c]
+        R1lc = self._R1l_control[tc < t2c], self._R1l_control[tc >= t2c]
+        R1ad = self._R1a_drug[td < t2d], self._R1a_drug[td >= t2d]
+        R1ld = self._R1l_drug[td < t2d], self._R1l_drug[td >= t2d]
+        return R1ac + R1lc + R1ad + R1ld
     
-    def signal(self):
+    def signal(self) -> tuple:
         """Signal in aorta and liver.
 
         Returns:
-            dict: time points, aorta blood signal, liver 
+            tuple: aorta blood signal, liver 
               signal.
         """
-        self._compute_signal_aorta()
-        self._compute_signal_liver()
-        return self._t_control, self._Sa_control, self._Sl_control, self._t_drug, self._Sa_drug, self._Sl_drug
+        self._compute_signal_aorta_control()
+        self._compute_signal_liver_control()
+        self._compute_signal_aorta_drug()
+        self._compute_signal_liver_drug()
+
+        tc, td = self._t_control, self._t_drug
+        t2c, t2d = self._pars['C-t_scan2'], self._pars['D-t_scan2']
+        Sac = self._Sa_control[tc < t2c], self._Sa_control[tc >= t2c]
+        Slc = self._Sl_control[tc < t2c], self._Sl_control[tc >= t2c]
+        Sad = self._Sa_drug[td < t2d], self._Sa_drug[td >= t2d]
+        Sld = self._Sl_drug[td < t2d], self._Sl_drug[td >= t2d]
+        return Sac + Slc + Sad + Sld
     
-    def predict(self, xdata: tuple) -> tuple:
+    def predict(self, time: tuple) -> tuple:
         """Predict the data at given time points
 
         Args:
-            xdata (tuple): tuple of 8 arrays with time points. The first 
+            time (tuple): tuple of 8 arrays with time points. The first 
               four are from the control visit: aorta in 
-              the first scan, aorta in the second stand, liver in the first 
+              the first scan, aorta in the second scan, liver in the first 
               scan, and liver in the second scan, in that order. 
               The second group of 4 is the same data for the treatment visit.
 
         Returns:
-            tuple: tuple of 8 arrays with signals corresponding to xdata.
+            tuple: tuple of 8 arrays with signals corresponding to time.
         """
-        Sa = self._predict_aorta((xdata[0], xdata[1], xdata[4], xdata[5]))
-        Sl = self._predict_liver((xdata[2], xdata[3], xdata[6], xdata[7]))
-        return Sa[0], Sa[1], Sl[0], Sl[1], Sa[2], Sa[3], Sl[2], Sl[3]
-
-
-    def _init_params(self, **params):
-
-        # List all parameters (TODO: get from PARAMS instead of list again)
-        P = ['dt', 'tmax', 'dose_tolerance', 'field_strength', 'weight', 'agent', 'dose', 'rate']
-        P += ['H', 'R10a', 'R10l', 'S0a', 'S0l', 'S02a', 'S02l', 'BAT', 'BAT2']
-        P += ['FA', 'TR', 'TS', 't_scan2', 'dose2', 'FA2']
-        P += ['CO', 'GFR', 'Thl', 'Dhl', 'To', 'Eo', 'Toe']
-        #P += ['Tg', 'Dg', 've', 'khe_i', 'khe_f', 'Kbh_i', 'Kbh_f', 'vol']
-        P += ['Tg', 'Dg', 've', 'khe_i', 'khe_f', 'Th_i', 'Th_f', 'vol']
-
-        # Initialize parameters
-        self._pars = {p: PARAMS[p]['init'] for p in P}
-        for p in params:
-            if p not in P:
-                raise ValueError(
-                    f"{p} is not a valid model parameter in this configuration."
-                )                
-            self._pars[p] = params[p] 
-
-        # Initialize free parameters (get from params?)
-        P = ['CO', 'Thl', 'Dhl', 'To', 'Eo', 'Toe'] 
-        P += ['BAT', 'BAT2', 'S02a', 'S02l']
-        # P += ['Tg', 'Dg', 've', 'khe_i', 'khe_f', 'Kbh_i', 'Kbh_f'] 
-        P += ['Tg', 'Dg', 've', 'khe_i', 'khe_f', 'Th_i', 'Th_f'] 
-        
-        self._free = {p: PARAMS[p]['bounds'] for p in P}
-
-
-    def export_params(self) -> dict:
-        """Return model parameters with their descriptions
-
-        Args:
-            type (str, optional): Type of output. If 'dict', a dictionary is 
-              returned. If 'list', a list is returned. Defaults to 'dict'.
-
-        Returns:
-            dict: Dictionary with one item for each model parameter. The key 
-            is the short parameter name, and the value is a 
-            4-element list with [long parameter name, value, unit, sdev].
-
-        """
-        pars_deriv = _deriv_params(self._pars)
-
-        # List parameters for export
-        export_params = ['BAT', 'BAT2', 'S0a', 'S02a', 'S0l', 'S02l']
-        export_params += ['CO', 'GFR', 'Thl', 'Dhl', 'To', 'Eo', 'Toe']
-        # export_params += ['Tg', 'Dg', 've', 'khe_i', 'khe_f', 'Kbh_i', 'Kbh_f', 'vol']
-        export_params += ['Tg', 'Dg', 've', 'khe_i', 'khe_f', 'Th_i', 'Th_f', 'vol']
-        export_params += list(pars_deriv.keys())
-
-        # Add short name, full name, value, units.
-        all_pars = self._pars | pars_deriv
-        pars = {}
-        for p in export_params:
-            if np.isscalar(all_pars[p]):
-                sdev = 0
-            else:
-                sdev = [0, 0]
-                pars[f'{p}_effect'] = [
-                    PARAMS[p]['name'], 
-                    100 * (all_pars[p][1] - all_pars[p][0]) / all_pars[p][0], 
-                    '%', 
-                    0,
-                ]
-            if self._sdev is not None:
-                if p in self._sdev:
-                    sdev = self._sdev[p]
-            pars[p] = [
-                PARAMS[p]['name'], 
-                all_pars[p], 
-                PARAMS[p]['unit'], 
-                sdev,
-            ]
-
-        # # Inhibition is computed from the lowest rate in the treatment visit
-        # # and the average in the baseline visit.
-        # pars['khe_inhibition'] = [
-        #     "Inhibition of hepatocellular uptake", 
-        #     100 * (min([all_pars['khe_i'][1], all_pars['khe_f'][1]]) - all_pars['khe'][0]) / all_pars['khe'][0], 
-        #     '%', 
-        #     0,
-        # ]  
-        # pars['kbh_inhibition'] = [
-        #     "Inhibition of biliary excretion", 
-        #     100 * (min([all_pars['kbh_i'][1], all_pars['kbh_f'][1]]) - all_pars['kbh'][0]) / all_pars['kbh'][0], 
-        #     '%', 
-        #     0,
-        # ]      
-
-        return pars
+        ts = self._pars['TS'] if self._pars['TS'] is not None else 0
+        for i, visit in enumerate(['C', 'D']):
+            self._pars[f'{visit}-tmax'] = self._pars['dt'] + np.max(time[4 * i: 4 * i + 4]) + ts
+        Sc = self._predict_control(time[:4])
+        Sd = self._predict_drug(time[4:])
+        return Sc + Sd
 
 
     def train(
-            self, xdata: tuple, ydata: tuple, n0=[1, 1], 
-            R102a=None, R102l=None, free=None, constraints=None, **kwargs,
+            self, time: tuple, signal: tuple, free=None, 
+            bounds:dict=None, R102a=None, R102l=None, n0=[1, 1], 
+            **kwargs,
         ):
-        # x,y: (aorta scan 1, aorta scan 2, liver scan 1, liver scan 2)
         """Train the free parameters
 
         Args:
-            xdata (tuple): tuple of 4 arrays with time points for aorta in 
+            time (tuple): tuple of 4 arrays with time points for aorta in 
               the first scan, aorta in the second stand, liver in the first 
               scan, and liver in the second scan, in that order. The four 
               arrays can be different in length and value.
-            ydata (tuple): tuple of 4 arrays with signals for aorta in the 
+            signal (tuple): tuple of 4 arrays with signals for aorta in the 
               first scan, aorta in the second stand, liver in the first scan, 
               and liver in the second scan, in that order. The arrays can be 
               different in length but each has to have the same length as its 
               corresponding array of time points.
-            joint (bool, optional): If True, aorta and liver parameters 
-              are trained jointly after training them separately. 
-              Defaults to True.
             free (dict, optional): Dictionary with free parameters and their
               bounds. If not provided, a default set of free parameters is used.
               Defaults to None.
@@ -627,192 +752,241 @@ class Liver2scanDrugEffect():
         Returns:
             AortaLiver2scan: A reference to the model instance.
         """
-        if free is not None:
-            for p in free:
-                if p not in self._pars:
-                    raise ValueError(
-                        f"{p} is not a valid free parameter in this configuration."
-                    ) 
-            self._free = deepcopy(free)
+        # Estimate BAT and S0 from data
+        self._estimate_pars(time, signal, n0, R102a, R102l)
+
+        # Check and update free parameters
+        free = self._set_free_pars(free, bounds)
+
+        # # Train control data
+        # free_ctrl = {p: v for p, v in free.items() if p in self._pars_list('control_fit')}
+        # utils.train(self._predict_control, time[:4], signal[:4], self._pars, free_ctrl, **kwargs)
         
-        for visit in [0, 1]:
-
-            # Estimate BAT and BAT2
-            T, D = self._pars['Thl'], self._pars['Dhl']
-            self._pars['BAT'][visit] = xdata[4 * visit][np.argmax(ydata[4 * visit])] - (1-D)*T
-            self._free['BAT'][visit] = [  
-                self._pars['BAT'][visit] + free['BAT'][visit][0],
-                self._pars['BAT'][visit] + free['BAT'][visit][1],
-            ]
-            self._pars['BAT2'][visit] = xdata[1 + 4 * visit][np.argmax(ydata[1 + 4 * visit])] - (1-D)*T
-            self._free['BAT2'][visit] = [
-                self._pars['BAT2'][visit] + free['BAT2'][visit][0],
-                self._pars['BAT2'][visit] + free['BAT2'][visit][1],
-            ]
-
-            # Estimate S0
-            pars = {'FA':self._pars['FA'], 'TR':self._pars['TR']}
-            Srefb = sig.signal('SS', self._pars['R10a'][visit], 1, **pars)
-            Srefl = sig.signal('SS', self._pars['R10l'][visit], 1, **pars)
-            self._pars['S0a'][visit] = np.mean(ydata[0 + 4 * visit][1:n0[visit]]) / Srefb
-            self._pars['S0l'][visit] = np.mean(ydata[2 + 4 * visit][1:n0[visit]]) / Srefl
-
-            # Estimate S02
-            pars = {'FA':self._pars['FA2'], 'TR':self._pars['TR']}
-            if R102a is not None:
-                Sref2b = sig.signal('SS', R102a[visit], 1, **pars)
-                self._pars['S02a'][visit] = np.mean(ydata[1 + 4 * visit][1:n0[visit]]) / Sref2b
-            else:
-                self._pars['S02a'][visit] = self._pars['S0a'][visit]
-            if 'S02a' in free:
-                self._free['S02a'][visit] = [
-                    self._pars['S02a'][visit] * free['S02a'][visit][0],
-                    self._pars['S02a'][visit] * free['S02a'][visit][1],
-                ]
-            if R102l is not None:
-                Sref2l = sig.signal('SS', R102l[visit], 1, **pars)
-                self._pars['S02l'][visit] = np.mean(ydata[3 + 4 * visit][1:n0[visit]]) / Sref2l
-            else:
-                self._pars['S02l'][visit] = self._pars['S0l'][visit]
-            if 'S02l' in free:
-                self._free['S02l'][visit] = [
-                    self._pars['S02l'][visit] * free['S02l'][visit][0],
-                    self._pars['S02l'][visit] * free['S02l'][visit][1],
-                ]
- 
-        # # Train free aorta parameters on aorta data
-        # #khe_i, khe_f = deepcopy(self._pars['khe_i']), deepcopy(self._pars['khe_f'])
-        # pars = ['BAT', 'CO', 'GFR', 'Thl', 'Dhl', 'To', 'Eo', 'Toe', 'khe_i', 'khe_f', 'vol', 'BAT2', 'S02a']
-        # free_aorta = {p:v for p, v in self._free.items() if p in pars}
-        # x_aorta = (xdata[0], xdata[1], xdata[4], xdata[5])
-        # y_aorta = (ydata[0], ydata[1], ydata[4], ydata[5])
-        # _train(self, self._predict_aorta, x_aorta, y_aorta, free_aorta, **kwargs)
-
-        # # Train free liver parameters on liver data
-        # #self._pars['khe_i'], self._pars['khe_f'] = khe_i, khe_f
-        # pars = ['Tg', 'Dg', 've', 'khe_i', 'khe_f', 'Th_i', 'Th_f', 'S02l']
-        # #pars = ['Tg', 'Dg', 've', 'khe_i', 'khe_f', 'Kbh_i', 'Kbh_f', 'S02l']
-        # free_liver = {p:v for p, v in self._free.items() if p in pars}
-        # x_liver = (xdata[2], xdata[3], xdata[6], xdata[7])
-        # y_liver = (ydata[2], ydata[3], ydata[6], ydata[7])
-        # _train(self, self._predict_liver, x_liver, y_liver, free_liver, **kwargs)
+        # # Train drug data
+        # free_drug = {p: v for p, v in free.items() if p in self._pars_list('drug_fit')}
+        # utils.train(self._predict_drug, time[4:], signal[4:], self._pars, free_drug, **kwargs)
 
         # Train all parameters on all data
-        pcov = _train(self, self.predict, xdata, ydata, self._free, **kwargs)
-        self._pcov = [(pcov.tolist(), list(self._free.keys()))]
-        self._sdev = _sdev(pcov, self._free)
+        pcov, sdev = utils.train(self.predict, time, signal, self._pars, free, **kwargs)
 
-        return self
-    
+        pars = {
+            p: {
+                'name': deepcopy(PARAMS[p]['name']), 
+                'unit': deepcopy(PARAMS[p]['unit']), 
+                'value': self._pars[p], 
+                'sdev': sdev[p] if sdev is not None else None
+            } 
+            for p in free
+        }
+        return pars, pcov
 
-    def plot(self, xdata: tuple, ydata: tuple,
-             ref=None, xlim=None, fname=None, show=True):
-        """Plot the model fit against data
+
+    def _estimate_pars(self, time, signal, n0, R102a, R102l):
+        
+        ts = self._pars['TS'] if self._pars['TS'] is not None else 0
+        for i, visit in enumerate(['C', 'D']):
+            self._pars[f'{visit}-tmax'] = self._pars['dt'] + np.max(time[4 * i: 4 * i + 4]) + ts
+
+            # Estimate BAT and BAT2
+            T, D = self._pars['T(hl)'], self._pars['D(hl)']
+            self._pars[f'{visit}-BAT'] = time[4 * i][np.argmax(signal[4 * i])] - (1-D)*T
+            self._pars[f'{visit}-BAT2'] = time[1 + 4 * i][np.argmax(signal[1 + 4 * i])] - (1-D)*T
+
+            # Estimate S0
+            pars = self._pars_dict(select='first_scan')
+            Srefb = sig.signal('SS', self._pars[f'{visit}-R10(a)'], 1, **pars)
+            Srefl = sig.signal('SS', self._pars[f'{visit}-R10(l)'], 1, **pars)
+            self._pars[f'{visit}-S0(a)'] = np.mean(signal[0 + 4 * i][:n0[i]]) / Srefb
+            self._pars[f'{visit}-S0(l)'] = np.mean(signal[2 + 4 * i][:n0[i]]) / Srefl
+
+            # Estimate S02
+            pars = self._pars_dict(select='second_scan')
+            pars['FA'] = pars.pop('FA2', None)
+            if R102a is None:
+                self._pars[f'{visit}-S02(a)'] = self._pars[f'{visit}-S0(a)']
+            else:
+                Sref2b = sig.signal('SS', R102a[i], 1, **pars)
+                self._pars[f'{visit}-S02(a)'] = np.mean(signal[1 + 4 * i][:n0[i]]) / Sref2b
+            if R102l is None:
+                self._pars[f'{visit}-S02(l)'] = self._pars[f'{visit}-S0(l)']
+            else:
+                Sref2l = sig.signal('SS', R102l[i], 1, **pars)
+                self._pars[f'{visit}-S02(l)'] = np.mean(signal[3 + 4 * i][:n0[i]]) / Sref2l
+
+
+    def _set_free_pars(self, free: dict=None, bounds: dict=None):
+        # --- 0. Set Defaults ---
+        if free is None:
+            free = {p: deepcopy(PARAMS[p]['bounds']) for p in self._pars_list('free')}
+        
+        # --- 1. Update Bounds ---
+        if bounds is not None:
+            for p, b in bounds.items():
+                if b is None:
+                    free.pop(p, None)
+                else:
+                    free[p] = b
+
+        # --- 2. Boundary Validation ---
+        for p, bnds in free.items():
+            if p not in self._pars:
+                raise ValueError(f"'{p}' is not a valid parameter for this configuration.")
+            
+            # Parameters with relative bounds
+            elif p[2:] in ['BAT', 'BAT2']: 
+                if (bnds[0] > 0) or (bnds[1] < 0):
+                    raise ValueError(f"Invalid bounds on {p}: Bounds on BAT are relative and must be (negative, positive).")
+            elif p[2:] in ['S0(a)', 'S0(l)', 'S02(a)', 'S02(l)']: 
+                if not (0 <= bnds[0] < bnds[1]):
+                    raise ValueError(f"Invalid bounds on {p}: Bounds on S0 are relative and must be positive.")
+
+            # Absolute bounds
+            elif not (bnds[0] <= self._pars[p] <= bnds[1]):
+                raise ValueError(f"Initial {p} ({self._pars[p]}) is out of bounds {bnds}.")
+
+        # --- 3. Relative to Absolute Bounds
+        for visit in ['C', 'D']:
+
+            # Additive
+            for par in ['BAT', 'BAT2']:
+                par_str = f'{visit}-{par}'
+                if par_str in free:
+                    free[par_str] = [  
+                        self._pars[par_str] + free[par_str][0],
+                        self._pars[par_str] + free[par_str][1],
+                    ]
+
+            # Multiplicative
+            for par in ['S0(a)', 'S0(l)', 'S02(a)', 'S02(l)']:
+                par_str = f'{visit}-{par}'
+                if par_str in free:
+                    free[par_str] = [
+                        self._pars[par_str] * free[par_str][0],
+                        self._pars[par_str] * free[par_str][1],
+                    ]   
+
+        return free         
+                
+
+    # ==========================================
+    # I/O and Reporting
+    # ==========================================
+
+
+
+    def save(self, file: str):
+        """Save the current state of the model as a json file.
 
         Args:
-            xdata (tuple): tuple of 4 arrays with time points for aorta in the 
-              first scan, aorta in the second stand, liver in the first scan, 
-              and liver in the second scan, in that order. The four arrays can 
-              be different in length and value.
-            ydata (tuple): tuple of 4 arrays with signals for aorta in the 
-              first scan, aorta in the second stand, liver in the first scan, 
-              and liver in the second scan, in that order. The arrays can be 
-              different in length but each has to have the same length as its 
-              corresponding array of time points.
-            xlim (array_like, optional): 2-element array with lower and upper 
-              boundaries of the x-axis. Defaults to None.
-            ref (tuple, optional): Tuple of optional test data in the form 
-              (x,y), where x is an array with x-values and y is an array with 
-              y-values. Defaults to None.
-            fname (path, optional): Filepath to save the image. If no value 
-              is provided, the image is not saved. Defaults to None.
-            show (bool, optional): If True, the plot is shown. Defaults to 
-              True.
+            file (str): complete path of the json file. 
         """
-        tmax = max([max(x) for x in xdata[:4]])
-        if self._pars['tmax'][0] < tmax:
-            raise ValueError(
-                f"The largest control visit time point that can be predicted with "
-                f"the current configuration is {self._pars['tmax'][0]}. "
-                f"To predict these data, set tmax = {tmax} (or larger) " 
-                f"when creating the tissue object."
-            )
-        tmax = max([max(x) for x in xdata[4:]])
-        if self._pars['tmax'][1] < tmax:
-            raise ValueError(
-                f"The largest treatment visit time point that can be predicted with "
-                f"the current configuration is {self._pars['tmax'][1]}. "
-                f"To predict these data, set tmax = {tmax} (or larger) " 
-                f"when creating the tissue object."
-            )
-        
-        self.signal()
-        
-        fig, ((ax1, ax2, ax3, ax4), (ax5, ax6, ax7, ax8)) = plt.subplots(2, 4, figsize=(20, 8))
-        fig.subplots_adjust(wspace=0.3)
 
-        ax1.set_title('First visit')
-        ax2.set_title('Second visit')
-        ax3.set_title('First visit')
-        ax4.set_title('Second visit')
+        if file.split('.')[-1] != 'json':
+            file += '.json'
 
-        _plot_data2scan(self._t_control, self._Sa_control, xdata[0:2], ydata[0:2],
-                        ax1, xlim,
-                        color=['lightcoral', 'darkred'],
-                        test=None if ref is None else ref[0])
-        _plot_data2scan(self._t_drug, self._Sa_drug, xdata[4:6], ydata[4:6],
-                        ax2, xlim,
-                        color=['lightcoral', 'darkred'],
-                        test=None if ref is None else ref[1])
-        _plot_conc_aorta(self._t_control, self._ca_control, ax3, xlim)
-        _plot_conc_aorta(self._t_drug, self._ca_drug, ax4, xlim)
+        data = {
+            'model': self.__class__.__name__,
+            'version': self._version,
+            'pars': self._pars,
+        }
 
-        _plot_data2scan(self._t_control, self._Sl_control, xdata[2:4], ydata[2:4],
-                        ax5, xlim,
-                        color=['cornflowerblue', 'darkblue'],
-                        test=None if ref is None else ref[2])
-        _plot_data2scan(self._t_drug, self._Sl_drug, xdata[6:8], ydata[6:8],
-                        ax6, xlim,
-                        color=['cornflowerblue', 'darkblue'],
-                        test=None if ref is None else ref[3])
-        _plot_conc_liver(self._t_control, self._Cl_control, ax7, xlim)
-        _plot_conc_liver(self._t_drug, self._Cl_drug, ax8, xlim)
+        with open(file, "w") as f:
+            json.dump(data, f, indent=4)
 
-        if fname is not None:
-            plt.savefig(fname=fname)
-        if show:
-            plt.show()
-        else:
-            plt.close()
+        return self
 
-    def to_dmr(self, file=None, subject='Subject', study='drug_effect'):
-        dmr = {'data': {}, 'pars': {}, 'sdev':{}}
-        pars = self.export_params()
-        for p in pars:
-            if np.isscalar(pars[p][1]):
-                dmr['data'][p] = [pars[p][0], pars[p][2], 'str' if isinstance(pars[p][1], str) else 'float']
-                dmr['pars'][(subject, study, p)] = pars[p][1]
-                dmr['sdev'][(subject, study, p)] = pars[p][3]
-            else:
-                dmr['data'][f'{p}_control'] = [pars[p][0], pars[p][2], 'str' if isinstance(pars[p][1][0], str) else 'float']
-                dmr['pars'][(subject, study, p)] = pars[p][1][0]
-                dmr['sdev'][(subject, study, p)] = pars[p][3][0]   
-                dmr['data'][f'{p}_drug'] = [pars[p][0], pars[p][2], 'str' if isinstance(pars[p][1][1], str) else 'float']
-                dmr['pars'][(subject, study, p)] = pars[p][1][1]
-                dmr['sdev'][(subject, study, p)] = pars[p][3][1]  
-        if file is not None:             
-            pydmr.write(file, dmr)
-        return dmr
+
+    def load(self, file):
+        """Load the saved state of the model from a json file
+
+        Args:
+            file (str): complete path of the json file. 
+        """
+        with open(file, "r") as f:
+            data = json.load(f) 
+
+        if data['model'] != self.__class__.__name__:
+            raise ValueError(f"File belongs to {data['model']}, not {self.__class__.__name__}.")
+        if data['version'] != self._version:
+            raise ValueError(f"Version mismatch: {data['version']} vs {self._version}.")
+             
+        self._pars = data['pars']
+        return self
+
+    def export_params(self) -> dict:
+        """Return model parameters with their descriptions
+
+        Returns:
+            dict: Dictionary with one item for each model parameter. The key 
+            is the short parameter name, and the value is a dict 
+            with long parameter name, value, unit.
+        """
+            
+        # List parameters for export
+        pars_deriv = _deriv_params(self._pars)
+        export_pars = self._pars_list('export') + list(pars_deriv.keys())
+
+        # Add short name, full name, value, units.
+        value = self._pars | pars_deriv
+        pars = {
+            p: {
+                'name': deepcopy(PARAMS[p]['name']),
+                'unit': deepcopy(PARAMS[p]['unit']),  
+                'value': value[p], 
+            } for p in export_pars
+        }
+        return pars 
     
-    def cost(self, xdata: tuple, ydata: tuple, metric='NRMS') -> float:
+    def print_params(self, round_to=None):
+        """Print the model parameters and their uncertainties
+
+        Args:
+            round_to (int, optional): Round to how many digits. If this is 
+              not provided, the values are not rounded. Defaults to None.
+        """
+        pars = self.export_params()
+        for p, v in pars.items():
+            val = v['value']
+            if round_to is not None:
+                val = round(val, round_to)
+            print(f"{v['name']} ({p}) = {val} {v['unit']}")
+
+    def _pars_dict(self, *args, select=None):
+        """Return the parameter values"""
+        if len(args) == 0:
+            pars = deepcopy(self._pars)
+        else:
+            pars = {k: v for k, v in self._pars.items() if k in list(args)}
+        if select is not None:
+            pars = {k: v for k, v in pars.items() if k in self._pars_list(select)}
+        return pars
+  
+    def params(self, *args, as_dict=False):
+        """Return the parameter values
+
+        Args:
+            args (tuple): parameters to get
+
+        Returns:
+            tuple or dict: values of parameters
+        """
+        pars = self._pars_dict(*args)
+        if as_dict:
+            return pars
+        elif len(pars)==1:
+            return list(pars.values())[0]
+        else:
+            return tuple(pars.values())
+        
+    def cost(self, time: tuple, signal: tuple, metric='NRMS') -> float:
         """Return the goodness-of-fit
 
         Args:
-            xdata (tuple): tuple of 4 arrays with time points for aorta in the 
+            time (tuple): tuple of 4 arrays with time points for aorta in the 
               first scan, aorta in the second stand, liver in the first scan, 
               and liver in the second scan, in that order. The four arrays can 
               be different in length and value.
-            ydata (tuple): tuple of 4 arrays with signals for aorta in the 
+            signal (tuple): tuple of 4 arrays with signals for aorta in the 
               first scan, aorta in the second stand, liver in the first scan, 
               and liver in the second scan, in that order. The arrays can be 
               different in length but each has to have the same length as its 
@@ -834,443 +1008,94 @@ class Liver2scanDrugEffect():
               models.
             - 'BIC': Baysian information criterion.
         """
-        y = self.predict(xdata)
-        if isinstance(ydata, tuple):
+        y = self.predict(time)
+        if isinstance(signal, tuple):
             y = np.concatenate(y)
-            ydata = np.concatenate(ydata)
-        return utils.loss(y, ydata, metric)
-    
-    def save(self, file: str):
-        """Save the current state of the model as a json file.
+            signal = np.concatenate(signal)
+        return utils.loss(y, signal, metric)
+
+
+    def plot(self, time: tuple, signal: tuple,
+             xlim=None, fname=None, show=True):
+        """Plot the model fit against data
 
         Args:
-            file (str): complete path of the json file. 
+            time (tuple): tuple of 4 arrays with time points for aorta in the 
+              first scan, aorta in the second stand, liver in the first scan, 
+              and liver in the second scan, in that order. The four arrays can 
+              be different in length and value.
+            signal (tuple): tuple of 4 arrays with signals for aorta in the 
+              first scan, aorta in the second stand, liver in the first scan, 
+              and liver in the second scan, in that order. The arrays can be 
+              different in length but each has to have the same length as its 
+              corresponding array of time points.
+            xlim (array_like, optional): 2-element array with lower and upper 
+              boundaries of the x-axis. Defaults to None.
+            fname (path, optional): Filepath to save the image. If no value 
+              is provided, the image is not saved. Defaults to None.
+            show (bool, optional): If True, the plot is shown. Defaults to 
+              True.
         """
-
-        if file.split('.')[-1] != 'json':
-            file += '.json'
-
-        data = {
-            'model': self.__class__.__name__,
-            'version': self._version,
-            'pars': self._pars,
-            'free': self._free,
-            'pcov': self._pcov,
-            'sdev': self._sdev,
-        }
-
-        with open(file, "w") as f:
-            json.dump(data, f, indent=4)
-
-        return self
-
-
-    def load(self, file):
-        """Load the saved state of the model from a json file
-
-        Args:
-            file (str): complete path of the json file. 
-        """
-        with open(file, "r") as f:
-            data = json.load(f) 
-
-        if data['model'] != self.__class__.__name__:
-            raise ValueError(
-                f"File {file} saves the state of model {data['model']}. "
-            )
-        if data['version'] != self._version:
-            raise ValueError(
-                f"The file {file} saves the state of a different version {data['version']}. "
-            )              
-
-        self._pars = data['pars']
-        self._free = data['free']
-        self._pcov = data['pcov']
-        self._sdev = data['sdev']
-
-        return self
-
-    
-    def print_params(self, round_to=None):
-        """Print the model parameters and their uncertainties
-
-        Args:
-            round_to (int, optional): Round to how many digits. If this is 
-              not provided, the values are not rounded. Defaults to None.
-        """
-        pars = self.export_params()
-        for p, v in pars.items():
-            name, unit = v[0], v[2]
-            if round_to is None:
-                val = v[1]
-                err = v[3]
-            else:
-                if np.isscalar(v[1]):
-                    val = round(v[1], round_to)
-                    err = round(v[3], round_to)
-                    print(f"{name} ({p}): {val} ({err}) {unit}")
-                else:
-                    val = [round(v[1][i], round_to) for i in [0,1]]
-                    err = [round(v[3][i], round_to) for i in [0,1]] 
-                    print(f"{name} ({p}): [{val[0]}, {val[1]}] ({err[0]}, {err[1]}) {unit}")                  
-            
-
-
-    def params(self, *args, round_to=None):
-        """Return the parameter values
-
-        Args:
-            args (tuple): parameters to get
-
-        Returns:
-            list or float: values of parameter values, or a scalar value if 
-            only one parameter is required.
-        """
-        pars = self.export_params()
-        if len(args) == 1:
-            if round_to is None:
-                return pars[args[0]][1]
-            elif np.isscalar(pars[args[0]][1]):
-                return round(pars[args[0]][1], round_to)
-            else:
-                return [round(pars[args[0]][1][i], round_to) for i in [0,1]]
-        else:
-            return {p: self.params(p) for p in list(args)}
-
-
-    def set_params(self, **pars):
-        """set parameter values
-
-        Args:
-            pars (dict): parameters to set.
-        """
-        for p, v in pars.items():
-            self._pars[p] = v
-
-
-def _deriv_params(pars):
-    # Compute derived parameters
-    vh = 1 - pars['ve'] / (1 - pars['H'])
-    khe = [np.mean([pars['khe_i'][i], pars['khe_f'][i]]) for i in [0,1]]
-    Th = [np.mean([pars['Th_i'][i], pars['Th_f'][i]]) for i in [0,1]]
-    pars_deriv = {
-        'khe': khe,
-        'Th': Th,
-        'vh': vh,
-        'kbh_i': [_div(vh, pars['Th_i'][i]) for i in [0,1]],
-        'kbh_f': [_div(vh, pars['Th_f'][i]) for i in [0,1]],
-        'kbh': [_div(vh, Th[i]) for i in [0,1]],
-        'Khe': [_div(khe[i], pars['ve']) for i in [0,1]],
-        'Kbh': [_div(1, Th[i]) for i in [0,1]], # Needs integration over t
-        'Kbh_i': [_div(1, pars['Th_i'][i]) for i in [0,1]],
-        'Kbh_f': [_div(1, pars['Th_f'][i]) for i in [0,1]],
-        'CL_i': [pars['khe_i'][i] * pars['vol'][i] for i in [0,1]],
-        'CL_f': [pars['khe_f'][i] * pars['vol'][i] for i in [0,1]],
-    }
-    pars_deriv['CL'] = [np.mean([pars_deriv['CL_i'][i], pars_deriv['CL_f'][i]]) for i in [0,1]]
-    pars_deriv['Eb_i'] = [_div(pars_deriv['CL_i'][i], pars_deriv['CL_i'][i] + pars['CO'] * (1 - pars['H'])) for i in [0,1]]
-    pars_deriv['Eb_f'] = [_div(pars_deriv['CL_f'][i], pars_deriv['CL_f'][i] + pars['CO'] * (1 - pars['H'])) for i in [0,1]]
-    # Needs integration
-    pars_deriv['Eb'] = [_div(pars_deriv['CL'][i], pars_deriv['CL'][i] + pars['CO'] * (1 - pars['H'])) for i in [0,1]]
-    return pars_deriv
-
-
-# def _deriv_params(pars):
-#     # Compute derived parameters
-#     vh = 1 - pars['ve'] / (1 - pars['H'])
-#     khe = [np.mean([pars['khe_i'][i], pars['khe_f'][i]]) for i in [0,1]]
-#     Kbh = [np.mean([pars['Kbh_i'][i], pars['Kbh_f'][i]]) for i in [0,1]]
-#     pars_deriv = {
-#         'khe': khe,
-#         'Kbh': Kbh,
-#         'vh': vh,
-#         'kbh_i': [vh * pars['Kbh_i'][i] for i in [0,1]],
-#         'kbh_f': [vh * pars['Kbh_f'][i] for i in [0,1]],
-#         'kbh': [vh * Kbh[i] for i in [0,1]],
-#         'Khe': [_div(khe[i], pars['ve']) for i in [0,1]],
-#         'Th': [_div(1, Kbh[i]) for i in [0,1]], # Needs integration over t
-#         'Th_i': [_div(1, pars['Kbh_i'][i]) for i in [0,1]],
-#         'Th_f': [_div(1, pars['Kbh_f'][i]) for i in [0,1]],
-#         'CL_i': [pars['khe_i'][i] * pars['vol'][i] for i in [0,1]],
-#         'CL_f': [pars['khe_f'][i] * pars['vol'][i] for i in [0,1]],
-#     }
-#     pars_deriv['CL'] = [np.mean([pars_deriv['CL_i'][i], pars_deriv['CL_f'][i]]) for i in [0,1]]
-#     pars_deriv['Eb_i'] = [_div(pars_deriv['CL_i'][i], pars_deriv['CL_i'][i] + pars['CO'] * (1 - pars['H'])) for i in [0,1]]
-#     pars_deriv['Eb_f'] = [_div(pars_deriv['CL_f'][i], pars_deriv['CL_f'][i] + pars['CO'] * (1 - pars['H'])) for i in [0,1]]
-#     # Needs integration
-#     pars_deriv['Eb'] = [_div(pars_deriv['CL'][i], pars_deriv['CL'][i] + pars['CO'] * (1 - pars['H'])) for i in [0,1]]
-#     return pars_deriv
-
-
-def _interp(ki, kf, t):
-    #slope = (kf - ki) / (6 * 60 * 60)
-    slope = (kf - ki) / t.max()
-    return ki + t * slope
-
-
-def _conc_aorta(pars, visit=None):
-
-    t = np.arange(0, pars['tmax'][visit], pars['dt'])
-    conc = lib.ca_conc(pars['agent'])
-
-    # Derive Eb
-    khe = _interp(pars['khe_i'][visit], pars['khe_f'][visit], t)
-    CL = khe * pars['vol'][visit] + pars['GFR']
-    Eb = CL / (CL + pars['CO'] * (1 - pars['H']))
-    
-    # Compute flux
-    J1 = lib.ca_injection(
-        t, pars['weight'], conc, pars['dose'][visit], 
-        pars['rate'], pars['BAT'][visit],
-    )
-    J2 = lib.ca_injection(
-        t, pars['weight'], conc, pars['dose2'][visit], 
-        pars['rate'], pars['BAT2'][visit],
-    )
-    Jb = pk_aorta.flux_aorta(
-        J1 + J2, E=Eb, dt=pars['dt'], 
-        tol=pars['dose_tolerance'],
-        heartlung=['pfcomp', (pars['Thl'], pars['Dhl'])],
-        organs=['2cxm', ([pars['To'], pars['Toe']], pars['Eo'])],
-    )
-    return t, Jb/pars['CO']
-
-
-def _conc_liver(cb, pars, visit=None):
-
-    t = np.arange(0, pars['tmax'][visit], pars['dt']) 
-    
-    # Determine khe, Kbh over the visit duration
-    khe = _interp(pars['khe_i'][visit], pars['khe_f'][visit], t)
-    #Kbh = _interp(pars['Kbh_i'][visit], pars['Kbh_f'][visit], t)
-   # Th = _div(1, Kbh)
-    Th = _interp(pars['Th_i'][visit], pars['Th_f'][visit], t)
-    
-    # Compute concentrations
-    cp = cb / (1 - pars['H'])
-    cp = pk.flux_pfcomp(cp, pars['Tg'], pars['Dg'], dt=pars['dt'])  
-    Ce = pars['ve'] * cp
-    Ch = pk.conc(khe * cp, Th, dt=pars['dt'], model="nscomp")
-
-    # Return results
-    return np.stack((Ce, Ch))
-
-
-
-
-def _relax_aorta(ca, pars, visit=None):
-    rb = lib.relaxivity(pars['field_strength'], 'blood', pars['agent'])
-    R1a = pars['R10a'][visit] + rb * ca
-    return R1a
-
-def _relax_liver(Cl, pars, visit=None):
-    rp = lib.relaxivity(pars['field_strength'], 'plasma', pars['agent'])
-    rh = lib.relaxivity(pars['field_strength'], 'hepatocytes', pars['agent'])
-    R1l = pars['R10l'][visit] + rp * Cl[0, :] + rh * Cl[1, :]
-    return R1l
-
-def _signal(R1, roi, pars, visit=None):
-    
-    t = np.arange(0, pars['tmax'][visit], pars['dt'])
-    t1 = t <= pars['t_scan2'][visit]
-    t2 = t > pars['t_scan2'][visit]
-
-    S = np.zeros(t.size)
-    S[t1] = sig.signal('SS', R1[t1], pars[f'S0{roi[0]}'][visit], FA=pars['FA'], TR=pars['TR'])
-    S[t2] = sig.signal('SS', R1[t2], pars[f'S02{roi[0]}'][visit], FA=pars['FA2'], TR=pars['TR'])
-
-    return S
-
-
-def _sample_signal(S_control, S_drug, pars, xdata) -> tuple:
-
-    tmax = max([max(x) for x in xdata[:2]])
-    if pars['tmax'][0] < tmax:
-        raise ValueError(
-            f"The largest control visit time point that can be predicted with "
-            f"the current configuration is {pars['tmax'][0]}. "
-            f"To predict these data, set tmax = {tmax} (or larger) " 
-            f"when creating the tissue object."
-        )
-    tmax = max([max(x) for x in xdata[2:]])
-    if pars['tmax'][1] < tmax:
-        raise ValueError(
-            f"The largest treatment visit time point that can be predicted with "
-            f"the current configuration is {pars['tmax'][1]}. "
-            f"To predict these data, set tmax = {tmax} (or larger) " 
-            f"when creating the tissue object."
-        )
-    
-    t_control = np.arange(0, pars['tmax'][0], pars['dt'])
-    t_drug = np.arange(0, pars['tmax'][1], pars['dt'])
-    return (
-        utils.sample(xdata[0], t_control, S_control, pars['TS']),
-        utils.sample(xdata[1], t_control, S_control, pars['TS']),
-        utils.sample(xdata[2], t_drug, S_drug, pars['TS']),
-        utils.sample(xdata[3], t_drug, S_drug, pars['TS']),
-    )
-
-
-    
-
-# add constraints=None here
-# then call train_with_constraints if not None
-
-# def _fit_func(x, *pars):
-#     _set_pars(x['self'], pars, x['free'])
-#     yp = x['predict'](x['xdata'])
-#     if isinstance(yp, tuple):
-#         return np.concatenate(yp)
-#     else:
-#         return yp
+        ts = self._pars['TS'] if self._pars['TS'] is not None else 0
+        for i, visit in enumerate(['C', 'D']):
+            self._pars[f'{visit}-tmax'] = self._pars['dt'] + np.max(time[4 * i: 4 * i + 4]) + ts
         
+        self.signal()
+        
+        fig, ((ax1, ax2, ax3, ax4), (ax5, ax6, ax7, ax8)) = plt.subplots(2, 4, figsize=(20, 8))
+        fig.subplots_adjust(wspace=0.3)
 
-def _train(self:Liver2scanDrugEffect, predict, xdata, ydata, free, **kwargs): 
+        ax1.set_title('First visit')
+        ax2.set_title('Second visit')
+        ax3.set_title('First visit')
+        ax4.set_title('Second visit')
 
-    if isinstance(ydata, tuple):
-        y = np.concatenate(ydata)
-    else:
-        y = ydata
+        _plot_data2scan(self._t_control, self._Sa_control, time[0:2], signal[0:2],
+                        ax1, xlim,
+                        color=['lightcoral', 'darkred'])
+        _plot_data2scan(self._t_drug, self._Sa_drug, time[4:6], signal[4:6],
+                        ax2, xlim,
+                        color=['lightcoral', 'darkred'])
+        _plot_conc_aorta(self._t_control, self._ca_control, ax3, xlim)
+        _plot_conc_aorta(self._t_drug, self._ca_drug, ax4, xlim)
 
-    p0 = []
-    for p in free:
-        if np.isscalar(self._pars[p]):
-            p0.append(_normalize(self._pars[p], free[p]))
+        _plot_data2scan(self._t_control, self._Sl_control, time[2:4], signal[2:4],
+                        ax5, xlim,
+                        color=['cornflowerblue', 'darkblue'])
+        _plot_data2scan(self._t_drug, self._Sl_drug, time[6:8], signal[6:8],
+                        ax6, xlim,
+                        color=['cornflowerblue', 'darkblue'])
+        _plot_conc_liver(self._t_control, self._Cl_control, ax7, xlim)
+        _plot_conc_liver(self._t_drug, self._Cl_drug, ax8, xlim)
+
+        if fname is not None:
+            plt.savefig(fname=fname)
+        if show:
+            plt.show()
         else:
-            p0.append(_normalize(self._pars[p][0], free[p][0]))
-            p0.append(_normalize(self._pars[p][1], free[p][1]))
- 
-    def fit_func(_, *pars):
-        _set_pars(self, pars, free)
-        yp = predict(xdata)
-        if isinstance(yp, tuple):
-            return np.concatenate(yp)
-        else:
-            return yp
-
-    try:
-        x = {'self':self, 'free':free, 'predict':predict, 'xdata': xdata}
-        pars, pcov = curve_fit(
-            #_fit_func, x, y, p0, bounds=[0, 1], **kwargs,
-            fit_func, y, y, p0, bounds=[0, 1], **kwargs,
-        )
-    except RuntimeError as e:
-        msg = 'Runtime error in curve_fit -- \n'
-        msg += str(e) + ' Returning initial values.'
-        warnings.warn(msg)
-        pars, pcov = p0, np.zeros((len(p0), len(p0)))
-
-    _set_pars(self, pars, free)
-
-    return pcov
+            plt.close()
 
 
 
 
-def _set_pars(self, pars, free):
-    # Should be the same as:
-    # _set_pdict(self._pars, pars, free)
-    i = 0
-    for p in free:
-        if np.isscalar(self._pars[p]):
-            self._pars[p] = _renormalize(pars[i], free[p])
-            i += 1
-        else:
-            self._pars[p][0] = _renormalize(pars[i], free[p][0])
-            self._pars[p][1] = _renormalize(pars[i+1], free[p][1])
-            i += 2
-
-
-def _set_pdict(pdict, pars, free):
-    i = 0
-    for p in free:
-        if np.isscalar(pdict[p]):
-            pdict[p] = _renormalize(pars[i], free[p])
-            i += 1
-        else:
-            pdict[p][0] = _renormalize(pars[i], free[p][0])
-            pdict[p][1] = _renormalize(pars[i+1], free[p][1])
-            i += 2
-
-def _normalize(v, bounds):
-    return (v - bounds[0]) / (bounds[1] - bounds[0])
-
-def _renormalize(v, bounds):
-    return v * (bounds[1] - bounds[0]) + bounds[0]
-
-
-def _sdev(pcov, free):
-    
-    sdev = {}
-
-    i = 0
-    for p in free.keys():
-        if np.isscalar(free[p][0]):
-            sdev[p] = _renormalize(np.sqrt(pcov[i,i]), free[p])
-            i += 1
-        else:
-            sdev[p] = [
-                _renormalize(np.sqrt(pcov[i,i]), free[p][0]),
-                _renormalize(np.sqrt(pcov[i+1,i+1]), free[p][1]),
-            ]
-            i += 2
-
-    return sdev
+    # def to_dmr(self, file=None, subject='Subject', study='drug_effect'):
+    #     dmr = {'data': {}, 'pars': {}, 'sdev':{}}
+    #     pars = self.export_params()
+    #     for p in pars:
+    #         dmr['data'][p] = [pars[p][0], pars[p][2], 'str' if isinstance(pars[p][1], str) else 'float']
+    #         dmr['pars'][(subject, study, p)] = pars[p][1]
+    #         dmr['sdev'][(subject, study, p)] = pars[p][3]
+    #     if file is not None:             
+    #         pydmr.write(file, dmr)
+    #     return dmr
 
 
 
-
-def _train_with_constr(self:Liver2scanDrugEffect, predict, xdata, ydata, free, constr, **kwargs):
-
-    if isinstance(ydata, tuple):
-        y = np.concatenate(ydata)
-    else:
-        y = ydata
-
-    p0 = []
-    for p in free:
-        if np.isscalar(self._pars[p]):
-            p0.append(_normalize(self._pars[p], free[p]))
-        else:
-            p0.append(_normalize(self._pars[p][0], free[p][0]))
-            p0.append(_normalize(self._pars[p][1], free[p][1]))
-            
-
-    def obj_func(_, *pars):
-        _set_pars(self, pars, free)
-        yp = predict(xdata)
-        if isinstance(yp, tuple):
-            yp = np.concatenate(yp)
-        return np.sum((y - yp)**2)
-    
-    constr = [{'type': c['type'], 'fun': _vector_function(c['fun'], self, free)} for c in constr]
-
-    try:
-        bounds = [(0, 1)] * len(p0)
-        pars, pcov = minimize(
-            obj_func, p0, bounds=bounds, constraints=constr, **kwargs,
-        )
-    except RuntimeError as e:
-        msg = 'Runtime error in curve_fit -- \n'
-        msg += str(e) + ' Returning initial values.'
-        warnings.warn(msg)
-        pars, pcov = p0, np.zeros((len(p0), len(p0)))
-
-    _set_pars(self, pars, free)
-
-    return pcov
-
-
-def _vector_function(func, self, free):
-
-    def vector_func(pars):
-        pdict = deepcopy(self._pars)
-        _set_pdict(pdict, pars, free)
-        return func(pdict)
-    
-    return vector_func
-
-
+def _sample_signal(time, t, S, TS) -> tuple:
+    return (
+        utils.sample(time[0], t, S, TS),
+        utils.sample(time[1], t, S, TS),
+    )
 
 # Helper functions for plotting
 
@@ -1301,352 +1126,141 @@ def _plot_conc_liver(t, C, ax, xlim=None):
 
 def _plot_data2scan(t: tuple[np.ndarray, np.ndarray], 
                     sig: tuple[np.ndarray, np.ndarray],
-                    xdata: tuple[np.ndarray, np.ndarray], 
-                    ydata: tuple[np.ndarray, np.ndarray],
-                    ax, xlim, color=['black', 'black'], test=None):
+                    time: tuple[np.ndarray, np.ndarray], 
+                    signal: tuple[np.ndarray, np.ndarray],
+                    ax, xlim, color=['black', 'black']):
     if xlim is None:
         xlim = [0, t[-1]]
     ax.set(xlabel='Time (min)', ylabel='MR Signal (a.u.)', 
            xlim=np.array(xlim)/60)
-    ax.plot(np.concatenate(xdata)/60, np.concatenate(ydata),
+    ax.plot(np.concatenate(time)/60, np.concatenate(signal),
             marker='o', color=color[0], label='fitted data', linestyle='None')
     ax.plot(t/60, sig,
             linestyle='-', color=color[1], linewidth=3.0, label='fit')
-    if test is not None:
-        ax.plot(np.array(test[0])/60, test[1], color='black',
-                marker='D', linestyle='None', label='Test data')
+
     ax.legend()
 
 
-
-
-
-PARAMS = {
-
-    # Prediction and training
-
-    'dt': {
-        'init': 0.5,
-        'bounds': [0, np.inf],
-        'name': 'Forward model time step',
-        'unit': 'sec',
-    },
-    'tmax': {
-        'init': [180, 180],
-        'bounds': 2 * [[0, np.inf]],
-        'name': 'Maximum acquisition time',
-        'unit': 'sec',
-    },
-    'dose_tolerance': {
-        'init': 0.1,
-        'bounds': [0, np.inf],
-        'name': 'Dose tolerance',
-        'unit': '',
-    },
-
-    # Injection
-
-    'field_strength': {
-        'init': 3.0,
-        'bounds': [0, np.inf],
-        'name': 'Magnetic field strength',
-        'unit': 'T',
-    },
-    'weight': {
-        'init': 70.0,
-        'bounds': [0, np.inf],
-        'name': 'Subject weight',
-        'unit': 'kg',
-    },
-    'agent': {
-        'init': 'gadoxetate',
-        'name': 'Contrast agent',
-        'unit': None,
-    },
-    'dose': {
-        'init': 2 * [lib.ca_std_dose('gadoxetate')/2],
-        'bounds': 2 * [[0, np.inf]],
-        'name': 'First contrast agent dose',
-        'unit': 'mL/kg',
-    },
-    'rate': {
-        'init': 1,
-        'bounds': [0, np.inf],
-        'name': 'Contrast agent injection rate',
-        'unit': 'mL/sec',
-    },
-    'H': {
-        'init': 0.45,
-        'bounds': [0, 1],
-        'name': 'Hematocrit',
-        'unit': '',
-    },
-
-    # Sequence
-
-    'TR': {
-        'init': 0.005,
-        'bounds': [0, np.inf],
-        'name': 'Repetition time',
-        'unit': 'sec',
-    },
-    'FA': {
-        'init': 15.0,
-        'bounds': [0, 180],
-        'name': 'Flip angle',
-        'unit': 'deg',
-    },
-    'TC': {
-        'init': 0.180,
-        'bounds': [0, np.inf],
-        'name': 'Time to center',
-        'unit': 'sec',
-    },
-    'TS': {
-        'init': None,
-        'bounds': [0, np.inf],
-        'name': 'Sampling time',
-        'unit': 'sec',
-    },
-
-    # Signal 1
-
-    'R10a': {
-        'init': 2 * [1/lib.T1(3.0, 'blood')],
-        'bounds': 2 * [[0, np.inf]],
-        'name': 'Aorta first baseline R1',
-        'unit': 'Hz',
-    },
-    'S0a': {
-        'init': 2 * [1],
-        'bounds': 2 * [[0, np.inf]],
-        'name': 'Aorta first signal scale factor',
-        'unit': 'a.u.',
-    },
-    'R10l': {
-        'init': 2 * [1/lib.T1(3.0, 'liver')],
-        'bounds': 2 * [[0, np.inf]],
-        'name': 'Liver first baseline R1',
-        'unit': 'Hz',
-    },
-    'S0l': {
-        'init': 2 * [1],
-        'bounds': 2 * [[0, np.inf]],
-        'name': 'Liver first signal scale factor',
-        'unit': 'a.u.',
-    },
-
-    # Signal 2
-
-    't_scan2': {
-        'init': 90,
-        'name': 'Start of second scan',
-        'unit': 'sec',
-    },
-    'dose2': {
-        'init': 2 * [lib.ca_std_dose('gadoxetate')/2],
-        'bounds': 2 * [[0, np.inf]],
-        'name': 'Second contrast agent dose',
-        'unit': 'mL/kg',
-    },
-    'FA2': {
-        'init': 15.0,
-        'bounds': [0, np.inf],
-        'name': 'Second flip angle',
-        'unit': 'deg',
-    },
+# def sdev_effect(v, dv):
+#     # z = (x-y)/y = x/y-1 
+#     # dz = sqrt((dy * dz/dy)**2 + (dx * dz/dx)**2)
+#     # dz/dx = 1/y
+#     # dz/dy = -x/y**2
+#     x, y = v[0], v[1]
+#     dx, dy = dv[0], dv[1]
+#     dz_dx = 1 / y if y != 0 else 0
+#     dz_dy = - x / y**2 if y != 0 else 0
+#     return np.sqrt((dy * dz_dy)**2 + (dx * dz_dx)**2)
     
-    'S02a': {
-        'init': 2 * [1],
-        'bounds': 2 * [[0, 2]],
-        'name': 'Aorta second signal scale factor',
-        'unit': 'a.u.',
-    },
-    'S02l': {
-        'init': 2 * [1],
-        'bounds': 2 * [[0, 2]],
-        'name': 'Liver second signal scale factor',
-        'unit': 'a.u.',
-    },
-    'BAT2': {
-        'init': 2 * [1200],
-        'bounds': 2 * [[-60, 60]],
-        'name': 'Second bolus arrival time',
-        'unit': 'sec',
-    },
+def _deriv_params(pars):
 
-    # Body
+    # TODO: return sdev of derived
+    
+    vh = 1 - pars['v(e)'] / (1 - pars['H'])
+    C_khe = np.mean([pars['C-k(he,i)'], pars['C-k(he,f)']])
+    C_kbh = pars['C-k(bh)']
+    D_khe = pars['D-k(he,i)'] 
 
-    'BAT': {
-        'init': 2 * [60],
-        'bounds': 2 * [[-60, 60]],
-        'name': 'First bolus arrival time',
-        'unit': 'sec',
-    },
-    'CO': {
-        'init': 100,
-        'bounds': [0, 300],
-        'name': 'Cardiac output',
-        'unit': 'mL/sec',
-    },
-    'GFR': {
-        'init': 2,
-        'bounds': [0, 4],
-        'name': 'Glomerular filtration rate',
-        'unit': 'mL/sec',
-    },
-    'Thl': {
-        'init': 10,
-        'bounds': [0, 30],
-        'name': 'Heart-lung mean transit time',
-        'unit': 'sec',
-    },
-    'Dhl': {
-        'init': 0.2,
-        'bounds': [0.05, 0.95],
-        'name': 'Heart-lung dispersion',
-        'unit': '',
-    },
-    'To': {
-        'init': 20,
-        'bounds': [0, 60],
-        'name': 'Organs blood mean transit time',
-        'unit': 'sec',
-    },
-    'Eo': {
-        'init': 0.15,
-        'bounds': [0, 0.5],
-        'name': 'Organs extraction fraction',
-        'unit': '',
-    },
-    'Toe': {
-        'init': 120,
-        'bounds': [0, 800],
-        'name': 'Organs extravascular mean transit time',
-        'unit': 'sec',
-    },
+    t = _time(pars, 'D')
+    Th_i = _div(vh, pars['D-k(bh,i)'])
+    Th_f = _div(vh, pars['D-k(bh,f)'])
+    Th = utils.interp([Th_i, Th_f], t)
+    D_kbh = _div(vh, Th.mean())
+    
+    C_CL = C_khe * pars['C-vol']
+    D_CL = D_khe * pars['D-vol']
+    pars_deriv = {
+        'v(h)': vh,
+        'C-k(he)': C_khe,
+        'D-k(he)': D_khe,
+        'D-k(bh)': D_kbh,
+        'C-CL': C_CL,
+        'D-CL': D_CL,
+        'RE-k(he)': _div(D_khe - C_khe, C_khe),
+        'RE-k(bh)': _div(D_kbh - C_kbh, C_kbh),
+        'RE-CL': _div(D_CL - C_CL, C_CL),
+        'AE-k(he)': D_khe - C_khe,
+        'AE-k(bh)': D_kbh - C_kbh,
+        'AE-CL': D_CL - C_CL,
+        'C-dk(he)': _div(pars['C-k(he,f)'] - pars['C-k(he,i)'], pars['C-k(he,i)']),
+        'D-dk(he)': _div(pars['D-k(he,f)'] - pars['D-k(he,i)'], pars['D-k(he,i)']),
+        'D-dk(bh)': _div(pars['D-k(bh,f)'] - pars['D-k(bh,i)'], pars['D-k(bh,i)']),
+    }
+    return pars_deriv
 
-    # Liver
+def _time(pars, visit):
+    t = np.arange(0, pars[f'{visit}-tmax'], pars['dt'])
+    return t
 
-    've': {
-        'init': 0.3,
-        'bounds': [0.01, 0.6],
-        'name': 'Liver extracellular volume fraction',
-        'unit': 'mL/cm3',
-    },
-    'Tg': {
-        'init': 30,
-        'bounds': [0.1, 60],
-        'name': 'Gut mean transit time',
-        'unit': 'sec',
-    },
-    'Dg': {
-        'init': 0.85,
-        'bounds': [0, 1],
-        'name': 'Gut dispersion',
-        'unit': '',
-    },
-    'khe_i': {
-        'init': 2 * [0.002],
-        'bounds': 2 * [[0.0, 0.1]],
-        'name': 'Initial hepatocellular uptake rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'khe_f': {
-        'init': 2 * [0.002],
-        'bounds': 2 * [[0.0, 0.1]],
-        'name': 'Final hepatocellular uptake rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'Th_i': {
-        'init': 2 * [30 * 60],
-        'bounds': 2 * [[10*60, 10*60*60]],
-        'name': 'Initial hepatocellular mean transit time',
-        'unit': 'sec',
-    },
-    'Th_f': {
-        'init': 2 * [30 * 60],
-        'bounds': 2 * [[10*60, 10*60*60]],
-        'name': 'Final hepatocellular mean transit time',
-        'unit': 'sec',
-    },
-    'Kbh': {
-        'init': 2 * [1e-9],
-        'bounds': 2 * [[1e-9, 1e-3]],
-        'name': 'Biliary tissue excretion rate',
-        'unit': '/sec',
-    },
-    'Kbh_i': {
-        'init': 2 * [1e-9],
-        'bounds': 2 * [[1e-9, 1e-3]],
-        'name': 'Initial biliary tissue excretion rate',
-        'unit': '/sec',
-    },
-    'Kbh_f': {
-        'init': 2 * [1e-9],
-        'bounds': 2 * [[1e-9, 1e-3]],
-        'name': 'Final biliary tissue excretion rate',
-        'unit': '/sec',
-    },
-    'vol': {
-        'init': 2 * [1000],
-        'bounds': 2 * [[0, 10000]],
-        'name': 'Liver volume',
-        'unit': 'cm3',
-    },
-    'vh': {
-        'name': 'Hepatocellular volume fraction',
-        'unit': 'mL/cm3',
-    },
-    'khe': {
-        'name': 'Hepatocellular uptake rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'kbh': {
-        'name': 'Biliary excretion rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'kbh_i': {
-        'name': 'Initial biliary excretion rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'kbh_f': {
-        'name': 'Final biliary excretion rate',
-        'unit': 'mL/sec/cm3',
-    },
-    'Th': {
-        'name': 'Hepatocellular mean transit time',
-        'unit': 'sec',
-    },
-    'Khe': {
-        'name': 'Hepatocellular tissue uptake rate',
-        'unit': '/sec',
-    },
-    'CL': {
-        'name': 'Liver plasma clearance',
-        'unit': 'mL/sec',
-    }, 
-    'CL_i': {
-        'name': 'Initial liver plasma clearance',
-        'unit': 'mL/sec',
-    }, 
-    'CL_f': {
-        'name': 'Final liver plasma clearance',
-        'unit': 'mL/sec',
-    }, 
-    'Eb': {
-        'name': 'Body extraction fraction',
-        'unit': '',
-    }, 
-    'Eb_i': {
-        'name': 'Initial body extraction fraction',
-        'unit': '',
-    },  
-    'Eb_f': {
-        'name': 'Final body extraction fraction',
-        'unit': '',
-    }, 
-}
+def _conc_aorta(pars, visit):
+
+    t = _time(pars, visit)
+    conc = lib.ca_conc(pars['agent'])
+
+    # Derive Eb
+    khe = utils.interp([pars[f'{visit}-k(he,i)'], pars[f'{visit}-k(he,f)']], t)
+    CL = khe * pars[f'{visit}-vol'] + pars['GFR']
+    Eb = CL / (CL + pars['CO'] * (1 - pars['H']))
+    
+    # Compute flux
+    J1 = lib.ca_injection(
+        t, pars['weight'], conc, pars[f'{visit}-dose'], 
+        pars['rate'], pars[f'{visit}-BAT'],
+    )
+    J2 = lib.ca_injection(
+        t, pars['weight'], conc, pars[f'{visit}-dose2'], 
+        pars['rate'], pars[f'{visit}-BAT2'],
+    )
+    Jb = pk_aorta.flux_aorta(
+        J1 + J2, E=Eb, dt=pars['dt'], 
+        tol=pars['dose_tolerance'],
+        heartlung=['pfcomp', (pars['T(hl)'], pars['D(hl)'])],
+        organs=['2cxm', ([pars['T(o)'], pars['T(o,e)']], pars['E(o)'])],
+    )
+    return t, Jb/pars['CO']
+
+
+def _conc_liver(cb, pars, visit):
+
+    t = _time(pars, visit)
+
+    cp = cb / (1 - pars['H'])
+    cp = pk.flux_pfcomp(cp, pars['T(g)'], pars['D(g)'], dt=pars['dt'])  
+    Ce = pars['v(e)'] * cp
+    
+    khe = utils.interp([pars[f'{visit}-k(he,i)'], pars[f'{visit}-k(he,f)']], t)
+    vh = 1 - pars['v(e)'] / (1 - pars['H'])
+    if visit == 'C':
+        Th = vh / pars[f'{visit}-k(bh)']
+        Ch = pk.conc(khe * cp, Th, dt=pars['dt'], model="comp")
+    elif visit == 'D':
+        Th_i = vh / pars[f'{visit}-k(bh,i)']
+        Th_f = vh / pars[f'{visit}-k(bh,f)']
+        Th = utils.interp([Th_i, Th_f], t)
+        Ch = pk.conc(khe * cp, Th, dt=pars['dt'], model="nscomp")
+
+    return np.stack((Ce, Ch))
+
+
+def _relax_aorta(ca, pars, visit):
+    rb = lib.relaxivity(pars['field_strength'], 'blood', pars['agent'])
+    R1a = pars[f'{visit}-R10(a)'] + rb * ca
+    return R1a
+
+def _relax_liver(Cl, pars, visit):
+    rp = lib.relaxivity(pars['field_strength'], 'plasma', pars['agent'])
+    rh = lib.relaxivity(pars['field_strength'], 'hepatocytes', pars['agent'])
+    R1l = pars[f'{visit}-R10(l)'] + rp * Cl[0, :] + rh * Cl[1, :]
+    return R1l
+
+def _signal(t, R1, roi, pars, visit):
+    t1 = t <= pars[f'{visit}-t_scan2']
+    t2 = t > pars[f'{visit}-t_scan2']
+    S = np.zeros(t.size)
+    S[t1] = sig.signal('SS', R1[t1], pars[f'{visit}-S0({roi[0]})'], FA=pars['FA'], TR=pars['TR'])
+    S[t2] = sig.signal('SS', R1[t2], pars[f'{visit}-S02({roi[0]})'], FA=pars['FA2'], TR=pars['TR'])
+
+    return S
 
 
 def _div(a, b):

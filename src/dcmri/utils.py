@@ -9,10 +9,10 @@ from scipy.optimize import curve_fit
 
 
 def train(predict, time, signal, pars, free, **kwargs):
-    """Internal optimization logic using normalized parameter values."""
+    """Optimization logic using normalized parameter values."""
 
     if free == {}:
-        return 
+        return None, None
     
     if isinstance(signal, tuple):
         signal = np.concatenate(signal)
@@ -28,13 +28,13 @@ def train(predict, time, signal, pars, free, **kwargs):
         fitted_pars, pcov = curve_fit(
             predict_normalized, None, signal, p0, bounds=(0, 1), **kwargs
         )
-        pcov = pcov.tolist()
+        sdev = _sdev(pcov, free)
     except RuntimeError as e:
         warnings.warn(f"Curve fit failed: {e}. Using initial values.")
-        fitted_pars, pcov = p0, None
+        fitted_pars, pcov, sdev = p0, None, None
 
     _update_original_pars(pars, fitted_pars, free)
-    return pcov
+    return pcov, sdev
 
 def normalize(v, bounds):
     return (v - bounds[0]) / (bounds[1] - bounds[0])
@@ -48,6 +48,14 @@ def _compute_normalized_pars(original_pars, free_pars):
 def _update_original_pars(original_pars, normalized_pars, free):
     for i, p in enumerate(free):
         original_pars[p] = renormalize(normalized_pars[i], free[p])
+
+def _sdev(pcov, free):
+    sdev = {}
+    i = 0
+    for p in free.keys():
+        sdev[p] = renormalize(np.sqrt(pcov[i,i]), free[p])
+        i += 1
+    return sdev
 
 
 

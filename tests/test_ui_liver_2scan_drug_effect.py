@@ -2,7 +2,7 @@ import os
 import json
 
 import numpy as np
-from dcmri import AortaLiver2scan
+from dcmri import Liver2scanDrugEffect
 
 
 DEBUG = False
@@ -18,22 +18,52 @@ else:
 
 
 
+def test_function():
+
+    aol = Liver2scanDrugEffect()
+
+    tacq = aol.time()
+    data = aol.predict(tacq)
+
+    tmp_file = 'tmp.png'
+    aol.plot(tacq, data, fname=tmp_file)
+    aol.plot(tacq, data, show=False)
+    assert aol.cost(tacq, data) == 0
+
+    # Training should not have much of an effect if we use the exact R102 values
+    R1 = aol.relax()
+    R102a = [R1[1][0], R1[5][0]]
+    R102l = [R1[3][0], R1[7][0]]
+    aol.train(tacq, data, R102a=R102a, R102l=R102l, verbose=VERBOSE, xtol=0.1)
+    aol.plot(tacq, data)
+    aol.export_params()
+    assert aol.cost(tacq, data) < 2
+
+    # Cleanup
+    if os.path.exists(tmp_file):
+        os.remove(tmp_file)
 
 def test_options():
 
-    aol = AortaLiver2scan('1I-EC', FA=12)
+    aol = Liver2scanDrugEffect()
 
     tacq = aol.time()
-    data = aol.predict()
-    aol.plot(tacq, data)
+    data = aol.predict(tacq) 
 
-    free = {'S0(a)': [0,10], 'S0(l)': [0,10]}
-    bounds = {'CO': None}
-    aol.train(tacq, data, free=free, bounds=bounds, verbose=VERBOSE, max_nfev=1)  
+    free = {'C-S0(a)': [0,10], 'C-S0(l)': [0,10]}
+    Liver2scanDrugEffect().train(tacq, data, free=free, verbose=VERBOSE, max_nfev=1)  
+
+    bounds = {'GFR': [0,10], 'C-S0(l)': None}
+    Liver2scanDrugEffect().train(tacq, data, bounds=bounds, verbose=VERBOSE, max_nfev=1)
 
 def test_utilities():
     """Covers I/O, Printing, and Parameter Export"""
-    aol = AortaLiver2scan(CO=100, kinetics='1I-EC')
+    aol = Liver2scanDrugEffect(CO=100)
+
+    # Get pars options
+    aol.params('C-k(he,i)', as_dict=True)
+    aol.params('C-k(he,i)', 'C-k(he,f)')
+    aol.params('C-k(he,i)')
 
     # Test conc
     aol.conc()
@@ -43,8 +73,6 @@ def test_utilities():
     assert isinstance(params, dict)
     aol.print_params(round_to=2)
     aol.print_params()
-    p = aol.params('FA', 'TR', as_dict=True)
-    fa, tr = aol.params('FA', 'TR')
 
     # Test Save/Load (I/O)
     tmp_file = "test_model.json"
@@ -52,11 +80,8 @@ def test_utilities():
     aol.save("test_model")
     assert os.path.exists(tmp_file)
     
-    new_model = AortaLiver2scan()
+    new_model = Liver2scanDrugEffect()
     new_model.load(tmp_file)
-    
-    # Verify a key parameter matches
-    assert new_model._kinetics == aol._kinetics
     
     # Cleanup
     if os.path.exists(tmp_file):
@@ -65,7 +90,7 @@ def test_utilities():
 
 def test_load_validation_errors():
     """Specifically targets model name and version mismatch during loading."""
-    aol = AortaLiver2scan()
+    aol = Liver2scanDrugEffect()
     tmp_file = "validation_test.json"
     
     # Create a valid starting point
@@ -104,98 +129,61 @@ def test_load_validation_errors():
 
 def test_errors():
     """Covers Error Handling and Edge Cases"""
-    # 1. Test invalid sequence
+    
+    # Test invalid parameter override
     try:
-        AortaLiver2scan(sequence='INVALID')
-    except ValueError:
-        pass
-
-    # 2. Test invalid kinetics (non-single inlet)
-    try:
-        AortaLiver2scan(kinetics='2I-EC')
-    except ValueError:
-        pass
-    try:
-        AortaLiver2scan(kinetics='INVALID')
-    except ValueError:
-        pass
-
-    # 3. Test invalid parameter override
-    try:
-        AortaLiver2scan(fake_param=99)
+        Liver2scanDrugEffect(fake_param=99)
     except ValueError:
         pass
 
     # 4. Test training out of bounds
-    tacq = (np.arange(10), np.arange(10), np.arange(10), np.arange(10))
-    data = (np.ones(10), np.ones(10), np.ones(10), np.ones(10))
+    tacq = (np.arange(10), np.arange(10), np.arange(10), np.arange(10), np.arange(10), np.arange(10), np.arange(10), np.arange(10))
+    data = (np.ones(10), np.ones(10), np.ones(10), np.ones(10), np.ones(10), np.ones(10), np.ones(10), np.ones(10))
     try:
         # Pass a bound that excludes the current 'CO' (100)
-        AortaLiver2scan().train(tacq, data, bounds={'CO': [10, 20]})
+        Liver2scanDrugEffect().train(tacq, data, bounds={'CO': [10, 20]})
     except ValueError:
         pass
     try:
         # Pass a bound that is not free
-        AortaLiver2scan().train(tacq, data, bounds={'dt': [10, 20]})
+        Liver2scanDrugEffect().train(tacq, data, bounds={'dt': [10, 20]})
     except ValueError:
         pass
     try:
         # Pass a bound that is not a parameter
-        AortaLiver2scan().train(tacq, data, bounds={'xx': [10, 20]})
+        Liver2scanDrugEffect().train(tacq, data, bounds={'xx': [10, 20]})
     except ValueError:
         pass
     try:
         # Pass a free parameter that is not a parameter
-        AortaLiver2scan().train(tacq, data, free={'xx': [10, 20]})
+        Liver2scanDrugEffect().train(tacq, data, free={'xx': [10, 20]})
     except ValueError:
         pass
     try:
         # Pass an invalid bound on BAT
-        AortaLiver2scan().train(tacq, data, bounds={'BAT': [10, 20]})
+        Liver2scanDrugEffect().train(tacq, data, bounds={'C-BAT': [10, 20]})
     except ValueError:
         pass
     try:
-        # Pass an invalid bound on BAT
-        AortaLiver2scan().train(tacq, data, bounds={'BAT2': [10, 20]})
+        # Pass an invalid bound on BAT2
+        Liver2scanDrugEffect().train(tacq, data, bounds={'D-BAT2': [10, 20]})
+    except ValueError:
+        pass
+    try:
+        # Pass an invalid bound on GFR
+        Liver2scanDrugEffect().train(tacq, data, bounds={'GFR': [20, 10]})
     except ValueError:
         pass
     try:
         # Pass an invalid bound on S0
-        AortaLiver2scan().train(tacq, data, bounds={'S0(a)': [-1, 1]})
+        Liver2scanDrugEffect().train(tacq, data, bounds={'C-S0(l)': [-1, 1]})
     except ValueError:
         pass
 
-def test_function():
-
-    aol = AortaLiver2scan()
-
-    # Both scans cover the whole time period (not an intended scenario)
-    tacq = aol.time()
-    data = aol.predict(tacq)
-    assert aol.cost(tacq, data) == 0
-
-    # Intended scenario: two separate scans
-    tacq = aol.time()
-    data = aol.predict(tacq)
-    tmp_file = 'tmp.png'
-    aol.plot(tacq, data, fname=tmp_file)
-    aol.plot(tacq, data, show=False)
-    assert aol.cost(tacq, data) == 0
-
-    # Training should not have much of an effect if we use the exact R102 values
-    R1a1, R1a2, R1l1, R1l2 = aol.relax()
-    aol.train(tacq, data, R102a=R1a2[0], R102l=R1l2[0], verbose=VERBOSE, xtol=0.1)
-    pars = aol.export_params()
-
-    # Cleanup
-    if os.path.exists(tmp_file):
-        os.remove(tmp_file)
-
 if __name__ == "__main__":
-    
+    test_function()
     test_options()
     test_utilities()
     test_errors()
     test_load_validation_errors()
-    test_function()
     print('All tests passed!')

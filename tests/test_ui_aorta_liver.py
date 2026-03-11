@@ -1,350 +1,195 @@
 import os
-import numpy as np
 import json
-import warnings
 
-import dcmri as dc
+import numpy as np
+from dcmri import AortaLiver
+
 
 DEBUG = False
 
 if DEBUG:
     # Debugging mode
-    VERBOSE = 1
-    SHOW = True
+    VERBOSE = 2
 else:
     VERBOSE = 0
-    SHOW = True
-    # Allow coverage of plto functions without actually plotting
+    # Allow coverage of plot functions without actually plotting
     import matplotlib
     matplotlib.use('Agg')
 
 
-def test_ui_aorta_liver_final_3_percent():
-    """
-    Targeting the remaining specific lines for 100% coverage.
-    """
+
+
+def test_options():
+
+    aol = AortaLiver('1I-EC', FA=12)
+
+    tacq = aol.time()
+    data = aol.predict(tacq) 
+    aol.plot(tacq, data)
+
+    free = {'S0(a)': [0,10], 'S0(l)': [0,10]}
+    bounds = {'CO': None}
+    aol.train(tacq, data, free=free, bounds=bounds, verbose=VERBOSE, max_nfev=1)  
+
+def test_utilities():
+    """Covers I/O, Printing, and Parameter Export"""
+    aol = AortaLiver(CO=100, kinetics='1I-EC')
+
+    # Test conc
+    ca, cl = aol.conc()
+    R1a, R1l = aol.relax()
     
-    # 1. Trigger ValueError('Only single-inlet models are allowed.')
-    # This requires a kinetics string that does NOT start with '1'
-    try:
-        dc.AortaLiver(kinetics='2I-IC-HFD')
-    except ValueError:
-        pass
-    try:
-        dc.AortaLiver(kinetics='2I-EC')
-    except ValueError:
-        pass
+    # Test export and print
+    params = aol.export_params()
+    assert isinstance(params, dict)
+    aol.print_params(round_to=2)
+    aol.print_params()
+    p = aol.params('FA', 'TR', as_dict=True)
+    fa, tr = aol.params('FA', 'TR')
+    fa = aol.params('FA')
 
-    # 2. Trigger self._R1l = self._pars['R10l'] + rp * self._Cl
-    # AND ax.plot(t/60, 1000*C, ...) [The 'else' branch for 1D Cl]
-    # We use a single-compartment model like '1I-IC' (Interstellar/Extracellular only)
-    model_1d = dc.AortaLiver(kinetics='1I-IC', tmax=60)
-    # Calling relax() triggers the R1l calculation for 1D
-    model_1d.relax() 
-    # Calling plot() triggers the 1D tissue plotting branch
-    xdata = (np.array([0, 30]), np.array([0, 30]))
-    ydata = (np.array([1, 1.2]), np.array([1, 1.2]))
-    model_1d.plot(xdata, ydata, show=SHOW)
-    model_1d.plot(xdata, ydata, show=False)
-
-    # 3. Trigger ValueError("Bounds on BAT must be (negative, positive).")
-    # BAT (Bolus Arrival Time) logic requires the first bound < 0 and second > 0 
-    # as it is a relative shift during heuristic estimation.
-    model_bat = dc.AortaLiver()
-    try:
-        # Provide bounds that are both positive
-        model_bat.train(xdata, ydata, free={'BAT': [10, 20]})
-    except ValueError:
-        pass
-
-    # 5. Trigger warnings.warn("Curve fit failed...") 
-    # AND fitted_pars, pcov = p0, None
-    # We pass data that makes the Jacobian singular or use max_nfev=1
-    model_fail = dc.AortaLiver()
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
-        # Passing max_nfev=1 to curve_fit via kwargs forces a failure
-        model_fail.train(xdata, ydata, max_nfev=1)
-        
-        # Verify the warning was caught
-        assert len(w) > 0
-        assert "Curve fit failed" in str(w[-1].message)
-
-    # 6. EC model
-    model_1d = dc.AortaLiver(kinetics='1I-EC', tmax=60)
-    # Calling relax() triggers the R1l calculation for 1D
-    model_1d.relax() 
-    model_1d.plot(xdata, ydata, show=SHOW)
-
-
-
-def test_ui_aorta_liver_docstring():
-
-    time, aif, vif, roi, gt = dc.fake_liver()
-    xdata, ydata = (time,time), (aif,roi)
-    model = dc.AortaLiver(
-        dt = 0.5,
-        tmax = 180,
-        weight = 70,
-        agent = 'gadoxetate',
-        field_strength = 3.0,
-        dose = 0.2,
-        rate = 3,
-        TR = 0.005,
-        FA = 15,
-    )
-    model.train(xdata, ydata, n0=10, xtol=1e-3)
-    model.plot(xdata, ydata, show=SHOW)
-    model.print_params(round_to=3)
-
-
-
-def test_ui_aorta_liver():
-
-    time, aif, roi, gt = dc.fake_tissue()
-    xdata, ydata = (time,time), (aif,roi)
-
-    model = dc.AortaLiver(
-        dt = 0.5,
-        tmax = 180,
-        weight = 70,
-        agent = 'gadodiamide',
-        dose = 0.2,
-        rate = 3,
-        field_strength = 3.0,
-        TR = 0.005,
-        FA = 15,
-        TS = 0.5,
-        Th = 120,
-    )
-    bounds = {'Th':[0, 1e9]}
-    model.train(xdata, ydata, bounds=bounds, n0=10, xtol=1e-3)
-    model.plot(xdata, ydata, show=SHOW)
-    assert model.cost(xdata, ydata) < 10
-    assert 85 < model.params('Th', round_to=0) < 95
-
-def test_ui_aorta_liver_full_coverage():
-    """
-    Targets specific logic branches:
-    - Multi-compartment signal summation (line 647/670 area)
-    - Covariance/SDEV normalization (line 829-831 area)
-    - BAT heuristic bound shifting (line 715-718 area)
-    """
-    time, aif, roi, gt = dc.fake_tissue()
-    # Ensure we have enough data points for a valid covariance matrix
-    xdata, ydata = (time, time), (aif, roi)
-
-    # 1. Use a multi-compartment kinetics model (1I-IC-HFD) 
-    # This triggers the specific ndim == 2 logic in relaxation/signal.
-    model = dc.AortaLiver(
-        kinetics='1I-IC-HFD',
-        tmax=max(time)+10,
-        agent='gadoxetate'
-    )
+    # Test Save/Load (I/O)
+    tmp_file = "test_model.json"
+    aol.save(tmp_file)
+    aol.save("test_model")
+    assert os.path.exists(tmp_file)
     
-    # 2. Train with 'free' parameters to trigger the normalization helpers
-    # and the covariance-to-sdev mapping in export_params.
-    free = {
-        'CO': [50, 200],
-        'BAT': [-30, 30],
-    }
+    new_model = AortaLiver()
+    new_model.load(tmp_file)
     
-    # This call triggers the BAT heuristic shifting logic
-    model.train(xdata, ydata, free=free, n0=5, xtol=1e-2)
+    # Verify a key parameter matches
+    assert new_model._kinetics == aol._kinetics
     
-    # 3. Trigger export_params and print_params to cover SDEV calculation
-    # (This covers the lines that re-normalize the pcov diagonals)
-    exported = model.export_params()
-    assert 'CO' in exported
-    assert exported['CO'][3] >= 0  # Check that sdev is calculated
-    
-    if VERBOSE:
-        model.print_params(round_to=2)
-
-def test_ui_aorta_liver_io_and_variants():
-    """Covers file I/O, SR sequences, and rounding logic."""
-    file = 'temp_model_test.json'
-    model = dc.AortaLiver(sequence='SR', TC=0.1)
-    
-    # Trigger Rounding logic in params() getter
-    model.save(file)
-    model.load(file)
-    val = model.params('TR', round_to=2)
-    
-    # Trigger multi-parameter getter
-    subset = model.params('TR', 'FA', round_to=2)
-    assert len(subset) == 2
-    
-    if os.path.exists(file):
-        os.remove(file)
-
-def test_ui_aorta_liver_error_states():
-    """Covers validation checks and error branches."""
-    # Invalid kinetics (must be single inlet)
-    try:
-        dc.AortaLiver(kinetics='2I-IC-HFD')
-    except ValueError:
-        pass
-        
-    # Parameter out of bounds at init
-    try:
-        dc.AortaLiver(CO=500) # Default max is 300
-    except ValueError:
-        pass
-    
-    # Plotting with xdata exceeding tmax
-    model = dc.AortaLiver(tmax=10)
-    try:
-        model.plot(([20], [20]), ([1], [1]))
-    except ValueError:
-        pass
-
-def test_ui_aorta_liver_error_branches():
-    """Triggers all raise ValueError statements in __init__ and predict."""
-    # 1. Invalid sequence
-    try:
-        dc.AortaLiver(sequence='NotASequence')
-    except ValueError:
-        pass
-    
-    # 2. Dual-inlet kinetics (only single-inlet allowed)
-    try:
-        dc.AortaLiver(kinetics='2I-IC-HFD')
-    except ValueError:
-        pass
-        
-    # 3. Invalid parameter in **params
-    try:
-        dc.AortaLiver(not_a_param=10)
-    except ValueError:
-        pass
-    
-    # 4. xdata exceeds tmax in predict (Aorta and Liver branches)
-    model = dc.AortaLiver(tmax=10)
-    try:
-        model.predict((np.array([20]), np.array([5])))
-    except ValueError:
-        pass
-    try:
-        model.predict((np.array([5]), np.array([20])))
-    except ValueError:
-        pass
-
-def test_ui_aorta_liver_train_errors():
-    """Triggers all raise ValueError statements in the train() method."""
-    model = dc.AortaLiver(CO=100)
-    x, y = ([0,1], [0,1]), ([1,1], [1,1])
-    
-    # 1. Parameter not a valid free parameter
-    try:
-        model.train(x, y, bounds={'not_real': [0, 1]})
-    except ValueError:
-        pass
-        
-    # 2. Free parameter doesn't exist in config
-    try:
-        model.train(x, y, free={'fake_param': [0, 1]})
-    except ValueError:
-        pass
-        
-    # 3. BAT bounds must be (negative, positive)
-    try:
-        model.train(x, y, free={'BAT': [10, 20]})
-    except ValueError:
-        pass
-        
-    # 4. Initial value out of bounds
-    try:
-        model.train(x, y, free={'CO': [10, 20]}) # Init 100 is out of [10, 20]
-    except ValueError:
-        pass
-
-def test_ui_aorta_liver_io_errors():
-    """Triggers I/O branch logic and file validation errors."""
-    model = dc.AortaLiver()
-    
-    # 1. Test the 'file += .json' branch by providing name without extension
-    model.save('test_no_ext')
-    assert os.path.exists('test_no_ext.json')
-    
-    # 2. Corrupt/Modify JSON for validation errors
-    with open('test_no_ext.json', 'r') as f:
-        data = json.load(f)
-    
-    # Wrong model error
-    data['model'] = 'WrongModelName'
-    with open('wrong_model.json', 'w') as f:
-        json.dump(data, f)
-    try:
-        model.load('wrong_model.json')
-    except ValueError:
-        pass
-        
-    # Version mismatch error
-    data['model'] = 'AortaLiver'
-    data['version'] = '0.0_old'
-    with open('wrong_version.json', 'w') as f:
-        json.dump(data, f)
-    try:
-        model.load('wrong_version.json')
-    except ValueError:
-        pass
-        
     # Cleanup
-    for f in ['test_no_ext.json', 'wrong_model.json', 'wrong_version.json']:
-        if os.path.exists(f): os.remove(f)
+    if os.path.exists(tmp_file):
+        os.remove(tmp_file)
 
-def test_ui_aorta_liver_math_branches():
-    """Triggers specific math logic like single-compartment liver R1 and relax/signal getters."""
-    # 1. Single-inlet model that isn't multi-compartment (triggers C vs C[0]+C[1] branch)
-    # Using '1I-IC' (Interstital) which is usually 1D tissue concentration
-    model = dc.AortaLiver(kinetics='1I-IC')
-    
-    # 2. Coverage for relax() and signal() public methods
-    times, r_a, r_l = model.relax()
-    times, s_a, s_l = model.signal()
-    assert len(r_a) == len(times)
-    
-    # 3. Trigger 'return subset' in params()
-    sub = model.params('CO', 'FA')
-    assert isinstance(sub, dict)
 
-def test_ui_aorta_liver_optimizer_failure():
-    """Triggers the RuntimeError warning branch in the optimizer."""
-    model = dc.AortaLiver()
-    # Provide impossible data to force curve_fit to fail
-    x = (np.array([1, 2]), np.array([1, 2]))
-    y = (np.array([1, 1e9]), np.array([1, 1e9]))
+def test_load_validation_errors():
+    """Specifically targets model name and version mismatch during loading."""
+    aol = AortaLiver()
+    tmp_file = "validation_test.json"
     
-    with warnings.catch_warnings(record=True) as w:
-        model.train(x, y, max_nfev=1) # Force exit
-        assert len(w) > 0 # Warning should be triggered
+    # Create a valid starting point
+    aol.save(tmp_file)
+    
+    with open(tmp_file, "r") as f:
+        data = json.load(f)
 
-def test_ui_aorta_liver_plotting_branches():
-    """Triggers savefig and test_data plotting logic."""
-    time, aif, roi, gt = dc.fake_tissue()
-    xdata, ydata = (time, time), (aif, roi)
-    model = dc.AortaLiver()
+    # 1. Test Model Name Mismatch
+    original_model_name = data['model']
+    data['model'] = "WrongModelName"
+    with open(tmp_file, "w") as f:
+        json.dump(data, f)
     
-    # Trigger savefig branch and 'test is not None' branch in _plot_data1scan
-    model.plot(xdata, ydata, fname='test_plot.png', ref=(xdata, ydata), show=SHOW)
+    try:
+        aol.load(tmp_file)
+    except ValueError as e:
+        assert "File belongs to WrongModelName" in str(e)
     
-    if os.path.exists('test_plot.png'):
-        os.remove('test_plot.png')
+    # Restore model name for the next test
+    data['model'] = original_model_name
+
+    # 2. Test Version Mismatch
+    data['version'] = "99.9.9" # Non-existent version
+    with open(tmp_file, "w") as f:
+        json.dump(data, f)
+        
+    try:
+        aol.load(tmp_file)
+    except ValueError as e:
+        assert "Version mismatch" in str(e)
+
+    # Cleanup
+    if os.path.exists(tmp_file):
+        os.remove(tmp_file)
+
+def test_errors():
+    """Covers Error Handling and Edge Cases"""
+    # 1. Test invalid sequence
+    try:
+        AortaLiver(sequence='INVALID')
+    except ValueError:
+        pass
+
+    # 2. Test invalid kinetics (non-single inlet)
+    try:
+        AortaLiver(kinetics='2I-EC')
+    except ValueError:
+        pass
+    try:
+        AortaLiver(kinetics='INVALID')
+    except ValueError:
+        pass
+
+    # 3. Test invalid parameter override
+    try:
+        AortaLiver(fake_param=99)
+    except ValueError:
+        pass
+
+    # 4. Test training out of bounds
+    tacq = (np.arange(10), np.arange(10))
+    data = (np.ones(10), np.ones(10))
+    try:
+        # Pass a bound that excludes the current 'CO' (100)
+        AortaLiver().train(tacq, data, bounds={'CO': [10, 20]})
+    except ValueError:
+        pass
+    try:
+        # Pass a bound that is not free
+        AortaLiver().train(tacq, data, bounds={'dt': [10, 20]})
+    except ValueError:
+        pass
+    try:
+        # Pass a bound that is not a parameter
+        AortaLiver().train(tacq, data, bounds={'xx': [10, 20]})
+    except ValueError:
+        pass
+    try:
+        # Pass a free parameter that is not a parameter
+        AortaLiver().train(tacq, data, free={'xx': [10, 20]})
+    except ValueError:
+        pass
+    try:
+        # Pass an invalid bound on BAT
+        AortaLiver().train(tacq, data, bounds={'BAT': [10, 20]})
+    except ValueError:
+        pass
+    try:
+        # Pass an invalid bound on S0
+        AortaLiver().train(tacq, data, bounds={'S0(a)': [-1, 1]})
+    except ValueError:
+        pass
+
+def test_function():
+
+    aol = AortaLiver()
+    data = aol.predict()
+
+    # Intended scenario
+    tacq = aol.time()
+    data = aol.predict(tacq)
+    tmp_file = 'tmp.png'
+    aol.plot(tacq, data, fname=tmp_file)
+    aol.plot(tacq, data, show=False)
+    assert aol.cost(tacq, data) == 0
+
+    # Training should not have much of an effect if we use the exact R102 values
+    tacq = aol.time()
+    data = aol.predict(tacq)
+    aol.train(tacq, data, verbose=VERBOSE, xtol=0.1)
+    pars = aol.export_params()
+
+    # Cleanup
+    if os.path.exists(tmp_file):
+        os.remove(tmp_file)
 
 if __name__ == "__main__":
-    test_ui_aorta_liver_final_3_percent()
-    test_ui_aorta_liver_error_branches()
-    test_ui_aorta_liver_train_errors()
-    test_ui_aorta_liver_io_errors()
-    test_ui_aorta_liver_math_branches()
-    test_ui_aorta_liver_optimizer_failure()
-    test_ui_aorta_liver_plotting_branches()
-    test_ui_aorta_liver_docstring()
-
-    test_ui_aorta_liver()
-    test_ui_aorta_liver_full_coverage()
-    test_ui_aorta_liver_io_and_variants()
-    test_ui_aorta_liver_error_states()
-
-    print('All ui_liver tests passed!!')
+    
+    test_options()
+    test_utilities()
+    test_errors()
+    test_load_validation_errors()
+    test_function()
+    print('All tests passed!')
