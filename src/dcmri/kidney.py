@@ -1,8 +1,35 @@
+import copy
 import numpy as np
 import dcmri.pk as pk
 
 
-def params_kidney(kinetics) -> list:
+def _div(a, b):
+    with np.errstate(divide='ignore', invalid='ignore'):
+        return np.divide(a, b)
+    
+
+PARAMS_KIDNEY = {
+    'T_a': {'init': 0, 'bounds': [0, 3], 'name': 'Arterial mean transit time', 'unit': 'sec'},
+    'Fp': {'init': 0.02, 'bounds': [0, 0.05], 'name': 'Plasma flow', 'unit': 'mL/sec/cm3'},
+    'vp': {'init': 0.15, 'bounds': [0, 0.3], 'name': 'Plasma volume', 'unit': 'mL/cm3'},
+    'FF': {'init': 0.1, 'bounds': [0, 0.3], 'name': 'Filtration fraction', 'unit': ''},
+    'Tt': {'init': 120, 'bounds': [0, 60 * 60], 'name': 'Tubular mean transit time', 'unit': 'sec'},
+    'Ft': {'init': 0.005, 'bounds': [0, 0.05], 'name': 'Tubular flow', 'unit': 'mL/sec/cm3'},
+    'vol': {'init': 150, 'name': 'Single-kidney volume', 'unit': 'mL'},
+
+    # Derived parameters
+    'Fb': {'name': 'Blood flow', 'unit': 'mL/sec/cm3'},
+    'Tv': {'name': 'Vascular mean transit time', 'unit': 'sec'},
+    'Tp': {'name': 'Plasma mean transit time', 'unit': 'sec'},
+    'E': {'name': 'Extraction fraction', 'unit': ''},
+    'GFR': {'name': 'Glomerular filtration rate', 'unit': 'mL/sec'},
+    'RBF': {'name': 'Renal blood flow', 'unit': 'mL/sec'},
+    'RPF': {'name': 'Renal plasma flow', 'unit': 'mL/sec'},
+}
+
+
+
+def params_kidney(kinetics='2CF') -> dict:
     """Kidney model parameters
 
     Args:
@@ -11,10 +38,57 @@ def params_kidney(kinetics) -> list:
     Returns:
         list: Parameter short names
     """
+    pars = None
+
     if kinetics == '2CF':
-        return ['Fp', 'vp', 'FF', 'Tt']
+        pars = ['Fp', 'vp', 'FF', 'Tt']
     elif kinetics == 'HF':
-        return ['vp', 'Ft', 'Tt']
+        pars = ['vp', 'Ft', 'Tt']
+
+    if pars is not None:
+        return {p:PARAMS_KIDNEY[p] for p in pars}   
+
+    raise ValueError(
+        f"The model kinetics={kinetics} "
+        f"is not a recognised kidney model."
+    )
+
+
+def derived_params_kidney(p, kinetics='2CF', H=0.45) -> dict:
+
+    p = copy.deepcopy(p)
+
+    if 'Eg' in p:
+        p['FF'] = _div(p['Eg'] / 1 - p['Eg'])
+        
+    if {'Fp'}.issubset(p):
+        p['Fb'] = _div(p['Fp'], 1 - H)
+
+    if {'FF', 'Fp'}.issubset(p):
+        p['Ft'] = p['FF']*p['Fp']
+
+    if {'vp', 'Fp', 'Tt'}.issubset(p):
+        p['Tp'] = _div(p['vp'], p['Fp']+p['Ft'])
+
+    if {'vp', 'Fp'}.issubset(p):
+        p['Tv'] = _div(p['vp'], p['Fp'])
+
+    if {'Ft', 'Fp'}.issubset(p):
+        p['E'] = _div(p['Ft'], p['Ft'] + p['Fp'])
+
+    if {'Ft', 'vol'}.issubset(p):
+        p['GFR'] = p['Ft'] * p['vol']  
+
+    if {'Fp', 'vol'}.issubset(p):
+        p['RBF'] = _div(p['Fp'] * p['vol'], 1-H)
+        p['RPF'] = p['Fp']*p['vol']
+
+    if {'fc', 'Eg', 'Fp'}.issubset(p):
+        p['Fb_med'] = (1 - p['fc']) * (1 - p['Eg']) * p['Fp'] / (1 - H)
+
+    if {'Fb_med', 'vol'}.issubset(p):
+        p['SKMBF'] = p['Fb_med'] * p['vol']
+    return p
     
 
 def conc_kidney(ca: np.ndarray, *params, t=None, dt=1.0, sum=True, kinetics='2CF', **kwargs) -> np.ndarray:

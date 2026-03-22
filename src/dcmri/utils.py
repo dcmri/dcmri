@@ -6,9 +6,11 @@ from scipy.special import gamma
 from scipy.interpolate import CubicSpline
 from scipy.integrate import trapezoid
 from scipy.optimize import curve_fit
+from scipy.interpolate import interp1d
+from scipy.integrate import cumulative_trapezoid
 
 
-def train(predict, time, signal, pars, free, **kwargs):
+def train(predict, time, signal, pars, free, x=None, reset=False, **kwargs):
     """Optimization logic using normalized parameter values."""
 
     if free == {}:
@@ -17,11 +19,14 @@ def train(predict, time, signal, pars, free, **kwargs):
     if isinstance(signal, tuple):
         signal = np.concatenate(signal)
 
-    p0 = _compute_normalized_pars(pars, free)
+    p0 = _compute_normalized_pars(pars, free, x)
 
     def predict_normalized(_, *normalized_pars):
-        _update_original_pars(pars, normalized_pars, free)
-        ypred = predict(time)
+        _update_original_pars(pars, normalized_pars, free, x)
+        if x is None:
+            ypred = predict(time)
+        else:
+            ypred = predict(time, x)
         return np.concatenate(ypred) if isinstance(ypred, tuple) else ypred
 
     try:
@@ -33,21 +38,35 @@ def train(predict, time, signal, pars, free, **kwargs):
         warnings.warn(f"Curve fit failed: {e}. Using initial values.")
         fitted_pars, pcov, sdev = p0, None, None
 
-    _update_original_pars(pars, fitted_pars, free)
-    return pcov, sdev
+    if reset:
+        # Set state to original values
+        _update_original_pars(pars, p0, free, x)
+    else:
+        # Set state to final values
+        _update_original_pars(pars, fitted_pars, free, x)
+    
+    vals = {p: fitted_pars[p] for p in free}
+    return vals, sdev, pcov
+
+
+def _compute_normalized_pars(original_pars, free_pars, x=None):
+    if x is None:
+        return [normalize(original_pars[p], free_pars[p]) for p in free_pars]
+    else:
+        return [normalize(original_pars[p][x], free_pars[p]) for p in free_pars]
+
+def _update_original_pars(original_pars, normalized_pars, free, x=None):
+    for i, p in enumerate(free):
+        if x is None:
+            original_pars[p] = renormalize(normalized_pars[i], free[p])
+        else:
+            original_pars[p][x] = renormalize(normalized_pars[i], free[p])
 
 def normalize(v, bounds):
     return (v - bounds[0]) / (bounds[1] - bounds[0])
 
 def renormalize(v, bounds):
     return v * (bounds[1] - bounds[0]) + bounds[0]
-
-def _compute_normalized_pars(original_pars, free_pars):
-    return [normalize(original_pars[p], free_pars[p]) for p in free_pars]
-
-def _update_original_pars(original_pars, normalized_pars, free):
-    for i, p in enumerate(free):
-        original_pars[p] = renormalize(normalized_pars[i], free[p])
 
 def _sdev(pcov, free):
     sdev = {}
@@ -630,45 +649,105 @@ def nexpconv(n, T, t):
     return g
 
 
+
+
+
 def sample(t, tp, Sp, dt=None) -> np.ndarray:
     """Sample a signal at given time points.
 
     Args:
-        t (array-like): The time points at which to evaluate the signal.
-        tp (array-like): the time points of the signal to be sampled.
-        Sp (array-like): the values of the signal to be sampled. Values that are outside of the range are set to zero.
-        dt (float, optional): sampling duration. If this is not provided, linear interpolation between the data points is used.  Defaults to None.
+        t (array): The 1D time points at which to evaluate the signal.
+        tp (array): the 1D time points of the signal to be sampled.
+        Sp (array): the 1D or 2D values (n_samples, n_times) of the signal to be sampled.
+        dt (float, optional): sampling duration.
 
     Returns:
         np.ndarray: Signals sampled at times t.
     """
-    tmax = max(t)
-    tpmax = max(tp)
-    if tpmax < tmax:
-        raise ValueError(
-            f"Cannot sample until time {tmax}. "
-            f"The largest time point that can be sampled is {tpmax}."  
-        )
-    if dt is None:
-        return np.interp(t, tp, Sp, left=0, right=0)
-    if dt == 0:
-        return np.interp(t, tp, Sp, left=0, right=0)
-    Ss = np.zeros(len(t))
-    for k, tk in enumerate(t):
+    t = np.asarray(t)
+    tp = np.asarray(tp)
+    Sp = np.asarray(Sp)
+    
+    # Handle 1D input by promoting it to 2D (1, n_times)
+    is_1d = Sp.ndim == 1
+    if is_1d:
+        Sp = Sp[np.newaxis, :]
 
-        # data = Sp[(tp >= tk) & (tp < tk+dt)]
-        # data = Sp[(tp >= tk-dt/2) & (tp < tk+dt/2)]
-        # if data.size > 0:
-        #     Ss[k] = np.mean(data)
+    if t.size == 0:
+        return np.array([])
 
-        # NEW (trapezoidal integration - more accurate)
-        tb = [tk-dt/2, tk+dt/2]
-        Sb = np.interp(tb, tp, Sp)
-        i = (tp > tb[0]) & (tp < tb[1])
-        ti = np.concatenate(([tb[0]], tp[i], [tb[1]]))
-        Si = np.concatenate(([Sb[0]], Sp[i], [Sb[1]]))
-        Ss[k] = trapezoid(Si, ti)/dt
-    return Ss
+    # 1. With dt=0 this is just interpolation
+    if dt is None or dt == 0:
+        sig_interp = interp1d(tp, Sp, kind='linear', axis=-1, 
+                              bounds_error=False, fill_value=0)
+        res = sig_interp(t)
+        return res.flatten() if is_1d else res
+
+    # 2. Windowed Trapezoidal Logic
+    cum_int = cumulative_trapezoid(Sp, tp, initial=0, axis=-1)
+    
+    # Use fill_value=(0, 'extrapolate') or a constant to handle boundaries
+    # Since we want it to be 0 outside the range, we manually handle the right-side fill
+    int_interp = interp1d(tp, cum_int, kind='linear', axis=-1, 
+                          bounds_error=False, fill_value=(0, np.nan))
+    
+    t_start = t - dt/2
+    t_end = t + dt/2
+
+    F_start = int_interp(t_start)
+    F_end = int_interp(t_end)
+
+    # Correctly handle boundaries for any Sp shape
+    tp_min, tp_max = tp[0], tp[-1]
+    total_integral = cum_int[:, -1][:, np.newaxis] # Shape (n_samples, 1)
+
+    # If t < tp_min -> 0
+    # If t > tp_max -> total_integral
+    F_start = np.where(t_start < tp_min, 0, F_start)
+    F_start = np.where(t_start > tp_max, total_integral, F_start)
+
+    F_end = np.where(t_end < tp_min, 0, F_end)
+    F_end = np.where(t_end > tp_max, total_integral, F_end)
+
+    Ss = (F_end - F_start) / dt
+    
+    return Ss.flatten() if is_1d else Ss
+
+
+# def _orig_sample(t, tp, Sp, dt=None) -> np.ndarray:
+#     """Sample a signal at given time points.
+
+#     Args:
+#         t (array-like): The time points at which to evaluate the signal.
+#         tp (array-like): the time points of the signal to be sampled.
+#         Sp (array-like): the values of the signal to be sampled. Values that are outside of the range are set to zero.
+#         dt (float, optional): sampling duration. If this is not provided, linear interpolation between the data points is used.  Defaults to None.
+
+#     Returns:
+#         np.ndarray: Signals sampled at times t.
+#     """
+#     if len(t) == 0:
+#         return np.array([])
+#     tmax = max(t)
+#     tpmax = max(tp)
+#     if tpmax < tmax:
+#         raise ValueError(
+#             f"Cannot sample until time {tmax}. "
+#             f"The largest time point that can be sampled is {tpmax}."  
+#         )
+#     if dt is None:
+#         return np.interp(t, tp, Sp, left=0, right=0)
+#     if dt == 0:
+#         return np.interp(t, tp, Sp, left=0, right=0)
+#     Ss = np.zeros(len(t))
+#     for k, tk in enumerate(t):
+#         tb = [tk-dt/2, tk+dt/2]
+#         Sb = np.interp(tb, tp, Sp)
+#         i = (tp > tb[0]) & (tp < tb[1])
+#         ti = np.concatenate(([tb[0]], tp[i], [tb[1]]))
+#         Si = np.concatenate(([Sb[0]], Sp[i], [Sb[1]]))
+#         Ss[k] = trapezoid(Si, ti)/dt
+#     return Ss
 
 
 def add_noise(signal, sdev: float) -> np.ndarray:

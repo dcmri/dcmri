@@ -18,71 +18,46 @@ import dcmri.lexicon_utils as lexicon
 # Shorthand notation for data type hint
 Data = Tuple[
     np.ndarray, np.ndarray, np.ndarray, np.ndarray,
-    np.ndarray, np.ndarray, np.ndarray, np.ndarray
 ]
 
 LEXICON = LEXICON | {
 
     # Assay parameters
     'c_tmax': {'init': 4 * 60 * 60, 'name': 'Control visit - maximum acquisition time', 'unit': 'sec'},
-    'c_t_scan2': {'init': 2 * 60 * 60, 'name': 'Control visit - start of second scan', 'unit': 'sec'},
-    'c_dose_1': {'init': 0.05, 'name': 'Control visit - first contrast agent dose', 'unit': 'mL/kg'},
-    'c_dose_2': {'init': 0.05, 'name': 'Control - second contrast agent dose', 'unit': 'mL/kg'},
-    'c_BAT_1': {'init': 120, 'bounds': [-60, 60], 'name': 'Control visit - first bolus arrival time', 'unit': 'sec', 'bounds_type': 'add'},
-    'c_BAT_2': {'init': 7200 + 900, 'bounds': [-60, 60], 'name': 'Control visit - second bolus arrival time', 'unit': 'sec', 'bounds_type': 'add'},
+    'c_dose': {'init': 0.05, 'name': 'Control visit - first contrast agent dose', 'unit': 'mL/kg'},
+    'c_BAT': {'init': 120, 'bounds': [-60, 60], 'name': 'Control visit - first bolus arrival time', 'unit': 'sec', 'bounds_type': 'add'},
  
     'd_tmax': {'init': 4 * 60 * 60, 'name': 'Drug visit - maximum acquisition time', 'unit': 'sec'},
-    'd_tmax_1': {'init': 2 * 60 * 60, 'name': 'Drug visit - first scan acquisition time', 'unit': 'sec'},
-    'd_t_scan2': {'init': 2 * 60 * 60, 'name': 'Drug visit - start of second scan', 'unit': 'sec'},
-    'd_dose_1': {'init': 0.05, 'name': 'Drug visit - first contrast agent dose', 'unit': 'mL/kg'},
-    'd_dose_2': {'init': 0.05, 'name': 'Drug - second contrast agent dose', 'unit': 'mL/kg'},
-    'd_BAT_1': {'init': 120, 'bounds': [-60, 60], 'name': 'Drug visit - first bolus arrival time', 'unit': 'sec', 'bounds_type': 'add'},
-    'd_BAT_2': {'init': 7200 + 900, 'bounds': [-60, 60], 'name': 'Drug visit - second bolus arrival time', 'unit': 'sec', 'bounds_type': 'add'},
-
+    'd_dose': {'init': 0.05, 'name': 'Drug visit - first contrast agent dose', 'unit': 'mL/kg'},
+    'd_BAT': {'init': 120, 'bounds': [-60, 60], 'name': 'Drug visit - first bolus arrival time', 'unit': 'sec', 'bounds_type': 'add'},
+ 
     # MRI signal parameters - control visit
     'c_R10_a': {'init': 1/lib.T1(3.0, 'blood'), 'name': 'Control visit - aorta first baseline R1', 'unit': 'Hz'},
     'c_R10_l': {'init': 1/lib.T1(3.0, 'liver'), 'name': 'Control visit - liver first baseline R1', 'unit': 'Hz'},
-    'c_S0_1_a': {'init': 1, 'bounds': [0, 2], 'name': 'Control visit - aorta first signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
-    'c_S0_1_l': {'init': 1, 'bounds': [0, 2], 'name': 'Control visit - liver first signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
-    'c_S0_2_a': {'init': 1, 'bounds': [0, 2], 'name': 'Control visit - aorta second signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
-    'c_S0_2_l': {'init': 1, 'bounds': [0, 2], 'name': 'Control visit - liver second signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
+    'c_S0_a': {'init': 1, 'bounds': [0, 2], 'name': 'Control visit - aorta first signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
+    'c_S0_l': {'init': 1, 'bounds': [0, 2], 'name': 'Control visit - liver first signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
 
     # MRI signal parameters - drug visit
     'd_R10_a': {'init': 1/lib.T1(3.0, 'blood'), 'name': 'Drug visit - aorta first baseline R1', 'unit': 'Hz'},
     'd_R10_l': {'init': 1/lib.T1(3.0, 'liver'), 'name': 'Drug visit - liver first baseline R1', 'unit': 'Hz'},
-    'd_S0_1_a': {'init': 1, 'bounds': [0, 2], 'name': 'Drug visit - aorta first signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
-    'd_S0_1_l': {'init': 1, 'bounds': [0, 2], 'name': 'Drug visit - liver first signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
-    'd_S0_2_a': {'init': 1, 'bounds': [0, 2], 'name': 'Drug visit - aorta second signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
-    'd_S0_2_l': {'init': 1, 'bounds': [0, 2], 'name': 'Drug visit - liver second signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
+    'd_S0_a': {'init': 1, 'bounds': [0, 2], 'name': 'Drug visit - aorta first signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
+    'd_S0_l': {'init': 1, 'bounds': [0, 2], 'name': 'Drug visit - liver first signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
 
-    'c_B1corr_1_a': {'init': 1, 'bounds': [0, 5], 'name': 'Control visit - Arterial B1-correction factor', 'unit': ''},
-    'c_B1corr_1_l': {'init': 1, 'bounds': [0, 5], 'name': 'Control visit - Liver B1-correction factor', 'unit': ''},
-    'c_B1corr_2_a': {'init': 1, 'bounds': [0, 5], 'name': 'Control visit - Arterial B1-correction factor of a second scan', 'unit': ''},
-    'c_B1corr_2_l': {'init': 1, 'bounds': [0, 5], 'name': 'Control visit - Liver B1-correction factor of a second scan', 'unit': ''},
-    'd_B1corr_1_a': {'init': 1, 'bounds': [0, 5], 'name': 'Drug visit - Arterial B1-correction factor', 'unit': ''},
-    'd_B1corr_1_l': {'init': 1, 'bounds': [0, 5], 'name': 'Drug visit - Liver B1-correction factor', 'unit': ''},
-    'd_B1corr_2_a': {'init': 1, 'bounds': [0, 5], 'name': 'Drug visit - Arterial B1-correction factor of a second scan', 'unit': ''},
-    'd_B1corr_2_l': {'init': 1, 'bounds': [0, 5], 'name': 'Drug visit - Liver B1-correction factor of a second scan', 'unit': ''},
+    'c_B1corr_a': {'init': 1, 'bounds': [0, 5], 'name': 'Control visit - Arterial B1-correction factor', 'unit': ''},
+    'c_B1corr_l': {'init': 1, 'bounds': [0, 5], 'name': 'Control visit - Liver B1-correction factor', 'unit': ''},
+    'd_B1corr_a': {'init': 1, 'bounds': [0, 5], 'name': 'Drug visit - Arterial B1-correction factor', 'unit': ''},
+    'd_B1corr_l': {'init': 1, 'bounds': [0, 5], 'name': 'Drug visit - Liver B1-correction factor', 'unit': ''},
 
     # Kinetics - control visit
     'c_vol': {'init': 1000, 'name': 'Control visit - liver volume', 'unit': 'cm3'},
-    'c_khe_i': {'init': 0.0025, 'bounds': [0.0, 0.005], 'name': 'Control visit - initial hepatocellular uptake rate', 'unit': 'mL/sec/cm3'},
-    'c_khe_f': {'init': 0.0025, 'bounds': [0.0, 0.005], 'name': 'Control visit - final hepatocellular uptake rate', 'unit': 'mL/sec/cm3'},
-    'c_khe': {'name': 'Control visit - Hepatocellular uptake rate', 'unit': 'mL/sec/cm3'},
-    'c_dkhe': {'name': 'Control visit - change in hepatocellular uptake rate', 'unit': ''},
+    'c_khe': {'init': 0.0025, 'bounds': [0.0, 0.005], 'name': 'Control visit - initial hepatocellular uptake rate', 'unit': 'mL/sec/cm3'},
     'c_kbh': {'init': 0.00025, 'bounds': [0, 0.0005], 'name': 'Control visit - biliary excretion rate', 'unit': 'mL/sec/cm3'},
     'c_CL': {'name': 'Control visit - liver plasma clearance', 'unit': 'mL/sec'},
 
     # Kinetics - drug visit
     'd_vol': {'init': 1000, 'name': 'Drug visit - liver volume', 'unit': 'cm3'},
-    'd_khe_i': {'init': 0.0025, 'bounds': [0.0, 0.005], 'name': 'Drug visit - initial hepatocellular uptake rate', 'unit': 'mL/sec/cm3'},
-    'd_khe_f': {'init': 0.0025, 'bounds': [0.0, 0.005], 'name': 'Drug visit - final hepatocellular uptake rate', 'unit': 'mL/sec/cm3'},
-    'd_khe': {'name': 'Drug visit - Hepatocellular uptake rate', 'unit': 'mL/sec/cm3'},
-    'd_dkhe': {'name': 'Drug visit - Change in hepatocellular uptake rate', 'unit': ''},
-    'd_kbh_i': {'init': 0.00025, 'bounds': [0, 0.0005], 'name': 'Drug visit - initial biliary excretion rate', 'unit': 'mL/sec/cm3'},
-    'd_kbh_f': {'init': 0.00025, 'bounds': [0, 0.0005], 'name': 'Drug visit - final biliary excretion rate', 'unit': 'mL/sec/cm3'},
-    'd_kbh': {'name': 'Drug visit - biliary excretion rate', 'unit': 'mL/sec/cm3'},
-    'd_dkbh': {'name': 'Drug visit - change in biliary excretion rate', 'unit': ''},
+    'd_khe': {'init': 0.0025, 'bounds': [0.0, 0.005], 'name': 'Drug visit - initial hepatocellular uptake rate', 'unit': 'mL/sec/cm3'},
+    'd_kbh': {'init': 0.00025, 'bounds': [0, 0.0005], 'name': 'Drug visit - initial biliary excretion rate', 'unit': 'mL/sec/cm3'},
     'd_CL': {'name': 'Drug visit - liver plasma clearance', 'unit': 'mL/sec'},
 
     # Kinetics - common
@@ -95,14 +70,7 @@ LEXICON = LEXICON | {
 }
 
 
-def _sample_signal(time, t, S, TS) -> tuple:
-    if isinstance(time, np.ndarray):
-        return utils.sample(time, t, S, TS)
-    else:
-        return tuple([utils.sample(ti, t, S, TS) for ti in time])
-
-
-class Liver2scanDrugEffect(ui.SuperModel):
+class LiverDrugEffect(ui.SuperModel):
     """Joint model for aorta and liver signals measured over two scans.
 
     This model uses a whole-body model to simultaneously predict signals in 
@@ -530,86 +498,55 @@ class Liver2scanDrugEffect(ui.SuperModel):
                 # _conc_aorta
                 'dose_tolerance', 'agent', 'weight', 'rate', 
                 'GFR', 'H', 'CO', 'Thl', 'Dhl', 'To', 'To_e', 'Eo',
-                'c_khe_i', 'c_khe_f', 'c_vol',
-                'd_khe_i', 'd_khe_f', 'd_vol', 
-                'c_dose_1', 'c_BAT_1',  'c_dose_2', 'c_BAT_2',
-                'd_dose_1', 'd_BAT_1',  'd_dose_2', 'd_BAT_2',
+                'c_khe', 'c_vol',
+                'd_khe', 'd_vol', 
+                'c_dose', 'c_BAT',
+                'd_dose', 'd_BAT',
                 # _conc_liver
-                'Tg', 'Dg', 've', 'c_kbh', 'd_kbh_i', 'd_kbh_f',
+                'Tg', 'Dg', 've', 'c_kbh', 'd_kbh',
                 # _relax_aorta
                 'field_strength', 'c_R10_a', 'd_R10_a', 
                 # _relax_liver
                 'c_R10_l', 'd_R10_l',
                 # Signal
-                'c_t_scan2', 'c_S0_1_a', 'c_S0_2_a', 'c_S0_1_l', 'c_S0_2_l',
-                'd_t_scan2', 'd_S0_1_a', 'd_S0_2_a', 'd_S0_1_l', 'd_S0_2_l',
-                'c_B1corr_1_l', 'c_B1corr_1_a', 'c_B1corr_2_l', 'c_B1corr_2_a',
-                'd_B1corr_1_l', 'd_B1corr_1_a', 'd_B1corr_2_l', 'd_B1corr_2_a',
+                'c_S0_a', 'c_S0_l',
+                'd_S0_a', 'd_S0_l',
+                'c_B1corr_l', 'c_B1corr_a',
+                'd_B1corr_l', 'd_B1corr_a',
                 # Predict
                 'TS',
             ],
             'free': inflow + [
                 # _conc_aorta 
                 'CO', 'Thl', 'Dhl', 'To', 'To_e', 'Eo',
-                'c_khe_i', 'c_khe_f',
-                'd_khe_i', 'd_khe_f', 
-                'c_BAT_1',  'c_BAT_2',
-                'd_BAT_1',  'd_BAT_2',
+                'c_khe',
+                'd_khe', 
+                'c_BAT',
+                'd_BAT',
                 # _conc_liver
-                'Tg', 'Dg', 've', 'c_kbh', 'd_kbh_i', 'd_kbh_f',
-                # Signal
-                'c_S0_2_a', 'c_S0_2_l',
-                'd_S0_2_a', 'd_S0_2_l',
+                'Tg', 'Dg', 've', 'c_kbh', 'd_kbh',
             ],
             'free_control': [
                 # _conc_aorta 
                 'CO', 'Thl', 'Dhl', 'To', 'To_e', 'Eo',
-                'c_khe_i', 'c_khe_f',
-                'c_BAT_1',  'c_BAT_2',
+                'c_khe',
+                'c_BAT', 
                 # _conc_liver
                 'Tg', 'Dg', 've', 'c_kbh',
-                # Signal
-                'c_S0_2_a', 'c_S0_2_l',
-            ],
-            'free_control_1': [
-                # _conc_aorta 
-                'CO', 'Thl', 'Dhl', 'To', 'To_e', 'Eo',
-                'c_khe_i',
-                'c_BAT_1',
-                # _conc_liver
-                'Tg', 'Dg', 've', 'c_kbh',
-            ],
-            'free_control_2': [
-                # _conc_aorta 
-                'c_khe_f',
-                'c_BAT_2',
-                # Signal
-                'c_S0_2_a', 'c_S0_2_l',
             ],
             'free_drug': [
                 # _conc_aorta 
-                'd_khe_i', 'd_khe_f', 
-                'd_BAT_1',  'd_BAT_2',
+                'd_khe', 
+                'd_BAT',
                 # _conc_liver
-                'd_kbh_i', 'd_kbh_f',
-                # Signal
-                'd_S0_2_a', 'd_S0_2_l',
+                'd_kbh',
             ],
             'free_drug_1': [
                 # _conc_aorta 
-                'd_khe_i', 
-                'd_BAT_1',
+                'd_khe', 
+                'd_BAT',
                 # _conc_liver
-                'd_kbh_i',
-            ],
-            'free_drug_2': [
-                # _conc_aorta 
-                'd_khe_f', 
-                'd_BAT_2',
-                # _conc_liver
-                'd_kbh_f',
-                # Signal
-                'd_S0_2_a', 'd_S0_2_l',
+                'd_kbh',
             ],
             'sequence_a': liver_sequence + inflow,
             'sequence_l': liver_sequence,
@@ -624,30 +561,21 @@ class Liver2scanDrugEffect(ui.SuperModel):
         p = self._pars
         return np.arange(0, p[f'{visit}_tmax'], p['dt'])
 
-    def _conc_aorta(self, visit, scans):
+    def _conc_aorta(self, visit):
         p = self._pars
         t = self._time(visit)
+
+        # Body extraction fraction
+        khe = p[f'{visit}_khe']
+        CL = khe * p[f'{visit}_vol'] + p['GFR']
+        Eb = CL / (CL + p['CO'] * (1 - p['H']))
         
         # Source
         conc = lib.ca_conc(p['agent'])
         J = lib.ca_injection(
-            t, p['weight'], conc, p[f'{visit}_dose_1'], p['rate'], 
-            p[f'{visit}_BAT_1'],
+            t, p['weight'], conc, p[f'{visit}_dose'], p['rate'], 
+            p[f'{visit}_BAT'],
         )
-        if scans==2:
-            J += lib.ca_injection(
-                t, p['weight'], conc, p[f'{visit}_dose_2'], p['rate'], 
-                p[f'{visit}_BAT_2'],
-            )
-
-        # Body extraction fraction
-        if scans==1:
-            khe = p[f'{visit}_khe_i']
-        elif scans==2:
-            khe = utils.interp([p[f'{visit}_khe_i'], p[f'{visit}_khe_f']], t)
-
-        CL = khe * p[f'{visit}_vol'] + p['GFR']
-        Eb = CL / (CL + p['CO'] * (1 - p['H']))
 
         # Compute aorta flux
         Jb = pk_aorta.flux_aorta(
@@ -657,32 +585,17 @@ class Liver2scanDrugEffect(ui.SuperModel):
         )
         return Jb / p['CO']
 
-    def _conc_liver(self, cb, visit, scans):
+    def _conc_liver(self, cb, visit):
         p = self._pars
-        t = self._time(visit)
-
-        if scans==1:
-            khe = p[f'{visit}_khe_i']
-        elif scans==2:
-            khe = utils.interp([p[f'{visit}_khe_i'], p[f'{visit}_khe_f']], t)    
 
         cp = cb / (1 - p['H'])
         cp = pk.flux_pfcomp(cp, p['Tg'], p['Dg'], dt=p['dt'])  
         Ce = p['ve'] * cp
     
+        khe = p[f'{visit}_khe']
         vh = 1 - p['ve'] / (1 - p['H'])
-        if visit == 'c':
-            Th = vh / p[f'{visit}_kbh']
-            Ch = pk.conc(khe * cp, Th, dt=p['dt'], model="comp")
-        elif visit == 'd':
-            if scans==1:
-                Th = vh / p[f'{visit}_kbh_i']
-                Ch = pk.conc(khe * cp, Th, dt=p['dt'], model="comp")
-            else:
-                Th_i = vh / p[f'{visit}_kbh_i']
-                Th_f = vh / p[f'{visit}_kbh_f']
-                Th = utils.interp([Th_i, Th_f], t)
-                Ch = pk.conc(khe * cp, Th, dt=p['dt'], model="nscomp")
+        Th = vh / p[f'{visit}_kbh']
+        Ch = pk.conc(khe * cp, Th, dt=p['dt'], model="comp")
 
         return np.stack((Ce, Ch))
 
@@ -699,35 +612,16 @@ class Liver2scanDrugEffect(ui.SuperModel):
         R1l = p[f'{visit}_R10_l'] + rp * Cl[0, :] + rh * Cl[1, :]
         return R1l
 
-    def _signal(self, R1, visit, scans, roi):
+    def _signal(self, R1, visit, roi):
         p = self._pars
-        t = self._time(visit)
-
         seq = {
             'a': self._cnfg['sequence'],
             'l': 'SS' if self._cnfg['sequence']=='SSI' else self._cnfg['sequence'],
         }[roi]
 
-        def roi_signal(scan, R1roi):
-            pars = {k: p[k] for k in self._pars_list(select=f'sequence_{roi}')}
-            if 'FA' in pars: pars['FA'] *= p[f'{visit}_B1corr_{scan}_{roi}']
-            return sig.signal(seq, R1roi, p[f'{visit}_S0_{scan}_{roi}'], **pars)
-
-        if scans==1:
-            S = roi_signal(1, R1)
-
-        elif scans==2:
-            S = np.zeros_like(t)
-
-            # First scan signal
-            ts = t < p[f'{visit}_t_scan2']
-            S[ts] = roi_signal(1, R1[ts])
-
-            # Second scan signal
-            ts = t >= p[f'{visit}_t_scan2']
-            S[ts] = roi_signal(2, R1[ts])
-
-        return S
+        pars = {k: p[k] for k in self._pars_list(select=f'sequence_{roi}')}
+        if 'FA' in pars: pars['FA'] *= p[f'{visit}_B1corr_{roi}']
+        return sig.signal(seq, R1, p[f'{visit}_S0_{roi}'], **pars)
     
     # ==========================================
     # Forward Model: Times
@@ -747,128 +641,106 @@ class Liver2scanDrugEffect(ui.SuperModel):
     # Forward Model: Aorta Control
     # ==========================================
 
-    def _compute_conc_aorta_control(self, scans=2):
-        self._ca_control = self._conc_aorta('c', scans)
+    def _compute_conc_aorta_control(self):
+        self._ca_control = self._conc_aorta('c')
 
-    def _compute_relax_aorta_control(self, scans=2):
-        self._compute_conc_aorta_control(scans)
+    def _compute_relax_aorta_control(self):
+        self._compute_conc_aorta_control()
         self._R1a_control = self._relax_aorta(self._ca_control, 'c')
 
-    def _compute_signal_aorta_control(self, scans=2):
-        self._compute_relax_aorta_control(scans)
-        self._Sa_control = self._signal(self._R1a_control, 'c', scans, 'a')
+    def _compute_signal_aorta_control(self):
+        self._compute_relax_aorta_control()
+        self._Sa_control = self._signal(self._R1a_control, 'c', 'a')
 
-    def _predict_aorta_control(self, time, scans=2):
+    def _predict_aorta_control(self, time):
         self._set_time_control()
-        self._compute_signal_aorta_control(scans)
-        return _sample_signal(time, self._t_control, self._Sa_control, self._pars['TS'])
+        self._compute_signal_aorta_control()
+        return utils.sample(time, self._t_control, self._Sa_control, self._pars['TS'])
 
     # ==========================================
     # Forward Model: Aorta Drug
     # ==========================================
 
-    def _compute_conc_aorta_drug(self, scans=2):
-        self._ca_drug = self._conc_aorta('d', scans)
+    def _compute_conc_aorta_drug(self):
+        self._ca_drug = self._conc_aorta('d')
 
-    def _compute_relax_aorta_drug(self, scans=2):
-        self._compute_conc_aorta_drug(scans)
+    def _compute_relax_aorta_drug(self):
+        self._compute_conc_aorta_drug()
         self._R1a_drug = self._relax_aorta(self._ca_drug, 'd')
 
-    def _compute_signal_aorta_drug(self, scans=2):
-        self._compute_relax_aorta_drug(scans)
-        self._Sa_drug = self._signal(self._R1a_drug, 'd', scans, 'a')
+    def _compute_signal_aorta_drug(self):
+        self._compute_relax_aorta_drug()
+        self._Sa_drug = self._signal(self._R1a_drug, 'd', 'a')
 
-    def _predict_aorta_drug(self, time, scans=2):
+    def _predict_aorta_drug(self, time):
         self._set_time_drug()
-        self._compute_signal_aorta_drug(scans)
-        return _sample_signal(time, self._t_drug, self._Sa_drug, self._pars['TS'])
+        self._compute_signal_aorta_drug()
+        return utils.sample(time, self._t_drug, self._Sa_drug, self._pars['TS'])
 
     # ==========================================
     # Forward Model: Liver Control
     # ==========================================
 
-    def _compute_conc_liver_control(self, scans=2):
-        self._Cl_control = self._conc_liver(self._ca_control, 'c', scans)
+    def _compute_conc_liver_control(self):
+        self._Cl_control = self._conc_liver(self._ca_control, 'c')
 
-    def _compute_relax_liver_control(self, scans=2):
-        self._compute_conc_liver_control(scans)
+    def _compute_relax_liver_control(self):
+        self._compute_conc_liver_control()
         self._R1l_control = self._relax_liver(self._Cl_control, 'c')
 
-    def _compute_signal_liver_control(self, scans=2):
-        self._compute_relax_liver_control(scans)
-        self._Sl_control = self._signal(self._R1l_control, 'c', scans, 'l')
+    def _compute_signal_liver_control(self):
+        self._compute_relax_liver_control()
+        self._Sl_control = self._signal(self._R1l_control, 'c', 'l')
 
-    def _predict_liver_control(self, time, scans=2):
+    def _predict_liver_control(self, time):
         self._set_time_control()
-        self._compute_signal_liver_control(scans)
-        return _sample_signal(time, self._t_control, self._Sl_control, self._pars['TS'])
+        self._compute_signal_liver_control()
+        return utils.sample(time, self._t_control, self._Sl_control, self._pars['TS'])
     
     # ==========================================
     # Forward Model: Liver Drug
     # ==========================================
 
-    def _compute_conc_liver_drug(self, scans=2):
-        self._Cl_drug = self._conc_liver(self._ca_drug, 'd', scans)
+    def _compute_conc_liver_drug(self):
+        self._Cl_drug = self._conc_liver(self._ca_drug, 'd')
 
-    def _compute_relax_liver_drug(self, scans=2):
-        self._compute_conc_liver_drug(scans)
+    def _compute_relax_liver_drug(self):
+        self._compute_conc_liver_drug()
         self._R1l_drug = self._relax_liver(self._Cl_drug, 'd')
 
-    def _compute_signal_liver_drug(self, scans=2):
-        self._compute_relax_liver_drug(scans)
-        self._Sl_drug = self._signal(self._R1l_drug, 'd', scans, 'l')
+    def _compute_signal_liver_drug(self):
+        self._compute_relax_liver_drug()
+        self._Sl_drug = self._signal(self._R1l_drug, 'd', 'l')
 
-    def _predict_liver_drug(self, time, scans=2):
+    def _predict_liver_drug(self, time):
         self._set_time_drug()
-        self._compute_signal_liver_drug(scans)
-        return _sample_signal(time, self._t_drug, self._Sl_drug, self._pars['TS'])
+        self._compute_signal_liver_drug()
+        return utils.sample(time, self._t_drug, self._Sl_drug, self._pars['TS'])
 
     # ==========================================
     # Forward Model: All scans
     # ==========================================
 
-    def _predict_control_1(self, time):
-        Sa = self._predict_aorta_control(time[0], scans=1)
-        Sl = self._predict_liver_control(time[1], scans=1)
-        return Sa, Sl
-    
-    def _predict_control_2(self, time):
-        Sa = self._predict_aorta_control(time[0], scans=2)
-        Sl = self._predict_liver_control(time[1], scans=2)
-        return Sa, Sl
-
     def _predict_control(self, time):
-        Sa = self._predict_aorta_control(time[:2])
-        Sl = self._predict_liver_control(time[2:])
-        return Sa + Sl
-    
-    def _predict_drug_1(self, time):
-        Sa = self._predict_aorta_drug(time[0], scans=1)
-        Sl = self._predict_liver_drug(time[1], scans=1)
-        return Sa, Sl
-    
-    def _predict_drug_2(self, time):
-        Sa = self._predict_aorta_drug(time[0], scans=2)
-        Sl = self._predict_liver_drug(time[1], scans=2)
+        Sa = self._predict_aorta_control(time[0])
+        Sl = self._predict_liver_control(time[1])
         return Sa, Sl
     
     def _predict_drug(self, time):
-        Sa = self._predict_aorta_drug(time[:2])
-        Sl = self._predict_liver_drug(time[2:])
-        return Sa + Sl
+        Sa = self._predict_aorta_drug(time[0])
+        Sl = self._predict_liver_drug(time[1])
+        return Sa, Sl
     
     def _predict(self, time):
-        Sc = self._predict_control(time[:4])
-        Sd = self._predict_drug(time[4:])
+        Sc = self._predict_control(time[:2])
+        Sd = self._predict_drug(time[2:])
         return Sc + Sd
     
     # ==========================================
     # Inverse Model: Training
     # ==========================================  
 
-    def _estimate_parameters(
-        self, time, signal, n0, R102a, R102l
-    ):
+    def _estimate_parameters(self, time, signal, n0):
         p = self._pars
         seq = {
             'a': self._cnfg['sequence'],
@@ -876,78 +748,48 @@ class Liver2scanDrugEffect(ui.SuperModel):
         }
 
         for i, visit in enumerate(['c', 'd']):
-            p[f'{visit}_tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time[4 * i: 4 * i + 4]))
+            p[f'{visit}_tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time[2 * i: 2 * i + 2]))
 
             # Estimate BAT and BAT_2
             t_hl, d_hl = p['Thl'], p['Dhl']
-            bat1 = time[0 + 4 * i][np.argmax(signal[0 + 4 * i])] - (1 - d_hl) * t_hl
-            bat2 = time[1 + 4 * i][np.argmax(signal[1 + 4 * i])] - (1 - d_hl) * t_hl
-            p[f'{visit}_BAT_1'] = max(bat1, 0)
-            p[f'{visit}_BAT_2'] = max(bat2, 0)
+            bat = time[2 * i][np.argmax(signal[2 * i])] - (1 - d_hl) * t_hl
+            p[f'{visit}_BAT'] = max(bat, 0)
 
-            def estimate_s0(scan, roi, i0, R10):
+            def estimate_s0(roi, i0, R10):
                 pars = {k: p[k] for k in self._pars_list(select=f'sequence_{roi}')}
-                if 'FA' in pars: pars['FA'] *= p[f'{visit}_B1corr_{scan}_{roi}']
+                if 'FA' in pars: pars['FA'] *= p[f'{visit}_B1corr_{roi}']
                 s_ref = sig.signal(seq[roi], R10, 1, **pars)
-                p[f'{visit}_S0_{scan}_{roi}'] = np.mean(signal[i0 + 4 * i][:n0[i]]) / s_ref if s_ref > 0 else 0
+                p[f'{visit}_S0_{roi}'] = np.mean(signal[i0 + 2 * i][:n0[i]]) / s_ref if s_ref > 0 else 0
 
-            estimate_s0(1, 'a', 0, p[f'{visit}_R10_a'])
-            estimate_s0(1, 'l', 2, p[f'{visit}_R10_l'])
-
-            def estimate_s02(roi, i0, R10):
-                if R10 is None:
-                    p[f'{visit}_S0_2_{roi}'] = p[f'{visit}_S0_1_{roi}']
-                else:
-                    estimate_s0(2, roi, i0, R10[i])
-
-            estimate_s02('a', 1, R102a)
-            estimate_s02('l', 3, R102l)
+            estimate_s0('a', 0, p[f'{visit}_R10_a'])
+            estimate_s0('l', 1, p[f'{visit}_R10_l'])
 
 
     def _train(
             self, time: tuple, signal: tuple, free=None, 
-            bounds:dict=None, R102a=None, R102l=None, n0=[1, 1], 
-            staged=False, **kwargs,
+            bounds:dict=None, n0=[1, 1], staged=False, **kwargs,
         ):
         p = self._pars
-        self._estimate_parameters(time, signal, n0, R102a, R102l)
+        self._estimate_parameters(time, signal, n0)
         free = self._set_free_pars(free, bounds, LEXICON)
 
         # Extra conditions for SSI sequence
         if self._cnfg['sequence'] == 'SSI':
-            for par in ['c_S0_1_a', 'd_S0_1_a', 'c_S0_2_a', 'd_S0_2_a']:
+            for par in ['c_S0_a', 'd_S0_a']:
                 if par not in free:
-                    raise ValueError(f"For SSI sequence, '{par}' must be a free parameter.")     
+                    raise ValueError(f"For SSI sequence, '{par}' must be a free parameter.")    
 
         if staged:
 
             # Train control data
             v = 0
-
-            t, s = (time[v + 0], time[v + 2]), (signal[v + 0], signal[v + 2])
-            free_stage = {k: v for k, v in free.items() if k in self._pars_list('free_control_1')}
-            utils.train(self._predict_control_1, t, s, p, free_stage, **kwargs)
-
-            t, s = (time[v + 1], time[v + 3]), (signal[v + 1], signal[v + 3])
-            free_stage = {k: v for k, v in free.items() if k in self._pars_list('free_control_2')}
-            utils.train(self._predict_control_2, t, s, p, free_stage, **kwargs)
-
-            t, s = time[v: v + 4], signal[v: v + 4]
+            t, s = time[v: v + 2], signal[v: v + 2]
             free_stage = {k: v for k, v in free.items() if k in self._pars_list('free_control')}
             utils.train(self._predict_control, t, s, p, free_stage, **kwargs)
             
             # Train drug data
-            v = 4
-
-            t, s = (time[v + 0], time[v + 2]), (signal[v + 0], signal[v + 2])
-            free_stage = {k: v for k, v in free.items() if k in self._pars_list('free_drug_1')}
-            utils.train(self._predict_drug_1, t, s, p, free_stage, **kwargs)
-
-            t, s = (time[v + 1], time[v + 3]), (signal[v + 1], signal[v + 3])
-            free_stage = {k: v for k, v in free.items() if k in self._pars_list('free_drug_2')}
-            utils.train(self._predict_drug_2, t, s, p, free_stage, **kwargs)
-
-            t, s = time[v: v + 4], signal[v: v + 4]
+            v = 2
+            t, s = time[v: v + 2], signal[v: v + 2]
             free_stage = {k: v for k, v in free.items() if k in self._pars_list('free_drug')}
             utils.train(self._predict_drug, t, s, p, free_stage, **kwargs)
 
@@ -977,14 +819,14 @@ class Liver2scanDrugEffect(ui.SuperModel):
         def plot_data2scan(t, s, ti, si, ax, xl, color):
             if xl is None: xl = [0, t[-1]]
             ax.set(xlabel='Time (min)', ylabel='MR Signal (a.u.)', xlim=np.array(xl)/60)
-            ax.plot(np.concatenate(ti) / 60, np.concatenate(si), marker='o', color=color[0], label='fitted data', linestyle='None')
+            ax.plot(ti / 60, si, marker='o', color=color[0], label='fitted data', linestyle='None')
             ax.plot(t / 60, s, linestyle='-', color=color[1], linewidth=3.0, label='fit')
             ax.legend()
 
-        plot_data2scan(self._t_control, self._Sa_control, time[0:2], signal[0:2], ax1, xlim, ['lightcoral', 'darkred'])
-        plot_data2scan(self._t_control, self._Sl_control, time[2:4], signal[2:4], ax5, xlim, ['cornflowerblue', 'darkblue'])
-        plot_data2scan(self._t_drug, self._Sa_drug, time[4:6], signal[4:6], ax2, xlim, ['lightcoral', 'darkred'])
-        plot_data2scan(self._t_drug, self._Sl_drug, time[6:8], signal[6:8], ax6, xlim, ['cornflowerblue', 'darkblue'])
+        plot_data2scan(self._t_control, self._Sa_control, time[0], signal[0], ax1, xlim, ['lightcoral', 'darkred'])
+        plot_data2scan(self._t_control, self._Sl_control, time[1], signal[1], ax5, xlim, ['cornflowerblue', 'darkblue'])
+        plot_data2scan(self._t_drug, self._Sa_drug, time[2], signal[2], ax2, xlim, ['lightcoral', 'darkred'])
+        plot_data2scan(self._t_drug, self._Sl_drug, time[3], signal[3], ax6, xlim, ['cornflowerblue', 'darkblue'])
 
         def plot_conc_aorta(t, c, ax, xl):
             if xl is None: xl = [t[0], t[-1]]
@@ -1021,11 +863,7 @@ class Liver2scanDrugEffect(ui.SuperModel):
         """Time points in aorta and liver for the two visits"""
         self._set_time()
         tc, td = self._t_control, self._t_drug
-        t2c, t2d = self._pars['c_t_scan2'], self._pars['d_t_scan2']
-        return (
-            tc[tc < t2c], tc[tc >= t2c], tc[tc < t2c], tc[tc >= t2c], 
-            td[td < t2d], td[td >= t2d], td[tc < t2d], td[tc >= t2d],
-        )
+        return tc, tc, td, td
 
     def conc(self) -> Data:
         """Concentrations in aorta and liver.
@@ -1038,13 +876,7 @@ class Liver2scanDrugEffect(ui.SuperModel):
         self._compute_conc_aorta_drug()
         self._compute_conc_liver_drug()
 
-        tc, td = self._t_control, self._t_drug
-        t2c, t2d = self._pars['c_t_scan2'], self._pars['d_t_scan2']
-        cac = self._ca_control[tc < t2c], self._ca_control[tc >= t2c]
-        cad = self._ca_drug[td < t2d], self._ca_drug[td >= t2d]
-        Clc = self._Cl_control[:, tc < t2c], self._Cl_control[:, tc >= t2c]
-        Cld = self._Cl_drug[:, td < t2d], self._Cl_drug[:, td >= t2d]            
-        return cac + Clc + cad + Cld
+        return self._ca_control, self._Cl_control, self._ca_drug, self._Cl_drug
     
     def relax(self) -> tuple:
         """Relaxation rates in aorta and liver.
@@ -1057,13 +889,7 @@ class Liver2scanDrugEffect(ui.SuperModel):
         self._compute_relax_aorta_drug()
         self._compute_relax_liver_drug()
 
-        tc, td = self._t_control, self._t_drug
-        t2c, t2d = self._pars['c_t_scan2'], self._pars['d_t_scan2']
-        R1ac = self._R1a_control[tc < t2c], self._R1a_control[tc >= t2c]
-        R1lc = self._R1l_control[tc < t2c], self._R1l_control[tc >= t2c]
-        R1ad = self._R1a_drug[td < t2d], self._R1a_drug[td >= t2d]
-        R1ld = self._R1l_drug[td < t2d], self._R1l_drug[td >= t2d]
-        return R1ac + R1lc + R1ad + R1ld
+        return self._R1a_control, self._R1l_control, self._R1a_drug, self._R1l_drug
     
     def signal(self) -> tuple:
         """Signal in aorta and liver.
@@ -1077,13 +903,7 @@ class Liver2scanDrugEffect(ui.SuperModel):
         self._compute_signal_aorta_drug()
         self._compute_signal_liver_drug()
 
-        tc, td = self._t_control, self._t_drug
-        t2c, t2d = self._pars['c_t_scan2'], self._pars['d_t_scan2']
-        Sac = self._Sa_control[tc < t2c], self._Sa_control[tc >= t2c]
-        Slc = self._Sl_control[tc < t2c], self._Sl_control[tc >= t2c]
-        Sad = self._Sa_drug[td < t2d], self._Sa_drug[td >= t2d]
-        Sld = self._Sl_drug[td < t2d], self._Sl_drug[td >= t2d]
-        return Sac + Slc + Sad + Sld
+        return self._Sa_control, self._Sl_control, self._Sa_drug, self._Sl_drug
     
     def predict(self, time: tuple) -> tuple:
         """Predict the data at given time points
@@ -1100,15 +920,12 @@ class Liver2scanDrugEffect(ui.SuperModel):
         """
         p = self._pars
         for i, visit in enumerate(['c', 'd']):
-            p[f'{visit}_tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time[4 * i: 4 * i + 4]))
-        Sc = self._predict_control(time[:4])
-        Sd = self._predict_drug(time[4:])
-        return Sc + Sd
+            p[f'{visit}_tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time[2 * i: 2 * i + 2]))
+        return self._predict(time)
 
     def train(
             self, time: tuple, signal: tuple, free=None, 
-            bounds:dict=None, R102a=None, R102l=None, n0=[1, 1], 
-            staged=False, **kwargs,
+            bounds:dict=None, n0=[1, 1], staged=False, **kwargs,
         ):
         """Train the free parameters
 
@@ -1128,8 +945,8 @@ class Liver2scanDrugEffect(ui.SuperModel):
         """
         p = self._pars
         for i, visit in enumerate(['c', 'd']):
-            p[f'{visit}_tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time[4 * i: 4 * i + 4]))
-        return self._train(time, signal, free, bounds, R102a, R102l, n0, staged, **kwargs)
+            p[f'{visit}_tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time[2 * i: 2 * i + 2]))
+        return self._train(time, signal, free, bounds, n0, staged, **kwargs)
 
 
     def plot(self, time: tuple, signal: tuple, xlim=None, fname=None, show=True):
@@ -1154,7 +971,7 @@ class Liver2scanDrugEffect(ui.SuperModel):
         """
         p = self._pars
         for i, visit in enumerate(['c', 'd']):
-            p[f'{visit}_tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time[4 * i: 4 * i + 4]))
+            p[f'{visit}_tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time[2 * i: 2 * i + 2]))
         self._plot(time, signal, xlim, fname, show)
 
 
@@ -1171,38 +988,24 @@ class Liver2scanDrugEffect(ui.SuperModel):
 #     return np.sqrt((dy * dz_dy)**2 + (dx * dz_dx)**2)
     
 # def _deriv_params(pars):
-
-#     # TODO: return sdev of derived
     
-#     vh = 1 - pars['ve'] / (1 - pars['H'])
-#     C_khe = np.mean([pars['c_khe_i'], pars['c_khe_f']])
-#     C_kbh = pars['c_kbh']
-#     D_khe = pars['d_khe_i'] 
-
-#     t = np.arange(0, pars[f'd_tmax'], pars['dt'])
-#     Th_i = _div(vh, pars['d_kbh_i'])
-#     Th_f = _div(vh, pars['d_kbh_f'])
-#     Th = utils.interp([Th_i, Th_f], t)
-#     D_kbh = _div(vh, Th.mean())
-    
-#     C_CL = C_khe * pars['c_vol']
-#     D_CL = D_khe * pars['d_vol']
+#     vh = 1 - pars['v(e)'] / (1 - pars['H'])
+#     C_khe = pars['C-k(he)']
+#     C_kbh = pars['C-k(bh)']
+#     D_khe = pars['D-k(he)'] 
+#     D_kbh = pars['D-k(bh)']
+#     C_CL = C_khe * pars['C-vol']
+#     D_CL = D_khe * pars['D-vol']
 #     pars_deriv = {
-#         'vh': vh,
-#         'c_khe': C_khe,
-#         'd_khe': D_khe,
-#         'd_kbh': D_kbh,
-#         'c_CL': C_CL,
-#         'd_CL': D_CL,
-#         'r_khe': _div(D_khe - C_khe, C_khe),
-#         'r_kbh': _div(D_kbh - C_kbh, C_kbh),
-#         'r_CL': _div(D_CL - C_CL, C_CL),
-#         'a_khe': D_khe - C_khe,
-#         'a_kbh': D_kbh - C_kbh,
-#         'a_CL': D_CL - C_CL,
-#         'c_dkhe': _div(pars['c_khe_f'] - pars['c_khe_i'], pars['c_khe_i']),
-#         'd_dkhe': _div(pars['d_khe_f'] - pars['d_khe_i'], pars['d_khe_i']),
-#         'd_dkbh': _div(pars['d_kbh_f'] - pars['d_kbh_i'], pars['d_kbh_i']),
+#         'v(h)': vh,
+#         'C-CL': C_CL,
+#         'D-CL': D_CL,
+#         'RE-k(he)': (D_khe - C_khe) / C_khe,
+#         'RE-k(bh)': (D_kbh - C_kbh) / C_kbh,
+#         'RE-CL': (D_CL - C_CL) / C_CL,
+#         'AE-k(he)': D_khe - C_khe,
+#         'AE-k(bh)': D_kbh - C_kbh,
+#         'AE-CL': D_CL - C_CL,
 #     }
 #     return pars_deriv
 

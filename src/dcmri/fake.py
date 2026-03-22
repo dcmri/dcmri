@@ -210,11 +210,8 @@ def fake_brain(
           'T1': im['T1'], 'PD': im['PD'],
           'TR': TR, 'FA': FA, 
           'S0': S0*im['PD']}
-
-    gt['ve'] = gt['vi'] + gt['vp']
-
-    # TODO: return the extracullar part of the distribution space
-    # gt['ve'] = np.where(gt['PS'] > 0, gt['vp'] + gt['vi'], gt['vp'])
+    
+    gt['ve'] = np.where(gt['PS'] > 0, gt['vp'] + gt['vi'], gt['vp'])
 
     return time, signal, aif, gt
 
@@ -404,7 +401,7 @@ def fake_liver(
     gt = {'t': t, 'cp': cp, 'cv':cv*(1-H), 
           'C': np.sum(C,axis=0), 'cb': cp*(1-H),
           've': ve, 'Fp': Fp, 
-          'Fb': Fp/(1-H), 'fa': fa, 'Ta': Ta, 'E': E, 'Th': Th,
+          'Fb': Fp/(1-H), 'fa': fa, 'T_a': Ta, 'E': E, 'Th': Th,
           'TR': TR, 'FA': FA, 'S0': S0}
     return time, aif, vif, roi, gt
 

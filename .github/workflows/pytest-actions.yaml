@@ -1,7 +1,11 @@
 # GitHub Actions Configuration for integrated testing using pytest
 name: Test package
 run-name: "Running tests as ${{ github.actor }} has pushed changes"
-on: [push]
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   build:

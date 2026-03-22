@@ -18,46 +18,39 @@ else:
 
 def test_configs():
 
-    ns_opts = {
-        '1I-EC-D': [None],
-        '1I-EC': [None],
-        '1I-IC-HFDU': [None, 'U'],
-        '1I-IC': [None, 'U', 'E', 'UE'],
-        '1I-IC-HF': [None, 'U', 'E', 'UE'],
-        '1I-IC-HFD': [None, 'U', 'E', 'UE'],
-    }
+    # Create some asymmetry for testing
+    pars = {'DRF':0.25, 'vp_rk':0.3}
 
-    for seq in ['SR', 'SS', 'SSI', 'lin']:
-        for kin in ns_opts.keys():
-            for ns in ns_opts[kin]:
-                model = dc.AortaLiver2scan(kinetics=kin, sequence=seq)
-                time = model.time()
-                signal = model.predict(time)
-                R1 = model.relax()
-                bounds = {'S0_a': [0, 5]} if seq=='SSI' else None
-                model.train(time, signal, R102a=R1[1][0], R102l=R1[3][0], bounds=bounds)
-                model.plot(time, signal)
-                cost = model.cost(time, signal)
-                print(kin, ns, seq, cost)
-                assert cost < 5
+    # All configs
+    for org in ['comp','2cxm']:
+        for hl in ['comp', 'pfcomp', 'chain']:
+            for kid in ['2CF', 'HF']:
+                for seq in ['SR', 'SS', 'SSI', 'lin']:
+                    for agent in ['gadoterate', 'gadoxetate']:
+                        model = dc.AortaKidneys(org, hl, kid, seq, agent, **pars)
+                        time = model.time()
+                        signal = model.predict(time)
+                        bnds = {'S0_a': [0,5]} if seq=='SSI' else None
+                        model.train(time, signal, bounds=bnds, xtol=0.01)
+                        model.plot(time, signal)
+                        cost = model.cost(time, signal)
+                        print(org, hl, kid, seq, agent, cost)
+                        assert cost < 5
 
-    # Test Variations (override parameter and staged training)
-    model = dc.AortaLiver2scan(CO=50)
+    # Staged Training
+    model = dc.AortaKidneys(**pars)
     time = model.time()
     signal = model.predict(time)
-    model.train(time, signal, staged=True)
+    model.train(time, signal, staged=True, xtol=0.1)
     model.plot(time, signal)
     cost = model.cost(time, signal)
-    print(kin, ns, seq, cost)
+    print('staged', cost)
     assert cost < 5
 
-    # Concentration with single compartment
-    dc.AortaLiver2scan('1I-EC').conc()
-
 def test_api():
-
+    model = dc.AortaKidneys()
+    
     # Test Forward API outputs
-    model = dc.AortaLiver2scan()
     t = model.time()
     C = model.conc()
     R1 = model.relax()
@@ -84,28 +77,28 @@ def test_api():
 def test_exceptions():
     # Invalid Config
     try:
-        dc.AortaLiver2scan(sequence='X')
+        dc.AortaKidneys(organs='X')
     except ValueError:
         pass 
     else:
         assert False
         
     try:
-        dc.AortaLiver2scan(kinetics='Y')
+        dc.AortaKidneys(heartlung='X')
     except ValueError:
         pass 
     else:
         assert False
 
     try:
-        dc.AortaLiver2scan(kinetics='2I-EC')
+        dc.AortaKidneys(kidneys='X')
     except ValueError:
         pass 
     else:
         assert False
 
     try:
-        dc.AortaLiver2scan(non_stationary='Z')
+        dc.AortaKidneys(sequence='X')
     except ValueError:
         pass 
     else:
@@ -113,7 +106,7 @@ def test_exceptions():
 
     # 2. Invalid Parameter
     try:
-        dc.AortaLiver2scan(fake_parameter=99)
+        dc.AortaKidneys(fake_parameter=99)
     except ValueError:
         pass
     else:
@@ -121,7 +114,7 @@ def test_exceptions():
 
     # SSI sequence model with fixed S0
     try:
-        model = dc.AortaLiver2scan(sequence='SSI')
+        model = dc.AortaKidneys(sequence='SSI')
         t, s = model.time(), model.signal()
         model.train(t, s, bounds={'S0_a': None})
     except ValueError:
@@ -135,5 +128,5 @@ if __name__ == "__main__":
     test_api()
     test_exceptions()
     
-    print('All ui_aorta_liver_2scan tests passed!!')
+    print('All ui_aorta_portal_liver tests passed!!')
 

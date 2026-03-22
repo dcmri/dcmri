@@ -12,7 +12,7 @@ def test_ec():
     p = {'ve': 0.1, 
          'Fp': 0.01, 
          'fa': 1.0, 
-         'Ta': 0, 
+         'T_a': 0, 
          'Tg': 0,
         }
     C0 = dc.conc_liver(ca, t, kinetics='1I-EC', **p)
@@ -29,14 +29,14 @@ def test_ec():
     p = {'ve': 0.1, 
          'Fp': 1000, 
          'fa': 1.0, 
-         'Ta': 0, 
+         'T_a': 0, 
          'Tg': 0,
         }
     C0 = dc.conc_liver(ca, t, kinetics='1I-EC', **p)
 
     p = {'ve': 0.1, 
          'fa': 1.0, 
-         'Ta': 0, 
+         'T_a': 0, 
         }
     C1 = dc.conc_liver((ca, ca), t, kinetics='2I-EC-HF', **p)
 
@@ -45,7 +45,7 @@ def test_ec():
     p = {'ve': 0.1, 
          'Fp': 1000,
          'fa': 1.0, 
-         'Ta': 0, 
+         'T_a': 0, 
         }
     C1 = dc.conc_liver((ca, ca), t, kinetics='2I-EC', **p)
 
@@ -168,7 +168,7 @@ def test_ic():
     p = {'ve': 0.1, 
          'khe': 0.005, 
          'Th': 15,
-         'Ta': 0,
+         'T_a': 0,
          'fa': 1,
         }
     C1 = dc.conc_liver((ca, ca), t, kinetics='2I-IC-HF', **p)
@@ -177,7 +177,7 @@ def test_ic():
          'khe_i': 0.005, 
          'khe_f': 0.005, 
          'Th': 15,
-         'Ta': 0,
+         'T_a': 0,
          'fa': 1,
         }
     C1 = dc.conc_liver((ca, ca), t, kinetics='2I-IC-HF', non_stationary='U', **p)
@@ -187,7 +187,7 @@ def test_ic():
          'khe': 0.005, 
          'Th_i': 15,
          'Th_f': 15,
-         'Ta': 0,
+         'T_a': 0,
          'fa': 1,
         }
     C1 = dc.conc_liver((ca, ca), t, kinetics='2I-IC-HF', non_stationary='E', **p)
@@ -198,7 +198,7 @@ def test_ic():
          'khe_f': 0.005,
          'Th_i': 15,
          'Th_f': 15,
-         'Ta': 0,
+         'T_a': 0,
          'fa': 1,
         }
     C1 = dc.conc_liver((ca, ca), t, kinetics='2I-IC-HF', non_stationary='UE', **p)
@@ -207,7 +207,7 @@ def test_ic():
     p = {'ve': 0.1, 
          'khe': 0.005, 
          'Th': 15,
-         'Ta': 0,
+         'T_a': 0,
          'fa': 1,
         }
     C0 = dc.conc_liver((ca, ca), t, kinetics='2I-IC-HF', **p)
@@ -216,7 +216,7 @@ def test_ic():
          'Fp': 5, 
          'E': 0.001, 
          'Th': 15,
-         'Ta': 0,
+         'T_a': 0,
          'fa': 1,
         }
     C1 = dc.conc_liver((ca, ca), t, kinetics='2I-IC', **p)
@@ -227,7 +227,7 @@ def test_ic():
          'E_i': 0.001, 
          'E_f': 0.001,  
          'Th': 15,
-         'Ta': 0,
+         'T_a': 0,
          'fa': 1,
         }
     C1 = dc.conc_liver((ca, ca), t, kinetics='2I-IC', non_stationary='U', **p)
@@ -238,7 +238,7 @@ def test_ic():
          'E': 0.001,  
          'Th_i': 15,
          'Th_f': 15,
-         'Ta': 0,
+         'T_a': 0,
          'fa': 1,
         }
     C1 = dc.conc_liver((ca, ca), t, kinetics='2I-IC', non_stationary='E', **p)
@@ -250,7 +250,7 @@ def test_ic():
          'E_f': 0.001,  
          'Th_i': 15,
          'Th_f': 15,
-         'Ta': 0,
+         'T_a': 0,
          'fa': 1,
         }
     C1 = dc.conc_liver((ca, ca), t, kinetics='2I-IC', non_stationary='UE', **p)
@@ -260,7 +260,7 @@ def test_ic():
          'Fp': 5, 
          'E': 0.001, 
          'Th': 1500,
-         'Ta': 0,
+         'T_a': 0,
          'fa': 1,
         }
     C0 = dc.conc_liver((ca, ca), t, kinetics='2I-IC', **p)
@@ -271,7 +271,7 @@ def test_ic():
     p = {'ve': 0.1 / (1 - 0.001), 
          'Fp': 5, 
          'E': 0.001, 
-         'Ta': 0,
+         'T_a': 0,
          'fa': 1,
         }
     C1 = dc.conc_liver((ca, ca), t, kinetics='2I-IC-U', **p)
@@ -281,7 +281,7 @@ def test_ic():
          'Fp': 5, 
          'E_i': 0.001, 
          'E_f': 0.001,
-         'Ta': 0,
+         'T_a': 0,
          'fa': 1,
         }
     C1 = dc.conc_liver((ca, ca), t, kinetics='2I-IC-U', non_stationary='U', **p)
@@ -303,7 +303,7 @@ def test_ic():
             'Fp': 5, 
             'E_i': 0.001, 
             'E_f': 0.001, 
-            'Ta': 0,
+            'T_a': 0,
             }
         C1 = dc.conc_liver((ca, ca), t, kinetics='2I-IC-U', non_stationary='U', **p)
     except:

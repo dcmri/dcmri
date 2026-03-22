@@ -432,50 +432,50 @@ def test_relax_tissue():
 
     # Test WV limit - exact
     p = {'H':H, 'vb':0.0, 'vi':0.3, 'Fb':0.01, 'PS':0.005, 'PSe':0.01, 'PSc':0.01}
-    R1_0, _, _ = dc.relax_tissue(ca*(1-H), R10, r1, t=t, 
-                                 kinetics='2CX', water_exchange='RR', **p)
+    R1_0 = dc.relax_tissue(ca*(1-H), R10, r1, t=t, 
+                                 kinetics='2CX', water_exchange='RR', **p)['R1']
     p = {'H':H, 'vi':0.3, 'Ktrans':0.01*(1-H)*0.005/(0.01*(1-H)+0.005), 'PSc':0.01}
-    R1_1, _, _ = dc.relax_tissue(ca*(1-H), R10, r1, t=t, 
-                                 kinetics='WV', water_exchange='RR', **p)
+    R1_1 = dc.relax_tissue(ca*(1-H), R10, r1, t=t, 
+                                 kinetics='WV', water_exchange='RR', **p)['R1']
     assert np.linalg.norm(R1_0[1:,:]-R1_1) < 1e-9
 
     # Test WV limit - approx
     p = {'H':H, 'vb':0.5*1e-3, 'vi':0.3, 'Fb':0.01, 'PS':0.005, 'PSe':0.01, 'PSc':0.01}
-    R1_0, _, _ = dc.relax_tissue(ca*(1-H), R10, r1, t=t, 
-                                 kinetics='2CX', water_exchange='RR', **p)
+    R1_0 = dc.relax_tissue(ca*(1-H), R10, r1, t=t, 
+                                 kinetics='2CX', water_exchange='RR', **p)['R1']
     p = {'H':H, 'vi':0.3, 'Ktrans':0.01*(1-H)*0.005/(0.01*(1-H)+0.005), 'PSc':0.01}
-    R1_1, _, _ = dc.relax_tissue(ca*(1-H), R10, r1, t=t, 
-                                 kinetics='WV', water_exchange='RR', **p)
+    R1_1 = dc.relax_tissue(ca*(1-H), R10, r1, t=t, 
+                                 kinetics='WV', water_exchange='RR', **p)['R1']
     assert np.linalg.norm(R1_0[1:,:]-R1_1)< 1e-3*np.linalg.norm(R1_0[1:,:])
 
     # Test HF limit - exact
     p = {'H':H, 'vb':0.05, 'vi':0.3, 'Fb':np.inf, 'PS':0.005, 'PSe':0.01, 'PSc':0.01}
-    R1_0, _, _ = dc.relax_tissue(ca, R10, r1, t=t, 
-                                 kinetics='2CX', water_exchange='RR', **p)
+    R1_0 = dc.relax_tissue(ca, R10, r1, t=t, 
+                                 kinetics='2CX', water_exchange='RR', **p)['R1']
     p = {'H':H, 'vb':0.05, 'vi':0.3, 'PS':0.005, 'PSe':0.01, 'PSc':0.01}
-    R1_1, _, _ = dc.relax_tissue(ca, R10, r1, t=t, 
-                                 kinetics='HF', water_exchange='RR', **p)
+    R1_1 = dc.relax_tissue(ca, R10, r1, t=t, 
+                                 kinetics='HF', water_exchange='RR', **p)['R1']
     assert np.linalg.norm(R1_0-R1_1) < 1e-9
 
     # Test HF limit - approx
     p = {'H':0.4, 'vb':0.05, 'vi':0.3, 'Fb':1000, 'PS':0.005, 'PSe':0.01, 'PSc':0.01}
-    R1_0, _, _ = dc.relax_tissue(ca, R10, r1, t=t, 
-                                 kinetics='2CX', water_exchange='RR', **p)
+    R1_0 = dc.relax_tissue(ca, R10, r1, t=t, 
+                                 kinetics='2CX', water_exchange='RR', **p)['R1']
     p = {'H':0.4, 'vb':0.05, 'vi':0.3, 'PS':0.005, 'PSe':0.01, 'PSc':0.01}
-    R1_1, _, _ = dc.relax_tissue(ca, R10, r1, t=t, 
-                                 kinetics='HF', water_exchange='RR', **p)
+    R1_1 = dc.relax_tissue(ca, R10, r1, t=t, 
+                                 kinetics='HF', water_exchange='RR', **p)['R1']
     assert np.linalg.norm(R1_0-R1_1) < 1e-3*np.linalg.norm(R1_0)
 
     # Test NN
     p = {'H':0.4, 'vb':0.05, 'vi':0.3, 'PS':0.005}
-    R1_1, _, _ = dc.relax_tissue(ca, R10, r1, t=t, 
-                                 kinetics='HF', water_exchange='NN', **p)
+    R1_ = dc.relax_tissue(ca, R10, r1, t=t, 
+                                 kinetics='HF', water_exchange='NN', **p)['R1']
     assert 0.6 < R1_1[0,0] < 0.7
 
     # Run all cases
     for wex in ['FF','RF','FR','RR']:
         for kin in ['U', 'FX', 'NX', 'WV', 'HFU', 'HF', '2CU', '2CX']:
-            p = dc.params_tissue(kin, wex)
+            p = dc.relax_tissue(kin, wex)
             p = {key:0.01 for key in p}
             try:
                 dc.relax_tissue(ca, R10, r1, t=t, kinetics=kin, 
@@ -495,29 +495,29 @@ def test_relax_tissue():
 
     wex = 'RR'
     kin = 'U'
-    p = dc.params_tissue(kin, wex)
+    p = dc.relax_tissue(kin, wex)
     p = {key:0 for key in p}
     p['Fb'] = 0.01
-    R1, _, _ =dc.relax_tissue(ca, R10, r1, t=t, kinetics=kin, 
-                              water_exchange=wex, **p)
+    R1 = dc.relax_tissue(ca, R10, r1, t=t, kinetics=kin, 
+                              water_exchange=wex, **p)['R1']
     assert 0.6 < R1[0,0] < 0.7
 
     wex = 'FF'
     kin = '2CU'
-    p = dc.params_tissue(kin, wex)
+    p = dc.relax_tissue(kin, wex)
     p = {key:0.01 for key in p}
     p['Fb'] = np.inf
-    R1, _, _ =dc.relax_tissue(ca, R10, r1, t=t, kinetics=kin, 
-                              water_exchange=wex, **p)
+    R1 = dc.relax_tissue(ca, R10, r1, t=t, kinetics=kin, 
+                              water_exchange=wex, **p)['R1']
     assert 0.6 < R1[0] < 0.7
 
     wex = 'FF'
     kin = 'NX'
-    p = dc.params_tissue(kin, wex)
+    p = dc.relax_tissue(kin, wex)
     p = {key:0.01 for key in p}
     p['Fb'] = 0
-    R1, _, _ =dc.relax_tissue(ca, R10, r1, t=t, kinetics=kin, 
-                              water_exchange=wex, **p)
+    R1 = dc.relax_tissue(ca, R10, r1, t=t, kinetics=kin, 
+                              water_exchange=wex, **p)['R1']
     assert 0.6 < R1[0] < 0.7
 
 
@@ -576,17 +576,17 @@ def test_flux_tissue():
         assert False
 
 
-def test_params_tissue():
+def test_relax_tissue():
 
     try:
-        dc.params_tissue('XX', 'RR')
+        dc.relax_tissue('XX', 'RR')
     except:
         assert True
     else:
         assert False
 
     try:
-        dc.params_tissue('2CX', 'XX')
+        dc.relax_tissue('2CX', 'XX')
     except:
         assert True
     else:
@@ -595,7 +595,7 @@ def test_params_tissue():
     for kinetics in ['2CX', '2CU', 'HF', 'HFU', 'NX', 'FX', 'WV', 'U']:
         for wxe in ['F','N', 'R']:
             for wxc in ['F','N', 'R']:
-                dc.params_tissue(kinetics, wxe+wxc)
+                dc.relax_tissue(kinetics, wxe+wxc)
 
 
 def test_signal_tissue():
@@ -813,7 +813,7 @@ if __name__ == "__main__":
     test_relax_tissue()
     test_Mz_tissue()
     test_signal_tissue()
-    test_params_tissue()
+    test_relax_tissue()
 
 
     print('All pk_tissue tests passing!')

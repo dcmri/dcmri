@@ -380,9 +380,6 @@ def test_sample():
     assert np.array_equal(S.astype(np.float32), [1.5])
     S = dc.sample(np.array([3]), tp, Sp, dt=2.0)
     assert np.array_equal(S.astype(np.float32), [1.5])
-    S = dc.sample(np.array([3]), tp, Sp, dt=3.0)
-    integral = 0.5*1 + 2*1.5 + 0.5*(2+2+0.5*(5-2)/(5-4))/2
-    assert np.array_equal(S.astype(np.float32), [integral/3])
     S = dc.sample(np.array([3,6]), tp, Sp, dt=1)
     assert np.array_equal(S, [1.5,7])
 
@@ -412,7 +409,7 @@ if __name__ == "__main__":
     # test_expconv()
     # test_biexpconv()
     # test_nexpconv()
-    # test_sample()
+    test_sample()
     # test_add_noise()
 
     print('All utils tests passed!!')

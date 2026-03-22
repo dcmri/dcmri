@@ -1,8 +1,7 @@
 import os
-import json
 
-import numpy as np
-from dcmri import Aorta
+import matplotlib.pyplot as plt
+import dcmri as dc
 
 
 DEBUG = False
@@ -17,193 +16,97 @@ else:
     matplotlib.use('Agg')
 
 
-def test_options():
+def test_configs():
 
-    aol = Aorta(organs='2cxm', FA=12)
+    for org in ['comp', '2cxm']:
+        for hl in ['pfcomp', 'chain']:
+            for seq in ['SR', 'SS', 'SSI', 'lin']:
+                model = dc.Aorta(organs=org, heartlung=hl, sequence=seq)
+                time = model.time()
+                signal = model.predict(time)
+                model.train(time, signal)
+                model.plot(time, signal)
+                cost = model.cost(time, signal)
+                # print(org, hl, seq, cost)
+                assert cost < 2
 
-    tacq = aol.time()
-    data = aol.predict(tacq) 
-    aol.plot(tacq, data)
+    # Variations
+    model = dc.Aorta(CO=50)
 
-    free = {'S0': [0,10]}
-    bounds = {'CO': None}
-    aol.train(tacq, data, free=free, bounds=bounds, verbose=VERBOSE, max_nfev=1)  
+def test_api():
+    model = dc.Aorta()
+    
+    # Test Forward API outputs
+    t = model.time()
+    C = model.conc()
+    R1 = model.relax()
+    S = model.signal()
 
-    Aorta(heartlung='chain', sequence='SR').predict()
-    Aorta(sequence='SSI').predict()
-    Aorta(sequence='lin').predict()
+    assert C.ndim in [1,2] 
+    assert len(R1) == len(t)
+    assert len(S) == len(t)
 
-    aol = Aorta(sequence='SSI')
-    tacq, data = aol.time(), aol.predict() 
+    test_plot_file = "test_plot_output.png"
     try:
-        aol.train(tacq, data, bounds={'S0': None}, verbose=VERBOSE, max_nfev=1)
+        # This hits plt.savefig(fname)
+        model.plot(t, S, fname=test_plot_file, show=False)
+        assert os.path.exists(test_plot_file)
+        
+        # This hits plt.show()
+        # We wrap this in a check to ensure it doesn't hang your tests
+        plt.ion() # Turn interactive mode on
+        model.plot(t, S, show=True)
+        plt.ioff() # Turn interactive mode off
+    finally:
+        if os.path.exists(test_plot_file):
+            os.remove(test_plot_file)
+
+def test_exceptions():
+    # Invalid Config
+    try:
+        dc.Aorta(sequence='X')
     except ValueError:
-        pass
-
-    aol = Aorta(sequence='SR')
-    tacq, data = aol.time(), aol.predict()
-    aol.train(tacq, data, verbose=VERBOSE, max_nfev=1)
-
-    aol = Aorta(sequence='lin')
-    tacq, data = aol.time(), aol.predict()
-    aol.train(tacq, data, verbose=VERBOSE, max_nfev=1)
-
-
-def test_utilities():
-    """Covers I/O, Printing, and Parameter Export"""
-    aol = Aorta(CO=100, organs='comp')
-
-    # Test conc
-    ca = aol.conc()
-    R1a = aol.relax()
-    
-    # Test export and print
-    params = aol.export_params()
-    assert isinstance(params, dict)
-    aol.print_params(round_to=2)
-    aol.print_params()
-    p = aol.params('FA', 'TR', as_dict=True)
-    fa, tr = aol.params('FA', 'TR')
-    fa = aol.params('FA')
-    p = aol.params()
-
-    # Test Save/Load (I/O)
-    tmp_file = "test_model.json"
-    aol.save(tmp_file)
-    aol.save("test_model")
-    assert os.path.exists(tmp_file)
-    
-    new_model = Aorta()
-    new_model.load(tmp_file)
-    
-    # Verify a key parameter matches
-    assert new_model._organs == aol._organs
-    
-    # Cleanup
-    if os.path.exists(tmp_file):
-        os.remove(tmp_file)
-
-
-def test_load_validation_errors():
-    """Specifically targets model name and version mismatch during loading."""
-    aol = Aorta()
-    tmp_file = "validation_test.json"
-    
-    # Create a valid starting point
-    aol.save(tmp_file)
-    
-    with open(tmp_file, "r") as f:
-        data = json.load(f)
-
-    # 1. Test Model Name Mismatch
-    original_model_name = data['model']
-    data['model'] = "WrongModelName"
-    with open(tmp_file, "w") as f:
-        json.dump(data, f)
-    
-    try:
-        aol.load(tmp_file)
-    except ValueError as e:
-        assert "File belongs to WrongModelName" in str(e)
-    
-    # Restore model name for the next test
-    data['model'] = original_model_name
-
-    # 2. Test Version Mismatch
-    data['version'] = "99.9.9" # Non-existent version
-    with open(tmp_file, "w") as f:
-        json.dump(data, f)
+        pass 
+    else:
+        assert False
         
     try:
-        aol.load(tmp_file)
-    except ValueError as e:
-        assert "Version mismatch" in str(e)
+        dc.Aorta(organs='Y')
+    except ValueError:
+        pass 
+    else:
+        assert False
 
-    # Cleanup
-    if os.path.exists(tmp_file):
-        os.remove(tmp_file)
-
-def test_errors():
-    """Covers Error Handling and Edge Cases"""
-    # 1. Test invalid sequence
     try:
-        Aorta(organs='INVALID')
+        dc.Aorta(heartlung='Z')
+    except ValueError:
+        pass 
+    else:
+        assert False
+
+    # 2. Invalid Parameter
+    try:
+        dc.Aorta(fake_parameter=99)
     except ValueError:
         pass
+    else:
+        assert False
 
-    # 2. Test invalid kinetics (non-single inlet)
+    # SSI sequence model with fixed S0
     try:
-        Aorta(heartlung='INVALID')
+        model = dc.Aorta(sequence='SSI', CO=50)
+        t, s = model.time(), model.signal()
+        model.train(t, s, bounds={'S0': None})
     except ValueError:
         pass
-    try:
-        Aorta(sequence='INVALID')
-    except ValueError:
-        pass
-
-    # 3. Test invalid parameter override
-    try:
-        Aorta(fake_param=99)
-    except ValueError:
-        pass
-
-    # 4. Test training out of bounds
-    tacq = np.arange(10)
-    data = np.ones(10)
-    try:
-        # Pass a bound that excludes the current 'CO' (100)
-        Aorta().train(tacq, data, bounds={'CO': [10, 20]})
-    except ValueError:
-        pass
-    try:
-        # Pass a bound that is not free
-        Aorta().train(tacq, data, bounds={'dt': [10, 20]})
-    except ValueError:
-        pass
-    try:
-        # Pass a bound that is not a parameter
-        Aorta().train(tacq, data, bounds={'xx': [10, 20]})
-    except ValueError:
-        pass
-    try:
-        # Pass an invalid bound on BAT
-        Aorta().train(tacq, data, bounds={'BAT': [10, 20]})
-    except ValueError:
-        pass
-    try:
-        # Pass an invalid bound on S0
-        Aorta().train(tacq, data, bounds={'S0': [-1, 1]})
-    except ValueError:
-        pass
-
-def test_function():
-
-    aol = Aorta()
-    data = aol.predict()
-
-    # Intended scenario
-    tacq = aol.time()
-    data = aol.predict(tacq)
-    tmp_file = 'tmp.png'
-    aol.plot(tacq, data, fname=tmp_file)
-    aol.plot(tacq, data, show=False)
-    assert aol.cost(tacq, data) == 0
-
-    # Training should not have much of an effect if we use the exact R102 values
-    tacq = aol.time()
-    data = aol.predict(tacq)
-    aol.train(tacq, data, verbose=VERBOSE, xtol=0.1)
-    pars = aol.export_params()
-
-    # Cleanup
-    if os.path.exists(tmp_file):
-        os.remove(tmp_file)
+    else:
+        assert False
 
 if __name__ == "__main__":
+
+    test_configs()
+    test_api()
+    test_exceptions()
     
-    test_options()
-    test_utilities()
-    test_errors()
-    test_load_validation_errors()
-    test_function()
-    print('All tests passed!')
+    print('All ui_aorta tests passed!!')
+

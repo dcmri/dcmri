@@ -60,7 +60,7 @@ def relax(c, R10, r1) -> np.ndarray:
                 return R10 + r1*c
             # concentrations at multiple time points
             else:
-                return R10[..., np.newaxis] + r1*c
+                return R10[..., np.newaxis] + r1 * c
 
     # n-compartment tissues (compartment is first dimension)
     else:

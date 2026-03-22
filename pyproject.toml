@@ -14,7 +14,8 @@ dependencies = [
   'scipy',
   'matplotlib',
   "requests",
-#  'pydmr',
+  'joblib',
+  'zarr',
 ]
 # optional information
 description = "A python toolbox for dynamic contrast MRI"

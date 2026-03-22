@@ -18,47 +18,38 @@ else:
 
 def test_configs():
 
-    ns_opts = {
-        '1I-EC-D': [None],
-        '1I-EC': [None],
-        '1I-IC-HFDU': [None, 'U'],
-        '1I-IC': [None, 'U', 'E', 'UE'],
-        '1I-IC-HF': [None, 'U', 'E', 'UE'],
-        '1I-IC-HFD': [None, 'U', 'E', 'UE'],
-    }
-
     for seq in ['SR', 'SS', 'SSI', 'lin']:
-        for kin in ns_opts.keys():
-            for ns in ns_opts[kin]:
-                model = dc.AortaLiver(kinetics=kin, sequence=seq)
-                time = model.time()
-                signal = model.predict(time)
-                model.train(time, signal)
-                model.plot(time, signal)
-                cost = model.cost(time, signal)
-                print(kin, ns, seq, cost)
-                assert cost < 5
+        model = dc.LiverDrugEffect(sequence=seq)
+        time = model.time()
+        signal = model.predict(time)
+        bounds = {'c_S0_a': [0, 5], 'd_S0_a': [0, 5]} if seq=='SSI' else None
+        model.train(time, signal, bounds=bounds, verbose=2, xtol=0.1)
+        model.plot(time, signal)
+        cost = model.cost(time, signal)
+        print(seq, cost)
+        assert cost < 15
 
     # Test Variations (override parameter and staged training)
-    model = dc.AortaLiver(CO=50)
+    model = dc.LiverDrugEffect(CO=99)
     time = model.time()
     signal = model.predict(time)
-    model.train(time, signal, staged=True)
+    model.train(time, signal, staged=True, verbose=2, xtol=0.1)
     model.plot(time, signal)
     cost = model.cost(time, signal)
-    print(kin, ns, seq, cost)
-    assert cost < 5
+    print(cost)
+    assert cost < 15
 
 def test_api():
-    model = dc.AortaLiver()
-    
+
     # Test Forward API outputs
+    model = dc.LiverDrugEffect()
     t = model.time()
     C = model.conc()
     R1 = model.relax()
     S = model.signal()
 
-    assert C[0].ndim in [1,2] 
+    assert C[0].ndim == 1
+    assert C[1].ndim == 2
     assert len(R1[0]) == len(t[0])
     assert len(S[0]) == len(t[0])
 
@@ -79,28 +70,7 @@ def test_api():
 def test_exceptions():
     # Invalid Config
     try:
-        dc.AortaLiver(sequence='X')
-    except ValueError:
-        pass 
-    else:
-        assert False
-        
-    try:
-        dc.AortaLiver(kinetics='Y')
-    except ValueError:
-        pass 
-    else:
-        assert False
-
-    try:
-        dc.AortaLiver(kinetics='2I-EC')
-    except ValueError:
-        pass 
-    else:
-        assert False
-
-    try:
-        dc.AortaLiver(non_stationary='Z')
+        dc.LiverDrugEffect(sequence='X')
     except ValueError:
         pass 
     else:
@@ -108,17 +78,17 @@ def test_exceptions():
 
     # 2. Invalid Parameter
     try:
-        dc.AortaLiver(fake_parameter=99)
+        dc.LiverDrugEffect(fake_parameter=99)
     except ValueError:
         pass
     else:
         assert False
 
     # SSI sequence model with fixed S0
+    model = dc.LiverDrugEffect(sequence='SSI')
+    t, s = model.time(), model.signal()
     try:
-        model = dc.AortaLiver(sequence='SSI', CO=50)
-        t, s = model.time(), model.signal()
-        model.train(t, s, bounds={'S0_a': None})
+        model.train(t, s, bounds={'c_S0_a': None})
     except ValueError:
         pass
     else:
@@ -130,5 +100,5 @@ if __name__ == "__main__":
     test_api()
     test_exceptions()
     
-    print('All ui_aorta_liver tests passed!!')
+    print('All ui_liver_2scan_drug_effects tests passed!!')
 

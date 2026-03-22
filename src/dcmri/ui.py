@@ -1,17 +1,213 @@
 import os
+import json
+from copy import deepcopy
 import multiprocessing
 import warnings
 import pickle
 
+import zarr
 import numpy as np
 from scipy.optimize import curve_fit
 from tqdm import tqdm
+
+import dcmri.utils as utils
+from dcmri.lexicon import LEXICON
+from dcmri.lexicon_utils import select_params
 
 
 try:
     num_workers = int(len(os.sched_getaffinity(0)))
 except:
     num_workers = int(os.cpu_count())
+
+
+class Input:
+    
+    def __init__(
+        self, 
+        signal: np.ndarray=None, 
+        time:np.ndarray=None,
+        dt=1.0,
+        R10=0.7,
+        B1corr=1.0,
+    ):
+        if not isinstance(signal, np.ndarray):
+            signal = np.array(signal)
+        if time is None:
+            time = dt * np.arange(signal.size)
+
+        self.signal = signal
+        self.time = time
+        self.R10 = R10
+        self.B1corr = B1corr
+
+
+class SuperModel:
+
+    def __init__(self):
+        self._version = '1.0'
+        self._cnfg = {'X': 'x', 'Y': 'y'}
+        self._pars = {'A': 'a', 'B': 'b', 'C': np.zeros(10)}
+
+    def _pars_list(self, select='all'):
+        if select=='all':
+            pars_list = []
+        elif select=='free':
+            pars_list = []
+        return pars_list
+
+    def params(self):
+        """Return the parameter values
+
+        Returns:
+            tuple or dict: values of parameters
+        """
+        return deepcopy(self._pars)
+
+    def predict(self, time):
+        return np.zeros_like(time)
+
+    def cost(self, time: tuple, signal: tuple, metric: str = 'NRMS', nfree=None) -> float:
+        """Return the goodness-of-fit
+
+        Args:
+            time (tuple): tuple of 2 arrays with time points for aorta and 
+                liver, in that order. The two arrays can be different in length 
+                and value.
+            signal (array-like): tuple of 2 arrays with signals for aorta and 
+                liver, in that order. The arrays can be different in length and 
+                value but each has to have the same length as its corresponding 
+                array of time points.
+            metric (str, optional): Which metric to use (see notes for 
+                possible values). Defaults to 'NRMS'.
+
+        Returns:
+            float: goodness of fit.
+
+        Notes:
+
+            Available options are: 
+            
+            - 'RMS': Root-mean-square.
+            - 'NRMS': Normalized root-mean-square. 
+            - 'AIC': Akaike information criterion. 
+            - 'cAIC': Corrected Akaike information criterion for small 
+                models.
+            - 'BIC': Baysian information criterion.
+        """
+        ypred = self.predict(time)
+        if isinstance(signal, tuple):
+            ypred = np.concatenate(ypred)
+            signal = np.concatenate(signal)
+        return utils.loss(ypred, signal, metric, nfree)
+
+    def save(self, folder: str):
+        # Ensure directory mode
+        if folder.endswith('.zip') or folder.endswith('.json'):
+            folder = os.path.splitext(folder)[0]
+
+        # mode='w' creates the directory store automatically
+        root = zarr.open_group(folder, mode='w')
+        
+        array_keys = []
+        metadata_pars = {}
+        
+        for k, v in self._pars.items():
+            if isinstance(v, np.ndarray):
+                # 1. Create the array
+                # Note: 'chunks' must be a tuple, e.g., (10,) not just 10.
+                z_arr = root.create_array(
+                    name=k, 
+                    shape=v.shape, 
+                    dtype=v.dtype, 
+                    chunks=v.shape, 
+                    overwrite=True
+                )
+                
+                # 2. Use the standard slice but ensure it's a full-volume write
+                # If [:] fails, use .update(v) which is the V3-specific method
+                if hasattr(z_arr, 'update'):
+                    z_arr.update(v)
+                else:
+                    z_arr[...] = v  # '...' (Ellipsis) is often safer than ':' in V3
+                    
+                array_keys.append(k)
+            else:
+                metadata_pars[k] = v
+
+        # Save the metadata into .attrs (this remains a JSON file)
+        root.attrs.update({
+            'model': self.__class__.__name__,
+            'version': self._version,
+            'config': self._cnfg,
+            'pars_scalar': metadata_pars,
+            'array_keys': array_keys
+        })
+        return self
+
+    def load(self, folder: str):
+        """Loads model state from a Zarr directory."""
+        if not os.path.isdir(folder):
+            raise FileNotFoundError(f"Directory {folder} not found.")
+
+        root = zarr.open_group(folder, mode='r')
+        meta = root.attrs.asdict()
+
+        if meta['model'] != self.__class__.__name__:
+            raise ValueError(f"Directory belongs to {meta['model']}.")
+        
+        self._pars = meta['pars_scalar']
+        self._cnfg = meta['config']
+
+        for key in meta['array_keys']:
+            self._pars[key] = np.array(root[key])
+
+        return self
+
+
+    def _set_free_pars(self, free: dict=None, bounds: dict=None, lexicon:dict=None):
+        if lexicon is None: lexicon=LEXICON
+
+        # --- 0. Set Defaults ---
+        if free is None:
+            free = {p: deepcopy(lexicon[p]['bounds']) for p in self._pars_list('free')}
+        
+        # --- 1. Update Bounds ---
+        if bounds is not None:
+            for p, b in bounds.items():
+                if b is None:
+                    free.pop(p, None)
+                else:
+                    free[p] = b
+
+        # --- 2. Boundary Validation ---
+        for p, bnds in free.items():
+            if p not in self._pars:
+                raise ValueError(f"'{p}' is not a valid parameter for this configuration.")
+            elif p in select_params(lexicon, bounds_type='add'):
+                if (bnds[0] > 0) or (bnds[1] < 0):
+                    raise ValueError(f"Bounds on {p} must be (negative, positive).")
+            elif p in select_params(lexicon, bounds_type='mult'): 
+                if not (0 <= bnds[0] < bnds[1]):
+                    raise ValueError(f"Invalid bounds on {p}: Bounds are relative and must be positive.")
+            elif not (bnds[0] <= self._pars[p] <= bnds[1]):
+                raise ValueError(f"Initial {p} ({self._pars[p]}) is out of bounds {bnds}.")
+
+        # --- 3. Relative to Absolute Bounds
+        for par in select_params(lexicon, bounds_type='add'):
+            if par in free:
+                free[par] = [  
+                    self._pars[par] + free[par][0],
+                    self._pars[par] + free[par][1],
+                ]
+        for par in select_params(lexicon, bounds_type='mult'):
+            if par in free:
+                free[par] = [
+                    self._pars[par] * free[par][0],
+                    self._pars[par] * free[par][1],
+                ]
+
+        return free
 
 
 def init_parameters(parameter_dict, model_pars, **params):
@@ -670,7 +866,6 @@ def _return_params(pars, *args, round_to=None):
         return {p: v[1] for p, v in pars.items() if p in list(args)}
     else:
         return {p: round(v[1], round_to) for p, v in pars.items() if p in list(args)}
-
 
 def params(self, *args, round_to=None):
     p = self._par_values()

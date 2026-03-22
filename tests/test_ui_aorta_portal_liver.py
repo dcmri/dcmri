@@ -1,8 +1,7 @@
 import os
-import json
 
-import numpy as np
-from dcmri import AortaPortalLiver
+import matplotlib.pyplot as plt
+import dcmri as dc
 
 
 DEBUG = False
@@ -17,190 +16,118 @@ else:
     matplotlib.use('Agg')
 
 
+def test_configs():
 
+    ns_opts = {
+        '2I-EC-HF': [None],
+        '2I-EC': [None],
+        '2I-IC-U': [None, 'U'],
+        '2I-IC-HF': [None, 'U', 'E', 'UE'],
+        '2I-IC': [None, 'U', 'E', 'UE'],
+    }
 
-def test_options():
+    for seq in ['SR', 'SS', 'SSI', 'lin']:
+        for kin in ns_opts.keys():
+            for ns in ns_opts[kin]:
+                model = dc.AortaPortalLiver(kinetics=kin, sequence=seq)
+                time = model.time()
+                signal = model.predict(time)
+                model.train(time, signal)
+                model.plot(time, signal)
+                cost = model.cost(time, signal)
+                print(kin, ns, seq, cost)
+                assert cost < 5
 
-    aol = AortaPortalLiver('2I-EC', FA=12)
+    # Test Variations
+    model = dc.AortaPortalLiver(CO=50)
+    time = model.time()
+    signal = model.predict(time)
+    model.train(time, signal, staged=True)
+    model.plot(time, signal)
+    cost = model.cost(time, signal)
+    print(kin, ns, seq, cost)
+    assert cost < 5
 
-    tacq = aol.time()
-    data = aol.predict(tacq) 
-    aol.plot(tacq, data)
-
-    free = {'S0(a)': [0,10], 'S0(l)': [0,10]}
-    bounds = {'CO': None}
-    aol.train(tacq, data, free=free, bounds=bounds, verbose=VERBOSE, max_nfev=1)  
-
-    aol = AortaPortalLiver(sequence='SSI', FA=12)
-    tacq = aol.time()
-    data = aol.predict() 
-    aol.train(tacq, data, verbose=VERBOSE, max_nfev=1)  
-
-    aol = AortaPortalLiver(sequence='SSI', kinetics='2I-IC', FA=12)
-    tacq = aol.time()
-    data = aol.predict() 
-    aol.train(tacq, data, verbose=VERBOSE, max_nfev=1) 
-    aol.plot(tacq, data)
-
-def test_utilities():
-    """Covers I/O, Printing, and Parameter Export"""
-    aol = AortaPortalLiver(CO=100, kinetics='2I-EC')
-
-    # Test conc
-    ca, cv, cl = aol.conc()
-    R1a, R1v, R1l = aol.relax()
+def test_api():
+    model = dc.AortaPortalLiver()
     
-    # Test export and print
-    params = aol.export_params()
-    assert isinstance(params, dict)
-    aol.print_params(round_to=2)
-    aol.print_params()
-    p = aol.params('FA', 'TR', as_dict=True)
-    fa, tr = aol.params('FA', 'TR')
-    fa = aol.params('FA')
+    # Test Forward API outputs
+    t = model.time()
+    C = model.conc()
+    R1 = model.relax()
+    S = model.signal()
 
-    # Test Save/Load (I/O)
-    tmp_file = "test_model.json"
-    aol.save(tmp_file)
-    aol.save("test_model")
-    assert os.path.exists(tmp_file)
-    
-    new_model = AortaPortalLiver()
-    new_model.load(tmp_file)
-    
-    # Verify a key parameter matches
-    assert new_model._kinetics == aol._kinetics
-    
-    # Cleanup
-    if os.path.exists(tmp_file):
-        os.remove(tmp_file)
+    assert C[0].ndim in [1,2] 
+    assert len(R1[0]) == len(t[0])
+    assert len(S[0]) == len(t[0])
 
-
-def test_load_validation_errors():
-    """Specifically targets model name and version mismatch during loading."""
-    aol = AortaPortalLiver()
-    tmp_file = "validation_test.json"
-    
-    # Create a valid starting point
-    aol.save(tmp_file)
-    
-    with open(tmp_file, "r") as f:
-        data = json.load(f)
-
-    # 1. Test Model Name Mismatch
-    original_model_name = data['model']
-    data['model'] = "WrongModelName"
-    with open(tmp_file, "w") as f:
-        json.dump(data, f)
-    
+    test_plot_file = "test_plot_output.png"
     try:
-        aol.load(tmp_file)
-    except ValueError as e:
-        assert "File belongs to WrongModelName" in str(e)
-    
-    # Restore model name for the next test
-    data['model'] = original_model_name
+        # This hits plt.savefig(fname)
+        model.plot(t, S, fname=test_plot_file, show=False)
+        assert os.path.exists(test_plot_file)
+        
+        # This hits plt.show()
+        plt.ion() # Turn interactive mode on
+        model.plot(t, S, show=True)
+        plt.ioff() # Turn interactive mode off
+    finally:
+        if os.path.exists(test_plot_file):
+            os.remove(test_plot_file)
 
-    # 2. Test Version Mismatch
-    data['version'] = "99.9.9" # Non-existent version
-    with open(tmp_file, "w") as f:
-        json.dump(data, f)
+def test_exceptions():
+    # Invalid Config
+    try:
+        dc.AortaPortalLiver(sequence='X')
+    except ValueError:
+        pass 
+    else:
+        assert False
         
     try:
-        aol.load(tmp_file)
-    except ValueError as e:
-        assert "Version mismatch" in str(e)
+        dc.AortaPortalLiver(kinetics='Y')
+    except ValueError:
+        pass 
+    else:
+        assert False
 
-    # Cleanup
-    if os.path.exists(tmp_file):
-        os.remove(tmp_file)
-
-def test_errors():
-    """Covers Error Handling and Edge Cases"""
-    # 1. Test invalid sequence
     try:
-        AortaPortalLiver(sequence='INVALID')
+        dc.AortaPortalLiver(kinetics='1I-EC')
+    except ValueError:
+        pass 
+    else:
+        assert False
+
+    try:
+        dc.AortaPortalLiver(non_stationary='Z')
+    except ValueError:
+        pass 
+    else:
+        assert False
+
+    # 2. Invalid Parameter
+    try:
+        dc.AortaPortalLiver(fake_parameter=99)
     except ValueError:
         pass
+    else:
+        assert False
 
-    # 2. Test invalid kinetics (single inlet)
+    # SSI sequence model with fixed S0
     try:
-        AortaPortalLiver(kinetics='1I-EC')
+        model = dc.AortaPortalLiver(sequence='SSI')
+        t, s = model.time(), model.signal()
+        model.train(t, s, bounds={'S0_a': None})
     except ValueError:
         pass
-    try:
-        AortaPortalLiver(kinetics='INVALID')
-    except ValueError:
-        pass
-
-    # 3. Test invalid parameter override
-    try:
-        AortaPortalLiver(fake_param=99)
-    except ValueError:
-        pass
-
-    # 4. Test training out of bounds
-    tacq = (np.arange(10), np.arange(10), np.arange(10))
-    data = (np.ones(10), np.ones(10), np.ones(10))
-    try:
-        # Pass a bound that excludes the current 'CO' (100)
-        AortaPortalLiver().train(tacq, data, bounds={'CO': [10, 20]})
-    except ValueError:
-        pass
-    try:
-        # Pass a bound that is not free
-        AortaPortalLiver().train(tacq, data, bounds={'dt': [10, 20]})
-    except ValueError:
-        pass
-    try:
-        # Pass a bound that is not a parameter
-        AortaPortalLiver().train(tacq, data, bounds={'xx': [10, 20]})
-    except ValueError:
-        pass
-    try:
-        # Pass a free parameter that is not a parameter
-        AortaPortalLiver().train(tacq, data, free={'xx': [10, 20]})
-    except ValueError:
-        pass
-    try:
-        # Pass an invalid bound on BAT
-        AortaPortalLiver().train(tacq, data, bounds={'BAT': [10, 20]})
-    except ValueError:
-        pass
-    try:
-        # Pass an invalid bound on S0
-        AortaPortalLiver().train(tacq, data, bounds={'S0(a)': [-1, 1]})
-    except ValueError:
-        pass
-
-def test_function():
-
-    aol = AortaPortalLiver()
-    data = aol.predict()
-
-    # Intended scenario
-    tacq = aol.time()
-    data = aol.predict(tacq)
-    tmp_file = 'tmp.png'
-    aol.plot(tacq, data, fname=tmp_file)
-    aol.plot(tacq, data, show=False)
-    assert aol.cost(tacq, data) == 0
-
-    # Training should not have much of an effect if we use the exact data
-    tacq = aol.time()
-    data = aol.predict(tacq)
-    aol.train(tacq, data, verbose=VERBOSE, xtol=0.1)
-    pars = aol.export_params()
-
-    # Cleanup
-    if os.path.exists(tmp_file):
-        os.remove(tmp_file)
+    else:
+        assert False
 
 if __name__ == "__main__":
+
+    test_configs()
+    test_api()
+    test_exceptions()
     
-    test_options()
-    test_utilities()
-    test_errors()
-    test_load_validation_errors()
-    test_function()
-    print('All tests passed!')
+    print('All ui_aorta_portal_liver tests passed!!')
+
