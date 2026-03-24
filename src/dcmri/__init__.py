@@ -14,8 +14,8 @@ from dcmri.lib import *
 from dcmri import pk
 from dcmri.pk import *
 
-from dcmri import tissue
-from dcmri.tissue import *  # drop this so tissue becomes a namespace
+# from dcmri import tissue
+# from dcmri.tissue import *  # drop this so tissue becomes a namespace
 
 from dcmri import kidney
 from dcmri.kidney import *  # drop this so kidney becomes a namespace

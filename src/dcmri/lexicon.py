@@ -48,11 +48,14 @@ LEXICON = {
     'B1corr_2_l': {'init': 1, 'bounds': [0, 5], 'name': 'Liver B1-correction factor of a second scan', 'unit': ''},
     'FAcorr': {'name': 'B1-corrected Flip Angle', 'unit': 'deg'},
     'FA': {'init': 15, 'bounds': [0, 180], 'name': 'Flip angle', 'unit': 'deg'},
+    'FAR': {'init': 15, 'bounds': [0, 180], 'name': 'Readout flip angle', 'unit': 'deg'},
     'FA2': {'init': 15.0, 'bounds': [0.0, 180], 'name': 'Second flip angle', 'unit': 'deg'},
     'TR': {'init': 0.005, 'name': 'Repetition time', 'unit': 'sec'},
     'TC': {'init': 0.2, 'name': 'Time to k-space center', 'unit': 'sec'},
     'TP': {'init': 0.05, 'name': 'Preparation delay', 'unit': 'sec'},
+    'TE': {'init': 0., 'name': 'Echot time', 'unit': 'sec'},
     'TS': {'init': 0, 'name': 'Sampling time', 'unit': 'sec'},
+    'n_init': {'init': 0, 'name': 'Initial relative magnetization', 'unit': ''},
 
     # Water kinetics
     'PSe': {'init': 0.03, 'bounds': [0, 100], 'name': 'Transendothelial water PS', 'unit': 'mL/sec/cm3'},

@@ -190,21 +190,21 @@ class SuperModel:
             elif p in select_params(lexicon, bounds_type='mult'): 
                 if not (0 <= bnds[0] < bnds[1]):
                     raise ValueError(f"Invalid bounds on {p}: Bounds are relative and must be positive.")
-            elif not (bnds[0] <= self._pars[p] <= bnds[1]):
-                raise ValueError(f"Initial {p} ({self._pars[p]}) is out of bounds {bnds}.")
+            elif not (bnds[0] <= np.min(self._pars[p]) <= np.max(self._pars[p]) <= bnds[1]):
+                raise ValueError(f"Initial {p} is out of bounds {bnds}.")
 
         # --- 3. Relative to Absolute Bounds
         for par in select_params(lexicon, bounds_type='add'):
             if par in free:
                 free[par] = [  
-                    self._pars[par] + free[par][0],
-                    self._pars[par] + free[par][1],
+                    np.min(self._pars[par]) + free[par][0],
+                    np.max(self._pars[par]) + free[par][1],
                 ]
         for par in select_params(lexicon, bounds_type='mult'):
             if par in free:
                 free[par] = [
-                    self._pars[par] * free[par][0],
-                    self._pars[par] * free[par][1],
+                    np.min(self._pars[par]) * free[par][0],
+                    np.max(self._pars[par]) * free[par][1],
                 ]
 
         return free

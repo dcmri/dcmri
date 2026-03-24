@@ -3,8 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from joblib import Parallel, delayed
 
-import dcmri.pk
-from dcmri import sig, utils, ui, tissue, lib
+from dcmri import sig, utils, ui, tissue, lib, conc_inv, mz
 from dcmri.lexicon import LEXICON
 import dcmri.lexicon_utils as lexicon
 
@@ -329,7 +328,7 @@ class Tissue(ui.SuperModel):
         else:
             # Else take the shape from any user-defined parameters
             for p in params:
-                if p in self._pars_list('pixel'):
+                if p in self._pars_list('pixel_orig'):
                     self._orig_shape = np.array(p).shape
                     continue
         # If the user has not provided a shape directly or indirectly, 
@@ -338,19 +337,19 @@ class Tissue(ui.SuperModel):
             self._orig_shape = ()
 
         # Convert all pixel parameters to flat 1D arrays
-        for p in self._pars_list('pixel'):
+        for p in self._pars_list('pixel_orig'):
             if np.isscalar(self._pars[p]):
                 self._pars[p] = np.array([self._pars[p]])
             else:
                 self._pars[p] = np.array(self._pars[p]).reshape(-1)
 
         # Pixel parameters are silently converted to full arrays if needed
-        for p in self._pars_list('pixel'):
+        for p in self._pars_list('pixel_orig'):
             if self._pars[p].size == 1:
                 self._pars[p] = np.full(self._n_samples, self._pars[p][0])
 
         # Make sure that all pixel parameters have the shape (n_samples, )
-        for p in self._pars_list('pixel'):
+        for p in self._pars_list('pixel_orig'):
             size = self._pars[p].size
             if size != self._n_samples:
                 raise ValueError(f"Parameter {p} has size {size} but the number of samples is {self._n_samples}") 
@@ -367,26 +366,27 @@ class Tissue(ui.SuperModel):
     def _pars_list(self, select='all'):
         kin, wex, seq = self._cnfg['kinetics'], self._cnfg['water_exchange'], self._cnfg['sequence']
 
-        params_signal_tissue =tissue.params_signal_tissue(kin, wex, seq)
-        params_relax_tissue = tissue.params_relax_tissue(kin, wex)
-        params_conc_tissue = tissue.params_conc_tissue(kin) # may include derived params not in relax
+        params_signal_tissue = tissue.params_signal(kin, wex, seq)
+        params_relax_tissue = tissue.params_relax(kin, wex)
+        params_conc_tissue = tissue.params_conc(kin) # may include derived params not in relax
         all_kinetic_pars = list(set(params_conc_tissue + params_relax_tissue))
 
         pars_list = {
             'all': params_signal_tissue + [
                 'c_a', 'dt', 'field_strength', 'agent', 'TS',
-                'T_a', 'S0', 'R10', 'B1corr', 
+                'R10', 'B1corr', 'R10_a',
             ],
-            'free': [f for f in params_relax_tissue if f != 'H'] + ['T_a'], 
-            'pixel': [f for f in all_kinetic_pars if f != 'H'] + ['T_a', 'S0', 'R10', 'B1corr'],
+            'free': [f for f in params_relax_tissue if f != 'H'], 
+            'pixel': [f for f in all_kinetic_pars if f != 'H'] + ['S0', 'R10', 'B1corr'],
+            'pixel_orig': [f for f in params_relax_tissue if f != 'H'] + ['S0', 'R10', 'B1corr'],
             
-            'signal': sig.params_signal(seq),
-            'conc': sig.params_conc(seq),
+            'Mz': mz.params_Mz(seq),
+            'conc': conc_inv.params_conc(seq),
 
             'relax_tissue': params_relax_tissue,
             'conc_tissue': params_conc_tissue,
             'signal_tissue': params_signal_tissue, 
-            'Mz_tissue': tissue.params_Mz_tissue(kin, wex, seq),
+            'magn_z_tissue': tissue.params_magn_z(kin, wex, seq),
         }
         return pars_list[select]
     
@@ -426,14 +426,28 @@ class Tissue(ui.SuperModel):
         if 'FA' in pars_x: 
             pars_x['FA'] = p['FA'] * p['B1corr'][x]
 
-        ca = dcmri.pk.flux_plug(p['c_a'], p['T_a'][x], dt=p['dt'])
         rp = lib.relaxivity(p['field_strength'], 'blood', p['agent'])
-        return tissue.signal_tissue(
-            ca, p['R10'][x], rp, dt=p['dt'],
+        signal = tissue.signal(
+            p['c_a'][:], p['R10'][x], rp, dt=p['dt'],
             kinetics=self._cnfg['kinetics'], 
             water_exchange=self._cnfg['water_exchange'],
             sequence=self._cnfg['sequence'], **pars_x
         )
+        # tmp
+        # Mz_pars = self._pixel_pars(x, 'Mz')
+        # if 'FA' in Mz_pars: 
+        #     Mz_pars['FA'] = p['FA'] * p['B1corr'][x]
+        #s_ref = sig.signal(self._cnfg['sequence'], p['R10'][x], S0=1, FAR=Mz_pars['FA'], **Mz_pars)
+
+        # s_ref = tissue.signal(
+        #     p['c_a'][:] * 0, p['R10'][x], rp, dt=p['dt'],
+        #     kinetics=self._cnfg['kinetics'], 
+        #     water_exchange=self._cnfg['water_exchange'],
+        #     sequence=self._cnfg['sequence'], **pars_x
+        # )[0]
+        # S0 = np.mean(signal[:1]) / s_ref if s_ref > 0 else 0
+        # tmp
+        return signal
 
     def _signal(self, x=None) -> np.ndarray: # (n_samples, nt)
         if x is None:
@@ -445,8 +459,8 @@ class Tissue(ui.SuperModel):
         else: 
             # Compute one pixel
             results = [self._pixel_signal(x)]
-
-        return np.array(results) 
+        
+        return np.stack(results, axis=0) 
 
     def _time(self):
         p = self._pars
@@ -455,6 +469,8 @@ class Tissue(ui.SuperModel):
     def _predict(self, time, x=None):
         t = self._time()
         s = self._signal(x)
+        if x is not None:
+            s = s.reshape(-1)
         p = self._pars
         return utils.sample(time, t, s, p['TS'])
     
@@ -467,13 +483,14 @@ class Tissue(ui.SuperModel):
 
         # Estimate S0
         seq_name = self._cnfg['sequence']
-        sig_pars = {k: p[k] for k in self._pars_list('signal')}
-
+    
         def s0_pixel(x):
-            if 'FA' in sig_pars: 
-                sig_pars['FA'] = p['FA'] * p['B1corr'][x]
-            s_ref = sig.signal(seq_name, p['R10'][x], 1, **sig_pars)
-            return np.mean(signal[x, :n0]) / s_ref if s_ref > 0 else 0
+            Mz_pars = self._pixel_pars(x, 'Mz')
+            if 'FA' in Mz_pars: 
+                Mz_pars['FA'] = p['FA'] * p['B1corr'][x]
+            s_ref = sig.signal(seq_name, p['R10'][x], S0=1, FAR=Mz_pars['FA'], **Mz_pars)
+            S0 = np.mean(signal[x, :n0]) / s_ref if s_ref > 0 else 0
+            return S0 # TODO: does not produce the correct result
 
         p['S0'] = np.array([s0_pixel(x) for x in range(self._n_samples)])
 
@@ -482,7 +499,9 @@ class Tissue(ui.SuperModel):
             rp = lib.relaxivity(p['field_strength'], 'blood', p['agent'])
             conc_pars = {k: p[k] for k in self._pars_list('conc')}
             if 'FA' in conc_pars: conc_pars['FA'] = p['FA'] * aif.B1corr
-            ca = sig.conc(seq_name, aif.signal, aif.R10, rp, n0=n0, **conc_pars)
+
+            ## TODO: This needs to use the inflow sequence!!!!!!
+            ca = conc_inv.conc(seq_name, aif.signal, aif.R10, rp, n0=n0, **conc_pars)
             self._t = np.arange(0, aif.time[-1] + p['dt'], p['dt'])
             p['c_a'] = np.interp(self._t, aif.time, ca)
 
@@ -493,6 +512,8 @@ class Tissue(ui.SuperModel):
         n0: int, modsel: str, **kwargs
     ):
         self._estimate_parameters(signal, aif, n0)
+        return None, None, None
+    
         free = self._set_free_pars(free, bounds)
 
         # for n_samples > 1, free params must be a subset of pixel - check this
@@ -509,6 +530,7 @@ class Tissue(ui.SuperModel):
             if self._n_samples==1:
                 results = [train_pixel(0)]
             else:
+                # results = [train_pixel(x) for x in range(self._n_samples)]
                 results = Parallel(n_jobs=-1)(delayed(train_pixel)(x) for x in range(self._n_samples))
 
         # Model selection with 1 sample - parallellize over models
@@ -523,9 +545,9 @@ class Tissue(ui.SuperModel):
                 ) for x in range(self._n_samples)
             )
 
-        vals = {p: np.array([r[0][p] for r in results]) for p in free}
-        sdev = {p: np.array([r[1][p] for r in results]) for p in free}
-        pcov = np.array([r[2] for r in results]).reshape(self._n_samples, len(free), len(free))
+        vals = {p: np.stack([r[0][p] for r in results]) for p in free}
+        sdev = {p: np.stack([r[1][p] for r in results]) for p in free}
+        pcov = np.stack([r[2] for r in results]).reshape(self._n_samples, len(free), len(free))
 
         # Add any derived parameters
         self._compute_derived()
@@ -538,7 +560,7 @@ class Tissue(ui.SuperModel):
 
             # Check if the sub-model is nested
             pars_relax_topmodel = self._pars_list('relax_tissue')
-            pars_relax_submodel = tissue.params_relax_tissue(kin, wex)
+            pars_relax_submodel = tissue.params_relax(kin, wex)
             if not set(pars_relax_submodel).issubset(pars_relax_topmodel):
                 return None
 
@@ -604,9 +626,8 @@ class Tissue(ui.SuperModel):
         
         def _conc_pixel(x):
             pars_x = self._pixel_pars(x, 'conc_tissue')
-            ca = dcmri.pk.flux_plug(p['c_a'], p['T_a'][x], dt=p['dt'])
-            return tissue.conc_tissue(
-                ca, dt=p['dt'], sum=False, 
+            return tissue.conc(
+                p['c_a'], dt=p['dt'], 
                 kinetics=self._cnfg['kinetics'], **pars_x
             )
 
@@ -615,20 +636,20 @@ class Tissue(ui.SuperModel):
         else:
             C = Parallel(n_jobs=-1)(delayed(_conc_pixel)(x) for x in range(self._n_samples))
 
-        return np.array(C)  # (n_samples, nc, nt)
+        return np.stack(C)  # (n_samples, nc, nt)
 
 
     def _relaxation_rate(self):
         p = self._pars
-        kin, wex = self._cnfg['kinetics'], self._cnfg['water_exchange']
         rp = lib.relaxivity(p['field_strength'], 'blood', p['agent'])
 
         def _relax_pixel(x):
             pars_x = self._pixel_pars(x, 'relax_tissue')
-            ca = dcmri.pk.flux_plug(p['c_a'], p['T_a'][x], dt=p['dt'])
-            return tissue.relax_tissue(
-                ca, p['R10'][x], rp, dt=p['dt'],
-                kinetics=kin, water_exchange=wex, **pars_x
+            return tissue.relax(
+                p['c_a'], p['R10'][x], rp, dt=p['dt'],
+                kinetics=self._cnfg['kinetics'], 
+                water_exchange=self._cnfg['water_exchange'],
+                **pars_x
             )
         
         if self._n_samples==1:
@@ -636,42 +657,30 @@ class Tissue(ui.SuperModel):
         else:
             results = Parallel(n_jobs=-1)(delayed(_relax_pixel)(x) for x in range(self._n_samples))
 
-        R1 = np.array([r['R1'] for r in results])   # (n_samples, nc, nt)
-        v = np.array([r['v'] for r in results])     # (n_samples, nc)
-        Fw = np.array([r['Fw'] for r in results])   # (n_samples, nc, nc)
-        c = np.array([r['c'] for r in results])     # (n_samples, nc, nt)
-
-        return R1, v, Fw, c
+        return np.stack(results)   # (n_samples, nc, nt)
     
     def _magnetization(self):
         p = self._pars
-        kin, wex = self._cnfg['kinetics'], self._cnfg['water_exchange']
         rp = lib.relaxivity(p['field_strength'], 'blood', p['agent'])
 
         def _magn_pixel(x):
-            pars_x = self._pixel_pars(x, 'Mz_tissue')
+            pars_x = self._pixel_pars(x, 'magn_z_tissue')
             if 'FA' in pars_x: 
                 pars_x['FA'] = p['FA'] * p['B1corr'][x]
-
-            ca = dcmri.pk.flux_plug(p['c_a'], p['T_a'][x], dt=p['dt'])
-            return tissue.Mz_tissue(
-                ca, p['R10'][x], rp, dt=p['dt'],
-                kinetics=kin, water_exchange=wex,
+            return tissue.magn_z(
+                p['c_a'], p['R10'][x], rp, dt=p['dt'],
+                kinetics=self._cnfg['kinetics'], 
+                water_exchange=self._cnfg['water_exchange'],
+                sequence=self._cnfg['sequence'],
                 **pars_x
             )
         
         if self._n_samples==1:
-            results = [_magn_pixel(0)]
+            Mz = [_magn_pixel(0)]
         else:
-            results = Parallel(n_jobs=-1)(delayed(_magn_pixel)(x) for x in range(self._n_samples))
-
-        Mz = np.array([r['Mz'] for r in results])   # (n_samples, nc, nt)
-        R1 = np.array([r['R1'] for r in results])   # (n_samples, nc, nt)
-        v = np.array([r['v'] for r in results])     # (n_samples, nc)
-        Fw = np.array([r['Fw'] for r in results])   # (n_samples, nc, nc)
-        c = np.array([r['c'] for r in results])     # (n_samples, nc, nt)      
-
-        return Mz, R1, v, Fw, c
+            Mz = Parallel(n_jobs=-1)(delayed(_magn_pixel)(x) for x in range(self._n_samples))
+   
+        return np.stack(Mz)  # (n_samples, nc, nt) 
 
 
     def _plot(
@@ -710,7 +719,7 @@ class Tissue(ui.SuperModel):
             'FX': (['ve'], ['Extracellular']),
             'NX': (['vb'], ['Blood']), 
             'NXP': (['vb'], ['Blood']),
-            'U': ([], []),
+            'U': (['vb'], ['Blood']),
             'WV': (['vi'], ['Interstitium']),
         }
         def plot_labels_relax(kin, wex) -> list:
@@ -738,9 +747,15 @@ class Tissue(ui.SuperModel):
                 
         t = self._time()
         S = self._signal()
+        R = self._relaxation_rate()
         C = self._concentration()
-        Mz, R1, v, Fw, c = self._magnetization()
+        Mz = self._magnetization()
         p = self._pars
+
+        rp = lib.relaxivity(p['field_strength'], 'blood', p['agent'])
+        c = (R - R[:, :, 0][:, :, np.newaxis]) / rp
+        vw_pars = {k:v for k, v in p.items() if k in ['vi', 'vb']}
+        v = tissue.v_water(self._cnfg['kinetics'], self._cnfg['water_exchange'], **vw_pars)
 
         if xlim is None: xlim = [np.amin(t), np.amax(t)]
         xlim=np.array(xlim) / 60
@@ -761,9 +776,9 @@ class Tissue(ui.SuperModel):
             ax_text = ax[2]
 
         ax00.set_title('MRI signals')
-        ax00.plot(time / 60, self._predict(time), marker='o', linestyle='None', color='cornflowerblue', label='Predicted data')
+        ax00.plot(time / 60, self._predict(time)[0,:], marker='o', linestyle='None', color='cornflowerblue', label='Predicted data')
         ax00.plot(time / 60, signal[0,:], marker='x', linestyle='None', color='darkblue', label='Data')
-        ax00.plot(self._t / 60, S[0,:], linestyle='-', linewidth=3.0, color='darkblue', label='Model')
+        ax00.plot(t / 60, S[0,:], linestyle='-', linewidth=3.0, color='darkblue', label='Model')
         ax00.set(ylabel='MRI signal (a.u.)', xlabel='Time (min)', xlim=xlim)
         ax00.legend()
 
@@ -786,8 +801,8 @@ class Tissue(ui.SuperModel):
             ax11.legend()
 
             ax10.set_title('Magnetization in water compartments')
-            for i in range(Mz.shape[0]):
-                mi = Mz[0,i, ...] / v[i] if v[i] > 0 else 0 * Mz[0,i, ...]
+            for i in range(Mz.shape[1]):
+                mi = Mz[0, i, :] / v[i] if v[i] > 0 else 0 * Mz[0, i, :]
                 ax10.plot(t / 60, mi, linestyle='-', linewidth=3.0, color=clr[relax_comp[i]], label=relax_comp[i])
             ax10.set(xlabel='Time (min)', ylabel='Magnetization (a.u.)', xlim=xlim)
             ax10.legend()
@@ -798,8 +813,9 @@ class Tissue(ui.SuperModel):
                 pars = self._pars_list('free')
             else:
                 pars = list(sdev.keys())
+                sdev = {k: float(v) for k, v in sdev.items()}
 
-            vals = {k: p[k] for k in pars}
+            vals = {k: p[k][0] for k in pars}
             msg = lexicon.string_params(vals, sdev, round_to)
             msg = "\n".join(list(msg.values()))
             ax_text.set_title('Free parameters')
@@ -956,12 +972,18 @@ class Tissue(ui.SuperModel):
         if modsel is not None:
             if modsel not in ['AIC', 'BIC']:
                 raise ValueError("'modsel' must be either 'AIC' (Akaike Information Criterion) or 'BIC' (Baysian Information Criterion)")
-            
-        if np.prod(signal.shape) != self._n_samples:
-            self._set_new_shape(signal.shape)
+        
+        if aif is not None:
+            n_times = aif.signal.size
+        else:
+            n_times = self._pars['c_a'].size
+        if np.prod(signal.shape) != self._n_samples * n_times:
+            self._set_new_shape(signal.shape[:-1])
 
         signal = signal.reshape(self._n_samples, -1)
         vals, sdev, pcov = self._train(time, signal, aif, free, bounds, n0, modsel, **kwargs)
+
+        return vals, sdev, pcov
 
         vals = {k: v.reshape(self._orig_shape + v.shape[1:]) for k, v in vals.items()}
         sdev = {k: v.reshape(self._orig_shape + v.shape[1:]) for k, v in sdev.items()}
@@ -990,7 +1012,7 @@ class Tissue(ui.SuperModel):
             show (bool, optional): If True, the plot is shown. Defaults to
               True.
         """
-        if signal.shape != self._orig_shape:
+        if signal.shape[:-1] != self._orig_shape:
             raise ValueError(f"Incompatible shapes: the model was initiated with shape {self._orig_shape}")
         signal = signal.reshape(self._n_samples, -1)
         self._plot(time, signal, sdev, round_to, xlim, fname, show)

@@ -45,7 +45,7 @@ def train(predict, time, signal, pars, free, x=None, reset=False, **kwargs):
         # Set state to final values
         _update_original_pars(pars, fitted_pars, free, x)
     
-    vals = {p: fitted_pars[p] for p in free}
+    vals = {p: fitted_pars[i] for i, p in enumerate(free)}
     return vals, sdev, pcov
 
 

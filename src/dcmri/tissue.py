@@ -1,12 +1,25 @@
-
-
 import numpy as np
 
 from dcmri import pk, rel, sig, mz
 
 
+def params_signal(kinetics='2CX', water_exchange='FF', sequence='SS', inflow_sequence='SS'):
+    Mz_tissue_params = params_magn_z(kinetics, water_exchange, sequence, inflow_sequence)
+    signal_params = ['S0']
+    return Mz_tissue_params + signal_params
 
-def params_relax_tissue(kinetics='2CX', water_exchange=None) -> list:
+
+def params_magn_z(kinetics='2CX', water_exchange='FF', sequence='SS', inflow_sequence='SS'):
+    relax_tissue_params = params_relax(kinetics, water_exchange)
+    magnetization_params = _params_magn(kinetics, water_exchange)
+    magnetization_params += mz.params_Mz(sequence) + mz.params_Mz(inflow_sequence)
+    if inflow_sequence != 'None':
+        if 'Fb' in relax_tissue_params:
+            magnetization_params += ['R10_a']
+    return list(set(relax_tissue_params + magnetization_params))
+
+
+def params_relax(kinetics='2CX', water_exchange=None) -> list:
     """Parameters characterizing a 2-site exchange tissue. 
     For more detail see :ref:`two-site-exchange`.
 
@@ -29,7 +42,7 @@ def params_relax_tissue(kinetics='2CX', water_exchange=None) -> list:
 
         >>> import dcmri as dc
 
-        >>> dc.params_relax_tissue('HFU', 'RR')
+        >>> dc.params_relax('HFU', 'RR')
         ['PSe', 'PSc', 'H', 'vb', 'vi', 'PS']
 
     Notes:
@@ -231,7 +244,7 @@ def params_relax_tissue(kinetics='2CX', water_exchange=None) -> list:
             'NXP': ['vb', 'Fb'],
             'U': ['Fb'],
         }
-        return pars[kinetics]
+        return pars[kinetics] + ['T_a']
 
     if water_exchange not in ['FF', 'NF','RF', 'FN', 'NN', 
                               'RN', 'FR', 'NR', 'RR']:
@@ -242,103 +255,20 @@ def params_relax_tissue(kinetics='2CX', water_exchange=None) -> list:
         )
     
     pars = _relax_pars(kinetics, water_exchange)
+    pars += ['T_a']
 
-    if water_exchange in ['FF', 'NN', 'NF', 'FN']:
-        return pars
-    if water_exchange in ['NR', 'FR']:
-        return ['PSc'] + pars
-    if water_exchange in ['RN', 'RF']:
-        if kinetics == 'WV':
-            return pars
-        else:
-            return ['PSe'] + pars
-    if water_exchange == 'RR':
-        if kinetics == 'WV':
-            return ['PSc'] + pars
-        else:
-            return ['PSe', 'PSc'] + pars
+    return pars
 
 
-def _relax_pars(kin, wex) -> list:
 
-    if kin == '2CX':
-        return ['H', 'vb', 'vi', 'Fb', 'PS']
-    if kin == 'HF':
-        return ['H', 'vb', 'vi', 'PS']
-    if kin == 'WV':
-        return ['H', 'vi', 'Ktrans']
-
-    if wex == 'FF':
-
-        if kin == '2CU':
-            return ['H', 'vb', 'Fb', 'PS']
-        if kin == 'HFU':
-            return ['H', 'vb', 'PS']
-        if kin == 'FX':
-            return ['H', 've', 'Fb']
-        if kin == 'NX':
-            return ['vb', 'Fb']
-        if kin == 'NXP':
-            return ['vb', 'Fb']
-        if kin == 'U':
-            return ['Fb']
-
-    if wex in ['RR', 'NN', 'NR', 'RN']:
-
-        if kin == '2CU':
-            return ['H', 'vb', 'vi', 'Fb', 'PS']
-        if kin == 'HFU':
-            return ['H', 'vb', 'vi', 'PS']
-        if kin == 'FX':
-            return ['H', 'vb', 'vi', 'Fb']
-        if kin == 'NX':
-            return ['vb', 'vi', 'Fb']
-        if kin == 'NXP':
-            return ['vb', 'vi', 'Fb']
-        if kin == 'U':
-            return ['vb', 'vi', 'Fb']
-
-    if wex in ['RF', 'NF']:
-
-        if kin == '2CU':
-            return ['H', 'vb', 'Fb', 'PS']
-        if kin == 'HFU':
-            return ['H', 'vb', 'PS']
-        if kin == 'FX':
-            return ['H', 'vb', 'vi', 'Fb']
-        if kin == 'NX':
-            return ['vb', 'Fb']
-        if kin == 'NXP':
-            return ['vb', 'Fb']
-        if kin == 'U':
-            return ['vb', 'Fb']
-
-    if wex in ['FR', 'FN']:
-
-        if kin == '2CU':
-            return ['H', 'vb', 'vi', 'Fb', 'PS']
-        if kin == 'HFU':
-            return ['H', 'vb', 'vi', 'PS']
-        if kin == 'FX':
-            return ['H', 'vb', 'vi', 'Fb']
-        if kin == 'NX':
-            return ['vb', 'vi', 'Fb']
-        if kin == 'NXP':
-            return ['vb', 'vi', 'Fb']
-        if kin == 'U':
-            return ['vc', 'Fb']
-        
+def params_conc(kinetics):
+    return params_relax(kinetics)
 
 
-def params_signal_tissue(kinetics='2CX', water_exchange='FF', sequence='SS'):
-    relax_tissue_params = params_relax_tissue(kinetics, water_exchange)
-    signal_params = sig.params_signal(sequence)
-    return relax_tissue_params + signal_params
-
-
-def signal_tissue(
+def signal(
         ca: np.ndarray, R10: float, r1: float, t=None, dt=1.0, 
-        kinetics='2CX', water_exchange='FF', sequence='SS', inflow=None,
+        kinetics='2CX', water_exchange='FF', sequence='SS', 
+        inflow_sequence=None,
         **params) -> np.ndarray:
     
     """Signal for a 2-site exchange tissue. For more detail see
@@ -408,8 +338,8 @@ def signal_tissue(
 
         Calculate the signal with and without inflow:
 
-        >>> Sf = dc.signal_tissue(ca, R10, r1, t=t, inflow=inflow, **pars)
-        >>> Sn = dc.signal_tissue(ca, R10, r1, t=t, **pars)
+        >>> Sf = dc.signal(ca, R10, r1, t=t, inflow=inflow, **pars)
+        >>> Sn = dc.signal(ca, R10, r1, t=t, **pars)
 
         Compare them in a plot:
 
@@ -447,50 +377,25 @@ def signal_tissue(
             * - R10a, B1corr_a
               - If **inflow** is not None
               - :ref:`relaxation-params`, :ref:`params-per-sequence`
-
     """
-    if sequence is None:
-        raise ValueError(
-            'sequence is required. Please specify a model and appropriate '
-            'sequence parameters.')
+    if inflow_sequence is None:
+        inflow_sequence = sequence
     
-    relax_tissue_params = {p: params[p] for p in params_relax_tissue(kinetics, water_exchange)}
-
-    R = relax_tissue(
-        ca, R10, r1, t=t, dt=dt, 
-        kinetics=kinetics, water_exchange=water_exchange, 
-        **relax_tissue_params
+    mz_params = {p: v for p, v in params.items() if p in params_magn_z(kinetics, water_exchange, sequence, inflow_sequence)}
+    Mz = magn_z(
+        ca, R10, r1, t=t, dt=dt, kinetics=kinetics, 
+        water_exchange=water_exchange, sequence=sequence,
+        inflow_sequence=inflow_sequence,
+        **mz_params
     )
-    R1, v, Fw = R['R1'], R['v'], R['Fw']
-
-    signal_params = {p: params[p] for p in sig.params_signal(sequence)}
-    
-    if inflow is None:
-        j = None
-    else:
-        if kinetics != '2CX':
-            raise ValueError('Inflow correction is currently only \
-                                available for 2CX tissues')
-        R1a = rel.relax(ca, inflow['R10a'], r1)
-        na = mz.Mz(sequence, R1a, **signal_params)
-        if np.isscalar(v):
-            j = Fw * na
-        else:
-            j = np.zeros((len(v), len(na)))
-            j[0, :] = Fw[0,0] * na
-    return sig.signal(sequence, R1, v=v, Fw=Fw, j=j, **signal_params)
-
-    
-
-def params_Mz_tissue(kinetics='2CX', water_exchange='FF', sequence='SS'):
-    relax_tissue_params = params_relax_tissue(kinetics, water_exchange)
-    magnetization_params = mz.params_Mz(sequence)  
-    return relax_tissue_params + magnetization_params
+    signal = sig.mz_readout(Mz, S0=params['S0'], FAR=params['FA'])
+    return signal
 
 
-def Mz_tissue(
+def magn_z(
         ca: np.ndarray, R10: float, r1: float, t=None, dt=1.0, 
-        kinetics='2CX', water_exchange='FF', sequence=None, inflow=None,
+        kinetics='2CX', water_exchange='FF', sequence='SS', 
+        inflow_sequence=None,
         **params) -> np.ndarray:
     
     """Longitudinal magnetization for a 2-site exchange tissue. For more 
@@ -570,8 +475,8 @@ def Mz_tissue(
 
         Calculate the signal with and without inflow:
 
-        >>> Mf = dc.Mz_tissue(ca, R10, r1, t=t, inflow=inflow, **pars)
-        >>> Mn = dc.Mz_tissue(ca, R10, r1, t=t, **pars)
+        >>> Mf = dc.tissue.magn_z(ca, R10, r1, t=t, inflow=inflow, **pars)
+        >>> Mn = dc.tissue.magn_z(ca, R10, r1, t=t, **pars)
 
         Compare them in a plot:
 
@@ -608,42 +513,38 @@ def Mz_tissue(
               - :ref:`relaxation-params`, :ref:`params-per-sequence`
 
     """
-    if sequence is None:
-        raise ValueError(
-            'sequence is required. Please specify a model \
-             and appropriate sequence parameters.')
 
-    relax_tissue_params = {p: params[p] for p in params_relax_tissue(kinetics, water_exchange)}
-
-    R = relax_tissue(
+    if inflow_sequence is None:
+        inflow_sequence = sequence
+    
+    relax_params = {p: v for p, v in params.items() if p in params_relax(kinetics, water_exchange)}
+    R1 = relax(
         ca, R10, r1, t=t, dt=dt, 
         kinetics=kinetics, water_exchange=water_exchange, 
-        **relax_tissue_params)
-    R1, v, Fw, c = R['R1'], R['v'], R['Fw'], R['c']
+        **relax_params)
+   
+    # Add magnetization inflow
+    j = None
+    if 'Fb' in params:
+        j = np.zeros_like(R1)
+        j[0,:] = params['Fb']
+        if inflow_sequence != 'None':
+            # Assume arterial input has the same pulses
+            R1a = rel.relax(ca, params['R10_a'], r1)
+            mz_params = {p: v for p, v in params.items() if p in mz.params_Mz(inflow_sequence)}
+            j[0,:] *= mz.Mz(inflow_sequence, R1a, **mz_params)
 
-    magn_params = {p: params[p] for p in mz.params_Mz(sequence)}
+    vw_pars = {p: v for p, v in params.items() if p in ['vb', 'vi']}
+    fw_pars = {p: v for p, v in params.items() if p in ['Fb', 'PSc', 'PSe']}
+    vw = v_water(kinetics, water_exchange, **vw_pars)
+    Fw = F_water(kinetics, water_exchange, **fw_pars)
+
+    mz_params = {p: params[p] for p in params if p in mz.params_Mz(sequence)}
+    Mz = mz.Mz(sequence, R1, vw, Fw, j, **mz_params)
+    return Mz
     
-    if inflow is None:
-        j = None
-    else:
-        if kinetics != '2CX':
-            raise ValueError('Inflow correction is currently only '
-                                'available for 2CX tissues')
-        R1a = rel.relax(ca, inflow['R10a'], r1)
-        na = mz.Mz(sequence, R1a, **magn_params)
-        if np.isscalar(v):
-            j = Fw*na
-        else:
-            j = np.zeros((len(v), len(na)))
-            j[0, :] = Fw[0,0]*na
 
-    Mz = mz.Mz(sequence, R1, v, Fw, j, **magn_params)
-    
-    return {'Mz': Mz, 'R1': R1, 'v': v, 'Fw': Fw, 'c': c}
-    
-
-
-def relax_tissue(ca: np.ndarray, R10: float, r1: float, t=None, dt=1.0, 
+def relax(ca: np.ndarray, R10: float, r1: float, t=None, dt=1.0, 
                  kinetics='2CX', water_exchange='FF', **params):
     """Free relaxation rates for a 2-site exchange tissue. For more detail see
     :ref:`two-site-exchange`.
@@ -711,8 +612,8 @@ def relax_tissue(ca: np.ndarray, R10: float, r1: float, t=None, dt=1.0,
         Calculate tissue relaxation rates without water exchange, 
         and also in the fast exchange limit for comparison:
 
-        >>> R1f = dc.relax_tissue(ca, R10, r1, t=t, water_exchange='FF', **pf)['R1]
-        >>> R1n = dc.relax_tissue(ca, R10, r1, t=t, water_exchange='NN', **pn)['R1]
+        >>> R1f = dc.tissue.relax(ca, R10, r1, t=t, water_exchange='FF', **pf)['R1]
+        >>> R1n = dc.tissue.relax(ca, R10, r1, t=t, water_exchange='NN', **pn)['R1]
 
         Plot the relaxation rates in the three compartments, and compare 
         against the fast exchange result:
@@ -743,7 +644,6 @@ def relax_tissue(ca: np.ndarray, R10: float, r1: float, t=None, dt=1.0,
         >>> plt.show()
 
     """
-
     # Check configuration
     if kinetics not in ['U', 'FX', 'NX', 'NXP', 'WV', 'HFU', 'HF', '2CU', '2CX']:
         raise ValueError(
@@ -760,21 +660,20 @@ def relax_tissue(ca: np.ndarray, R10: float, r1: float, t=None, dt=1.0,
             "Possible values are: 'FF','RF','NF','FR','RR','NR','FN','RN','NN'"
         )
 
-    req = params_relax_tissue(kinetics, water_exchange)
+    req = params_relax(kinetics, water_exchange)
     if set(req) != set(params.keys()):
         raise ValueError(
             "Model parameters are incorrect or incomplete. A model with "
             "kinetics " + kinetics + " and water_exchange "+water_exchange+" requires "
-            "parameters " + str(req) + " but you have provided "+str(list(params.keys())))
-
-    if water_exchange[0] == 'N':
-        if kinetics != 'WV':
-            params['PSe'] = 0
-
-    if water_exchange[1] == 'N':
-        params['PSc'] = 0    
+            "parameters " + str(req) + " but you have provided "+str(list(params.keys()))) 
 
     wex = water_exchange.replace('N','R')
+
+    # Delay AIF
+    if 'T_a' in params:
+        ca = pk.flux_plug(ca, params['T_a'], dt=dt)
+
+    params = {p: v for p, v in params.items() if p != 'T_a'}
 
     # Distribute cases
     if wex == 'FF':
@@ -861,477 +760,10 @@ def relax_tissue(ca: np.ndarray, R10: float, r1: float, t=None, dt=1.0,
         elif kinetics == '2CX':
             R1 = _relax_2cx_rr(ca, R10, r1, t=t, dt=dt, **params)
 
-    return {'R1': R1[0], 'v': R1[1], 'Fw': R1[2], 'c': R1[3]}
+    return R1
 
 
-def _c(C,v):
-    if v==0:
-        # In this case the result does not matter
-        return C*0
-    else:
-        return C/v
-    
-
-# FF
-
-# For water flow modelling
-def _relax_2cx_ff(ca, R10, r1, t=None, dt=1.0, 
-                  H=None, vi=None, vb=None, Fb=None, PS=None):
-    C = _conc_2cx(ca, t=t, dt=dt, vi=vi, H=H, vb=vb, Fb=Fb, PS=PS, sum=False)
-    C = C.sum(axis=0)
-    R1 = rel.relax(C, R10, r1)
-    Fw = np.full((1, 1), Fb)
-    return R1.reshape(1, -1), np.array(1), Fw, C.reshape(1, -1) 
-
-def _relax_2cu_ff(ca, R10, r1, t=None, dt=1.0, 
-                  H=None, vb=None, Fb=None, PS=None):
-    C = _conc_2cu(ca, t=t, dt=dt, H=H, vb=vb, Fb=Fb, PS=PS, sum=False)
-    C = C.sum(axis=0)
-    R1 = rel.relax(C, R10, r1)
-    Fw = np.full((1, 1), 0)
-    return R1.reshape(1, -1), np.array(1), Fw, C.reshape(1, -1)
-
-def _relax_hf_ff(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vi=None, vb=None, PS=None):
-    C = _conc_hf(ca, t=t, dt=dt, H=H, vb=vb, vi=vi, PS=PS, sum=False)
-    C = C.sum(axis=0)
-    R1 = rel.relax(C, R10, r1)
-    Fw = np.full((1, 1), 0)
-    return R1.reshape(1, -1), np.array(1), Fw, C.reshape(1, -1)
-
-def _relax_hfu_ff(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vb=None, PS=None):
-    C = _conc_hfu(ca, t=t, dt=dt, H=H, vb=vb, PS=PS, sum=False)
-    C = C.sum(axis=0)
-    R1 = rel.relax(C, R10, r1)
-    Fw = np.full((1, 1), 0)
-    return R1.reshape(1, -1), np.array(1), Fw, C.reshape(1, -1)
-
-def _relax_nx_ff(ca, R10, r1, t=None, dt=1.0, 
-                 vb=None, Fb=None):
-    C = _conc_nx(ca, t=t, dt=dt, vb=vb, Fb=Fb)
-    R1 = rel.relax(C, R10, r1)
-    Fw = np.full((1, 1), 0)
-    return R1.reshape(1, -1), np.array(1), Fw, C.reshape(1, -1)
-
-def _relax_nxp_ff(ca, R10, r1, t=None, dt=1.0, 
-                 vb=None, Fb=None):
-    C = _conc_nxp(ca, t=t, dt=dt, vb=vb, Fb=Fb)
-    R1 = rel.relax(C, R10, r1)
-    Fw = np.full((1, 1), 0)
-    return R1.reshape(1, -1), np.array(1), Fw, C.reshape(1, -1)
-
-def _relax_nxp_ff(ca, R10, r1, t=None, dt=1.0, 
-                 vb=None, Fb=None):
-    C = _conc_nxp(ca, t=t, dt=dt, vb=vb, Fb=Fb)
-    R1 = rel.relax(C, R10, r1)
-    Fw = np.full((1, 1), 0)
-    return R1.reshape(1, -1), np.array(1), Fw, C.reshape(1, -1)
-
-def _relax_wv_ff(ca, R10, r1, t=None, dt=1.0,
-                 H=None, vi=None, Ktrans=None):
-    C = _conc_wv(ca, t=t, dt=dt, H=H, vi=vi, Ktrans=Ktrans)
-    R1 = rel.relax(C, R10, r1)
-    Fw = np.full((1, 1), 0)
-    return R1.reshape(1, -1), np.array(1), Fw, C.reshape(1, -1)
-
-def _relax_u_ff(ca, R10, r1, t=None, dt=1.0, 
-                Fb=None):
-    C = _conc_u(ca, t=t, dt=dt, Fb=Fb)
-    R1 = rel.relax(C, R10, r1)
-    Fw = np.full((1, 1), 0)
-    return R1.reshape(1, -1), np.array(1), Fw, C.reshape(1, -1)
-
-def _relax_fx_ff(ca, R10, r1, t=None, dt=1.0,
-                 H=None, ve=None, Fb=None):
-    C = _conc_fx(ca, t=t, dt=dt, H=H, ve=ve, Fb=Fb)
-    R1 = rel.relax(C, R10, r1)
-    Fw = np.full((1, 1), 0)
-    return R1.reshape(1, -1), np.array(1), Fw, C.reshape(1, -1)
-
-# FR
-
-# For water flow modelling
-def _relax_2cx_fr(ca, R10, r1, t=None, dt=1.0, 
-                  H=None, vb=None, vi=None, Fb=None, PS=None, PSc=None):
-    C = _conc_2cx(ca, t=t, dt=dt, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
-    v = [vb+vi, 1-vb-vi]
-    c = _c(C, v[0])
-    R1 = (
-        rel.relax(c, R10, r1),
-        rel.relax(ca*0, R10, r1), 
-    )
-    Fw = [[Fb, PSc], [PSc, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw), np.stack((c, ca*0))
-
-def _relax_2cu_fr(ca, R10, r1, t=None, dt=1.0, 
-                  H=None, vi=None, vb=None, Fb=None, PS=None, PSc=None):
-    C = _conc_2cu(ca, t=t, dt=dt, H=H, vb=vb, Fb=Fb, PS=PS)
-    vc = 1-vb-vi
-    v = [1-vc, vc]
-    c = _c(C, v[0])
-    R1 = (
-        rel.relax(c, R10, r1),
-        rel.relax(ca*0, R10, r1), 
-    )
-    Fw = [[0, PSc], [PSc, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw), np.stack((c, ca*0))
-
-def _relax_hf_fr(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vb=None, vi=None, PS=None, PSc=None):
-    C = _conc_hf(ca, t=t, dt=dt, H=H, vb=vb, vi=vi, PS=PS)
-    v = [vb+vi, 1-vb-vi]
-    c = _c(C, v[0])
-    R1 = (
-        rel.relax(c, R10, r1),
-        rel.relax(ca*0, R10, r1), 
-    )
-    Fw = [[0, PSc], [PSc, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw), np.stack((c, ca*0))
-
-def _relax_hfu_fr(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vi=None, vb=None, PS=None, PSc=None):
-    C = _conc_hfu(ca, t=t, dt=dt, H=H, vb=vb, PS=PS)
-    vc = 1-vb-vi
-    v = [1-vc, vc]
-    c = _c(C, v[0])
-    R1 = (
-        rel.relax(c, R10, r1),
-        rel.relax(ca*0, R10, r1), 
-    )
-    Fw = [[0, PSc], [PSc, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw), np.stack((c, ca*0))
-
-def _relax_wv_fr(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vi=None, Ktrans=None, PSc=None):
-    C = _conc_wv(ca, t=t, dt=dt, H=H, vi=vi, Ktrans=Ktrans)
-    v = [vi, 1-vi]
-    c = _c(C, v[0])
-    R1 = (
-        rel.relax(c, R10, r1),
-        rel.relax(ca*0, R10, r1), 
-    )
-    Fw = [[0, PSc], [PSc, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw), np.stack((c, ca*0))
-
-def _relax_fx_fr(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vb=None, vi=None, Fb=None, PSc=None):
-    vp = vb*(1-H)
-    ve = vi+vp
-    vc = 1-vb-vi
-    C = _conc_fx(ca, t=t, dt=dt, H=H, ve=ve, Fb=Fb)
-    v = [1-vc, vc]
-    c = _c(C, v[0])
-    R1 = (
-        rel.relax(c, R10, r1),
-        rel.relax(ca*0, R10, r1), 
-    )
-    Fw = [[0, PSc], [PSc, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw), np.stack((c, ca*0))
-
-def _relax_nx_fr(ca, R10, r1, t=None, dt=1.0, 
-                 vi=None, vb=None, Fb=None, PSc=None):
-    vc = 1-vb-vi
-    C = _conc_nx(ca, t=t, dt=dt, vb=vb, Fb=Fb)
-    v = [1-vc, vc]
-    c = _c(C, v[0])
-    R1 = (
-        rel.relax(c, R10, r1),
-        rel.relax(ca*0, R10, r1), 
-    )
-    Fw = [[0, PSc], [PSc, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw), np.stack((c, ca*0))
-
-def _relax_nxp_fr(ca, R10, r1, t=None, dt=1.0, 
-                 vi=None, vb=None, Fb=None, PSc=None):
-    vc = 1-vb-vi
-    C = _conc_nxp(ca, t=t, dt=dt, vb=vb, Fb=Fb)
-    v = [1-vc, vc]
-    c = _c(C, v[0])
-    R1 = (
-        rel.relax(c, R10, r1),
-        rel.relax(ca*0, R10, r1), 
-    )
-    Fw = [[0, PSc], [PSc, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw), np.stack((c, ca*0))
-
-def _relax_u_fr(ca, R10, r1, t=None, dt=1.0, 
-                vc=None, Fb=None, PSc=None):
-    C = _conc_u(ca, t=t, dt=dt, Fb=Fb)
-    v = [1-vc, vc]
-    c = _c(C, v[0])
-    R1 = (
-        rel.relax(c, R10, r1),
-        rel.relax(ca*0, R10, r1), 
-    )
-    Fw = [[0, PSc], [PSc, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw), np.stack((c, ca*0))
-
-# RF
-
-# For water flow modelling
-def _relax_2cx_rf(ca, R10, r1, t=None, dt=1.0, 
-                  H=None, vb=None, vi=None, Fb=None, PS=None, PSe=None):
-    C = _conc_2cx(ca, t=t, dt=dt, sum=False, 
-                  H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
-    v = [vb, 1-vb]
-    c0, c1 = _c(C[0,:], v[0]), _c(C[1,:], v[1])
-    R1 = (
-        rel.relax(c0, R10, r1),
-        rel.relax(c1, R10, r1),
-    )
-    Fw = [[Fb, PSe], [PSe, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw), np.stack((c0, c1))
-
-
-def _relax_2cu_rf(ca, R10, r1, t=None, dt=1.0, 
-                  H=None, vb=None, Fb=None, PS=None, PSe=None):
-    C = _conc_2cu(ca, t=t, dt=dt, sum=False, 
-                  H=H, vb=vb, Fb=Fb, PS=PS)
-    v = [vb, 1-vb]
-    c0, c1 = _c(C[0,:], v[0]), _c(C[1,:], v[1])
-    R1 = (
-        rel.relax(c0, R10, r1),
-        rel.relax(c1, R10, r1),
-    )
-    Fw = [[0, PSe], [PSe, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw), np.stack((c0, c1))
-
-def _relax_hf_rf(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vb=None, vi=None, PS=None, PSe=None):
-    C = _conc_hf(ca, t=t, dt=dt, sum=False, H=H, vb=vb, vi=vi, PS=PS)
-    v = [vb, 1-vb]
-    c0, c1 = _c(C[0,:], v[0]), _c(C[1,:], v[1])
-    R1 = (
-        rel.relax(c0, R10, r1),
-        rel.relax(c1, R10, r1),
-    )
-    Fw = [[0, PSe], [PSe, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw), np.stack((c0, c1))
-
-def _relax_hfu_rf(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vb=None, PS=None, PSe=None):
-    C = _conc_hfu(ca, t=t, dt=dt, sum=False, H=H, vb=vb, PS=PS)
-    v = [vb, 1-vb]
-    c0, c1 = _c(C[0,:], v[0]), _c(C[1,:], v[1])
-    R1 = (
-        rel.relax(c0, R10, r1),
-        rel.relax(c1, R10, r1),
-    )
-    Fw = [[0, PSe], [PSe, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw), np.stack((c0, c1))
-
-def _relax_wv_rf(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vi=None, Ktrans=None):
-    C = _conc_wv(ca, t=t, dt=dt, H=H, vi=vi, Ktrans=Ktrans)
-    R1 = rel.relax(C, R10, r1)
-    return R1, np.array(1), np.array(0), C
-
-def _relax_fx_rf(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vb=None, vi=None, Fb=None, PSe=None):
-    vp = vb * (1-H)
-    ve = vp + vi
-    C = _conc_fx(ca, t=t, dt=dt, H=H, ve=ve, Fb=Fb)
-    v = [vb, 1-vb]
-    if ve==0:
-        Cp = C*0
-        Ci = C*0
-    else:
-        Cp = C*vp/ve
-        Ci = C*vi/ve
-    c0, c1 = _c(Cp, v[0]), _c(Ci, v[1])
-    R1 = (
-        rel.relax(c0, R10, r1),
-        rel.relax(c1, R10, r1),
-    )
-    Fw = [[0, PSe], [PSe, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw), np.stack((c0, c1))
-
-def _relax_nx_rf(ca, R10, r1, t=None, dt=1.0, 
-                 vb=None, Fb=None, PSe=None):
-    C = _conc_nx(ca, t=t, dt=dt, vb=vb, Fb=Fb)
-    v = [vb, 1-vb]
-    c = _c(C, v[0])
-    R1 = (
-        rel.relax(c, R10, r1),
-        rel.relax(ca*0, R10, r1),
-    )
-    Fw = [[0, PSe], [PSe, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw), np.stack((c, ca*0))
-
-def _relax_nxp_rf(ca, R10, r1, t=None, dt=1.0, 
-                 vb=None, Fb=None, PSe=None):
-    C = _conc_nxp(ca, t=t, dt=dt, vb=vb, Fb=Fb)
-    v = [vb, 1-vb]
-    c = _c(C, v[0])
-    R1 = (
-        rel.relax(c, R10, r1),
-        rel.relax(ca*0, R10, r1),
-    )
-    Fw = [[0, PSe], [PSe, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw), np.stack((c, ca*0))
-
-def _relax_u_rf(ca, R10, r1, t=None, dt=1.0, 
-                vb=None, Fb=None, PSe=None):
-    C = _conc_u(ca, t=t, dt=dt, Fb=Fb)
-    v = [vb, 1-vb]
-    c = _c(C, v[0])
-    R1 = (
-        rel.relax(c, R10, r1),
-        rel.relax(ca*0, R10, r1),
-    )
-    Fw = [[0, PSe], [PSe, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw), np.stack((c, ca*0))
-
-
-# RR
-
-# For water flow modelling
-def _relax_2cx_rr(ca, R10, r1, t=None, dt=1.0, 
-                  H=None, vb=None, vi=None, 
-                  Fb=None, PS=None, PSe=None, PSc=None):
-    C = _conc_2cx(ca, t=t, dt=dt, sum=False, 
-                  H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
-    v = [vb, vi, 1-vb-vi]
-    c0, c1 = _c(C[0,:], v[0]), _c(C[1,:], v[1])
-    R1 = (
-        rel.relax(c0, R10, r1),
-        rel.relax(c1, R10, r1),
-        rel.relax(ca*0, R10, r1),
-    )
-    Fw = [[Fb, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw), np.stack((c0, c1, ca*0))
-
-
-def _relax_2cu_rr(ca, R10, r1, t=None, dt=1.0, 
-                  H=None, vb=None, vi=None, 
-                  Fb=None, PS=None, PSe=None, PSc=None):
-    C = _conc_2cu(ca, t=t, dt=dt, sum=False, H=H, vb=vb, Fb=Fb, PS=PS)
-    v = [vb, vi, 1-vb-vi]
-    c0, c1 = _c(C[0,:], v[0]), _c(C[1,:], v[1])
-    R1 = (
-        rel.relax(c0, R10, r1),
-        rel.relax(c1, R10, r1), 
-        rel.relax(ca*0, R10, r1), 
-    )
-    Fw = [[0, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw), np.stack((c0, c1, ca*0))
-
-def _relax_hf_rr(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vb=None, vi=None, PS=None, PSe=None, PSc=None):
-    C = _conc_hf(ca, t=t, dt=dt, sum=False, H=H, vb=vb, vi=vi, PS=PS)
-    v = [vb, vi, 1-vb-vi]
-    c0, c1 = _c(C[0,:], v[0]), _c(C[1,:], v[1])
-    R1 = (
-        rel.relax(c0, R10, r1),
-        rel.relax(c1, R10, r1), 
-        rel.relax(ca*0, R10, r1), 
-    )
-    Fw = [[0, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw), np.stack((c0, c1, ca*0))
-
-def _relax_hfu_rr(ca, R10, r1, t=None, dt=1.0, 
-                  H=None, vb=None, vi=None, PS=None, 
-                  PSe=None, PSc=None):
-    C = _conc_hfu(ca, t=t, dt=dt, sum=False, H=H, vb=vb, PS=PS)
-    v = [vb, vi, 1-vb-vi]
-    c0, c1 = _c(C[0,:], v[0]), _c(C[1,:], v[1])
-    R1 = (
-        rel.relax(c0, R10, r1),
-        rel.relax(c1, R10, r1), 
-        rel.relax(ca*0, R10, r1), 
-    )
-    Fw = [[0, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw), np.stack((c0, c1, ca*0))
-
-def _relax_wv_rr(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vi=None, Ktrans=None, PSc=None):
-    C = _conc_wv(ca, t=t, dt=dt, H=H, vi=vi, Ktrans=Ktrans)
-    v = [vi, 1-vi]
-    c = _c(C, v[0])
-    R1 = (
-        rel.relax(c, R10, r1),
-        rel.relax(ca*0, R10, r1), 
-    )
-    Fw = [[0, PSc], [PSc, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw), np.stack((c, ca*0))
-
-def _relax_fx_rr(ca, R10, r1, t=None, dt=1.0, 
-                 H=None, vb=None, vi=None, Fb=None, 
-                 PSe=None, PSc=None):
-    vp = vb * (1-H)
-    ve = vp + vi
-    C = _conc_fx(ca, t=t, dt=dt, H=H, ve=ve, Fb=Fb)
-    v = [vb, vi, 1-vb-vi]
-    if ve==0:
-        Cp = C*0
-        Ci = C*0
-    else:
-        Cp = C*vp/ve
-        Ci = C*vi/ve
-    c0, c1 =_c(Cp, v[0]), _c(Ci, v[1])
-    R1 = (
-        rel.relax(c0, R10, r1),
-        rel.relax(c1, R10, r1), 
-        rel.relax(ca*0, R10, r1), 
-    )
-    Fw = [[0, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw), np.stack((c0, c1, ca*0))
-
-def _relax_nx_rr(ca, R10, r1, t=None, dt=1.0, 
-                 vb=None, vi=None, Fb=None, 
-                 PSe=None, PSc=None):
-    C = _conc_nx(ca, t=t, dt=dt, vb=vb, Fb=Fb)
-    v = [vb, vi, 1-vb-vi]
-    c = _c(C, v[0])
-    R1 = (
-        rel.relax(c, R10, r1),
-        rel.relax(ca*0, R10, r1),
-        rel.relax(ca*0, R10, r1), 
-    )
-    Fw = [[0, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw), np.stack((c, ca*0, ca*0))
-
-def _relax_nxp_rr(ca, R10, r1, t=None, dt=1.0, 
-                  vb=None, vi=None, Fb=None, 
-                  PSe=None, PSc=None):
-    C = _conc_nxp(ca, t=t, dt=dt, vb=vb, Fb=Fb)
-    v = [vb, vi, 1-vb-vi]
-    c = _c(C, v[0])
-    R1 = (
-        rel.relax(c, R10, r1),
-        rel.relax(ca*0, R10, r1),
-        rel.relax(ca*0, R10, r1), 
-    )
-    Fw = [[0, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw), np.stack((c, ca*0, ca*0))
-
-def _relax_u_rr(ca, R10, r1, t=None, dt=1.0, 
-                vb=None, vi=None, Fb=None, PSe=None, PSc=None):
-    v = [vb, vi, 1-vb-vi]
-    if Fb==0:
-        c0 = ca*0
-        R1 = (
-            rel.relax(c0, R10, r1),
-            rel.relax(ca*0, R10, r1), 
-            rel.relax(ca*0, R10, r1), 
-        )
-    else:
-        C = _conc_u(ca, t=t, dt=dt, Fb=Fb)
-        c0 = _c(C, v[0])
-        R1 = (
-            rel.relax(c0, R10, r1),
-            rel.relax(ca*0, R10, r1), 
-            rel.relax(ca*0, R10, r1), 
-        )
-    Fw = [[0, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]]
-    return np.stack(R1), np.array(v), np.array(Fw), np.stack((c0, ca*0, ca*0))
-
-
-def params_conc_tissue(kinetics):
-    return params_relax_tissue(kinetics)
-
-def conc_tissue(ca: np.ndarray, t=None, dt=1.0, kinetics='2CX', sum=True, 
+def conc(ca: np.ndarray, t=None, dt=1.0, kinetics='2CX', 
                 **params) -> np.ndarray:
     """Tissue concentration in a 2-site exchange tissue.
 
@@ -1347,10 +779,6 @@ def conc_tissue(ca: np.ndarray, t=None, dt=1.0, kinetics='2CX', sum=True,
           '2CX', '2CU', 'HF', 'HFU', 'NX', 'FX', 'WV', 'U' (see 
           table :ref:`two-site-exchange-kinetics` for detail). Defaults to 
           '2CX'.
-        sum (bool, optional): For two-compartment tissues, set to True to 
-          return the total tissue concentration, and False to return the 
-          concentrations in the compartments separately. In one-compartment 
-          tissues this keyword has no effect. Defaults to True.
         params (dict): free model parameters provided as keyword arguments. 
           Possible parameters depend on **kinetics** as detailed in Table 
           :ref:`two-site-exchange-kinetics`. 
@@ -1394,8 +822,8 @@ def conc_tissue(ca: np.ndarray, t=None, dt=1.0, kinetics='2CX', sum=True,
         Generate plasma and extravascular tissue concentrations with the 2CX 
         and WV models:
 
-        >>> C2x = dc.conc_tissue(ca, t=t, sum=False, kinetics='2CX', **p2x)
-        >>> Cwv = dc.conc_tissue(ca, t=t, kinetics='WV', **pwv)
+        >>> C2x = dc.conc(ca, t=t, sum=False, kinetics='2CX', **p2x)
+        >>> Cwv = dc.conc(ca, t=t, kinetics='WV', **pwv)
 
         Compare them in a plot:
 
@@ -1427,6 +855,10 @@ def conc_tissue(ca: np.ndarray, t=None, dt=1.0, kinetics='2CX', sum=True,
         >>> ax1.legend()
         >>> plt.show()
     """
+    if 'T_a' in params:
+        ca = pk.flux_plug(ca, params['T_a'], dt=dt)
+
+    params = {p: v for p, v in params.items() if p != 'T_a'}
 
     if kinetics == 'U':
         return _conc_u(ca, t=t, dt=dt, **params)
@@ -1439,18 +871,700 @@ def conc_tissue(ca: np.ndarray, t=None, dt=1.0, kinetics='2CX', sum=True,
     elif kinetics == 'WV':
         return _conc_wv(ca, t=t, dt=dt, **params)
     elif kinetics == 'HFU':
-        return _conc_hfu(ca, t=t, dt=dt, sum=sum, **params)
+        return _conc_hfu(ca, t=t, dt=dt, **params)
     elif kinetics == 'HF':
-        return _conc_hf(ca, t=t, dt=dt, sum=sum, **params)
+        return _conc_hf(ca, t=t, dt=dt, **params)
     elif kinetics == '2CU':
-        return _conc_2cu(ca, t=t, dt=dt, sum=sum, **params)
+        return _conc_2cu(ca, t=t, dt=dt, **params)
     elif kinetics == '2CX':
-        return _conc_2cx(ca, t=t, dt=dt, sum=sum, **params)
+        return _conc_2cx(ca, t=t, dt=dt, **params)
     # elif model=='2CF':
-    #     return _conc_2cf(ca, *params, t=t, dt=dt, sum=sum)
+    #     return _conc_2cf(ca, *params, t=t, dt=dt)
     else:
         raise ValueError(
             'Kinetic model ' + kinetics + ' is not currently implemented.')
+
+
+def flux(ca: np.ndarray, t=None, dt=1.0, kinetics='2CX', T_a=0, **params) -> np.ndarray:
+    """Indicator flux out of a 2-site exchange tissue.
+
+    Args:
+        ca (array-like): concentration in the arterial input.
+        t (array_like, optional): the time points of the input function *ca*. 
+          If *t* is not provided, the time points are assumed to be uniformly 
+          spaced with spacing *dt*. Defaults to None.
+        dt (float, optional): spacing in seconds between time points for 
+          uniformly spaced time points. This parameter is ignored if *t* is 
+          provided. Defaults to 1.0.
+        kinetics (str, optional): The kinetic model of the tissue (see below 
+          for possible values). Defaults to '2CX'. 
+        params (dict): free model parameters and their values (see below for 
+          possible).
+
+    Returns: 
+        numpy.ndarray: outflux
+          For a one-compartmental tissue, outflux out of the 
+          compartment as a 1D array in units of mmol/sec/mL or M/sec. For a 
+          multi=compartmental tissue, outflux out of each compartment, and at 
+          each time point, as a 3D array with dimensions *(2,2,k)*, where *2* 
+          is the number of compartments and *k* is the number of time points 
+          in *J*. Encoding of the first two indices is the same as for *E*: 
+          *J[j,i,:]* is the flux from compartment *i* to *j*, and *J[i,i,:]* 
+          is the flux from *i* directly to the outside. The flux is returned in 
+          units of mmol/sec/mL or M/sec.
+    """
+    ca = pk.flux_plug(ca, T_a, dt=dt)
+
+    if kinetics == 'U':
+        return _flux_u(ca, **params)
+    elif kinetics == 'NX':
+        return _flux_nx(ca, t=t, dt=dt, **params)
+    elif kinetics == 'FX':
+        return _flux_fx(ca, t=t, dt=dt, **params)
+    elif kinetics == 'WV':
+        return _flux_wv(ca, t=t, dt=dt, **params)
+    elif kinetics == 'HFU':
+        return _flux_hfu(ca, **params)
+    elif kinetics == 'HF':
+        return _flux_hf(ca, t=t, dt=dt, **params)
+    elif kinetics == '2CU':
+        return _flux_2cu(ca, t=t, dt=dt, **params)
+    elif kinetics == '2CX':
+        return _flux_2cx(ca, t=t, dt=dt, **params)
+    # elif model=='2CF':
+    #     return _flux_2cf(ca, t=t, dt=dt, **params)
+    else:
+        raise ValueError('Kinetic model ' + kinetics +
+                         ' is not currently implemented.')
+
+
+def _params_magn(kin, wex):
+    wex = wex.replace('N','R')
+    return {
+        ('2CX', 'FF'): ['Fb'],
+        ('2CU', 'FF'): ['Fb'],
+        ('HF', 'FF'): [],
+        ('HFU', 'FF'): [],
+        ('NX', 'FF'): ['Fb'],
+        ('NXP', 'FF'): ['Fb'],
+        ('WV', 'FF'): [],
+        ('U', 'FF'): ['Fb'],
+        ('FX', 'FF'): ['Fb'],
+
+        ('2CX', 'FR'): ['vb', 'vi', 'Fb', 'PSc'],
+        ('2CU', 'FR'): ['vb', 'vi', 'Fb', 'PSc'],
+        ('HF', 'FR'): ['vb', 'vi', 'PSc'],
+        ('HFU', 'FR'): ['vb', 'vi', 'PSc'],
+        ('NX', 'FR'): ['vb', 'vi', 'Fb', 'PSc'],
+        ('NXP', 'FR'): ['vb', 'vi', 'Fb', 'PSc'],
+        ('WV', 'FR'): ['vi', 'PSc'],
+        ('U', 'FR'): ['vb', 'vi', 'Fb', 'PSc'],
+        ('FX', 'FR'): ['vb', 'vi', 'Fb', 'PSc'],
+
+        ('2CX', 'RF'): ['vb', 'Fb', 'PSe'],
+        ('2CU', 'RF'): ['vb', 'Fb', 'PSe'],
+        ('HF', 'RF'): ['vb', 'PSe'],
+        ('HFU', 'RF'): ['vb', 'PSe'],
+        ('NX', 'RF'): ['vb', 'Fb', 'PSe'],
+        ('NXP', 'RF'): ['vb', 'Fb', 'PSe'],
+        ('WV', 'RF'): [],
+        ('U', 'RF'): ['vb', 'Fb', 'PSe'],
+        ('FX', 'RF'): ['vb', 'Fb', 'PSe'],
+
+        ('2CX', 'RR'): ['vb', 'vi', 'Fb', 'PSe', 'PSc'],
+        ('2CU', 'RR'): ['vb', 'vi', 'Fb', 'PSe', 'PSc'],
+        ('HF', 'RR'): ['vb', 'vi', 'PSe', 'PSc'],
+        ('HFU', 'RR'): ['vb', 'vi', 'PSe', 'PSc'],
+        ('NX', 'RR'): ['vb', 'vi', 'Fb', 'PSe', 'PSc'],
+        ('NXP', 'RR'): ['vb', 'vi', 'Fb', 'PSe', 'PSc'],
+        ('WV', 'RR'): ['vi', 'PSc'],
+        ('U', 'RR'): ['vb', 'vi', 'Fb', 'PSe', 'PSc'],
+        ('FX', 'RR'): ['vb', 'vi', 'Fb', 'PSe', 'PSc'],
+    }[(kin, wex)]
+
+def v_water(kin, wex, vi=None, vb=None):
+    wex = wex.replace('N','R')
+    if (vb is not None) and (vi is not None):
+        vc = 1 - vb - vi
+    if (kin, wex) == ('2CX', 'FF'): return np.array([1])
+    if (kin, wex) == ('2CU', 'FF'): return np.array([1])
+    if (kin, wex) == ('HF', 'FF'): return np.array([1])
+    if (kin, wex) == ('HFU', 'FF'): return np.array([1])
+    if (kin, wex) == ('NX', 'FF'): return np.array([1])
+    if (kin, wex) == ('NXP', 'FF'): return np.array([1])
+    if (kin, wex) == ('WV', 'FF'): return np.array([1])
+    if (kin, wex) == ('U', 'FF'): return np.array([1])
+    if (kin, wex) == ('FX', 'FF'): return np.array([1])
+
+    if (kin, wex) == ('2CX', 'FR'): return np.array([vb+vi, 1-vb-vi])
+    if (kin, wex) == ('2CU', 'FR'): return np.array([1-vc, vc])
+    if (kin, wex) == ('HF', 'FR'): return np.array([vb+vi, 1-vb-vi])
+    if (kin, wex) == ('HFU', 'FR'): return np.array([1-vc, vc])
+    if (kin, wex) == ('NX', 'FR'): return np.array([1-vc, vc])
+    if (kin, wex) == ('NXP', 'FR'): return np.array([1-vc, vc])
+    if (kin, wex) == ('WV', 'FR'): return np.array([vi, 1-vi])
+    if (kin, wex) == ('U', 'FR'): return np.array([1-vc, vc])
+    if (kin, wex) == ('FX', 'FR'): return np.array([1-vc, vc])
+
+    if (kin, wex) == ('2CX', 'RF'): return np.array([vb, 1-vb])
+    if (kin, wex) == ('2CU', 'RF'): return np.array([vb, 1-vb])
+    if (kin, wex) == ('HF', 'RF'): return np.array([vb, 1-vb])
+    if (kin, wex) == ('HFU', 'RF'): return np.array([vb, 1-vb])
+    if (kin, wex) == ('NX', 'RF'): return np.array([vb, 1-vb])
+    if (kin, wex) == ('NXP', 'RF'): return np.array([vb, 1-vb])
+    if (kin, wex) == ('WV', 'RF'): return np.array([1])
+    if (kin, wex) == ('U', 'RF'): return np.array([vb, 1-vb])
+    if (kin, wex) == ('FX', 'RF'): return np.array([vb, 1-vb])
+
+    if (kin, wex) == ('2CX', 'RR'): return np.array([vb, vi, 1-vb-vi])
+    if (kin, wex) == ('2CU', 'RR'): return np.array([vb, vi, 1-vb-vi])
+    if (kin, wex) == ('HF', 'RR'): return np.array([vb, vi, 1-vb-vi])
+    if (kin, wex) == ('HFU', 'RR'): return np.array([vb, vi, 1-vb-vi])
+    if (kin, wex) == ('NX', 'RR'): return np.array([vb, vi, 1-vb-vi])
+    if (kin, wex) == ('NXP', 'RR'): return np.array([vb, vi, 1-vb-vi])
+    if (kin, wex) == ('WV', 'RR'): return np.array([vi, 1-vi])
+    if (kin, wex) == ('U', 'RR'): return np.array([vb, vi, 1-vb-vi])
+    if (kin, wex) == ('FX', 'RR'): return np.array([vb, vi, 1-vb-vi])
+
+
+
+def F_water(kin, wex, Fb=None, PSc=None, PSe=None):
+    wex = wex.replace('N','R')
+
+    if (kin, wex) == ('2CX', 'FF'): return np.full((1, 1), Fb)
+    if (kin, wex) == ('2CU', 'FF'): return np.full((1, 1), Fb)
+    if (kin, wex) == ('HF', 'FF'): return np.full((1, 1), 0)
+    if (kin, wex) == ('HFU', 'FF'): return np.full((1, 1), 0)
+    if (kin, wex) == ('NX', 'FF'): return np.full((1, 1), Fb)
+    if (kin, wex) == ('NXP', 'FF'): return np.full((1, 1), Fb)
+    if (kin, wex) == ('WV', 'FF'): return np.full((1, 1), 0)
+    if (kin, wex) == ('U', 'FF'): return np.full((1, 1), 0)
+    if (kin, wex) == ('FX', 'FF'): return np.full((1, 1), Fb)
+
+    if (kin, wex) == ('2CX', 'FR'): return np.array([[Fb, PSc], [PSc, 0]])
+    if (kin, wex) == ('2CU', 'FR'): return np.array([[Fb, PSc], [PSc, 0]])
+    if (kin, wex) == ('HF', 'FR'): return np.array([[0, PSc], [PSc, 0]])
+    if (kin, wex) == ('HFU', 'FR'): return np.array([[0, PSc], [PSc, 0]])
+    if (kin, wex) == ('NX', 'FR'): return np.array([[Fb, PSc], [PSc, 0]])
+    if (kin, wex) == ('NXP', 'FR'): return np.array([[Fb, PSc], [PSc, 0]])
+    if (kin, wex) == ('WV', 'FR'): return np.array([[0, PSc], [PSc, 0]])
+    if (kin, wex) == ('U', 'FR'): return np.array([[0, PSc], [PSc, 0]])
+    if (kin, wex) == ('FX', 'FR'): return np.array([[Fb, PSc], [PSc, 0]])
+
+    if (kin, wex) == ('2CX', 'RF'): return np.array([[Fb, PSe], [PSe, 0]])
+    if (kin, wex) == ('2CU', 'RF'): return np.array([[Fb, PSe], [PSe, 0]])
+    if (kin, wex) == ('HF', 'RF'): return np.array([[0, PSe], [PSe, 0]])
+    if (kin, wex) == ('HFU', 'RF'): return np.array([[0, PSe], [PSe, 0]])
+    if (kin, wex) == ('NX', 'RF'): return np.array([[Fb, PSe], [PSe, 0]])
+    if (kin, wex) == ('NXP', 'RF'): return np.array([[Fb, PSe], [PSe, 0]])
+    if (kin, wex) == ('WV', 'RF'): return np.array([0])
+    if (kin, wex) == ('U', 'RF'): return np.array([[0, PSe], [PSe, 0]])
+    if (kin, wex) == ('FX', 'RF'): return np.array([[Fb, PSe], [PSe, 0]])
+
+    if (kin, wex) == ('2CX', 'RR'): return np.array([[Fb, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]])
+    if (kin, wex) == ('2CU', 'RR'): return np.array([[Fb, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]])
+    if (kin, wex) == ('HF', 'RR'): return np.array([[0, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]])
+    if (kin, wex) == ('HFU', 'RR'): return np.array([[0, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]])
+    if (kin, wex) == ('NX', 'RR'): return np.array([[Fb, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]])
+    if (kin, wex) == ('NXP', 'RR'): return np.array([[Fb, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]])
+    if (kin, wex) == ('WV', 'RR'): return np.array([[0, PSc], [PSc, 0]])
+    if (kin, wex) == ('U', 'RR'): return np.array([[0, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]])
+    if (kin, wex) == ('FX', 'RR'): return np.array([[Fb, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]])
+
+
+
+def _relax_pars(kin, wex) -> list:
+
+    if kin == '2CX':
+        return ['H', 'vb', 'vi', 'Fb', 'PS']
+    if kin == 'HF':
+        return ['H', 'vb', 'vi', 'PS']
+    if kin == 'WV':
+        return ['H', 'vi', 'Ktrans']
+
+    if wex == 'FF':
+
+        if kin == '2CU':
+            return ['H', 'vb', 'Fb', 'PS']
+        if kin == 'HFU':
+            return ['H', 'vb', 'PS']
+        if kin == 'FX':
+            return ['H', 've', 'Fb']
+        if kin == 'NX':
+            return ['vb', 'Fb']
+        if kin == 'NXP':
+            return ['vb', 'Fb']
+        if kin == 'U':
+            return ['Fb']
+
+    if wex in ['RR', 'NN', 'NR', 'RN']:
+
+        if kin == '2CU':
+            return ['H', 'vb', 'vi', 'Fb', 'PS']
+        if kin == 'HFU':
+            return ['H', 'vb', 'vi', 'PS']
+        if kin == 'FX':
+            return ['H', 'vb', 'vi', 'Fb']
+        if kin == 'NX':
+            return ['vb', 'vi', 'Fb']
+        if kin == 'NXP':
+            return ['vb', 'vi', 'Fb']
+        if kin == 'U':
+            return ['vb', 'vi', 'Fb']
+
+    if wex in ['RF', 'NF']:
+
+        if kin == '2CU':
+            return ['H', 'vb', 'Fb', 'PS']
+        if kin == 'HFU':
+            return ['H', 'vb', 'PS']
+        if kin == 'FX':
+            return ['H', 'vb', 'vi', 'Fb']
+        if kin == 'NX':
+            return ['vb', 'Fb']
+        if kin == 'NXP':
+            return ['vb', 'Fb']
+        if kin == 'U':
+            return ['vb', 'Fb']
+
+    if wex in ['FR', 'FN']:
+
+        if kin == '2CU':
+            return ['H', 'vb', 'vi', 'Fb', 'PS']
+        if kin == 'HFU':
+            return ['H', 'vb', 'vi', 'PS']
+        if kin == 'FX':
+            return ['H', 'vb', 'vi', 'Fb']
+        if kin == 'NX':
+            return ['vb', 'vi', 'Fb']
+        if kin == 'NXP':
+            return ['vb', 'vi', 'Fb']
+        if kin == 'U':
+            return ['vc', 'Fb']
+
+def _c(C,v):
+    if v==0:
+        # In this case the result does not matter
+        return C*0
+    else:
+        return C/v
+    
+
+# FF
+
+# For water flow modelling
+def _relax_2cx_ff(ca, R10, r1, t=None, dt=1.0, 
+                  H=None, vi=None, vb=None, Fb=None, PS=None):
+    C = _conc_2cx(ca, t=t, dt=dt, vi=vi, H=H, vb=vb, Fb=Fb, PS=PS)
+    C = C.sum(axis=0)
+    R1 = rel.relax(C, R10, r1)
+    return R1.reshape(1, -1)
+
+def _relax_2cu_ff(ca, R10, r1, t=None, dt=1.0, 
+                  H=None, vb=None, Fb=None, PS=None):
+    C = _conc_2cu(ca, t=t, dt=dt, H=H, vb=vb, Fb=Fb, PS=PS)
+    C = C.sum(axis=0)
+    R1 = rel.relax(C, R10, r1)
+    return R1.reshape(1, -1)
+
+def _relax_hf_ff(ca, R10, r1, t=None, dt=1.0, 
+                 H=None, vi=None, vb=None, PS=None):
+    C = _conc_hf(ca, t=t, dt=dt, H=H, vb=vb, vi=vi, PS=PS)
+    C = C.sum(axis=0)
+    R1 = rel.relax(C, R10, r1)
+    return R1.reshape(1, -1)
+
+def _relax_hfu_ff(ca, R10, r1, t=None, dt=1.0, 
+                 H=None, vb=None, PS=None):
+    C = _conc_hfu(ca, t=t, dt=dt, H=H, vb=vb, PS=PS)
+    C = C.sum(axis=0)
+    R1 = rel.relax(C, R10, r1)
+    return R1.reshape(1, -1)
+
+def _relax_nx_ff(ca, R10, r1, t=None, dt=1.0, 
+                 vb=None, Fb=None):
+    C = _conc_nx(ca, t=t, dt=dt, vb=vb, Fb=Fb)
+    C = C.sum(axis=0)
+    R1 = rel.relax(C, R10, r1)
+    return R1.reshape(1, -1)
+
+def _relax_nxp_ff(ca, R10, r1, t=None, dt=1.0, 
+                 vb=None, Fb=None):
+    C = _conc_nxp(ca, t=t, dt=dt, vb=vb, Fb=Fb)
+    C = C.sum(axis=0)
+    R1 = rel.relax(C, R10, r1)
+    return R1.reshape(1, -1)
+
+def _relax_wv_ff(ca, R10, r1, t=None, dt=1.0,
+                 H=None, vi=None, Ktrans=None):
+    C = _conc_wv(ca, t=t, dt=dt, H=H, vi=vi, Ktrans=Ktrans)
+    C = C.sum(axis=0)
+    R1 = rel.relax(C, R10, r1)
+    return R1.reshape(1, -1)
+
+def _relax_u_ff(ca, R10, r1, t=None, dt=1.0, 
+                Fb=None):
+    C = _conc_u(ca, t=t, dt=dt, Fb=Fb)
+    C = C.sum(axis=0)
+    R1 = rel.relax(C, R10, r1)
+    return R1.reshape(1, -1)
+
+def _relax_fx_ff(ca, R10, r1, t=None, dt=1.0,
+                 H=None, ve=None, Fb=None):
+    C = _conc_fx(ca, t=t, dt=dt, H=H, ve=ve, Fb=Fb)
+    C = C.sum(axis=0)
+    R1 = rel.relax(C, R10, r1)
+    return R1.reshape(1, -1)
+
+# FR
+
+# For water flow modelling
+def _relax_2cx_fr(ca, R10, r1, t=None, dt=1.0, 
+                  H=None, vb=None, vi=None, Fb=None, PS=None):
+    C = _conc_2cx(ca, t=t, dt=dt, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
+    v = [vb+vi, 1-vb-vi]
+    c = _c(C[0,:], v[0])
+    R1 = (
+        rel.relax(c, R10, r1),
+        rel.relax(ca*0, R10, r1), 
+    )
+    return np.stack(R1)
+
+def _relax_2cu_fr(ca, R10, r1, t=None, dt=1.0, 
+                  H=None, vi=None, vb=None, Fb=None, PS=None):
+    C = _conc_2cu(ca, t=t, dt=dt, H=H, vb=vb, Fb=Fb, PS=PS)
+    vc = 1-vb-vi
+    v = [1-vc, vc]
+    c = _c(C[0,:], v[0])
+    R1 = (
+        rel.relax(c, R10, r1),
+        rel.relax(ca*0, R10, r1), 
+    )
+    return np.stack(R1)
+
+def _relax_hf_fr(ca, R10, r1, t=None, dt=1.0, 
+                 H=None, vb=None, vi=None, PS=None):
+    C = _conc_hf(ca, t=t, dt=dt, H=H, vb=vb, vi=vi, PS=PS)
+    v = [vb+vi, 1-vb-vi]
+    c = _c(C[0,:], v[0])
+    R1 = (
+        rel.relax(c, R10, r1),
+        rel.relax(ca*0, R10, r1), 
+    )
+    return np.stack(R1)
+
+def _relax_hfu_fr(ca, R10, r1, t=None, dt=1.0, 
+                 H=None, vi=None, vb=None, PS=None):
+    C = _conc_hfu(ca, t=t, dt=dt, H=H, vb=vb, PS=PS)
+    vc = 1-vb-vi
+    v = [1-vc, vc]
+    c = _c(C[0,:], v[0])
+    R1 = (
+        rel.relax(c, R10, r1),
+        rel.relax(ca*0, R10, r1), 
+    )
+    return np.stack(R1)
+
+def _relax_wv_fr(ca, R10, r1, t=None, dt=1.0, 
+                 H=None, vi=None, Ktrans=None):
+    C = _conc_wv(ca, t=t, dt=dt, H=H, vi=vi, Ktrans=Ktrans)
+    v = [vi, 1-vi]
+    c = _c(C[0,:], v[0])
+    R1 = (
+        rel.relax(c, R10, r1),
+        rel.relax(ca*0, R10, r1), 
+    )
+    return np.stack(R1)
+
+def _relax_fx_fr(ca, R10, r1, t=None, dt=1.0, 
+                 H=None, vb=None, vi=None, Fb=None):
+    vp = vb*(1-H)
+    ve = vi+vp
+    vc = 1-vb-vi
+    C = _conc_fx(ca, t=t, dt=dt, H=H, ve=ve, Fb=Fb)
+    v = [1-vc, vc]
+    c = _c(C[0,:], v[0])
+    R1 = (
+        rel.relax(c, R10, r1),
+        rel.relax(ca*0, R10, r1), 
+    )
+    return np.stack(R1)
+
+def _relax_nx_fr(ca, R10, r1, t=None, dt=1.0, 
+                 vi=None, vb=None, Fb=None):
+    vc = 1-vb-vi
+    C = _conc_nx(ca, t=t, dt=dt, vb=vb, Fb=Fb)
+    v = [1-vc, vc]
+    c = _c(C[0,:], v[0])
+    R1 = (
+        rel.relax(c, R10, r1),
+        rel.relax(ca*0, R10, r1), 
+    )
+    return np.stack(R1)
+
+def _relax_nxp_fr(ca, R10, r1, t=None, dt=1.0, 
+                 vi=None, vb=None, Fb=None):
+    vc = 1-vb-vi
+    C = _conc_nxp(ca, t=t, dt=dt, vb=vb, Fb=Fb)
+    v = [1-vc, vc]
+    c = _c(C[0,:], v[0])
+    R1 = (
+        rel.relax(c, R10, r1),
+        rel.relax(ca*0, R10, r1), 
+    )
+    return np.stack(R1)
+
+def _relax_u_fr(ca, R10, r1, t=None, dt=1.0, 
+                vc=None, Fb=None):
+    C = _conc_u(ca, t=t, dt=dt, Fb=Fb)
+    v = [1-vc, vc]
+    c = _c(C[0,:], v[0])
+    R1 = (
+        rel.relax(c, R10, r1),
+        rel.relax(ca*0, R10, r1), 
+    )
+    return np.stack(R1)
+
+# RF
+
+# For water flow modelling
+def _relax_2cx_rf(ca, R10, r1, t=None, dt=1.0, 
+                  H=None, vb=None, vi=None, Fb=None, PS=None):
+    C = _conc_2cx(ca, t=t, dt=dt, 
+                  H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
+    v = [vb, 1-vb]
+    c0, c1 = _c(C[0,:], v[0]), _c(C[1,:], v[1])
+    R1 = (
+        rel.relax(c0, R10, r1),
+        rel.relax(c1, R10, r1),
+    )
+    return np.stack(R1)
+
+
+def _relax_2cu_rf(ca, R10, r1, t=None, dt=1.0, 
+                  H=None, vb=None, Fb=None, PS=None):
+    C = _conc_2cu(ca, t=t, dt=dt, 
+                  H=H, vb=vb, Fb=Fb, PS=PS)
+    v = [vb, 1-vb]
+    c0, c1 = _c(C[0,:], v[0]), _c(C[1,:], v[1])
+    R1 = (
+        rel.relax(c0, R10, r1),
+        rel.relax(c1, R10, r1),
+    )
+    return np.stack(R1)
+
+def _relax_hf_rf(ca, R10, r1, t=None, dt=1.0, 
+                 H=None, vb=None, vi=None, PS=None):
+    C = _conc_hf(ca, t=t, dt=dt, H=H, vb=vb, vi=vi, PS=PS)
+    v = [vb, 1-vb]
+    c0, c1 = _c(C[0,:], v[0]), _c(C[1,:], v[1])
+    R1 = (
+        rel.relax(c0, R10, r1),
+        rel.relax(c1, R10, r1),
+    )
+    return np.stack(R1)
+
+def _relax_hfu_rf(ca, R10, r1, t=None, dt=1.0, 
+                 H=None, vb=None, PS=None):
+    C = _conc_hfu(ca, t=t, dt=dt, H=H, vb=vb, PS=PS)
+    v = [vb, 1-vb]
+    c0, c1 = _c(C[0,:], v[0]), _c(C[1,:], v[1])
+    R1 = (
+        rel.relax(c0, R10, r1),
+        rel.relax(c1, R10, r1),
+    )
+    return np.stack(R1)
+
+def _relax_wv_rf(ca, R10, r1, t=None, dt=1.0, 
+                 H=None, vi=None, Ktrans=None):
+    C = _conc_wv(ca, t=t, dt=dt, H=H, vi=vi, Ktrans=Ktrans)
+    R1 = rel.relax(C, R10, r1)
+    return R1
+
+def _relax_fx_rf(ca, R10, r1, t=None, dt=1.0, 
+                 H=None, vb=None, vi=None, Fb=None):
+    vp = vb * (1-H)
+    ve = vp + vi
+    C = _conc_fx(ca, t=t, dt=dt, H=H, ve=ve, Fb=Fb)
+    v = [vb, 1-vb]
+    if ve==0:
+        Cp = C[0,:] * 0
+        Ci = C[0,:] * 0
+    else:
+        Cp = C[0,:] * vp/ve
+        Ci = C[0,:] * vi/ve
+    c0, c1 = _c(Cp, v[0]), _c(Ci, v[1])
+    R1 = (
+        rel.relax(c0, R10, r1),
+        rel.relax(c1, R10, r1),
+    )
+    return np.stack(R1)
+
+def _relax_nx_rf(ca, R10, r1, t=None, dt=1.0, 
+                 vb=None, Fb=None):
+    C = _conc_nx(ca, t=t, dt=dt, vb=vb, Fb=Fb)
+    v = [vb, 1-vb]
+    c = _c(C[0,:], v[0])
+    R1 = (
+        rel.relax(c, R10, r1),
+        rel.relax(ca*0, R10, r1),
+    )
+    return np.stack(R1)
+
+def _relax_nxp_rf(ca, R10, r1, t=None, dt=1.0, vb=None, Fb=None):
+    C = _conc_nxp(ca, t=t, dt=dt, vb=vb, Fb=Fb)
+    v = [vb, 1-vb]
+    c = _c(C[0,:], v[0])
+    R1 = (
+        rel.relax(c, R10, r1),
+        rel.relax(ca*0, R10, r1),
+    )
+    return np.stack(R1)
+
+def _relax_u_rf(ca, R10, r1, t=None, dt=1.0, vb=None, Fb=None):
+    C = _conc_u(ca, t=t, dt=dt, Fb=Fb)
+    v = [vb, 1-vb]
+    c = _c(C[0,:], v[0])
+    R1 = (
+        rel.relax(c, R10, r1),
+        rel.relax(ca*0, R10, r1),
+    )
+    return np.stack(R1)
+
+
+# RR
+
+# For water flow modelling
+def _relax_2cx_rr(ca, R10, r1, t=None, dt=1.0, 
+                  H=None, vb=None, vi=None, 
+                  Fb=None, PS=None):
+    C = _conc_2cx(ca, t=t, dt=dt, 
+                  H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
+    v = [vb, vi, 1-vb-vi]
+    c0, c1 = _c(C[0,:], v[0]), _c(C[1,:], v[1])
+    R1 = (
+        rel.relax(c0, R10, r1),
+        rel.relax(c1, R10, r1),
+        rel.relax(ca*0, R10, r1),
+    )
+    return np.stack(R1)
+
+
+def _relax_2cu_rr(ca, R10, r1, t=None, dt=1.0, 
+                  H=None, vb=None, vi=None, 
+                  Fb=None, PS=None):
+    C = _conc_2cu(ca, t=t, dt=dt, H=H, vb=vb, Fb=Fb, PS=PS)
+    v = [vb, vi, 1-vb-vi]
+    c0, c1 = _c(C[0,:], v[0]), _c(C[1,:], v[1])
+    R1 = (
+        rel.relax(c0, R10, r1),
+        rel.relax(c1, R10, r1), 
+        rel.relax(ca*0, R10, r1), 
+    )
+    return np.stack(R1)
+
+def _relax_hf_rr(ca, R10, r1, t=None, dt=1.0, 
+                 H=None, vb=None, vi=None, PS=None):
+    C = _conc_hf(ca, t=t, dt=dt, H=H, vb=vb, vi=vi, PS=PS)
+    v = [vb, vi, 1-vb-vi]
+    c0, c1 = _c(C[0,:], v[0]), _c(C[1,:], v[1])
+    R1 = (
+        rel.relax(c0, R10, r1),
+        rel.relax(c1, R10, r1), 
+        rel.relax(ca*0, R10, r1), 
+    )
+    return np.stack(R1)
+
+def _relax_hfu_rr(ca, R10, r1, t=None, dt=1.0, 
+                  H=None, vb=None, vi=None, PS=None):
+    C = _conc_hfu(ca, t=t, dt=dt, H=H, vb=vb, PS=PS)
+    v = [vb, vi, 1-vb-vi]
+    c0, c1 = _c(C[0,:], v[0]), _c(C[1,:], v[1])
+    R1 = (
+        rel.relax(c0, R10, r1),
+        rel.relax(c1, R10, r1), 
+        rel.relax(ca*0, R10, r1), 
+    )
+    return np.stack(R1)
+
+def _relax_wv_rr(ca, R10, r1, t=None, dt=1.0, 
+                 H=None, vi=None, Ktrans=None):
+    C = _conc_wv(ca, t=t, dt=dt, H=H, vi=vi, Ktrans=Ktrans)
+    v = [vi, 1-vi]
+    c = _c(C[0,:], v[0])
+    R1 = (
+        rel.relax(c, R10, r1),
+        rel.relax(ca*0, R10, r1), 
+    )
+    return np.stack(R1)
+
+def _relax_fx_rr(ca, R10, r1, t=None, dt=1.0, 
+                 H=None, vb=None, vi=None, Fb=None):
+    vp = vb * (1-H)
+    ve = vp + vi
+    C = _conc_fx(ca, t=t, dt=dt, H=H, ve=ve, Fb=Fb)
+    v = [vb, vi, 1-vb-vi]
+    if ve==0:
+        Cp = C[0,:]*0
+        Ci = C[0,:]*0
+    else:
+        Cp = C[0,:]*vp/ve
+        Ci = C[0,:]*vi/ve
+    c0, c1 =_c(Cp, v[0]), _c(Ci, v[1])
+    R1 = (
+        rel.relax(c0, R10, r1),
+        rel.relax(c1, R10, r1), 
+        rel.relax(ca*0, R10, r1), 
+    )
+    return np.stack(R1)
+
+def _relax_nx_rr(ca, R10, r1, t=None, dt=1.0, 
+                 vb=None, vi=None, Fb=None):
+    C = _conc_nx(ca, t=t, dt=dt, vb=vb, Fb=Fb)
+    v = [vb, vi, 1-vb-vi]
+    c = _c(C[0,:], v[0])
+    R1 = (
+        rel.relax(c, R10, r1),
+        rel.relax(ca*0, R10, r1),
+        rel.relax(ca*0, R10, r1), 
+    )
+    return np.stack(R1)
+
+def _relax_nxp_rr(ca, R10, r1, t=None, dt=1.0, 
+                  vb=None, vi=None, Fb=None):
+    C = _conc_nxp(ca, t=t, dt=dt, vb=vb, Fb=Fb)
+    v = [vb, vi, 1-vb-vi]
+    c = _c(C[0,:], v[0])
+    R1 = (
+        rel.relax(c, R10, r1),
+        rel.relax(ca*0, R10, r1),
+        rel.relax(ca*0, R10, r1), 
+    )
+    return np.stack(R1)
+
+def _relax_u_rr(ca, R10, r1, t=None, dt=1.0, 
+                vb=None, vi=None, Fb=None):
+    v = [vb, vi, 1-vb-vi]
+    if Fb==0:
+        c0 = ca*0
+        R1 = (
+            rel.relax(c0, R10, r1),
+            rel.relax(ca*0, R10, r1), 
+            rel.relax(ca*0, R10, r1), 
+        )
+    else:
+        C = _conc_u(ca, t=t, dt=dt, Fb=Fb)
+        c0 = _c(C[0,:], v[0])
+        R1 = (
+            rel.relax(c0, R10, r1),
+            rel.relax(ca*0, R10, r1), 
+            rel.relax(ca*0, R10, r1), 
+        )
+    return np.stack(R1)
+
+
+
+
 
 
 
@@ -1495,18 +1609,15 @@ def _conc_wv(ca, t=None, dt=1.0,
     return vi*ci.reshape(1, -1)
 
 
-def _conc_hfu(ca, t=None, dt=1.0, sum=True, 
+def _conc_hfu(ca, t=None, dt=1.0, 
               H=None, vb=None, PS=None):
     vp = vb*(1-H)
     cp = ca/(1-H)
     Ci = pk.conc_trap(PS*cp, t=t, dt=dt)
-    if sum:
-        return vp*cp + Ci
-    else:
-        return np.stack((vp*cp, Ci)) 
+    return np.stack((vp*cp, Ci)) 
 
 
-def _conc_hf(ca, t=None, dt=1.0, sum=True,
+def _conc_hf(ca, t=None, dt=1.0,
              H=None, vi=None, vb=None, PS=None):
     vp = vb*(1-H)
     ca = ca/(1-H)
@@ -1515,24 +1626,18 @@ def _conc_hf(ca, t=None, dt=1.0, sum=True,
         Ci = 0*ca
     else:
         Ci = pk.conc_comp(PS*ca, vi/PS, t=t, dt=dt)
-    if sum:
-        return Cp+Ci
-    else:
-        return np.stack((Cp, Ci))
+    return np.stack((Cp, Ci))
 
 
-def _conc_2cu(ca, t=None, dt=1.0, sum=True,
+def _conc_2cu(ca, t=None, dt=1.0,
               H=None, vb=None, Fb=None, PS=None):
     vp = (1-H)*vb
     Fp = (1-H)*Fb
     if np.isinf(Fp):
-        return _conc_hfu(ca, t=t, dt=dt, sum=sum, H=H, vb=vb, PS=PS)
+        return _conc_hfu(ca, t=t, dt=dt, H=H, vb=vb, PS=PS)
     ca = ca/(1-H)
     if Fp+PS == 0:
-        if sum:
-            return np.zeros(len(ca))
-        else:
-            return np.zeros((2, len(ca)))
+        return np.zeros((2, len(ca)))
     Tp = vp/(Fp+PS)
     Cp = pk.conc_comp(Fp*ca, Tp, t=t, dt=dt)
     if vp == 0:
@@ -1540,19 +1645,16 @@ def _conc_2cu(ca, t=None, dt=1.0, sum=True,
         Ci = pk.conc_trap(Ktrans*ca, t=t, dt=dt)
     else:
         Ci = pk.conc_trap(PS*Cp/vp, t=t, dt=dt)
-    if sum:
-        return Cp+Ci
-    else:
-        return np.stack((Cp, Ci))
+    return np.stack((Cp, Ci))
 
 
-def _conc_2cx(ca, t=None, dt=1.0, sum=True,
+def _conc_2cx(ca, t=None, dt=1.0,
               H=None, vi=None, vb=None, Fb=None, PS=None):
 
     vp = (1-H)*vb
     Fp = (1-H)*Fb
     if np.isinf(Fp):
-        return _conc_hf(ca, t=t, dt=dt, sum=sum, 
+        return _conc_hf(ca, t=t, dt=dt, 
                         H=H, vi=vi, vb=vb, PS=PS)
 
     ca = ca/(1-H)
@@ -1561,10 +1663,7 @@ def _conc_2cx(ca, t=None, dt=1.0, sum=True,
     if Fp+PS == 0:
         Cp = np.zeros(len(ca))
         Ce = np.zeros(len(ca))
-        if sum:
-            return Cp+Ce
-        else:
-            return np.stack((Cp, Ce))
+        return np.stack((Cp, Ce))
 
     Tp = vp/(Fp+PS)
     E = PS/(Fp+PS)
@@ -1572,165 +1671,15 @@ def _conc_2cx(ca, t=None, dt=1.0, sum=True,
     if PS == 0:
         Cp = pk.conc_comp(Fp*ca, Tp, t=t, dt=dt)
         Ci = np.zeros(len(ca))
-        if sum:
-            return Cp+Ci
-        else:
-            return np.stack((Cp, Ci))
+        return np.stack((Cp, Ci))
 
     Ti = vi/PS
 
     C = pk.conc_2cxm(J, [Tp, Ti], E, t=t, dt=dt)
-    if sum:
-        return np.sum(C, axis=0)
-    else:
-        return C
+    return C
     
 
-# def _conc_2cf(ca, t=None, dt=1.0, sum=True, 
-#               vp=None, Fp=None, PS=None, Te=None):
-#     if Fp+PS == 0:
-#         if sum:
-#             return np.zeros(len(ca))
-#         else:
-#             return np.zeros((2, len(ca)))
-#     # Derive standard parameters
-#     Tp = vp/(Fp+PS)
-#     E = PS/(Fp+PS)
-#     J = Fp*ca
-#     T = [Tp, Te]
-#     # Solve the system explicitly
-#     t = utils.tarray(len(J), t=t, dt=dt)
-#     C0 = pk.conc_comp(J, T[0], t)
-#     if E == 0:
-#         C1 = np.zeros(len(t))
-#     elif T[0] == 0:
-#         J10 = E*J
-#         C1 = pk.conc_comp(J10, T[1], t)
-#     else:
-#         J10 = C0*E/T[0]
-#         C1 = pk.conc_comp(J10, T[1], t)
-#     if sum:
-#         return C0+C1
-#     else:
-#         return np.stack((C0, C1))
-    
 
-# def _lconc_fx(ca, t=None, dt=1.0, Te=None):
-#     # Te = ve/Fp
-#     ce = pk.flux_comp(ca, Te, t=t, dt=dt)
-#     return ce
-
-
-# def _lconc_u(ca, t=None, dt=1.0, Tb=None):
-#     # Tb = vp/Fp
-#     if Tb==0:
-#         msg = ('An uptake tissue with Tb=0 is not well-defined. \n'
-#                 + 'Consider constraining the parameters.')
-#         raise ValueError(msg)
-#     cp = pk.conc_trap(ca, t=t, dt=dt)/Tb
-#     return cp
-
-    
-# def _lconc_nx(ca, t=None, dt=1.0, Tb=None):
-#     cp = pk.flux_comp(ca, Tb, t=t, dt=dt)
-#     return cp
-
-    
-# def _lconc_wv(ca, t=None, dt=1.0, Ti=None):
-#     # Note cp is non-zero and equal to (1-E)*ca
-#     # But is not returned as it sits in a compartment without dimensions
-#     # Ti = vi/Ktrans
-#     ci = pk.flux_comp(ca, Ti, t=t, dt=dt)
-#     return ci
-
-        
-# def _lconc_hfu(ca, t=None, dt=1.0, Ti=None):
-#     # Ti=vi/PS
-#     # up = vp / (vp + vi)
-#     cp = ca
-#     if Ti==0:
-#         msg = 'An uptake tissue with Ti=0 is not well-defined. \n'
-#         msg += 'Consider constraining the parameters.'
-#         raise ValueError(msg)
-#     ci = pk.conc_trap(cp, t=t, dt=dt)/Ti
-#     return np.stack((cp, ci))
-
-        
-# def _lconc_hf(ca, t=None, dt=1.0, Ti=None):
-#     # Ti = vi/PS
-#     # up = vp/ve
-#     cp = ca
-#     ci = pk.flux_comp(cp, Ti, t=t, dt=dt)
-#     return np.stack((cp, ci))
-
-
-# def _lconc_2cu(ca, t=None, dt=1.0, 
-#                Tp=None, E=None, Ti=None):
-#     # Ti = vi/PS
-#     cp = (1-E)*pk.flux_comp(ca, Tp, t=t, dt=dt)
-#     ci = pk.conc_trap(cp, t=t, dt=dt)/Ti
-#     return np.stack((cp, ci))
-
-        
-# def _lconc_2cx(ca, t=None, dt=1.0, Tp=None, Ti=None, E=None):
-#     # c = C/Fp
-#     # cp = C0/vp = c0*Fp/vp = c0 * (1-E)/Tp
-#     # ci = C1/vi = c1*Fp/vi = c1 * (1-E)/E/Ti
-#     c = pk.conc_2cxm(ca, [Tp, Ti], E, t=t, dt=dt)
-#     cp = c[0,:] * (1-E) / Tp
-#     ci = c[1,:] * (1-E) / E / Ti
-#     return np.stack((cp, ci))
-
-
-def flux_tissue(ca: np.ndarray, t=None, dt=1.0, kinetics='2CX', **params) -> np.ndarray:
-    """Indicator flux out of a 2-site exchange tissue.
-
-    Args:
-        ca (array-like): concentration in the arterial input.
-        t (array_like, optional): the time points of the input function *ca*. 
-          If *t* is not provided, the time points are assumed to be uniformly 
-          spaced with spacing *dt*. Defaults to None.
-        dt (float, optional): spacing in seconds between time points for 
-          uniformly spaced time points. This parameter is ignored if *t* is 
-          provided. Defaults to 1.0.
-        kinetics (str, optional): The kinetic model of the tissue (see below 
-          for possible values). Defaults to '2CX'. 
-        params (dict): free model parameters and their values (see below for 
-          possible).
-
-    Returns: 
-        numpy.ndarray: outflux
-          For a one-compartmental tissue, outflux out of the 
-          compartment as a 1D array in units of mmol/sec/mL or M/sec. For a 
-          multi=compartmental tissue, outflux out of each compartment, and at 
-          each time point, as a 3D array with dimensions *(2,2,k)*, where *2* 
-          is the number of compartments and *k* is the number of time points 
-          in *J*. Encoding of the first two indices is the same as for *E*: 
-          *J[j,i,:]* is the flux from compartment *i* to *j*, and *J[i,i,:]* 
-          is the flux from *i* directly to the outside. The flux is returned in 
-          units of mmol/sec/mL or M/sec.
-    """
-    if kinetics == 'U':
-        return _flux_u(ca, **params)
-    elif kinetics == 'NX':
-        return _flux_nx(ca, t=t, dt=dt, **params)
-    elif kinetics == 'FX':
-        return _flux_fx(ca, t=t, dt=dt, **params)
-    elif kinetics == 'WV':
-        return _flux_wv(ca, t=t, dt=dt, **params)
-    elif kinetics == 'HFU':
-        return _flux_hfu(ca, **params)
-    elif kinetics == 'HF':
-        return _flux_hf(ca, t=t, dt=dt, **params)
-    elif kinetics == '2CU':
-        return _flux_2cu(ca, t=t, dt=dt, **params)
-    elif kinetics == '2CX':
-        return _flux_2cx(ca, t=t, dt=dt, **params)
-    # elif model=='2CF':
-    #     return _flux_2cf(ca, t=t, dt=dt, **params)
-    else:
-        raise ValueError('Kinetic model ' + kinetics +
-                         ' is not currently implemented.')
 
 
 def _flux_u(ca, Fb=None):
@@ -1777,7 +1726,7 @@ def _flux_hf(ca, t=None, dt=1.0, H=None, vi=None, PS=None):
 
 
 def _flux_2cu(ca, t=None, dt=1.0, H=None, vb=None, Fb=None, PS=None):
-    C = _conc_2cu(ca, t=t, dt=dt, sum=False, H=H, vb=vb, Fb=Fb, PS=PS)
+    C = _conc_2cu(ca, t=t, dt=dt, H=H, vb=vb, Fb=Fb, PS=PS)
     ca = ca/(1-H)
     Fp = Fb*(1-H)
     J = np.zeros(((2, 2, len(ca))))
@@ -1807,7 +1756,7 @@ def _flux_2cx(ca, t=None, dt=1.0, H=None, vb=None, vi=None, Fb=None, PS=None):
         J = np.zeros((2, 2, len(ca)))
         J[0, 0, :] = Jp
         return J
-    C = _conc_2cx(ca, t=t, dt=dt, sum=False, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
+    C = _conc_2cx(ca, t=t, dt=dt, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
     # Derive standard parameters
     vp = vb*(1-H)
     Tp = vp/(Fp+PS)

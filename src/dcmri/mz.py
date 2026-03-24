@@ -8,8 +8,10 @@ def params_Mz(sequence):
         'free': ['TC'],
         'SS': ['TR', 'FA'],
         'SR': ['TC', 'TR', 'FA', 'TP'],
+        'IR': ['TC', 'TR', 'FA', 'TP'],
         'SPGR': ['TC', 'TR', 'FA', 'TP', 'n_init'],
         'SSI': ['TF', 'TR', 'FA'],
+        'None': [],
     }[sequence]
 
 
@@ -182,11 +184,15 @@ def Mz(
     elif sequence == 'SS':
         Mz = _Mz_ss(R1, v, Fw, j, me, TR, FA)
     elif sequence == 'SPGR':
-        Mz = _Mz_spgr(R1, v, Fw, j, n_init, me, TC, TR, FA, TP)
+        Mz = _Mz_spgr(R1, v, Fw, j, n_init, me, TC, TR, FA, TP) 
     elif sequence == 'SR':
-        Mz = _Mz_spgr(R1, v, Fw, j, 0, me, TC, TR, FA, TP)
+        Mz = _Mz_spgr(R1, v, Fw, j, 0, me, TC, TR, FA, TP) 
+    elif sequence == 'IR':
+        Mz = _Mz_spgr(R1, v, Fw, j, -1, me, TC, TR, FA, TP)
     elif sequence == 'SSI':
         Mz = _Mz_spgr(R1, v, Fw, j, 1, me, TF, TR, FA, 0)
+    elif sequence == 'None':
+        Mz = np.full_like(R1, me)
 
     # Return result in original shape
     if input_shape == ():
@@ -205,7 +211,7 @@ def _Mz_free(R1: np.ndarray, v: np.ndarray, Fw, j:np.ndarray, me, n_init, T):
     if nc==1:
 
         # 1. Compute K and M0 for all t simultaneously
-        K = R1 + Fw / v
+        K = R1 + Fw[0,0] / v
         M0 = n_init * me * v
         
         # 2. Compute J and E
@@ -239,13 +245,14 @@ def _Mz_ss(R1: np.ndarray, v: np.ndarray, Fw, j: np.ndarray, me, TR, FA) -> np.n
     
     # One compartment
     if nc==1:
-        M = [me * _Nz_ss_1c(R1[0,t], v, Fw, j[0,t], TR, FA) for t in range(nt)]
+        M = [me * _Nz_ss_1c(R1[0,t], v, Fw[0,0], j[0,t], TR, FA) for t in range(nt)]
 
     # Multiple compartments 
     else:
         M = [me * _Nz_ss(R1[:,t], v, Fw, j[:,t], TR, FA) for t in range(nt)]
     
-    return np.array(M).reshape(nc, nt)   
+    M = np.array(M).reshape(nc, nt) 
+    return M  
 
 
 def _Mz_spgr(R1, v, Fw, j, n_init, me, T, TR, FA, TP): 
@@ -259,7 +266,7 @@ def _Mz_spgr(R1, v, Fw, j, n_init, me, T, TR, FA, TP):
         def mz_spgr(R1t, jt):
             nx = T/TR
             ncFA = np.cos(np.radians(FA))**nx
-            Mss = me * _Nz_ss_1c(R1t, v, Fw, jt, TR, FA)
+            Mss = me * _Nz_ss_1c(R1t, v, Fw[0,0], jt, TR, FA)
             K = _Mz_K(R1t, v, Fw)
             if TP > 0:
                 EP = np.exp(-TP * K)
