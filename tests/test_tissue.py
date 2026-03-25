@@ -6,6 +6,49 @@ import dcmri as dc
 from dcmri import tissue
 import dcmri.lexicon_utils as lexicon
 
+def test__conc_nxp():
+    n = 10
+    Ta = 10
+    Fb = 2
+    vb = 0.1
+    t = np.linspace(0, 20, n)
+    ca = np.exp(-t/Ta)/Ta
+    C = tissue.Conc(kinetics='NXP')(ca, t=t, vb=vb, Fb=Fb)
+    assert C[0,0] == 0
+    Fb = 0
+    C = tissue.Conc(kinetics='NXP')(ca, t=t, vb=vb, Fb=Fb)
+    assert C[0,0] == 0
+
+def test__flux_nxp():
+    n = 10
+    Ta = 10
+    Fb = 2
+    vb = 0.1
+    t = np.linspace(0, 20, n)
+    ca = np.exp(-t/Ta)/Ta
+    J = tissue.Flux(kinetics='NXP')(ca, t=t, vb=vb, Fb=Fb)
+    assert J[0] == 0
+    Fb = 0
+    J = tissue.Flux(kinetics='NXP')(ca, t=t, vb=vb, Fb=Fb)
+    assert J[0] == 0
+    J = tissue.Flux(kinetics='NXP')(ca, t=t, vb=vb, Fb=Fb, T_a=0)
+    assert J[0] == 0
+
+
+
+def test__conc_nx():
+    n = 10
+    Ta = 10
+    Fb = 2
+    vb = 0.1
+    t = np.linspace(0, 20, n)
+    ca = np.exp(-t/Ta)/Ta
+    C = tissue.Conc(kinetics='NX')(ca, t=t, vb=vb, Fb=Fb)
+    assert C[0,0] == 0
+    Fb = 0
+    C = tissue.Conc(kinetics='NX')(ca, t=t, vb=vb, Fb=Fb) 
+    assert C[0,0] == 0
+
 def test__flux_nx():
     n = 10
     Ta = 10
@@ -13,10 +56,12 @@ def test__flux_nx():
     vb = 0.1
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    J = tissue.flux(ca, t=t, kinetics='NX', vb=vb, Fb=Fb)
+    J = tissue.Flux(kinetics='NX')(ca, t=t, vb=vb, Fb=Fb)
     assert J[0] == 0
     Fb = 0
-    J = tissue.flux(ca, t=t, kinetics='NX', vb=vb, Fb=Fb)
+    J = tissue.Flux(kinetics='NX')(ca, t=t, vb=vb, Fb=Fb)
+    assert J[0] == 0
+    J = tissue.Flux(kinetics='NX')(ca, t=t, vb=vb, Fb=Fb, T_a=0)
     assert J[0] == 0
 
 
@@ -26,7 +71,7 @@ def test__conc_u():
     Fb = 2
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    C = tissue.conc(ca, t=t, kinetics='U', Fb=Fb)
+    C = tissue.Conc(kinetics='U')(ca, t=t, Fb=Fb)
     C0 = Fb*cumulative_trapezoid(ca, t, initial=0)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.01
 
@@ -36,7 +81,7 @@ def test__flux_u():
     Fb = 2
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    J = tissue.flux(ca, t=t, kinetics='U', Fb=Fb)
+    J = tissue.Flux(kinetics='U')(ca, t=t, Fb=Fb)
     J0 = np.zeros(len(t))
     assert np.linalg.norm(J-J0) < 0.01
 
@@ -48,11 +93,11 @@ def test__conc_fx():
     H = 0.45
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    C = tissue.conc(ca, t=t, kinetics='FX', H=H, ve=ve, Fb=Fb)
+    C = tissue.Conc(kinetics='FX')(ca, t=t, H=H, ve=ve, Fb=Fb) 
     Fp = Fb*(1-H)
     C0 = Fp*dc.biexpconv(Ta, ve/Fp, t)*ve/Fp/(1-H)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.01
-    C = tissue.conc(ca, t=t, kinetics='FX', H=H, ve=ve, Fb=0)
+    C = tissue.Conc(kinetics='FX')(ca, t=t, H=H, ve=ve, Fb=0)
     assert np.linalg.norm(C) == 0
 
 def test__flux_fx():
@@ -63,11 +108,11 @@ def test__flux_fx():
     H = 0.45
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    J = tissue.flux(ca, t=t, kinetics='FX', H=H, ve=ve, Fb=Fb)
+    J = tissue.Flux(kinetics='FX')(ca, t=t, H=H, ve=ve, Fb=Fb)
     Fp = Fb*(1-H)
     J0 = Fp*dc.biexpconv(Ta, ve/Fp, t)/(1-H)
     assert np.linalg.norm(J-J0)/np.linalg.norm(J0) < 0.01
-    J = tissue.flux(ca, t=t, kinetics='FX', H=H, ve=ve, Fb=0)
+    J = tissue.Flux(kinetics='FX')(ca, t=t, H=H, ve=ve, Fb=0)
     assert np.linalg.norm(J) == 0
 
 
@@ -79,12 +124,12 @@ def test__conc_wv():
     H = 0.45
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    C = tissue.conc(ca, t=t, kinetics='WV', H=H,  vi=vi, Ktrans=Ktrans)
+    C = tissue.Conc(kinetics='WV')(ca, t=t, H=H,  vi=vi, Ktrans=Ktrans) 
     C0 = Ktrans*dc.biexpconv(Ta, vi/Ktrans, t)*vi/Ktrans/(1-H)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.01
-    C = tissue.conc(ca, t=t, kinetics='WV', H=H, vi=vi, Ktrans=Ktrans)
+    C = tissue.Conc(kinetics='WV')(ca, t=t, H=H, vi=vi, Ktrans=Ktrans)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.01
-    C = tissue.conc(ca, t=t, kinetics='WV', H=H, vi=vi, Ktrans=0)
+    C = tissue.Conc(kinetics='WV')(ca, t=t, H=H, vi=vi, Ktrans=0)
     assert np.linalg.norm(C) == 0
 
 
@@ -97,10 +142,10 @@ def test__flux_wv():
     vi = Ktrans/kep
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    J = tissue.flux(ca, t=t, kinetics='WV', H=H, vi=vi, Ktrans=Ktrans)
+    J = tissue.Flux(kinetics='WV')(ca, t=t, H=H, vi=vi, Ktrans=Ktrans)
     J0 = Ktrans*dc.biexpconv(Ta, 1/kep, t)/(1-H)
     assert np.linalg.norm(J[0,1,:]-J0)/np.linalg.norm(J0) < 0.01
-    J = tissue.flux(ca, t=t, kinetics='WV', H=H, vi=vi, Ktrans=0)
+    J = tissue.Flux(kinetics='WV')(ca, t=t, H=H, vi=vi, Ktrans=0)
     assert np.linalg.norm(J[0,1,:]) == 0
     
 
@@ -112,12 +157,12 @@ def test__conc_hfu():
     H = 0.45
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    C = tissue.conc(ca, t=t, kinetics='HFU', H=H, vb=vb, PS=PS)
+    C = tissue.Conc(kinetics='HFU')(ca, t=t, H=H, vb=vb, PS=PS)
     C0 = vb*ca
     C1 = PS*dc.conc_trap(ca/(1-H), t)
     assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 0.01
     assert np.linalg.norm(C[1,:]-C1)/np.linalg.norm(C1) < 0.01
-    C = tissue.conc(ca, t=t, kinetics='HFU', H=H, vb=vb, PS=PS).sum(axis=0)
+    C = tissue.Conc(kinetics='HFU')(ca, t=t, H=H, vb=vb, PS=PS).sum(axis=0)
     C0 = C0+C1
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.01
 
@@ -128,7 +173,7 @@ def test__flux_hfu():
     H = 0.45
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    J = tissue.flux(ca, kinetics='HFU', H=H, PS=PS)
+    J = tissue.Flux(kinetics='HFU')(ca, H=H, PS=PS)
     J0 = PS*ca/(1-H)
     assert np.linalg.norm(J[1,0,:]-J0)/np.linalg.norm(J0) < 0.01
 
@@ -141,24 +186,20 @@ def test__conc_hf():
     H = 0.45
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    C = tissue.conc(ca, t=t, kinetics='HF', 
-                       H=H, vb=vb, vi=vi, PS=PS)
+    C = tissue.Conc(kinetics='HF')(ca, t=t, H=H, vb=vb, vi=vi, PS=PS)
     C0 = vb*ca
     C1 = PS*dc.biexpconv(Ta, vi/PS, t)*vi/PS/(1-H)
     assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 0.01
     assert np.linalg.norm(C[1,:]-C1)/np.linalg.norm(C1) < 0.01
-    C = tissue.conc(ca, t=t, kinetics='HF', 
-                       H=H, vb=vb, vi=vi, PS=PS).sum(axis=0)
+    C = tissue.Conc(kinetics='HF')(ca, t=t, H=H, vb=vb, vi=vi, PS=PS).sum(axis=0)
     C0 = C0+C1
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.01
-    C = tissue.conc(ca, t=t, kinetics='HF', 
-                       H=H, vb=vb, vi=0, PS=PS)
+    C = tissue.Conc(kinetics='HF')(ca, t=t, H=H, vb=vb, vi=0, PS=PS)
     C0 = vb*ca
     C1 = np.zeros(len(ca))
     assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 0.01
     assert np.linalg.norm(C[1,:]-C1) == 0
-    C = tissue.conc(ca, t=t, kinetics='HF', 
-                       H=H, vb=vb, vi=vi, PS=0)
+    C = tissue.Conc(kinetics='HF')(ca, t=t, H=H, vb=vb, vi=vi, PS=0)
     assert 0==np.linalg.norm(C[1,:])
 
 def test__flux_hf():
@@ -170,10 +211,10 @@ def test__flux_hf():
     H = 0.45
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    J = tissue.flux(ca, t=t, kinetics='HF', H=H, vi=vi, PS=PS)
+    J = tissue.Flux(kinetics='HF')(ca, t=t, H=H, vi=vi, PS=PS)
     J0 = kep*PS*dc.biexpconv(Ta, 1/kep, t)/kep/(1-H)
     assert np.linalg.norm(J[0,1,:]-J0)/np.linalg.norm(J0) < 0.01
-    J = tissue.flux(ca, t=t, kinetics='HF', H=H, vi=vi, PS=0)
+    J = tissue.Flux(kinetics='HF')(ca, t=t, H=H, vi=vi, PS=0)
     assert 0==np.linalg.norm(J[0,1,:])
 
 def test__conc_2cu():
@@ -187,22 +228,17 @@ def test__conc_2cu():
     vp = (1-H)*vb
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    C = tissue.conc(ca, t=t, kinetics='2CU', 
-                       H=H, vb=vb, Fb=Fb, PS=PS)
+    C = tissue.Conc(kinetics='2CU')(ca, t=t, H=H, vb=vb, Fb=Fb, PS=PS)
     Tp = vp/(Fp+PS)
     C0 = Tp*Fp*dc.biexpconv(Ta, Tp, t)/(1-H)
     assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 0.01
-    Cs = tissue.conc(ca, t=t, kinetics='2CU', 
-                        H=H, vb=vb, Fb=Fb, PS=PS).sum(axis=0)
+    Cs = tissue.Conc(kinetics='2CU')(ca, t=t, H=H, vb=vb, Fb=Fb, PS=PS).sum(axis=0)
     C0 = C0+C[1,:]
     assert np.linalg.norm(Cs-C0)/np.linalg.norm(C0) < 0.01
-    Cs = tissue.conc(ca, t=t, kinetics='2CU', 
-                        H=H, vb=0, Fb=Fb, PS=PS).sum(axis=0)
-    C0 = tissue.conc(ca/(1-H), t=t, kinetics='U', 
-                        Fb=PS*Fp/(PS+Fp))
+    Cs = tissue.Conc(kinetics='2CU')(ca, t=t, H=H, vb=0, Fb=Fb, PS=PS).sum(axis=0)
+    C0 = tissue.Conc(kinetics='U')(ca/(1-H), t=t, Fb=PS*Fp/(PS+Fp))
     assert np.linalg.norm(Cs-C0)/np.linalg.norm(C0) < 0.01
-    Cs = tissue.conc(ca, t=t, kinetics='2CU', 
-                        H=H, vb=vb, Fb=0, PS=0).sum(axis=0)
+    Cs = tissue.Conc(kinetics='2CU')(ca, t=t, H=H, vb=vb, Fb=0, PS=0).sum(axis=0)
     assert np.linalg.norm(Cs)==0
 
 def test__flux_2cu():
@@ -216,13 +252,11 @@ def test__flux_2cu():
     Fp = (1-H)*Fb
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    J = tissue.flux(ca, t=t, kinetics='2CU', 
-                       H=H, vb=vb, Fb=Fb, PS=PS)
+    J = tissue.Flux(kinetics='2CU')(ca, t=t, H=H, vb=vb, Fb=Fb, PS=PS)
     Tp = vp/(Fp+PS)
     J0 = Tp*Fp*dc.biexpconv(Ta, Tp, t)*Fp/vp
     assert np.linalg.norm(J[0,0,:]-J0)/np.linalg.norm(J0) < 0.01
-    J = tissue.flux(ca, t=t, kinetics='2CU', 
-                       H=H, vb=0, Fb=Fb, PS=PS)
+    J = tissue.Flux(kinetics='2CU')(ca, t=t, H=H, vb=0, Fb=Fb, PS=PS)
     assert np.linalg.norm(J[0,0,:]-Fb*ca)/np.linalg.norm(Fb*ca) < 0.01
 
 def test__conc_2cx():
@@ -241,30 +275,22 @@ def test__conc_2cx():
     H = 0.45
     Fb = Fp/(1-H)
     vb = vp/(1-H)
-    C0 = tissue.conc(ca*(1-H), t=t, kinetics='2CX', 
-                        H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
+    C0 = tissue.Conc(kinetics='2CX')(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
     C = dc.conc_ncomp(J, T, Emat, t)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C) < 1e-3
-    Cs = tissue.conc(ca*(1-H), t=t, kinetics='2CX',
-                        H=H, vb=vb, vi=vi, Fb=Fb, PS=PS).sum(axis=0)
+    Cs = tissue.Conc(kinetics='2CX')(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS).sum(axis=0)
     C0 = np.sum(C,axis=0)
     assert np.linalg.norm(Cs-C0)/np.linalg.norm(C0) < 0.01
-    Cs = tissue.conc(ca*(1-H), t=t, kinetics='2CX', 
-                        H=H, vb=vb, vi=vi, Fb=0, PS=0).sum(axis=0)
+    Cs = tissue.Conc(kinetics='2CX')(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=0, PS=0).sum(axis=0)
     assert np.linalg.norm(Cs) == 0
-    Cs = tissue.conc(ca*(1-H), t=t, kinetics='2CX', 
-                        H=H, vb=vb, vi=vi, Fb=0, PS=0)
+    Cs = tissue.Conc(kinetics='2CX')(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=0, PS=0)
     assert np.linalg.norm(Cs) == 0
-    Cs = tissue.conc(ca*(1-H), t=t, kinetics='2CX', 
-                        H=H, vb=vb, vi=vi, Fb=Fb, PS=0).sum(axis=0)
-    C0 = tissue.conc(ca*(1-H), t=t, kinetics='NX', 
-                        vb=vb, Fb=Fb)
+    Cs = tissue.Conc(kinetics='2CX')(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=0).sum(axis=0)
+    C0 = tissue.Conc(kinetics='NX')(ca*(1-H), t=t, vb=vb, Fb=Fb)
     assert np.linalg.norm(Cs-C0)/np.linalg.norm(C) < 1e-3
-    C = tissue.conc(ca*(1-H), t=t, kinetics='2CX', 
-                       H=H, vb=vb, vi=vi, Fb=Fb, PS=0)
+    C = tissue.Conc(kinetics='2CX')(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=0)
     assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 1e-3
-    C = tissue.conc(ca*(1-H), t=t, kinetics='2CX', 
-                       H=H, vb=0, vi=0, Fb=0, PS=0).sum(axis=0)
+    C = tissue.Conc(kinetics='2CX')(ca*(1-H), t=t, H=H, vb=0, vi=0, Fb=0, PS=0).sum(axis=0)
     assert np.linalg.norm(C) == 0
 
     # Test boundaries (Fp=inf)
@@ -272,20 +298,15 @@ def test__conc_2cx():
     PS = 0.001
     vb = 0.1
     vi = 0.2
-    C0 = tissue.conc(ca*(1-H), t=t, kinetics='2CX', 
-                        H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
+    C0 = tissue.Conc(kinetics='2CX')(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
     Fb = 0.05
-    C1 = tissue.conc(ca*(1-H), t=t, kinetics='2CX', 
-                        H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
+    C1 = tissue.Conc(kinetics='2CX')(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
     Fb = 0.1
-    C2 = tissue.conc(ca*(1-H), t=t, kinetics='2CX', 
-                        H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
+    C2 = tissue.Conc(kinetics='2CX')(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
     Fb = 10.0
-    C3 = tissue.conc(ca*(1-H), t=t, kinetics='2CX', 
-                        H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
+    C3 = tissue.Conc(kinetics='2CX')(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
     Fb = np.inf
-    C4 = tissue.conc(ca*(1-H), t=t, kinetics='2CX', 
-                        H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
+    C4 = tissue.Conc(kinetics='2CX')(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
     # Check convergence to solution
     err0 = np.linalg.norm(C0[:,1:]-C4[:,1:])
     err1 = np.linalg.norm(C1[:,1:]-C4[:,1:])
@@ -312,8 +333,7 @@ def test__conc_2cx():
     PS = 0
     vb = 0.1
     vi = 0.2
-    C0 = tissue.conc(ca*(1-H), t=t, kinetics='2CX', 
-                        H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
+    C0 = tissue.Conc(kinetics='2CX')(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
     assert np.linalg.norm(C0) == 0
 
     # Test boundaries (PS=0)
@@ -321,10 +341,8 @@ def test__conc_2cx():
     PS = 0
     vb = 0.1
     vi = 0.2
-    C0 = tissue.conc(ca*(1-H), t=t, kinetics='2CX', 
-                        H=H, vb=vb, vi=vi, Fb=Fb, PS=PS).sum(axis=0)
-    C1 = tissue.conc(ca*(1-H), t=t, kinetics='NX', 
-                        vb=vb, Fb=Fb)
+    C0 = tissue.Conc(kinetics='2CX')(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS).sum(axis=0)
+    C1 = tissue.Conc(kinetics='NX')(ca*(1-H), t=t, vb=vb, Fb=Fb)
     assert np.linalg.norm(C0-C1) < 1e-9
     
 def test__flux_2cx():
@@ -343,21 +361,16 @@ def test__flux_2cx():
     H = 0.45
     vb = vp/(1-H)
     Fb = Fp/(1-H) 
-    Jo0 = tissue.flux(ca*(1-H), t=t, kinetics='2CX', 
-                         H=H, vb=vb, vi=vi, Fb=Fb, PS=PS) 
+    Jo0 = tissue.Flux(kinetics='2CX')(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS) 
     Jo = dc.flux_ncomp(J, T, Emat, t)
     assert np.linalg.norm(Jo-Jo0)/np.linalg.norm(Jo) < 1e-1
-    Jo0 = tissue.flux(ca*(1-H), t=t, kinetics='2CX', 
-                         H=H, vb=vb, vi=vi, Fb=0, PS=0) 
+    Jo0 = tissue.Flux(kinetics='2CX')(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=0, PS=0) 
     assert np.linalg.norm(Jo0) == 0
-    Jo0 = tissue.flux(ca*(1-H), t=t, kinetics='2CX', 
-                         H=H, vb=vb, vi=vi, Fb=Fb, PS=0) 
-    Jo = tissue.flux(ca*(1-H), t=t, kinetics='NX', 
-                        vb=vb, Fb=Fb)
+    Jo0 = tissue.Flux(kinetics='2CX')(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=0) 
+    Jo = tissue.Flux(kinetics='NX')(ca*(1-H), t=t, vb=vb, Fb=Fb)
     assert np.linalg.norm(Jo-Jo0[0,0,:])/np.linalg.norm(Jo) < 1e-3
 
-    Jo = tissue.flux(ca*(1-H), t=t, kinetics='2CX', 
-                        H=H, vb=vb, vi=vi, Fb=Fb, PS=0) 
+    Jo = tissue.Flux(kinetics='2CX')(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=0) 
     assert Jo[0,0,0] == 0
 
     # Test boundary
@@ -366,120 +379,24 @@ def test__flux_2cx():
     PS = 0.001
     vi = 0.2
     H = 0.45
-    J = tissue.flux(ca, t=t, kinetics='2CX', 
-                       H=H, vb=vb, vi=vi, Fb=np.inf, PS=PS)
+    J = tissue.Flux(kinetics='2CX')(ca, t=t, H=H, vb=vb, vi=vi, Fb=np.inf, PS=PS)
     assert np.isinf(J[0,0,0])
 
-
-
-def test_relax_tissue():
-
-    t = np.arange(0, 300, 1.5)
-    ca = dc.aif_parker(t, BAT=20)
-    R10, r1 = 1/dc.T1(), dc.relaxivity() 
-    H = 0.45
-
-    # Test WV limit - exact
-    p = {'H':H, 'T_a':0, 'vb':0.0, 'vi':0.3, 'Fb':0.01, 'PS':0.005}
-    R1_0 = tissue.relax(ca*(1-H), R10, r1, t=t, 
-                                 kinetics='2CX', water_exchange='RR', **p)
-    p = {'H':H, 'T_a':0, 'vi':0.3, 'Ktrans':0.01*(1-H)*0.005/(0.01*(1-H)+0.005)}
-    R1_1 = tissue.relax(ca*(1-H), R10, r1, t=t, 
-                                 kinetics='WV', water_exchange='RR', **p)
-    assert np.linalg.norm(R1_0[1:,:]-R1_1) < 1e-9
-
-    # Test WV limit - approx
-    p = {'H':H, 'T_a':0, 'vb':0.5*1e-3, 'vi':0.3, 'Fb':0.01, 'PS':0.005}
-    R1_0 = tissue.relax(ca*(1-H), R10, r1, t=t, 
-                                 kinetics='2CX', water_exchange='RR', **p)
-    p = {'H':H, 'T_a':0, 'vi':0.3, 'Ktrans':0.01*(1-H)*0.005/(0.01*(1-H)+0.005)}
-    R1_1 = tissue.relax(ca*(1-H), R10, r1, t=t, 
-                                 kinetics='WV', water_exchange='RR', **p)
-    assert np.linalg.norm(R1_0[1:,:]-R1_1)< 1e-3*np.linalg.norm(R1_0[1:,:])
-
-    # Test HF limit - exact
-    p = {'H':H, 'T_a':0, 'vb':0.05, 'vi':0.3, 'Fb':np.inf, 'PS':0.005}
-    R1_0 = tissue.relax(ca, R10, r1, t=t, 
-                                 kinetics='2CX', water_exchange='RR', **p)
-    p = {'H':H, 'T_a':0, 'vb':0.05, 'vi':0.3, 'PS':0.005}
-    R1_1 = tissue.relax(ca, R10, r1, t=t, 
-                                 kinetics='HF', water_exchange='RR', **p)
-    assert np.linalg.norm(R1_0-R1_1) < 1e-9
-
-    # Test HF limit - approx
-    p = {'H':0.4, 'T_a':0, 'vb':0.05, 'vi':0.3, 'Fb':1000, 'PS':0.005}
-    R1_0 = tissue.relax(ca, R10, r1, t=t, 
-                                 kinetics='2CX', water_exchange='RR', **p)
-    p = {'H':0.4, 'T_a':0, 'vb':0.05, 'vi':0.3, 'PS':0.005}
-    R1_1 = tissue.relax(ca, R10, r1, t=t, 
-                                 kinetics='HF', water_exchange='RR', **p)
-    assert np.linalg.norm(R1_0-R1_1) < 1e-3*np.linalg.norm(R1_0)
-
-    # Test NN
-    p = {'H':0.4, 'T_a':0, 'vb':0.05, 'vi':0.3, 'PS':0.005}
-    R1_1 = tissue.relax(ca, R10, r1, t=t, 
-                                 kinetics='HF', water_exchange='NN', **p)
-    assert 0.6 < R1_1[0,0] < 0.7
-
-    # Run all cases
-    for wex in ['FF','RF','FR','RR']:
-        for kin in ['U', 'FX', 'NX', 'WV', 'HFU', 'HF', '2CU', '2CX', 'NXP']:
-            p = tissue.params_relax(kin, wex)
-            p = {key:0.01 for key in p}
-            tissue.relax(ca, R10, r1, t=t, kinetics=kin, 
-                                water_exchange=wex, **p)
-            p = {key:0.0 for key in p}
-            tissue.relax(ca, R10, r1, t=t, kinetics=kin, 
-                                water_exchange=wex, **p)
-
-    wex = 'RR'
-    kin = 'U'
-    p = tissue.params_relax(kin, wex)
-    p = {key:0 for key in p}
-    p['Fb'] = 0.01
-    R1 = tissue.relax(ca, R10, r1, t=t, kinetics=kin, 
-                              water_exchange=wex, **p)
-    assert 0.6 < R1[0,0] < 0.7
-
-    wex = 'FF'
-    kin = '2CU'
-    p = tissue.params_relax(kin, wex)
-    p = {key:0.01 for key in p}
-    p['Fb'] = np.inf
-    R1 = tissue.relax(ca, R10, r1, t=t, kinetics=kin, 
-                              water_exchange=wex, **p)
-    assert 0.6 < R1[0,0] < 0.7
-
-    wex = 'FF'
-    kin = 'NX'
-    p = tissue.params_relax(kin, wex)
-    p = {key:0.01 for key in p}
-    p['Fb'] = 0
-    R1 = tissue.relax(ca, R10, r1, t=t, kinetics=kin, 
-                              water_exchange=wex, **p)
-    assert 0.6 < R1[0,0] < 0.7
-
-
-
-    # test exceptions
+def test_flux_tissue():
+    # Only need to test exceptions
+    n = 10
+    Ta = 10
+    Fb = 2
+    t = np.linspace(0, 20, n)
+ 
+    ca = np.exp(-t/Ta)/Ta
     try:
-        tissue.relax(ca, R10, r1, t=t, kinetics='XX', water_exchange='RR', **p)
+        tissue.Flux(kinetics='blabla')(ca, t=t, Fb=Fb)
     except:
         assert True
     else:
         assert False
-    try:
-        tissue.relax(ca, R10, r1, t=t, kinetics='U', water_exchange='XX', **p)
-    except:
-        assert True
-    else:
-        assert False
-    try:
-        tissue.relax(ca, R10, r1, t=t, kinetics='U', water_exchange='FF')
-    except:
-        assert True
-    else:
-        assert False
+
 
 
 
@@ -491,7 +408,7 @@ def test_conc_tissue():
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
     try:
-        tissue.conc(ca, t=t, kinetics='blabla', Fb=Fb)
+        tissue.Conc(kinetics='blabla')(ca, t=t, Fb=Fb)
     except:
         assert True
     else:
@@ -499,207 +416,133 @@ def test_conc_tissue():
 
     # Run all cases
     for kin in ['U', 'FX', 'NX', 'WV', 'HFU', 'HF', '2CU', '2CX', 'NXP']:
-        p = tissue.params_conc(kin)
+        p = tissue.Conc(kin).params()
         p = {key:0.01 for key in p}
-        tissue.conc(ca, kinetics=kin, **p)
+        tissue.Conc(kin)(ca, **p)
+
+def test_relax_tissue():
+
+    t = np.arange(0, 300, 1.5)
+    ca = dc.aif_parker(t, BAT=20)
+    H = 0.45
+
+    # Test WV limit - exact
+    p0 = {'H':H, 'T_a':0, 'vb':0.0, 'vi':0.3, 'Fb':0.01, 'PS':0.005, 'R10': 1, 'r1': 0.005}
+    C0 = tissue.Conc(kinetics='2CX')(ca, t, **p0)
+    R1_0 = tissue.Relax(kinetics='2CX', water_exchange='RR')(C0, **p0)
+
+    p1 = {'H':H, 'T_a':0, 'vi':0.3, 'Ktrans':0.01*(1-H)*0.005/(0.01*(1-H)+0.005), 'R10': 1, 'r1': 0.005}
+    C1 = tissue.Conc(kinetics='WV')(ca, t, **p1)
+    R1_1 = tissue.Relax(kinetics='WV', water_exchange='RR')(C1, **p1)
+
+    assert np.linalg.norm(C0[1:,:]-C1) < 1e-9
+    assert np.linalg.norm(R1_0[1:,:]-R1_1) < 1e-9
+
+    # Test WV limit - approx
+
+    p0 = {'H':H, 'T_a':0, 'vb':0.5*1e-3, 'vi':0.3, 'Fb':0.01, 'PS':0.005, 'R10': 1, 'r1': 0.005}
+    C0 = tissue.Conc(kinetics='2CX')(ca, t, **p0)
+    R1_0 = tissue.Relax(kinetics='2CX', water_exchange='RR')(C0, **p0)
+
+    p = {'H':H, 'T_a':0, 'vi':0.3, 'Ktrans':0.01*(1-H)*0.005/(0.01*(1-H)+0.005), 'R10': 1, 'r1': 0.005}
+    C1 = tissue.Conc(kinetics='WV')(ca, t, **p1)
+    R1_1 = tissue.Relax(kinetics='WV', water_exchange='RR')(C1, **p1)
+
+    assert np.linalg.norm(C0[1:,:]-C1) < 1e-3 * np.linalg.norm(C0[1:,:])
+    assert np.linalg.norm(R1_0[1:,:]-R1_1) < 1e-3 * np.linalg.norm(R1_0[1:,:])
+
+    # Test HF limit - exact
+
+    p0 = {'H':H, 'T_a':0, 'vb':0.05, 'vi':0.3, 'Fb':np.inf, 'PS':0.005, 'R10': 1, 'r1': 0.005}
+    C0 = tissue.Conc(kinetics='2CX')(ca, t, **p0)
+    R1_0 = tissue.Relax(kinetics='2CX', water_exchange='RR')(C0, **p0)
+
+    p1 = {'H':H, 'T_a':0, 'vb':0.05, 'vi':0.3, 'PS':0.005, 'R10': 1, 'r1': 0.005}
+    C1 = tissue.Conc(kinetics='HF')(ca, t, **p1)
+    R1_1 = tissue.Relax(kinetics='HF', water_exchange='RR')(C1, **p1)
+
+    assert np.linalg.norm(C0-C1) < 1e-9
+    assert np.linalg.norm(R1_0-R1_1) < 1e-9
+
+    p0 = {'H':H, 'T_a':0, 'vb':0.05, 'vi':0.3, 'Fb':np.inf, 'PS':0.005, 'R10': 1, 'r1': 0.005}
+    C0 = tissue.Conc(kinetics='2CU')(ca, t, **p0)
+    R1_0 = tissue.Relax(kinetics='2CU', water_exchange='RR')(C0, **p0)
+
+    p1 = {'H':H, 'T_a':0, 'vb':0.05, 'vi':0.3, 'PS':0.005, 'R10': 1, 'r1': 0.005}
+    C1 = tissue.Conc(kinetics='HFU')(ca, t, **p1)
+    R1_1 = tissue.Relax(kinetics='HFU', water_exchange='RR')(C1, **p1)
+
+    assert np.linalg.norm(C0-C1) < 1e-9
+    assert np.linalg.norm(R1_0-R1_1) < 1e-9
+
+    # Test HF limit - approx
+
+    p0 = {'H':H, 'T_a':0, 'vb':0.05, 'vi':0.3, 'Fb':10, 'PS':0.005, 'R10': 1, 'r1': 0.005}
+    C0 = tissue.Conc(kinetics='2CX')(ca, t, **p0)
+    R1_0 = tissue.Relax(kinetics='2CX', water_exchange='RR')(C0, **p0)
+
+    p1 = {'H':H, 'T_a':0, 'vb':0.05, 'vi':0.3, 'PS':0.005, 'R10': 1, 'r1': 0.005}
+    C1 = tissue.Conc(kinetics='HF')(ca, t, **p1)
+    R1_1 = tissue.Relax(kinetics='HF', water_exchange='RR')(C1, **p1)
+
+    assert np.linalg.norm(C0-C1) < 1e-3 * np.linalg.norm(C0)
+    assert np.linalg.norm(R1_0-R1_1) < 1e-3 * np.linalg.norm(R1_0)
+
+    # Cover FX limit - ve = 0
+
+    p0 = {'H':H, 've':1e-3, 'Fb':0.01, 'vb':0.0, 'R10': 1, 'r1': 0.005}
+    C0 = tissue.Conc(kinetics='FX')(ca, t, **p0)
+    R1_0 = tissue.Relax(kinetics='FX', water_exchange='RR')(C1, **p0)
+
+    p1 = {'H':H, 've':0, 'Fb':0.01, 'vb':0.0, 'R10': 1, 'r1': 0.005}
+    C1 = tissue.Conc(kinetics='FX')(ca, t, **p1)
+    R1_1 = tissue.Relax(kinetics='FX', water_exchange='RR')(C1, **p1)
+
+    assert np.linalg.norm(C0-C1) < 1e-3
+    assert np.linalg.norm(R1_0-R1_1) < 1e-3
+
+
+
+def test_magn_tissue():
+    nt = 10
+    ca = np.ones(nt)
+    kinetics='2CX'
+
+    p0 = {'H':0.45, 'T_a':0, 'vb':0.1, 'vi':0.3, 'Fb':0.5, 'PS':0.005, 'TR': 0.005, 'FA':15, 'PSe': 0.03, 'PSc': 0.03, 'R10_a': 1, 'R10': 1, 'r1': 0.005}
+    C0 = tissue.Conc(kinetics=kinetics)(ca, **p0)
+    R1a = dc.relax(ca, p0['R10_a'], p0['r1'])
+
+    R1 = tissue.Relax(kinetics, 'RR')(C0, **p0)
+    Mz = tissue.Mz(kinetics, 'RR', 'SS')(R1, R1a, **p0)
+    assert 0.01 < Mz[0,0] < 0.02
+
+    R1 = tissue.Relax(kinetics, 'FF')(C0, **p0)
+    Mz = tissue.Mz(kinetics, 'FF', 'SS', 'None')(R1, R1a, **p0)
+    assert 0.1 < Mz[0,0] < 0.2
+
+    R1 = tissue.Relax(kinetics, 'FR')(C0, **p0)
+    Mz = tissue.Mz(kinetics, 'FR', 'SS', 'None')(R1, R1a, **p0)
+    assert 0.09 < Mz[0,0] < 0.11
     
-
-def test_flux_tissue():
-    # Only need to test exceptions
-    n = 10
-    Ta = 10
-    Fb = 2
-    t = np.linspace(0, 20, n)
-    ca = np.exp(-t/Ta)/Ta
     try:
-        tissue.flux(ca, t=t, kinetics='blabla', Fb=Fb)
+        Mz = tissue.Mz(kinetics, 'FR', 'XX', 'None')
     except:
-        assert True
+        pass
     else:
         assert False
-
-
-def test_params_tissue():
-
-    assert 'S0' in tissue.params_signal()
-
-    try:
-        tissue.params_relax('XX', 'RR')
-    except:
-        assert True
-    else:
-        assert False
-
-    try:
-        tissue.params_relax('2CX', 'XX')
-    except:
-        assert True
-    else:
-        assert False
-
-    for kinetics in ['2CX', '2CU', 'HF', 'HFU', 'NX', 'FX', 'WV', 'U', 'NXP']:
-        for wxe in ['F','N', 'R']:
-            for wxc in ['F','N', 'R']:
-                tissue.params_relax(kinetics, wxe+wxc)
-
-    assert tissue.params_relax('U') == ['Fb', 'T_a']
-    assert tissue.params_conc('U') == ['Fb', 'T_a']
 
 
 def test_signal_tissue():
     nt = 10
-    R10 = 1
-    r1 = 0.005
     ca = np.ones(nt)
-    try:
-        tissue.signal(ca, R10, r1, dt=1.0, kinetics='2CX', 
-                         water_exchange='FF')
-    except:
-        assert True
-    else:
-        assert False
-    pars = {
-        'H':0.45, 
-        'vb': 0.1,
-        'vi': 0.3,
-        'Fb': 0.5,
-        'PS': 0.005,
-        'S0':1, 
-        'FA':15, 
-        'TR': 0.001, 
-        'B1corr':1,
-        'noise_sdev': 0,
-        'T_a': 0,
-        'R10_a': 1,
-    }
-    S = tissue.signal(ca, R10, r1, dt=1.0, kinetics='2CX', 
-                         water_exchange='FF', sequence='SS', **pars)
-    assert 0.007 < S[0] < 0.008
 
-
-    S = tissue.signal(
-        ca, R10, r1, dt=1.0, kinetics='2CX', water_exchange='FF', 
-        sequence='SS', **pars)
-    assert 0.007 < S[0] < 0.008
-    S = tissue.signal(
-        ca, R10, r1, dt=1.0, kinetics='2CX', water_exchange='FR', 
-        sequence='SS', PSc=0.01, **pars)
-    assert 0.005 < S[0] < 0.007
-    
-    pars = {
-        'H':0.45, 
-        'vb': 0.1,
-        'vi': 0.3,
-        'Fb': 0.5,
-        'PS': 0.005,
-        'S0':1, 
-        'FA':15, 
-        'TR': 0.001, 
-        'TC': 0.2,
-        'TP': 0.1,
-        'B1corr':1,
-        'T_a': 0,
-        'R10_a': 1,
-    }
-    S = tissue.signal(ca, R10, r1, dt=1.0, kinetics='2CX', 
-                         water_exchange='FF', sequence='SR', **pars)
-    assert 0.007 < S[0] < 0.008
-
-    S = tissue.signal(
-        ca, R10, r1, dt=1.0, kinetics='2CX', water_exchange='FF', 
-        sequence='SR', **pars)
-    assert 0.007 < S[0] < 0.008
-    S = tissue.signal(
-        ca, R10, r1, dt=1.0, kinetics='2CX', water_exchange='FR', 
-        sequence='SR', PSc=0.01, **pars)
-    assert 0.0072 < S[0] < 0.0074
-
-
-def test_Mz_tissue():
-    nt = 10
-    R10 = 1
-    r1 = 0.005
-    ca = np.ones(nt)
-    try:
-        tissue.magn_z(ca, R10, r1, dt=1.0, kinetics='2CX', 
-                         water_exchange='FF')
-    except:
-        assert True
-    else:
-        assert False
-    pars = {
-        'H':0.45, 
-        'T_a': 0.0,
-        'vb': 0.1,
-        'vi': 0.3,
-        'Fb': 0.5,
-        'PS': 0.005,
-        'S0':1, 
-        'FA':15, 
-        'TR': 0.001, 
-        'B1corr':1,
-        'R10_a': 1,
-    }
-    Mz = tissue.magn_z(ca, R10, r1, dt=1.0, kinetics='2CX', 
-                         water_exchange='FF', sequence='SS', **pars)
-    assert 0.02 < Mz[0,0] < 0.03
-
-    Mz = tissue.magn_z(
-        ca, R10, r1, dt=1.0, kinetics='2CX', water_exchange='FF', 
-        sequence='SS', inflow_sequence='None', **pars)
-    assert 0.04 < Mz[0,0] < 0.05
-    Mz = tissue.magn_z(
-        ca, R10, r1, dt=1.0, kinetics='2CX', water_exchange='FR', 
-        sequence='SS', inflow_sequence='None', PSc=0.01, **pars)
-    assert 0.02 < Mz[0,0] < 0.03
-    
-    pars = {
-        'H':0.45, 
-        'T_a': 0,
-        'vb': 0.1,
-        'vi': 0.3,
-        'Fb': 0.5,
-        'PS': 0.005,
-        'S0':1, 
-        'FA':15, 
-        'TR': 0.001, 
-        'TC': 0.2,
-        'TP': 0.1,
-        'B1corr':1,
-        'R10_a': 1,
-    }
-    Mz = tissue.magn_z(ca, R10, r1, dt=1.0, kinetics='2CX', 
-                         water_exchange='FF', sequence='SR', **pars)
-    assert 0.02 < Mz[0,0] < 0.03
-    
-    try:
-        pars_2cu = {
-            'H':0.45, 
-            'vb': 0.1,
-            'Fb': 0.5,
-            'PS': 0.005,
-        }
-        tissue.magn_z(
-            ca, R10, r1, dt=1.0, kinetics='2CU', water_exchange='FF', 
-            sequence='SR', inflow_sequence='None', **pars_2cu)
-    except:
-        assert True
-    else:
-        assert False
-    Mz = tissue.magn_z(
-        ca, R10, r1, dt=1.0, kinetics='2CX', water_exchange='FF', 
-        sequence='SR', inflow_sequence='None', **pars)
-    assert 0.04 < Mz[0,0] < 0.05
-    Mz = tissue.magn_z(
-        ca, R10, r1, dt=1.0, kinetics='2CX', water_exchange='FR', 
-        sequence='SR', inflow_sequence='None', PSc=0.01, **pars)
-    assert 0.02 < Mz[0,0] < 0.03
+    p0 = {'H':0.45, 'T_a':0, 'vb':0.1, 'vi':0.3, 'Fb':0.5, 'PS':0.005, 'TR': 0.005, 'FA':15, 'PSe': 0.03, 'PSc': 0.03, 'S0':10, 'R10':1,'R10_a':1, 'r1':0.005}
+    S = tissue.Signal('2CX', 'RR', 'SS', 'SS')(ca, **p0)
+    assert 0.3 < S[0] < 0.4
 
 
 def test_coverage():
     nt = 10
-    R10 = 1
-    r1 = 0.005
     ca = np.ones(nt)
 
     # Run for coverage
@@ -707,23 +550,126 @@ def test_coverage():
         for wex in ['FF', 'RF', 'NF', 'FR', 'RR', 'NR', 'FN', 'RN', 'NN']:
             for seq in ['SS', 'SR', 'IR', 'free', 'None', 'SPGR', 'SSI']:
                 for iseq in ['SS', 'SR', 'IR', 'free', 'None', 'SPGR', 'SSI']:
-    # for kin in ['U']:
-    #     for wex in ['FF']:
+    # for kin in ['2CX']:
+    #     for wex in ['FN']:
     #         for seq in ['SR']:
     #             for iseq in ['SS']:
-                    # print(kin, wex, seq, iseq)
-                    pars = tissue.params_magn_z(kin, wex, seq, iseq)
-                    pars = lexicon.init(pars)
-                    tissue.magn_z(
-                        ca, R10, r1, dt=1.0, kinetics=kin, water_exchange=wex, 
-                        sequence=seq, inflow_sequence=iseq, **pars
-                    )
+                    signal = tissue.Signal(kin, wex, seq, iseq)
+                    p = signal.params()
+                    p = lexicon.init(p)
+                    p = tissue.derive_params(p)
+                    S = signal(ca, **p)
 
 
+def test_exceptions():
+    kin, wex, seq, iseq = '2CX', 'RR', 'SS', 'SS'
+    nt = 10
+    ca = np.ones(nt)
+
+    try:
+        p = tissue.Signal('XXX', wex, seq, iseq).params()
+    except:
+        pass
+    else:
+        assert False
+    try:
+        p = tissue.Signal(kin, 'SSS', seq, iseq).params()
+    except:
+        pass
+    else:
+        assert False
+
+    p = tissue.Signal(kin, wex, seq, iseq).params()
+    p = lexicon.init(p)
+    p = tissue.derive_params(p)
+
+    try:
+        J0 = tissue.Flux(kinetics=kin)(ca)
+    except:
+        pass
+    else:
+        assert False
+
+    try:
+        J0 = tissue.Flux(kinetics='XXX')(ca, *p)
+    except:
+        pass
+    else:
+        assert False
+
+    try:
+        C0 = tissue.Conc(kinetics=kin)(ca)
+    except:
+        pass
+    else:
+        assert False
+
+    C0 = tissue.Conc(kinetics=kin)(ca, **p)
+
+    try:
+        R1 = tissue.Relax('XXX', wex)(C0, **p)
+    except:
+        pass
+    else:
+        assert False
+
+    try:
+        R1 = tissue.Relax(kin, wex)(C0)
+    except:
+        pass
+    else:
+        assert False
+
+    R1 = tissue.Relax(kin, wex)(C0, **p)
+    R1a = dc.relax(ca, p['R10_a'], p['r1'])
+
+    try:
+        Mz = tissue.Mz('XXX', wex, seq, iseq)(R1, R1a, **p)
+    except:
+        pass
+    else:
+        assert False
+
+    try:
+        Mz = tissue.Mz(kin, 'XXX', seq, iseq)(R1, R1a, **p)
+    except:
+        pass
+    else:
+        assert False
+
+    try:
+        Mz = tissue.Mz(kin, wex, seq, 'XXX')(R1, R1a, **p)
+    except:
+        pass
+    else:
+        assert False
+
+    try:
+        Mz = tissue.Mz(kin, wex, seq, iseq)(R1, R1a)
+    except:
+        pass
+    else:
+        assert False
+
+
+    Mz = tissue.Mz(kin, wex, seq, iseq)(R1, R1a, **p)
+
+    try:
+        S = tissue.Signal(kin, wex, seq, iseq)(ca)
+    except:
+        pass
+    else:
+        assert False
+
+    S = tissue.Signal(kin, wex, seq, iseq)(ca, **p)
 
 if __name__ == "__main__":
 
+    test__conc_nx()
     test__flux_nx()
+
+    test__conc_nxp()
+    test__flux_nxp()
 
     test__conc_u()
     test__flux_u()
@@ -749,12 +695,12 @@ if __name__ == "__main__":
     test_conc_tissue()
     test_flux_tissue()
 
-    test_params_tissue()
     test_relax_tissue()
-    test_Mz_tissue()
+    test_magn_tissue()
     test_signal_tissue()
 
     test_coverage()
+    test_exceptions()
     
 
 

@@ -17,6 +17,7 @@ LEXICON = {
     'tmax': {'init': tmax_init, 'name': 'Max time', 'unit': 's'},
 
     # --- Injection & Contrast Agent ---
+    'r1': {'init': 0.005, 'name': 'Contrast agent relaxivity', 'unit': 'Hz/M'},
     'agent': {'init': 'gadoterate', 'name': 'Contrast agent', 'unit': None},
     'weight': {'init': 70, 'name': 'Weight', 'unit': 'kg'},
     'dose': {'init': 0.1, 'name': 'Dose', 'unit': 'mL/kg'},

@@ -35,8 +35,8 @@ from dcmri.pk_inv import *
 from dcmri import rel
 from dcmri.rel import *
 
-from dcmri.mz import Mz, params_Mz
-from dcmri.sig import signal
+from dcmri.mz import Mz
+from dcmri.sig import signal, mz_readout
 from dcmri.conc_inv import conc, params_conc
 
 from dcmri import fake

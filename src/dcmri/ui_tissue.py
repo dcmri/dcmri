@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from joblib import Parallel, delayed
 
-from dcmri import sig, utils, ui, tissue, lib, conc_inv, mz
+from dcmri import sig, utils, ui, tissue, lib, conc_inv, mz, rel
 from dcmri.lexicon import LEXICON
 import dcmri.lexicon_utils as lexicon
 
@@ -267,6 +267,7 @@ class Tissue(ui.SuperModel):
         kinetics='HF', 
         water_exchange='FF', 
         sequence='SS',
+        inflow_sequence='SS',
         **params
     ):
         # Check configuration
@@ -294,6 +295,7 @@ class Tissue(ui.SuperModel):
             'kinetics': kinetics, 
             'water_exchange': water_exchange, 
             'sequence': sequence, 
+            'inflow_sequence': inflow_sequence, 
         }
         self._pars = lexicon.init(self._pars_list(), LEXICON)
 
@@ -356,7 +358,8 @@ class Tissue(ui.SuperModel):
             self._pars[p] = self._pars[p].reshape(self._n_samples)
 
         # Add any derived parameters
-        self._compute_derived()
+        tissue.derive_params(self._pars)
+        self._pars['r1'] = lib.relaxivity(self._pars['field_strength'], 'blood', self._pars['agent'])
 
    
     @property
@@ -364,9 +367,9 @@ class Tissue(ui.SuperModel):
         return 1 if self._orig_shape==() else np.prod(self._orig_shape)
     
     def _pars_list(self, select='all'):
-        kin, wex, seq = self._cnfg['kinetics'], self._cnfg['water_exchange'], self._cnfg['sequence']
+        kin, wex, seq, iseq = self._cnfg['kinetics'], self._cnfg['water_exchange'], self._cnfg['sequence'], self._cnfg['inflow_sequence']
 
-        params_signal_tissue = tissue.params_signal(kin, wex, seq)
+        params_signal_tissue = tissue.Signal(**self._cnfg).params()
         params_relax_tissue = tissue.params_relax(kin, wex)
         params_conc_tissue = tissue.params_conc(kin) # may include derived params not in relax
         all_kinetic_pars = list(set(params_conc_tissue + params_relax_tissue))
@@ -380,13 +383,13 @@ class Tissue(ui.SuperModel):
             'pixel': [f for f in all_kinetic_pars if f != 'H'] + ['S0', 'R10', 'B1corr'],
             'pixel_orig': [f for f in params_relax_tissue if f != 'H'] + ['S0', 'R10', 'B1corr'],
             
-            'Mz': mz.params_Mz(seq),
+            'Mz': mz.Mz_params(seq),
             'conc': conc_inv.params_conc(seq),
 
             'relax_tissue': params_relax_tissue,
             'conc_tissue': params_conc_tissue,
             'signal_tissue': params_signal_tissue, 
-            'magn_z_tissue': tissue.params_magn_z(kin, wex, seq),
+            'magn_tissue': tissue.params_magn(kin, wex, seq),
         }
         return pars_list[select]
     
@@ -397,11 +400,6 @@ class Tissue(ui.SuperModel):
         pars_x = {k: p[k][x] for k in pars if k in pixel_pars}
         pars_x |= {k: p[k] for k in pars if k not in pixel_pars}
         return pars_x
-    
-    def _compute_derived(self):
-        p = self._pars
-        if {'H', 'vb', 'vi'}.issubset(p):
-            p['ve'] = (1 - p['H']) * p['vb'] + p['vi']
 
     def _set_new_shape(self, shape):
         self._orig_shape = shape
@@ -412,7 +410,7 @@ class Tissue(ui.SuperModel):
             self._pars[p] = np.full(self._n_samples, v)
 
         # Add any derived parameters
-        self._compute_derived()
+        tissue.derive_params(self._pars)
     
 
     # ==========================================
@@ -421,18 +419,12 @@ class Tissue(ui.SuperModel):
 
     def _pixel_signal(self, x) -> np.ndarray: # (nt, )
         p = self._pars
-        
-        pars_x = self._pixel_pars(x, 'signal_tissue')
-        if 'FA' in pars_x: 
-            pars_x['FA'] = p['FA'] * p['B1corr'][x]
 
-        rp = lib.relaxivity(p['field_strength'], 'blood', p['agent'])
-        signal = tissue.signal(
-            p['c_a'][:], p['R10'][x], rp, dt=p['dt'],
-            kinetics=self._cnfg['kinetics'], 
-            water_exchange=self._cnfg['water_exchange'],
-            sequence=self._cnfg['sequence'], **pars_x
-        )
+        pars_x = self._pixel_pars(x, 'signal_tissue')
+        pars_x['FA'] = p['FA'] * p['B1corr'][x]
+
+        signal = tissue.Signal(**self._cnfg)(p['c_a'], **pars_x)
+
         # tmp
         # Mz_pars = self._pixel_pars(x, 'Mz')
         # if 'FA' in Mz_pars: 
@@ -664,10 +656,10 @@ class Tissue(ui.SuperModel):
         rp = lib.relaxivity(p['field_strength'], 'blood', p['agent'])
 
         def _magn_pixel(x):
-            pars_x = self._pixel_pars(x, 'magn_z_tissue')
+            pars_x = self._pixel_pars(x, 'magn_tissue')
             if 'FA' in pars_x: 
                 pars_x['FA'] = p['FA'] * p['B1corr'][x]
-            return tissue.magn_z(
+            return tissue.magn(
                 p['c_a'], p['R10'][x], rp, dt=p['dt'],
                 kinetics=self._cnfg['kinetics'], 
                 water_exchange=self._cnfg['water_exchange'],
