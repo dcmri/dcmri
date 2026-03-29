@@ -115,101 +115,133 @@ Example:
 
 """
 
-
 from scipy.linalg import expm
 import numpy as np
 
+import dcmri.lexicon_utils as lexicon
+import dcmri.mz_lib as mz_lib
+
+
+
+# TODO: For some ss sequences there is some duplication with K, J and KinvJ computed multiple times
+# This needs rationalising
 
 class Mz:
-    def __init__(self, sequence='SS'):
+    def __init__(self, sequence='SS', **params):
         if sequence not in self._params_dict():
             raise ValueError(f"Sequence {sequence} is not defined. The options are {self._params_dict().keys()}.")
         
         self._cnfg = {'sequence': sequence}
+        self._pars = lexicon.init(self._params())
 
+        # Override parameters
+        [self._pars.update({p:v}) for p, v in params.items() if p in self._params()]
 
+    def params(self):
+        return self._pars.copy()
 
     def _params_dict(self):
         return {
-            'free': ['TC', 'n_init'],
             'SS': ['TR', 'FA'],
-            'SR': ['TC', 'TR', 'FA', 'TP'],
-            'IR': ['TC', 'TR', 'FA', 'TP'],
-            'SPGR': ['TC', 'TR', 'FA', 'TP', 'n_init'],
-            'SSI': ['TF', 'TR', 'FA'],
+            'SR': ['TC', 'TR', 'FA', 'TP', 'TA'],
+            'IR': ['TC', 'TR', 'FA', 'TP', 'TA'],
+            'PR': ['TC', 'TR', 'FA', 'TP', 'TA', 'PA'],
+            'SPGR': ['TC', 'TR', 'FA', 'TP', 'TA', 'PA'],
+            'SSI': ['TR', 'FA', 'TF', 'SA'],
+            'GE-EPI': ['TE', 'TR', 'FA'],
+            'SE-EPI': ['TE', 'TR', 'FA'],
             'None': [],
         }
 
-    def params(self):
+    def _params(self):
         return self._params_dict()[self._cnfg['sequence']]
+    
+    def __call__(self, R1, v=None, Fw=None, j=None, me=None, **params):
+        # Update keyword parameters
+        if params == {}:
+            p = self._pars
+        else:
+            p = self._pars.copy()
+            [p.update({k:v}) for k, v in params.items() if k in p]
 
-    def __call__(self, R1=None, v=1, Fw=0, j=None, me=1, **params):
-        sequence = self._cnfg['sequence']
-        
-        # Keep only model parameters
-        params = {p: v for p, v in params.items() if p in self.params()}
+        # Set defaults for the optional arguments
+        if v is None:
+            nd = np.array(R1).ndim
+            if nd==2:
+                raise ValueError("For a multicompartment tissue, the volume fractions must be provided")
+            else:
+                v = 1
+        if Fw is None:
+            Fw = 0
+        if j is None:
+            j = np.zeros_like(R1)
+        if me is None:
+            me = 1
 
-        # Ensure that all required parameters are provided (more is ok)
-        required = self.params()
-        if not set(required).issubset(params.keys()):
-            raise ValueError(f"Not all required parameters are provided to Mz(). Use Mz('{sequence}').params() to get a list of required parameters.")
-        
-        # Possible shapes for R1:
-        # scalar, 1D (nt, ), 1D (nc, ) and 2D (nc, nt)
-
+        # Possible input shapes for R1:
+        # scalar, 1D (nt), 1D (nc), 2D (nc, nt)
+        #    
         # Keep input shape for return values
         input_shape = np.shape(R1)
 
-        # Ensure inputs are 1D or 2D arrays
-        R1 = np.atleast_1d(R1)
+        # Convert arguments to standard 2D shape (nc, nt) for computations
+
+        # -- The number of compartments is decided by the size of v
         v = np.atleast_1d(v)
-        Fw = np.atleast_1d(Fw)
-        if j is None:
-            j = np.zeros_like(R1)
-        else:
-            j = np.atleast_1d(j)
-        
-        # The number of compartments is decided by the size of v
         nc = v.size
 
-        # In a multicompartment system
-        # A constant Fw = a closed system with constant permeability
-        # A constant init = same init in all compartments
+        # --- Check formatting of Fw
+        # Special case: In a multicompartment system, a constant 
+        # Fw = a closed system with constant permeability.
+        Fw = np.atleast_1d(Fw)
         if nc > 1:
             if Fw.size==1:
                 Fw = np.full((nc, nc), Fw[0])
                 np.fill_diagonal(Fw, 0)
-
-        # Find nt from the size of R1 (nc, nt)
-        R1 = R1.reshape(nc, -1)
-        nt = R1.shape[1]
-
-        # Reshape others inputs to standard shape
-        v = v.reshape(nc)
-        j = j.reshape(nc, nt)
+        if Fw.size != nc * nc:
+            raise ValueError("For an n-compartment tissue, Fw must have shape (n, n).")
         Fw = Fw.reshape(nc, nc)
+        
+        # Reshape R1 to (nc, nt) and derive nt
+        R1 = np.atleast_1d(R1)
+        if nc > 1:
+            if R1.size > nc:
+                if R1.ndim != 2:
+                    raise ValueError("For a tissue with nc compartments and nt time points, R1 must have shape (nc, nt).")
+                if R1.shape[0] != nc:
+                    raise ValueError("For a tissue with nc compartments and nt time points, R1 must have shape (nc, nt).")
+                nt = R1.shape[1]
+            else:
+                nt = 1
+        else:
+            nt = R1.size
+        R1 = R1.reshape(nc, nt)
 
-        if 'n_init' in params:
-            n_init = np.atleast_1d(params['n_init']) # One value per compartment
-            if nc > 1:
-                if n_init.size==1:
-                    n_init = np.full(nc, n_init[0])
-            params['n_init'] = n_init.reshape(nc)
+        # Reshape influx to standard shape
+        j = np.atleast_1d(j)
+        if j.size != nc * nt:
+            raise ValueError('For a tissue with nc compartments and nt time points, the influx j must have shape (nc, nt).')
+        j = j.reshape(nc, nt)
 
         # Delegate computation in standard form to helper functions
-        if sequence =='free':
-            Mz = _Mz_free(R1, v, Fw, j, me, params['n_init'], params['TC'])
-        elif sequence == 'SS':
-            Mz = _Mz_ss(R1, v, Fw, j, me, params['TR'], params['FA'])
-        elif sequence == 'SPGR':
-            Mz = _Mz_spgr(R1, v, Fw, j, params['n_init'], me, params['TC'], params['TR'], params['FA'], params['TP']) 
+        sequence = self._cnfg['sequence']
+        if sequence == 'SS':
+            Mz = _Mz_spgr_in_ss(R1, v, Fw, j, me, p['TR'], p['FA'])
         elif sequence == 'SR':
-            Mz = _Mz_spgr(R1, v, Fw, j, 0, me, params['TC'], params['TR'], params['FA'], params['TP']) 
+            Mz = _Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'], p['TP'], p['TA'], 90) 
         elif sequence == 'IR':
-            Mz = _Mz_spgr(R1, v, Fw, j, -1, me, params['TC'], params['TR'], params['FA'], params['TP'])
+            Mz = _Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'], p['TP'], p['TA'], 180)
+        elif sequence == 'PR':
+            Mz = _Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'], p['TP'], p['TA'], p['PA']) 
+        elif sequence == 'SPGR':
+            Mz = _Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'], p['TP'], p['TA'], p['PA']) 
         elif sequence == 'SSI':
-            Mz = _Mz_spgr(R1, v, Fw, j, 1, me, params['TF'], params['TR'], params['FA'], 0)
-        elif sequence == 'None':
+            Mz = _Mz_ssi(R1, v, Fw, j, me, p['TR'], p['FA'], p['TF'], p['SA'])
+        elif sequence == 'GE-EPI':
+            Mz = _Mz_ge(R1, v, Fw, j, me, p['TE'], p['TR'], p['FA'])
+        elif sequence == 'SE-EPI':
+            Mz = _Mz_se(R1, v, Fw, j, me, p['TE'], p['TR'], p['FA'])
+        elif sequence == 'None': 
             Mz = np.full_like(R1, me)
 
         # Return result in original shape
@@ -218,185 +250,118 @@ class Mz:
         else:
             return Mz.reshape(input_shape)
 
-
-
-def _Mz_free(R1: np.ndarray, v: np.ndarray, Fw, j:np.ndarray, me, n_init, T):
-
+    
+def _Mz_spgr_in_ss(R1, v, Fw, j, me, TR, FA) -> np.ndarray:
+    """Spoiled gradient echo sequence in steady state"""
     nc, nt = R1.shape
-        
-    # One compartment
 
-    if nc==1:
+    M = [mz_lib.Mz_ss_spgr(R1[:,t], v, Fw, j[:,t], me, TR, FA) for t in range(nt)]
+    return np.array(M).T.reshape(nc, nt)
 
-        # 1. Compute K and M0 for all t simultaneously
-        K = R1 + Fw[0,0] / v
-        M0 = n_init * me * v
-        
-        # 2. Compute J and E
-        J = (R1 * v + j) * me
-        E = np.exp(-T * K)
-        Kinv = np.divide(1.0, K, out=np.zeros_like(K, dtype=float), where=K != 0)
-        M = E * M0 + (1 - E) * Kinv * J
-        return M
 
-    # Multiple compartments
+def _Mz_pr_spgr(R1, v, Fw, j, me, TC, TR, FA, TP, TA, PA): 
+    """This models SPGR with a preparation pulse and linear k-space ordering
 
-    Id = np.eye(nc)
-    M0 = n_init * me * v
+    - A preparation pulse PA at the start of each time interval, 
+    - Free recovery over a time TP
+    - FA readout pulses separated by TR for a duration of 2 * (TC-TP)
+    - Free recovery until the start of the next time interval. 
+    - And a readout at time TC after the preparation pulse.
 
-    # --- Single Time Point (R1t is 1D) ---
-    def mfree(R1t, jt):
-        K = _Mz_K(R1t, v, Fw)
-        J = (R1t * v + jt) * me
-        E = expm(-T * K)
-        KinvJ = np.linalg.solve(K, J)
-        M = E @ M0 + (Id - E) @ KinvJ
-        return M        
-
-    M = [mfree(R1[:,t].T, j[:,t].T) for t in range(nt)]
-    
-    return np.array(M).T
-
-    
-def _Mz_ss(R1: np.ndarray, v: np.ndarray, Fw, j: np.ndarray, me, TR, FA) -> np.ndarray:
+    R1 is assumed to be constant on each time interval.
+    """
     nc, nt = R1.shape
+    Mt = v * me
+
+    M = []
+    for k in range(nt):
+        M_sig, Mt = mz_lib.Mz_pr_spgr_prop(Mt, R1[:,k].T, v, Fw, j[:,k].T, me, PA, TP, TC, TR, FA, TA)
+        M.append(M_sig)
     
-    # One compartment
-    if nc==1:
-        M = [me * _Nz_ss_1c(R1[0,t], v, Fw[0,0], j[0,t], TR, FA) for t in range(nt)]
-
-    # Multiple compartments 
-    else:
-        M = [me * _Nz_ss(R1[:,t], v, Fw, j[:,t], TR, FA) for t in range(nt)]
-    
-    M = np.array(M).reshape(nc, nt) 
-    return M  
+    return np.array(M).T.reshape(nc, nt)
 
 
-def _Mz_spgr(R1, v, Fw, j, n_init, me, T, TR, FA, TP): 
+def _Mz_pr_spgr_in_ss(R1, v, Fw, j, me, TC, TR, FA, TP, TA, PA):
+    """This models SPGR with a preparation pulse and linear k-space ordering
+    running in the steady state
 
+    R1 is assumed to be constant on each time interval.
+    """
     nc, nt = R1.shape
-    Id = np.eye(nc)
-    M0 = n_init * v * me
 
-    # One compartment
-    if nc==1:
-        def mz_spgr(R1t, jt):
-            nx = T/TR
-            ncFA = np.cos(np.radians(FA))**nx
-            Mss = me * _Nz_ss_1c(R1t, v, Fw[0,0], jt, TR, FA)
-            K = _Mz_K(R1t, v, Fw)
-            if TP > 0:
-                EP = np.exp(-TP * K)
-                J = (R1t * v + jt) * me
-                Kinv = np.zeros_like(K, dtype=float)
-                Kinv = np.divide(1.0, K, out=Kinv, where=K != 0)
-                M0t = EP * M0 + (1 - EP) * Kinv * J
-            else:
-                M0t = M0
-            E = np.exp(-T * K)
-            return Mss + ncFA * E * (M0t - Mss)
-        
-        M = [mz_spgr(R1[0,t], j[0,t]) for t in range(nt)]
-        return np.array(M).reshape(nc, nt)
-
-    # Multiple compartments  
-    def mz_spgr_nc(R1t, jt):
-        nx = T/TR
-        ncFA = np.cos(np.radians(FA))**nx
-        Mss = me * _Nz_ss_aex(R1t, v, Fw, jt, TR, FA)
-        K = _Mz_K(R1t, v, Fw)
-        if TP > 0:
-            EP = expm(-TP * K)
-            J = (R1t * v + jt) * me
-            KinvJ = np.linalg.solve(K, J)
-            M0t = EP @ M0 + (Id - EP) @ KinvJ
-        else:
-            M0t = M0
-        E = expm(-T * K)
-        return Mss + ncFA * E @ (M0t - Mss)
-
-    M = [mz_spgr_nc(R1[:,t], j[:,t]) for t in range(nt)]
-    return np.array(M).T
-
-
-
-### HELPERS
-
-
-def _Nz_ss_1c(R1, v, Fw, j, TR, FA):
-    K = R1 + Fw/v if v > 0 else R1
-    J = R1 * v + j
-    E = np.exp(-TR * K)
-    cFA = np.cos(FA*np.pi/180)
-    n = (1-E) / (1-cFA*E)
-    if K==0:
-        return n
-    else:
-        return n * J/K
-
-
-def _Nz_ss(R1, v, Fw, j, TR, FA):   
-    off_diag = ~np.eye(Fw.shape[0], dtype=bool)
-    PSw = Fw[off_diag]
-
-    if np.all(PSw == 0):
-        return _Nz_ss_nex(R1, v, Fw, j, TR, FA)
+    M = []
+    for k in range(nt):
+        Mss = mz_lib.Mz_pr_spgr_ss(R1[:,k].T, v, Fw, j[:,k].T, me, PA, TP, TC, TR, FA, TA)
+        M_sig, _ = mz_lib.Mz_pr_spgr_prop(Mss, R1[:,k].T, v, Fw, j[:,k].T, me, PA, TP, TC, TR, FA, TA)
+        M.append(M_sig)    
     
-    elif np.all(np.isinf(PSw)):
-        return _Nz_ss_fex(R1, v, Fw, j, TR, FA)
-    
-    elif 0 < np.count_nonzero(np.isinf(PSw)):
-        raise NotImplementedError(
-            'Water exchange with some (but not all) infinite PS '
-            'values is currently not implemented.')
-    else:
-        return _Nz_ss_aex(R1, v, Fw, j, TR, FA)
+    return np.array(M).T.reshape(nc, nt)
 
 
-def _Nz_ss_fex(R1, v, Fw, j, TR, FA):
-    R1 = np.sum(v * R1) / np.sum(v)
-    fo = np.diag(Fw)
-    N = _Nz_ss_1c(R1, np.sum(v), np.sum(fo), np.sum(j), TR, FA)
-    Nc = [N * vc / np.sum(v) for vc in v]
-    return np.stack(Nc)
+def _Mz_ssi(R1, v, Fw, j, me, TR, FA, TF, SA): 
+    """This models steady-state imaging with inflow effects
 
-def _Nz_ss_nex(R1, v, Fw, j, TR, FA):
-    nc = v.size
-    fo = np.diag(Fw)
-    Nc = [_Nz_ss_1c(R1[c], v[c], fo[c], j[c], TR, FA) for c in range(nc)]
-    return np.stack(Nc) 
+    - Initial magnetization determined by saturation slabs outside the imaging volume. Without slabs, n_init=1 
+    - FA readout pulses separated by TR for a duration of TF (inflow time)
 
-def _Nz_ss_aex(R1, v, Fw, j, TR, FA):
-    K = _Mz_K(R1, v, Fw)
-    J = R1 * v + j
-    E = expm(-TR * K)
-    I = np.eye(R1.size)
+    Each readout starts the same - no build=up effects
+
+    R1 is assumed to be constant on each time interval.
+    """
+    nc, nt = R1.shape
     cFA = np.cos(np.radians(FA))
+    n = np.floor(TF / TR) # n pulses to readout
+    nFA = cFA**n
+    cSA = np.cos(np.radians(SA))
+    M0 = cSA * v * me
 
-    # A = K @ (I - cos(FA) * E)
-    A = K @ (I - cFA * E)
-    
-    # solve(A, B) is better than dot(inv(A), B)
-    return np.linalg.solve(A, (I - E) @ J)  
+    def _Mz_ssi_prop(R1_t, j_t):
+        K_t = mz_lib.Mz_K(R1_t, v, Fw)
+        Mss_t = mz_lib.Mz_ss_spgr(R1_t, v, Fw, j_t, me, TR, FA)
+        # FA-pulses until time TF to get the readout
+        if nc==1:
+            En_t = np.exp(-TF * K_t)
+            M_sig_t = Mss_t + nFA * En_t * (M0 - Mss_t)
+        else:
+            En_t = expm(-TF * K_t)
+            M_sig_t = Mss_t + nFA * En_t @ (M0 - Mss_t)           
+        return M_sig_t
 
-def _Mz_K(R1, v, Fw):
-    nc = v.size
-    # Case 1: Single Compartment
-    if nc==1:
-        return R1 + Fw / v
+    M = [_Mz_ssi_prop(R1[:,k].T, j[:,k].T) for k in range(nt)]
+    return np.array(M).T.reshape(nc, nt)
 
-    # Case 2: Multi-Compartment
-    # Off-diagonal elements: -Fw[row, col] / v[col]
-    K = -Fw / v
 
-    # Diagonal elements: R1[i] + (Sum of water leaving i) / v[i]
-    # Summing axis=0 gives the total flow out of each compartment (the columns)
-    total_outflow = np.sum(Fw, axis=0)
-    diag_elements = R1 + total_outflow / v
-    
-    # Overwrite the diagonal of our K matrix
-    np.fill_diagonal(K, diag_elements)
-    
-    return K
-    
+def _Mz_ge(R1, v, Fw, j, me, TE, TR, FA): 
+    """Mz for one slice in a GE-EPI sequence
+    """
+    nc, nt = R1.shape
+    pulse = [[FA, TR]]
+    read = [[FA, TE]]
+
+    def _Mz_ge_t(R1_t, j_t):
+        # Compute steady state
+        Mss_t = mz_lib.Mz_ss(R1_t, v, Fw, j_t, me, pulse)
+        # Compute Mz at signal collection
+        M_sig_t = mz_lib.Mz_prop(Mss_t, R1_t, v, Fw, j_t, me, read)
+        return M_sig_t
+
+    M = [_Mz_ge_t(R1[:,k].T, j[:,k].T) for k in range(nt)]
+    return np.array(M).T.reshape(nc, nt)
+
+
+def _Mz_se(R1, v, Fw, j, me, TE, TR, FA): 
+    """Mz for one slice in a GE-EPI sequence
+    """
+    nc, nt = R1.shape
+    pulse = [[FA, TE / 2], [180, TR - TE/2]]
+    read = [[FA, TE]]
+
+    def _Mz_se_t(R1_t, j_t):
+        # Compute steady state
+        Mss_t = mz_lib.Mz_ss(R1_t, v, Fw, j_t, me, pulse)
+        # Compute Mz at signal collection
+        M_sig_t = mz_lib.Mz_prop(Mss_t, R1_t, v, Fw, j_t, me, read)
+        return M_sig_t
+
+    M = [_Mz_se_t(R1[:,k].T, j[:,k].T) for k in range(nt)]
+    return np.array(M).T.reshape(nc, nt)

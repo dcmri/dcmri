@@ -1,6 +1,29 @@
 import numpy as np
 
 
+# class R1:
+#     def __init__(self):
+#         self._pars = {}
+
+#     def params(self):
+#         return ['R10', 'r1']
+
+#     def __call__(self, c: np.ndarray, R10: np.ndarray, **params):
+#         # Override model parameters
+#         [self._pars.update({p:v}) for p, v in params.items() if p in self.params()]
+
+#         # Shape either 1D (nt) or 2D (nsamples, nt)
+#         c = np.atleast_1d(c) 
+#         R10 = np.array(R10)
+
+#         if c.dim==1:
+#             R1 = R10 + self._pars['r1'] * c
+#         elif c.ndim==2:
+#             R1 = R10[:, np.newaxis] + self._pars['r1'] * c
+
+#         return R1
+
+
 def c_lin(R1, r1) -> np.ndarray:
     """Derive concentrations from relaxation rates using a linear relationship.
 

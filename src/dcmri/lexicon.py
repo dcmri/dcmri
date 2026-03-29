@@ -1,3 +1,5 @@
+from types import MappingProxyType
+
 import numpy as np
 
 from dcmri import pk_aorta
@@ -11,13 +13,17 @@ ca_init = pk_aorta.aif_tristan(t_init, agent='gadodiamide', BAT=20)
 cv_init = pk.flux_pfcomp(ca_init, 10, 0.5)
 
 
-LEXICON = {
+LEXICON = MappingProxyType(  # This makes the dict immutable
+    {
+        
     # ---- Simulation parameters ---
     'dose_tolerance': {'init': 0.1, 'name': 'Dose tolerance', 'unit': ''},
     'tmax': {'init': tmax_init, 'name': 'Max time', 'unit': 's'},
 
     # --- Injection & Contrast Agent ---
-    'r1': {'init': 0.005, 'name': 'Contrast agent relaxivity', 'unit': 'Hz/M'},
+    'r1': {'init': 3500, 'name': 'Longitudinal contrast agent relaxivity', 'unit': 'Hz/M'},
+    'r2': {'init': 4000, 'name': 'Transverse contrast agent relaxivity', 'unit': 'Hz/M'},
+    'r2s': {'init': 35000, 'name': 'Transverse contrast agent relaxivity', 'unit': 'Hz/M'},
     'agent': {'init': 'gadoterate', 'name': 'Contrast agent', 'unit': None},
     'weight': {'init': 70, 'name': 'Weight', 'unit': 'kg'},
     'dose': {'init': 0.1, 'name': 'Dose', 'unit': 'mL/kg'},
@@ -48,15 +54,18 @@ LEXICON = {
     'B1corr_2_a': {'init': 1, 'bounds': [0, 5], 'name': 'Arterial B1-correction factor of a second scan', 'unit': ''},
     'B1corr_2_l': {'init': 1, 'bounds': [0, 5], 'name': 'Liver B1-correction factor of a second scan', 'unit': ''},
     'FAcorr': {'name': 'B1-corrected Flip Angle', 'unit': 'deg'},
+    'SA': {'init': 0, 'bounds': [0, 180], 'name': 'Saturation Slab Flip Angle', 'unit': 'deg'},
+    'PA': {'init': 90, 'bounds': [0, 180], 'name': 'Preparation Pulse Flip Angle', 'unit': 'deg'},
     'FA': {'init': 15, 'bounds': [0, 180], 'name': 'Flip angle', 'unit': 'deg'},
     'FAR': {'init': 15, 'bounds': [0, 180], 'name': 'Readout flip angle', 'unit': 'deg'},
     'FA2': {'init': 15.0, 'bounds': [0.0, 180], 'name': 'Second flip angle', 'unit': 'deg'},
     'TR': {'init': 0.005, 'name': 'Repetition time', 'unit': 'sec'},
     'TC': {'init': 0.2, 'name': 'Time to k-space center', 'unit': 'sec'},
     'TP': {'init': 0.05, 'name': 'Preparation delay', 'unit': 'sec'},
-    'TE': {'init': 0., 'name': 'Echot time', 'unit': 'sec'},
+    'TE': {'init': 0.005, 'name': 'Echo time', 'unit': 'sec'},
+    'TA': {'init': 2.0, 'name': 'Acquisition time', 'unit': 'sec'},
     'TS': {'init': 0, 'name': 'Sampling time', 'unit': 'sec'},
-    'n_init': {'init': 0, 'name': 'Initial relative magnetization', 'unit': ''},
+    'n_init': {'init': 1, 'name': 'Initial relative magnetization', 'unit': ''},
 
     # Water kinetics
     'PSe': {'init': 0.03, 'bounds': [0, 100], 'name': 'Transendothelial water PS', 'unit': 'mL/sec/cm3'},
@@ -201,4 +210,5 @@ LEXICON = {
     'S0_v': {'init': 1.0, 'bounds': [0, 5], 'name': 'Portal venous signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
     'S0_lk': {'init': 1.0, 'bounds': [0, 5], 'name': 'Left kidney signal scaling factor', 'unit': 'a.u.'},
     'S0_rk': {'init': 1.0, 'bounds': [0, 5], 'name': 'Right kidney signal scaling factor', 'unit': 'a.u.'},
-}
+    }
+)

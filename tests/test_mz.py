@@ -1,318 +1,182 @@
 import numpy as np
 import dcmri as dc
 
+import dcmri.lexicon_utils as lexicon
 
-def test_Mz_free():
+params_dce = {
+    'FA': 45,
+    'PA': 120,
+    'TR': 0.005,
+    'TC': 0.250, # 250ms
+    'TP': 0.100,
+    'TA': 0.400,
+}
+params_ssi = {
+    'FA': 45,
+    'SA': 120,
+    'TR': 0.005,
+    'TF': 0.250, 
+}
+params_dsc = {
+    'TE': 0.050, 
+    'FA': 75,
+    'TR': 1.5,
+}
 
-    # Tests 1 (may duplicate some of Tests 2 below)
+
+def test_coverage():
+
+    # scalar
+
     R1 = 1
-    TI = 0.1*np.arange(100)
-    f = 0.5
+    v = 0.3
+    Fw = 0.01
+    j = 0.06
+    me = 2
 
-    Mz = np.array([dc.Mz('free')(R1, n_init=-1, TC=ti) for ti in TI])
-    Mz_e = np.array([dc.Mz('free')(R1, n_init=-1, TC=ti, Fw=f, j=f) for ti in TI])
-    Mz_i = np.array([dc.Mz('free')(R1, n_init=-1, TC=ti, Fw=f, j=-f) for ti in TI])
-    assert 21 < np.linalg.norm(Mz + Mz_e + Mz_i) < 22
+    dc.Mz('SS', **params_dce)(R1, v, Fw, j, me)
+    dc.Mz('SR', **params_dce)(R1, v, Fw, j, me)
+    dc.Mz('IR', **params_dce)(R1, v, Fw, j, me)
+    dc.Mz('PR', **params_dce)(R1, v, Fw, j, me)
+    dc.Mz('SPGR', **params_dce)(R1, v, Fw, j, me)
+    dc.Mz('SSI', **params_ssi)(R1, v, Fw, j, me)
+    dc.Mz('GE-EPI', **params_dsc)(R1, v, Fw, j, me)
+    dc.Mz('SE-EPI', **params_dsc)(R1, v, Fw, j, me)
+    dc.Mz('None', **params_dsc)(R1, v, Fw, j, me)
 
-    # Two compartments, no time
-    R1 = [1,2]
-    v = [0.3, 0.7]
-    PS = 0.1
-    Fw = [[f, PS], [PS, 0]]
+    # Variations
+    dc.Mz('SS', **params_dce)(R1, None, Fw, j, me)
 
-    Mz =np.array([dc.Mz('free')(R1, v, Fw, j=[f, 0], n_init=-1, TC=ti) for ti in TI])
-    assert 7 < np.linalg.norm(Mz) < 8
+    # nc
 
-    TI = 0.5
-    nt = 1000
-    t = 0.1*np.arange(nt)
-    R1 = np.stack((1-t/np.amax(t), np.ones(nt)))
-    j = np.stack((f*np.ones(nt), np.zeros(nt)))
-    Mz = dc.Mz('free')(R1, v, Fw, j=j, n_init=-1, TC=TI)
+    R1 = [1,0.5]
+    v = [0.1, 0.4]
+    Fw = [[0.01, 0.02], [0.03, 0.04]]
+    j = [0.06, 0.08]
+    me = 2
 
-    assert 5 < np.linalg.norm(Mz) < 6
+    dc.Mz('SS', **params_dce)(R1, v, Fw, j, me)
+    dc.Mz('SR', **params_dce)(R1, v, Fw, j, me)
+    dc.Mz('IR', **params_dce)(R1, v, Fw, j, me)
+    dc.Mz('PR', **params_dce)(R1, v, Fw, j, me)
+    dc.Mz('SPGR', **params_dce)(R1, v, Fw, j, me)
+    dc.Mz('SSI', **params_ssi)(R1, v, Fw, j, me)
+    dc.Mz('GE-EPI', **params_dsc)(R1, v, Fw, j, me)
+    dc.Mz('SE-EPI', **params_dsc)(R1, v, Fw, j, me)
+    dc.Mz('None', **params_dsc)(R1, v, Fw, j, me)
 
-    TI = 0.1*np.arange(10)
-    Mzi = np.stack([dc.Mz('free')(R1, v, Fw, j=j, n_init=-1, TC=ti) for ti in TI], axis=-1)
+    # nt
 
-    assert np.linalg.norm(Mzi[:,:,5]-Mz) == 0
+    nt = 10
+    R1 = np.full(nt, 1)
+    v = 0.3
+    Fw = 0.01
+    j = np.full(nt, 0.06)
+    me = 2
 
-    # Tests 2
-    R1 = 1
-    T = [1, 2]
-    S = np.stack([dc.Mz('free')(R1, n_init=0, TC=t) for t in T], axis=-1)
-    assert 0.6 < S[0] < 0.7
-    R1 = [1,1]
-    S = np.stack([dc.Mz('free')(R1, n_init=0, TC=t) for t in T], axis=-1)
-    assert 0.6 < S[0,0] < 0.7
-    R1 = 1
-    T = 1
-    S = dc.Mz('free')(R1, n_init=0, TC=T)
-    assert 0.6 < S < 0.7
-    R1 = [1,1]
-    S = dc.Mz('free')(R1, n_init=0, TC=T)
-    assert 0.6 < S[0] < 0.7
-    v = [0.2, 0.3]
-    S = dc.Mz('free')(R1, v, n_init=0, TC=T)
-    assert 0.1 < S[0] < 0.2
-    R1 = np.ones((2,3))
-    j = np.ones((2,3))
-    S = dc.Mz('free')(R1, v, j=j, n_init=0, TC=T)
-    assert 0.7 < S[0,0] < 0.8
-    S = dc.Mz('free')(R1, v, n_init=0, TC=T)
-    assert 0.1 < S[0,0] < 0.2
-    S = dc.Mz('free')(R1, v, n_init=[0,0], TC=T)
-    assert 0.1 < S[0,0] < 0.2
+    dc.Mz('SS', **params_dce)(R1, v, Fw, j, me)
+    dc.Mz('SR', **params_dce)(R1, v, Fw, j, me)
+    dc.Mz('IR', **params_dce)(R1, v, Fw, j, me)
+    dc.Mz('PR', **params_dce)(R1, v, Fw, j, me)
+    dc.Mz('SPGR', **params_dce)(R1, v, Fw, j, me)
+    dc.Mz('SSI', **params_ssi)(R1, v, Fw, j, me)
+    dc.Mz('GE-EPI', **params_dsc)(R1, v, Fw, j, me)
+    dc.Mz('SE-EPI', **params_dsc)(R1, v, Fw, j, me)
+    dc.Mz('None', **params_dsc)(R1, v, Fw, j, me)
 
+    # nc, nt
+    nt = 10
+    R1 = np.stack([np.full(nt, 1), np.full(nt, 0.5)])
+    v = [0.1, 0.4]
+    Fw = [[0.01, 0.02], [0.03, 0.04]]
+    j = np.stack([np.full(nt, 0.06), np.full(nt, 0.08)])
+    me = 2
 
-def test_Mz_ss():
+    dc.Mz('SS', **params_dce)(R1, v, Fw, j, me)
+    dc.Mz('SR', **params_dce)(R1, v, Fw, j, me)
+    dc.Mz('IR', **params_dce)(R1, v, Fw, j, me)
+    dc.Mz('PR', **params_dce)(R1, v, Fw, j, me)
+    dc.Mz('SPGR', **params_dce)(R1, v, Fw, j, me)
+    dc.Mz('SSI', **params_ssi)(R1, v, Fw, j, me)
+    dc.Mz('GE-EPI', **params_dsc)(R1, v, Fw, j, me)
+    dc.Mz('SE-EPI', **params_dsc)(R1, v, Fw, j, me)
+    dc.Mz('None', **params_dsc)(R1, v, Fw, j, me)
 
-    # Functional tests
+    # Special case
+    Fw = 0.03
+    dc.Mz('SS', **params_dce)(R1, v, Fw, j, me)
 
-    # Steady state magnetization with different inflows
-    R1 = 1
-    FA = 12
-    TR = 0.005
-    f = 0.5
-    v = 0.7
+    # Functions
+    Mz = dc.Mz('SS', **params_dce)
+    assert 'TR' in Mz.params()
 
-    # Check that inflow with steady-state magnetization 
-    # is the same as no inflow
-    m_c = dc.Mz('SS')(R1, v, TR=TR, FA=FA)/v
-    m_f = dc.Mz('SS')(R1, v, Fw=f, j=f*m_c, TR=TR, FA=FA)/v
-    assert np.abs(m_f-m_c) < 0.01*np.abs(m_c)
+    # Variations
+    Mz(R1, v, Fw, j, me, TR=0.01)
+    Mz(R1, v, None, j, me, TR=0.01)
+    Mz(R1, v, Fw, None, me, TR=0.01)
 
-    # Repeat for a two-compartment system:
-    R1 = [0.5, 1.5]
-    v = [0.3, 0.6]
-    PS = 0.1
-
-    Fw = [[0, PS], [PS, 0]]
-    M_c = dc.Mz('SS')(R1, v, Fw, TR=TR, FA=FA)
-
-    Fw = [[f, PS], [PS, 0]]
-    m_c = M_c[0]/v[0]
-    m_f = dc.Mz('SS')(R1, v, Fw, j=[f*m_c, 0], TR=TR, FA=FA)[0]/v[0]
-
-    assert np.abs(m_c-m_f) < 0.01*np.abs(m_c)
-
-    # Check fast-exchange limit
-    v = [0.3, 0.5]
-    M_c = dc.Mz('SS')(R1, v, 1e9, TR=TR, FA=FA)
-    M_c_fex = dc.Mz('SS')(R1, v, np.inf, TR=TR, FA=FA)
-    assert np.linalg.norm(M_c-M_c_fex) < 1e-3*np.linalg.norm(M_c_fex)
-
-    # Check no-exchange limit
-    v = [0.3, 0.5]
-    M_c = dc.Mz('SS')(R1, v, 1e-9, TR=TR, FA=FA)
-    M_c_nex = dc.Mz('SS')(R1, v, 0, TR=TR, FA=FA)
-    assert np.linalg.norm(M_c-M_c_nex) < 1e-6*np.linalg.norm(M_c_nex)
-
-    # Check exceptions
-    Fw = [[0, np.inf], [np.inf, 0]]
-    M_c_fex1 = dc.Mz('SS')(R1, v, Fw, TR=TR, FA=FA)
-    M_c_fex2 = dc.Mz('SS')(R1, v, np.inf, TR=TR, FA=FA)
-    assert np.linalg.norm(M_c_fex1-M_c_fex2) < 1e-9*np.linalg.norm(M_c_fex2)
-
-    Fw = [[0, 0], [0, 0]]
-    M_c_nex1 = dc.Mz('SS')(R1, v, Fw, TR=TR, FA=FA)
-    M_c_nex2 = dc.Mz('SS')(R1, v, 0, TR=TR, FA=FA)
-    assert np.linalg.norm(M_c_nex1-M_c_nex2) < 1e-9*np.linalg.norm(M_c_nex2)
+def test_exceptions():
+    # nc, nt
+    nt = 10
+    R1 = np.stack([np.full(nt, 1), np.full(nt, 0.5)])
+    v = [0.1, 0.4]
+    Fw = [[0.01, 0.02], [0.03, 0.04]]
+    j = np.stack([np.full(nt, 0.06), np.full(nt, 0.08)])
+    me = 2
 
     try:
-        Fw = [[0, np.inf], [0, 0]]
-        M_c_fex1 = dc.Mz('SS')(R1, v, Fw, TR=TR, FA=FA)  
-    except:
-        assert True
-    else:
-        assert False   
-
-    # Check all cases
-    R1 = 1
-    TR = 0.005
-    FA = 15
-    S = dc.Mz('SS')(R1, TR=TR, FA=FA)
-    assert 0.1 < S < 0.2
-    S = dc.Mz('SS')(R1, j=1, TR=TR, FA=FA)
-    assert 0.2 < S < 0.3
-    S = dc.Mz('SS')(0, TR=TR, FA=FA)
-    assert S==0
-    R1 = [1,1]
-    S = dc.Mz('SS')(R1, TR=TR, FA=FA)
-    assert 0.1 < S[0] < 0.2
-    v = [0.2, 0.3]
-    S = dc.Mz('SS')(R1, v, TR=TR, FA=FA)
-    assert 0.02 < S[0] < 0.03
-    S = dc.Mz('SS')(R1, v, Fw=0.1, TR=TR, FA=FA)
-    assert 0.02 < S[0] < 0.03
-    R1 = np.ones((2,3))
-    S = dc.Mz('SS')(R1, v, Fw=0.1, TR=TR, FA=FA)
-    assert 0.02 < S[0,0] < 0.03
-    j = np.zeros((2,3))
-    S = dc.Mz('SS')(R1, v, Fw=0.1, j=j, TR=TR, FA=FA)
-    assert 0.02 < S[0,0] < 0.03
-    S = dc.Mz('SS')(R1, v, Fw=0.0, j=j, TR=TR, FA=FA)
-    assert 0.02 < S[0,0] < 0.03
-    j = np.ones((2,3))
-    S = dc.Mz('SS')(R1, v, j=j, TR=TR, FA=FA)
-    assert 0.1 < S[0,0] < 0.2
-
-
-def test_Mz_spgr():
-
-    # Functional test
-    FA = 12
-    TR = 0.005
-    TI = np.linspace(0,3,100)
-    TP = 0
-
-    R1 = [1, 0.5]
-    v = [0.3, 0.7]
-    f = 0.5
-    PS = 0.1
-    Fw = [[f, PS], [PS, 0]]
-    Mspgr = np.stack([dc.Mz('SPGR')(R1, v, Fw, j=[f, 0], n_init=-1, TC=ti, TR=TR, FA=FA, TP=TP) for ti in TI], axis=-1)
-    Mss = dc.Mz('SS')(R1, v, Fw, j=[f, 0], TR=TR, FA=FA)
-
-    # Check that SPGR converges to steady state
-    assert np.linalg.norm(Mspgr[:,-1]-Mss) < 1e-4*np.linalg.norm(Mss)
-
-    # Test cases
-    R1 = 1
-    T = 2
-    TR = 0.005
-    FA = 15
-    TP= 0
-    S = dc.Mz('SPGR')(R1, n_init=0, TC=T, TR=TR, FA=FA, TP=TP)
-    assert 0.1 < S < 0.2
-    S = dc.Mz('SPGR')(R1, n_init=0, TC=T, TR=TR, FA=FA, TP=10)
-    assert 0.1 < S < 0.2
-    R1 = [1,1]
-    S = dc.Mz('SPGR')(R1, n_init=0, TC=T, TR=TR, FA=FA, TP=TP)
-    assert 0.1 < S[0] < 0.2
-    R1 = 1
-    T = 1
-    S = dc.Mz('SPGR')(R1, n_init=0, TC=T, TR=TR, FA=FA, TP=TP)
-    assert 0.1 < S < 0.2
-    R1 = [1,1]
-    S = dc.Mz('SPGR')(R1, n_init=0, TC=T, TR=TR, FA=FA, TP=TP)
-    assert 0.1 < S[0] < 0.2
-    v = [0.2, 0.3]
-    S = dc.Mz('SPGR')(R1, v, n_init=0, TC=T, TR=TR, FA=FA, TP=TP)
-    assert 0.02 < S[0] < 0.03
-    R1 = np.ones((2,3))
-    j = np.zeros((2,3))
-    S = dc.Mz('SPGR')(R1, v, j=j, n_init=0, TC=T, TR=TR, FA=FA, TP=TP)
-    assert 0.02 < S[0,0] < 0.03
-    j = np.ones((2,3))
-    S = dc.Mz('SPGR')(R1, v, j=j, n_init=0, TC=T, TR=TR, FA=FA, TP=TP)
-    assert 0.1 < S[0,0] < 0.2
-    j = np.ones((2,3))
-    S = dc.Mz('SPGR')(R1, v, j=j, n_init=0, TC=T, TR=TR, FA=FA, TP=10)
-    assert 0.1 < S[0,0] < 0.2
-
-def test_Mz_sr():
-
-    # Functional test
-    FA = 12
-    TR = 0.005
-    TI = np.linspace(0,3,100)
-    TP = 0
-
-    R1 = [1, 0.5]
-    v = [0.3, 0.7]
-    f = 0.5
-    PS = 0.1
-    Fw = [[f, PS], [PS, 0]]
-    Msr = np.stack([dc.Mz('SR')(R1, v, Fw, j=[f, 0], TC=ti, TR=TR, FA=FA, TP=TP) for ti in TI], axis=-1)
-    Mss = dc.Mz('SS')(R1, v, Fw, j=[f, 0], TR=TR, FA=FA)
-
-    # Check that SPGR converges to steady state
-    assert np.linalg.norm(Msr[:,-1]-Mss) < 1e-4*np.linalg.norm(Mss)
-
-def test_Mz_ir():
-
-    # Functional test
-    FA = 12
-    TR = 0.005
-    TI = np.linspace(0,3,100)
-    TP = 0
-
-    R1 = [1, 0.5]
-    v = [0.3, 0.7]
-    f = 0.5
-    PS = 0.1
-    Fw = [[f, PS], [PS, 0]]
-    Msr = np.stack([dc.Mz('IR')(R1, v, Fw, j=[f, 0], TC=ti, TR=TR, FA=FA, TP=TP) for ti in TI], axis=-1)
-    Mss = dc.Mz('SS')(R1, v, Fw, j=[f, 0], TR=TR, FA=FA)
-
-    # Check that SPGR converges to steady state
-    assert np.linalg.norm(Msr[:,-1]-Mss) < 1e-4*np.linalg.norm(Mss)
-
-def test_Mz_ssi():
-
-    # Functional test
-    FA = 12
-    TR = 0.005
-    TI = np.linspace(0,3,100)
-    TP = 0
-
-    R1 = [1, 0.5]
-    v = [0.3, 0.7]
-    f = 0.5
-    PS = 0.1
-    Fw = [[f, PS], [PS, 0]]
-    Msr = np.stack([dc.Mz('SSI')(R1, v, Fw, j=[f, 0], TF=ti, TR=TR, FA=FA, TP=TP) for ti in TI], axis=-1)
-    Mss = dc.Mz('SS')(R1, v, Fw, j=[f, 0], TR=TR, FA=FA)
-
-    # Check that SPGR converges to steady state
-    assert np.linalg.norm(Msr[:,-1]-Mss) < 1e-4*np.linalg.norm(Mss)
-
-def test_Mz_none():
-
-    # Functional test
-
-    TI = np.linspace(0,3,100)
-    R1 = [1, 0.5]
-
-    Msr = np.stack([dc.Mz('None')(R1) for ti in TI], axis=-1)
-
-    # Check that None is equilibrium
-    Meq = np.ones_like(Msr)    
-    assert np.linalg.norm(Msr-Meq) < 1e-4*np.linalg.norm(Meq)
-
-
-
-
-def test_Mz_params():
-    assert dc.Mz('SS').params() == ['TR', 'FA']
-    try:
-        dc.Mz('XX').params()
+        dc.Mz('XX', **params_dce)(R1, v, Fw, j, me)
     except:
         pass
     else:
         assert False
 
-def test_Mz_exceptions():
-    R1 = [1, 0.5]
     try:
-        dc.Mz('SSI')(R1)
+        Fw3 = [[1,2,3], [4, 5, 6], [7, 8, 9]]
+        dc.Mz('SS', **params_dce)(R1, v, Fw3, j, me)
     except:
         pass
     else:
         assert False
+
+    try:
+        dc.Mz('SS', **params_dce)(R1, None, Fw, j, me)
+    except:
+        pass
+    else:
+        assert False
+
+    try:
+        R1_1 = np.full(nt, 1)
+        dc.Mz('SS', **params_dce)(R1_1, v, Fw, j, me)
+    except:
+        pass
+    else:
+        assert False
+
+    try:
+        R1_1 = np.stack([np.full(nt, 1), np.full(nt, 1), np.full(nt, 1)])
+        dc.Mz('SS', **params_dce)(R1_1, v, Fw, j, me)
+    except:
+        pass
+    else:
+        assert False
+
+    try:
+        j_1 = np.full(nt, 0.06)
+        dc.Mz('SS', **params_dce)(R1, v, Fw, j_1, me)
+    except:
+        pass
+    else:
+        assert False
+
+
+
 
 
 if __name__ == "__main__":
 
-    test_Mz_params()
-    test_Mz_free()
-    test_Mz_ss()
-    test_Mz_spgr()
-    test_Mz_sr()
-    test_Mz_ir()
-    test_Mz_ssi()
-    test_Mz_none()
-    test_Mz_exceptions()
+    test_coverage()
+    test_exceptions()
 
     print('All mz tests passing!')

@@ -1,58 +1,124 @@
+"""Signal after readout of given Mz.
+
+Args:
+    S0 (float): Signal scaling factor (arbitrary units).
+    R2 (array-like): Transverse relaxation rate R1 or R2* in 1/sec. 
+    FAR (float): Readout flip angle (deg)
+    TE (float): Echo time (sec)
+    noise_sdev (float, optional): standard deviation of the signal noise. 
+
+Returns:
+    np.ndarray: Signal in the same units as S0 and with the same 
+    dimensions as Mz.
+"""  
+
+from types import MappingProxyType
+
 from scipy.special import i0, i1
 import numpy as np
 
 import dcmri.mz as mz
-
-def params_signal():
-    return ['S0', 'FAR', 'TE', 'noise_sdev']
+import dcmri.lexicon_utils as lexicon
 
 
-def signal(sequence='SS', R1=1, R2=10, S0=None, FAR=None, TE=0, 
-           noise_sdev=0, **mz_params):
-    """Signal after readout of given Mz.
+class Signal:
+    def __init__(self, sequence='SS', inflow_sequence='SS', **params):
+        if sequence not in self._params_dict():
+            raise ValueError(f"Sequence {sequence} is not defined. The options are {self._params_dict().keys()}.")
+        if inflow_sequence not in self._params_dict():
+            raise ValueError(f"Sequence {inflow_sequence} is not defined. The options are {self._params_dict().keys()}.")
 
-    Args:
-        S0 (float): Signal scaling factor (arbitrary units).
-        R2 (array-like): Transverse relaxation rate R1 or R2* in 1/sec. 
-        FAR (float): Readout flip angle (deg)
-        TE (float): Echo time (sec)
-        noise_sdev (float, optional): standard deviation of the signal noise. 
+        self._cnfg = {'sequence': sequence, 'inflow_sequence': inflow_sequence}
+        self._pars = lexicon.init(self._params())
 
-    Returns:
-        np.ndarray: Signal in the same units as S0 and with the same 
-        dimensions as Mz.
-    """  
-    # Possible shapes for Mz:
-    # scalar, 1D (nt, ) and 2D (nc, nt)
-    Mz = mz.Mz(sequence, R1, **mz_params)
-    return mz_readout(Mz, R2, S0, FAR, TE, noise_sdev)
+        # Override parameters
+        [self._pars.update({p:v}) for p, v in params.items() if p in self._params()]
+
+    def params(self):
+        return self._pars.copy()
+
+    def _params_dict(self):
+        return {
+            'SS': ['TR', 'FA'],
+            'SR': ['TC', 'TR', 'FA', 'TP', 'TA'],
+            'IR': ['TC', 'TR', 'FA', 'TP', 'TA'],
+            'PR': ['TC', 'TR', 'FA', 'TP', 'TA', 'PA'],
+            'SPGR': ['TC', 'TR', 'FA', 'TP', 'TA', 'PA'],
+            'SSI': ['TR', 'FA', 'TF', 'SA'],
+            'GE-EPI': ['TE', 'TR', 'FA'],
+            'SE-EPI': ['TE', 'TR', 'FA'],
+            'None': [],
+        }
+    
+    def _params(self):
+        seq = self._cnfg['sequence']
+        iseq = self._cnfg['inflow_sequence']
+        pars = mz.Mz(seq)._params()
+        pars += mz.Mz(iseq)._params()
+        pars += Readout()._params()
+        return list(set(pars))
+    
+    def __call__(self, R1=1, R2=1, v=None, Fw=None, Fi=None, R1i=None, me=None, **params):
+        # Update keyword parameters
+        if params == {}:
+            p = self._pars
+        else:
+            p = self._pars.copy()
+            [p.update({k:v}) for k, v in params.items() if k in p]
+
+        seq = self._cnfg['sequence']
+        iseq = self._cnfg['inflow_sequence']
+
+        # Inflow of magnetization
+        if R1i is not None:
+            Fi = np.array(Fi)
+            if Fi.size==1:
+                j = Fi * mz.Mz(iseq)(R1i, me=me, **p)
+            else:
+                j = np.zeros_like(R1i)
+                for i in range(Fi.size):
+                    j[i,:] = Fi[i] * mz.Mz(iseq)(R1i[i,:], me=me, **p)
+        else:
+            j = None
+
+        # Magnetization and readout
+        magn = mz.Mz(seq)(R1, v, Fw, j, me, **p)
+        return Readout()(magn, R2, **p)
 
 
-def mz_readout(Mz, R2=10, S0=None, FAR=None, TE=0, noise_sdev=0): 
-    # Possible shapes for Mz:
-    # scalar, 1D (nt, ) and 2D (nc, nt)
+class Readout:
+    def __init__(self, **params):
+        self._cnfg = {}
+        self._pars = lexicon.init(self._params())
+        # Override parameters
+        [self._pars.update({p:v}) for p, v in params.items() if p in self._params()]
 
-    input_shape = np.shape(Mz)
-    Mz = np.atleast_1d(Mz)
-    if Mz.ndim==1: 
-        Mz_total = Mz
-        output_shape = input_shape
-    elif Mz.ndim==2:
-        Mz_total = Mz.sum(axis=0) 
-        output_shape = input_shape[1:]  
-    else:
-        raise ValueError('Mz must be 1D or 2D')       
+    def params(self):
+        return self._pars.copy()
+    
+    def _params(self):
+        return ['S0', 'FAR', 'TE', 'noise_sdev']
+    
+    def __call__(self, Mz:np.ndarray, R2=1, **params):
+        # Update keyword parameters
+        if params == {}:
+            p = self._pars
+        else:
+            p = self._pars.copy()
+            [p.update({k:v}) for k, v in params.items() if k in p]
 
-    sFA = np.sin(np.radians(FAR))
-    Mxy = S0 * np.exp(-TE * R2) * sFA * Mz_total
-    signal = _signal_rice(np.abs(Mxy), noise_sdev)
+        # Mz has shape 1D (nt, ) or 2D (nc, nt)
+        Mz = np.array(Mz)
+        if Mz.ndim==1:
+            Mz_total = Mz
+        else:
+            Mz_total = Mz.sum(axis=0)
 
-    # Return result in original shape
-    if output_shape == ():
-        return signal[0]
-    else:
-        return signal.reshape(output_shape)
-
+        sFA = np.sin(np.radians(p['FAR']))
+        decay = np.exp(-p['TE'] * R2)
+        Mxy = p['S0'] * decay * sFA * Mz_total
+        return _signal_rice(np.abs(Mxy), p['noise_sdev'])
+    
 
 def _signal_rice(nu, sigma)-> np.ndarray:
     if sigma==0:

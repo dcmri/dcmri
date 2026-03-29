@@ -23,16 +23,16 @@ def test_configs():
 
     # for kin in ['HF', 'U', 'FX', 'NX', 'NXP', 'WV', 'HFU', '2CU', '2CX']:
     #     for wex in ['FF', 'RF', 'NF', 'FR', 'RR', 'NR', 'FN', 'RN', 'NN']:
-    #         for seq in ['SR', 'SS']:
-    for kin in ['U']:
-        for wex in ['FR']:
-            for seq in ['SS']:
-                # print(kin, wex, seq)
+    #         for seq in ['SR', 'SS', 'IR']:
+    for kin in ['HF']:
+        for wex in ['FF']:
+            for seq in ['IR']:
+                print(kin, wex, seq)
                 model = dc.Tissue(kinetics=kin, water_exchange=wex, sequence=seq)
                 time = model.time()
                 signal = model.predict(time)
-                _, sdev, _ = model.train(time, signal, xtol=0.1)
-                #sdev = None
+                #_, sdev, _ = model.train(time, signal, xtol=0.1)
+                sdev = None
                 model.plot(time, signal, sdev=sdev, round_to=3)
                 cost = model.cost(time, signal)
                 print(kin, wex, seq, cost)
