@@ -22,7 +22,7 @@ def test_coverage():
     dc.Readout().params()
     dc.Readout()(1)
 
-    SEQS = ['SS', 'SR', 'IR', 'PR', 'SPGR', 'SSI', 'GE-EPI', 'SE-EPI', 'None']
+    SEQS = ['SS', 'SR', 'IR-SS', 'PR-SS', 'PR', 'SSI', 'GE-EPI', 'SE-EPI', 'None']
     for seq in SEQS:
         for iseq in SEQS:
             print(seq, iseq)

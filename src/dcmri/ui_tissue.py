@@ -290,7 +290,7 @@ class Tissue(ui.SuperModel):
             raise ValueError(
                 f"Water exchange model {water_exchange} is not available."
             )
-        if sequence not in ['SS', 'SR', 'IR', 'SPGR', 'free']:
+        if sequence not in ['SS', 'SR', 'IR-SS', 'PR', 'free']:
             raise ValueError(
                 f"Sequence {sequence} is not available."
             )

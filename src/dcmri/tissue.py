@@ -577,7 +577,7 @@ class Conc:
             p = self._pars
         else:
             p = self._pars.copy()
-            [p.update({k:v}) for k, v in params.items() if k in p]
+            [p.update({k:v}) for k, v in params.items() if k in self._pars]
 
         ca = pk.flux_plug(ca, p['T_a'], dt=dt)
         params = {k: v for k, v in p.items() if k != 'T_a'}
@@ -678,7 +678,7 @@ class Relax:
             p = self._pars
         else:
             p = self._pars.copy()
-            [p.update({k:v}) for k, v in params.items() if k in p]
+            [p.update({k:v}) for k, v in params.items() if k in self._pars]
 
         kinetics = self._cnfg['kinetics']
         water_exchange = self._cnfg['water_exchange']
@@ -781,7 +781,7 @@ class Mz:
             p = self._pars
         else:
             p = self._pars.copy()
-            [p.update({k:v}) for k, v in params.items() if k in p]
+            [p.update({k:v}) for k, v in params.items() if k in self._pars]
 
         kin = self._cnfg['kinetics']
         wex = self._cnfg['water_exchange']
@@ -828,7 +828,7 @@ class Signal:
             p = self._pars
         else:
             p = self._pars.copy()
-            [p.update({k:v}) for k, v in params.items() if k in p]
+            [p.update({k:v}) for k, v in params.items() if k in self._pars]
 
         # Compute signal
         Mz_arr = Mz(**(self._cnfg | p))(ca, t, dt)
@@ -870,7 +870,7 @@ class Flux:
             p = self._pars
         else:
             p = self._pars.copy()
-            [p.update({k:v}) for k, v in params.items() if k in p]
+            [p.update({k:v}) for k, v in params.items() if k in self._pars]
 
         ca = pk.flux_plug(ca, p['T_a'], dt=dt)
 
@@ -963,7 +963,7 @@ class WaterVolumes:
             p = self._pars
         else:
             p = self._pars.copy()
-            [p.update({k:v}) for k, v in params.items() if k in p]
+            [p.update({k:v}) for k, v in params.items() if k in self._pars]
 
         kin, wex = self._cnfg['kinetics'], self._cnfg['water_exchange']
         wex = wex.replace('N','R')
@@ -1083,7 +1083,7 @@ class WaterFlows:
             p = self._pars
         else:
             p = self._pars.copy()
-            [p.update({k:v}) for k, v in params.items() if k in p]
+            [p.update({k:v}) for k, v in params.items() if k in self._pars]
 
         kin, wex = self._cnfg['kinetics'], self._cnfg['water_exchange']
         wex = wex.replace('N','R')
@@ -1170,12 +1170,12 @@ def _set_config(**cnfg):
     
     if 'sequence' in cnfg:
         sequence = cnfg['sequence']
-        if sequence not in ['SS', 'SR', 'IR', 'PR', 'SPGR', 'SSI', 'GE-EPI', 'SE-EPI', 'None']:
+        if sequence not in ['SS', 'SR', 'IR-SS', 'PR-SS', 'PR', 'SSI', 'GE-EPI', 'SE-EPI', 'None']:
             raise ValueError(f'Sequence {sequence} is not currently implemented.')   
     
     if 'inflow_sequence' in cnfg:
         inflow_sequence = cnfg['inflow_sequence']
-        if inflow_sequence not in ['SS', 'SR', 'IR', 'PR', 'SPGR', 'SSI', 'GE-EPI', 'SE-EPI', 'None']:
+        if inflow_sequence not in ['SS', 'SR', 'IR-SS', 'PR-SS', 'PR', 'SSI', 'GE-EPI', 'SE-EPI', 'None']:
             raise ValueError(f'Sequence {sequence} is not currently implemented.')     
         
     return cnfg

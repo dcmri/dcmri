@@ -86,7 +86,7 @@ def test_conc_lin():
 
 def test_conc_spgr():
     S = np.ones(10)
-    C = dc.conc('SPGR', S, R10=0, TC=0.2, TR=1, FA=45, TP=0.1, r1=1, n0=1)
+    C = dc.conc('PR', S, R10=0, TC=0.2, TR=1, FA=45, TP=0.1, r1=1, n0=1)
     assert 0 == np.linalg.norm(C)
 
     # Test reconstruction
@@ -96,18 +96,18 @@ def test_conc_spgr():
     n_init = 1
     C = np.arange(10)
     R1 = R10 + r1 * C
-    Mz = dc.Mz('SPGR', R1, TC=TC, TP=TP, n_init=n_init, TR=TR, FA=FA)
+    Mz = dc.Mz('PR', R1, TC=TC, TP=TP, n_init=n_init, TR=TR, FA=FA)
     S = dc.signal(Mz, S0=S0, FA=FA)
-    Crec = dc.conc('SPGR', S, R10=R10, TC=TC, TP=TP, n_init=n_init, TR=TR, FA=FA, r1=r1, n0=1)
+    Crec = dc.conc('PR', S, R10=R10, TC=TC, TP=TP, n_init=n_init, TR=TR, FA=FA, r1=r1, n0=1)
     assert np.linalg.norm(C - Crec) < 1e-6
 
     # Given S0
-    Crec = dc.conc('SPGR', S, S0=S0, TC=TC, TP=TP, n_init=n_init, TR=TR, FA=FA, r1=r1, n0=1)
+    Crec = dc.conc('PR', S, S0=S0, TC=TC, TP=TP, n_init=n_init, TR=TR, FA=FA, r1=r1, n0=1)
     assert np.linalg.norm(C - Crec) < 1e-6
 
     # SR
     n_init = 0
-    Mz = dc.Mz('SPGR', R1, TC=TC, TP=TP, n_init=n_init, TR=TR, FA=FA)
+    Mz = dc.Mz('PR', R1, TC=TC, TP=TP, n_init=n_init, TR=TR, FA=FA)
     S = dc.signal(Mz, S0=S0, FA=FA)
     Crec = dc.conc('SR', S, R10=R10, TC=TC, TP=TP, TR=TR, FA=FA, r1=r1, n0=1)
     assert np.linalg.norm(C - Crec) < 1e-6
@@ -118,30 +118,30 @@ def test_conc_spgr():
 
     # IR
     n_init = -1
-    Mz = dc.Mz('SPGR', R1, TC=TC, TP=TP, n_init=n_init, TR=TR, FA=FA)
+    Mz = dc.Mz('PR', R1, TC=TC, TP=TP, n_init=n_init, TR=TR, FA=FA)
     S = dc.signal(Mz, S0=S0, FA=FA)
-    Crec = dc.conc('IR', S, R10=R10, TC=TC, TP=TP, TR=TR, FA=FA, r1=r1, n0=1)
+    Crec = dc.conc('IR-SS', S, R10=R10, TC=TC, TP=TP, TR=TR, FA=FA, r1=r1, n0=1)
     assert np.linalg.norm(C - Crec) < 1e-6
 
     # Given S0
-    Crec = dc.conc('IR', S, S0=S0, TC=TC, TP=TP, TR=TR, FA=FA, r1=r1, n0=1)
+    Crec = dc.conc('IR-SS', S, S0=S0, TC=TC, TP=TP, TR=TR, FA=FA, r1=r1, n0=1)
     assert np.linalg.norm(C - Crec) < 1e-6
 
     # 2D Signal array
     n_init = 1
     C = np.arange(10)
     R1 = R10 + r1 * C
-    Mz = dc.Mz('SPGR', R1, TC=TC, TP=TP, n_init=n_init, TR=TR, FA=FA)
+    Mz = dc.Mz('PR', R1, TC=TC, TP=TP, n_init=n_init, TR=TR, FA=FA)
     S = dc.signal(Mz, S0=S0, FA=FA)
     S = np.stack((S, S), axis=0) # two samples
 
     R10 = np.full(S.shape[0], R10)
-    Crec = dc.conc('SPGR', S, R10=R10, TC=TC, TP=TP, n_init=n_init, TR=TR, FA=FA, r1=r1, n0=1)
+    Crec = dc.conc('PR', S, R10=R10, TC=TC, TP=TP, n_init=n_init, TR=TR, FA=FA, r1=r1, n0=1)
     assert np.linalg.norm(C - Crec) < 1e-6
 
     # Given S0
     S0 = np.full(S.shape[0], S0)
-    Crec = dc.conc('SPGR', S, S0=S0, TC=TC, TP=TP, n_init=n_init, TR=TR, FA=FA, r1=r1, n0=1)
+    Crec = dc.conc('PR', S, S0=S0, TC=TC, TP=TP, n_init=n_init, TR=TR, FA=FA, r1=r1, n0=1)
     assert np.linalg.norm(C - Crec) < 1e-6
 
     try:
@@ -153,7 +153,7 @@ def test_conc_spgr():
 
     # Test exceptions
     try:
-        Crec = dc.conc('SPGR', [1], R10=R10, TC=TC, TP=TP, n_init=n_init, TR=TR, FA=FA, r1=r1, n0=1)
+        Crec = dc.conc('PR', [1], R10=R10, TC=TC, TP=TP, n_init=n_init, TR=TR, FA=FA, r1=r1, n0=1)
     except:
         pass
     else:
@@ -161,7 +161,7 @@ def test_conc_spgr():
     
     R10 = np.full(3, R10[0])
     try:
-        Crec = dc.conc('SPGR', S, R10=R10, TC=TC, TP=TP, n_init=n_init, TR=TR, FA=FA, r1=r1, n0=1)
+        Crec = dc.conc('PR', S, R10=R10, TC=TC, TP=TP, n_init=n_init, TR=TR, FA=FA, r1=r1, n0=1)
     except:
         pass
     else:
@@ -169,7 +169,7 @@ def test_conc_spgr():
 
     S0 = np.full(3, S0[0])
     try:
-        Crec = dc.conc('SPGR', S, S0=S0, TC=TC, TP=TP, n_init=n_init, TR=TR, FA=FA, r1=r1, n0=1)
+        Crec = dc.conc('PR', S, S0=S0, TC=TC, TP=TP, n_init=n_init, TR=TR, FA=FA, r1=r1, n0=1)
     except: 
         pass
     else:

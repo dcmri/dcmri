@@ -23,12 +23,12 @@ class SignalToConc:
 
     def _params_dict(self):
         return {
-            'T2w': ['TE', 'r2', 'n0'],
-            'SS': ['TR', 'FA', 'r1', 'n0'],
-            'SR': ['TC', 'TR', 'FA', 'TP', 'r1', 'n0'],
-            'IR': ['TC', 'TR', 'FA', 'TP', 'r1', 'n0'],
-            'SPGR': ['TC', 'TR', 'FA', 'TP', 'n_init', 'r1', 'n0'],
-            'free': ['TC', 'FA', 'r1', 'n0'],
+            'SS': ['r1', 'n0', 'TR', 'FA'],
+            'SR': ['r1', 'n0', 'TC', 'TR', 'FA', 'TP', 'TA'],
+            'IR-SS': ['r1', 'n0', 'TC', 'TR', 'FA', 'TP', 'TA'],
+            'PR-SS': ['r1', 'n0', 'TC', 'TR', 'FA', 'TP', 'TA', 'PA'],
+            'GE-EPI': ['r2s', 'n0', 'TE'],
+            'SE-EPI': ['r2', 'n0', 'TE'],
             'lin': ['r1', 'n0'],
         }
 
@@ -41,9 +41,8 @@ class SignalToConc:
             p = self._pars
         else:
             p = self._pars.copy()
-            [p.update({k:v}) for k, v in params.items() if k in p]
-        sequence = self._cnfg['sequence']
-
+            [p.update({k:v}) for k, v in params.items() if k in self._pars]
+        
         # Possible shapes for S:
         # 1D (nt, ) or 2D (n_samples, nt)
         # Shapes for R10:
@@ -81,32 +80,77 @@ class SignalToConc:
             elif S0.size != n_samples:
                 raise ValueError("R10 must have the same number of samples as the signal")
         
-        p = self._pars
-        if sequence == 'SE-EPI':
-            conc = _conc_t2w(S, p['TE'], p['r2'], p['n0'])
-        if sequence == 'GE-EPI':
-            conc = _conc_t2w(S, p['TE'], p['r2'], p['n0'])
-        elif sequence == 'SS':
-            conc = _conc_ss(S, p['TR'], p['FA'], R10, p['r1'], p['n0'], S0) 
-        elif sequence == 'SPGR':
-            conc = _conc_spgr(S, p['TC'], p['TR'], p['FA'], p['TP'], R10, p['n_init'], p['r1'], p['n0'], S0)
+        sequence = self._cnfg['sequence']
+
+        if sequence == 'SS':
+            params = {k:v for k, v in p.items() if k in ['TR, FA']}
+            conc = _conc_ss(S, R10, S0, p['r1'], p['n0'], **params) 
         elif sequence == 'SR':
-            conc = _conc_spgr(S, p['TC'], p['TR'], p['FA'], p['TP'], R10, 0, p['r1'], p['n0'], S0)
-        elif sequence == 'IR':
-            conc = _conc_spgr(S, p['TC'], p['TR'], p['FA'], p['TP'], R10, -1, p['r1'], p['n0'], S0)
-        elif sequence == 'PR':
-            conc = _conc_spgr(S, p['TC'], p['TR'], p['FA'], p['TP'], R10, p['PA'], p['r1'], p['n0'], S0)
+            conc = _conc_dce(sequence, S, R10, S0, p['r1'], p['n0'], **p)
+        elif sequence == 'IR-SS':
+            conc = _conc_dce(sequence, S, R10, S0, p['r1'], p['n0'], **p)
+        elif sequence == 'PR-SS':
+            conc = _conc_dce(sequence, S, R10, S0, p['r1'], p['n0'], **p)
+        elif sequence == 'GE-EPI':
+            conc = _conc_dsc(S, p['r2'], p['n0'], p['TE'])
+        elif sequence == 'SE-EPI':
+            conc = _conc_dsc(S, p['r2'], p['n0'], p['TE'])
         elif sequence == 'lin':
-            conc = _conc_lin(S, R10, p['r1'], p['n0'], S0)
+            conc = _conc_dce_lin(S, R10, S0, p['r1'], p['n0'])
         else:
             raise ValueError(f'Sequence {sequence} is not recognised.')
         
         # Return result in original shape
         return conc.reshape(input_shape)
+    
+
+def _conc_dce(sequence, S, R10, S0, r1, n0, R1_max=100, R1_step=0.01, **params):
+    # This is DCE specific because there is no R2 weighting.
+    # This would require a 2D lookup over R1, R2 space.
+
+    # S = signal_spgr(S0, R1, T, TR, FA, TP) -> R1?
+    # Compute
+    # S0 = Sb / signal_spgr(1, R10, T, TR, FA, TP)
+    # Sn = S / S0
+    # New question:
+    # Sn = signal_spgr(1, R1, T, TR, FA, TP) -> R1?
+    # Lookup R1
+
+    # Note:
+    # Estimate maximum realistic R1 using maximum realistic relaxivity
+    # and concentration
+    # r1_max = 10.0 # Hz/mM 
+    # c_max = 10 # mM
+    # R1_max = r1_max * c_max # 10 Hz/mM * 10 mM = 100 Hz corresponds to T1=10ms
+    # R1_step = 0.01 # 10000 steps
+
+    pn = {k: v for k, v in params.items() if k != 'S0'}
+    Sn = sig.Signal(sequence, S0=1, **pn)
+
+    if S0 is None:
+        Sb = np.sum(S[:, :n0], axis=1) / n0
+        Sn0 = Sn(R10)
+        S0 = np.divide(Sb, Sn0, out=np.zeros_like(Sb, dtype=float), where=Sn0 > 0)
+
+    S0 = S0[:, np.newaxis]
+    Sn = np.divide(S, S0, out=np.zeros_like(S, dtype=float), where=S0 > 0)
+
+    # Create lookup table
+    R1_lookup = np.arange(0, R1_max, R1_step)
+    Sn_lookup = Sn(R1_lookup)
+
+    # Look up R1 values
+    R1 = np.interp(Sn, Sn_lookup, R1_lookup)
+
+    if R10 is None:
+        R10 = np.sum(R1[:, :n0], axis=1) / n0
+
+    # Convert to concentrations
+    R10 = R10[:, np.newaxis]
+    return (R1 - R10)/r1
 
 
-
-def _conc_t2w(S, TE, r2=0.5, n0=1) -> np.ndarray:
+def _conc_dsc(S, r2, n0, TE) -> np.ndarray:
     # S/Sb = exp(-TE(R2-R2b))
     #   ln(S/Sb) = -TE(R2-R2b)
     #   R2-R2b = -ln(S/Sb)/TE
@@ -123,49 +167,9 @@ def _conc_t2w(S, TE, r2=0.5, n0=1) -> np.ndarray:
     S_safe = np.clip(S_normalized, 1e-10, None)
     C = -np.log(S_safe) / (TE * r2)
     return C
+    
 
-
-def _conc_spgr(S, T, TR, FA, TP, R10, n_init, r1=0.005, n0=1, S0=None):
-    # S = signal_spgr(S0, R1, T, TR, FA, TP) -> R1?
-    # Compute
-    # S0 = Sb / signal_spgr(1, R10, T, TR, FA, TP)
-    # Sn = S / S0
-    # New question:
-    # Sn = signal_spgr(1, R1, T, TR, FA, TP) -> R1?
-    # Lookup R1
-    if S0 is None:
-        Sb = np.sum(S[:, :n0], axis=1) / n0
-        Mb = mz.Mz('SPGR', R10, TC=T, TR=TR, FA=FA, TP=TP, n_init=n_init)
-        Sb0 = sig.signal(Mb, S0=1, FA=FA)
-        S0 = np.divide(Sb, Sb0, out=np.zeros_like(Sb, dtype=float), where=Sb0 > 0)
-
-    S0 = S0[:, np.newaxis]
-    Sn = np.divide(S, S0, out=np.zeros_like(S, dtype=float), where=S0 > 0)
-
-    # Estimate maximum realistic R1 using maximum realistic relaxivity
-    # and concentration
-    r1_max = 10.0 # Hz/mM 
-    c_max = 10 # mM
-    R1_max = r1_max * c_max # 10 Hz/mM * 10 mM = 100 Hz corresponds to T1=10ms
-    R1_step = 0.01 # 10000 steps
-
-    # Create lookup table
-    R1_lookup = np.arange(0, R1_max, R1_step)
-    Mz_lookup = mz.Mz('SPGR', R1_lookup, TC=T, TR=TR, FA=FA, TP=TP, n_init=n_init)
-    Sn_lookup = sig.signal(Mz_lookup, S0=1, FA=FA)
-
-    # Look up R1 values
-    R1 = np.interp(Sn, Sn_lookup, R1_lookup)
-
-    if R10 is None:
-        R10 = np.sum(R1[:, :n0], axis=1) / n0
-
-    # Convert to concentrations
-    R10 = R10[:, np.newaxis]
-    return (R1 - R10)/r1
-
-
-def _conc_ss(S, TR: float, FA: float, R10: float, r1=0.005, n0=1, S0=None) -> np.ndarray:
+def _conc_ss(S, R10, S0, r1, n0, TR, FA) -> np.ndarray:
     # S = Sinf * (1-exp(-TR*R1)) / (1-cFA*exp(-TR*R1))
     # Sb = Sinf * (1-exp(-TR*R10)) / (1-cFA*exp(-TR*R10))
     # Sn = (1-exp(-TR*R1)) / (1-cFA*exp(-TR*R1))
@@ -178,8 +182,7 @@ def _conc_ss(S, TR: float, FA: float, R10: float, r1=0.005, n0=1, S0=None) -> np
 
     if S0 is None:
         Sb = np.sum(S[:, :n0], axis=1) / n0
-        Mb0 = mz.Mz('SS', R10, TR=TR, FA=FA)
-        Sb0 = sig.signal(Mb0, S0=1, FA=FA)
+        Sb0 = sig.Signal('SS', S0=1, TR=TR, FA=FA)(R10)
         S0 = np.divide(Sb, Sb0, out=np.zeros_like(Sb, dtype=float), where=Sb0 > 0)
 
     S0 = S0[:, np.newaxis] 
@@ -187,7 +190,7 @@ def _conc_ss(S, TR: float, FA: float, R10: float, r1=0.005, n0=1, S0=None) -> np
 
     Sn = (1 - Sn) / (1 - cFA * Sn)
     with np.errstate(divide='ignore', invalid='ignore'):
-        R1 = np.where(Sn <= 0, 0, -np.log(Sn)/TR)  
+        R1 = np.where(Sn <= 0, 0, -np.log(Sn)/TR)
 
     if R10 is None:
         R10 = np.sum(R1[:, :n0], axis=1) / n0
@@ -196,7 +199,7 @@ def _conc_ss(S, TR: float, FA: float, R10: float, r1=0.005, n0=1, S0=None) -> np
     return (R1 - R10 )/ r1
 
 
-def _conc_lin(S, R10, r1=0.005, n0=1, S0=None):
+def _conc_dce_lin(S, R10, S0, r1, n0):
     # S = S0 * R1
     if S0 is None:
         Sb = np.sum(S[:, :n0], axis=1) / n0
@@ -211,3 +214,8 @@ def _conc_lin(S, R10, r1=0.005, n0=1, S0=None):
 
     R10 = R10[:, np.newaxis]
     return (R1 - R10) / r1
+
+
+
+
+

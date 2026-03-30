@@ -144,9 +144,9 @@ class Mz:
         return {
             'SS': ['TR', 'FA'],
             'SR': ['TC', 'TR', 'FA', 'TP', 'TA'],
-            'IR': ['TC', 'TR', 'FA', 'TP', 'TA'],
+            'IR-SS': ['TC', 'TR', 'FA', 'TP', 'TA'],
+            'PR-SS': ['TC', 'TR', 'FA', 'TP', 'TA', 'PA'],
             'PR': ['TC', 'TR', 'FA', 'TP', 'TA', 'PA'],
-            'SPGR': ['TC', 'TR', 'FA', 'TP', 'TA', 'PA'],
             'SSI': ['TR', 'FA', 'TF', 'SA'],
             'GE-EPI': ['TE', 'TR', 'FA'],
             'SE-EPI': ['TE', 'TR', 'FA'],
@@ -162,7 +162,7 @@ class Mz:
             p = self._pars
         else:
             p = self._pars.copy()
-            [p.update({k:v}) for k, v in params.items() if k in p]
+            [p.update({k:v}) for k, v in params.items() if k in self._pars]
 
         # Set defaults for the optional arguments
         if v is None:
@@ -229,11 +229,11 @@ class Mz:
             Mz = _Mz_spgr_in_ss(R1, v, Fw, j, me, p['TR'], p['FA'])
         elif sequence == 'SR':
             Mz = _Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'], p['TP'], p['TA'], 90) 
-        elif sequence == 'IR':
+        elif sequence == 'IR-SS':
             Mz = _Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'], p['TP'], p['TA'], 180)
-        elif sequence == 'PR':
+        elif sequence == 'PR-SS':
             Mz = _Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'], p['TP'], p['TA'], p['PA']) 
-        elif sequence == 'SPGR':
+        elif sequence == 'PR':
             Mz = _Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'], p['TP'], p['TA'], p['PA']) 
         elif sequence == 'SSI':
             Mz = _Mz_ssi(R1, v, Fw, j, me, p['TR'], p['FA'], p['TF'], p['SA'])

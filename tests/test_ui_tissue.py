@@ -23,10 +23,10 @@ def test_configs():
 
     # for kin in ['HF', 'U', 'FX', 'NX', 'NXP', 'WV', 'HFU', '2CU', '2CX']:
     #     for wex in ['FF', 'RF', 'NF', 'FR', 'RR', 'NR', 'FN', 'RN', 'NN']:
-    #         for seq in ['SR', 'SS', 'IR']:
+    #         for seq in ['SR', 'SS', 'IR-SS']:
     for kin in ['HF']:
         for wex in ['FF']:
-            for seq in ['IR']:
+            for seq in ['IR-SS']:
                 print(kin, wex, seq)
                 model = dc.Tissue(kinetics=kin, water_exchange=wex, sequence=seq)
                 time = model.time()
@@ -130,7 +130,7 @@ def test_function():
         'SS': {'FA': FA, 'TR': TR},
     }
     aif_mz = {
-        'SR': dc.Mz('SPGR', aif_R1, TC=TC, TR=TR, FA=B1a * FA, TP=TP),
+        'SR': dc.Mz('PR', aif_R1, TC=TC, TR=TR, FA=B1a * FA, TP=TP),
         'SS': dc.Mz('SS', aif_R1, TR=TR, FA=B1a * FA),
     }
 

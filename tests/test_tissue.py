@@ -558,7 +558,7 @@ def test_coverage():
     tissue.WaterFlows()(Fb=0.01)
 
     # Run for coverage
-    SEQS = ['SS', 'SR', 'IR', 'PR', 'SPGR', 'SSI', 'GE-EPI', 'SE-EPI', 'None']
+    SEQS = ['SS', 'SR', 'IR-SS', 'PR-SS', 'PR', 'SSI', 'GE-EPI', 'SE-EPI', 'None']
     for kin in ['HF', 'U', 'FX', 'NX', 'NXP', 'WV', 'HFU', '2CU', '2CX']:
         for wex in ['FF', 'RF', 'NF', 'FR', 'RR', 'NR', 'FN', 'RN', 'NN']:
             for seq in SEQS:

@@ -22,6 +22,9 @@ import dcmri.lexicon_utils as lexicon
 
 
 class Signal:
+    # TODO: Only one sequence keyword!!!
+    # All systems are optn but need to include more differentiation 
+    # in sequence names, e.g 3D-SS (inflow=SS) versus 2D-SR-SS (inflow=SR)
     def __init__(self, sequence='SS', inflow_sequence='SS', **params):
         if sequence not in self._params_dict():
             raise ValueError(f"Sequence {sequence} is not defined. The options are {self._params_dict().keys()}.")
@@ -41,9 +44,9 @@ class Signal:
         return {
             'SS': ['TR', 'FA'],
             'SR': ['TC', 'TR', 'FA', 'TP', 'TA'],
-            'IR': ['TC', 'TR', 'FA', 'TP', 'TA'],
+            'IR-SS': ['TC', 'TR', 'FA', 'TP', 'TA'],
+            'PR-SS': ['TC', 'TR', 'FA', 'TP', 'TA', 'PA'],
             'PR': ['TC', 'TR', 'FA', 'TP', 'TA', 'PA'],
-            'SPGR': ['TC', 'TR', 'FA', 'TP', 'TA', 'PA'],
             'SSI': ['TR', 'FA', 'TF', 'SA'],
             'GE-EPI': ['TE', 'TR', 'FA'],
             'SE-EPI': ['TE', 'TR', 'FA'],
@@ -54,7 +57,9 @@ class Signal:
         seq = self._cnfg['sequence']
         iseq = self._cnfg['inflow_sequence']
         pars = mz.Mz(seq)._params()
-        pars += mz.Mz(iseq)._params()
+
+        # TODO: Modify - returns [] if iseq is None (for closed systems)
+        pars += mz.Mz(iseq)._params() 
         pars += Readout()._params()
         return list(set(pars))
     
@@ -64,13 +69,14 @@ class Signal:
             p = self._pars
         else:
             p = self._pars.copy()
-            [p.update({k:v}) for k, v in params.items() if k in p]
+            [p.update({k:v}) for k, v in params.items() if k in self._pars]
 
         seq = self._cnfg['sequence']
         iseq = self._cnfg['inflow_sequence']
 
         # Inflow of magnetization
-        if R1i is not None:
+        if R1i is not None: 
+            # TODO: raise Exception if inflow_sequence is None
             Fi = np.array(Fi)
             if Fi.size==1:
                 j = Fi * mz.Mz(iseq)(R1i, me=me, **p)
@@ -83,7 +89,7 @@ class Signal:
 
         # Magnetization and readout
         magn = mz.Mz(seq)(R1, v, Fw, j, me, **p)
-        return Readout()(magn, R2, **p)
+        return Readout()(magn, R2, **p) # TODO: REPLACE FAR as keyword
 
 
 class Readout:
@@ -97,7 +103,7 @@ class Readout:
         return self._pars.copy()
     
     def _params(self):
-        return ['S0', 'FAR', 'TE', 'noise_sdev']
+        return ['S0', 'FAR', 'TE', 'noise_sdev'] # TODO: FAR -> FA!!!!!
     
     def __call__(self, Mz:np.ndarray, R2=1, **params):
         # Update keyword parameters
@@ -105,7 +111,7 @@ class Readout:
             p = self._pars
         else:
             p = self._pars.copy()
-            [p.update({k:v}) for k, v in params.items() if k in p]
+            [p.update({k:v}) for k, v in params.items() if k in self._pars]
 
         # Mz has shape 1D (nt, ) or 2D (nc, nt)
         Mz = np.array(Mz)
