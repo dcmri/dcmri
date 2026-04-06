@@ -115,75 +115,58 @@ Example:
 
 """
 
+from copy import deepcopy
+
 from scipy.linalg import expm
 import numpy as np
 
-import dcmri.lexicon_utils as lexicon
+from dcmri.lexicon import MZ_PREP
 import dcmri.mz_lib as mz_lib
-
+import dcmri.ui as ui
 
 
 # TODO: For some ss sequences there is some duplication with K, J and KinvJ computed multiple times
 # This needs rationalising
 
-class Mz:
-    def __init__(self, sequence='SS', **params):
-        if sequence not in self._params_dict():
-            raise ValueError(f"Sequence {sequence} is not defined. The options are {self._params_dict().keys()}.")
-        
-        self._cnfg = {'sequence': sequence}
-        self._pars = lexicon.init(self._params())
+class Mz(ui.SuperFunc):
 
-        # Override parameters
-        [self._pars.update({p:v}) for p, v in params.items() if p in self._params()]
+    configs = {'sequence': deepcopy(list(MZ_PREP.keys()))}
 
-    def params(self):
-        return self._pars.copy()
-
-    def _params_dict(self):
-        return {
-            'SS': ['TR', 'FA'],
-            'SR': ['TC', 'TR', 'FA', 'TP', 'TA'],
-            'IR-SS': ['TC', 'TR', 'FA', 'TP', 'TA'],
-            'PR-SS': ['TC', 'TR', 'FA', 'TP', 'TA', 'PA'],
-            'PR': ['TC', 'TR', 'FA', 'TP', 'TA', 'PA'],
-            'SSI': ['TR', 'FA', 'TF', 'SA'],
-            'GE-EPI': ['TE', 'TR', 'FA'],
-            'SE-EPI': ['TE', 'TR', 'FA'],
-            'None': [],
-        }
+    def __init__(self, sequence='SPGR-SS', **params):
+        self._cnfg = self._set_config(sequence=sequence)
+        self._pars = self._set_pars(v=None, Fw=0, me=1)
+        self._override_pars(**params)
 
     def _params(self):
-        return self._params_dict()[self._cnfg['sequence']]
+        pars = ['v', 'Fw', 'me']
+        pars += deepcopy(MZ_PREP[self._cnfg['sequence']]['parameters'])
+        pars = list(set(pars))
+        pars.sort()
+        return pars
     
-    def __call__(self, R1, v=None, Fw=None, j=None, me=None, **params):
-        # Update keyword parameters
-        if params == {}:
-            p = self._pars
-        else:
-            p = self._pars.copy()
-            [p.update({k:v}) for k, v in params.items() if k in self._pars]
+    def __call__(self, R1=None, j=None, **params):
+        p = self._update_pars(**params)
 
-        # Set defaults for the optional arguments
+        if R1 is None:
+            raise ValueError("Cannot compute Mz without R1. Please provide R1 as an argument.")
+        if j is None:
+            j = np.zeros_like(R1)
+        
+        v = p['v']
+        Fw = p['Fw']
+        me = p['me']
+        
+        # Set defaults for v
         if v is None:
             nd = np.array(R1).ndim
             if nd==2:
                 raise ValueError("For a multicompartment tissue, the volume fractions must be provided")
             else:
                 v = 1
-        if Fw is None:
-            Fw = 0
-        if j is None:
-            j = np.zeros_like(R1)
-        if me is None:
-            me = 1
 
         # Possible input shapes for R1:
         # scalar, 1D (nt), 1D (nc), 2D (nc, nt)
-        #    
-        # Keep input shape for return values
-        input_shape = np.shape(R1)
-
+    
         # Convert arguments to standard 2D shape (nc, nt) for computations
 
         # -- The number of compartments is decided by the size of v
@@ -203,13 +186,16 @@ class Mz:
         Fw = Fw.reshape(nc, nc)
         
         # Reshape R1 to (nc, nt) and derive nt
+        # Keep input shape for return values
+        input_shape = np.shape(R1)
+
         R1 = np.atleast_1d(R1)
         if nc > 1:
             if R1.size > nc:
                 if R1.ndim != 2:
-                    raise ValueError("For a tissue with nc compartments and nt time points, R1 must have shape (nc, nt).")
+                    raise ValueError(f"For a tissue with {nc} compartments and nt time , R1 must have shape ({nc}, nt).")
                 if R1.shape[0] != nc:
-                    raise ValueError("For a tissue with nc compartments and nt time points, R1 must have shape (nc, nt).")
+                    raise ValueError(f"For a tissue with {nc} compartments and nt time points, R1 must have shape ({nc}, nt).")
                 nt = R1.shape[1]
             else:
                 nt = 1
@@ -225,24 +211,43 @@ class Mz:
 
         # Delegate computation in standard form to helper functions
         sequence = self._cnfg['sequence']
-        if sequence == 'SS':
-            Mz = _Mz_spgr_in_ss(R1, v, Fw, j, me, p['TR'], p['FA'])
-        elif sequence == 'SR':
-            Mz = _Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'], p['TP'], p['TA'], 90) 
-        elif sequence == 'IR-SS':
-            Mz = _Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'], p['TP'], p['TA'], 180)
-        elif sequence == 'PR-SS':
-            Mz = _Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'], p['TP'], p['TA'], p['PA']) 
-        elif sequence == 'PR':
-            Mz = _Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'], p['TP'], p['TA'], p['PA']) 
-        elif sequence == 'SSI':
-            Mz = _Mz_ssi(R1, v, Fw, j, me, p['TR'], p['FA'], p['TF'], p['SA'])
-        elif sequence == 'GE-EPI':
-            Mz = _Mz_ge(R1, v, Fw, j, me, p['TE'], p['TR'], p['FA'])
-        elif sequence == 'SE-EPI':
-            Mz = _Mz_se(R1, v, Fw, j, me, p['TE'], p['TR'], p['FA'])
-        elif sequence == 'None': 
+
+        if sequence == 'Eq': 
             Mz = np.full_like(R1, me)
+        elif sequence == 'IR-SS':
+            Mz = _Mz_ge(R1, v, Fw, j, me, p['TA'], 180)
+        elif sequence == 'SR-SS':
+            Mz = _Mz_ge(R1, v, Fw, j, me, p['TA'], 90)
+        elif sequence == 'PR-SS':
+            Mz = _Mz_ge(R1, v, Fw, j, me, p['TA'], p['PA'])
+
+        elif sequence == 'SPGR':
+            Mz = _Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], 0, p['TA'], 0) 
+        elif sequence == 'SR-SPGR':
+            Mz = _Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 90) 
+        elif sequence == 'IR-SPGR':
+            Mz = _Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 180) 
+        elif sequence == 'PR-SPGR':
+            Mz = _Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], p['PA'])
+        
+        elif sequence == 'SPGR-SS':
+            Mz = _Mz_spgr_in_ss(R1, v, Fw, j, me, p['TR'], p['FA'] * p['B1corr'])
+        elif sequence == 'SR-SPGR-SS':
+            Mz = _Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 90) 
+        elif sequence == 'IR-SPGR-SS':
+            Mz = _Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 180)
+        elif sequence == 'PR-SPGR-SS':
+            Mz = _Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], p['PA']) 
+
+        elif sequence == 'SSI':
+            Mz = _Mz_ssi(R1, v, Fw, j, me, p['TR'], p['FA'] * p['B1corr'], p['TF'], p['SA'])
+
+        elif sequence == 'GE-EPI':
+            Mz = _Mz_ge(R1, v, Fw, j, me, p['TR'], p['FA'] * p['B1corr'])
+        elif sequence == 'SE-EPI':
+            Mz = _Mz_se(R1, v, Fw, j, me, p['TE'], p['TR'], p['FA'] * p['B1corr'])
+        elif sequence == 'DE-EPI':
+            Mz = _Mz_se(R1, v, Fw, j, me, p['TE2'], p['TR'], p['FA'] * p['B1corr'])
 
         # Return result in original shape
         if input_shape == ():
@@ -272,10 +277,11 @@ def _Mz_pr_spgr(R1, v, Fw, j, me, TC, TR, FA, TP, TA, PA):
     """
     nc, nt = R1.shape
     Mt = v * me
+    args = (me, PA, TP, TC, TR, FA, TA)
 
     M = []
     for k in range(nt):
-        M_sig, Mt = mz_lib.Mz_pr_spgr_prop(Mt, R1[:,k].T, v, Fw, j[:,k].T, me, PA, TP, TC, TR, FA, TA)
+        M_sig, Mt = mz_lib.Mz_pr_spgr_prop(Mt, R1[:,k].T, v, Fw, j[:,k].T, *args)
         M.append(M_sig)
     
     return np.array(M).T.reshape(nc, nt)
@@ -287,14 +293,14 @@ def _Mz_pr_spgr_in_ss(R1, v, Fw, j, me, TC, TR, FA, TP, TA, PA):
 
     R1 is assumed to be constant on each time interval.
     """
-    nc, nt = R1.shape
-
-    M = []
-    for k in range(nt):
-        Mss = mz_lib.Mz_pr_spgr_ss(R1[:,k].T, v, Fw, j[:,k].T, me, PA, TP, TC, TR, FA, TA)
-        M_sig, _ = mz_lib.Mz_pr_spgr_prop(Mss, R1[:,k].T, v, Fw, j[:,k].T, me, PA, TP, TC, TR, FA, TA)
-        M.append(M_sig)    
+    args = (me, PA, TP, TC, TR, FA, TA)
+    def _Mz_pr_spgr_in_ss_t(R1_t, j_t):
+        Mss_t = mz_lib.Mz_pr_spgr_ss(R1_t, v, Fw, j_t, *args)
+        M_sig, _ = mz_lib.Mz_pr_spgr_prop(Mss_t, R1_t, v, Fw, j_t, *args)
+        return M_sig
     
+    nc, nt = R1.shape
+    M = [_Mz_pr_spgr_in_ss_t(R1[:,k].T, j[:,k].T) for k in range(nt)]
     return np.array(M).T.reshape(nc, nt)
 
 
@@ -318,7 +324,7 @@ def _Mz_ssi(R1, v, Fw, j, me, TR, FA, TF, SA):
     def _Mz_ssi_prop(R1_t, j_t):
         K_t = mz_lib.Mz_K(R1_t, v, Fw)
         Mss_t = mz_lib.Mz_ss_spgr(R1_t, v, Fw, j_t, me, TR, FA)
-        # FA-pulses until time TF to get the readout
+        # FA-pulses until time TF to get the Mz before readout
         if nc==1:
             En_t = np.exp(-TF * K_t)
             M_sig_t = Mss_t + nFA * En_t * (M0 - Mss_t)
@@ -331,37 +337,30 @@ def _Mz_ssi(R1, v, Fw, j, me, TR, FA, TF, SA):
     return np.array(M).T.reshape(nc, nt)
 
 
-def _Mz_ge(R1, v, Fw, j, me, TE, TR, FA): 
+def _Mz_ge(R1, v, Fw, j, me, TR, FA): 
     """Mz for one slice in a GE-EPI sequence
     """
-    nc, nt = R1.shape
-    pulse = [[FA, TR]]
-    read = [[FA, TE]]
-
+    pulse_sequence = [
+        [FA, TR]
+    ]
     def _Mz_ge_t(R1_t, j_t):
-        # Compute steady state
-        Mss_t = mz_lib.Mz_ss(R1_t, v, Fw, j_t, me, pulse)
-        # Compute Mz at signal collection
-        M_sig_t = mz_lib.Mz_prop(Mss_t, R1_t, v, Fw, j_t, me, read)
-        return M_sig_t
+        return mz_lib.Mz_ss(R1_t, v, Fw, j_t, me, pulse_sequence)
 
+    nc, nt = R1.shape
     M = [_Mz_ge_t(R1[:,k].T, j[:,k].T) for k in range(nt)]
     return np.array(M).T.reshape(nc, nt)
 
 
 def _Mz_se(R1, v, Fw, j, me, TE, TR, FA): 
-    """Mz for one slice in a GE-EPI sequence
+    """Mz for one slice in a SE-EPI sequence
     """
-    nc, nt = R1.shape
-    pulse = [[FA, TE / 2], [180, TR - TE/2]]
-    read = [[FA, TE]]
-
+    pulse_sequence = [
+        [FA, TE / 2], 
+        [180, TR - TE/2]
+    ]
     def _Mz_se_t(R1_t, j_t):
-        # Compute steady state
-        Mss_t = mz_lib.Mz_ss(R1_t, v, Fw, j_t, me, pulse)
-        # Compute Mz at signal collection
-        M_sig_t = mz_lib.Mz_prop(Mss_t, R1_t, v, Fw, j_t, me, read)
-        return M_sig_t
+        return mz_lib.Mz_ss(R1_t, v, Fw, j_t, me, pulse_sequence)
 
+    nc, nt = R1.shape
     M = [_Mz_se_t(R1[:,k].T, j[:,k].T) for k in range(nt)]
     return np.array(M).T.reshape(nc, nt)

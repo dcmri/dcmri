@@ -6,6 +6,276 @@ from dcmri import pk_aorta
 from dcmri import pk
 
 
+MZ_PREP = {
+    'Eq': {
+        'parameters': [],
+        'type': 'PD',
+    },
+    'IR-SS': {
+        'parameters': ['TA'],
+        'type': 'DCE',
+    },
+    'SR-SS': {
+        'parameters': ['TA'],
+        'type': 'DCE',
+    },
+    'PR-SS': {
+        'parameters': ['TA', 'PA'],
+        'type': 'DCE',
+    }, 
+    'SPGR': {
+        'parameters': ['TC', 'TR', 'FA', 'B1corr', 'TA'],
+        'type': 'DCE',
+    },
+    'SR-SPGR': {
+        'parameters': ['TC', 'TR', 'FA', 'B1corr', 'TP', 'TA'],
+        'type': 'DCE',
+    },
+    'IR-SPGR': {
+        'parameters': ['TC', 'TR', 'FA', 'B1corr', 'TP', 'TA'],
+        'type': 'DCE',
+    },
+    'PR-SPGR': {
+        'parameters': ['TC', 'TR', 'FA', 'B1corr', 'TP', 'TA', 'PA'],
+        'type': 'DCE',
+    },
+    'SPGR-SS': {
+        'parameters': ['TR', 'FA', 'B1corr'],
+        'type': 'DCE',
+    },
+    'SR-SPGR-SS': {
+        'parameters': ['TC', 'TR', 'FA', 'B1corr', 'TP', 'TA'],
+        'type': 'DCE',
+    },
+    'IR-SPGR-SS': {
+        'parameters': ['TC', 'TR', 'FA', 'B1corr', 'TP', 'TA'],
+        'type': 'DCE',
+    },
+    'PR-SPGR-SS': {
+        'parameters': ['TC', 'TR', 'FA', 'B1corr', 'TP', 'TA', 'PA'],
+        'type': 'DCE',
+    },
+    'SSI': {
+        'parameters': ['TR', 'FA', 'B1corr', 'TF', 'SA'],
+        'type': 'DCE',
+    },
+    'GE-EPI': {
+        'parameters': ['TR', 'FA', 'B1corr'],
+        'type': 'DSC',
+    },
+    'SE-EPI': {
+        'parameters': ['TE', 'TR', 'FA', 'B1corr'],
+        'type': 'DSC',
+    },
+    'DE-EPI': {
+        'parameters': ['TE2', 'TR', 'FA', 'B1corr'],
+        'type': 'DSC',
+    },
+}
+
+
+SEQUENCES = {
+    # 'Eq': {
+    #     'mz_prep_tissue': 'Eq',
+    #     'mz_prep_inflow': 'Eq',
+    #     'type': 'PD',
+    #     'steady-state': True,
+    #     'parameters': {
+    #         'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+    #     },
+    # },
+    '3D-SPGR-SS': {
+        'mz_prep_tissue': 'SPGR-SS',
+        'mz_prep_inflow': 'SPGR-SS',
+        'type': 'DCE',
+        'steady-state': True,
+        'parameters': {
+            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+        },
+    },
+    '3D-IR-SPGR-SS': {
+        'mz_prep_tissue': 'IR-SPGR-SS', 
+        'mz_prep_inflow': 'IR-SPGR-SS',
+        'type': 'DCE',
+        'steady-state': True,
+        'parameters': {
+            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+        },
+    },
+    '3D-SR-SPGR-SS': {
+        'mz_prep_tissue': 'SR-SPGR-SS',
+        'mz_prep_inflow': 'SR-SPGR-SS',
+        'type': 'DCE',
+        'steady-state': True,
+        'parameters': {
+            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+        },
+    },
+    '3D-PR-SPGR-SS': {
+        'mz_prep_tissue': 'PR-SPGR-SS',
+        'mz_prep_inflow': 'PR-SPGR-SS',
+        'type': 'DCE',
+        'steady-state': True,
+        'parameters': {
+            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+        },
+    },
+    '2D-SPGR-SS': {
+        'mz_prep_tissue': 'SPGR-SS',
+        'mz_prep_inflow': 'Eq',
+        'type': 'DCE',
+        'steady-state': True,
+        'parameters': {
+            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+        },
+    },
+    '2D-IR-SPGR-SS': {
+        'mz_prep_tissue': 'IR-SPGR-SS', 
+        'mz_prep_inflow': 'IR-SS',
+        'type': 'DCE',
+        'steady-state': True,
+        'parameters': {
+            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+        },
+    }, # Non-selective preparation, so inflow is freely recovering
+    '2D-SR-SPGR-SS': {
+        'mz_prep_tissue': 'SR-SPGR-SS',
+        'mz_prep_inflow': 'SR-SS',
+        'type': 'DCE',
+        'steady-state': True,
+        'parameters': {
+            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+        },
+    },
+    '2D-PR-SPGR-SS': {
+        'mz_prep_tissue': 'PR-SPGR-SS',
+        'mz_prep_inflow': 'PR-SS',
+        'type': 'DCE',
+        'steady-state': True,
+        'parameters': {
+            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+        },
+    },
+    '3D-SPGR': {
+        'mz_prep_tissue': 'SPGR',
+        'mz_prep_inflow': 'SPGR',
+        'type': 'DCE',
+        'steady-state': False,
+        'parameters': {
+            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+        },
+    },
+    '3D-IR-SPGR': {
+        'mz_prep_tissue': 'IR-SPGR',
+        'mz_prep_inflow': 'IR-SPGR',
+        'type': 'DCE',
+        'steady-state': False,
+        'parameters': {
+            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+        },
+    },
+    '3D-SR-SPGR': {
+        'mz_prep_tissue': 'SR-SPGR',
+        'mz_prep_inflow': 'SR-SPGR',
+        'type': 'DCE',
+        'steady-state': True,
+        'parameters': {
+            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+        },
+    },
+    '3D-PR-SPGR': {
+        'mz_prep_tissue': 'PR-SPGR',
+        'mz_prep_inflow': 'PR-SPGR',
+        'type': 'DCE',
+        'steady-state': False,
+        'parameters': {
+            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+        },
+    },
+    '2D-SPGR': {
+        'mz_prep_tissue': 'SPGR',
+        'mz_prep_inflow': 'Eq',
+        'type': 'DCE',
+        'steady-state': False,
+        'parameters': {
+            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+        },
+    },
+    '2D-IR-SPGR': {
+        'mz_prep_tissue': 'IR-SPGR', 
+        'mz_prep_inflow': 'IR-SS',
+        'type': 'DCE',
+        'steady-state': False,
+        'parameters': {
+            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+        },
+    },
+    '2D-SR-SPGR': {
+        'mz_prep_tissue': 'SR-SPGR',
+        'mz_prep_inflow': 'SR-SS',
+        'type': 'DCE',
+        'steady-state': True,
+        'parameters': {
+            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+        },
+    },
+    '2D-PR-SPGR': {
+        'mz_prep_tissue': 'PR-SPGR',
+        'mz_prep_inflow': 'PR-SS',
+        'type': 'DCE',
+        'steady-state': False,
+        'parameters': {
+            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+        },
+    },
+    '3D-SPGR-SSI': {
+        'mz_prep_tissue': 'SSI',
+        'mz_prep_inflow': 'SSI',
+        'type': 'DCE',
+        'steady-state': True,
+        'parameters': {
+            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+        },
+    },
+    'GE-EPI': {
+        'mz_prep_tissue': 'GE-EPI',
+        'mz_prep_inflow': 'Eq',
+        'type': 'DSC',
+        'steady-state': True,
+        'parameters': {
+            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+        },
+    },
+    'SE-EPI': {
+        'mz_prep_tissue': 'SE-EPI',
+        'mz_prep_inflow': 'Eq',
+        'type': 'DSC',
+        'steady-state': True,
+        'parameters': {
+            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+        },
+    },
+    'DE-EPI': {
+        'mz_prep_tissue': 'DE-EPI',
+        'mz_prep_inflow': 'Eq',
+        'type': 'DSC',
+        'steady-state': True,
+        'parameters': {
+            'read': ['S0', 'FA', 'B1corr', 'TE1', 'TE2', 'noise_sdev'],
+        },
+    },
+}
+
+# Add preparation module parameters
+for seq, props in SEQUENCES.items():
+    pars_tissue = MZ_PREP[props['mz_prep_tissue']]['parameters']
+    pars_inflow = MZ_PREP[props['mz_prep_inflow']]['parameters']
+    pars = list(set(pars_tissue + pars_inflow))
+    pars.sort()
+    props['parameters']['prep'] = pars
+
+
+
 # ---- Initial Values ----
 dt_init, tmax_init = 0.5, 240
 t_init = np.arange(0, tmax_init, dt_init, dtype=float)
@@ -23,7 +293,10 @@ LEXICON = MappingProxyType(  # This makes the dict immutable
     # --- Injection & Contrast Agent ---
     'r1': {'init': 3500, 'name': 'Longitudinal contrast agent relaxivity', 'unit': 'Hz/M'},
     'r2': {'init': 4000, 'name': 'Transverse contrast agent relaxivity', 'unit': 'Hz/M'},
-    'r2s': {'init': 35000, 'name': 'Transverse contrast agent relaxivity', 'unit': 'Hz/M'},
+    'r2s': {'init': 20000, 'name': 'Transverse contrast agent relaxivity', 'unit': 'Hz/M'},
+    'r2s_quad': {'init': 1000, 'name': 'Quadratic transverse contrast agent relaxivity', 'unit': 'Hz/M^2'},
+    'r2s_vasc': {'init': 20000, 'name': 'Vacular transverse contrast agent relaxivity', 'unit': 'Hz/M'},
+    'r2s_ees': {'init': 20000, 'name': 'Extravascular, extracellular transverse contrast agent relaxivity', 'unit': 'Hz/M'},
     'agent': {'init': 'gadoterate', 'name': 'Contrast agent', 'unit': None},
     'weight': {'init': 70, 'name': 'Weight', 'unit': 'kg'},
     'dose': {'init': 0.1, 'name': 'Dose', 'unit': 'mL/kg'},
@@ -63,9 +336,46 @@ LEXICON = MappingProxyType(  # This makes the dict immutable
     'TC': {'init': 0.2, 'name': 'Time to k-space center', 'unit': 'sec'},
     'TP': {'init': 0.05, 'name': 'Preparation delay', 'unit': 'sec'},
     'TE': {'init': 0.005, 'name': 'Echo time', 'unit': 'sec'},
+    'TE1': {'init': 0.005, 'name': 'First echo time in a multi-echo sequence', 'unit': 'sec'},
+    'TE2': {'init': 0.005, 'name': 'Second echo time in a multi-echo sequence', 'unit': 'sec'},
     'TA': {'init': 2.0, 'name': 'Acquisition time', 'unit': 'sec'},
     'TS': {'init': 0, 'name': 'Sampling time', 'unit': 'sec'},
     'n_init': {'init': 1, 'name': 'Initial relative magnetization', 'unit': ''},
+    'n0': {'init': 1, 'name': 'Number of baseline dynamics', 'unit': ''},
+
+    # --- Magnetization and flow ---
+    'TF': {'init': 0.5, 'bounds': [0, 10], 'name': 'Inflow time', 'unit': 's'},
+    'Fi': {'init': 0.02, 'bounds': [0, 1], 'name': 'Inflow', 'unit': 'mL/sec/cm3'},
+    'R1i': {'init': 1/1.5, 'bounds': [0, 5], 'name': 'Inflow R1', 'unit': 'Hz'},
+    'me': {'init': 1, 'bounds': [0, 5], 'name': 'Equilibrium magnetization', 'unit': 'A/m'},
+    'v': {'init': 1, 'bounds': [0, 1], 'name': 'Water volume fraction', 'unit': 'mL/cm3'},
+    'Fw': {'init': 0, 'bounds': [0, 1], 'name': 'Water exchange matrix', 'unit': 'mL/sec/cm3'},
+    'Mz': {'init': 1, 'bounds': [0, 5], 'name': 'Longitudinal magnetization', 'unit': 'A/m'},
+
+    # --- Relaxation ---
+    'R1': {'init': 0.65, 'bounds': [0, 5], 'name': 'Tissue R1', 'unit': 'Hz'},
+    'R2': {'init': 0.0, 'bounds': [0, 5], 'name': 'Tissue R2', 'unit': 'Hz'}, 
+    'R2s': {'init': 0.0, 'bounds': [0, 5], 'name': 'Tissue R2*', 'unit': 'Hz'},
+    'R10': {'init': 0.65, 'bounds': [0, 5], 'name': 'Tissue precontrast R1', 'unit': 'Hz'},
+    'R10_c': {'init': 0.65, 'bounds': [0, 5], 'name': 'Cortex precontrast R1', 'unit': 'Hz'},
+    'R10_m': {'init': 0.65, 'bounds': [0, 5], 'name': 'Medulla precontrast R1', 'unit': 'Hz'},
+    'R10_a': {'init': 0.65, 'bounds': [0, 5], 'name': 'Arterial precontrast R1', 'unit': 'Hz'},
+    'R10_l': {'init': 0.65, 'bounds': [0, 5], 'name': 'Liver precontrast R1', 'unit': 'Hz'},
+    'R10_v': {'init': 1/0.8, 'bounds': [0, 5], 'name': 'Portal baseline R1', 'unit': 'Hz'},
+    'R10_lk': {'init': 1/1.5, 'bounds': [0, 5], 'name': 'Left kidney tissue precontrast R1', 'unit': 'Hz'},
+    'R10_rk': {'init': 1/1.5, 'bounds': [0, 5], 'name': 'Right kidney tissue precontrast R1', 'unit': 'Hz'},
+    'R20': {'init': 0.0, 'bounds': [0, 5], 'name': 'Tissue precontrast R2', 'unit': 'Hz'}, # Initialized to zero as R20/R20s factors typically absorbed in scaling factor S0
+    'R20s': {'init': 0.0, 'bounds': [0, 5], 'name': 'Tissue precontrast R2*', 'unit': 'Hz'}, # Idem
+
+    # --- Scaling ---
+    'S0': {'init': 1.0, 'bounds': [0, 5], 'name': 'Signal scaling factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
+    'S0_c': {'init': 1.0, 'bounds': [0, 5], 'name': 'Cortex signal scaling factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
+    'S0_m': {'init': 1.0, 'bounds': [0, 5], 'name': 'Medulla signal scaling factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
+    'S0_a': {'init': 1.0, 'bounds': [0, 5], 'name': 'Arterial signal scaling factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
+    'S0_l': {'init': 1.0, 'bounds': [0, 5], 'name': 'Liver signal scaling factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
+    'S0_v': {'init': 1.0, 'bounds': [0, 5], 'name': 'Portal venous signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
+    'S0_lk': {'init': 1.0, 'bounds': [0, 5], 'name': 'Left kidney signal scaling factor', 'unit': 'a.u.'},
+    'S0_rk': {'init': 1.0, 'bounds': [0, 5], 'name': 'Right kidney signal scaling factor', 'unit': 'a.u.'},
 
     # Water kinetics
     'PSe': {'init': 0.03, 'bounds': [0, 100], 'name': 'Transendothelial water PS', 'unit': 'mL/sec/cm3'},
@@ -190,25 +500,5 @@ LEXICON = MappingProxyType(  # This makes the dict immutable
     'vol_lk': {'init': 150, 'name': 'Left kidney volume', 'unit': 'mL'},
     'vol_rk': {'init': 150, 'name': 'Right kidney volume', 'unit': 'mL'},
 
-    # --- Baseline Relaxation ---
-    'TF': {'init': 0.5, 'bounds': [0, 10], 'name': 'Inflow time', 'unit': 's'},
-    'R10': {'init': 0.65, 'bounds': [0, 5], 'name': 'Tissue precontrast R1', 'unit': 'Hz'},
-    'R10_c': {'init': 0.65, 'bounds': [0, 5], 'name': 'Cortex precontrast R1', 'unit': 'Hz'},
-    'R10_m': {'init': 0.65, 'bounds': [0, 5], 'name': 'Medulla precontrast R1', 'unit': 'Hz'},
-    'R10_a': {'init': 0.65, 'bounds': [0, 5], 'name': 'Arterial precontrast R1', 'unit': 'Hz'},
-    'R10_l': {'init': 0.65, 'bounds': [0, 5], 'name': 'Liver precontrast R1', 'unit': 'Hz'},
-    'R10_v': {'init': 1/0.8, 'bounds': [0, 5], 'name': 'Portal baseline R1', 'unit': 'Hz'},
-    'R10_lk': {'init': 1/1.5, 'bounds': [0, 5], 'name': 'Left kidney tissue precontrast R1', 'unit': 'Hz'},
-    'R10_rk': {'init': 1/1.5, 'bounds': [0, 5], 'name': 'Right kidney tissue precontrast R1', 'unit': 'Hz'},
-
-    # --- Scaling ---
-    'S0': {'init': 1.0, 'bounds': [0, 5], 'name': 'Signal scaling factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
-    'S0_c': {'init': 1.0, 'bounds': [0, 5], 'name': 'Cortex signal scaling factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
-    'S0_m': {'init': 1.0, 'bounds': [0, 5], 'name': 'Medulla signal scaling factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
-    'S0_a': {'init': 1.0, 'bounds': [0, 5], 'name': 'Arterial signal scaling factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
-    'S0_l': {'init': 1.0, 'bounds': [0, 5], 'name': 'Liver signal scaling factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
-    'S0_v': {'init': 1.0, 'bounds': [0, 5], 'name': 'Portal venous signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
-    'S0_lk': {'init': 1.0, 'bounds': [0, 5], 'name': 'Left kidney signal scaling factor', 'unit': 'a.u.'},
-    'S0_rk': {'init': 1.0, 'bounds': [0, 5], 'name': 'Right kidney signal scaling factor', 'unit': 'a.u.'},
     }
 )

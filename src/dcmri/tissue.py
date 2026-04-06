@@ -537,92 +537,366 @@ Returns:
     is the flux from *i* directly to the outside. The flux is returned in 
     units of mmol/sec/mL or M/sec.
 """
-
+from copy import deepcopy
 import numpy as np
 
 from dcmri import pk, rel, mz, sig
-import dcmri.lexicon_utils as lexicon
+from dcmri.ui import SuperFunc
+from dcmri import tissue_lib
+from dcmri.lexicon import SEQUENCES
 
 
-class Conc:
+class Conc(SuperFunc):
+
+    _params_dict = {
+        '2CX': ['T_a', 'H', 'vb', 'vi', 'Fb', 'PS'],
+        'HF': ['T_a', 'H', 'vb', 'vi', 'PS'],
+        'WV': ['T_a', 'H', 'vi', 'Ktrans'],
+        '2CU': ['T_a', 'H', 'vb', 'Fb', 'PS'],
+        'HFU': ['T_a', 'H', 'vb', 'PS'],
+        'FX': ['T_a', 'H', 've', 'Fb'],
+        'NX': ['T_a', 'vb', 'Fb'],
+        'NXP': ['T_a', 'vb', 'Fb'],
+        'U': ['T_a', 'Fb'],
+    }
+
+    configs = {'kinetics': deepcopy(list(_params_dict.keys()))}
+
     def __init__(self, kinetics='2CX', **params):
         cnfg = {'kinetics': kinetics}
-        self._cnfg = _set_config(**cnfg)
-        self._pars = lexicon.init(self._params())
-        # Override parameters
-        [self._pars.update({p:v}) for p, v in params.items() if p in self._params()]
-
-    def params(self):
-        return self._pars.copy()
-
-    def _params_dict(self):
-        return {
-            '2CX': ['T_a', 'H', 'vb', 'vi', 'Fb', 'PS'],
-            'HF': ['T_a', 'H', 'vb', 'vi', 'PS'],
-            'WV': ['T_a', 'H', 'vi', 'Ktrans'],
-            '2CU': ['T_a', 'H', 'vb', 'Fb', 'PS'],
-            'HFU': ['T_a', 'H', 'vb', 'PS'],
-            'FX': ['T_a', 'H', 've', 'Fb'],
-            'NX': ['T_a', 'vb', 'Fb'],
-            'NXP': ['T_a', 'vb', 'Fb'],
-            'U': ['T_a', 'Fb'],
-        }
+        self._cnfg = self._set_config(**cnfg)
+        self._pars = self._set_pars(**params)
 
     def _params(self):
-        return self._params_dict()[self._cnfg['kinetics']]
+        return deepcopy(self._params_dict[self._cnfg['kinetics']])
 
     def __call__(self, ca: np.ndarray, t=None, dt=1.0, **params):
-        # Update keyword parameters
-        if params == {}:
-            p = self._pars
-        else:
-            p = self._pars.copy()
-            [p.update({k:v}) for k, v in params.items() if k in self._pars]
+        p = self._update_pars(**params)
 
         ca = pk.flux_plug(ca, p['T_a'], dt=dt)
         params = {k: v for k, v in p.items() if k != 'T_a'}
         
         kinetics = self._cnfg['kinetics']
-        if kinetics == 'U':
-            return _conc_u(ca, t=t, dt=dt, **params)
-        elif kinetics == 'FX':
-            return _conc_fx(ca, t=t, dt=dt, **params)
-        elif kinetics == 'NX':
-            return _conc_nx(ca, t=t, dt=dt, **params)
-        elif kinetics == 'NXP':
-            return _conc_nxp(ca, t=t, dt=dt, **params)
-        elif kinetics == 'WV':
-            return _conc_wv(ca, t=t, dt=dt, **params)
-        elif kinetics == 'HFU':
-            return _conc_hfu(ca, t=t, dt=dt, **params)
-        elif kinetics == 'HF':
-            return _conc_hf(ca, t=t, dt=dt, **params)
-        elif kinetics == '2CU':
-            return _conc_2cu(ca, t=t, dt=dt, **params)
-        elif kinetics == '2CX':
-            return _conc_2cx(ca, t=t, dt=dt, **params)
-        # elif model=='2CF':
-        #     return _conc_2cf(ca, *params, t=t, dt=dt)
+        if kinetics == 'U': return tissue_lib.Conc_u(ca, t=t, dt=dt, **params)
+        if kinetics == 'FX': return tissue_lib.Conc_fx(ca, t=t, dt=dt, **params)
+        if kinetics == 'NX': return tissue_lib.Conc_nx(ca, t=t, dt=dt, **params)
+        if kinetics == 'NXP': return tissue_lib.Conc_nxp(ca, t=t, dt=dt, **params)
+        if kinetics == 'WV': return tissue_lib.Conc_wv(ca, t=t, dt=dt, **params)
+        if kinetics == 'HFU': return tissue_lib.Conc_hfu(ca, t=t, dt=dt, **params)
+        if kinetics == 'HF': return tissue_lib.Conc_hf(ca, t=t, dt=dt, **params)
+        if kinetics == '2CU': return tissue_lib.Conc_2cu(ca, t=t, dt=dt, **params)
+        if kinetics == '2CX': return tissue_lib.Conc_2cx(ca, t=t, dt=dt, **params)
 
 
-class Relax:
+class R1(SuperFunc):
+    configs = deepcopy(Conc.configs) | {
+        'water_exchange': ['FF','RF','NF','FR','RR','NR','FN','RN','NN'],
+    }
     def __init__(self, kinetics='2CX', water_exchange='FF', **params):
         cnfg = {'kinetics': kinetics, 'water_exchange': water_exchange}
-        self._cnfg = _set_config(**cnfg)
-        self._pars = lexicon.init(self._params())
-
-        # Override parameters
-        [self._pars.update({p:v}) for p, v in params.items() if p in self._params()]
-
-    def params(self):
-        return self._pars.copy()
+        self._cnfg = self._set_config(**cnfg)
+        self._pars = self._set_pars(**params)
 
     def _params(self) -> list:
-        kinetics = self._cnfg['kinetics']
-        water_exchange = self._cnfg['water_exchange']
-        wex = water_exchange.replace('N','R')
+        p = WaterConc(**self._cnfg)._params()
+        p += ['R10', 'r1']
+        return p
 
-        p = Conc(kinetics)._params()
+    def __call__(self, C, **params):
+        p = self._update_pars(**params)
+
+        # Compute concentration in water compartments
+        c = WaterConc(**self._cnfg)(C, **p)
+
+        # Compute R1 of water compartments
+        R1_result = [rel.relax(c[i,:], p['R10'], p['r1']) for i in range(c.shape[0])]
+        return np.stack(R1_result)
+    
+
+class R2(SuperFunc):
+    configs = {}
+    
+    def __init__(self, **params):
+        self._cnfg = {}
+        self._pars = self._set_pars(**params)
+
+    def _params(self) -> list:
+        return ['R20', 'r2']
+    
+    def __call__(self, C, **params):
+        p = self._update_pars(**params)
+        C = np.array(C)
+        if C.ndim==2:
+            C = C.sum(axis=0)
+        R2_result = rel.relax(C, p['R20'], p['r2'])
+        return R2_result
+
+
+class R2s(SuperFunc):
+    configs = {
+        'transverse_relaxation': ['lin', 'quad', 'leakage'],
+        'kinetics': deepcopy(Conc.configs['kinetics'])
+    }
+    def __init__(self, transverse_relaxation='lin', kinetics=None, **params):
+        if transverse_relaxation == 'leakage' and kinetics is None:
+            raise ValueError('Kinetic model must be specified for leakage model.')
+        cnfg = {'transverse_relaxation': transverse_relaxation, 'kinetics': kinetics}
+        self._cnfg = self._set_config(**cnfg)
+        self._pars = self._set_pars(**params)
+
+    def _params(self) -> list:
+        if self._cnfg['transverse_relaxation'] == 'lin':
+            p = ['R20s', 'r2s']
+        elif self._cnfg['transverse_relaxation'] == 'quad':
+            p = ['R20s', 'r2s', 'r2s_quad']
+        elif self._cnfg['transverse_relaxation'] == 'leakage':
+            p = ['R20s', 'r2s_vasc', 'r2s_ees'] 
+            p += ContrastConc(self._cnfg['kinetics'])._params()
+        return p
+    
+    def __call__(self, C, **params):
+        p = self._update_pars(**params)
+        C = np.array(C)
+
+        if self._cnfg['transverse_relaxation'] == 'lin':
+            if C.ndim==2:
+                C = C.sum(axis=0)
+            R2_result = p['R20s'] + p['r2s'] * C
+
+        elif self._cnfg['transverse_relaxation'] == 'quad':
+            if C.ndim==2:
+                C = C.sum(axis=0)
+            R2_result = p['R20s'] + p['r2s'] * C + p['r2s_quad'] * C**2
+
+        elif self._cnfg['transverse_relaxation'] == 'leakage':
+            c = ContrastConc(self._cnfg['kinetics'])(C)
+            R2_result = p['R20s'] + p['r2s_vasc'] * np.abs(c[0,:] - c[1,:]) + p['r2s_ees'] * c[1,:]
+        
+        return R2_result
+
+
+class Mz(SuperFunc):
+    configs = deepcopy(R1.configs) | {'sequence': list(SEQUENCES.keys())}
+
+    def __init__(self, kinetics='2CX', water_exchange='FF', sequence='3D-SPGR-SS', **params):
+        cnfg = {'kinetics': kinetics, 'water_exchange': water_exchange, 'sequence': sequence}
+        self._cnfg = self._set_config(**cnfg)
+        self._pars = self._set_pars(**params)
+
+    def _params(self) -> dict:
+        kin, wex = self._cnfg['kinetics'], self._cnfg['water_exchange']
+        sequence = self._cnfg['sequence']
+        seq = SEQUENCES[sequence]['mz_prep_tissue']
+        iseq = SEQUENCES[sequence]['mz_prep_inflow']
+
+        pars = []
+        if iseq is not None:
+            pars += mz.Mz(iseq)._params()
+        pars += WaterVolumes(kin, wex)._params()
+        pars += WaterFlows(kin, wex)._params() 
+        pars += mz.Mz(seq)._params()
+        pars = list(set(pars))
+        # Exclude derived parameters
+        return [p for p in pars if p not in ['v', 'Fw']]
+
+    def __call__(self, R1t, R1a=None, **params) -> np.ndarray:
+        p = self._update_pars(**params)
+
+        kin, wex = self._cnfg['kinetics'], self._cnfg['water_exchange']
+        seq = SEQUENCES[self._cnfg['sequence']]['mz_prep_tissue']
+        iseq = SEQUENCES[self._cnfg['sequence']]['mz_prep_inflow']
+
+        # Add magnetization inflow
+        if iseq is None: # Model without inflow
+            j = None
+        elif R1a is None:
+            j = None
+        elif 'Fb' not in p:
+            raise ValueError('Parameter Fb must be provided for inflow effects. Please set R1a=None or provide a value for Fb.')
+        else:
+            j = np.zeros_like(R1t)
+            pi = p | {'v': 1, 'Fw': 0}
+            j[0,:] = p['Fb'] * mz.Mz(iseq)(R1a, **pi)
+
+        # Compartment volumes and flows
+        vw = WaterVolumes(kin, wex, **p)() 
+        Fw = WaterFlows(kin, wex, **p)()
+        return mz.Mz(seq, **p)(R1t, j, v=vw, Fw=Fw)
+
+
+class Signal(SuperFunc):
+
+    configs = deepcopy(Mz.configs | R2s.configs)
+
+    def __init__(self, kinetics='2CX', water_exchange='FF', sequence='3D-SPGR-SS', transverse_relaxation='lin', **params):
+        cnfg = {'kinetics': kinetics, 'water_exchange': water_exchange, 'sequence': sequence, 'transverse_relaxation': transverse_relaxation}
+        self._cnfg = self._set_config(**cnfg)
+        self._pars = self._set_pars(**params)
+
+    def _params(self):
+        kin, wex, seq, r2s = self._cnfg['kinetics'], self._cnfg['water_exchange'], self._cnfg['sequence'], self._cnfg['transverse_relaxation']
+        p = []
+        p += Conc(kin)._params()
+        p += ['R10_a', 'r1']
+        p += R1(kin, wex)._params()
+        if seq in ['SE-EPI', 'DE-EPI']:
+            p += R2()._params()
+        if seq != 'SE-EPI':
+            p += R2s(r2s, kin)._params()      
+        p += Mz(kin, wex, seq)._params()
+        p += sig.Readout(seq)._params()
+        p = list(set(p))
+        # Exclude derived
+        return [k for k in p if k not in ['Mz', 'R2s', 'R2']]
+
+    def __call__(self, ca, t=None, dt=1.0, **params):
+        p = self._update_pars(**params)
+        kin, wex, seq, r2s = self._cnfg['kinetics'], self._cnfg['water_exchange'], self._cnfg['sequence'], self._cnfg['transverse_relaxation']
+
+        # Compute concentration
+        C = Conc(kin)(ca, t, dt, **p)
+
+        # Compute relaxation rates
+        if 'Fb' in p:
+            R1a = rel.relax(ca, p['R10_a'], p['r1'])
+        else:
+            R1a = None
+
+        R1_arr = R1(kin, wex)(C, **p)
+        
+        if seq in ['SE-EPI', 'DE-EPI']:
+            R2_arr = R2()(C, **p)
+        else:
+            R2_arr = None
+        
+        if seq == 'SE-EPI':
+            R2s_arr = None
+        elif seq in ['GE-EPI', 'DE-EPI']:
+            R2s_arr = R2s(r2s, kin)(C, **p)
+        elif p['TE'] > 0:
+            R2s_arr = R2s(r2s, kin)(C, **p)
+        else: 
+            R2s_arr = None
+
+        # Compute magnetization and signal
+        Mz_arr = Mz(kin, wex, seq, **p)(R1_arr, R1a)
+        return sig.Readout(seq, **p)(Mz=Mz_arr, R2s=R2s_arr, R2=R2_arr)
+
+
+class Flux(SuperFunc):
+
+    _params_dict = {
+        '2CX': ['T_a', 'H', 'vb', 'vi', 'Fb', 'PS'],
+        'HF': ['T_a', 'H', 'vi', 'PS'],
+        'WV': ['T_a', 'H', 'vi', 'Ktrans'],
+        '2CU': ['T_a', 'H', 'vb', 'Fb', 'PS'],
+        'HFU': ['T_a', 'H', 'PS'],
+        'FX': ['T_a', 'H', 've', 'Fb'],
+        'NX': ['T_a', 'vb', 'Fb'],
+        'NXP': ['T_a', 'vb', 'Fb'],
+        'U': ['T_a', 'Fb'],
+    }
+
+    configs = {'kinetics': deepcopy(list(_params_dict.keys()))}
+    
+    def __init__(self, kinetics='2CX', **params):
+        cnfg = {'kinetics': kinetics}       
+        self._cnfg = self._set_config(**cnfg)
+        self._pars = self._set_pars(**params)
+
+    def _params(self):
+        return deepcopy(Flux._params_dict[self._cnfg['kinetics']])
+
+    def __call__(self, ca: np.ndarray, t=None, dt=1.0, **params) -> np.ndarray:
+        p = self._update_pars(**params)
+
+        ca = pk.flux_plug(ca, p['T_a'], dt=dt)
+        params = {k: v for k, v in p.items() if k != 'T_a'}
+
+        kinetics = self._cnfg['kinetics']
+        if kinetics == 'U': return tissue_lib.flux_u(ca, **params)
+        if kinetics == 'NX': return tissue_lib.flux_nx(ca, t=t, dt=dt, **params)
+        if kinetics == 'NXP': return tissue_lib.flux_nxp(ca, t=t, dt=dt, **params)
+        if kinetics == 'FX': return tissue_lib.flux_fx(ca, t=t, dt=dt, **params)
+        if kinetics == 'WV': return tissue_lib.flux_wv(ca, t=t, dt=dt, **params)
+        if kinetics == 'HFU': return tissue_lib.flux_hfu(ca, **params)
+        if kinetics == 'HF': return tissue_lib.flux_hf(ca, t=t, dt=dt, **params)
+        if kinetics == '2CU': return tissue_lib.flux_2cu(ca, t=t, dt=dt, **params)
+        if kinetics == '2CX': return tissue_lib.flux_2cx(ca, t=t, dt=dt, **params)
+
+
+
+class ContrastConc(SuperFunc):
+    # Convert tissue concentration in blood and interstitium to concentration.
+    # For uptake models this introduces a new parameter
+
+    configs = deepcopy(Conc.configs)
+
+    def __init__(self, kinetics='2CX', **params):
+        cnfg = {'kinetics': kinetics}
+        self._cnfg = self._set_config(**cnfg)
+        self._pars = self._set_pars(**params)
+        
+    def _params(self) -> list:
+        kinetics = self._cnfg['kinetics']
+        if kinetics == 'FX':
+            p = ['H', 've']
+        elif kinetics in ['U', 'NX', 'NXP']:
+            p = ['vb']
+        elif kinetics == 'WV':
+            p = ['vi']
+        elif kinetics in ['HFU', '2CU', 'HF', '2CX']:
+            p = ['vb', 'vi']
+        return p
+
+    def __call__(self, C, **params):
+        p = self._update_pars(**params)
+
+        kinetics = self._cnfg['kinetics']
+    
+        def div(Ci, vi):
+            return Ci / vi if vi > 0 else Ci * 0
+
+        c = np.zeros((2, C.shape[1]))
+
+        if kinetics == 'FX':
+            # vp = p['vb'] * (1 - p['H'])
+            # vi = p['ve'] - vp
+            # Cp = C[0,:] * vp / p['ve']
+            # Ci = C[0,:] * vi / p['ve']
+            # c[0,:] = div(Cp, p['vb'])
+            # c[1,:] = div(Ci, vi)
+            c[0,:] = div(C[0,:] * (1 - p['H']), p['ve'])
+            c[1,:] = div(C[0,:], p['ve'])
+
+        elif kinetics in ['U', 'NX', 'NXP']:
+            c[0,:] = div(C[0,:], p['vb'])  
+        
+        elif kinetics == 'WV':
+            # c[0,:] = ca but does not contribute to T2* at vb=0 so ignored here
+            c[1,:] = div(C[0,:], p['vi']) 
+        
+        elif kinetics in ['HFU', '2CU', 'HF', '2CX']:
+            c[0,:] = div(C[0,:], p['vb'])
+            c[1,:] = div(C[1,:], p['vi']) # New parameter vi
+        
+        return c
+
+class WaterConc(SuperFunc):
+    # Convert tissue concentration in kinetic compartmetns to concentration in water compartments.
+
+    configs = deepcopy(R1.configs)
+
+    def __init__(self, kinetics='2CX', water_exchange='FF', **params):
+        cnfg = {'kinetics': kinetics, 'water_exchange': water_exchange}
+        self._cnfg = self._set_config(**cnfg)
+        self._pars = self._set_pars(**params)
+        
+    def _params(self) -> list:
+        kinetics = self._cnfg['kinetics']
+        wex = self._cnfg['water_exchange'].replace('N','R')
+
+        p = []
 
         if kinetics == 'FX':
             if wex[0] != 'F':
@@ -634,286 +908,128 @@ class Relax:
         elif wex == 'RF':
             if kinetics == 'WV':
                 p += []
-
-            elif kinetics in ['U', 'NX', 'NXP']:
-                p += ['vb']
-
-            elif kinetics in ['FX', 'HFU', 'HF', '2CU', '2CX']:
+            elif kinetics in ['U', 'NX', 'NXP', 'FX', 'HFU', 'HF', '2CU', '2CX']:
                 p += ['vb']
 
         elif wex == 'FR':
             if kinetics == 'WV':
                 p += ['vi']
-            
-            elif kinetics in ['U', 'NX', 'NXP']:
+            elif kinetics in ['U']:
                 p += ['vc']
-
             elif kinetics in ['FX']:
                 p += ['vb', 'H', 've'] 
-            
-            elif kinetics in ['HFU', 'HF', '2CU', '2CX']:
+            elif kinetics in ['NX', 'NXP', 'HFU', 'HF', '2CU', '2CX']:
                 p += ['vb', 'vi']
 
         elif wex == 'RR':
             if kinetics == 'WV':
                 p += ['vi']
-
             elif kinetics in ['NX', 'NXP', 'U']:
                 p += ['vb']
-
             elif kinetics in ['FX']:
                 p += ['vb', 'H', 've']
-
             elif kinetics in ['HF', 'HFU', '2CU', '2CX']:
                 p += ['vb', 'vi']
-
-        p += ['R10', 'r1']
 
         return list(set(p))
 
 
-    def __call__(self, ca: np.ndarray, t=None, dt=1.0, **params):
-        # Update keyword parameters
-        if params == {}:
-            p = self._pars
-        else:
-            p = self._pars.copy()
-            [p.update({k:v}) for k, v in params.items() if k in self._pars]
+    def __call__(self, C, **params):
+        p = self._update_pars(**params)
 
         kinetics = self._cnfg['kinetics']
-        water_exchange = self._cnfg['water_exchange']
+        wex = self._cnfg['water_exchange'].replace('N','R')
 
-        C = Conc(kinetics)(ca, t, dt, **p)
+        # Define helper functions
+        def div(Ci, vi):
+            if vi==0:
+                # In this case the result does not matter
+                return Ci * 0
+            else:
+                return Ci / vi
 
-        wex = water_exchange.replace('N','R')
+        def mix_1_comp(C, v=None):
+            C = C.sum(axis=0)
+            if v is None:
+                return C.reshape(1, -1)
+            else:
+                c = np.zeros((2, C.size))
+                c[0,:] = div(C, v)
+                return c
+
+        def mix_2_comp(C, v):
+            c = np.zeros((2, C.shape[1]))
+            c[0,:] = div(C[0,:], v)
+            c[1,:] = div(C[1,:], 1 - v)
+            return c
+
+        def mix_3_comp(C, v):
+            c = np.zeros((3, C.shape[1]))
+            for i in range(C.shape[0]):
+                c[i, :] = div(C[i,:], v[i])
+            return c
 
         # Separate well-mixed space if needed
         if kinetics == 'FX': # comp = 'e'
             if wex[0] != 'F':
-                if p['ve']==0:
+                if p['ve'] == 0:
                     Cp = C[0,:] * 0
                     Ci = C[0,:] * 0
                 else:
-                    vp = p['vb'] * (1 - p['H'])
-                    Cp = C[0,:] * vp / p['ve']
-                    Ci = C[0,:] * vp / p['ve']  
+                    p['vp'] = (1 - p['H']) * p['vb']
+                    p['vi'] = p['ve'] - p['vp']
+                    Cp = C[0,:] * p['vp'] / p['ve']
+                    Ci = C[0,:] * p['vi'] / p['ve']
                 C = np.stack((Cp, Ci))
 
         # Map indicator compartments to water compartments
         if wex == 'FF':
-            c = _conc_wc_mix(C)
+            return mix_1_comp(C)
 
         elif wex == 'RF':
             if kinetics == 'WV': # i
-                c = _conc_wc_mix(C)
-
+                return mix_1_comp(C)
             elif kinetics in ['U', 'NX', 'NXP']: # b
-                c = _conc_wc_mix(C, p['vb'])
-
+                return mix_1_comp(C, p['vb'])
             elif kinetics in ['FX', 'HFU', 'HF', '2CU', '2CX']: #bi
-                c = _conc_wc_2c(C, p['vb'])
+                return mix_2_comp(C, p['vb'])
 
         elif wex == 'FR':
             if kinetics == 'WV':
-                c = _conc_wc_mix(C, p['vi']) #i
-
-            elif kinetics in ['U', 'NX', 'NXP']:
-                c = _conc_wc_mix(C, 1 - p['vc'])  #b
-
+                return mix_1_comp(C, p['vi']) #i
+            elif kinetics in ['U']:
+                return mix_1_comp(C, 1 - p['vc'])  #b
             elif kinetics == 'FX':
-                vp = p['vb'] * (1 - p['H'])
-                vi = p['ve'] - vp
-                c = _conc_wc_mix(C, p['vb'] + vi)
-
-            elif kinetics in ['HFU', 'HF', '2CU', '2CX']:
-                c = _conc_wc_mix(C, p['vb'] + p['vi']) # 1-vc
+                p['vp'] = (1 - p['H']) * p['vb']
+                p['vi'] = p['ve'] - p['vp']
+                return mix_1_comp(C, p['vb'] + p['vi'])
+            elif kinetics in ['NX', 'NXP', 'HFU', 'HF', '2CU', '2CX']:
+                return mix_1_comp(C, p['vb'] + p['vi']) # 1-vc
 
         elif wex == 'RR':
             if kinetics == 'WV':
-                c = _conc_wc_mix(C, p['vi'])
-
+                return mix_1_comp(C, p['vi'])
             elif kinetics in ['NX', 'NXP', 'U']:
-                c = _conc_wc_3c(C, [p['vb']])
-
+                return mix_3_comp(C, [p['vb']])
             elif kinetics == 'FX':
-                vp = p['vb'] * (1 - p['H'])
-                vi = p['ve'] - vp
-                c = _conc_wc_3c(C, [p['vb'], vi])
-
+                p['vp'] = (1 - p['H']) * p['vb']
+                p['vi'] = p['ve'] - p['vp']
+                return mix_3_comp(C, [p['vb'], p['vi']])
             elif kinetics in ['HF', 'HFU', '2CU', '2CX']:
-                c = _conc_wc_3c(C, [p['vb'], p['vi']])
-
-        # Compute R1 of wter compartments
-        R1 = [rel.relax(c[i,:], p['R10'], p['r1']) for i in range(c.shape[0])]
-        R1 = np.stack(R1)
-
-        return R1
-
-class Mz:
-    def __init__(self, kinetics='2CX', water_exchange='FF', sequence='SS', inflow_sequence='SS', **params):
-        cnfg = {'kinetics': kinetics, 'water_exchange': water_exchange, 'sequence': sequence, 'inflow_sequence': inflow_sequence}
-        self._cnfg = _set_config(**cnfg)
-        self._pars = lexicon.init(self._params())
-        # Override parameters
-        [self._pars.update({p:v}) for p, v in params.items() if p in self._params()]
-
-    def params(self):
-        return self._pars.copy()
-
-    def _params(self) -> dict:
-        kin = self._cnfg['kinetics']
-        wex = self._cnfg['water_exchange']
-        seq = self._cnfg['sequence']
-        iseq = self._cnfg['inflow_sequence']
-
-        pars = Relax(kin, wex)._params()
-        pars += ['R10_a', 'r1']
-        pars += mz.Mz(iseq)._params()
-        pars += WaterVolumes(kin, wex)._params()
-        pars += WaterFlows(kin, wex)._params() 
-        pars += mz.Mz(seq)._params()
-        
-        return list(set(pars))
-
-    def __call__(self, ca: np.ndarray, t=None, dt=1.0, **params) -> np.ndarray:
-        # Update keyword parameters
-        if params == {}:
-            p = self._pars
-        else:
-            p = self._pars.copy()
-            [p.update({k:v}) for k, v in params.items() if k in self._pars]
-
-        kin = self._cnfg['kinetics']
-        wex = self._cnfg['water_exchange']
-        seq = self._cnfg['sequence']
-        iseq = self._cnfg['inflow_sequence']
-
-        # Compute relaxation rates of tissue and input
-        R1 = Relax(kin, wex)(ca, t, dt, **p)
-        R1a = rel.relax(ca, p['R10_a'], p['r1'])
-
-        # Add magnetization inflow
-        if 'Fb' in p:
-            j = np.zeros_like(R1)
-            j[0,:] = p['Fb'] * mz.Mz(iseq)(R1a, **p)
-        else:
-            j = None
-
-        # Compartment volumes and flows
-        vw = WaterVolumes(kin, wex, **p)() 
-        Fw = WaterFlows(kin, wex, **p)()
-        return mz.Mz(seq, **p)(R1, vw, Fw, j)
+                return mix_3_comp(C, [p['vb'], p['vi']])
 
 
-class Signal:
-    def __init__(self, kinetics='2CX', water_exchange='FF', sequence='SS', inflow_sequence='SS', **params):
-        cnfg = {'kinetics': kinetics, 'water_exchange': water_exchange, 'sequence': sequence, 'inflow_sequence': inflow_sequence}
-        self._cnfg = _set_config(**cnfg)
-        self._pars = lexicon.init(self._params())
-
-        # Override parameters
-        [self._pars.update({p:v}) for p, v in params.items() if p in self._params()]
-
-    def params(self):
-        return self._pars.copy()
-
-    def _params(self):
-        p = Mz(**self._cnfg)._params()
-        p += sig.Readout()._params()
-        return list(set(p))
-
-    def __call__(self, ca: np.ndarray, t=None, dt=1.0, **params):
-        # Update keyword parameters
-        if params == {}:
-            p = self._pars
-        else:
-            p = self._pars.copy()
-            [p.update({k:v}) for k, v in params.items() if k in self._pars]
-
-        # Compute signal
-        Mz_arr = Mz(**(self._cnfg | p))(ca, t, dt)
-        signal = sig.Readout(**p)(Mz_arr)
-
-        return signal 
-
-
-class Flux:
-    def __init__(self, kinetics='2CX', **params):
-        cnfg = {'kinetics': kinetics}       
-        self._cnfg = _set_config(**cnfg)
-        self._pars = lexicon.init(self._params())
-        # Override parameters
-        [self._pars.update({p:v}) for p, v in params.items() if p in self._params()]
-
-    def params(self):
-        return self._pars.copy()
     
-    def _params_dict(self):
-        return {
-            '2CX': ['T_a', 'H', 'vb', 'vi', 'Fb', 'PS'],
-            'HF': ['T_a', 'H', 'vi', 'PS'],
-            'WV': ['T_a', 'H', 'vi', 'Ktrans'],
-            '2CU': ['T_a', 'H', 'vb', 'Fb', 'PS'],
-            'HFU': ['T_a', 'H', 'PS'],
-            'FX': ['T_a', 'H', 've', 'Fb'],
-            'NX': ['T_a', 'vb', 'Fb'],
-            'NXP': ['T_a', 'vb', 'Fb'],
-            'U': ['T_a', 'Fb'],
-        }
 
-    def _params(self):
-        return self._params_dict()[self._cnfg['kinetics']]
+class WaterVolumes(SuperFunc):
+    configs = R1.configs
 
-    def __call__(self, ca: np.ndarray, t=None, dt=1.0, **params) -> np.ndarray:
-        # Update keyword parameters
-        if params == {}:
-            p = self._pars
-        else:
-            p = self._pars.copy()
-            [p.update({k:v}) for k, v in params.items() if k in self._pars]
-
-        ca = pk.flux_plug(ca, p['T_a'], dt=dt)
-
-        params = {k: v for k, v in p.items() if k != 'T_a'}
-
-        kinetics = self._cnfg['kinetics']
-        if kinetics == 'U':
-            return _flux_u(ca, **params)
-        elif kinetics == 'NX':
-            return _flux_nx(ca, t=t, dt=dt, **params)
-        elif kinetics == 'NXP':
-            return _flux_nxp(ca, t=t, dt=dt, **params)
-        elif kinetics == 'FX':
-            return _flux_fx(ca, t=t, dt=dt, **params)
-        elif kinetics == 'WV':
-            return _flux_wv(ca, t=t, dt=dt, **params)
-        elif kinetics == 'HFU':
-            return _flux_hfu(ca, **params)
-        elif kinetics == 'HF':
-            return _flux_hf(ca, t=t, dt=dt, **params)
-        elif kinetics == '2CU':
-            return _flux_2cu(ca, t=t, dt=dt, **params)
-        elif kinetics == '2CX':
-            return _flux_2cx(ca, t=t, dt=dt, **params)
-        # elif model=='2CF':
-        #     return _flux_2cf(ca, t=t, dt=dt, **params)
-
-
-class WaterVolumes:
     def __init__(self, kinetics='2CX', water_exchange='FF', **params):
         cnfg = {'kinetics': kinetics, 'water_exchange': water_exchange}
-        self._cnfg = _set_config(**cnfg)
-        self._pars = lexicon.init(self._params())
-        # Override parameters
-        [self._pars.update({p:v}) for p, v in params.items() if p in self._params()]
-
-    def params(self):
-        return self._pars.copy()
+        self._cnfg = self._set_config(**cnfg)
+        self._pars = self._set_pars(**params)
 
     def _params(self):
-        kin, wex = self._cnfg['kinetics'], self._cnfg['water_exchange']
-        wex = wex.replace('N','R')
-
         geom = {
             ('2CX', 'FF'): [],
             ('2CU', 'FF'): [],
@@ -955,26 +1071,18 @@ class WaterVolumes:
             ('U', 'RR'): ['vb', 'vi'],
             ('FX', 'RR'): ['vb', 'vi'],
         }
+        kin, wex = self._cnfg['kinetics'], self._cnfg['water_exchange'].replace('N','R')
         return geom[(kin, wex)] 
 
     def __call__(self, **params):
-        # Update keyword parameters
-        if params == {}:
-            p = self._pars
-        else:
-            p = self._pars.copy()
-            [p.update({k:v}) for k, v in params.items() if k in self._pars]
+        p = self._update_pars(**params)
 
         kin, wex = self._cnfg['kinetics'], self._cnfg['water_exchange']
         wex = wex.replace('N','R')
 
-        # Get some notations
-        if 'vb' in p:
-            vb = p['vb']
-        if 'vi' in p:
-            vi = p['vi']
-        if ('vb' in p) and ('vi' in p):
-            vc = 1 - vb - vi
+        # Add derived
+        if {'vb', 'vi'}.issubset(p):
+            p['vc'] = 1 - p['vb'] - p['vi']
 
         # Map water compartment volumes
         if (kin, wex) == ('2CX', 'FF'): return np.array([1])
@@ -987,53 +1095,46 @@ class WaterVolumes:
         if (kin, wex) == ('U', 'FF'): return np.array([1])
         if (kin, wex) == ('FX', 'FF'): return np.array([1])
 
-        if (kin, wex) == ('2CX', 'FR'): return np.array([1-vc, vc])
-        if (kin, wex) == ('2CU', 'FR'): return np.array([1-vc, vc])
-        if (kin, wex) == ('HF', 'FR'): return np.array([1-vc, vc])
-        if (kin, wex) == ('HFU', 'FR'): return np.array([1-vc, vc])
-        if (kin, wex) == ('NX', 'FR'): return np.array([1-vc, vc])
-        if (kin, wex) == ('NXP', 'FR'): return np.array([1-vc, vc])
-        if (kin, wex) == ('WV', 'FR'): return np.array([vi, 1-vi])
-        if (kin, wex) == ('U', 'FR'): return np.array([1-vc, vc])
-        if (kin, wex) == ('FX', 'FR'): return np.array([1-vc, vc])
+        if (kin, wex) == ('2CX', 'FR'): return np.array([1-p['vc'], p['vc']])
+        if (kin, wex) == ('2CU', 'FR'): return np.array([1-p['vc'], p['vc']])
+        if (kin, wex) == ('HF', 'FR'): return np.array([1-p['vc'], p['vc']])
+        if (kin, wex) == ('HFU', 'FR'): return np.array([1-p['vc'], p['vc']])
+        if (kin, wex) == ('NX', 'FR'): return np.array([1-p['vc'], p['vc']])
+        if (kin, wex) == ('NXP', 'FR'): return np.array([1-p['vc'], p['vc']])
+        if (kin, wex) == ('WV', 'FR'): return np.array([p['vi'], 1-p['vi']])
+        if (kin, wex) == ('U', 'FR'): return np.array([1-p['vc'], p['vc']])
+        if (kin, wex) == ('FX', 'FR'): return np.array([1-p['vc'], p['vc']])
 
-        if (kin, wex) == ('2CX', 'RF'): return np.array([vb, 1-vb])
-        if (kin, wex) == ('2CU', 'RF'): return np.array([vb, 1-vb])
-        if (kin, wex) == ('HF', 'RF'): return np.array([vb, 1-vb])
-        if (kin, wex) == ('HFU', 'RF'): return np.array([vb, 1-vb])
-        if (kin, wex) == ('NX', 'RF'): return np.array([vb, 1-vb])
-        if (kin, wex) == ('NXP', 'RF'): return np.array([vb, 1-vb])
+        if (kin, wex) == ('2CX', 'RF'): return np.array([p['vb'], 1-p['vb']])
+        if (kin, wex) == ('2CU', 'RF'): return np.array([p['vb'], 1-p['vb']])
+        if (kin, wex) == ('HF', 'RF'): return np.array([p['vb'], 1-p['vb']])
+        if (kin, wex) == ('HFU', 'RF'): return np.array([p['vb'], 1-p['vb']])
+        if (kin, wex) == ('NX', 'RF'): return np.array([p['vb'], 1-p['vb']])
+        if (kin, wex) == ('NXP', 'RF'): return np.array([p['vb'], 1-p['vb']])
         if (kin, wex) == ('WV', 'RF'): return np.array([1])
-        if (kin, wex) == ('U', 'RF'): return np.array([vb, 1-vb])
-        if (kin, wex) == ('FX', 'RF'): return np.array([vb, 1-vb])
+        if (kin, wex) == ('U', 'RF'): return np.array([p['vb'], 1-p['vb']])
+        if (kin, wex) == ('FX', 'RF'): return np.array([p['vb'], 1-p['vb']])
 
-        if (kin, wex) == ('2CX', 'RR'): return np.array([vb, vi, vc])
-        if (kin, wex) == ('2CU', 'RR'): return np.array([vb, vi, vc])
-        if (kin, wex) == ('HF', 'RR'): return np.array([vb, vi, vc])
-        if (kin, wex) == ('HFU', 'RR'): return np.array([vb, vi, vc])
-        if (kin, wex) == ('NX', 'RR'): return np.array([vb, vi, vc])
-        if (kin, wex) == ('NXP', 'RR'): return np.array([vb, vi, vc])
-        if (kin, wex) == ('WV', 'RR'): return np.array([vi, 1-vi])
-        if (kin, wex) == ('U', 'RR'): return np.array([vb, vi, vc])
-        if (kin, wex) == ('FX', 'RR'): return np.array([vb, vi, vc])
+        if (kin, wex) == ('2CX', 'RR'): return np.array([p['vb'], p['vi'], p['vc']])
+        if (kin, wex) == ('2CU', 'RR'): return np.array([p['vb'], p['vi'], p['vc']])
+        if (kin, wex) == ('HF', 'RR'): return np.array([p['vb'], p['vi'], p['vc']])
+        if (kin, wex) == ('HFU', 'RR'): return np.array([p['vb'], p['vi'], p['vc']])
+        if (kin, wex) == ('NX', 'RR'): return np.array([p['vb'], p['vi'], p['vc']])
+        if (kin, wex) == ('NXP', 'RR'): return np.array([p['vb'], p['vi'], p['vc']])
+        if (kin, wex) == ('WV', 'RR'): return np.array([p['vi'], 1-p['vi']])
+        if (kin, wex) == ('U', 'RR'): return np.array([p['vb'], p['vi'], p['vc']])
+        if (kin, wex) == ('FX', 'RR'): return np.array([p['vb'], p['vi'], p['vc']])
 
 
-class WaterFlows:
+class WaterFlows(SuperFunc):
+    configs = deepcopy(R1.configs)
+    
     def __init__(self, kinetics='2CX', water_exchange='FF', **params):
         cnfg = {'kinetics': kinetics, 'water_exchange': water_exchange}
-        self._cnfg = _set_config(**cnfg)
-        self._pars = lexicon.init(self._params())
-        # Override parameters
-        [self._pars.update({p:v}) for p, v in params.items() if p in self._params()]
-
-    def params(self):
-        return self._pars.copy()
+        self._cnfg = self._set_config(**cnfg)
+        self._pars = self._set_pars(**params)
 
     def _params(self) -> dict:
-        kin = self._cnfg['kinetics']
-        wex = self._cnfg['water_exchange']
-        wex = wex.replace('N','R')
-
         geom = {
             ('2CX', 'FF'): ['Fb'],
             ('2CU', 'FF'): ['Fb'],
@@ -1075,348 +1176,88 @@ class WaterFlows:
             ('U', 'RR'): ['Fb', 'PSe', 'PSc'],
             ('FX', 'RR'): ['Fb', 'PSe', 'PSc'],
         }
-        return geom[(kin, wex)]
+        kin, wex = self._cnfg['kinetics'], self._cnfg['water_exchange']
+        p = geom[(kin, deepcopy(wex).replace('N','R'))]
+        if wex[0] == 'N' and 'PSe' in p:
+            p.remove('PSe')
+        if wex[1] == 'N' and 'PSc' in p:
+            p.remove('PSc')
+        return p
 
     def __call__(self, **params):
-        # Update keyword parameters
-        if params == {}:
-            p = self._pars
-        else:
-            p = self._pars.copy()
-            [p.update({k:v}) for k, v in params.items() if k in self._pars]
-
+        p = self._update_pars(**params)
         kin, wex = self._cnfg['kinetics'], self._cnfg['water_exchange']
-        wex = wex.replace('N','R')
 
-        # Get some notations
-        if 'Fb' in p:
-            Fb = p['Fb']
-        if 'PSc' in p:
-            PSc = p['PSc']
-        if 'PSe' in p:
-            PSe = p['PSe']
+        if wex[0] == 'N':
+            p['PSe'] = 0
+        if wex[1] == 'N':
+            p['PSc'] = 0
 
         # Map water compartment flows
-        if (kin, wex) == ('2CX', 'FF'): return np.full((1, 1), Fb)
-        if (kin, wex) == ('2CU', 'FF'): return np.full((1, 1), Fb)
+        wex = wex.replace('N','R')
+        if (kin, wex) == ('2CX', 'FF'): return np.full((1, 1), p['Fb'])
+        if (kin, wex) == ('2CU', 'FF'): return np.full((1, 1), p['Fb'])
         if (kin, wex) == ('HF', 'FF'): return np.full((1, 1), 0)
         if (kin, wex) == ('HFU', 'FF'): return np.full((1, 1), 0)
-        if (kin, wex) == ('NX', 'FF'): return np.full((1, 1), Fb)
-        if (kin, wex) == ('NXP', 'FF'): return np.full((1, 1), Fb)
+        if (kin, wex) == ('NX', 'FF'): return np.full((1, 1), p['Fb'])
+        if (kin, wex) == ('NXP', 'FF'): return np.full((1, 1), p['Fb'])
         if (kin, wex) == ('WV', 'FF'): return np.full((1, 1), 0)
         if (kin, wex) == ('U', 'FF'): return np.full((1, 1), 0)
-        if (kin, wex) == ('FX', 'FF'): return np.full((1, 1), Fb)
+        if (kin, wex) == ('FX', 'FF'): return np.full((1, 1), p['Fb'])
 
-        if (kin, wex) == ('2CX', 'FR'): return np.array([[Fb, PSc], [PSc, 0]])
-        if (kin, wex) == ('2CU', 'FR'): return np.array([[Fb, PSc], [PSc, 0]])
-        if (kin, wex) == ('HF', 'FR'): return np.array([[0, PSc], [PSc, 0]])
-        if (kin, wex) == ('HFU', 'FR'): return np.array([[0, PSc], [PSc, 0]])
-        if (kin, wex) == ('NX', 'FR'): return np.array([[Fb, PSc], [PSc, 0]])
-        if (kin, wex) == ('NXP', 'FR'): return np.array([[Fb, PSc], [PSc, 0]])
-        if (kin, wex) == ('WV', 'FR'): return np.array([[0, PSc], [PSc, 0]])
-        if (kin, wex) == ('U', 'FR'): return np.array([[0, PSc], [PSc, 0]])
-        if (kin, wex) == ('FX', 'FR'): return np.array([[Fb, PSc], [PSc, 0]])
+        if (kin, wex) == ('2CX', 'FR'): return np.array([[p['Fb'], p['PSc']], [p['PSc'], 0]])
+        if (kin, wex) == ('2CU', 'FR'): return np.array([[p['Fb'], p['PSc']], [p['PSc'], 0]])
+        if (kin, wex) == ('HF', 'FR'): return np.array([[0, p['PSc']], [p['PSc'], 0]])
+        if (kin, wex) == ('HFU', 'FR'): return np.array([[0, p['PSc']], [p['PSc'], 0]])
+        if (kin, wex) == ('NX', 'FR'): return np.array([[p['Fb'], p['PSc']], [p['PSc'], 0]])
+        if (kin, wex) == ('NXP', 'FR'): return np.array([[p['Fb'], p['PSc']], [p['PSc'], 0]])
+        if (kin, wex) == ('WV', 'FR'): return np.array([[0, p['PSc']], [p['PSc'], 0]])
+        if (kin, wex) == ('U', 'FR'): return np.array([[0, p['PSc']], [p['PSc'], 0]])
+        if (kin, wex) == ('FX', 'FR'): return np.array([[p['Fb'], p['PSc']], [p['PSc'], 0]])
 
-        if (kin, wex) == ('2CX', 'RF'): return np.array([[Fb, PSe], [PSe, 0]])
-        if (kin, wex) == ('2CU', 'RF'): return np.array([[Fb, PSe], [PSe, 0]])
-        if (kin, wex) == ('HF', 'RF'): return np.array([[0, PSe], [PSe, 0]])
-        if (kin, wex) == ('HFU', 'RF'): return np.array([[0, PSe], [PSe, 0]])
-        if (kin, wex) == ('NX', 'RF'): return np.array([[Fb, PSe], [PSe, 0]])
-        if (kin, wex) == ('NXP', 'RF'): return np.array([[Fb, PSe], [PSe, 0]])
+        if (kin, wex) == ('2CX', 'RF'): return np.array([[p['Fb'], p['PSe']], [p['PSe'], 0]])
+        if (kin, wex) == ('2CU', 'RF'): return np.array([[p['Fb'], p['PSe']], [p['PSe'], 0]])
+        if (kin, wex) == ('HF', 'RF'): return np.array([[0, p['PSe']], [p['PSe'], 0]])
+        if (kin, wex) == ('HFU', 'RF'): return np.array([[0, p['PSe']], [p['PSe'], 0]])
+        if (kin, wex) == ('NX', 'RF'): return np.array([[p['Fb'], p['PSe']], [p['PSe'], 0]])
+        if (kin, wex) == ('NXP', 'RF'): return np.array([[p['Fb'], p['PSe']], [p['PSe'], 0]])
         if (kin, wex) == ('WV', 'RF'): return np.array([0])
-        if (kin, wex) == ('U', 'RF'): return np.array([[0, PSe], [PSe, 0]])
-        if (kin, wex) == ('FX', 'RF'): return np.array([[Fb, PSe], [PSe, 0]])
+        if (kin, wex) == ('U', 'RF'): return np.array([[0, p['PSe']], [p['PSe'], 0]])
+        if (kin, wex) == ('FX', 'RF'): return np.array([[p['Fb'], p['PSe']], [p['PSe'], 0]])
 
-        if (kin, wex) == ('2CX', 'RR'): return np.array([[Fb, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]])
-        if (kin, wex) == ('2CU', 'RR'): return np.array([[Fb, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]])
-        if (kin, wex) == ('HF', 'RR'): return np.array([[0, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]])
-        if (kin, wex) == ('HFU', 'RR'): return np.array([[0, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]])
-        if (kin, wex) == ('NX', 'RR'): return np.array([[Fb, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]])
-        if (kin, wex) == ('NXP', 'RR'): return np.array([[Fb, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]])
-        if (kin, wex) == ('WV', 'RR'): return np.array([[0, PSc], [PSc, 0]])
-        if (kin, wex) == ('U', 'RR'): return np.array([[0, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]])
-        if (kin, wex) == ('FX', 'RR'): return np.array([[Fb, PSe, 0], [PSe, 0, PSc], [0, PSc, 0]])
+        if (kin, wex) == ('2CX', 'RR'): return np.array([[p['Fb'], p['PSe'], 0], [p['PSe'], 0, p['PSc']], [0, p['PSc'], 0]])
+        if (kin, wex) == ('2CU', 'RR'): return np.array([[p['Fb'], p['PSe'], 0], [p['PSe'], 0, p['PSc']], [0, p['PSc'], 0]])
+        if (kin, wex) == ('HF', 'RR'): return np.array([[0, p['PSe'], 0], [p['PSe'], 0, p['PSc']], [0, p['PSc'], 0]])
+        if (kin, wex) == ('HFU', 'RR'): return np.array([[0, p['PSe'], 0], [p['PSe'], 0, p['PSc']], [0, p['PSc'], 0]])
+        if (kin, wex) == ('NX', 'RR'): return np.array([[p['Fb'], p['PSe'], 0], [p['PSe'], 0, p['PSc']], [0, p['PSc'], 0]])
+        if (kin, wex) == ('NXP', 'RR'): return np.array([[p['Fb'], p['PSe'], 0], [p['PSe'], 0, p['PSc']], [0, p['PSc'], 0]])
+        if (kin, wex) == ('WV', 'RR'): return np.array([[0, p['PSc']], [p['PSc'], 0]])
+        if (kin, wex) == ('U', 'RR'): return np.array([[0, p['PSe'], 0], [p['PSe'], 0, p['PSc']], [0, p['PSc'], 0]])
+        if (kin, wex) == ('FX', 'RR'): return np.array([[p['Fb'], p['PSe'], 0], [p['PSe'], 0, p['PSc']], [0, p['PSc'], 0]])
 
 
-def derive_params(p):
+def add_derived_params(p):
 
     if {'H', 'vb'}.issubset(p):
         p['vp'] = (1 - p['H']) * p['vb']
 
     if {'ve', 'vp'}.issubset(p):
-        p['vi'] = p['ve'] + p['vp']
+        p['vi'] = p['ve'] - p['vp']
 
     elif {'vp', 'vi'}.issubset(p):
         p['ve'] = p['vp'] + p['vi']
 
+    if {'vb', 'vi'}.issubset(p):
+        p['vc'] = 1 - p['vb'] - p['vi']
+
     return p
 
 
-def _set_config(**cnfg):
-    if 'kinetics' in cnfg:
-        kinetics = cnfg['kinetics']
-        if kinetics not in ['WV', 'FX', 'U', 'NX', 'NXP', 'FX', 'HFU', 'HF', '2CU', '2CX']:
-            raise ValueError(f'Kinetic model {kinetics} is not currently implemented.')
-    
-    if 'water_exchange' in cnfg:
-        water_exchange = cnfg['water_exchange']
-        if (water_exchange[0] not in ['F', 'R', 'N']) or (
-            water_exchange[1] not in ['F', 'R', 'N']):
-            raise ValueError(
-                "Water exchange regime '" +
-                str(water_exchange) + "' is not recognised.\n" + 
-                "Possible values are: 'FF','RF','NF','FR','RR','NR','FN','RN','NN'"
-            )
-    
-    if 'sequence' in cnfg:
-        sequence = cnfg['sequence']
-        if sequence not in ['SS', 'SR', 'IR-SS', 'PR-SS', 'PR', 'SSI', 'GE-EPI', 'SE-EPI', 'None']:
-            raise ValueError(f'Sequence {sequence} is not currently implemented.')   
-    
-    if 'inflow_sequence' in cnfg:
-        inflow_sequence = cnfg['inflow_sequence']
-        if inflow_sequence not in ['SS', 'SR', 'IR-SS', 'PR-SS', 'PR', 'SSI', 'GE-EPI', 'SE-EPI', 'None']:
-            raise ValueError(f'Sequence {sequence} is not currently implemented.')     
-        
-    return cnfg
-
-def _c(C,v):
-    if v==0:
-        # In this case the result does not matter
-        return C*0
-    else:
-        return C/v
-        
-
-def _conc_wc_mix(C, v=None):
-    C = C.sum(axis=0)
-    if v is None:
-        return C.reshape(1, -1)
-    else:
-        c = np.zeros((2, C.size))
-        c[0,:] = _c(C, v)
-        return c
-
-def _conc_wc_2c(C, v):
-    c0 = _c(C[0,:], v)
-    c1 = _c(C[1,:], 1 - v)
-    return np.stack((c0, c1))
-
-def _conc_wc_3c(C, v):
-    c = np.zeros((3, C.shape[1]))
-    for i in range(C.shape[0]):
-        c[i, :] = _c(C[i,:], v[i])
-    return c
+# def _set_config(**cnfg):
+#     for key, value in cnfg.items():
+#         if value not in Signal.configs[key]:
+#             raise ValueError(f'Config {value} is not recognized. Options are {list(Signal.configs[key])}.')  
+            
+#     return cnfg
 
 
-
-
-
-    
-def _conc_u(ca, t=None, dt=1.0, Fb=None):
-    C = pk.conc_trap(Fb*ca, t=t, dt=dt)
-    return C.reshape(1, -1)
-    
-def _conc_fx(ca, t=None, dt=1.0, H=None, ve=None, Fb=None):
-    if Fb == 0:
-        ce = ca*0
-    else:
-        Fp = (1-H)*Fb
-        ce = pk.flux_comp(ca/(1-H), ve/Fp, t=t, dt=dt)
-    return ve*ce.reshape(1, -1)
-
-def _conc_nx(ca, t=None, dt=1.0, vb=None, Fb=None):
-    if Fb == 0:
-        Cb = ca*0
-    else:
-        Cb = pk.conc_comp(Fb*ca, vb/Fb, t=t, dt=dt)
-    return Cb.reshape(1, -1)
-
-def _conc_nxp(ca, t=None, dt=1.0, vb=None, Fb=None):
-    if Fb == 0:
-        Cb = ca*0
-    else:
-        Cb = pk.conc_plug(Fb*ca, vb/Fb, t=t, dt=dt)
-    return Cb.reshape(1, -1)
-
-def _conc_wv(ca, t=None, dt=1.0, H=None, vi=None, Ktrans=None):
-    if Ktrans == 0:
-        ci = ca*0
-    else:
-        ci = pk.flux_comp(ca/(1-H), vi/Ktrans, t=t, dt=dt)
-    return vi*ci.reshape(1, -1)
-
-def _conc_hfu(ca, t=None, dt=1.0, H=None, vb=None, PS=None):
-    vp = vb*(1-H)
-    cp = ca/(1-H)
-    Ci = pk.conc_trap(PS*cp, t=t, dt=dt)
-    return np.stack((vp*cp, Ci)) 
-
-def _conc_hf(ca, t=None, dt=1.0, H=None, vi=None, vb=None, PS=None):
-    vp = vb*(1-H)
-    ca = ca/(1-H)
-    Cp = vp*ca
-    if PS == 0:
-        Ci = 0*ca
-    else:
-        Ci = pk.conc_comp(PS*ca, vi/PS, t=t, dt=dt)
-    return np.stack((Cp, Ci))
-
-def _conc_2cu(ca, t=None, dt=1.0, H=None, vb=None, Fb=None, PS=None):
-    vp = (1-H)*vb
-    Fp = (1-H)*Fb
-    if np.isinf(Fp):
-        return _conc_hfu(ca, t=t, dt=dt, H=H, vb=vb, PS=PS)
-    ca = ca/(1-H)
-    if Fp+PS == 0:
-        return np.zeros((2, len(ca)))
-    Tp = vp/(Fp+PS)
-    Cp = pk.conc_comp(Fp*ca, Tp, t=t, dt=dt)
-    if vp == 0:
-        Ktrans = PS*Fp/(PS+Fp)
-        Ci = pk.conc_trap(Ktrans*ca, t=t, dt=dt)
-    else:
-        Ci = pk.conc_trap(PS*Cp/vp, t=t, dt=dt)
-    return np.stack((Cp, Ci))
-
-def _conc_2cx(ca, t=None, dt=1.0, H=None, vi=None, vb=None, Fb=None, PS=None):
-    vp = (1-H)*vb
-    Fp = (1-H)*Fb
-    if np.isinf(Fp):
-        return _conc_hf(ca, t=t, dt=dt, H=H, vi=vi, vb=vb, PS=PS)
-
-    ca = ca/(1-H)
-    J = Fp*ca
-
-    if Fp+PS == 0:
-        Cp = np.zeros(len(ca))
-        Ce = np.zeros(len(ca))
-        return np.stack((Cp, Ce))
-
-    Tp = vp/(Fp+PS)
-    E = PS/(Fp+PS)
-
-    if PS == 0:
-        Cp = pk.conc_comp(Fp*ca, Tp, t=t, dt=dt)
-        Ci = np.zeros(len(ca))
-        return np.stack((Cp, Ci))
-
-    Ti = vi/PS
-    C = pk.conc_2cxm(J, [Tp, Ti], E, t=t, dt=dt)
-    return C
-    
-
-
-
-
-def _flux_u(ca, Fb=None):
-    return pk.flux(Fb*ca, model='trap')
-
-
-def _flux_nx(ca, t=None, dt=1.0, vb=None, Fb=None):
-    if Fb == 0:
-        return np.zeros(len(ca))
-    return pk.flux(Fb*ca, vb/Fb, t=t, dt=dt, model='comp')
-
-def _flux_nxp(ca, t=None, dt=1.0, vb=None, Fb=None):
-    if Fb == 0:
-        return np.zeros(len(ca))
-    return pk.flux(Fb*ca, vb/Fb, t=t, dt=dt, model='plug')
-
-def _flux_fx(ca, t=None, dt=1.0, H=None, ve=None, Fb=None):
-    if Fb == 0:
-        return np.zeros(len(ca))
-    Fp = Fb*(1-H)
-    return pk.flux(Fb*ca, ve/Fp, t=t, dt=dt, model='comp')
-
-def _flux_wv(ca, t=None, dt=1.0, H=None, vi=None, Ktrans=None):
-    ca = ca/(1-H)
-    J = np.zeros(((2, 2, len(ca))))
-    J[0, 0, :] = np.nan
-    J[1, 0, :] = Ktrans*ca
-    if Ktrans != 0:
-        J[0, 1, :] = pk.flux(Ktrans*ca, vi/Ktrans, t=t, dt=dt, model='comp')
-    return J
-
-def _flux_hfu(ca, H=None, PS=None):
-    J = np.zeros(((2, 2, len(ca))))
-    J[0, 0, :] = np.nan
-    J[1, 0, :] = PS*ca/(1-H)
-    return J
-
-
-def _flux_hf(ca, t=None, dt=1.0, H=None, vi=None, PS=None):
-    ca = ca/(1-H)
-    J = np.zeros(((2, 2, len(ca))))
-    J[0, 0, :] = np.inf
-    J[1, 0, :] = PS*ca
-    if PS == 0:
-        J[0, 1, :] = 0*ca
-    else:
-        J[0, 1, :] = pk.flux(PS*ca, vi/PS, t=t, dt=dt, model='comp')
-    return J
-
-
-def _flux_2cu(ca, t=None, dt=1.0, H=None, vb=None, Fb=None, PS=None):
-    C = _conc_2cu(ca, t=t, dt=dt, H=H, vb=vb, Fb=Fb, PS=PS)
-    ca = ca/(1-H)
-    Fp = Fb*(1-H)
-    J = np.zeros(((2, 2, len(ca))))
-    if vb == 0:
-        if Fp+PS != 0:
-            Ktrans = Fp*PS/(Fp+PS)
-            J[0, 0, :] = Fp*ca
-            J[1, 0, :] = Ktrans*ca
-    else:
-        J[0, 0, :] = Fp*C[0, :]/vb
-        J[1, 0, :] = PS*C[0, :]/vb
-    return J
-
-
-def _flux_2cx(ca, t=None, dt=1.0, H=None, vb=None, vi=None, Fb=None, PS=None):
-
-    if np.isinf(Fb):
-        return _flux_hf(ca, t=t, dt=dt, H=H, vi=vi, PS=PS)
-
-    if Fb == 0:
-        return np.zeros((2, 2, len(ca)))
-
-    Fp = Fb*(1-H)
-
-    if PS == 0:
-        Jp = _flux_nx(ca, t=t, dt=dt, vb=vb, Fb=Fb)
-        J = np.zeros((2, 2, len(ca)))
-        J[0, 0, :] = Jp
-        return J
-    C = _conc_2cx(ca, t=t, dt=dt, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
-    # Derive standard parameters
-    vp = vb*(1-H)
-    Tp = vp/(Fp+PS)
-    Te = vi/PS
-    E = PS/(Fp+PS)
-    # Build the system matrix K
-    T = [Tp, Te]
-    E = [
-        [1-E, 1],
-        [E,   0],
-    ]
-    return pk._J_ncomp(C, T, E)
-
-
-# def _flux_2cf(ca, t=None, dt=1.0, vp=None, Fp=None, PS=None, Te=None):
-#     if Fp+PS == 0:
-#         return np.zeros((2, 2, len(ca)))
-#     # Derive standard parameters
-#     Tp = vp/(Fp+PS)
-#     E = PS/(Fp+PS)
-#     J = Fp*ca
-#     T = [Tp, Te]
-#     # Solve the system explicitly
-#     t = utils.tarray(len(J), t=t, dt=dt)
-#     Jo = np.zeros((2, 2, len(t)))
-#     J0 = pk.flux(J, T[0], t=t, model='comp')
-#     J10 = E*J0
-#     Jo[1, 0, :] = J10
-#     Jo[1, 1, :] = pk.flux(J10, T[1], t=t, model='comp')
-#     Jo[0, 0, :] = (1-E)*J0
-#     return Jo

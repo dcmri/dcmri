@@ -16,19 +16,28 @@ def train(predict, time, signal, pars, free, x=None, reset=False, **kwargs):
     if free == {}:
         return None, None
     
+    # Flatten the signal
     if isinstance(signal, tuple):
         signal = np.concatenate(signal)
+    signal = signal.reshape(-1)
 
+    # Compute initial values
     p0 = _compute_normalized_pars(pars, free, x)
 
+    # Define prediction function
     def predict_normalized(_, *normalized_pars):
         _update_original_pars(pars, normalized_pars, free, x)
         if x is None:
             ypred = predict(time)
         else:
             ypred = predict(time, x)
-        return np.concatenate(ypred) if isinstance(ypred, tuple) else ypred
+        
+        # Flatten the signal prediction
+        if isinstance(ypred, tuple):
+            ypred = np.concatenate(ypred) 
+        return ypred.reshape(-1)
 
+    # Perform the optimization
     try:
         fitted_pars, pcov = curve_fit(
             predict_normalized, None, signal, p0, bounds=(0, 1), **kwargs
@@ -38,13 +47,15 @@ def train(predict, time, signal, pars, free, x=None, reset=False, **kwargs):
         warnings.warn(f"Curve fit failed: {e}. Using initial values.")
         fitted_pars, pcov, sdev = p0, None, None
 
+    # Reset if needed
     if reset:
-        # Set state to original values
+        # Rewind state to original values
         _update_original_pars(pars, p0, free, x)
     else:
         # Set state to final values
         _update_original_pars(pars, fitted_pars, free, x)
     
+    # Create retur values
     vals = {p: fitted_pars[i] for i, p in enumerate(free)}
     return vals, sdev, pcov
 
@@ -496,6 +507,8 @@ def expconv(f, T, t=None, dt=1.0, tol=0):
         return f
     f = np.array(f)
     n = len(f)
+    if n==1:
+        return np.zeros(n)
     t = tarray(n, t=t, dt=dt)
     x = (t[1:n] - t[0:n-1])/T 
     if 1/x.min() < tol: # very small T
@@ -785,6 +798,8 @@ def loss(ypred, ydata, metric='NRMS', nfree=None) -> float:
     Returns:
         float: loss value
     """
+    ydata = ydata.reshape(ydata.shape[0], -1)
+    ypred = ypred.reshape(ypred.shape[0], -1)
     if metric == 'RMS':
         loss = np.linalg.norm(ypred - ydata, axis=-1)
     elif metric == 'NRMS':

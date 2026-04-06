@@ -4,6 +4,7 @@ from dcmri.lexicon_utils import (
     print_params,
     select_params,
 )
+from dcmri.lexicon import LEXICON, SEQUENCES, MZ_PREP
 
 from dcmri import utils
 from dcmri.utils import *
@@ -37,7 +38,7 @@ from dcmri.rel import *
 
 from dcmri.sig import Signal, Readout
 from dcmri.mz import Mz
-from dcmri.signal_2_conc import SignalToConc
+from dcmri.signal_to_conc import SignalToConc
 
 from dcmri import fake
 from dcmri.fake import *

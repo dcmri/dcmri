@@ -4,14 +4,19 @@ from copy import deepcopy
 
 from dcmri.lexicon import LEXICON
 
-def init(pars:list=None, lexicon:dict=LEXICON) -> dict:
+def init(pars:list=None, lexicon:dict=LEXICON, **kwargs) -> dict:
     """Return a dictionary with parameter initial values"""
     if pars is None:
         pars = lexicon.keys()
-    return {
+    p = {
         p: deepcopy(lexicon[p]['init']) 
         for p in pars
     }
+    # Override with user-defined values
+    for key, value in kwargs.items():
+        if key in p:
+            p[key] = value
+    return p
 
 def bounds(pars:list=None, lexicon:dict=LEXICON):
     """Return a dictionary with parameter bounds"""

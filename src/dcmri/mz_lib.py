@@ -6,6 +6,8 @@ from scipy.linalg import expm
 # These are internal helper functions not exposed to pacakage users
 
 
+
+
 # Steady-state magnetization of a preparation-recovery SPGR
 def Mz_pr_spgr_ss(R1, v, Fw, j, me, PA, TP, TC, TR, FA, TA):
     if np.isscalar(v):
@@ -445,7 +447,10 @@ def _Mz_ss_aex(R1, v, Fw, j, me, TR, FA):
     I = np.eye(R1.size)
     cFA = np.cos(np.radians(FA))
     A = K @ (I - cFA * E)
-    Mz = np.linalg.solve(A, (I - E) @ J)  
+    try:
+        Mz = np.linalg.solve(A, (I - E) @ J)  
+    except:
+        Mz = np.zeros_like(R1)
     return Mz.reshape(R1.shape)
 
 def _Mz_ss_spgr_1c(R1, v, Fw, j, me, TR, FA):

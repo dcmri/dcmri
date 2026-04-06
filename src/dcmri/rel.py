@@ -71,7 +71,7 @@ def relax(c, R10, r1) -> np.ndarray:
     Returns:
         np.ndarray: Array with longitudinal relaxivities, same shape as C.
     """
-
+    c = np.array(c)
     # One compartment tissues
     if np.isscalar(r1):
         if np.isscalar(R10):

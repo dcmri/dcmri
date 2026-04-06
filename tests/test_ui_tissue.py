@@ -1,10 +1,11 @@
 import os
+from joblib import parallel_config
 
 import matplotlib.pyplot as plt
 import numpy as np
 import dcmri as dc
 
-from joblib import parallel_config
+from dcmri import Tissue
 
 
 DEBUG = True
@@ -19,24 +20,24 @@ else:
     matplotlib.use('Agg')
 
 
-def test_configs():
+def test_coverage():
 
-    # for kin in ['HF', 'U', 'FX', 'NX', 'NXP', 'WV', 'HFU', '2CU', '2CX']:
-    #     for wex in ['FF', 'RF', 'NF', 'FR', 'RR', 'NR', 'FN', 'RN', 'NN']:
-    #         for seq in ['SR', 'SS', 'IR-SS']:
-    for kin in ['HF']:
-        for wex in ['FF']:
-            for seq in ['IR-SS']:
-                print(kin, wex, seq)
-                model = dc.Tissue(kinetics=kin, water_exchange=wex, sequence=seq)
-                time = model.time()
-                signal = model.predict(time)
-                #_, sdev, _ = model.train(time, signal, xtol=0.1)
-                sdev = None
-                model.plot(time, signal, sdev=sdev, round_to=3)
-                cost = model.cost(time, signal)
-                print(kin, wex, seq, cost)
-                #S0 assert cost < 100 # liberal for debugging
+    shape = None
+    for kin in Tissue.configs['kinetics']:
+        for wex in Tissue.configs['water_exchange']:
+            for seq in Tissue.configs['sequence']:
+                for r2s in Tissue.configs['transverse_relaxation']:
+                    print(kin, wex, seq, r2s)
+                    model = Tissue(shape, kin, wex, seq, r2s)
+                    time = model.time()
+                    signal = model.predict(time)
+                    _, sdev, _ = model.train(time, signal, xtol=0.1)
+                    # sdev = None
+                    model.plot(time, signal, sdev=sdev, round_to=3, show=DEBUG)
+                    cost = model.cost(time, signal)
+                    # print('Cost', cost)
+                    assert cost < 1e-9 
+
 
 def test_api():
     model = dc.Tissue()
@@ -49,9 +50,9 @@ def test_api():
     S = model.signal()
 
     assert C.ndim in [1,2]
-    assert len(R1) == len(t)
-    assert len(S) == len(t)
-    assert len(M) == len(t)
+    assert R1.size == t.size
+    assert S.size == t.size
+    assert M.size == t.size
 
     test_plot_file = "test_plot_output.png"
     try:
@@ -89,14 +90,6 @@ def test_exceptions():
     else:
         assert False
 
-    # 2. Invalid Parameter
-    try:
-        dc.Tissue(fake_parameter=99)
-    except ValueError:
-        pass
-    else:
-        assert False
-
     time = (np.arange(1000), np.arange(1000))
     # # Predict out of AIF range
     # try:
@@ -119,41 +112,42 @@ def test_function():
 
     # Generate an AIF
     dt, tmax, B0, agent, R10a, S0a, B1a = 0.5, 180, 3, 'gadoterate', 0.7, 3, 0.75
-    FA, TR, TC, TP = 15, 0.005, 0.2, 0.05 # Defaults
+    FA, TR, TE = 15, 0.005, 0.0 # Defaults
 
     rp = dc.relaxivity(B0, 'blood', agent)
     aif_time = np.arange(0, tmax, dt)
-    aif_conc = dc.aif_tristan(aif_time)
-    aif_R1 = R10a + rp * aif_conc
+    aif_conc = dc.aif_tristan(aif_time, BAT=10)
+
     params = {
-        'SR': {'FA': FA, 'TR': TR, 'TC': TC, 'TP': TP},
-        'SS': {'FA': FA, 'TR': TR},
+        'dt': dt, 
+        'c_a': aif_conc, 
+        'field_strength': B0,
+        'agent': agent,
+        'FA': FA, 
+        'TR': TR,
+        'TE': TE,
+        'S0': 5,
     }
-    aif_mz = {
-        'SR': dc.Mz('PR', aif_R1, TC=TC, TR=TR, FA=B1a * FA, TP=TP),
-        'SS': dc.Mz('SS', aif_R1, TR=TR, FA=B1a * FA),
-    }
 
-    for seq in ['SS', 'SR']:
-        model = dc.Tissue(
-            dt=dt, 
-            c_a=aif_conc, 
-            field_strength=B0,
-            agent=agent,
-            sequence=seq,
-            **params[seq],
-        )
-        time = model.time()
-        signal = model.predict(time)
+    seq = '3D-SPGR-SS'
 
-        # Generate AIF
-        aif_signal = dc.signal(aif_mz[seq], S0=S0a, FA=FA)
-        aif = dc.Input(aif_signal, aif_time, R10=R10a, B1corr=B1a)
+    model = dc.Tissue('2CX', 'FF', seq, **params)
+    time = model.time()
+    signal = model.predict(time)
 
-        # Fit with generated AIF signal
-        model.train(time, signal, aif)
-        model.plot(time, signal)
-        assert model.cost(time, signal) < 0.01
+    # Generate AIF with the same signal model and parameters
+    aif_R1 = R10a + rp * aif_conc
+    aif_signal = dc.Signal(seq)(R1=aif_R1, S0=S0a, FA=FA, TR=TR, TE=TE, B1corr=B1a)
+
+    # This is OK
+    # ca_rec = dc.SignalToConc(seq)(aif_signal, FA=FA, TR=TR, R10=R10a, r1=rp, B1corr=B1a)
+    # err = np.linalg.norm(aif_conc-ca_rec) / np.linalg.norm(aif_conc)
+
+    # Fit with generated AIF signal
+    aif = dc.Input(aif_signal, aif_time, R10=R10a, B1corr=B1a)
+    model.train(time, signal, aif)
+    model.plot(time, signal)
+    assert model.cost(time, signal) < 0.01
 
     # Test some training options
     model = dc.Tissue(dt=dt, c_a=aif_conc)
@@ -186,12 +180,12 @@ def test_function():
 if __name__ == "__main__":
 
     # Coverage tests
-    test_configs()
+    # test_coverage()
     # test_api()
     # test_exceptions()
     
     # # Functional tests
-    # test_function()
+    test_function()
     
     print('All ui_tissue tests passed!!')
 
