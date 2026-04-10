@@ -541,8 +541,8 @@ from copy import deepcopy
 import numpy as np
 
 from dcmri import pk, rel, mz, sig
-from dcmri.ui import SuperFunc
-from dcmri import tissue_lib
+from dcmri.func import SuperFunc
+from dcmri import pk_tissue
 from dcmri.lexicon import SEQUENCES
 
 
@@ -577,15 +577,15 @@ class Conc(SuperFunc):
         params = {k: v for k, v in p.items() if k != 'T_a'}
         
         kinetics = self._cnfg['kinetics']
-        if kinetics == 'U': return tissue_lib.Conc_u(ca, t=t, dt=dt, **params)
-        if kinetics == 'FX': return tissue_lib.Conc_fx(ca, t=t, dt=dt, **params)
-        if kinetics == 'NX': return tissue_lib.Conc_nx(ca, t=t, dt=dt, **params)
-        if kinetics == 'NXP': return tissue_lib.Conc_nxp(ca, t=t, dt=dt, **params)
-        if kinetics == 'WV': return tissue_lib.Conc_wv(ca, t=t, dt=dt, **params)
-        if kinetics == 'HFU': return tissue_lib.Conc_hfu(ca, t=t, dt=dt, **params)
-        if kinetics == 'HF': return tissue_lib.Conc_hf(ca, t=t, dt=dt, **params)
-        if kinetics == '2CU': return tissue_lib.Conc_2cu(ca, t=t, dt=dt, **params)
-        if kinetics == '2CX': return tissue_lib.Conc_2cx(ca, t=t, dt=dt, **params)
+        if kinetics == 'U': return pk_tissue.Conc_u(ca, t=t, dt=dt, **params)
+        if kinetics == 'FX': return pk_tissue.Conc_fx(ca, t=t, dt=dt, **params)
+        if kinetics == 'NX': return pk_tissue.Conc_nx(ca, t=t, dt=dt, **params)
+        if kinetics == 'NXP': return pk_tissue.Conc_nxp(ca, t=t, dt=dt, **params)
+        if kinetics == 'WV': return pk_tissue.Conc_wv(ca, t=t, dt=dt, **params)
+        if kinetics == 'HFU': return pk_tissue.Conc_hfu(ca, t=t, dt=dt, **params)
+        if kinetics == 'HF': return pk_tissue.Conc_hf(ca, t=t, dt=dt, **params)
+        if kinetics == '2CU': return pk_tissue.Conc_2cu(ca, t=t, dt=dt, **params)
+        if kinetics == '2CX': return pk_tissue.Conc_2cx(ca, t=t, dt=dt, **params)
 
 
 class R1(SuperFunc):
@@ -814,15 +814,15 @@ class Flux(SuperFunc):
         params = {k: v for k, v in p.items() if k != 'T_a'}
 
         kinetics = self._cnfg['kinetics']
-        if kinetics == 'U': return tissue_lib.flux_u(ca, **params)
-        if kinetics == 'NX': return tissue_lib.flux_nx(ca, t=t, dt=dt, **params)
-        if kinetics == 'NXP': return tissue_lib.flux_nxp(ca, t=t, dt=dt, **params)
-        if kinetics == 'FX': return tissue_lib.flux_fx(ca, t=t, dt=dt, **params)
-        if kinetics == 'WV': return tissue_lib.flux_wv(ca, t=t, dt=dt, **params)
-        if kinetics == 'HFU': return tissue_lib.flux_hfu(ca, **params)
-        if kinetics == 'HF': return tissue_lib.flux_hf(ca, t=t, dt=dt, **params)
-        if kinetics == '2CU': return tissue_lib.flux_2cu(ca, t=t, dt=dt, **params)
-        if kinetics == '2CX': return tissue_lib.flux_2cx(ca, t=t, dt=dt, **params)
+        if kinetics == 'U': return pk_tissue.flux_u(ca, **params)
+        if kinetics == 'NX': return pk_tissue.flux_nx(ca, t=t, dt=dt, **params)
+        if kinetics == 'NXP': return pk_tissue.flux_nxp(ca, t=t, dt=dt, **params)
+        if kinetics == 'FX': return pk_tissue.flux_fx(ca, t=t, dt=dt, **params)
+        if kinetics == 'WV': return pk_tissue.flux_wv(ca, t=t, dt=dt, **params)
+        if kinetics == 'HFU': return pk_tissue.flux_hfu(ca, **params)
+        if kinetics == 'HF': return pk_tissue.flux_hf(ca, t=t, dt=dt, **params)
+        if kinetics == '2CU': return pk_tissue.flux_2cu(ca, t=t, dt=dt, **params)
+        if kinetics == '2CX': return pk_tissue.flux_2cx(ca, t=t, dt=dt, **params)
 
 
 

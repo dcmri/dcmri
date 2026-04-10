@@ -1,7 +1,8 @@
 from tqdm import tqdm
 import numpy as np
 
-from dcmri import utils, pk_lib, lib, sig, pk, liver, tissue, kidney
+from dcmri import utils, pk_lib, sig, pk, liver, tissue, kidney
+from dcmri.utils import lib
 
 
 def fake_aif(

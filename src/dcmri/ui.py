@@ -2,7 +2,6 @@ import os
 from copy import deepcopy
 from joblib import Parallel, delayed
 from itertools import product
-from collections.abc import Mapping
 
 import zarr
 import numpy as np
@@ -12,44 +11,6 @@ from dcmri.lexicon import LEXICON
 from dcmri.lexicon_utils import select_params
 import dcmri.lexicon_utils as lexicon_utils
 
-
-class ParsView(Mapping):
-    def __init__(self, *dicts):
-        # Integrity check for duplicate keys
-        seen_keys = set()
-        for d in dicts:
-            for key in d:
-                if key in seen_keys:
-                    raise ValueError(f"Duplicate key found: '{key}'")
-                seen_keys.add(key)
-        
-        self._dicts = dicts
-
-    def __getitem__(self, key):
-        for d in self._dicts:
-            if key in d:
-                return d[key]
-        raise KeyError(key)
-
-    def __setitem__(self, key, value):
-        """Allows d['a'] = 10 syntax to update the original dict."""
-        for d in self._dicts:
-            if key in d:
-                d[key] = value
-                return
-        raise KeyError(f"Key '{key}' not found in any underlying dictionary.")
-
-    def __iter__(self):
-        # Yield every key from every dictionary
-        for d in self._dicts:
-            yield from d
-
-    def __len__(self):
-        # Return total count of keys
-        return sum(len(d) for d in self._dicts)
-
-    def __repr__(self):
-        return f"ParsView({dict(self.items())})"
     
 
 class Input:
@@ -72,56 +33,6 @@ class Input:
         self.R10 = R10
         self.B1corr = B1corr
 
-
-class SuperFunc:
-
-    # These need to be reimplemented
-
-    configs = {}
-    
-    def __init__(self, **params):
-        self._cnfg = {}
-        self._pars = {}
-        self._override_pars(**params)
-
-    def _params(self) -> list:
-        return []
-    
-    def __call__(self, *args, **params):
-        p = self._update_pars(**params)
-        return None
-
-    # Reusable functions
-
-    def _set_config(self, **cnfg):
-        for key, value in cnfg.items():
-            if value is not None: # A value can be None for an optional configuration setting
-                if value not in self.configs[key]:
-                    raise ValueError(f'Config {value} is not recognized. Options are {list(self.configs[key])}.')  
-        self._cnfg = cnfg   
-        return self._cnfg
-    
-    def _set_pars(self, lexicon:dict=LEXICON, **params):
-        self._pars = lexicon_utils.init(self._params(), lexicon=lexicon, **params)
-        return self._pars
-    
-    def params(self) -> dict:
-        return self._pars
-        # return deepcopy(self._pars)
-    
-    def _override_pars(self, **params):
-        [self._pars.update({k:v}) for k, v in params.items() if k in self._pars]
-
-    def _update_pars(self, **params) -> dict:
-       # Update keyword parameters
-        if params == {}:
-            p = self._pars
-        else:
-            p = {k:v for k, v in self._pars.items() if k not in params}
-            p = p | {k:v for k, v in params.items() if k in self._pars}
-            # p = deepcopy(self._pars)
-            # [p.update({k:v}) for k, v in params.items() if k in self._pars]
-        return p
 
     
 
@@ -238,7 +149,7 @@ class SuperModel:
 
         # --- 0. Set Defaults ---
         if free is None:
-            free = {p: deepcopy(lexicon[p]['bounds']) for p in self._params('all free')}
+            free = {p: deepcopy(lexicon[p]['bounds']) for p in self._params('free')}
         
         # --- 1. Update Bounds ---
         if bounds is not None:

@@ -1,12 +1,10 @@
 from copy import deepcopy
-from types import MappingProxyType
 
 import numpy as np
 
 from dcmri.lexicon import SEQUENCES
 from dcmri import sig
-import dcmri.lexicon_utils as lexicon
-from dcmri.ui import SuperFunc
+from dcmri.func import SuperFunc
 
 
 

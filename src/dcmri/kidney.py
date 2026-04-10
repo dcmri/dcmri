@@ -2,7 +2,7 @@ import copy
 import numpy as np
 import dcmri.pk as pk
 from dcmri.lexicon import LEXICON
-from dcmri.ui import SuperFunc
+from dcmri.func import SuperFunc
 
 
 def _div(a, b):

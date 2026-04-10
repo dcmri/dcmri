@@ -371,7 +371,7 @@ class Tissue(ui.SuperModel):
             )
             return [p for p in list(set(pars)) if p != 'H' and p in self._params()]
         
-        elif select == 'all free': # default free parameters (subset of ppixel)
+        elif select == 'free': # default free parameters (subset of ppixel)
             pars = (
                 tissue.Conc(kin)._params()
                 + tissue.WaterConc(kin, wex)._params()

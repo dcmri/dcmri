@@ -1,7 +1,7 @@
 import copy
 import numpy as np
 import dcmri.pk as pk
-from dcmri.ui import SuperFunc
+from dcmri.func import SuperFunc
 
 
 

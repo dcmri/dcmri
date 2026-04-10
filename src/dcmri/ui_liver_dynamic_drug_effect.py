@@ -1,8 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri import lib, sig, utils, pk_lib, ui, pk
+from dcmri import sig, utils, pk_aorta, ui, pk
 from dcmri.lexicon import LEXICON
+from dcmri.utils import lib
 
 
 LEXICON = LEXICON | {
@@ -520,7 +521,7 @@ class LiverDynamicDrugEffect(ui.SuperModel):
                 # Predict
                 'TS',
             ],
-            'all free': inflow_pars + [
+            'free': inflow_pars + [
                 # _conc_aorta 
                 'CO', 'Thl', 'Dhl', 'To', 'To_e', 'Eo',
                 'c_khe_i', 'c_khe_f',
@@ -620,7 +621,7 @@ class LiverDynamicDrugEffect(ui.SuperModel):
         Eb = CL / (CL + p['CO'] * (1 - p['H']))
 
         # Compute aorta flux
-        Jb = pk_lib.aorta_flux(
+        Jb = pk_aorta.flux(
             J, E=Eb, dt=p['dt'], tol=p['dose_tolerance'],
             heartlung=['pfcomp', (p['Thl'], p['Dhl'])],
             organs=['2cxm', ([p['To'], p['To_e']], p['Eo'])],

@@ -6,7 +6,7 @@ import numpy as np
 import dcmri.pk as pk
 import dcmri.utils as utils
 from dcmri.lexicon import LEXICON
-from dcmri.ui import SuperFunc
+from dcmri.func import SuperFunc
 
 
 def _div(a, b):

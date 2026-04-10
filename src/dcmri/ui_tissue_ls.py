@@ -4,10 +4,11 @@ import matplotlib.pyplot as plt
 from joblib import Parallel, delayed
 from matplotlib.gridspec import GridSpec
 
-from dcmri import rel, sig, pk_inv, lib, utils, ui
+from dcmri import rel, sig, pk_inv, utils, ui
 from dcmri.lexicon import LEXICON, SEQUENCES
 import dcmri.lexicon_utils as lexicon
 from dcmri.signal_to_conc import SignalToConc
+from dcmri.utils import lib
 
 
 

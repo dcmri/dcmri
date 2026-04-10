@@ -2,19 +2,20 @@ import numpy as np
 from scipy.integrate import trapezoid
 
 import dcmri as dc
+from dcmri import utils
 
 
 def test_tarray():
     n = 4
     J = np.zeros(n)
-    t = dc.tarray(len(J))
+    t = utils.tarray(len(J))
     assert np.array_equal(t, [0,1,2,3])
-    t = dc.tarray(len(J), dt=2)
+    t = utils.tarray(len(J), dt=2)
     assert np.array_equal(t, [0,2,4,6])
-    t = dc.tarray(len(J), [1,2,3,9])
+    t = utils.tarray(len(J), [1,2,3,9])
     assert np.array_equal(t, [1,2,3,9])
     try:
-        t = dc.tarray(len(J), [1,2,3])
+        t = utils.tarray(len(J), [1,2,3])
     except:
         assert True
     else:
@@ -24,7 +25,7 @@ def test_tarray():
 def test_trapz():
     t = np.arange(0, 60, 10)
     ca = (t/np.amax(t))**2
-    c = dc.trapz(ca, t)
+    c = utils.trapz(ca, t)
     assert c[1] == 0.20000000000000004
 
 
@@ -65,7 +66,7 @@ def test_expconv():
 def test_inttrap():
     t=np.array([0,1,2,3])
     f=[1,1,1,1]
-    assert dc.inttrap(f,t,0.5,1.5) == 1
+    assert utils.inttrap(f,t,0.5,1.5) == 1
 
 def test_stepconv():
     T = 3.5
@@ -92,7 +93,7 @@ def test_intprod():
     t = [0,2,6]
     f = [1,10,3]
     h = [5,1,7]
-    i = dc.intprod(f, h, t)
+    i = utils.intprod(f, h, t)
     n = 1000
     t1 = np.linspace(t[0],t[1],n)
     f1 = np.interp(t1, t[0:2], f[0:2])
@@ -109,7 +110,7 @@ def test_intprod():
     t = dt*np.arange(3)
     f = [1,10,3]
     h = [5,1,7]
-    i = dc.intprod(f, h, dt=dt)
+    i = utils.intprod(f, h, dt=dt)
     n = 1000
     t1 = np.linspace(t[0],t[1],n)
     f1 = np.interp(t1, t[0:2], f[0:2])
@@ -135,7 +136,7 @@ def test_uconv():
         t = np.arange(0,tmax,dt)
         f = np.exp(-t/Tf)/Tf
         h = np.exp(-t/Th)/Th
-        g = dc.uconv(f, h, dt)
+        g = utils.uconv(f, h, dt)
         g0 = (Tf*f-Th*h)/(Tf-Th)
         assert np.linalg.norm(g-g0)/np.linalg.norm(g0) < prec[i]
 
@@ -302,69 +303,69 @@ def test_nexpconv():
 
 def test_ddelta():
     t = [0,2,3,4]
-    h = dc.ddelta(-1, t)
+    h = utils.ddelta(-1, t)
     assert np.array_equal(h, [0,0,0,0])
-    h = dc.ddelta(5, t)
+    h = utils.ddelta(5, t)
     assert np.array_equal(h, [0,0,0,0])
-    h = dc.ddelta(0, t)
+    h = utils.ddelta(0, t)
     assert np.array_equal(h, [1,0,0,0])
     assert trapezoid(h,t) == 1
-    h = dc.ddelta(1, t)
+    h = utils.ddelta(1, t)
     assert np.abs(trapezoid(h,t)-1) < 1e-12
-    h = dc.ddelta(2, t)
+    h = utils.ddelta(2, t)
     assert np.abs(trapezoid(h,t)-1) < 1e-12
-    h = dc.ddelta(3.5, t)
+    h = utils.ddelta(3.5, t)
     assert np.abs(trapezoid(h,t)-1) < 1e-12
-    h = dc.ddelta(4, t)
+    h = utils.ddelta(4, t)
     assert np.abs(trapezoid(h,t)-1) < 1e-12
 
     # Check that this is a unit for the convolution.
     t = tfib(10, 30)
-    h = dc.ddelta(0,t)
+    h = utils.ddelta(0,t)
     f = np.exp(-t/30)/30
     g = dc.conv(f, h, t)
     assert np.linalg.norm(g[1:]-f[1:])/np.linalg.norm(f[1:]) < 1e-2
 
 def test_dstep():
     t = [0,2,3,4]
-    h = dc.dstep(0, 4, t)
+    h = utils.dstep(0, 4, t)
     assert np.array_equal(h, [0.25,0.25,0.25,0.25])
     assert np.abs(trapezoid(h,t)-1) < 1e-12
-    h = dc.dstep(0.5, 3.5, t)
+    h = utils.dstep(0.5, 3.5, t)
     assert np.abs(trapezoid(h,t)-1) < 1e-12
     t = [0,1,2,3]
-    h = dc.dstep(0.5, 2.5, t)
+    h = utils.dstep(0.5, 2.5, t)
     assert np.array_equal(h, [0.2,0.4,0.4,0.2])
     assert np.abs(trapezoid(h,t)-1) < 1e-12
     t = [-1,0,1,2]
-    h = dc.dstep(0.5, 2.5, t)
+    h = utils.dstep(0.5, 2.5, t)
     assert np.array_equal(h, [0, 0.25, 0.5, 0.5])
     assert np.abs(trapezoid(h,t)-1) < 1e-12
     t = [1,2,3,4]
-    h = dc.dstep(0.5, 2.5, t)
+    h = utils.dstep(0.5, 2.5, t)
     assert np.array_equal(h, [0.5, 0.5, 0.25, 0])
     assert np.abs(trapezoid(h,t)-1) < 1e-12
 
 def test_ddist():
     t = [0,2,3,4]
-    h = dc.ddist([1/3,1/3,1/3], [0,2,3,4], t)
+    h = utils.ddist([1/3,1/3,1/3], [0,2,3,4], t)
     assert np.abs(trapezoid(h,t)-1) < 1e-12
     t = [0,1,2,3]
-    h = dc.ddist([1/3,1/3,1/3], [0,1,2,3], t)
+    h = utils.ddist([1/3,1/3,1/3], [0,1,2,3], t)
     assert np.array_equal(h, [1/3,1/3,1/3,1/3])
     assert np.abs(trapezoid(h,t)-1) < 1e-12
-    h = dc.ddist([0.25,0.5,0.25], [0,1,2,3], t)
+    h = utils.ddist([0.25,0.5,0.25], [0,1,2,3], t)
     assert np.abs(trapezoid(h,t)-1) < 1e-12
 
 
 def test_interp():
     x = np.arange(3)
-    assert np.array_equal(dc.interp(3, x, pos=False, floor=False), [3,3,3])
-    assert np.array_equal(dc.interp([3], x, pos=False, floor=False), [3,3,3])
-    assert np.array_equal(dc.interp([3,4], x, pos=False, floor=False), [3,3.5,4])
-    assert np.array_equal(dc.interp([3,4,5], x, pos=False, floor=False), [3,4,5])
-    assert np.array_equal(dc.interp(np.arange(5), x, pos=False, floor=False), [0,2,4])
-    assert np.array_equal(dc.interp(np.arange(5), x, pos=True, floor=True), [0,2,4])
+    assert np.array_equal(utils.interp(3, x, pos=False, floor=False), [3,3,3])
+    assert np.array_equal(utils.interp([3], x, pos=False, floor=False), [3,3,3])
+    assert np.array_equal(utils.interp([3,4], x, pos=False, floor=False), [3,3.5,4])
+    assert np.array_equal(utils.interp([3,4,5], x, pos=False, floor=False), [3,4,5])
+    assert np.array_equal(utils.interp(np.arange(5), x, pos=False, floor=False), [0,2,4])
+    assert np.array_equal(utils.interp(np.arange(5), x, pos=True, floor=True), [0,2,4])
 
 
 def test_sample():
@@ -372,20 +373,20 @@ def test_sample():
     tp = np.array([2,4,5,7])
     Sp = np.array([1,2,5,9])
 
-    S = dc.sample(np.array([3]), tp, Sp)
+    S = utils.sample(np.array([3]), tp, Sp)
     assert np.array_equal(S, [1.5])
-    S = dc.sample(np.array([3]), tp, Sp, dt=1)
+    S = utils.sample(np.array([3]), tp, Sp, dt=1)
     assert np.array_equal(S, [1.5])
-    S = dc.sample(np.array([3]), tp, Sp, dt=0.1)
+    S = utils.sample(np.array([3]), tp, Sp, dt=0.1)
     assert np.array_equal(S.astype(np.float32), [1.5])
-    S = dc.sample(np.array([3]), tp, Sp, dt=2.0)
+    S = utils.sample(np.array([3]), tp, Sp, dt=2.0)
     assert np.array_equal(S.astype(np.float32), [1.5])
-    S = dc.sample(np.array([3,6]), tp, Sp, dt=1)
+    S = utils.sample(np.array([3,6]), tp, Sp, dt=1)
     assert np.array_equal(S, [1.5,7])
 
 def test_add_noise():
     s0 = [1,2,3,4]
-    s1 = dc.add_noise(s0, 0)
+    s1 = utils.add_noise(s0, 0)
     assert np.array_equal(s0, s1)
 
 
@@ -395,21 +396,21 @@ if __name__ == "__main__":
 
     print('Testing utils..')
 
-    # test_interp()
-    # test_tarray()
-    # test_trapz()
-    # test_ddelta()
-    # test_dstep()
-    # test_ddist()
-    # test_intprod()
-    # test_uconv()
-    # test_conv()
-    # test_inttrap()
-    # test_stepconv()
-    # test_expconv()
-    # test_biexpconv()
-    # test_nexpconv()
+    test_interp()
+    test_tarray()
+    test_trapz()
+    test_ddelta()
+    test_dstep()
+    test_ddist()
+    test_intprod()
+    test_uconv()
+    test_conv()
+    test_inttrap()
+    test_stepconv()
+    test_expconv()
+    test_biexpconv()
+    test_nexpconv()
     test_sample()
-    # test_add_noise()
+    test_add_noise()
 
     print('All utils tests passed!!')

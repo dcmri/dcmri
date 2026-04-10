@@ -1,12 +1,6 @@
 import numpy as np
-import pydmr
 import dcmri as dc
-
-
-def test_fetch():
-    data = dc.fetch('tristan_rats_healthy_six_drugs')
-    dmr = pydmr.read(data)
-    assert 'FA' in dmr['data']
+import dcmri.utils.lib as lib
 
 
 def test_ca_injection():
@@ -104,12 +98,12 @@ def test_PD():
         assert False
 
 def test_perfusion():
-    assert dc.perfusion('Fb', 'csf') == 0.0
-    assert dc.perfusion('vb', 'csf') == 0.0
-    assert dc.perfusion('PS', 'csf') == 0.0
-    assert dc.perfusion('vi', 'csf') == 0.0
+    assert lib.perfusion('Fb', 'csf') == 0.0
+    assert lib.perfusion('vb', 'csf') == 0.0
+    assert lib.perfusion('PS', 'csf') == 0.0
+    assert lib.perfusion('vi', 'csf') == 0.0
     try:
-        dc.perfusion('Fb', 'hair')
+        lib.perfusion('Fb', 'hair')
     except:
         assert True
     else:
@@ -145,7 +139,6 @@ def test_shepp_logan():
 
 if __name__ == "__main__":
 
-    test_fetch()
     test_ca_injection()
     test_ca_conc()
     test_ca_std_dose()

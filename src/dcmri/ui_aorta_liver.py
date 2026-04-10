@@ -1,8 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri import lib, sig, utils, pk_lib, ui, liver
+from dcmri import sig, utils, pk_aorta, ui, liver
 from dcmri.lexicon import SEQUENCES
+from dcmri.utils import lib
 
 class AortaLiver(ui.SuperModel):
     """Joint model for aorta and liver signals.
@@ -415,7 +416,7 @@ class AortaLiver(ui.SuperModel):
                 'R10_a', 'R10_l', 'S0_a', 'S0_l', 
                 'B1corr', 'B1corr_a',   
             ],
-            'all free': aorta_kinetics + free_inflow + liver_kinetics,
+            'free': aorta_kinetics + free_inflow + liver_kinetics,
             'free_liver': liver_kinetics,
             'free_aorta': aorta_kinetics + inflow,
         }
@@ -437,7 +438,7 @@ class AortaLiver(ui.SuperModel):
         Ji = lib.ca_injection(
             self._t, p['weight'], conc, p['dose'], p['rate'], p['BAT']
         )
-        Jb = pk_lib.aorta_flux(
+        Jb = pk_aorta.flux(
             Ji, E=p['Eb'], dt=p['dt'], tol=p['dose_tolerance'],
             heartlung=['pfcomp', (p['Thl'], p['Dhl'])], 
             organs=['2cxm', ([p['To'], p['To_e']], p['Eo'])],

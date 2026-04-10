@@ -198,6 +198,7 @@ def flux_2cx(ca, t=None, dt=1.0, H=None, vb=None, vi=None, Fb=None, PS=None):
         J = np.zeros((2, 2, len(ca)))
         J[0, 0, :] = Jp
         return J
+    
     C = Conc_2cx(ca, t=t, dt=dt, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
     # Derive standard parameters
     vp = vb*(1-H)

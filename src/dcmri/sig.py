@@ -18,7 +18,7 @@ from scipy.special import i0, i1
 import numpy as np
 
 import dcmri.mz as mz
-from dcmri.ui import SuperFunc
+from dcmri.func import SuperFunc
 from dcmri.lexicon import SEQUENCES
 
 

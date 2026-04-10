@@ -3,10 +3,6 @@ from types import MappingProxyType
 import numpy as np
 
 
-from dcmri import pk
-from dcmri import pk_lib
-
-
 MZ_PREP = {
     'Eq': {
         'parameters': [],
@@ -289,8 +285,9 @@ for seq, props in SEQUENCES.items():
 # ---- Initial Values ----
 dt_init, tmax_init = 0.5, 240
 t_init = np.arange(0, tmax_init, dt_init, dtype=float)
-ca_init = pk_lib.aif_tristan(t_init, agent='gadodiamide', BAT=20)
-cv_init = pk.flux_pfcomp(ca_init, 10, 0.5)
+ca_init = 0.005 * np.exp(-t_init / 60)
+ca_init = np.interp(t_init-30, t_init, ca_init, left=0)
+cv_init = np.interp(t_init-10, t_init, ca_init, left=0)
 
 
 LEXICON = MappingProxyType(  # This makes the dict immutable

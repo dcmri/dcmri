@@ -122,13 +122,13 @@ import numpy as np
 
 from dcmri.lexicon import MZ_PREP
 import dcmri.mz_lib as mz_lib
-import dcmri.ui as ui
+from dcmri.func import SuperFunc
 
 
 # TODO: For some ss sequences there is some duplication with K, J and KinvJ computed multiple times
 # This needs rationalising
 
-class Mz(ui.SuperFunc):
+class Mz(SuperFunc):
 
     configs = {'sequence': deepcopy(list(MZ_PREP.keys()))}
 

@@ -5,9 +5,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from dcmri.signal_to_conc import SignalToConc
-from dcmri import lib, liver, sig, utils
+from dcmri import liver, sig, utils
 from dcmri.ui import SuperModel, Input
 from dcmri.lexicon import SEQUENCES
+from dcmri.utils import lib
 
 
 class Liver(SuperModel):
@@ -307,7 +308,7 @@ class Liver(SuperModel):
             pars_list += pars_kin + pars_seq
             if self._cnfg['kinetics'].startswith('2'):
                 pars_list += ['c_v']
-        elif select=='all free':
+        elif select=='free':
             pars_list = pars_kin
         return pars_list
 

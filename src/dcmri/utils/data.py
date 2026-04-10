@@ -1,13 +1,7 @@
 import os
 import sys
-import pickle
-import shutil
-import zipfile
-import csv
-from io import TextIOWrapper
 
 import requests
-import numpy as np
 
 # filepaths need to be identified with importlib_resources
 # rather than __file__ as the latter does not work at runtime

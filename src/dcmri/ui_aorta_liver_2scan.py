@@ -1,9 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri import lib, sig, utils, ui, liver, pk_lib
+from dcmri import sig, utils, ui, liver, pk_aorta
 from dcmri.lexicon import SEQUENCES
 from dcmri.lexicon import LEXICON
+from dcmri.utils import lib
 
 LEXICON = LEXICON | {
     'S02_a': {'init': 1, 'bounds': [0, 2], 'name': 'Aorta second signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
@@ -451,7 +452,7 @@ class AortaLiver2scan(ui.SuperModel):
                 'R10_a', 'R10_l', 'S0_a', 'S0_l', 'S02_a', 'S02_l',
                 'B1corr', 'B1corr_a', 'B1corr_2', 'B1corr_2_a',
             ],
-            'all free': kinetics + free_inflow + ['S02_a', 'S02_l'],
+            'free': kinetics + free_inflow + ['S02_a', 'S02_l'],
             'free_aorta': aorta_kinetics + free_inflow + ['S02_a'],
             'free_liver': liver_kinetics + ['S02_l'],
         }
@@ -476,7 +477,7 @@ class AortaLiver2scan(ui.SuperModel):
         J2 = lib.ca_injection(
             self._t, p['weight'], conc, p['dose2'], p['rate'], p['BAT2']
         )
-        Jb = pk_lib.aorta_flux(
+        Jb = pk_aorta.flux(
             J1 + J2, E=p['Eb'], dt=p['dt'], tol=p['dose_tolerance'],
             heartlung = ['pfcomp', (p['Thl'], p['Dhl'])],
             organs = ['2cxm', ([p['To'], p['To_e']], p['Eo'])]
