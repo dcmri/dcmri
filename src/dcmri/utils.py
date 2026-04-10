@@ -1,5 +1,6 @@
 import math
 import warnings
+from joblib import Parallel, delayed
 
 import numpy as np
 from scipy.special import gamma
@@ -8,6 +9,18 @@ from scipy.integrate import trapezoid
 from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
 from scipy.integrate import cumulative_trapezoid
+
+
+def train_batch(predict, time, signal, pars, free, **kwargs):
+    def train_pixel(x):
+        return train(predict, time, signal[x,...], pars, free, x, **kwargs)
+    
+    if signal.shape[0]==1:
+        results = [train_pixel(0)]
+    else:
+        results = Parallel(n_jobs=-1)(delayed(train_pixel)(x) for x in range(signal.shape[0]))  
+
+    return results 
 
 
 def train(predict, time, signal, pars, free, x=None, reset=False, **kwargs):

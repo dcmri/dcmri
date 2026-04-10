@@ -1,15 +1,15 @@
-from copy import deepcopy
-from typing import Tuple
-
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri import lib, sig, utils, pk_aorta, ui, liver
+from dcmri import lib, sig, utils, ui, liver, pk_lib
+from dcmri.lexicon import SEQUENCES
 from dcmri.lexicon import LEXICON
-import dcmri.lexicon_utils as lexicon
 
-# Shorthand notation for data type hint
-Data = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+LEXICON = LEXICON | {
+    'S02_a': {'init': 1, 'bounds': [0, 2], 'name': 'Aorta second signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
+    'S02_l': {'init': 1, 'bounds': [0, 2], 'name': 'Liver second signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
+
+}
 
 class AortaLiver2scan(ui.SuperModel):
     """Joint model for aorta and liver signals measured over two scans.
@@ -405,54 +405,43 @@ class AortaLiver2scan(ui.SuperModel):
               - Free
     """
 
+    configs = {
+        'kinetics': ['1I-EC-D', '1I-EC', '1I-IC', '1I-IC-HF', '1I-IC-HFD', '1I-IC-HFDU'],
+        'non_stationary': [None, 'U', 'E', 'UE'],
+        'sequence': ['3D-SPGR-SS', '3D-SPGR-SSI']
+    }
+
     def __init__(
         self, 
         kinetics = '1I-IC-HFD', 
         non_stationary=None, 
-        sequence='SS', 
+        sequence='3D-SPGR-SS', 
         **params,
       ):
-        # Set configuration
-        try:
-            liver.params_liver(kinetics, non_stationary)
-        except Exception as e:
-            raise ValueError(f"Invalid kinetics: {e}") from e
-        if sequence not in ['SR', 'SS', 'SSI', 'lin']:
-            raise ValueError(f"Sequence '{sequence}' is not available.")
+        self._version = '1.0'
+
+        cnfg = {'kinetics': kinetics, 'non_stationary': non_stationary, 'sequence': sequence}
+        self._cnfg = self._set_config(**cnfg)
+        self._pars = self._set_pars(LEXICON, **params)
+
         if not kinetics.startswith('1'):
             raise ValueError('Only single-inlet models are allowed.')
-        
-        self._version = '1.0'
-        self._cnfg = {'kinetics': kinetics, 'non_stationary': non_stationary, 'sequence': sequence}
-        self._pars = lexicon.init(self._pars_list())
-
-        # Override defaults with user-provided parameters
-        for p, val in params.items():
-            if p in self._pars:
-                self._pars[p] = val
-            else:
-                raise ValueError(f"'{p}' is not a valid parameter for this configuration.")
-            
-    def _pars_list(self, select='all'):
+                    
+    def _params(self, select=None):
+        if select is None:
+            select = 'all'
         kin, ns, seq = self._cnfg['kinetics'], self._cnfg['non_stationary'], self._cnfg['sequence']
 
         aorta_kinetics = ['BAT', 'BAT2', 'CO', 'Thl', 'Dhl', 'To', 'Eo', 'To_e', 'Eb']
-        liver_kinetics = list(liver.params_liver(kin, ns).keys())
+        liver_kinetics = liver.Conc(kin, ns)._params()
         kinetics = aorta_kinetics + liver_kinetics
-        liver_sequence_1 = {
-            'SR': ['FA', 'TR', 'TC', 'TP'], 
-            'SS': ['FA', 'TR'], 
-            'lin': [], 
-            'SSI': ['FA', 'TR']
-        }[seq]
-        liver_sequence_2 = {
-            'SR': ['FA2', 'TR', 'TC', 'TP'], 
-            'SS': ['FA2', 'TR'], 
-            'lin': [], 
-            'SSI': ['FA2', 'TR']
-        }[seq]
-        liver_sequence = list(set(liver_sequence_1 + liver_sequence_2))
-        inflow = ['TF'] if seq=='SSI' else []
+        liver_sequence = SEQUENCES[seq]['parameters']['prep']
+        liver_sequence += SEQUENCES[seq]['parameters']['read']
+        if 'FA' in liver_sequence:
+            liver_sequence += ['FA2']
+    
+        inflow = ['TF'] if seq == '3D-SPGR-SSI' else []
+        free_inflow = ['TF', 'S0_a'] if seq == '3D-SPGR-SSI' else []
 
         pars_list = {
             'all': kinetics + inflow + liver_sequence + [
@@ -462,14 +451,9 @@ class AortaLiver2scan(ui.SuperModel):
                 'R10_a', 'R10_l', 'S0_a', 'S0_l', 'S02_a', 'S02_l',
                 'B1corr', 'B1corr_a', 'B1corr_2', 'B1corr_2_a',
             ],
-            'free': kinetics + inflow + ['S02_a', 'S02_l'],
-            'first_scan_aorta': liver_sequence_1 + inflow,
-            'second_scan_aorta': liver_sequence_2 + inflow,
-            'first_scan_liver': liver_sequence_1,
-            'second_scan_liver': liver_sequence_2,
-            'liver_kinetics': liver_kinetics,
-            'aorta_fit': aorta_kinetics + inflow + ['S02_a'],
-            'liver_fit': liver_kinetics + ['S02_l'],
+            'all free': kinetics + free_inflow + ['S02_a', 'S02_l'],
+            'free_aorta': aorta_kinetics + free_inflow + ['S02_a'],
+            'free_liver': liver_kinetics + ['S02_l'],
         }
         return pars_list[select]
 
@@ -492,7 +476,7 @@ class AortaLiver2scan(ui.SuperModel):
         J2 = lib.ca_injection(
             self._t, p['weight'], conc, p['dose2'], p['rate'], p['BAT2']
         )
-        Jb = pk_aorta.flux_aorta(
+        Jb = pk_lib.aorta_flux(
             J1 + J2, E=p['Eb'], dt=p['dt'], tol=p['dose_tolerance'],
             heartlung = ['pfcomp', (p['Thl'], p['Dhl'])],
             organs = ['2cxm', ([p['To'], p['To_e']], p['Eo'])]
@@ -510,18 +494,15 @@ class AortaLiver2scan(ui.SuperModel):
         p = self._pars
 
         self._Sa = np.zeros_like(self._t)
+        seq = self._cnfg['sequence']
 
         # First scan signal
         t = self._t < p['t_scan2']
-        pars = {k: p[k] for k in self._pars_list(select='first_scan_aorta')}
-        if 'FA' in pars: pars['FA'] *= p['B1corr_a']
-        self._Sa[t] = sig.signal(self._cnfg['sequence'], self._R1a[t], p['S0_a'], **pars)
+        self._Sa[t] = sig.Signal(seq, **p)(R1=self._R1a[t], S0=p['S0_a'], B1corr=p['B1corr_a'], TE=0, PA=0)
 
         # Second scan signal
         t = self._t >= p['t_scan2']
-        pars = {k: p[k] for k in self._pars_list(select='second_scan_aorta')}
-        if 'FA2' in pars: pars['FA'] = pars.pop('FA2') * p['B1corr_2_a']
-        self._Sa[t] = sig.signal(self._cnfg['sequence'], self._R1a[t], p['S02_a'], **pars)
+        self._Sa[t] = sig.Signal(seq, **p)(R1=self._R1a[t], S0=p['S02_a'], B1corr=p['B1corr_2_a'], FA=p['FA2'], TE=0, PA=0)
 
     def _predict_aorta(self, time: tuple):
         self._compute_signal_aorta()
@@ -537,13 +518,9 @@ class AortaLiver2scan(ui.SuperModel):
 
     def _compute_conc_liver(self):
         p = self._pars
-        pars = {k: p[k] for k in self._pars_list(select='liver_kinetics')}
-
         cp = self._ca / (1 - p['H'])
-        self._Cl = liver.conc_liver(
-            cp, dt=p['dt'], sum=False, kinetics=self._cnfg['kinetics'], 
-            non_stationary=self._cnfg['non_stationary'], **pars,
-        )
+        kin, ns = self._cnfg['kinetics'], self._cnfg['non_stationary']
+        self._Cl = liver.Conc(kin, ns, **p)(cp, dt=p['dt'])
 
     def _compute_relax_liver(self):
         self._compute_conc_liver()
@@ -561,19 +538,15 @@ class AortaLiver2scan(ui.SuperModel):
         p = self._pars
 
         self._Sl = np.zeros_like(self._t)
-        seq = 'SS' if self._cnfg['sequence']=='SSI' else self._cnfg['sequence']
+        seq = '3D-SPGR-SS' if self._cnfg['sequence']=='3D-SPGR-SSI' else self._cnfg['sequence']
 
         # First scan signal
         t = self._t < p['t_scan2']
-        pars = {k: p[k] for k in self._pars_list(select='first_scan_liver')}
-        if 'FA' in pars: pars['FA'] *= p['B1corr']
-        self._Sl[t] = sig.signal(seq, self._R1l[t], p['S0_l'], **pars)
+        self._Sl[t] = sig.Signal(seq, **p)(R1=self._R1l[t], S0=p['S0_l'], TE=0)
         
         # Second scan signal
         t = self._t >= p['t_scan2']
-        pars = {k: p[k] for k in self._pars_list(select='second_scan_liver')}
-        if 'FA2' in pars: pars['FA'] = pars.pop('FA2') * p['B1corr_2']
-        self._Sl[t] = sig.signal(seq, self._R1l[t], p['S02_l'], **pars)
+        self._Sl[t] = sig.Signal(seq, **p)(R1=self._R1l[t], S0=p['S02_l'], B1corr=p['B1corr_2'], FA=p['FA2'], TE=0)
 
     def _predict_liver(self, time: tuple):
         p = self._pars
@@ -588,7 +561,7 @@ class AortaLiver2scan(ui.SuperModel):
     # Forward Model: Liver and Aorta
     # ===========================================
     
-    def _predict(self, time: Data) -> Data:
+    def _predict(self, time: dict) -> dict:
         p = self._pars
         p['tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time))
         s_a = self._predict_aorta(time[:2])
@@ -600,14 +573,14 @@ class AortaLiver2scan(ui.SuperModel):
     # ==========================================   
 
     def _estimate_parameters(
-        self, time: Data, signal: Data, n0: int, R102a: float, 
+        self, time: dict, signal: dict, n0: int, R102a: float, 
         R102l: float
     ):
         p = self._pars
         p['tmax'] = np.max(np.concatenate(time)) + p['dt'] + p['TS']
 
         seq_aorta = self._cnfg['sequence']
-        seq_liver = 'SS' if self._cnfg['sequence']=='SSI' else self._cnfg['sequence']
+        seq_liver = '3D-SPGR-SS' if self._cnfg['sequence']=='3D-SPGR-SSI' else self._cnfg['sequence']
 
         # Estimate BAT and BAT2 and ajust their bounds
         t_hl, d_hl = p['Thl'], p['Dhl']
@@ -617,54 +590,46 @@ class AortaLiver2scan(ui.SuperModel):
         p['BAT2'] = max(bat2, 0)
 
         # Scaling Factor (S0) aorta
-        pars = {k: p[k] for k in self._pars_list(select='first_scan_aorta')}
-        if 'FA' in pars: pars['FA'] *= p['B1corr_a']
-        s_ref = sig.signal(seq_aorta, p['R10_a'], 1, **pars)
+        s_ref = sig.Signal(seq_aorta, **p)(R1=p['R10_a'], S0=1, B1corr=p['B1corr_a'], TE=0, PA=0)
         p['S0_a'] = np.mean(signal[0][:n0]) / s_ref if s_ref > 0 else 0
 
         # Scaling Factor (S0) liver
-        pars = {k: p[k] for k in self._pars_list(select='first_scan_liver')}
-        if 'FA' in pars: pars['FA'] *= p['B1corr']
-        s_ref = sig.signal(seq_liver, p['R10_l'], 1, **pars)
+        s_ref = sig.Signal(seq_liver, **p)(R1=p['R10_l'], S0=1, TE=0)
         p['S0_l'] = np.mean(signal[2][:n0]) / s_ref if s_ref > 0 else 0
 
         # Second Scaling Factor (S02) aorta
         if R102a is None:
             p['S02_a'] = p['S0_a']
         else:
-            pars = {k: p[k] for k in self._pars_list(select='second_scan_aorta')}
-            if 'FA2' in pars: pars['FA'] = pars.pop('FA2') * p['B1corr_2_a']
-            s_ref = sig.signal(seq_aorta, R102a, 1, **pars)
+            s_ref = sig.Signal(seq_aorta, **p)(R1=R102a, S0=1, B1corr=p['B1corr_2_a'], FA=p['FA2'], TE=0, PA=0)
             p['S02_a'] = np.mean(signal[1][:n0]) / s_ref if s_ref > 0 else 0
 
         # Second Scaling Factor (S02) liver
         if R102l is None:
             p['S02_l'] = p['S0_l']
         else:
-            pars = {k: p[k] for k in self._pars_list(select='second_scan_liver')}
-            if 'FA2' in pars: pars['FA'] = pars.pop('FA2') * p['B1corr_2']
-            s_ref = sig.signal(seq_liver, R102l, 1, **pars)
+            s_ref = sig.Signal(seq_liver, **p)(R1=R102l, S0=1, B1corr=p['B1corr_2'], FA=p['FA2'], TE=0, PA=0)
             p['S02_l'] = np.mean(signal[3][:n0]) / s_ref if s_ref > 0 else 0
 
     def _train(
-        self, time: Data, signal: Data, free: dict, 
+        self, time: dict, signal: dict, free: dict, 
         bounds: dict, n0: int, R102a: float, R102l: float, 
         staged: bool, **kwargs,
     ):
         self._estimate_parameters(time, signal, n0, R102a, R102l)
-        free = self._set_free_pars(free, bounds)
+        free = self._set_free_pars(free, bounds, lexicon=LEXICON)
     
         # Extra conditions for SSI sequence
-        if self._cnfg['sequence'] == 'SSI' and 'S0_a' not in free:
-            raise ValueError("For SSI sequence, 'S0_a' must be a free parameter.")     
+        if self._cnfg['sequence'] == '3D-SPGR-SSI' and 'S0_a' not in free:
+            raise ValueError("For SSI sequence, 'S0_a' must be a free parameter.")
 
         if staged:
             # Train free aorta parameters on aorta data
-            free_aorta = {k: v for k, v in free.items() if k in self._pars_list('aorta_fit')}
+            free_aorta = {k: v for k, v in free.items() if k in self._params('free_aorta')}
             utils.train(self._predict_aorta, time[:2], signal[:2], self._pars, free_aorta, **kwargs)
 
             # Train free liver parameters on liver data
-            free_liver = {k: v for k, v in free.items() if k in self._pars_list('liver_fit')}
+            free_liver = {k: v for k, v in free.items() if k in self._params('free_liver')}
             utils.train(self._predict_liver, time[2:], signal[2:], self._pars, free_liver, **kwargs)
 
         # Joint Optimization
@@ -677,7 +642,7 @@ class AortaLiver2scan(ui.SuperModel):
 
 
     def _plot(
-        self, time: Data, signal: Data, xlim=None, fname=None, 
+        self, time: dict, signal: dict, xlim=None, fname=None, 
         show=True
     ):
         p = self._pars
@@ -724,11 +689,10 @@ class AortaLiver2scan(ui.SuperModel):
 
 
     # ==========================================
-    # Public API: Data Extraction
+    # Public API: dict Extraction
     # ==========================================
 
-
-    def time(self) -> Data:
+    def time(self) -> dict:
         """Internal time array
         
         Returns:
@@ -739,9 +703,14 @@ class AortaLiver2scan(ui.SuperModel):
         p = self._pars
         t, t2 = self._t, p['t_scan2']
         tacq1, tacq2 = t[t < t2], t[t >= t2]
-        return tacq1, tacq2, tacq1, tacq2
+        return {
+            ('aorta', 1): tacq1, 
+            ('aorta', 2): tacq2, 
+            ('liver', 1): tacq1, 
+            ('liver', 2): tacq2, 
+        }
     
-    def conc(self) -> Data:
+    def conc(self) -> dict:
         """Concentrations in aorta and liver.
 
         Returns:
@@ -751,14 +720,14 @@ class AortaLiver2scan(ui.SuperModel):
         self._compute_conc_aorta()
         self._compute_conc_liver()
         t, t2 = self._t, self._pars['t_scan2']
-        ca = self._ca[t < t2], self._ca[t >= t2]
-        if self._Cl.ndim==1:
-            Cl = self._Cl[t < t2], self._Cl[t >= t2]
-        else:
-            Cl = self._Cl[:, t < t2], self._Cl[:, t >= t2]
-        return ca + Cl
+        return {
+            ('aorta', 1): self._ca[t < t2], 
+            ('aorta', 2): self._ca[t >= t2], 
+            ('liver', 1): self._Cl[:, t < t2], 
+            ('liver', 2): self._Cl[:, t >= t2], 
+        }
     
-    def relax(self) -> Data:
+    def relax(self) -> dict:
         """Relaxation rates in aorta and liver.
 
         Returns:
@@ -768,11 +737,14 @@ class AortaLiver2scan(ui.SuperModel):
         self._compute_relax_aorta()
         self._compute_relax_liver()
         t, t2 = self._t, self._pars['t_scan2']
-        R1a = self._R1a[t < t2], self._R1a[t >= t2]
-        R1l = self._R1l[t < t2], self._R1l[t >= t2]
-        return R1a + R1l
+        return {
+            ('aorta', 1): self._R1a[t < t2], 
+            ('aorta', 2): self._R1a[t >= t2], 
+            ('liver', 1): self._R1l[t < t2], 
+            ('liver', 2): self._R1l[t >= t2], 
+        }
     
-    def signal(self) -> Data:
+    def signal(self) -> dict:
         """Signal in aorta and liver.
 
         Returns:
@@ -782,11 +754,14 @@ class AortaLiver2scan(ui.SuperModel):
         self._compute_signal_aorta()
         self._compute_signal_liver()
         t, t2 = self._t, self._pars['t_scan2']
-        Sa = self._Sa[t < t2], self._Sa[t >= t2]
-        Sl = self._Sl[t < t2], self._Sl[t >= t2]
-        return Sa + Sl
+        return {
+            ('aorta', 1): self._Sa[t < t2], 
+            ('aorta', 2): self._Sa[t >= t2], 
+            ('liver', 1): self._Sl[t < t2], 
+            ('liver', 2): self._Sl[t >= t2], 
+        }
     
-    def predict(self, time: Data) -> Data:
+    def predict(self, time: dict) -> dict:
         """Predict the data at given time points
 
         Args:
@@ -797,13 +772,30 @@ class AortaLiver2scan(ui.SuperModel):
             tuple: aorta data scan 1, aorta data scan 2, 
               liver data scan 1, liver data scan 2.
         """
-        return self._predict(time)
+        if isinstance(time, dict):
+            time = (
+                time[('aorta', 1)], 
+                time[('aorta', 2)], 
+                time[('liver', 1)], 
+                time[('liver', 2)], 
+            )
+        else:
+            time = tuple(4 * [time])
+
+        signal = self._predict(time)
+
+        return {
+            ('aorta', 1): signal[0],
+            ('aorta', 2): signal[1],
+            ('liver', 1): signal[2],
+            ('liver', 2): signal[3],
+        }
     
     def train(
-        self, time: Data, signal: Data, free: dict = None, 
+        self, time: dict, signal: dict, free: dict = None, 
         bounds: dict = None, n0=1, R102a: float = None, 
         R102l: float = None, staged=False, **kwargs,
-    ) -> Tuple[dict, dict, np.ndarray]:
+    ) -> tuple:
         """Train the free parameters
 
         Args:
@@ -821,10 +813,28 @@ class AortaLiver2scan(ui.SuperModel):
         Returns:
             vals, sdev, pcov: Values, standard deviations and covariance matrix of free parameters
         """
+
+        if isinstance(time, dict):
+            time = (
+                time['aorta', 1], 
+                time['aorta', 2], 
+                time['liver', 1], 
+                time['liver', 2], 
+            )
+        else:
+            time = tuple(4 * [time])
+
+        signal = (
+            signal['aorta', 1], 
+            signal['aorta', 2], 
+            signal['liver', 1], 
+            signal['liver', 2], 
+        )
+
         return self._train(time, signal, free, bounds, n0, R102a, R102l, staged, **kwargs)
 
     def plot(
-        self, time: Data, signal: Data, xlim: list = None, 
+        self, time: dict, signal: dict, xlim: list = None, 
         fname: str = None, show=True
     ):
         """Plot the model fit against data
@@ -846,4 +856,64 @@ class AortaLiver2scan(ui.SuperModel):
             show (bool, optional): If True, the plot is shown. Defaults to 
               True.
         """
+
+        if isinstance(time, dict):
+            time = (
+                time['aorta', 1], 
+                time['aorta', 2], 
+                time['liver', 1], 
+                time['liver', 2], 
+            )
+        else:
+            time = tuple(4 * [time])
+
+        signal = (
+            signal['aorta', 1], 
+            signal['aorta', 2], 
+            signal['liver', 1], 
+            signal['liver', 2], 
+        )
         self._plot(time, signal, xlim, fname, show)
+
+    def cost(self, time: dict, signal: dict, metric: str = 'NRMS', nfree=None) -> float:
+        """Return the goodness-of-fit
+
+        Args:
+            time (np.ndarray): array with time points
+            signal (array-like): array with signal data for all pixels.
+            metric (str, optional): Which metric to use (see notes for 
+                possible values). Defaults to 'NRMS'.
+
+        Returns:
+            float: goodness of fit.
+
+        Notes:
+
+            Available options are: 
+            
+            - 'RMS': Root-mean-square.
+            - 'NRMS': Normalized root-mean-square. 
+            - 'AIC': Akaike information criterion. 
+            - 'cAIC': Corrected Akaike information criterion for small 
+                models.
+            - 'BIC': Baysian information criterion.
+        """
+        if isinstance(time, dict):
+            time = (
+                time['aorta', 1], 
+                time['aorta', 2], 
+                time['liver', 1], 
+                time['liver', 2], 
+            )
+        else:
+            time = tuple(4 * [time])
+
+        signal = np.concatenate((
+            signal['aorta', 1], 
+            signal['aorta', 2], 
+            signal['liver', 1], 
+            signal['liver', 2], 
+        ))
+        signal_pred = np.concatenate(self._predict(time))
+        cost = utils.loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
+        return cost[0]

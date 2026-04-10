@@ -1,97 +1,23 @@
 import copy
 import numpy as np
 import dcmri.pk as pk
+from dcmri.lexicon import LEXICON
+from dcmri.ui import SuperFunc
 
 
 def _div(a, b):
     with np.errstate(divide='ignore', invalid='ignore'):
         return np.divide(a, b)
     
-
-PARAMS_KIDNEY = {
-    'T_a': {'init': 0, 'bounds': [0, 3], 'name': 'Arterial mean transit time', 'unit': 'sec'},
-    'Fp': {'init': 0.02, 'bounds': [0, 0.05], 'name': 'Plasma flow', 'unit': 'mL/sec/cm3'},
-    'vp': {'init': 0.15, 'bounds': [0, 0.3], 'name': 'Plasma volume', 'unit': 'mL/cm3'},
-    'FF': {'init': 0.1, 'bounds': [0, 0.3], 'name': 'Filtration fraction', 'unit': ''},
-    'Tt': {'init': 120, 'bounds': [0, 60 * 60], 'name': 'Tubular mean transit time', 'unit': 'sec'},
-    'Ft': {'init': 0.005, 'bounds': [0, 0.05], 'name': 'Tubular flow', 'unit': 'mL/sec/cm3'},
-    'vol': {'init': 150, 'name': 'Single-kidney volume', 'unit': 'mL'},
-
-    # Derived parameters
-    'Fb': {'name': 'Blood flow', 'unit': 'mL/sec/cm3'},
+# Kidney-specific defaults
+LEXICON = LEXICON | {
+    'ht': {'init': np.ones(5) / 5, 'bounds': [0, 100], 'name': 'Tubular transit time distribution', 'unit': '1/sec'},
     'Tv': {'name': 'Vascular mean transit time', 'unit': 'sec'},
-    'Tp': {'name': 'Plasma mean transit time', 'unit': 'sec'},
-    'E': {'name': 'Extraction fraction', 'unit': ''},
-    'GFR': {'name': 'Glomerular filtration rate', 'unit': 'mL/sec'},
     'RBF': {'name': 'Renal blood flow', 'unit': 'mL/sec'},
-    'RPF': {'name': 'Renal plasma flow', 'unit': 'mL/sec'},
 }
 
 
-
-def params_kidney(kinetics='2CF') -> dict:
-    """Kidney model parameters
-
-    Args:
-        kinetics (str): kidney model. Options are: 2CF.
-
-    Returns:
-        list: Parameter short names
-    """
-    pars = None
-
-    if kinetics == '2CF':
-        pars = ['Fp', 'vp', 'FF', 'Tt']
-    elif kinetics == 'HF':
-        pars = ['vp', 'Ft', 'Tt']
-
-    if pars is not None:
-        return {p:PARAMS_KIDNEY[p] for p in pars}   
-
-    raise ValueError(
-        f"The model kinetics={kinetics} "
-        f"is not a recognised kidney model."
-    )
-
-
-def derived_params_kidney(p, kinetics='2CF', H=0.45) -> dict:
-
-    p = copy.deepcopy(p)
-
-    if 'Eg' in p:
-        p['FF'] = _div(p['Eg'] / 1 - p['Eg'])
-        
-    if {'Fp'}.issubset(p):
-        p['Fb'] = _div(p['Fp'], 1 - H)
-
-    if {'FF', 'Fp'}.issubset(p):
-        p['Ft'] = p['FF']*p['Fp']
-
-    if {'vp', 'Fp', 'Tt'}.issubset(p):
-        p['Tp'] = _div(p['vp'], p['Fp']+p['Ft'])
-
-    if {'vp', 'Fp'}.issubset(p):
-        p['Tv'] = _div(p['vp'], p['Fp'])
-
-    if {'Ft', 'Fp'}.issubset(p):
-        p['E'] = _div(p['Ft'], p['Ft'] + p['Fp'])
-
-    if {'Ft', 'vol'}.issubset(p):
-        p['GFR'] = p['Ft'] * p['vol']  
-
-    if {'Fp', 'vol'}.issubset(p):
-        p['RBF'] = _div(p['Fp'] * p['vol'], 1-H)
-        p['RPF'] = p['Fp']*p['vol']
-
-    if {'fc', 'Eg', 'Fp'}.issubset(p):
-        p['Fb_med'] = (1 - p['fc']) * (1 - p['Eg']) * p['Fp'] / (1 - H)
-
-    if {'Fb_med', 'vol'}.issubset(p):
-        p['SKMBF'] = p['Fb_med'] * p['vol']
-    return p
-    
-
-def conc_kidney(ca: np.ndarray, *params, t=None, dt=1.0, sum=True, kinetics='2CF', **kwargs) -> np.ndarray:
+class Conc(SuperFunc):
     """Concentration in kidney tissues.
 
     Args:
@@ -174,57 +100,106 @@ def conc_kidney(ca: np.ndarray, *params, t=None, dt=1.0, sum=True, kinetics='2CF
         >>> ax.set_ylabel('Tissue concentration (mM)')
         >>> ax.legend()
         >>> plt.show()
-
     """
-    if kinetics == '2CF':
-        return _conc_kidney_2cf(ca, *params, t=t, dt=dt, sum=sum)
-    elif kinetics == 'HF':
-        return _conc_kidney_hf(ca, *params, t=t, dt=dt, sum=sum)
-    elif kinetics == 'FN':
-        # TT = [15,30,60,90,150,300,600]
-        return _conc_kidney_fn(ca, *params, t=t, dt=dt, sum=sum, **kwargs)
-    else:
-        raise ValueError(
-            'Kinetic model ' + kinetics + ' is not currently implemented.')
+
+    _params_dict = {
+        '2CF': ['T_a', 'Fp', 'vp', 'Ft', 'Tt'],
+        'HF': ['T_a', 'vp', 'Ft', 'Tt'],
+        'FN': ['T_a', 'Fp', 'Tp', 'Ft', 'ht'],
+    }
+    configs = {
+        'kinetics': ['2CF', 'HF', 'FN'],
+    }
+    def __init__(self, kinetics='2CF', **params):
+        cnfg = {'kinetics': kinetics}
+        self._cnfg = self._set_config(**cnfg)
+        self._pars = self._set_pars(LEXICON, **params)
+
+    def _params(self):
+        model = self._cnfg['kinetics']
+        return copy.deepcopy(self._params_dict[model])
+    
+    def __call__(self, ca: np.ndarray, t=None, dt=1.0, **params) -> np.ndarray:
+        p = self._update_pars(**params)
+        kin = self._cnfg['kinetics']
+
+        ca = pk.flux(ca, p['T_a'], dt=dt, model='plug')
+        p = {k: v for k, v in p.items() if k != 'T_a'}
+
+        if kin == '2CF':
+            return _conc_kidney_2cf(ca, t=t, dt=dt, **p)
+        if kin == 'HF':
+            return _conc_kidney_hf(ca, t=t, dt=dt, **p)
+        if kin == 'FN':
+            return _conc_kidney_fn(ca, t=t, dt=dt, **p)
 
 
-def _conc_kidney_2cf(ca, Fp, vp, Ft, Tt, t=None, dt=1.0, sum=True):
+
+
+def derived_params_kidney(p, kinetics='2CF', H=0.45) -> dict:
+
+    p = copy.deepcopy(p)
+
+    if 'Eg' in p:
+        p['FF'] = _div(p['Eg'] / 1 - p['Eg'])
+        
+    if {'Fp'}.issubset(p):
+        p['Fb'] = _div(p['Fp'], 1 - H)
+
+    if {'FF', 'Fp'}.issubset(p):
+        p['Ft'] = p['FF']*p['Fp']
+
+    if {'vp', 'Fp', 'Tt'}.issubset(p):
+        p['Tp'] = _div(p['vp'], p['Fp']+p['Ft'])
+
+    if {'vp', 'Fp'}.issubset(p):
+        p['Tv'] = _div(p['vp'], p['Fp'])
+
+    if {'Ft', 'Fp'}.issubset(p):
+        p['E'] = _div(p['Ft'], p['Ft'] + p['Fp'])
+
+    if {'Ft', 'vol'}.issubset(p):
+        p['GFR'] = p['Ft'] * p['vol']  
+
+    if {'Fp', 'vol'}.issubset(p):
+        p['RBF'] = _div(p['Fp'] * p['vol'], 1-H)
+        p['RPF'] = p['Fp']*p['vol']
+
+    if {'fc', 'Eg', 'Fp'}.issubset(p):
+        p['Fb_med'] = (1 - p['fc']) * (1 - p['Eg']) * p['Fp'] / (1 - H)
+
+    if {'Fb_med', 'vol'}.issubset(p):
+        p['SKMBF'] = p['Fb_med'] * p['vol']
+    return p
+    
+
+
+def _conc_kidney_2cf(ca, t=None, dt=1.0, Fp=None, vp=None, Ft=None, Tt=None):
     #vp = Tp*(Fp+Ft)
     Tp = vp/(Fp+Ft)
     Cp = pk.conc_comp(Fp*ca, Tp, t=t, dt=dt)
     cp = Cp/vp
     Ct = pk.conc_comp(Ft*cp, Tt, t=t, dt=dt)
-    if sum:
-        return Cp+Ct
-    else:
-        return np.stack((Cp, Ct))
+    return np.stack((Cp, Ct))
 
-
-def _conc_kidney_hf(ca, vp, Ft, Tt, t=None, dt=1.0, sum=True):
+def _conc_kidney_hf(ca, t=None, dt=1.0, vp=None, Ft=None, Tt=None):
     Cp = vp*ca
     Ct = pk.conc_comp(Ft*ca, Tt, t=t, dt=dt)
-    if sum:
-        return Cp+Ct
-    else:
-        return np.stack((Cp, Ct))
+    return np.stack((Cp, Ct))
 
-
-def _conc_kidney_fn(ca, Fp, Tp, Ft, h, t=None, dt=1.0, sum=True, TT=None):
+def _conc_kidney_fn(ca, t=None, dt=1.0, TT=None, Fp=None, Tp=None, Ft=None, ht=None):
     if TT is None:
         if t is None:
             tmax = dt*np.size(ca)
         else:
             tmax = np.amax(t)
-        nTT = 1+np.size(h)
+        nTT = 1+np.size(ht)
         TT = np.linspace(0, tmax, nTT)
     vp = Tp*(Fp+Ft)
     Cp = pk.conc_plug(Fp*ca, Tp, t=t, dt=dt)
     cp = Cp/vp
-    Ct = pk.conc_free(Ft*cp, h, dt=dt, TT=TT, solver='step')
-    if sum:
-        return Cp+Ct
-    else:
-        return np.stack((Cp, Ct))
+    Ct = pk.conc_free(Ft*cp, ht, dt=dt, TT=TT, solver='step')
+    return np.stack((Cp, Ct))
 
 
 def conc_kidney_cm(ca: np.ndarray, *params, t=None, dt=1.0, sum=True, 

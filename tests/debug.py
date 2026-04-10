@@ -1,31 +1,41 @@
-import numpy as np
-
-from dcmri import pk_aorta
-from dcmri import pk
-
-import dcmri as dc
-
-from dcmri import tissue
+from dcmri.ui import ParsView
 
 
-def test_bug():
 
-    dt_init, tmax_init = 0.5, 240
-    t_init = np.arange(0, tmax_init, dt_init, dtype=float)
-    ca = pk_aorta.aif_tristan(t_init, agent='gadodiamide', BAT=20)
+class A:
+    def __init__(self):
+        self._pars = {'a': 1}
 
-    Mx = tissue.Mz('NX', 'RF', 'SS')   # its a 2-comp SS problewm
+    def print(self):
+        print(self._pars['a'])
 
-    M1 = Mx(ca) 
-    M2 = Mx(ca * 0) 
+class B:
+    def __init__(self):
+        self._a = A()
+        self._pars = {'b': 2}
+    def print(self):
+        print(self._pars['b'])
 
-    print('\n\n')
-    print(M1[1,:5]-M2[1,:5])
+
+def test_pars_view():
+
+    b = B()
+    b._a.print()
+
+    d = ParsView(b._pars, b._a._pars)
+    d['a'] = 3
+    b._a.print()
+
+    d = ParsView(b._a._pars, b._pars)
+    d['a'] = -3
+    b._a.print()
+
+    d['c'] = 0
 
 
 
 if __name__ == "__main__":
 
-    test_bug()
+    test_example()
     
     print('Done!!')

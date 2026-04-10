@@ -38,10 +38,18 @@ def test_aif_tristan_rat():
     assert np.round(1000*np.amax(ca), 1) == 0.3
 
 
+def test_aif_tristan():
+
+    t = np.arange(0, 6*60, 1)
+    ca = dc.aif_tristan(t)
+    assert round(max(ca), 4) == 0.0035
+
+
 
 if __name__ == "__main__":
 
     test_aif_parker()
     test_aif_tristan_rat()
+    test_aif_tristan()
 
     print('All pk_lib tests passed!!')

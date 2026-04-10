@@ -5,8 +5,10 @@ from joblib import Parallel, delayed
 from matplotlib.gridspec import GridSpec
 
 from dcmri import rel, sig, pk_inv, lib, utils, ui
-from dcmri.lexicon import LEXICON
+from dcmri.lexicon import LEXICON, SEQUENCES
 import dcmri.lexicon_utils as lexicon
+from dcmri.signal_to_conc import SignalToConc
+
 
 
 class TissueLS(ui.SuperModel):
@@ -77,7 +79,9 @@ class TissueLS(ui.SuperModel):
         >>> tissue.plot(roi)
 
     """
-    def __init__(self, shape=None, sequence='SS', **params):
+
+    configs = {'sequence': ['3D-SPGR-SS']}
+    def __init__(self, sequence='3D-SPGR-SS', shape=None, **params):
 
         # Check configuration
         if shape is not None:
@@ -86,42 +90,52 @@ class TissueLS(ui.SuperModel):
                     f"The 'shape' parameter specifies spatial dimensions "
                     "and must be 1-, 2- or 3 dimensional (or empty for 1D data)"
                 )
-        if sequence not in ['SS', 'SR', 'lin']:
-            raise ValueError(
-                f"Sequence {sequence} is not recognized. "
-                f"Current options are 'SS', 'SR', 'lin'."
-            )
         
         self._version = '1.0'
-        self._cnfg = {'sequence': sequence}
-        self._pars = lexicon.init(self._pars_list(), LEXICON)
-        self._shape = shape
-
-        # Override defaults with user-provided parameters
-        for p, val in params.items():
-            if p in self._pars:
-                self._pars[p] = val
-            else:
-                raise ValueError(f"'{p}' is not a valid parameter for this configuration.")
+        cnfg = {'sequence': sequence}
+        self._cnfg = self._set_config(**cnfg)
+        self._pars = self._set_pars(**params)
 
         # Try to read the spatial shape from the data
+        self._pixels_shape: tuple = None
+
         if self._pars['irf'].ndim > 1:
             # If the user has provided a multidimensional IRF, 
             # take the shape from that (and ignore the shape keyword)
-            self._shape = self._pars['irf'].shape[:-1]
+            self._pixels_shape = self._pars['irf'].shape[:-1]
+            
         else:
-            # Else if one of the images is non-scalar take the shape from that
-            for array_par in self._pars_list('pixel'):
-                if not np.isscalar(self._pars[array_par]):
-                    self._shape = self._pars[array_par].shape
+            # Get the non-scalar shapes from any user-defined pixel parameters
+            shapes = [np.array(p).shape for p in params if p in self._params('pixel')]
+            shapes = [s for s in shapes if np.prod(s) > 1]
+            if len(set(shapes)) > 1:
+                # Raise if more than 1 non-scalar shape is present
+                raise ValueError(f"Pixel-based parameters {self._params('pixel')} must all have the same shape, or be scalars.")
+            if len(shapes) == 0: 
+                # No pixel-parameters provided - take the user defined shape
+                self._pixels_shape = shape
+            elif shape is None:
+                # Pixel-parameters but no shape provided - take from pixel parameters
+                self._pixels_shape = shapes[0]
+            elif shape != shapes[0]:
+                # Both pixel-parameters and shape provided - check agreement
+                raise ValueError(f"Shape provided is inconsistent with shapes of pixel-parameters {self._params('pixel')} provided.")
+            else:
+                # Both are provided and in agreement - pick one
+                self._pixels_shape = shapes[0]
+
+            # If the user has not provided a shape directly or indirectly, 
+            # we revert to the default (scalar)
+            if self._pixels_shape is None:
+                self._pixels_shape = ()
 
         # If an IRF has not been provided then initialise with ones of the right shape
         n_times = self._pars['c_a'].shape[-1]
         if 'irf' not in params:
-            if self._shape is None:
+            if self._pixels_shape is None:
                 n_samples = 1
             else:
-                n_samples = np.prod(self._shape)
+                n_samples = int(np.prod(self._pixels_shape))
             self._pars['irf'] = 0.02 * np.ones((n_samples, n_times))
         else:
             if self._pars['irf'].ndim == 1:
@@ -133,26 +147,29 @@ class TissueLS(ui.SuperModel):
         # Ensure 1D shape (n_samples, ) for all pixel-level parameters
         # If scalars are provided for array data, use it to initialise 
         # the array
-        for array_par in self._pars_list('pixel'):
+        for array_par in self._params('pixel'):
             if np.isscalar(self._pars[array_par]):
                 self._pars[array_par] = np.full(n_samples, self._pars[array_par])
             else:
                 self._pars[array_par] = self._pars[array_par].reshape(n_samples)
+
+    @property
+    def _shape(self):
+        n_pixels = 1 if self._pixels_shape==() else np.prod(self._pixels_shape)
+        n_times = self._pars['c_a'].size
+        return (n_pixels, n_times)
         
 
-    def _pars_list(self, select='all'):
-        pars_seq = {
-            'SR': ['FA', 'TR', 'TC', 'TP'],
-            'SS': ['FA', 'TR'],
-            'lin': [],
-        }[self._cnfg['sequence']]
+    def _params(self, select='all'):
+        seq = self._cnfg['sequence']
+        pars_seq = SEQUENCES[seq]['parameters']['prep']
+        pars_seq += SEQUENCES[seq]['parameters']['read']
 
         pars_list = {
             'all': pars_seq + [
                 'c_a', 'irf', 'dt', 'field_strength', 'agent',
                 'TS', 'S0', 'R10', 'B1corr', 'noise_sdev',
             ],
-            'sequence': pars_seq,
             'pixel': ['R10', 'S0', 'B1corr'],
         }
         return pars_list[select]
@@ -182,12 +199,15 @@ class TissueLS(ui.SuperModel):
         p = self._pars
 
         seq_name = self._cnfg['sequence']
-        pars = {k: p[k] for k in self._pars_list('sequence')}
         n_samples, n_times = p['irf'].shape
 
         def _compute_pixel_signal(x):
-            if 'FA' in pars: pars['FA'] = p['FA'] * p['B1corr'][x] 
-            return sig.signal(seq_name, self._R1[x,:], p['S0'][x], **pars)
+            return sig.Signal(seq_name, **p)(
+                R1=self._R1[x,:], 
+                S0=p['S0'][x],
+                B1corr=p['B1corr'][x],
+                TE=0,
+            )
 
         if n_samples==1:
             self._S = _compute_pixel_signal(0)
@@ -215,15 +235,12 @@ class TissueLS(ui.SuperModel):
     def _estimate_parameters(self, aif: ui.Input, n0: int):
         self._set_time()
         p = self._pars
-
-        seq_name = self._cnfg['sequence']
-        seq_pars = {k: p[k] for k in self._pars_list('sequence')}
         
         # Arterial concentration estimation
         if aif is not None:
-            if 'FA' in seq_pars: seq_pars['FA'] = p['FA'] * aif.B1corr
-            rp = lib.relaxivity(p['field_strength'], 'blood', p['agent'])
-            ca = sig.conc(seq_name, aif.signal, aif.R10, rp, n0=n0, **seq_pars)
+            seq = self._cnfg['sequence']
+            ca = SignalToConc(seq, **p)(aif.signal, S0=None, R10=aif.R10, n0=n0, B1corr=aif.B1corr)
+            # Interpolate on internal time
             self._t = np.arange(0, aif.time[-1] + p['dt'], p['dt'])
             p['c_a'] = np.interp(self._t, aif.time, ca)
 
@@ -236,19 +253,17 @@ class TissueLS(ui.SuperModel):
 
         # Compute tissue concentration
         seq_name = self._cnfg['sequence']
-        seq_pars = {k: p[k] for k in self._pars_list('sequence')}
 
         n_samples, n_times = signal.shape[0], p['c_a'].size
         def _conc_pixel(x):
             r1 = lib.relaxivity(p['field_strength'], 'blood', p['agent'])
-            if 'FA' in seq_pars: seq_pars['FA'] = p['FA'] * p['B1corr'][x]
-            C_x = sig.conc(seq_name, signal[x,:], p['R10'][x], r1, n0=n0, **seq_pars)
+            C_x = SignalToConc(seq_name, **p)(signal[x,:], R10=p['R10'][x], r1=r1, n0=n0, B1corr=p['B1corr'][x])
             C_x[np.isnan(C_x)] = 0
             C_x = np.interp(self._t, time, C_x, right=0, left=0)
             # Compute S0 on the fly. This is not needed for deconvolution 
             # analysis but we are computing it anyway so that signal 
             # predictions can be verified agains data directly
-            s_ref = sig.signal(seq_name, p['R10'][x], 1, **seq_pars)
+            s_ref = sig.Signal(seq_name, **p)(R1=p['R10'][x], S0=1, TE=0)
             S0 = np.mean(signal[x,:n0]) / s_ref if s_ref > 0 else 0
             return C_x, np.array(S0)
 
@@ -271,7 +286,7 @@ class TissueLS(ui.SuperModel):
     # I/O and Reporting
     # ==========================================
 
-    def _params(self, iv=False, Hct=0.45):
+    def _parameters(self, iv=False, Hct=0.45):
         p = self._pars
         amax = np.max(p['irf'], axis=1)
         auc = np.sum(p['irf'], axis=1) * p['dt']
@@ -339,7 +354,7 @@ class TissueLS(ui.SuperModel):
         ax[2].legend()
 
         # Plot text
-        vals = {k: v[0] for k, v in self._params().items()}
+        vals = {k: v[0] for k, v in self._parameters().items()}
         msg = lexicon.string_params(vals, round_to=round_to)
         msg = "\n".join(list(msg.values()))        
         ax[3].set_title('Free parameters')
@@ -357,7 +372,7 @@ class TissueLS(ui.SuperModel):
         s_recon = self._S.reshape(self._shape + (-1,))
         signal_2d = signal.reshape(self._shape + (-1,))
         
-        params = self._params()
+        params = self._parameters()
         params = {k: v.reshape(self._shape) for k, v in params.items()}
         
         nrows = 2 if truth is not None else 1
@@ -426,7 +441,7 @@ class TissueLS(ui.SuperModel):
         self._compute_signal()
         
         # 1. Prepare Data
-        params = self._params()
+        params = self._parameters()
         params = {k: v.reshape(self._shape) for k, v in params.items()}
         
         width, height, n_slices = self._shape
@@ -488,9 +503,9 @@ class TissueLS(ui.SuperModel):
     # ==========================================
 
 
-    def params(self, iv=False, Hct=0.45):
+    def parameters(self, iv=False, Hct=0.45):
         """Parameters derived from the impulse response"""
-        params = self._params(iv, Hct)
+        params = self._parameters(iv, Hct)
         if self._shape is None:
             return {k: v[0] for k, v in params.items()}
         else:
@@ -508,11 +523,7 @@ class TissueLS(ui.SuperModel):
             np.ndarray: Concentration in M
         """
         self._compute_concentration()
-        if self._shape is None:
-            return self._C[0,:]
-        else:
-            n_times = self._pars['irf'].shape[-1]
-            return self._C.reshape(self._shape + (n_times, ))
+        return self._C.reshape(self._shape)
 
     def relax(self):
         """Tissue relaxation rates
@@ -521,11 +532,7 @@ class TissueLS(ui.SuperModel):
             np.ndarray: Concentration in M
         """
         self._compute_relaxation_rate()
-        if self._shape is None:
-            return self._R1[0,:]
-        else:
-            n_times = self._pars['irf'].shape[-1]
-            return self._C.reshape(self._shape + (n_times, ))
+        return self._R1.reshape(self._shape)
 
     def signal(self) -> np.ndarray:
         """Pseudocontinuous signal
@@ -534,11 +541,7 @@ class TissueLS(ui.SuperModel):
             np.ndarray: the signal as a 1D array.
         """
         self._compute_signal()
-        if self._shape is None:
-            return self._S[0,:]
-        else:
-            n_times = self._pars['irf'].shape[-1]
-            return self._S.reshape(self._shape + (n_times, ))
+        return self._S.reshape(self._shape)
 
     def predict(self, time: np.ndarray) -> np.ndarray:
         """Predict the data at specific time points
@@ -550,11 +553,7 @@ class TissueLS(ui.SuperModel):
             np.ndarray: Predicted Signal for each element of *time*.
         """
         S_pred = self._predict(time)
-        if self._shape is None:
-            return S_pred[0,:]
-        else:
-            n_times = len(time)
-            return S_pred.reshape(self._shape + (n_times, ))
+        return S_pred.reshape(self._shape)
 
     def train(self, time, signal:np.ndarray, aif:ui.Input=None, n0=1, tol=0.1):
         """Train the free parameters
@@ -581,7 +580,7 @@ class TissueLS(ui.SuperModel):
             return self._pars['irf'][0,:]
         else:
             n_times = self._pars['irf'].shape[-1]
-            return self._pars['irf'].reshape(self._shape + (n_times, ))
+            return self._pars['irf'].reshape(self._shape)
         
     def plot(
         self, time, signal: np.ndarray, round_to=None, fname=None, 
@@ -655,3 +654,35 @@ class TissueLS(ui.SuperModel):
             raise ValueError("Cannot apply plot_3d() to a 2D signal. Please use plot_2d() instead")
 
         self._plot_3d(time, signal, fname, show, vmin, vmax)
+
+    def cost(self, time: np.ndarray, signal: np.ndarray, metric: str = 'NRMS', nfree=None) -> float:
+        """Return the goodness-of-fit
+
+        Args:
+            time (np.ndarray): array with time points
+            signal (array-like): array with signal data for all pixels.
+            metric (str, optional): Which metric to use (see notes for 
+                possible values). Defaults to 'NRMS'.
+
+        Returns:
+            float: goodness of fit.
+
+        Notes:
+
+            Available options are: 
+            
+            - 'RMS': Root-mean-square.
+            - 'NRMS': Normalized root-mean-square. 
+            - 'AIC': Akaike information criterion. 
+            - 'cAIC': Corrected Akaike information criterion for small 
+                models.
+            - 'BIC': Baysian information criterion.
+        """
+        signal = signal.reshape(self._shape[0], np.prod(self._shape[1:]))
+        signal_pred = self._predict(time).reshape(self._shape[0], np.prod(self._shape[1:]))
+
+        cost = utils.loss(signal_pred, signal, metric, nfree)
+        if self._pixels_shape == ():
+            return cost[0]
+        else:
+            return cost

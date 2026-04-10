@@ -1,11 +1,151 @@
-from copy import deepcopy
 from typing import Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri import lib, sig, utils, pk_aorta, ui
-from dcmri.lexicon import LEXICON
+from dcmri import lib, sig, utils, pk_lib, ui
+from dcmri.lexicon import SEQUENCES
+
+
+class Conc(ui.SuperFunc):
+    """Whole-body model for indicator flux through the aorta.
+
+    See section :ref:`whole-body-tissues` for a more detailed description of 
+    this model.
+
+    Args:
+        J_vena (np.ndarray): Indicator influx (mmol/sec) into the veins. 
+        t (np.ndarray, optional): Array of time points (sec), must be of 
+          equal size as J_vena. If not provided, the time points are uniformly 
+          sampled with interval dt. Defaults to None.
+        dt (float, optional): Sampling interval in sec. Defaults to 1.0.
+        E (float, optional): Body extraction fraction. Defaults to 0.1.
+        FFkl (float, optional): Fraction of the cardiac output that passes 
+          through kidney and liver. Set FFkl=0 for a whole body model without 
+          explicit kidney and liver spaces. Defaults to 0.0.
+        FFk (float, optional): Kidney fraction of the flow to kidney and liver. 
+          With FFk=0, only the liver is modelled. With FFk=1, only the kidneys 
+          are modelled. Defaults to 0.5.
+        heartlung (list): 3-element list specifying the model to use for the 
+          heart-lung system (see notes for detail).
+        organs (list): 3-element list specifying the model to use for the 
+          organs (see notes for detail). 
+        kidneys (list): 3-element list specifying the model to use for the 
+          kidneys (see notes for detail). This keyword is ignored if FFkl=0 
+          or FFk=0.
+        liver (list): 3-element list specifying the model to use for the 
+          liver (see notes for detail). This keyword is ignored if FFkl=0 
+          or FFk=1.
+        tol (float, optional): Dose tolerance in the solution. The solution 
+          propagates the input through the system, until the dose that is 
+          left in the system is given by tol*dose0, where dose0 is the 
+          initial dose. Defaults to 0.001.
+        max_it (int, optional): Maximum number of iterations.
+
+    Returns:
+        tuple: Indicator fluxes (mmol/sec) through the vena cava and aorta.
+
+    Notes:
+
+        The lists specifying each organ system consist of 3 elements: the 
+        model (str), its parameters (tuple) and any keyword parameters (dict). 
+        Any of the basic pharmacokinetic blocks can be used. For instance,
+        *chain*, *plug-flow compartment*, and *compartment* would be specified 
+        as follows:
+
+          - **chain**: ['chain', (Thl, Dhl), {'solver':'step'}]
+          - **plug-flow compartment**: ['pfcomp', (Thl, Dhl), {'solver':'interp'}}
+          - **compartment**: ['comp', Thl]
+          - **2cxm**: ['2cxm', ([To, Te], Eo)]
+
+
+    Example:
+
+        Generate flux through aorta:
+
+    .. plot::
+        :include-source:
+
+        import matplotlib.pyplot as plt
+        import dcmri as dc
+
+        # Generate a stepwise injection:
+        t = np.arange(0, 120, 2.0)
+        Ji = dc.ca_injection(t, 70, 0.5, 0.2, 3, 30)
+
+        # Calculate the fluxes in mmol/sec:
+        Ja = dc.flux_aorta(Ji, t)
+
+        # Plot the fluxes:
+        plt.plot(t/60, Ja, 'r-', label='Aorta')
+        plt.xlabel('Time (min)')
+        plt.ylabel('Indicator flux (mmol/sec)')
+        plt.legend()
+        plt.show()
+    """
+    configs = {
+        'heartlung': ['comp', 'pfcomp', 'chain'],
+        'organs': ['comp', '2cxm'],
+        
+    }
+    def __init__(self, heartlung='pfcomp', organs='comp', **params):
+        cnfg = {
+            'heartlung': heartlung, 
+            'organs': organs, 
+        }
+        self._cnfg = self._set_config(**cnfg)
+        self._pars = self._set_pars(**params)
+
+    def _params(self, select=None):
+        organs = {
+            'comp': ['To'],
+            '2cxm': ['To', 'To_e', 'Eo']
+        }[self._cnfg['organs']]
+
+        heartlung = {
+            'comp': ['Thl'],
+            'pfcomp': ['Thl', 'Dhl'],
+            'chain': ['Thl', 'Dhl'],
+        }[self._cnfg['heartlung']]
+
+        body = ['BAT', 'CO', 'Eb']
+        const = [
+            'dt', 'tmax', 'dose_tolerance', 'field_strength',
+            'agent', 'weight', 'dose', 'rate', 
+        ]
+        if select is None:
+            return heartlung + organs + body + const 
+        if select=='body':
+            return heartlung + organs + body 
+    
+    def __call__(self, **params) -> np.ndarray:
+        p = self._update_pars(**params)
+        t = np.arange(0, p['tmax'], p['dt'])
+
+        hl, orgs = self._cnfg['heartlung'], self._cnfg['organs']
+
+        if hl=='comp':
+            heartlung = ['comp', (p['Thl'],)]
+        elif hl=='pfcomp':
+            heartlung = ['pfcomp', (p['Thl'], p['Dhl'])]
+        elif hl=='chain':
+            heartlung = ['chain', (p['Thl'], p['Dhl'])]
+
+        if orgs=='comp':
+            organs = ['comp', (p['To'],)]
+        elif orgs=='2cxm':
+            organs = ['2cxm', ([p['To'], p['To_e']], p['Eo'])]
+
+        conc = lib.ca_conc(p['agent'])
+        Ji = lib.ca_injection(
+            t, p['weight'], conc, p['dose'], p['rate'], p['BAT']
+        )
+        Jb = pk_lib.aorta_flux(
+            Ji, E=p['Eb'], dt=p['dt'], tol=p['dose_tolerance'],
+            heartlung=heartlung, organs=organs,
+        )
+        return Jb / p['CO']
+
 
 class Aorta(ui.SuperModel):
     """Whole-body model for the aorta signal.
@@ -217,111 +357,76 @@ class Aorta(ui.SuperModel):
         >>> aorta.print_params(round_to=4)
     """
 
+    configs = {
+        'heartlung': ['comp', 'pfcomp', 'chain'],
+        'organs': ['comp','2cxm'],
+        'sequence': ['3D-SPGR-SS', '3D-SR-SPGR-SS', '3D-SPGR-SSI'],
+    }
+
     def __init__(
         self, 
-        organs='comp', 
         heartlung='pfcomp', 
-        sequence='SS', 
+        organs='comp', 
+        sequence='3D-SPGR-SS', 
         **params,
     ):
-        # Set Configuration
-        valid_organs = ['comp', '2cxm']
-        valid_hl = ['pfcomp', 'chain']
-        valid_seq = ['SR', 'SS', 'SSI', 'lin']
-
-        if organs not in valid_organs:
-            raise ValueError(f"Invalid organs model '{organs}'. Options: {valid_organs}")
-        if heartlung not in valid_hl:
-            raise ValueError(f"Invalid heart-lung model '{heartlung}'. Options: {valid_hl}")
-        if sequence not in valid_seq:
-            raise ValueError(f"Invalid sequence '{sequence}'. Options: {valid_seq}")
-
-        self._version = '1.0'
-        self._cnfg = {'organs': organs, 'heartlung': heartlung, 'sequence': sequence}
-        self._pars = {p: deepcopy(LEXICON[p]['init']) for p in self._pars_list()}
-
-        # Override defaults with user-provided parameters
-        for p, val in params.items():
-            if p in self._pars:
-                self._pars[p] = val
-            else:
-                raise ValueError(f"'{p}' is not a valid parameter for this configuration.")
-
-    def _pars_list(self, select=None):
-        pars_organs = {'comp': [], '2cxm': ['To_e', 'Eo']}
-        pars_sequence = {
-            'SR': ['B1corr', 'FA', 'TR', 'TC', 'TP', 'TS'],
-            'SS': ['B1corr', 'FA', 'TR', 'TS'], 
-            'lin': ['TS'],
-            'SSI': ['B1corr', 'FA', 'TR', 'TF', 'TS'],
+        cnfg = {
+            'heartlung': heartlung, 
+            'organs': organs, 
+            'sequence': sequence, 
         }
+        self._version = '1.0'
+        self._cnfg = self._set_config(**cnfg)
+        self._pars = self._set_pars(**params)
 
-        if select is None:
-            pars_list = [
-                'dt', 'tmax', 'dose_tolerance', 'field_strength',
-                'agent', 'weight', 'dose', 'rate', 'BAT',
-                'CO', 'Thl', 'Dhl', 'To', 'Eb', 'R10', 'S0',
-            ]
-            pars_list += pars_organs[self._cnfg['organs']]
-            pars_list += pars_sequence[self._cnfg['sequence']]
-        if select=='free':
-            # Determine defaults based on config
-            pars_list = ['BAT', 'CO', 'Thl', 'Dhl', 'To', 'Eb', 'S0']
-            pars_list += pars_organs[self._cnfg['organs']]
-            if self._cnfg['sequence']=='SSI': pars_list += ['TF']      
-        return pars_list
+    def _params(self, select=None):
+        # Sequence parameters
+        seq = self._cnfg['sequence']
+        sequence = SEQUENCES[seq]['parameters']['prep']
+        sequence += SEQUENCES[seq]['parameters']['read']
+        replace = {'S0': 'S0_a', 'B1corr': 'B1corr_a'}
+        sequence = [replace.get(x, x) for x in sequence]
+    
+        inflow = ['TF'] if seq == '3D-SPGR-SSI' else []
+        free_inflow = ['TF', 'S0_a'] if seq == '3D-SPGR-SSI' else []
+
+        conc = Conc(self._cnfg['heartlung'], self._cnfg['organs'])
+
+        if select in [None, 'all']:
+            return conc._params() + inflow + sequence + ['TS', 'R10_a']
+        if select in ['free', 'all free']:
+            return conc._params('body') + free_inflow     
 
     # ==========================================
     # Forward Model
     # ==========================================
 
-    def _set_time(self):
+    def _compute_time(self):
         p = self._pars
         self._t = np.arange(0, p['tmax'], p['dt'])
 
-    def _compute_concentration(self):
-        self._set_time()
-        p = self._pars
+    def _compute_conc(self) -> np.ndarray:
+        hl, orgs = self._cnfg['heartlung'], self._cnfg['organs']
+        self._C = Conc(hl, orgs)(**self._pars)
 
-        if self._cnfg['organs']=='comp':
-            organs_cfg = ['comp', (p['To'],)]
-        elif self._cnfg['organs']=='2cxm':
-            organs_cfg = ['2cxm', ([p['To'], p['To_e']], p['Eo'])]
-
-        if self._cnfg['heartlung']=='pfcomp':
-            hl_cfg = ['pfcomp', (p['Thl'], p['Dhl'])]
-        elif self._cnfg['heartlung']=='chain':
-            hl_cfg = ['chain', (p['Thl'], p['Dhl'])]
-
-        conc = lib.ca_conc(p['agent'])
-        Ji = lib.ca_injection(
-            self._t, p['weight'], conc, p['dose'], p['rate'], p['BAT']
-        )
-        Jb = pk_aorta.flux_aorta(
-            Ji, E=p['Eb'], heartlung=hl_cfg, organs=organs_cfg, 
-            dt=p['dt'], tol=p['dose_tolerance'],
-        )
-        self._c = Jb / p['CO']
-
-    def _compute_relaxation_rate(self):
-        self._compute_concentration()
+    def _compute_relax(self):
+        self._compute_conc()
         p = self._pars
         rb = lib.relaxivity(p['field_strength'], 'blood', p['agent'])
-        self._R1 = p['R10'] + rb * self._c
+        self._R1 = p['R10_a'] + rb * self._C
 
     def _compute_signal(self):
-        self._compute_relaxation_rate()
+        self._compute_relax()
         p = self._pars
-        if self._cnfg['sequence'] == 'SR':
-            self._S = sig.signal_spgr(p['S0'], self._R1, p['TC'], p['TR'], p['B1corr'] * p['FA'], p['TP'])
-        elif self._cnfg['sequence'] == 'SS':
-            self._S = sig.signal_ss(p['S0'], self._R1, p['TR'], p['B1corr'] * p['FA'])
-        elif self._cnfg['sequence'] == 'SSI':
-            self._S = sig.signal_spgr(p['S0'], self._R1, p['TF'], p['TR'], p['B1corr'] * p['FA'], n0=1)
-        elif self._cnfg['sequence'] == 'lin':
-            self._S = sig.signal_lin(p['S0'], self._R1)
+        self._S = sig.Signal(self._cnfg['sequence'], **p)(
+            R1=self._R1, 
+            S0=p['S0_a'], 
+            B1corr=p['B1corr_a'],
+            TE=0, PA=0,
+        )
 
     def _predict(self, time):
+        self._compute_time()
         self._compute_signal()
         return utils.sample(time, self._t, self._S, self._pars['TS'])
     
@@ -331,23 +436,19 @@ class Aorta(ui.SuperModel):
 
     def _estimate_parameters(self, time: tuple, signal: tuple, n0: int):
         p = self._pars
-        p['tmax'] = np.max(time) + p['dt'] + p['TS']
 
-        # Estimate BAT
-        BAT = time[np.argmax(signal)] - p['Thl'] * (1 - p['Dhl'])
-        p['BAT'] = max([BAT, 0])
+        # Estimate BAT based on peak signal
+        if self._cnfg['heartlung']=='comp':
+            offset = p['Thl']
+        else:
+            offset = (1 - p['Dhl']) * p['Thl']
+        bat = time[np.argmax(signal)] - offset
+        p['BAT'] = max(bat, 0)
 
-        # Calculate reference signal for S0 normalization
-        if self._cnfg['sequence'] == 'SR':
-            s_ref = sig.signal_spgr(1, p['R10'], p['TC'], p['TR'], p['B1corr'] * p['FA'], p['TP'])
-        elif self._cnfg['sequence'] == 'SS':
-            s_ref = sig.signal_ss(1, p['R10'], p['TR'], p['B1corr'] * p['FA'])
-        elif self._cnfg['sequence'] == 'SSI':
-            s_ref = sig.signal_spgr(1, p['R10'], p['TF'], p['TR'], p['B1corr'] * p['FA'], n0=1)
-        elif self._cnfg['sequence'] == 'lin':
-            s_ref = sig.signal_lin(1, p['R10'])
-
-        p['S0'] = np.mean(signal[:n0]) / s_ref if s_ref > 0 else 0
+        # Scaling Factor (S0) aorta
+        seq = self._cnfg['sequence']
+        s_ref = sig.Signal(seq, **p)(R1=p['R10_a'], S0=1, B1corr=p['B1corr_a'], TE=0, PA=0)
+        p['S0_a'] = np.mean(signal[:n0]) / s_ref if s_ref > 0 else 0
 
 
     def _train(
@@ -358,9 +459,9 @@ class Aorta(ui.SuperModel):
         free = self._set_free_pars(free, bounds) 
 
         # Extra conditions for SSI sequence
-        if self._cnfg['sequence'] == 'SSI' and 'S0' not in free:
-            raise ValueError("For SSI sequence, 'S0' must be a free parameter.")
-
+        if self._cnfg['sequence'] == '3D-SPGR-SSI' and 'S0_a' not in free:
+            raise ValueError("For SSI sequence, 'S0_a' must be a free parameter.")
+        
         # Optimization
         return utils.train(self._predict, time, signal, self._pars, free, **kwargs)
 
@@ -379,7 +480,7 @@ class Aorta(ui.SuperModel):
 
         # Concentration Plot
         ax1.set_title('Concentration Reconstruction')
-        ax1.plot(self._t/60, 1000*self._c, 'r-', label='Reconstruction')
+        ax1.plot(self._t/60, 1000*self._C, 'r-', label='Reconstruction')
         ax1.set_xlabel('Time (min)')
         ax1.set_ylabel('Concentration (mM)')
         ax1.legend()
@@ -393,17 +494,17 @@ class Aorta(ui.SuperModel):
 
     def time(self) -> np.ndarray:
         """Internal time array"""
-        self._set_time()
+        self._compute_time()
         return self._t
 
     def conc(self) -> np.ndarray:
         """Returns the predicted aorta blood concentration."""
-        self._compute_concentration()
-        return self._c
+        self._compute_conc()
+        return self._C
 
     def relax(self) -> np.ndarray:
         """Returns the predicted longitudinal relaxation rate."""
-        self._compute_relaxation_rate()
+        self._compute_relax()
         return self._R1
     
     def signal(self) -> np.ndarray:
@@ -440,6 +541,7 @@ class Aorta(ui.SuperModel):
         p['tmax'] = p['dt'] + p['TS'] + np.max(time)        
         return self._train(time, signal, free, bounds, n0, **kwargs)
     
+    
     def plot(self, time: np.ndarray, signal:np.ndarray, 
              fname:str=None, show=True):
         """Plot the model fit against data
@@ -450,4 +552,36 @@ class Aorta(ui.SuperModel):
             fname (path, optional): Filepath to save the image. If no value is provided, the image is not saved. Defaults to None.
             show (bool, optional): If True, the plot is shown. Defaults to True.
         """
+        p = self._pars
+        p['tmax'] = p['dt'] + p['TS'] + np.max(time)
         self._plot(time, signal, fname, show)
+
+
+    def cost(self, time: dict, signal: dict, metric: str = 'NRMS', nfree=None) -> float:
+        """Return the goodness-of-fit
+
+        Args:
+            time (np.ndarray): array with time points
+            signal (array-like): array with signal data for all pixels.
+            metric (str, optional): Which metric to use (see notes for 
+                possible values). Defaults to 'NRMS'.
+
+        Returns:
+            float: goodness of fit.
+
+        Notes:
+
+            Available options are: 
+            
+            - 'RMS': Root-mean-square.
+            - 'NRMS': Normalized root-mean-square. 
+            - 'AIC': Akaike information criterion. 
+            - 'cAIC': Corrected Akaike information criterion for small 
+                models.
+            - 'BIC': Baysian information criterion.
+        """
+        p = self._pars
+        p['tmax'] = p['dt'] + p['TS'] + np.max(time)
+        signal_pred = self._predict(time)
+        cost = utils.loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
+        return cost[0]

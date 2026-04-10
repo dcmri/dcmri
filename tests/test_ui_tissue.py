@@ -1,5 +1,7 @@
 import os
 from joblib import parallel_config
+import itertools
+from joblib import Parallel, delayed
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -8,7 +10,7 @@ import dcmri as dc
 from dcmri import Tissue
 
 
-DEBUG = True
+DEBUG = False
 
 if DEBUG:
     # Debugging mode
@@ -21,25 +23,50 @@ else:
 
 
 def test_coverage():
+    def run_single_test(kin, wex, seq, r2s):
+        print(kin, wex, seq, r2s)
+        model = Tissue(kin, wex, seq, r2s)
+        time = model.time()
+        signal = model.predict(time)
+        _, sdev, _ = model.train(time, signal, xtol=0.1)
+        model.plot(time, signal, sdev=sdev, round_to=3, show=DEBUG)
+        cost = model.cost(time, signal)
+        return cost
 
-    shape = None
-    for kin in Tissue.configs['kinetics']:
-        for wex in Tissue.configs['water_exchange']:
-            for seq in Tissue.configs['sequence']:
-                for r2s in Tissue.configs['transverse_relaxation']:
-                    print(kin, wex, seq, r2s)
-                    model = Tissue(shape, kin, wex, seq, r2s)
-                    time = model.time()
-                    signal = model.predict(time)
-                    _, sdev, _ = model.train(time, signal, xtol=0.1)
-                    # sdev = None
-                    model.plot(time, signal, sdev=sdev, round_to=3, show=DEBUG)
-                    cost = model.cost(time, signal)
-                    # print('Cost', cost)
-                    assert cost < 1e-9 
+    # 1. Create the Cartesian product of all configurations
+    configs = Tissue.configs
+    param_grid = itertools.product(
+        configs['kinetics'],
+        configs['water_exchange'],
+        configs['sequence'],
+        configs['transverse_relaxation']
+    )
+
+    # 2. Run in parallel
+    if DEBUG:
+        results = [
+            run_single_test(kin, wex, seq, r2s) 
+            for kin, wex, seq, r2s in param_grid
+        ]
+    else:
+        results = Parallel(n_jobs=-1)(
+            delayed(run_single_test)(kin, wex, seq, r2s) 
+            for kin, wex, seq, r2s in param_grid
+        )
+
+    # 3. Assertions (collectively)
+    for cost in results:
+        assert cost < 1e-9, f"Model cost {cost} exceeded threshold!"
+
 
 
 def test_api():
+
+    # Run some options
+    dc.Tissue(vb=np.zeros((5,5)))
+    dc.Tissue(vb=np.zeros((5,5)), shape=(6,6))
+    dc.Tissue(vb=np.zeros((5,5)), shape=(5,5))
+
     model = dc.Tissue()
     
     # Test Forward API outputs
@@ -85,6 +112,18 @@ def test_exceptions():
         assert False
     try:
         dc.Tissue(water_exchange='X')
+    except ValueError:
+        pass 
+    else:
+        assert False
+    try:
+        dc.Tissue(shape=(10,10,10,10))
+    except ValueError:
+        pass 
+    else:
+        assert False
+    try:
+        dc.Tissue(vb=np.zeros((5,5)), vi=np.zeros((6,5)),)
     except ValueError:
         pass 
     else:
@@ -161,28 +200,29 @@ def test_function():
     time = model.time()
     signal = model.predict(time)
 
-    # Use model selection to train a more complex model
+    # Use model selection on a more complex model to find the optimal configuration
+    configs = ['kinetics', 'water_exchange']
     model = dc.Tissue('2CX', 'RR', dt=dt, c_a=aif_conc)
-    vals, sdev, pcov, best_model = model.train(time, signal, n0=1, modsel='AIC', xtol=0.01) 
-    assert best_model == ('HF', 'FR')  
+    vals, sdev, pcov, best_config = model.train(time, signal, n0=1, configs=configs, xtol=0.01) 
+    assert best_config == ('HF', 'FR')  
 
     # Try BIC
     model = dc.Tissue('2CX', 'RR', dt=dt, c_a=aif_conc)
-    vals, sdev, pcov, best_model = model.train(time, signal, n0=1, modsel='BIC', xtol=0.01) 
-    assert best_model == ('HF', 'FR')     
+    vals, sdev, pcov, best_config = model.train(time, signal, n0=1, configs=configs, select='BIC', xtol=0.01) 
+    assert best_config == ('HF', 'FR')     
 
     # Run again with threading so all lines show up in the coverage
     with parallel_config(backend='threading'):
         model = dc.Tissue('2CX', 'RR', dt=dt, c_a=aif_conc)
-        model.train(time, signal, n0=1, modsel='AIC', xtol=0.1)
+        model.train(time, signal, n0=1, configs=configs, xtol=0.1)
 
 
 if __name__ == "__main__":
 
     # Coverage tests
-    # test_coverage()
-    # test_api()
-    # test_exceptions()
+    test_coverage()
+    test_api()
+    test_exceptions()
     
     # # Functional tests
     test_function()

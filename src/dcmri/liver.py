@@ -1,272 +1,25 @@
 import copy
-from typing import Optional, Tuple, Union, List, Dict, Any
+from typing import Optional
 
 import numpy as np
 
 import dcmri.pk as pk
 import dcmri.utils as utils
+from dcmri.lexicon import LEXICON
+from dcmri.ui import SuperFunc
 
 
 def _div(a, b):
     with np.errstate(divide='ignore', invalid='ignore'):
         return np.divide(a, b)
 
-PARAMS_LIVER = {
-    'Te': {'init': 30.0, 'bounds': [0.1, 60], 'name': 'Extracellular mean transit time', 'unit': 'sec'},
-    'De': {'init': 0.85, 'bounds': [0, 1], 'name': 'Extracellular dispersion', 'unit': ''},
-    've': {'init': 0.3, 'bounds': [0.01, 0.6], 'name': 'Liver extracellular volume fraction', 'unit': 'mL/cm3'},
-    'vh': {'init': 0.6, 'bounds': [0.1, 1.0], 'name': 'Hepatocellular volume fraction', 'unit': 'mL/cm3'},
-    've_app': {'init': 0.3, 'bounds': [0.01, 0.6], 'name': 'Apparent liver extracellular volume fraction', 'unit': 'mL/cm3'},
+# Liver-specific defaults
+LEXICON = LEXICON | {
     'T_a': {'init': 2, 'bounds': [0, 30], 'name': 'Arterial mean transit time', 'unit': 'sec'},
-    'Tg': {'init': 30, 'bounds': [0.1, 60], 'name': 'Gut mean transit time', 'unit': 'sec'},
-    'Dg': {'init': 0.85, 'bounds': [0, 1], 'name': 'Gut dispersion', 'unit': ''},
     'Fp': {'init': 0.008, 'bounds': [0, 1], 'name': 'Liver plasma flow', 'unit': 'mL/sec/cm3'},
-    'fa': {'init': 0.2, 'bounds': [0, 1], 'name': 'Arterial flow fraction', 'unit': ''},
-    'Ktrans': {'init': 0.015, 'bounds': [0.0, 0.1], 'name': 'Hepatic plasma clearance', 'unit': 'mL/sec/cm3'},
-    'Ktrans_i': {'init': 0.015, 'bounds': [0.0, 0.1], 'name': 'Initial hepatic plasma clearance', 'unit': 'mL/sec/cm3'},
-    'Ktrans_f': {'init': 0.015, 'bounds': [0.0, 0.1], 'name': 'Final hepatic plasma clearance', 'unit': 'mL/sec/cm3'},
-    'khe': {'init': 0.003, 'bounds': [0.0, 0.1], 'name': 'Hepatocellular uptake rate', 'unit': 'mL/sec/cm3'},
-    'Dkhe': {'init': 0.000, 'bounds': [-1.5e-7, +1.5e-7], 'name': 'Rate of change in hepatocellular uptake rate', 'unit': 'mL/sec/cm3/sec'},
-    'khe_i': {'init': 0.002, 'bounds': [0.0, 0.1], 'name': 'Initial hepatocellular uptake rate', 'unit': 'mL/sec/cm3'},
-    'khe_f': {'init': 0.002, 'bounds': [0.0, 0.1], 'name': 'Final hepatocellular uptake rate', 'unit': 'mL/sec/cm3'},
-    'kbh': {'init': 0.0004, 'bounds': [0.0, 0.001], 'name': 'Biliary excretion rate', 'unit': 'mL/sec/cm3'},
-    'kbh_i': {'init': 0.0004, 'bounds': [0.0, 0.001], 'name': 'Initial biliary excretion rate', 'unit': 'mL/sec/cm3'},
-    'kbh_f': {'init': 0.0004, 'bounds': [0.0, 0.001], 'name': 'Final biliary excretion rate', 'unit': 'mL/sec/cm3'},
-    'E': {'init': 0.1, 'bounds': [0.0, 1.0], 'name': 'Liver extraction fraction', 'unit': ''},
-    'E_i': {'init': 0.1, 'bounds': [0.0, 1.0], 'name': 'Initial liver extraction fraction', 'unit': ''},
-    'E_f': {'init': 0.1, 'bounds': [0.0, 1.0], 'name': 'Final liver extraction fraction', 'unit': ''},
-    'Th': {'init': 1800, 'bounds': [600, 36000], 'name': 'Hepatocellular mean transit time', 'unit': 'sec'},
-    'DTh': {'init': 0, 'bounds': [-0.25, 0.25], 'name': 'Rate of change in hepatocellular mean transit time', 'unit': ''},
-    'Th_i': {'init': 1800, 'bounds': [600, 36000], 'name': 'Initial hepatocellular mean transit time', 'unit': 'sec'},
-    'Th_f': {'init': 1800, 'bounds': [600, 36000], 'name': 'Final hepatocellular mean transit time', 'unit': 'sec'},
-    'vol': {'init': 1000, 'bounds': [0, 10000], 'name': 'Liver volume', 'unit': 'cm3'},
-    'Kbh': {'init': 0.0001, 'bounds': [0.0, 0.001], 'name': 'Biliary tissue excretion rate', 'unit': '/sec'},
-    'Kbh_i': {'init': 0.0001, 'bounds': [0.0, 0.001], 'name': 'Initial biliary tissue excretion rate', 'unit': '/sec'},
-    'Kbh_f': {'init': 0.0001, 'bounds': [0.0, 0.001], 'name': 'Final biliary tissue excretion rate', 'unit': '/sec'},
-    'Fa': {'name': 'Arterial plasma flow', 'unit': 'mL/sec/cm3'},
-    'Fv': {'name': 'Venous plasma flow', 'unit': 'mL/sec/cm3'},
-    'Khe': {'name': 'Hepatocellular tissue uptake rate', 'unit': '/sec'},
-    'CL': {'name': 'Liver plasma clearance', 'unit': 'mL/sec'},
 }
 
-
-
-def params_liver(kinetics='2I-EC', non_stationary=None) -> dict:
-    """Parameters characterizing a liver tissue. 
-
-    See section :ref:`liver-tissues` for background and 
-    :ref:`table-liver-models` for the full list of parameter options.
-
-    Args:
-        kinetics (str, optional): Tracer-kinetic regime. Defaults to '2C-EC'.
-        non_stationary (str, optional): For models with an intracellular agent, 
-           set to 'U' if uptake kinetics is non-stationary, 
-           'E' if excretion is non-stationary, and 'UE' for both. Default is None 
-           (all transport stationary).
-
-    Returns: 
-        list: parameters for the given model
-
-    Raises:
-        ValueError: if the configuration is not recognized.
-
-    Example:
-
-        Print the parameters of a liver tissue:
-
-        >>> import dcmri as dc
-        >>> dc.params_liver('2I-EC')
-        ['fa', 'T_a', 've', 'Fp']
-    """
-
-    pars = None
-
-    # --- Extracellular Models ---
-
-    if kinetics == '1I-EC-D':
-        if non_stationary is not None:
-            raise ValueError(f"There are no non-stationary EC models. Please set non_stationary=None")
-        pars = ['ve', 'Te', 'De']
-    
-    elif kinetics == '1I-EC':
-        if non_stationary is not None:
-            raise ValueError(f"There are no non-stationary EC models. Please set non_stationary=None")
-        pars = ['fa', 'T_a', 'Tg', 've', 'Fp']
-    
-    elif kinetics == '2I-EC-HF':
-        if non_stationary is not None:
-            raise ValueError(f"There are no non-stationary EC models. Please set non_stationary=None")
-        pars = ['fa', 'T_a', 've']
-    
-    elif kinetics == '2I-EC':
-        if non_stationary is not None:
-            raise ValueError(f"There are no non-stationary EC models. Please set non_stationary=None")
-        pars = ['fa', 'T_a', 've', 'Fp']
-    
-    # --- Intracellular Models ---
-
-    elif kinetics == '1I-IC':
-
-        if non_stationary is None:
-            pars = ['ve', 'Fp', 'E', 'Th']
-        elif non_stationary == 'U':
-            pars = ['ve', 'Fp', 'E_i', 'E_f', 'Th']
-        elif non_stationary == 'E':
-            pars = ['ve', 'Fp', 'E', 'Th_i', 'Th_f']
-        elif non_stationary == 'UE':
-            pars = ['ve', 'Fp', 'E_i', 'E_f', 'Th_i', 'Th_f']
-
-    elif kinetics == '1I-IC-HF': # Note E=0 at high Fp
-
-        if non_stationary is None:
-            pars = ['ve', 'khe', 'Th']
-        elif non_stationary == 'U':
-            pars = ['ve', 'khe_i', 'khe_f', 'Th']
-        elif non_stationary == 'E':
-            pars = ['ve', 'khe', 'Th_i', 'Th_f']
-        elif non_stationary == 'UE':
-            pars = ['ve', 'khe_i', 'khe_f', 'Th_i', 'Th_f']
-
-    elif kinetics == '1I-IC-HFD':
-
-        if non_stationary is None:
-            pars = ['Tg', 'Dg', 've', 'khe', 'Th']
-        elif non_stationary == 'U':
-            pars = ['Tg', 'Dg', 've', 'khe_i', 'khe_f', 'Th']
-        elif non_stationary == 'E':
-            pars = ['Tg', 'Dg', 've', 'khe', 'Th_i', 'Th_f']   
-        elif non_stationary == 'UE':
-            pars = ['Tg', 'Dg', 've', 'khe_i', 'khe_f', 'Th_i', 'Th_f']  
-            
-    elif kinetics == '1I-IC-HFDU':
-
-        if non_stationary is None:
-            pars = ['Tg', 'Dg', 've', 'khe']
-        elif non_stationary == 'U':
-            pars = ['Tg', 'Dg', 've', 'khe_i', 'khe_f']
-        
-    elif kinetics == '2I-IC-HF':
-
-        if non_stationary is None:
-            pars = ['fa', 'T_a', 've', 'khe', 'Th']
-        elif non_stationary == 'U':
-            pars = ['fa', 'T_a', 've', 'khe_i', 'khe_f', 'Th']
-        elif non_stationary == 'E':
-            pars = ['fa', 'T_a', 've', 'khe', 'Th_i', 'Th_f']
-        elif non_stationary == 'UE':
-            pars = ['fa', 'T_a', 've', 'khe_i', 'khe_f', 'Th_i', 'Th_f']
-        
-    elif kinetics == '2I-IC':
-
-        if non_stationary is None:
-            pars = ['fa', 'T_a', 've', 'Fp', 'E', 'Th']
-        elif non_stationary == 'U':
-            pars = ['fa', 'T_a', 've', 'Fp', 'E_i', 'E_f', 'Th']
-        elif non_stationary == 'E':
-            pars = ['fa', 'T_a', 've', 'Fp', 'E', 'Th_i', 'Th_f']
-        elif non_stationary == 'UE':
-            pars = ['fa', 'T_a', 've', 'Fp', 'E_i', 'E_f', 'Th_i', 'Th_f']
-        
-    elif kinetics == '2I-IC-U':
-
-        if non_stationary is None:
-            pars = ['fa', 'T_a', 've', 'Fp', 'E']
-        elif non_stationary == 'U':
-            pars = ['fa', 'T_a', 've', 'Fp', 'E_i', 'E_f']
-        
-    if pars is not None:
-        return {p:PARAMS_LIVER[p] for p in pars}   
-
-    raise ValueError(
-        f"The model kinetics={kinetics}, non-stationary={non_stationary} "
-        f"is not a recognised liver model."
-    )
-
-
-def derived_params_liver(p, kinetics, H=0.45) -> dict:
-
-    p = copy.deepcopy(p)
-        
-    # Non-stationary options
-
-    if {'E_i', 'E_f'} <= p.keys():
-        p['E'] = np.mean([p['E_i'], p['E_f']])
-
-    if {'khe_i', 'khe_f'} <= p.keys():
-        p['khe'] = np.mean([p['khe_i'], p['khe_f']])
-
-    if {'Th_i', 'Th_f'} <= p.keys():
-        p['Th'] = np.mean([p['Th_i'], p['Th_f']])
-    
-    if {'Th_i', 'Th_f', 've'} <= p.keys():
-        vh = 1 - p['ve'] / (1 - H)
-        p['kbh_i'] = _div(vh, p['Th_i'])
-        p['kbh_f'] = _div(vh, p['Th_f'])
-
-    # Dual-inlet models
-
-    if {'Fp', 'fa'} <= p.keys():
-        p['Fa'] = p['Fp'] * p['fa']
-        p['Fv'] = p['Fp'] * (1 - p['fa'])
-
-    # Kinetic models
-    
-    if kinetics == '1I-EC':
-        p['Te'] = _div(p['ve'], p['Fp'])
-    
-    if kinetics == '2I-EC':
-        p['Te'] = _div(p['ve'], p['Fp'])
-
-    if kinetics in ['1I-IC', '2I-IC']:
-        p['Ktrans'] = p['E'] * p['Fp']
-        p['khe'] = _div(p['Fp'] * p['E'], 1 - p['E'])
-        p['Te'] = _div(p['ve'], p['Fp'] + p['khe'])
-        p['Khe'] = _div(p['khe'], p['ve'])
-        p['vh'] = 1 - p['ve'] / (1 - H)
-        p['kbh'] = _div(p['vh'], p['Th']) 
-        p['Kbh'] = _div(1, p['Th'])
-        
-    if kinetics in ['1I-IC-HF', '1I-IC-D', '2I-IC-HF']:
-        p['vh'] = 1 - p['ve'] / (1 - H)
-        p['kbh'] = _div(p['vh'], p['Th']) 
-        p['Kbh'] = _div(1, p['Th'])
-
-    if kinetics in ['1I-IC-HF', '2I-IC-HF', '1I-IC-HFD']:
-        p['Khe'] = _div(p['khe'], p['ve'])
-        p['vh'] = 1 - p['ve'] / (1 - H)
-        p['kbh'] = _div(p['vh'], p['Th'])
-        p['Kbh'] = _div(1, p['Th'])
-
-    if kinetics in ['1I-IC-HFDU']:
-        p['Khe'] = _div(p['khe'], p['ve'])
-        p['vh'] = 1 - p['ve'] / (1 - H)
-        
-    if kinetics == '2I-IC-U':
-        p['vh'] = 1 - p['ve'] / (1 - H)
-        p['Ktrans'] = p['E'] * p['Fp']
-        p['khe'] = _div(p['Fp'] * p['E'], 1 - p['E'])
-        p['Khe'] = _div(p['khe'], p['ve'])
-        p['Te'] = _div(p['ve'], p['Fp'] + p['khe'])
-
-    if kinetics in ['2I-EC', '2I-IC', '2I-IC-U']:
-        p['Fa'] = p['fa'] * p['Fp']
-        p['Fv'] = (1 - p['fa']) * p['Fp']
-
-    if {'khe', 'vol'} <= p.keys():
-        p['CL'] = p['khe'] * p['vol']
-
-    return p
-    
-
-def conc_liver(
-    ci: np.ndarray,
-    t: Optional[np.ndarray] = None,
-    dt: float = 1.0,
-    kinetics = '2I-EC',
-    non_stationary = None,
-    sum: bool = True,
-    **params: Dict[str, Any]
-) -> np.ndarray:
+class Conc(SuperFunc):
     """
     Compute concentration in liver tissue for a variety of liver models.
 
@@ -351,27 +104,147 @@ def conc_liver(
         >>> ax.legend()
         >>> plt.show()
     """
-    
-    # Check the model exists and all parameters are provided
-    required_pars = params_liver(kinetics, non_stationary)
-    if not (set(required_pars) <= set(params.keys())):
-        raise ValueError(
-            f"Not all required parameters ({required_pars}) are "
-            f"provided in the call to conc_liver()."
-        )
-    
-    # Define model function
-    conc = '_conc_' + kinetics.lower().replace('-', '_')
-    if non_stationary is not None:
-        conc += '__' + non_stationary.lower()      
 
-    # Apply model function
-    if '-IC' in kinetics:
-        return globals()[conc](ci, t=t, dt=dt, sum=sum, **params)
-    else:
-        if non_stationary is not None:
-            raise ValueError("For extracellular models non_stationary must be None")
-        return globals()[conc](ci, t=t, dt=dt, **params)
+    _params_dict = {
+        ('1I-EC-D', None): ['ve', 'Te', 'De'],
+        ('1I-EC', None): ['fa', 'T_a', 'Tg', 've', 'Fp'],
+        ('2I-EC-HF', None): ['fa', 'T_a', 've'],
+        ('2I-EC', None): ['fa', 'T_a', 've', 'Fp'],
+        ('1I-IC', None): ['ve', 'Fp', 'E', 'Th'],
+        ('1I-IC', 'U'): ['ve', 'Fp', 'E_i', 'E_f', 'Th'],
+        ('1I-IC', 'E'): ['ve', 'Fp', 'E', 'Th_i', 'Th_f'],
+        ('1I-IC', 'UE'): ['ve', 'Fp', 'E_i', 'E_f', 'Th_i', 'Th_f'],
+        ('1I-IC-HF', None): ['ve', 'khe', 'Th'],
+        ('1I-IC-HF', 'U'): ['ve', 'khe_i', 'khe_f', 'Th'],
+        ('1I-IC-HF', 'E'): ['ve', 'khe', 'Th_i', 'Th_f'],
+        ('1I-IC-HF', 'UE'): ['ve', 'khe_i', 'khe_f', 'Th_i', 'Th_f'],
+        ('1I-IC-HFD', None): ['Tg', 'Dg', 've', 'khe', 'Th'],
+        ('1I-IC-HFD', 'U'): ['Tg', 'Dg', 've', 'khe_i', 'khe_f', 'Th'],
+        ('1I-IC-HFD', 'E'): ['Tg', 'Dg', 've', 'khe', 'Th_i', 'Th_f'],
+        ('1I-IC-HFD', 'UE'): ['Tg', 'Dg', 've', 'khe_i', 'khe_f', 'Th_i', 'Th_f'],
+        ('1I-IC-HFDU', None): ['Tg', 'Dg', 've', 'khe'],
+        ('1I-IC-HFDU', 'U'): ['Tg', 'Dg', 've', 'khe_i', 'khe_f'],
+        ('2I-IC-HF', None): ['fa', 'T_a', 've', 'khe', 'Th'],
+        ('2I-IC-HF', 'U'): ['fa', 'T_a', 've', 'khe_i', 'khe_f', 'Th'],
+        ('2I-IC-HF', 'E'): ['fa', 'T_a', 've', 'khe', 'Th_i', 'Th_f'],
+        ('2I-IC-HF', 'UE'): ['fa', 'T_a', 've', 'khe_i', 'khe_f', 'Th_i', 'Th_f'],
+        ('2I-IC', None): ['fa', 'T_a', 've', 'Fp', 'E', 'Th'],
+        ('2I-IC', 'U'): ['fa', 'T_a', 've', 'Fp', 'E_i', 'E_f', 'Th'],
+        ('2I-IC', 'E'): ['fa', 'T_a', 've', 'Fp', 'E', 'Th_i', 'Th_f'],
+        ('2I-IC', 'UE'): ['fa', 'T_a', 've', 'Fp', 'E_i', 'E_f', 'Th_i', 'Th_f'],
+        ('2I-IC-U', None): ['fa', 'T_a', 've', 'Fp', 'E'],
+        ('2I-IC-U', 'U'): ['fa', 'T_a', 've', 'Fp', 'E_i', 'E_f'],
+    }
+
+    configs = {
+        'kinetics': ['1I-EC-D', '1I-EC', '2I-EC-HF', '2I-EC', '1I-IC', '1I-IC-HF', '1I-IC-HFD', '1I-IC-HFDU', '2I-IC-HF', '2I-IC', '2I-IC-U'],
+        'non_stationary': [None, 'U', 'E', 'UE'],
+    }
+
+    def __init__(self, kinetics='2I-EC', non_stationary=None, **params):
+        cnfg = {'kinetics': kinetics, 'non_stationary': non_stationary}
+        self._cnfg = self._set_config(**cnfg)
+        self._pars = self._set_pars(**params)
+
+    def _params(self):
+        model = (self._cnfg['kinetics'], self._cnfg['non_stationary'])
+        return copy.deepcopy(self._params_dict[model])
+    
+    def __call__(self, ca: np.ndarray, t=None, dt=1.0, **params) -> np.ndarray:
+        p = self._update_pars(**params)
+        kin, ns = self._cnfg['kinetics'], self._cnfg['non_stationary']
+        
+        # Define model function
+        conc = '_conc_' + kin.lower().replace('-', '_')
+        if ns != None:
+            conc += '__' + ns.lower()      
+
+        # Apply model function
+        if '-IC' in kin:
+            return globals()[conc](ca, t=t, dt=dt, **p)
+        else:
+            if ns != None:
+                raise ValueError("For extracellular models non_stationary must be None")
+            return globals()[conc](ca, t=t, dt=dt, **p)
+
+
+
+def derived_params_liver(p, kinetics, H=0.45) -> dict:
+
+    p = copy.deepcopy(p)
+        
+    # Non-stationary options
+
+    if {'E_i', 'E_f'} <= p.keys():
+        p['E'] = np.mean([p['E_i'], p['E_f']])
+
+    if {'khe_i', 'khe_f'} <= p.keys():
+        p['khe'] = np.mean([p['khe_i'], p['khe_f']])
+
+    if {'Th_i', 'Th_f'} <= p.keys():
+        p['Th'] = np.mean([p['Th_i'], p['Th_f']])
+    
+    if {'Th_i', 'Th_f', 've'} <= p.keys():
+        vh = 1 - p['ve'] / (1 - H)
+        p['kbh_i'] = _div(vh, p['Th_i'])
+        p['kbh_f'] = _div(vh, p['Th_f'])
+
+    # Dual-inlet models
+
+    if {'Fp', 'fa'} <= p.keys():
+        p['Fa'] = p['Fp'] * p['fa']
+        p['Fv'] = p['Fp'] * (1 - p['fa'])
+
+    # Kinetic models
+    
+    if kinetics == '1I-EC':
+        p['Te'] = _div(p['ve'], p['Fp'])
+    
+    if kinetics == '2I-EC':
+        p['Te'] = _div(p['ve'], p['Fp'])
+
+    if kinetics in ['1I-IC', '2I-IC']:
+        p['Ktrans'] = p['E'] * p['Fp']
+        p['khe'] = _div(p['Fp'] * p['E'], 1 - p['E'])
+        p['Te'] = _div(p['ve'], p['Fp'] + p['khe'])
+        p['Khe'] = _div(p['khe'], p['ve'])
+        p['vh'] = 1 - p['ve'] / (1 - H)
+        p['kbh'] = _div(p['vh'], p['Th']) 
+        p['Kbh'] = _div(1, p['Th'])
+        
+    if kinetics in ['1I-IC-HF', '1I-IC-D', '2I-IC-HF']:
+        p['vh'] = 1 - p['ve'] / (1 - H)
+        p['kbh'] = _div(p['vh'], p['Th']) 
+        p['Kbh'] = _div(1, p['Th'])
+
+    if kinetics in ['1I-IC-HF', '2I-IC-HF', '1I-IC-HFD']:
+        p['Khe'] = _div(p['khe'], p['ve'])
+        p['vh'] = 1 - p['ve'] / (1 - H)
+        p['kbh'] = _div(p['vh'], p['Th'])
+        p['Kbh'] = _div(1, p['Th'])
+
+    if kinetics in ['1I-IC-HFDU']:
+        p['Khe'] = _div(p['khe'], p['ve'])
+        p['vh'] = 1 - p['ve'] / (1 - H)
+        
+    if kinetics == '2I-IC-U':
+        p['vh'] = 1 - p['ve'] / (1 - H)
+        p['Ktrans'] = p['E'] * p['Fp']
+        p['khe'] = _div(p['Fp'] * p['E'], 1 - p['E'])
+        p['Khe'] = _div(p['khe'], p['ve'])
+        p['Te'] = _div(p['ve'], p['Fp'] + p['khe'])
+
+    if kinetics in ['2I-EC', '2I-IC', '2I-IC-U']:
+        p['Fa'] = p['fa'] * p['Fp']
+        p['Fv'] = (1 - p['fa']) * p['Fp']
+
+    if {'khe', 'vol'} <= p.keys():
+        p['CL'] = p['khe'] * p['vol']
+
+    return p
+    
+
+
 
 
 
@@ -379,21 +252,21 @@ def conc_liver(
 
 def _conc_1i_ec_d(ca, t=None, dt=1.0, **p):
     return _conc_liver(
-        ca, p['ve'], Te=p['Te'], De=p['De'], t=t, dt=dt, sum=True,
+        ca, p['ve'], Te=p['Te'], De=p['De'], t=t, dt=dt, 
     )
 
 def _conc_1i_ec(ca, t=None, dt=1.0, **p):
     Te = p['ve'] / p['Fp']
     return _conc_liver(
         ca, p['ve'], Ta=p['T_a'], Tg=p['Tg'],
-        fa=p['fa'], Te=Te, t=t, dt=dt, sum=True,
+        fa=p['fa'], Te=Te, t=t, dt=dt, 
     )
 
 def _conc_2i_ec_hf(ci, t=None, dt=1.0, **p):
     ca, cv = ci
     return _conc_liver(
         ca, p['ve'], Ta=p['T_a'], cv=cv,
-        fa=p['fa'], t=t, dt=dt, sum=True,
+        fa=p['fa'], t=t, dt=dt, 
     )
 
 def _conc_2i_ec(ci, t=None, dt=1.0, **p):
@@ -401,109 +274,109 @@ def _conc_2i_ec(ci, t=None, dt=1.0, **p):
     Te = p['ve'] / p['Fp']
     return _conc_liver(
         ca, p['ve'], cv=cv, Ta=p['T_a'], 
-        fa=p['fa'], Te=Te, t=t, dt=dt, sum=True,
+        fa=p['fa'], Te=Te, t=t, dt=dt, 
     )
 
 
-def _conc_1i_ic(ca, t=None, dt=1.0, sum=True, **p):
+def _conc_1i_ic(ca, t=None, dt=1.0,  **p):
     ve_app = p['ve'] * (1 - p['E'])
     Ktrans = p['Fp'] * p['E']
     Te = ve_app / p['Fp']
     return _conc_liver(
         ca, ve_app, Ktrans=Ktrans, Th=p['Th'], Te=Te, 
-        t=t, dt=dt, sum=sum, 
+        t=t, dt=dt,  
     )
 
-def _conc_1i_ic__u(ca, t=None, dt=1.0, sum=True, **p):
+def _conc_1i_ic__u(ca, t=None, dt=1.0,  **p):
     p['E'] = _interp_params(ca, t, dt, [p['E_i'], p['E_f']])
-    return _conc_1i_ic(ca, t=t, dt=dt, sum=sum, **p)
+    return _conc_1i_ic(ca, t=t, dt=dt,  **p)
 
-def _conc_1i_ic__e(ca, t=None, dt=1.0, sum=True, **p):
+def _conc_1i_ic__e(ca, t=None, dt=1.0,  **p):
     p['Th'] = _interp_params(ca, t, dt, [p['Th_i'], p['Th_f']])
-    return _conc_1i_ic(ca, t=t, dt=dt, sum=sum, **p)
+    return _conc_1i_ic(ca, t=t, dt=dt,  **p)
 
-def _conc_1i_ic__ue(ca, t=None, dt=1.0, sum=True, **p):
+def _conc_1i_ic__ue(ca, t=None, dt=1.0,  **p):
     p['Th'] = _interp_params(ca, t, dt, [p['Th_i'], p['Th_f']])
     p['E'] = _interp_params(ca, t, dt, [p['E_i'], p['E_f']])
-    return _conc_1i_ic(ca, t=t, dt=dt, sum=sum, **p)
+    return _conc_1i_ic(ca, t=t, dt=dt,  **p)
 
 
-def _conc_1i_ic_hf(ca, t=None, dt=1.0, sum=True, **p):
+def _conc_1i_ic_hf(ca, t=None, dt=1.0,  **p):
     return _conc_liver( # approx 1 - E = 1
         ca, p['ve'], Ktrans=p['khe'], Th=p['Th'], 
-        t=t, dt=dt, sum=sum, 
+        t=t, dt=dt,  
     )
 
-def _conc_1i_ic_hf__u(ca, t=None, dt=1.0, sum=True, **p):
+def _conc_1i_ic_hf__u(ca, t=None, dt=1.0,  **p):
     p['khe'] = _interp_params(ca, t, dt, [p['khe_i'], p['khe_f']])
-    return _conc_1i_ic_hf(ca, t=t, dt=dt, sum=sum, **p)
+    return _conc_1i_ic_hf(ca, t=t, dt=dt,  **p)
 
-def _conc_1i_ic_hf__e(ca, t=None, dt=1.0, sum=True, **p):
+def _conc_1i_ic_hf__e(ca, t=None, dt=1.0,  **p):
     p['Th'] = _interp_params(ca, t, dt, [p['Th_i'], p['Th_f']])
-    return _conc_1i_ic_hf(ca, t=t, dt=dt, sum=sum, **p)
+    return _conc_1i_ic_hf(ca, t=t, dt=dt,  **p)
 
-def _conc_1i_ic_hf__ue(ca, t=None, dt=1.0, sum=True, **p):
+def _conc_1i_ic_hf__ue(ca, t=None, dt=1.0,  **p):
     p['khe'] = _interp_params(ca, t, dt, [p['khe_i'], p['khe_f']])
     p['Th'] = _interp_params(ca, t, dt, [p['Th_i'], p['Th_f']])
-    return _conc_1i_ic_hf(ca, t=t, dt=dt, sum=sum, **p)
+    return _conc_1i_ic_hf(ca, t=t, dt=dt,  **p)
 
 
-def _conc_1i_ic_hfd(ca, t=None, dt=1.0, sum=True, **p):
+def _conc_1i_ic_hfd(ca, t=None, dt=1.0,  **p):
     return _conc_liver( # approx 1 - E = 1
         ca, p['ve'], Ktrans=p['khe'], Th=p['Th'],
-        Tg=p['Tg'], Dg=p['Dg'], t=t, dt=dt, sum=sum,
+        Tg=p['Tg'], Dg=p['Dg'], t=t, dt=dt, 
     )
 
-def _conc_1i_ic_hfd__u(ca, t=None, dt=1.0, sum=True, **p):
+def _conc_1i_ic_hfd__u(ca, t=None, dt=1.0,  **p):
     p['khe'] = _interp_params(ca, t, dt, [p['khe_i'], p['khe_f']])
-    return _conc_1i_ic_hfd(ca, t=t, dt=dt, sum=sum, **p)
+    return _conc_1i_ic_hfd(ca, t=t, dt=dt,  **p)
 
-def _conc_1i_ic_hfd__e(ca, t=None, dt=1.0, sum=True, **p):
+def _conc_1i_ic_hfd__e(ca, t=None, dt=1.0,  **p):
     p['Th'] = _interp_params(ca, t, dt, [p['Th_i'], p['Th_f']])
-    return _conc_1i_ic_hfd(ca, t=t, dt=dt, sum=sum, **p)
+    return _conc_1i_ic_hfd(ca, t=t, dt=dt,  **p)
 
-def _conc_1i_ic_hfd__ue(ca, t=None, dt=1.0, sum=True, **p):
+def _conc_1i_ic_hfd__ue(ca, t=None, dt=1.0,  **p):
     p['khe'] = _interp_params(ca, t, dt, [p['khe_i'], p['khe_f']])
     p['Th'] = _interp_params(ca, t, dt, [p['Th_i'], p['Th_f']])
-    return _conc_1i_ic_hfd(ca, t=t, dt=dt, sum=sum, **p)
+    return _conc_1i_ic_hfd(ca, t=t, dt=dt,  **p)
 
 
-def _conc_1i_ic_hfdu(ca, t=None, dt=1.0, sum=True, **p):
+def _conc_1i_ic_hfdu(ca, t=None, dt=1.0,  **p):
     return _conc_liver(
         ca, p['ve'], Ktrans=p['khe'], Tg=p['Tg'], Dg=p['Dg'], 
-        t=t, dt=dt, sum=sum,
+        t=t, dt=dt, 
     )
 
-def _conc_1i_ic_hfdu__u(ca, t=None, dt=1.0, sum=True, **p):
+def _conc_1i_ic_hfdu__u(ca, t=None, dt=1.0,  **p):
     p['khe'] = _interp_params(ca, t, dt, [p['khe_i'], p['khe_f']])
-    return _conc_1i_ic_hfdu(ca, t=t, dt=dt, sum=sum, **p)
+    return _conc_1i_ic_hfdu(ca, t=t, dt=dt,  **p)
 
 
-def _conc_2i_ic_hf(ci, t=None, dt=1.0, sum=True, **p):
+def _conc_2i_ic_hf(ci, t=None, dt=1.0,  **p):
     ca, cv = ci
     return _conc_liver(
         ca, p['ve'], cv=cv, Ta=p['T_a'], fa=p['fa'], 
-        Ktrans=p['khe'], Th=p['Th'], t=t, dt=dt, sum=sum,
+        Ktrans=p['khe'], Th=p['Th'], t=t, dt=dt, 
     )
 
-def _conc_2i_ic_hf__e(ci, t=None, dt=1.0, sum=True, **p):
+def _conc_2i_ic_hf__e(ci, t=None, dt=1.0,  **p):
     ca, _ = ci
     p['Th'] = _interp_params(ca, t, dt, [p['Th_i'], p['Th_f']])
-    return _conc_2i_ic_hf(ci, t=t, dt=dt, sum=sum, **p)
+    return _conc_2i_ic_hf(ci, t=t, dt=dt,  **p)
 
-def _conc_2i_ic_hf__u(ci, t=None, dt=1.0, sum=True, **p):
+def _conc_2i_ic_hf__u(ci, t=None, dt=1.0,  **p):
     ca, _ = ci
     p['khe'] = _interp_params(ca, t, dt, [p['khe_i'], p['khe_f']])
-    return _conc_2i_ic_hf(ci, t=t, dt=dt, sum=sum, **p)
+    return _conc_2i_ic_hf(ci, t=t, dt=dt,  **p)
 
-def _conc_2i_ic_hf__ue(ci, t=None, dt=1.0, sum=True, **p):
+def _conc_2i_ic_hf__ue(ci, t=None, dt=1.0,  **p):
     ca, cv = ci
     p['khe'] = _interp_params(ca, t, dt, [p['khe_i'], p['khe_f']])
     p['Th'] = _interp_params(ca, t, dt, [p['Th_i'], p['Th_f']])
-    return _conc_2i_ic_hf(ci, t=t, dt=dt, sum=sum, **p)
+    return _conc_2i_ic_hf(ci, t=t, dt=dt,  **p)
 
 
-def _conc_2i_ic(ci, t=None, dt=1.0, sum=True, **p):
+def _conc_2i_ic(ci, t=None, dt=1.0,  **p):
     ca, cv = ci
     khe = p['Fp'] * p['E'] / (1 - p['E'])
     Te = p['ve'] / (p['Fp'] + khe)
@@ -511,27 +384,27 @@ def _conc_2i_ic(ci, t=None, dt=1.0, sum=True, **p):
     Ktrans = p['Fp'] * p['E']
     return _conc_liver(
         ca, ve_app, cv=cv, Ta=p['T_a'], fa=p['fa'], Ktrans=Ktrans, 
-        Th=p['Th'], Te=Te, t=t, dt=dt, sum=sum,
+        Th=p['Th'], Te=Te, t=t, dt=dt, 
     )
 
-def _conc_2i_ic__e(ci, t=None, dt=1.0, sum=True, **p):
+def _conc_2i_ic__e(ci, t=None, dt=1.0,  **p):
     ca, cv = ci
     p['Th'] = _interp_params(ca, t, dt, [p['Th_i'], p['Th_f']])
-    return _conc_2i_ic(ci, t=t, dt=dt, sum=sum, **p)
+    return _conc_2i_ic(ci, t=t, dt=dt,  **p)
 
-def _conc_2i_ic__u(ci, t=None, dt=1.0, sum=True, **p):
+def _conc_2i_ic__u(ci, t=None, dt=1.0,  **p):
     ca, cv = ci
     p['E'] = _interp_params(ca, t, dt, [p['E_i'], p['E_f']])
-    return _conc_2i_ic(ci, t=t, dt=dt, sum=sum, **p)
+    return _conc_2i_ic(ci, t=t, dt=dt,  **p)
 
-def _conc_2i_ic__ue(ci, t=None, dt=1.0, sum=True, **p):
+def _conc_2i_ic__ue(ci, t=None, dt=1.0,  **p):
     ca, cv = ci
     p['E'] = _interp_params(ca, t, dt, [p['E_i'], p['E_f']])
     p['Th'] = _interp_params(ca, t, dt, [p['Th_i'], p['Th_f']])
-    return _conc_2i_ic(ci, t=t, dt=dt, sum=sum, **p)
+    return _conc_2i_ic(ci, t=t, dt=dt,  **p)
 
 
-def _conc_2i_ic_u(ci, t=None, dt=1.0, sum=True, **p):
+def _conc_2i_ic_u(ci, t=None, dt=1.0,  **p):
     ca, cv = ci
     khe = p['Fp'] * p['E'] / (1 - p['E'])
     Te = p['ve'] / (p['Fp'] + khe)
@@ -539,13 +412,13 @@ def _conc_2i_ic_u(ci, t=None, dt=1.0, sum=True, **p):
     Ktrans = p['Fp'] * p['E']
     return _conc_liver(
         ca, ve_app, cv=cv, Ta=p['T_a'], fa=p['fa'], Ktrans=Ktrans, Te=Te,
-        t=t, dt=dt, sum=sum,
+        t=t, dt=dt, 
     )
 
-def _conc_2i_ic_u__u(ci, t=None, dt=1.0, sum=True, **p):
+def _conc_2i_ic_u__u(ci, t=None, dt=1.0,  **p):
     ca, cv = ci
     p['E'] = _interp_params(ca, t, dt, [p['E_i'], p['E_f']])
-    return _conc_2i_ic_u(ci, t=t, dt=dt, sum=sum, **p)
+    return _conc_2i_ic_u(ci, t=t, dt=dt,  **p)
 
 
 def _interp_params(ca: np.ndarray, t: Optional[np.ndarray], dt: float, p, lower_t=False):
@@ -572,7 +445,6 @@ def _conc_liver(
     Dg: float = None,
     t: Optional[np.ndarray] = None,
     dt: float = 1.0,
-    sum: bool = True,
 ) -> np.ndarray:
     
     # Extracellular space
@@ -623,8 +495,5 @@ def _conc_liver(
     else:
         Ch = pk.conc(Ktrans * ca, *hep_pars, t=t, dt=dt, model=hep_model)
 
-    if sum:
-        return Ce + Ch
-    else:
-        return np.stack((Ce, Ch))
+    return np.stack((Ce, Ch))
     

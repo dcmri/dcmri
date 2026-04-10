@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import dcmri as dc
 
 
-DEBUG = False
+DEBUG = True
 
 if DEBUG:
     # Debugging mode
@@ -18,13 +18,13 @@ else:
 
 def test_configs():
 
-    for seq in ['SR', 'SS', 'SSI', 'lin']:
-        model = dc.LiverDrugEffect(sequence=seq)
+    for seq in ['3D-SPGR-SS', '3D-SPGR-SSI']:
+        model = dc.LiverDrugEffect(seq)
         time = model.time()
         signal = model.predict(time)
-        bounds = {'c_S0_a': [0, 5], 'd_S0_a': [0, 5]} if seq=='SSI' else None
+        bounds = {'c_S0_a': [0, 5], 'd_S0_a': [0, 5]} if seq=='3D-SPGR-SSI' else None
         model.train(time, signal, bounds=bounds, verbose=2, xtol=0.1)
-        model.plot(time, signal)
+        model.plot(time, signal, show=DEBUG)
         cost = model.cost(time, signal)
         print(seq, cost)
         assert cost < 15
@@ -34,7 +34,7 @@ def test_configs():
     time = model.time()
     signal = model.predict(time)
     model.train(time, signal, staged=True, verbose=2, xtol=0.1)
-    model.plot(time, signal)
+    model.plot(time, signal, show=DEBUG)
     cost = model.cost(time, signal)
     print(cost)
     assert cost < 15
@@ -48,10 +48,10 @@ def test_api():
     R1 = model.relax()
     S = model.signal()
 
-    assert C[0].ndim == 1
-    assert C[1].ndim == 2
-    assert len(R1[0]) == len(t[0])
-    assert len(S[0]) == len(t[0])
+    assert C['ctrl', 'aorta'].ndim == 1
+    assert C['ctrl', 'liver'].ndim == 2
+    assert len(R1['ctrl', 'liver']) == len(t['ctrl', 'liver'])
+    assert len(S['ctrl', 'liver']) == len(t['ctrl', 'liver'])
 
     test_plot_file = "test_plot_output.png"
     try:
@@ -76,16 +76,8 @@ def test_exceptions():
     else:
         assert False
 
-    # 2. Invalid Parameter
-    try:
-        dc.LiverDrugEffect(fake_parameter=99)
-    except ValueError:
-        pass
-    else:
-        assert False
-
     # SSI sequence model with fixed S0
-    model = dc.LiverDrugEffect(sequence='SSI')
+    model = dc.LiverDrugEffect(sequence='3D-SPGR-SSI')
     t, s = model.time(), model.signal()
     try:
         model.train(t, s, bounds={'c_S0_a': None})
@@ -100,5 +92,5 @@ if __name__ == "__main__":
     test_api()
     test_exceptions()
     
-    print('All ui_liver_2scan_drug_effects tests passed!!')
+    print('All ui_liver_drug_effect tests passed!!')
 

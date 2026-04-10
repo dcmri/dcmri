@@ -4,9 +4,10 @@ from typing import Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 
+from dcmri.signal_to_conc import SignalToConc
 from dcmri import lib, liver, sig, utils
-from dcmri.ui import SuperModel
-from dcmri.lexicon import LEXICON
+from dcmri.ui import SuperModel, Input
+from dcmri.lexicon import SEQUENCES
 
 
 class Liver(SuperModel):
@@ -270,43 +271,35 @@ class Liver(SuperModel):
 
     """
 
+    configs = {
+        'kinetics': ['1I-EC-D', '1I-EC', '2I-EC-HF', '2I-EC', '1I-IC', '1I-IC-HF', '1I-IC-HFD', '1I-IC-HFDU', '2I-IC-HF', '2I-IC', '2I-IC-U'],
+        'non_stationary': [None, 'U', 'E', 'UE'],
+        'sequence': ['3D-SPGR-SS', '2D-SR-SPGR-SS'],
+    }
+    
     def __init__(
         self, kinetics='2I-EC', non_stationary=None,
-        sequence='SS', **params,
+        sequence='3D-SPGR-SS', **params,
     ):
-        # Validate configuration
-        if sequence not in ['SS', 'SR', 'lin']:
-            raise ValueError(f'Sequence {sequence} is not available in Liver().')
-        try:
-            liver.params_liver(kinetics, non_stationary)
-        except Exception as e:
-            raise ValueError(f"Invalid kinetics/stationarity: {e}") from e
-       
         self._version = '1.0'
-        self._cnfg = {'kinetics': kinetics, 'sequence': sequence, 'non_stationary': non_stationary}
-        self._pars = {p: deepcopy(LEXICON[p]['init']) for p in self._pars_list()}
+        cnfg = {'kinetics': kinetics, 'non_stationary': non_stationary, 'sequence': sequence}
+        self._cnfg = self._set_config(**cnfg)
+        self._pars = self._set_pars(**params)
 
-        # Override defaults with user-provided parameters
-        for p, val in params.items():
-            if p in self._pars:
-                self._pars[p] = val
-            else:
-                raise ValueError(f"'{p}' is not a valid parameter for this configuration.")
-            
         # Test validity of parameters
         if kinetics.startswith('2'):
-          if self._pars['c_a'].size != self._pars['c_v'].size:
-              raise ValueError("Arterial- and venous inputs have different lengths")
+            if self._pars['c_a'].size != self._pars['c_v'].size:
+                raise ValueError("Arterial- and venous inputs have different lengths")
 
-    def _pars_list(self, select=None):
-        pars_kin = list(liver.params_liver(self._cnfg['kinetics'], self._cnfg['non_stationary']).keys())
-        pars_seq = {
-            'SR': ['FA', 'TR', 'TC', 'TP'],
-            'SS': ['FA', 'TR'],
-            'lin': [],
-        }[self._cnfg['sequence']]
-
+    def _params(self, select=None):
         if select is None:
+            select = 'all'
+        pars_kin = liver.Conc(self._cnfg['kinetics'], self._cnfg['non_stationary'])._params()
+        seq = self._cnfg['sequence']
+        pars_seq = SEQUENCES[seq]['parameters']['prep']
+        pars_seq += SEQUENCES[seq]['parameters']['read']
+
+        if select == 'all':
             pars_list = [
                 'c_a', 'dt', 'field_strength', 'agent',
                 'H', 'T_a', 'S0', 'R10', 'TS'
@@ -314,14 +307,8 @@ class Liver(SuperModel):
             pars_list += pars_kin + pars_seq
             if self._cnfg['kinetics'].startswith('2'):
                 pars_list += ['c_v']
-            if self._cnfg['sequence'] != 'lin':
-                pars_list += ['B1corr']
-        elif select=='free':
+        elif select=='all free':
             pars_list = pars_kin
-        elif select=='liver':
-            pars_list = pars_kin
-        elif select=='sequence':
-            pars_list = pars_seq
         return pars_list
 
     # ==========================================
@@ -334,12 +321,8 @@ class Liver(SuperModel):
         if 'c_v' in p:
             ca_plasma = (ca_plasma, p['c_v'] / (1 - p['H']))
 
-        liver_pars = {k: p[k] for k in self._pars_list('liver')}
-        self._C = liver.conc_liver(
-            ca_plasma, dt=p['dt'], kinetics=self._cnfg['kinetics'],
-            non_stationary=self._cnfg['non_stationary'], sum=False, 
-            **liver_pars,
-        )
+        kin, ns = self._cnfg['kinetics'], self._cnfg['non_stationary']
+        self._C = liver.Conc(kin, ns, **p)(ca_plasma, dt=p['dt'])
 
     def _compute_relaxation_rate(self):
         self._compute_concentration()
@@ -347,7 +330,7 @@ class Liver(SuperModel):
 
         rp = lib.relaxivity(p['field_strength'], 'blood', p['agent'])
         rh = lib.relaxivity(p['field_strength'], 'hepatocytes', p['agent'])
-        if self._C.ndim == 2:
+        if self._C.shape[0] == 2:
             self._R1 = p['R10'] + rp * self._C[0, :] + rh * self._C[1, :]
         else:
             self._R1 = p['R10'] + rp * self._C
@@ -355,10 +338,8 @@ class Liver(SuperModel):
     def _compute_signal(self):
         self._compute_relaxation_rate()
         p = self._pars
-
-        pars = {k: p[k] for k in self._pars_list(select='sequence')}
-        if 'FA' in pars: pars['FA'] *= p['B1corr']
-        self._S = sig.signal(self._cnfg['sequence'], self._R1, p['S0'], **pars)
+        seq = self._cnfg['sequence']
+        self._S = sig.Signal(seq, **p)(R1=self._R1, TE=0)
 
     def _set_time(self):
         p = self._pars
@@ -373,30 +354,31 @@ class Liver(SuperModel):
     # Inverse Model: Training
     # ==========================================
 
-    def _estimate_parameters(self, signal: np.ndarray, n0: int, aif: dict, vif: dict):
+    def _estimate_parameters(
+        self, signal: np.ndarray, n0: int, aif: Input, vif: Input
+    ):
         p = self._pars
+        seq = self._cnfg['sequence']
         rp = lib.relaxivity(p['field_strength'], 'blood', p['agent'])
-        seq_name = self._cnfg['sequence']
 
         # Estimate S0
-        pars = {k: p[k] for k in self._pars_list(select='sequence')}
-        if 'FA' in pars: pars['FA'] *= p['B1corr']
-        s_ref = sig.signal(seq_name, p['R10'], 1, **pars)
+        s_ref = sig.Signal(seq, **p)(R1=p['R10'], S0=1, TE=0)
         p['S0'] = np.mean(signal[:n0]) / s_ref if s_ref > 0 else 0
 
         # Input concentrations
-        def conc(input):
-            seq_pars = {k: p[k] for k in self._pars_list('sequence')}
-            if 'FA' in seq_pars: seq_pars['FA'] *= input['B1corr']
-            ci = sig.conc(seq_name, input['signal'], input['R10'], rp, n0=n0, **seq_pars)
-            return np.interp(self._t, input['time'], ci)
+        def conc(input: Input):
+            ci = SignalToConc(seq, **p)(
+                input.signal, S0=None, R1=input.R10, n0=n0, 
+                B1corr=input.B1corr, r1=rp,
+            )
+            return np.interp(self._t, input.time, ci)
       
         if aif is not None: p['c_a'] = conc(aif)
         if vif is not None: p['c_v'] = conc(vif)
 
     def _train(
         self, time: np.ndarray, signal: np.ndarray, 
-        aif: dict, vif: dict, free: dict, 
+        aif: Input, vif: Input, free: dict, 
         bounds: dict, n0: int, **kwargs
     ):
         self._estimate_parameters(signal, n0, aif, vif)
@@ -421,8 +403,8 @@ class Liver(SuperModel):
 
         # Concentration Plot
         ax1.set_title('Concentration Reconstruction')
-        if self._C.ndim == 1:
-            ax1.plot(self._t/60, 1000*self._C, '-', linewidth=3, color='cornflowerblue', label='Liver')
+        if self._C.shape[0] == 1:
+            ax1.plot(self._t/60, 1000*self._C[0,:], '-', linewidth=3, color='cornflowerblue', label='Liver')
         else:
             ax1.plot(self._t/60, 1000*self._C[0,:], '-.', linewidth=3, color='darkblue', label='Extracellular')
             ax1.plot(self._t/60, 1000*self._C[1,:], '-', linewidth=3, color='green', label='Hepatocytes]')
@@ -470,7 +452,7 @@ class Liver(SuperModel):
     
     def train(
             self, time: np.ndarray, signal: np.ndarray, 
-            aif: dict=None, vif: dict=None, free: dict=None, 
+            aif: Input=None, vif: Input=None, free: dict=None, 
             bounds: dict=None, n0=1, **kwargs
         ) -> Tuple[dict, dict, np.ndarray]:
         """Train the free parameters
@@ -508,3 +490,30 @@ class Liver(SuperModel):
             show (bool, optional): If True, the plot is shown. Defaults to True.
         """
         self._plot(time, signal, xlim, fname, show)
+
+    def cost(self, time: np.ndarray, signal: np.ndarray, metric: str = 'NRMS', nfree=None) -> float:
+        """Return the goodness-of-fit
+
+        Args:
+            time (np.ndarray): array with time points
+            signal (array-like): array with signal data for all pixels.
+            metric (str, optional): Which metric to use (see notes for 
+                possible values). Defaults to 'NRMS'.
+
+        Returns:
+            float: goodness of fit.
+
+        Notes:
+
+            Available options are: 
+            
+            - 'RMS': Root-mean-square.
+            - 'NRMS': Normalized root-mean-square. 
+            - 'AIC': Akaike information criterion. 
+            - 'cAIC': Corrected Akaike information criterion for small 
+                models.
+            - 'BIC': Baysian information criterion.
+        """
+        signal_pred = self._predict(time)
+        cost = utils.loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
+        return cost[0]

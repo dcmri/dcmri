@@ -1,24 +1,9 @@
-from copy import deepcopy
-from typing import Tuple
-import json
-
 import matplotlib.pyplot as plt
 import numpy as np
 
-import dcmri.lib as lib
-import dcmri.sig as sig
-import dcmri.utils as utils
-import dcmri.pk_aorta as pk_aorta
-import dcmri.pk as pk
-
-from dcmri import lib, sig, utils, pk_aorta, ui
+from dcmri import lib, sig, utils, ui, pk, pk_lib
 from dcmri.lexicon import LEXICON
-import dcmri.lexicon_utils as lexicon
 
-# Shorthand notation for data type hint
-Data = Tuple[
-    np.ndarray, np.ndarray, np.ndarray, np.ndarray,
-]
 
 LEXICON = LEXICON | {
 
@@ -464,35 +449,21 @@ class LiverDrugEffect(ui.SuperModel):
               - Free
     """
 
-    def __init__(self, sequence='SS', **params):
-
-        if sequence not in ['SR', 'SS', 'SSI', 'lin']:
-            raise ValueError(f"Sequence '{sequence}' is not available.")
-        
+    configs = {'sequence': ['3D-SPGR-SS', '3D-SPGR-SSI']}
+    
+    def __init__(self, sequence='3D-SPGR-SS', **params):
         self._version = '1.0'
-        self._cnfg = {'sequence': sequence}
-        self._pars = lexicon.init(self._pars_list(), LEXICON)
+        self._cnfg = self._set_config(sequence=sequence)
+        self._pars = self._set_pars(lexicon=LEXICON, **params)
 
-        # Override defaults with user-provided parameters
-        for p, val in params.items():
-            if p in self._pars:
-                self._pars[p] = val
-            else:
-                raise ValueError(f"'{p}' is not a valid parameter for this configuration.")
-            
-    def _pars_list(self, select='all'):
+    def _params(self, select=None):
+        if select is None:
+            select = 'all'
         seq = self._cnfg['sequence']
-
-        liver_sequence = {
-            'SR': ['FA', 'TR', 'TC', 'TP'], 
-            'SS': ['FA', 'TR'], 
-            'lin': [], 
-            'SSI': ['FA', 'TR']
-        }[seq]
-        inflow = ['TF'] if seq=='SSI' else []
+        inflow_pars = ['TF'] if seq == '3D-SPGR-SSI' else []
 
         pars_list = {
-            'all': inflow + liver_sequence + [
+            'all': inflow_pars + [
                 # _time
                 'dt', 'c_tmax', 'd_tmax', 
                 # _conc_aorta
@@ -516,7 +487,7 @@ class LiverDrugEffect(ui.SuperModel):
                 # Predict
                 'TS',
             ],
-            'free': inflow + [
+            'all free': inflow_pars + [
                 # _conc_aorta 
                 'CO', 'Thl', 'Dhl', 'To', 'To_e', 'Eo',
                 'c_khe',
@@ -548,8 +519,6 @@ class LiverDrugEffect(ui.SuperModel):
                 # _conc_liver
                 'd_kbh',
             ],
-            'sequence_a': liver_sequence + inflow,
-            'sequence_l': liver_sequence,
         }
         return pars_list[select]
     
@@ -565,11 +534,6 @@ class LiverDrugEffect(ui.SuperModel):
         p = self._pars
         t = self._time(visit)
 
-        # Body extraction fraction
-        khe = p[f'{visit}_khe']
-        CL = khe * p[f'{visit}_vol'] + p['GFR']
-        Eb = CL / (CL + p['CO'] * (1 - p['H']))
-        
         # Source
         conc = lib.ca_conc(p['agent'])
         J = lib.ca_injection(
@@ -577,8 +541,13 @@ class LiverDrugEffect(ui.SuperModel):
             p[f'{visit}_BAT'],
         )
 
+        # Body extraction fraction
+        khe = p[f'{visit}_khe']
+        CL = khe * p[f'{visit}_vol'] + p['GFR']
+        Eb = CL / (CL + p['CO'] * (1 - p['H']))
+        
         # Compute aorta flux
-        Jb = pk_aorta.flux_aorta(
+        Jb = pk_lib.aorta_flux(
             J, E=Eb, dt=p['dt'], tol=p['dose_tolerance'],
             heartlung=['pfcomp', (p['Thl'], p['Dhl'])],
             organs=['2cxm', ([p['To'], p['To_e']], p['Eo'])],
@@ -614,14 +583,17 @@ class LiverDrugEffect(ui.SuperModel):
 
     def _signal(self, R1, visit, roi):
         p = self._pars
-        seq = {
-            'a': self._cnfg['sequence'],
-            'l': 'SS' if self._cnfg['sequence']=='SSI' else self._cnfg['sequence'],
+        seq = self._cnfg['sequence']
+        roi_seq = {
+            'a': seq,
+            'l': '3D-SPGR-SS' if seq=='3D-SPGR-SSI' else seq,
         }[roi]
-
-        pars = {k: p[k] for k in self._pars_list(select=f'sequence_{roi}')}
-        if 'FA' in pars: pars['FA'] *= p[f'{visit}_B1corr_{roi}']
-        return sig.signal(seq, R1, p[f'{visit}_S0_{roi}'], **pars)
+        return sig.Signal(roi_seq, **p)(
+            R1=R1, 
+            S0=p[f'{visit}_S0_{roi}'], 
+            B1corr=p[f'{visit}_B1corr_{roi}'],
+            TE=0, PA=0,
+        )
     
     # ==========================================
     # Forward Model: Times
@@ -742,9 +714,10 @@ class LiverDrugEffect(ui.SuperModel):
 
     def _estimate_parameters(self, time, signal, n0):
         p = self._pars
-        seq = {
-            'a': self._cnfg['sequence'],
-            'l': 'SS' if self._cnfg['sequence']=='SSI' else self._cnfg['sequence'],
+        seq = self._cnfg['sequence']
+        roi_seq = {
+            'a': seq,
+            'l': '3D-SPGR-SS' if seq=='3D-SPGR-SSI' else seq,
         }
 
         for i, visit in enumerate(['c', 'd']):
@@ -755,14 +728,14 @@ class LiverDrugEffect(ui.SuperModel):
             bat = time[2 * i][np.argmax(signal[2 * i])] - (1 - d_hl) * t_hl
             p[f'{visit}_BAT'] = max(bat, 0)
 
-            def estimate_s0(roi, i0, R10):
-                pars = {k: p[k] for k in self._pars_list(select=f'sequence_{roi}')}
-                if 'FA' in pars: pars['FA'] *= p[f'{visit}_B1corr_{roi}']
-                s_ref = sig.signal(seq[roi], R10, 1, **pars)
+            def estimate_s0(roi, i0):
+                B1 = p[f'{visit}_B1corr_{roi}']
+                R10 = p[f'{visit}_R10_{roi}']
+                s_ref = sig.Signal(roi_seq[roi], **p)(R1=R10, S0=1, B1corr=B1, TE=0, PA=0)
                 p[f'{visit}_S0_{roi}'] = np.mean(signal[i0 + 2 * i][:n0[i]]) / s_ref if s_ref > 0 else 0
 
-            estimate_s0('a', 0, p[f'{visit}_R10_a'])
-            estimate_s0('l', 1, p[f'{visit}_R10_l'])
+            estimate_s0('a', 0)
+            estimate_s0('l', 1)
 
 
     def _train(
@@ -774,7 +747,7 @@ class LiverDrugEffect(ui.SuperModel):
         free = self._set_free_pars(free, bounds, LEXICON)
 
         # Extra conditions for SSI sequence
-        if self._cnfg['sequence'] == 'SSI':
+        if self._cnfg['sequence'] == '3D-SPGR-SSI':
             for par in ['c_S0_a', 'd_S0_a']:
                 if par not in free:
                     raise ValueError(f"For SSI sequence, '{par}' must be a free parameter.")    
@@ -784,13 +757,13 @@ class LiverDrugEffect(ui.SuperModel):
             # Train control data
             v = 0
             t, s = time[v: v + 2], signal[v: v + 2]
-            free_stage = {k: v for k, v in free.items() if k in self._pars_list('free_control')}
+            free_stage = {k: v for k, v in free.items() if k in self._params('free_control')}
             utils.train(self._predict_control, t, s, p, free_stage, **kwargs)
             
             # Train drug data
             v = 2
             t, s = time[v: v + 2], signal[v: v + 2]
-            free_stage = {k: v for k, v in free.items() if k in self._pars_list('free_drug')}
+            free_stage = {k: v for k, v in free.items() if k in self._params('free_drug')}
             utils.train(self._predict_drug, t, s, p, free_stage, **kwargs)
 
         # Train all parameters on all data
@@ -856,16 +829,21 @@ class LiverDrugEffect(ui.SuperModel):
 
     
     # ==========================================
-    # Public API: Data Extraction
+    # Public API: dict Extraction
     # ==========================================
 
-    def time(self) -> Data:
+    def time(self) -> dict:
         """Time points in aorta and liver for the two visits"""
         self._set_time()
         tc, td = self._t_control, self._t_drug
-        return tc, tc, td, td
+        return {
+            ('ctrl', 'aorta'): tc,
+            ('ctrl', 'liver'): tc,
+            ('drug', 'aorta'): td,
+            ('drug', 'liver'): td,
+        }
 
-    def conc(self) -> Data:
+    def conc(self) -> dict:
         """Concentrations in aorta and liver.
 
         Returns:
@@ -876,9 +854,14 @@ class LiverDrugEffect(ui.SuperModel):
         self._compute_conc_aorta_drug()
         self._compute_conc_liver_drug()
 
-        return self._ca_control, self._Cl_control, self._ca_drug, self._Cl_drug
+        return {
+            ('ctrl', 'aorta'): self._ca_control,
+            ('ctrl', 'liver'): self._Cl_control,
+            ('drug', 'aorta'): self._ca_drug,
+            ('drug', 'liver'): self._Cl_drug,
+        }
     
-    def relax(self) -> tuple:
+    def relax(self) -> dict:
         """Relaxation rates in aorta and liver.
 
         Returns:
@@ -889,9 +872,14 @@ class LiverDrugEffect(ui.SuperModel):
         self._compute_relax_aorta_drug()
         self._compute_relax_liver_drug()
 
-        return self._R1a_control, self._R1l_control, self._R1a_drug, self._R1l_drug
+        return {
+            ('ctrl', 'aorta'): self._R1a_control,
+            ('ctrl', 'liver'): self._R1l_control,
+            ('drug', 'aorta'): self._R1a_drug,
+            ('drug', 'liver'): self._R1l_drug,
+        }
     
-    def signal(self) -> tuple:
+    def signal(self) -> dict:
         """Signal in aorta and liver.
 
         Returns:
@@ -903,9 +891,14 @@ class LiverDrugEffect(ui.SuperModel):
         self._compute_signal_aorta_drug()
         self._compute_signal_liver_drug()
 
-        return self._Sa_control, self._Sl_control, self._Sa_drug, self._Sl_drug
+        return {
+            ('ctrl', 'aorta'): self._Sa_control,
+            ('ctrl', 'liver'): self._Sl_control,
+            ('drug', 'aorta'): self._Sa_drug,
+            ('drug', 'liver'): self._Sl_drug,
+        }
     
-    def predict(self, time: tuple) -> tuple:
+    def predict(self, time: dict) -> tuple:
         """Predict the data at given time points
 
         Args:
@@ -918,15 +911,30 @@ class LiverDrugEffect(ui.SuperModel):
         Returns:
             tuple: tuple of 8 arrays with signals corresponding to time.
         """
+        if isinstance(time, dict):
+            time = (
+                time['ctrl', 'aorta'], 
+                time['ctrl', 'liver'], 
+                time['drug', 'aorta'], 
+                time['drug', 'liver'], 
+            )
+        else:
+            time = tuple(4 * [time])
         p = self._pars
         for i, visit in enumerate(['c', 'd']):
             p[f'{visit}_tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time[2 * i: 2 * i + 2]))
-        return self._predict(time)
+        S = self._predict(time)
+        return {
+            ('ctrl', 'aorta'): S[0],
+            ('ctrl', 'liver'): S[1],
+            ('drug', 'aorta'): S[0],
+            ('drug', 'liver'): S[1],
+        } 
 
     def train(
-            self, time: tuple, signal: tuple, free=None, 
-            bounds:dict=None, n0=[1, 1], staged=False, **kwargs,
-        ):
+        self, time: dict, signal: dict, free=None, 
+        bounds:dict=None, n0=[1, 1], staged=False, **kwargs,
+    ) -> tuple:
         """Train the free parameters
 
         Args:
@@ -943,13 +951,28 @@ class LiverDrugEffect(ui.SuperModel):
         Returns:
             AortaLiver2scan: A reference to the model instance.
         """
+        if isinstance(time, dict):
+            time = (
+                time['ctrl', 'aorta'], 
+                time['ctrl', 'liver'], 
+                time['drug', 'aorta'], 
+                time['drug', 'liver'], 
+            )
+        else:
+            time = tuple(4 * [time])
+        signal = (
+            signal['ctrl', 'aorta'], 
+            signal['ctrl', 'liver'], 
+            signal['drug', 'aorta'], 
+            signal['drug', 'liver'], 
+        )
         p = self._pars
         for i, visit in enumerate(['c', 'd']):
             p[f'{visit}_tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time[2 * i: 2 * i + 2]))
         return self._train(time, signal, free, bounds, n0, staged, **kwargs)
 
 
-    def plot(self, time: tuple, signal: tuple, xlim=None, fname=None, show=True):
+    def plot(self, time: dict, signal: dict, xlim=None, fname=None, show=True):
         """Plot the model fit against data
 
         Args:
@@ -969,10 +992,67 @@ class LiverDrugEffect(ui.SuperModel):
             show (bool, optional): If True, the plot is shown. Defaults to 
               True.
         """
+        if isinstance(time, dict):
+            time = (
+                time['ctrl', 'aorta'], 
+                time['ctrl', 'liver'], 
+                time['drug', 'aorta'], 
+                time['drug', 'liver'], 
+            )
+        else:
+            time = tuple(4 * [time])
+        signal = (
+            signal['ctrl', 'aorta'], 
+            signal['ctrl', 'liver'], 
+            signal['drug', 'aorta'], 
+            signal['drug', 'liver'], 
+        )
         p = self._pars
         for i, visit in enumerate(['c', 'd']):
             p[f'{visit}_tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time[2 * i: 2 * i + 2]))
         self._plot(time, signal, xlim, fname, show)
+
+    def cost(self, time: dict, signal: dict, metric: str = 'NRMS', nfree=None) -> float:
+        """Return the goodness-of-fit
+
+        Args:
+            time (np.ndarray): array with time points
+            signal (array-like): array with signal data for all pixels.
+            metric (str, optional): Which metric to use (see notes for 
+                possible values). Defaults to 'NRMS'.
+
+        Returns:
+            float: goodness of fit.
+
+        Notes:
+
+            Available options are: 
+            
+            - 'RMS': Root-mean-square.
+            - 'NRMS': Normalized root-mean-square. 
+            - 'AIC': Akaike information criterion. 
+            - 'cAIC': Corrected Akaike information criterion for small 
+                models.
+            - 'BIC': Baysian information criterion.
+        """
+        if isinstance(time, dict):
+            time = (
+                time['ctrl', 'aorta'], 
+                time['ctrl', 'liver'], 
+                time['drug', 'aorta'], 
+                time['drug', 'liver'], 
+            )
+        else:
+            time = tuple(4 * [time])
+        signal = np.concatenate((
+            signal['ctrl', 'aorta'], 
+            signal['ctrl', 'liver'], 
+            signal['drug', 'aorta'], 
+            signal['drug', 'liver'], 
+        ))
+        signal_pred = np.concatenate(self._predict(time))
+        cost = utils.loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
+        return cost[0]
 
 
 

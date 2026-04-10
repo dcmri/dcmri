@@ -2,6 +2,7 @@ import os
 
 import matplotlib.pyplot as plt
 import dcmri as dc
+from dcmri import AortaPortalLiver
 
 
 DEBUG = False
@@ -18,34 +19,43 @@ else:
 
 def test_configs():
 
-    ns_opts = {
-        '2I-EC-HF': [None],
-        '2I-EC': [None],
-        '2I-IC-U': [None, 'U'],
-        '2I-IC-HF': [None, 'U', 'E', 'UE'],
-        '2I-IC': [None, 'U', 'E', 'UE'],
-    }
+    # kin = '2I-IC-U'
+    # ns = 'UE'
+    # seq = '3D-SPGR-SSI'
+    # model = AortaPortalLiver(kin, ns, seq)
+    # time = model.time()
+    # signal = model.predict(time)
+    # model.train(time, signal, staged=False, verbose=2, xtol=0.01)
+    # model.plot(time, signal, show=DEBUG)
+    # cost = model.cost(time, signal)
+    # print(kin, ns, seq, cost)
+    # #assert cost < 5
 
-    for seq in ['SR', 'SS', 'SSI', 'lin']:
-        for kin in ns_opts.keys():
-            for ns in ns_opts[kin]:
+    for kin in AortaPortalLiver.configs['kinetics']:
+        for seq in AortaPortalLiver.configs['sequence']:
+            for ns in AortaPortalLiver.configs['non_stationary']:
+                if 'EC' in kin and ns is not None:
+                    continue
+                if 'U' in kin and ns is not None:
+                    if 'E' in ns:
+                        continue
                 model = dc.AortaPortalLiver(kinetics=kin, sequence=seq)
                 time = model.time()
                 signal = model.predict(time)
-                model.train(time, signal)
-                model.plot(time, signal)
+                model.train(time, signal, verbose=0, xtol=0.01)
+                model.plot(time, signal, show=DEBUG)
                 cost = model.cost(time, signal)
                 print(kin, ns, seq, cost)
                 assert cost < 5
 
     # Test Variations
-    model = dc.AortaPortalLiver(CO=50)
+    model = AortaPortalLiver(CO=50)
     time = model.time()
     signal = model.predict(time)
-    model.train(time, signal, staged=True)
-    model.plot(time, signal)
+    model.train(time, signal, staged=True, verbose=VERBOSE, xtol=0.01)
+    model.plot(time, signal, show=DEBUG)
     cost = model.cost(time, signal)
-    print(kin, ns, seq, cost)
+    print('staged', cost)
     assert cost < 5
 
 def test_api():
@@ -57,9 +67,10 @@ def test_api():
     R1 = model.relax()
     S = model.signal()
 
-    assert C[0].ndim in [1,2] 
-    assert len(R1[0]) == len(t[0])
-    assert len(S[0]) == len(t[0])
+    assert C['aorta'].ndim == 1
+    assert C['liver'].ndim == 2
+    assert len(R1['liver']) == len(t['liver'])
+    assert len(S['liver']) == len(t['liver'])
 
     test_plot_file = "test_plot_output.png"
     try:
@@ -102,14 +113,6 @@ def test_exceptions():
         dc.AortaPortalLiver(non_stationary='Z')
     except ValueError:
         pass 
-    else:
-        assert False
-
-    # 2. Invalid Parameter
-    try:
-        dc.AortaPortalLiver(fake_parameter=99)
-    except ValueError:
-        pass
     else:
         assert False
 

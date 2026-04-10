@@ -13,7 +13,7 @@ def fake_aif(
         H=0.45,
         R10a=1/lib.T1(3.0, 'blood'),
         S0=150,
-        model='SS',
+        model='3D-SPGR-SS',
         TR=0.005,
         FA=15,
         B1corr=1,
@@ -51,10 +51,10 @@ def fake_aif(
     cp = pk_lib.aif_parker(t, BAT)
     rp = lib.relaxivity(field_strength, 'plasma', agent)
     R1b = R10a + rp*cp*(1-H)
-    if model == 'SS':
-        aif = sig.signal_ss(S0, R1b, TR, B1corr*FA)
-    elif model == 'SR':
-        aif = sig.signal_free(S0, R1b, TC, B1corr*FA)
+    if model == '3D-SPGR-SS':
+        aif = sig.Signal(model)(S0=S0, R1=R1b, TR=TR, FA=FA, B1corr=B1corr, TE=0)
+    elif model == '3D-SR-SPGR-SS':
+        aif = sig.Signal(model)(S0=S0, R1=R1b, TR=TR, FA=FA, TC=TC, B1corr=B1corr, TE=0)
     time = np.arange(0, tacq, dt)
     aif = utils.sample(time, t, aif, dt)
     sdev = (np.amax(aif)-aif[0])/CNR
@@ -76,7 +76,7 @@ def fake_brain(
         H=0.45,
         R10a=1/lib.T1(3.0, 'blood'),
         S0=150,
-        model='SS',
+        model='3D-SPGR-SS',
         TR=0.005,
         FA=15,
         TC=0.2,
@@ -149,10 +149,11 @@ def fake_brain(
     # Arterial signal
     rp = lib.relaxivity(field_strength, 'plasma', agent)
     R1b = R10a + rp*cp*(1-H)
-    if model == 'SS':
-        aif = sig.signal_ss(S0, R1b, TR, FA)
-    elif model == 'SR':
-        aif = sig.signal_free(S0, R1b, TC, FA)
+    if model == '3D-SPGR-SS':
+        aif = sig.Signal(model)(S0=S0, R1=R1b, TR=TR, FA=FA, TE=0)
+    elif model == '3D-SR-SPGR-SS':
+        aif = sig.Signal(model)(S0=S0, R1=R1b, TR=TR, FA=FA, TC=TC, TE=0)
+
     sdev = (np.amax(aif)-aif[0])/CNR
     time = np.arange(0, tacq, dt)
     aif = utils.sample(time, t, aif, dt)
@@ -184,16 +185,18 @@ def fake_brain(
                 vb = im['vb'][i, j]
                 vi = im['vi'][i, j]
                 PS = im['PS'][i, j]
-                C = tissue.conc_tissue(
-                    cp*(1-H), dt=dt_sim, kinetics='2CX', 
-                    H=H, Fb=Fb, vb=vb, vi=vi, PS=PS)
+                C = tissue.Conc('2CX')(
+                    cp*(1-H), dt=dt_sim, 
+                    H=H, Fb=Fb, vb=vb, vi=vi, PS=PS
+                )
 
             # Pixel signal
             R1 = 1/im['T1'][i, j] + rp*C
-            if model == 'SS':
-                s = sig.signal_ss(S0*im['PD'][i, j], R1, TR, FA)
-            elif model == 'SR':
-                s = sig.signal_spgr(S0*im['PD'][i, j], R1, TC, TR, FA)
+            if model == '3D-SPGR-SS':
+                s = sig.Signal(model)(S0=S0*im['PD'][i, j], R1=R1, TR=TR, FA=FA, TE=0)
+            elif model == '3D-SR-SPGR-SS':
+                s = sig.Signal(model)(S0=S0*im['PD'][i, j], R1=R1, TR=TR, FA=FA, TC=TC, TE=0)
+
             sig_noisefree = utils.sample(time, t, s, dt)
             s = utils.add_noise(sig_noisefree, sdev)
 
@@ -231,7 +234,7 @@ def fake_tissue(
     R10=1/lib.T1(3.0, 'muscle'),
     S0b=100,
     S0=150,
-    model='SS',
+    model='3D-SPGR-SS',
     TR=0.005,
     FA=15,
     TC=0.2,
@@ -272,17 +275,23 @@ def fake_tissue(
     """
     t = np.arange(0, tacq+dt, dt_sim)
     cp = pk_lib.aif_parker(t, BAT)
-    C = tissue.conc_tissue(cp*(1-H), dt=dt_sim, kinetics='2CX',
-                       H=H, Fb=Fb, vb=vb, PS=PS, vi=vi)
+    C = tissue.Conc('2CX')(cp*(1-H), dt=dt_sim, H=H, Fb=Fb, vb=vb, PS=PS, vi=vi)
     rp = lib.relaxivity(field_strength, 'plasma', agent)
     R1b = R10a + rp*cp*(1-H)
     R1 = R10 + rp*C
-    if model == 'SS':
-        aif = sig.signal_ss(S0b, R1b, TR, FA)
-        roi = sig.signal_ss(S0, R1, TR, FA)
-    elif model == 'SR':
-        aif = sig.signal_free(S0b, R1b, TC, FA)
-        roi = sig.signal_spgr(S0, R1, TC, TR, FA)
+    # if model == 'SS':
+    #     aif = sig.signal_ss(S0b, R1b, TR, FA)
+    #     roi = sig.signal_ss(S0, R1, TR, FA)
+    # elif model == 'SR':
+    #     aif = sig.signal_free(S0b, R1b, TC, FA)
+    #     roi = sig.signal_spgr(S0, R1, TC, TR, FA)
+    if model == '3D-SPGR-SS':
+        aif = sig.Signal(model)(S0=S0b, R1=R1b, TR=TR, FA=FA, TE=0)
+        roi = sig.Signal(model)(S0=S0, R1=R1, TR=TR, FA=FA, TE=0)
+    elif model == '2D-SR-SPGR-SS':
+        aif = sig.Signal('3D-SR-SS')(S0=S0b, R1=R1b, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
+        roi = sig.Signal('2D-SR-SPGR-SS')(S0=S0b, R1=R1b, TC=TC, TR=TR, FA=FA, TE=0)
+
     time = np.arange(0, tacq, dt)
     aif = utils.sample(time, t, aif, dt)
     roi = utils.sample(time, t, roi, dt)
@@ -374,22 +383,36 @@ def fake_liver(
     cp = pk_lib.aif_parker(t, BAT)
     cv = pk.flux_comp(cp, Tg, t)
     ci = (cp*(1-H), cv*(1-H))
-    C = liver.conc_liver(
-        ci, dt=dt_sim, sum=False, kinetics='2I-IC',
-        ve=ve, Fp=Fp, fa=fa, Ta=Ta, E=E, Th=Th)
+    # C = liver.conc_liver(
+    #     ci, dt=dt_sim, sum=False, kinetics='2I-IC',
+    #     ve=ve, Fp=Fp, fa=fa, Ta=Ta, E=E, Th=Th)
+    C = liver.Conc('2I-IC')(
+        ci, dt=dt_sim, sum=False,
+        ve=ve, Fp=Fp, fa=fa, Ta=Ta, E=E, Th=Th)    
     rp = lib.relaxivity(field_strength, 'plasma', agent)
     rh = lib.relaxivity(field_strength, 'hepatocytes', agent)
     R1a = R10a + rp*cp*(1-H)
     R1v = R10a + rp*cv*(1-H)
     R1 = R10 + rp*C[0, :] + rh*C[1, :]
-    if sequence == 'SS':
-        aif = sig.signal_ss(S0b, R1a, TR, FA)
-        vif = sig.signal_ss(S0b, R1v, TR, FA)
-        roi = sig.signal_ss(S0, R1, TR, FA)
-    elif sequence == 'SSI':
-        aif = sig.signal_spgr(S0b, R1a, TC, TR, FA, n0=1)
-        vif = sig.signal_ss(S0b, R1v, TR, FA)
-        roi = sig.signal_ss(S0, R1, TR, FA)
+    # if sequence == 'SS':
+    #     aif = sig.signal_ss(S0b, R1a, TR, FA)
+    #     vif = sig.signal_ss(S0b, R1v, TR, FA)
+    #     roi = sig.signal_ss(S0, R1, TR, FA)
+    # elif sequence == 'SSI':
+    #     aif = sig.signal_spgr(S0b, R1a, TC, TR, FA, n0=1)
+    #     vif = sig.signal_ss(S0b, R1v, TR, FA)
+    #     roi = sig.signal_ss(S0, R1, TR, FA)
+
+    if sequence == '3D-SPGR-SS':
+        aif = sig.Signal(sequence)(S0=S0b, R1=R1a, TR=TR, FA=FA, TE=0)
+        vif = sig.Signal(sequence)(S0=S0b, R1=R1v, TR=TR, FA=FA, TE=0)
+        roi = sig.Signal(sequence)(S0=S0, R1=R1, TR=TR, FA=FA, TE=0)
+    elif sequence == '3D-SPGR-SSI':
+        aif = sig.Signal(sequence)(S0=S0b, R1=R1a, TR=TR, FA=FA, TF=TC, TE=0)
+        vif = sig.Signal('3D-SPGR-SS')(S0=S0b, R1=R1v, TR=TR, FA=FA, TE=0)
+        roi = sig.Signal('3D-SPGR-SS')(S0=S0, R1=R1, TR=TR, FA=FA, TE=0)
+
+
     time = np.arange(0, tacq, dt)
     aif = utils.sample(time, t, aif, dt)
     vif = utils.sample(time, t, vif, dt)
@@ -470,19 +493,24 @@ def fake_tissue2scan(
     t = np.arange(0, 2*tacq+tbreak+dt, dt_sim)
     cp = pk_lib.aif_parker(t, BAT)
     cp += pk_lib.aif_parker(t, tacq+tbreak+BAT)
-    C = tissue.conc_tissue(cp*(1-H), dt=dt_sim, kinetics='2CX',
-                       H=H, Fb=Fb, vb=vb, PS=PS, vi=vi)
+    C = tissue.Conc('2CX')(cp*(1-H), dt=dt_sim, H=H, Fb=Fb, vb=vb, PS=PS, vi=vi)
     rp = lib.relaxivity(field_strength, 'plasma', agent)
     R1b = R10a + rp*cp*(1-H)
     R1 = R10 + rp*C
 
     # Generate the signals from the first scan
-    if model == 'SS':
-        aif = sig.signal_ss(S0b1, R1b, TR, FA)
-        roi = sig.signal_ss(S01, R1, TR, FA)
-    elif model == 'SR':
-        aif = sig.signal_free(S0b1, R1b, TC, FA)
-        roi = sig.signal_spgr(S01, R1, TC, TR, FA)
+    # if model == 'SS':
+    #     aif = sig.signal_ss(S0b1, R1b, TR, FA)
+    #     roi = sig.signal_ss(S01, R1, TR, FA)
+    # elif model == 'SR':
+    #     aif = sig.signal_free(S0b1, R1b, TC, FA)
+    #     roi = sig.signal_spgr(S01, R1, TC, TR, FA)
+    if model == '3D-SPGR-SS':
+        aif = sig.Signal(model)(S0=S0b1, R1=R1b, TR=TR, FA=FA, TE=0)
+        roi = sig.Signal(model)(S0=S01, R1=R1, TR=TR, FA=FA, TE=0)
+    elif model == '2D-SR-SPGR-SS':
+        aif = sig.Signal('3D-SR-SS')(S0=S0b1, R1=R1b, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
+        roi = sig.Signal('2D-SR-SPGR-SS')(S0=S01, R1=R1, TC=TC, TR=TR, FA=FA, TE=0)
     time1 = np.arange(0, tacq, dt)
     aif1 = utils.sample(time1, t, aif, dt)
     roi1 = utils.sample(time1, t, roi, dt)
@@ -491,12 +519,18 @@ def fake_tissue2scan(
     roi1 = utils.add_noise(roi1, sdev)
 
     # Generate the second signals
-    if model == 'SS':
-        aif = sig.signal_ss(S0b2, R1b, TR, FA)
-        roi = sig.signal_ss(S02, R1, TR, FA)
-    elif model == 'SR':
-        aif = sig.signal_free(S0b2, R1b, TC, FA)
-        roi = sig.signal_spgr(S02, R1, TC, TR, FA)
+    # if model == 'SS':
+    #     aif = sig.signal_ss(S0b2, R1b, TR, FA)
+    #     roi = sig.signal_ss(S02, R1, TR, FA)
+    # elif model == 'SR':
+    #     aif = sig.signal_free(S0b2, R1b, TC, FA)
+    #     roi = sig.signal_spgr(S02, R1, TC, TR, FA)
+    if model == '3D-SPGR-SS':
+        aif = sig.Signal(model)(S0=S0b2, R1=R1b, TR=TR, FA=FA, TE=0)
+        roi = sig.Signal(model)(S0=S02, R1=R1, TR=TR, FA=FA, TE=0)
+    elif model == '2D-SR-SPGR-SS':
+        aif = sig.Signal('3D-SR-SS')(S0=S0b2, R1=R1b, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
+        roi = sig.Signal('2D-SR-SPGR-SS')(S0=S02, R1=R1, TC=TC, TR=TR, FA=FA, TE=0)
     time2 = np.arange(tacq+tbreak, 2*tacq+tbreak, dt)
     aif2 = utils.sample(time2, t, aif, dt)
     roi2 = utils.sample(time2, t, roi, dt)
@@ -536,7 +570,7 @@ def fake_kidney(
     R10m=1/lib.T1(3.0, 'kidney'),
     S0b=100,
     S0=150,
-    model='SR',
+    model='2D-SR-SPGR-SS',
     TC=0.2,
     TR=0.005,
     FA=15,
@@ -588,14 +622,24 @@ def fake_kidney(
     R1b = R10a + rp*cp*(1-Hct)
     R1c = R10c + rp*Cc
     R1m = R10m + rp*Cm
-    if model == 'SS':
-        aif = sig.signal_ss(S0b, R1b, TR, FA)
-        roic = sig.signal_ss(S0, R1c, TR, FA)
-        roim = sig.signal_ss(S0, R1m, TR, FA)
-    elif model == 'SR':
-        aif = sig.signal_free(S0b, R1b, TC, FA)
-        roic = sig.signal_spgr(S0, R1c, TC, TR, FA)
-        roim = sig.signal_spgr(S0, R1m, TC, TR, FA)
+    # if model == 'SS':
+    #     aif = sig.signal_ss(S0b, R1b, TR, FA)
+    #     roic = sig.signal_ss(S0, R1c, TR, FA)
+    #     roim = sig.signal_ss(S0, R1m, TR, FA)
+    # elif model == 'SR':
+    #     aif = sig.signal_free(S0b, R1b, TC, FA)
+    #     roic = sig.signal_spgr(S0, R1c, TC, TR, FA)
+    #     roim = sig.signal_spgr(S0, R1m, TC, TR, FA)
+
+    if model == '3D-SPGR-SS':
+        aif = sig.Signal(model)(S0=S0b, R1=R1b, TR=TR, FA=FA, TE=0)
+        roic = sig.Signal(model)(S0=S0, R1=R1c, TR=TR, FA=FA, TE=0)
+        roim = sig.Signal(model)(S0=S0, R1=R1m, TR=TR, FA=FA, TE=0)
+    elif model == '2D-SR-SPGR-SS':
+        aif = sig.Signal('3D-SR-SS')(S0=S0b, R1=R1b, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
+        roic = sig.Signal('2D-SR-SPGR-SS')(S0=S0, R1=R1c, TC=TC, TR=TR, FA=FA, TE=0)
+        roim = sig.Signal('2D-SR-SPGR-SS')(S0=S0, R1=R1m, TC=TC, TR=TR, FA=FA, TE=0)
+
     time = np.arange(0, tacq, dt)
     aif = utils.sample(time, t, aif, dt)
     roic = utils.sample(time, t, roic, dt)

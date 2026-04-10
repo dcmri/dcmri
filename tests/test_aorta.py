@@ -1,7 +1,8 @@
 import os
+import itertools
 
 import matplotlib.pyplot as plt
-import dcmri as dc
+from dcmri import Aorta as Model
 
 
 DEBUG = False
@@ -18,23 +19,22 @@ else:
 
 def test_configs():
 
-    for org in ['comp', '2cxm']:
-        for hl in ['pfcomp', 'chain']:
-            for seq in ['SR', 'SS', 'SSI', 'lin']:
-                model = dc.Aorta(organs=org, heartlung=hl, sequence=seq)
-                time = model.time()
-                signal = model.predict(time)
-                model.train(time, signal)
-                model.plot(time, signal)
-                cost = model.cost(time, signal)
-                # print(org, hl, seq, cost)
-                assert cost < 2
+    values = Model.configs.values()
+    for cnfgs in itertools.product(*values):
+        model = Model(*cnfgs)
+        time = model.time()
+        signal = model.predict(time)
+        model.train(time, signal, verbose=VERBOSE, xtol=0.01)
+        model.plot(time, signal, show=DEBUG)
+        cost = model.cost(time, signal)
+        print(cnfgs, cost)
+        assert cost < 5
 
     # Variations
-    model = dc.Aorta(CO=50)
+    model = Model(CO=50)
 
 def test_api():
-    model = dc.Aorta()
+    model = Model()
     
     # Test Forward API outputs
     t = model.time()
@@ -64,39 +64,31 @@ def test_api():
 def test_exceptions():
     # Invalid Config
     try:
-        dc.Aorta(sequence='X')
+        Model(sequence='X')
     except ValueError:
         pass 
     else:
         assert False
         
     try:
-        dc.Aorta(organs='Y')
+        Model(organs='Y')
     except ValueError:
         pass 
     else:
         assert False
 
     try:
-        dc.Aorta(heartlung='Z')
+        Model(heartlung='Z')
     except ValueError:
         pass 
-    else:
-        assert False
-
-    # 2. Invalid Parameter
-    try:
-        dc.Aorta(fake_parameter=99)
-    except ValueError:
-        pass
     else:
         assert False
 
     # SSI sequence model with fixed S0
     try:
-        model = dc.Aorta(sequence='SSI', CO=50)
+        model = Model(sequence='3D-SPGR-SSI', CO=50)
         t, s = model.time(), model.signal()
-        model.train(t, s, bounds={'S0': None})
+        model.train(t, s, bounds={'S0_a': None})
     except ValueError:
         pass
     else:

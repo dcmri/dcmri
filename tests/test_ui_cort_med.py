@@ -3,7 +3,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import dcmri as dc
-from dcmri import Liver
+from dcmri import CortMed
 
 
 DEBUG = False
@@ -20,25 +20,19 @@ else:
 
 def test_configs():
 
-    for kin in Liver.configs['kinetics']:
-        for seq in Liver.configs['sequence']:
-            for ns in Liver.configs['non_stationary']:
-                if 'EC' in kin and ns is not None:
-                    continue
-                elif 'U' in kin and ns is not None:
-                    if 'E' in ns:
-                        continue
-                model = dc.Liver(kinetics=kin, non_stationary=ns, sequence=seq)
-                time = model.time()
-                signal = model.predict(time)
-                model.train(time, signal)
-                model.plot(time, signal)
-                cost = model.cost(time, signal)
-                print(kin, seq, cost)
-                assert cost < 1e-6
+    for kin in CortMed.configs['kinetics']:
+        for seq in CortMed.configs['sequence']:
+            model = CortMed(kin, seq)
+            time = model.time()
+            signal = model.predict(time)
+            model.train(time, signal)
+            model.plot(time, signal, show=DEBUG)
+            cost = model.cost(time, signal)
+            print(kin, seq, cost)
+            assert cost < 1e-6
 
 def test_api():
-    model = dc.Liver()
+    model = CortMed()
     
     # Test Forward API outputs
     t = model.time()
@@ -46,9 +40,9 @@ def test_api():
     R1 = model.relax()
     S = model.signal()
 
-    assert C.ndim in [1,2] 
-    assert len(R1) == len(t)
-    assert len(S) == len(t)
+    assert C['cort'].ndim == 2 # Should return [compartment, time]
+    assert len(R1['cort']) == len(t['cort'])
+    assert len(S['cort']) == len(t['cort'])
 
     test_plot_file = "test_plot_output.png"
     try:
@@ -68,43 +62,9 @@ def test_api():
 def test_exceptions():
     # Invalid Config
     try:
-        dc.Liver(sequence='InversionRecovery')
+        CortMed(sequence='InversionRecovery')
     except ValueError:
         pass 
-    else:
-        assert False
-    try:
-        dc.Liver(kinetics='Liver')
-    except ValueError:
-        pass 
-    else:
-        assert False
-
-    # # Predict out of AIF range
-    # time = (np.arange(1000), np.arange(1000))
-    # try:
-    #     dc.Liver().predict(time)
-    # except ValueError:
-    #     pass
-    # else:
-    #     assert False
-
-    # # Train out of AIF range
-    # signal = (np.arange(1000), np.arange(1000))
-    # try:
-    #     dc.Liver().train(time, signal)
-    # except ValueError:
-    #     pass
-    # else:
-    #     assert False
-
-    # Different length inputs
-    try:
-        dc.Liver(c_a=np.arange(10))
-    except:
-        pass
-    else:
-        assert False
 
 def test_function():
 
@@ -117,19 +77,14 @@ def test_function():
     rp = dc.relaxivity(B0, 'blood', agent)
     aif_time = np.arange(0, tmax, dt)
     aif_conc = dc.aif_tristan(aif_time, BAT=10)
-    vif_conc = dc.flux_chain(aif_conc, 10, 0.5, dt=dt)
     aif_R1 = R10a + rp * aif_conc
-    vif_R1 = R10a + rp * vif_conc
     aif_signal = dc.Signal(seq)(R1=aif_R1, S0=S0a, FA=FA, TR=TR, TE=0, B1corr=B1a)
-    vif_signal = dc.Signal(seq)(R1=vif_R1, S0=S0a, FA=FA, TR=TR, TE=0, B1corr=B1a)
     aif = dc.Input(aif_signal, aif_time, R10=R10a, B1corr=B1a)
-    vif = dc.Input(vif_signal, aif_time, R10=R10a, B1corr=B1a)
 
-    # Liver signals
+    # Kidney signals
     params = {
         'dt': dt, 
         'c_a': aif_conc,
-        'c_v': vif_conc, 
         'field_strength': B0,
         'agent': agent,
         'FA': FA, 
@@ -139,25 +94,25 @@ def test_function():
     }
 
     # Tissue model
-    model = dc.Liver(sequence=seq, **params)
+    model = CortMed(sequence=seq, **params)
     time = model.time()
     signal = model.predict(time)
     
     # Fit with AIF and VIF signal
-    model.train(time, signal, aif, vif)
+    model.train(time, signal, aif)
     model.plot(time, signal)
     assert model.cost(time, signal) < 1
 
     # Test some training options
-    model = dc.Liver(dt=dt, c_a=aif_conc, c_v=vif_conc)
+    model = CortMed(dt=dt, c_a=aif_conc)
     time = model.time()
     signal = model.predict(time)
-    model.train(time, signal, n0=10, bounds={'Fp': [0,1], 'fa': None, 'S0':[0,5]})
+    model.train(time, signal, n0=10, bounds={'Fp': [0,1], 'Tglom': None, 'S0':[0,5]})
 
 
 if __name__ == "__main__":
 
-    # # Coverage tests
+    # Coverage tests
     test_configs()
     test_api()
     test_exceptions()
@@ -165,5 +120,5 @@ if __name__ == "__main__":
     # Functional tests
     test_function()
     
-    print('All ui_liver tests passed!!')
+    print('All ui_kidney_cort_med tests passed!!')
 

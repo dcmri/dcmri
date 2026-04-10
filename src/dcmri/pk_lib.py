@@ -1,6 +1,100 @@
 import numpy as np
+from scipy.integrate import trapezoid
 
-import dcmri.pk as pk
+from dcmri import pk, lib
+
+
+def aif_tristan(
+    t: np.ndarray,
+    agent='gadoterate',
+    dose=0.2,
+    rate=3,
+    BAT=0,
+    weight=73,
+    CO=97,
+    E=0.07,
+    Thl=13,
+    Dhl=0.5,
+    Tp=25,
+    Te=350,
+    Ee=0.18,
+    dtol=0.01,
+) -> np.ndarray:
+    """Arterial input function with default parameters for young healthy 
+    volunteers.
+
+    This AIF was measured in the TRISTAN project (Min et al 2024). The default 
+    values are for young healthy volunteers but since the AIF is built on a 
+    whole-body model of the circulation, they can be modified to generate 
+    virtual populations. 
+
+    Reference:
+
+    Thazin Min, Marta Tibiletti, Paul Hockings, Aleksandra Galetin, 
+    Ebony Gunwhy, Gerry Kenna, Nicola Melillo, Geoff JM Parker, 
+    Gunnar Schuetz, Daniel Scotcher, John Waterton, Ian Rowe, and 
+    Steven Sourbron. *Measurement of liver function with dynamic 
+    gadoxetate-enhanced MRI: a validation study in healthy volunteers*. 
+    Proc Intl Soc Mag Reson Med, Singapore 2024.
+
+    Args:
+        t (np.ndarray): Array of time points
+        agent (str, optional): Contrast agent generic name. Defaults to 
+          'gadoterate'.
+        dose (float, optional): Contrast agent dose in mL/kg. Defaults to 0.2.
+        rate (float, optional): Contrast agent injection rate in mL/sec. 
+          Defaults to 3.
+        BAT (float, optional): Bolus arrival time in sec. Defaults to 0.
+        weight (float, optional): Subject weight in kg. Defaults to 73.
+        CO (float, optional): Cardiac output in mL/sec. Defaults to 97.
+        E (float, optional): Body extraction fraction. Defaults to 0.07.
+        Thl (float, optional): Mean transit time of the heart-lung system in 
+          sec. Defaults to 13.
+        Dhl (float, optional): Transit time dispersion of the heart-lung 
+          system. Defaults to 0.5.
+        Tp (float, optional): Plasma mean transit time in sec of the other 
+          organs. Defaults to 25.
+        Te (float, optional): Extravascular mean transit time in sec. 
+          Defaults to 350.
+        Ee (float, optional): Extraction fraction into the extravascular 
+          space. Defaults to 0.18.
+        dtol (float, optional): Dose tolerance. Defaults to 0.01.
+
+    Returns:
+        np.ndarray: Aorta blood concentrations in mmol/mL.
+
+    Example:
+
+        Generate AIFs with different levels of cardiac output:
+
+    .. plot::
+        :include-source:
+
+        import matplotlib.pyplot as plt
+        import dcmri as dc
+
+        # Time points in sec
+        t = np.arange(0, 180, 2.0)
+
+        # Plot aifs with different levels of cardiac output, including the 
+        # default of 100mL/sec.
+        plt.plot(t/60, 1000*dc.aif_tristan(t, BAT=30), 'r-', label='AIF (default)')
+        plt.plot(t/60, 1000*dc.aif_tristan(t, BAT=30, CO=150), 'g-', 
+                 label='AIF (increased cardiac output)')
+        plt.plot(t/60, 1000*dc.aif_tristan(t, BAT=30, CO=75), 'b-', 
+                 label='AIF (reduced cardiac output)')
+        plt.xlabel('Time (min)')
+        plt.ylabel('Concentration (mmol/mL)')
+        plt.legend()
+        plt.show()    
+    """
+    conc = lib.ca_conc(agent)
+    Ji = lib.ca_injection(t, weight,conc, dose, rate, BAT)
+    Jb = aorta_flux(Ji, t, E=E,
+                    heartlung=['chain', (Thl, Dhl)],
+                    organs=['2cxm', ([Tp, Te], Ee)],
+                    tol=dtol)
+    return Jb/CO
 
 
 
@@ -170,3 +264,58 @@ def aif_tristan_rat(t, BAT=4.6 * 60, duration=30) -> np.ndarray:
     cp = Jp / K
 
     return cp * (1 - Hct)
+
+
+
+def aorta_flux(J_vena: np.ndarray,
+        t=None, dt=1.0, E=0.1, FFkl=0.0, FFk=0.5,
+        heartlung=['pfcomp', (10, 0.2)],
+        organs=['2cxm', ([20, 120], 0.15)],
+        kidneys=['comp', (10,)],
+        liver=['pfcomp', (10, 0.2)],
+        tol=0.001,
+        max_it=None,
+    ):
+    dose = trapezoid(J_vena, x=t, dx=dt)
+    min_dose = tol*dose
+
+    # Residuals of each pathway
+    Rk = FFk*FFkl*(1-E)
+    Rl = (1-FFk)*FFkl*(1-E)
+    Ro = (1-FFkl)*(1-E)
+
+    # Initialize output
+    J_aorta_total = np.zeros(J_vena.size)
+
+    it=0
+    while True:
+      
+        # Aorta flux of the current pass
+        J_aorta = pk.flux(
+            J_vena, *heartlung[1], t=t, dt=dt, model=heartlung[0])
+
+        # Add to the total aorta flux
+        J_aorta_total += J_aorta
+
+        # Venous flux of the current pass
+        J_vena = Ro * pk.flux(
+            J_aorta, *organs[1], t=t, dt=dt, model=organs[0])
+        if np.sum(Rl) > 0:
+            J_vena += Rl * pk.flux(
+                J_aorta, *liver[1], t=t, dt=dt, model=liver[0])
+        if np.sum(Rk) > 0:
+            J_vena += Rk * pk.flux(
+                J_aorta, *kidneys[1], t=t, dt=dt, model=kidneys[0])
+
+        # Get residual dose in current pass
+        dose = trapezoid(J_vena, x=t, dx=dt)
+
+        if dose <= min_dose:
+            break
+        
+        it += 1
+        if max_it is not None:
+            if it > max_it:
+                break
+
+    return J_aorta_total

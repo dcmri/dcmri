@@ -4,16 +4,13 @@ from typing import Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 
-import dcmri.pk as pk
-import dcmri.kidney as pkk
-import dcmri.lib as lib
-import dcmri.sig as sig
-import dcmri.utils as utils
-from dcmri.ui import SuperModel
-from dcmri.lexicon import LEXICON
+from dcmri.signal_to_conc import SignalToConc
+from dcmri import lib, sig, utils, cort_med
+from dcmri.ui import SuperModel, Input
+from dcmri.lexicon import SEQUENCES
 
 
-class KidneyCortMed(SuperModel):
+class CortMed(SuperModel):
     """
     General model for renal cortico-medullary data.
 
@@ -58,38 +55,29 @@ class KidneyCortMed(SuperModel):
         >>> model.plot(time, roi, ref=gt)
     """
 
-    def __init__(self, sequence='SR', **params):
-        # Check inputs
-        if sequence not in ['SS', 'SR', 'lin']:
-            raise ValueError(f"Sequence {sequence} is not available.")
-        
-        # Initialize parameters
+    configs = {
+        'kinetics': ['7C'],
+        'sequence': ['3D-SPGR-SS', '3D-SPGR-SSI']
+      }
+    
+    def __init__(self, kinetics='7C', sequence='3D-SPGR-SS', **params):
         self._version = '1.0'
-        self._cnfg = {'sequence': sequence}
-        self._pars = {p: deepcopy(LEXICON[p]['init']) for p in self._pars_list()}
+        self._cnfg = self._set_config(kinetics=kinetics, sequence=sequence)
+        self._pars = self._set_pars(**params)
 
-        # Override defaults with user-provided parameters
-        for p, val in params.items():
-            if p in self._pars:
-                self._pars[p] = val
-            else:
-                raise ValueError(f"'{p}' is not a valid parameter for this configuration.")
-
-    def _pars_list(self, select=None):
-        pars_kin = ['Fp', 'Eg', 'fc', 'Tglom', 'Tv', 'Tpt', 'Tlh', 'Tdt', 'Tcd']
-        pars_seq = {
-            'SR': ['B1corr', 'FA', 'TR', 'TC', 'TP', 'TS'],
-            'SS': ['B1corr', 'FA', 'TR', 'TS'],
-            'lin': ['TS'],
-        }[self._cnfg['sequence']]
+    def _params(self, select=None):
+        kin, seq = self._cnfg['kinetics'], self._cnfg['sequence']
+        pars_kin = cort_med.Conc(kin)._params()
+        pars_seq = SEQUENCES[seq]['parameters']['prep']
+        pars_seq += SEQUENCES[seq]['parameters']['read']
 
         if select is None:
             pars_list = [
                 'c_a', 'dt', 'field_strength', 'agent',
-                'H', 'T_a', 'S0_c', 'S0_m', 'R10_c', 'R10_m',
+                'H', 'S0_c', 'S0_m', 'R10_c', 'R10_m', 'TS',
             ]
             pars_list += pars_kin + pars_seq
-        elif select=='free':
+        elif select=='all free':
             pars_list = pars_kin
         return pars_list
 
@@ -99,12 +87,9 @@ class KidneyCortMed(SuperModel):
 
     def _compute_concentration(self):
         p = self._pars
-        ca = pk.flux(p['c_a'], p['T_a'], dt=p['dt'], model='plug')
-        self._Cc, self._Cm = pkk.conc_kidney_cm(
-            ca, p['Fp'], p['Eg'], p['fc'], p['Tglom'], p['Tv'], 
-            p['Tpt'], p['Tlh'], p['Tdt'], p['Tcd'], 
-            dt=p['dt'], sum=False, kinetics='7C'
-        )
+        kin = self._cnfg['kinetics']
+        ca = p['c_a'] / (1 - p['H'])
+        self._Cc, self._Cm = cort_med.Conc(kin, **p)(ca, dt=p['dt'])
 
     def _compute_relaxation_rate(self):
         self._compute_concentration()
@@ -116,21 +101,9 @@ class KidneyCortMed(SuperModel):
     def _compute_signal(self):
         self._compute_relaxation_rate()
         p = self._pars
-        if self._cnfg['sequence'] == 'SR':
-            self._Sc = sig.signal_spgr(
-                p['S0_c'], self._R1c, p['TC'], p['TR'], 
-                p['B1corr'] * p['FA'], p['TP']
-            )
-            self._Sm = sig.signal_spgr(
-                p['S0_m'], self._R1m, p['TC'], p['TR'], 
-                p['B1corr'] * p['FA'], p['TP']
-            )
-        elif self._cnfg['sequence'] == 'SS':
-            self._Sc = sig.signal_ss(p['S0_c'], self._R1c, p['TR'], p['B1corr'] * p['FA'])
-            self._Sm = sig.signal_ss(p['S0_m'], self._R1m, p['TR'], p['B1corr'] * p['FA'])
-        elif self._cnfg['sequence'] == 'lin':
-            self._Sc = sig.signal_lin(p['S0_c'], self._R1c)
-            self._Sm = sig.signal_lin(p['S0_m'], self._R1m)
+        seq = self._cnfg['sequence']
+        self._Sc = sig.Signal(seq, **p)(R1=self._R1c, TE=0)
+        self._Sm = sig.Signal(seq, **p)(R1=self._R1m, TE=0)
 
     def _set_time(self):
         p = self._pars
@@ -148,37 +121,28 @@ class KidneyCortMed(SuperModel):
     # Inverse Model: Training
     # ==========================================
     
-    def _estimate_parameters(self, signal: np.ndarray, n0: int, aif: dict):
+    def _estimate_parameters(self, signal: np.ndarray, n0: int, aif: Input):
         p = self._pars
-        if self._cnfg['sequence'] == 'SR':
-            fa_t = p['B1corr'] * p['FA']
-            Scref = sig.signal_spgr(1, p['R10_c'], p['TC'], p['TR'], fa_t, p['TP'])
-            Smref = sig.signal_spgr(1, p['R10_m'], p['TC'], p['TR'], fa_t, p['TP'])
-        elif self._cnfg['sequence'] == 'SS':
-            fa_t = p['B1corr'] * p['FA']
-            Scref = sig.signal_ss(1, p['R10_c'], p['TR'], fa_t)
-            Smref = sig.signal_ss(1, p['R10_m'], p['TR'], fa_t)
-        elif self._cnfg['sequence'] == 'lin':
-            Scref = sig.signal_lin(1, p['R10_c'])
-            Smref = sig.signal_lin(1, p['R10_m'])
+        seq = self._cnfg['sequence']
 
-        p['S0_c'] = np.mean(signal[0][:n0]) / Scref if Scref > 0 else 0
-        p['S0_m'] = np.mean(signal[1][:n0]) / Smref if Smref > 0 else 0
+        # Estimate S0
+        s_ref_c = sig.Signal(seq, **p)(R1=p['R10_c'], S0=1, TE=0)
+        s_ref_m = sig.Signal(seq, **p)(R1=p['R10_m'], S0=1, TE=0)
+        p['S0_c'] = np.mean(signal[0][:n0]) / s_ref_c if s_ref_c > 0 else 0
+        p['S0_m'] = np.mean(signal[1][:n0]) / s_ref_m if s_ref_m > 0 else 0
 
         if aif is not None:
-            r1 = lib.relaxivity(p['field_strength'], 'blood', p['agent'])
-            if self._cnfg['sequence'] == 'SR':
-                fa_a = aif['B1corr'] * p['FA']
-                ca = sig.conc_spgr(aif['signal'], p['TC'], p['TR'], fa_a, p['TP'], 1/aif['R10'], r1)
-            elif self._cnfg['sequence'] == 'SS':
-                fa_a = aif['B1corr'] * p['FA']
-                ca = sig.conc_ss(aif['signal'], p['TR'], fa_a, 1/aif['R10'], r1, n0)
-            elif self._cnfg['sequence'] == 'lin':
-                ca = sig.conc_lin(aif['signal'], 1/aif['R10'], r1, n0)
-            uniform_time = np.arange(0, np.max(aif['time']) + p['TS'] + p['dt'], p['dt'])
-            p['c_a'] = np.interp(uniform_time, aif['time'], ca)
+            rp = lib.relaxivity(p['field_strength'], 'blood', p['agent'])
+            ca = SignalToConc(seq, **p)(
+                aif.signal, S0=None, R1=aif.R10, n0=n0, 
+                B1corr=aif.B1corr, r1=rp,
+            )
+            p['c_a'] = np.interp(self._t, aif.time, ca)
 
-    def _train(self, time, signal, free, bounds, n0, aif, **kwargs) -> Tuple[dict, dict, np.ndarray]:
+    def _train(
+        self, time, signal, free, bounds, n0, aif, **kwargs
+    ) -> Tuple[dict, dict, np.ndarray]:
+        
         self._estimate_parameters(signal, n0, aif)
         free = self._set_free_pars(free, bounds)
         return utils.train(self._predict, time, signal, self._pars, free, **kwargs)
@@ -218,36 +182,53 @@ class KidneyCortMed(SuperModel):
     # Public API
     # ==========================================
 
-    def time(self) -> Tuple[np.ndarray, np.ndarray]:
+    def time(self) -> dict:
         """Cortex and medulla signal times"""
         self._set_time()
-        return self._t, self._t
+        return {
+            'cort': self._t, 
+            'med': self._t,
+        }
 
-    def conc(self) -> Tuple[np.ndarray, np.ndarray]:
+    def conc(self) -> dict:
         """Returns cortex and medulla concentrations."""
         self._compute_concentration()
-        return self._Cc, self._Cm
+        return {
+            'cort': self._Cc, 
+            'med': self._Cm,
+        }
 
-    def relax(self) -> Tuple[np.ndarray, np.ndarray]:
+    def relax(self) -> dict:
         """Returns cortex and medulla relaxation rates (R1)."""
         self._compute_relaxation_rate()
-        return self._R1c, self._R1m
+        return {
+            'cort': self._R1c, 
+            'med': self._R1m,
+        }
 
-    def signal(self) -> Tuple[np.ndarray, np.ndarray]:
+    def signal(self) -> dict:
         """Returns cortex and medulla signal."""
         self._compute_signal()
-        return self._Sc, self._Sm
+        return {
+            'cort': self._Sc, 
+            'med': self._Sm,
+        }
 
-    def predict(self, time: tuple) -> Tuple[np.ndarray, np.ndarray]:
+    def predict(self, time: dict) -> dict:
         """Predicts cortex and medulla signal at specific time points."""
+        time = (time['cort'], time['med'])
         self._set_time()
         if max(self._t) < np.max(np.concatenate(time)) + self._pars['TS']:
             raise ValueError(f'The largest time point that can be predicted with the current AIF is {max(self._t)/60} mins.')
-        return self._predict(time)
+        signal = self._predict(time)
+        return {
+            'cort': signal[0],
+            'med': signal[1],
+        }
     
     def train(
-        self, time: tuple, signal: tuple, free: dict=None, 
-        bounds:dict=None, n0=1, aif:dict=None, **kwargs
+        self, time: tuple, signal: tuple, aif:Input=None, 
+        free: dict=None, bounds:dict=None, n0=1, **kwargs
     ) -> Tuple[dict, dict, np.ndarray]:
         """Train the free parameters
 
@@ -265,6 +246,8 @@ class KidneyCortMed(SuperModel):
         Returns:
             vals, sdev, pcov: Values, standard deviations and covariance matrix of free parameters
         """
+        time = (time['cort'], time['med'])
+        signal = (signal['cort'], signal['med'])
         self._set_time()
         if max(self._t) < np.max(np.concatenate(time)) + self._pars['TS']:
             raise ValueError(f'The largest time point that can be predicted with the current AIF is {max(self._t)/60} mins.')
@@ -281,4 +264,35 @@ class KidneyCortMed(SuperModel):
             fname (path, optional): Filepath to save the image. If no value is provided, the image is not saved. Defaults to None.
             show (bool, optional): If True, the plot is shown. Defaults to True.
         """
+        time = (time['cort'], time['med'])
+        signal = (signal['cort'], signal['med'])
         self._plot(time, signal, xlim, fname, show)
+
+    def cost(self, time: np.ndarray, signal: np.ndarray, metric: str = 'NRMS', nfree=None) -> float:
+        """Return the goodness-of-fit
+
+        Args:
+            time (np.ndarray): array with time points
+            signal (array-like): array with signal data for all pixels.
+            metric (str, optional): Which metric to use (see notes for 
+                possible values). Defaults to 'NRMS'.
+
+        Returns:
+            float: goodness of fit.
+
+        Notes:
+
+            Available options are: 
+            
+            - 'RMS': Root-mean-square.
+            - 'NRMS': Normalized root-mean-square. 
+            - 'AIC': Akaike information criterion. 
+            - 'cAIC': Corrected Akaike information criterion for small 
+                models.
+            - 'BIC': Baysian information criterion.
+        """
+        time = (time['cort'], time['med'])
+        signal = np.concatenate((signal['cort'], signal['med']))
+        signal_pred = np.concatenate(self._predict(time))
+        cost = utils.loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
+        return cost[0]

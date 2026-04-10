@@ -19,7 +19,7 @@ else:
 
 def test_coverage():
 
-    for seq in ['SR', 'SS', 'lin']:
+    for seq in dc.TissueLS.configs['sequence']:
         model = dc.TissueLS(sequence=seq)
         time = model.time()
         signal = model.predict(time)

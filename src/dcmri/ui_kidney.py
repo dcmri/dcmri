@@ -4,9 +4,10 @@ from typing import Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri import lib, kidney, sig, utils, pk
-from dcmri.ui import SuperModel
-from dcmri.lexicon import LEXICON
+from dcmri.signal_to_conc import SignalToConc
+from dcmri import lib, kidney, sig, utils
+from dcmri.ui import SuperModel, Input
+from dcmri.lexicon import SEQUENCES
 
 
 class Kidney(SuperModel):
@@ -20,8 +21,8 @@ class Kidney(SuperModel):
           Options are '2CF' (Two-compartment filtration) and 'HF' 
           (High-flow). Defaults to '2CF'. 
         sequence (str, optional): imaging sequence model. Possible 
-          values are 'SS' (steady-state), 'SR' (saturation-recovery), 
-          and 'lin' (linear). Defaults to 'SS'.
+          values are '3D-SPGR-SS' (steady-state), 'SR' (saturation-recovery), 
+          and 'lin' (linear). Defaults to '3D-SPGR-SS'.
         params (dict, optional): values for the model parameters,
           specified as keyword parameters. Defaults are used for any 
           that are not provided. See table 
@@ -217,42 +218,32 @@ class Kidney(SuperModel):
 
     """
 
-    def __init__(self, kinetics='2CF', sequence='SS', **params):
-        
-        # Check configuration
-        if kinetics not in ['2CF', 'HF']:
-            raise ValueError(f"Kinetic model {kinetics} is not available.")
-        if sequence not in ['SS', 'SR', 'lin']:
-            raise ValueError(f"Sequence {sequence} is not available.")
-        
-        # Config
+    configs = {
+        'kinetics': ['2CF', 'HF'],
+        'sequence': ['3D-SPGR-SS', '2D-SR-SPGR-SS'],
+    }
+
+    def __init__(
+        self, kinetics='2CF', sequence='3D-SPGR-SS', **params
+    ):
         self._version = '1.0'
-        self._cnfg = {'kinetics': kinetics, 'sequence': sequence}
-        self._pars = {p: deepcopy(LEXICON[p]['init']) for p in self._pars_list()}
-
-        # Override defaults with user-provided parameters
-        for p, val in params.items():
-            if p in self._pars:
-                self._pars[p] = val
-            else:
-                raise ValueError(f"'{p}' is not a valid parameter for this configuration.")
-
+        cnfg = {'kinetics': kinetics, 'sequence': sequence}
+        self._cnfg = self._set_config(**cnfg)
+        self._pars = self._set_pars(**params)
     
-    def _pars_list(self, select=None):
-        pars_kin = list(kidney.params_kidney(self._cnfg['kinetics']).keys())
-        pars_seq = {
-            'SR': ['B1corr', 'FA', 'TR', 'TC', 'TP', 'TS'],
-            'SS': ['B1corr', 'FA', 'TR', 'TS'],
-            'lin': ['TS'],
-        }[self._cnfg['sequence']]
+    def _params(self, select=None):
+        pars_kin = kidney.Conc(self._cnfg['kinetics'])._params()
+        seq = self._cnfg['sequence']
+        pars_seq = SEQUENCES[seq]['parameters']['prep']
+        pars_seq += SEQUENCES[seq]['parameters']['read']
 
         if select is None:
             pars_list = [
                 'c_a', 'dt', 'field_strength', 'agent',
-                'H', 'T_a', 'S0', 'R10',
+                'H', 'S0', 'R10', 'TS',
             ]
             pars_list += pars_kin + pars_seq
-        elif select=='free':
+        elif select=='all free':
             pars_list = pars_kin
         return pars_list
 
@@ -262,17 +253,8 @@ class Kidney(SuperModel):
 
     def _compute_concentration(self):
         p = self._pars
-        ca = pk.flux(p['c_a'], p['T_a'], dt=p['dt'], model='plug')
-        if self._cnfg['kinetics'] == '2CF':
-            self._C = kidney.conc_kidney(
-                ca / (1 - p['H']), p['Fp'], p['vp'], p['FF'] * p['Fp'], 
-                p['Tt'], dt=p['dt'], sum=False, kinetics='2CF',
-            )
-        elif self._cnfg['kinetics'] == 'HF':
-           self._C = kidney.conc_kidney(
-                ca / (1 - p['H']), p['vp'], p['Ft'], p['Tt'],
-                dt=p['dt'], sum=False, kinetics='HF',
-            )
+        ca = p['c_a'] / (1 - p['H'])
+        self._C = kidney.Conc(self._cnfg['kinetics'], **p)(ca, dt=p['dt'])
         
     def _compute_relaxation_rate(self):
         self._compute_concentration()
@@ -283,13 +265,8 @@ class Kidney(SuperModel):
     def _compute_signal(self):
         self._compute_relaxation_rate()
         p = self._pars
-
-        if self._cnfg['sequence'] == 'SR':
-            self._S = sig.signal_spgr(p['S0'], self._R1, p['TC'], p['TR'], p['B1corr'] * p['FA'], p['TP'])
-        elif self._cnfg['sequence'] == 'SS':
-            self._S = sig.signal_ss(p['S0'], self._R1, p['TR'], p['B1corr'] * p['FA'])
-        elif self._cnfg['sequence'] == 'lin':
-            self._S = sig.signal_lin(p['S0'], self._R1)
+        seq = self._cnfg['sequence']
+        self._S = sig.Signal(seq, **p)(R1=self._R1, TE=0)
 
     def _set_time(self):
         p = self._pars
@@ -304,31 +281,26 @@ class Kidney(SuperModel):
     # Inverse Model: Training
     # ==========================================
 
-    def _estimate_parameters(self, signal: np.ndarray, n0: int, aif: dict):
+    def _estimate_parameters(self, signal: np.ndarray, n0: int, aif: Input):
         p = self._pars
-
+        seq = self._cnfg['sequence']
+        
         # Estimate S0
-        if self._cnfg['sequence'] == 'SR':
-            Sref = sig.signal_spgr(1, p['R10'], p['TC'], p['TR'], p['B1corr'] * p['FA'], p['TP'])
-        elif self._cnfg['sequence'] == 'SS':
-            Sref = sig.signal_ss(1, p['R10'], p['TR'], p['B1corr'] * p['FA'])
-        elif self._cnfg['sequence'] == 'lin':
-            Sref = sig.signal_lin(1, p['R10'])
-        p['S0'] = np.mean(signal[:n0]) / Sref if Sref > 0 else 0
+        s_ref = sig.Signal(seq, **p)(R1=p['R10'], S0=1, TE=0)
+        p['S0'] = np.mean(signal[:n0]) / s_ref if s_ref > 0 else 0
 
         if aif is not None:
-            r1 = lib.relaxivity(p['field_strength'], 'blood', p['agent'])
-            if self._cnfg['sequence'] == 'SR':
-                ca = sig.conc_spgr(aif['signal'], p['TC'], p['TR'], aif['B1corr'] * p['FA'], p['TP'], 1/aif['R10'], r1)
-            elif self._cnfg['sequence'] == 'SS':
-                ca = sig.conc_ss(aif['signal'], p['TR'], aif['B1corr'] * p['FA'], 1/aif['R10'], r1, n0)
-            elif self._cnfg['sequence'] == 'lin':
-                ca = sig.conc_lin(aif['signal'], 1/aif['R10'], r1, n0)
-            uniform_time = np.arange(0, np.max(aif['time']) + p['TS'] + p['dt'], p['dt'])
-            p['c_a'] = np.interp(uniform_time, aif['time'], ca)
+            rp = lib.relaxivity(p['field_strength'], 'blood', p['agent'])
+            ca = SignalToConc(seq, **p)(
+                aif.signal, S0=None, R1=aif.R10, n0=n0, 
+                B1corr=aif.B1corr, r1=rp,
+            )
+            p['c_a'] = np.interp(self._t, aif.time, ca)
 
-    def _train(self, time: np.ndarray, signal: np.ndarray, aif: dict, 
-               free: dict, bounds: dict, n0: int, **kwargs):
+    def _train(
+        self, time: np.ndarray, signal: np.ndarray, aif: Input, 
+        free: dict, bounds: dict, n0: int, **kwargs,
+    ):
         self._estimate_parameters(signal, n0, aif)
         free = self._set_free_pars(free, bounds)
         return utils.train(self._predict, time, signal, self._pars, free, **kwargs)
@@ -397,7 +369,7 @@ class Kidney(SuperModel):
         return self._predict(time)
     
     def train(
-        self, time: np.ndarray, signal: np.ndarray, aif: dict=None, 
+        self, time: np.ndarray, signal: np.ndarray, aif: Input=None, 
         free: dict=None, bounds: dict=None, n0=1, **kwargs
     ) -> Tuple[dict, dict, np.ndarray]:
         """Train the free parameters
@@ -436,3 +408,30 @@ class Kidney(SuperModel):
             show (bool, optional): If True, the plot is shown. Defaults to True.
         """
         self._plot(time, signal, xlim, fname, show)
+
+    def cost(self, time: np.ndarray, signal: np.ndarray, metric: str = 'NRMS', nfree=None) -> float:
+        """Return the goodness-of-fit
+
+        Args:
+            time (np.ndarray): array with time points
+            signal (array-like): array with signal data for all pixels.
+            metric (str, optional): Which metric to use (see notes for 
+                possible values). Defaults to 'NRMS'.
+
+        Returns:
+            float: goodness of fit.
+
+        Notes:
+
+            Available options are: 
+            
+            - 'RMS': Root-mean-square.
+            - 'NRMS': Normalized root-mean-square. 
+            - 'AIC': Akaike information criterion. 
+            - 'cAIC': Corrected Akaike information criterion for small 
+                models.
+            - 'BIC': Baysian information criterion.
+        """
+        signal_pred = self._predict(time)
+        cost = utils.loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
+        return cost[0]

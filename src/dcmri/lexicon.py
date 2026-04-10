@@ -2,8 +2,9 @@ from types import MappingProxyType
 
 import numpy as np
 
-from dcmri import pk_aorta
+
 from dcmri import pk
+from dcmri import pk_lib
 
 
 MZ_PREP = {
@@ -192,6 +193,15 @@ SEQUENCES = {
             'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
         },
     },
+    '3D-PR-SS': {
+        'mz_prep_tissue': 'PR-SS',
+        'mz_prep_inflow': 'PR-SS',
+        'type': 'DCE',
+        'steady-state': False,
+        'parameters': {
+            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+        },
+    },
     '2D-SPGR': {
         'mz_prep_tissue': 'SPGR',
         'mz_prep_inflow': 'Eq',
@@ -279,7 +289,7 @@ for seq, props in SEQUENCES.items():
 # ---- Initial Values ----
 dt_init, tmax_init = 0.5, 240
 t_init = np.arange(0, tmax_init, dt_init, dtype=float)
-ca_init = pk_aorta.aif_tristan(t_init, agent='gadodiamide', BAT=20)
+ca_init = pk_lib.aif_tristan(t_init, agent='gadodiamide', BAT=20)
 cv_init = pk.flux_pfcomp(ca_init, 10, 0.5)
 
 
@@ -291,17 +301,17 @@ LEXICON = MappingProxyType(  # This makes the dict immutable
     'tmax': {'init': tmax_init, 'name': 'Max time', 'unit': 's'},
 
     # --- Injection & Contrast Agent ---
-    'r1': {'init': 3500, 'name': 'Longitudinal contrast agent relaxivity', 'unit': 'Hz/M'},
-    'r2': {'init': 4000, 'name': 'Transverse contrast agent relaxivity', 'unit': 'Hz/M'},
-    'r2s': {'init': 20000, 'name': 'Transverse contrast agent relaxivity', 'unit': 'Hz/M'},
-    'r2s_quad': {'init': 1000, 'name': 'Quadratic transverse contrast agent relaxivity', 'unit': 'Hz/M^2'},
-    'r2s_vasc': {'init': 20000, 'name': 'Vacular transverse contrast agent relaxivity', 'unit': 'Hz/M'},
-    'r2s_ees': {'init': 20000, 'name': 'Extravascular, extracellular transverse contrast agent relaxivity', 'unit': 'Hz/M'},
+    'r1': {'init': 3500, 'bounds': [0, 1e4], 'name': 'Longitudinal contrast agent relaxivity', 'unit': 'Hz/M'},
+    'r2': {'init': 4000, 'bounds': [0, 1e4], 'name': 'Transverse contrast agent relaxivity', 'unit': 'Hz/M'},
+    'r2s': {'init': 20000, 'bounds': [0, 1e5], 'name': 'Transverse contrast agent relaxivity', 'unit': 'Hz/M'},
+    'r2s_quad': {'init': 1000, 'bounds': [0, 1e4], 'name': 'Quadratic transverse contrast agent relaxivity', 'unit': 'Hz/M^2'},
+    'r2s_vasc': {'init': 20000, 'bounds': [0, 1e5], 'name': 'Vacular transverse contrast agent relaxivity', 'unit': 'Hz/M'},
+    'r2s_ees': {'init': 20000, 'bounds': [0, 1e5], 'name': 'Extravascular, extracellular transverse contrast agent relaxivity', 'unit': 'Hz/M'},
     'agent': {'init': 'gadoterate', 'name': 'Contrast agent', 'unit': None},
-    'weight': {'init': 70, 'name': 'Weight', 'unit': 'kg'},
-    'dose': {'init': 0.1, 'name': 'Dose', 'unit': 'mL/kg'},
-    'dose2': {'init': 0.05, 'name': 'Second contrast agent dose', 'unit': 'mL/kg'},
-    'rate': {'init': 1, 'name': 'Injection rate', 'unit': 'mL/s'},
+    'weight': {'init': 70, 'bounds': [0, 300], 'name': 'Weight', 'unit': 'kg'},
+    'dose': {'init': 0.1, 'bounds': [0, 0.2], 'name': 'Dose', 'unit': 'mL/kg'},
+    'dose2': {'init': 0.05, 'bounds': [0, 0.2], 'name': 'Second contrast agent dose', 'unit': 'mL/kg'},
+    'rate': {'init': 1, 'bounds': [0, 10], 'name': 'Injection rate', 'unit': 'mL/s'},
     'BAT': {'init': 60, 'bounds': [-30, 30], 'name': 'Bolus arrival time', 'unit': 's', 'bounds_type': 'add'},
     'BAT2': {'init': 120 + 60, 'bounds': [-60.0, 60.0], 'name': 'Second bolus arrival time', 'unit': 'sec', 'bounds_type': 'add'},
 
@@ -415,8 +425,8 @@ LEXICON = MappingProxyType(  # This makes the dict immutable
     'E_f': {'init': 0.1, 'bounds': [0.0, 1.0], 'name': 'Final extraction fraction', 'unit': ''},
 
     'Ti': {'name': 'Interstitial mean transit time', 'unit': 'sec'},
-    'Tp': {'name': 'Plasma mean transit time', 'unit': 'sec'},
-    'Tb': {'name': 'Blood mean transit time', 'unit': 'sec'},
+    'Tp': {'init': 5, 'bounds': [0, 30], 'name': 'Plasma mean transit time', 'unit': 'sec'},
+    'Tb': {'init': 5, 'bounds': [0, 30], 'name': 'Blood mean transit time', 'unit': 'sec'},
     
     # --- Kidney Kinetics ---
     'FF': {'init': 0.1, 'bounds': [0, 0.3], 'name': 'Filtration fraction', 'unit': ''},
@@ -430,7 +440,6 @@ LEXICON = MappingProxyType(  # This makes the dict immutable
     'Tlh': {'init': 60, 'bounds': [0, 180], 'name': 'Lis of Henle mean transit time', 'unit': 'sec'},
     'Tdt': {'init': 30, 'bounds': [0, 180], 'name': 'Distal tubuli mean transit time', 'unit': 'sec'},
     'Tcd': {'init': 30, 'bounds': [0, 180], 'name': 'Collecting duct mean transit time', 'unit': 'sec'},
-    'Ft': {'init': 0.004, 'bounds': [0, 0.01], 'name': 'Tubular flow', 'unit': 'mL/sec/cm3'},
     'GFR': {'init': 2, 'bounds': [0, 10], 'name': 'Glomerular filtration rate', 'unit': 'mL/sec'},
     'CBF': {'init': 0.04, 'bounds': [0, 0.1], 'name': 'Cortical blood flow', 'unit': 'mL/sec/cm3'},
     'MBF': {'init': 0.004, 'bounds': [0, 0.1], 'name': 'Medullary blood flow', 'unit': 'mL/sec/cm3'},
@@ -443,7 +452,7 @@ LEXICON = MappingProxyType(  # This makes the dict immutable
     'SKBF': {'init': 20, 'bounds': [0, 100], 'name': 'Single-kidney blood flow', 'unit': 'mL/sec'},
     'SKMBF': {'init': 2, 'bounds': [0, 10], 'name': 'Single-kidney medullary blood flow', 'unit': 'mL/sec'},
     # Left kidney
-    'Ta_lk': {'init': 0, 'bounds': [0, 3], 'name': 'Left kidney arterial mean transit time', 'unit': 'sec'},
+    'T_a_lk': {'init': 0, 'bounds': [0, 3], 'name': 'Left kidney arterial mean transit time', 'unit': 'sec'},
     'vp_lk': {'init': 0.15, 'bounds': [0, 0.3], 'name': 'Left kidney plasma volume', 'unit': 'mL/cm3'},
     'Tt_lk': {'init': 120, 'bounds': [0, 600], 'name': 'Left kidney tubular mean transit time', 'unit': 'sec'},
     'RPF_lk': {'name': 'Left kidney plasma flow', 'unit': 'mL/sec'},
@@ -455,7 +464,7 @@ LEXICON = MappingProxyType(  # This makes the dict immutable
     'FF_lk': {'name': 'Left kidney filtration fraction', 'unit': ''},
     'E_lk': {'name': 'Left kidney extraction fraction', 'unit': ''},
     # Right kidney
-    'Ta_rk': {'init': 0, 'bounds': [0, 3], 'name': 'Right kidney arterial mean transit time', 'unit': 'sec'},
+    'T_a_rk': {'init': 0, 'bounds': [0, 3], 'name': 'Right kidney arterial mean transit time', 'unit': 'sec'},
     'vp_rk': {'init': 0.15, 'bounds': [0, 0.3], 'name': 'Right kidney plasma volume', 'unit': 'mL/cm3'},
     'Tt_rk': {'init': 120, 'bounds': [0, 600], 'name': 'Right kidney tubular mean transit time', 'unit': 'sec'},
     'RPF_rk': {'name': 'Right kidney plasma flow', 'unit': 'mL/sec'},

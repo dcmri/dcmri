@@ -252,9 +252,9 @@ from copy import deepcopy
 import matplotlib.pyplot as plt
 import numpy as np
 from joblib import Parallel, delayed
-from itertools import product
 
-from dcmri import utils, ui, tissue, lib, rel
+
+from dcmri import utils, ui, tissue, rel
 from dcmri.lexicon import LEXICON
 import dcmri.lexicon_utils as lexicon
 from dcmri.signal_to_conc import SignalToConc
@@ -297,105 +297,113 @@ class Tissue(ui.SuperModel):
         # 
         # Signals can be provided as 1D (nt), 2D (nx, nt), 3D (nx, ny, nt) 
         # or 4D (nx, ny, nz, nt). Internally they are converted to 
-        # 2D (n_samples, n_times) or 3D (n_samples, n_times, n_acquisitions) 
+        # 2D (n_pixels, n_times) or 3D (n_pixels, n_times, n_acquisitions) 
         # and then converted back to original shapes 
         # before returning to the user.
 
         # First we check if the user has provided a shape, either 
         # directly or indirectly.
 
-        self._samples_shape: tuple = None
+        self._pixels_shape: tuple = None
 
         # Get the non-scalar shapes from any user-defined pixel parameters
-        shapes = [np.array(p).shape for p in params if p in self._params('sample')]
+        shapes = [np.array(p).shape for p in params if p in self._params('pixel')]
         shapes = [s for s in shapes if np.prod(s) > 1]
         if len(set(shapes)) > 1:
             # Raise if more than 1 non-scalar shape is present
-            raise ValueError(f"Pixel-based parameters {self._params('sample')} must all have the same shape, or be scalars.")
+            raise ValueError(f"Pixel-based parameters {self._params('pixel')} must all have the same shape, or be scalars.")
         if len(shapes) == 0: 
             # No pixel-parameters provided - take the user defined shape
-            self._samples_shape = shape
+            self._pixels_shape = shape
         elif shape is None:
             # Pixel-parameters but no shape provided - take from pixel parameters
-            self._samples_shape = shapes[0]
+            self._pixels_shape = shapes[0]
         elif shape != shapes[0]:
             # Both pixel-parameters and shape provided - check agreement
-            raise ValueError(f"Shape provided is inconsistent with shapes of pixel-parameters {self._params('sample')} provided.")
+            raise ValueError(f"Shape provided is inconsistent with shapes of pixel-parameters {self._params('pixel')} provided.")
         else:
             # Both are provided and in agreement - pick one
-            self._samples_shape = shapes[0]
+            self._pixels_shape = shapes[0]
 
         # If the user has not provided a shape directly or indirectly, 
         # we revert to the default (scalar)
-        if self._samples_shape is None:
-            self._samples_shape = ()
+        if self._pixels_shape is None:
+            self._pixels_shape = ()
 
         # Convert all pixel parameters to flat 1D arrays
-        for p in self._params('sample'):
+        for p in self._params('pixel'):
             if np.isscalar(self._pars[p]):
                 self._pars[p] = np.array([self._pars[p]])
             else:
                 self._pars[p] = np.array(self._pars[p]).reshape(-1)
 
         # Pixel parameters are silently converted to full arrays if needed
-        for p in self._params('sample'):
+        for p in self._params('pixel'):
             if self._pars[p].size == 1:
                 self._pars[p] = np.full(self._shape[0], self._pars[p][0])
-
-        # Add any derived parameters
-        self._pars['r1'] = lib.relaxivity(self._pars['field_strength'], 'blood', self._pars['agent'])
     
     @property
     def _shape(self):
-        n_samples = 1 if self._samples_shape==() else np.prod(self._samples_shape)
+        n_pixels = 1 if self._pixels_shape==() else np.prod(self._pixels_shape)
         n_times = self._pars['c_a'].size
         if self._cnfg['sequence'] in ['DE-EPI']:
             n_channels = 2
         else:
             n_channels = 1
-        return (n_samples, n_channels, n_times)
+        return (n_pixels, n_channels, n_times)
 
     
-    def _params(self, select='all'):
+    def _params(self, select=None):
+        if select is None:
+            select = 'all'
         kin, wex, seq, t2s = self._cnfg['kinetics'], self._cnfg['water_exchange'], self._cnfg['sequence'], self._cnfg['transverse_relaxation']
 
-        params_signal_tissue = tissue.Signal(kin, wex, seq, t2s)._params()
-        params_relax_tissue = tissue.R1(kin, wex)._params()
-        params_conc_tissue = tissue.Conc(kin)._params()
-        all_kinetic_pars = list(set(params_conc_tissue + params_relax_tissue))
-
-        pars_list = {
-            'all': params_signal_tissue + [
-                'c_a', 'dt', 'field_strength', 'agent', 'TS',
-                'R10', 'R10_a',
-            ],
-            'free': [f for f in params_relax_tissue if f not in ['H', 'r1']], 
-            'sample': [f for f in all_kinetic_pars if f not in ['H', 'r1']] + ['S0', 'R10', 'B1corr'],
-        }
-        return pars_list[select]
+        if select == 'all':
+            return tissue.Signal(kin, wex, seq, t2s)._params() + ['c_a', 'dt', 'TS']
+        
+        elif select == 'pixel': # pixel-based parameters
+            pars = (
+                + tissue.ContrastConc(kin)._params()
+                + tissue.WaterVolumes(kin, wex)._params()
+                + tissue.WaterFlows(kin, wex)._params()
+                + ['R10', 'R20', 'R20s', 'r2s', 'r2s_quad', 'r2s_vasc', 'r2s_ees']
+                + ['S0', 'B1corr', 'noise_sdev']
+            )
+            return [p for p in list(set(pars)) if p != 'H' and p in self._params()]
+        
+        elif select == 'all free': # default free parameters (subset of ppixel)
+            pars = (
+                tissue.Conc(kin)._params()
+                + tissue.WaterConc(kin, wex)._params()
+                + tissue.ContrastConc(kin)._params()
+                + tissue.WaterVolumes(kin, wex)._params()
+                + tissue.WaterFlows(kin, wex)._params()
+                + ['r2s_vasc', 'r2s_ees']
+            )
+            return [p for p in list(set(pars)) if p != 'H' and p in self._params()]
     
     
     # ==========================================
     # Forward Model
     # ==========================================
 
-    def _signal(self, x=None) -> np.ndarray: # (n_samples, n_channels, n_times)
+    def _signal(self, x=None) -> np.ndarray: # (n_pixels, n_channels, n_times)
         p = self._pars
 
-        def sample_signal(x) -> np.ndarray: # (n_channels, n_times)
-            kwargs_x = self._cnfg | self._sample_pars(x)
+        def pixel_signal(x) -> np.ndarray: # (n_channels, n_times)
+            kwargs_x = self._cnfg | self._pixel_pars(x)
             S = tissue.Signal(**kwargs_x)(p['c_a'])
             return S.reshape(-1, S.shape[-1])  # (n_channels, n_times)
         
         if x is None:
             if self._shape[0]==1:
-                results = [sample_signal(0)]
+                results = [pixel_signal(0)]
             else:
-                results = Parallel(n_jobs=-1)(delayed(sample_signal)(x) for x in range(self._shape[0]))
+                results = Parallel(n_jobs=-1)(delayed(pixel_signal)(x) for x in range(self._shape[0]))
         else: 
-            results = [sample_signal(x)]
+            results = [pixel_signal(x)]
         
-        return np.stack(results) # (n_samples, n_channels, n_times)
+        return np.stack(results) # (n_pixels, n_channels, n_times)
 
     def _time(self):
         p = self._pars
@@ -403,29 +411,29 @@ class Tissue(ui.SuperModel):
 
     def _predict(self, time, x=None):
         t = self._time()
-        s = self._signal(x) # (n_samples, n_channels, n_times)
+        s = self._signal(x) # (n_pixels, n_channels, n_times)
         p = self._pars
         n_channels = s.shape[1]
         readouts = [utils.sample(time, t, s[:,i,:], p['TS']) for i in range(n_channels)]
-        return np.stack(readouts, axis=1) # (n_samples, n_channels, n_times)
+        return np.stack(readouts, axis=1) # (n_pixels, n_channels, n_times)
         
     # ==========================================
     # Inverse Model: Training
     # ==========================================
 
     def _estimate_parameters(self, signal: np.ndarray, aif: ui.Input, n0: int):
-        # signal (n_samples, n_channels, n_times)
+        # signal (n_pixels, n_channels, n_times)
         p = self._pars
         
         def s0_pixel(x):
-            kwargs_x = self._cnfg | self._sample_pars(x)
+            kwargs_x = self._cnfg | self._pixel_pars(x)
             s_ref = tissue.Signal(**kwargs_x)([0], S0=1).flatten()
             s_avr = np.mean(signal[x, :, :n0], axis=-1) 
             S0 = np.divide(s_avr, s_ref, out=np.zeros_like(s_avr), where=s_ref != 0)
             return S0
 
-        S0 = np.stack([s0_pixel(x) for x in range(self._shape[0])]) # n_samples, n_channels
-        p['S0'] = np.mean(S0, axis=1)  # n_samples - average over channels
+        S0 = np.stack([s0_pixel(x) for x in range(self._shape[0])]) # n_pixels, n_channels
+        p['S0'] = np.mean(S0, axis=1)  # n_pixels - average over channels
 
         if aif is not None:
             seq = self._cnfg['sequence']
@@ -438,106 +446,28 @@ class Tissue(ui.SuperModel):
     def _train(
         self, time: np.ndarray, signal: np.ndarray, 
         aif: ui.Input, free: dict, bounds: dict, 
-        n0: int, modsel: str, **kwargs
+        n0: int, configs: list, select: str, **kwargs
     ):
         self._estimate_parameters(signal, aif, n0)
         #return None, None, None
         free = self._set_free_pars(free, bounds)
 
-        # for n_samples > 1, free params must be a subset of pixel - check this
+        # for n_pixels > 1, free params must be a subset of pixel - check this
         if self._shape[0] > 1:
-            pixel_pars = self._params('sample')
+            pixel_pars = self._params('pixel')
             if not set(free.keys()).issubset(set(pixel_pars)):
                 raise ValueError('For a pixel-based analysis, only pixel-based parameters can be free.')
         
-        # No model selection - parallellize over pixels
-        if modsel is None:
-            results = self._train_all_samples(time, signal, free, **kwargs)
+        # No model selection
+        if configs is None:
+            results = utils.train_batch(self._predict, time, signal, self._pars, free, **kwargs)
 
-        # Model selection with 1 sample - parallellize over models
-        elif self._shape[0]==1:
-            results = [self._train_pixel_all_models(time, signal, free, modsel, 0, parallel=True, **kwargs)]
-
-        # Model selection with multiple samples - parallellize over samples
+        # Model selection
         else:
-            results = Parallel(n_jobs=-1)(
-                delayed(self._train_pixel_all_models)(
-                    time, signal, free, modsel, x, parallel=False,
-                ) for x in range(self._shape[0])
-            )
+            results = self._train_batch_configurations(time, signal, free, configs, select, **kwargs)
 
-        vals = {p: np.stack([r[0][p] for r in results]) for p in free}
-        sdev = {p: np.stack([r[1][p] for r in results]) for p in free}
-        pcov = np.stack([r[2] for r in results]).reshape(self._shape[0], len(free), len(free))
-
-        return vals, sdev, pcov
-    
-    def _train_pixel_all_models(self, time, signal, free: dict, metric, x, parallel=True, **kwargs):
-
-        def train_pixel_single_model(kinetics=None, water_exchange=None):
-
-            # Store original configuration
-            kinetics_orig, water_exchange_orig = self._cnfg['kinetics'], self._cnfg['water_exchange']
-
-            # Check if the sub-model is nested
-            pars_relax_topmodel = tissue.R1(kinetics_orig, water_exchange_orig).params()
-            pars_relax_submodel = tissue.R1(kinetics, water_exchange).params()
-            if not set(pars_relax_submodel).issubset(pars_relax_topmodel):
-                return None
-
-            # Identify the free parameters of the sub-model
-            free_relax_submodel = {k: v for k, v in free.items() if k in pars_relax_submodel}
-            free_norelax = {k: v for k, v in free.items() if k not in pars_relax_topmodel}
-            free_submodel = free_norelax | free_relax_submodel
-
-            # Set configuration to sub-model
-            self._cnfg['kinetics'], self._cnfg['water_exchange'] = kinetics, water_exchange
-            
-            # Train single pixel to submodel
-            result = utils.train(self._predict, time, signal[x,:], self._pars, free_submodel, x, reset=True, **kwargs)
-            
-            # Compute cost
-            s_pred = self._predict(time, x)
-            cost = utils.loss(s_pred, signal[x,:], metric, len(free_submodel))
-
-            # Reset original configuration
-            self._cnfg['kinetics'], self._cnfg['water_exchange'] = kinetics_orig, water_exchange_orig
-            
-            return (kinetics, water_exchange), result, cost
-        
-        models = ['kinetics', 'water_exchange']
-        configs = {k: v for k, v in self.configs.items() if k in models}
-        keys = configs.keys()
-
-        if parallel:
-            # results = Parallel(n_jobs=-1)(
-            #     delayed(train_pixel_single_model)(**dict(zip(keys, args))) 
-            #     for args in product(*configs.values())
-            # )
-            results = [ # for debugging
-                train_pixel_single_model(**dict(zip(keys, args))) 
-                for args in product(*configs.values())
-            ]
-        else:
-            results = [
-                train_pixel_single_model(**dict(zip(keys, args)))
-                for args in product(*configs.values())
-            ]
-
-        # Rebuild dictionaries
-        valid_results = [r for r in results if r is not None]
-        cost_dict = {r[0]: r[2] for r in valid_results}
-        result_dict = {r[0]: r[1] for r in valid_results}
-
-        # Find the best model
-        best_model = min(cost_dict, key=cost_dict.get)
-        result = result_dict[best_model] + (best_model,)
-
-        # Update state with optimized values
-        for p, v in result[0].items(): 
-            self._pars[p] = v
-
-        return result
+        # Format outputs
+        return ui.format_batch_training(results, free)
 
 
     # ==========================================
@@ -549,7 +479,7 @@ class Tissue(ui.SuperModel):
         Cx = tissue.Conc(self._cnfg['kinetics'])
 
         def _conc_pixel(x):
-            pars_x = self._sample_pars(x)
+            pars_x = self._pixel_pars(x)
             return Cx(p['c_a'], **pars_x)
 
         if self._shape[0]==1:
@@ -557,7 +487,7 @@ class Tissue(ui.SuperModel):
         else:
             C = Parallel(n_jobs=-1)(delayed(_conc_pixel)(x) for x in range(self._shape[0]))
 
-        return np.stack(C)  # (n_samples, n_compartments, n_times)
+        return np.stack(C)  # (n_pixels, n_compartments, n_times)
 
 
     def _relaxation_rate(self):
@@ -566,7 +496,7 @@ class Tissue(ui.SuperModel):
         Rx = tissue.R1(self._cnfg['kinetics'], self._cnfg['water_exchange'])
 
         def _relax_pixel(x):
-            pars_x = self._sample_pars(x)
+            pars_x = self._pixel_pars(x)
             C = Cx(p['c_a'], **pars_x)
             return Rx(C, **pars_x)
         
@@ -575,7 +505,7 @@ class Tissue(ui.SuperModel):
         else:
             results = Parallel(n_jobs=-1)(delayed(_relax_pixel)(x) for x in range(self._shape[0]))
 
-        return np.stack(results)   # (n_samples, n_compartments, n_times)
+        return np.stack(results)   # (n_pixels, n_compartments, n_times)
     
     def _magnetization(self):
         p = self._pars
@@ -589,7 +519,7 @@ class Tissue(ui.SuperModel):
             R1a = None
 
         def _magn_pixel(x):
-            pars_x = self._sample_pars(x)
+            pars_x = self._pixel_pars(x)
             C = Cx(p['c_a'], **pars_x)
             R1 = Rx(C, **pars_x)
             return Mx(R1, R1a, **pars_x)
@@ -599,7 +529,7 @@ class Tissue(ui.SuperModel):
         else:
             Mz = Parallel(n_jobs=-1)(delayed(_magn_pixel)(x) for x in range(self._shape[0]))
    
-        return np.stack(Mz)  # (n_samples, n_compartments, n_times) 
+        return np.stack(Mz)  # (n_pixels, n_compartments, n_times) 
 
 
     def _plot(
@@ -651,15 +581,15 @@ class Tissue(ui.SuperModel):
                     return ['Blood + Interstitium', 'Tissue cells']
                 
         t = self._time()
-        C = self._concentration() # (n_samples, n_compartments, n_times)
-        R = self._relaxation_rate() # (n_samples, n_compartments, n_times)
-        Mz = self._magnetization() # (n_samples, n_compartments, n_times)
-        S = self._signal() # (n_samples, n_channels, n_times)
+        C = self._concentration() # (n_pixels, n_compartments, n_times)
+        R = self._relaxation_rate() # (n_pixels, n_compartments, n_times)
+        Mz = self._magnetization() # (n_pixels, n_compartments, n_times)
+        S = self._signal() # (n_pixels, n_channels, n_times)
         p = self._pars
 
         c = (R - R[:, :, 0][:, :, np.newaxis]) / p['r1']
         x = 0
-        v = tissue.WaterVolumes(self._cnfg['kinetics'], self._cnfg['water_exchange'])(**self._sample_pars(x))
+        v = tissue.WaterVolumes(self._cnfg['kinetics'], self._cnfg['water_exchange'])(**self._pixel_pars(x))
 
         if xlim is None: xlim = [np.amin(t), np.amax(t)]
         xlim=np.array(xlim) / 60
@@ -773,8 +703,8 @@ class Tissue(ui.SuperModel):
             >>> _ = plt.legend()
             >>> _ = plt.show()
         """
-        C = self._concentration() # (n_samples, n_compartments, n_times)
-        C = C.reshape(self._samples_shape + C.shape[1:]) # (nx, ny, nz, n_compartments, n_times)
+        C = self._concentration() # (n_pixels, n_compartments, n_times)
+        C = C.reshape(self._pixels_shape + C.shape[1:]) # (nx, ny, nz, n_compartments, n_times)
         if C.shape[-2] == 1:
             return C[...,0,:]
         else:
@@ -830,8 +760,8 @@ class Tissue(ui.SuperModel):
             >>> plt.show()
 
         """
-        R1 = self._relaxation_rate() # (n_samples, n_compartments, n_times)
-        R1 = R1.reshape(self._samples_shape + R1.shape[1:]) # (nx, ny, nz, n_compartments, n_times)
+        R1 = self._relaxation_rate() # (n_pixels, n_compartments, n_times)
+        R1 = R1.reshape(self._pixels_shape + R1.shape[1:]) # (nx, ny, nz, n_compartments, n_times)
         if R1.shape[-2] == 1:
             return R1[...,0,:]
         else:
@@ -843,8 +773,8 @@ class Tissue(ui.SuperModel):
         Returns:
             np.ndarray: the magnetization as a 1D array.
         """
-        Mz = self._magnetization() # (n_samples, n_compartments, n_times)
-        Mz = Mz.reshape(self._samples_shape + Mz.shape[1:]) # (nx, ny, nz, n_compartments, n_times)
+        Mz = self._magnetization() # (n_pixels, n_compartments, n_times)
+        Mz = Mz.reshape(self._pixels_shape + Mz.shape[1:]) # (nx, ny, nz, n_compartments, n_times)
         if Mz.shape[-2] == 1:
             return Mz[...,0,:]
         else:
@@ -856,8 +786,8 @@ class Tissue(ui.SuperModel):
         Returns:
             np.ndarray: the signal as a 1D array.
         """
-        S = self._signal() # (n_samples, n_channels, n_times)
-        S = S.reshape(self._samples_shape + S.shape[1:]) # (nx, ny, nz, n_compartments, n_times)
+        S = self._signal() # (n_pixels, n_channels, n_times)
+        S = S.reshape(self._pixels_shape + S.shape[1:]) # (nx, ny, nz, n_compartments, n_times)
         if S.shape[-2] == 1:
             return S[...,0,:] # (nx, ny, nz, n_times)
         else:
@@ -872,8 +802,8 @@ class Tissue(ui.SuperModel):
         Returns:
             np.ndarray: Array of predicted data for each element of *time*.
         """
-        S = self._predict(time) # (n_samples, n_channels, n_times)
-        S = S.reshape(self._samples_shape + S.shape[1:]) # (nx, ny, nz, n_channels, n_times)
+        S = self._predict(time) # (n_pixels, n_channels, n_times)
+        S = S.reshape(self._pixels_shape + S.shape[1:]) # (nx, ny, nz, n_channels, n_times)
         if S.shape[-2] == 1: # one channel - squeeze out
             return S[...,0,:] # (nx, ny, nz, n_times)
         else:
@@ -882,7 +812,7 @@ class Tissue(ui.SuperModel):
     def train(
         self, time: np.ndarray, signal: np.ndarray, 
         aif: ui.Input=None, free: dict=None, bounds: dict=None, 
-        n0=1, modsel=None, **kwargs
+        n0=1, configs: list=None, select='AIC', **kwargs
     ):
         """Train the free parameters
 
@@ -898,10 +828,10 @@ class Tissue(ui.SuperModel):
         Returns:
             self
         """
-        if modsel is not None:
-            if modsel not in ['AIC', 'BIC']:
-                raise ValueError("'modsel' must be either 'AIC' (Akaike Information Criterion) or 'BIC' (Baysian Information Criterion)")
-        
+
+        if select not in ['AIC', 'BIC']:
+            raise ValueError("'modsel' must be either 'AIC' (Akaike Information Criterion) or 'BIC' (Baysian Information Criterion)")
+    
         if aif is not None:
             n_times = aif.signal.size
         else:
@@ -914,21 +844,29 @@ class Tissue(ui.SuperModel):
 
         # Derive the shape from the data
         if np.prod(signal.shape) != self._shape[0] * n_channels * n_times:
-            self._samples_shape = signal.shape[:-1]
-            # Reset sample parameters
-            pixel_pars = lexicon.init(self._params('sample'), LEXICON)
+            self._pixels_shape = signal.shape[:-1]
+            # Reset pixel parameters
+            pixel_pars = lexicon.init(self._params('pixel'), LEXICON)
             for p, v in pixel_pars.items():
                 self._pars[p] = np.full(self._shape[0], v)
 
         signal = signal.reshape(self._shape[0], n_channels, n_times)
-        vals, sdev, pcov = self._train(time, signal, aif, free, bounds, n0, modsel, **kwargs)
+        vals, sdev, pcov, model = self._train(time, signal, aif, free, bounds, n0, configs, select, **kwargs)
 
-        # return vals, sdev, pcov
+        # Convert to input shape
+        vals = {k: v.reshape(self._pixels_shape + v.shape[1:]) for k, v in vals.items()}
+        sdev = {k: v.reshape(self._pixels_shape + v.shape[1:]) for k, v in sdev.items()}
+        if self._pixels_shape == ():
+            pcov = pcov[0]
+            model = model[0]
+        else:
+            pcov = pcov.reshape(self._pixels_shape)
+            model = model.reshape(self._pixels_shape)
 
-        vals = {k: v.reshape(self._samples_shape + v.shape[1:]) for k, v in vals.items()}
-        sdev = {k: v.reshape(self._samples_shape + v.shape[1:]) for k, v in sdev.items()}
-        pcov = pcov.reshape(self._samples_shape + pcov.shape[1:])
-        return vals, sdev, pcov
+        if configs is None:
+            return vals, sdev, pcov
+        else:
+             return vals, sdev, pcov, model
 
     def plot(
         self, time: np.ndarray, signal: np.ndarray, sdev: dict=None,
@@ -960,7 +898,7 @@ class Tissue(ui.SuperModel):
 
         Args:
             time (np.ndarray): array with time points
-            signal (array-like): array with signal data for all samples.
+            signal (array-like): array with signal data for all pixels.
             metric (str, optional): Which metric to use (see notes for 
                 possible values). Defaults to 'NRMS'.
 
@@ -982,7 +920,7 @@ class Tissue(ui.SuperModel):
         signal_pred = self._predict(time).reshape(self._shape[0], np.prod(self._shape[1:]))
 
         cost = utils.loss(signal_pred, signal, metric, nfree)
-        if self._samples_shape == ():
+        if self._pixels_shape == ():
             return cost[0]
         else:
             return cost
