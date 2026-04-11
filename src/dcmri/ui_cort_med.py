@@ -5,10 +5,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from dcmri.signal_to_conc import SignalToConc
-from dcmri import sig, utils, cort_med
+from dcmri import sig, utils
 from dcmri.ui import SuperModel, Input
 from dcmri.lexicon import SEQUENCES
 from dcmri.utils import lib
+from dcmri.kinetics import ConcCortMed
+from dcmri.utils.misc import sample
+from dcmri.utils.fit import train, loss
 
 
 class CortMed(SuperModel):
@@ -68,7 +71,7 @@ class CortMed(SuperModel):
 
     def _params(self, select=None):
         kin, seq = self._cnfg['kinetics'], self._cnfg['sequence']
-        pars_kin = cort_med.Conc(kin)._params()
+        pars_kin = ConcCortMed(kin)._params()
         pars_seq = SEQUENCES[seq]['parameters']['prep']
         pars_seq += SEQUENCES[seq]['parameters']['read']
 
@@ -90,7 +93,7 @@ class CortMed(SuperModel):
         p = self._pars
         kin = self._cnfg['kinetics']
         ca = p['c_a'] / (1 - p['H'])
-        self._Cc, self._Cm = cort_med.Conc(kin, **p)(ca, dt=p['dt'])
+        self._Cc, self._Cm = ConcCortMed(kin, **p)(ca, dt=p['dt'])
 
     def _compute_relaxation_rate(self):
         self._compute_concentration()
@@ -114,8 +117,8 @@ class CortMed(SuperModel):
         self._set_time()
         self._compute_signal()
         return (
-            utils.sample(time[0], self._t, self._Sc, self._pars['TS']),
-            utils.sample(time[1], self._t, self._Sm, self._pars['TS']),
+            sample(time[0], self._t, self._Sc, self._pars['TS']),
+            sample(time[1], self._t, self._Sm, self._pars['TS']),
         )
     
     # ==========================================
@@ -295,5 +298,5 @@ class CortMed(SuperModel):
         time = (time['cort'], time['med'])
         signal = np.concatenate((signal['cort'], signal['med']))
         signal_pred = np.concatenate(self._predict(time))
-        cost = utils.loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
+        cost = loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
         return cost[0]

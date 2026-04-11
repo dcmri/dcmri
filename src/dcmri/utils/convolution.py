@@ -2,29 +2,9 @@ import numpy as np
 from scipy.special import gamma
 from scipy.integrate import trapezoid
 
+from dcmri.utils.misc import trapz, tarray
 
-def trapz(f, t=None, dt=1.0):
-    # Helper function - perform trapezoidal integration.
-    # Replace by scipy.integrate.trapezoid
-    f = np.array(f)
-    n = len(f)
-    t = tarray(n, t=t, dt=dt)
-    g = np.empty(n)
-    g[0] = 0
-    for i in range(n-1):
-        g[i+1] = g[i] + (t[i+1]-t[i]) * (f[i+1]+f[i]) / 2
-    return g
 
-def tarray(n, t=None, dt=1.0):
-    # Helper function - generate time array.
-    if t is None:
-        t = dt*np.arange(n)
-    else:
-        if not isinstance(t, np.ndarray):
-            t = np.array(t)
-        if len(t) != n:
-            raise ValueError('Time array must have same length as the input.')
-    return t
 
 def intprod(f, h, t=None, dt=1.0):
     # Helper function

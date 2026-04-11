@@ -93,3 +93,55 @@ def _sdev(pcov, free):
         sdev[p] = renormalize(np.sqrt(pcov[i,i]), free[p])
         i += 1
     return sdev
+
+
+def loss(ypred, ydata, metric='NRMS', nfree=None) -> float:
+    """_summary_
+
+    Args:
+        ypred (array): predictions
+        ydata (array): data
+        metric (str, optional): either RMS (Root-mean-square), 
+            NRMS (normalised RMS), AIC (Akaike Information Criterion), 
+            cAIC (corrected AIC) or BIC (Bayesian Information Criterion). 
+            Defaults to 'NRMS'.
+        nfree (float, optional): Number of free parameters (required for 
+            AIC, cAIC and BIC). Defaults to None.
+
+    Raises:
+        ValueError: raised if nfree=None for loss functions that require it
+
+    Returns:
+        float: loss value
+    """
+    ydata = ydata.reshape(ydata.shape[0], -1)
+    ypred = ypred.reshape(ypred.shape[0], -1)
+    if metric == 'RMS':
+        loss = np.linalg.norm(ypred - ydata, axis=-1)
+    elif metric == 'NRMS':
+        ynorm = np.linalg.norm(ydata, axis=-1)
+        yerr = np.linalg.norm(ypred - ydata, axis=-1)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            loss = 100*yerr/ynorm
+    elif metric == 'AIC':
+        rss = np.sum((ypred-ydata)**2, axis=-1)
+        n = ydata.shape[-1]
+        if nfree is None:
+            raise ValueError('Please specify the number of free parameters.')
+        with np.errstate(divide='ignore'):
+            loss = nfree*2 + n*np.log(rss/n)
+    elif metric == 'cAIC':
+        rss = np.sum((ypred-ydata)**2)
+        n = ydata.shape[-1]
+        if nfree is None:
+            raise ValueError('Please specify the number of free parameters.')
+        with np.errstate(divide='ignore'):
+            loss = nfree*2 + n*np.log(rss/n) + 2*nfree*(nfree+1)/(n-nfree-1)
+    elif metric == 'BIC':
+        rss = np.sum((ypred-ydata)**2, axis=-1)
+        n = ydata.shape[-1]
+        if nfree is None:
+            raise ValueError('Please specify the number of free parameters.')
+        with np.errstate(divide='ignore'):
+            loss = nfree*np.log(n) + n*np.log(rss/n)
+    return loss

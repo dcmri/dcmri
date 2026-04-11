@@ -1,9 +1,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri import sig, utils, pk_aorta, ui, liver
+from dcmri import sig, ui
+from dcmri.kinetics import ConcLiver
 from dcmri.lexicon import SEQUENCES
+from dcmri import pk
 from dcmri.utils import lib
+from dcmri.utils.misc import sample
+from dcmri.utils.fit import train, loss
 
 class AortaLiver(ui.SuperModel):
     """Joint model for aorta and liver signals.
@@ -402,7 +406,7 @@ class AortaLiver(ui.SuperModel):
         kin, ns, seq = self._cnfg['kinetics'], self._cnfg['non_stationary'], self._cnfg['sequence']
 
         aorta_kinetics = ['BAT', 'CO', 'Thl', 'Dhl', 'To', 'Eo', 'To_e', 'Eb']
-        liver_kinetics = liver.Conc(kin, ns)._params()
+        liver_kinetics = ConcLiver(kin, ns)._params()
         liver_sequence = SEQUENCES[seq]['parameters']['prep']
         liver_sequence += SEQUENCES[seq]['parameters']['read']
         inflow = ['TF'] if seq == '3D-SPGR-SSI' else []
@@ -438,7 +442,7 @@ class AortaLiver(ui.SuperModel):
         Ji = lib.ca_injection(
             self._t, p['weight'], conc, p['dose'], p['rate'], p['BAT']
         )
-        Jb = pk_aorta.flux(
+        Jb = pk.flux_aorta(
             Ji, E=p['Eb'], dt=p['dt'], tol=p['dose_tolerance'],
             heartlung=['pfcomp', (p['Thl'], p['Dhl'])], 
             organs=['2cxm', ([p['To'], p['To_e']], p['Eo'])],
@@ -465,7 +469,7 @@ class AortaLiver(ui.SuperModel):
         p = self._pars
         p['tmax'] = p['dt'] + p['TS'] + np.max(time)
         self._compute_signal_aorta()
-        return utils.sample(time, self._t, self._Sa, p['TS'])
+        return sample(time, self._t, self._Sa, p['TS'])
     
     # ==========================================
     # Forward Model: Liver
@@ -475,7 +479,7 @@ class AortaLiver(ui.SuperModel):
         p = self._pars
         cp = self._ca / (1 - p['H'])
         kin, ns = self._cnfg['kinetics'], self._cnfg['non_stationary']
-        self._Cl = liver.Conc(kin, ns, **p)(cp, dt=p['dt'])
+        self._Cl = ConcLiver(kin, ns, **p)(cp, dt=p['dt'])
         
     def _compute_relax_liver(self):
         self._compute_conc_liver()
@@ -498,7 +502,7 @@ class AortaLiver(ui.SuperModel):
         p = self._pars
         p['tmax'] = p['dt'] + p['TS'] + np.max(time)
         self._compute_signal_liver()
-        return utils.sample(time, self._t, self._Sl, self._pars['TS'])
+        return sample(time, self._t, self._Sl, self._pars['TS'])
     
     # ==========================================
     # Forward Model: Liver and Aorta
@@ -550,14 +554,14 @@ class AortaLiver(ui.SuperModel):
             
             # Optimize Aorta parameters
             free_aorta = {k: v for k, v in free.items() if k in self._params('free_aorta')}
-            utils.train(self._predict_aorta, time[0], signal[0], self._pars, free_aorta, **kwargs)
+            train(self._predict_aorta, time[0], signal[0], self._pars, free_aorta, **kwargs)
 
             # Optimize Liver parameters
             free_liver = {k: v for k, v in free.items() if k in self._params('free_liver')}
-            utils.train(self._predict_liver, time[1], signal[1], self._pars, free_liver, **kwargs)
+            train(self._predict_liver, time[1], signal[1], self._pars, free_liver, **kwargs)
 
         # Joint Optimization
-        return utils.train(self._predict, time, signal, self._pars, free, **kwargs)
+        return train(self._predict, time, signal, self._pars, free, **kwargs)
 
 
     def _plot(
@@ -784,5 +788,5 @@ class AortaLiver(ui.SuperModel):
             signal['liver'], 
         ))
         signal_pred = np.concatenate(self._predict(time))
-        cost = utils.loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
+        cost = loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
         return cost[0]

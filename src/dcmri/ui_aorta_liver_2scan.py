@@ -1,9 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri import sig, utils, ui, liver, pk_aorta
+from dcmri import sig, utils, ui, liver
 from dcmri.lexicon import SEQUENCES
 from dcmri.lexicon import LEXICON
+from dcmri.pk import flux_aorta
 from dcmri.utils import lib
 
 LEXICON = LEXICON | {
@@ -477,7 +478,7 @@ class AortaLiver2scan(ui.SuperModel):
         J2 = lib.ca_injection(
             self._t, p['weight'], conc, p['dose2'], p['rate'], p['BAT2']
         )
-        Jb = pk_aorta.flux(
+        Jb = flux_aorta(
             J1 + J2, E=p['Eb'], dt=p['dt'], tol=p['dose_tolerance'],
             heartlung = ['pfcomp', (p['Thl'], p['Dhl'])],
             organs = ['2cxm', ([p['To'], p['To_e']], p['Eo'])]

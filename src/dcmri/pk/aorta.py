@@ -5,7 +5,7 @@ from dcmri import pk
 
 
 
-def flux(J_vena: np.ndarray,
+def flux_aorta(J_vena: np.ndarray,
         t=None, dt=1.0, E=0.1, FFkl=0.0, FFk=0.5,
         heartlung=['pfcomp', (10, 0.2)],
         organs=['2cxm', ([20, 120], 0.15)],

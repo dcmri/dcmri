@@ -120,9 +120,9 @@ from copy import deepcopy
 from scipy.linalg import expm
 import numpy as np
 
-from dcmri.lexicon import MZ_PREP
-import dcmri.mz_lib as mz_lib
-from dcmri.func import SuperFunc
+from dcmri.lexicon.dicts import MZ_PREP
+from dcmri.core.func import SuperFunc
+from dcmri import bloch
 
 
 # TODO: For some ss sequences there is some duplication with K, J and KinvJ computed multiple times
@@ -215,152 +215,42 @@ class Mz(SuperFunc):
         if sequence == 'Eq': 
             Mz = np.full_like(R1, me)
         elif sequence == 'IR-SS':
-            Mz = _Mz_ge(R1, v, Fw, j, me, p['TA'], 180)
+            Mz = bloch.Mz_ge(R1, v, Fw, j, me, p['TA'], 180)
         elif sequence == 'SR-SS':
-            Mz = _Mz_ge(R1, v, Fw, j, me, p['TA'], 90)
+            Mz = bloch.Mz_ge(R1, v, Fw, j, me, p['TA'], 90)
         elif sequence == 'PR-SS':
-            Mz = _Mz_ge(R1, v, Fw, j, me, p['TA'], p['PA'])
+            Mz = bloch.Mz_ge(R1, v, Fw, j, me, p['TA'], p['PA'])
 
         elif sequence == 'SPGR':
-            Mz = _Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], 0, p['TA'], 0) 
+            Mz = bloch.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], 0, p['TA'], 0) 
         elif sequence == 'SR-SPGR':
-            Mz = _Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 90) 
+            Mz = bloch.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 90) 
         elif sequence == 'IR-SPGR':
-            Mz = _Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 180) 
+            Mz = bloch.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 180) 
         elif sequence == 'PR-SPGR':
-            Mz = _Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], p['PA'])
+            Mz = bloch.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], p['PA'])
         
         elif sequence == 'SPGR-SS':
-            Mz = _Mz_spgr_in_ss(R1, v, Fw, j, me, p['TR'], p['FA'] * p['B1corr'])
+            Mz = bloch.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TR'], p['FA'] * p['B1corr'])
         elif sequence == 'SR-SPGR-SS':
-            Mz = _Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 90) 
+            Mz = bloch.Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 90) 
         elif sequence == 'IR-SPGR-SS':
-            Mz = _Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 180)
+            Mz = bloch.Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 180)
         elif sequence == 'PR-SPGR-SS':
-            Mz = _Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], p['PA']) 
+            Mz = bloch.Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], p['PA']) 
 
         elif sequence == 'SSI':
-            Mz = _Mz_ssi(R1, v, Fw, j, me, p['TR'], p['FA'] * p['B1corr'], p['TF'], p['SA'])
+            Mz = bloch.Mz_ssi(R1, v, Fw, j, me, p['TR'], p['FA'] * p['B1corr'], p['TF'], p['SA'])
 
         elif sequence == 'GE-EPI':
-            Mz = _Mz_ge(R1, v, Fw, j, me, p['TR'], p['FA'] * p['B1corr'])
+            Mz = bloch.Mz_ge(R1, v, Fw, j, me, p['TR'], p['FA'] * p['B1corr'])
         elif sequence == 'SE-EPI':
-            Mz = _Mz_se(R1, v, Fw, j, me, p['TE'], p['TR'], p['FA'] * p['B1corr'])
+            Mz = bloch.Mz_se(R1, v, Fw, j, me, p['TE'], p['TR'], p['FA'] * p['B1corr'])
         elif sequence == 'DE-EPI':
-            Mz = _Mz_se(R1, v, Fw, j, me, p['TE2'], p['TR'], p['FA'] * p['B1corr'])
+            Mz = bloch.Mz_se(R1, v, Fw, j, me, p['TE2'], p['TR'], p['FA'] * p['B1corr'])
 
         # Return result in original shape
         if input_shape == ():
             return Mz[0,0]
         else:
             return Mz.reshape(input_shape)
-
-    
-def _Mz_spgr_in_ss(R1, v, Fw, j, me, TR, FA) -> np.ndarray:
-    """Spoiled gradient echo sequence in steady state"""
-    nc, nt = R1.shape
-
-    M = [mz_lib.Mz_ss_spgr(R1[:,t], v, Fw, j[:,t], me, TR, FA) for t in range(nt)]
-    return np.array(M).T.reshape(nc, nt)
-
-
-def _Mz_pr_spgr(R1, v, Fw, j, me, TC, TR, FA, TP, TA, PA): 
-    """This models SPGR with a preparation pulse and linear k-space ordering
-
-    - A preparation pulse PA at the start of each time interval, 
-    - Free recovery over a time TP
-    - FA readout pulses separated by TR for a duration of 2 * (TC-TP)
-    - Free recovery until the start of the next time interval. 
-    - And a readout at time TC after the preparation pulse.
-
-    R1 is assumed to be constant on each time interval.
-    """
-    nc, nt = R1.shape
-    Mt = v * me
-    args = (me, PA, TP, TC, TR, FA, TA)
-
-    M = []
-    for k in range(nt):
-        M_sig, Mt = mz_lib.Mz_pr_spgr_prop(Mt, R1[:,k].T, v, Fw, j[:,k].T, *args)
-        M.append(M_sig)
-    
-    return np.array(M).T.reshape(nc, nt)
-
-
-def _Mz_pr_spgr_in_ss(R1, v, Fw, j, me, TC, TR, FA, TP, TA, PA):
-    """This models SPGR with a preparation pulse and linear k-space ordering
-    running in the steady state
-
-    R1 is assumed to be constant on each time interval.
-    """
-    args = (me, PA, TP, TC, TR, FA, TA)
-    def _Mz_pr_spgr_in_ss_t(R1_t, j_t):
-        Mss_t = mz_lib.Mz_pr_spgr_ss(R1_t, v, Fw, j_t, *args)
-        M_sig, _ = mz_lib.Mz_pr_spgr_prop(Mss_t, R1_t, v, Fw, j_t, *args)
-        return M_sig
-    
-    nc, nt = R1.shape
-    M = [_Mz_pr_spgr_in_ss_t(R1[:,k].T, j[:,k].T) for k in range(nt)]
-    return np.array(M).T.reshape(nc, nt)
-
-
-def _Mz_ssi(R1, v, Fw, j, me, TR, FA, TF, SA): 
-    """This models steady-state imaging with inflow effects
-
-    - Initial magnetization determined by saturation slabs outside the imaging volume. Without slabs, n_init=1 
-    - FA readout pulses separated by TR for a duration of TF (inflow time)
-
-    Each readout starts the same - no build=up effects
-
-    R1 is assumed to be constant on each time interval.
-    """
-    nc, nt = R1.shape
-    cFA = np.cos(np.radians(FA))
-    n = np.floor(TF / TR) # n pulses to readout
-    nFA = cFA**n
-    cSA = np.cos(np.radians(SA))
-    M0 = cSA * v * me
-
-    def _Mz_ssi_prop(R1_t, j_t):
-        K_t = mz_lib.Mz_K(R1_t, v, Fw)
-        Mss_t = mz_lib.Mz_ss_spgr(R1_t, v, Fw, j_t, me, TR, FA)
-        # FA-pulses until time TF to get the Mz before readout
-        if nc==1:
-            En_t = np.exp(-TF * K_t)
-            M_sig_t = Mss_t + nFA * En_t * (M0 - Mss_t)
-        else:
-            En_t = expm(-TF * K_t)
-            M_sig_t = Mss_t + nFA * En_t @ (M0 - Mss_t)           
-        return M_sig_t
-
-    M = [_Mz_ssi_prop(R1[:,k].T, j[:,k].T) for k in range(nt)]
-    return np.array(M).T.reshape(nc, nt)
-
-
-def _Mz_ge(R1, v, Fw, j, me, TR, FA): 
-    """Mz for one slice in a GE-EPI sequence
-    """
-    pulse_sequence = [
-        [FA, TR]
-    ]
-    def _Mz_ge_t(R1_t, j_t):
-        return mz_lib.Mz_ss(R1_t, v, Fw, j_t, me, pulse_sequence)
-
-    nc, nt = R1.shape
-    M = [_Mz_ge_t(R1[:,k].T, j[:,k].T) for k in range(nt)]
-    return np.array(M).T.reshape(nc, nt)
-
-
-def _Mz_se(R1, v, Fw, j, me, TE, TR, FA): 
-    """Mz for one slice in a SE-EPI sequence
-    """
-    pulse_sequence = [
-        [FA, TE / 2], 
-        [180, TR - TE/2]
-    ]
-    def _Mz_se_t(R1_t, j_t):
-        return mz_lib.Mz_ss(R1_t, v, Fw, j_t, me, pulse_sequence)
-
-    nc, nt = R1.shape
-    M = [_Mz_se_t(R1[:,k].T, j[:,k].T) for k in range(nt)]
-    return np.array(M).T.reshape(nc, nt)

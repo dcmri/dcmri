@@ -1,8 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri import sig, utils, pk, pk_aorta, ui, liver
+from dcmri import sig, utils, pk, ui, liver
 from dcmri.lexicon import SEQUENCES
+from dcmri.pk import flux_aorta
 from dcmri.utils import lib
 
 
@@ -488,7 +489,7 @@ class AortaPortalLiver(ui.SuperModel):
         Ji = lib.ca_injection(
             self._t, p['weight'], conc, p['dose'], p['rate'], p['BAT']
         )
-        Jb = pk_aorta.flux(
+        Jb = flux_aorta(
             Ji, E=p['Eb'], dt=p['dt'], tol=p['dose_tolerance'],
             heartlung=['pfcomp', (p['Thl'], p['Dhl'])], 
             organs=['2cxm', ([p['To'], p['To_e']], p['Eo'])],

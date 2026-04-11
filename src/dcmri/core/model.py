@@ -6,10 +6,9 @@ from itertools import product
 import zarr
 import numpy as np
 
-import dcmri.utils as utils
-from dcmri.lexicon import LEXICON
-from dcmri.lexicon_utils import select_params
-import dcmri.lexicon_utils as lexicon_utils
+from dcmri.utils.fit import train, loss
+from dcmri.lexicon.dicts import LEXICON
+from dcmri.lexicon.tools import select_params, init
 
     
 
@@ -69,7 +68,7 @@ class SuperModel:
         return self._cnfg
     
     def _set_pars(self, lexicon:dict=LEXICON, **params):
-        self._pars = lexicon_utils.init(self._params(), lexicon=lexicon, **params)
+        self._pars = init(self._params(), lexicon=lexicon, **params)
         return self._pars
     
     def params(self, select=None) -> dict:
@@ -234,11 +233,11 @@ class SuperModel:
                 submodel._pars[p] = deepcopy(self._pars[p])
             
             # Train single pixel to submodel
-            result = utils.train(submodel._predict, time, signal[x,:,:], submodel._pars, free_submodel, x, **kwargs)
+            result = train(submodel._predict, time, signal[x,:,:], submodel._pars, free_submodel, x, **kwargs)
             
             # Compute cost
             s_pred = submodel._predict(time, x)
-            cost = utils.loss(s_pred, signal[x,:,:], metric, len(free_submodel))
+            cost = loss(s_pred, signal[x,:,:], metric, len(free_submodel))
 
             # print(cost, cnfg)
             return cnfg, result, cost

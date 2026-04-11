@@ -1,140 +1,12 @@
 import copy
 import numpy as np
 import dcmri.pk as pk
-from dcmri.lexicon import LEXICON
-from dcmri.func import SuperFunc
 
 
 def _div(a, b):
     with np.errstate(divide='ignore', invalid='ignore'):
         return np.divide(a, b)
     
-# Kidney-specific defaults
-LEXICON = LEXICON | {
-    'ht': {'init': np.ones(5) / 5, 'bounds': [0, 100], 'name': 'Tubular transit time distribution', 'unit': '1/sec'},
-    'Tv': {'name': 'Vascular mean transit time', 'unit': 'sec'},
-    'RBF': {'name': 'Renal blood flow', 'unit': 'mL/sec'},
-}
-
-
-class Conc(SuperFunc):
-    """Concentration in kidney tissues.
-
-    Args:
-        ca (array-like): concentration in the arterial input.
-        params (tuple): free model parameters.
-        t (array_like, optional): the time points in sec of the input function *ca*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
-        dt (float, optional): spacing in seconds between time points for uniformly spaced time points. This parameter is ignored if *t* is explicity provided. Defaults to 1.0.
-        kinetics (str, optional): Kinetics of the tissue, either '2CF', 'FN' - see below for detail. Defaults to '2CF'. 
-        sum (bool, optional): For two-compartment tissues, set to True to return the total tissue concentration. Defaults to True.
-        kwargs (dict, optional): any optional keyword parameters required by the kinetic model - see below for detail.
-
-    Returns:
-        numpy.ndarray: If sum=True, this is a 1D array with the total concentration at each time point. If sum=False this is the concentration in each compartment, and at each time point, as a 2D array with dimensions *(2,k)*, where *k* is the number of time points in *ca*. The concentration is returned in units of M.
-
-    Notes:
-        Currently implemented kinetic models are: 
-
-        - '2CF': two-compartment filtration model. params = (Fp, Tp, Ft, Tt,)
-        - 'FN': free nephron model. params = (Fp, Tp, Ft, h, ). 
-
-        The model parameters are:
-
-        - **Fp** (float, mL/sec/mL): Plasma flow.
-        - **Tp** (float, sec): plasma mean transit time.
-        - **Ft** (float, mL/sec/mL): tubular flow.
-        - **Tt** (float, sec): tubular mean transit time.
-        - **hh** (array-like, 1/sec): frequences of transit time histogram. The boundaries of the transit time bins can be provided as an array in a keyword parameter TT, which has to have one more element than h. If TT is not provided, the transit time bins are equally space in the range [0, tmax], where tmax is the largest acquisition time.
-
-
-    Example:
-
-        Plot concentration in cortex and medulla for typical values:
-
-    .. plot::
-        :include-source:
-
-        >>> import matplotlib.pyplot as plt
-        >>> import numpy as np
-        >>> import dcmri as dc
-
-        Generate a population-average input function:
-
-        >>> t = np.arange(0, 300, 1.5)
-        >>> ca = dc.aif_parker(t, BAT=20)
-
-        Define some parameters and generate plasma and tubular tissue concentrations with a 2-compartment filtration model:
-
-        >>> Fp, Tp, Ft, Tt = 0.05, 10, 0.01, 120
-        >>> C = dc.conc_kidney(ca, Fp, Tp, Ft, Tt, t=t, sum=False, kinetics='2CF')
-
-        Plot all concentrations:
-
-        >>> fig, ax = plt.subplots(1,1,figsize=(6,5))
-        >>> ax.set_title('Kidney concentrations')
-        >>> ax.plot(t/60, 1000*C[0,:], linestyle='--', linewidth=3.0, color='darkred', label='Plasma')
-        >>> ax.plot(t/60, 1000*C[1,:], linestyle='--', linewidth=3.0, color='darkblue', label='Tubuli')
-        >>> ax.plot(t/60, 1000*(C[0,:]+C[1,:]), linestyle='-', linewidth=3.0, color='grey', label='Whole kidney')
-        >>> ax.set_xlabel('Time (min)')
-        >>> ax.set_ylabel('Tissue concentration (mM)')
-        >>> ax.legend()
-        >>> plt.show()
-
-        Use generate plasma and tubular tissue concentrations using the free nephron model for comparison. We assume 4 transit time bins with the following boundaries (in units of seconds):
-
-        >>> TT = [0, 15, 30, 60, 120]
-
-        with longest transit times most likely (note the frequences to not have to add up to 1):
-
-        >>> h = [1, 2, 3, 4]
-        >>> C = dc.conc_kidney(ca, Fp, Tp, Ft, h, t=t, sum=False, kinetics='FN', TT=TT)
-
-        Plot all concentrations:
-
-        >>> fig, ax = plt.subplots(1,1,figsize=(6,5))
-        >>> ax.set_title('Kidney concentrations')
-        >>> ax.plot(t/60, 1000*C[0,:], linestyle='--', linewidth=3.0, color='darkred', label='Plasma')
-        >>> ax.plot(t/60, 1000*C[1,:], linestyle='--', linewidth=3.0, color='darkblue', label='Tubuli')
-        >>> ax.plot(t/60, 1000*(C[0,:]+C[1,:]), linestyle='-', linewidth=3.0, color='grey', label='Whole kidney')
-        >>> ax.set_xlabel('Time (min)')
-        >>> ax.set_ylabel('Tissue concentration (mM)')
-        >>> ax.legend()
-        >>> plt.show()
-    """
-
-    _params_dict = {
-        '2CF': ['T_a', 'Fp', 'vp', 'Ft', 'Tt'],
-        'HF': ['T_a', 'vp', 'Ft', 'Tt'],
-        'FN': ['T_a', 'Fp', 'Tp', 'Ft', 'ht'],
-    }
-    configs = {
-        'kinetics': ['2CF', 'HF', 'FN'],
-    }
-    def __init__(self, kinetics='2CF', **params):
-        cnfg = {'kinetics': kinetics}
-        self._cnfg = self._set_config(**cnfg)
-        self._pars = self._set_pars(LEXICON, **params)
-
-    def _params(self):
-        model = self._cnfg['kinetics']
-        return copy.deepcopy(self._params_dict[model])
-    
-    def __call__(self, ca: np.ndarray, t=None, dt=1.0, **params) -> np.ndarray:
-        p = self._update_pars(**params)
-        kin = self._cnfg['kinetics']
-
-        ca = pk.flux(ca, p['T_a'], dt=dt, model='plug')
-        p = {k: v for k, v in p.items() if k != 'T_a'}
-
-        if kin == '2CF':
-            return _conc_kidney_2cf(ca, t=t, dt=dt, **p)
-        if kin == 'HF':
-            return _conc_kidney_hf(ca, t=t, dt=dt, **p)
-        if kin == 'FN':
-            return _conc_kidney_fn(ca, t=t, dt=dt, **p)
-
-
-
 
 def derived_params_kidney(p, kinetics='2CF', H=0.45) -> dict:
 
@@ -174,7 +46,7 @@ def derived_params_kidney(p, kinetics='2CF', H=0.45) -> dict:
     
 
 
-def _conc_kidney_2cf(ca, t=None, dt=1.0, Fp=None, vp=None, Ft=None, Tt=None):
+def conc_kidney_2cf(ca, t=None, dt=1.0, Fp=None, vp=None, Ft=None, Tt=None):
     #vp = Tp*(Fp+Ft)
     Tp = vp/(Fp+Ft)
     Cp = pk.conc_comp(Fp*ca, Tp, t=t, dt=dt)
@@ -182,12 +54,12 @@ def _conc_kidney_2cf(ca, t=None, dt=1.0, Fp=None, vp=None, Ft=None, Tt=None):
     Ct = pk.conc_comp(Ft*cp, Tt, t=t, dt=dt)
     return np.stack((Cp, Ct))
 
-def _conc_kidney_hf(ca, t=None, dt=1.0, vp=None, Ft=None, Tt=None):
+def conc_kidney_hf(ca, t=None, dt=1.0, vp=None, Ft=None, Tt=None):
     Cp = vp*ca
     Ct = pk.conc_comp(Ft*ca, Tt, t=t, dt=dt)
     return np.stack((Cp, Ct))
 
-def _conc_kidney_fn(ca, t=None, dt=1.0, TT=None, Fp=None, Tp=None, Ft=None, ht=None):
+def conc_kidney_fn(ca, t=None, dt=1.0, TT=None, Fp=None, Tp=None, Ft=None, ht=None):
     if TT is None:
         if t is None:
             tmax = dt*np.size(ca)
@@ -287,16 +159,16 @@ def conc_kidney_cm(ca: np.ndarray, *params, t=None, dt=1.0, sum=True,
         >>> plt.show()
     """
     if kinetics == '7C':
-        return _conc_kidney_cm9(ca, *params, t=t, dt=dt, sum=sum)
+        return conc_kidney_cm9(ca, *params, t=t, dt=dt, sum=sum)
     else:
         raise ValueError(
             'Kinetic model ' + kinetics + ' is not currently implemented.')
 
 
-def _conc_kidney_cm9(ca, Fp, Eg, fc, Tg, Tv, Tpt, Tlh, Tdt, Tcd, t=None, dt=1.0, sum=True):
+def conc_kidney_cm9(ca, t=None, dt=1.0, Fp=None, Eg=None, fc=None, Tglom=None, Tv=None, Tpt=None, Tlh=None, Tdt=None, Tcd=None):
 
     # Flux out of the glomeruli and arterial tree
-    Jg = pk.flux(Fp*ca, Tg, t=t, dt=dt, model='comp')
+    Jg = pk.flux(Fp*ca, Tglom, t=t, dt=dt, model='comp')
 
     # Flux out of the peritubular capillaries and venous system
     Jv = pk.flux((1-Eg)*Jg, Tv, t=t, dt=dt, model='comp')
@@ -314,22 +186,16 @@ def _conc_kidney_cm9(ca, Fp, Eg, fc, Tg, Tv, Tpt, Tlh, Tdt, Tcd, t=None, dt=1.0,
     Jcd = pk.flux(Jdt, Tcd, t=t, dt=dt, model='comp')
 
     # Build cortical concentrations
-    Cg = Tg*Jg      # arteries/glomeruli
+    Cg = Tglom*Jg      # arteries/glomeruli
     Cv = fc*Tv*Jv   # part of the peritubular capillaries
     Cpt = Tpt*Jpt   # proximal tubuli
     Cdt = Tdt*Jdt   # distal tubuli
-    if sum:
-        Ccor = Cg + Cv + Cpt + Cdt
-    else:
-        Ccor = np.stack((Cg, Cv, Cpt, Cdt))
+    Ccor = np.stack((Cg, Cv, Cpt, Cdt))
 
     # Build medullary concentrations
     Cv = (1-fc)*Tv*Jv   # part of the peritubular capillaries
     Clh = Tlh*Jlh       # Lis of Henle
     Ccd = Tcd*Jcd       # collecting ducts
-    if sum:
-        Cmed = Cv + Clh + Ccd
-    else:
-        Cmed = np.stack((Cv, Clh, Ccd))
+    Cmed = np.stack((Cv, Clh, Ccd))
 
     return Ccor, Cmed

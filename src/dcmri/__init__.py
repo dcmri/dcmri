@@ -20,6 +20,15 @@ from dcmri.utils.lib import (
 from dcmri.utils.data import (
     fetch
 )
+from dcmri.kinetics import (
+    ConcAorta,
+    ConcLiver,
+    ConcKidney,
+    ConcCortMed,
+    ConcTissue,
+    FluxTissue,
+)
+
 
 
 # from dcmri import pk_inv

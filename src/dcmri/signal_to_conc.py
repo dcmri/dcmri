@@ -2,9 +2,9 @@ from copy import deepcopy
 
 import numpy as np
 
-from dcmri.lexicon import SEQUENCES
+from dcmri.lexicon.dicts import SEQUENCES
 from dcmri import sig
-from dcmri.func import SuperFunc
+from dcmri.core.func import SuperFunc
 
 
 

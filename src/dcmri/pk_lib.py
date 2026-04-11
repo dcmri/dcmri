@@ -1,7 +1,8 @@
 import numpy as np
 
 
-from dcmri import pk, pk_aorta
+from dcmri import pk
+from dcmri.pk import flux_aorta
 from dcmri.utils import lib
 
 
@@ -91,7 +92,7 @@ def aif_tristan(
     """
     conc = lib.ca_conc(agent)
     Ji = lib.ca_injection(t, weight,conc, dose, rate, BAT)
-    Jb = pk_aorta.flux(Ji, t, E=E,
+    Jb = flux_aorta(Ji, t, E=E,
                     heartlung=['chain', (Thl, Dhl)],
                     organs=['2cxm', ([Tp, Te], Ee)],
                     tol=dtol)

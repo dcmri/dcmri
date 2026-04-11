@@ -1,16 +1,32 @@
 import numpy as np
 
 from dcmri import pk
+from dcmri.pk import blocks
 
-# Make these library functions so they can be reused in other ways
+
+def add_derived_params(p):
+
+    if {'H', 'vb'}.issubset(p):
+        p['vp'] = (1 - p['H']) * p['vb']
+
+    if {'ve', 'vp'}.issubset(p):
+        p['vi'] = p['ve'] - p['vp']
+
+    elif {'vp', 'vi'}.issubset(p):
+        p['ve'] = p['vp'] + p['vi']
+
+    if {'vb', 'vi'}.issubset(p):
+        p['vc'] = 1 - p['vb'] - p['vi']
+
+    return p
         
 
-def Conc_u(ca, t=None, dt=1.0, Fb=None):
+def conc_tissue_u(ca, t=None, dt=1.0, Fb=None):
     ca = np.array(ca)
     C = pk.conc_trap(Fb * ca, t=t, dt=dt)
     return C.reshape(1, -1)
     
-def Conc_fx(ca, t=None, dt=1.0, H=None, ve=None, Fb=None):
+def conc_tissue_fx(ca, t=None, dt=1.0, H=None, ve=None, Fb=None):
     ca = np.array(ca)
     if Fb == 0:
         ce = ca*0
@@ -19,7 +35,7 @@ def Conc_fx(ca, t=None, dt=1.0, H=None, ve=None, Fb=None):
         ce = pk.flux_comp(ca/(1-H), ve/Fp, t=t, dt=dt)
     return ve*ce.reshape(1, -1)
 
-def Conc_nx(ca, t=None, dt=1.0, vb=None, Fb=None):
+def conc_tissue_nx(ca, t=None, dt=1.0, vb=None, Fb=None):
     ca = np.array(ca)
     if Fb == 0:
         Cb = ca*0
@@ -27,7 +43,7 @@ def Conc_nx(ca, t=None, dt=1.0, vb=None, Fb=None):
         Cb = pk.conc_comp(Fb*ca, vb/Fb, t=t, dt=dt)
     return Cb.reshape(1, -1)
 
-def Conc_nxp(ca, t=None, dt=1.0, vb=None, Fb=None):
+def conc_tissue_nxp(ca, t=None, dt=1.0, vb=None, Fb=None):
     ca = np.array(ca)
     if Fb == 0:
         Cb = ca*0
@@ -35,7 +51,7 @@ def Conc_nxp(ca, t=None, dt=1.0, vb=None, Fb=None):
         Cb = pk.conc_plug(Fb*ca, vb/Fb, t=t, dt=dt)
     return Cb.reshape(1, -1)
 
-def Conc_wv(ca, t=None, dt=1.0, H=None, vi=None, Ktrans=None):
+def conc_tissue_wv(ca, t=None, dt=1.0, H=None, vi=None, Ktrans=None):
     ca = np.array(ca)
     if Ktrans == 0:
         ci = ca*0
@@ -43,14 +59,14 @@ def Conc_wv(ca, t=None, dt=1.0, H=None, vi=None, Ktrans=None):
         ci = pk.flux_comp(ca/(1-H), vi/Ktrans, t=t, dt=dt)
     return vi*ci.reshape(1, -1)
 
-def Conc_hfu(ca, t=None, dt=1.0, H=None, vb=None, PS=None):
+def conc_tissue_hfu(ca, t=None, dt=1.0, H=None, vb=None, PS=None):
     ca = np.array(ca)
     vp = vb*(1-H)
     cp = ca/(1-H)
     Ci = pk.conc_trap(PS*cp, t=t, dt=dt)
     return np.stack((vp*cp, Ci)) 
 
-def Conc_hf(ca, t=None, dt=1.0, H=None, vi=None, vb=None, PS=None):
+def conc_tissue_hf(ca, t=None, dt=1.0, H=None, vi=None, vb=None, PS=None):
     ca = np.array(ca)
     vp = vb*(1-H)
     ca = ca/(1-H)
@@ -61,12 +77,12 @@ def Conc_hf(ca, t=None, dt=1.0, H=None, vi=None, vb=None, PS=None):
         Ci = pk.conc_comp(PS*ca, vi/PS, t=t, dt=dt)
     return np.stack((Cp, Ci))
 
-def Conc_2cu(ca, t=None, dt=1.0, H=None, vb=None, Fb=None, PS=None):
+def conc_tissue_2cu(ca, t=None, dt=1.0, H=None, vb=None, Fb=None, PS=None):
     ca = np.array(ca)
     vp = (1-H)*vb
     Fp = (1-H)*Fb
     if np.isinf(Fp):
-        return Conc_hfu(ca, t=t, dt=dt, H=H, vb=vb, PS=PS)
+        return conc_tissue_hfu(ca, t=t, dt=dt, H=H, vb=vb, PS=PS)
     ca = ca/(1-H)
     if Fp+PS == 0:
         return np.zeros((2, len(ca)))
@@ -79,12 +95,12 @@ def Conc_2cu(ca, t=None, dt=1.0, H=None, vb=None, Fb=None, PS=None):
         Ci = pk.conc_trap(PS*Cp/vp, t=t, dt=dt)
     return np.stack((Cp, Ci))
 
-def Conc_2cx(ca, t=None, dt=1.0, H=None, vi=None, vb=None, Fb=None, PS=None):
+def conc_tissue_2cx(ca, t=None, dt=1.0, H=None, vi=None, vb=None, Fb=None, PS=None):
     ca = np.array(ca)
     vp = (1-H)*vb
     Fp = (1-H)*Fb
     if np.isinf(Fp):
-        return Conc_hf(ca, t=t, dt=dt, H=H, vi=vi, vb=vb, PS=PS)
+        return conc_tissue_hf(ca, t=t, dt=dt, H=H, vi=vi, vb=vb, PS=PS)
 
     ca = ca/(1-H)
     J = Fp*ca
@@ -167,7 +183,7 @@ def flux_hf(ca, t=None, dt=1.0, H=None, vi=None, PS=None):
 
 def flux_2cu(ca, t=None, dt=1.0, H=None, vb=None, Fb=None, PS=None):
     ca = np.array(ca)
-    C = Conc_2cu(ca, t=t, dt=dt, H=H, vb=vb, Fb=Fb, PS=PS)
+    C = conc_tissue_2cu(ca, t=t, dt=dt, H=H, vb=vb, Fb=Fb, PS=PS)
     ca = ca/(1-H)
     Fp = Fb*(1-H)
     J = np.zeros(((2, 2, len(ca))))
@@ -199,7 +215,7 @@ def flux_2cx(ca, t=None, dt=1.0, H=None, vb=None, vi=None, Fb=None, PS=None):
         J[0, 0, :] = Jp
         return J
     
-    C = Conc_2cx(ca, t=t, dt=dt, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
+    C = conc_tissue_2cx(ca, t=t, dt=dt, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
     # Derive standard parameters
     vp = vb*(1-H)
     Tp = vp/(Fp+PS)
@@ -211,7 +227,7 @@ def flux_2cx(ca, t=None, dt=1.0, H=None, vb=None, vi=None, Fb=None, PS=None):
         [1-E, 1],
         [E,   0],
     ]
-    return pk._J_ncomp(C, T, E)
+    return blocks._J_ncomp(C, T, E)
 
 
 # def flux_2cf(ca, t=None, dt=1.0, vp=None, Fp=None, PS=None, Te=None):

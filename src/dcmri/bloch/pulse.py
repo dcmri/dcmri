@@ -2,10 +2,6 @@ import numpy as np
 from scipy.linalg import expm
 
 
-# Quantities in this module do not have a time index
-# These are internal helper functions not exposed to pacakage users
-
-
 
 
 # Steady-state magnetization of a preparation-recovery SPGR

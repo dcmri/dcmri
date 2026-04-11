@@ -5,10 +5,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from dcmri.signal_to_conc import SignalToConc
-from dcmri import kidney, sig, utils
+from dcmri import sig, utils
 from dcmri.ui import SuperModel, Input
 from dcmri.lexicon import SEQUENCES
 from dcmri.utils import lib
+from dcmri.kinetics import ConcKidney
+from dcmri.utils.misc import sample
+from dcmri.utils.fit import train, loss
 
 
 class Kidney(SuperModel):
@@ -233,7 +236,7 @@ class Kidney(SuperModel):
         self._pars = self._set_pars(**params)
     
     def _params(self, select=None):
-        pars_kin = kidney.Conc(self._cnfg['kinetics'])._params()
+        pars_kin = ConcKidney(self._cnfg['kinetics'])._params()
         seq = self._cnfg['sequence']
         pars_seq = SEQUENCES[seq]['parameters']['prep']
         pars_seq += SEQUENCES[seq]['parameters']['read']
@@ -255,7 +258,7 @@ class Kidney(SuperModel):
     def _compute_concentration(self):
         p = self._pars
         ca = p['c_a'] / (1 - p['H'])
-        self._C = kidney.Conc(self._cnfg['kinetics'], **p)(ca, dt=p['dt'])
+        self._C = ConcKidney(self._cnfg['kinetics'], **p)(ca, dt=p['dt'])
         
     def _compute_relaxation_rate(self):
         self._compute_concentration()
@@ -276,7 +279,7 @@ class Kidney(SuperModel):
     def _predict(self, time):
         self._set_time()
         self._compute_signal()
-        return utils.sample(time, self._t, self._S, self._pars['TS'])
+        return sample(time, self._t, self._S, self._pars['TS'])
     
     # ==========================================
     # Inverse Model: Training
@@ -304,7 +307,7 @@ class Kidney(SuperModel):
     ):
         self._estimate_parameters(signal, n0, aif)
         free = self._set_free_pars(free, bounds)
-        return utils.train(self._predict, time, signal, self._pars, free, **kwargs)
+        return train(self._predict, time, signal, self._pars, free, **kwargs)
 
     def _plot(self, time:np.ndarray, signal:np.ndarray, xlim:list, 
               fname:str, show:bool):
@@ -434,5 +437,5 @@ class Kidney(SuperModel):
             - 'BIC': Baysian information criterion.
         """
         signal_pred = self._predict(time)
-        cost = utils.loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
+        cost = loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
         return cost[0]

@@ -540,56 +540,15 @@ Returns:
 from copy import deepcopy
 import numpy as np
 
-from dcmri import pk, rel, mz, sig
+from dcmri import rel, mz, sig
 from dcmri.func import SuperFunc
-from dcmri import pk_tissue
 from dcmri.lexicon import SEQUENCES
+from dcmri.kinetics import ConcTissue
 
-
-class Conc(SuperFunc):
-
-    _params_dict = {
-        '2CX': ['T_a', 'H', 'vb', 'vi', 'Fb', 'PS'],
-        'HF': ['T_a', 'H', 'vb', 'vi', 'PS'],
-        'WV': ['T_a', 'H', 'vi', 'Ktrans'],
-        '2CU': ['T_a', 'H', 'vb', 'Fb', 'PS'],
-        'HFU': ['T_a', 'H', 'vb', 'PS'],
-        'FX': ['T_a', 'H', 've', 'Fb'],
-        'NX': ['T_a', 'vb', 'Fb'],
-        'NXP': ['T_a', 'vb', 'Fb'],
-        'U': ['T_a', 'Fb'],
-    }
-
-    configs = {'kinetics': deepcopy(list(_params_dict.keys()))}
-
-    def __init__(self, kinetics='2CX', **params):
-        cnfg = {'kinetics': kinetics}
-        self._cnfg = self._set_config(**cnfg)
-        self._pars = self._set_pars(**params)
-
-    def _params(self):
-        return deepcopy(self._params_dict[self._cnfg['kinetics']])
-
-    def __call__(self, ca: np.ndarray, t=None, dt=1.0, **params):
-        p = self._update_pars(**params)
-
-        ca = pk.flux_plug(ca, p['T_a'], dt=dt)
-        params = {k: v for k, v in p.items() if k != 'T_a'}
-        
-        kinetics = self._cnfg['kinetics']
-        if kinetics == 'U': return pk_tissue.Conc_u(ca, t=t, dt=dt, **params)
-        if kinetics == 'FX': return pk_tissue.Conc_fx(ca, t=t, dt=dt, **params)
-        if kinetics == 'NX': return pk_tissue.Conc_nx(ca, t=t, dt=dt, **params)
-        if kinetics == 'NXP': return pk_tissue.Conc_nxp(ca, t=t, dt=dt, **params)
-        if kinetics == 'WV': return pk_tissue.Conc_wv(ca, t=t, dt=dt, **params)
-        if kinetics == 'HFU': return pk_tissue.Conc_hfu(ca, t=t, dt=dt, **params)
-        if kinetics == 'HF': return pk_tissue.Conc_hf(ca, t=t, dt=dt, **params)
-        if kinetics == '2CU': return pk_tissue.Conc_2cu(ca, t=t, dt=dt, **params)
-        if kinetics == '2CX': return pk_tissue.Conc_2cx(ca, t=t, dt=dt, **params)
 
 
 class R1(SuperFunc):
-    configs = deepcopy(Conc.configs) | {
+    configs = deepcopy(ConcTissue.configs) | {
         'water_exchange': ['FF','RF','NF','FR','RR','NR','FN','RN','NN'],
     }
     def __init__(self, kinetics='2CX', water_exchange='FF', **params):
@@ -635,7 +594,7 @@ class R2(SuperFunc):
 class R2s(SuperFunc):
     configs = {
         'transverse_relaxation': ['lin', 'quad', 'leakage'],
-        'kinetics': deepcopy(Conc.configs['kinetics'])
+        'kinetics': deepcopy(ConcTissue.configs['kinetics'])
     }
     def __init__(self, transverse_relaxation='lin', kinetics=None, **params):
         if transverse_relaxation == 'leakage' and kinetics is None:
@@ -736,7 +695,7 @@ class Signal(SuperFunc):
     def _params(self):
         kin, wex, seq, r2s = self._cnfg['kinetics'], self._cnfg['water_exchange'], self._cnfg['sequence'], self._cnfg['transverse_relaxation']
         p = []
-        p += Conc(kin)._params()
+        p += ConcTissue(kin)._params()
         p += ['R10_a', 'r1']
         p += R1(kin, wex)._params()
         if seq in ['SE-EPI', 'DE-EPI']:
@@ -754,7 +713,7 @@ class Signal(SuperFunc):
         kin, wex, seq, r2s = self._cnfg['kinetics'], self._cnfg['water_exchange'], self._cnfg['sequence'], self._cnfg['transverse_relaxation']
 
         # Compute concentration
-        C = Conc(kin)(ca, t, dt, **p)
+        C = ConcTissue(kin)(ca, t, dt, **p)
 
         # Compute relaxation rates
         if 'Fb' in p:
@@ -783,46 +742,7 @@ class Signal(SuperFunc):
         return sig.Readout(seq, **p)(Mz=Mz_arr, R2s=R2s_arr, R2=R2_arr)
 
 
-class Flux(SuperFunc):
 
-    _params_dict = {
-        '2CX': ['T_a', 'H', 'vb', 'vi', 'Fb', 'PS'],
-        'HF': ['T_a', 'H', 'vi', 'PS'],
-        'WV': ['T_a', 'H', 'vi', 'Ktrans'],
-        '2CU': ['T_a', 'H', 'vb', 'Fb', 'PS'],
-        'HFU': ['T_a', 'H', 'PS'],
-        'FX': ['T_a', 'H', 've', 'Fb'],
-        'NX': ['T_a', 'vb', 'Fb'],
-        'NXP': ['T_a', 'vb', 'Fb'],
-        'U': ['T_a', 'Fb'],
-    }
-
-    configs = {'kinetics': deepcopy(list(_params_dict.keys()))}
-    
-    def __init__(self, kinetics='2CX', **params):
-        cnfg = {'kinetics': kinetics}       
-        self._cnfg = self._set_config(**cnfg)
-        self._pars = self._set_pars(**params)
-
-    def _params(self):
-        return deepcopy(Flux._params_dict[self._cnfg['kinetics']])
-
-    def __call__(self, ca: np.ndarray, t=None, dt=1.0, **params) -> np.ndarray:
-        p = self._update_pars(**params)
-
-        ca = pk.flux_plug(ca, p['T_a'], dt=dt)
-        params = {k: v for k, v in p.items() if k != 'T_a'}
-
-        kinetics = self._cnfg['kinetics']
-        if kinetics == 'U': return pk_tissue.flux_u(ca, **params)
-        if kinetics == 'NX': return pk_tissue.flux_nx(ca, t=t, dt=dt, **params)
-        if kinetics == 'NXP': return pk_tissue.flux_nxp(ca, t=t, dt=dt, **params)
-        if kinetics == 'FX': return pk_tissue.flux_fx(ca, t=t, dt=dt, **params)
-        if kinetics == 'WV': return pk_tissue.flux_wv(ca, t=t, dt=dt, **params)
-        if kinetics == 'HFU': return pk_tissue.flux_hfu(ca, **params)
-        if kinetics == 'HF': return pk_tissue.flux_hf(ca, t=t, dt=dt, **params)
-        if kinetics == '2CU': return pk_tissue.flux_2cu(ca, t=t, dt=dt, **params)
-        if kinetics == '2CX': return pk_tissue.flux_2cx(ca, t=t, dt=dt, **params)
 
 
 
@@ -830,7 +750,7 @@ class ContrastConc(SuperFunc):
     # Convert tissue concentration in blood and interstitium to concentration.
     # For uptake models this introduces a new parameter
 
-    configs = deepcopy(Conc.configs)
+    configs = deepcopy(ConcTissue.configs)
 
     def __init__(self, kinetics='2CX', **params):
         cnfg = {'kinetics': kinetics}
@@ -1234,30 +1154,5 @@ class WaterFlows(SuperFunc):
         if (kin, wex) == ('WV', 'RR'): return np.array([[0, p['PSc']], [p['PSc'], 0]])
         if (kin, wex) == ('U', 'RR'): return np.array([[0, p['PSe'], 0], [p['PSe'], 0, p['PSc']], [0, p['PSc'], 0]])
         if (kin, wex) == ('FX', 'RR'): return np.array([[p['Fb'], p['PSe'], 0], [p['PSe'], 0, p['PSc']], [0, p['PSc'], 0]])
-
-
-def add_derived_params(p):
-
-    if {'H', 'vb'}.issubset(p):
-        p['vp'] = (1 - p['H']) * p['vb']
-
-    if {'ve', 'vp'}.issubset(p):
-        p['vi'] = p['ve'] - p['vp']
-
-    elif {'vp', 'vi'}.issubset(p):
-        p['ve'] = p['vp'] + p['vi']
-
-    if {'vb', 'vi'}.issubset(p):
-        p['vc'] = 1 - p['vb'] - p['vi']
-
-    return p
-
-
-# def _set_config(**cnfg):
-#     for key, value in cnfg.items():
-#         if value not in Signal.configs[key]:
-#             raise ValueError(f'Config {value} is not recognized. Options are {list(Signal.configs[key])}.')  
-            
-#     return cnfg
 
 

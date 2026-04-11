@@ -1,8 +1,6 @@
-# TODO integrate with lexicon.py into a single namespace
-
 from copy import deepcopy
 
-from dcmri.lexicon import LEXICON
+from dcmri.lexicon.dicts import LEXICON
 
 def init(pars:list=None, lexicon:dict=LEXICON, **kwargs) -> dict:
     """Return a dictionary with parameter initial values"""

@@ -1,4 +1,3 @@
-import numpy as np
 import pydmr
 import dcmri as dc
 

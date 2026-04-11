@@ -3,7 +3,9 @@ import numpy as np
 from scipy.integrate import trapezoid
 from scipy.special import lambertw
 
-import dcmri.utils as utils
+from dcmri.utils import convolution, misc
+from dcmri.pk import utils
+
 
 # Wrappers
 
@@ -194,7 +196,7 @@ def conc_trap(J, t=None, dt=1.0):
         >>> dc.conc_trap(J, dt=2.0)
         array([ 0.,  3.,  8., 14., 19.])
     """
-    return utils.trapz(J, t=t, dt=dt)
+    return misc.trapz(J, t=t, dt=dt)
 
 
 def flux_trap(J):
@@ -410,7 +412,7 @@ def conc_comp(J, T, t=None, dt=1.0):
     """
     if T == np.inf:
         return conc_trap(J, t=t, dt=dt)
-    convexp = utils.expconv(J, T, t=t, dt=dt, tol=1e-6)
+    convexp = convolution.expconv(J, T, t=t, dt=dt, tol=1e-6)
     convexp[convexp < 0] = 0 # may have small negative values
     return T * convexp
 
@@ -441,7 +443,7 @@ def flux_comp(J, T, t=None, dt=1.0):
     """
     if T == np.inf:
         return flux_trap(J)
-    return utils.expconv(J, T, t=t, dt=dt)
+    return convolution.expconv(J, T, t=t, dt=dt)
 
 
 # Plug flow
@@ -495,7 +497,7 @@ def res_plug(T, t):
         array([1.00000000e+00, 1.00000000e+00, 8.33333333e-01, 1.11022302e-16])  
     """
     h = prop_plug(T, t)
-    return 1-utils.trapz(h, t)
+    return 1-misc.trapz(h, t)
 
 
 def conc_plug(J, T, t=None, dt=1.0, solver='interp'):
@@ -527,13 +529,13 @@ def conc_plug(J, T, t=None, dt=1.0, solver='interp'):
         return conc_trap(J)
     if T == 0:
         return 0*J
-    t = utils.tarray(len(J), t=t, dt=dt)
+    t = misc.tarray(len(J), t=t, dt=dt)
     if solver == 'conv':
         r = res_plug(T, t)
-        return utils.conv(r, J, t=t, dt=dt)
+        return convolution.conv(r, J, t=t, dt=dt)
     elif solver == 'interp':
         Jo = np.interp(t-T, t, J, left=0)
-        return utils.trapz(J-Jo, t)
+        return misc.trapz(J-Jo, t)
 
 
 def flux_plug(J, T, t=None, dt=1.0, solver='interp'):
@@ -565,10 +567,10 @@ def flux_plug(J, T, t=None, dt=1.0, solver='interp'):
         return flux_trap(J)
     if T == 0:
         return J
-    t = utils.tarray(len(J), t=t, dt=dt)
+    t = misc.tarray(len(J), t=t, dt=dt)
     if solver == 'conv':
         h = prop_plug(T, t)
-        return utils.conv(h, J, t=t, dt=dt)
+        return convolution.conv(h, J, t=t, dt=dt)
     elif solver == 'interp':
         return np.interp(t-T, t, J, left=0)
     else:
@@ -615,7 +617,7 @@ def prop_chain(T, D, t):
     if D == 1:
         return prop_comp(T, t)
     n = 1/D
-    g = utils.nexpconv(n, T/n, t)
+    g = convolution.nexpconv(n, T/n, t)
     return g
 
 
@@ -646,7 +648,7 @@ def res_chain(T, D, t):
     if D == 1:
         return res_comp(T, t)
     h = prop_chain(T, D, t)
-    return 1-utils.trapz(h, t)
+    return 1-misc.trapz(h, t)
 
 
 def conc_chain(J, T, D, t=None, dt=1.0, solver='step'):
@@ -692,9 +694,9 @@ def conc_chain(J, T, D, t=None, dt=1.0, solver='step'):
     #     C += conc_ncomp(Ji, Tc, Ec, t=t, dt=dt).sum(axis=0)
     #     return C/2
 
-    tr = utils.tarray(len(J), t=t, dt=dt)
+    tr = misc.tarray(len(J), t=t, dt=dt)
     r = res_chain(T, D, tr)
-    return utils.conv(r, J, t=t, dt=dt, solver=solver)
+    return convolution.conv(r, J, t=t, dt=dt, solver=solver)
 
 
 def flux_chain(J, T, D, t=None, dt=1.0, solver='step'):
@@ -740,9 +742,9 @@ def flux_chain(J, T, D, t=None, dt=1.0, solver='step'):
     #     Jo += flux_ncomp(Ji, Tc, Ec, t=t, dt=dt)[n0,n0,:]
     #     return Jo/2
 
-    th = utils.tarray(len(J), t=t, dt=dt)
+    th = misc.tarray(len(J), t=t, dt=dt)
     h = prop_chain(T, D, th)
-    return utils.conv(h, J, t=t, dt=dt, solver=solver)
+    return convolution.conv(h, J, t=t, dt=dt, solver=solver)
 
 # Helper function in diag solver for chain model
 # def _chain_ncomp(n, T):
@@ -820,7 +822,7 @@ def res_step(T, D, t):
         array([1.        , 0.63157895, 0.42105263, 0.        ])  
     """
     h = prop_step(T, D, t)
-    return 1-utils.trapz(h, t)
+    return 1-misc.trapz(h, t)
 
 
 def conc_step(J, T, D, t=None, dt=1.0):
@@ -850,9 +852,9 @@ def conc_step(J, T, D, t=None, dt=1.0):
     """
     if D == 0:
         return conc_plug(J, T, t=t, dt=dt)
-    t = utils.tarray(len(J), t=t, dt=dt)
+    t = misc.tarray(len(J), t=t, dt=dt)
     r = res_step(T, D, t)
-    return utils.conv(r, J, t)
+    return convolution.conv(r, J, t)
 
 
 def flux_step(J, T, D, t=None, dt=1.0):
@@ -882,9 +884,9 @@ def flux_step(J, T, D, t=None, dt=1.0):
     """
     if D == 0:
         return flux_plug(J, T, t=t, dt=dt)
-    t = utils.tarray(len(J), t=t, dt=dt)
+    t = misc.tarray(len(J), t=t, dt=dt)
     h = prop_step(T, D, t)
-    return utils.conv(h, J, t)
+    return convolution.conv(h, J, t)
 
 
 def flux_pfcomp(J, T, D, t=None, dt=1.0, solver='interp'):
@@ -1018,7 +1020,7 @@ def res_free(H, t, TT=None, TTmin=0, TTmax=None):
         array([1.00000000e+00, 5.09259259e-01, 1.11111111e-01, 2.22044605e-16])
     """
     h = prop_free(H, t, TT=TT, TTmin=TTmin, TTmax=TTmax)
-    r = 1 - utils.trapz(h, t)
+    r = 1 - misc.trapz(h, t)
     r[r < 0] = 0
     return r
 
@@ -1073,9 +1075,9 @@ def conc_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None, solver='trap')
         >>> dc.conc_free(J, [2,1], dt=2.0, TT=[0.5,1.0,2.5])
         array([0.        , 2.05555556, 3.87037037, 4.76388889, 4.14351852])
     """
-    u = utils.tarray(len(J), t=t, dt=dt)
+    u = misc.tarray(len(J), t=t, dt=dt)
     r = res_free(H, u, TT=TT, TTmin=TTmin, TTmax=TTmax)
-    return utils.conv(r, J, t=t, dt=dt, solver=solver)
+    return convolution.conv(r, J, t=t, dt=dt, solver=solver)
 
 
 def flux_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
@@ -1139,9 +1141,9 @@ def flux_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
         >>> dc.flux_free(J, [2,1], dt=2.0, TT=[0.5,1.0,2.5])
         array([0.        , 1.10185185, 2.24074074, 2.86574074, 2.59722222])
     """
-    u = utils.tarray(len(J), t=t, dt=dt)
+    u = misc.tarray(len(J), t=t, dt=dt)
     h = prop_free(H, u, TT=TT, TTmin=TTmin, TTmax=TTmax)
-    return utils.conv(h, J, t=t, dt=dt)
+    return convolution.conv(h, J, t=t, dt=dt)
 
 
 # N compartments
@@ -1198,7 +1200,7 @@ def _J_ncomp(C, T, E):
 
 
 def conc_ncomp_prop(J, T, E, t=None, dt=1.0, dt_prop=None):
-    t = utils.tarray(len(J[0, :]), t=t, dt=dt)
+    t = misc.tarray(len(J[0, :]), t=t, dt=dt)
     K = _K_ncomp(T, E)
     nt, nc = len(t), len(T)
     C = np.zeros((nc, nt))
@@ -1226,7 +1228,7 @@ def conc_ncomp_prop(J, T, E, t=None, dt=1.0, dt_prop=None):
 
 
 def conc_ncomp_diag(J, T, E, t=None, dt=1.0):
-    t = utils.tarray(J.shape[1], t=t, dt=dt)
+    t = misc.tarray(J.shape[1], t=t, dt=dt)
     # Calculate system matrix, eigenvalues and eigenvectors
     K = _K_ncomp(T, E)
     # From here, create generic function that solves n-comp system
@@ -1567,7 +1569,7 @@ def _conc_2comp(J, T, E, t=None, dt=1.0):
     # Build the system matrix K
     Q, K, Qi = _K_2comp(T, E)
     # Initialize concentration-time array
-    t = utils.tarray(len(J[0, :]), t=t, dt=dt)
+    t = misc.tarray(len(J[0, :]), t=t, dt=dt)
     C = np.zeros((2, len(t)))
     Ei = np.empty((2, len(t)))
     # Loop over the inlets
@@ -1640,7 +1642,7 @@ def conc_nscomp(J, T, t=None, dt=1.0):
         raise ValueError('T and J must have the same length.')
     if np.amin(T) <= 0:
         raise ValueError('T must be strictly positive.')
-    t = utils.tarray(len(J), t=t, dt=dt)
+    t = misc.tarray(len(J), t=t, dt=dt)
     n = len(t)
     C = np.zeros(n)
     for k in range(n-1):
@@ -1781,7 +1783,7 @@ def conc_mmcomp(J, Vmax, Km, t=None, dt=1.0, solver='SM'):
         raise ValueError('Vmax must be non-negative.')
     if Km < 0:
         raise ValueError('Km must be non-negative.')
-    t = utils.tarray(len(J), t=t, dt=dt)
+    t = misc.tarray(len(J), t=t, dt=dt)
     if solver == 'SM':
         return _mmcomp_solve(J, Vmax, Km, t)
     if solver == 'prop':
@@ -1988,13 +1990,13 @@ def conc_2cxm(J, T, E, t=None, dt=1.0) -> np.ndarray:
 
         if np.isinf(T[1]):
             # T[0] is not inf - covered above
-            Jpos = utils.expconv(J, T[0], t=t, dt=dt)
+            Jpos = convolution.expconv(J, T[0], t=t, dt=dt)
             Cp = Jpos*T[0]
             Ce = Jint - Jpos*T[0]
             return np.stack((Cp, Ce))
 
         Kpos = 1/T[0] + 1/T[1]
-        Jpos = utils.expconv(J, 1/Kpos, t=t, dt=dt)
+        Jpos = convolution.expconv(J, 1/Kpos, t=t, dt=dt)
 
         X = T[0]*T[1]/(T[0]+T[1])
         Cp = (Jpos * X/T[0] + Jint / T[1]) * X
@@ -2033,7 +2035,7 @@ def conc_2cxm(J, T, E, t=None, dt=1.0) -> np.ndarray:
         # Eneg -> E
 
         # Jpos = J
-        Jneg = utils.expconv(J, T[1]/(1-E), t=t, dt=dt)
+        Jneg = convolution.expconv(J, T[1]/(1-E), t=t, dt=dt)
 
         # Je = (Jneg/TP - Jpos*(1-E)/TE) / (1/TP - (1-E)/TE)
         # Je = (Jneg - TP*Jpos*(1-E)/TE) / (1 - TP(1-E)/TE)
@@ -2054,7 +2056,7 @@ def conc_2cxm(J, T, E, t=None, dt=1.0) -> np.ndarray:
         # Kneg = (1-E)/TP
 
         # Jpos = J
-        Jneg = utils.expconv(J, T[0]/(1-E), t=t, dt=dt)
+        Jneg = convolution.expconv(J, T[0]/(1-E), t=t, dt=dt)
 
         # KB = (1-E)/TP
         # Eneg = (1/TE - (1-E)/TP) / (1/TE - (1-E)/TP) = 1
@@ -2099,8 +2101,8 @@ def conc_2cxm(J, T, E, t=None, dt=1.0) -> np.ndarray:
     Kpos = 0.5*(KT + D)
     Kneg = 0.5*(KT - D)
 
-    Jpos = utils.expconv(J, 1/Kpos, t=t, dt=dt)
-    Jneg = utils.expconv(J, 1/Kneg, t=t, dt=dt)
+    Jpos = convolution.expconv(J, 1/Kpos, t=t, dt=dt)
+    Jneg = convolution.expconv(J, 1/Kneg, t=t, dt=dt)
 
     KB = K[0, 0] + K[1, 0]
     Eneg = (Kpos - KB)/(Kpos - Kneg)
@@ -2181,7 +2183,7 @@ def flux_2cxm(J, T, E, t=None, dt=1.0):
             return (1-E)*J
 
         Jpos = J
-        Jneg = utils.expconv(J, T[1]/(1-E), t=t, dt=dt)
+        Jneg = convolution.expconv(J, T[1]/(1-E), t=t, dt=dt)
         return (1-E)*Jpos + E*Jneg
 
     C = conc_2cxm(J, T, E, t=t, dt=dt)
@@ -2200,8 +2202,8 @@ def flux_2cxm(J, T, E, t=None, dt=1.0):
     # Kpos = 0.5*(KT + D)
     # Kneg = 0.5*(KT - D)
 
-    # Jpos = utils.expconv(J, 1/Kpos, t=t, dt=dt)
-    # Jneg = utils.expconv(J, 1/Kneg, t=t, dt=dt)
+    # Jpos = convolution.expconv(J, 1/Kpos, t=t, dt=dt)
+    # Jneg = convolution.expconv(J, 1/Kneg, t=t, dt=dt)
 
     # KB = K[0,0] + K[1,0]
     # Eneg = (Kpos - KB)/(Kpos - Kneg)
