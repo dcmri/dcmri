@@ -88,6 +88,9 @@ def Mz_ssi(R1, v, Fw, j, me, TR, FA, TF, SA):
 def Mz_ge(R1, v, Fw, j, me, TR, FA): 
     """Mz for one slice in a GE-EPI sequence
     """
+    if np.isinf(TR):
+        return np.full_like(R1, me)
+    
     pulse_sequence = [
         [FA, TR]
     ]
@@ -102,6 +105,8 @@ def Mz_ge(R1, v, Fw, j, me, TR, FA):
 def Mz_se(R1, v, Fw, j, me, TE, TR, FA): 
     """Mz for one slice in a SE-EPI sequence
     """
+    if np.isinf(TR):
+        return np.full_like(R1, me)
     pulse_sequence = [
         [FA, TE / 2], 
         [180, TR - TE/2]

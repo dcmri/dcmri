@@ -7,8 +7,7 @@ import zarr
 import numpy as np
 
 from dcmri.utils.fit import train, loss
-from dcmri.lexicon.dicts import LEXICON
-from dcmri.lexicon.tools import select_params, init
+from dcmri.lexicon import QUANTITIES, select_params, init
 
     
 
@@ -67,7 +66,7 @@ class SuperModel:
         self._cnfg = cnfg   
         return self._cnfg
     
-    def _set_pars(self, lexicon:dict=LEXICON, **params):
+    def _set_pars(self, lexicon:dict=QUANTITIES, **params):
         self._pars = init(self._params(), lexicon=lexicon, **params)
         return self._pars
     
@@ -144,7 +143,7 @@ class SuperModel:
 
 
     def _set_free_pars(self, free: dict=None, bounds: dict=None, lexicon:dict=None):
-        if lexicon is None: lexicon=LEXICON
+        if lexicon is None: lexicon=QUANTITIES
 
         # --- 0. Set Defaults ---
         if free is None:
@@ -272,31 +271,3 @@ class SuperModel:
 
         return result
     
-
-def format_batch_training(results, free):
-    # Format outputs
-    vals = {p: [] for p in free}
-    sdev = {p: [] for p in free}
-    for p in free:
-        for r in results:
-            if p in r[0]:
-                vals[p].append(r[0][p])
-            else:
-                vals[p].append(np.nan)
-            if p in r[1]:
-                sdev[p].append(r[1][p])
-            else:
-                sdev[p].append(np.nan)
-        vals[p] = np.array(vals[p])
-        sdev[p] = np.array(sdev[p])
-
-    pcov = np.empty(len(results), dtype=object)
-    pcov[:] = [r[2] for r in results]
-
-    model = np.empty(len(results), dtype=object)
-    if len(results[0]) == 4:
-        model[:] = [r[3] for r in results]
-    else:
-        model[:] = None
-
-    return vals, sdev, pcov, model

@@ -1,7 +1,5 @@
 import numpy as np
-from scipy.integrate import trapezoid
 
-import dcmri as dc
 from dcmri.utils import misc
 
 

@@ -43,6 +43,53 @@ def derived_params_kidney(p, kinetics='2CF', H=0.45) -> dict:
     if {'Fb_med', 'vol'}.issubset(p):
         p['SKMBF'] = p['Fb_med'] * p['vol']
     return p
+
+# def _deriv_params(p):
+
+#     # Kidneys
+#     if 'FF' not in p:
+#         p['FF'] = _div(p['Eb'], 1-p['Eb'])
+#     if {'RPF', 'FF'}.issubset(p):   
+#         p['GFR'] =  p['RPF'] * p['FF']
+#     if {'DRPF', 'RPF'}.issubset(p): 
+#         p['RPF_lk'] = p['DRPF'] * p['RPF']
+#         p['RPF_rk'] = (1 - p['DRPF']) * p['RPF']
+#     if {'DRF', 'GFR'}.issubset(p):
+#         p['GFR_lk'] = p['DRF'] * p['GFR']
+#         p['GFR_rk'] = (1 - p['DRF']) * p['GFR']
+
+#     # Kidney LK
+#     if {'RPF_lk', 'vol_lk'}.issubset(p):
+#         p['Fp_lk'] = _div(p['RPF_lk'], p['vol_lk'])
+#     if {'RPF_lk', 'GFR_lk', 'vp_lk', 'vol_lk'}.issubset(p):
+#         p['Tp_lk'] = _div(p['vp_lk'] * p['vol_lk'], p['RPF_lk']+p['GFR_lk'])
+#     if {'RPF_lk', 'vp_lk', 'vol_lk'}.issubset(p):
+#         p['Tv_lk'] = _div(p['vp_lk'] * p['vol_lk'], p['RPF_lk'])
+#     if {'GFR_lk', 'vol_lk'}.issubset(p):
+#         p['Ft_lk'] = _div(p['GFR_lk'], p['vol_lk'])
+#     if {'GFR_lk', 'RPF_lk'}.issubset(p):
+#         p['FF_lk'] = _div(p['GFR_lk'], p['RPF_lk'])
+#         p['E_lk'] = _div(p['GFR_lk'], p['GFR_lk']+p['RPF_lk'])
+
+#     # Kidney RK
+#     if {'RPF_rk', 'vol_rk'}.issubset(p):
+#         p['Fp_rk'] = _div(p['RPF_rk'], p['vol_rk'])
+#     if {'RPF_rk', 'GFR_rk', 'vp_rk', 'vol_rk'}.issubset(p):
+#         p['Tp_rk'] = _div(p['vp_rk'] * p['vol_rk'], p['RPF_rk']+p['GFR_rk'])
+#     if {'RPF_rk', 'vp_rk', 'vol_rk'}.issubset(p):
+#         p['Tv_rk'] = _div(p['vp_rk'] * p['vol_rk'], p['RPF_rk'])
+#     if {'GFR_rk', 'vol_rk'}.issubset(p):
+#         p['Ft_rk'] = _div(p['GFR_rk'], p['vol_rk'])
+#     if {'GFR_rk', 'RPF_rk'}.issubset(p):
+#         p['FF_rk'] = _div(p['GFR_rk'], p['RPF_rk'])
+#         p['E_rk'] = _div(p['GFR_rk'], p['GFR_rk']+p['RPF_rk'])
+
+#     return p
+
+
+# def _div(a, b):
+#     with np.errstate(divide='ignore', invalid='ignore'):
+#         return np.where(b == 0, 0, np.divide(a, b))
     
 
 
@@ -139,7 +186,7 @@ def conc_kidney_cm(ca: np.ndarray, *params, t=None, dt=1.0, sum=True,
         Generate a population-average input function:
 
         >>> t = np.arange(0, 300, 1.5)
-        >>> ca = dc.aif_parker(t, BAT=20)
+        >>> ca = dc.aif.parker(t, BAT=20)
 
         Use the function to generate total cortex and medulla tissue concentrations:
 

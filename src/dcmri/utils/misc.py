@@ -1,9 +1,14 @@
 import math
 
 import numpy as np
+from tqdm import tqdm
 from scipy.interpolate import CubicSpline
 from scipy.interpolate import interp1d
 from scipy.integrate import cumulative_trapezoid
+from scipy.stats import rice
+from scipy.optimize import minimize
+
+
 
 def trapz(f, t=None, dt=1.0):
     # Helper function - perform trapezoidal integration.
@@ -133,6 +138,12 @@ def sample(t, tp, Sp, dt=None) -> np.ndarray:
     t_start = t - dt/2
     t_end = t + dt/2
 
+    # Override the FIRST point only (index 0)
+    # We make it start at t[0] and end at t[0] + dt/2
+    if t[0] - dt/2 < tp[0]:  # Only adjust if the first window extends before tp[0]
+        t_start[0] = t[0]
+        t_end[0] = t[0] + dt/2
+
     F_start = int_interp(t_start)
     F_end = int_interp(t_end)
 
@@ -148,7 +159,11 @@ def sample(t, tp, Sp, dt=None) -> np.ndarray:
     F_end = np.where(t_end < tp_min, 0, F_end)
     F_end = np.where(t_end > tp_max, total_integral, F_end)
 
-    Ss = (F_end - F_start) / dt
+    # Define the divisors (dt for most, dt/2 for the first point)
+    divisors = np.full_like(t, dt, dtype=np.float64)
+    if t[0] - dt/2 < tp[0]:
+        divisors[0] = dt/2
+    Ss = (F_end - F_start) / divisors
     
     return Ss.flatten() if is_1d else Ss
 
@@ -206,134 +221,124 @@ def add_noise(signal, sdev: float) -> np.ndarray:
 
 
 
+def mle_rice(data, fit_loc=False):
+    """
+    Maximum-likelihood estimate of Rician parameters from 1D array `data`.
+
+    Parameters
+    ----------
+    data : array-like, shape (n,)
+        Observations (must be >= 0 unless you fit loc).
+    fit_loc : bool
+        If True, estimate loc as well. If False, assume loc == 0.
+
+    Returns
+    -------
+    dict with keys:
+      - 'nu'    : estimated noncentrality parameter nu
+      - 'sigma' : estimated scale sigma
+      - 'b'     : estimated shape parameter b = nu/sigma
+      - 'loc'   : estimated location (0 if fit_loc=False)
+      - 'success', 'message' from optimizer
+    """
+
+    data = np.asarray(data, dtype=float)
+    if not fit_loc and (data < 0).any():
+        raise ValueError("data contains negative values but fit_loc=False. "
+                         "Either remove negatives or set fit_loc=True.")
+
+    # initial guess using scipy's fit (fast and robust)
+    if fit_loc:
+        b0, loc0, sigma0 = rice.fit(data)         # returns (shape, loc, scale)
+        x0 = np.array([np.log(b0), loc0, np.log(sigma0)])
+    else:
+        b0, loc0, sigma0 = rice.fit(data, floc=0)
+        x0 = np.log([b0, sigma0])  # we optimize in log-space for positivity
+
+    # Negative log-likelihood to minimize (we parametrize to enforce positivity)
+    if fit_loc:
+        def neglog(x):
+            b = np.exp(x[0])
+            loc = x[1]
+            sigma = np.exp(x[2])
+            return -np.sum(rice.logpdf(data, b, loc=loc, scale=sigma))
+        bounds = [(None, None), (None, None), (None, None)]
+    else:
+        def neglog(x):
+            b = np.exp(x[0])
+            sigma = np.exp(x[1])
+            return -np.sum(rice.logpdf(data, b, loc=0.0, scale=sigma))
+        bounds = [(None, None), (None, None)]
+
+    res = minimize(neglog, x0, method='L-BFGS-B', bounds=bounds,
+                   options={'ftol':1e-12, 'gtol':1e-8})
+
+    if fit_loc:
+        b_hat = float(np.exp(res.x[0]))
+        loc_hat = float(res.x[1])
+        sigma_hat = float(np.exp(res.x[2]))
+    else:
+        b_hat = float(np.exp(res.x[0]))
+        sigma_hat = float(np.exp(res.x[1]))
+        loc_hat = 0.0
+
+    nu_hat = b_hat * sigma_hat
+
+    return {
+        'nu': nu_hat,
+        'sigma': sigma_hat,
+        'b': b_hat,
+        'loc': loc_hat,
+        'success': res.success,
+        'message': res.message,
+        'nll': float(res.fun)
+    }
 
 
-# def transfer_rate(y, x, bounds=(-np.inf, np.inf)) -> np.ndarray:
-#     """Return a time-varying transfer rate k(t) defined by 
 
-#     .. math::
+def describe(data, n0=1, rician=False):
+    """Compute descriptive parameter maps for a signal array.
 
-#         k(x) = k_i \frac{1 + r * (x-x_0)}{1 + h * (x-x_0)}
+    Args:
+        data (numpy.ndarray): array with signal data. Dimensions have 
+            to be at least 2, where the last dimension is time.
+        n0 (int, optional): Number of baseline points. Defaults to 1.
+        rician (bool, optional): Whether to correct for Rician noise in 
+            computation of baseline signal and noise (slow). Defaults 
+            to False.
 
-#     given :math:`k_i` and the values :math:`k_m, k_f` at the middle 
-#     and the end of the x-interval, respectively. The function derives 
-#     the values for r and h.
-        
-#     Args:
-#         y (array): 3-element array with values :math:`k_i, k_m, k_f`.
-#         x (array: x-values where the function is to be defined
-#         bounds (tuple, optional): Lower and upper bounds for the result. 
-#           The function is clipped to this range. Defaults to (-np.inf, np.inf).
+    Raises:
+        ValueError: if rician=True, n0 needs to be 3 or higher.
 
-#     Returns:
-#         np.ndarray: k(x)
-#     """
-#     # Linear diurnal variation and MM-effect of drug concentration:
+    Returns:
+        dict: Dictionary with parameter maps.
+    """
 
-#     # k(t) = k0 * (1 + r * t) / (1 + c(t) / cm)              -- with cm > 0 and 1 + r * t > 0
-
-#     # Linear variation in drug concentration:
-
-#     # k(t) = k0 * (1 + r * t) / (1 + (c0 + s * t) / cm)      -- with c0 + s * t > 0 and c0 > 0
-
-#     # Simplify:
-
-#     # k(t) = k0 * (1 + r * t) / (1 + c0 / cm + (s / cm) * t)
-#     # k(t) = [k0 / (1 + c0 / cm)] * (1 + r * t) / (1 + [ (s / cm) / (1 + c0 / cm )] * t)
-
-#     # Model:
-
-#     # k(t) = ki * (1 + r * t) / (1 + h * t)
-
-#     # r quantifies diurnal variation, h=drug dependence
-
-#     # khe: r!=0, h=?
-#     # kbh: r==0, h=?
-
-#     # baseline: h=0, kbh: r=0; khe  r != 0
-#     # drug visit 
-
-#     # # reparameterize with km (mid) and kf (end)
-
-#     # km = ki * (1 + r * tm) / (1 + h * tm)
-#     # kf = ki * (1 + r * tf) / (1 + h * tf)
-
-#     # solve for h, r:
-
-#     # km * (1 + h * tm) = ki * (1 + r * tm)
-#     # kf * (1 + h * tf) = ki * (1 + r * tf)
-
-#     # km + h * km * tm = ki + r * ki * tm
-#     # kf + h * kf * tf = ki + r * ki * tf
-
-#     # km - ki = r * ki * tm - h * km * tm
-#     # kf - ki = r * ki * tf - h * kf * tf
-
-#     # km - ki       ki * tm    - km * tm       r
-#     #           =
-#     # kf - ki       ki * tf    - kf * tf       h
-
-#     # det = - ki * tm * kf * tf + ki * tf * km * tm 
-#     # = (- kf + km) * tm * tf * ki = 0
-#     # iff
-#     # km = kf
-
-#     # First consider the case km=kf:
-
-#     # kf - ki = r * ki * tm - h * kf * tm
-#     # kf - ki = r * ki * tf - h * kf * tf
-
-#     # From the 1st:
-
-#     # h = (r * ki * tm - kf + ki) / (kf * tm)
-
-#     # Insert in the 2nd:
-
-#     # kf - ki = (kf - ki) * tf / tm
-
-#     # Since tf != tm this is only possible if kf=ki, ie. the constant solution
-
-#     # If km=kf => r=0 and h=0
-#     # else invert the matrix
-
-#     #y = [ki, km, kf]
-
-#     ki, km, kf = y[0], y[1], y[2]
-    
-#     tf = 1
-#     tm = 0.5
-
-#     if y[1] == y[2]:
-#         r = 0
-#         h = 0
-#     else:
-#         mat = np.array([[ki * tf, - kf * tf], [ki * tm, - km * tm]])
-#         Y = np.array([kf - ki, km - ki])
-#         X = np.linalg.inv(mat).dot(Y)
-#         r = X[0]
-#         h = X[1]
-
-#     t  =x-x[0]
-#     kt = ki * (1 + r * t) / (1 + h * t)
-
-#     kt[kt < bounds[0]] = bounds[0]
-#     kt[kt > bounds[1]] = bounds[1]
-
-#     return kt
+    maps = {}
+    if n0==1:
+        maps['Sb'] = data[...,0]
+    else:
+        maps['Sb'] = np.mean(data[...,:n0], axis=-1)
+    if n0 > 2:
+        maps['Nb'] = np.std(data[...,:n0], axis=-1)
+    maps['SEmax'] = np.max(data, axis=-1) - maps['Sb']
+    maps['SEauc'] = np.sum(data, axis=-1) - maps['Sb'] * data.shape[-1]
+    with np.errstate(divide='ignore', over='ignore', invalid='ignore'):
+        maps['RSEmax'] = np.where(maps['Sb']!=0, maps['SEmax']/maps['Sb'], 0)
+        maps['RSEauc'] = np.where(maps['Sb']!=0, maps['SEauc']/maps['Sb'], 0)
+    if rician:
+        if n0 < 3:
+            raise ValueError('Rician correction can only be applied if n0 > 2')
+        Sb_rice = np.zeros(maps['Sb'].size)
+        Nb_rice = np.zeros(maps['Sb'].size)
+        data_xt = data.reshape(-1, data.shape[-1])
+        for x in tqdm(range(data_xt.shape[0]), desc='Computing Rician noise', total=data_xt.shape[0]):
+            rice = mle_rice(data_xt[x,:n0])
+            Sb_rice[x] = rice['nu']
+            Nb_rice[x] = rice['sigma']
+        maps['Sb_rician'] = Sb_rice.reshape(data.shape[:-1])
+        maps['Nb_rician'] = Nb_rice.reshape(data.shape[:-1])
+    return maps
 
 
-# if __name__=='__main__':
 
-#     import matplotlib.pyplot as plt
-
-#     y = [1, 2, 1]
-#     t = np.linspace(0,1,100)
-#     # k = transfer_rate(y, t, bounds=(-np.inf, np.inf))
-#     r, h = -100, -10
-#     k = y[0] * (1 + r * t) / (1 + h * t)
-
-#     plt.plot(t, k)
-#     plt.show()
-    
-
-#     #print(k)

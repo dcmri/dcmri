@@ -71,6 +71,7 @@ dev = [
     'pycodestyle',
     'build',
     'twine',
+    'pydeps',
 ]
 
 [tool.setuptools.packages.find]

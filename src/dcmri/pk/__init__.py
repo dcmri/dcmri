@@ -1,44 +1,56 @@
+# conc => tconc
+
+from dcmri.pk.input import (
+    ca_injection,
+)
+from dcmri.pk.inv import (
+    linfit_2cfm,
+)
+
 from dcmri.pk.blocks import (
-    conc, # eliminate - replaced by kinetics
-    flux, # eliminate - replaced by kinetics
     res_trap,
-    prop_trap,
-    conc_trap,
-    flux_trap,
     res_pass,
-    prop_pass,
-    conc_pass,
-    flux_pass,
     res_comp,
-    prop_comp,
-    conc_comp,
-    flux_comp,
-    prop_plug,
     res_plug,
-    conc_plug,
-    flux_plug,
-    prop_chain,
     res_chain,
-    conc_chain,
-    flux_chain,
-    prop_step,
     res_step,
+    res_free,
+    res_ncomp,
+
+    prop_trap,
+    prop_pass,
+    prop_comp,
+    prop_plug,
+    prop_chain,
+    prop_step,
+    prop_free,
+    prop_ncomp,
+
+    conc, # eliminate - replaced by kinetics
+    conc_trap,
+    conc_pass,
+    conc_comp,
+    conc_plug,
+    conc_chain,
     conc_step,
+    conc_free,
+    conc_ncomp,
+    conc_nscomp,
+    conc_mmcomp,
+    conc_2cxm,
+
+    flux, # eliminate - replaced by kinetics
+    flux_trap,
+    flux_pass,
+    flux_comp,
+    flux_plug,
+    flux_chain,
     flux_step,
     flux_pfcomp,
-    prop_free,
-    res_free,
-    conc_free,
     flux_free,
-    conc_ncomp,
     flux_ncomp,
-    res_ncomp,
-    prop_ncomp,
-    conc_nscomp,
     flux_nscomp,
-    conc_mmcomp,
     flux_mmcomp,
-    conc_2cxm,
     flux_2cxm,
 )
 from dcmri.pk.aorta import (
@@ -50,7 +62,7 @@ from dcmri.pk.kidney import (
     conc_kidney_fn,
     conc_kidney_cm9,
 )
-from dcmri.pk.liver import (
+from dcmri.pk.liver import ( # change double __ notation
     conc_liver_1i_ec_d,
     conc_liver_1i_ec,
     conc_liver_1i_ic,
@@ -90,13 +102,13 @@ from dcmri.pk.tissue import (
     conc_tissue_hf,
     conc_tissue_2cu,
     conc_tissue_2cx,
-    flux_u,
-    flux_nx,
-    flux_nxp,
-    flux_fx,
-    flux_wv,
-    flux_hfu,
-    flux_hf,
-    flux_2cu,
-    flux_2cx,
+    flux_tissue_u,
+    flux_tissue_nx,
+    flux_tissue_nxp,
+    flux_tissue_fx,
+    flux_tissue_wv,
+    flux_tissue_hfu,
+    flux_tissue_hf,
+    flux_tissue_2cu,
+    flux_tissue_2cx,
 )

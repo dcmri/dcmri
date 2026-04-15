@@ -290,7 +290,7 @@ ca_init = np.interp(t_init-30, t_init, ca_init, left=0)
 cv_init = np.interp(t_init-10, t_init, ca_init, left=0)
 
 
-LEXICON = MappingProxyType(  # This makes the dict immutable
+QUANTITIES = MappingProxyType(  # This makes the dict immutable
     {
         
     # ---- Simulation parameters ---

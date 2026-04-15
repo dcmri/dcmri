@@ -16,6 +16,34 @@ def train_batch(predict, time, signal, pars, free, **kwargs):
 
     return results 
 
+def format_batch_training(results, free):
+    # Format outputs
+    vals = {p: [] for p in free}
+    sdev = {p: [] for p in free}
+    for p in free:
+        for r in results:
+            if p in r[0]:
+                vals[p].append(r[0][p])
+            else:
+                vals[p].append(np.nan)
+            if p in r[1]:
+                sdev[p].append(r[1][p])
+            else:
+                sdev[p].append(np.nan)
+        vals[p] = np.array(vals[p])
+        sdev[p] = np.array(sdev[p])
+
+    pcov = np.empty(len(results), dtype=object)
+    pcov[:] = [r[2] for r in results]
+
+    model = np.empty(len(results), dtype=object)
+    if len(results[0]) == 4:
+        model[:] = [r[3] for r in results]
+    else:
+        model[:] = None
+
+    return vals, sdev, pcov, model
+
 
 def train(predict, time, signal, pars, free, x=None, reset=False, **kwargs):
     """Optimization logic using normalized parameter values."""

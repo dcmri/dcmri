@@ -41,10 +41,10 @@ Typical usage: ROI-based analysis
     import dcmri as dc
 
     # Generate some test data
-    time, aif, roi, _ = dc.fake_tissue(CNR=50)   
+    time, aif, roi, _ = dc.fake.tissue(CNR=50)   
 
     # Construct a tissue
-    tissue = dc.Tissue(aif=aif, t=time)  
+    tissue = dc.TissueX(aif=aif, t=time)  
 
     # Train the tissue on the data        
     tissue.train(time, roi)   
@@ -88,7 +88,7 @@ Typical usage: pixel-based analysis
 
     # Generate some test data
     n = 128
-    time, signal, aif, _ = dc.fake_brain(n) 
+    time, signal, aif, _ = dc.fake.brain(n) 
 
     # Construct a tissue array
     image = dc.TissueArray(

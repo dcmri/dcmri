@@ -2,7 +2,120 @@ import numpy as np
 from scipy.special import gamma
 from scipy.integrate import trapezoid
 
-from dcmri.utils.misc import trapz, tarray
+
+def _tarray(n, t=None, dt=1.0):
+    # Helper function - generate time array.
+    if t is None:
+        t = dt*np.arange(n)
+    else:
+        if not isinstance(t, np.ndarray):
+            t = np.array(t)
+        if len(t) != n:
+            raise ValueError('Time array must have same length as the input.')
+    return t
+
+def _trapz(f, t=None, dt=1.0):
+    # Helper function - perform trapezoidal integration.
+    # Replace by scipy.integrate.trapezoid
+    f = np.array(f)
+    n = len(f)
+    t = _tarray(n, t=t, dt=dt)
+    g = np.empty(n)
+    g[0] = 0
+    for i in range(n-1):
+        g[i+1] = g[i] + (t[i+1]-t[i]) * (f[i+1]+f[i]) / 2
+    return g
+
+
+
+
+def convmat(f:np.ndarray, order=2):
+    """Return the convolution matrix
+
+    The convolution product f*g can be computed by a matrix multiplication 
+    dt * M(f) # g. This function returns the matrix M(f) for a given f, 
+    which can be inverted to perform deconvolution.
+
+    Args:
+        f (numpy.ndarray): 1D array to be convolved
+        order (int, optional): Order of the integration. Defaults to 2.
+
+    Returns:
+        numpy.ndarray: n x n square matrix
+    """
+    n = len(f)
+    mat = np.zeros((n,n))
+
+    if order==1:
+        for i in range(0,n):
+            for j in range(0,i+1):
+                mat[i,j] = f[i-j]
+        
+    elif order==2:
+        for i in range(1,n):
+            mat[i,i] = 2*f[0] + f[1]    
+            for j in range(1,i):        
+                mat[i,i-j] = f[j-1] + 4*f[j] + f[j+1]
+            mat[i,0] = f[i-1] + 2*f[i]
+        mat = mat/6
+
+    return mat
+
+
+def invconvmat(f, order=2, tol=1e-15, method='TSVD'):
+    mat = convmat(f, order)
+    U, s, Vt = np.linalg.svd(mat, full_matrices=False)
+    svmin = tol*np.amax(s)
+    if method=='Tikhonov':
+        s_inv = s/(s**2 + svmin**2)
+    elif method=='TSVD':
+        s_inv = np.array([1/x if x > svmin else 0 for x in s])
+    else:
+        raise ValueError(
+            f"Unknown deconvolution method {method}. Possible values "
+            "are 'TSVD' (Truncated Singular Value Decomposition) or "
+            "'Tikhonov'."
+        )
+    return np.dot(Vt.T * s_inv, U.T)
+
+
+def deconv(h:np.ndarray, g:np.ndarray, dt=1.0, order=2, 
+           method='TSVD', tol=1e-15) -> np.ndarray:
+    """Deconvolve two uniformly sampled 1D functions.
+
+    If and (h,g) are known in h = g*f, this function estimates f = deconv(h, g).
+
+    Args:
+        h (numpy array): Result of the convolution. if g has N 
+            elements, than h can be an N-element array, or a  
+            N x K - element array where N is the length of g. In this 
+            case each column is deconvolved indepdently with g.
+        g (numpy array): One factor of the convolution (1D array).
+        dt (float, optional): Time between samples. Defaults to 1.0.
+        order (int, optional): Integration order of the convolution 
+            matrix. Defaults to 2.
+        method (str, optional): Regularization method. Current options 
+            are 'TSVD' (Truncated Singular Value Decomposition) or 
+            'Tikhonov'. Defaults to False.
+        tol (float, optional): Tolerance for the inversion of the 
+            convolution matrix (rgularization parameter). Singular 
+            values less than a fraction 'tol' of the largest 
+            singular value are ignored. Defaults to 1e-15.
+
+    Returns:
+        numpy.ndarray: Estimate of the convolution factor f. This has 
+        the same shape as h.
+    """
+    if g.ndim > 1:
+        raise ValueError("g must be 1-dimensional.")
+    if h.ndim > 2:
+        raise ValueError("h must have 1 or 2 dimensions.")
+    if h.shape[0] != len(g):
+        raise ValueError(
+            "The first dimension of h must have the same length as g."
+        )
+    ginv = invconvmat(g, order, tol, method)
+    return (ginv @ h) / dt
 
 
 
@@ -175,7 +288,7 @@ def stepconv(f, T, D, t=None, dt=1.0):
     T0 = T-TW     # Initial time point of step
     T1 = T+TW
     n = len(f)
-    t = tarray(n, t=t, dt=dt)
+    t = _tarray(n, t=t, dt=dt)
     g = np.zeros(n)
     k = len(t[t < T0])
     ti = t[(T0 <= t)*(t <= T1)]
@@ -251,7 +364,7 @@ def expconv(f, T, t=None, dt=1.0, tol=0):
     n = len(f)
     if n==1:
         return np.zeros(n)
-    t = tarray(n, t=t, dt=dt)
+    t = _tarray(n, t=t, dt=dt)
     x = (t[1:n] - t[0:n-1])/T 
     if 1/x.min() < tol: # very small T
         return f
@@ -264,8 +377,8 @@ def expconv(f, T, t=None, dt=1.0, tol=0):
         # g(t) = (1/T) * int_0^t du f(u) - (t/T^2) * int_0^t du f(u) + (1/T^2) * int_0^t du f(u) u
         # g(t) = (1/T)[1 - (t/T)] * int_0^t du f(u) + (1/T^2) * int_0^t du f(u) u
         # Tg = [1 - (t/T)] * int_0^t du f(u) + (1/T) * int_0^t du f(u) u 
-        f0 = trapz(f, t=t, dt=dt)
-        f1 = trapz(f*t, t=t, dt=dt)
+        f0 = _trapz(f, t=t, dt=dt)
+        f1 = _trapz(f*t, t=t, dt=dt)
         return f0 / T + (f1 - t * f0) / T**2
     df = (f[1:n] - f[0:n-1])/x
     E = np.exp(-x)

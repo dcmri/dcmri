@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.integrate import trapezoid
 
-import dcmri as dc
+from dcmri import convolution
 from dcmri.pk import utils
 
 
@@ -41,7 +41,7 @@ def test_ddelta():
     t = tfib(10, 30)
     h = utils.ddelta(0,t)
     f = np.exp(-t/30)/30
-    g = dc.conv(f, h, t)
+    g = convolution.conv(f, h, t)
     assert np.linalg.norm(g[1:]-f[1:])/np.linalg.norm(f[1:]) < 1e-2
 
 def test_dstep():

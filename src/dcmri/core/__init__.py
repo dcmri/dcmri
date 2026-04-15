@@ -1,1 +1,7 @@
-# Only leaf dependencies in this folder
+from dcmri.core.func import (
+    SuperFunc
+)
+from dcmri.core.model import (
+    Input,
+    SuperModel,
+)

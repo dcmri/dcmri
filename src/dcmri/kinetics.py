@@ -1,10 +1,9 @@
 import copy
 import numpy as np
 
-from dcmri import pk
-from dcmri.func import SuperFunc
-from dcmri.utils import lib
-from dcmri.lexicon import LEXICON
+from dcmri import pk, const
+from dcmri.core import SuperFunc
+from dcmri.lexicon import QUANTITIES
 
 
 class ConcAorta(SuperFunc):
@@ -136,8 +135,8 @@ class ConcAorta(SuperFunc):
         elif orgs=='2cxm':
             organs = ['2cxm', ([p['To'], p['To_e']], p['Eo'])]
 
-        conc = lib.ca_conc(p['agent'])
-        Ji = lib.ca_injection(
+        conc = const.ca_conc(p['agent'])
+        Ji = pk.ca_injection(
             t, p['weight'], conc, p['dose'], p['rate'], p['BAT']
         )
         Jb = pk.flux_aorta(
@@ -149,7 +148,7 @@ class ConcAorta(SuperFunc):
 
 
 # Liver-specific defaults
-LEXICON_LIVER = LEXICON | {
+QUANTITIES_LIVER = QUANTITIES | {
     'T_a': {'init': 2, 'bounds': [0, 30], 'name': 'Arterial mean transit time', 'unit': 'sec'},
     'Fp': {'init': 0.008, 'bounds': [0, 1], 'name': 'Liver plasma flow', 'unit': 'mL/sec/cm3'},
 }
@@ -208,7 +207,7 @@ class ConcLiver(SuperFunc):
         Generate a population-average input function:
 
         >>> t = np.arange(0, 30*60, 1.5)
-        >>> ca = dc.aif_parker(t, BAT=20)
+        >>> ca = dc.aif.parker(t, BAT=20)
 
         Generate extracellular and hepatocyte liver tissue 
         concentrations tissue:
@@ -279,7 +278,7 @@ class ConcLiver(SuperFunc):
     def __init__(self, kinetics='2I-EC', non_stationary=None, **params):
         cnfg = {'kinetics': kinetics, 'non_stationary': non_stationary}
         self._cnfg = self._set_config(**cnfg)
-        self._pars = self._set_pars(LEXICON_LIVER, **params)
+        self._pars = self._set_pars(QUANTITIES_LIVER, **params)
 
     def _params(self):
         model = (self._cnfg['kinetics'], self._cnfg['non_stationary'])
@@ -309,7 +308,7 @@ class ConcLiver(SuperFunc):
 
     
 # Kidney-specific defaults
-LEXICON_KIDNEY = LEXICON | {
+QUANTITIES_KIDNEY = QUANTITIES | {
     'ht': {'init': np.ones(5) / 5, 'bounds': [0, 100], 'name': 'Tubular transit time distribution', 'unit': '1/sec'},
     'Tv': {'name': 'Vascular mean transit time', 'unit': 'sec'},
     'RBF': {'name': 'Renal blood flow', 'unit': 'mL/sec'},
@@ -359,7 +358,7 @@ class ConcKidney(SuperFunc):
         Generate a population-average input function:
 
         >>> t = np.arange(0, 300, 1.5)
-        >>> ca = dc.aif_parker(t, BAT=20)
+        >>> ca = dc.aif.parker(t, BAT=20)
 
         Define some parameters and generate plasma and tubular tissue concentrations with a 2-compartment filtration model:
 
@@ -411,7 +410,7 @@ class ConcKidney(SuperFunc):
     def __init__(self, kinetics='2CF', **params):
         cnfg = {'kinetics': kinetics}
         self._cnfg = self._set_config(**cnfg)
-        self._pars = self._set_pars(LEXICON_KIDNEY, **params)
+        self._pars = self._set_pars(QUANTITIES_KIDNEY, **params)
 
     def _params(self):
         model = self._cnfg['kinetics']
@@ -461,7 +460,8 @@ class ConcCortMed(SuperFunc):
             return pk.conc_kidney_cm9(ca, t=t, dt=dt, **p)
         
 
-class ConcTissue(SuperFunc):
+
+class ConcTissueX(SuperFunc):
 
     _params_dict = {
         '2CX': ['T_a', 'H', 'vb', 'vi', 'Fb', 'PS'],
@@ -492,18 +492,18 @@ class ConcTissue(SuperFunc):
         params = {k: v for k, v in p.items() if k != 'T_a'}
         
         kinetics = self._cnfg['kinetics']
-        if kinetics == 'U': return pk_tissue.Conc_u(ca, t=t, dt=dt, **params)
-        if kinetics == 'FX': return pk_tissue.Conc_fx(ca, t=t, dt=dt, **params)
-        if kinetics == 'NX': return pk_tissue.Conc_nx(ca, t=t, dt=dt, **params)
-        if kinetics == 'NXP': return pk_tissue.Conc_nxp(ca, t=t, dt=dt, **params)
-        if kinetics == 'WV': return pk_tissue.Conc_wv(ca, t=t, dt=dt, **params)
-        if kinetics == 'HFU': return pk_tissue.Conc_hfu(ca, t=t, dt=dt, **params)
-        if kinetics == 'HF': return pk_tissue.Conc_hf(ca, t=t, dt=dt, **params)
-        if kinetics == '2CU': return pk_tissue.Conc_2cu(ca, t=t, dt=dt, **params)
-        if kinetics == '2CX': return pk_tissue.Conc_2cx(ca, t=t, dt=dt, **params)
+        if kinetics == 'U': return pk.conc_tissue_u(ca, t=t, dt=dt, **params)
+        if kinetics == 'FX': return pk.conc_tissue_fx(ca, t=t, dt=dt, **params)
+        if kinetics == 'NX': return pk.conc_tissue_nx(ca, t=t, dt=dt, **params)
+        if kinetics == 'NXP': return pk.conc_tissue_nxp(ca, t=t, dt=dt, **params)
+        if kinetics == 'WV': return pk.conc_tissue_wv(ca, t=t, dt=dt, **params)
+        if kinetics == 'HFU': return pk.conc_tissue_hfu(ca, t=t, dt=dt, **params)
+        if kinetics == 'HF': return pk.conc_tissue_hf(ca, t=t, dt=dt, **params)
+        if kinetics == '2CU': return pk.conc_tissue_2cu(ca, t=t, dt=dt, **params)
+        if kinetics == '2CX': return pk.conc_tissue_2cx(ca, t=t, dt=dt, **params)
 
 
-class FluxTissue(SuperFunc):
+class FluxTissueX(SuperFunc):
 
     _params_dict = {
         '2CX': ['T_a', 'H', 'vb', 'vi', 'Fb', 'PS'],
@@ -534,15 +534,15 @@ class FluxTissue(SuperFunc):
         params = {k: v for k, v in p.items() if k != 'T_a'}
 
         kinetics = self._cnfg['kinetics']
-        if kinetics == 'U': return pk_tissue.flux_u(ca, **params)
-        if kinetics == 'NX': return pk_tissue.flux_nx(ca, t=t, dt=dt, **params)
-        if kinetics == 'NXP': return pk_tissue.flux_nxp(ca, t=t, dt=dt, **params)
-        if kinetics == 'FX': return pk_tissue.flux_fx(ca, t=t, dt=dt, **params)
-        if kinetics == 'WV': return pk_tissue.flux_wv(ca, t=t, dt=dt, **params)
-        if kinetics == 'HFU': return pk_tissue.flux_hfu(ca, **params)
-        if kinetics == 'HF': return pk_tissue.flux_hf(ca, t=t, dt=dt, **params)
-        if kinetics == '2CU': return pk_tissue.flux_2cu(ca, t=t, dt=dt, **params)
-        if kinetics == '2CX': return pk_tissue.flux_2cx(ca, t=t, dt=dt, **params)
+        if kinetics == 'U': return pk.flux_tissue_u(ca, **params)
+        if kinetics == 'NX': return pk.flux_tissue_nx(ca, t=t, dt=dt, **params)
+        if kinetics == 'NXP': return pk.flux_tissue_nxp(ca, t=t, dt=dt, **params)
+        if kinetics == 'FX': return pk.flux_tissue_fx(ca, t=t, dt=dt, **params)
+        if kinetics == 'WV': return pk.flux_tissue_wv(ca, t=t, dt=dt, **params)
+        if kinetics == 'HFU': return pk.flux_tissue_hfu(ca, **params)
+        if kinetics == 'HF': return pk.flux_tissue_hf(ca, t=t, dt=dt, **params)
+        if kinetics == '2CU': return pk.flux_tissue_2cu(ca, t=t, dt=dt, **params)
+        if kinetics == '2CX': return pk.flux_tissue_2cx(ca, t=t, dt=dt, **params)
 
 
 

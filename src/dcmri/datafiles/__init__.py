@@ -1,2 +1,1 @@
-# Necessary?
 import dcmri.datafiles

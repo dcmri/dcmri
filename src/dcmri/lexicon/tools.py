@@ -1,8 +1,10 @@
 from copy import deepcopy
 
-from dcmri.lexicon.dicts import LEXICON
+import numpy as np
 
-def init(pars:list=None, lexicon:dict=LEXICON, **kwargs) -> dict:
+from dcmri.lexicon import QUANTITIES
+
+def init(pars:list=None, lexicon:dict=QUANTITIES, **kwargs) -> dict:
     """Return a dictionary with parameter initial values"""
     if pars is None:
         pars = lexicon.keys()
@@ -16,7 +18,7 @@ def init(pars:list=None, lexicon:dict=LEXICON, **kwargs) -> dict:
             p[key] = value
     return p
 
-def bounds(pars:list=None, lexicon:dict=LEXICON):
+def bounds(pars:list=None, lexicon:dict=QUANTITIES):
     """Return a dictionary with parameter bounds"""
     if pars is None:
         pars = lexicon.keys()
@@ -25,7 +27,7 @@ def bounds(pars:list=None, lexicon:dict=LEXICON):
         for p in pars
     }
 
-def export_params(val: dict, sdev=None, lexicon=LEXICON) -> dict:
+def export_params(val: dict, sdev=None, lexicon=QUANTITIES) -> dict:
     """Parameters with header information added."""
     if sdev is None:
         sdev = {}
@@ -39,7 +41,7 @@ def export_params(val: dict, sdev=None, lexicon=LEXICON) -> dict:
         }
     return result
 
-def string_params(val: dict, sdev=None, round_to=None, lexicon=LEXICON):
+def string_params(val: dict, sdev=None, round_to=None, lexicon=QUANTITIES):
     """Print parameters and uncertainties to console."""
     if sdev is None:
         sdev = {}
@@ -47,6 +49,9 @@ def string_params(val: dict, sdev=None, round_to=None, lexicon=LEXICON):
     pars = export_params(val, sdev, lexicon)
     for p, v in pars.items():
         val = v['value']
+        if np.size(val) > 1:
+            continue
+        val = val[0] if isinstance(val, (list, np.ndarray)) else val
         if round_to is not None:
             val = round(val, round_to)
         if p in sdev:
@@ -58,14 +63,14 @@ def string_params(val: dict, sdev=None, round_to=None, lexicon=LEXICON):
             strings[p] = f"{v['name']} ({p}) = {val} {v['unit']}"
     return strings
 
-def print_params(val: dict, sdev=None, round_to=None, lexicon=LEXICON):
+def print_params(val: dict, sdev=None, round_to=None, lexicon=QUANTITIES):
     """Print parameters and uncertainties to console."""
     msg = string_params(val, sdev, round_to, lexicon)
     for v in msg.values():
         print(v)
 
 
-def select_params(lexicon=LEXICON, **kwargs):
+def select_params(lexicon=QUANTITIES, **kwargs):
     """Return lexicon parameters with specific properties"""
     result = {}
     for p in lexicon:

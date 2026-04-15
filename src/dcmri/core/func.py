@@ -1,6 +1,4 @@
-
-from dcmri.lexicon.dicts import LEXICON
-from dcmri.lexicon.tools import init
+from dcmri.lexicon import QUANTITIES, init
 
 class SuperFunc:
 
@@ -30,7 +28,7 @@ class SuperFunc:
         self._cnfg = cnfg   
         return self._cnfg
     
-    def _set_pars(self, lexicon:dict=LEXICON, **params):
+    def _set_pars(self, lexicon:dict=QUANTITIES, **params):
         self._pars = init(self._params(), lexicon=lexicon, **params)
         return self._pars
     
