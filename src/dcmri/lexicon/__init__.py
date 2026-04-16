@@ -1,6 +1,5 @@
 from dcmri.lexicon.dicts import (
     SEQUENCES,
-    MZ_PREP,
     QUANTITIES,
 )
 from dcmri.lexicon.tools import (

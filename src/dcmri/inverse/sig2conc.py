@@ -3,8 +3,9 @@ from copy import deepcopy
 import numpy as np
 
 from dcmri.lexicon import SEQUENCES
-from dcmri import magnetization, solve
+import dcmri.inverse.lib as solve
 from dcmri.core import SuperFunc
+from dcmri.bloch import Signal
 
 
 
@@ -102,7 +103,7 @@ class SignalToConc(SuperFunc):
             conc = solve.conc_ss(S, **p)  
 
         elif SEQUENCES[sequence]['type'] == 'DCE':
-            Sn_model = magnetization.Signal(sequence, **p)
+            Sn_model = Signal(sequence, **p)
             conc = solve.conc_dce(Sn_model, S, **p) 
 
         elif sequence == 'GE-EPI':

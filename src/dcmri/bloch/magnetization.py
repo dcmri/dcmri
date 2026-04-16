@@ -135,8 +135,7 @@ import numpy as np
 
 from dcmri.core import SuperFunc
 from dcmri.lexicon import SEQUENCES
-from dcmri.lexicon import MZ_PREP
-from dcmri import bloch
+import dcmri.bloch.lib as lib
 
 
 # TODO: For some ss sequences there is some duplication with K, J and KinvJ computed multiple times
@@ -166,50 +165,20 @@ class Signal(SuperFunc):
     def __call__(self, **params):
         p = self._update_pars(**params)
 
-        # Possible input shapes for R1:
-        # scalar, 1D (nt), 1D (nc), 2D (nc, nt)
         sequence = self._cnfg['sequence']
-        tissue_mz_sequence = SEQUENCES[sequence]['mz_prep_tissue']
-        inflow_mz_sequence = SEQUENCES[sequence]['mz_prep_inflow']
-
-        # Inflow of magnetization
-        if p['R1i'] is None: 
-            j = None
-        else:
-            R1i = np.atleast_1d(p['R1i'])
-            R1shape = np.atleast_1d(p['R1']).shape
-            if R1shape != R1i.shape:
-                raise ValueError(f"R1 and R1i must have the same shape. R1 has shape {R1shape} and R1i has shape {R1i.shape}.")
-            if p['Fi'] is None:
-                raise ValueError(f"Fi must be provided if R1i is provided for sequence {self._cnfg['sequence']}.")
-            
-            # inflow = 1 closed compartment
-            pi = p | {'v': 1, 'Fw': 0} 
-            mz_inflow = Longitudinal(inflow_mz_sequence, **pi)
-
-            # Compute magnetization inflow
-            Fi = np.array(p['Fi'])
-            if Fi.size==1:
-                j = Fi * mz_inflow(R1i)
-            else:
-                if Fi.size != R1i.shape[0]:
-                    raise ValueError(f"Fi must have the same number of elements as the first dimension of R1i. Fi has {Fi.size} elements and R1i has shape {R1i.shape}.")
-                j = np.zeros_like(R1i)
-                for i in range(Fi.size):
-                    j[i,:] = Fi[i] * mz_inflow(R1i[i,:])
 
         # Magnetization and readout 
         if p['R1'] is None:
             # No R1 provided -> DSC without T1-weighting
-            if tissue_mz_sequence in ['GE-EPI']:
+            if sequence in ['GE-EPI']:
                 if p['R2s'] is None:
                     raise ValueError('For R2s-weighted sequences, an R2s value must be provided.')
                 Mz = np.full_like(p['R2s'], p['me'])
-            elif tissue_mz_sequence in ['SE-EPI']:
+            elif sequence in ['SE-EPI']:
                 if p['R2'] is None:
                     raise ValueError('For R2-weighted sequences, an R2 value must be provided.')
                 Mz = np.full_like(p['R2'], p['me'])
-            elif tissue_mz_sequence in ['DE-EPI']:
+            elif sequence in ['DE-EPI']:
                 if (p['R2'] is None) and (p['R2s'] is None):
                     raise ValueError('For R2/R2s-weighted sequences, R2 and R2s values must be provided.')
                 if np.size(p['R2']) != np.size(p['R2s']):
@@ -219,34 +188,35 @@ class Signal(SuperFunc):
                 raise ValueError('For T1-weighted sequences, an R1 value must be provided.')
         else:
             # R1 provided -> include T1-weighting in DCE and DSC.
-            Mz = Longitudinal(tissue_mz_sequence, **p)(p['R1'], j)
+            Mz = Longitudinal(sequence)(**p)
+
         return Readout(sequence, **p)(Mz=Mz, R2=p['R2'], R2s=p['R2s'])
     
 
 
 class Longitudinal(SuperFunc):
 
-    configs = {'sequence': deepcopy(list(MZ_PREP.keys()))}
+    configs = {'sequence': deepcopy(list(SEQUENCES.keys()))}
 
     def __init__(self, sequence='SPGR-SS', **params):
         self._cnfg = self._set_config(sequence=sequence)
-        self._pars = self._set_pars(v=None, Fw=0, me=1)
+        self._pars = self._set_pars(v=None, R1i=None, Fi=None) # Default is a closed system
         self._override_pars(**params)
 
     def _params(self):
-        pars = ['v', 'Fw', 'me']
-        pars += deepcopy(MZ_PREP[self._cnfg['sequence']]['parameters'])
+        seq = self._cnfg['sequence']
+        pars = ['R1', 'R1i', 'Fi', 'v', 'Fw', 'me']
+        pars += deepcopy(SEQUENCES[seq]['parameters']['prep'])
         pars = list(set(pars))
         pars.sort()
         return pars
     
-    def __call__(self, R1=None, j=None, **params):
+    def __call__(self, **params):
         p = self._update_pars(**params)
+        sequence = self._cnfg['sequence']
 
-        if R1 is None:
+        if p['R1'] is None:
             raise ValueError("Cannot compute Mz without R1. Please provide R1 as an argument.")
-        if j is None:
-            j = np.zeros_like(R1)
         
         v = p['v']
         Fw = p['Fw']
@@ -254,7 +224,7 @@ class Longitudinal(SuperFunc):
         
         # Set defaults for v
         if v is None:
-            nd = np.array(R1).ndim
+            nd = np.array(p['R1']).ndim
             if nd==2:
                 raise ValueError("For a multicompartment tissue, the volume fractions must be provided")
             else:
@@ -280,12 +250,14 @@ class Longitudinal(SuperFunc):
         if Fw.size != nc * nc:
             raise ValueError("For an n-compartment tissue, Fw must have shape (n, n).")
         Fw = Fw.reshape(nc, nc)
-        
+
+        # Possible input shapes for R1:
+        # scalar, 1D (nt), 1D (nc), 2D (nc, nt)        
         # Reshape R1 to (nc, nt) and derive nt
         # Keep input shape for return values
-        input_shape = np.shape(R1)
+        input_shape = np.shape(p['R1'])
 
-        R1 = np.atleast_1d(R1)
+        R1 = np.atleast_1d(p['R1'])
         if nc > 1:
             if R1.size > nc:
                 if R1.ndim != 2:
@@ -299,51 +271,74 @@ class Longitudinal(SuperFunc):
             nt = R1.size
         R1 = R1.reshape(nc, nt)
 
+        # Inflow of magnetization
+        if p['R1i'] is None: 
+            j = np.zeros_like(p['R1']) # wasteful. Catch j=None in lib.functions
+        else:
+            R1i = np.atleast_1d(p['R1i'])
+            R1shape = np.atleast_1d(p['R1']).shape
+            if R1shape != R1i.shape:
+                raise ValueError(f"R1 and R1i must have the same shape. R1 has shape {R1shape} and R1i has shape {R1i.shape}.")
+            if p['Fi'] is None:
+                raise ValueError(f"Fi must be provided if R1i is provided for sequence {self._cnfg['sequence']}.")
+            
+            # Compute magnetization inflow
+            # inflow = 1 closed compartment
+            inflow_seq = SEQUENCES[sequence]['inflow_sequence']
+            mz_inflow = Longitudinal(inflow_seq, **p)
+
+            Fi = np.array(p['Fi'])
+            if Fi.size==1:
+                j = Fi * mz_inflow(R1=R1i, R1i=None, v=1, Fw=0)
+            else:
+                if Fi.size != R1i.shape[0]:
+                    raise ValueError(f"Fi must have the same number of elements as the first dimension of R1i. Fi has {Fi.size} elements and R1i has shape {R1i.shape}.")
+                R1i = R1i.reshape(nc, nt)
+                j = np.zeros_like(R1i)
+                for i in range(Fi.size):
+                    j[i,:] = Fi[i] * mz_inflow(R1=R1i[i,:], R1i=None, v=1, Fw=0)
         # Reshape influx to standard shape
-        j = np.atleast_1d(j)
-        if j.size != nc * nt:
-            raise ValueError('For a tissue with nc compartments and nt time points, the influx j must have shape (nc, nt).')
         j = j.reshape(nc, nt)
 
         # Delegate computation in standard form to helper functions
-        sequence = self._cnfg['sequence']
+        mz_prep_sequence = SEQUENCES[sequence]['mz_prep_tissue']
 
-        if sequence == 'Eq': 
+        if mz_prep_sequence == 'Eq': 
             Mz = np.full_like(R1, me)
-        elif sequence == 'IR-SS':
-            Mz = bloch.Mz_ge(R1, v, Fw, j, me, p['TA'], 180)
-        elif sequence == 'SR-SS':
-            Mz = bloch.Mz_ge(R1, v, Fw, j, me, p['TA'], 90)
-        elif sequence == 'PR-SS':
-            Mz = bloch.Mz_ge(R1, v, Fw, j, me, p['TA'], p['PA'])
+        elif mz_prep_sequence == 'IR-SS':
+            Mz = lib.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TA'], 180)
+        elif mz_prep_sequence == 'SR-SS':
+            Mz = lib.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TA'], 90)
+        elif mz_prep_sequence == 'PR-SS':
+            Mz = lib.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TA'], p['PA'])
 
-        elif sequence == 'SPGR':
-            Mz = bloch.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], 0, p['TA'], 0) 
-        elif sequence == 'SR-SPGR':
-            Mz = bloch.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 90) 
-        elif sequence == 'IR-SPGR':
-            Mz = bloch.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 180) 
-        elif sequence == 'PR-SPGR':
-            Mz = bloch.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], p['PA'])
+        elif mz_prep_sequence == 'SPGR':
+            Mz = lib.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], 0, p['TA'], 0) 
+        elif mz_prep_sequence == 'SR-SPGR':
+            Mz = lib.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 90) 
+        elif mz_prep_sequence == 'IR-SPGR':
+            Mz = lib.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 180) 
+        elif mz_prep_sequence == 'PR-SPGR':
+            Mz = lib.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], p['PA'])
         
-        elif sequence == 'SPGR-SS':
-            Mz = bloch.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TR'], p['FA'] * p['B1corr'])
-        elif sequence == 'SR-SPGR-SS':
-            Mz = bloch.Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 90) 
-        elif sequence == 'IR-SPGR-SS':
-            Mz = bloch.Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 180)
-        elif sequence == 'PR-SPGR-SS':
-            Mz = bloch.Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], p['PA']) 
+        elif mz_prep_sequence == 'SPGR-SS':
+            Mz = lib.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TR'], p['FA'] * p['B1corr'])
+        elif mz_prep_sequence == 'SR-SPGR-SS':
+            Mz = lib.Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 90) 
+        elif mz_prep_sequence == 'IR-SPGR-SS':
+            Mz = lib.Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 180)
+        elif mz_prep_sequence == 'PR-SPGR-SS':
+            Mz = lib.Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], p['PA']) 
 
-        elif sequence == 'SSI':
-            Mz = bloch.Mz_ssi(R1, v, Fw, j, me, p['TR'], p['FA'] * p['B1corr'], p['TF'], p['SA'])
+        elif mz_prep_sequence == 'SSI':
+            Mz = lib.Mz_ssi(R1, v, Fw, j, me, p['TR'], p['FA'] * p['B1corr'], p['TF'], p['SA'])
 
-        elif sequence == 'GE-EPI':
-            Mz = bloch.Mz_ge(R1, v, Fw, j, me, p['TR'], p['FA'] * p['B1corr'])
-        elif sequence == 'SE-EPI':
-            Mz = bloch.Mz_se(R1, v, Fw, j, me, p['TE'], p['TR'], p['FA'] * p['B1corr'])
-        elif sequence == 'DE-EPI':
-            Mz = bloch.Mz_se(R1, v, Fw, j, me, p['TE2'], p['TR'], p['FA'] * p['B1corr'])
+        elif mz_prep_sequence == 'GE-EPI':
+            Mz = lib.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TR'], p['FA'] * p['B1corr']) 
+        elif mz_prep_sequence == 'SE-EPI':
+            Mz = lib.Mz_se(R1, v, Fw, j, me, p['TE'], p['TR'], p['FA'] * p['B1corr'])
+        elif mz_prep_sequence == 'DE-EPI':
+            Mz = lib.Mz_se(R1, v, Fw, j, me, p['TE2'], p['TR'], p['FA'] * p['B1corr'])
 
         # Return result in original shape
         if input_shape == ():

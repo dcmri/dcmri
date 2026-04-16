@@ -3,10 +3,11 @@ from typing import Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri import magnetization, const
+from dcmri import const
 from dcmri.kinetics import ConcAorta
 from dcmri.lexicon import SEQUENCES
 from dcmri.core import SuperModel
+from dcmri.bloch import Signal
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
 
@@ -153,7 +154,7 @@ class Aorta(SuperModel):
     def _compute_signal(self):
         self._compute_relax()
         p = self._pars
-        self._S = magnetization.Signal(self._cnfg['sequence'], **p)(
+        self._S = Signal(self._cnfg['sequence'], **p)(
             R1=self._R1, 
             S0=p['S0_a'], 
             B1corr=p['B1corr_a'],
@@ -182,7 +183,7 @@ class Aorta(SuperModel):
 
         # Scaling Factor (S0) aorta
         seq = self._cnfg['sequence']
-        s_ref = magnetization.Signal(seq, **p)(R1=p['R10_a'], S0=1, B1corr=p['B1corr_a'], TE=0, PA=0)
+        s_ref = Signal(seq, **p)(R1=p['R10_a'], S0=1, B1corr=p['B1corr_a'], TE=0, PA=0)
         p['S0_a'] = np.mean(signal[:n0]) / s_ref if s_ref > 0 else 0
 
 

@@ -1,10 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri import magnetization, pk, const
+import dcmri.kinetics.lib as pk
+from dcmri import const
 from dcmri.lexicon import QUANTITIES
-from dcmri.pk import flux_aorta
-from dcmri import phantoms
+from dcmri.bloch import Signal
 from dcmri.utils.misc import sample, interp
 from dcmri.utils.fit import train, loss
 from dcmri.core import SuperModel
@@ -354,7 +354,7 @@ class LiverDynamicDrugEffect(SuperModel):
         Eb = CL / (CL + p['CO'] * (1 - p['H']))
 
         # Compute aorta flux
-        Jb = flux_aorta(
+        Jb = pk.flux_aorta(
             J, E=Eb, dt=p['dt'], tol=p['dose_tolerance'],
             heartlung=['pfcomp', (p['Thl'], p['Dhl'])],
             organs=['2cxm', ([p['To'], p['To_e']], p['Eo'])],
@@ -414,7 +414,7 @@ class LiverDynamicDrugEffect(SuperModel):
         }[roi]
 
         def roi_signal(scan, R1roi):
-            return magnetization.Signal(roi_seq, **p)(
+            return Signal(roi_seq, **p)(
                 R1=R1roi, 
                 S0=p[f'{visit}_S0_{scan}_{roi}'], 
                 B1corr=p[f'{visit}_B1corr_{scan}_{roi}'],
@@ -596,7 +596,7 @@ class LiverDynamicDrugEffect(SuperModel):
 
             def estimate_s0(scan, roi, i0, R10):
                 B1=p[f'{visit}_B1corr_{scan}_{roi}']
-                s_ref = magnetization.Signal(roi_seq[roi], **p)(R1=R10, S0=1, B1corr=B1, TE=0, PA=0)
+                s_ref = Signal(roi_seq[roi], **p)(R1=R10, S0=1, B1corr=B1, TE=0, PA=0)
                 p[f'{visit}_S0_{scan}_{roi}'] = np.mean(signal[i0 + 4 * i][:n0[i]]) / s_ref if s_ref > 0 else 0
 
             estimate_s0(1, 'a', 0, p[f'{visit}_R10_a'])

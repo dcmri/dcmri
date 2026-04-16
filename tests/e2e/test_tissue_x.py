@@ -5,7 +5,7 @@ from joblib import parallel_config, Parallel, delayed
 import matplotlib.pyplot as plt
 import numpy as np
 import dcmri as dc
-from dcmri.magnetization import Signal
+from dcmri.bloch import Signal
 from dcmri.core import Input
 from dcmri import TissueX as Model
 from dcmri import aif
@@ -70,7 +70,7 @@ def test_api():
     # Test Forward API outputs
     t = model.time()
     C = model.conc()
-    R1 = model.relax()
+    R1, R2, R2s = model.relax()
     M = model.magn()
     S = model.signal()
 
@@ -158,7 +158,7 @@ def test_function():
 
     seq = '3D-SPGR-SS'
 
-    model =Model('2CX', 'FF', seq, **params)
+    model =Model('2CX', 'FF', sequence=seq, **params)
     time = model.time()
     signal = model.predict(time)
 
@@ -215,5 +215,5 @@ if __name__ == "__main__":
     # # Functional tests
     test_function()
     
-    print('All ui_tissue tests passed!!')
+    print('All tissue_x tests passed!!')
 

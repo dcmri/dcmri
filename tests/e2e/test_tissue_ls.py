@@ -4,7 +4,7 @@ import itertools
 import matplotlib.pyplot as plt
 import numpy as np
 import dcmri as dc
-from dcmri.magnetization import Signal
+from dcmri.bloch import Signal
 from dcmri.core import Input
 from dcmri import TissueLS as Model
 #from dcmri.fake import fake_brain

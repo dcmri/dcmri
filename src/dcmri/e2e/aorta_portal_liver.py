@@ -1,10 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri import magnetization, pk, const
+from dcmri import const
+import dcmri.kinetics.lib as pk
 from dcmri.kinetics import ConcLiver
 from dcmri.lexicon import SEQUENCES
-from dcmri.pk import flux_aorta
+from dcmri.bloch import Signal
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
 from dcmri.core import SuperModel
@@ -167,7 +168,7 @@ class AortaPortalLiver(SuperModel):
         Ji = pk.ca_injection(
             self._t, p['weight'], conc, p['dose'], p['rate'], p['BAT']
         )
-        Jb = flux_aorta(
+        Jb = pk.flux_aorta(
             Ji, E=p['Eb'], dt=p['dt'], tol=p['dose_tolerance'],
             heartlung=['pfcomp', (p['Thl'], p['Dhl'])], 
             organs=['2cxm', ([p['To'], p['To_e']], p['Eo'])],
@@ -183,7 +184,7 @@ class AortaPortalLiver(SuperModel):
     def _compute_signal_aorta(self):
         self._compute_relax_aorta()
         p = self._pars
-        self._Sa = magnetization.Signal(self._cnfg['sequence'], **p)(
+        self._Sa = Signal(self._cnfg['sequence'], **p)(
             R1=self._R1a, 
             S0=p['S0_a'], 
             B1corr=p['B1corr_a'],
@@ -214,7 +215,7 @@ class AortaPortalLiver(SuperModel):
         self._compute_relax_portal()
         p = self._pars
         seq = '3D-SPGR-SS' if self._cnfg['sequence']=='3D-SPGR-SSI' else self._cnfg['sequence']
-        self._Sv = magnetization.Signal(seq, **p)(
+        self._Sv = Signal(seq, **p)(
             R1=self._R1v, 
             S0=p['S0_v'], 
             B1corr=p['B1corr_v'],
@@ -256,7 +257,7 @@ class AortaPortalLiver(SuperModel):
         p = self._pars
 
         seq = '3D-SPGR-SS' if self._cnfg['sequence']=='3D-SPGR-SSI' else self._cnfg['sequence']
-        self._Sl = magnetization.Signal(seq, **p)(R1=self._R1l, S0=p['S0_l'], TE=0)
+        self._Sl = Signal(seq, **p)(R1=self._R1l, S0=p['S0_l'], TE=0)
 
     def _predict_liver(self, time: np.ndarray) -> np.ndarray:
         p = self._pars
@@ -292,17 +293,17 @@ class AortaPortalLiver(SuperModel):
 
         # 2. Scaling Factor (S0) aorta
         seq = self._cnfg['sequence']
-        s_ref = magnetization.Signal(seq, **p)(R1=p['R10_a'], S0=1, B1corr=p['B1corr_a'], TE=0, PA=0)
+        s_ref = Signal(seq, **p)(R1=p['R10_a'], S0=1, B1corr=p['B1corr_a'], TE=0, PA=0)
         p['S0_a'] = np.mean(signal[0][:n0]) / s_ref if s_ref > 0 else 0
 
         # 3. Scaling Factor (S0) portal vein
         seq = '3D-SPGR-SS' if self._cnfg['sequence']=='3D-SPGR-SSI' else self._cnfg['sequence']
-        s_ref = magnetization.Signal(seq, **p)(R1=p['R10_v'], S0=1, B1corr=p['B1corr_v'], TE=0)
+        s_ref = Signal(seq, **p)(R1=p['R10_v'], S0=1, B1corr=p['B1corr_v'], TE=0)
         p['S0_v'] = np.mean(signal[1][:n0]) / s_ref if s_ref > 0 else 0
 
         # 4. Scaling Factor (S0) liver
         seq = '3D-SPGR-SS' if self._cnfg['sequence']=='3D-SPGR-SSI' else self._cnfg['sequence']
-        s_ref = magnetization.Signal(seq, **p)(R1=p['R10_l'], S0=1, B1corr=p['B1corr'], TE=0)
+        s_ref = Signal(seq, **p)(R1=p['R10_l'], S0=1, B1corr=p['B1corr'], TE=0)
         p['S0_l'] = np.mean(signal[2][:n0]) / s_ref if s_ref > 0 else 0
 
     def _train(

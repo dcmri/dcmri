@@ -1,9 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri import magnetization, const, pk
+from dcmri import const
+import dcmri.kinetics.lib as pk
 from dcmri.kinetics import ConcLiver
 from dcmri.lexicon import SEQUENCES
+from dcmri.bloch import Signal
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
 from dcmri.core import SuperModel
@@ -194,7 +196,7 @@ class AortaLiver(SuperModel):
     def _compute_signal_aorta(self):
         self._compute_relax_aorta()
         p = self._pars
-        self._Sa = magnetization.Signal(self._cnfg['sequence'], **p)(
+        self._Sa = Signal(self._cnfg['sequence'], **p)(
             R1=self._R1a, 
             S0=p['S0_a'], 
             B1corr=p['B1corr_a'],
@@ -232,7 +234,7 @@ class AortaLiver(SuperModel):
         self._compute_relax_liver()
         p = self._pars
         seq = '3D-SPGR-SS' if self._cnfg['sequence']=='3D-SPGR-SSI' else self._cnfg['sequence']
-        self._Sl = magnetization.Signal(seq, **p)(R1=self._R1l, S0=p['S0_l'], B1corr=p['B1corr'],TE=0)
+        self._Sl = Signal(seq, **p)(R1=self._R1l, S0=p['S0_l'], B1corr=p['B1corr'],TE=0)
 
     def _predict_liver(self, time: np.ndarray):
         p = self._pars
@@ -267,12 +269,12 @@ class AortaLiver(SuperModel):
         
         # 2. Scaling Factor (S0) aorta
         seq = self._cnfg['sequence']
-        s_ref = magnetization.Signal(seq, **p)(R1=p['R10_a'], S0=1, B1corr=p['B1corr_a'], TE=0, PA=0)
+        s_ref = Signal(seq, **p)(R1=p['R10_a'], S0=1, B1corr=p['B1corr_a'], TE=0, PA=0)
         p['S0_a'] = np.mean(signal[0][:n0]) / s_ref if s_ref > 0 else 0
 
         # 3. Scaling Factor (S0) liver
         seq = '3D-SPGR-SS' if self._cnfg['sequence']=='3D-SPGR-SSI' else self._cnfg['sequence']
-        s_ref = magnetization.Signal(seq, **p)(R1=p['R10_l'], S0=1, TE=0)
+        s_ref = Signal(seq, **p)(R1=p['R10_l'], S0=1, TE=0)
         p['S0_l'] = np.mean(signal[1][:n0]) / s_ref if s_ref > 0 else 0
 
     def _train(

@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import dcmri as dc
 from dcmri import Liver as Model
-from dcmri import pk
-from dcmri.magnetization import Signal
+import dcmri.kinetics.lib as pk
+from dcmri.bloch import Signal
 from dcmri.core import Input
 from dcmri import aif
 

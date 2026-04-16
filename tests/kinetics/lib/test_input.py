@@ -1,5 +1,5 @@
 import numpy as np
-from dcmri import pk
+import dcmri.kinetics.lib as pk
 
 
 def test_ca_injection():

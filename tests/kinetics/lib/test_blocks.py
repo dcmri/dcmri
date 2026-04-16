@@ -1,8 +1,9 @@
 import numpy as np
 from scipy.integrate import trapezoid
 
-from dcmri import pk, convolution
-import dcmri.pk.blocks as blocks
+from dcmri import convolution
+import dcmri.kinetics.lib as pk
+import dcmri.kinetics.lib.blocks as blocks
 
 import matplotlib.pyplot as plt
 

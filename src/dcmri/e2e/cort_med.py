@@ -4,11 +4,13 @@ from typing import Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri.inverse import SignalToConc
-from dcmri import magnetization, const
 from dcmri.core import SuperModel, Input
+
+from dcmri import const
 from dcmri.lexicon import SEQUENCES
 from dcmri.kinetics import ConcCortMed
+from dcmri.bloch import Signal
+from dcmri.inverse import SignalToConc
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
 
@@ -105,8 +107,8 @@ class CortMed(SuperModel):
         self._compute_relaxation_rate()
         p = self._pars
         seq = self._cnfg['sequence']
-        self._Sc = magnetization.Signal(seq, **p)(R1=self._R1c, TE=0)
-        self._Sm = magnetization.Signal(seq, **p)(R1=self._R1m, TE=0)
+        self._Sc = Signal(seq, **p)(R1=self._R1c, TE=0)
+        self._Sm = Signal(seq, **p)(R1=self._R1m, TE=0)
 
     def _set_time(self):
         p = self._pars
@@ -129,8 +131,8 @@ class CortMed(SuperModel):
         seq = self._cnfg['sequence']
 
         # Estimate S0
-        s_ref_c = magnetization.Signal(seq, **p)(R1=p['R10_c'], S0=1, TE=0)
-        s_ref_m = magnetization.Signal(seq, **p)(R1=p['R10_m'], S0=1, TE=0)
+        s_ref_c = Signal(seq, **p)(R1=p['R10_c'], S0=1, TE=0)
+        s_ref_m = Signal(seq, **p)(R1=p['R10_m'], S0=1, TE=0)
         p['S0_c'] = np.mean(signal[0][:n0]) / s_ref_c if s_ref_c > 0 else 0
         p['S0_m'] = np.mean(signal[1][:n0]) / s_ref_m if s_ref_m > 0 else 0
 

@@ -4,9 +4,10 @@ from typing import Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri import magnetization, const
+from dcmri import const
 from dcmri.lexicon import SEQUENCES
 from dcmri.kinetics import ConcAorta
+from dcmri.bloch import Signal
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
 from dcmri.core import SuperModel
@@ -242,7 +243,7 @@ class AortaKidneys(SuperModel):
     def _compute_signal_aorta(self):
         self._compute_relax_aorta()
         p = self._pars
-        self._Sa = magnetization.Signal(self._cnfg['sequence'], **p)(
+        self._Sa = Signal(self._cnfg['sequence'], **p)(
             R1=self._R1a, 
             S0=p['S0_a'], 
             B1corr=p['B1corr_a'],
@@ -304,7 +305,7 @@ class AortaKidneys(SuperModel):
 
         self._Sk = {}
         for k in ['lk', 'rk']:
-            self._Sk[k] = magnetization.Signal(seq, **p)(
+            self._Sk[k] = Signal(seq, **p)(
                 R1=self._R1k[k], 
                 S0=p[f'S0_{k}'], 
                 B1corr=p[f'B1corr_{k}'], 
@@ -360,7 +361,7 @@ class AortaKidneys(SuperModel):
             'rk': 2,
         }
         for roi in idx.keys():
-            s_ref = magnetization.Signal(seq[roi], **p)(
+            s_ref = Signal(seq[roi], **p)(
                 R1=p[f'R10_{roi}'], 
                 S0=1, 
                 B1corr=p[f'B1corr_{roi}'], 

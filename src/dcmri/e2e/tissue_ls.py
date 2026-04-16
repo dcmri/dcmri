@@ -4,12 +4,11 @@ import matplotlib.pyplot as plt
 from joblib import Parallel, delayed
 from matplotlib.gridspec import GridSpec
 
-from dcmri import magnetization
+from dcmri.bloch import Signal
 from dcmri.lexicon import string_params, SEQUENCES  
 from dcmri.inverse import SignalToConc
-from dcmri.core import SuperModel, Input
-from dcmri.core import SuperFunc
-from dcmri import relaxivity
+from dcmri.core import SuperModel, Input, SuperFunc
+import dcmri.relaxivity.lib as rel
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import loss
 from dcmri import convolution
@@ -58,20 +57,20 @@ class Signal(SuperFunc):
 
         C = conc_ls(ca, p['irf'], p['dt'])
 
-        signal = magnetization.Signal(seq, **p)
+        signal = Signal(seq, **p)
 
         if seq == 'SE-EPI':
-            R2 = relaxivity.relax_t2(C, 0, p['r2'])
+            R2 = rel.relax_t2(C, 0, p['r2'])
             return signal(R2=R2, TA=np.inf, PA=None)
         elif seq == 'GE-EPI':
-            R2s = relaxivity.relax_t2s(C, 0, p['r2s']) 
+            R2s = rel.relax_t2s(C, 0, p['r2s']) 
             return signal(R2s=R2s, TA=np.inf, PA=None)
         elif seq == 'DE-EPI':
-            R2 = relaxivity.relax_t2(C[0,:], 0, p['r2'])
-            R2s = relaxivity.relax_t2s(C[1,:], 0, p['r2s'])
+            R2 = rel.relax_t2(C[0,:], 0, p['r2'])
+            R2s = rel.relax_t2s(C[1,:], 0, p['r2s'])
             return signal(R2=R2, R2s=R2s, TA=np.inf, PA=None)
         else:
-            R1 = relaxivity.relax_t1(C, p['R10'], p['r1'])  
+            R1 = rel.relax_t1(C, p['R10'], p['r1'])  
             return signal(R1=R1, TE=0)  
     
     def _params(self):
@@ -90,7 +89,7 @@ class Signal(SuperFunc):
         else:
             p += ['R10', 'r1']  
             p_excl += ['TE'] 
-        p += [ps for ps in magnetization.Signal(seq)._params() if ps not in p_excl]
+        p += [ps for ps in Signal(seq)._params() if ps not in p_excl]
         return p
     
 class BaselineSignal(SuperFunc):
@@ -105,7 +104,7 @@ class BaselineSignal(SuperFunc):
         p = self._update_pars(**params)
         seq = self._cnfg['sequence']
 
-        signal = magnetization.Signal(seq, **p)
+        signal = Signal(seq, **p)
 
         if seq == 'SE-EPI':
             return signal(R2=0, TA=np.inf, PA=None)
@@ -129,7 +128,7 @@ class BaselineSignal(SuperFunc):
         else:
             p += ['R10']  
             p_excl += ['TE'] 
-        p += [ps for ps in magnetization.Signal(seq)._params() if ps not in p_excl]
+        p += [ps for ps in Signal(seq)._params() if ps not in p_excl]
         return p
     
 

@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.integrate import trapezoid
 
-from dcmri import pk
+import dcmri.kinetics.lib as pk
 
 
 

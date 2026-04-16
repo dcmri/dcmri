@@ -3,7 +3,7 @@ from typing import Optional
 
 import numpy as np
 
-from dcmri import pk
+import dcmri.kinetics.lib as pk
 from dcmri.utils.misc import tarray, interp
 
 

@@ -97,34 +97,43 @@ import matplotlib.pyplot as plt
 import numpy as np
 from joblib import Parallel, delayed
 
-from dcmri import tissue_x
-from dcmri.lexicon import QUANTITIES, string_params, init
-from dcmri import relaxivity
-from dcmri.inverse import SignalToConc
+from dcmri.lexicon import SEQUENCES, QUANTITIES, string_params, init
+
+from dcmri.inverse.sig2conc import SignalToConc
 from dcmri.core import SuperModel, Input
-from dcmri.kinetics import ConcTissueX
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import loss, train_batch, format_batch_training
+
+from dcmri.kinetics import ConcTissueX
+from dcmri.relaxivity import RelaxTissueX
+from dcmri.bloch import MzTissueX, SignalTissueX
+from dcmri.bloch.tissue_x import WaterVolumes, WaterFlows
+from dcmri.relaxivity.tissue_x import WaterConc, ContrastConc
 
 
 class TissueX(SuperModel):
 
-    configs = deepcopy(tissue_x.Signal.configs)
+    configs = {
+        'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'],
+        'water_exchange': ['FF','RF','NF','FR','RR','NR','FN','RN','NN'],
+        'transverse_relaxation': ['lin', 'quad', 'leakage'],
+        'sequence': deepcopy(list(SEQUENCES.keys())),
+    }
 
     def __init__(
         self,
         kinetics='HF', 
         water_exchange='FF', 
-        sequence='3D-SPGR-SS',
         transverse_relaxation='lin',
+        sequence='3D-SPGR-SS',
         shape=None, 
         **params
     ):
         cnfg = {
             'kinetics': kinetics, 
             'water_exchange': water_exchange, 
-            'sequence': sequence, 
             'transverse_relaxation': transverse_relaxation,
+            'sequence': sequence, 
         }
         self._version = '1.0'
         self._cnfg = self._set_config(**cnfg)
@@ -207,18 +216,23 @@ class TissueX(SuperModel):
     def _params(self, select=None):
         if select is None:
             select = 'all'
-        kin, wex, seq, t2s = self._cnfg['kinetics'], self._cnfg['water_exchange'], self._cnfg['sequence'], self._cnfg['transverse_relaxation']
+        cnfg = self._cnfg
 
         if select == 'all':
-            return tissue_x.Signal(kin, wex, seq, t2s)._params() + ['c_a', 'dt', 'TS']
+            p = ['c_a', 'dt', 'TS']
+            p += ConcTissueX(**cnfg)._params()
+            p += RelaxTissueX(**cnfg)._params()
+            p += SignalTissueX(**cnfg)._params()
+            p += SignalTissueX(**cnfg)._params() 
+            return list(set(p))
         
         elif select == 'pixel': # pixel-based parameters
             pars = (
-                ConcTissueX(kin)._params()
-                + tissue_x.WaterConc(kin, wex)._params()
-                + tissue_x.ContrastConc(kin)._params()
-                + tissue_x.WaterVolumes(kin, wex)._params()
-                + tissue_x.WaterFlows(kin, wex)._params()
+                ConcTissueX(**cnfg)._params()
+                + WaterConc(**cnfg)._params()
+                + ContrastConc(**cnfg)._params()
+                + WaterVolumes(**cnfg)._params()
+                + WaterFlows(**cnfg)._params()
                 + ['R10', 'R20', 'R20s', 'r2s', 'r2s_quad', 'r2s_vasc', 'r2s_ees']
                 + ['S0', 'B1corr', 'noise_sdev']
             )
@@ -226,11 +240,11 @@ class TissueX(SuperModel):
         
         elif select == 'free': # default free parameters (subset of ppixel)
             pars = (
-                ConcTissueX(kin)._params()
-                + tissue_x.WaterConc(kin, wex)._params()
-                + tissue_x.ContrastConc(kin)._params()
-                + tissue_x.WaterVolumes(kin, wex)._params()
-                + tissue_x.WaterFlows(kin, wex)._params()
+                ConcTissueX(**cnfg)._params()
+                + WaterConc(**cnfg)._params()
+                + ContrastConc(**cnfg)._params()
+                + WaterVolumes(**cnfg)._params()
+                + WaterFlows(**cnfg)._params()
                 + ['r2s_vasc', 'r2s_ees']
             )
             return [p for p in list(set(pars)) if p != 'H' and p in self._params()]
@@ -242,10 +256,15 @@ class TissueX(SuperModel):
 
     def _signal(self, x=None) -> np.ndarray: # (n_pixels, n_channels, n_times)
         p = self._pars
+        Cx = ConcTissueX(**self._cnfg)
+        Rx = RelaxTissueX(**self._cnfg)
+        Sx = SignalTissueX(**self._cnfg)
 
         def pixel_signal(x) -> np.ndarray: # (n_channels, n_times)
-            kwargs_x = self._cnfg | self._pixel_pars(x)
-            S = tissue_x.Signal(**kwargs_x)(p['c_a'])
+            px = self._pixel_pars(x)
+            C = Cx(p['c_a'], **px)
+            R1, R2, R2s, R1a = Rx(C, p['c_a'], **px)
+            S = Sx(R1, R2, R2s, R1a, **px)
             return S.reshape(-1, S.shape[-1])  # (n_channels, n_times)
         
         if x is None:
@@ -279,8 +298,10 @@ class TissueX(SuperModel):
         p = self._pars
         
         def s0_pixel(x):
-            kwargs_x = self._cnfg | self._pixel_pars(x)
-            s_ref = tissue_x.Signal(**kwargs_x)([0], S0=1).flatten()
+            px = self._cnfg | self._pixel_pars(x)
+            C = ConcTissueX(**px)([0])
+            R1, R2, R2s, R1a = RelaxTissueX(**px)(C, [0])
+            s_ref = SignalTissueX(**px)(R1, R2, R2s, R1a, S0=1).flatten()
             s_avr = np.mean(signal[x, :, :n0], axis=-1) 
             S0 = np.divide(s_avr, s_ref, out=np.zeros_like(s_avr), where=s_ref != 0)
             return S0
@@ -329,7 +350,7 @@ class TissueX(SuperModel):
 
     def _concentration(self):
         p = self._pars
-        Cx = ConcTissueX(self._cnfg['kinetics'])
+        Cx = ConcTissueX(**self._cnfg)
 
         def _conc_pixel(x):
             pars_x = self._pixel_pars(x)
@@ -345,36 +366,39 @@ class TissueX(SuperModel):
 
     def _relaxation_rate(self):
         p = self._pars
-        Cx = ConcTissueX(self._cnfg['kinetics'])
-        Rx = tissue_x.R1(self._cnfg['kinetics'], self._cnfg['water_exchange'])
+        Cx = ConcTissueX(**self._cnfg)
+        Rx = RelaxTissueX(**self._cnfg)
 
         def _relax_pixel(x):
             pars_x = self._pixel_pars(x)
             C = Cx(p['c_a'], **pars_x)
-            return Rx(C, **pars_x)
+            R1, R2, R2s, R1a = Rx(C, p['c_a'], **pars_x)
+            return R1, R2, R2s
         
         if self._shape[0]==1:
             results = [_relax_pixel(0)]
         else:
             results = Parallel(n_jobs=-1)(delayed(_relax_pixel)(x) for x in range(self._shape[0]))
 
-        return np.stack(results)   # (n_pixels, n_compartments, n_times)
+        R1 = [r[0] for r in results]
+        R2 = [r[1] for r in results]
+        R2s = [r[2] for r in results]
+        if R2[0] is None: # R2 is not always defined
+            R2 = None
+        else:
+            R2 = np.stack(R2)
+        return np.stack(R1), R2, np.stack(R2s)   # (n_pixels, n_compartments, n_times)
     
     def _magnetization(self):
         p = self._pars
-        Cx = ConcTissueX(self._cnfg['kinetics'])
-        Rx = tissue_x.R1(self._cnfg['kinetics'], self._cnfg['water_exchange'])
-        Mx = tissue_x.Mz(**self._cnfg)
-
-        if 'Fb' in p:
-            R1a = relaxivity.relax_t1(p['c_a'], p['R10_a'], p['r1'])
-        else:
-            R1a = None
+        Cx = ConcTissueX(**self._cnfg)
+        Rx = RelaxTissueX(**self._cnfg)
+        Mx = MzTissueX(**self._cnfg)
 
         def _magn_pixel(x):
             pars_x = self._pixel_pars(x)
             C = Cx(p['c_a'], **pars_x)
-            R1 = Rx(C, **pars_x)
+            R1, _, _, R1a = Rx(C, p['c_a'], **pars_x)
             return Mx(R1, R1a, **pars_x)
         
         if self._shape[0]==1:
@@ -435,14 +459,14 @@ class TissueX(SuperModel):
                 
         t = self._time()
         C = self._concentration() # (n_pixels, n_compartments, n_times)
-        R = self._relaxation_rate() # (n_pixels, n_compartments, n_times)
+        R1, R2, R2s = self._relaxation_rate() # (n_pixels, n_compartments, n_times)
         Mz = self._magnetization() # (n_pixels, n_compartments, n_times)
         S = self._signal() # (n_pixels, n_channels, n_times)
         p = self._pars
 
-        c = (R - R[:, :, 0][:, :, np.newaxis]) / p['r1']
+        c = (R1 - R1[:, :, 0][:, :, np.newaxis]) / p['r1']
         x = 0
-        v = tissue_x.WaterVolumes(self._cnfg['kinetics'], self._cnfg['water_exchange'])(**self._pixel_pars(x))
+        v = WaterVolumes(self._cnfg['kinetics'], self._cnfg['water_exchange'])(**self._pixel_pars(x))
 
         if xlim is None: xlim = [np.amin(t), np.amax(t)]
         xlim=np.array(xlim) / 60
@@ -613,12 +637,23 @@ class TissueX(SuperModel):
             >>> plt.show()
 
         """
-        R1 = self._relaxation_rate() # (n_pixels, n_compartments, n_times)
-        R1 = R1.reshape(self._pixels_shape + R1.shape[1:]) # (nx, ny, nz, n_compartments, n_times)
-        if R1.shape[-2] == 1:
-            return R1[...,0,:]
-        else:
-            return R1
+        def reshapeR1(R):
+            # R = n_samples, n_compartments, n_times
+            R = R.reshape(self._pixels_shape + R.shape[1:]) # (nx, ny, nz, n_compartments, n_times)
+            # Squeeze out compartments of 1
+            if R.shape[-2] == 1:
+                return R[...,0,:]
+            else:
+                return R
+            
+        def reshapeR2(R):
+            if R is None:
+                return R
+            # R = n_samples, n_times
+            return R.reshape(self._pixels_shape + (R.shape[1], )) # (nx, ny, nz, n_times)
+            
+        R1, R2, R2s = self._relaxation_rate() # (n_pixels, n_compartments, n_times)
+        return reshapeR1(R1), reshapeR2(R2), reshapeR2(R2s)
     
     def magn(self) -> np.ndarray:
         """Pseudocontinuous magnetization

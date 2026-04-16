@@ -1,13 +1,13 @@
 # conc => tconc
 
-from dcmri.pk.input import (
+from dcmri.kinetics.lib.input import (
     ca_injection,
 )
-from dcmri.pk.inv import (
+from dcmri.kinetics.lib.inv import (
     linfit_2cfm,
 )
 
-from dcmri.pk.blocks import (
+from dcmri.kinetics.lib.blocks import (
     res_trap,
     res_pass,
     res_comp,
@@ -53,16 +53,16 @@ from dcmri.pk.blocks import (
     flux_mmcomp,
     flux_2cxm,
 )
-from dcmri.pk.aorta import (
+from dcmri.kinetics.lib.aorta import (
     flux_aorta
 )
-from dcmri.pk.kidney import (
+from dcmri.kinetics.lib.kidney import (
     conc_kidney_2cf,
     conc_kidney_hf,
     conc_kidney_fn,
     conc_kidney_cm9,
 )
-from dcmri.pk.liver import ( # change double __ notation
+from dcmri.kinetics.lib.liver import ( # change double __ notation
     conc_liver_1i_ec_d,
     conc_liver_1i_ec,
     conc_liver_1i_ic,
@@ -92,7 +92,7 @@ from dcmri.pk.liver import ( # change double __ notation
     conc_liver_2i_ic_u,
     conc_liver_2i_ic_u__u,
 )
-from dcmri.pk.tissue import (
+from dcmri.kinetics.lib.tissue import (
     conc_tissue_u,
     conc_tissue_fx,
     conc_tissue_nx,

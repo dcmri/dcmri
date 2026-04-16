@@ -4,7 +4,7 @@ from scipy.integrate import trapezoid
 from scipy.special import lambertw
 
 from dcmri.utils import convolution, misc
-from dcmri.pk import utils
+from dcmri.kinetics.lib import utils
 
 
 # Wrappers

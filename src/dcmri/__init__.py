@@ -2,15 +2,12 @@
 from dcmri.utils import const
 from dcmri import lexicon
 from dcmri.utils import convolution
-from dcmri import relaxivity
-from dcmri import pk
-from dcmri import bloch
-from dcmri import solve
 
 # Configurable functions built on standalone tools
 from dcmri import core
 from dcmri import kinetics
-from dcmri import magnetization
+from dcmri import relaxivity
+from dcmri import bloch
 from dcmri import inverse
 
 # Standard functions with internal dependencies

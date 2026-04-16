@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import dcmri as dc
 from dcmri import Kidney as Model
-from dcmri.magnetization import Signal
+from dcmri.bloch import Signal
 from dcmri.core import Input
 from dcmri import aif
 

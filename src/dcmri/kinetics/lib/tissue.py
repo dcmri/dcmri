@@ -1,7 +1,8 @@
 import numpy as np
 
-from dcmri import pk
-from dcmri.pk import blocks
+from dcmri.kinetics.lib import blocks
+import dcmri.kinetics.lib as pk
+
 
 
 def add_derived_params(p):

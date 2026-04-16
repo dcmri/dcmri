@@ -1,9 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
+
 from dcmri.inverse import SignalToConc  
 from dcmri.lexicon import SEQUENCES
 from dcmri import aif, const
-from dcmri.magnetization import Signal
+from dcmri.bloch import Signal
 from dcmri.utils.misc import sample
 
 
@@ -129,7 +130,7 @@ def test_function():
         'TR': 1.5,
     }
 
-    seqs_dce = [s for s, v in SEQUENCES.items() if v['type']=='DCE' and s!='SSI' and v['steady-state']]
+    seqs_dce = [s for s, v in SEQUENCES.items() if v['type']=='DCE' and s!='Eq' and s!='SSI' and v['steady-state']]
     seqs_ssi = ['3D-SPGR-SSI']
     seqs_dsc = [s for s, v in SEQUENCES.items() if v['type']=='DSC' and v['steady-state']]
 

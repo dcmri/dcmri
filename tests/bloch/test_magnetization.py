@@ -1,7 +1,7 @@
 import numpy as np
 
-from dcmri.magnetization import Readout, Signal, Longitudinal
-from dcmri.lexicon import MZ_PREP
+from dcmri.bloch import Readout, Signal, Longitudinal
+from dcmri.lexicon import SEQUENCES
 
 params_dce = {
     'FA': 45,
@@ -24,9 +24,9 @@ params_dsc = {
     'TR': 1.5,
 }
 
-seqs_dce = [s for s, v in MZ_PREP.items() if v['type']=='DCE' and s!='SSI']
-seqs_ssi = ['SSI']
-seqs_dsc = [s for s, v in MZ_PREP.items() if v['type']=='DSC'] + ['Eq']
+seqs_dce = [s for s, v in SEQUENCES.items() if v['type']=='DCE' and s!='3D-SPGR-SSI']
+seqs_ssi = ['3D-SPGR-SSI']
+seqs_dsc = [s for s, v in SEQUENCES.items() if v['type']=='DSC'] + ['Eq']
 
 
 def test_coverage_readout():
@@ -157,10 +157,6 @@ def test_exceptions():
 
 
 
-
-
-
-
 def test_coverage_longitudinal():
 
     # scalar
@@ -168,33 +164,35 @@ def test_coverage_longitudinal():
     R1 = 1
     v = 0.3
     Fw = 0.01
-    j = 0.06
+    R1i = 0.75
+    Fi = 0.008
     me = 2
 
     for seq in seqs_dce:
-        Longitudinal(seq, **params_dce)(R1, j, v=v, Fw=Fw, me=me)
+        Longitudinal(seq, **params_dce)(R1=R1, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
     for seq in seqs_ssi:
-        Longitudinal(seq, **params_ssi)(R1, j, v=v, Fw=Fw, me=me)
+        Longitudinal(seq, **params_ssi)(R1=R1, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
     for seq in seqs_dsc:
-        Longitudinal(seq, **params_dsc)(R1, j, v=v, Fw=Fw, me=me)
+        Longitudinal(seq, **params_dsc)(R1=R1, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
 
     # Variations
-    Longitudinal('SPGR-SS', **params_dce)(R1, j, v=None, Fw=Fw, me=me)
+    Longitudinal('3D-SPGR-SS', **params_dce)(R1=R1, R1i=R1i, Fi=Fi, v=None, Fw=Fw, me=me)
 
     # nc
 
     R1 = [1,0.5]
     v = [0.1, 0.4]
     Fw = [[0.01, 0.02], [0.03, 0.04]]
-    j = [0.06, 0.08]
+    R1i = [0.5, 0.75]
+    Fi = [0.008, 0.004]
     me = 2
 
     for seq in seqs_dce:
-        Longitudinal(seq, **params_dce)(R1, j, v=v, Fw=Fw, me=me)
+        Longitudinal(seq, **params_dce)(R1=R1, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
     for seq in seqs_ssi:
-        Longitudinal(seq, **params_ssi)(R1, j, v=v, Fw=Fw, me=me)
+        Longitudinal(seq, **params_ssi)(R1=R1, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
     for seq in seqs_dsc:
-        Longitudinal(seq, **params_dsc)(R1, j, v=v, Fw=Fw, me=me)
+        Longitudinal(seq, **params_dsc)(R1=R1, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
 
     # nt
 
@@ -202,43 +200,45 @@ def test_coverage_longitudinal():
     R1 = np.full(nt, 1)
     v = 0.3
     Fw = 0.01
-    j = np.full(nt, 0.06)
+    R1i = np.full(nt, 0.06)
+    Fi = 0.008
     me = 2
 
     for seq in seqs_dce:
-        Longitudinal(seq, **params_dce)(R1, j, v=v, Fw=Fw, me=me)
+        Longitudinal(seq, **params_dce)(R1=R1, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
     for seq in seqs_ssi:
-        Longitudinal(seq, **params_ssi)(R1, j, v=v, Fw=Fw, me=me)
+        Longitudinal(seq, **params_ssi)(R1=R1, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
     for seq in seqs_dsc:
-        Longitudinal(seq, **params_dsc)(R1, j, v=v, Fw=Fw, me=me)
+        Longitudinal(seq, **params_dsc)(R1=R1, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
 
     # nc, nt
     nt = 10
     R1 = np.stack([np.full(nt, 1), np.full(nt, 0.5)])
     v = [0.1, 0.4]
     Fw = [[0.01, 0.02], [0.03, 0.04]]
-    j = np.stack([np.full(nt, 0.06), np.full(nt, 0.08)])
+    R1i = np.stack([np.full(nt, 0.6), np.full(nt, 0.8)])
+    Fi = [0.008, 0.005]
     me = 2
 
     for seq in seqs_dce:
-        Longitudinal(seq, **params_dce)(R1, j, v=v, Fw=Fw, me=me)
+        Longitudinal(seq, **params_dce)(R1=R1, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
     for seq in seqs_ssi:
-        Longitudinal(seq, **params_ssi)(R1, j, v=v, Fw=Fw, me=me)
+        Longitudinal(seq, **params_ssi)(R1=R1, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
     for seq in seqs_dsc:
-        Longitudinal(seq, **params_dsc)(R1, j, v=v, Fw=Fw, me=me)
+        Longitudinal(seq, **params_dsc)(R1=R1, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
 
     # Special case
     Fw = 0.03
-    Longitudinal('SPGR-SS', **params_dce)(R1, j, v=v, Fw=Fw, me=me)
+    Longitudinal('3D-SPGR-SS', **params_dce)(R1=R1, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
 
     # Functions
-    assert 'SPGR-SS' in Longitudinal.configs['sequence']
-    Mz = Longitudinal('SPGR-SS', **params_dce)
+    assert '3D-SPGR-SS' in Longitudinal.configs['sequence']
+    Mz = Longitudinal('3D-SPGR-SS', **params_dce)
     assert 'TR' in Mz.params()
 
     # Variations
-    Mz(R1, j, v=v, Fw=Fw, me=me, TR=0.01)
-    Mz(R1, None, v=v, Fw=Fw, me=me, TR=0.01)
+    Mz(R1=R1, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me, TR=0.01)
+    Mz(R1=R1, R1i=None, Fi=Fi, v=v, Fw=Fw, me=me, TR=0.01)
 
 def test_exceptions_longitudinal():
     # nc, nt
@@ -246,11 +246,12 @@ def test_exceptions_longitudinal():
     R1 = np.stack([np.full(nt, 1), np.full(nt, 0.5)])
     v = [0.1, 0.4]
     Fw = [[0.01, 0.02], [0.03, 0.04]]
-    j = np.stack([np.full(nt, 0.06), np.full(nt, 0.08)])
+    R1i = np.stack([np.full(nt, 0.6), np.full(nt, 0.8)])
+    Fi = [0.008, 0.005]
     me = 2
 
     try:
-        Longitudinal('XX', **params_dce)(R1, j, v=v, Fw=Fw, me=me)
+        Longitudinal('XX', **params_dce)(R1=R1, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
     except:
         pass
     else:
@@ -265,14 +266,14 @@ def test_exceptions_longitudinal():
 
     try:
         Fw3 = [[1,2,3], [4, 5, 6], [7, 8, 9]]
-        Longitudinal('SPGR-SS', **params_dce)(R1, j, v=v, Fw=Fw3, me=me)
+        Longitudinal('3D-SPGR-SS', **params_dce)(R1=R1, R1i=R1i, Fi=Fi, v=v, Fw=Fw3, me=me)
     except:
         pass
     else:
         assert False
 
     try:
-        Longitudinal('SPGR-SS', **params_dce)(R1, j, v=None, Fw=Fw, me=me)
+        Longitudinal('3D-SPGR-SS', **params_dce)(R1=R1, R1i=R1i, Fi=Fi, v=None, Fw=Fw, me=me)
     except:
         pass
     else:
@@ -280,7 +281,7 @@ def test_exceptions_longitudinal():
 
     try:
         R1_1 = np.full(nt, 1)
-        Longitudinal('SPGR-SS', **params_dce)(R1_1, j, v=v, Fw=Fw, me=me)
+        Longitudinal('3D-SPGR-SS', **params_dce)(R1=R1_1, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
     except:
         pass
     else:
@@ -288,15 +289,15 @@ def test_exceptions_longitudinal():
 
     try:
         R1_1 = np.stack([np.full(nt, 1), np.full(nt, 1), np.full(nt, 1)])
-        Longitudinal('SPGR-SS', **params_dce)(R1_1, j, v=v, Fw=Fw, me=me)
+        Longitudinal('3D-SPGR-SS', **params_dce)(R1=R1_1, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
     except:
         pass
     else:
         assert False
 
     try:
-        j_1 = np.full(nt, 0.06)
-        Longitudinal('SPGR-SS', **params_dce)(R1, j_1, v=v, Fw=Fw, me=me)
+        R1i_1 = np.full(nt, 0.6)
+        Longitudinal('3D-SPGR-SS', **params_dce)(R1=R1, R1i=R1i_1, Fi=Fi, v=v, Fw=Fw, me=me)
     except:
         pass
     else:

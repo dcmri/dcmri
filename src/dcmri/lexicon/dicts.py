@@ -3,87 +3,22 @@ from types import MappingProxyType
 import numpy as np
 
 
-MZ_PREP = {
-    'Eq': {
-        'parameters': [],
-        'type': 'PD',
-    },
-    'IR-SS': {
-        'parameters': ['TA'],
-        'type': 'DCE',
-    },
-    'SR-SS': {
-        'parameters': ['TA'],
-        'type': 'DCE',
-    },
-    'PR-SS': {
-        'parameters': ['TA', 'PA'],
-        'type': 'DCE',
-    }, 
-    'SPGR': {
-        'parameters': ['TC', 'TR', 'FA', 'B1corr', 'TA'],
-        'type': 'DCE',
-    },
-    'SR-SPGR': {
-        'parameters': ['TC', 'TR', 'FA', 'B1corr', 'TP', 'TA'],
-        'type': 'DCE',
-    },
-    'IR-SPGR': {
-        'parameters': ['TC', 'TR', 'FA', 'B1corr', 'TP', 'TA'],
-        'type': 'DCE',
-    },
-    'PR-SPGR': {
-        'parameters': ['TC', 'TR', 'FA', 'B1corr', 'TP', 'TA', 'PA'],
-        'type': 'DCE',
-    },
-    'SPGR-SS': {
-        'parameters': ['TR', 'FA', 'B1corr'],
-        'type': 'DCE',
-    },
-    'SR-SPGR-SS': {
-        'parameters': ['TC', 'TR', 'FA', 'B1corr', 'TP', 'TA'],
-        'type': 'DCE',
-    },
-    'IR-SPGR-SS': {
-        'parameters': ['TC', 'TR', 'FA', 'B1corr', 'TP', 'TA'],
-        'type': 'DCE',
-    },
-    'PR-SPGR-SS': {
-        'parameters': ['TC', 'TR', 'FA', 'B1corr', 'TP', 'TA', 'PA'],
-        'type': 'DCE',
-    },
-    'SSI': {
-        'parameters': ['TR', 'FA', 'B1corr', 'TF', 'SA'],
-        'type': 'DCE',
-    },
-    'GE-EPI': {
-        'parameters': ['TR', 'FA', 'B1corr'],
-        'type': 'DSC',
-    },
-    'SE-EPI': {
-        'parameters': ['TE', 'TR', 'FA', 'B1corr'],
-        'type': 'DSC',
-    },
-    'DE-EPI': {
-        'parameters': ['TE2', 'TR', 'FA', 'B1corr'],
-        'type': 'DSC',
-    },
-}
+
 
 
 SEQUENCES = {
-    # 'Eq': {
-    #     'mz_prep_tissue': 'Eq',
-    #     'mz_prep_inflow': 'Eq',
-    #     'type': 'PD',
-    #     'steady-state': True,
-    #     'parameters': {
-    #         'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
-    #     },
-    # },
+    'Eq': {
+        'mz_prep_tissue': 'Eq',
+        'inflow_sequence': 'Eq',
+        'type': 'DCE',
+        'steady-state': True,
+        'parameters': {
+            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+        },
+    },
     '3D-SPGR-SS': {
         'mz_prep_tissue': 'SPGR-SS',
-        'mz_prep_inflow': 'SPGR-SS',
+        'inflow_sequence': '3D-SPGR-SS',
         'type': 'DCE',
         'steady-state': True,
         'parameters': {
@@ -92,7 +27,7 @@ SEQUENCES = {
     },
     '3D-IR-SPGR-SS': {
         'mz_prep_tissue': 'IR-SPGR-SS', 
-        'mz_prep_inflow': 'IR-SPGR-SS',
+        'inflow_sequence': '3D-IR-SS',
         'type': 'DCE',
         'steady-state': True,
         'parameters': {
@@ -101,7 +36,7 @@ SEQUENCES = {
     },
     '3D-SR-SPGR-SS': {
         'mz_prep_tissue': 'SR-SPGR-SS',
-        'mz_prep_inflow': 'SR-SPGR-SS',
+        'inflow_sequence': '3D-SR-SS',
         'type': 'DCE',
         'steady-state': True,
         'parameters': {
@@ -110,7 +45,7 @@ SEQUENCES = {
     },
     '3D-PR-SPGR-SS': {
         'mz_prep_tissue': 'PR-SPGR-SS',
-        'mz_prep_inflow': 'PR-SPGR-SS',
+        'inflow_sequence': '3D-PR-SS',
         'type': 'DCE',
         'steady-state': True,
         'parameters': {
@@ -119,7 +54,7 @@ SEQUENCES = {
     },
     '2D-SPGR-SS': {
         'mz_prep_tissue': 'SPGR-SS',
-        'mz_prep_inflow': 'Eq',
+        'inflow_sequence': 'Eq',
         'type': 'DCE',
         'steady-state': True,
         'parameters': {
@@ -128,7 +63,7 @@ SEQUENCES = {
     },
     '2D-IR-SPGR-SS': {
         'mz_prep_tissue': 'IR-SPGR-SS', 
-        'mz_prep_inflow': 'IR-SS',
+        'inflow_sequence': '3D-IR-SS',
         'type': 'DCE',
         'steady-state': True,
         'parameters': {
@@ -137,7 +72,7 @@ SEQUENCES = {
     }, # Non-selective preparation, so inflow is freely recovering
     '2D-SR-SPGR-SS': {
         'mz_prep_tissue': 'SR-SPGR-SS',
-        'mz_prep_inflow': 'SR-SS',
+        'inflow_sequence': '3D-SR-SS',
         'type': 'DCE',
         'steady-state': True,
         'parameters': {
@@ -146,7 +81,7 @@ SEQUENCES = {
     },
     '2D-PR-SPGR-SS': {
         'mz_prep_tissue': 'PR-SPGR-SS',
-        'mz_prep_inflow': 'PR-SS',
+        'inflow_sequence': '3D-PR-SS',
         'type': 'DCE',
         'steady-state': True,
         'parameters': {
@@ -155,7 +90,7 @@ SEQUENCES = {
     },
     '3D-SPGR': {
         'mz_prep_tissue': 'SPGR',
-        'mz_prep_inflow': 'SPGR',
+        'inflow_sequence': '3D-SPGR',
         'type': 'DCE',
         'steady-state': False,
         'parameters': {
@@ -164,7 +99,7 @@ SEQUENCES = {
     },
     '3D-IR-SPGR': {
         'mz_prep_tissue': 'IR-SPGR',
-        'mz_prep_inflow': 'IR-SPGR',
+        'inflow_sequence': '3D-IR-SPGR',
         'type': 'DCE',
         'steady-state': False,
         'parameters': {
@@ -173,7 +108,7 @@ SEQUENCES = {
     },
     '3D-SR-SPGR': {
         'mz_prep_tissue': 'SR-SPGR',
-        'mz_prep_inflow': 'SR-SPGR',
+        'inflow_sequence': '3D-SR-SPGR',
         'type': 'DCE',
         'steady-state': True,
         'parameters': {
@@ -182,7 +117,7 @@ SEQUENCES = {
     },
     '3D-PR-SPGR': {
         'mz_prep_tissue': 'PR-SPGR',
-        'mz_prep_inflow': 'PR-SPGR',
+        'inflow_sequence': '3D-PR-SPGR',
         'type': 'DCE',
         'steady-state': False,
         'parameters': {
@@ -191,7 +126,25 @@ SEQUENCES = {
     },
     '3D-PR-SS': {
         'mz_prep_tissue': 'PR-SS',
-        'mz_prep_inflow': 'PR-SS',
+        'inflow_sequence': '3D-PR-SS',
+        'type': 'DCE',
+        'steady-state': False,
+        'parameters': {
+            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+        },
+    },
+    '3D-IR-SS': {
+        'mz_prep_tissue': 'IR-SS',
+        'inflow_sequence': '3D-IR-SS',
+        'type': 'DCE',
+        'steady-state': False,
+        'parameters': {
+            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+        },
+    },
+    '3D-SR-SS': {
+        'mz_prep_tissue': 'SR-SS',
+        'inflow_sequence': '3D-SR-SS',
         'type': 'DCE',
         'steady-state': False,
         'parameters': {
@@ -200,7 +153,7 @@ SEQUENCES = {
     },
     '2D-SPGR': {
         'mz_prep_tissue': 'SPGR',
-        'mz_prep_inflow': 'Eq',
+        'inflow_sequence': 'Eq',
         'type': 'DCE',
         'steady-state': False,
         'parameters': {
@@ -209,7 +162,7 @@ SEQUENCES = {
     },
     '2D-IR-SPGR': {
         'mz_prep_tissue': 'IR-SPGR', 
-        'mz_prep_inflow': 'IR-SS',
+        'inflow_sequence': '3D-IR-SS',
         'type': 'DCE',
         'steady-state': False,
         'parameters': {
@@ -218,7 +171,7 @@ SEQUENCES = {
     },
     '2D-SR-SPGR': {
         'mz_prep_tissue': 'SR-SPGR',
-        'mz_prep_inflow': 'SR-SS',
+        'inflow_sequence': '3D-SR-SS',
         'type': 'DCE',
         'steady-state': True,
         'parameters': {
@@ -227,7 +180,7 @@ SEQUENCES = {
     },
     '2D-PR-SPGR': {
         'mz_prep_tissue': 'PR-SPGR',
-        'mz_prep_inflow': 'PR-SS',
+        'inflow_sequence': '3D-PR-SS',
         'type': 'DCE',
         'steady-state': False,
         'parameters': {
@@ -236,7 +189,7 @@ SEQUENCES = {
     },
     '3D-SPGR-SSI': {
         'mz_prep_tissue': 'SSI',
-        'mz_prep_inflow': 'SSI',
+        'inflow_sequence': '3D-SPGR-SSI',
         'type': 'DCE',
         'steady-state': True,
         'parameters': {
@@ -245,7 +198,7 @@ SEQUENCES = {
     },
     'GE-EPI': {
         'mz_prep_tissue': 'GE-EPI',
-        'mz_prep_inflow': 'Eq',
+        'inflow_sequence': 'Eq',
         'type': 'DSC',
         'steady-state': True,
         'parameters': {
@@ -254,7 +207,7 @@ SEQUENCES = {
     },
     'SE-EPI': {
         'mz_prep_tissue': 'SE-EPI',
-        'mz_prep_inflow': 'Eq',
+        'inflow_sequence': 'Eq',
         'type': 'DSC',
         'steady-state': True,
         'parameters': {
@@ -263,7 +216,7 @@ SEQUENCES = {
     },
     'DE-EPI': {
         'mz_prep_tissue': 'DE-EPI',
-        'mz_prep_inflow': 'Eq',
+        'inflow_sequence': 'Eq',
         'type': 'DSC',
         'steady-state': True,
         'parameters': {
@@ -272,14 +225,36 @@ SEQUENCES = {
     },
 }
 
+
+MZ_PREP_PARANS = { 
+    'Eq': [],
+    'IR-SS': ['TA'],
+    'SR-SS': ['TA'],
+    'PR-SS': ['TA', 'PA'],
+    'SPGR': ['TC', 'TR', 'FA', 'B1corr', 'TA'],
+    'SR-SPGR': ['TC', 'TR', 'FA', 'B1corr', 'TP', 'TA'],
+    'IR-SPGR': ['TC', 'TR', 'FA', 'B1corr', 'TP', 'TA'],
+    'PR-SPGR': ['TC', 'TR', 'FA', 'B1corr', 'TP', 'TA', 'PA'],
+    'SPGR-SS': ['TR', 'FA', 'B1corr'],
+    'SR-SPGR-SS': ['TC', 'TR', 'FA', 'B1corr', 'TP', 'TA'],
+    'IR-SPGR-SS': ['TC', 'TR', 'FA', 'B1corr', 'TP', 'TA'],
+    'PR-SPGR-SS': ['TC', 'TR', 'FA', 'B1corr', 'TP', 'TA', 'PA'],
+    'SSI': ['TR', 'FA', 'B1corr', 'TF', 'SA'],
+    'GE-EPI': ['TR', 'FA', 'B1corr'],
+    'SE-EPI': ['TE', 'TR', 'FA', 'B1corr'],
+    'DE-EPI': ['TE2', 'TR', 'FA', 'B1corr'],
+}
+
 # Add preparation module parameters
 for seq, props in SEQUENCES.items():
-    pars_tissue = MZ_PREP[props['mz_prep_tissue']]['parameters']
-    pars_inflow = MZ_PREP[props['mz_prep_inflow']]['parameters']
+    mz_prep_tissue = props['mz_prep_tissue']
+    mz_prep_inflow = SEQUENCES[props['inflow_sequence']]['mz_prep_tissue']
+    
+    pars_tissue = MZ_PREP_PARANS[mz_prep_tissue]
+    pars_inflow = MZ_PREP_PARANS[mz_prep_inflow]
     pars = list(set(pars_tissue + pars_inflow))
     pars.sort()
     props['parameters']['prep'] = pars
-
 
 
 # ---- Initial Values ----

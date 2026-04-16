@@ -2,9 +2,11 @@ from tqdm import tqdm
 import numpy as np
 
 import dcmri
-from dcmri import magnetization, pk, const, phantoms
+from dcmri import const, phantoms
+from dcmri.bloch import Signal
 from dcmri.utils.misc import sample, add_noise
 from dcmri.kinetics import ConcTissueX, ConcLiver, ConcCortMed
+import dcmri.kinetics.lib as pk
 
 
 def aif(
@@ -55,9 +57,9 @@ def aif(
     rp = const.r1(field_strength, 'plasma', agent)
     R1b = R10a + rp*cp*(1-H)
     if model == '3D-SPGR-SS':
-        aif_ = magnetization.Signal(model)(S0=S0, R1=R1b, TR=TR, FA=FA, B1corr=B1corr, TE=0)
+        aif_ = Signal(model)(S0=S0, R1=R1b, TR=TR, FA=FA, B1corr=B1corr, TE=0)
     elif model == '3D-SR-SPGR-SS':
-        aif_ = magnetization.Signal(model)(S0=S0, R1=R1b, TR=TR, FA=FA, TC=TC, B1corr=B1corr, TE=0)
+        aif_ = Signal(model)(S0=S0, R1=R1b, TR=TR, FA=FA, TC=TC, B1corr=B1corr, TE=0)
     time = np.arange(0, tacq, dt)
     aif_ = sample(time, t, aif_, dt)
     sdev = (np.amax(aif_)-aif_[0])/CNR
@@ -153,9 +155,9 @@ def brain(
     rp = const.r1(field_strength, 'plasma', agent)
     R1b = R10a + rp*cp*(1-H)
     if model == '3D-SPGR-SS':
-        aif_ = magnetization.Signal(model)(S0=S0, R1=R1b, TR=TR, FA=FA, TE=0)
+        aif_ = Signal(model)(S0=S0, R1=R1b, TR=TR, FA=FA, TE=0)
     elif model == '3D-SR-SPGR-SS':
-        aif_ = magnetization.Signal(model)(S0=S0, R1=R1b, TR=TR, FA=FA, TC=TC, TE=0)
+        aif_ = Signal(model)(S0=S0, R1=R1b, TR=TR, FA=FA, TC=TC, TE=0)
 
     sdev = (np.amax(aif_)-aif_[0])/CNR
     time = np.arange(0, tacq, dt)
@@ -196,9 +198,9 @@ def brain(
             # Pixel signal
             R1 = 1/im['T1'][i, j] + rp*C
             if model == '3D-SPGR-SS':
-                s = magnetization.Signal(model)(S0=S0*im['PD'][i, j], R1=R1, TR=TR, FA=FA, TE=0)
+                s = Signal(model)(S0=S0*im['PD'][i, j], R1=R1, TR=TR, FA=FA, TE=0)
             elif model == '3D-SR-SPGR-SS':
-                s = magnetization.Signal(model)(S0=S0*im['PD'][i, j], R1=R1, TR=TR, FA=FA, TC=TC, TE=0)
+                s = Signal(model)(S0=S0*im['PD'][i, j], R1=R1, TR=TR, FA=FA, TC=TC, TE=0)
 
             sig_noisefree = sample(time, t, s, dt)
             s = add_noise(sig_noisefree, sdev)
@@ -283,11 +285,11 @@ def tissue(
     R1b = R10a + rp*cp*(1-H)
     R1 = R10 + rp*C
     if model == '3D-SPGR-SS':
-        aif_ = magnetization.Signal(model)(S0=S0b, R1=R1b, TR=TR, FA=FA, TE=0)
-        roi = magnetization.Signal(model)(S0=S0, R1=R1, TR=TR, FA=FA, TE=0)
+        aif_ = Signal(model)(S0=S0b, R1=R1b, TR=TR, FA=FA, TE=0)
+        roi = Signal(model)(S0=S0, R1=R1, TR=TR, FA=FA, TE=0)
     elif model == '2D-SR-SPGR-SS':
-        aif_ = magnetization.Signal('3D-SR-SPGR-SS')(S0=S0b, R1=R1b, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
-        roi = magnetization.Signal('2D-SR-SPGR-SS')(S0=S0b, R1=R1b, TC=TC, TR=TR, FA=FA, TE=0)
+        aif_ = Signal('3D-SR-SPGR-SS')(S0=S0b, R1=R1b, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
+        roi = Signal('2D-SR-SPGR-SS')(S0=S0b, R1=R1b, TC=TC, TR=TR, FA=FA, TE=0)
 
     time = np.arange(0, tacq, dt)
     aif_ = sample(time, t, aif_, dt)
@@ -393,13 +395,13 @@ def liver(
     R1 = R10 + rp*C[0, :] + rh*C[1, :]
 
     if sequence == '3D-SPGR-SS':
-        aif_ = magnetization.Signal(sequence)(S0=S0b, R1=R1a, TR=TR, FA=FA, TE=0)
-        vif = magnetization.Signal(sequence)(S0=S0b, R1=R1v, TR=TR, FA=FA, TE=0)
-        roi = magnetization.Signal(sequence)(S0=S0, R1=R1, TR=TR, FA=FA, TE=0)
+        aif_ = Signal(sequence)(S0=S0b, R1=R1a, TR=TR, FA=FA, TE=0)
+        vif = Signal(sequence)(S0=S0b, R1=R1v, TR=TR, FA=FA, TE=0)
+        roi = Signal(sequence)(S0=S0, R1=R1, TR=TR, FA=FA, TE=0)
     elif sequence == '3D-SPGR-SSI':
-        aif_ = magnetization.Signal(sequence)(S0=S0b, R1=R1a, TR=TR, FA=FA, TF=TC, TE=0)
-        vif = magnetization.Signal('3D-SPGR-SS')(S0=S0b, R1=R1v, TR=TR, FA=FA, TE=0)
-        roi = magnetization.Signal('3D-SPGR-SS')(S0=S0, R1=R1, TR=TR, FA=FA, TE=0)
+        aif_ = Signal(sequence)(S0=S0b, R1=R1a, TR=TR, FA=FA, TF=TC, TE=0)
+        vif = Signal('3D-SPGR-SS')(S0=S0b, R1=R1v, TR=TR, FA=FA, TE=0)
+        roi = Signal('3D-SPGR-SS')(S0=S0, R1=R1, TR=TR, FA=FA, TE=0)
 
     time = np.arange(0, tacq, dt)
     aif_ = sample(time, t, aif_, dt)
@@ -488,11 +490,11 @@ def tissue2scan(
 
     # Generate the signals from the first scan
     if model == '3D-SPGR-SS':
-        aif_ = magnetization.Signal(model)(S0=S0b1, R1=R1b, TR=TR, FA=FA, TE=0)
-        roi = magnetization.Signal(model)(S0=S01, R1=R1, TR=TR, FA=FA, TE=0)
+        aif_ = Signal(model)(S0=S0b1, R1=R1b, TR=TR, FA=FA, TE=0)
+        roi = Signal(model)(S0=S01, R1=R1, TR=TR, FA=FA, TE=0)
     elif model == '2D-SR-SPGR-SS':
-        aif_ = magnetization.Signal('3D-SR-SPGR-SS')(S0=S0b1, R1=R1b, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
-        roi = magnetization.Signal('2D-SR-SPGR-SS')(S0=S01, R1=R1, TC=TC, TR=TR, FA=FA, TE=0)
+        aif_ = Signal('3D-SR-SPGR-SS')(S0=S0b1, R1=R1b, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
+        roi = Signal('2D-SR-SPGR-SS')(S0=S01, R1=R1, TC=TC, TR=TR, FA=FA, TE=0)
     time1 = np.arange(0, tacq, dt)
     aif1 = sample(time1, t, aif_, dt)
     roi1 = sample(time1, t, roi, dt)
@@ -502,11 +504,11 @@ def tissue2scan(
 
     # Generate the second signals
     if model == '3D-SPGR-SS':
-        aif_ = magnetization.Signal(model)(S0=S0b2, R1=R1b, TR=TR, FA=FA, TE=0)
-        roi = magnetization.Signal(model)(S0=S02, R1=R1, TR=TR, FA=FA, TE=0)
+        aif_ = Signal(model)(S0=S0b2, R1=R1b, TR=TR, FA=FA, TE=0)
+        roi = Signal(model)(S0=S02, R1=R1, TR=TR, FA=FA, TE=0)
     elif model == '2D-SR-SPGR-SS':
-        aif_ = magnetization.Signal('3D-SR-SPGR-SS')(S0=S0b2, R1=R1b, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
-        roi = magnetization.Signal('2D-SR-SPGR-SS')(S0=S02, R1=R1, TC=TC, TR=TR, FA=FA, TE=0)
+        aif_ = Signal('3D-SR-SPGR-SS')(S0=S0b2, R1=R1b, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
+        roi = Signal('2D-SR-SPGR-SS')(S0=S02, R1=R1, TC=TC, TR=TR, FA=FA, TE=0)
     time2 = np.arange(tacq+tbreak, 2*tacq+tbreak, dt)
     aif2 = sample(time2, t, aif_, dt)
     roi2 = sample(time2, t, roi, dt)
@@ -599,13 +601,13 @@ def kidney(
     R1m = R10m + rp*Cm
 
     if model == '3D-SPGR-SS':
-        aif_ = magnetization.Signal(model)(S0=S0b, R1=R1b, TR=TR, FA=FA, TE=0)
-        roic = magnetization.Signal(model)(S0=S0, R1=R1c, TR=TR, FA=FA, TE=0)
-        roim = magnetization.Signal(model)(S0=S0, R1=R1m, TR=TR, FA=FA, TE=0)
+        aif_ = Signal(model)(S0=S0b, R1=R1b, TR=TR, FA=FA, TE=0)
+        roic = Signal(model)(S0=S0, R1=R1c, TR=TR, FA=FA, TE=0)
+        roim = Signal(model)(S0=S0, R1=R1m, TR=TR, FA=FA, TE=0)
     elif model == '2D-SR-SPGR-SS':
-        aif_ = magnetization.Signal('3D-SR-SPGR-SS')(S0=S0b, R1=R1b, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
-        roic = magnetization.Signal('2D-SR-SPGR-SS')(S0=S0, R1=R1c, TC=TC, TR=TR, FA=FA, TE=0)
-        roim = magnetization.Signal('2D-SR-SPGR-SS')(S0=S0, R1=R1m, TC=TC, TR=TR, FA=FA, TE=0)
+        aif_ = Signal('3D-SR-SPGR-SS')(S0=S0b, R1=R1b, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
+        roic = Signal('2D-SR-SPGR-SS')(S0=S0, R1=R1c, TC=TC, TR=TR, FA=FA, TE=0)
+        roim = Signal('2D-SR-SPGR-SS')(S0=S0, R1=R1m, TC=TC, TR=TR, FA=FA, TE=0)
 
     time = np.arange(0, tacq, dt)
     aif_ = sample(time, t, aif_, dt)

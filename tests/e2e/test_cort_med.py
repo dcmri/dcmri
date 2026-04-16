@@ -6,7 +6,7 @@ import numpy as np
 import dcmri as dc
 from dcmri import CortMed as Model
 from dcmri.core import Input
-from dcmri.magnetization import Signal
+from dcmri.bloch import Signal
 from dcmri import aif
 
 

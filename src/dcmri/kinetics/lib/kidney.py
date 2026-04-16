@@ -1,6 +1,7 @@
 import copy
 import numpy as np
-import dcmri.pk as pk
+
+import dcmri.kinetics.lib as pk
 
 
 def _div(a, b):

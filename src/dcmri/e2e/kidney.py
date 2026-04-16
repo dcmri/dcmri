@@ -5,10 +5,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from dcmri.inverse import SignalToConc
-from dcmri import magnetization, const
+from dcmri import const
 from dcmri.core import SuperModel, Input
 from dcmri.lexicon import SEQUENCES
 from dcmri.kinetics import ConcKidney
+from dcmri.bloch import Signal
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
 
@@ -153,7 +154,7 @@ class Kidney(SuperModel):
         self._compute_relaxation_rate()
         p = self._pars
         seq = self._cnfg['sequence']
-        self._S = magnetization.Signal(seq, **p)(R1=self._R1, TE=0)
+        self._S = Signal(seq, **p)(R1=self._R1, TE=0)
 
     def _set_time(self):
         p = self._pars
@@ -173,7 +174,7 @@ class Kidney(SuperModel):
         seq = self._cnfg['sequence']
         
         # Estimate S0
-        s_ref = magnetization.Signal(seq, **p)(R1=p['R10'], S0=1, TE=0)
+        s_ref = Signal(seq, **p)(R1=p['R10'], S0=1, TE=0)
         p['S0'] = np.mean(signal[:n0]) / s_ref if s_ref > 0 else 0
 
         if aif is not None:

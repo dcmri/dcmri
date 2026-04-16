@@ -1,7 +1,8 @@
 import numpy as np
 
 
-from dcmri import pk, const
+from dcmri import const
+import dcmri.kinetics.lib as pk
 
 
 def tristan(

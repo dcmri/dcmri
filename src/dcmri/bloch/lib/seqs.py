@@ -1,11 +1,49 @@
 from scipy.linalg import expm
 import numpy as np
 
-from dcmri.bloch import pulse
+from dcmri.bloch.lib import pulse
+
+
+# def Mz_ge(R1, v, Fw, j, me, TR, FA): 
+#     """Mz for one slice in a GE-EPI sequence
+#     """
+#     if np.isinf(TR):
+#         return np.full_like(R1, me)
+    
+#     pulse_sequence = [
+#         [FA, TR]
+#     ]
+#     def _Mz_ge_t(R1_t, j_t):
+#         return pulse.Mz_ss(R1_t, v, Fw, j_t, me, pulse_sequence)
+
+#     nc, nt = R1.shape
+#     M = [_Mz_ge_t(R1[:,k].T, j[:,k].T) for k in range(nt)]
+#     return np.array(M).T.reshape(nc, nt)
+
+
+def Mz_se(R1, v, Fw, j, me, TE, TR, FA): 
+    """Mz for one slice in a SE-EPI sequence
+    """
+    if np.isinf(TR):
+        return np.full_like(R1, me)
+    pulse_sequence = [
+        [FA, TE / 2], 
+        [180, TR - TE/2]
+    ]
+    def _Mz_se_t(R1_t, j_t):
+        return pulse.Mz_ss(R1_t, v, Fw, j_t, me, pulse_sequence)
+
+    nc, nt = R1.shape
+    M = [_Mz_se_t(R1[:,k].T, j[:,k].T) for k in range(nt)]
+    return np.array(M).T.reshape(nc, nt)
 
 
 def Mz_spgr_in_ss(R1, v, Fw, j, me, TR, FA) -> np.ndarray:
     """Spoiled gradient echo sequence in steady state"""
+
+    if np.isinf(TR):
+        return np.full_like(R1, me)
+    
     nc, nt = R1.shape
 
     M = [pulse.Mz_ss_spgr(R1[:,t], v, Fw, j[:,t], me, TR, FA) for t in range(nt)]
@@ -84,36 +122,3 @@ def Mz_ssi(R1, v, Fw, j, me, TR, FA, TF, SA):
     M = [_Mz_ssi_prop(R1[:,k].T, j[:,k].T) for k in range(nt)]
     return np.array(M).T.reshape(nc, nt)
 
-
-def Mz_ge(R1, v, Fw, j, me, TR, FA): 
-    """Mz for one slice in a GE-EPI sequence
-    """
-    if np.isinf(TR):
-        return np.full_like(R1, me)
-    
-    pulse_sequence = [
-        [FA, TR]
-    ]
-    def _Mz_ge_t(R1_t, j_t):
-        return pulse.Mz_ss(R1_t, v, Fw, j_t, me, pulse_sequence)
-
-    nc, nt = R1.shape
-    M = [_Mz_ge_t(R1[:,k].T, j[:,k].T) for k in range(nt)]
-    return np.array(M).T.reshape(nc, nt)
-
-
-def Mz_se(R1, v, Fw, j, me, TE, TR, FA): 
-    """Mz for one slice in a SE-EPI sequence
-    """
-    if np.isinf(TR):
-        return np.full_like(R1, me)
-    pulse_sequence = [
-        [FA, TE / 2], 
-        [180, TR - TE/2]
-    ]
-    def _Mz_se_t(R1_t, j_t):
-        return pulse.Mz_ss(R1_t, v, Fw, j_t, me, pulse_sequence)
-
-    nc, nt = R1.shape
-    M = [_Mz_se_t(R1[:,k].T, j[:,k].T) for k in range(nt)]
-    return np.array(M).T.reshape(nc, nt)
