@@ -1,3 +1,126 @@
+"""Joint model for aorta and liver signals measured over two scans.
+
+This model uses a whole-body model to simultaneously predict signals in 
+aorta and liver, measured over two separate scans.
+
+For more detail on the whole-body model, see :ref:`whole-body-tissues`. 
+For more detail on the liver model, see :ref:`liver-tissues`. 
+
+Args:
+    kinetics (str, optional): Tracer-kinetic liver model. See table 
+        :ref:`table-liver-models` for options - only single-inlet models 
+        are allowed. Defaults to '1I-IC-HFD'.
+    stationary (str, optional): For intracellular tracers - stationarity 
+        regime of the hepatocytes. The options are 'UE', 'E', 'U' or None. 
+        For more detail see :ref:`liver-tissues`. Defaults to 'UE'.
+    stationary (str, optional): Stationarity regime of the hepatocytes. 
+        The options are 'UE', 'E', 'U' or None. For more detail 
+        see :ref:`liver-tissues`. Defaults to 'UE'.
+    sequence (str, optional): imaging sequence. Possible values are 'SS'
+        and 'SR'. Defaults to 'SS'.
+    params (dict, optional): values for the parameters of the tissue,
+        specified as keyword parameters. Defaults are used for any that are
+        not provided. See tables :ref:`AortaLiver2scan-parameters` and
+        :ref:`AortaLiver2scan-defaults` for a list of parameters and their
+        default values.
+
+See Also:
+    `AortaLiver`
+
+Example:
+
+    Use the model to reconstruct concentrations from experimentally 
+    derived signals.
+
+.. plot::
+    :include-source:
+    :context: close-figs
+
+    >>> import matplotlib.pyplot as plt
+    >>> import dcmri as dc
+
+    Use `fake.tissue` to generate synthetic test data from 
+    experimentally-derived concentrations:
+
+    >>> time, aif, roi, gt = dc.fake.tissue2scan(R10=1/dc.const.T1(3.0,'liver'))
+
+    Since this model generates four time curves, the x- and y-data are 
+    tuples:
+
+    >>> time = (time[0], time[1], time[0], time[1])
+    >>> signal = (aif[0], aif[1], roi[0], roi[1])
+
+    Build an aorta-liver model and parameters to match the conditions of 
+    the fake tissue data:
+
+    >>> model = dc.AortaLiver2scan(
+    ...     dt = 0.5,
+    ...     tmax = 420,
+    ...     weight = 70,
+    ...     agent = 'gadodiamide',
+    ...     dose = 0.2,
+    ...     dose2 = 0.2,
+    ...     rate = 3,
+    ...     field_strength = 3.0,
+    ...     TR = 0.005,
+    ...     FA = 15,
+    ...     FA2 = 15,
+    ...     TS = 0.5,
+    ...     Th_i = 120,
+    ...     Th_f = 120,
+    ... )
+
+    In this case we have defined different initial values for Th as 
+    the defaults are optimized for the slow passage through hepatocytes. 
+    We also need to reset the parameter bounds:
+
+    >>> model.free['Th_i'] = [0, np.inf]
+    >>> model.free['Th_f'] = [0, np.inf]
+
+    Train the model on the data:
+
+    >>> model.train(time, signal, n0=10, xtol=1e-3)
+
+    Plot the reconstructed signals and concentrations and compare against 
+    the experimentally derived data:
+
+    >>> model.plot(time, signal)
+
+    We can also have a look at the model parameters after training:
+
+    >>> model.print_params(round_to=3)
+    --------------------------------
+    Free parameters with their stdev
+    --------------------------------
+    Aorta second signal scale factor (S02a): 195.824 (2.025) a.u.
+    Liver second signal scale factor (S02l): 297.854 (4.9) a.u.
+    Second bolus arrival time (BAT2): 254.512 (0.137) sec
+    First bolus arrival time (BAT): 14.288 (0.132) sec
+    Cardiac output (CO): 203.199 (5.406) mL/sec
+    Heart-lung mean transit time (Thl): 15.236 (0.263) sec
+    Heart-lung dispersion (Dhl): 0.381 (0.009)
+    Organs blood mean transit time (To): 23.761 (3.052) sec
+    Organs extraction fraction (Eo): 0.287 (0.053)
+    Organs extravascular mean transit time (Toe): 50.274 (17.44) sec
+    Body extraction fraction (Eb): 0.078 (0.015)
+    Apparent liver extracellular volume fraction (ve_app): 0.053 (0.008) mL/cm3
+    Extracellular mean transit time (Te): 1.298 (0.552) sec
+    Extracellular dispersion (De): 1.0 (0.7)
+    Initial hepatic plasma clearance (Ktrans_i): 0.005 (0.001) mL/sec/cm3
+    Final hepatic plasma clearance (Ktrans_f): 0.005 (0.001) mL/sec/cm3
+    Initial hepatocellular mean transit time (Th_i): 70.022 (12.142) sec
+    Final hepatocellular mean transit time (Th_f): 72.227 (8.407) sec
+    ----------------------------
+    Fixed and derived parameters
+    ----------------------------
+    Aorta first baseline R1 (R10a): 0.614 Hz
+    Aorta first signal scale factor (S0a): 100.117 a.u.
+    Liver first baseline R1 (R10l): 1.33 Hz
+    Liver first signal scale factor (S0(l)): 150.003 a.u.
+    Initial hepatocellular mean transit time (Th_i): 70.022 (12.142) sec
+    Final hepatocellular mean transit time (Th_f): 72.227 (8.407) sec
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -17,128 +140,20 @@ QUANTITIES = QUANTITIES | {
 
 }
 
-class AortaLiver2scan(SuperModel):
-    """Joint model for aorta and liver signals measured over two scans.
+class AortaLiverDynamic(SuperModel):
+    """Aorta and liver signals measured over two scans.
 
-    This model uses a whole-body model to simultaneously predict signals in 
+    A whole-body model to simultaneously predict signals in 
     aorta and liver, measured over two separate scans.
 
-    For more detail on the whole-body model, see :ref:`whole-body-tissues`. 
-    For more detail on the liver model, see :ref:`liver-tissues`. 
-
     Args:
-        kinetics (str, optional): Tracer-kinetic liver model. See table 
-          :ref:`table-liver-models` for options - only single-inlet models 
-          are allowed. Defaults to '1I-IC-HFD'.
-        stationary (str, optional): For intracellular tracers - stationarity 
-          regime of the hepatocytes. The options are 'UE', 'E', 'U' or None. 
-          For more detail see :ref:`liver-tissues`. Defaults to 'UE'.
-        stationary (str, optional): Stationarity regime of the hepatocytes. 
-          The options are 'UE', 'E', 'U' or None. For more detail 
-          see :ref:`liver-tissues`. Defaults to 'UE'.
-        sequence (str, optional): imaging sequence. Possible values are 'SS'
-          and 'SR'. Defaults to 'SS'.
-        params (dict, optional): values for the parameters of the tissue,
-          specified as keyword parameters. Defaults are used for any that are
-          not provided. See tables :ref:`AortaLiver2scan-parameters` and
-          :ref:`AortaLiver2scan-defaults` for a list of parameters and their
-          default values.
+        kinetics (str, optional): Tracer-kinetic model.
+        non_stationary (str, optional): Stationarity regime of liver transporters.
+        sequence (str, optional): imaging sequence.
+        params (dict, optional): override parameter defaults.
 
     See Also:
         `AortaLiver`
-
-    Example:
-
-        Use the model to reconstruct concentrations from experimentally 
-        derived signals.
-
-    .. plot::
-        :include-source:
-        :context: close-figs
-
-        >>> import matplotlib.pyplot as plt
-        >>> import dcmri as dc
-
-        Use `fake.tissue` to generate synthetic test data from 
-        experimentally-derived concentrations:
-
-        >>> time, aif, roi, gt = dc.fake.tissue2scan(R10=1/dc.const.T1(3.0,'liver'))
-
-        Since this model generates four time curves, the x- and y-data are 
-        tuples:
-
-        >>> time = (time[0], time[1], time[0], time[1])
-        >>> signal = (aif[0], aif[1], roi[0], roi[1])
-
-        Build an aorta-liver model and parameters to match the conditions of 
-        the fake tissue data:
-
-        >>> model = dc.AortaLiver2scan(
-        ...     dt = 0.5,
-        ...     tmax = 420,
-        ...     weight = 70,
-        ...     agent = 'gadodiamide',
-        ...     dose = 0.2,
-        ...     dose2 = 0.2,
-        ...     rate = 3,
-        ...     field_strength = 3.0,
-        ...     TR = 0.005,
-        ...     FA = 15,
-        ...     FA2 = 15,
-        ...     TS = 0.5,
-        ...     Th_i = 120,
-        ...     Th_f = 120,
-        ... )
-
-        In this case we have defined different initial values for Th as 
-        the defaults are optimized for the slow passage through hepatocytes. 
-        We also need to reset the parameter bounds:
-
-        >>> model.free['Th_i'] = [0, np.inf]
-        >>> model.free['Th_f'] = [0, np.inf]
-
-        Train the model on the data:
-
-        >>> model.train(time, signal, n0=10, xtol=1e-3)
-
-        Plot the reconstructed signals and concentrations and compare against 
-        the experimentally derived data:
-
-        >>> model.plot(time, signal)
-
-        We can also have a look at the model parameters after training:
-
-        >>> model.print_params(round_to=3)
-        --------------------------------
-        Free parameters with their stdev
-        --------------------------------
-        Aorta second signal scale factor (S02a): 195.824 (2.025) a.u.
-        Liver second signal scale factor (S02l): 297.854 (4.9) a.u.
-        Second bolus arrival time (BAT2): 254.512 (0.137) sec
-        First bolus arrival time (BAT): 14.288 (0.132) sec
-        Cardiac output (CO): 203.199 (5.406) mL/sec
-        Heart-lung mean transit time (Thl): 15.236 (0.263) sec
-        Heart-lung dispersion (Dhl): 0.381 (0.009)
-        Organs blood mean transit time (To): 23.761 (3.052) sec
-        Organs extraction fraction (Eo): 0.287 (0.053)
-        Organs extravascular mean transit time (Toe): 50.274 (17.44) sec
-        Body extraction fraction (Eb): 0.078 (0.015)
-        Apparent liver extracellular volume fraction (ve_app): 0.053 (0.008) mL/cm3
-        Extracellular mean transit time (Te): 1.298 (0.552) sec
-        Extracellular dispersion (De): 1.0 (0.7)
-        Initial hepatic plasma clearance (Ktrans_i): 0.005 (0.001) mL/sec/cm3
-        Final hepatic plasma clearance (Ktrans_f): 0.005 (0.001) mL/sec/cm3
-        Initial hepatocellular mean transit time (Th_i): 70.022 (12.142) sec
-        Final hepatocellular mean transit time (Th_f): 72.227 (8.407) sec
-        ----------------------------
-        Fixed and derived parameters
-        ----------------------------
-        Aorta first baseline R1 (R10a): 0.614 Hz
-        Aorta first signal scale factor (S0a): 100.117 a.u.
-        Liver first baseline R1 (R10l): 1.33 Hz
-        Liver first signal scale factor (S0(l)): 150.003 a.u.
-        Initial hepatocellular mean transit time (Th_i): 70.022 (12.142) sec
-        Final hepatocellular mean transit time (Th_f): 72.227 (8.407) sec
     """
 
     configs = {
@@ -179,15 +194,15 @@ class AortaLiver2scan(SuperModel):
         if 'FA' in liver_sequence:
             liver_sequence += ['FA2']
     
-        inflow = ['TF'] if seq == '3D-SPGR-SSI' else []
         free_inflow = ['TF', 'S0_a'] if seq == '3D-SPGR-SSI' else []
 
         pars_list = {
-            'all': kinetics + inflow + liver_sequence + [
+            'all': kinetics + liver_sequence + [
                 'dt', 'tmax', 't_scan2', 'dose_tolerance', 'field_strength', 
                 'agent', 'weight', 'dose', 'dose2', 'rate', 
                 'TS', 'H', 
-                'R10_a', 'R10_l', 'S0_a', 'S0_l', 'S02_a', 'S02_l',
+                'R10_a', 'R10_l', 'R20s_a', 'R20s_l', 
+                'S0_a', 'S0_l', 'S02_a', 'S02_l',
                 'B1corr', 'B1corr_a', 'B1corr_2', 'B1corr_2_a',
             ],
             'free': kinetics + free_inflow + ['S02_a', 'S02_l'],
@@ -227,6 +242,8 @@ class AortaLiver2scan(SuperModel):
         p = self._pars
         rb = const.r1(p['field_strength'], 'blood', p['agent'])
         self._R1a = p['R10_a'] + rb * self._ca
+        r2s = const.r2s(p['field_strength'], 'blood', p['agent'])
+        self._R2sa = p['R20s_a'] + r2s * self._ca
 
     def _compute_signal_aorta(self):
         self._compute_relax_aorta()
@@ -237,11 +254,11 @@ class AortaLiver2scan(SuperModel):
 
         # First scan signal
         t = self._t < p['t_scan2']
-        self._Sa[t] = Signal(seq, **p)(R1=self._R1a[t], S0=p['S0_a'], B1corr=p['B1corr_a'], TE=0, PA=0)
+        self._Sa[t] = Signal(seq, **p)(R1=self._R1a[t], R2s=self._R2sa[t], S0=p['S0_a'], B1corr=p['B1corr_a'])
 
         # Second scan signal
         t = self._t >= p['t_scan2']
-        self._Sa[t] = Signal(seq, **p)(R1=self._R1a[t], S0=p['S02_a'], B1corr=p['B1corr_2_a'], FA=p['FA2'], TE=0, PA=0)
+        self._Sa[t] = Signal(seq, **p)(R1=self._R1a[t], R2s=self._R2sa[t], S0=p['S02_a'], B1corr=p['B1corr_2_a'], FA=p['FA2'])
 
     def _predict_aorta(self, time: tuple):
         self._compute_signal_aorta()
@@ -266,12 +283,14 @@ class AortaLiver2scan(SuperModel):
         p = self._pars
         rp = const.r1(p['field_strength'], 'plasma', p['agent'])
         rh = const.r1(p['field_strength'], 'hepatocytes', p['agent'])
-
-        if self._Cl.ndim==2:
+        r2s = const.r2s(p['field_strength'], 'tissue', p['agent'])
+        if self._Cl.ndim == 2:
             self._R1l = p['R10_l'] + rp * self._Cl[0, :] + rh * self._Cl[1, :]
+            self._R2sl = p['R20s_l'] + r2s * self._Cl.sum(axis=0) 
         else:
             self._R1l = p['R10_l'] + rp * self._Cl
-
+            self._R2sl = p['R20s_l'] + r2s * self._Cl
+        
     def _compute_signal_liver(self):
         self._compute_relax_liver()
         p = self._pars
@@ -281,11 +300,11 @@ class AortaLiver2scan(SuperModel):
 
         # First scan signal
         t = self._t < p['t_scan2']
-        self._Sl[t] = Signal(seq, **p)(R1=self._R1l[t], S0=p['S0_l'], TE=0)
+        self._Sl[t] = Signal(seq, **p)(R1=self._R1l[t], R2s=self._R2sl[t], S0=p['S0_l'])
         
         # Second scan signal
         t = self._t >= p['t_scan2']
-        self._Sl[t] = Signal(seq, **p)(R1=self._R1l[t], S0=p['S02_l'], B1corr=p['B1corr_2'], FA=p['FA2'], TE=0)
+        self._Sl[t] = Signal(seq, **p)(R1=self._R1l[t], R2s=self._R2sl[t], S0=p['S02_l'], B1corr=p['B1corr_2'], FA=p['FA2'])
 
     def _predict_liver(self, time: tuple):
         p = self._pars
@@ -329,25 +348,25 @@ class AortaLiver2scan(SuperModel):
         p['BAT2'] = max(bat2, 0)
 
         # Scaling Factor (S0) aorta
-        s_ref = Signal(seq_aorta, **p)(R1=p['R10_a'], S0=1, B1corr=p['B1corr_a'], TE=0, PA=0)
+        s_ref = Signal(seq_aorta, **p)(R1=p['R10_a'], R2s=p['R20s_a'], S0=1, B1corr=p['B1corr_a'])
         p['S0_a'] = np.mean(signal[0][:n0]) / s_ref if s_ref > 0 else 0
 
         # Scaling Factor (S0) liver
-        s_ref = Signal(seq_liver, **p)(R1=p['R10_l'], S0=1, TE=0)
+        s_ref = Signal(seq_liver, **p)(R1=p['R10_l'], R2s=p['R20s_l'], S0=1)
         p['S0_l'] = np.mean(signal[2][:n0]) / s_ref if s_ref > 0 else 0
 
         # Second Scaling Factor (S02) aorta
         if R102a is None:
             p['S02_a'] = p['S0_a']
         else:
-            s_ref = Signal(seq_aorta, **p)(R1=R102a, S0=1, B1corr=p['B1corr_2_a'], FA=p['FA2'], TE=0, PA=0)
+            s_ref = Signal(seq_aorta, **p)(R1=R102a, R2s=p['R20s_a'], S0=1, B1corr=p['B1corr_2_a'], FA=p['FA2'])
             p['S02_a'] = np.mean(signal[1][:n0]) / s_ref if s_ref > 0 else 0
 
         # Second Scaling Factor (S02) liver
         if R102l is None:
             p['S02_l'] = p['S0_l']
         else:
-            s_ref = Signal(seq_liver, **p)(R1=R102l, S0=1, B1corr=p['B1corr_2'], FA=p['FA2'], TE=0, PA=0)
+            s_ref = Signal(seq_liver, **p)(R1=R102l, R2s=p['R20s_l'], S0=1, B1corr=p['B1corr_2'], FA=p['FA2'])
             p['S02_l'] = np.mean(signal[3][:n0]) / s_ref if s_ref > 0 else 0
 
     def _train(
@@ -476,12 +495,19 @@ class AortaLiver2scan(SuperModel):
         self._compute_relax_aorta()
         self._compute_relax_liver()
         t, t2 = self._t, self._pars['t_scan2']
-        return {
+        R1 = {
             ('aorta', 1): self._R1a[t < t2], 
             ('aorta', 2): self._R1a[t >= t2], 
             ('liver', 1): self._R1l[t < t2], 
             ('liver', 2): self._R1l[t >= t2], 
         }
+        R2s = {
+            ('aorta', 1): self._R2sa[t < t2], 
+            ('aorta', 2): self._R2sa[t >= t2], 
+            ('liver', 1): self._R2sl[t < t2], 
+            ('liver', 2): self._R2sl[t >= t2], 
+        }
+        return R1, R2s
     
     def signal(self) -> dict:
         """Signal in aorta and liver.

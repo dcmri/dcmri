@@ -1,4 +1,94 @@
-from copy import deepcopy
+"""General model for whole-kidney signals.
+
+See Also:
+    `Liver`, `Tissue`
+
+Args:
+    kinetics (str, optional): Kinetic model for the kidneys. 
+        Options are '2CF' (Two-compartment filtration) and 'HF' 
+        (High-flow). Defaults to '2CF'. 
+    sequence (str, optional): imaging sequence model. Possible 
+        values are '3D-SPGR-SS' (steady-state), 'SR' (saturation-recovery), 
+        and 'lin' (linear). Defaults to '3D-SPGR-SS'.
+    params (dict, optional): values for the model parameters,
+        specified as keyword parameters. Defaults are used for any 
+        that are not provided. See table 
+        :ref:`Kidney-defaults` for a list of parameters and 
+        their default values.
+
+Example:
+
+    Use the model to fit minipig data. The AIF is corrupted by 
+    inflow effects so for the purpose of this example we will 
+    use a standard input function:
+
+.. plot::
+    :include-source:
+    :context: close-figs
+
+    >>> import numpy as np
+    >>> import pydmr
+    >>> import dcmri as dc
+
+    Read the dataset:
+
+    >>> datafile = dc.fetch('minipig_renal_fibrosis')
+    >>> data = pydmr.read(datafile, 'nest')
+    >>> rois, pars = data['rois']['Pig']['Test'], data['pars']['Pig']['Test']
+    >>> time = pars['TS'] * np.arange(len(rois['LeftKidney']))
+
+    Generate an AIF at high temporal resolution (250 msec):
+
+    >>> dt = 0.25
+    >>> t = np.arange(0, np.amax(time) + dt, dt) 
+    >>> ca = dc.aif.tristan(
+    ...    t, 
+    ...    agent="gadoterate",
+    ...    dose=pars['dose'],
+    ...    rate=pars['rate'],
+    ...    weight=pars['weight'],
+    ...    CO=60,
+    ...    BAT=time[np.argmax(rois['Aorta'])] - 20,
+    >>> )        
+
+    Initialize the tissue:
+
+    >>> kidney = dc.Kidney(
+    ...    ca=ca,
+    ...    dt=dt,
+    ...    kinetics='HF',
+    ...    field_strength=pars['B0'],
+    ...    agent="gadoterate",
+    ...    t0=pars['TS'] * pars['n0'],
+    ...    TS=pars['TS'], 
+    ...    TR=pars['TR'],
+    ...    FA=pars['FA'],
+    ...    R10a=1/dc.const.T1(pars['B0'], 'blood'),
+    ...    R10=1/dc.const.T1(pars['B0'], 'kidney'),
+    >>> )
+
+    Train the kidney on the data:
+
+    >>> kidney.set_free(Ta=[0,30])
+    >>> kidney.train(time, rois['LeftKidney'])
+    
+    Plot the reconstructed signals and concentrations:
+
+    >>> kidney.plot(time, rois['LeftKidney'])
+
+    Print the model parameters:
+
+    >>> kidney.print_params(round_to=4)
+    --------------------------------
+    Free parameters with their stdev
+    --------------------------------
+    Arterial mean transit time (Ta): 13.8658 (0.1643) sec
+    Plasma volume (vp): 0.0856 (0.003) mL/cm3
+    Tubular flow (Ft): 0.0024 (0.0001) mL/sec/cm3
+    Tubular mean transit time (Tt): 116.296 (7.6526) sec
+
+"""
+
 from typing import Tuple
 
 import matplotlib.pyplot as plt
@@ -15,95 +105,15 @@ from dcmri.utils.fit import train, loss
 
 
 class Kidney(SuperModel):
-    """General model for whole-kidney signals.
+    """Whole-kidney signals with a known input.
 
     See Also:
         `Liver`, `Tissue`
 
     Args:
-        kinetics (str, optional): Kinetic model for the kidneys. 
-          Options are '2CF' (Two-compartment filtration) and 'HF' 
-          (High-flow). Defaults to '2CF'. 
-        sequence (str, optional): imaging sequence model. Possible 
-          values are '3D-SPGR-SS' (steady-state), 'SR' (saturation-recovery), 
-          and 'lin' (linear). Defaults to '3D-SPGR-SS'.
-        params (dict, optional): values for the model parameters,
-          specified as keyword parameters. Defaults are used for any 
-          that are not provided. See table 
-          :ref:`Kidney-defaults` for a list of parameters and 
-          their default values.
-
-    Example:
-
-        Use the model to fit minipig data. The AIF is corrupted by 
-        inflow effects so for the purpose of this example we will 
-        use a standard input function:
-
-    .. plot::
-        :include-source:
-        :context: close-figs
-
-        >>> import numpy as np
-        >>> import pydmr
-        >>> import dcmri as dc
-
-        Read the dataset:
-
-        >>> datafile = dc.fetch('minipig_renal_fibrosis')
-        >>> data = pydmr.read(datafile, 'nest')
-        >>> rois, pars = data['rois']['Pig']['Test'], data['pars']['Pig']['Test']
-        >>> time = pars['TS'] * np.arange(len(rois['LeftKidney']))
-
-        Generate an AIF at high temporal resolution (250 msec):
-
-        >>> dt = 0.25
-        >>> t = np.arange(0, np.amax(time) + dt, dt) 
-        >>> ca = dc.aif.tristan(
-        ...    t, 
-        ...    agent="gadoterate",
-        ...    dose=pars['dose'],
-        ...    rate=pars['rate'],
-        ...    weight=pars['weight'],
-        ...    CO=60,
-        ...    BAT=time[np.argmax(rois['Aorta'])] - 20,
-        >>> )        
-
-        Initialize the tissue:
-
-        >>> kidney = dc.Kidney(
-        ...    ca=ca,
-        ...    dt=dt,
-        ...    kinetics='HF',
-        ...    field_strength=pars['B0'],
-        ...    agent="gadoterate",
-        ...    t0=pars['TS'] * pars['n0'],
-        ...    TS=pars['TS'], 
-        ...    TR=pars['TR'],
-        ...    FA=pars['FA'],
-        ...    R10a=1/dc.const.T1(pars['B0'], 'blood'),
-        ...    R10=1/dc.const.T1(pars['B0'], 'kidney'),
-        >>> )
-
-        Train the kidney on the data:
-
-        >>> kidney.set_free(Ta=[0,30])
-        >>> kidney.train(time, rois['LeftKidney'])
-        
-        Plot the reconstructed signals and concentrations:
-
-        >>> kidney.plot(time, rois['LeftKidney'])
-
-        Print the model parameters:
-
-        >>> kidney.print_params(round_to=4)
-        --------------------------------
-        Free parameters with their stdev
-        --------------------------------
-        Arterial mean transit time (Ta): 13.8658 (0.1643) sec
-        Plasma volume (vp): 0.0856 (0.003) mL/cm3
-        Tubular flow (Ft): 0.0024 (0.0001) mL/sec/cm3
-        Tubular mean transit time (Tt): 116.296 (7.6526) sec
-
+        kinetics (str, optional): Tracer-kinetic model.
+        sequence (str, optional): imaging sequence.
+        params (dict, optional): override parameter defaults.
     """
 
     configs = {
@@ -128,7 +138,7 @@ class Kidney(SuperModel):
         if select is None:
             pars_list = [
                 'c_a', 'dt', 'field_strength', 'agent',
-                'H', 'S0', 'R10', 'TS',
+                'H', 'S0', 'R10', 'R20s', 'TS',
             ]
             pars_list += pars_kin + pars_seq
         elif select=='free':
@@ -149,12 +159,14 @@ class Kidney(SuperModel):
         p = self._pars
         rp = const.r1(p['field_strength'], 'blood', p['agent'])
         self._R1 = p['R10'] + rp * self._C.sum(axis=0)
+        r2s = const.r2s(p['field_strength'], 'tissue', p['agent'])
+        self._R2s = p['R20s'] + r2s * self._C.sum(axis=0)
 
     def _compute_signal(self):
         self._compute_relaxation_rate()
         p = self._pars
         seq = self._cnfg['sequence']
-        self._S = Signal(seq, **p)(R1=self._R1, TE=0)
+        self._S = Signal(seq, **p)(R1=self._R1, R2s=self._R2s)
 
     def _set_time(self):
         p = self._pars
@@ -174,7 +186,7 @@ class Kidney(SuperModel):
         seq = self._cnfg['sequence']
         
         # Estimate S0
-        s_ref = Signal(seq, **p)(R1=p['R10'], S0=1, TE=0)
+        s_ref = Signal(seq, **p)(R1=p['R10'], R2s=p['R20s'], S0=1)
         p['S0'] = np.mean(signal[:n0]) / s_ref if s_ref > 0 else 0
 
         if aif is not None:
@@ -242,7 +254,7 @@ class Kidney(SuperModel):
     def relax(self) -> np.ndarray:
         """Returns time points and kidney relaxation rates (R1)."""
         self._compute_relaxation_rate()
-        return self._R1
+        return self._R1, self._R2s
 
     def signal(self) -> np.ndarray:
         """Returns time points and predicted signal."""

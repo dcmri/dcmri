@@ -1,3 +1,89 @@
+"""Joint model for aorta, portal vein and liver signals.
+
+This model uses a whole-body model to simultaneously predict signals in 
+aorta, portal vein and liver.  
+
+For more detail on the whole-body model, see :ref:`whole-body-tissues`. 
+For more detail on the liver model, see :ref:`liver-tissues`. 
+
+Args:
+    kinetics (str, optional): Tracer-kinetic liver model. See table 
+        :ref:`table-liver-models` for options - only dual-inlet models 
+        are allowed. Defaults to '2I-EC'.
+    non_stationary (str, optional): For intracellular tracers - stationarity 
+        regime of the hepatocytes. The options are 'UE', 'E', 'U' or None. 
+        For more detail see :ref:`liver-tissues`. Defaults to None.
+    sequence (str, optional): imaging sequence. Possible values are 'SS'
+        and 'SSI' (steady-state with aortic inflow correction). Defaults 
+        to 'SS'.
+    free (dict, optional): Dictionary with free parameters and their
+        bounds. If not provided, a default set of free parameters is used.
+        Defaults to None.
+    params (dict, optional): values for the parameters of the tissue,
+        specified as keyword parameters. Defaults are used for any that are
+        not provided. See tables :ref:`AortaLiver-parameters` and
+        :ref:`AortaLiver-defaults` for a list of parameters and their
+        default values.
+
+See Also:
+    `AortaLiver`
+
+Example:
+
+    Use the model to reconstruct concentrations from experimentally 
+    derived signals.
+
+.. plot::
+    :include-source:
+    :context: close-figs
+
+    >>> import matplotlib.pyplot as plt
+    >>> import dcmri as dc
+
+    Use `fake.tissue` to generate synthetic test data from 
+    experimentally-derived concentrations:
+
+    Use `fake.liver` to generate synthetic test data:
+
+    >>> time, aif, vif, roi, _ = dc.fake.liver(sequence='SSI')
+
+    Since this model generates 3 time curves, the x- and y-data are 
+    tuples:
+
+    >>> xdata, ydata = (time, time, time), (aif, vif, roi)
+
+    Build an aorta-portal-liver model and parameters to match the 
+    conditions of the fake liver data:
+
+    >>> model = dc.AortaPortalLiver(
+    ...     kinetics = '2I-IC',
+    ...     sequence = 'SSI',
+    ...     dt = 0.5,
+    ...     tmax = 180,
+    ...     weight = 70,
+    ...     agent = 'gadoxetate',
+    ...     dose = 0.2,
+    ...     rate = 3,
+    ...     field_strength = 3.0,
+    ...     TR = 0.005,
+    ...     FA = 15,
+    ...     TS = 0.5,
+    ... )
+
+    Train the model on the data:
+
+    >>> model.train(xdata, ydata, n0=10, xtol=1e-3)
+
+    Plot the reconstructed signals and concentrations and compare 
+    against the experimentally derived data:
+
+    >>> model.plot(xdata, ydata)
+
+    We can also have a look at the model parameters after training:
+
+
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -12,90 +98,19 @@ from dcmri.core import SuperModel
 
 
 class AortaPortalLiver(SuperModel):
-    """Joint model for aorta, portal vein and liver signals.
+    """Joint prediction of aorta, portal vein and liver signals.
 
-    This model uses a whole-body model to simultaneously predict signals in 
+    A whole-body model to simultaneously predict signals in 
     aorta, portal vein and liver.  
 
-    For more detail on the whole-body model, see :ref:`whole-body-tissues`. 
-    For more detail on the liver model, see :ref:`liver-tissues`. 
-
     Args:
-        kinetics (str, optional): Tracer-kinetic liver model. See table 
-          :ref:`table-liver-models` for options - only dual-inlet models 
-          are allowed. Defaults to '2I-EC'.
-        non_stationary (str, optional): For intracellular tracers - stationarity 
-          regime of the hepatocytes. The options are 'UE', 'E', 'U' or None. 
-          For more detail see :ref:`liver-tissues`. Defaults to None.
-        sequence (str, optional): imaging sequence. Possible values are 'SS'
-          and 'SSI' (steady-state with aortic inflow correction). Defaults 
-          to 'SS'.
-        free (dict, optional): Dictionary with free parameters and their
-          bounds. If not provided, a default set of free parameters is used.
-          Defaults to None.
-        params (dict, optional): values for the parameters of the tissue,
-          specified as keyword parameters. Defaults are used for any that are
-          not provided. See tables :ref:`AortaLiver-parameters` and
-          :ref:`AortaLiver-defaults` for a list of parameters and their
-          default values.
+        kinetics (str, optional): Tracer-kinetic model.
+        non_stationary (str, optional): Stationarity regime of liver transporters.
+        sequence (str, optional): imaging sequence.
+        params (dict, optional): override parameter defaults.
 
     See Also:
         `AortaLiver`
-
-    Example:
-
-        Use the model to reconstruct concentrations from experimentally 
-        derived signals.
-
-    .. plot::
-        :include-source:
-        :context: close-figs
-
-        >>> import matplotlib.pyplot as plt
-        >>> import dcmri as dc
-
-        Use `fake.tissue` to generate synthetic test data from 
-        experimentally-derived concentrations:
-
-        Use `fake.liver` to generate synthetic test data:
-
-        >>> time, aif, vif, roi, _ = dc.fake.liver(sequence='SSI')
-
-        Since this model generates 3 time curves, the x- and y-data are 
-        tuples:
-
-        >>> xdata, ydata = (time, time, time), (aif, vif, roi)
-
-        Build an aorta-portal-liver model and parameters to match the 
-        conditions of the fake liver data:
-
-        >>> model = dc.AortaPortalLiver(
-        ...     kinetics = '2I-IC',
-        ...     sequence = 'SSI',
-        ...     dt = 0.5,
-        ...     tmax = 180,
-        ...     weight = 70,
-        ...     agent = 'gadoxetate',
-        ...     dose = 0.2,
-        ...     rate = 3,
-        ...     field_strength = 3.0,
-        ...     TR = 0.005,
-        ...     FA = 15,
-        ...     TS = 0.5,
-        ... )
-
-        Train the model on the data:
-
-        >>> model.train(xdata, ydata, n0=10, xtol=1e-3)
-
-        Plot the reconstructed signals and concentrations and compare 
-        against the experimentally derived data:
-
-        >>> model.plot(xdata, ydata)
-
-        We can also have a look at the model parameters after training:
-
-
     """
 
     configs = {
@@ -134,15 +149,16 @@ class AortaPortalLiver(SuperModel):
         kinetics = aorta_kinetics + liver_kinetics + portal_kinetics
         liver_sequence = SEQUENCES[seq]['parameters']['prep']
         liver_sequence += SEQUENCES[seq]['parameters']['read']
-        inflow = ['TF'] if seq == '3D-SPGR-SSI' else []
         free_inflow = ['TF', 'S0_a'] if seq == '3D-SPGR-SSI' else []
 
         pars_list = {
-            'all': kinetics + inflow + liver_sequence + [
+            'all': kinetics + liver_sequence + [
                 'dt', 'tmax', 'dose_tolerance', 'field_strength',
                 'agent', 'weight', 'dose', 'rate',
                 'TS', 'H', 
-                'R10_a', 'R10_v', 'R10_l', 'S0_a', 'S0_v', 'S0_l', 
+                'R10_a', 'R10_v', 'R10_l', 
+                'R20s_a', 'R20s_v', 'R20s_l', 
+                'S0_a', 'S0_v', 'S0_l', 
                 'B1corr', 'B1corr_a', 'B1corr_v', 
             ],
             'free': kinetics + free_inflow,
@@ -180,15 +196,17 @@ class AortaPortalLiver(SuperModel):
         p = self._pars
         rb = const.r1(p['field_strength'], 'blood', p['agent'])
         self._R1a = p['R10_a'] + rb * self._ca
+        r2s = const.r2s(p['field_strength'], 'blood', p['agent'])
+        self._R2sa = p['R20s_a'] + r2s * self._ca
 
     def _compute_signal_aorta(self):
         self._compute_relax_aorta()
         p = self._pars
         self._Sa = Signal(self._cnfg['sequence'], **p)(
             R1=self._R1a, 
+            R2s=self._R2sa,
             S0=p['S0_a'], 
             B1corr=p['B1corr_a'],
-            TE=0, PA=0,
         )
 
     def _predict_aorta(self, time: np.ndarray):
@@ -210,6 +228,8 @@ class AortaPortalLiver(SuperModel):
         p = self._pars
         rb = const.r1(p['field_strength'], 'blood', p['agent'])
         self._R1v = p['R10_v'] + rb * p['uv'] * self._cv
+        r2s = const.r2s(p['field_strength'], 'blood', p['agent'])
+        self._R2sv = p['R20s_v'] + r2s * p['uv'] * self._cv
     
     def _compute_signal_portal(self):
         self._compute_relax_portal()
@@ -217,9 +237,9 @@ class AortaPortalLiver(SuperModel):
         seq = '3D-SPGR-SS' if self._cnfg['sequence']=='3D-SPGR-SSI' else self._cnfg['sequence']
         self._Sv = Signal(seq, **p)(
             R1=self._R1v, 
+            R2s=self._R2sv,
             S0=p['S0_v'], 
             B1corr=p['B1corr_v'],
-            TE=0,
         )
 
     def _predict_portal(self, time: np.ndarray) -> np.ndarray:
@@ -246,18 +266,19 @@ class AortaPortalLiver(SuperModel):
         p = self._pars
         rp = const.r1(p['field_strength'], 'plasma', p['agent'])
         rh = const.r1(p['field_strength'], 'hepatocytes', p['agent'])
-
+        r2s = const.r2s(p['field_strength'], 'tissue', p['agent'])
         if self._Cl.shape[0] == 2:
             self._R1l = p['R10_l'] + rp * self._Cl[0, :] + rh * self._Cl[1, :]
+            self._R2sl = p['R20s_l'] + r2s * self._Cl.sum(axis=0) 
         else:
             self._R1l = p['R10_l'] + rp * self._Cl[0,:]
+            self._R2sl = p['R20s_l'] + r2s * self._Cl
 
     def _compute_signal_liver(self):
         self._compute_relax_liver()
         p = self._pars
-
         seq = '3D-SPGR-SS' if self._cnfg['sequence']=='3D-SPGR-SSI' else self._cnfg['sequence']
-        self._Sl = Signal(seq, **p)(R1=self._R1l, S0=p['S0_l'], TE=0)
+        self._Sl = Signal(seq, **p)(R1=self._R1l, R2s=self._R2sl, S0=p['S0_l'])
 
     def _predict_liver(self, time: np.ndarray) -> np.ndarray:
         p = self._pars
@@ -293,17 +314,17 @@ class AortaPortalLiver(SuperModel):
 
         # 2. Scaling Factor (S0) aorta
         seq = self._cnfg['sequence']
-        s_ref = Signal(seq, **p)(R1=p['R10_a'], S0=1, B1corr=p['B1corr_a'], TE=0, PA=0)
+        s_ref = Signal(seq, **p)(R1=p['R10_a'], R2s=p['R20s_a'], S0=1, B1corr=p['B1corr_a'])
         p['S0_a'] = np.mean(signal[0][:n0]) / s_ref if s_ref > 0 else 0
 
         # 3. Scaling Factor (S0) portal vein
         seq = '3D-SPGR-SS' if self._cnfg['sequence']=='3D-SPGR-SSI' else self._cnfg['sequence']
-        s_ref = Signal(seq, **p)(R1=p['R10_v'], S0=1, B1corr=p['B1corr_v'], TE=0)
+        s_ref = Signal(seq, **p)(R1=p['R10_v'], R2s=p['R20s_v'], S0=1, B1corr=p['B1corr_v'])
         p['S0_v'] = np.mean(signal[1][:n0]) / s_ref if s_ref > 0 else 0
 
         # 4. Scaling Factor (S0) liver
         seq = '3D-SPGR-SS' if self._cnfg['sequence']=='3D-SPGR-SSI' else self._cnfg['sequence']
-        s_ref = Signal(seq, **p)(R1=p['R10_l'], S0=1, B1corr=p['B1corr'], TE=0)
+        s_ref = Signal(seq, **p)(R1=p['R10_l'],  R2s=p['R20s_l'], S0=1, B1corr=p['B1corr'])
         p['S0_l'] = np.mean(signal[2][:n0]) / s_ref if s_ref > 0 else 0
 
     def _train(
@@ -436,11 +457,17 @@ class AortaPortalLiver(SuperModel):
         self._compute_relax_aorta()
         self._compute_relax_portal()
         self._compute_relax_liver()
-        return {
+        R1 = {
             'aorta': self._R1a, 
             'portal': self._R1v, 
             'liver': self._R1l,
         }
+        R2s = {
+            'aorta': self._R2sa, 
+            'portal': self._R2sv, 
+            'liver': self._R2sl,
+        }
+        return R1, R2s
     
     def signal(self) -> dict:
         """Return signals in aorta and liver.

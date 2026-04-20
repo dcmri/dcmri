@@ -1,5 +1,5 @@
 from dcmri.bloch import lib
-from dcmri.bloch.magnetization import (
+from dcmri.bloch.tissue import (
     Longitudinal,
     Readout,
     Signal

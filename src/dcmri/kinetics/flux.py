@@ -2,10 +2,15 @@ import copy
 import numpy as np
 
 import dcmri.kinetics.lib as pk
-from dcmri.core import SuperFunc
-from dcmri.lexicon import QUANTITIES
+from dcmri.core import LayerFunction
 
-class FluxTissueX(SuperFunc):
+class FluxTissueX(LayerFunction):
+    """Flux out of vascular-interstitial tissue.
+
+    Args:
+        kinetics (str, optional): Tracer-kinetic model.
+        params (dict, optional): override parameter defaults.
+    """
 
     _params_dict = {
         '2CX': ['T_a', 'H', 'vb', 'vi', 'Fb', 'PS'],
@@ -30,6 +35,17 @@ class FluxTissueX(SuperFunc):
         return copy.deepcopy(self._params_dict[self._cnfg['kinetics']])
 
     def __call__(self, ca: np.ndarray, t=None, dt=1.0, **params) -> np.ndarray:
+        """Flux out of tissue.
+
+        Args:
+            ca (np.ndarray): concentrations in arterial blood.
+            t (np.ndarray): time points of ca.
+            dt (float): time interval (if uniform).
+            params (dict, optional): override parameter defaults.
+
+        Returns:
+            np.ndarray: Tissue flux.
+        """
         p = self._update_pars(**params)
 
         ca = pk.flux_plug(ca, p['T_a'], dt=dt)

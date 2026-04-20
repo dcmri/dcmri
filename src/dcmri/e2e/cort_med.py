@@ -1,4 +1,47 @@
-from copy import deepcopy
+"""
+General model for renal cortico-medullary data.
+
+**warning**: This model is functional but under active 
+development. Future versions may change without warning.
+
+See Also:
+    `Kidney`, `Liver`
+
+Example:
+
+    Derive model parameters from simulated data:
+
+.. plot::
+    :include-source:
+    :context: close-figs
+
+    >>> import dcmri as dc
+
+    Use `fake.kidney` to generate synthetic test data:
+
+    >>> time, aif, roi, gt = dc.fake.kidney(CNR=100)
+
+    Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
+
+    >>> model = dc.KidneyCortMed(
+    ...     aif = aif,
+    ...     dt = time[1],
+    ...     agent = 'gadoterate',
+    ...     TR = 0.005,
+    ...     FA = 15,
+    ...     TC = 0.2,
+    ...     n0 = 10,
+    ... )
+
+    Train the model on the ROI data and predict signals and concentrations:
+
+    >>> model.train(time, roi)
+
+    Plot the reconstructed signals (left) and concentrations (right) and compare the concentrations against the noise-free ground truth:
+
+    >>> model.plot(time, roi, ref=gt)
+"""
+
 from typing import Tuple
 
 import matplotlib.pyplot as plt
@@ -16,48 +59,15 @@ from dcmri.utils.fit import train, loss
 
 
 class CortMed(SuperModel):
-    """
-    General model for renal cortico-medullary data.
+    """Kidney cortex and medulla with a known input.
 
-    **warning**: This model is functional but under active 
-    development. Future versions may change without warning.
+    Args:
+        kinetics (str, optional): Tracer-kinetic model.
+        sequence (str, optional): imaging sequence.
+        params (dict, optional): override parameter defaults.
 
     See Also:
         `Kidney`, `Liver`
-
-    Example:
-
-        Derive model parameters from simulated data:
-
-    .. plot::
-        :include-source:
-        :context: close-figs
-
-        >>> import dcmri as dc
-
-        Use `fake.kidney` to generate synthetic test data:
-
-        >>> time, aif, roi, gt = dc.fake.kidney(CNR=100)
-
-        Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
-
-        >>> model = dc.KidneyCortMed(
-        ...     aif = aif,
-        ...     dt = time[1],
-        ...     agent = 'gadoterate',
-        ...     TR = 0.005,
-        ...     FA = 15,
-        ...     TC = 0.2,
-        ...     n0 = 10,
-        ... )
-
-        Train the model on the ROI data and predict signals and concentrations:
-
-        >>> model.train(time, roi)
-
-        Plot the reconstructed signals (left) and concentrations (right) and compare the concentrations against the noise-free ground truth:
-
-        >>> model.plot(time, roi, ref=gt)
     """
 
     configs = {
@@ -79,7 +89,10 @@ class CortMed(SuperModel):
         if select is None:
             pars_list = [
                 'c_a', 'dt', 'field_strength', 'agent',
-                'H', 'S0_c', 'S0_m', 'R10_c', 'R10_m', 'TS',
+                'H', 'S0_c', 'S0_m', 
+                'R10_c', 'R10_m', 
+                'R20s_c', 'R20s_m', 
+                'TS',
             ]
             pars_list += pars_kin + pars_seq
         elif select=='free':
@@ -102,13 +115,16 @@ class CortMed(SuperModel):
         rp = const.r1(p['field_strength'], 'blood', p['agent'])
         self._R1c = p['R10_c'] + rp * self._Cc.sum(axis=0)
         self._R1m = p['R10_m'] + rp * self._Cm.sum(axis=0)
+        r2s = const.r2s(p['field_strength'], 'tissue', p['agent'])
+        self._R2sc = p['R20s_c'] + r2s * self._Cc.sum(axis=0)
+        self._R2sm = p['R20s_m'] + r2s * self._Cm.sum(axis=0)
 
     def _compute_signal(self):
         self._compute_relaxation_rate()
         p = self._pars
         seq = self._cnfg['sequence']
-        self._Sc = Signal(seq, **p)(R1=self._R1c, TE=0)
-        self._Sm = Signal(seq, **p)(R1=self._R1m, TE=0)
+        self._Sc = Signal(seq, **p)(R1=self._R1c, R2s=self._R2sc)
+        self._Sm = Signal(seq, **p)(R1=self._R1m, R2s=self._R2sm)
 
     def _set_time(self):
         p = self._pars
@@ -131,8 +147,8 @@ class CortMed(SuperModel):
         seq = self._cnfg['sequence']
 
         # Estimate S0
-        s_ref_c = Signal(seq, **p)(R1=p['R10_c'], S0=1, TE=0)
-        s_ref_m = Signal(seq, **p)(R1=p['R10_m'], S0=1, TE=0)
+        s_ref_c = Signal(seq, **p)(R1=p['R10_c'], R2s=p['R20s_c'], S0=1)
+        s_ref_m = Signal(seq, **p)(R1=p['R10_m'], R2s=p['R20s_m'], S0=1)
         p['S0_c'] = np.mean(signal[0][:n0]) / s_ref_c if s_ref_c > 0 else 0
         p['S0_m'] = np.mean(signal[1][:n0]) / s_ref_m if s_ref_m > 0 else 0
 
@@ -206,10 +222,15 @@ class CortMed(SuperModel):
     def relax(self) -> dict:
         """Returns cortex and medulla relaxation rates (R1)."""
         self._compute_relaxation_rate()
-        return {
+        R1 = {
             'cort': self._R1c, 
             'med': self._R1m,
         }
+        R2s = {
+            'cort': self._R2sc, 
+            'med': self._R2sm,
+        }
+        return R1, R2s
 
     def signal(self) -> dict:
         """Returns cortex and medulla signal."""

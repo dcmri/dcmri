@@ -95,27 +95,24 @@ def test_coverage():
     nt = 10
     ca = np.ones(nt)
 
-    # Call options
-    R1TissueX().params()
-
     # Run for coverage
-    values = R1TissueX.configs.values()
+    values = RelaxTissueX.configs.values()
     for cnfgs in itertools.product(*values):
-        kin, wex = cnfgs
-        print(kin, wex)
-        C = ConcTissueX(kinetics=kin)(ca)
-        RelaxTissueX(kin, wex)(C, ca)
+        print(cnfgs)
+        kin = cnfgs[0]
+        C = ConcTissueX(kin)(ca)
+        RelaxTissueX(*cnfgs)(C)
 
 
 def test_exceptions():
-    kin, wex, seq = '2CX', 'RR', '3D-SPGR-SS'
+    kin, wex = '2CX', 'RR'
     nt = 10
     ca = np.ones(nt)
 
     C0 = ConcTissueX(kinetics=kin)(ca)
 
     try:
-        R1TissueX('XXX', wex)(C0)
+        R2sTissueX(t2s_relaxation='leakage')(C0)
     except:
         pass
     else:

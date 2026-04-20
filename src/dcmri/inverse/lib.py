@@ -8,12 +8,22 @@ from scipy import stats
 def conc_dce(Sn_model, S, n0=None, R10=None, S0=None, r1=None, R20s=None, **params):
     
     # TE does not affect the concentration
-    TE = 0 if R20s is None else params['TE']
+    if R20s is None:
+        TE = 0
+        R20s = 1
+    elif 'TE' in params:
+        TE = params['TE']
+    else:
+        TE = 0
 
     #Normalize signal
     if S0 is None:
         Sb = np.sum(S[:, :n0], axis=1) / n0
-        Sn0 = Sn_model(R1=R10, TE=TE, R2s=R20s, S0=1, v=1, Fw=0, me=1, R1i=None, Fi=None) # Baseline R20 absorbed in S0
+        if np.isscalar(R20s):
+            R20sb = np.full_like(R10, R20s)
+        else:
+            R20sb = R20s
+        Sn0 = Sn_model(R1=R10, TE=TE, R2s=R20sb, S0=1, v=1, Fw=0, me=1, R1i=None, Fi=None) # Baseline R20 absorbed in S0
         S0 = np.divide(Sb, Sn0, out=np.zeros_like(Sb, dtype=float), where=Sn0 > 0)
 
     S0 = S0[:, np.newaxis]
@@ -25,7 +35,7 @@ def conc_dce(Sn_model, S, n0=None, R10=None, S0=None, r1=None, R20s=None, **para
     c_range = np.arange(0, c_max, c_step)
     R1_min = 0
     R1_lookup = R1_min + r1 * c_range
-    Sn_lookup = Sn_model(R1=R1_lookup, TE=TE, R2s=R20s, S0=1, v=1, Fw=0, me=1, R1i=None, Fi=None)
+    Sn_lookup = Sn_model(R1=R1_lookup, TE=TE, R2s=np.full_like(R1_lookup, R20s), S0=1, v=1, Fw=0, me=1, R1i=None, Fi=None)
 
     # # Check that lookup values are strictly increasing
     # if not np.all(np.diff(Sn_lookup) > 0):

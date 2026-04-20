@@ -59,10 +59,12 @@ class SuperModel:
     # Reusable functions
 
     def _set_config(self, **cnfg):
+        # Check if user-defined configurations are allowed
         for key, value in cnfg.items():
             if value is not None: # A value can be None for an optional configuration setting
-                if value not in self.configs[key]:
-                    raise ValueError(f'Config {value} is not recognized. Options are {list(self.configs[key])}.')  
+                if key in self.configs: # Not alll configurations are set by the user - some are fixed or derived
+                    if value not in self.configs[key]:
+                        raise ValueError(f'Config {value} is not recognized. Options are {list(self.configs[key])}.')  
         self._cnfg = cnfg   
         return self._cnfg
     
@@ -194,7 +196,14 @@ class SuperModel:
         pars_x |= {k: v for k, v in p.items() if k not in pixel_pars}
         return pars_x
 
-
+    def _run_parallel(self, pixel_func, *args, **kwargs) -> np.ndarray: # (n_pixels, ) + other dimensions
+        # pixel_func must have signature pixel_func(a, b, x, c=1, d=2)
+        # i.e. x must be the last of the arguments just before the keyword arguments
+        if self._shape[0]==1:
+            results = [pixel_func(*(args + (0,)), **kwargs)]
+        else:
+            results = Parallel(n_jobs=-1)(delayed(pixel_func)(*(args + (x,)), **kwargs) for x in range(self._shape[0]))
+        return results
 
     def _train_batch_configurations(self, time, signal, free, configs, select, **kwargs):
         # Single pixel - parallellize over models

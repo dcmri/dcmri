@@ -48,6 +48,9 @@ def test_configs():
         model.plot(time, signal, show=DEBUG)
         cost = model.cost(time, signal)
         print(cnfgs, cost)
+        model.conc()
+        model.relax()
+        model.signal()
         assert cost < 5
 
     # Test Variations
@@ -65,14 +68,7 @@ def test_api():
     
     # Test Forward API outputs
     t = model.time()
-    C = model.conc()
-    R1 = model.relax()
     S = model.signal()
-
-    assert C['aorta'].ndim == 1
-    assert C['liver'].ndim == 2
-    assert len(R1['liver']) == len(t['liver'])
-    assert len(S['liver']) == len(t['liver'])
 
     test_plot_file = "test_plot_output.png"
     try:

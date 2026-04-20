@@ -4,48 +4,44 @@ import numpy as np
 
 from dcmri.lexicon import SEQUENCES
 import dcmri.inverse.lib as solve
-from dcmri.core import SuperFunc
+from dcmri.core import LayerFunction
 from dcmri.bloch import Signal
 
 
+invertible_seqs = [s for s, v in SEQUENCES.items() if v['steady-state']]
 
-class SignalToConc(SuperFunc):
+class SignalToConc(LayerFunction):
 
-    configs = {'sequence': deepcopy(list(SEQUENCES.keys())) + ['lin']}
+    configs = {'sequence': deepcopy(invertible_seqs) + ['lin']}
 
     def __init__(self, sequence='3D-SPGR-SS', **params):
         self._cnfg = self._set_config(sequence=sequence)
         self._pars = self._set_pars(S0=None, R1i=None)
 
         # Overide Lexicon defaults
-        if sequence == 'lin':
+        if sequence in ['lin', 'DE-EPI', 'Eq-DE-EPI']: # dual weighting but also dual channel so well defined
             pass
-        elif SEQUENCES[sequence]['type'] == 'DCE':
-            self._pars['TE'] = 0 # This only works in the absence of T2-weighting
+        elif not SEQUENCES[sequence]['steady-state']:
+            raise ValueError("Only steady-state sequences can be directly inverted.")
 
         # Set user-defined parameters
         self._override_pars(**params)
 
     def _params(self):
         sequence = self._cnfg['sequence']
+        pars = ['n0']
         if sequence == 'lin':
-            pars = ['S0']
+            pars += ['S0', 'R10', 'r1']
         else:
-            pars = SEQUENCES[sequence]['parameters']['prep']
+            weights = SEQUENCES[sequence]['parameters']['tissue']
+            if 'R2s' in weights:
+                pars += ['r2s']
+            if 'R2' in weights:
+                pars += ['r2']
+            if 'R1' in weights:
+                pars += ['R10', 'r1']
+            pars += SEQUENCES[sequence]['parameters']['prep']
             pars += SEQUENCES[sequence]['parameters']['read']
-
-        pars += ['n0']
-
-        if sequence == 'GE-EPI':
-            pars += ['r2s']
-        elif sequence == 'SE-EPI':
-            pars += ['r2']
-        elif sequence == 'DE-EPI':
-            pars += ['r2', 'r2s']
-        elif sequence == 'lin':
-            pars += ['R10', 'r1']
-        elif SEQUENCES[sequence]['type'] == 'DCE':
-            pars += ['R10', 'r1', 'R20s']
 
         pars = list(set(pars))
         pars.sort()
@@ -55,28 +51,23 @@ class SignalToConc(SuperFunc):
         p = self._update_pars(**params)
         sequence = self._cnfg['sequence']
 
-        # Check if sequence is invertible
-        if sequence != 'lin':
-            if not SEQUENCES[sequence]['steady-state']:
-                raise ValueError(
-                    "Only steady-state sequences can be directly inverted. If you want to "
-                    "use this function on a non-steady-state sequence, make sure to include "
-                    "some dummy pulses in the signal and then invert using the steady-state signal model."
-                )
+        # Input shape is either (n_samples, n_channels, n_times) or (n_channels, n_times) or (n_times)
+        # Output shapes are the same
 
-        # Shape S to standard form (n_samples, n_times) or (n_samples, n_times, n_signals)
+        # Reshape S to standard form (n_samples, n_channels, n_times)
         S = np.array(S)
-        input_shape = S.shape
         if S.size <= 1:
             raise ValueError("Signal needs more than 1 time point for concentration calculation")
-        if S.ndim == 1:
-            S = S.reshape(1, -1) # n_samples, n_times
-        if sequence == 'DE-EPI': # Shape either (n_samples, n_channels, n_times) or (n_channels, n_times)
-            if S.ndim==2: # (n_channels, n_times)
-                nt = S.shape[1]
-                S = S.reshape(-1, 2, nt) # n_samples, n_channels, n_times
+        
+        ndim = S.ndim
+        if ndim == 1:
+            S = S[None, None, :]
+            #S = S.reshape(1, 1, S.shape[0]) # n_samples, n_channels, n_times
+        elif ndim == 2: # (n_channels, n_times)
+            S = S[None, :, :]
+            #S = S.reshape(1, S.shape[0], S.shape[1]) # n_samples, n_channels, n_times
 
-        # Shape R10
+        # Shape R10 -> (n_samples)
         if 'R10' in p:
             if p['R10'] is not None:
                 R10 = np.atleast_1d(p['R10'])
@@ -86,7 +77,7 @@ class SignalToConc(SuperFunc):
                     raise ValueError('R10 must have the same number of elements as samples in S.')
                 p = {k:v for k, v in p.items() if k != 'R10'} | {'R10': R10}
         
-        # Shape S0
+        # Shape S0 -> (n_samples) - same for each channel
         if p['S0'] is not None:
             S0 = np.atleast_1d(p['S0'])
             if S0.size == 1:
@@ -97,26 +88,39 @@ class SignalToConc(SuperFunc):
 
         # Delegate computation to specialised functions
         if sequence == 'lin':
-            conc = solve.conc_dce_lin(S, p['n0'], p['R10'], p['S0'], p['r1'])
+            conc = solve.conc_dce_lin(S[:,0,:], p['n0'], p['R10'], p['S0'], p['r1'])
+            conc = conc[:, None, :]
 
-        elif sequence == '3D-SPGR-SS':
-            conc = solve.conc_ss(S, **p)  
+        elif sequence in ['3D-SPGR-SS', 'ZTE-3D-SPGR-SS']:
+            p['TE'] = 0
+            conc = solve.conc_ss(S[:,0,:], **p)  
+            conc = conc[:, None, :]
 
-        elif SEQUENCES[sequence]['type'] == 'DCE':
-            Sn_model = Signal(sequence, **p)
-            conc = solve.conc_dce(Sn_model, S, **p) 
+        elif sequence in ['Eq-GE-EPI', 'GE-EPI']:
+            conc = solve.conc_dsc(S[:,0,:], p['n0'], p['r2s'], p['TE'])
+            conc = conc[:, None, :]
 
-        elif sequence == 'GE-EPI':
-            conc = solve.conc_dsc(S, p['n0'], p['r2s'], p['TE'])
+        elif sequence in ['Eq-SE-EPI', 'SE-EPI']:
+            conc = solve.conc_dsc(S[:,0,:], p['n0'], p['r2'], p['TE'])
+            conc = conc[:, None, :]
 
-        elif sequence == 'SE-EPI':
-            conc = solve.conc_dsc(S, p['n0'], p['r2'], p['TE'])
-
-        elif sequence == 'DE-EPI':
+        elif sequence in ['Eq-DE-EPI', 'DE-EPI']:
             S_GE, S_SE = S[:,0,:], S[:,1,:]
             conc_ge = solve.conc_dsc(S_GE, p['n0'], p['r2s'], p['TE1'])
             conc_se = solve.conc_dsc(S_SE, p['n0'], p['r2'], p['TE2'])
-            conc = np.stack((conc_ge, conc_se))
+            conc_ge = conc_ge[:, None, :]
+            conc_se = conc_se[:, None, :]
+            conc = np.concatenate((conc_ge, conc_se), axis=1)
 
-        return conc.reshape(input_shape)
+        else:
+            Sn_model = Signal(sequence, **p)
+            conc = solve.conc_dce(Sn_model, S[:,0,:], **p)
+            conc = conc[:, None, :]
+
+        if ndim==1:
+            return conc[0,0,:]
+        elif ndim==2:
+            return conc[0,:,:]
+        else:
+            return conc
 

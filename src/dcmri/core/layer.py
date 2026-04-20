@@ -1,6 +1,6 @@
 from dcmri.lexicon import QUANTITIES, init
 
-class SuperFunc:
+class LayerFunction:
 
     # These need to be reimplemented
 

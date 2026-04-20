@@ -1,4 +1,73 @@
-from copy import deepcopy
+"""General model for liver tissue.
+
+This is the standard interface for liver tissues with known input 
+function(s). For more detail see :ref:`liver-tissues`.
+
+Args:
+    kinetics (str, optional): Tracer-kinetic model. See table 
+        :ref:`table-liver-models` for options. Defaults to '2I-EC'.
+    non_stationary (str, optional): For intracellular tracers - stationarity 
+        regime of the hepatocytes. The options are 'UE', 'E', 'U' or None. 
+        For more detail see :ref:`liver-tissues`. Defaults to None.
+    sequence (str, optional): imaging sequence. Possible values are 'SS'
+        and 'SR'. Defaults to 'SS'.
+    free (dict, optional): Dictionary with free parameters and their
+        bounds. If not provided, a default set of free parameters is used.
+        Defaults to None.
+    params (dict, optional): values for the parameters of the tissue,
+        specified as keyword parameters. Defaults are used for any that are
+        not provided. See tables :ref:`Liver-parameters` and
+        :ref:`Liver-defaults` for a list of parameters and their
+        default values.
+
+See Also:
+    `Tissue`
+
+Example:
+
+    Fit a dual-inlet liver model:
+
+.. plot::
+    :include-source:
+    :context: close-figs
+
+    >>> import matplotlib.pyplot as plt
+    >>> import dcmri as dc
+
+    Use `fake.liver` to generate synthetic test data:
+
+    >>> time, aif, vif, roi, gt = dc.fake.liver()
+
+    Build a tissue model and set the constants to match the experimental 
+    conditions of the synthetic test data. Note the default model is the 
+    dual-inlet model for extracellular agents (2I-EC). Since the 
+    synthetic data are generated with an intracellular agent, the default 
+    for the kinetic model needs to be overwritten:
+
+    >>> model = dc.Liver(
+    ...     kinetics = '2I-IC',
+    ...     t = time,
+    ...     agent = 'gadoxetate',
+    ...     field_strength = 3.0,
+    ...     TR = 0.005,
+    ...     FA = 15,
+    ...     R10 = 1/dc.const.T1(3.0,'liver'),
+    ...     R10a = 1/dc.const.T1(3.0, 'blood'), 
+    ...     R10v = 1/dc.const.T1(3.0, 'blood'), 
+    ... )
+
+    Train the model on the ROI data:
+
+    >>> model.train(time, roi, aif, vif, n0=10)
+
+    Plot the reconstructed signals (left) and concentrations (right) and 
+    compare the concentrations against the noise-free ground truth. Since 
+    the data are analysed with an exact model, and there are no other data 
+    errors present, this should fior the data exactly.
+
+    >>> model.plot(time, roi, ref=gt)
+
+"""
 from typing import Tuple
 
 import matplotlib.pyplot as plt
@@ -15,74 +84,19 @@ from dcmri.utils.fit import train, loss
 
 
 class Liver(SuperModel):
-    """General model for liver tissue.
+    """Liver tissue with known inputs.
 
     This is the standard interface for liver tissues with known input 
-    function(s). For more detail see :ref:`liver-tissues`.
+    function(s).
 
     Args:
-        kinetics (str, optional): Tracer-kinetic model. See table 
-          :ref:`table-liver-models` for options. Defaults to '2I-EC'.
-        non_stationary (str, optional): For intracellular tracers - stationarity 
-          regime of the hepatocytes. The options are 'UE', 'E', 'U' or None. 
-          For more detail see :ref:`liver-tissues`. Defaults to None.
-        sequence (str, optional): imaging sequence. Possible values are 'SS'
-          and 'SR'. Defaults to 'SS'.
-        free (dict, optional): Dictionary with free parameters and their
-          bounds. If not provided, a default set of free parameters is used.
-          Defaults to None.
-        params (dict, optional): values for the parameters of the tissue,
-          specified as keyword parameters. Defaults are used for any that are
-          not provided. See tables :ref:`Liver-parameters` and
-          :ref:`Liver-defaults` for a list of parameters and their
-          default values.
+        kinetics (str, optional): Tracer-kinetic model.
+        non_stationary (str, optional): Stationarity regime of liver transporters.
+        sequence (str, optional): imaging sequence.
+        params (dict, optional): override parameter defaults.
 
     See Also:
         `Tissue`
-
-    Example:
-
-        Fit a dual-inlet liver model:
-
-    .. plot::
-        :include-source:
-        :context: close-figs
-
-        >>> import matplotlib.pyplot as plt
-        >>> import dcmri as dc
-
-        Use `fake.liver` to generate synthetic test data:
-
-        >>> time, aif, vif, roi, gt = dc.fake.liver()
-
-        Build a tissue model and set the constants to match the experimental 
-        conditions of the synthetic test data. Note the default model is the 
-        dual-inlet model for extracellular agents (2I-EC). Since the 
-        synthetic data are generated with an intracellular agent, the default 
-        for the kinetic model needs to be overwritten:
-
-        >>> model = dc.Liver(
-        ...     kinetics = '2I-IC',
-        ...     t = time,
-        ...     agent = 'gadoxetate',
-        ...     field_strength = 3.0,
-        ...     TR = 0.005,
-        ...     FA = 15,
-        ...     R10 = 1/dc.const.T1(3.0,'liver'),
-        ...     R10a = 1/dc.const.T1(3.0, 'blood'), 
-        ...     R10v = 1/dc.const.T1(3.0, 'blood'), 
-        ... )
-
-        Train the model on the ROI data:
-
-        >>> model.train(time, roi, aif, vif, n0=10)
-
-        Plot the reconstructed signals (left) and concentrations (right) and 
-        compare the concentrations against the noise-free ground truth. Since 
-        the data are analysed with an exact model, and there are no other data 
-        errors present, this should fior the data exactly.
-
-        >>> model.plot(time, roi, ref=gt)
 
     """
 
@@ -117,7 +131,7 @@ class Liver(SuperModel):
         if select == 'all':
             pars_list = [
                 'c_a', 'dt', 'field_strength', 'agent',
-                'H', 'T_a', 'S0', 'R10', 'TS'
+                'H', 'T_a', 'S0', 'R10', 'R20s', 'TS'
             ]
             pars_list += pars_kin + pars_seq
             if self._cnfg['kinetics'].startswith('2'):
@@ -145,16 +159,19 @@ class Liver(SuperModel):
 
         rp = const.r1(p['field_strength'], 'blood', p['agent'])
         rh = const.r1(p['field_strength'], 'hepatocytes', p['agent'])
+        r2s = const.r2s(p['field_strength'], 'tissue', p['agent'])
         if self._C.shape[0] == 2:
             self._R1 = p['R10'] + rp * self._C[0, :] + rh * self._C[1, :]
+            self._R2s = p['R20s'] + r2s * self._C.sum(axis=0)
         else:
             self._R1 = p['R10'] + rp * self._C
+            self._R2s = p['R20s'] + r2s * self._C
 
     def _compute_signal(self):
         self._compute_relaxation_rate()
         p = self._pars
         seq = self._cnfg['sequence']
-        self._S = Signal(seq, **p)(R1=self._R1, TE=0)
+        self._S = Signal(seq, **p)(R1=self._R1, R2s=self._R2s)
 
     def _set_time(self):
         p = self._pars
@@ -177,7 +194,7 @@ class Liver(SuperModel):
         rp = const.r1(p['field_strength'], 'blood', p['agent'])
 
         # Estimate S0
-        s_ref = Signal(seq, **p)(R1=p['R10'], S0=1, TE=0)
+        s_ref = Signal(seq, **p)(R1=p['R10'], R2s=p['R20s'], S0=1)
         p['S0'] = np.mean(signal[:n0]) / s_ref if s_ref > 0 else 0
 
         # Input concentrations
@@ -251,7 +268,7 @@ class Liver(SuperModel):
     def relax(self) -> np.ndarray:
         """Returns liver relaxation rates (R1)."""
         self._compute_relaxation_rate()
-        return self._R1
+        return self._R1, self._R2s
 
     def signal(self) -> np.ndarray:
         """Returns predicted liver signal."""

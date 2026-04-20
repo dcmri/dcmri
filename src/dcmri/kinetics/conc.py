@@ -1,87 +1,264 @@
+"""Whole-body model for indicator flux through the aorta.
+
+See section :ref:`whole-body-tissues` for a more detailed description of 
+this model.
+
+Args:
+    J_vena (np.ndarray): Indicator influx (mmol/sec) into the veins. 
+    t (np.ndarray, optional): Array of time points (sec), must be of 
+        equal size as J_vena. If not provided, the time points are uniformly 
+        sampled with interval dt. Defaults to None.
+    dt (float, optional): Sampling interval in sec. Defaults to 1.0.
+    E (float, optional): Body extraction fraction. Defaults to 0.1.
+    FFkl (float, optional): Fraction of the cardiac output that passes 
+        through kidney and liver. Set FFkl=0 for a whole body model without 
+        explicit kidney and liver spaces. Defaults to 0.0.
+    FFk (float, optional): Kidney fraction of the flow to kidney and liver. 
+        With FFk=0, only the liver is modelled. With FFk=1, only the kidneys 
+        are modelled. Defaults to 0.5.
+    heartlung (list): 3-element list specifying the model to use for the 
+        heart-lung system (see notes for detail).
+    organs (list): 3-element list specifying the model to use for the 
+        organs (see notes for detail). 
+    kidneys (list): 3-element list specifying the model to use for the 
+        kidneys (see notes for detail). This keyword is ignored if FFkl=0 
+        or FFk=0.
+    liver (list): 3-element list specifying the model to use for the 
+        liver (see notes for detail). This keyword is ignored if FFkl=0 
+        or FFk=1.
+    tol (float, optional): Dose tolerance in the solution. The solution 
+        propagates the input through the system, until the dose that is 
+        left in the system is given by tol*dose0, where dose0 is the 
+        initial dose. Defaults to 0.001.
+    max_it (int, optional): Maximum number of iterations.
+
+Returns:
+    tuple: Indicator fluxes (mmol/sec) through the vena cava and aorta.
+
+Notes:
+
+    The lists specifying each organ system consist of 3 elements: the 
+    model (str), its parameters (tuple) and any keyword parameters (dict). 
+    Any of the basic pharmacokinetic blocks can be used. For instance,
+    *chain*, *plug-flow compartment*, and *compartment* would be specified 
+    as follows:
+
+        - **chain**: ['chain', (Thl, Dhl), {'solver':'step'}]
+        - **plug-flow compartment**: ['pfcomp', (Thl, Dhl), {'solver':'interp'}}
+        - **compartment**: ['comp', Thl]
+        - **2cxm**: ['2cxm', ([To, Te], Eo)]
+
+
+Example:
+
+    Generate flux through aorta:
+
+.. plot::
+    :include-source:
+
+    import matplotlib.pyplot as plt
+    import dcmri as dc
+
+    # Generate a stepwise injection:
+    t = np.arange(0, 120, 2.0)
+    Ji = dc.ca_injection(t, 70, 0.5, 0.2, 3, 30)
+
+    # Calculate the fluxes in mmol/sec:
+    Ja = dc.flux_aorta(Ji, t)
+
+    # Plot the fluxes:
+    plt.plot(t/60, Ja, 'r-', label='Aorta')
+    plt.xlabel('Time (min)')
+    plt.ylabel('Indicator flux (mmol/sec)')
+    plt.legend()
+    plt.show()
+"""
+
+"""
+Compute concentration in liver tissue for a variety of liver models.
+
+See section :ref:`liver-tissues` for background and 
+:ref:`table-liver-models` for the full list of parameter options.
+
+Parameters
+----------
+ci : np.ndarray or tuple of np.ndarray
+    Plasma concentration in the arterial input, or, for a dual-inlet 
+    tissue, a tuple with arterial and portal-venous inlet concentrations
+t : np.ndarray, optional
+    Time points in seconds of the input function `ca`. If not provided, 
+    the time points are assumed to be uniformly spaced with spacing `dt`. 
+    Defaults to None.
+dt : float, optional
+    Spacing in seconds between uniformly spaced time points. Ignored 
+    if `t` is provided. Defaults to 1.0.
+kinetics (str, optional): Tracer-kinetic regime. Defaults to '2C-EC'.
+non_stationary (str, optional): For models with an intracellular agent, 
+    set to 'U' if uptake kinetics is non-stationary, 
+    'E' if excretion is non-stationary, and 'UE' for both. Default is None 
+    (all transport stationary).
+sum : bool, optional
+    For two-compartment tissues: if True, return the total tissue 
+    concentration; if False, return separate compartment concentrations. 
+    Defaults to True.
+**params : dict
+    Model parameters, specified as keyword arguments. The accepted set 
+    of parameters determines which liver model is used.
+
+Returns
+-------
+np.ndarray
+    If `sum=True`: a 1D array with total concentration at each time point.  
+    If `sum=False`: a 2D array with concentration in each compartment, 
+    shape (2, k), where k is the number of time points. Concentrations 
+    are returned in units of M.
+
+Examples
+--------
+Plot concentration in cortex and medulla for typical values:
+
+.. plot::
+    :include-source:
+
+    >>> import matplotlib.pyplot as plt
+    >>> import numpy as np
+    >>> import dcmri as dc
+
+    Generate a population-average input function:
+
+    >>> t = np.arange(0, 30*60, 1.5)
+    >>> ca = dc.aif.parker(t, BAT=20)
+
+    Generate extracellular and hepatocyte liver tissue 
+    concentrations tissue:
+
+    >>> C = dc.conc_liver(
+    >>>     ca, 
+    >>>     t, 
+    >>>     kinetics = '1I-IC',
+    >>>     sum = False, 
+    >>>     ve = 0.2, 
+    >>>     Fp = 0.01, 
+    >>>     E = 0.2, 
+    >>>     Th = 20 * 60,
+    >>> )
+
+    Plot all concentrations:
+
+    >>> fig, ax = plt.subplots(1,1,figsize=(6,5))
+    >>> ax.set_title('Liver concentrations')
+    >>> ax.plot(t/60, 1000*C[0,:], linestyle='--', linewidth=3.0, 
+    >>>         color='darkred', label='Extracellular')
+    >>> ax.plot(t/60, 1000*C[1,:], linestyle='--', linewidth=3.0, 
+    >>>         color='darkblue', label='Hepatocytes')
+    >>> ax.plot(t/60, 1000*(C[0,:]+C[1,:]), linestyle='-', linewidth=3.0, 
+    >>>         color='grey', label='Whole liver')
+    >>> ax.set_xlabel('Time (min)')
+    >>> ax.set_ylabel('Tissue concentration (mM)')
+    >>> ax.legend()
+    >>> plt.show()
+"""
+
+"""Concentration in kidney tissues.
+
+Args:
+    ca (array-like): concentration in the arterial input.
+    params (tuple): free model parameters.
+    t (array_like, optional): the time points in sec of the input function *ca*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
+    dt (float, optional): spacing in seconds between time points for uniformly spaced time points. This parameter is ignored if *t* is explicity provided. Defaults to 1.0.
+    kinetics (str, optional): Kinetics of the tissue, either '2CF', 'FN' - see below for detail. Defaults to '2CF'. 
+    sum (bool, optional): For two-compartment tissues, set to True to return the total tissue concentration. Defaults to True.
+    kwargs (dict, optional): any optional keyword parameters required by the kinetic model - see below for detail.
+
+Returns:
+    numpy.ndarray: If sum=True, this is a 1D array with the total concentration at each time point. If sum=False this is the concentration in each compartment, and at each time point, as a 2D array with dimensions *(2,k)*, where *k* is the number of time points in *ca*. The concentration is returned in units of M.
+
+Notes:
+    Currently implemented kinetic models are: 
+
+    - '2CF': two-compartment filtration model. params = (Fp, Tp, Ft, Tt,)
+    - 'FN': free nephron model. params = (Fp, Tp, Ft, h, ). 
+
+    The model parameters are:
+
+    - **Fp** (float, mL/sec/mL): Plasma flow.
+    - **Tp** (float, sec): plasma mean transit time.
+    - **Ft** (float, mL/sec/mL): tubular flow.
+    - **Tt** (float, sec): tubular mean transit time.
+    - **hh** (array-like, 1/sec): frequences of transit time histogram. The boundaries of the transit time bins can be provided as an array in a keyword parameter TT, which has to have one more element than h. If TT is not provided, the transit time bins are equally space in the range [0, tmax], where tmax is the largest acquisition time.
+
+
+Example:
+
+    Plot concentration in cortex and medulla for typical values:
+
+.. plot::
+    :include-source:
+
+    >>> import matplotlib.pyplot as plt
+    >>> import numpy as np
+    >>> import dcmri as dc
+
+    Generate a population-average input function:
+
+    >>> t = np.arange(0, 300, 1.5)
+    >>> ca = dc.aif.parker(t, BAT=20)
+
+    Define some parameters and generate plasma and tubular tissue concentrations with a 2-compartment filtration model:
+
+    >>> Fp, Tp, Ft, Tt = 0.05, 10, 0.01, 120
+    >>> C = dc.conc_kidney(ca, Fp, Tp, Ft, Tt, t=t, sum=False, kinetics='2CF')
+
+    Plot all concentrations:
+
+    >>> fig, ax = plt.subplots(1,1,figsize=(6,5))
+    >>> ax.set_title('Kidney concentrations')
+    >>> ax.plot(t/60, 1000*C[0,:], linestyle='--', linewidth=3.0, color='darkred', label='Plasma')
+    >>> ax.plot(t/60, 1000*C[1,:], linestyle='--', linewidth=3.0, color='darkblue', label='Tubuli')
+    >>> ax.plot(t/60, 1000*(C[0,:]+C[1,:]), linestyle='-', linewidth=3.0, color='grey', label='Whole kidney')
+    >>> ax.set_xlabel('Time (min)')
+    >>> ax.set_ylabel('Tissue concentration (mM)')
+    >>> ax.legend()
+    >>> plt.show()
+
+    Use generate plasma and tubular tissue concentrations using the free nephron model for comparison. We assume 4 transit time bins with the following boundaries (in units of seconds):
+
+    >>> TT = [0, 15, 30, 60, 120]
+
+    with longest transit times most likely (note the frequences to not have to add up to 1):
+
+    >>> h = [1, 2, 3, 4]
+    >>> C = dc.conc_kidney(ca, Fp, Tp, Ft, h, t=t, sum=False, kinetics='FN', TT=TT)
+
+    Plot all concentrations:
+
+    >>> fig, ax = plt.subplots(1,1,figsize=(6,5))
+    >>> ax.set_title('Kidney concentrations')
+    >>> ax.plot(t/60, 1000*C[0,:], linestyle='--', linewidth=3.0, color='darkred', label='Plasma')
+    >>> ax.plot(t/60, 1000*C[1,:], linestyle='--', linewidth=3.0, color='darkblue', label='Tubuli')
+    >>> ax.plot(t/60, 1000*(C[0,:]+C[1,:]), linestyle='-', linewidth=3.0, color='grey', label='Whole kidney')
+    >>> ax.set_xlabel('Time (min)')
+    >>> ax.set_ylabel('Tissue concentration (mM)')
+    >>> ax.legend()
+    >>> plt.show()
+"""
+
 import copy
 import numpy as np
 
 from dcmri import const
-from dcmri.core import SuperFunc
+from dcmri.core import LayerFunction
 import dcmri.kinetics.lib as pk
 from dcmri.lexicon import QUANTITIES
 
 
-class ConcAorta(SuperFunc):
-    """Whole-body model for indicator flux through the aorta.
-
-    See section :ref:`whole-body-tissues` for a more detailed description of 
-    this model.
+class ConcAorta(LayerFunction):
+    """Whole-body model for indicator concentration in the aorta.
 
     Args:
-        J_vena (np.ndarray): Indicator influx (mmol/sec) into the veins. 
-        t (np.ndarray, optional): Array of time points (sec), must be of 
-          equal size as J_vena. If not provided, the time points are uniformly 
-          sampled with interval dt. Defaults to None.
-        dt (float, optional): Sampling interval in sec. Defaults to 1.0.
-        E (float, optional): Body extraction fraction. Defaults to 0.1.
-        FFkl (float, optional): Fraction of the cardiac output that passes 
-          through kidney and liver. Set FFkl=0 for a whole body model without 
-          explicit kidney and liver spaces. Defaults to 0.0.
-        FFk (float, optional): Kidney fraction of the flow to kidney and liver. 
-          With FFk=0, only the liver is modelled. With FFk=1, only the kidneys 
-          are modelled. Defaults to 0.5.
-        heartlung (list): 3-element list specifying the model to use for the 
-          heart-lung system (see notes for detail).
-        organs (list): 3-element list specifying the model to use for the 
-          organs (see notes for detail). 
-        kidneys (list): 3-element list specifying the model to use for the 
-          kidneys (see notes for detail). This keyword is ignored if FFkl=0 
-          or FFk=0.
-        liver (list): 3-element list specifying the model to use for the 
-          liver (see notes for detail). This keyword is ignored if FFkl=0 
-          or FFk=1.
-        tol (float, optional): Dose tolerance in the solution. The solution 
-          propagates the input through the system, until the dose that is 
-          left in the system is given by tol*dose0, where dose0 is the 
-          initial dose. Defaults to 0.001.
-        max_it (int, optional): Maximum number of iterations.
-
-    Returns:
-        tuple: Indicator fluxes (mmol/sec) through the vena cava and aorta.
-
-    Notes:
-
-        The lists specifying each organ system consist of 3 elements: the 
-        model (str), its parameters (tuple) and any keyword parameters (dict). 
-        Any of the basic pharmacokinetic blocks can be used. For instance,
-        *chain*, *plug-flow compartment*, and *compartment* would be specified 
-        as follows:
-
-          - **chain**: ['chain', (Thl, Dhl), {'solver':'step'}]
-          - **plug-flow compartment**: ['pfcomp', (Thl, Dhl), {'solver':'interp'}}
-          - **compartment**: ['comp', Thl]
-          - **2cxm**: ['2cxm', ([To, Te], Eo)]
-
-
-    Example:
-
-        Generate flux through aorta:
-
-    .. plot::
-        :include-source:
-
-        import matplotlib.pyplot as plt
-        import dcmri as dc
-
-        # Generate a stepwise injection:
-        t = np.arange(0, 120, 2.0)
-        Ji = dc.ca_injection(t, 70, 0.5, 0.2, 3, 30)
-
-        # Calculate the fluxes in mmol/sec:
-        Ja = dc.flux_aorta(Ji, t)
-
-        # Plot the fluxes:
-        plt.plot(t/60, Ja, 'r-', label='Aorta')
-        plt.xlabel('Time (min)')
-        plt.ylabel('Indicator flux (mmol/sec)')
-        plt.legend()
-        plt.show()
+        heartlung (str, optional): Model for the heart-lung system. 
+        organs (str, optional): Model for the systemic organs. 
+        **params: override parameter defaults.
     """
     configs = {
         'heartlung': ['comp', 'pfcomp', 'chain'],
@@ -119,6 +296,14 @@ class ConcAorta(SuperFunc):
             return heartlung + organs + body 
     
     def __call__(self, **params) -> np.ndarray:
+        """Aorta indicator concentration.
+
+        Args: 
+            **params: override parameter defaults.
+
+        Returns:
+            np.ndarray: Aorta blood concentration.
+        """
         p = self._update_pars(**params)
         t = np.arange(0, p['tmax'], p['dt'])
 
@@ -154,90 +339,14 @@ QUANTITIES_LIVER = QUANTITIES | {
     'Fp': {'init': 0.008, 'bounds': [0, 1], 'name': 'Liver plasma flow', 'unit': 'mL/sec/cm3'},
 }
 
-class ConcLiver(SuperFunc):
+class ConcLiver(LayerFunction):
     """
-    Compute concentration in liver tissue for a variety of liver models.
+    Concentration in liver tissue for a variety of liver models.
 
-    See section :ref:`liver-tissues` for background and 
-    :ref:`table-liver-models` for the full list of parameter options.
-
-    Parameters
-    ----------
-    ci : np.ndarray or tuple of np.ndarray
-        Plasma concentration in the arterial input, or, for a dual-inlet 
-        tissue, a tuple with arterial and portal-venous inlet concentrations
-    t : np.ndarray, optional
-        Time points in seconds of the input function `ca`. If not provided, 
-        the time points are assumed to be uniformly spaced with spacing `dt`. 
-        Defaults to None.
-    dt : float, optional
-        Spacing in seconds between uniformly spaced time points. Ignored 
-        if `t` is provided. Defaults to 1.0.
-    kinetics (str, optional): Tracer-kinetic regime. Defaults to '2C-EC'.
-    non_stationary (str, optional): For models with an intracellular agent, 
-        set to 'U' if uptake kinetics is non-stationary, 
-        'E' if excretion is non-stationary, and 'UE' for both. Default is None 
-        (all transport stationary).
-    sum : bool, optional
-        For two-compartment tissues: if True, return the total tissue 
-        concentration; if False, return separate compartment concentrations. 
-        Defaults to True.
-    **params : dict
-        Model parameters, specified as keyword arguments. The accepted set 
-        of parameters determines which liver model is used.
-
-    Returns
-    -------
-    np.ndarray
-        If `sum=True`: a 1D array with total concentration at each time point.  
-        If `sum=False`: a 2D array with concentration in each compartment, 
-        shape (2, k), where k is the number of time points. Concentrations 
-        are returned in units of M.
-
-    Examples
-    --------
-    Plot concentration in cortex and medulla for typical values:
-
-    .. plot::
-        :include-source:
-
-        >>> import matplotlib.pyplot as plt
-        >>> import numpy as np
-        >>> import dcmri as dc
-
-        Generate a population-average input function:
-
-        >>> t = np.arange(0, 30*60, 1.5)
-        >>> ca = dc.aif.parker(t, BAT=20)
-
-        Generate extracellular and hepatocyte liver tissue 
-        concentrations tissue:
-
-        >>> C = dc.conc_liver(
-        >>>     ca, 
-        >>>     t, 
-        >>>     kinetics = '1I-IC',
-        >>>     sum = False, 
-        >>>     ve = 0.2, 
-        >>>     Fp = 0.01, 
-        >>>     E = 0.2, 
-        >>>     Th = 20 * 60,
-        >>> )
-
-        Plot all concentrations:
-
-        >>> fig, ax = plt.subplots(1,1,figsize=(6,5))
-        >>> ax.set_title('Liver concentrations')
-        >>> ax.plot(t/60, 1000*C[0,:], linestyle='--', linewidth=3.0, 
-        >>>         color='darkred', label='Extracellular')
-        >>> ax.plot(t/60, 1000*C[1,:], linestyle='--', linewidth=3.0, 
-        >>>         color='darkblue', label='Hepatocytes')
-        >>> ax.plot(t/60, 1000*(C[0,:]+C[1,:]), linestyle='-', linewidth=3.0, 
-        >>>         color='grey', label='Whole liver')
-        >>> ax.set_xlabel('Time (min)')
-        >>> ax.set_ylabel('Tissue concentration (mM)')
-        >>> ax.legend()
-        >>> plt.show()
+    Args:
+        kinetics (str, optional): Tracer-kinetic model.
+        non_stationary (str, optional): Stationarity regime of liver transporters.
+        params (dict, optional): override parameter defaults.
     """
 
     _params_dict = {
@@ -286,6 +395,18 @@ class ConcLiver(SuperFunc):
         return copy.deepcopy(self._params_dict[model])
     
     def __call__(self, ca: np.ndarray, t=None, dt=1.0, **params) -> np.ndarray:
+        """
+        Concentration in liver tissue.
+
+        Args:
+            ca (np.ndarray): concentrations in arterial blood.
+            t (np.ndarray): time points of ca.
+            dt (float): time interval (if uniform).
+            params (dict, optional): override parameter defaults.
+
+        Returns:
+            np.ndarray: Concentrations over time in each compartment
+        """
         p = self._update_pars(**params)
         kin, ns = self._cnfg['kinetics'], self._cnfg['non_stationary']
         
@@ -313,89 +434,12 @@ QUANTITIES_KIDNEY = QUANTITIES | {
     'RBF': {'name': 'Renal blood flow', 'unit': 'mL/sec'},
 }
 
-class ConcKidney(SuperFunc):
+class ConcKidney(LayerFunction):
     """Concentration in kidney tissues.
 
     Args:
-        ca (array-like): concentration in the arterial input.
-        params (tuple): free model parameters.
-        t (array_like, optional): the time points in sec of the input function *ca*. If *t* is not provided, the time points are assumed to be uniformly spaced with spacing *dt*. Defaults to None.
-        dt (float, optional): spacing in seconds between time points for uniformly spaced time points. This parameter is ignored if *t* is explicity provided. Defaults to 1.0.
-        kinetics (str, optional): Kinetics of the tissue, either '2CF', 'FN' - see below for detail. Defaults to '2CF'. 
-        sum (bool, optional): For two-compartment tissues, set to True to return the total tissue concentration. Defaults to True.
-        kwargs (dict, optional): any optional keyword parameters required by the kinetic model - see below for detail.
-
-    Returns:
-        numpy.ndarray: If sum=True, this is a 1D array with the total concentration at each time point. If sum=False this is the concentration in each compartment, and at each time point, as a 2D array with dimensions *(2,k)*, where *k* is the number of time points in *ca*. The concentration is returned in units of M.
-
-    Notes:
-        Currently implemented kinetic models are: 
-
-        - '2CF': two-compartment filtration model. params = (Fp, Tp, Ft, Tt,)
-        - 'FN': free nephron model. params = (Fp, Tp, Ft, h, ). 
-
-        The model parameters are:
-
-        - **Fp** (float, mL/sec/mL): Plasma flow.
-        - **Tp** (float, sec): plasma mean transit time.
-        - **Ft** (float, mL/sec/mL): tubular flow.
-        - **Tt** (float, sec): tubular mean transit time.
-        - **hh** (array-like, 1/sec): frequences of transit time histogram. The boundaries of the transit time bins can be provided as an array in a keyword parameter TT, which has to have one more element than h. If TT is not provided, the transit time bins are equally space in the range [0, tmax], where tmax is the largest acquisition time.
-
-
-    Example:
-
-        Plot concentration in cortex and medulla for typical values:
-
-    .. plot::
-        :include-source:
-
-        >>> import matplotlib.pyplot as plt
-        >>> import numpy as np
-        >>> import dcmri as dc
-
-        Generate a population-average input function:
-
-        >>> t = np.arange(0, 300, 1.5)
-        >>> ca = dc.aif.parker(t, BAT=20)
-
-        Define some parameters and generate plasma and tubular tissue concentrations with a 2-compartment filtration model:
-
-        >>> Fp, Tp, Ft, Tt = 0.05, 10, 0.01, 120
-        >>> C = dc.conc_kidney(ca, Fp, Tp, Ft, Tt, t=t, sum=False, kinetics='2CF')
-
-        Plot all concentrations:
-
-        >>> fig, ax = plt.subplots(1,1,figsize=(6,5))
-        >>> ax.set_title('Kidney concentrations')
-        >>> ax.plot(t/60, 1000*C[0,:], linestyle='--', linewidth=3.0, color='darkred', label='Plasma')
-        >>> ax.plot(t/60, 1000*C[1,:], linestyle='--', linewidth=3.0, color='darkblue', label='Tubuli')
-        >>> ax.plot(t/60, 1000*(C[0,:]+C[1,:]), linestyle='-', linewidth=3.0, color='grey', label='Whole kidney')
-        >>> ax.set_xlabel('Time (min)')
-        >>> ax.set_ylabel('Tissue concentration (mM)')
-        >>> ax.legend()
-        >>> plt.show()
-
-        Use generate plasma and tubular tissue concentrations using the free nephron model for comparison. We assume 4 transit time bins with the following boundaries (in units of seconds):
-
-        >>> TT = [0, 15, 30, 60, 120]
-
-        with longest transit times most likely (note the frequences to not have to add up to 1):
-
-        >>> h = [1, 2, 3, 4]
-        >>> C = dc.conc_kidney(ca, Fp, Tp, Ft, h, t=t, sum=False, kinetics='FN', TT=TT)
-
-        Plot all concentrations:
-
-        >>> fig, ax = plt.subplots(1,1,figsize=(6,5))
-        >>> ax.set_title('Kidney concentrations')
-        >>> ax.plot(t/60, 1000*C[0,:], linestyle='--', linewidth=3.0, color='darkred', label='Plasma')
-        >>> ax.plot(t/60, 1000*C[1,:], linestyle='--', linewidth=3.0, color='darkblue', label='Tubuli')
-        >>> ax.plot(t/60, 1000*(C[0,:]+C[1,:]), linestyle='-', linewidth=3.0, color='grey', label='Whole kidney')
-        >>> ax.set_xlabel('Time (min)')
-        >>> ax.set_ylabel('Tissue concentration (mM)')
-        >>> ax.legend()
-        >>> plt.show()
+        kinetics (str, optional): Tracer-kinetic model.
+        params (dict, optional): override parameter defaults.
     """
 
     _params_dict = {
@@ -416,6 +460,18 @@ class ConcKidney(SuperFunc):
         return copy.deepcopy(self._params_dict[model])
     
     def __call__(self, ca: np.ndarray, t=None, dt=1.0, **params) -> np.ndarray:
+        """Concentration in kidney tissues.
+
+        Args:
+            ca (np.ndarray): concentrations in arterial blood.
+            t (np.ndarray): time points of ca.
+            dt (float): time interval (if uniform).
+            params (dict, optional): override parameter defaults.
+
+        Returns:
+            numpy.ndarray: Concentration at each time point.
+
+        """
         p = self._update_pars(**params)
         kin = self._cnfg['kinetics']
 
@@ -431,8 +487,14 @@ class ConcKidney(SuperFunc):
         
 
 
-class ConcCortMed(SuperFunc):
+class ConcCortMed(LayerFunction):
+    """Concentration in kidney cortex and medulla.
 
+    Args:
+        kinetics (str, optional): Tracer-kinetic model.
+        params (dict, optional): override parameter defaults.
+
+    """
     _params_dict = {
         '7C': ['T_a', 'Fp', 'Eg', 'fc', 'Tglom', 'Tv', 'Tpt', 'Tlh', 'Tdt', 'Tcd'],
     }
@@ -449,6 +511,18 @@ class ConcCortMed(SuperFunc):
         return copy.deepcopy(self._params_dict[model])
     
     def __call__(self, ca: np.ndarray, t=None, dt=1.0, **params) -> np.ndarray:
+        """Concentration in kidney cortex and medulla.
+
+        Args:
+            ca (np.ndarray): concentrations in arterial blood.
+            t (np.ndarray): time points of ca.
+            dt (float): time interval (if uniform).
+            params (dict, optional): override parameter defaults.
+
+        Returns:
+            tuple: Cortex and Medulla concentrations.
+        """
+
         p = self._update_pars(**params)
         kin = self._cnfg['kinetics']
 
@@ -460,8 +534,13 @@ class ConcCortMed(SuperFunc):
         
 
 
-class ConcTissueX(SuperFunc):
+class ConcTissueX(LayerFunction):
+    """Concentration in vascular-interstitial tissue.
 
+    Args:
+        kinetics (str, optional): Tracer-kinetic model.
+        params (dict, optional): override parameter defaults.
+    """
     _params_dict = {
         '2CX': ['T_a', 'H', 'vb', 'vi', 'Fb', 'PS'],
         'HF': ['T_a', 'H', 'vb', 'vi', 'PS'],
@@ -473,8 +552,9 @@ class ConcTissueX(SuperFunc):
         'NXP': ['T_a', 'vb', 'Fb'],
         'U': ['T_a', 'Fb'],
     }
-
-    configs = {'kinetics': copy.deepcopy(list(_params_dict.keys()))}
+    configs = {
+        'kinetics': copy.deepcopy(list(_params_dict.keys()))
+    }
 
     def __init__(self, kinetics='2CX', **params):
         cnfg = {'kinetics': kinetics}
@@ -485,6 +565,17 @@ class ConcTissueX(SuperFunc):
         return copy.deepcopy(self._params_dict[self._cnfg['kinetics']])
 
     def __call__(self, ca: np.ndarray, t=None, dt=1.0, **params):
+        """Concentration in tissue.
+
+        Args:
+            ca (np.ndarray): concentrations in arterial blood.
+            t (np.ndarray): time points of ca.
+            dt (float): time interval (if uniform).
+            params (dict, optional): override parameter defaults.
+
+        Returns:
+            np.ndarray: Tissue concentrations.
+        """
         p = self._update_pars(**params)
 
         ca = pk.flux_plug(ca, p['T_a'], dt=dt)

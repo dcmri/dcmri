@@ -6,7 +6,6 @@ from dcmri.kinetics.lib.input import (
 from dcmri.kinetics.lib.inv import (
     linfit_2cfm,
 )
-
 from dcmri.kinetics.lib.blocks import (
     res_trap,
     res_pass,

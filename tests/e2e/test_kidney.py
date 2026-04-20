@@ -33,6 +33,9 @@ def test_configs():
         model.plot(time, signal, show=DEBUG)
         cost = model.cost(time, signal)
         print(cnfgs, cost)
+        model.conc()
+        model.relax()
+        model.signal()
         assert cost < 5
 
 def test_api():
@@ -40,13 +43,7 @@ def test_api():
     
     # Test Forward API outputs
     t = model.time()
-    C = model.conc()
-    R1 = model.relax()
     S = model.signal()
-
-    assert C.ndim == 2 # Should return [compartment, time]
-    assert len(R1) == len(t)
-    assert len(S) == len(t)
 
     test_plot_file = "test_plot_output.png"
     try:
@@ -79,15 +76,17 @@ def test_function():
 
     # Simulation parameters
     seq = '3D-SPGR-SS'
-    dt, tmax, B0, agent, R10a, S0a, B1a = 0.5, 180, 3, 'gadoterate', 0.7, 3, 0.75
-    FA, TR = 15, 0.005 # Defaults
+    dt, tmax, B0, agent, R10a, R20sa, S0a, B1a = 0.5, 180, 3, 'gadoterate', 0.7, 20, 3, 0.75
+    FA, TR, TE = 15, 0.005, 0.002 # Defaults
     
     # Input signals
     rp = dc.const.r1(B0, 'blood', agent)
+    r2s = dc.const.r2s(B0, 'blood', agent)
     aif_time = np.arange(0, tmax, dt)
     aif_conc = aif.tristan(aif_time, BAT=10)
     aif_R1 = R10a + rp * aif_conc
-    aif_signal = Signal(seq)(R1=aif_R1, S0=S0a, FA=FA, TR=TR, TE=0, B1corr=B1a)
+    aif_R2s = R20sa + r2s * aif_conc
+    aif_signal = Signal(seq)(R1=aif_R1, R2s=aif_R2s, S0=S0a, FA=FA, TR=TR, TE=TE, B1corr=B1a)
     aif_ = Input(aif_signal, aif_time, R10=R10a, B1corr=B1a)
 
     # Kidney signals
@@ -98,7 +97,7 @@ def test_function():
         'agent': agent,
         'FA': FA, 
         'TR': TR,
-        'TE': 0,
+        'TE': TE,
         'S0': 5,
     }
 

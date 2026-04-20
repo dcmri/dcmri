@@ -117,6 +117,17 @@ def ca_std_dose(agent: str) -> float:
         f"Possible values are {AGENTS}."
     )
 
+def r2s(field_strength=3.0, tissue='blood', agent='gadoxetate') -> float:
+    """R2*-relaxivity"""
+    # TODO: Look up literature values
+    r2s = {
+        'blood': 10e3, # Estimated from the range [0, 5mM] in data by van Osch MJ, Vonken EJ, Viergever MA, van der Grond J, Bakker CJ. Measuring the arterial input function with gradient echo sequences. Magn Reson Med 2003;49:1067–1076
+        'tissue': 20e3,
+    }
+    if tissue not in r2s:
+        raise ValueError(f"Currently only r2* values in {r2s.keys()} are available.")
+    return r2s[tissue] 
+
 
 def r1(field_strength=3.0, tissue='plasma', agent='gadoxetate') -> float:
     """Contrast agent relaxivity values in units of Hz/M

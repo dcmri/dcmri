@@ -1,3 +1,82 @@
+"""Whole-body model for the aorta signal.
+
+This model uses a whole-body pharmacokinetic architecture to predict the 
+MRI signal in the aorta by modeling the injection, heart-lung transit, 
+and systemic circulation (see :ref:`whole-body-tissues`). 
+
+Args:
+    organs (str, optional): Model for the systemic organs. 
+        Options: 'comp' (1-compartment), '2cxm' (2-compartment exchange). 
+        Defaults to 'comp'.
+    heartlung (str, optional): Model for the heart-lung system. 
+        Options: 'pfcomp' (plug-flow), 'chain'. Defaults to 'pfcomp'.
+    sequence (str, optional): Imaging sequence model. 
+        Options: 'SS' (steady-state), 'SR' (saturation-recovery), 
+        'SSI' (steady state with inflow), 'lin' (linear). 
+        Defaults to 'SS'.
+    **params: Variable list of model parameters (e.g., CO=100, BAT=20). 
+        Defaults are used for any that are not provided. See table 
+        :ref:`Aorta-defaults` for a list of parameters and 
+        their default values.
+
+Raises:
+    ValueError: If invalid configurations or unknown parameters are provided.
+
+Example:
+
+    Use the model to fit minipig aorta data with inflow 
+    correction:
+
+.. plot::
+    :include-source:
+    :context: close-figs
+
+    >>> import numpy as np
+    >>> import pydmr
+    >>> import dcmri as dc
+
+    Read the dataset:
+
+    >>> datafile = dc.fetch('minipig_renal_fibrosis')
+    >>> data = pydmr.read(datafile, 'nest')
+    >>> rois, pars = data['rois']['Pig']['Test'], data['pars']['Pig']['Test']
+
+    Initialize the tissue:
+
+    >>> aorta = dc.Aorta(
+    ...     sequence='SSI',
+    ...     heartlung='chain',
+    ...     organs='comp',
+    ...     field_strength=pars['B0'],
+    ...     t0=15, 
+    ...     agent="gadoterate",
+    ...     weight=pars['weight'],
+    ...     dose=pars['dose'],
+    ...     rate=pars['rate'],
+    ...     TR=pars['TR'],
+    ...     FA=pars['FA'],
+    ...     TS=pars['TS'],
+    ...     CO=60, 
+    ...     R10=1/dc.const.T1(pars['B0'], 'blood'),
+    ... )
+
+    Create an array of time points:
+
+    >>> time = pars['TS'] * np.arange(len(rois['Aorta']))
+
+    Train the system to the data:
+
+    >>> aorta.train(time, rois['Aorta'])
+
+    Plot the reconstructed signals and concentrations:
+
+    >>> aorta.plot(time, rois['Aorta'])
+
+    Print the model parameters:
+
+    >>> aorta.print_params(round_to=4)
+"""
+
 from typing import Tuple
 
 import matplotlib.pyplot as plt
@@ -18,79 +97,13 @@ class Aorta(SuperModel):
 
     This model uses a whole-body pharmacokinetic architecture to predict the 
     MRI signal in the aorta by modeling the injection, heart-lung transit, 
-    and systemic circulation (see :ref:`whole-body-tissues`). 
+    and systemic circulation.
 
     Args:
-        organs (str, optional): Model for the systemic organs. 
-            Options: 'comp' (1-compartment), '2cxm' (2-compartment exchange). 
-            Defaults to 'comp'.
         heartlung (str, optional): Model for the heart-lung system. 
-            Options: 'pfcomp' (plug-flow), 'chain'. Defaults to 'pfcomp'.
-        sequence (str, optional): Imaging sequence model. 
-            Options: 'SS' (steady-state), 'SR' (saturation-recovery), 
-            'SSI' (steady state with inflow), 'lin' (linear). 
-            Defaults to 'SS'.
-        **params: Variable list of model parameters (e.g., CO=100, BAT=20). 
-            Defaults are used for any that are not provided. See table 
-            :ref:`Aorta-defaults` for a list of parameters and 
-            their default values.
-
-    Raises:
-        ValueError: If invalid configurations or unknown parameters are provided.
-
-    Example:
-
-        Use the model to fit minipig aorta data with inflow 
-        correction:
-
-    .. plot::
-        :include-source:
-        :context: close-figs
-
-        >>> import numpy as np
-        >>> import pydmr
-        >>> import dcmri as dc
-
-        Read the dataset:
-
-        >>> datafile = dc.fetch('minipig_renal_fibrosis')
-        >>> data = pydmr.read(datafile, 'nest')
-        >>> rois, pars = data['rois']['Pig']['Test'], data['pars']['Pig']['Test']
-
-        Initialize the tissue:
-
-        >>> aorta = dc.Aorta(
-        ...     sequence='SSI',
-        ...     heartlung='chain',
-        ...     organs='comp',
-        ...     field_strength=pars['B0'],
-        ...     t0=15, 
-        ...     agent="gadoterate",
-        ...     weight=pars['weight'],
-        ...     dose=pars['dose'],
-        ...     rate=pars['rate'],
-        ...     TR=pars['TR'],
-        ...     FA=pars['FA'],
-        ...     TS=pars['TS'],
-        ...     CO=60, 
-        ...     R10=1/dc.const.T1(pars['B0'], 'blood'),
-        ... )
-
-        Create an array of time points:
-
-        >>> time = pars['TS'] * np.arange(len(rois['Aorta']))
-
-        Train the system to the data:
-
-        >>> aorta.train(time, rois['Aorta'])
-
-        Plot the reconstructed signals and concentrations:
-
-        >>> aorta.plot(time, rois['Aorta'])
-
-        Print the model parameters:
-
-        >>> aorta.print_params(round_to=4)
+        organs (str, optional): Model for the systemic organs. 
+        sequence (str, optional): Imaging sequence.
+        **params: override parameter defaults
     """
 
     configs = {
@@ -123,14 +136,13 @@ class Aorta(SuperModel):
         replace = {'S0': 'S0_a', 'B1corr': 'B1corr_a'}
         sequence = [replace.get(x, x) for x in sequence]
     
-        inflow = ['TF'] if seq == '3D-SPGR-SSI' else []
         free_inflow = ['TF', 'S0_a'] if seq == '3D-SPGR-SSI' else []
 
-        c = ConcAorta(self._cnfg['heartlung'], self._cnfg['organs'])
+        c = ConcAorta(**self._cnfg)
 
         if select in [None, 'all']:
-            return c._params() + inflow + sequence + ['TS', 'R10_a']
-        if select in ['free', 'free']:
+            return c._params() + sequence + ['TS', 'R10_a', 'R20s_a']
+        if select in ['free']:
             return c._params('body') + free_inflow     
 
     # ==========================================
@@ -142,23 +154,25 @@ class Aorta(SuperModel):
         self._t = np.arange(0, p['tmax'], p['dt'])
 
     def _compute_conc(self) -> np.ndarray:
-        hl, orgs = self._cnfg['heartlung'], self._cnfg['organs']
-        self._C = ConcAorta(hl, orgs)(**self._pars)
+        self._C = ConcAorta(**self._cnfg)(**self._pars)
 
     def _compute_relax(self):
         self._compute_conc()
         p = self._pars
-        rb = const.r1(p['field_strength'], 'blood', p['agent'])
-        self._R1 = p['R10_a'] + rb * self._C
+        r1 = const.r1(p['field_strength'], 'blood', p['agent'])
+        r2s = const.r2s(p['field_strength'], 'blood', p['agent'])
+        self._R1 = p['R10_a'] + r1 * self._C
+        self._R2s = p['R20s_a'] + r2s * self._C
 
     def _compute_signal(self):
         self._compute_relax()
         p = self._pars
-        self._S = Signal(self._cnfg['sequence'], **p)(
+        seq = self._cnfg['sequence']
+        self._S = Signal(seq, **p)(
             R1=self._R1, 
+            R2s=self._R2s,
             S0=p['S0_a'], 
             B1corr=p['B1corr_a'],
-            TE=0, PA=0,
         )
 
     def _predict(self, time):
@@ -183,7 +197,7 @@ class Aorta(SuperModel):
 
         # Scaling Factor (S0) aorta
         seq = self._cnfg['sequence']
-        s_ref = Signal(seq, **p)(R1=p['R10_a'], S0=1, B1corr=p['B1corr_a'], TE=0, PA=0)
+        s_ref = Signal(seq, **p)(R1=p['R10_a'], R2s=p['R20s_a'], S0=1, B1corr=p['B1corr_a'])
         p['S0_a'] = np.mean(signal[:n0]) / s_ref if s_ref > 0 else 0
 
 
@@ -238,10 +252,10 @@ class Aorta(SuperModel):
         self._compute_conc()
         return self._C
 
-    def relax(self) -> np.ndarray:
-        """Returns the predicted longitudinal relaxation rate."""
+    def relax(self) -> tuple:
+        """Returns the predicted relaxation rates."""
         self._compute_relax()
-        return self._R1
+        return self._R1, self._R2s
     
     def signal(self) -> np.ndarray:
         """Returns time points and predicted liver signal."""
@@ -321,4 +335,3 @@ class Aorta(SuperModel):
         signal_pred = self._predict(time)
         cost = loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
         return cost[0]
-    

@@ -23,184 +23,6 @@ Example:
     >>> dc.relax_params('HFU', 'RR')
     ['PSe', 'PSc', 'H', 'vb', 'vi', 'PS']
 
-Notes:
-
-    Table :ref:`tissue-kinetic-regimes` list the water compartments and free 
-    parameters for all configurations. Regimes without water exchange 
-    across one or both of the barriers are not listed 
-    explicitly (FN, NF, FR, NR and NN). They differ from restricted water 
-    exchange only in the sense that the respective water permeabilities 
-    *PSe* and/or *PSc* are zero. 
-
-    .. _tissue-kinetic-regimes:
-    .. list-table:: **Parameters by configuration** 
-        :widths: 15 15 30 40
-        :header-rows: 1 
-
-        * - Water exchange
-            - Indicator exchange
-            - Water compartments
-            - Free parameters
-        * - **FF**
-            - 
-            - 
-            - 
-        * - FF
-            - 2CX
-            - vb + vi + vc
-            - H, vb, vi, Fb, PS
-        * - FF
-            - 2CU
-            - vb + vi + vc
-            - H, vb, Fb, PS
-        * - FF
-            - HF
-            - vb + vi + vc
-            - H, vb, vi, PS
-        * - FF
-            - HFU
-            - vb + vi + vc
-            - H, vb, PS
-        * - FF
-            - FX
-            - vb + vi + vc 
-            - H, ve, Fb  
-        * - FF
-            - NX
-            - vb + vi + vc
-            - vb, Fb  
-        * - FF
-            - NXP
-            - vb + vi + vc
-            - vb, Fb  
-        * - FF
-            - U
-            - vb + vi + vc
-            - Fb
-        * - FF
-            - WV
-            - vb + vi + vc
-            - H, vi, Ktrans
-        * - **RR**
-            - 
-            - 
-            - 
-        * - RR
-            - 2CX
-            - vb, vi, vc
-            - PSe, PSc, H, vb, vi, Fb, PS
-        * - RR
-            - 2CU
-            - vb, vi, vc
-            - PSe, PSc, H, vb, vi, Fb, PS
-        * - RR
-            - HF
-            - vb, vi, vc
-            - PSe, PSc, H, vb, vi, PS
-        * - RR
-            - HFU
-            - vb, vi, vc
-            - PSe, PSc, H, vb, vi, PS
-        * - RR
-            - FX
-            - vb, vi, vc 
-            - PSe, PSc, H, vb, vi, Fb 
-        * - RR
-            - NX
-            - vb, vi, vc 
-            - PSe, vb, vi, Fb  
-        * - RR
-            - NXP
-            - vb, vi, vc 
-            - PSe, vb, vi, Fb 
-        * - RR
-            - U
-            - vb, vi, vc 
-            - PSe, vb, vi, Fb 
-        * - RR
-            - WV
-            - vi, vi+vc
-            - PSc, H, vi, Ktrans
-        * - **RF**
-            - 
-            - 
-            - 
-        * - RF
-            - 2CX
-            - vb, vi+vc
-            - PSe, H, vb, vi, Fb, PS
-        * - RF
-            - 2CU
-            - vb, vi+vc
-            - PSe, H, vb, Fb, PS
-        * - RF
-            - HF
-            - vb, vi+vc
-            - PSe, H, vb, vi, PS
-        * - RF
-            - HFU
-            - vb, vi+vc
-            - PSe, H, vb, PS
-        * - RF
-            - FX
-            - vb, vi+vc
-            - PSe, H, vb, vi, Fb
-        * - RF
-            - NX
-            - vb, vi+vc
-            - PSe, vb, Fb
-        * - RF
-            - NXP
-            - vb, vi+vc
-            - PSe, vb, Fb
-        * - RF
-            - U
-            - vb, vi+vc
-            - PSe, vb, Fb 
-        * - RF
-            - WV
-            - vi+vc
-            - H, vi, Ktrans
-        * - **FR**
-            - 
-            - 
-            -  
-        * - FR
-            - 2CX
-            - vb+vi, vc
-            - PSc, H, vb, vi, Fb, PS
-        * - FR
-            - 2CU
-            - vb+vi, vc
-            - PSc, H, vb, vi, Fb, PS
-        * - FR
-            - HF
-            - vb+vi, vc
-            - PSc, H, vb, vi, PS
-        * - FR
-            - HFU
-            - vb+vi, vc
-            - PSc, H, vb, vi, PS
-        * - FR
-            - FX
-            - vb+vi, vc 
-            - PSc, H, vb, vi, Fb
-        * - FR
-            - NX
-            - vb+vi, vc 
-            - PSc, vb, vi, Fb
-        * - FR
-            - NXP
-            - vb+vi, vc 
-            - PSc, vb, vi, Fb
-        * - FR
-            - U
-            - vb+vi, vc 
-            - PSc, vc, Fb
-        * - FR
-            - WV
-            - vi, vc
-            - PSc, H, vi, Ktrans
 """
 
 """Tissue concentration in a 2-site exchange tissue.
@@ -541,10 +363,11 @@ from copy import deepcopy
 import numpy as np
 
 from dcmri.bloch import Longitudinal, Readout
-from dcmri.core import SuperFunc
+from dcmri.core import LayerFunction
+from dcmri.lexicon import SEQUENCES
 
 
-class WaterVolumes(SuperFunc):
+class WaterVolumesTissueX(LayerFunction):
     configs = {
         'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'],
         'water_exchange': ['FF','RF','NF','FR','RR','NR','FN','RN','NN'],
@@ -602,7 +425,7 @@ class WaterVolumes(SuperFunc):
         kin, wex = self._cnfg['kinetics'], self._cnfg['water_exchange'].replace('N','R')
         return geom[(kin, wex)] 
 
-    def __call__(self, **params):
+    def __call__(self, **params) -> np.ndarray:
         p = self._update_pars(**params)
 
         kin, wex = self._cnfg['kinetics'], self._cnfg['water_exchange']
@@ -654,7 +477,7 @@ class WaterVolumes(SuperFunc):
         if (kin, wex) == ('FX', 'RR'): return np.array([p['vb'], p['vi'], p['vc']])
 
 
-class WaterFlows(SuperFunc):
+class WaterFlowsTissueX(LayerFunction):
     configs = {
         'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'],
         'water_exchange': ['FF','RF','NF','FR','RR','NR','FN','RN','NN'],
@@ -717,7 +540,7 @@ class WaterFlows(SuperFunc):
             p.remove('PSc')
         return p
 
-    def __call__(self, **params):
+    def __call__(self, **params) -> np.ndarray:
         p = self._update_pars(**params)
         kin, wex = self._cnfg['kinetics'], self._cnfg['water_exchange']
 
@@ -771,10 +594,16 @@ class WaterFlows(SuperFunc):
 
 
 
-class MzTissueX(SuperFunc):
-    configs = deepcopy(WaterVolumes.configs | Longitudinal.configs)
+class MzTissueX(LayerFunction):
+    configs = deepcopy(WaterVolumesTissueX.configs | Longitudinal.configs)
 
-    def __init__(self, kinetics='2CX', water_exchange='FF', sequence='3D-SPGR-SS', **params):
+    def __init__(
+        self, 
+        kinetics='2CX', 
+        water_exchange='FF', 
+        sequence='3D-SPGR-SS', 
+        **params,
+    ):
         cnfg = {
             'kinetics': kinetics, 
             'water_exchange': water_exchange, 
@@ -786,14 +615,28 @@ class MzTissueX(SuperFunc):
     def _params(self) -> dict:
         kin, wex, seq = self._cnfg.values()
 
-        pars = WaterVolumes(kin, wex)._params()
-        pars += WaterFlows(kin, wex)._params() 
+        pars = WaterVolumesTissueX(kin, wex)._params()
+        pars += WaterFlowsTissueX(kin, wex)._params() 
         pars += [p for p in Longitudinal(seq)._params() if p not in ['R1', 'R1i', 'Fi', 'v', 'Fw']]
         return list(set(pars))
 
-    def __call__(self, R1, R1a=None, **params) -> np.ndarray:
+    def __call__(self, R1=None, R1a=None, **params) -> np.ndarray:
         p = self._update_pars(**params)
         kin, wex, seq = self._cnfg.values()
+
+        # Check that required parameters are provided
+        weighting = SEQUENCES[seq]['parameters']['tissue']
+        if 'R1' in weighting:
+            if R1 is None:
+                raise ValueError("R1 must be provided for a T1*-weighted sequence.")
+
+        # Compartment volumes and flows
+        vw = WaterVolumesTissueX(kin, wex)(**p) 
+        Fw = WaterFlowsTissueX(kin, wex)(**p)
+
+        # If the sequence does not have T1-weighting, return equilibrium
+        if R1 is None:
+            return np.full_like(vw.size, p['me'])
 
         # Inlet flow and relaxation rates
         if 'Fb' in p:
@@ -805,13 +648,10 @@ class MzTissueX(SuperFunc):
             R1i = None
             Fi = None
 
-        # Compartment volumes and flows
-        vw = WaterVolumes(kin, wex, **p)() 
-        Fw = WaterFlows(kin, wex, **p)()
         return Longitudinal(seq, **p)(R1=R1, R1i=R1i, Fi=Fi, v=vw, Fw=Fw)
 
 
-class SignalTissueX(SuperFunc):
+class SignalTissueX(LayerFunction):
     configs = deepcopy(MzTissueX.configs)
 
     def __init__(self, 
@@ -838,8 +678,12 @@ class SignalTissueX(SuperFunc):
         p = self._update_pars(**params)
         kin, wex, seq = self._cnfg.values()
 
-        # Longitudinal magnetization
-        Mz_arr = MzTissueX(kin, wex, seq, **p)(R1, R1a)
+        if R1 is not None:
+            Mz_arr = MzTissueX(kin, wex, seq, **p)(R1, R1a)
+        elif R2 is not None:
+            Mz_arr = np.full(R2.shape, p['me'], dtype=float)
+        elif R2s is not None:
+            Mz_arr = np.full(R2s.shape, p['me'], dtype=float).reshape(1, -1)
         
         # Signal
-        return Readout(seq, **p)(Mz=Mz_arr, R2s=R2s, R2=R2)
+        return Readout(seq, **p)(Mz=Mz_arr, R2=R2, R2s=R2s)

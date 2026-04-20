@@ -1,4 +1,139 @@
-from copy import deepcopy
+"""Joint model for signals from aorta and both kidneys.
+
+This model uses a whole body model to simultaneously predict 
+signals in aorta and kidneys (see :ref:`whole-body-tissues`). 
+
+See Also:
+    `Aorta`, `Kidney`
+
+Args:
+    organs (str, optional): Model for the organs in the whole-body 
+        model. The options are 'comp' (one compartment) and '2cxm' 
+        (two-compartment exchange). Defaults to 'comp'.
+    heartlung (str, optional): Model for the heart-lung system in 
+        the whole-body model. Options are 'pfcomp' (plug-flow 
+        compartment) or 'chain'. Defaults to 'pfcomp'.
+    kidneys (str, optional): Model for the kidneys. Options are 
+        '2CF' (Two-compartment filtration) and 'HF' (High-flow). 
+        Defaults to '2CF'. 
+    sequence (str, optional): imaging sequence model. Possible 
+        values are 'SS' (steady-state), 'SR' (saturation-recovery), 
+        'SSI' (steady state with inflow correction) and 'lin' 
+        (linear). Defaults to 'SS'.
+    agent (str, optional): Generic name of the contrast agent 
+        injected. Defaults to 'gadoterate'.
+    params (dict, optional): values for the model parameters,
+        specified as keyword parameters. Defaults are used for any 
+        that are not provided. See table 
+        :ref:`AortaKidneys-defaults` for a list of parameters and 
+        their default values.
+
+
+Example:
+
+    Use the model to fit minipig data with inflow correction:
+
+.. plot::
+    :include-source:
+    :context: close-figs
+
+    >>> import numpy as np
+    >>> import pydmr
+    >>> import dcmri as dc
+
+    Read the dataset:
+
+    >>> datafile = dc.fetch('minipig_renal_fibrosis')
+    >>> data = pydmr.read(datafile, 'nest')
+    >>> rois, pars = data['rois']['Pig']['Test'], data['pars']['Pig']['Test']
+
+    Create an array of time points:
+
+    >>> time = pars['TS'] * np.arange(len(rois['Aorta']))
+
+    Initialize the tissue:
+
+    >>> aorta_kidneys = dc.AortaKidneys(
+    ...     sequence='SSI',
+    ...     heartlung='chain',
+    ...     organs='comp',
+    ...     agent="gadoterate",
+    ...     dt=0.25,
+    ...     field_strength=pars['B0'],
+    ...     weight=pars['weight'],
+    ...     dose=pars['dose'],
+    ...     rate=pars['rate'],
+    ...     R10a=1/dc.const.T1(pars['B0'], 'blood'),
+    ...     R10_lk=1/dc.const.T1(pars['B0'], 'kidney'),
+    ...     R10_rk=1/dc.const.T1(pars['B0'], 'kidney'),
+    ...     vol_lk=85,
+    ...     vol_rk=85,
+    ...     TR=pars['TR'],
+    ...     FA=pars['FA'],
+    ...     TS=pars['TS'],
+    ...     CO=60,   
+    ...     t0=15, 
+    ... )
+
+    Define time and signal data
+
+    >>> t = (time, time, time)
+    >>> signal = (rois['Aorta'], rois['LeftKidney'], rois['RightKidney'])
+
+    Train the system to the data:
+
+    >>> aorta_kidneys.train(t, signal)
+
+    Plot the reconstructed signals and concentrations:
+
+    >>> aorta_kidneys.plot(t, signal)
+
+    Print the model parameters:
+
+    >>> aorta_kidneys.print_params(round_to=4)
+    --------------------------------
+    Free parameters with their stdev
+    --------------------------------
+    Bolus arrival time (BAT): 16.7422 (0.2853) sec
+    Inflow time (TF): 0.2801 (0.0133) sec
+    Cardiac output (CO): 72.762 (12.4426) mL/sec
+    Heart-lung mean transit time (Thl): 16.2249 (0.3069) sec
+    Organs blood mean transit time (To): 14.3793 (1.2492) sec
+    Body extraction fraction (Eb): 0.0751 (0.0071)
+    Heart-lung dispersion (Dhl): 0.0795 (0.0041)
+    Renal plasma flow (RPF): 3.3489 (0.7204) mL/sec
+    Differential renal function (DRF): 0.9085 (0.0212)
+    Differential renal plasma flow (DRPF): 0.812 (0.0169)
+    Left kidney arterial mean transit time (Ta_lk): 0.6509 (0.2228) sec
+    Left kidney plasma volume (vp_lk): 0.099 (0.0186) mL/cm3
+    Left kidney tubular mean transit time (Tt_lk): 46.9705 (3.3684) sec
+    Right kidney arterial mean transit time (Ta_rk): 1.4206 (0.2023) sec
+    Right kidney plasma volume (vp_rk): 0.1294 (0.0175) mL/cm3
+    Right kidney tubular mean transit time (Tt_rk): 4497.8301 (39890.3818) sec
+    Aorta signal scaling factor (S0a): 4912.776 (254.2363) a.u.
+    ----------------------------
+    Fixed and derived parameters
+    ----------------------------
+    Filtration fraction (FF): 0.0812
+    Glomerular Filtration Rate (GFR): 0.2719 mL/sec
+    Left kidney plasma flow (RPF_lk): 2.7194 mL/sec
+    Right kidney plasma flow (RPF_rk): 0.6295 mL/sec
+    Left kidney glomerular filtration rate (GFR_lk): 0.247 mL/sec
+    Right kidney glomerular filtration rate (GFR_rk): 0.0249 mL/sec
+    Left kidney plasma flow (Fp_lk): 0.032 mL/sec/cm3
+    Left kidney plasma mean transit time (Tp_lk): 2.838 sec
+    Left kidney vascular mean transit time (Tv_lk): 3.0958 sec
+    Left kidney tubular flow (Ft_lk): 0.0029 mL/sec/cm3
+    Left kidney filtration fraction (FF_lk): 0.0908
+    Left kidney extraction fraction (E_lk): 0.0833
+    Right kidney plasma flow (Fp_rk): 0.0074 mL/sec/cm3
+    Right kidney plasma mean transit time (Tp_rk): 16.8121 sec
+    Right kidney vascular mean transit time (Tv_rk): 17.4762 sec
+    Right kidney tubular flow (Ft_rk): 0.0003 mL/sec/cm3
+    Right kidney filtration fraction (FF_rk): 0.0395
+    Right kidney extraction fraction (E_rk): 0.038
+"""
+
 from typing import Tuple
 
 import matplotlib.pyplot as plt
@@ -17,138 +152,20 @@ from dcmri.kinetics import ConcKidney
 class AortaKidneys(SuperModel):
     """Joint model for signals from aorta and both kidneys.
 
-    This model uses a whole body model to simultaneously predict 
-    signals in aorta and kidneys (see :ref:`whole-body-tissues`). 
+    A whole body model to simultaneously predict 
+    signals in aorta and both kidneys. 
 
     See Also:
         `Aorta`, `Kidney`
 
     Args:
-        organs (str, optional): Model for the organs in the whole-body 
-          model. The options are 'comp' (one compartment) and '2cxm' 
-          (two-compartment exchange). Defaults to 'comp'.
-        heartlung (str, optional): Model for the heart-lung system in 
-          the whole-body model. Options are 'pfcomp' (plug-flow 
-          compartment) or 'chain'. Defaults to 'pfcomp'.
-        kidneys (str, optional): Model for the kidneys. Options are 
-          '2CF' (Two-compartment filtration) and 'HF' (High-flow). 
-          Defaults to '2CF'. 
-        sequence (str, optional): imaging sequence model. Possible 
-          values are 'SS' (steady-state), 'SR' (saturation-recovery), 
-          'SSI' (steady state with inflow correction) and 'lin' 
-          (linear). Defaults to 'SS'.
-        agent (str, optional): Generic name of the contrast agent 
-          injected. Defaults to 'gadoterate'.
-        params (dict, optional): values for the model parameters,
-          specified as keyword parameters. Defaults are used for any 
-          that are not provided. See table 
-          :ref:`AortaKidneys-defaults` for a list of parameters and 
-          their default values.
+        heartlung (str, optional): Model for the heart-lung system. 
+        organs (str, optional): Model for the systemic organs. 
+        kidneys (str, optional): Kidney tracer-kinetic model.
+        sequence (str, optional): Imaging sequence.
+        liver_clearance (bool, optional): Contrast agent with liver clearance.
+        **params: override parameter defaults
 
-
-    Example:
-
-        Use the model to fit minipig data with inflow correction:
-
-    .. plot::
-        :include-source:
-        :context: close-figs
-
-        >>> import numpy as np
-        >>> import pydmr
-        >>> import dcmri as dc
-
-        Read the dataset:
-
-        >>> datafile = dc.fetch('minipig_renal_fibrosis')
-        >>> data = pydmr.read(datafile, 'nest')
-        >>> rois, pars = data['rois']['Pig']['Test'], data['pars']['Pig']['Test']
-
-        Create an array of time points:
-
-        >>> time = pars['TS'] * np.arange(len(rois['Aorta']))
-
-        Initialize the tissue:
-
-        >>> aorta_kidneys = dc.AortaKidneys(
-        ...     sequence='SSI',
-        ...     heartlung='chain',
-        ...     organs='comp',
-        ...     agent="gadoterate",
-        ...     dt=0.25,
-        ...     field_strength=pars['B0'],
-        ...     weight=pars['weight'],
-        ...     dose=pars['dose'],
-        ...     rate=pars['rate'],
-        ...     R10a=1/dc.const.T1(pars['B0'], 'blood'),
-        ...     R10_lk=1/dc.const.T1(pars['B0'], 'kidney'),
-        ...     R10_rk=1/dc.const.T1(pars['B0'], 'kidney'),
-        ...     vol_lk=85,
-        ...     vol_rk=85,
-        ...     TR=pars['TR'],
-        ...     FA=pars['FA'],
-        ...     TS=pars['TS'],
-        ...     CO=60,   
-        ...     t0=15, 
-        ... )
-
-        Define time and signal data
-
-        >>> t = (time, time, time)
-        >>> signal = (rois['Aorta'], rois['LeftKidney'], rois['RightKidney'])
-
-        Train the system to the data:
-
-        >>> aorta_kidneys.train(t, signal)
-
-        Plot the reconstructed signals and concentrations:
-
-        >>> aorta_kidneys.plot(t, signal)
-
-        Print the model parameters:
-
-        >>> aorta_kidneys.print_params(round_to=4)
-        --------------------------------
-        Free parameters with their stdev
-        --------------------------------
-        Bolus arrival time (BAT): 16.7422 (0.2853) sec
-        Inflow time (TF): 0.2801 (0.0133) sec
-        Cardiac output (CO): 72.762 (12.4426) mL/sec
-        Heart-lung mean transit time (Thl): 16.2249 (0.3069) sec
-        Organs blood mean transit time (To): 14.3793 (1.2492) sec
-        Body extraction fraction (Eb): 0.0751 (0.0071)
-        Heart-lung dispersion (Dhl): 0.0795 (0.0041)
-        Renal plasma flow (RPF): 3.3489 (0.7204) mL/sec
-        Differential renal function (DRF): 0.9085 (0.0212)
-        Differential renal plasma flow (DRPF): 0.812 (0.0169)
-        Left kidney arterial mean transit time (Ta_lk): 0.6509 (0.2228) sec
-        Left kidney plasma volume (vp_lk): 0.099 (0.0186) mL/cm3
-        Left kidney tubular mean transit time (Tt_lk): 46.9705 (3.3684) sec
-        Right kidney arterial mean transit time (Ta_rk): 1.4206 (0.2023) sec
-        Right kidney plasma volume (vp_rk): 0.1294 (0.0175) mL/cm3
-        Right kidney tubular mean transit time (Tt_rk): 4497.8301 (39890.3818) sec
-        Aorta signal scaling factor (S0a): 4912.776 (254.2363) a.u.
-        ----------------------------
-        Fixed and derived parameters
-        ----------------------------
-        Filtration fraction (FF): 0.0812
-        Glomerular Filtration Rate (GFR): 0.2719 mL/sec
-        Left kidney plasma flow (RPF_lk): 2.7194 mL/sec
-        Right kidney plasma flow (RPF_rk): 0.6295 mL/sec
-        Left kidney glomerular filtration rate (GFR_lk): 0.247 mL/sec
-        Right kidney glomerular filtration rate (GFR_rk): 0.0249 mL/sec
-        Left kidney plasma flow (Fp_lk): 0.032 mL/sec/cm3
-        Left kidney plasma mean transit time (Tp_lk): 2.838 sec
-        Left kidney vascular mean transit time (Tv_lk): 3.0958 sec
-        Left kidney tubular flow (Ft_lk): 0.0029 mL/sec/cm3
-        Left kidney filtration fraction (FF_lk): 0.0908
-        Left kidney extraction fraction (E_lk): 0.0833
-        Right kidney plasma flow (Fp_rk): 0.0074 mL/sec/cm3
-        Right kidney plasma mean transit time (Tp_rk): 16.8121 sec
-        Right kidney vascular mean transit time (Tv_rk): 17.4762 sec
-        Right kidney tubular flow (Ft_rk): 0.0003 mL/sec/cm3
-        Right kidney filtration fraction (FF_rk): 0.0395
-        Right kidney extraction fraction (E_rk): 0.038
     """
 
     configs = ConcAorta.configs | {
@@ -178,7 +195,7 @@ class AortaKidneys(SuperModel):
         self._pars = self._set_pars(**params)
     
     def _params(self, select='all'):
-        
+    
         seq = self._cnfg['sequence']
 
         aorta_conc = ConcAorta(self._cnfg['heartlung'], self._cnfg['organs'])
@@ -192,18 +209,17 @@ class AortaKidneys(SuperModel):
         sequence += SEQUENCES[seq]['parameters']['read']
         sequence = [x for x in sequence if x not in ['S0', 'B1corr']]
         
-        inflow = ['TF'] if seq == '3D-SPGR-SSI' else []
         free_inflow = ['TF', 'S0_a'] if seq == '3D-SPGR-SSI' else []
-
         agent = ['FF'] if self._cnfg['liver_clearance'] else []
 
         pars_list = {
-            'all': aorta_conc._params() + inflow + kidneys + agent + sequence + [
+            'all': aorta_conc._params() + kidneys + agent + sequence + [
                 'TS',
                 'H', 'RPF', 'DRF',
                 'T_a_lk', 'vp_lk', 'Tt_lk', 'vol_lk', 
                 'T_a_rk', 'vp_rk', 'Tt_rk', 'vol_rk', 
                 'R10_a', 'R10_lk', 'R10_rk',
+                'R20s_a', 'R20s_lk', 'R20s_rk',
                 'S0_a', 'S0_lk', 'S0_rk',
                 'B1corr_a', 'B1corr_lk', 'B1corr_rk',
             ],
@@ -239,15 +255,17 @@ class AortaKidneys(SuperModel):
         p = self._pars
         rb = const.r1(p['field_strength'], 'blood', p['agent'])
         self._R1a = p['R10_a'] + rb * self._ca
+        r2s = const.r2s(p['field_strength'], 'blood', p['agent'])
+        self._R2sa = p['R20s_a'] + r2s * self._ca
 
     def _compute_signal_aorta(self):
         self._compute_relax_aorta()
         p = self._pars
         self._Sa = Signal(self._cnfg['sequence'], **p)(
             R1=self._R1a, 
+            R2s=self._R2sa,
             S0=p['S0_a'], 
             B1corr=p['B1corr_a'],
-            TE=0, PA=0,
         )
 
     def _predict_aorta(self, time):
@@ -293,10 +311,14 @@ class AortaKidneys(SuperModel):
     def _compute_relax_kidneys(self):
         self._compute_conc_kidneys()
         p = self._pars
-        rb = const.r1(p['field_strength'], 'blood', p['agent'])
+        r1 = const.r1(p['field_strength'], 'blood', p['agent'])
         self._R1k = {}
         for k in ['lk', 'rk']:
-            self._R1k[k] = p[f'R10_{k}'] + rb * self._Ck[k].sum(axis=0) 
+            self._R1k[k] = p[f'R10_{k}'] + r1 * self._Ck[k].sum(axis=0) 
+        r2s = const.r2s(p['field_strength'], 'tissue', p['agent'])
+        self._R2sk = {}
+        for k in ['lk', 'rk']:
+            self._R2sk[k] = p[f'R20s_{k}'] + r2s * self._Ck[k].sum(axis=0) 
 
     def _compute_signal_kidneys(self):
         self._compute_relax_kidneys()
@@ -306,10 +328,10 @@ class AortaKidneys(SuperModel):
         self._Sk = {}
         for k in ['lk', 'rk']:
             self._Sk[k] = Signal(seq, **p)(
-                R1=self._R1k[k], 
+                R1=self._R1k[k],
+                R2s=self._R2sk[k], 
                 S0=p[f'S0_{k}'], 
                 B1corr=p[f'B1corr_{k}'], 
-                TE=0,
             )
 
     def _predict_kidneys(self, time):
@@ -362,10 +384,10 @@ class AortaKidneys(SuperModel):
         }
         for roi in idx.keys():
             s_ref = Signal(seq[roi], **p)(
-                R1=p[f'R10_{roi}'], 
+                R1=p[f'R10_{roi}'],
+                R2s=p[f'R20s_{roi}'], 
                 S0=1, 
                 B1corr=p[f'B1corr_{roi}'], 
-                TE=0,
             )
             p[f'S0_{roi}'] = np.mean(signal[idx[roi]][:n0]) / s_ref if s_ref > 0 else 0
 
@@ -492,11 +514,17 @@ class AortaKidneys(SuperModel):
         """
         self._compute_relax_aorta()
         self._compute_relax_kidneys()
-        return {
+        R1 = {
             'aorta': self._R1a, 
             'kidney_left': self._R1k['lk'], 
             'kidney_right': self._R1k['rk'],
         }
+        R2s = {
+            'aorta': self._R2sa, 
+            'kidney_left': self._R2sk['lk'], 
+            'kidney_right': self._R2sk['rk'],
+        }
+        return R1, R2s
     
     def signal(self) -> dict:
         """Return signals in aorta and liver.

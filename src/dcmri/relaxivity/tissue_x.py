@@ -538,166 +538,208 @@ Returns:
     units of mmol/sec/mL or M/sec.
 """
 from copy import deepcopy
+from itertools import combinations
+
 import numpy as np
 
-from dcmri.core import SuperFunc
+from dcmri.core import LayerFunction
+from dcmri.relaxivity import R2, R2s, R1
 import dcmri.relaxivity.lib as rel
-from dcmri.lexicon import SEQUENCES
 
 
-class R1TissueX(SuperFunc):
+class R1TissueX(LayerFunction):
     configs = {
         'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'],
         'water_exchange': ['FF','RF','NF','FR','RR','NR','FN','RN','NN'],
+        't1_relaxation': ['lin'],
     }
-    def __init__(self, kinetics='2CX', water_exchange='FF', **params):
+    def __init__(
+        self, 
+        kinetics='2CX', 
+        water_exchange='FF', 
+        t1_relaxation='lin',
+        **params,
+    ):
         cnfg = {
             'kinetics': kinetics, 
             'water_exchange': water_exchange,
+            't1_relaxation': t1_relaxation,
         }
         self._cnfg = self._set_config(**cnfg)
         self._pars = self._set_pars(**params)
 
     def _params(self) -> list:
-        p = WaterConc(**self._cnfg)._params()
-        p += ['R10', 'r1']
+        p = WaterConcTissueX(**self._cnfg)._params()
+        p += R1(**self._cnfg)._params()
         return p
 
     def __call__(self, C, **params):
         p = self._update_pars(**params)
+        t1r = self._cnfg['t1_relaxation']
 
         # Compute concentration in water compartments
-        c = WaterConc(**self._cnfg)(C, **p)
+        c = WaterConcTissueX(**self._cnfg)(C, **p)
 
-        # Compute R1 of water compartments
-        R1_result = [rel.relax_t1(c[i,:], p['R10'], p['r1']) for i in range(c.shape[0])]
-        return np.stack(R1_result)
+        # Assume R10 and r1 is the same in all compartments
+        R10 = np.full(c.shape[0], p['R10'])
+        r1 = np.full(c.shape[0], p['r1'])
+
+        return R1(t1r, **p)(c, R10=R10, r1=r1)
     
 
-class R2TissueX(SuperFunc):
-    configs = {
-        'sequence': deepcopy(list(SEQUENCES.keys())),
-    }
-    def __init__(self, sequence='3D-SPGR-SS', **params):
-        self._cnfg = {
-            'sequence': sequence,
-        }
-        self._pars = self._set_pars(**params)
-
-    def _params(self) -> list:
-        seq = self._cnfg['sequence']
-        if seq not in ['SE-EPI', 'DE-EPI']:
-            return []
-        return ['R20', 'r2']
-    
-    def __call__(self, C: np.ndarray, **params):
-        p = self._update_pars(**params)
-        seq = self._cnfg['sequence']
-        if seq not in ['SE-EPI', 'DE-EPI']:
-            return None
-        C = np.array(C)
-        if C.ndim==2:
-            C = C.sum(axis=0)
-        return rel.relax_t1(C, p['R20'], p['r2'])
-
-
-class R2sTissueX(SuperFunc): 
+class R2TissueX(LayerFunction):
     configs = {
         'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'],
-        'transverse_relaxation': ['lin', 'quad', 'leakage'],
-        'sequence': deepcopy(list(SEQUENCES.keys())),
+        'water_exchange': ['FF','RF','NF','FR','RR','NR','FN','RN','NN'],
+        't2_relaxation': ['lin'],
     }
-    def __init__(self, kinetics=None, transverse_relaxation='lin', sequence='3D-SPGR-SS', **params):
-        if transverse_relaxation == 'leakage' and kinetics is None:
-            raise ValueError('Kinetic model must be specified for leakage model.')
+    def __init__(
+        self, 
+        kinetics='2CX', 
+        water_exchange='FF', 
+        t2_relaxation='lin',
+        **params,
+    ):
         cnfg = {
-            'kinetics': kinetics,
-            'transverse_relaxation': transverse_relaxation, 
-            'sequence': sequence,
+            'kinetics': kinetics, 
+            'water_exchange': water_exchange,
+            't2_relaxation': t2_relaxation,
         }
         self._cnfg = self._set_config(**cnfg)
         self._pars = self._set_pars(**params)
 
     def _params(self) -> list:
-        if self._cnfg['sequence'] == 'SE-EPI':
-            return []
-        if self._cnfg['transverse_relaxation'] == 'lin':
-            p = ['R20s', 'r2s']
-        elif self._cnfg['transverse_relaxation'] == 'quad':
-            p = ['R20s', 'r2s', 'r2s_quad']
-        elif self._cnfg['transverse_relaxation'] == 'leakage':
-            p = ['R20s', 'r2s_vasc', 'r2s_ees'] 
-            p += ContrastConc(self._cnfg['kinetics'])._params()
+        p = WaterConcTissueX(**self._cnfg)._params()
+        p += R2(**self._cnfg)._params()
         return p
+
+    def __call__(self, C, **params):
+        p = self._update_pars(**params)
+        t2r = self._cnfg['t2_relaxation']
+
+        # Compute concentration in water compartments
+        c = WaterConcTissueX(**self._cnfg)(C, **p)
+
+        # Assume R20 and r2 is the same in all compartments
+        R20 = np.full(c.shape[0], p['R20'])
+        r2 = np.full(c.shape[0], p['r2'])
+
+        return R2(t2r, **p)(c, R20=R20, r2=r2)
+
+
+class R2sTissueX(LayerFunction): 
+    configs = {
+        'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'],
+        't2s_relaxation': ['lin', 'quad', 'leakage'],
+    }
+    def __init__(
+        self, 
+        kinetics=None, 
+        t2s_relaxation='lin', 
+        **params,
+    ):
+        if t2s_relaxation == 'leakage' and kinetics is None:
+            raise ValueError('kinetics must be specified when t2s_relaxation is leakage.')
+        cnfg = {
+            'kinetics': kinetics,
+            't2s_relaxation': t2s_relaxation, 
+        }
+        self._cnfg = self._set_config(**cnfg)
+        self._pars = self._set_pars(**params)
+
+    def _params(self) -> list:
+        t2r = self._cnfg['t2s_relaxation']
+
+        if t2r in R2s.configs['t2s_relaxation']:
+            return R2s(t2r)._params()
+        
+        if t2r == 'leakage':
+            p = ['R20s', 'r2s_vasc', 'r2s_ees'] 
+            return p + ContrastConcTissueX(self._cnfg['kinetics'])._params()
     
     def __call__(self, C: np.ndarray, **params):
         p = self._update_pars(**params)
-        if self._cnfg['sequence'] == 'SE-EPI':
-            return None
+        t2r = self._cnfg['t2s_relaxation']
+        
         C = np.array(C)
-        if self._cnfg['transverse_relaxation'] == 'lin':
+
+        if t2r in R2s.configs['t2s_relaxation']:
             if C.ndim==2:
                 C = C.sum(axis=0)
-            return rel.relax_t2s(C, p['R20s'], p['r2s'], model='lin')
+            return R2s(t2r)(C, **p)
 
-        if self._cnfg['transverse_relaxation'] == 'quad':
-            if C.ndim==2:
-                C = C.sum(axis=0)
-            return rel.relax_t2s(C, p['R20s'], p['r2s'], p['r2s_quad'] , model='quad')
-
-        if self._cnfg['transverse_relaxation'] == 'leakage':
-            c = ContrastConc(self._cnfg['kinetics'])(C)
+        if t2r == 'leakage':
+            c = ContrastConcTissueX(self._cnfg['kinetics'])(C)
             return rel.relax_t2s(c, p['R20s'], r2s_vasc=p['r2s_vasc'], r2s_ees=p['r2s_ees'], model='leakage')
 
+# Build all possible combinations of relaxation rates
+weighting = ['R1', 'R2', 'R2s']
+all_combinations = [
+    set(combo)
+    for r in range(1, len(weighting) + 1)
+    for combo in combinations(weighting, r)
+]
 
-class RelaxTissueX(SuperFunc):
+class RelaxTissueX(LayerFunction):
 
     configs = {
         'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'],
         'water_exchange': ['FF','RF','NF','FR','RR','NR','FN','RN','NN'],
-        'transverse_relaxation': ['lin', 'quad', 'leakage'],
-        'sequence': deepcopy(list(SEQUENCES.keys())),
+        't2s_relaxation': ['lin', 'quad', 'leakage'],
+        't2_relaxation': ['lin'],
+        't1_relaxation': ['lin'],
+        'tissue_props': all_combinations,
     }
 
     def __init__(self, 
         kinetics='2CX', 
         water_exchange='FF', 
-        transverse_relaxation='lin', 
-        sequence='3D-SPGR-SS',
+        t2s_relaxation='lin', 
+        t2_relaxation='lin', 
+        t1_relaxation='lin', 
+        tissue_props={'R1', 'R2', 'R2s'},
         **params,
     ):
         cnfg = {
             'kinetics': kinetics, 
             'water_exchange': water_exchange, 
-            'transverse_relaxation': transverse_relaxation,
-            'sequence': sequence,
+            't2s_relaxation': t2s_relaxation,
+            't2_relaxation': t2_relaxation,
+            't1_relaxation': t1_relaxation,
+            'tissue_props': tissue_props,
         }
         self._cnfg = self._set_config(**cnfg)
         self._pars = self._set_pars(**params)
 
     def _params(self):
-        kin, wex, r2s, seq = self._cnfg.values()
-        p = ['R10_a', 'r1']
-        p += R1TissueX(kin, wex)._params()
-        p += R2TissueX(seq)._params()
-        p += R2sTissueX(kin, r2s, seq)._params()
-        p = list(set(p))
+        props = self._cnfg['tissue_props']
+        p = []
+        if 'R1' in props:
+            p += R1TissueX(**self._cnfg)._params()
+        if 'R2' in props:
+            p += R2TissueX(**self._cnfg)._params()
+        if 'R2s' in props:
+            p += R2sTissueX(**self._cnfg)._params()
         return p
     
-    def __call__(self, C, ca, **params):
+    def __call__(self, C, **params):
         p = self._update_pars(**params)
-        kin, wex, r2s, seq = self._cnfg.values()
+        props = self._cnfg['tissue_props']
 
-        R1a = rel.relax_t1(ca, p['R10_a'], p['r1'])
-        R1 = R1TissueX(kin, wex)(C, **p)
-        R2 = R2TissueX(seq)(C, **p)
-        R2s = R2sTissueX(kin, r2s, seq)(C, **p)
+        R1_arr = R2_arr = R2s_arr = None
+        
+        if 'R1' in props:
+            R1_arr = R1TissueX(**self._cnfg)(C, **p)
+        if 'R2' in props:
+            R2_arr = R2TissueX(**self._cnfg)(C, **p)
+        if 'R2s' in props:
+            R2s_arr = R2sTissueX(**self._cnfg)(C, **p)
 
-        return R1, R2, R2s, R1a
+        return R1_arr, R2_arr, R2s_arr
 
 
 
-class ContrastConc(SuperFunc):
+class ContrastConcTissueX(LayerFunction):
     # Convert tissue concentration in blood and interstitium to concentration.
     # For uptake models this introduces a new parameter
 
@@ -758,8 +800,8 @@ class ContrastConc(SuperFunc):
         
         return c
 
-class WaterConc(SuperFunc):
-    # Convert tissue concentration in kinetic compartmetns to concentration in water compartments.
+class WaterConcTissueX(LayerFunction):
+    # Convert tissue concentration in kinetic compartments to concentration in water compartments.
 
     configs = deepcopy(R1TissueX.configs)
 
@@ -810,7 +852,7 @@ class WaterConc(SuperFunc):
         return list(set(p))
 
 
-    def __call__(self, C, **params):
+    def __call__(self, C, **params) -> np.ndarray: # (n_comp, n_times)
         p = self._update_pars(**params)
         C = np.array(C)
         if C.ndim==1:

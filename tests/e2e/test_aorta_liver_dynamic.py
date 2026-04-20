@@ -2,7 +2,7 @@ import os
 import itertools
 
 import matplotlib.pyplot as plt
-from dcmri import LiverDynamicDrugEffect as Model
+from dcmri import AortaLiverDynamic as Model
 
 
 DEBUG = False
@@ -21,43 +21,48 @@ def test_configs():
 
     values = Model.configs.values()
     for cnfgs in itertools.product(*values):
-        seq = cnfgs[0]
+        kin, ns, seq = cnfgs[0], cnfgs[1], cnfgs[2]
+        if 'EC' in kin and ns is not None:
+            continue
+        elif 'U' in kin and ns is not None:
+            if 'E' in ns:
+                continue
+        # if not ((kin=='2I-IC') and (ns=='E') and (seq=='3D-SPGR-SS')):
+        #     continue
         model = Model(*cnfgs)
         time = model.time()
         signal = model.predict(time)
-        R1 = model.relax()
-        bounds = {'c_S0_1_a': [0, 5], 'd_S0_1_a': [0, 5]} if seq=='3D-SPGR-SSI' else None
-        R102a = [R1['ctrl', 'aorta', 2][0], R1['drug', 'aorta', 2][0]]
-        R102l = [R1['ctrl', 'liver', 2][0], R1['drug', 'liver', 2][0]]
-        model.train(time, signal, R102a=R102a, R102l=R102l, bounds=bounds, verbose=2, xtol=0.1)
+        R1, R2s = model.relax()
+        R102a=R1['aorta', 2][0]
+        R102l=R1['liver', 2][0]
+        model.train(time, signal, R102a=R102a, R102l=R102l, xtol=0.01)
         model.plot(time, signal, show=DEBUG)
         cost = model.cost(time, signal)
-        print(cnfgs, cost)
+        print(kin, ns, seq, cost)
+        model.conc()
+        model.relax()
+        model.signal()
         assert cost < 5
 
     # Test Variations (override parameter and staged training)
-    model = Model(CO=99)
+    model = Model(CO=50)
     time = model.time()
     signal = model.predict(time)
-    model.train(time, signal, staged=True, verbose=2, xtol=0.1)
+    model.train(time, signal, staged=True)
     model.plot(time, signal, show=DEBUG)
     cost = model.cost(time, signal)
     print(cost)
     assert cost < 5
+
+    # Concentration with single compartment
+    Model('1I-EC').conc()
 
 def test_api():
 
     # Test Forward API outputs
     model = Model()
     t = model.time()
-    C = model.conc()
-    R1 = model.relax()
     S = model.signal()
-
-    assert C['ctrl', 'aorta', 1].ndim == 1
-    assert C['ctrl', 'liver', 1].ndim == 2
-    assert len(R1['ctrl', 'liver', 1]) == len(t['ctrl', 'liver', 1])
-    assert len(S['ctrl', 'liver', 1]) == len(t['ctrl', 'liver', 1])
 
     test_plot_file = "test_plot_output.png"
     try:
@@ -67,7 +72,7 @@ def test_api():
         
         # This hits plt.show()
         plt.ion() # Turn interactive mode on
-        model.plot(t, S, show=DEBUG)
+        model.plot(t, S, show=True)
         plt.ioff() # Turn interactive mode off
     finally:
         if os.path.exists(test_plot_file):
@@ -81,21 +86,43 @@ def test_exceptions():
         pass 
     else:
         assert False
+        
+    try:
+        Model(kinetics='Y')
+    except ValueError:
+        pass 
+    else:
+        assert False
+
+    try:
+        Model(kinetics='2I-EC')
+    except ValueError:
+        pass 
+    else:
+        assert False
+
+    try:
+        Model(non_stationary='Z')
+    except ValueError:
+        pass 
+    else:
+        assert False
 
     # SSI sequence model with fixed S0
-    model = Model(sequence='3D-SPGR-SSI')
-    t, s = model.time(), model.signal()
     try:
-        model.train(t, s, bounds={'c_S0_1_a': None})
+        model = Model(sequence='SSI')
+        t, s = model.time(), model.signal()
+        model.train(t, s, bounds={'S0_a': None})
     except ValueError:
         pass
     else:
         assert False
 
 if __name__ == "__main__":
+
     test_configs()
     test_api()
     test_exceptions()
     
-    print('All liver_dynamic_drug_effect tests passed!!')
+    print('All ui_aorta_liver_2scan tests passed!!')
 

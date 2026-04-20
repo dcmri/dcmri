@@ -55,11 +55,14 @@ def aif(
     t = np.arange(0, tacq+dt, dt_sim)
     cp = dcmri.aif.parker(t, BAT)
     rp = const.r1(field_strength, 'plasma', agent)
+    r2s = const.r1(field_strength, 'blood', agent)
     R1b = R10a + rp*cp*(1-H)
+    R20sa = 20
+    R2sb = R20sa + r2s * cp * (1-H)
     if model == '3D-SPGR-SS':
-        aif_ = Signal(model)(S0=S0, R1=R1b, TR=TR, FA=FA, B1corr=B1corr, TE=0)
+        aif_ = Signal(model)(S0=S0, R1=R1b, R2s=R2sb, TR=TR, FA=FA, B1corr=B1corr, TE=0)
     elif model == '3D-SR-SPGR-SS':
-        aif_ = Signal(model)(S0=S0, R1=R1b, TR=TR, FA=FA, TC=TC, B1corr=B1corr, TE=0)
+        aif_ = Signal(model)(S0=S0, R1=R1b, R2s=R2sb, TR=TR, FA=FA, TC=TC, B1corr=B1corr, TE=0)
     time = np.arange(0, tacq, dt)
     aif_ = sample(time, t, aif_, dt)
     sdev = (np.amax(aif_)-aif_[0])/CNR
@@ -80,9 +83,11 @@ def brain(
         agent='gadodiamide',
         H=0.45,
         R10a=1/const.T1(3.0, 'blood'),
+        R20sa=20,
         S0=150,
         model='3D-SPGR-SS',
         TR=0.005,
+        TE=0.002,
         FA=15,
         TC=0.2,
         CNR=np.inf,
@@ -153,11 +158,13 @@ def brain(
 
     # Arterial signal
     rp = const.r1(field_strength, 'plasma', agent)
-    R1b = R10a + rp*cp*(1-H)
+    r2s = const.r1(field_strength, 'blood', agent)
+    R1b = R10a + rp * cp * (1-H)
+    R2sb = R20sa + r2s * cp * (1-H)
     if model == '3D-SPGR-SS':
-        aif_ = Signal(model)(S0=S0, R1=R1b, TR=TR, FA=FA, TE=0)
+        aif_ = Signal(model)(S0=S0, R1=R1b, R2s=R2sb, TR=TR, FA=FA, TE=TE)
     elif model == '3D-SR-SPGR-SS':
-        aif_ = Signal(model)(S0=S0, R1=R1b, TR=TR, FA=FA, TC=TC, TE=0)
+        aif_ = Signal(model)(S0=S0, R1=R1b, R2s=R2sb, TR=TR, FA=FA, TC=TC, TE=TE)
 
     sdev = (np.amax(aif_)-aif_[0])/CNR
     time = np.arange(0, tacq, dt)
@@ -197,10 +204,11 @@ def brain(
 
             # Pixel signal
             R1 = 1/im['T1'][i, j] + rp*C
+            R2s = R20sa + r2s * C
             if model == '3D-SPGR-SS':
-                s = Signal(model)(S0=S0*im['PD'][i, j], R1=R1, TR=TR, FA=FA, TE=0)
+                s = Signal(model)(S0=S0*im['PD'][i, j], R1=R1, R2s=R2s, TR=TR, FA=FA, TE=TE)
             elif model == '3D-SR-SPGR-SS':
-                s = Signal(model)(S0=S0*im['PD'][i, j], R1=R1, TR=TR, FA=FA, TC=TC, TE=0)
+                s = Signal(model)(S0=S0*im['PD'][i, j], R1=R1, R2s=R2s, TR=TR, FA=FA, TC=TC, TE=TE)
 
             sig_noisefree = sample(time, t, s, dt)
             s = add_noise(sig_noisefree, sdev)
@@ -282,14 +290,18 @@ def tissue(
     cp = dcmri.aif.parker(t, BAT)
     C = ConcTissueX('2CX')(cp*(1-H), dt=dt_sim, H=H, Fb=Fb, vb=vb, PS=PS, vi=vi)
     rp = const.r1(field_strength, 'plasma', agent)
+    r2s = const.r1(field_strength, 'blood', agent)
     R1b = R10a + rp*cp*(1-H)
+    R20sa = 20
+    R2sb = R20sa + r2s * cp * (1-H)
     R1 = R10 + rp*C
+    R2s = R20sa + r2s * C
     if model == '3D-SPGR-SS':
-        aif_ = Signal(model)(S0=S0b, R1=R1b, TR=TR, FA=FA, TE=0)
-        roi = Signal(model)(S0=S0, R1=R1, TR=TR, FA=FA, TE=0)
+        aif_ = Signal(model)(S0=S0b, R1=R1b, R2s=R2sb, TR=TR, FA=FA, TE=0)
+        roi = Signal(model)(S0=S0, R1=R1, R2s=R2s, TR=TR, FA=FA, TE=0)
     elif model == '2D-SR-SPGR-SS':
-        aif_ = Signal('3D-SR-SPGR-SS')(S0=S0b, R1=R1b, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
-        roi = Signal('2D-SR-SPGR-SS')(S0=S0b, R1=R1b, TC=TC, TR=TR, FA=FA, TE=0)
+        aif_ = Signal('3D-SR-SPGR-SS')(S0=S0b, R1=R1b, R2s=R2sb, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
+        roi = Signal('2D-SR-SPGR-SS')(S0=S0b, R1=R1b, R2s=R2s, TC=TC, TR=TR, FA=FA, TE=0)
 
     time = np.arange(0, tacq, dt)
     aif_ = sample(time, t, aif_, dt)
@@ -390,18 +402,23 @@ def liver(
         ve=ve, Fp=Fp, fa=fa, Ta=Ta, E=E, Th=Th)    
     rp = const.r1(field_strength, 'plasma', agent)
     rh = const.r1(field_strength, 'hepatocytes', agent)
+    r2s = const.r1(field_strength, 'blood', agent)
+    R20sa = 20
     R1a = R10a + rp*cp*(1-H)
     R1v = R10a + rp*cv*(1-H)
     R1 = R10 + rp*C[0, :] + rh*C[1, :]
+    R2sa = R20sa + r2s*cp*(1-H)
+    R2sv = R20sa + r2s*cv*(1-H)
+    R2s = R20sa + r2s*C.sum(axis=0)
 
     if sequence == '3D-SPGR-SS':
-        aif_ = Signal(sequence)(S0=S0b, R1=R1a, TR=TR, FA=FA, TE=0)
-        vif = Signal(sequence)(S0=S0b, R1=R1v, TR=TR, FA=FA, TE=0)
-        roi = Signal(sequence)(S0=S0, R1=R1, TR=TR, FA=FA, TE=0)
+        aif_ = Signal(sequence)(S0=S0b, R1=R1a, R2s=R2sa, TR=TR, FA=FA, TE=0)
+        vif = Signal(sequence)(S0=S0b, R1=R1v, R2s=R2sv, TR=TR, FA=FA, TE=0)
+        roi = Signal(sequence)(S0=S0, R1=R1, R2s=R2s, TR=TR, FA=FA, TE=0)
     elif sequence == '3D-SPGR-SSI':
-        aif_ = Signal(sequence)(S0=S0b, R1=R1a, TR=TR, FA=FA, TF=TC, TE=0)
-        vif = Signal('3D-SPGR-SS')(S0=S0b, R1=R1v, TR=TR, FA=FA, TE=0)
-        roi = Signal('3D-SPGR-SS')(S0=S0, R1=R1, TR=TR, FA=FA, TE=0)
+        aif_ = Signal(sequence)(S0=S0b, R1=R1a, R2s=R2sa, TR=TR, FA=FA, TF=TC, TE=0)
+        vif = Signal('3D-SPGR-SS')(S0=S0b, R1=R1v, R2s=R2sv, TR=TR, FA=FA, TE=0)
+        roi = Signal('3D-SPGR-SS')(S0=S0, R1=R1, R2s=R2s, TR=TR, FA=FA, TE=0)
 
     time = np.arange(0, tacq, dt)
     aif_ = sample(time, t, aif_, dt)
@@ -485,16 +502,20 @@ def tissue2scan(
     cp += dcmri.aif.parker(t, tacq+tbreak+BAT)
     C = ConcTissueX('2CX')(cp*(1-H), dt=dt_sim, H=H, Fb=Fb, vb=vb, PS=PS, vi=vi)
     rp = const.r1(field_strength, 'plasma', agent)
+    r2s = const.r1(field_strength, 'blood', agent)
     R1b = R10a + rp*cp*(1-H)
     R1 = R10 + rp*C
+    R20sa = 20
+    R2sb = R20sa + r2s * cp * (1-H)
+    R2s = R20sa + r2s * C
 
     # Generate the signals from the first scan
     if model == '3D-SPGR-SS':
-        aif_ = Signal(model)(S0=S0b1, R1=R1b, TR=TR, FA=FA, TE=0)
-        roi = Signal(model)(S0=S01, R1=R1, TR=TR, FA=FA, TE=0)
+        aif_ = Signal(model)(S0=S0b1, R1=R1b, R2s=R2sb, TR=TR, FA=FA, TE=0)
+        roi = Signal(model)(S0=S01, R1=R1, R2s=R2s, TR=TR, FA=FA, TE=0)
     elif model == '2D-SR-SPGR-SS':
-        aif_ = Signal('3D-SR-SPGR-SS')(S0=S0b1, R1=R1b, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
-        roi = Signal('2D-SR-SPGR-SS')(S0=S01, R1=R1, TC=TC, TR=TR, FA=FA, TE=0)
+        aif_ = Signal('3D-SR-SPGR-SS')(S0=S0b1, R1=R1b, R2s=R2sb, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
+        roi = Signal('2D-SR-SPGR-SS')(S0=S01, R1=R1, R2s=R2s, TC=TC, TR=TR, FA=FA, TE=0)
     time1 = np.arange(0, tacq, dt)
     aif1 = sample(time1, t, aif_, dt)
     roi1 = sample(time1, t, roi, dt)
@@ -504,11 +525,11 @@ def tissue2scan(
 
     # Generate the second signals
     if model == '3D-SPGR-SS':
-        aif_ = Signal(model)(S0=S0b2, R1=R1b, TR=TR, FA=FA, TE=0)
-        roi = Signal(model)(S0=S02, R1=R1, TR=TR, FA=FA, TE=0)
+        aif_ = Signal(model)(S0=S0b2, R1=R1b, R2s=R2sb, TR=TR, FA=FA, TE=0)
+        roi = Signal(model)(S0=S02, R1=R1, R2s=R2s, TR=TR, FA=FA, TE=0)
     elif model == '2D-SR-SPGR-SS':
-        aif_ = Signal('3D-SR-SPGR-SS')(S0=S0b2, R1=R1b, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
-        roi = Signal('2D-SR-SPGR-SS')(S0=S02, R1=R1, TC=TC, TR=TR, FA=FA, TE=0)
+        aif_ = Signal('3D-SR-SPGR-SS')(S0=S0b2, R1=R1b, R2s=R2sb, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
+        roi = Signal('2D-SR-SPGR-SS')(S0=S02, R1=R1, R2s=R2s, TC=TC, TR=TR, FA=FA, TE=0)
     time2 = np.arange(tacq+tbreak, 2*tacq+tbreak, dt)
     aif2 = sample(time2, t, aif_, dt)
     roi2 = sample(time2, t, roi, dt)
@@ -596,18 +617,23 @@ def kidney(
     cp = dcmri.aif.parker(t, BAT)
     Cc, Cm = ConcCortMed(kinetics='7C', Fp=Fp, Eg=Eg, fc=fc, Tglom=Tglom, Tv=Tv, Tpt=Tpt, Tlh=Tlh, Tdt=Tdt, Tcd=Tcd)(cp, dt=dt_sim)
     rp = const.r1(field_strength, 'plasma', agent)
+    r2s = const.r1(field_strength, 'blood', agent)
     R1b = R10a + rp*cp*(1-Hct)
     R1c = R10c + rp*Cc
     R1m = R10m + rp*Cm
+    R20sa = 20
+    R2sb = R20sa + r2s * cp * (1-Hct)
+    R2sc = R20sa + r2s * Cc
+    R2sm = R20sa + r2s * Cm
 
     if model == '3D-SPGR-SS':
-        aif_ = Signal(model)(S0=S0b, R1=R1b, TR=TR, FA=FA, TE=0)
-        roic = Signal(model)(S0=S0, R1=R1c, TR=TR, FA=FA, TE=0)
-        roim = Signal(model)(S0=S0, R1=R1m, TR=TR, FA=FA, TE=0)
+        aif_ = Signal(model)(S0=S0b, R1=R1b, R2s=R2sb, TR=TR, FA=FA, TE=0)
+        roic = Signal(model)(S0=S0, R1=R1c, R2s=R2sc, TR=TR, FA=FA, TE=0)
+        roim = Signal(model)(S0=S0, R1=R1m, R2s=R2sm, TR=TR, FA=FA, TE=0)
     elif model == '2D-SR-SPGR-SS':
-        aif_ = Signal('3D-SR-SPGR-SS')(S0=S0b, R1=R1b, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
-        roic = Signal('2D-SR-SPGR-SS')(S0=S0, R1=R1c, TC=TC, TR=TR, FA=FA, TE=0)
-        roim = Signal('2D-SR-SPGR-SS')(S0=S0, R1=R1m, TC=TC, TR=TR, FA=FA, TE=0)
+        aif_ = Signal('3D-SR-SPGR-SS')(S0=S0b, R1=R1b, R2s=R2sb, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
+        roic = Signal('2D-SR-SPGR-SS')(S0=S0, R1=R1c, R2s=R2sc, TC=TC, TR=TR, FA=FA, TE=0)
+        roim = Signal('2D-SR-SPGR-SS')(S0=S0, R1=R1m, R2s=R2sm, TC=TC, TR=TR, FA=FA, TE=0)
 
     time = np.arange(0, tacq, dt)
     aif_ = sample(time, t, aif_, dt)

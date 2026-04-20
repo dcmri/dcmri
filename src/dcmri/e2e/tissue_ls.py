@@ -1,3 +1,58 @@
+"""A linear and stationary tissue with a single inlet.
+
+Args:
+    sequence (str, optional): Imaging sequence.
+    shape (array-like, required): Spatial dimensions of the tissue array. 
+    params (dict, optional): override parameter defaults.
+
+See Also:
+    `TissueLS`
+
+Example:
+
+    Fit a linear and stationary model to the synthetic test data:
+
+.. plot::
+    :include-source:
+    :context: close-figs
+
+    >>> import numpy as np
+    >>> import dcmri as dc
+
+    Generate synthetic test data:
+
+    >>> time, aif, roi, gt = dc.fake.tissue()
+
+    The correct ground truth for ve in model-free analysis is the 
+    extracellular part of the distribution space:
+
+    >>> gt['ve'] = gt['vp'] + gt['vi'] if gt['PS'] > 0 else gt['vp']
+
+    Build a tissue and set the constants to match the
+    experimental conditions of the synthetic test data. 
+
+    >>> tissue = dc.TissueLS(
+    ...     dt = time[1],
+    ...     sequence = '3D-SPGR-SS',
+    ...     r1 = dc.const.r1(3, 'blood','gadodiamide'),
+    ...     TR = 0.005,
+    ...     FA = 15,
+    ...     R10a = 1/dc.const.T1(3.0,'blood'),
+    ...     R10 = 1/dc.const.T1(3.0,'muscle'),
+    ... )
+
+    Train the tissue on the data. Since have noise-free synthetic 
+    data we use a lower tolerance than the default, which is optimized 
+    for noisy data:
+
+    >>> tissue.train(roi, aif, n0=10, tol=0.01)
+
+    Plot the reconstructed signals along with the concentrations 
+    and the impulse response function.
+
+    >>> tissue.plot(roi)
+"""
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,8 +62,10 @@ from matplotlib.gridspec import GridSpec
 from dcmri.bloch import Signal
 from dcmri.lexicon import string_params, SEQUENCES  
 from dcmri.inverse import SignalToConc
-from dcmri.core import SuperModel, Input, SuperFunc
+from dcmri.core import SuperModel, Input, LayerFunction
 import dcmri.relaxivity.lib as rel
+from dcmri.relaxivity import Relax
+from dcmri.bloch import Signal
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import loss
 from dcmri import convolution
@@ -43,7 +100,7 @@ def irf_ls(ca, c, dt, tol=1e-2):
     return irf.T.reshape(shape)
         
 
-class Signal(SuperFunc):
+class SignalTissueLS(LayerFunction):
     configs = {
         'sequence': [s for s, v in SEQUENCES.items() if v['steady-state']]
     }  
@@ -54,150 +111,124 @@ class Signal(SuperFunc):
     def __call__(self, ca, **params):
         p = self._update_pars(**params)
         seq = self._cnfg['sequence']
+        wght = set(SEQUENCES[seq]['parameters']['tissue'])
+
+        relax = Relax(tissue_props=wght, **p)
+        signal = Signal(seq, **p)
 
         C = conc_ls(ca, p['irf'], p['dt'])
+        if C.shape[0]==1:
+            R1, R2, R2s = relax(C[0,:], R20=0, R20s=0)
+        else: # Dual-echo sequence - 2 signal channels
+            R1, R2, R2s = relax(
+                C, 
+                R10=[p['R10'], p['R10']], 
+                R20=[0,0], 
+                R20s=0, 
+                r1=[p['r1'], p['r1']], 
+                r2=[p['r2'], p['r2']],
+            )
+            if R1 is not None:
+                R1 = np.mean(R1, axis=0)
+            R2 = R2[0,:]
+            R2s = R2s[1,:]
+        return signal(R1, R2, R2s, R1i=None)
 
-        signal = Signal(seq, **p)
-
-        if seq == 'SE-EPI':
-            R2 = rel.relax_t2(C, 0, p['r2'])
-            return signal(R2=R2, TA=np.inf, PA=None)
-        elif seq == 'GE-EPI':
-            R2s = rel.relax_t2s(C, 0, p['r2s']) 
-            return signal(R2s=R2s, TA=np.inf, PA=None)
-        elif seq == 'DE-EPI':
-            R2 = rel.relax_t2(C[0,:], 0, p['r2'])
-            R2s = rel.relax_t2s(C[1,:], 0, p['r2s'])
-            return signal(R2=R2, R2s=R2s, TA=np.inf, PA=None)
-        else:
-            R1 = rel.relax_t1(C, p['R10'], p['r1'])  
-            return signal(R1=R1, TE=0)  
+        # if seq == 'SE-EPI':
+        #     #R2 = rel.relax_t2(C, 0, p['r2'])
+        #     return signal(R2=R2, TA=np.inf, PA=None)
+        # elif seq == 'GE-EPI':
+        #     #R1 = rel.relax_t1(C, p['R10'], p['r1']) 
+        #     R2s = rel.relax_t2s(C, 0, p['r2s']) 
+        #     return signal(R2s=R2s, TA=np.inf, PA=None)
+        # elif seq == 'DE-EPI':
+        #     #R2 = rel.relax_t2(C[0,:], 0, p['r2'])
+        #     #R2s = rel.relax_t2s(C[1,:], 0, p['r2s'])
+        #     return signal(R2=R2, R2s=R2s, TA=np.inf, PA=None)
+        # else:
+        #     R1 = rel.relax_t1(C, p['R10'], p['r1'])  
+        #     R2s = rel.relax_t2s(C[1,:], 0, p['r2s'])
+        #     return signal(R1=R1, R2s=R2s)  
     
     def _params(self):
         seq = self._cnfg['sequence']
+        wght = set(SEQUENCES[seq]['parameters']['tissue'])
+
         p = ['irf', 'dt']
-        p_excl = ['R1', 'R2s', 'R2', 'R1i', 'Fi', 'me', 'v', 'Fw']
-        if seq == 'SE-EPI':
-            p += ['r2']
-            p_excl += ['TA', 'PA']
-        elif seq == 'GE-EPI':
-            p += ['r2s']
-            p_excl += ['TA', 'PA']
-        elif seq == 'DE-EPI':
-            p += ['r2', 'r2s']
-            p_excl += ['TA', 'PA']
-        else:
-            p += ['R10', 'r1']  
-            p_excl += ['TE'] 
-        p += [ps for ps in Signal(seq)._params() if ps not in p_excl]
+        p += [k for k in Relax(tissue_props=wght)._params() if k not in ['R20', 'R20s']]
+        p += [k for k in Signal(seq)._params() if k not in ['R1', 'R2', 'R2s', 'R1i']]
+
+        # p_excl = ['R1', 'R2s', 'R2', 'R1i', 'Fi', 'me', 'v', 'Fw']
+        # if seq == 'SE-EPI':
+        #     p += ['r2']
+        #     p_excl += ['TA', 'PA']
+        # elif seq == 'GE-EPI':
+        #     p += ['r2s']
+        #     p_excl += ['TA', 'PA']
+        # elif seq == 'DE-EPI':
+        #     p += ['r2', 'r2s']
+        #     p_excl += ['TA', 'PA']
+        # else:
+        #     p += ['R10', 'r1']  
+        #     p_excl += ['TE'] 
+        # p += [ps for ps in Signal(seq)._params() if ps not in p_excl]
         return p
     
-class BaselineSignal(SuperFunc):
-    configs = {
-        'sequence': [s for s, v in SEQUENCES.items() if v['steady-state']]
-    }  
-    def __init__(self, sequence='3D-SPGR-SS', **params):
-        self._cnfg = self._set_config(sequence=sequence)
-        self._pars = self._set_pars(**params)   
+# class BaselineSignal(LayerFunction):
+#     configs = {
+#         'sequence': [s for s, v in SEQUENCES.items() if v['steady-state']]
+#     }  
+#     def __init__(self, sequence='3D-SPGR-SS', **params):
+#         self._cnfg = self._set_config(sequence=sequence)
+#         self._pars = self._set_pars(**params)   
 
-    def __call__(self, **params):
-        p = self._update_pars(**params)
-        seq = self._cnfg['sequence']
+#     def __call__(self, **params):
+#         p = self._update_pars(**params)
+#         seq = self._cnfg['sequence']
+#         signal = Signal(seq, **p)
+#         return signal(R1=p['R10'], R2=0, R2s=0, S0=1)
 
-        signal = Signal(seq, **p)
-
-        if seq == 'SE-EPI':
-            return signal(R2=0, TA=np.inf, PA=None)
-        elif seq == 'GE-EPI': 
-            return signal(R2s=0, TA=np.inf, PA=None)
-        elif seq == 'DE-EPI':
-            return signal(R2=0, R2s=0, TA=np.inf, PA=None)
-        else:
-            return signal(R1=p['R10'], TE=0)  
+#         # if seq == 'SE-EPI':
+#         #     return signal(R2=0, TA=np.inf, PA=None)
+#         # elif seq == 'GE-EPI': 
+#         #     return signal(R2s=0, TA=np.inf, PA=None)
+#         # elif seq == 'DE-EPI':
+#         #     return signal(R2=0, R2s=0, TA=np.inf, PA=None)
+#         # else:
+#         #     return signal(R1=p['R10'], TE=0)  
     
-    def _params(self):
-        seq = self._cnfg['sequence']
-        p = []
-        p_excl = ['R1', 'R2s', 'R2', 'R1i', 'Fi', 'me', 'v', 'Fw']
-        if seq == 'SE-EPI':
-            p_excl += ['TA', 'PA']
-        elif seq == 'GE-EPI':
-            p_excl += ['TA', 'PA']
-        elif seq == 'DE-EPI':
-            p_excl += ['TA', 'PA']
-        else:
-            p += ['R10']  
-            p_excl += ['TE'] 
-        p += [ps for ps in Signal(seq)._params() if ps not in p_excl]
-        return p
+#     def _params(self):
+#         seq = self._cnfg['sequence']
+#         return [k for k in Signal(seq)._params() if k not in ['R1', 'R2', 'R2s', 'S0']]
+
+#         # seq = self._cnfg['sequence']
+#         # p = []
+#         # p_excl = ['R1', 'R2s', 'R2', 'R1i', 'Fi', 'me', 'v', 'Fw']
+#         # if seq == 'SE-EPI':
+#         #     p_excl += ['TA', 'PA']
+#         # elif seq == 'GE-EPI':
+#         #     p_excl += ['TA', 'PA']
+#         # elif seq == 'DE-EPI':
+#         #     p_excl += ['TA', 'PA']
+#         # else:
+#         #     p += ['R10']  
+#         #     p_excl += ['TE'] 
+#         # p += [ps for ps in Signal(seq)._params() if ps not in p_excl]
+#         # return p
     
+
 
 class TissueLS(SuperModel):
-    """Array of linear and stationary tissues with a single inlet.
-
-    These are generic model-free tissue types. Their response to 
-    an indicator injection is proportional to the dose (linear) and 
-    independent of the time of injection (stationary).
+    """Linear and stationary tissue pixels with a known input.
 
     Args:
-        shape (array-like, required): shape of the tissue array (spatial dimensions only). 
-          Any number of dimensions is allowed.
-        aif (array-like, required): Signal-time curve in the blood of the
-          feeding artery. 
-        dt (float, optional): Time interval between values of the arterial
-          input function. Defaults to 1.0.
-        sequence (str, optional): imaging sequence. Possible values 
-          are 'SS', 'SR' and 'lin' (linear). Defaults to 'SS'.
-        params (dict, optional): values for the parameters of the tissue,
-          specified as keyword parameters. Defaults are used for any that are
-          not provided. 
+        sequence (str, optional): Imaging sequence.
+        shape (array-like, required): Spatial dimensions of the tissue array. 
+        params (dict, optional): override parameter defaults.
 
     See Also:
-        `TissueLS`, `TissueArray`
+        `TissueX`
 
-    Example:
-
-        Fit a linear and stationary model to the synthetic test data:
-
-    .. plot::
-        :include-source:
-        :context: close-figs
-
-        >>> import numpy as np
-        >>> import dcmri as dc
-
-        Generate synthetic test data:
-
-        >>> time, aif, roi, gt = dc.fake.tissue()
-
-        The correct ground truth for ve in model-free analysis is the 
-        extracellular part of the distribution space:
-
-        >>> gt['ve'] = gt['vp'] + gt['vi'] if gt['PS'] > 0 else gt['vp']
-
-        Build a tissue and set the constants to match the
-        experimental conditions of the synthetic test data. 
-
-        >>> tissue = dc.TissueLS(
-        ...     dt = time[1],
-        ...     sequence = 'SS',
-        ...     r1 = dc.const.r1(3, 'blood','gadodiamide'),
-        ...     TR = 0.005,
-        ...     FA = 15,
-        ...     R10a = 1/dc.const.T1(3.0,'blood'),
-        ...     R10 = 1/dc.const.T1(3.0,'muscle'),
-        ... )
-
-        Train the tissue on the data. Since have noise-free synthetic 
-        data we use a lower tolerance than the default, which is optimized 
-        for noisy data:
-
-        >>> tissue.train(roi, aif, n0=10, tol=0.01)
-
-        Plot the reconstructed signals along with the concentrations 
-        and the impulse response function.
-
-        >>> tissue.plot(roi)
     """
     configs = {
         'sequence': [s for s, v in SEQUENCES.items() if v['steady-state']]
@@ -299,7 +330,7 @@ class TissueLS(SuperModel):
     def _shape(self):
         n_pixels = 1 if self._pixels_shape==() else np.prod(self._pixels_shape)
         n_times = self._pars['c_a'].size
-        if self._cnfg['sequence'] in ['DE-EPI']:
+        if self._cnfg['sequence'] in ['Eq-DE-EPI', 'DE-EPI']:
             n_channels = 2
         else:
             n_channels = 1
@@ -310,7 +341,7 @@ class TissueLS(SuperModel):
             select = 'all'
         seq = self._cnfg['sequence']
         if select == 'all':
-            return ['c_a', 'TS'] + Signal(seq)._params()
+            return ['c_a', 'TS'] + SignalTissueLS(seq)._params()
         if select == 'pixel':
             return [p for p in self._params() if p in ['S0', 'B1corr', 'R10']]
   
@@ -343,7 +374,8 @@ class TissueLS(SuperModel):
             C_x = SignalToConc(seq, **kwargs_x)(signal[x, ...], S0=None, n0=n0)
             C_x = np.stack([np.interp(t, time, C_x[i,:], right=0, left=0) for i in range(C_x.shape[0])])
             # Compute S0 on the fly so signal predictions can be verified
-            s_ref = BaselineSignal(seq, **kwargs_x)(S0=1)
+            # s_ref = BaselineSignal(seq, **kwargs_x)()
+            s_ref = Signal(seq, **kwargs_x)(R1=kwargs_x['R10'], R2=0, R2s=0, S0=1)
             s_ref = np.mean(s_ref)
             s_avr = np.mean(signal[x, :, :n0]) 
             S0_x = np.divide(s_avr, s_ref, out=np.zeros_like(s_avr), where=s_ref != 0)
@@ -375,7 +407,7 @@ class TissueLS(SuperModel):
         def pixel_signal(x) -> np.ndarray: # (n_channels, n_times)
             kwargs_x = self._cnfg | self._pixel_pars(x)
             kwargs_x = {k: v for k, v in kwargs_x.items() if k != 'irf'} | {'irf': p['irf'][x, ...]}
-            S = Signal(**kwargs_x)(p['c_a'])
+            S = SignalTissueLS(**kwargs_x)(p['c_a'])
             return S.reshape(-1, S.shape[-1])  # (n_channels, n_times)
         
         if self._shape[0]==1:

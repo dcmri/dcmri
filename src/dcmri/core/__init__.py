@@ -1,5 +1,5 @@
-from dcmri.core.func import (
-    SuperFunc
+from dcmri.core.layer import (
+    LayerFunction
 )
 from dcmri.core.model import (
     Input,

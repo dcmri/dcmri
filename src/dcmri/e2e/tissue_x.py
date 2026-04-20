@@ -95,7 +95,6 @@ from copy import deepcopy
 
 import matplotlib.pyplot as plt
 import numpy as np
-from joblib import Parallel, delayed
 
 from dcmri.lexicon import SEQUENCES, QUANTITIES, string_params, init
 
@@ -106,47 +105,66 @@ from dcmri.utils.fit import loss, train_batch, format_batch_training
 
 from dcmri.kinetics import ConcTissueX
 from dcmri.relaxivity import RelaxTissueX
+from dcmri.relaxivity import R1 as Relax1
 from dcmri.bloch import MzTissueX, SignalTissueX
-from dcmri.bloch.tissue_x import WaterVolumes, WaterFlows
-from dcmri.relaxivity.tissue_x import WaterConc, ContrastConc
+from dcmri.bloch.tissue_x import WaterVolumesTissueX, WaterFlowsTissueX
+from dcmri.relaxivity.tissue_x import WaterConcTissueX, ContrastConcTissueX
 
 
 class TissueX(SuperModel):
+    """Vascular-interstitial tissue pixels with a known input.
+
+    This is the most common tissue type as found in for instance brain,
+    cancer, lung, muscle, prostate, skin, and more. 
+
+    Args:
+        kinetics (str, optional): Tracer-kinetic model.
+        water_exchange (str, optional): Water exchange regime. 
+        t2s_relaxation (str, optional): Transverse relaxation model.
+        sequence (str, optional): imaging sequence.
+        params (dict, optional): override parameter defaults.
+
+    See Also:
+        `TissueLS`
+    """
 
     configs = {
         'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'],
         'water_exchange': ['FF','RF','NF','FR','RR','NR','FN','RN','NN'],
-        'transverse_relaxation': ['lin', 'quad', 'leakage'],
+        't2s_relaxation': ['lin', 'quad', 'leakage'],
         'sequence': deepcopy(list(SEQUENCES.keys())),
     }
-
     def __init__(
         self,
         kinetics='HF', 
         water_exchange='FF', 
-        transverse_relaxation='lin',
+        t2s_relaxation='lin',
         sequence='3D-SPGR-SS',
         shape=None, 
         **params
     ):
-        cnfg = {
-            'kinetics': kinetics, 
-            'water_exchange': water_exchange, 
-            'transverse_relaxation': transverse_relaxation,
-            'sequence': sequence, 
-        }
         self._version = '1.0'
-        self._cnfg = self._set_config(**cnfg)
-        self._pars = self._set_pars(**params)
 
-        # Check configuration
+        # Check shape
         if shape is not None:
             if len(shape) > 3:
                 raise ValueError(
                     f"The 'shape' parameter specifies spatial dimensions "
                     "and must be 1-, 2- or 3 dimensional (or empty for 1D data)"
-                )       
-            
+                )  
+        # Build config including fixed and dependent configurations
+        cnfg = {
+            'kinetics': kinetics, 
+            'water_exchange': water_exchange, 
+            't2s_relaxation': t2s_relaxation,
+            't2_relaxation': 'lin',
+            't1_relaxation': 'lin',
+            'tissue_props': set(SEQUENCES[sequence]['parameters']['tissue']),
+            'sequence': sequence,  
+        }
+        self._cnfg = self._set_config(**cnfg)
+        self._pars = self._set_pars(**params)
+  
         # Store the shape of the parameters provided by the user, 
         # which can be scalar, 1D, 2D or 3D. 
         # 
@@ -206,7 +224,7 @@ class TissueX(SuperModel):
     def _shape(self):
         n_pixels = 1 if self._pixels_shape==() else np.prod(self._pixels_shape)
         n_times = self._pars['c_a'].size
-        if self._cnfg['sequence'] in ['DE-EPI']:
+        if self._cnfg['sequence'] in ['Eq-DE-EPI', 'DE-EPI']:
             n_channels = 2
         else:
             n_channels = 1
@@ -220,19 +238,20 @@ class TissueX(SuperModel):
 
         if select == 'all':
             p = ['c_a', 'dt', 'TS']
+            if 'R1' in self._cnfg['tissue_props']:
+                p += ['R10_a']
             p += ConcTissueX(**cnfg)._params()
             p += RelaxTissueX(**cnfg)._params()
             p += SignalTissueX(**cnfg)._params()
-            p += SignalTissueX(**cnfg)._params() 
             return list(set(p))
         
         elif select == 'pixel': # pixel-based parameters
             pars = (
                 ConcTissueX(**cnfg)._params()
-                + WaterConc(**cnfg)._params()
-                + ContrastConc(**cnfg)._params()
-                + WaterVolumes(**cnfg)._params()
-                + WaterFlows(**cnfg)._params()
+                + WaterConcTissueX(**cnfg)._params()
+                + ContrastConcTissueX(**cnfg)._params()
+                + WaterVolumesTissueX(**cnfg)._params()
+                + WaterFlowsTissueX(**cnfg)._params()
                 + ['R10', 'R20', 'R20s', 'r2s', 'r2s_quad', 'r2s_vasc', 'r2s_ees']
                 + ['S0', 'B1corr', 'noise_sdev']
             )
@@ -241,53 +260,84 @@ class TissueX(SuperModel):
         elif select == 'free': # default free parameters (subset of ppixel)
             pars = (
                 ConcTissueX(**cnfg)._params()
-                + WaterConc(**cnfg)._params()
-                + ContrastConc(**cnfg)._params()
-                + WaterVolumes(**cnfg)._params()
-                + WaterFlows(**cnfg)._params()
+                + WaterConcTissueX(**cnfg)._params()
+                + ContrastConcTissueX(**cnfg)._params()
+                + WaterVolumesTissueX(**cnfg)._params()
+                + WaterFlowsTissueX(**cnfg)._params()
                 + ['r2s_vasc', 'r2s_ees']
             )
             return [p for p in list(set(pars)) if p != 'H' and p in self._params()]
-    
-    
+
+
     # ==========================================
-    # Forward Model
-    # ==========================================
+    # Forward Model (One pixel)
+    # ==========================================   
 
-    def _signal(self, x=None) -> np.ndarray: # (n_pixels, n_channels, n_times)
-        p = self._pars
-        Cx = ConcTissueX(**self._cnfg)
-        Rx = RelaxTissueX(**self._cnfg)
-        Sx = SignalTissueX(**self._cnfg)
-
-        def pixel_signal(x) -> np.ndarray: # (n_channels, n_times)
-            px = self._pixel_pars(x)
-            C = Cx(p['c_a'], **px)
-            R1, R2, R2s, R1a = Rx(C, p['c_a'], **px)
-            S = Sx(R1, R2, R2s, R1a, **px)
-            return S.reshape(-1, S.shape[-1])  # (n_channels, n_times)
-        
-        if x is None:
-            if self._shape[0]==1:
-                results = [pixel_signal(0)]
-            else:
-                results = Parallel(n_jobs=-1)(delayed(pixel_signal)(x) for x in range(self._shape[0]))
-        else: 
-            results = [pixel_signal(x)]
-        
-        return np.stack(results) # (n_pixels, n_channels, n_times)
-
+    def _conc(self, x):
+        p = self._cnfg | self._pixel_pars(x)
+        C = ConcTissueX(**p)(p['c_a'])
+        c = WaterConcTissueX(**p)(C)
+        return c
+    
+    def _tissue_conc(self, x):
+        p = self._cnfg | self._pixel_pars(x)
+        C = ConcTissueX(**p)(p['c_a'])
+        return C
+    
+    def _relax(self, x):
+        p = self._cnfg | self._pixel_pars(x)
+        C = ConcTissueX(**p)(p['c_a'])
+        return RelaxTissueX(**p)(C)
+    
+    def _mz(self, x):
+        p = self._cnfg | self._pixel_pars(x)
+        C = ConcTissueX(**p)(p['c_a'])
+        R1, R2, R2s = RelaxTissueX(**p)(C)
+        R1a = None if R1 is None else Relax1(**p)(p['c_a'], R10=p['R10_a'])
+        if R1 is not None:
+            Mz = MzTissueX(**p)(R1, R1a)
+        elif R2 is not None:
+            Mz = np.full_like(R2, p['me'])
+        elif R2s is not None:
+            Mz = np.full_like(R2s, p['me']).reshape(1, -1)
+        return Mz
+    
+    def _signal(self, x) -> np.ndarray: # (n_channels, n_times)
+        p = self._cnfg | self._pixel_pars(x)
+        C = ConcTissueX(**p)(p['c_a']) # (ncomp, ntimes)
+        R1, R2, R2s = RelaxTissueX(**p)(C) 
+        R1a = None if R1 is None else Relax1(**p)(p['c_a'], R10=p['R10_a'])
+        S = SignalTissueX(**p)(R1, R2, R2s, R1a)  # (n_channels, n_times) or (n_times,)
+        return S.reshape(-1, S.shape[-1])
+    
     def _time(self):
         p = self._pars
         return p['dt'] * np.arange(p['c_a'].size) # (n_times, )
-
-    def _predict(self, time, x=None):
+    
+    def _predict(self, time, x):
         t = self._time()
-        s = self._signal(x) # (n_pixels, n_channels, n_times)
+        s = self._signal(x)
         p = self._pars
-        n_channels = s.shape[1]
-        readouts = [sample(time, t, s[:,i,:], p['TS']) for i in range(n_channels)]
-        return np.stack(readouts, axis=1) # (n_pixels, n_channels, n_times)
+        return sample(time, t, s, p['TS']) # s dims: (n_channels, n_times)
+    
+    # ==========================================
+    # Forward Model (All pixels)
+    # ==========================================
+
+    def _conc_all(self) -> np.ndarray: # (n_pixels, n_compartments, n_times)
+        return np.stack(self._run_parallel(self._conc))
+    
+    def _tissue_conc_all(self) -> np.ndarray: # (n_pixels, n_compartments, n_times)
+        return np.stack(self._run_parallel(self._tissue_conc))
+
+    def _mz_all(self) -> np.ndarray: # (n_pixels, n_compartments, n_times)
+        return np.stack(self._run_parallel(self._mz))
+
+    def _signal_all(self) -> np.ndarray: # (n_pixels, n_channels, n_times)
+        return np.stack(self._run_parallel(self._signal))
+
+    def _predict_all(self, time): # rename to _predict() to restore functionalit
+        return np.stack(self._run_parallel(self._predict, time))
         
     # ==========================================
     # Inverse Model: Training
@@ -298,10 +348,14 @@ class TissueX(SuperModel):
         p = self._pars
         
         def s0_pixel(x):
+
             px = self._cnfg | self._pixel_pars(x)
-            C = ConcTissueX(**px)([0])
-            R1, R2, R2s, R1a = RelaxTissueX(**px)(C, [0])
-            s_ref = SignalTissueX(**px)(R1, R2, R2s, R1a, S0=1).flatten()
+            C = ConcTissueX(**px)([0]) # Values are 0 but this get the right shape for C
+            R1, R2, R2s = RelaxTissueX(**px)(C)
+            R1a = None if R1 is None else [p['R10_a']]
+            s_ref = SignalTissueX(**px)(R1, R2, R2s, R1a, S0=1)
+
+            s_ref = s_ref.flatten()
             s_avr = np.mean(signal[x, :, :n0], axis=-1) 
             S0 = np.divide(s_avr, s_ref, out=np.zeros_like(s_avr), where=s_ref != 0)
             return S0
@@ -347,66 +401,6 @@ class TissueX(SuperModel):
     # ==========================================
     # I/O and Reporting
     # ==========================================
-
-    def _concentration(self):
-        p = self._pars
-        Cx = ConcTissueX(**self._cnfg)
-
-        def _conc_pixel(x):
-            pars_x = self._pixel_pars(x)
-            return Cx(p['c_a'], **pars_x)
-
-        if self._shape[0]==1:
-            C = [_conc_pixel(0)]
-        else:
-            C = Parallel(n_jobs=-1)(delayed(_conc_pixel)(x) for x in range(self._shape[0]))
-
-        return np.stack(C)  # (n_pixels, n_compartments, n_times)
-
-
-    def _relaxation_rate(self):
-        p = self._pars
-        Cx = ConcTissueX(**self._cnfg)
-        Rx = RelaxTissueX(**self._cnfg)
-
-        def _relax_pixel(x):
-            pars_x = self._pixel_pars(x)
-            C = Cx(p['c_a'], **pars_x)
-            R1, R2, R2s, R1a = Rx(C, p['c_a'], **pars_x)
-            return R1, R2, R2s
-        
-        if self._shape[0]==1:
-            results = [_relax_pixel(0)]
-        else:
-            results = Parallel(n_jobs=-1)(delayed(_relax_pixel)(x) for x in range(self._shape[0]))
-
-        R1 = [r[0] for r in results]
-        R2 = [r[1] for r in results]
-        R2s = [r[2] for r in results]
-        if R2[0] is None: # R2 is not always defined
-            R2 = None
-        else:
-            R2 = np.stack(R2)
-        return np.stack(R1), R2, np.stack(R2s)   # (n_pixels, n_compartments, n_times)
-    
-    def _magnetization(self):
-        p = self._pars
-        Cx = ConcTissueX(**self._cnfg)
-        Rx = RelaxTissueX(**self._cnfg)
-        Mx = MzTissueX(**self._cnfg)
-
-        def _magn_pixel(x):
-            pars_x = self._pixel_pars(x)
-            C = Cx(p['c_a'], **pars_x)
-            R1, _, _, R1a = Rx(C, p['c_a'], **pars_x)
-            return Mx(R1, R1a, **pars_x)
-        
-        if self._shape[0]==1:
-            Mz = [_magn_pixel(0)]
-        else:
-            Mz = Parallel(n_jobs=-1)(delayed(_magn_pixel)(x) for x in range(self._shape[0]))
-   
-        return np.stack(Mz)  # (n_pixels, n_compartments, n_times) 
 
 
     def _plot(
@@ -458,15 +452,14 @@ class TissueX(SuperModel):
                     return ['Blood + Interstitium', 'Tissue cells']
                 
         t = self._time()
-        C = self._concentration() # (n_pixels, n_compartments, n_times)
-        R1, R2, R2s = self._relaxation_rate() # (n_pixels, n_compartments, n_times)
-        Mz = self._magnetization() # (n_pixels, n_compartments, n_times)
-        S = self._signal() # (n_pixels, n_channels, n_times)
+        C = self._tissue_conc_all() # (n_pixels, n_compartments, n_times)
+        c = self._conc_all() # (n_pixels, n_compartments, n_times)
+        Mz = self._mz_all() # (n_pixels, n_compartments, n_times)
+        S = self._signal_all() # (n_pixels, n_channels, n_times)
         p = self._pars
 
-        c = (R1 - R1[:, :, 0][:, :, np.newaxis]) / p['r1']
         x = 0
-        v = WaterVolumes(self._cnfg['kinetics'], self._cnfg['water_exchange'])(**self._pixel_pars(x))
+        v = WaterVolumesTissueX(self._cnfg['kinetics'], self._cnfg['water_exchange'])(**self._pixel_pars(x))
 
         if xlim is None: xlim = [np.amin(t), np.amax(t)]
         xlim=np.array(xlim) / 60
@@ -488,7 +481,7 @@ class TissueX(SuperModel):
 
         ax00.set_title('MRI signals')
         for ci in range(signal.shape[1]):
-            ax00.plot(time / 60, self._predict(time)[0, ci, :], marker='o', linestyle='None', color='cornflowerblue', label='Predicted data')
+            ax00.plot(time / 60, self._predict_all(time)[0, ci, :], marker='o', linestyle='None', color='cornflowerblue', label='Predicted data')
             ax00.plot(time / 60, signal[0, ci, :], marker='x', linestyle='None', color='darkblue', label='Data')
             ax00.plot(t / 60, S[0, ci, :], linestyle='-', linewidth=3.0, color='darkblue', label='Model')
         ax00.set(ylabel='MRI signal (a.u.)', xlabel='Time (min)', xlim=xlim)
@@ -535,7 +528,7 @@ class TissueX(SuperModel):
             ax_text.text(0, 0.9, f'Kinetics: {self._cnfg['kinetics']}', fontsize=10, transform=ax_text.transAxes, ha="left", va="top")
             ax_text.text(0, 0.85, f'Water exchange: {self._cnfg['water_exchange']}', fontsize=10, transform=ax_text.transAxes, ha="left", va="top")
             ax_text.text(0, 0.8, f'Sequence: {self._cnfg['sequence']}', fontsize=10, transform=ax_text.transAxes, ha="left", va="top")
-            ax_text.text(0, 0.75, f'R2* model: {self._cnfg['transverse_relaxation']}', fontsize=10, transform=ax_text.transAxes, ha="left", va="top")
+            ax_text.text(0, 0.75, f'R2* model: {self._cnfg['t2s_relaxation']}', fontsize=10, transform=ax_text.transAxes, ha="left", va="top")
             ax_text.text(0, 0.6, msg, fontsize=10, transform=ax_text.transAxes, ha="left", va="top")
 
         if fname is not None: plt.savefig(fname=fname)
@@ -580,7 +573,7 @@ class TissueX(SuperModel):
             >>> _ = plt.legend()
             >>> _ = plt.show()
         """
-        C = self._concentration() # (n_pixels, n_compartments, n_times)
+        C = self._tissue_conc_all() # (n_pixels, n_compartments, n_times)
         C = C.reshape(self._pixels_shape + C.shape[1:]) # (nx, ny, nz, n_compartments, n_times)
         if C.shape[-2] == 1:
             return C[...,0,:]
@@ -637,7 +630,8 @@ class TissueX(SuperModel):
             >>> plt.show()
 
         """
-        def reshapeR1(R):
+        def reshapeR(R):
+            R = np.stack(R)
             # R = n_samples, n_compartments, n_times
             R = R.reshape(self._pixels_shape + R.shape[1:]) # (nx, ny, nz, n_compartments, n_times)
             # Squeeze out compartments of 1
@@ -646,22 +640,31 @@ class TissueX(SuperModel):
             else:
                 return R
             
-        def reshapeR2(R):
-            if R is None:
-                return R
+        def reshapeR2s(R):
+            R = np.stack(R)
             # R = n_samples, n_times
             return R.reshape(self._pixels_shape + (R.shape[1], )) # (nx, ny, nz, n_times)
-            
-        R1, R2, R2s = self._relaxation_rate() # (n_pixels, n_compartments, n_times)
-        return reshapeR1(R1), reshapeR2(R2), reshapeR2(R2s)
+        
+        results = self._run_parallel(self._relax)
+
+        R1 = [r[0] for r in results]
+        R2 = [r[1] for r in results]
+        R2s = [r[2] for r in results]
+
+        R1_ret = None if R1[0] is None else reshapeR(R1)
+        R2_ret = None if R2[0] is None else reshapeR(R2)
+        R2s_ret = None if R2s[0] is None else reshapeR2s(R2s)
+        
+        return R1_ret, R2_ret, R2s_ret   # (n_pixels, n_compartments, n_times) or None
     
-    def magn(self) -> np.ndarray:
+    
+    def mz(self) -> np.ndarray:
         """Pseudocontinuous magnetization
 
         Returns:
             np.ndarray: the magnetization as a 1D array.
         """
-        Mz = self._magnetization() # (n_pixels, n_compartments, n_times)
+        Mz = self._mz_all() # (n_pixels, n_compartments, n_times)
         Mz = Mz.reshape(self._pixels_shape + Mz.shape[1:]) # (nx, ny, nz, n_compartments, n_times)
         if Mz.shape[-2] == 1:
             return Mz[...,0,:]
@@ -674,7 +677,7 @@ class TissueX(SuperModel):
         Returns:
             np.ndarray: the signal as a 1D array.
         """
-        S = self._signal() # (n_pixels, n_channels, n_times)
+        S = self._signal_all() # (n_pixels, n_channels, n_times)
         S = S.reshape(self._pixels_shape + S.shape[1:]) # (nx, ny, nz, n_compartments, n_times)
         if S.shape[-2] == 1:
             return S[...,0,:] # (nx, ny, nz, n_times)
@@ -690,7 +693,7 @@ class TissueX(SuperModel):
         Returns:
             np.ndarray: Array of predicted data for each element of *time*.
         """
-        S = self._predict(time) # (n_pixels, n_channels, n_times)
+        S = self._predict_all(time) # (n_pixels, n_channels, n_times)
         S = S.reshape(self._pixels_shape + S.shape[1:]) # (nx, ny, nz, n_channels, n_times)
         if S.shape[-2] == 1: # one channel - squeeze out
             return S[...,0,:] # (nx, ny, nz, n_times)
@@ -725,7 +728,7 @@ class TissueX(SuperModel):
         else:
             n_times = self._pars['c_a'].size
 
-        if self._cnfg['sequence'] in ['DE-EPI']:
+        if self._cnfg['sequence'] in ['Eq-DE-EPI', 'DE-EPI']:
             n_channels = 2
         else:
             n_channels = 1
@@ -805,7 +808,7 @@ class TissueX(SuperModel):
             - 'BIC': Baysian information criterion.
         """
         signal = signal.reshape(self._shape[0], np.prod(self._shape[1:]))
-        signal_pred = self._predict(time).reshape(self._shape[0], np.prod(self._shape[1:]))
+        signal_pred = self._predict_all(time).reshape(self._shape[0], np.prod(self._shape[1:]))
 
         cost = loss(signal_pred, signal, metric, nfree)
         if self._pixels_shape == ():

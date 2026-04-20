@@ -1,7 +1,33 @@
-from scipy.linalg import expm
 import numpy as np
+from scipy.linalg import expm
+from scipy.special import i0, i1
+
 
 from dcmri.bloch.lib import pulse
+
+
+def mz_readout(Mz: np.ndarray, R2: np.ndarray, S0, FA, TE, noise_sdev):
+    # Shapes for Mz, R2: (nc, nt)
+    # Other parameters are scalar
+    # returns shape (nt,)
+    sFA = np.sin(np.radians(FA))
+    decay = np.exp(-TE * R2)
+    Mxy = decay * sFA * Mz
+    Mxy = np.sum(Mxy, axis=0) # sum over compartments
+    signal = S0 * np.abs(Mxy)
+    return signal_rice(signal, noise_sdev)
+    
+
+def signal_rice(nu, sigma)-> np.ndarray:
+    if sigma==0:
+        return nu
+    with np.errstate(divide='ignore', over='ignore', invalid='ignore'):
+        K = nu**2 / (2*sigma**2)
+        arg = K/2
+        pref = sigma * np.sqrt(np.pi/2)
+        rice_mean = pref * np.exp(-K/2) * ((1+K)*i0(arg) + K*i1(arg))
+    # Nan values are points where the distribution is indistinguisable from Gaussian
+    return np.where(np.isnan(rice_mean) | np.isinf(rice_mean), nu, rice_mean)
 
 
 # def Mz_ge(R1, v, Fw, j, me, TR, FA): 
