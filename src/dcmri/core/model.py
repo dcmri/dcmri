@@ -7,8 +7,7 @@ import zarr
 import numpy as np
 
 from dcmri.utils.fit import train, loss
-from dcmri.lexicon import QUANTITIES, select_params, init
-
+from dcmri.lexicon import QUANTITIES, select_params, init, export_params
     
 
 class Input:
@@ -78,13 +77,26 @@ class SuperModel:
     def _override_pars(self, **params):
         [self._pars.update({k:v}) for k, v in params.items() if k in self._pars]
 
-
+    def export_params(self, lexicon:dict=QUANTITIES):
+        return export_params(self._pars, lexicon=lexicon)
+    
     def save(self, folder: str):
-        # Ensure directory mode
+
+        def _sanitize_for_json(obj):
+            """Recursively convert numpy types to native python types for JSON."""
+            if isinstance(obj, dict):
+                return {k: _sanitize_for_json(v) for k, v in obj.items()}
+            elif isinstance(obj, (list, tuple)):
+                return [_sanitize_for_json(x) for x in obj]
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif isinstance(obj, (np.integer, np.floating)):
+                return obj.item()
+            return obj
+    
         if folder.endswith('.zip') or folder.endswith('.json'):
             folder = os.path.splitext(folder)[0]
 
-        # mode='w' creates the directory store automatically
         root = zarr.open_group(folder, mode='w')
         
         array_keys = []
@@ -92,8 +104,7 @@ class SuperModel:
         
         for k, v in self._pars.items():
             if isinstance(v, np.ndarray):
-                # 1. Create the array
-                # Note: 'chunks' must be a tuple, e.g., (10,) not just 10.
+                # Store large arrays in Zarr binary chunks
                 z_arr = root.create_array(
                     name=k, 
                     shape=v.shape, 
@@ -101,31 +112,29 @@ class SuperModel:
                     chunks=v.shape, 
                     overwrite=True
                 )
-                
-                # 2. Use the standard slice but ensure it's a full-volume write
-                # If [:] fails, use .update(v) which is the V3-specific method
                 if hasattr(z_arr, 'update'):
                     z_arr.update(v)
                 else:
-                    z_arr[...] = v  # '...' (Ellipsis) is often safer than ':' in V3
-                    
+                    z_arr[...] = v
                 array_keys.append(k)
             else:
+                # Collect scalars
                 metadata_pars[k] = v
 
-        # Save the metadata into .attrs (this remains a JSON file)
-        root.attrs.update({
+        # SANITIZE and SAVE
+        # This ensures scalars like np.float64 become readable 1.23 instead of binary junk
+        readable_meta = _sanitize_for_json({
             'model': self.__class__.__name__,
             'version': self._version,
             'config': self._cnfg,
             'pars_scalar': metadata_pars,
             'array_keys': array_keys
         })
+
+        root.attrs.update(readable_meta)
         return self
-
-
+    
     def load(self, folder: str):
-        """Loads model state from a Zarr directory."""
         if not os.path.isdir(folder):
             raise FileNotFoundError(f"Directory {folder} not found.")
 
@@ -133,11 +142,13 @@ class SuperModel:
         meta = root.attrs.asdict()
 
         if meta['model'] != self.__class__.__name__:
-            raise ValueError(f"Directory belongs to {meta['model']}.")
+            raise ValueError(f"Model mismatch: {meta['model']} vs {self.__class__.__name__}")
         
+        # Load scalars back into _pars
         self._pars = meta['pars_scalar']
         self._cnfg = meta['config']
 
+        # Reconstruct numpy arrays from binary stores
         for key in meta['array_keys']:
             self._pars[key] = np.array(root[key])
 

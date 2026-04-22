@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.special import gamma
 from scipy.integrate import trapezoid
+from scipy.signal import lfilter
 
 
 def _tarray(n, t=None, dt=1.0):
@@ -302,6 +303,51 @@ def stepconv(f, T, D, t=None, dt=1.0):
     return g/(2*TW)
 
 
+def _uexpconv(f, T, dt, tol):
+    # Edge case: T is tiny (Response is instantaneous)
+    # TODO this is not ideal as results is independent of T
+    # Better use taylor expansion of E's for large T
+    if T < tol * dt: # Equivalent to T/dt < tol
+        return f
+    
+    # Pre-calculate ratio
+    inv_T = 1.0 / T
+    
+    # Edge case: T is very large (i.e. x is small)
+    # Approximate exponential by linear function
+    n = len(f)
+    if n * dt < tol * T:
+        t = dt * np.arange(n)
+        f0 = np.trapezoid(f, dx=dt)
+        f1 = np.trapezoid(f * t, dx=dt)
+        return f0 * inv_T + (f1 - t * f0) * (inv_T**2)
+
+    x = dt * inv_T 
+    E = np.exp(-x)
+    E0 = 1.0 - E
+    E1 = 1.0 - (E0 / x) 
+    
+    # Vectorized calculation of 'add'
+    f_start = f[:-1]
+    f_diff = f[1:] - f_start
+
+    add = f_start * E0 + f_diff * E1
+
+    # g = np.zeros(n, dtype=E.dtype) 
+    # for i in range(0, n-1):
+    #     g[i+1] = E * g[i] + add[i]
+    # return g
+
+    # Fast implementation
+    # Pad to make lfilter return an array of length n.
+    # Result: [0, add[0], E*add[0]+add[1], ...] 
+    padded_add = np.zeros(n, dtype=f.dtype)
+    padded_add[1:] = add
+
+    # lfilter call: b=[1.0], a=[1.0, -E]
+    return lfilter([1.0], [1.0, -E], padded_add)
+
+
 def expconv(f, T, t=None, dt=1.0, tol=0):
     """Convolve a 1D-array with a normalised exponential.
 
@@ -357,15 +403,20 @@ def expconv(f, T, t=None, dt=1.0, tol=0):
         >>> dc.expconv(f, 3, t)
         array([0.        , 1.26774952, 2.32709015, 4.16571645])
     """
-
     if T == 0:
         return f
     f = np.array(f)
     n = len(f)
     if n==1:
         return np.zeros(n)
+
+    if t is None:
+        return _uexpconv(f, T, dt, tol) # fast version for fixed dt
+        
     t = _tarray(n, t=t, dt=dt)
     x = (t[1:n] - t[0:n-1])/T 
+
+    # Optional protection against overflow when x is very small or very big
     if 1/x.min() < tol: # very small T
         return f
     if t.max() / T < tol: # very large T
@@ -380,12 +431,13 @@ def expconv(f, T, t=None, dt=1.0, tol=0):
         f0 = _trapz(f, t=t, dt=dt)
         f1 = _trapz(f*t, t=t, dt=dt)
         return f0 / T + (f1 - t * f0) / T**2
+    
     df = (f[1:n] - f[0:n-1])/x
     E = np.exp(-x)
     E0 = 1-E
     E1 = x-E0
     add = f[0:n-1]*E0 + df*E1
-    g = np.zeros(n, dtype=E.dtype) 
+    g = np.zeros(n, dtype=E.dtype) # this can also be accelerated like uexpconv()
     for i in range(0, n-1):
         g[i+1] = E[i]*g[i] + add[i]
     return g

@@ -525,10 +525,10 @@ class TissueX(SuperModel):
             msg = "\n".join(list(msg.values()))
             ax_text.set_title('Free parameters')
             ax_text.axis("off")  # hide axes
-            ax_text.text(0, 0.9, f'Kinetics: {self._cnfg['kinetics']}', fontsize=10, transform=ax_text.transAxes, ha="left", va="top")
-            ax_text.text(0, 0.85, f'Water exchange: {self._cnfg['water_exchange']}', fontsize=10, transform=ax_text.transAxes, ha="left", va="top")
-            ax_text.text(0, 0.8, f'Sequence: {self._cnfg['sequence']}', fontsize=10, transform=ax_text.transAxes, ha="left", va="top")
-            ax_text.text(0, 0.75, f'R2* model: {self._cnfg['t2s_relaxation']}', fontsize=10, transform=ax_text.transAxes, ha="left", va="top")
+            ax_text.text(0, 0.9, f"Kinetics: {self._cnfg['kinetics']}", fontsize=10, transform=ax_text.transAxes, ha="left", va="top")
+            ax_text.text(0, 0.85, f"Water exchange: {self._cnfg['water_exchange']}", fontsize=10, transform=ax_text.transAxes, ha="left", va="top")
+            ax_text.text(0, 0.8, f"Sequence: {self._cnfg['sequence']}", fontsize=10, transform=ax_text.transAxes, ha="left", va="top")
+            ax_text.text(0, 0.75, f"R2* model: {self._cnfg['t2s_relaxation']}", fontsize=10, transform=ax_text.transAxes, ha="left", va="top")
             ax_text.text(0, 0.6, msg, fontsize=10, transform=ax_text.transAxes, ha="left", va="top")
 
         if fname is not None: plt.savefig(fname=fname)

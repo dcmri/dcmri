@@ -127,7 +127,7 @@ import numpy as np
 
 import dcmri.kinetics.lib as pk
 from dcmri import const
-from dcmri.lexicon import QUANTITIES
+from dcmri.lexicon import QUANTITIES, export_params
 from dcmri.bloch import Signal
 from dcmri.utils.misc import sample, interp
 from dcmri.utils.fit import train, loss
@@ -198,7 +198,7 @@ QUANTITIES = QUANTITIES | {
     'd_dkhe': {'name': 'Drug visit - Change in hepatocellular uptake rate', 'unit': ''},
     'd_kbh_i': {'init': 0.00025, 'bounds': [0, 0.0005], 'name': 'Drug visit - initial biliary excretion rate', 'unit': 'mL/sec/cm3'},
     'd_kbh_f': {'init': 0.00025, 'bounds': [0, 0.0005], 'name': 'Drug visit - final biliary excretion rate', 'unit': 'mL/sec/cm3'},
-    'd_kbh': {'name': 'Drug visit - biliary excretion rate', 'unit': 'mL/sec/cm3'},
+    'd_kbh': {'init': 0.00025, 'bounds': [0, 0.0005], 'name': 'Drug visit - biliary excretion rate', 'unit': 'mL/sec/cm3'},
     'd_dkbh': {'name': 'Drug visit - change in biliary excretion rate', 'unit': ''},
     'd_CL': {'name': 'Drug visit - liver plasma clearance', 'unit': 'mL/sec'},
 
@@ -232,9 +232,9 @@ class AortaLiverDynamicDrug(SuperModel):
         `AortaLiver`
     """
 
-    configs = {'sequence': ['3D-SPGR-SS', '3D-SPGR-SSI']}
+    configs = {'sequence': ['ZTE-3D-SPGR-SS', '3D-SPGR-SS', '3D-SPGR-SSI']}
 
-    def __init__(self, sequence='3D-SPGR-SS', **params):
+    def __init__(self, sequence='ZTE-3D-SPGR-SS', **params):
         self._version = '1.0'
         self._cnfg = self._set_config(sequence=sequence)
         self._pars = self._set_pars(lexicon=QUANTITIES, **params)
@@ -251,13 +251,17 @@ class AortaLiverDynamicDrug(SuperModel):
                 'dt', 'c_tmax', 'd_tmax', 
                 # _conc_aorta
                 'dose_tolerance', 'agent', 'weight', 'rate', 
-                'GFR', 'H', 'CO', 'Thl', 'Dhl', 'To', 'To_e', 'Eo',
+                # 'GFR', 
+                'Eb',
+                'H', 'CO', 'Thl', 'Dhl', 'To', 'To_e', 'Eo',
                 'c_khe_i', 'c_khe_f', 'c_vol',
                 'd_khe_i', 'd_khe_f', 'd_vol', 
                 'c_dose_1', 'c_BAT_1',  'c_dose_2', 'c_BAT_2',
                 'd_dose_1', 'd_BAT_1',  'd_dose_2', 'd_BAT_2',
                 # _conc_liver
-                'Tg', 'Dg', 've', 'c_kbh', 'd_kbh_i', 'd_kbh_f',
+                'Tg', 'Dg', 've', 
+                'c_kbh', 
+                'd_kbh',  # 'd_kbh_i', 'd_kbh_f',
                 # _relax_aorta
                 'field_strength', 
                 'c_R10_a', 'd_R10_a', 
@@ -277,66 +281,35 @@ class AortaLiverDynamicDrug(SuperModel):
             ],
             'free': inflow_pars + [
                 # _conc_aorta 
+                'Eb',
                 'CO', 'Thl', 'Dhl', 'To', 'To_e', 'Eo',
-                'c_khe_i', 'c_khe_f',
-                'd_khe_i', 'd_khe_f', 
                 'c_BAT_1',  'c_BAT_2',
                 'd_BAT_1',  'd_BAT_2',
                 # _conc_liver
-                'Tg', 'Dg', 've', 'c_kbh', 'd_kbh_i', 'd_kbh_f',
-                # Signal
-                'c_S0_2_a', 'c_S0_2_l',
-                'd_S0_2_a', 'd_S0_2_l',
-            ],
-            'free_control': [
-                # _conc_aorta 
-                'CO', 'Thl', 'Dhl', 'To', 'To_e', 'Eo',
+                'Tg', 'Dg', 've', 
                 'c_khe_i', 'c_khe_f',
-                'c_BAT_1',  'c_BAT_2',
-                # _conc_liver
-                'Tg', 'Dg', 've', 'c_kbh',
-                # Signal
-                'c_S0_2_a', 'c_S0_2_l',
-            ],
-            'free_control_1': [
-                # _conc_aorta 
-                'CO', 'Thl', 'Dhl', 'To', 'To_e', 'Eo',
-                'c_khe_i',
-                'c_BAT_1',
-                # _conc_liver
-                'Tg', 'Dg', 've', 'c_kbh',
-            ],
-            'free_control_2': [
-                # _conc_aorta 
-                'c_khe_f',
-                'c_BAT_2',
-                # Signal
-                'c_S0_2_a', 'c_S0_2_l',
-            ],
-            'free_drug': [
-                # _conc_aorta 
                 'd_khe_i', 'd_khe_f', 
-                'd_BAT_1',  'd_BAT_2',
-                # _conc_liver
-                'd_kbh_i', 'd_kbh_f',
+                'c_kbh', 
+                'd_kbh',  # 'd_kbh_i', 'd_kbh_f',
                 # Signal
+                'c_S0_2_a', 'c_S0_2_l',
                 'd_S0_2_a', 'd_S0_2_l',
             ],
-            'free_drug_1': [
-                # _conc_aorta 
-                'd_khe_i', 
-                'd_BAT_1',
-                # _conc_liver
-                'd_kbh_i',
+            'free_aorta': inflow_pars + [
+                'Eb',
+                'CO', 'Thl', 'Dhl', 'To', 'To_e', 'Eo',
+                'c_BAT_1', 'd_BAT_1',  
+                'c_BAT_2', 'd_BAT_2',
+                'c_S0_2_a', 'd_S0_2_a', 
             ],
-            'free_drug_2': [
-                # _conc_aorta 
-                'd_khe_f', 
-                'd_BAT_2',
-                # _conc_liver
-                'd_kbh_f',
+            'free_liver': inflow_pars + [
+                'Tg', 'Dg', 've', 
+                'c_khe_i', 'c_khe_f',
+                'd_khe_i', 'd_khe_f', 
+                'c_kbh', 
+                'd_kbh',  # 'd_kbh_i', 'd_kbh_f',
                 # Signal
-                'd_S0_2_a', 'd_S0_2_l',
+                'c_S0_2_l', 'd_S0_2_l',
             ],
         }
         return pars_list[select]
@@ -365,14 +338,15 @@ class AortaLiverDynamicDrug(SuperModel):
                 p[f'{visit}_BAT_2'],
             )
 
-        # Body extraction fraction
-        if scans==1:
-            khe = p[f'{visit}_khe_i']
-        elif scans==2:
-            khe = interp([p[f'{visit}_khe_i'], p[f'{visit}_khe_f']], t)
+        # # Body extraction fraction
+        # if scans==1:
+        #     khe = p[f'{visit}_khe_i']
+        # elif scans==2:
+        #     khe = interp([p[f'{visit}_khe_i'], p[f'{visit}_khe_f']], t)
 
-        CL = khe * p[f'{visit}_vol'] + p['GFR']
-        Eb = CL / (CL + p['CO'] * (1 - p['H']))
+        # CL = khe * p[f'{visit}_vol'] + p['GFR']
+        # Eb = CL / (CL + p['CO'] * (1 - p['H']))
+        Eb = p['Eb']
 
         # Compute aorta flux
         Jb = pk.flux_aorta(
@@ -401,13 +375,16 @@ class AortaLiverDynamicDrug(SuperModel):
             Ch = pk.conc(khe * cp, Th, dt=p['dt'], model="comp")
         elif visit == 'd':
             if scans==1:
-                Th = vh / p[f'{visit}_kbh_i']
+                # Th = vh / p[f'{visit}_kbh_i']
+                Th = vh / p[f'{visit}_kbh']
                 Ch = pk.conc(khe * cp, Th, dt=p['dt'], model="comp")
             else:
-                Th_i = vh / p[f'{visit}_kbh_i']
-                Th_f = vh / p[f'{visit}_kbh_f']
-                Th = interp([Th_i, Th_f], t)
-                Ch = pk.conc(khe * cp, Th, dt=p['dt'], model="nscomp")
+                # Th_i = vh / p[f'{visit}_kbh_i']
+                # Th_f = vh / p[f'{visit}_kbh_f']
+                # Th = interp([Th_i, Th_f], t)
+                # Ch = pk.conc(khe * cp, Th, dt=p['dt'], model="nscomp")
+                Th = vh / p[f'{visit}_kbh']
+                Ch = pk.conc(khe * cp, Th, dt=p['dt'], model="comp")
 
         return np.stack((Ce, Ch))
 
@@ -560,6 +537,16 @@ class AortaLiverDynamicDrug(SuperModel):
     # Forward Model: All scans
     # ==========================================
 
+    def _predict_aorta(self, time):
+        Sac = self._predict_aorta_control(time[:2])
+        Sad = self._predict_aorta_drug(time[2:])
+        return Sac + Sad
+    
+    def _predict_liver(self, time):
+        Slc = self._predict_liver_control(time[:2])
+        Sld = self._predict_liver_drug(time[2:])
+        return Slc + Sld
+
     def _predict_control_1(self, time):
         Sa = self._predict_aorta_control(time[0], scans=1)
         Sl = self._predict_liver_control(time[1], scans=1)
@@ -639,9 +626,9 @@ class AortaLiverDynamicDrug(SuperModel):
 
 
     def _train(
-            self, time: tuple, signal: tuple, free=None, 
-            bounds:dict=None, R102a=None, R102l=None, n0=[1, 1], 
-            staged=False, **kwargs,
+            self, time: tuple, signal: tuple, free: dict, 
+            bounds:dict, R102a: list, R102l: list, n0: list, 
+            staged: bool, **kwargs,
         ):
         p = self._pars
         self._estimate_parameters(time, signal, n0, R102a, R102l)
@@ -653,39 +640,19 @@ class AortaLiverDynamicDrug(SuperModel):
                 if par not in free:
                     raise ValueError(f"For SSI sequence, '{par}' must be a free parameter.")     
 
+        # Train aorta data
+        t, s = (time[0], time[1], time[4], time[5]), (signal[0], signal[1], signal[4], signal[5])
+        free_aorta = {k: v for k, v in free.items() if k in self._params('free_aorta')}
+        aorta = train(self._predict_aorta, t, s, p, free_aorta, **kwargs)
+        
+        # Train liver data
+        t, s = (time[2], time[3], time[6], time[7]), (signal[2], signal[3], signal[6], signal[7])
+        free_liver = {k: v for k, v in free.items() if k in self._params('free_liver')}
+        liver = train(self._predict_liver, t, s, p, free_liver, **kwargs)
+
         if staged:
+            return aorta[0] | liver[0], aorta[1] | liver[1], (aorta[2], liver[2]) 
 
-            # Train control data
-            v = 0
-
-            t, s = (time[v + 0], time[v + 2]), (signal[v + 0], signal[v + 2])
-            free_stage = {k: v for k, v in free.items() if k in self._params('free_control_1')}
-            train(self._predict_control_1, t, s, p, free_stage, **kwargs)
-
-            t, s = (time[v + 1], time[v + 3]), (signal[v + 1], signal[v + 3])
-            free_stage = {k: v for k, v in free.items() if k in self._params('free_control_2')}
-            train(self._predict_control_2, t, s, p, free_stage, **kwargs)
-
-            t, s = time[v: v + 4], signal[v: v + 4]
-            free_stage = {k: v for k, v in free.items() if k in self._params('free_control')}
-            train(self._predict_control, t, s, p, free_stage, **kwargs)
-            
-            # Train drug data
-            v = 4
-
-            t, s = (time[v + 0], time[v + 2]), (signal[v + 0], signal[v + 2])
-            free_stage = {k: v for k, v in free.items() if k in self._params('free_drug_1')}
-            train(self._predict_drug_1, t, s, p, free_stage, **kwargs)
-
-            t, s = (time[v + 1], time[v + 3]), (signal[v + 1], signal[v + 3])
-            free_stage = {k: v for k, v in free.items() if k in self._params('free_drug_2')}
-            train(self._predict_drug_2, t, s, p, free_stage, **kwargs)
-
-            t, s = time[v: v + 4], signal[v: v + 4]
-            free_stage = {k: v for k, v in free.items() if k in self._params('free_drug')}
-            train(self._predict_drug, t, s, p, free_stage, **kwargs)
-
-        # Train all parameters on all data
         return train(self._predict, time, signal, p, free, **kwargs)
 
     # ==========================================
@@ -703,10 +670,10 @@ class AortaLiverDynamicDrug(SuperModel):
         fig, ((ax1, ax2, ax3, ax4), (ax5, ax6, ax7, ax8)) = plt.subplots(2, 4, figsize=(20, 8))
         fig.subplots_adjust(wspace=0.3)
 
-        ax1.set_title('First visit')
-        ax2.set_title('Second visit')
-        ax3.set_title('First visit')
-        ax4.set_title('Second visit')
+        ax1.set_title('Control visit')
+        ax2.set_title('Treatment visit')
+        ax3.set_title('Control visit')
+        ax4.set_title('Treatment visit')
 
         def plot_data2scan(t, s, ti, si, ax, xl, color):
             if xl is None: xl = [0, t[-1]]
@@ -750,6 +717,11 @@ class AortaLiverDynamicDrug(SuperModel):
     # ==========================================
     # Public API: Data Extraction TODO provided option of 1 time array, use dict for signals
     # ==========================================
+
+    def export_params(self) -> dict:
+        """Parameters with values, defintion and units"""
+        dpars = _deriv_params(self._pars)
+        return export_params(dpars | self._pars, lexicon=QUANTITIES)
 
     def time(self) -> dict:
         """Time points in aorta and liver for the two visits"""
@@ -871,7 +843,7 @@ class AortaLiverDynamicDrug(SuperModel):
                 time['drug', 'aorta', 1], time['drug', 'aorta', 2], 
                 time['drug', 'liver', 1], time['drug', 'liver', 2], 
             )
-        else:
+        elif isinstance(time, np.ndarray):
             time = tuple(8 * [time])
         p = self._pars
         for i, visit in enumerate(['c', 'd']):
@@ -892,7 +864,7 @@ class AortaLiverDynamicDrug(SuperModel):
     def train(
             self, time: dict, signal: dict, free=None, 
             bounds:dict=None, R102a=None, R102l=None, n0=[1, 1], 
-            staged=False, **kwargs,
+            staged=True, **kwargs,
         ):
         """Train the free parameters
 
@@ -917,14 +889,15 @@ class AortaLiverDynamicDrug(SuperModel):
                 time['drug', 'aorta', 1], time['drug', 'aorta', 2], 
                 time['drug', 'liver', 1], time['drug', 'liver', 2], 
             )
-        else:
+        elif isinstance(time, np.ndarray):
             time = tuple(8 * [time])
-        signal = (
-            signal['ctrl', 'aorta', 1], signal['ctrl', 'aorta', 2], 
-            signal['ctrl', 'liver', 1], signal['ctrl', 'liver', 2], 
-            signal['drug', 'aorta', 1], signal['drug', 'aorta', 2], 
-            signal['drug', 'liver', 1], signal['drug', 'liver', 2], 
-        )
+        if isinstance(signal, dict):
+            signal = (
+                signal['ctrl', 'aorta', 1], signal['ctrl', 'aorta', 2], 
+                signal['ctrl', 'liver', 1], signal['ctrl', 'liver', 2], 
+                signal['drug', 'aorta', 1], signal['drug', 'aorta', 2], 
+                signal['drug', 'liver', 1], signal['drug', 'liver', 2], 
+            )
         p = self._pars
         for i, visit in enumerate(['c', 'd']):
             p[f'{visit}_tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time[4 * i: 4 * i + 4]))
@@ -958,14 +931,15 @@ class AortaLiverDynamicDrug(SuperModel):
                 time['drug', 'aorta', 1], time['drug', 'aorta', 2], 
                 time['drug', 'liver', 1], time['drug', 'liver', 2], 
             )
-        else:
+        elif isinstance(time, np.ndarray):
             time = tuple(8 * [time])
-        signal = (
-            signal['ctrl', 'aorta', 1], signal['ctrl', 'aorta', 2], 
-            signal['ctrl', 'liver', 1], signal['ctrl', 'liver', 2], 
-            signal['drug', 'aorta', 1], signal['drug', 'aorta', 2], 
-            signal['drug', 'liver', 1], signal['drug', 'liver', 2], 
-        )
+        if isinstance(signal, dict):
+            signal = (
+                signal['ctrl', 'aorta', 1], signal['ctrl', 'aorta', 2], 
+                signal['ctrl', 'liver', 1], signal['ctrl', 'liver', 2], 
+                signal['drug', 'aorta', 1], signal['drug', 'aorta', 2], 
+                signal['drug', 'liver', 1], signal['drug', 'liver', 2], 
+            )
         p = self._pars
         for i, visit in enumerate(['c', 'd']):
             p[f'{visit}_tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time[4 * i: 4 * i + 4]))
@@ -1001,14 +975,15 @@ class AortaLiverDynamicDrug(SuperModel):
                 time['drug', 'aorta', 1], time['drug', 'aorta', 2], 
                 time['drug', 'liver', 1], time['drug', 'liver', 2], 
             )
-        else:
+        elif isinstance(time, np.ndarray):
             time = tuple(8 * [time])
-        signal = np.concatenate((
-            signal['ctrl', 'aorta', 1], signal['ctrl', 'aorta', 2], 
-            signal['ctrl', 'liver', 1], signal['ctrl', 'liver', 2], 
-            signal['drug', 'aorta', 1], signal['drug', 'aorta', 2], 
-            signal['drug', 'liver', 1], signal['drug', 'liver', 2], 
-        ))
+        if isinstance(signal, dict):
+            signal = np.concatenate((
+                signal['ctrl', 'aorta', 1], signal['ctrl', 'aorta', 2], 
+                signal['ctrl', 'liver', 1], signal['ctrl', 'liver', 2], 
+                signal['drug', 'aorta', 1], signal['drug', 'aorta', 2], 
+                signal['drug', 'liver', 1], signal['drug', 'liver', 2], 
+            ))
         signal_pred = np.concatenate(self._predict(time))
         cost = loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
         return cost[0]
@@ -1025,43 +1000,46 @@ class AortaLiverDynamicDrug(SuperModel):
 #     dz_dx = 1 / y if y != 0 else 0
 #     dz_dy = - x / y**2 if y != 0 else 0
 #     return np.sqrt((dy * dz_dy)**2 + (dx * dz_dx)**2)
-    
-# def _deriv_params(pars):
 
-#     # TODO: return sdev of derived
-    
-#     vh = 1 - pars['ve'] / (1 - pars['H'])
-#     C_khe = np.mean([pars['c_khe_i'], pars['c_khe_f']])
-#     C_kbh = pars['c_kbh']
-#     D_khe = pars['d_khe_i'] 
 
-#     t = np.arange(0, pars[f'd_tmax'], pars['dt'])
-#     Th_i = _div(vh, pars['d_kbh_i'])
-#     Th_f = _div(vh, pars['d_kbh_f'])
-#     Th = utils.interp([Th_i, Th_f], t)
-#     D_kbh = _div(vh, Th.mean())
+def _div(a, b):
+    with np.errstate(divide='ignore'):
+        return np.divide(a, b)
     
-#     C_CL = C_khe * pars['c_vol']
-#     D_CL = D_khe * pars['d_vol']
-#     pars_deriv = {
-#         'vh': vh,
-#         'c_khe': C_khe,
-#         'd_khe': D_khe,
-#         'd_kbh': D_kbh,
-#         'c_CL': C_CL,
-#         'd_CL': D_CL,
-#         'r_khe': _div(D_khe - C_khe, C_khe),
-#         'r_kbh': _div(D_kbh - C_kbh, C_kbh),
-#         'r_CL': _div(D_CL - C_CL, C_CL),
-#         'a_khe': D_khe - C_khe,
-#         'a_kbh': D_kbh - C_kbh,
-#         'a_CL': D_CL - C_CL,
-#         'c_dkhe': _div(pars['c_khe_f'] - pars['c_khe_i'], pars['c_khe_i']),
-#         'd_dkhe': _div(pars['d_khe_f'] - pars['d_khe_i'], pars['d_khe_i']),
-#         'd_dkbh': _div(pars['d_kbh_f'] - pars['d_kbh_i'], pars['d_kbh_i']),
-#     }
-#     return pars_deriv
+def _deriv_params(pars):
 
-# def _div(a, b):
-#     with np.errstate(divide='ignore'):
-#         return np.divide(a, b)
+    # TODO: return sdev of derived
+    
+    vh = 1 - pars['ve'] / (1 - pars['H'])
+    C_khe = np.mean([pars['c_khe_i'], pars['c_khe_f']])
+    C_kbh = pars['c_kbh']
+    D_khe = pars['d_khe_i'] 
+
+    # t = np.arange(0, pars[f'd_tmax'], pars['dt'])
+    # Th_i = _div(vh, pars['d_kbh_i'])
+    # Th_f = _div(vh, pars['d_kbh_f'])
+    # Th = interp([Th_i, Th_f], t)
+    # D_kbh = _div(vh, Th.mean())
+    D_kbh = pars['d_kbh']
+    
+    C_CL = C_khe * pars['c_vol']
+    D_CL = D_khe * pars['d_vol']
+    pars_deriv = {
+        'vh': vh,
+        'c_khe': C_khe,
+        'd_khe': D_khe,
+        'd_kbh': D_kbh,
+        'c_CL': C_CL,
+        'd_CL': D_CL,
+        'r_khe': _div(D_khe - C_khe, C_khe),
+        'r_kbh': _div(D_kbh - C_kbh, C_kbh),
+        'r_CL': _div(D_CL - C_CL, C_CL),
+        'a_khe': D_khe - C_khe,
+        'a_kbh': D_kbh - C_kbh,
+        'a_CL': D_CL - C_CL,
+        'c_dkhe': _div(pars['c_khe_f'] - pars['c_khe_i'], pars['c_khe_i']),
+        'd_dkhe': _div(pars['d_khe_f'] - pars['d_khe_i'], pars['d_khe_i']),
+        #'d_dkbh': _div(pars['d_kbh_f'] - pars['d_kbh_i'], pars['d_kbh_i']),
+    }
+    return pars_deriv
+
