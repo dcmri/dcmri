@@ -45,7 +45,7 @@ def format_batch_training(results, free):
     return vals, sdev, pcov, model
 
 
-def train(predict, time, signal, pars, free, x=None, reset=False, **kwargs):
+def train(predict, time, signal, pars, free, x=None, reset=False, sigma=None, **kwargs):
     """Optimization logic using normalized parameter values."""
 
     if free == {}:
@@ -55,6 +55,10 @@ def train(predict, time, signal, pars, free, x=None, reset=False, **kwargs):
     if isinstance(signal, tuple):
         signal = np.concatenate(signal)
     signal = signal.reshape(-1)
+
+    # Flatten sigma
+    if isinstance(sigma, tuple):
+        sigma = np.concatenate(sigma)
 
     # Compute initial values
     p0 = _compute_normalized_pars(pars, free, x)
@@ -75,7 +79,8 @@ def train(predict, time, signal, pars, free, x=None, reset=False, **kwargs):
     # Perform the optimization
     try:
         fitted_pars, pcov = curve_fit(
-            predict_normalized, None, signal, p0, bounds=(0, 1), **kwargs
+            predict_normalized, None, signal, p0, bounds=(0, 1), 
+            sigma=sigma, **kwargs
         )
         sdev = _sdev(pcov, free)
     except RuntimeError as e:

@@ -628,7 +628,7 @@ class AortaLiverDynamicDrug(SuperModel):
     def _train(
             self, time: tuple, signal: tuple, free: dict, 
             bounds:dict, R102a: list, R102l: list, n0: list, 
-            staged: bool, **kwargs,
+            staged: bool, sigma: tuple=None, **kwargs,
         ):
         p = self._pars
         self._estimate_parameters(time, signal, n0, R102a, R102l)
@@ -641,19 +641,21 @@ class AortaLiverDynamicDrug(SuperModel):
                     raise ValueError(f"For SSI sequence, '{par}' must be a free parameter.")     
 
         # Train aorta data
+        sig = None if sigma is None else (sigma[0], sigma[1], sigma[4], sigma[5])
         t, s = (time[0], time[1], time[4], time[5]), (signal[0], signal[1], signal[4], signal[5])
         free_aorta = {k: v for k, v in free.items() if k in self._params('free_aorta')}
-        aorta = train(self._predict_aorta, t, s, p, free_aorta, **kwargs)
+        aorta = train(self._predict_aorta, t, s, p, free_aorta, sigma=sig, **kwargs)
         
         # Train liver data
+        sig = None if sigma is None else (sigma[2], sigma[3], sigma[6], sigma[7])
         t, s = (time[2], time[3], time[6], time[7]), (signal[2], signal[3], signal[6], signal[7])
         free_liver = {k: v for k, v in free.items() if k in self._params('free_liver')}
-        liver = train(self._predict_liver, t, s, p, free_liver, **kwargs)
+        liver = train(self._predict_liver, t, s, p, free_liver, sigma=sig, **kwargs)
 
         if staged:
             return aorta[0] | liver[0], aorta[1] | liver[1], (aorta[2], liver[2]) 
 
-        return train(self._predict, time, signal, p, free, **kwargs)
+        return train(self._predict, time, signal, p, free, sigma=sigma, **kwargs)
 
     # ==========================================
     # I/O and Reporting
