@@ -304,6 +304,8 @@ def stepconv(f, T, D, t=None, dt=1.0):
 
 
 def _uexpconv(f, T, dt, tol):
+    if np.isinf(T):
+        return dt * np.cumsum(f)
     # Edge case: T is tiny (Response is instantaneous)
     # TODO this is not ideal as results is independent of T
     # Better use taylor expansion of E's for large T

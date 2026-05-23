@@ -42,6 +42,7 @@ from dcmri.kinetics.lib.blocks import (
     flux_trap,
     flux_pass,
     flux_comp,
+    flux_bicomp,
     flux_plug,
     flux_chain,
     flux_step,
@@ -53,7 +54,8 @@ from dcmri.kinetics.lib.blocks import (
     flux_2cxm,
 )
 from dcmri.kinetics.lib.aorta import (
-    flux_aorta
+    flux_aorta,
+    flux_aorta_hlol,
 )
 from dcmri.kinetics.lib.kidney import (
     conc_kidney_2cf,

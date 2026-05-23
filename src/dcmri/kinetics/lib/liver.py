@@ -122,13 +122,25 @@ def conc_liver_2i_ec(ci, t=None, dt=1.0, **p):
 
 
 def conc_liver_1i_ic(ca, t=None, dt=1.0,  **p):
-    ve_app = p['ve'] * (1 - p['E'])
-    Ktrans = p['Fp'] * p['E']
-    Te = ve_app / p['Fp']
-    return _conc_liver(
-        ca, ve_app, Ktrans=Ktrans, Th=p['Th'], Te=Te, 
-        t=t, dt=dt,  
-    )
+    # ve ce' = Fp ca - khe ce - Fp ce
+    # vh ch' = khe ce - kbh ch
+    # ce = Fp/ve ca * exp( -t (khe + Fp) / ve)
+    # Ce = Fp ca * exp(-t/Te)
+    # ch = khe/vh ce * exp(-t kbh/vh) 
+    # Ch = khe/ve Ce * exp(-t/Th) 
+    #    = E/Te Ce * exp(-t/Th) 
+
+    #ve_app = p['ve'] * (1 - p['E'])
+    #Ktrans = p['Fp'] * p['E']
+    Te = p['ve'] * (1 - p['E']) / p['Fp']
+    Ce = pk.conc_comp(ca * p['Fp'], Te, t=t, dt=dt)
+    Ch = pk.conc_comp(Ce * p['E']/Te, Te, t=t, dt=dt)
+    return np.stack((Ce, Ch))
+
+    # return _conc_liver(
+    #     ca, ve_app, Ktrans=Ktrans, Th=p['Th'], Te=Te, 
+    #     t=t, dt=dt,  
+    # )
 
 def conc_liver_1i_ic__u(ca, t=None, dt=1.0,  **p):
     p['E'] = _interp_params(ca, t, dt, [p['E_i'], p['E_f']])
@@ -169,8 +181,10 @@ def conc_liver_1i_ic_hfd(ca, t=None, dt=1.0,  **p):
     )
 
 def conc_liver_1i_ic_hfd__u(ca, t=None, dt=1.0,  **p):
-    p['khe'] = _interp_params(ca, t, dt, [p['khe_i'], p['khe_f']])
-    return conc_liver_1i_ic_hfd(ca, t=t, dt=dt,  **p)
+    ti = tarray(np.size(ca), t=t, dt=dt)
+    p['khe'] = p['khe_i'] + (p['khe_i'] - p['khe_i']) * ti / ti.max()
+    # p['khe'] = _interp_params(ca, t, dt, [p['khe_i'], p['khe_i']])
+    return conc_liver_1i_ic_hfd(ca, t=t, dt=dt, **p)
 
 def conc_liver_1i_ic_hfd__e(ca, t=None, dt=1.0,  **p):
     p['Th'] = _interp_params(ca, t, dt, [p['Th_i'], p['Th_f']])

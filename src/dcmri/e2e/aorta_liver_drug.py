@@ -122,20 +122,25 @@ Example:
 
 """
 
+from matplotlib.pylab import copy
 import matplotlib.pyplot as plt
 import numpy as np
 
 import dcmri.kinetics.lib as pk
-from dcmri.kinetics import ConcAorta
+from dcmri.kinetics import ConcAorta, ConcLiver
 from dcmri import const
 from dcmri.lexicon import QUANTITIES, export_params
 from dcmri.bloch import Signal
 from dcmri.utils.misc import sample
-from dcmri.utils.fit import train, loss
+from dcmri.utils.fit import train, loss, train_custom
 from dcmri.core import SuperModel
 
 
 QUANTITIES = QUANTITIES | {
+
+    # Seq Params
+    'c_FA': {'init': 15, 'bounds': [0, 180], 'name': 'Control visit - Flip angle', 'unit': 'deg'},
+    'd_FA': {'init': 15, 'bounds': [0, 180], 'name': 'Drug visit - Flip angle', 'unit': 'deg'},
 
     # Assay parameters
     'c_tmax': {'init': 4 * 60 * 60, 'name': 'Control visit - maximum acquisition time', 'unit': 'sec'},
@@ -153,6 +158,8 @@ QUANTITIES = QUANTITIES | {
     'c_R20s_l': {'init': 20, 'name': 'Control visit - liver first baseline R2*', 'unit': 'Hz'},
     'c_S0_a': {'init': 1, 'bounds': [0, 2], 'name': 'Control visit - aorta first signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
     'c_S0_l': {'init': 1, 'bounds': [0, 2], 'name': 'Control visit - liver first signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
+    'c_Si_a': {'init': 1, 'bounds': [0, 2], 'name': 'Control visit - aorta baseline signal', 'unit': 'a.u.', 'bounds_type': 'mult'},
+    'c_Si_l': {'init': 1, 'bounds': [0, 2], 'name': 'Control visit - liver baseline signal', 'unit': 'a.u.', 'bounds_type': 'mult'},
 
     # MRI signal parameters - drug visit
     'd_R10_a': {'init': 1/const.T1(3.0, 'blood'), 'name': 'Drug visit - aorta first baseline R1', 'unit': 'Hz'},
@@ -161,32 +168,163 @@ QUANTITIES = QUANTITIES | {
     'd_R20s_l': {'init': 20, 'name': 'Drug visit - liver first baseline R2*', 'unit': 'Hz'},
     'd_S0_a': {'init': 1, 'bounds': [0, 2], 'name': 'Drug visit - aorta first signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
     'd_S0_l': {'init': 1, 'bounds': [0, 2], 'name': 'Drug visit - liver first signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
+    'd_Si_a': {'init': 1, 'bounds': [0, 2], 'name': 'Drug visit - aorta baseline signal', 'unit': 'a.u.', 'bounds_type': 'mult'},
+    'd_Si_l': {'init': 1, 'bounds': [0, 2], 'name': 'Drug visit - liver baseline signal', 'unit': 'a.u.', 'bounds_type': 'mult'},
 
     'c_B1corr_a': {'init': 1, 'bounds': [0, 5], 'name': 'Control visit - Arterial B1-correction factor', 'unit': ''},
     'c_B1corr_l': {'init': 1, 'bounds': [0, 5], 'name': 'Control visit - Liver B1-correction factor', 'unit': ''},
     'd_B1corr_a': {'init': 1, 'bounds': [0, 5], 'name': 'Drug visit - Arterial B1-correction factor', 'unit': ''},
     'd_B1corr_l': {'init': 1, 'bounds': [0, 5], 'name': 'Drug visit - Liver B1-correction factor', 'unit': ''},
 
-    # Kinetics - control visit
+    'FFl': {'init': 0.25, 'bounds': [0.01, 0.99], 'name': 'Liver flow fraction', 'unit': ''},
+
+    # Aorta Kinetics - control visit
+    'c_FFl': {'init': 0.25, 'bounds': [0.01, 0.99], 'name': 'Control visit - Liver flow fraction', 'unit': ''},
+    'c_Eb': {'init': 0.05, 'bounds': [0.01, 0.15], 'name': 'Control visit - Body extraction', 'unit': ''},
+    'c_CO': {'init': 100, 'bounds': [0, 500], 'name': 'Control visit - Cardiac output', 'unit': 'mL/s'},
+    'c_GFR': {'init': 2, 'bounds': [0.5, 3], 'name': 'Control visit - glomerular filtration rate', 'unit': 'mL/sec'},
+    'c_Thl': {'init': 10, 'bounds': [0, 30], 'name': 'Control visit - Heart-lung MTT', 'unit': 's'},
+    'c_Dhl': {'init': 0.2, 'bounds': [0.01, 0.99], 'name': 'Control visit - Heart-lung dispersion', 'unit': ''},
+    'c_To': {'init': 20, 'bounds': [0, 60], 'name': 'Control visit - Organ blood MTT', 'unit': 's'},
+    'c_Eo': {'init': 0.15, 'bounds': [0, 0.5], 'name': 'Control visit - Organ extraction', 'unit': ''},
+    'c_To_e': {'init': 120, 'bounds': [0, 800], 'name': 'Control visit - Organ EES MTT', 'unit': 's'},
+
+    # Liver Kinetics - control visit
     'c_vol': {'init': 1000, 'name': 'Control visit - liver volume', 'unit': 'cm3'},
     'c_khe': {'init': 0.0025, 'bounds': [0.0, 0.005], 'name': 'Control visit - initial hepatocellular uptake rate', 'unit': 'mL/sec/cm3'},
     'c_kbh': {'init': 0.00025, 'bounds': [0, 0.0005], 'name': 'Control visit - biliary excretion rate', 'unit': 'mL/sec/cm3'},
+    'c_Kbh': {'init': 0.00035, 'bounds': [0, 0.0007], 'name': 'Control visit - biliary tissue excretion rate', 'unit': '1/sec'},
+    'c_Th': {'init': 3000, 'bounds': [0, 6 * 3600], 'name': 'Control visit - hepatocellular transit time', 'unit': 'sec'},
+    'c_Tg': {'init': 30, 'bounds': [15, 120], 'name': 'Control visit - Gut transit time', 'unit': 'sec'},
+    'c_Dg': {'init': 0.5, 'bounds': [0.01, 0.99], 'name': 'Control visit - Gut dispersion', 'unit': ''},
     'c_CL': {'name': 'Control visit - liver plasma clearance', 'unit': 'mL/sec'},
+    'c_ve': {'init': 0.3, 'bounds': [0.01, 0.6], 'name': 'Control visit - Extracellular volume fraction', 'unit': 'mL/cm3'},
+    'c_El': {'init': 0.05, 'bounds': [0, 1], 'name': 'Control visit - Liver extraction fraction', 'unit': ''},
 
-    # Kinetics - drug visit
+    # Aorta Kinetics - drug visit
+    'd_FFl': {'init': 0.25, 'bounds': [0.01, 0.99], 'name': 'Drug visit - Liver flow fraction', 'unit': ''},
+    'd_Eb': {'init': 0.05, 'bounds': [0.01, 0.15], 'name': 'Drug visit - Body extraction', 'unit': ''},
+    'd_CO': {'init': 100, 'bounds': [0, 500], 'name': 'Drug visit - Cardiac output', 'unit': 'mL/s'},
+    'd_GFR': {'init': 2, 'bounds': [0.5, 3], 'name': 'Drug visit - glomerular filtration rate', 'unit': 'mL/sec'},
+    'd_Thl': {'init': 10, 'bounds': [0, 30], 'name': 'Drug visit - Heart-lung MTT', 'unit': 's'},
+    'd_Dhl': {'init': 0.2, 'bounds': [0.01, 0.99], 'name': 'Drug visit - Heart-lung dispersion', 'unit': ''},
+    'd_To': {'init': 20, 'bounds': [0, 60], 'name': 'Drug visit - Organ blood MTT', 'unit': 's'},
+    'd_Eo': {'init': 0.15, 'bounds': [0, 0.5], 'name': 'Drug visit - Organ extraction', 'unit': ''},
+    'd_To_e': {'init': 120, 'bounds': [0, 800], 'name': 'Drug visit - Organ EES MTT', 'unit': 's'},    'd_vol': {'init': 1000, 'name': 'Drug visit - liver volume', 'unit': 'cm3'},
+
+    # Liver Kinetics - drug visit
     'd_vol': {'init': 1000, 'name': 'Drug visit - liver volume', 'unit': 'cm3'},
     'd_khe': {'init': 0.0025, 'bounds': [0.0, 0.005], 'name': 'Drug visit - initial hepatocellular uptake rate', 'unit': 'mL/sec/cm3'},
     'd_kbh': {'init': 0.00025, 'bounds': [0, 0.0005], 'name': 'Drug visit - initial biliary excretion rate', 'unit': 'mL/sec/cm3'},
+    'd_Kbh': {'init': 0.00035, 'bounds': [0, 0.0007], 'name': 'Drug visit - biliary tissue excretion rate', 'unit': '1/sec'},
+    'd_Th': {'init': 3000, 'bounds': [0, 6 * 3600], 'name': 'Drug visit - hepatocellular transit time', 'unit': 'sec'},
+    'd_Tg': {'init': 30, 'bounds': [15, 120], 'name': 'Drug visit - Gut transit time', 'unit': 'sec'},
+    'd_Dg': {'init': 0.5, 'bounds': [0.01, 0.99], 'name': 'Drug visit - Gut dispersion', 'unit': ''},
     'd_CL': {'name': 'Drug visit - liver plasma clearance', 'unit': 'mL/sec'},
+    'd_ve': {'init': 0.3, 'bounds': [0.01, 0.6], 'name': 'Drug visit -Extracellular volume fraction', 'unit': 'mL/cm3'},
+    'd_El': {'init': 0.05, 'bounds': [0, 1], 'name': 'Control visit - Liver extraction fraction', 'unit': ''},
 
     # Kinetics - common
+    'GFR': {'init': 2, 'bounds': [0.5, 3], 'name': 'Glomerular filtration rate', 'unit': 'mL/sec'},
+    'a_Eb': {'name': 'Absolute effect in Body extraction', 'unit': ''},
+    'r_Eb': {'name': 'Relative effect in Body extraction', 'unit': ''},
     'r_khe': {'name': 'Relative effect in hepatocellular uptake rate', 'unit': ''},
     'r_kbh': {'name': 'Relative effect in biliary excretion rate', 'unit': ''},
     'r_CL': {'name': 'Relative effect in liver plasma clearance', 'unit': ''},
     'a_khe': {'name': 'Absolute effect in hepatocellular uptake rate', 'unit': 'mL/sec/cm3'},
     'a_kbh': {'name': 'Absolute effect in biliary excretion rate', 'unit': 'mL/sec/cm3'},
     'a_CL': {'name': 'Absolute effect in liver plasma clearance', 'unit': 'mL/sec'},
+
+    # Derived AUC and RE
+    'c_AUC_Cb': {'name': 'Control visit AUC for Cb (0-inf)', 'unit': 'M*sec'},
+    'c_AUC_Cl': {'name': 'Control visit AUC for Cl (0-inf)', 'unit': 'M*sec'}, 
+    'c_AUC35_Cb': {'name': 'Control visit AUC for Cb (0-35min)', 'unit': 'M*sec'},
+    'c_AUC35_Cl': {'name': 'Control visit AUC for Cl (0-35min)', 'unit': 'M*sec'}, 
+    'c_RE_R1b': {'name': 'Control visit RE for R1b at 20min', 'unit': ''},
+    'c_RE_R1l': {'name': 'Control visit RE for R1l at 20min', 'unit': ''},
+    'c_RE_Sb': {'name': 'Control visit RE for Sb at 20min', 'unit': ''},
+    'c_RE_Sl': {'name': 'Control visit RE for Sl at 20min', 'unit': ''},
+
+    'd_AUC_Cb': {'name': 'Drug visit AUC for Cb (0-inf)', 'unit': 'M*sec'},
+    'd_AUC_Cl': {'name': 'Drug visit AUC for Cl (0-inf)', 'unit': 'M*sec'}, 
+    'd_AUC35_Cb': {'name': 'Drug visit AUC for Cb (0-35min)', 'unit': 'M*sec'},
+    'd_AUC35_Cl': {'name': 'Drug visit AUC for Cl (0-35min)', 'unit': 'M*sec'}, 
+    'd_RE_R1b': {'name': 'Drug visit RE for R1b at 20min', 'unit': ''},
+    'd_RE_R1l': {'name': 'Drug visit RE for R1l at 20min', 'unit': ''},
+    'd_RE_Sb': {'name': 'Drug visit RE for Sb at 20min', 'unit': ''},
+    'd_RE_Sl': {'name': 'Drug visit RE for Sl at 20min', 'unit': ''},
 }
+
+
+def _div(a, b):
+    with np.errstate(divide='ignore'):
+        return np.divide(a, b)
+    
+def _deriv_params(p, sdev=None):
+
+    FFl = p[f'FFl']
+    Fb = FFl * p[f'CO'] / p[f'c_vol']
+
+    Fpl = Fb * (1 - p['H'])
+    Te = p[f've'] / Fpl
+
+    c_El = p[f'c_khe'] / (p[f'c_khe'] + Fpl)
+    d_El = p[f'd_khe'] / (p[f'd_khe'] + Fpl)
+
+    CL = p[f'GFR']
+    Fpk = (1 - FFl) * p[f'CO'] * (1 - p['H'])
+    Eg = CL / (CL + Fpk)
+
+    # c_Eb
+    CL = p['c_khe'] * p[f'c_vol'] + p[f'GFR']
+    Eb = CL / (CL + p[f'CO'] * (1 - p['H']))
+    c_Eb = np.mean(Eb)
+    # c_Eb = p[f'c_Eb']
+
+    # d_Eb
+    CL = p['d_khe'] * p[f'd_vol'] + p[f'GFR']
+    Eb = CL / (CL + p[f'CO'] * (1 - p['H']))
+    d_Eb = np.mean(Eb)
+    # d_Eb = p[f'd_Eb']
+    
+    vh = 1 - p[f've'] / (1 - p['H'])
+    c_khe = p['c_khe']
+    #c_kbh = vh * p['c_Kbh']
+    c_kbh = p['c_kbh']
+
+    d_khe = p['d_khe'] 
+    d_kbh = p['d_kbh']
+    #d_kbh = vh * p['d_Kbh']
+    c_CL = c_khe * p['c_vol']
+    d_CL = d_khe * p['d_vol']
+    p_deriv = {
+        'c_Th': _div(vh, c_kbh),
+        'd_Th': _div(vh, d_kbh),
+        'c_El': c_El,
+        'd_El': d_El,
+        'Eg': Eg,
+        'Te': Te,
+        'Fb': Fb,
+        'c_Eb': c_Eb,
+        'd_Eb': d_Eb,
+        'r_Eb': _div(d_Eb - c_Eb, c_Eb),
+        'a_Eb': d_Eb - c_Eb,
+        'vh': vh,
+        'c_kbh': c_kbh,
+        'd_kbh': d_kbh,
+        'c_CL': c_CL,
+        'd_CL': d_CL,
+        'r_khe': _div(d_khe - c_khe, c_khe),
+        'r_kbh': _div(d_kbh - c_kbh, c_kbh),
+        'r_CL': _div(d_CL - c_CL, c_CL),
+        'a_khe': d_khe - c_khe,
+        'a_kbh': d_kbh - c_kbh,
+        'a_CL': d_CL - c_CL,
+    }
+    sd_deriv = {}
+    if sdev is not None:
+        pass
+    return p_deriv, sd_deriv
 
 
 
@@ -222,27 +360,29 @@ class AortaLiverDrug(SuperModel):
             'all': inflow_pars + [
                 # _conc_aorta
                 # [p for p in ConcAorta('pfcomp', '2cxm')._params() if p not in ['tmax', 'dose', 'BAT']]
-                'dt', 'dose_tolerance', 'agent', 'weight', 'rate', 
-                # 'GFR', 
-                'H', 'Eb', 'CO', 'Thl', 'Dhl', 'To', 'To_e', 'Eo',
-
-                'c_tmax', 'd_tmax', 
+                'dt', 'c_tmax', 'd_tmax', 
+                'dose_tolerance', 'agent', 'weight', 'rate',  
+                'H', 
+                'FFl', 'CO', 'GFR', 'Thl', 'Dhl', 'To', 'To_e', 'Eo',
+                'c_khe', 'c_vol',
+                'd_khe', 'd_vol', 
                 'c_dose', 'd_dose',
                 'c_BAT', 'd_BAT',
                 # _conc_liver
-                'c_khe', 'c_vol',
-                'd_khe', 'd_vol', 
-                'Tg', 'Dg', 've', 'c_kbh', 'd_kbh',
+                'Tg', 've', 
+                'c_kbh', 'd_kbh', 
+                #'c_Kbh', 'd_Kbh', 
                 # _relax_aorta
                 'field_strength', 
-                'c_R10_a', 'd_R10_a', 
-                'c_R20s_a', 'd_R20s_a', 
+                'R10_a', 'R20s_a', 
                 # _relax_liver
-                'c_R10_l', 'd_R10_l',
-                'c_R20s_l', 'd_R20s_l', 
+                'R10_l', 'R20s_l',  
+                # sequence
+                'TR', 
+                'c_FA', 'd_FA', 
                 # Signal
-                'c_S0_a', 'c_S0_l',
-                'd_S0_a', 'd_S0_l',
+                'c_Si_a', 'c_Si_l',
+                'd_Si_a', 'd_Si_l',
                 'c_B1corr_l', 'c_B1corr_a',
                 'd_B1corr_l', 'd_B1corr_a',
                 # Predict
@@ -250,21 +390,12 @@ class AortaLiverDrug(SuperModel):
             ],
             'free': inflow_pars + [
                 # _conc_aorta 
-                'Eb', 'CO', 'Thl', 'Dhl', 'To', 'To_e', 'Eo',
-
-                'c_khe', 'd_khe', 
                 'c_BAT', 'd_BAT',
+                'FFl', 'CO', 'GFR', 'Thl', 'Dhl', 'To', 'To_e', 'Eo',
                 # _conc_liver
-                'Tg', 'Dg', 've', 'c_kbh', 'd_kbh',
-            ],
-            'free_aorta': inflow_pars + [
-                'Eb', 'CO', 'Thl', 'Dhl', 'To', 'To_e', 'Eo',
-                'c_BAT', 'd_BAT',
-            ],
-            'free_liver': inflow_pars + [
-                'Tg', 'Dg', 've', 
-                'c_khe', 'd_khe', 
-                'c_kbh', 'd_kbh',
+                'Tg', 've', 
+                'c_khe', 'c_kbh', #'c_Kbh',
+                'd_khe', 'd_kbh', #'d_Kbh',
             ],
         }
         return pars_list[select]
@@ -279,6 +410,7 @@ class AortaLiverDrug(SuperModel):
 
     def _conc_aorta(self, visit):
         p = self._pars
+        t = self._time(visit)
 
         # Replace this
         # ca = ConcAorta('pfcomp', '2cxm', **p)(
@@ -287,8 +419,6 @@ class AortaLiverDrug(SuperModel):
         #     BAT = p[f'{visit}_BAT'],
         # )
         
-        t = self._time(visit)
-
         # Source
         conc = const.ca_conc(p['agent'])
         J = pk.ca_injection(
@@ -296,49 +426,54 @@ class AortaLiverDrug(SuperModel):
             p[f'{visit}_BAT'],
         )
 
-        # Body extraction fraction
-        # khe = p[f'{visit}_khe']
-        # CL = khe * p[f'{visit}_vol'] + p['GFR']
-        # Eb = CL / (CL + p['CO'] * (1 - p['H']))
-        Eb = p['Eb']
-        
-        # Compute aorta flux
-        Jb = pk.flux_aorta(
-            J, E=Eb, dt=p['dt'], tol=p['dose_tolerance'],
-    
-            # Chain is a small improvement in outcomes but a large hit in computation time
-            # Discard for now but reconsider later on.
-            # heartlung=['chain', (p['Thl'], p['Dhl'])], 
+        FFl = p[f'FFl']
+        Fpl = FFl * p[f'CO'] * (1 - p['H']) / p[f'{visit}_vol']
 
-            heartlung=['pfcomp', (p['Thl'], p['Dhl'])],
-            organs=['2cxm', ([p['To'], p['To_e']], p['Eo'])],
+        El = p[f'{visit}_khe'] / (p[f'{visit}_khe'] + Fpl)
+        Te = p[f've'] / Fpl
+        #Te = p[f've'] * (1 - El) / Fpl
+
+        CL = p[f'GFR']
+        Fpk = (1 - FFl) * p[f'CO'] * (1 - p['H'])
+        Ek = CL / (CL + Fpk)
+
+        Jb = pk.flux_aorta_hlol(
+            J, El=El, Ek=Ek, FFl=FFl, dt=p['dt'], tol=p['dose_tolerance'],
+            heartlung=['pfcomp', (p[f'Thl'], p[f'Dhl'])],
+            organs=['2cxm', ([p[f'To'], p[f'To_e']], p[f'Eo'])],
+            liver=['bicomp', ([p[f'Tg'], Te], )],
         )
-        return Jb / p['CO']
+        return Jb / p[f'CO']
 
     def _conc_liver(self, cb, visit):
         p = self._pars
 
+        cb = pk.flux_comp(cb, p[f'Tg'], dt=p['dt'])
         cp = cb / (1 - p['H'])
-
-        # Chain works fine and seems to improve fits but no real impact on outcomes - slightly worse in median excretion
-        # cp = pk.flux_chain(cp, p['Tg'], p['Dg'], dt=p['dt']) 
-
-        cp = pk.flux_pfcomp(cp, p['Tg'], p['Dg'], dt=p['dt'])  
-        Ce = p['ve'] * cp
     
-        khe = p[f'{visit}_khe']
-        vh = 1 - p['ve'] / (1 - p['H'])
-        Th = vh / p[f'{visit}_kbh']
-        Ch = pk.conc(khe * cp, Th, dt=p['dt'], model="comp")
+        vh = 1 - p[f've'] / (1 - p['H'])
+        Th = vh / p[f'{visit}_kbh'] 
+        #Kbh = p[f'{visit}_Kbh'] 
+        #Th = 1 / Kbh if Kbh > 0 else np.inf
 
-        return np.stack((Ce, Ch))
+        FFl = p[f'FFl']
+        Fpl = FFl * p[f'CO'] * (1 - p['H']) / p[f'{visit}_vol']
+        El = p[f'{visit}_khe'] / (p[f'{visit}_khe'] + Fpl)
+
+        return ConcLiver('1I-IC')(
+            cp, dt=p['dt'], 
+            ve = p[f've'],
+            Fp = Fpl,
+            E = El,
+            Th = Th,
+        )
 
     def _relax_aorta(self, ca, visit):
         p = self._pars
         rb = const.r1(p['field_strength'], 'blood', p['agent'])
         r2s = const.r2s(p['field_strength'], 'blood', p['agent'])
-        R1a = p[f'{visit}_R10_a'] + rb * ca
-        R2sa = p[f'{visit}_R20s_a'] + r2s * ca
+        R1a = p[f'R10_a'] + rb * ca
+        R2sa = p[f'R20s_a'] + r2s * ca
         return R1a, R2sa
 
     def _relax_liver(self, Cl, visit):
@@ -346,23 +481,28 @@ class AortaLiverDrug(SuperModel):
         rp = const.r1(p['field_strength'], 'plasma', p['agent'])
         rh = const.r1(p['field_strength'], 'hepatocytes', p['agent'])
         r2s = const.r2s(p['field_strength'], 'tissue', p['agent'])
-        R1l = p[f'{visit}_R10_l'] + rp * Cl[0, :] + rh * Cl[1, :]
-        R2sl = p[f'{visit}_R20s_l'] + r2s * Cl.sum(axis=0) 
+        R1l = p[f'R10_l'] + rp * Cl[0, :] + rh * Cl[1, :]
+        R2sl = p[f'R20s_l'] + r2s * Cl.sum(axis=0) 
         return R1l, R2sl
 
     def _signal(self, R1, R2s, visit, roi):
         p = self._pars
+
+        # Signal model
         seq = self._cnfg['sequence']
         roi_seq = {
             'a': seq,
             'l': '3D-SPGR-SS' if seq=='3D-SPGR-SSI' else seq,
         }[roi]
-        return Signal(roi_seq, **p)(
-            R1=R1, 
-            R2s=R2s,
-            S0=p[f'{visit}_S0_{roi}'], 
-            B1corr=p[f'{visit}_B1corr_{roi}'],
-        )
+        FA = p[f'{visit}_FA']
+        B1 = p[f'{visit}_B1corr_{roi}']
+        signal = Signal(roi_seq, FA=FA, B1corr=B1, **p)
+
+        # Derive S0 from the baseline signal
+        S_ref = signal(R1=R1[0], R2s=R2s[0], S0=1)
+        S0 = p[f'{visit}_Si_{roi}'] / S_ref if S_ref > 0 else 0
+
+        return signal(R1=R1, R2s=R2s, S0=S0)
     
     # ==========================================
     # Forward Model: Times
@@ -491,70 +631,103 @@ class AortaLiverDrug(SuperModel):
     # Inverse Model: Training
     # ==========================================  
 
-    def _estimate_parameters(self, time, signal, n0):
+    def _estimate_bat(self, time, signal):
         p = self._pars
-        seq = self._cnfg['sequence']
-        roi_seq = {
-            'a': seq,
-            'l': '3D-SPGR-SS' if seq=='3D-SPGR-SSI' else seq,
-        }
-
         for i, visit in enumerate(['c', 'd']):
             p[f'{visit}_tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time[2 * i: 2 * i + 2]))
 
-            # Estimate BAT and BAT_2
-            t_hl, d_hl = p['Thl'], p['Dhl']
+            t_hl, d_hl = p[f'Thl'], p[f'Dhl']
             bat = time[2 * i][np.argmax(signal[2 * i])] - (1 - d_hl) * t_hl
             p[f'{visit}_BAT'] = max(bat, 0)
 
-            def estimate_s0(roi, i0):
-                B1 = p[f'{visit}_B1corr_{roi}']
-                R10 = p[f'{visit}_R10_{roi}']
-                R20s = p[f'{visit}_R20s_{roi}']
-                s_ref = Signal(roi_seq[roi], **p)(R1=R10, R2s=R20s, S0=1, B1corr=B1)
-                p[f'{visit}_S0_{roi}'] = np.mean(signal[i0 + 2 * i][:n0[i]]) / s_ref if s_ref > 0 else 0
-
-            estimate_s0('a', 0)
-            estimate_s0('l', 1)
+    def _estimate_baseline(self, signal, n0):
+        p = self._pars
+        for i, visit in enumerate(['c', 'd']):
+            p[f'{visit}_Si_a'] = np.mean(signal[0 + 2 * i][:n0[i]]) 
+            p[f'{visit}_Si_l'] = np.mean(signal[1 + 2 * i][:n0[i]])
 
 
     def _train(
             self, time: tuple, signal: tuple, free: dict, 
-            bounds: dict, n0: list, staged: bool, **kwargs,
+            bounds: dict, n0: list, staged: int, sigma: tuple=None, n_runs=10, **kwargs,
         ):
+
+        # Normalize signal
+        scl = [1 / np.mean(si) if np.mean(si) != 0 else 1 for si in signal]
+        signal = tuple([si * scl[i] for i, si in enumerate(signal)])
+        
         p = self._pars
-        self._estimate_parameters(time, signal, n0)
+        self._estimate_bat(time, signal)
+        self._estimate_baseline(signal, n0)
         free = self._set_free_pars(free, bounds, QUANTITIES)
 
-        # Extra conditions for SSI sequence
-        if self._cnfg['sequence'] == '3D-SPGR-SSI':
-            for par in ['c_S0_a', 'd_S0_a']:
-                if par not in free:
-                    raise ValueError(f"For SSI sequence, '{par}' must be a free parameter.")    
+        # train(self._predict, time, signal, p, free, **kwargs)
 
-        # Train aorta data
-        t, s = (time[0], time[2]), (signal[0], signal[2])
-        free_aorta = {k: v for k, v in free.items() if k in self._params('free_aorta')}
-        aorta = train(self._predict_aorta, t, s, p, free_aorta, **kwargs)
+        # Train with multiple random initializations
+        best_loss = np.inf
+        best_vals = None
+        best_sdev = None
+        best_pcov = None
+        for run in range(n_runs):
+            # Set initial values for free parameters
+            self._estimate_bat(time, signal)
+            if run > 0:
+                for param_name, bounds in free.items():
+                    if param_name not in ['c_BAT', 'd_BAT']:
+                        lower, upper = bounds[0], bounds[1]
+                        p[param_name] = np.random.uniform(lower, upper)
+
+            # Perform training (joint)
+            vals, sdev, pcov = train(self._predict, time, signal, p, free, sigma=sigma, **kwargs)
+
+            # Evaluate loss
+            current_loss = self._cost(time, signal, 'RMS', None)
+            if current_loss < best_loss:
+                best_loss = current_loss
+                best_vals = vals
+                best_sdev = sdev
+                best_pcov = pcov
+
+        # Update state with optimal values
+        for k, v in best_vals.items():
+            p[k] = v
         
-        # Train liver data
-        t, s = (time[1], time[3]), (signal[1], signal[3])
-        free_liver = {k: v for k, v in free.items() if k in self._params('free_liver')}
-        liver = train(self._predict_liver, t, s, p, free_liver, **kwargs)
+        # Renormalize signal amplitudes
+        for i, visit in enumerate(['c', 'd']): 
+            p[f'{visit}_Si_a'] /= scl[0 + 2 * i]
+            p[f'{visit}_Si_l'] /= scl[1 + 2 * i]
 
-        if staged: 
-            return aorta[0] | liver[0], aorta[1] | liver[1], (aorta[2], liver[2]) 
+        return best_vals, best_sdev, best_pcov
 
-        # very small effect and does not improve
-        return train(self._predict, time, signal, p, free, **kwargs)
+        # free_list = list(free.keys())
+        # reg_indices = [free_list.index(k) for k in free if k not in ['c_BAT', 'd_BAT']]
 
+        # def loss_func(ypred, y, pars=None, sigma=None):
+        #     # Base Loss: Weighted or standard Least Squares
+        #     if sigma is not None:
+        #         residuals = (y - ypred) / sigma
+        #     else:
+        #         residuals = y - ypred
+
+        #     loss = np.sum(residuals ** 2)
+            
+        #     # # Normalize so reg terms become comparable
+        #     # loss = np.sum(residuals ** 2) / np.sum(y ** 2)
+            
+        #     # # Regularization Terms
+        #     # if reg_indices:
+        #     #     loss += 1e-9 * np.mean(np.square(pars[reg_indices]))
+
+        #     return loss
         
+        # return train_custom(self._predict, time, signal, p, free, loss=loss_func, **kwargs)
+
 
     # ==========================================
     # I/O and Reporting
     # ==========================================
 
-    def _plot(self, time: tuple, signal: tuple, xlim=None, fname=None, show=True):
+    def _plot(self, time: tuple, signal: tuple, xlim=None, clim=None, fname=None, show=True):
         
         self._set_time()
         self._compute_signal_aorta_control()
@@ -570,56 +743,70 @@ class AortaLiverDrug(SuperModel):
         ax3.set_title('Control visit')
         ax4.set_title('Treatment visit')
 
-        def plot_data2scan(t, s, ti, si, ax, xl, color):
+        def plot_data2scan(t, s, ti, si, ax, xl, yl, color):
             if xl is None: xl = [0, t[-1]]
-            ax.set(xlabel='Time (min)', ylabel='MR Signal (a.u.)', xlim=np.array(xl)/60)
+            ax.set(xlabel='Time (min)', ylabel='MR Signal (a.u.)', xlim=np.array(xl)/60, ylim=yl)
             ax.plot(ti / 60, si, marker='o', color=color[0], label='fitted data', linestyle='None')
             ax.plot(t / 60, s, linestyle='-', color=color[1], linewidth=3.0, label='fit')
             ax.legend()
 
-        plot_data2scan(self._t_control, self._Sa_control, time[0], signal[0], ax1, xlim, ['lightcoral', 'darkred'])
-        plot_data2scan(self._t_control, self._Sl_control, time[1], signal[1], ax5, xlim, ['cornflowerblue', 'darkblue'])
-        plot_data2scan(self._t_drug, self._Sa_drug, time[2], signal[2], ax2, xlim, ['lightcoral', 'darkred'])
-        plot_data2scan(self._t_drug, self._Sl_drug, time[3], signal[3], ax6, xlim, ['cornflowerblue', 'darkblue'])
+        ylim_a = [
+            0.9 * min(self._Sa_control.min(), self._Sa_drug.min(), signal[0].min(), signal[2].min()), 
+            1.1 * max(self._Sa_control.max(), self._Sa_drug.max(), signal[0].max(), signal[2].max()),
+        ]
+        ylim_l = [
+            0.9 * min(self._Sl_control.min(), self._Sl_drug.min(), signal[1].min(), signal[3].min()), 
+            1.1 * max(self._Sl_control.max(), self._Sl_drug.max(), signal[1].max(), signal[3].max()),
+        ]
 
-        def plot_conc_aorta(t, c, ax, xl):
+        plot_data2scan(self._t_control, self._Sa_control, time[0], signal[0], ax1, xlim, ylim_a, ['lightcoral', 'darkred'])
+        plot_data2scan(self._t_control, self._Sl_control, time[1], signal[1], ax5, xlim, ylim_l, ['cornflowerblue', 'darkblue'])
+        plot_data2scan(self._t_drug, self._Sa_drug, time[2], signal[2], ax2, xlim, ylim_a, ['lightcoral', 'darkred'])
+        plot_data2scan(self._t_drug, self._Sl_drug, time[3], signal[3], ax6, xlim, ylim_l, ['cornflowerblue', 'darkblue'])
+
+        def plot_conc_aorta(t, c, ax, xl, yl):
             if xl is None: xl = [t[0], t[-1]]
-            ax.set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=np.array(xl)/60)
+            ax.set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=np.array(xl)/60, ylim=yl)
             ax.plot(t / 60, 0 * t, color='gray')
             ax.plot(t / 60, 1000 * c, linestyle='-', color='darkred', linewidth=2.0, label='Aorta')
             ax.legend()
-        
-        plot_conc_aorta(self._t_control, self._ca_control, ax3, xlim)
-        plot_conc_aorta(self._t_drug, self._ca_drug, ax4, xlim)
 
-        def plot_conc_liver(t, C, ax, xl):
+        if clim is None:
+            ylim = [0, 1.1 * 1000 * max(self._ca_control.max(), self._ca_drug.max())]
+        else:
+            ylim = [0, clim[0] * 1000]
+
+        plot_conc_aorta(self._t_control, self._ca_control, ax3, xlim, ylim)
+        plot_conc_aorta(self._t_drug, self._ca_drug, ax4, xlim, ylim)
+
+        def plot_conc_liver(t, C, ax, xl, yl):
             if xl is None: xl = [t[0], t[-1]]
-            ax.set(xlabel='Time (min)', ylabel='Tissue concentration (mM)', xlim=np.array(xl)/60)
+            ax.set(xlabel='Time (min)', ylabel='Tissue concentration (mM)', xlim=np.array(xl)/60, ylim=yl)
             ax.plot(t / 60, 0 * t, color='gray')
             ax.plot(t / 60, 1000 * C[0, :], linestyle='-.', color='darkblue', linewidth=2.0, label='Extracellular')
             ax.plot(t / 60, 1000 * C[1, :], linestyle='--', color='darkblue', linewidth=2.0, label='Hepatocytes')
             ax.plot(t / 60, 1000 * C.sum(axis=0), linestyle='-', color='darkblue', linewidth=2.0, label='Tissue')       
             ax.legend()
 
-        plot_conc_liver(self._t_control, self._Cl_control, ax7, xlim)
-        plot_conc_liver(self._t_drug, self._Cl_drug, ax8, xlim)
+        if clim is None:
+            ylim = [0, 1.1 * 1000 * max(self._Cl_control.max(), self._Cl_drug.max())]
+        else:
+            ylim = [0, clim[1] * 1000]
+
+        plot_conc_liver(self._t_control, self._Cl_control, ax7, xlim, ylim)
+        plot_conc_liver(self._t_drug, self._Cl_drug, ax8, xlim, ylim)
 
         if fname is not None: plt.savefig(fname=fname)
         if show: plt.show()
         else: plt.close()
 
+    def _cost(self, time, signal, metric, nfree) -> float:
+        signal_pred = np.concatenate(self._predict(time))
+        signal = np.concatenate(signal)
+        cost = loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
+        return cost[0]
     
-    # ==========================================
-    # Public API: dict Extraction
-    # ==========================================
-
-    def export_params(self) -> dict:
-        """Parameters with values, defintion and units"""
-        dpars = _deriv_params(self._pars)
-        return export_params(dpars | self._pars, lexicon=QUANTITIES)
-
-    def time(self) -> dict:
-        """Time points in aorta and liver for the two visits"""
+    def _time_dict(self) -> dict:
         self._set_time()
         tc, td = self._t_control, self._t_drug
         return {
@@ -628,13 +815,8 @@ class AortaLiverDrug(SuperModel):
             ('drug', 'aorta'): td,
             ('drug', 'liver'): td,
         }
-
-    def conc(self) -> dict:
-        """Concentrations in aorta and liver.
-
-        Returns:
-            tuple: aorta blood concentrations, liver concentrations.
-        """
+    
+    def _conc_dict(self) -> dict:
         self._compute_conc_aorta_control()
         self._compute_conc_liver_control()
         self._compute_conc_aorta_drug()
@@ -647,12 +829,7 @@ class AortaLiverDrug(SuperModel):
             ('drug', 'liver'): self._Cl_drug,
         }
     
-    def relax(self) -> dict:
-        """Relaxation rates in aorta and liver.
-
-        Returns:
-            tuple: aorta blood R1, liver R1.
-        """
+    def _relax_dict(self) -> dict:
         self._compute_relax_aorta_control()
         self._compute_relax_liver_control()
         self._compute_relax_aorta_drug()
@@ -672,13 +849,7 @@ class AortaLiverDrug(SuperModel):
         }
         return R1, R2s
     
-    def signal(self) -> dict:
-        """Signal in aorta and liver.
-
-        Returns:
-            tuple: aorta blood signal, liver 
-              signal.
-        """
+    def _signal_dict(self) -> dict:
         self._compute_signal_aorta_control()
         self._compute_signal_liver_control()
         self._compute_signal_aorta_drug()
@@ -690,6 +861,98 @@ class AortaLiverDrug(SuperModel):
             ('drug', 'aorta'): self._Sa_drug,
             ('drug', 'liver'): self._Sl_drug,
         }
+    
+    def _desc(self):
+        t = self._time_dict() 
+        C = self._conc_dict()
+        R1, _ = self._relax_dict()
+        S = self._signal_dict()
+
+        pars = {}
+
+        for visit in ['ctrl', 'drug']:
+
+            # Compute AUC over 3hrs
+            BAT = self._pars[f'{visit[0]}_BAT']
+
+            tAUCb = (BAT < t[visit, 'aorta']) & (t[visit, 'aorta'] < BAT + 180 * 60)
+            tAUCl = (BAT < t[visit, 'liver']) & (t[visit, 'liver'] < BAT + 180 * 60)
+            AUC_Cb = np.trapezoid(C[visit, 'aorta'][tAUCb], t[visit, 'aorta'][tAUCb]) 
+            AUC_Cl = np.trapezoid(C[visit, 'liver'].sum(axis=0)[tAUCl], t[visit, 'liver'][tAUCl])
+
+            # Compute AUC over 35min
+            tAUCb = (BAT < t[visit, 'aorta']) & (t[visit, 'aorta'] < BAT + 35 * 60)
+            tAUCl = (BAT < t[visit, 'liver']) & (t[visit, 'liver'] < BAT + 35 * 60)
+            AUC35_Cb = np.trapezoid(C[visit, 'aorta'][tAUCb], t[visit, 'aorta'][tAUCb]) 
+            AUC35_Cl = np.trapezoid(C[visit, 'liver'].sum(axis=0)[tAUCl], t[visit, 'liver'][tAUCl])
+
+            # Compute relative enhancement at 20mins
+            tRE = BAT + 20*60
+            R1b = R1[visit, 'aorta']
+            R1l = R1[visit, 'liver']
+            RE_R1b = (R1b[t[visit, 'aorta'] < tRE][-1] - R1b[0])/R1b[0]
+            RE_R1l = (R1l[t[visit, 'liver'] < tRE][-1] - R1l[0])/R1l[0]
+
+            S0b = np.mean(S[visit, 'aorta'][t[visit, 'aorta'] < BAT - 30])
+            S0l = np.mean(S[visit, 'liver'][t[visit, 'liver'] < BAT - 30])
+            RE_Sb = (S[visit, 'aorta'][t[visit, 'aorta'] < tRE][-1] - S0b)/S0b
+            RE_Sl = (S[visit, 'liver'][t[visit, 'liver'] < tRE][-1] - S0l)/S0l
+
+            pars = pars | {
+                f'{visit[0]}_AUC_Cb' : AUC_Cb, 
+                f'{visit[0]}_AUC_Cl': AUC_Cl,
+                f'{visit[0]}_AUC35_Cb': AUC35_Cb,
+                f'{visit[0]}_AUC35_Cl': AUC35_Cl, 
+                f'{visit[0]}_RE_R1b': RE_R1b,
+                f'{visit[0]}_RE_R1l': RE_R1l,
+                f'{visit[0]}_RE_Sb': RE_Sb, 
+                f'{visit[0]}_RE_Sl': RE_Sl,
+            } 
+
+        return pars
+
+    
+    # ==========================================
+    # Public API: dict Extraction
+    # ==========================================
+
+    def export_params(self, sdev=None, desc=False) -> dict:
+        """Parameters with values, definition and units"""
+        pars_deriv, sdev_deriv = _deriv_params(self._pars, sdev)
+        if desc:
+            pars_deriv = pars_deriv | self._desc()
+        pars = self._pars | pars_deriv
+        sdev = sdev | sdev_deriv if sdev is not None else sdev_deriv
+        return export_params(pars, sdev=sdev, lexicon=QUANTITIES)
+
+    def time(self) -> dict:
+        """Time points in aorta and liver for the two visits"""
+        return self._time_dict()
+
+    def conc(self) -> dict:
+        """Concentrations in aorta and liver.
+
+        Returns:
+            tuple: aorta blood concentrations, liver concentrations.
+        """
+        return self._conc_dict()
+    
+    def relax(self) -> dict:
+        """Relaxation rates in aorta and liver.
+
+        Returns:
+            tuple: aorta blood R1, liver R1.
+        """
+        return self._relax_dict()
+    
+    def signal(self) -> dict:
+        """Signal in aorta and liver.
+
+        Returns:
+            tuple: aorta blood signal, liver 
+              signal.
+        """
+        return self._signal_dict()
     
     def predict(self, time: dict) -> tuple:
         """Predict the data at given time points
@@ -726,7 +989,7 @@ class AortaLiverDrug(SuperModel):
 
     def train(
         self, time: dict, signal: dict, free=None, 
-        bounds:dict=None, n0=[1, 1], staged=True, **kwargs,
+        bounds:dict=None, n0=[1, 1], staged=0, **kwargs,
     ) -> tuple:
         """Train the free parameters
 
@@ -738,7 +1001,7 @@ class AortaLiverDrug(SuperModel):
             n0 (int, optional): Number of baseline time points. Defaults to 1.
             R102a (float, optional): R1 value in arterial blood before the second injection. 
             R102l (float, optional): R1 value in liver before the second injection. 
-            staged (bool, optional): If True, the training is performed in stages
+            staged (int, optional): values 0 (no staging), 1 (coarse staging), 2 (finer staging)
             kwargs: any keyword parameters accepted by `scipy.optimize.curve_fit`.
 
         Returns:
@@ -760,13 +1023,13 @@ class AortaLiverDrug(SuperModel):
                 signal['drug', 'aorta'], 
                 signal['drug', 'liver'], 
             )
-        p = self._pars
-        for i, visit in enumerate(['c', 'd']):
-            p[f'{visit}_tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time[2 * i: 2 * i + 2]))
+        # p = self._pars
+        # for i, visit in enumerate(['c', 'd']):
+        #     p[f'{visit}_tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time[2 * i: 2 * i + 2]))
         return self._train(time, signal, free, bounds, n0, staged, **kwargs)
 
 
-    def plot(self, time: dict, signal: dict, xlim=None, fname=None, show=True):
+    def plot(self, time: dict, signal: dict, xlim=None, clim=None, fname=None, show=True):
         """Plot the model fit against data
 
         Args:
@@ -805,7 +1068,7 @@ class AortaLiverDrug(SuperModel):
         p = self._pars
         for i, visit in enumerate(['c', 'd']):
             p[f'{visit}_tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time[2 * i: 2 * i + 2]))
-        self._plot(time, signal, xlim, fname, show)
+        self._plot(time, signal, xlim, clim, fname, show)
 
     def cost(self, time: dict, signal: dict, metric: str = 'NRMS', nfree=None) -> float:
         """Return the goodness-of-fit
@@ -840,16 +1103,13 @@ class AortaLiverDrug(SuperModel):
         elif isinstance(time, np.ndarray):
             time = tuple(4 * [time])
         if isinstance(signal, dict):
-            signal = np.concatenate((
+            signal = (
                 signal['ctrl', 'aorta'], 
                 signal['ctrl', 'liver'], 
                 signal['drug', 'aorta'], 
                 signal['drug', 'liver'], 
-            ))
-        signal_pred = np.concatenate(self._predict(time))
-        cost = loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
-        return cost[0]
-
+            )
+        return self._cost(time, signal, metric, nfree)
 
 
 # def sdev_effect(v, dv):
@@ -863,30 +1123,6 @@ class AortaLiverDrug(SuperModel):
 #     dz_dy = - x / y**2 if y != 0 else 0
 #     return np.sqrt((dy * dz_dy)**2 + (dx * dz_dx)**2)
 
-def _div(a, b):
-    with np.errstate(divide='ignore'):
-        return np.divide(a, b)
-    
-def _deriv_params(pars):
-    
-    vh = 1 - pars['ve'] / (1 - pars['H'])
-    C_khe = pars['c_khe']
-    C_kbh = pars['c_kbh']
-    D_khe = pars['d_khe'] 
-    D_kbh = pars['d_kbh']
-    C_CL = C_khe * pars['c_vol']
-    D_CL = D_khe * pars['d_vol']
-    pars_deriv = {
-        'vh': vh,
-        'c_CL': C_CL,
-        'd_CL': D_CL,
-        'r_khe': _div(D_khe - C_khe, C_khe),
-        'r_kbh': _div(D_kbh - C_kbh, C_kbh),
-        'r_CL': _div(D_CL - C_CL, C_CL),
-        'a_khe': D_khe - C_khe,
-        'a_kbh': D_kbh - C_kbh,
-        'a_CL': D_CL - C_CL,
-    }
-    return pars_deriv
+
 
 

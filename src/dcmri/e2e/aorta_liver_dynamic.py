@@ -135,9 +135,20 @@ from dcmri.utils.fit import train, loss
 from dcmri.core import SuperModel
 
 QUANTITIES = QUANTITIES | {
-    'S02_a': {'init': 1, 'bounds': [0, 2], 'name': 'Aorta second signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
-    'S02_l': {'init': 1, 'bounds': [0, 2], 'name': 'Liver second signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
-
+    'tmax': {'init': 4 * 60 * 60, 'name': 'Maximum acquisition time', 'unit': 'sec'},
+    't_scan2': {'init': 2 * 60 * 60, 'name': 'Start of second scan', 'unit': 'sec'},
+    'dose_1': {'init': 0.05, 'name': 'First contrast agent dose', 'unit': 'mL/kg'},
+    'dose_2': {'init': 0.05, 'name': 'Second contrast agent dose', 'unit': 'mL/kg'},
+    'BAT_1': {'init': 120, 'bounds': [-60, 60], 'name': 'First bolus arrival time', 'unit': 'sec', 'bounds_type': 'add'},
+    'BAT_2': {'init': 7200 + 900, 'bounds': [-60, 60], 'name': 'Second bolus arrival time', 'unit': 'sec', 'bounds_type': 'add'},
+    'S0_1_a': {'init': 1, 'bounds': [0, 2], 'name': 'Aorta first signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
+    'S0_1_l': {'init': 1, 'bounds': [0, 2], 'name': 'Liver first signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
+    'S0_2_a': {'init': 1, 'bounds': [0, 2], 'name': 'Aorta second signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
+    'S0_2_l': {'init': 1, 'bounds': [0, 2], 'name': 'Liver second signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
+    'B1corr_1_a': {'init': 1, 'bounds': [0, 5], 'name': 'Arterial B1-correction factor', 'unit': ''},
+    'B1corr_1_l': {'init': 1, 'bounds': [0, 5], 'name': 'Liver B1-correction factor', 'unit': ''},
+    'B1corr_2_a': {'init': 1, 'bounds': [0, 5], 'name': 'Arterial B1-correction factor of a second scan', 'unit': ''},
+    'B1corr_2_l': {'init': 1, 'bounds': [0, 5], 'name': 'Liver B1-correction factor of a second scan', 'unit': ''},
 }
 
 class AortaLiverDynamic(SuperModel):
@@ -159,14 +170,14 @@ class AortaLiverDynamic(SuperModel):
     configs = {
         'kinetics': ['1I-EC-D', '1I-EC', '1I-IC', '1I-IC-HF', '1I-IC-HFD', '1I-IC-HFDU'],
         'non_stationary': [None, 'U', 'E', 'UE'],
-        'sequence': ['3D-SPGR-SS', '3D-SPGR-SSI']
+        'sequence': ['ZTE-3D-SPGR-SS', '3D-SPGR-SS', '3D-SPGR-SSI']
     }
 
     def __init__(
         self, 
         kinetics = '1I-IC-HFD', 
-        non_stationary=None, 
-        sequence='3D-SPGR-SS', 
+        non_stationary='U', 
+        sequence='ZTE-3D-SPGR-SS', 
         **params,
       ):
         if not kinetics.startswith('1'):
@@ -186,28 +197,28 @@ class AortaLiverDynamic(SuperModel):
             select = 'all'
         kin, ns, seq = self._cnfg['kinetics'], self._cnfg['non_stationary'], self._cnfg['sequence']
 
-        aorta_kinetics = ['BAT', 'BAT2', 'CO', 'Thl', 'Dhl', 'To', 'Eo', 'To_e', 'Eb']
+        aorta_kinetics = ['BAT_1', 'BAT_2', 'CO', 'Thl', 'Dhl', 'To', 'Eo', 'To_e', 'Eb']
         liver_kinetics = ConcLiver(kin, ns)._params()
         kinetics = aorta_kinetics + liver_kinetics
         liver_sequence = SEQUENCES[seq]['parameters']['prep']
         liver_sequence += SEQUENCES[seq]['parameters']['read']
         if 'FA' in liver_sequence:
-            liver_sequence += ['FA2']
+            liver_sequence += ['FA_2']
     
-        free_inflow = ['TF', 'S0_a'] if seq == '3D-SPGR-SSI' else []
+        free_inflow = ['TF', 'S0_1_a'] if seq == '3D-SPGR-SSI' else []
 
         pars_list = {
             'all': kinetics + liver_sequence + [
                 'dt', 'tmax', 't_scan2', 'dose_tolerance', 'field_strength', 
-                'agent', 'weight', 'dose', 'dose2', 'rate', 
+                'agent', 'weight', 'dose_1', 'dose_2', 'rate', 
                 'TS', 'H', 
                 'R10_a', 'R10_l', 'R20s_a', 'R20s_l', 
-                'S0_a', 'S0_l', 'S02_a', 'S02_l',
-                'B1corr', 'B1corr_a', 'B1corr_2', 'B1corr_2_a',
+                'S0_1_a', 'S0_1_l', 'S0_2_a', 'S0_2_l',
+                'B1corr_1_l', 'B1corr_1_a', 'B1corr_2_l', 'B1corr_2_a',
             ],
-            'free': kinetics + free_inflow + ['S02_a', 'S02_l'],
-            'free_aorta': aorta_kinetics + free_inflow + ['S02_a'],
-            'free_liver': liver_kinetics + ['S02_l'],
+            'free': kinetics + free_inflow + ['S0_2_a', 'S0_2_l'],
+            'free_aorta': aorta_kinetics + free_inflow + ['S0_2_a'],
+            'free_liver': liver_kinetics + ['S0_2_l'],
         }
         return pars_list[select]
 
@@ -225,10 +236,10 @@ class AortaLiverDynamic(SuperModel):
 
         conc = const.ca_conc(p['agent'])
         J1 = pk.ca_injection(
-            self._t, p['weight'], conc, p['dose'], p['rate'], p['BAT']
+            self._t, p['weight'], conc, p['dose_1'], p['rate'], p['BAT_1']
         )
         J2 = pk.ca_injection(
-            self._t, p['weight'], conc, p['dose2'], p['rate'], p['BAT2']
+            self._t, p['weight'], conc, p['dose_2'], p['rate'], p['BAT_2']
         )
         Jb = flux_aorta(
             J1 + J2, E=p['Eb'], dt=p['dt'], tol=p['dose_tolerance'],
@@ -254,11 +265,11 @@ class AortaLiverDynamic(SuperModel):
 
         # First scan signal
         t = self._t < p['t_scan2']
-        self._Sa[t] = Signal(seq, **p)(R1=self._R1a[t], R2s=self._R2sa[t], S0=p['S0_a'], B1corr=p['B1corr_a'])
+        self._Sa[t] = Signal(seq, **p)(R1=self._R1a[t], R2s=self._R2sa[t], S0=p['S0_1_a'], B1corr=p['B1corr_1_a'])
 
         # Second scan signal
         t = self._t >= p['t_scan2']
-        self._Sa[t] = Signal(seq, **p)(R1=self._R1a[t], R2s=self._R2sa[t], S0=p['S02_a'], B1corr=p['B1corr_2_a'], FA=p['FA2'])
+        self._Sa[t] = Signal(seq, **p)(R1=self._R1a[t], R2s=self._R2sa[t], S0=p['S0_2_a'], B1corr=p['B1corr_2_a'], FA=p['FA_2'])
 
     def _predict_aorta(self, time: tuple):
         self._compute_signal_aorta()
@@ -300,11 +311,11 @@ class AortaLiverDynamic(SuperModel):
 
         # First scan signal
         t = self._t < p['t_scan2']
-        self._Sl[t] = Signal(seq, **p)(R1=self._R1l[t], R2s=self._R2sl[t], S0=p['S0_l'])
+        self._Sl[t] = Signal(seq, **p)(R1=self._R1l[t], R2s=self._R2sl[t], S0=p['S0_1_l'])
         
         # Second scan signal
         t = self._t >= p['t_scan2']
-        self._Sl[t] = Signal(seq, **p)(R1=self._R1l[t], R2s=self._R2sl[t], S0=p['S02_l'], B1corr=p['B1corr_2'], FA=p['FA2'])
+        self._Sl[t] = Signal(seq, **p)(R1=self._R1l[t], R2s=self._R2sl[t], S0=p['S0_2_l'], B1corr=p['B1corr_2_l'], FA=p['FA_2'])
 
     def _predict_liver(self, time: tuple):
         p = self._pars
@@ -344,30 +355,30 @@ class AortaLiverDynamic(SuperModel):
         t_hl, d_hl = p['Thl'], p['Dhl']
         bat = time[0][np.argmax(signal[0])] - (1 - d_hl) * t_hl
         bat2 = time[1][np.argmax(signal[1])] - (1 - d_hl) * t_hl
-        p['BAT'] = max(bat, 0)
-        p['BAT2'] = max(bat2, 0)
+        p['BAT_1'] = max(bat, 0)
+        p['BAT_2'] = max(bat2, 0)
 
         # Scaling Factor (S0) aorta
-        s_ref = Signal(seq_aorta, **p)(R1=p['R10_a'], R2s=p['R20s_a'], S0=1, B1corr=p['B1corr_a'])
-        p['S0_a'] = np.mean(signal[0][:n0]) / s_ref if s_ref > 0 else 0
+        s_ref = Signal(seq_aorta, **p)(R1=p['R10_a'], R2s=p['R20s_a'], S0=1, B1corr=p['B1corr_1_a'])
+        p['S0_1_a'] = np.mean(signal[0][:n0]) / s_ref if s_ref > 0 else 0
 
         # Scaling Factor (S0) liver
-        s_ref = Signal(seq_liver, **p)(R1=p['R10_l'], R2s=p['R20s_l'], S0=1)
-        p['S0_l'] = np.mean(signal[2][:n0]) / s_ref if s_ref > 0 else 0
+        s_ref = Signal(seq_liver, **p)(R1=p['R10_l'], R2s=p['R20s_l'], S0=1, B1corr=p['B1corr_1_l'])
+        p['S0_1_l'] = np.mean(signal[2][:n0]) / s_ref if s_ref > 0 else 0
 
         # Second Scaling Factor (S02) aorta
         if R102a is None:
-            p['S02_a'] = p['S0_a']
+            p['S0_2_a'] = p['S0_1_a']
         else:
-            s_ref = Signal(seq_aorta, **p)(R1=R102a, R2s=p['R20s_a'], S0=1, B1corr=p['B1corr_2_a'], FA=p['FA2'])
-            p['S02_a'] = np.mean(signal[1][:n0]) / s_ref if s_ref > 0 else 0
+            s_ref = Signal(seq_aorta, **p)(R1=R102a, R2s=p['R20s_a'], S0=1, B1corr=p['B1corr_2_a'], FA=p['FA_2'])
+            p['S0_2_a'] = np.mean(signal[1][:n0]) / s_ref if s_ref > 0 else 0
 
         # Second Scaling Factor (S02) liver
         if R102l is None:
-            p['S02_l'] = p['S0_l']
+            p['S0_2_l'] = p['S0_1_l']
         else:
-            s_ref = Signal(seq_liver, **p)(R1=R102l, R2s=p['R20s_l'], S0=1, B1corr=p['B1corr_2'], FA=p['FA2'])
-            p['S02_l'] = np.mean(signal[3][:n0]) / s_ref if s_ref > 0 else 0
+            s_ref = Signal(seq_liver, **p)(R1=R102l, R2s=p['R20s_l'], S0=1, B1corr=p['B1corr_2_l'], FA=p['FA_2'])
+            p['S0_2_l'] = np.mean(signal[3][:n0]) / s_ref if s_ref > 0 else 0
 
     def _train(
         self, time: dict, signal: dict, free: dict, 
@@ -378,8 +389,10 @@ class AortaLiverDynamic(SuperModel):
         free = self._set_free_pars(free, bounds, lexicon=QUANTITIES)
     
         # Extra conditions for SSI sequence
-        if self._cnfg['sequence'] == '3D-SPGR-SSI' and 'S0_a' not in free:
-            raise ValueError("For SSI sequence, 'S0_a' must be a free parameter.")
+        if self._cnfg['sequence'] == '3D-SPGR-SSI':
+            for par in ['S0_1_a', 'S0_2_a']:
+                if par not in free:
+                    raise ValueError(f"For SSI sequence, '{par}' must be a free parameter.")     
 
         if staged:
             # Train free aorta parameters on aorta data

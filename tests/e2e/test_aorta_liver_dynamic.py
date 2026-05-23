@@ -29,13 +29,15 @@ def test_configs():
                 continue
         # if not ((kin=='2I-IC') and (ns=='E') and (seq=='3D-SPGR-SS')):
         #     continue
+        print(kin, ns, seq)
         model = Model(*cnfgs)
         time = model.time()
         signal = model.predict(time)
         R1, R2s = model.relax()
         R102a=R1['aorta', 2][0]
         R102l=R1['liver', 2][0]
-        model.train(time, signal, R102a=R102a, R102l=R102l, xtol=0.01)
+        bounds = {'S0_1_a': [0, 5]} if seq=='3D-SPGR-SSI' else None
+        model.train(time, signal, R102a=R102a, R102l=R102l, bounds=bounds, xtol=0.01)
         model.plot(time, signal, show=DEBUG)
         cost = model.cost(time, signal)
         print(kin, ns, seq, cost)
