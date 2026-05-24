@@ -7,6 +7,54 @@ import dcmri.kinetics.lib.blocks as blocks
 
 import matplotlib.pyplot as plt
 
+
+def test_conc_bicomp():
+
+    T1 = 25
+    T2 = 10
+    t = np.linspace(0, 150, 20)
+    J1 = np.ones(len(t))
+    J2 = pk.flux(J1, T1, t=t, model='comp')
+    C1 = pk.conc(J1, T1, t=t, model='comp')
+    C2 = pk.conc(J2, T2, t=t, model='comp')
+    C = pk.conc(J1, [T1, T2], t=t, model='bicomp')
+    assert np.linalg.norm(C1+C2 - C) == 0
+
+    T1 = [20, 30]
+    T2 = [10, 5]
+    t = np.linspace(0, 150, 20)
+    T1 = T1[0] + (T1[1] - T1[0]) * t / t.max()
+    T2 = T2[0] + (T2[1] - T2[0]) * t / t.max()
+    J1 = np.ones(len(t))
+    J2 = pk.flux(J1, T1, t=t, model='nscomp')
+    C1 = pk.conc(J1, T1, t=t, model='nscomp')
+    C2 = pk.conc(J2, T2, t=t, model='nscomp')
+    C = pk.conc(J1, [T1, T2], t=t, model='bicomp')
+    assert np.linalg.norm(C1+C2 - C) == 0
+
+def test_flux_bicomp():
+    T1 = 25
+    T2 = 10
+    t = np.linspace(0, 150, 20)
+    J1 = np.ones(len(t))
+    J2 = pk.flux(J1, T1, t=t, model='comp')
+    J3 = pk.flux(J2, T2, t=t, model='comp')
+    J = pk.flux(J1, [T1, T2], t=t, model='bicomp')
+    assert np.linalg.norm(J3 - J) == 0
+
+    T1 = [20, 30]
+    T2 = [10, 5]
+    t = np.linspace(0, 150, 20)
+    T1 = T1[0] + (T1[1] - T1[0]) * t / t.max()
+    T2 = T2[0] + (T2[1] - T2[0]) * t / t.max()
+    J1 = np.ones(len(t))
+    J2 = pk.flux(J1, T1, t=t, model='nscomp')
+    J3 = pk.flux(J2, T2, t=t, model='nscomp')
+    J = pk.flux(J1, [T1, T2], t=t, model='bicomp')
+    assert np.linalg.norm(J3 - J) == 0
+
+
+
 def test_res_trap():
     t = np.linspace(0, 100, 20)
     r = pk.res_trap(t)
@@ -1192,6 +1240,9 @@ def test_flux():
 
 
 if __name__ == "__main__":
+
+    test_conc_bicomp()
+    test_flux_bicomp()
 
     test_res_trap()
     test_prop_trap()

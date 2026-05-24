@@ -38,6 +38,17 @@ def test_r1():
         assert False
     assert const.r1(3.0, 'hepatocytes', 'gadoxetate') == 9800
     assert const.r1(3.0, 'hepatocytes', 'gadodiamide') == 4000
+    
+
+def test_r2s():
+    assert const.r2s(3.0, 'blood', 'gadobutrol') == 10e3
+    try:
+        const.r2s(3.0, 'water', 'gadobutrol')
+    except:
+        pass
+    else:
+        assert False
+
 
 def test_T1():
     assert const.T1(4.7, 'liver') == 1/1.281
@@ -83,6 +94,7 @@ if __name__ == "__main__":
     test_ca_conc()
     test_ca_std_dose()
     test_r1()
+    test_r2s()
     test_T1()
     test_T2()
     test_PD()

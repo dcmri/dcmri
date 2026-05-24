@@ -2,30 +2,32 @@ import os
 import sys
 
 import requests
+import importlib.resources as importlib_resources
 
 # filepaths need to be identified with importlib_resources
 # rather than __file__ as the latter does not work at runtime
 # when the package is installed via pip install
 
-if sys.version_info < (3, 9):
-    # importlib.resources either doesn't exist or lacks the files()
-    # function, so use the PyPI version:
-    import importlib_resources
-else:
-    # importlib.resources has files(), so use that:
-    import importlib.resources as importlib_resources
+# if sys.version_info < (3, 9):
+#     # importlib.resources either doesn't exist or lacks the files()
+#     # function, so use the PyPI version:
+#     import importlib_resources
+# else:
+#     # importlib.resources has files(), so use that:
+#     import importlib.resources as importlib_resources
 
 
 # Zenodo DOI of the repository
 # DOIs need to be updated when new versions are created
 DOI = {
-    'MRR': "15285017",      # v0.0.3
+    'MRR': "20364938",      # v0.0.4
     'TRISTAN': "15285027"   # v0.0.1
 }
 
 # Datasets available via fetch()
 DATASETS = {
     'KRUK': {'doi': DOI['MRR'], 'ext': '.dmr.zip'},
+    'minipig_renal_fibrosis': {'doi': DOI['MRR'], 'ext': '.dmr.zip'},
     'tristan_humans_healthy_ciclosporin': {'doi': DOI['TRISTAN'], 'ext': '.dmr.zip'},
     'tristan_humans_healthy_controls_leeds': {'doi': DOI['TRISTAN'], 'ext': '.dmr.zip'},
     'tristan_humans_healthy_controls_sheffield': {'doi': DOI['TRISTAN'], 'ext': '.dmr.zip'},
@@ -35,7 +37,7 @@ DATASETS = {
     'tristan_rats_healthy_multiple_dosing': {'doi': DOI['TRISTAN'], 'ext': '.dmr.zip'},
     'tristan_rats_healthy_reproducibility': {'doi': DOI['TRISTAN'], 'ext': '.dmr.zip'},
     'tristan_rats_healthy_six_drugs': {'doi': DOI['TRISTAN'], 'ext': '.dmr.zip'},
-    'minipig_renal_fibrosis': {'doi': None, 'ext': '.dmr.zip'},
+
 }
 
 
@@ -100,14 +102,13 @@ def fetch(dataset=None, clear_cache=False, download_all=False) -> dict:
         >>> data = pydmr.read(file)
 
     """
-
     if dataset is None:
-        v = None
+        v = None 
     elif dataset not in DATASETS:
         raise ValueError(
             f'Dataset {dataset} is unknown. Please choose one of '
             f'{DATASETS}'
-        )        
+        )  
     else:
         v = _fetch_dataset(dataset)
 
@@ -158,10 +159,10 @@ def _download(dataset): # add version keyword
 
     # Dataset repository
     version_doi = DATASETS[dataset]['doi']
-    if version_doi is None:
-        raise ValueError(
-            f'Dataset {dataset} is not online and not stored in dcmri/datafiles.'
-        )
+    # if version_doi is None:
+    #     raise ValueError(
+    #         f'Dataset {dataset} is not online and not stored in dcmri/datafiles.'
+    #     )
 
     # Dataset download link
     file_url = "https://zenodo.org/records/" + version_doi + "/files/" + dataset + DATASETS[dataset]['ext']

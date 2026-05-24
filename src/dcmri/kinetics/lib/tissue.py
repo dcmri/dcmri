@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 
 from dcmri.kinetics.lib import blocks
@@ -5,10 +6,12 @@ import dcmri.kinetics.lib as pk
 
 
 
-def add_derived_params(p):
+def dpars_tissue(p, H=0.45):
 
-    if {'H', 'vb'}.issubset(p):
-        p['vp'] = (1 - p['H']) * p['vb']
+    p = copy.deepcopy(p)
+
+    if {'vb'}.issubset(p):
+        p['vp'] = (1 - H) * p['vb']
 
     if {'ve', 'vp'}.issubset(p):
         p['vi'] = p['ve'] - p['vp']
@@ -144,12 +147,12 @@ def conc_tissue_hf(ca, t=None, dt=1.0, H=None, vi=None, vb=None, PS=None):
     return np.stack((Cp, Ci))
 
 def conc_tissue_2cu(ca, t=None, dt=1.0, H=None, vb=None, Fb=None, PS=None):
-    ca = np.array(ca)
-    vp = (1-H)*vb
-    Fp = (1-H)*Fb
-    if np.isinf(Fp):
+    if np.isinf(Fb):
         return conc_tissue_hfu(ca, t=t, dt=dt, H=H, vb=vb, PS=PS)
-    ca = ca/(1-H)
+    ca = np.array(ca)
+    vp = (1 - H) * vb
+    Fp = (1 - H) * Fb
+    ca = ca / (1 - H)
     if Fp+PS == 0:
         return np.zeros((2, len(ca)))
     Tp = vp/(Fp+PS)
@@ -192,7 +195,7 @@ def conc_tissue_2cx(ca, t=None, dt=1.0, H=None, vi=None, vb=None, Fb=None, PS=No
 
 
 
-def flux_tissue_u(ca, Fb=None):
+def flux_tissue_u(ca, t=None, dt=1.0, Fb=None):
     ca = np.array(ca)
     return pk.flux(Fb*ca, model='trap')
 
@@ -226,7 +229,7 @@ def flux_tissue_wv(ca, t=None, dt=1.0, H=None, vi=None, Ktrans=None):
         J[0, 1, :] = pk.flux(Ktrans*ca, vi/Ktrans, t=t, dt=dt, model='comp')
     return J
 
-def flux_tissue_hfu(ca, H=None, PS=None):
+def flux_tissue_hfu(ca, t=None, dt=1.0, H=None, PS=None):
     ca = np.array(ca)
     J = np.zeros(((2, 2, len(ca))))
     J[0, 0, :] = np.nan

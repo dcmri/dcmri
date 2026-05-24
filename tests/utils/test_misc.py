@@ -41,6 +41,8 @@ def test_interp():
     assert np.array_equal(misc.interp([3,4,5], x, pos=False, floor=False), [3,4,5])
     assert np.array_equal(misc.interp(np.arange(5), x, pos=False, floor=False), [0,2,4])
     assert np.array_equal(misc.interp(np.arange(5), x, pos=True, floor=True), [0,2,4])
+    assert np.array_equal(misc.interp(np.arange(5), x, pos=True, floor=True, lower=-1), [0,2,4])
+    assert np.array_equal(misc.interp(np.arange(5), x, pos=True, floor=True, upper=5), [0,2,4])
 
 
 def test_sample():
@@ -58,6 +60,10 @@ def test_sample():
     assert np.array_equal(S.astype(np.float32), [1.5])
     S = misc.sample(np.array([3,6]), tp, Sp, dt=1)
     assert np.array_equal(S, [1.5,7])
+    S = misc.sample([], tp, Sp, dt=1)
+    assert np.array_equal(S, [])
+    S = misc.sample(np.array([1,6]), tp, Sp, dt=1)
+    assert np.array_equal(S, [0,7])
 
 def test_add_noise():
     s0 = [1,2,3,4]
@@ -70,6 +76,38 @@ def test_trapz():
     c = misc.trapz(ca, t)
     assert c[1] == 0.20000000000000004
 
+def test_mle_rice():
+    data = np.arange(10)
+    mle = misc.mle_rice(data, fit_loc=False)
+    assert round(mle['nu'], 1) == 3.9
+    mle = misc.mle_rice(data, fit_loc=True)
+    assert round(mle['nu'], 1) == 4.1
+    try:
+        data[0] = -1
+        mle = misc.mle_rice(data, fit_loc=False)
+    except:
+        pass
+    else:
+        assert False
+
+def test_describe():
+    arr = np.ones((2,3))
+    desc = misc.describe(arr)
+    assert np.array_equal(desc['Sb'], np.ones(arr.shape[0]))
+    
+    try:
+        arr = np.ones((2,3))
+        desc = misc.describe(arr, rician=True)
+    except:
+        pass
+    else:
+        assert False
+
+    arr = np.ones((4,5))
+    desc = misc.describe(arr, n0=3, rician=True)
+    assert np.array_equal(desc['Sb'], np.ones(arr.shape[0]))
+
+
 
 if __name__ == "__main__":
     test_trapz()
@@ -77,5 +115,7 @@ if __name__ == "__main__":
     test_tarray()
     test_sample()
     test_add_noise()
+    test_mle_rice()
+    test_describe()
 
     print('All misc tests passed!!')

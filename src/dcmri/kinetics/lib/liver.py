@@ -12,38 +12,34 @@ def _div(a, b):
         return np.divide(a, b)
 
 
-def derived_params_liver(p, kinetics, H=0.45) -> dict:
+def dpars_liver(p, kinetics=None, H=0.45) -> dict:
 
     p = copy.deepcopy(p)
         
     # Non-stationary options
 
-    if {'E_i', 'E_f'} <= p.keys():
+    if {'E_i', 'E_f'}.issubset(p):
         p['E'] = np.mean([p['E_i'], p['E_f']])
 
-    if {'khe_i', 'khe_f'} <= p.keys():
+    if {'khe_i', 'khe_f'}.issubset(p):
         p['khe'] = np.mean([p['khe_i'], p['khe_f']])
 
-    if {'Th_i', 'Th_f'} <= p.keys():
+    if {'Th_i', 'Th_f'}.issubset(p):
         p['Th'] = np.mean([p['Th_i'], p['Th_f']])
     
-    if {'Th_i', 'Th_f', 've'} <= p.keys():
+    if {'Th_i', 'Th_f', 've'}.issubset(p):
         vh = 1 - p['ve'] / (1 - H)
         p['kbh_i'] = _div(vh, p['Th_i'])
         p['kbh_f'] = _div(vh, p['Th_f'])
 
     # Dual-inlet models
-
-    if {'Fp', 'fa'} <= p.keys():
+    if {'Fp', 'fa'}.issubset(p):
         p['Fa'] = p['Fp'] * p['fa']
         p['Fv'] = p['Fp'] * (1 - p['fa'])
 
     # Kinetic models
     
-    if kinetics == '1I-EC':
-        p['Te'] = _div(p['ve'], p['Fp'])
-    
-    if kinetics == '2I-EC':
+    if kinetics in ['1I-EC', '2I-EC']:
         p['Te'] = _div(p['ve'], p['Fp'])
 
     if kinetics in ['1I-IC', '2I-IC']:
@@ -81,7 +77,7 @@ def derived_params_liver(p, kinetics, H=0.45) -> dict:
         p['Fa'] = p['fa'] * p['Fp']
         p['Fv'] = (1 - p['fa']) * p['Fp']
 
-    if {'khe', 'vol'} <= p.keys():
+    if {'khe', 'vol'}.issubset(p):
         p['CL'] = p['khe'] * p['vol']
 
     return p
@@ -130,17 +126,19 @@ def conc_liver_1i_ic(ca, t=None, dt=1.0,  **p):
     # Ch = khe/ve Ce * exp(-t/Th) 
     #    = E/Te Ce * exp(-t/Th) 
 
-    #ve_app = p['ve'] * (1 - p['E'])
-    #Ktrans = p['Fp'] * p['E']
-    Te = p['ve'] * (1 - p['E']) / p['Fp']
-    Ce = pk.conc_comp(ca * p['Fp'], Te, t=t, dt=dt)
-    Ch = pk.conc_comp(Ce * p['E']/Te, Te, t=t, dt=dt)
-    return np.stack((Ce, Ch))
+    # Te = p['ve'] * (1 - p['E']) / p['Fp']
+    # Ce = pk.conc_comp(ca * p['Fp'], Te, t=t, dt=dt)
+    # Ch = pk.conc_comp(Ce * p['E']/Te, Te, t=t, dt=dt)
+    # return np.stack((Ce, Ch))
 
-    # return _conc_liver(
-    #     ca, ve_app, Ktrans=Ktrans, Th=p['Th'], Te=Te, 
-    #     t=t, dt=dt,  
-    # )
+    # This is the same:
+    ve_app = p['ve'] * (1 - p['E'])
+    Ktrans = p['Fp'] * p['E']
+    Te = ve_app / p['Fp']
+    return _conc_liver(
+        ca, ve_app, Ktrans=Ktrans, Th=p['Th'], Te=Te, 
+        t=t, dt=dt
+    )
 
 def conc_liver_1i_ic__u(ca, t=None, dt=1.0,  **p):
     p['E'] = _interp_params(ca, t, dt, [p['E_i'], p['E_f']])
@@ -272,15 +270,13 @@ def conc_liver_2i_ic_u__u(ci, t=None, dt=1.0,  **p):
     return conc_liver_2i_ic_u(ci, t=t, dt=dt,  **p)
 
 
-
-
-
 def _interp_params(ca: np.ndarray, t: Optional[np.ndarray], dt: float, p, lower_t=False):
     tarr = tarray(np.size(ca), t=t, dt=dt)
-    if lower_t:
-        lower = tarr[1] - tarr[0]
-    else:
-        lower = None
+    lower = None
+    # if lower_t:
+    #     lower = tarr[1] - tarr[0]
+    # else:
+    #     lower = None
     return interp(p, tarr, lower=lower)
 
 

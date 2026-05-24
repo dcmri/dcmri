@@ -2,8 +2,13 @@ import numpy as np
 from scipy import integrate
 
 
-# Used in iBEAt - not yet exposed in dcmri
-def linfit_2cfm(imgs: np.ndarray, aif: np.ndarray = None, time: np.ndarray = None, baseline: int = 1, Hct=0.45):
+def linfit_2cfm(
+        imgs: np.ndarray, 
+        aif: np.ndarray = None, 
+        time: np.ndarray = None, 
+        baseline: int = 1, 
+        Hct = 0.45,
+    ):
 
     # Reshape to 2D (x,t)
     shape = np.shape(imgs)
@@ -11,7 +16,7 @@ def linfit_2cfm(imgs: np.ndarray, aif: np.ndarray = None, time: np.ndarray = Non
 
     S0 = np.mean(imgs[:, :baseline], axis=1)
     Sa0 = np.mean(aif[:baseline])
-    ca = (aif-Sa0)/(1-Hct)
+    ca = (aif - Sa0) / (1 - Hct)
 
     A = np.empty((imgs.shape[1], 4))
     A[:, 2], A[:, 3] = _ddint(ca, time)
@@ -42,9 +47,7 @@ def linfit_2cfm(imgs: np.ndarray, aif: np.ndarray = None, time: np.ndarray = Non
 
 def _ddint(c, t):
     ci = integrate.cumulative_trapezoid(c, t, initial=0)
-    ci = np.insert(ci, 0, 0)
     cii = integrate.cumulative_trapezoid(ci, t, initial=0)
-    cii = np.insert(cii, 0, 0)
     return cii, ci
 
 
@@ -75,7 +78,7 @@ def _params_2cfm(X):
         PS = 0
     else:
         if Fp == 0:
-            PS == 0
+            PS = 0
         else:
             T = gamma/(alpha*Fp)
             PS = Fp*(T-Tp)/Te

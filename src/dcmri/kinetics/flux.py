@@ -51,16 +51,10 @@ class FluxTissueX(LayerFunction):
         ca = pk.flux_plug(ca, p['T_a'], dt=dt)
         params = {k: v for k, v in p.items() if k != 'T_a'}
 
-        kinetics = self._cnfg['kinetics']
-        if kinetics == 'U': return pk.flux_tissue_u(ca, **params)
-        if kinetics == 'NX': return pk.flux_tissue_nx(ca, t=t, dt=dt, **params)
-        if kinetics == 'NXP': return pk.flux_tissue_nxp(ca, t=t, dt=dt, **params)
-        if kinetics == 'FX': return pk.flux_tissue_fx(ca, t=t, dt=dt, **params)
-        if kinetics == 'WV': return pk.flux_tissue_wv(ca, t=t, dt=dt, **params)
-        if kinetics == 'HFU': return pk.flux_tissue_hfu(ca, **params)
-        if kinetics == 'HF': return pk.flux_tissue_hf(ca, t=t, dt=dt, **params)
-        if kinetics == '2CU': return pk.flux_tissue_2cu(ca, t=t, dt=dt, **params)
-        if kinetics == '2CX': return pk.flux_tissue_2cx(ca, t=t, dt=dt, **params)
+        kin = self._cnfg['kinetics']
+        conc = 'flux_tissue_' + kin.lower()   
+        model_func = getattr(pk, conc)  
+        return model_func(ca, t=t, dt=dt, **params)
 
 
 

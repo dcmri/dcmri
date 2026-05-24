@@ -102,6 +102,8 @@ def conc(J: np.ndarray, *params, t=None, dt=1.0, model='comp',
         return conc_pass(J, *params)
     if model == 'comp':
         return conc_comp(J, *params, t=t, dt=dt, **kwargs)
+    if model == 'bicomp':
+        return conc_bicomp(J, *params, t=t, dt=dt, **kwargs)
     if model == 'plug':
         return conc_plug(J, *params, t=t, dt=dt, **kwargs)
     if model == 'chain':
@@ -449,6 +451,43 @@ def flux_comp(J, T, t=None, dt=1.0):
 
 
 # Bicomp
+
+def conc_bicomp(J, T, t=None, dt=1.0):
+    """Indicator concentration in a chain of 2 compartments.
+
+    Args:
+        J (array_like): the indicator flux entering the compartment.
+        T (list): mean transit times of the compartments. Any non-negative value is allowed, including :math:`T=0` and :math:`T=\\infty`, in which case the compartment is a trap.
+        t (array_like, optional): the time points of the indicator flux J, in the same units as T. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
+        dt (float, optional): spacing between time points for uniformly spaced time points, in the same units as T. This parameter is ignored if t is explicity provided. Defaults to 1.0.
+
+    Returns:
+        numpy.ndarray: concentration as a 1D array.
+
+    See Also:
+        `res_comp`, `conc_comp`, `prop_comp`
+
+    Example:
+        >>> import dcmri as dc
+        >>> t = [0,5,15,30,60]
+        >>> J = [1,2,3,3,2]
+        >>> dc.conc_bicomp(J, [5, 10], t)
+    """
+    Tc = T[0]
+    if np.isscalar(Tc):
+        C0 = conc_comp(J, Tc, t=t, dt=dt)
+        J = flux_comp(J, Tc, t=t, dt=dt) # unnecessary conv here
+    else:
+        C0 = conc_nscomp(J, Tc, t=t, dt=dt)
+        J = flux_nscomp(J, Tc, t=t, dt=dt) # unnecessary conv here
+        
+    Tc = T[1]
+    if np.isscalar(Tc):
+        C1 = conc_comp(J, Tc, t=t, dt=dt)
+    else:
+        C1 = conc_nscomp(J, Tc, t=t, dt=dt)
+        
+    return C0 + C1
 
 def flux_bicomp(J, T, t=None, dt=1.0):
     """Indicator flux out of a chain of 2 compartments.

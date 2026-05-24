@@ -4,6 +4,23 @@ from scipy.integrate import trapezoid
 import dcmri as dc
 from dcmri.utils import convolution
 
+def test__tarray():
+    assert np.array_equal(convolution._tarray(2), [0, 1])
+    assert np.array_equal(convolution._tarray(2, [0, 1]), [0, 1])
+    try:
+        convolution._tarray(2, [0, 1, 2])
+    except:
+        pass
+    else:
+        assert False
+
+# def test__trapz():
+#     trapz = convolution._trapz([1, 2, 3])
+#     assert np.array_equal(trapz, [0, 1.5, 4])
+#     trapz = convolution._trapz([1, 2, 3], np.arange(3))
+#     assert np.array_equal(trapz, [0, 1.5, 4])
+
+
 # Helper
 def tfib(n, tmax=1.0):
     t = np.empty(n)
@@ -50,10 +67,23 @@ def test_invconvmat():
     t = np.arange(0,tmax,dt)
     f = np.exp(-t/Tf)/Tf
     mat = convolution.convmat(f, order=order)
+
     matinv = convolution.invconvmat(f, order=order, tol=1e-12)
     id = mat @ matinv
     idexact = np.eye(len(t))
     assert np.linalg.norm(id-idexact)/np.linalg.norm(idexact) < 1e-9
+
+    matinv = convolution.invconvmat(f, order=order, tol=1e-12, method='Tikhonov')
+    id = mat @ matinv
+    idexact = np.eye(len(t))
+    assert np.linalg.norm(id-idexact)/np.linalg.norm(idexact) < 1e-9
+
+    try:
+        matinv = convolution.invconvmat(f, order=order, tol=1e-12, method='X')
+    except:
+        pass
+    else:
+        assert False
 
 
 def test_deconv():
@@ -76,12 +106,32 @@ def test_deconv():
     Frec = convolution.deconv(H, g, dt)
     assert np.linalg.norm(F-Frec)/np.linalg.norm(F) < 0.1
 
+    try:
+        Frec = convolution.deconv(H, np.zeros((2,3)), dt)
+    except:
+        pass
+    else:
+        assert False
+
+    try:
+        Frec = convolution.deconv(np.zeros((2,3,4)), g, dt)
+    except:
+        pass
+    else:
+        assert False
+
+    try:
+        Frec = convolution.deconv(np.zeros((1, 2)), g, dt)
+    except:
+        pass
+    else:
+        assert False
+
 
 
 def test_expconv():
 
     # Uniform time grid with increasing precision: compare against analytical convolution.
-
     Tf = 20
     Th = 30
     tmax = 30
@@ -107,9 +157,54 @@ def test_expconv():
         assert np.linalg.norm(g-g0)/np.linalg.norm(g0) < prec[i]
 
     #Special case: T=0
-    t = np.arange(0,tmax,dt)
+    dt = 1.0
+    t = np.arange(0, tmax, dt)
     f = np.exp(-t/Tf)/Tf
     assert np.array_equal(f, dc.convolution.expconv(f, 0, t))
+
+    #Special case: T=inf
+    f = [1, 2, 3]
+    assert np.array_equal([0, 0, 0], dc.convolution.expconv(f, np.inf, dt=1))
+
+    # Special case: small T - check convergence to T=0 solution
+    f = np.exp(-t/Tf)/Tf
+    f_conv_0 = dc.convolution.expconv(f, 0, dt=dt)
+    err_7 = np.linalg.norm(f_conv_0[1:] - dc.convolution.expconv(f, 1e-7, dt=dt, tol=1e-6)[1:])
+    err_8 = np.linalg.norm(f_conv_0[1:] - dc.convolution.expconv(f, 1e-8, dt=dt, tol=1e-6)[1:])
+    err_9 = np.linalg.norm(f_conv_0[1:] - dc.convolution.expconv(f, 1e-9, dt=dt, tol=1e-6)[1:])
+    assert err_8 < err_7
+    assert err_9 < err_8
+
+    # Special case: large T - check convergence to T=inf solution
+    f = np.exp(-t/Tf)/Tf
+    f_conv_inf = dc.convolution.expconv(f, np.inf, dt=dt)
+    err_7 = np.linalg.norm(f_conv_inf - dc.convolution.expconv(f, 1e+7, dt=dt, tol=1e-6))
+    err_8 = np.linalg.norm(f_conv_inf - dc.convolution.expconv(f, 1e+8, dt=dt, tol=1e-6))
+    err_9 = np.linalg.norm(f_conv_inf - dc.convolution.expconv(f, 1e+9, dt=dt, tol=1e-6))
+    assert err_8 < err_7
+    assert err_9 < err_8
+
+    # Special case = length = 1
+    assert np.array_equal([0], dc.convolution.expconv([1], 1, dt=1))
+
+    # Special case: non-uniform with small T - check convergence to T=0 solution
+    t = np.array([0, 0.5, 1.5, 3.0, 5.0, 7.5, 10.5, 14, 18])
+    f = np.exp(-t/Tf)/Tf
+    f_conv_0 = dc.convolution.expconv(f, 0, t)
+    err_7 = np.linalg.norm(f_conv_0[1:] - dc.convolution.expconv(f, 1e-7, t, tol=1e-6)[1:])
+    err_8 = np.linalg.norm(f_conv_0[1:] - dc.convolution.expconv(f, 1e-8, t, tol=1e-6)[1:])
+    err_9 = np.linalg.norm(f_conv_0[1:] - dc.convolution.expconv(f, 1e-9, t, tol=1e-6)[1:])
+    assert err_8 < err_7
+    assert err_9 < err_8
+
+    # Special case: non-uniform with large T - check convergence to T=inf solution
+    f = np.exp(-t/Tf)/Tf
+    f_conv_inf = dc.convolution.expconv(f, np.inf, t)
+    err_7 = np.linalg.norm(f_conv_inf - dc.convolution.expconv(f, 1e+7, t, tol=1e-6))
+    err_8 = np.linalg.norm(f_conv_inf - dc.convolution.expconv(f, 1e+8, t, tol=1e-6))
+    err_9 = np.linalg.norm(f_conv_inf - dc.convolution.expconv(f, 1e+9, t, tol=1e-6))
+    assert err_8 < err_7
+    assert err_9 < err_8
 
 
 def test_inttrap():
@@ -342,6 +437,9 @@ def test_nexpconv():
 
 
 if __name__ == "__main__":
+
+    test__tarray()
+    # test__trapz()
 
     test_convmat()
     test_invconvmat()

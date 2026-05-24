@@ -9,18 +9,13 @@ def _div(a, b):
         return np.divide(a, b)
     
 
-def derived_params_kidney(p, kinetics='2CF', H=0.45) -> dict:
+def dpars_kidney(p, kinetics='2CF', H=0.45) -> dict:
 
     p = copy.deepcopy(p)
 
-    if 'Eg' in p:
-        p['FF'] = _div(p['Eg'] / 1 - p['Eg'])
-        
+
     if {'Fp'}.issubset(p):
         p['Fb'] = _div(p['Fp'], 1 - H)
-
-    if {'FF', 'Fp'}.issubset(p):
-        p['Ft'] = p['FF']*p['Fp']
 
     if {'vp', 'Fp', 'Tt'}.issubset(p):
         p['Tp'] = _div(p['vp'], p['Fp']+p['Ft'])
@@ -29,7 +24,8 @@ def derived_params_kidney(p, kinetics='2CF', H=0.45) -> dict:
         p['Tv'] = _div(p['vp'], p['Fp'])
 
     if {'Ft', 'Fp'}.issubset(p):
-        p['E'] = _div(p['Ft'], p['Ft'] + p['Fp'])
+        p['Eg'] = _div(p['Ft'], p['Ft'] + p['Fp'])
+        p['FF'] = _div(p['Ft'], p['Fp'])
 
     if {'Ft', 'vol'}.issubset(p):
         p['GFR'] = p['Ft'] * p['vol']  
@@ -43,59 +39,12 @@ def derived_params_kidney(p, kinetics='2CF', H=0.45) -> dict:
 
     if {'Fb_med', 'vol'}.issubset(p):
         p['SKMBF'] = p['Fb_med'] * p['vol']
+
     return p
 
-# def _deriv_params(p):
-
-#     # Kidneys
-#     if 'FF' not in p:
-#         p['FF'] = _div(p['Eb'], 1-p['Eb'])
-#     if {'RPF', 'FF'}.issubset(p):   
-#         p['GFR'] =  p['RPF'] * p['FF']
-#     if {'DRPF', 'RPF'}.issubset(p): 
-#         p['RPF_lk'] = p['DRPF'] * p['RPF']
-#         p['RPF_rk'] = (1 - p['DRPF']) * p['RPF']
-#     if {'DRF', 'GFR'}.issubset(p):
-#         p['GFR_lk'] = p['DRF'] * p['GFR']
-#         p['GFR_rk'] = (1 - p['DRF']) * p['GFR']
-
-#     # Kidney LK
-#     if {'RPF_lk', 'vol_lk'}.issubset(p):
-#         p['Fp_lk'] = _div(p['RPF_lk'], p['vol_lk'])
-#     if {'RPF_lk', 'GFR_lk', 'vp_lk', 'vol_lk'}.issubset(p):
-#         p['Tp_lk'] = _div(p['vp_lk'] * p['vol_lk'], p['RPF_lk']+p['GFR_lk'])
-#     if {'RPF_lk', 'vp_lk', 'vol_lk'}.issubset(p):
-#         p['Tv_lk'] = _div(p['vp_lk'] * p['vol_lk'], p['RPF_lk'])
-#     if {'GFR_lk', 'vol_lk'}.issubset(p):
-#         p['Ft_lk'] = _div(p['GFR_lk'], p['vol_lk'])
-#     if {'GFR_lk', 'RPF_lk'}.issubset(p):
-#         p['FF_lk'] = _div(p['GFR_lk'], p['RPF_lk'])
-#         p['E_lk'] = _div(p['GFR_lk'], p['GFR_lk']+p['RPF_lk'])
-
-#     # Kidney RK
-#     if {'RPF_rk', 'vol_rk'}.issubset(p):
-#         p['Fp_rk'] = _div(p['RPF_rk'], p['vol_rk'])
-#     if {'RPF_rk', 'GFR_rk', 'vp_rk', 'vol_rk'}.issubset(p):
-#         p['Tp_rk'] = _div(p['vp_rk'] * p['vol_rk'], p['RPF_rk']+p['GFR_rk'])
-#     if {'RPF_rk', 'vp_rk', 'vol_rk'}.issubset(p):
-#         p['Tv_rk'] = _div(p['vp_rk'] * p['vol_rk'], p['RPF_rk'])
-#     if {'GFR_rk', 'vol_rk'}.issubset(p):
-#         p['Ft_rk'] = _div(p['GFR_rk'], p['vol_rk'])
-#     if {'GFR_rk', 'RPF_rk'}.issubset(p):
-#         p['FF_rk'] = _div(p['GFR_rk'], p['RPF_rk'])
-#         p['E_rk'] = _div(p['GFR_rk'], p['GFR_rk']+p['RPF_rk'])
-
-#     return p
-
-
-# def _div(a, b):
-#     with np.errstate(divide='ignore', invalid='ignore'):
-#         return np.where(b == 0, 0, np.divide(a, b))
-    
 
 
 def conc_kidney_2cf(ca, t=None, dt=1.0, Fp=None, vp=None, Ft=None, Tt=None):
-    #vp = Tp*(Fp+Ft)
     Tp = vp/(Fp+Ft)
     Cp = pk.conc_comp(Fp*ca, Tp, t=t, dt=dt)
     cp = Cp/vp
@@ -113,7 +62,7 @@ def conc_kidney_fn(ca, t=None, dt=1.0, TT=None, Fp=None, Tp=None, Ft=None, ht=No
             tmax = dt*np.size(ca)
         else:
             tmax = np.amax(t)
-        nTT = 1+np.size(ht)
+        nTT = 1 + np.size(ht)
         TT = np.linspace(0, tmax, nTT)
     vp = Tp*(Fp+Ft)
     Cp = pk.conc_plug(Fp*ca, Tp, t=t, dt=dt)
@@ -122,8 +71,8 @@ def conc_kidney_fn(ca, t=None, dt=1.0, TT=None, Fp=None, Tp=None, Ft=None, ht=No
     return np.stack((Cp, Ct))
 
 
-def conc_kidney_cm(ca: np.ndarray, *params, t=None, dt=1.0, sum=True, 
-                   kinetics='7C'):
+
+def conc_kidney_cm9(ca, t=None, dt=1.0, Fp=None, Eg=None, fc=None, Tglom=None, Tv=None, Tpt=None, Tlh=None, Tdt=None, Tcd=None):
     """Concentration in kidney cortex and medulla tissues.
 
     Args:
@@ -206,15 +155,6 @@ def conc_kidney_cm(ca: np.ndarray, *params, t=None, dt=1.0, sum=True,
         >>> ax.legend()
         >>> plt.show()
     """
-    if kinetics == '7C':
-        return conc_kidney_cm9(ca, *params, t=t, dt=dt, sum=sum)
-    else:
-        raise ValueError(
-            'Kinetic model ' + kinetics + ' is not currently implemented.')
-
-
-def conc_kidney_cm9(ca, t=None, dt=1.0, Fp=None, Eg=None, fc=None, Tglom=None, Tv=None, Tpt=None, Tlh=None, Tdt=None, Tcd=None):
-
     # Flux out of the glomeruli and arterial tree
     Jg = pk.flux(Fp*ca, Tglom, t=t, dt=dt, model='comp')
 
@@ -247,3 +187,52 @@ def conc_kidney_cm9(ca, t=None, dt=1.0, Fp=None, Eg=None, fc=None, Tglom=None, T
     Cmed = np.stack((Cv, Clh, Ccd))
 
     return Ccor, Cmed
+
+
+
+# def _deriv_params(p):
+
+#     # Kidneys
+#     if 'FF' not in p:
+#         p['FF'] = _div(p['Eb'], 1-p['Eb'])
+#     if {'RPF', 'FF'}.issubset(p):   
+#         p['GFR'] =  p['RPF'] * p['FF']
+#     if {'DRPF', 'RPF'}.issubset(p): 
+#         p['RPF_lk'] = p['DRPF'] * p['RPF']
+#         p['RPF_rk'] = (1 - p['DRPF']) * p['RPF']
+#     if {'DRF', 'GFR'}.issubset(p):
+#         p['GFR_lk'] = p['DRF'] * p['GFR']
+#         p['GFR_rk'] = (1 - p['DRF']) * p['GFR']
+
+#     # Kidney LK
+#     if {'RPF_lk', 'vol_lk'}.issubset(p):
+#         p['Fp_lk'] = _div(p['RPF_lk'], p['vol_lk'])
+#     if {'RPF_lk', 'GFR_lk', 'vp_lk', 'vol_lk'}.issubset(p):
+#         p['Tp_lk'] = _div(p['vp_lk'] * p['vol_lk'], p['RPF_lk']+p['GFR_lk'])
+#     if {'RPF_lk', 'vp_lk', 'vol_lk'}.issubset(p):
+#         p['Tv_lk'] = _div(p['vp_lk'] * p['vol_lk'], p['RPF_lk'])
+#     if {'GFR_lk', 'vol_lk'}.issubset(p):
+#         p['Ft_lk'] = _div(p['GFR_lk'], p['vol_lk'])
+#     if {'GFR_lk', 'RPF_lk'}.issubset(p):
+#         p['FF_lk'] = _div(p['GFR_lk'], p['RPF_lk'])
+#         p['E_lk'] = _div(p['GFR_lk'], p['GFR_lk']+p['RPF_lk'])
+
+#     # Kidney RK
+#     if {'RPF_rk', 'vol_rk'}.issubset(p):
+#         p['Fp_rk'] = _div(p['RPF_rk'], p['vol_rk'])
+#     if {'RPF_rk', 'GFR_rk', 'vp_rk', 'vol_rk'}.issubset(p):
+#         p['Tp_rk'] = _div(p['vp_rk'] * p['vol_rk'], p['RPF_rk']+p['GFR_rk'])
+#     if {'RPF_rk', 'vp_rk', 'vol_rk'}.issubset(p):
+#         p['Tv_rk'] = _div(p['vp_rk'] * p['vol_rk'], p['RPF_rk'])
+#     if {'GFR_rk', 'vol_rk'}.issubset(p):
+#         p['Ft_rk'] = _div(p['GFR_rk'], p['vol_rk'])
+#     if {'GFR_rk', 'RPF_rk'}.issubset(p):
+#         p['FF_rk'] = _div(p['GFR_rk'], p['RPF_rk'])
+#         p['E_rk'] = _div(p['GFR_rk'], p['GFR_rk']+p['RPF_rk'])
+
+#     return p
+
+
+# def _div(a, b):
+#     with np.errstate(divide='ignore', invalid='ignore'):
+#         return np.where(b == 0, 0, np.divide(a, b))

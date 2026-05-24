@@ -263,7 +263,6 @@ class ConcAorta(LayerFunction):
     configs = {
         'heartlung': ['comp', 'pfcomp', 'chain'],
         'organs': ['comp', '2cxm'],
-        
     }
     def __init__(self, heartlung='pfcomp', organs='comp', **params):
         cnfg = {
@@ -392,6 +391,8 @@ class ConcLiver(LayerFunction):
 
     def _params(self):
         model = (self._cnfg['kinetics'], self._cnfg['non_stationary'])
+        if model not in self._params_dict:
+            raise ValueError("This model is not recognised")
         return copy.deepcopy(self._params_dict[model])
     
     def __call__(self, ca: np.ndarray, t=None, dt=1.0, **params) -> np.ndarray:
@@ -416,14 +417,8 @@ class ConcLiver(LayerFunction):
             conc += '__' + ns.lower()    
 
         model_func = getattr(pk, conc)  
+        return model_func(ca, t=t, dt=dt, **p)
 
-        # Apply model function
-        if '-IC' in kin:
-            return model_func(ca, t=t, dt=dt, **p)
-        else:
-            if ns != None:
-                raise ValueError("For extracellular models non_stationary must be None")
-            return model_func(ca, t=t, dt=dt, **p)
         
 
 
@@ -478,12 +473,10 @@ class ConcKidney(LayerFunction):
         ca = pk.flux(ca, p['T_a'], dt=dt, model='plug')
         p = {k: v for k, v in p.items() if k != 'T_a'}
 
-        if kin == '2CF':
-            return pk.conc_kidney_2cf(ca, t=t, dt=dt, **p)
-        if kin == 'HF':
-            return pk.conc_kidney_hf(ca, t=t, dt=dt, **p)
-        if kin == 'FN':
-            return pk.conc_kidney_fn(ca, t=t, dt=dt, **p)
+        conc = 'conc_kidney_' + kin.lower()   
+        model_func = getattr(pk, conc)  
+        return model_func(ca, t=t, dt=dt, **p)
+
         
 
 
@@ -581,14 +574,18 @@ class ConcTissueX(LayerFunction):
         ca = pk.flux_plug(ca, p['T_a'], dt=dt)
         params = {k: v for k, v in p.items() if k != 'T_a'}
         
-        kinetics = self._cnfg['kinetics']
-        if kinetics == 'U': return pk.conc_tissue_u(ca, t=t, dt=dt, **params)
-        if kinetics == 'FX': return pk.conc_tissue_fx(ca, t=t, dt=dt, **params)
-        if kinetics == 'NX': return pk.conc_tissue_nx(ca, t=t, dt=dt, **params)
-        if kinetics == 'NXP': return pk.conc_tissue_nxp(ca, t=t, dt=dt, **params)
-        if kinetics == 'WV': return pk.conc_tissue_wv(ca, t=t, dt=dt, **params)
-        if kinetics == 'HFU': return pk.conc_tissue_hfu(ca, t=t, dt=dt, **params)
-        if kinetics == 'HF': return pk.conc_tissue_hf(ca, t=t, dt=dt, **params)
-        if kinetics == '2CU': return pk.conc_tissue_2cu(ca, t=t, dt=dt, **params)
-        if kinetics == '2CX': return pk.conc_tissue_2cx(ca, t=t, dt=dt, **params)
+        kin = self._cnfg['kinetics']
+        conc = 'conc_tissue_' + kin.lower()   
+        model_func = getattr(pk, conc)  
+        return model_func(ca, t=t, dt=dt, **params)
+    
+        # if kinetics == 'U': return pk.conc_tissue_u(ca, t=t, dt=dt, **params)
+        # if kinetics == 'FX': return pk.conc_tissue_fx(ca, t=t, dt=dt, **params)
+        # if kinetics == 'NX': return pk.conc_tissue_nx(ca, t=t, dt=dt, **params)
+        # if kinetics == 'NXP': return pk.conc_tissue_nxp(ca, t=t, dt=dt, **params)
+        # if kinetics == 'WV': return pk.conc_tissue_wv(ca, t=t, dt=dt, **params)
+        # if kinetics == 'HFU': return pk.conc_tissue_hfu(ca, t=t, dt=dt, **params)
+        # if kinetics == 'HF': return pk.conc_tissue_hf(ca, t=t, dt=dt, **params)
+        # if kinetics == '2CU': return pk.conc_tissue_2cu(ca, t=t, dt=dt, **params)
+        # if kinetics == '2CX': return pk.conc_tissue_2cx(ca, t=t, dt=dt, **params)
 

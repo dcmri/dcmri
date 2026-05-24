@@ -29,6 +29,7 @@ from dcmri.kinetics.lib.blocks import (
     conc_trap,
     conc_pass,
     conc_comp,
+    conc_bicomp,
     conc_plug,
     conc_chain,
     conc_step,
@@ -55,15 +56,18 @@ from dcmri.kinetics.lib.blocks import (
 )
 from dcmri.kinetics.lib.aorta import (
     flux_aorta,
+    flux_aorta_hlo,
     flux_aorta_hlol,
 )
 from dcmri.kinetics.lib.kidney import (
+    dpars_kidney,
     conc_kidney_2cf,
     conc_kidney_hf,
     conc_kidney_fn,
     conc_kidney_cm9,
 )
 from dcmri.kinetics.lib.liver import ( # change double __ notation
+    dpars_liver,
     conc_liver_1i_ec_d,
     conc_liver_1i_ec,
     conc_liver_1i_ic,
@@ -94,6 +98,7 @@ from dcmri.kinetics.lib.liver import ( # change double __ notation
     conc_liver_2i_ic_u__u,
 )
 from dcmri.kinetics.lib.tissue import (
+    dpars_tissue,
     conc_tissue_u,
     conc_tissue_fx,
     conc_tissue_nx,

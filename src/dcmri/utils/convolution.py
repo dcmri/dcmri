@@ -15,18 +15,21 @@ def _tarray(n, t=None, dt=1.0):
             raise ValueError('Time array must have same length as the input.')
     return t
 
-def _trapz(f, t=None, dt=1.0):
-    # Helper function - perform trapezoidal integration.
-    # Replace by scipy.integrate.trapezoid
-    f = np.array(f)
-    n = len(f)
-    t = _tarray(n, t=t, dt=dt)
-    g = np.empty(n)
-    g[0] = 0
-    for i in range(n-1):
-        g[i+1] = g[i] + (t[i+1]-t[i]) * (f[i+1]+f[i]) / 2
-    return g
 
+# def _trapz(f, t=None, dt=1.0):
+#     # Helper function - perform trapezoidal integration.
+#     f = np.array(f)
+#     n = len(f)
+#     g = np.empty(n)
+#     g[0] = 0
+#     if t is None:
+#         for i in range(n-1):
+#             g[i+1] = g[i] + dt * (f[i+1]+f[i]) / 2
+#     else:
+#         t = _tarray(n, t=t, dt=dt)
+#         for i in range(n-1):
+#             g[i+1] = g[i] + (t[i+1]-t[i]) * (f[i+1]+f[i]) / 2
+#     return g
 
 
 
@@ -64,19 +67,20 @@ def convmat(f:np.ndarray, order=2):
 
 
 def invconvmat(f, order=2, tol=1e-15, method='TSVD'):
+    methods = ['TSVD', 'Tikhonov']
+    if method not in methods:
+        raise ValueError(
+            f"Unknown deconvolution method {method}. Possible values "
+            "are 'TSVD' (Truncated Singular Value Decomposition) or "
+            "'Tikhonov' (Tikhonov regularization)."
+        )
     mat = convmat(f, order)
     U, s, Vt = np.linalg.svd(mat, full_matrices=False)
     svmin = tol*np.amax(s)
     if method=='Tikhonov':
         s_inv = s/(s**2 + svmin**2)
-    elif method=='TSVD':
+    if method=='TSVD':
         s_inv = np.array([1/x if x > svmin else 0 for x in s])
-    else:
-        raise ValueError(
-            f"Unknown deconvolution method {method}. Possible values "
-            "are 'TSVD' (Truncated Singular Value Decomposition) or "
-            "'Tikhonov'."
-        )
     return np.dot(Vt.T * s_inv, U.T)
 
 
@@ -303,54 +307,60 @@ def stepconv(f, T, D, t=None, dt=1.0):
     return g/(2*TW)
 
 
+
+
+
 def _uexpconv(f, T, dt, tol):
-    if np.isinf(T):
-        return dt * np.cumsum(f)
-    # Edge case: T is tiny (Response is instantaneous)
-    # TODO this is not ideal as results is independent of T
-    # Better use taylor expansion of E's for large T
-    if T < tol * dt: # Equivalent to T/dt < tol
-        return f
-    
-    # Pre-calculate ratio
-    inv_T = 1.0 / T
-    
-    # Edge case: T is very large (i.e. x is small)
-    # Approximate exponential by linear function
     n = len(f)
-    if n * dt < tol * T:
-        t = dt * np.arange(n)
-        f0 = np.trapezoid(f, dx=dt)
-        f1 = np.trapezoid(f * t, dx=dt)
-        return f0 * inv_T + (f1 - t * f0) * (inv_T**2)
+    inv_T = 1.0 / T
+    x = dt * inv_T
 
-    x = dt * inv_T 
-    E = np.exp(-x)
-    E0 = 1.0 - E
-    E1 = 1.0 - (E0 / x) 
+    # Edge case: T is very large (i.e. x is small)
+    if n * dt < tol * T: # dt/T < tol/n
+        E = 1 - x + x**2/2 # Include 2nd order so E1 is non-zero
+        return _uexpconv_compute(f, x, E)
+        # This works too: # Approximate exponential by linear function
+        # t = dt * np.arange(n)
+        # f0 = np.trapezoid(f, dx=dt)
+        # f1 = np.trapezoid(f * t, dx=dt)
+        # return f0 * inv_T + (f1 - t * f0) * (inv_T**2)
     
-    # Vectorized calculation of 'add'
-    f_start = f[:-1]
-    f_diff = f[1:] - f_start
+    # Edge case: T is tiny (Response is instantaneous)
+    # Use taylor expansion of E for large T
+    if T < tol * dt: # Equivalent to T/dt < tol
+        E = 0
+        return _uexpconv_compute(f, x, E)
+    
+    E = np.exp(-x)
+    return _uexpconv_compute(f, x, E)
 
-    add = f_start * E0 + f_diff * E1
-
+def _uexpconv_compute(f, x, E):
+    # Vectorised computation of:
     # g = np.zeros(n, dtype=E.dtype) 
     # for i in range(0, n-1):
     #     g[i+1] = E * g[i] + add[i]
     # return g
 
+    E0 = 1.0 - E
+    E1 = 1.0 - (E0 / x) 
+
+    # Calculation of 'add'
+    f_start = f[:-1]
+    f_diff = f[1:] - f_start
+    add = f_start * E0 + f_diff * E1
+
     # Fast implementation
     # Pad to make lfilter return an array of length n.
     # Result: [0, add[0], E*add[0]+add[1], ...] 
+    n = len(f)
     padded_add = np.zeros(n, dtype=f.dtype)
     padded_add[1:] = add
 
     # lfilter call: b=[1.0], a=[1.0, -E]
     return lfilter([1.0], [1.0, -E], padded_add)
+    
 
-
-def expconv(f, T, t=None, dt=1.0, tol=0):
+def expconv(f, T, t=None, dt=1.0, tol=1e-9):
     """Convolve a 1D-array with a normalised exponential.
 
     This function returns the convolution :math:`f(t)\\otimes\\exp(-t/T)/T` using an efficient and accurate numerical formula, as detailed in the appendix of `Flouri et al (2016) <https://onlinelibrary.wiley.com/doi/full/10.1002/mrm.25991>`_ 
@@ -360,7 +370,8 @@ def expconv(f, T, t=None, dt=1.0, tol=0):
         T (float): the characteristic time of the normalized exponential function. 
         t (array_like, optional): the time points where the values of f are defined, in the same units as T. If t=None, the time points are assumed to be uniformly spaced with spacing dt. Defaults to None.
         dt (float, optional): spacing between time points for uniformly spaced time points. This parameter is ignored if t is explicity provided. Defaults to 1.0.
-
+        tol (float, optional): This protects against numerical overflow by using an approximation for small or large T. Set tol=0 for computing without this protection.
+        
     Returns:
         numpy.ndarray: a 1D numpy array of the same length as f.
 
@@ -405,24 +416,32 @@ def expconv(f, T, t=None, dt=1.0, tol=0):
         >>> dc.expconv(f, 3, t)
         array([0.        , 1.26774952, 2.32709015, 4.16571645])
     """
-    if T == 0:
-        return f
     f = np.array(f)
     n = len(f)
-    if n==1:
+    if n == 1:
         return np.zeros(n)
-
+    if T == 0:
+        return f
+    if np.isinf(T):
+        return np.zeros(n)
+    
     if t is None:
         return _uexpconv(f, T, dt, tol) # fast version for fixed dt
         
     t = _tarray(n, t=t, dt=dt)
     x = (t[1:n] - t[0:n-1])/T 
 
-    # Optional protection against overflow when x is very small or very big
-    if 1/x.min() < tol: # very small T
-        return f
-    if t.max() / T < tol: # very large T
-        # Large T - exponential is linear over the interval
+    # very small T
+    if 1/x.min() < tol: 
+        E = np.zeros_like(x)
+        return _expconv_compute(f, x, E)
+    
+    # very large T
+    if t.max() < tol * T: 
+        E = 1 - x + x**2 / 2 # Include 2nd order so E1 is non-zero
+        return _expconv_compute(f, x, E)
+    
+        # This works too - exponential is linear over the interval
         # g(t) = (1/T) * int_0^t du f(u) exp(-(t-u)/T)
         # g(t) = (1/T) * int_0^t du f(u) (1 - (t-u)/T)
         # g(t) = (1/T) * int_0^t du f(u) - (1/T^2) * int_0^t du f(u) (t-u)
@@ -430,21 +449,25 @@ def expconv(f, T, t=None, dt=1.0, tol=0):
         # g(t) = (1/T) * int_0^t du f(u) - (t/T^2) * int_0^t du f(u) + (1/T^2) * int_0^t du f(u) u
         # g(t) = (1/T)[1 - (t/T)] * int_0^t du f(u) + (1/T^2) * int_0^t du f(u) u
         # Tg = [1 - (t/T)] * int_0^t du f(u) + (1/T) * int_0^t du f(u) u 
-        f0 = _trapz(f, t=t, dt=dt)
-        f1 = _trapz(f*t, t=t, dt=dt)
-        return f0 / T + (f1 - t * f0) / T**2
+
+        # f0 = _trapz(f, t=t, dt=dt)
+        # f1 = _trapz(f*t, t=t, dt=dt)
+        # return f0 / T + (f1 - t * f0) / T**2
     
-    df = (f[1:n] - f[0:n-1])/x
     E = np.exp(-x)
-    E0 = 1-E
-    E1 = x-E0
-    add = f[0:n-1]*E0 + df*E1
+    return _expconv_compute(f, x, E)
+
+
+def _expconv_compute(f, x, E):
+    n = len(f)
+    E0 = 1 - E
+    E1 = x - E0
+    df = (f[1:n] - f[0:n-1]) / x
+    add = f[0:n-1] * E0 + df * E1
     g = np.zeros(n, dtype=E.dtype) # this can also be accelerated like uexpconv()
     for i in range(0, n-1):
-        g[i+1] = E[i]*g[i] + add[i]
+        g[i+1] = E[i] * g[i] + add[i]
     return g
-
-
 
 
 def biexpconv(T1, T2, t):
