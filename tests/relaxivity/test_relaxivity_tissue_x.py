@@ -103,6 +103,9 @@ def test_coverage():
         C = ConcTissueX(kin)(ca)
         RelaxTissueX(*cnfgs)(C)
 
+    R2sTissueX(kinetics='U', t2s_relaxation='leakage')(np.ones(5))
+    R2TissueX()(np.ones(5))
+
 
 def test_exceptions():
     kin, wex = '2CX', 'RR'
@@ -117,6 +120,7 @@ def test_exceptions():
         pass
     else:
         assert False
+
 
 
 if __name__ == "__main__":

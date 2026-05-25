@@ -32,8 +32,16 @@ class R1(LayerFunction):
             if c.ndim==1:
                 return rel.relax_t1(c, p['R10'], p['r1'])
             else:
+                if c.shape[0] != np.size(p['R10']):
+                    R10 = np.full(c.shape[0], p['R10'])
+                else:
+                    R10 = p['R10']
+                if c.shape[0] != np.size(p['r1']):
+                    r1 = np.full(c.shape[0], p['r1'])
+                else:
+                    r1 = p['r1']
                 # Compute R1 of water compartments
-                R1_result = [rel.relax_t1(c[i,:], p['R10'][i], p['r1'][i]) for i in range(c.shape[0])]
+                R1_result = [rel.relax_t1(c[i,:], R10[i], r1[i]) for i in range(c.shape[0])]
                 return np.stack(R1_result)
 
 
@@ -63,8 +71,16 @@ class R2(LayerFunction):
             if c.ndim==1:
                 return rel.relax_t1(c, p['R20'], p['r2'])
             else:
+                if c.shape[0] != np.size(p['R20']):
+                    R20 = np.full(c.shape[0], p['R20'])
+                else:
+                    R20 = p['R20']
+                if c.shape[0] != np.size(p['r2']):
+                    r2 = np.full(c.shape[0], p['r2'])
+                else:
+                    r2 = p['r2']
                 # Compute R2 of water compartments
-                R2_result = [rel.relax_t1(c[i,:], p['R20'][i], p['r2'][i]) for i in range(c.shape[0])]
+                R2_result = [rel.relax_t1(c[i,:], R20[i], r2[i]) for i in range(c.shape[0])]
                 return np.stack(R2_result)
         
 

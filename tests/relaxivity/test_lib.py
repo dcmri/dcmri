@@ -68,6 +68,73 @@ def test_relax_t1():
     assert np.array_equal(rel.relax_t1(c, R10, r1), np.full(shape,2))
 
 
+def test_relax_t2s():
+    """Test all models and shapes for the relax_t2s function."""
+    
+    # --- Case 1: 'lin' model with scalar values ---
+    c_scalar = 0.5
+    R20s_scalar = 1.0
+    r2s_scalar = 2.0
+    expected_scalar = 1.0 + 2.0 * 0.5  # 2.0
+    
+    result_scalar = rel.relax_t2s(c_scalar, R20s_scalar, r2s=r2s_scalar, model='lin')
+    assert np.isclose(result_scalar, expected_scalar)
+
+    # --- Case 2: 'lin' model with a 1D array ---
+    c_1d = np.array([0.1, 0.2, 0.3])
+    R20s_1d = 1.5
+    r2s_1d = 2.5
+    expected_1d = 1.5 + 2.5 * c_1d
+    
+    result_1d = rel.relax_t2s(c_1d, R20s_1d, r2s=r2s_1d, model='lin')
+    np.testing.assert_array_almost_equal(result_1d, expected_1d)
+
+    # --- Case 3: 'quad' model with linear and quadratic terms ---
+    c_quad = np.array([1.0, 2.0])
+    R20s_quad = 0.8
+    r2s_quad_lin = 1.5
+    r2s_quad_term = 0.3
+    expected_quad = R20s_quad + r2s_quad_lin * c_quad + r2s_quad_term * c_quad**2
+    
+    result_quad = rel.relax_t2s(c_quad, R20s_quad, r2s=r2s_quad_lin, r2s_quad=r2s_quad_term, model='quad')
+    np.testing.assert_array_almost_equal(result_quad, expected_quad)
+
+    # --- Case 4: 'leakage' model with a 2D multi-compartment array ---
+    c_2d = np.array([
+        [0.5, 0.8, 0.2],  # Compartment 0
+        [0.1, 0.4, 0.9]   # Compartment 1
+    ])
+    R20s_leak = 1.2
+    r2s_vasc = 3.0
+    r2s_ees = 1.5
+    expected_leak = 1.2 + 3.0 * np.abs(c_2d[0,:] - c_2d[1,:]) + 1.5 * c_2d[1,:]
+    
+    result_leak = rel.relax_t2s(c_2d, R20s_leak, r2s_vasc=r2s_vasc, r2s_ees=r2s_ees, model='leakage')
+    np.testing.assert_array_almost_equal(result_leak, expected_leak)
+
+
+def test_relax_t2():
+    """Test the valid linear path and the error path for the relax_t2 function."""
+    
+    # --- Case 1: Valid 'lin' model array calculation ---
+    c = np.array([0.0, 1.5, 3.0])
+    R20 = 0.5
+    r2 = 4.0
+    expected = 0.5 + 4.0 * c
+    
+    result = rel.relax_t2(c, R20, r2=r2, model='lin')
+    np.testing.assert_array_almost_equal(result, expected)
+    
+    # --- Case 2: Ensure an error is thrown for an invalid model name ---
+    try:
+        rel.relax_t2(c, R20, r2=2.0, model='invalid_model_name')
+        # If the line above doesn't throw an error, force the test to fail
+        assert False, "relax_t2 should have raised a ValueError for an invalid model."
+    except ValueError as e:
+        # The test passes if the correct error message is caught
+        assert 'Model invalid_model_name not recognized' in str(e)
+
+
 if __name__ == "__main__":
 
     test_conc_t1()
