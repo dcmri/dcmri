@@ -115,11 +115,16 @@ def test_1c_scalar_function():
     assert np.linalg.norm(ss_approx_4 - ss_exact) < 1e-6
 
 
+def test_complete_coverage():
+    pulse._Mz_ss_aex(np.zeros(2), np.ones(2), np.zeros((2,2)), 0, 1, 1, 1)
+
+
 
 if __name__=='__main__':
 
     test_nc_function()
     test_1c_function()
     test_1c_scalar_function()
+    test_complete_coverage()
 
     print('All bloch.pulse tests passed!')

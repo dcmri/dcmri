@@ -30,26 +30,26 @@ def test_exceptions_readout():
         assert False
 
     try:
-        Readout('GE-EPI')(R2s=None)
+        Readout('GE-EPI')(Mz=np.ones((2,3)), R2s=None)
     except:
         pass
     else:
         assert False
     try:
-        Readout('GE-EPI')(Mz=np.ones(2,3), R2s=np.ones(3))
+        Readout('GE-EPI')(Mz=np.ones((2,3)), R2s=np.ones(4))
     except:
         pass
     else:
         assert False
 
     try:
-        Readout('SE-EPI')(R2=None)
+        Readout('SE-EPI')(Mz=np.ones((2,3)), R2=None)
     except:
         pass
     else:
         assert False
     try:
-        Readout('SE-EPI')(Mz=np.ones(2,3), R2=np.ones(3))
+        Readout('SE-EPI')(Mz=np.ones((2,3)), R2=np.ones(4))
     except:
         pass
     else:
@@ -127,6 +127,9 @@ def test_coverage_longitudinal():
         Mz = Longitudinal(*cnfgs)
         Mz.params()
         Mz(R1=R1, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
+        
+    Longitudinal('3D-SPGR-SS')(R1=R1, R1i=None, Fi=Fi, v=v, Fw=Fw, me=me)
+    Longitudinal('Eq-SE-EPI')()
 
 
 
@@ -139,14 +142,28 @@ def test_exceptions_longitudinal():
         assert False
 
     try:
-        Longitudinal('3D-SPGR-SS')(R1=np.ones(2, 3), v=1)
+        Longitudinal('3D-SPGR-SS')(R1=np.ones((2, 3)), v=1)
     except:
         pass
     else:
         assert False
 
     try:
-        Longitudinal('3D-SPGR-SS')(R1=np.ones(2, 3), v=[0.5,0.5], Fw=np.ones(3,3))
+        Longitudinal('3D-SPGR-SS')(R1=np.ones((2, 3)), v=[0.5,0.5], Fw=np.ones((3,3)))
+    except:
+        pass
+    else:
+        assert False
+
+    try:
+        Longitudinal('3D-SPGR-SS')(R1=np.ones((2, 3)), R1i=np.ones((2, 3)), Fi=None, v=[0.5,0.5], Fw=np.ones((2,2)))
+    except:
+        pass
+    else:
+        assert False
+
+    try:
+        Longitudinal('3D-SPGR-SS')(R1=np.ones((2, 3)), v=[0.5,0.5], Fw=np.ones((2,2)), Fi=np.ones(3), R1i=np.ones((2, 3)))
     except:
         pass
     else:
@@ -160,7 +177,7 @@ def test_exceptions_longitudinal():
         assert False
 
     try:
-        Longitudinal('3D-SPGR-SS')(R1=np.ones(3, 3), v=[0.5, 0.5])
+        Longitudinal('3D-SPGR-SS')(R1=np.ones((3, 3)), v=[0.5, 0.5])
     except:
         pass
     else:
@@ -174,7 +191,7 @@ def test_exceptions_longitudinal():
         assert False
 
     try:
-        Longitudinal('3D-SPGR-SS')(R1i=1, Fi=np.ones(2,2))
+        Longitudinal('3D-SPGR-SS')(R1i=1, Fi=np.ones((2,2)))
     except:
         pass
     else:
@@ -250,6 +267,12 @@ def test_coverage_signal():
         sig.params()
         sig(R1=R1, R2=R2, R2s=R2s, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
 
+    Signal('Eq-DE-EPI')(R2=R2, R2s=R2s, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
+    Signal('3D-SPGR-SS')(R2s=R2s, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
+
+
+def test_exceptions_signal():
+    pass
 
 
 if __name__ == "__main__":
@@ -258,5 +281,6 @@ if __name__ == "__main__":
     test_coverage_longitudinal()
     test_exceptions_longitudinal()
     test_coverage_signal()
+    test_exceptions_signal()
     
     print('All magnetization tests passing!')

@@ -169,7 +169,7 @@ class Longitudinal(LayerFunction):
         weighting = SEQUENCES[sequence]['parameters']['tissue']
         if 'R1' in weighting:
             if R1 is None:
-                raise ValueError("R1 must be provided for a T1*-weighted sequence.")
+                raise ValueError("R1 must be provided for a T1-weighted sequence.")
 
         # --- Format vw
         v = np.atleast_1d(p['v'])
@@ -207,8 +207,8 @@ class Longitudinal(LayerFunction):
             if R1.size > nc:
                 if R1.ndim != 2:
                     raise ValueError(f"For a tissue with {nc} compartments and nt time , R1 must have shape ({nc}, nt).")
-                if R1.shape[0] != nc:
-                    raise ValueError(f"For a tissue with {nc} compartments and nt time points, R1 must have shape ({nc}, nt).")
+                # if R1.shape[0] != nc:
+                #     raise ValueError(f"For a tissue with {nc} compartments and nt time points, R1 must have shape ({nc}, nt).")
                 nt = R1.shape[1]
             else:
                 nt = 1
@@ -227,9 +227,10 @@ class Longitudinal(LayerFunction):
             mz_prep_inflow = SEQUENCES[sequence]['mz_prep_inflow']
 
             R1i = np.atleast_1d(p['R1i']).reshape(nc, nt)
-            Fi = np.array(p['Fi']).reshape(nc)
+            Fi = np.array(p['Fi'])
             if Fi.size != R1i.shape[0]:
                 raise ValueError(f"Fi must have the same number of elements as the first dimension of R1i. Fi has {Fi.size} elements and R1i has shape {R1i.shape}.")
+            Fi = Fi.reshape(nc)
             j = np.zeros_like(R1i)
             for i in range(Fi.size):
                 vi, Fwi, ji = 1, 0, None # inflow = 1 closed compartment
@@ -362,8 +363,8 @@ class Readout(LayerFunction):
             signal = signal.reshape(1, -1)
         
         elif seq in ['Eq-DE-EPI', 'DE-EPI']:
-            if np.size(R2) != np.size(R2s):
-                raise ValueError('R2 and R2s must have the same size.')
+            # if np.size(R2) != np.size(R2s):
+            #     raise ValueError('R2 and R2s must have the same size.')
             GE = lib.mz_readout(Mz, R2s, p['S0'], p['FA'] * p['B1corr'], p['TE1'], p['noise_sdev'])
             SE = lib.mz_readout(Mz, R2, p['S0'], p['FA'] * p['B1corr'], p['TE2'], p['noise_sdev'])
             signal = np.stack((GE, SE)) # n_channels, n_times

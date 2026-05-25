@@ -30,6 +30,8 @@ def test_magn_tissue():
     R1, _, _ = RelaxTissueX(kinetics, 'FR', **p0)(C)
     Mz = MzTissueX(kinetics, 'FR', sequence=seq)(R1, R1a, **p0)
     assert 0.04 < Mz[0,0] < 0.06
+
+    Mz = MzTissueX(kinetics, 'FR', sequence='Eq-GE-EPI')(R1a=R1a, **p0)
     
 
 
@@ -45,6 +47,9 @@ def test_signal_tissue():
     R1, R2, R2s = RelaxTissueX('2CX', 'RR', **p0)(C)
     S = SignalTissueX('2CX', 'RR', '3D-SPGR-SS')(R1, R2, R2s, R1a, **p0)
     assert 0.3 < S[0] < 0.4
+
+    S = SignalTissueX('2CX', 'RR', '3D-SPGR-SS')(R2=R2, R2s=R2s, R1a=R1a, **p0)
+    S = SignalTissueX('2CX', 'RR', 'Eq-GE-EPI')(R2s=R2s, R1a=R1a, **p0)
 
 
 def test_coverage():
