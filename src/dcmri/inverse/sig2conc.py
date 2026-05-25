@@ -21,8 +21,6 @@ class SignalToConc(LayerFunction):
         # Overide Lexicon defaults
         if sequence in ['lin', 'DE-EPI', 'Eq-DE-EPI']: # dual weighting but also dual channel so well defined
             pass
-        elif not SEQUENCES[sequence]['steady-state']:
-            raise ValueError("Only steady-state sequences can be directly inverted.")
 
         # Set user-defined parameters
         self._override_pars(**params)

@@ -158,7 +158,9 @@ def vfa_nonlinear(signal_intensities, flip_angles_deg, tr, bounds=None, verbose=
         R1_array = np.zeros(signals_array.shape[0])
         S0_array = np.zeros(signals_array.shape[0])
         for x in tqdm(range(signals_array.shape[0]), desc='Performing non-linear VFA fit'):
-            R1_array[x], S0_array[x] = vfa_nonlinear(signals_array[x,:], flip_angles_deg, tr, bounds, verbose)
+            fit_results = vfa_nonlinear(signals_array[x,:], flip_angles_deg, tr, bounds, verbose)
+            R1_array[x] = fit_results[0]
+            S0_array[x] = fit_results[1]
         R1_array = R1_array.reshape(signals_shape[:-1])
         S0_array = S0_array.reshape(signals_shape[:-1])
         return R1_array, S0_array
@@ -177,8 +179,6 @@ def vfa_nonlinear(signal_intensities, flip_angles_deg, tr, bounds=None, verbose=
     # --- 1. Define the SPGR signal model for curve_fit ---
     # tr is passed as a fixed argument to the model function
     def spgr_model(alpha_rad, r1, s0):
-        if r1 <= 0: # T1 must be positive
-            return np.inf
         e1 = np.exp(-tr * r1)
         return s0 * np.sin(alpha_rad) * (1 - e1) / (1 - np.cos(alpha_rad) * e1)
 
@@ -190,19 +190,16 @@ def vfa_nonlinear(signal_intensities, flip_angles_deg, tr, bounds=None, verbose=
     initial_guesses = [initial_r1_guess, initial_s0_guess]
     
     # --- 3. Perform Non-Linear Fit ---
-    try:
-        popt, pcov = curve_fit(
-            spgr_model,
-            flip_angles_rad,
-            signals,
-            p0=initial_guesses,
-            bounds=bounds
-        )
-        calculated_r1, calculated_s0 = popt
-        return calculated_r1, calculated_s0
-    except RuntimeError:
-        print("Warning (Non-Linear Fit): Could not converge to a solution. Returning initial guesses.")
-        return initial_r1_guess, initial_s0_guess
+    popt, pcov = curve_fit(
+        spgr_model,
+        flip_angles_rad,
+        signals,
+        p0=initial_guesses,
+        bounds=bounds,
+    )
+    calculated_r1, calculated_s0 = popt
+    return calculated_r1, calculated_s0
+
 
 
 def vfa_linear(signal_intensities, flip_angles_deg, tr, bounds=None, verbose=0):
@@ -267,12 +264,7 @@ def vfa_linear(signal_intensities, flip_angles_deg, tr, bounds=None, verbose=0):
         return bounds[0][0], bounds[0][1]
         
     y = signals[valid_indices] / np.sin(flip_angles_rad[valid_indices])
-    x = signals[valid_indices] / np.tan(flip_angles_rad[valid_indices])
-
-    if np.array_equal(x,y):
-        if verbose==1:
-            print("Warning: Equal values for x and y - cannot perform linear fit. Returning lower bounds")
-        return bounds[0][0], bounds[0][1]   
+    x = signals[valid_indices] / np.tan(flip_angles_rad[valid_indices]) 
 
     # --- 3. Linear Regression ---
     # Use np.polyfit to find the slope (m) and intercept (c) of the line y = mx + c
