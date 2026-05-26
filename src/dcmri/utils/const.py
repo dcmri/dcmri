@@ -164,6 +164,7 @@ def r1(field_strength=3.0, tissue='plasma', agent='gadoxetate') -> float:
             - ferucarbotran
             - ferumoxide
             - gadoxetate
+            - gadopiclenol
 
         Available field strengths:
             - 0.47
@@ -190,6 +191,10 @@ def r1(field_strength=3.0, tissue='plasma', agent='gadoxetate') -> float:
     rel = {}
     rel['T1'] = {
         'plasma': {
+            'gadopiclenol': {
+                1.5: 12.8,
+                3.0: 11.6,
+            },
             'gadopentetate': {  # Magnevist
                 0.47: 3.8,
                 1.5: 4.1,
