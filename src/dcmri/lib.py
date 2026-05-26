@@ -238,6 +238,10 @@ def relaxivity(field_strength=3.0, tissue='plasma',
     rel = {}
     rel['T1'] = {
         'plasma': {
+            'gadopiclenol': {
+                1.5: 12.8,
+                3.0: 11.6,
+            },
             'gadopentetate': {  # Magnevist
                 0.47: 3.8,
                 1.5: 4.1,
