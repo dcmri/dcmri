@@ -132,7 +132,7 @@ from dcmri import const
 from dcmri.lexicon import QUANTITIES, export_params
 from dcmri.bloch import Signal
 from dcmri.utils.misc import sample
-from dcmri.utils.fit import train, loss, train_custom
+from dcmri.utils.fit import train, loss
 from dcmri.core import SuperModel
 
 
@@ -649,7 +649,7 @@ class AortaLiverDrug(SuperModel):
 
     def _train(
             self, time: tuple, signal: tuple, free: dict, 
-            bounds: dict, n0: list, staged: int, sigma: tuple=None, n_runs=10, **kwargs,
+            bounds: dict, n0: list, n_runs: list, sigma: tuple=None, **kwargs,
         ):
 
         # Normalize signal
@@ -698,29 +698,6 @@ class AortaLiverDrug(SuperModel):
             p[f'{visit}_Si_l'] /= scl[1 + 2 * i]
 
         return best_vals, best_sdev, best_pcov
-
-        # free_list = list(free.keys())
-        # reg_indices = [free_list.index(k) for k in free if k not in ['c_BAT', 'd_BAT']]
-
-        # def loss_func(ypred, y, pars=None, sigma=None):
-        #     # Base Loss: Weighted or standard Least Squares
-        #     if sigma is not None:
-        #         residuals = (y - ypred) / sigma
-        #     else:
-        #         residuals = y - ypred
-
-        #     loss = np.sum(residuals ** 2)
-            
-        #     # # Normalize so reg terms become comparable
-        #     # loss = np.sum(residuals ** 2) / np.sum(y ** 2)
-            
-        #     # # Regularization Terms
-        #     # if reg_indices:
-        #     #     loss += 1e-9 * np.mean(np.square(pars[reg_indices]))
-
-        #     return loss
-        
-        # return train_custom(self._predict, time, signal, p, free, loss=loss_func, **kwargs)
 
 
     # ==========================================
@@ -989,7 +966,7 @@ class AortaLiverDrug(SuperModel):
 
     def train(
         self, time: dict, signal: dict, free=None, 
-        bounds:dict=None, n0=[1, 1], staged=0, **kwargs,
+        bounds:dict=None, n0=[1, 1], n_runs=1, **kwargs,
     ) -> tuple:
         """Train the free parameters
 
@@ -999,9 +976,7 @@ class AortaLiverDrug(SuperModel):
             free (dict, optional): Free parameters and their bounds.
             bounds (dict, optional): Override default bounds for specific parameters.
             n0 (int, optional): Number of baseline time points. Defaults to 1.
-            R102a (float, optional): R1 value in arterial blood before the second injection. 
-            R102l (float, optional): R1 value in liver before the second injection. 
-            staged (int, optional): values 0 (no staging), 1 (coarse staging), 2 (finer staging)
+            n_runs (int, optional): Number of fits to run. A different set of initial values is chosen each time.
             kwargs: any keyword parameters accepted by `scipy.optimize.curve_fit`.
 
         Returns:
@@ -1023,10 +998,7 @@ class AortaLiverDrug(SuperModel):
                 signal['drug', 'aorta'], 
                 signal['drug', 'liver'], 
             )
-        # p = self._pars
-        # for i, visit in enumerate(['c', 'd']):
-        #     p[f'{visit}_tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time[2 * i: 2 * i + 2]))
-        return self._train(time, signal, free, bounds, n0, staged, **kwargs)
+        return self._train(time, signal, free, bounds, n0, n_runs, **kwargs)
 
 
     def plot(self, time: dict, signal: dict, xlim=None, clim=None, fname=None, show=True):

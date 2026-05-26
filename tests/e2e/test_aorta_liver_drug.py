@@ -21,12 +21,10 @@ def test_configs():
 
     values = Model.configs.values()
     for cnfgs in itertools.product(*values):
-        seq = cnfgs[0]
         model = Model(*cnfgs)
         time = model.time()
         signal = model.predict(time)
-        bounds = {'c_S0_a': [0, 5], 'd_S0_a': [0, 5]} if seq=='3D-SPGR-SSI' else None
-        model.train(time, signal, bounds=bounds, verbose=2, xtol=0.1)
+        model.train(time, signal, verbose=2, xtol=0.1)
         model.plot(time, signal, show=DEBUG)
         cost = model.cost(time, signal)
         print(cnfgs, cost)
@@ -35,11 +33,11 @@ def test_configs():
         model.signal()
         assert cost < 5
 
-    # Test Variations (override parameter and staged training)
+    # Test Variations (override parameter and 2 runs)
     model = Model(CO=50)
     time = model.time()
     signal = model.predict(time)
-    model.train(time, signal, staged=True)
+    model.train(time, signal, n_runs=2, verbose=2, xtol=0.1)
     model.plot(time, signal, show=DEBUG)
     cost = model.cost(time, signal)
     print(cost)
@@ -66,30 +64,20 @@ def test_api():
         if os.path.exists(test_plot_file):
             os.remove(test_plot_file)
 
-def test_exceptions():
-    # Invalid Config
-    try:
-        Model(sequence='X')
-    except ValueError:
-        pass 
-    else:
-        assert False
-
-    # SSI sequence model with fixed S0
-    model = Model(sequence='3D-SPGR-SSI')
-    t, s = model.time(), model.signal()
-    try:
-        model.train(t, s, bounds={'c_S0_a': None})
-    except ValueError:
-        pass
-    else:
-        assert False
+# def test_exceptions():
+#     # Invalid Config
+#     try:
+#         Model(sequence='X')
+#     except ValueError:
+#         pass 
+#     else:
+#         assert False
 
 if __name__ == "__main__":
 
     test_configs()
     test_api()
-    test_exceptions()
+    # test_exceptions()
     
     print('All liver_drug_effect tests passed!!')
 

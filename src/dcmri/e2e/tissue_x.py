@@ -230,7 +230,6 @@ class TissueX(SuperModel):
             n_channels = 1
         return (n_pixels, n_channels, n_times)
 
-    
     def _params(self, select=None):
         if select is None:
             select = 'all'
@@ -757,7 +756,7 @@ class TissueX(SuperModel):
         if configs is None:
             return vals, sdev, pcov
         else:
-             return vals, sdev, pcov, model
+            return vals, sdev, pcov, model
 
     def plot(
         self, time: np.ndarray, signal: np.ndarray, sdev: dict=None,

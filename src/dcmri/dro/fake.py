@@ -2,11 +2,13 @@ from tqdm import tqdm
 import numpy as np
 
 import dcmri
-from dcmri import const, phantoms
-from dcmri.bloch import Signal
+from dcmri import const
+from dcmri import phantoms
 from dcmri.utils.misc import sample, add_noise
 from dcmri.kinetics import ConcTissueX, ConcLiver, ConcCortMed
 import dcmri.kinetics.lib as pk
+from dcmri.bloch import Signal
+import dcmri.bloch.lib as sig
 
 
 def aif(
@@ -59,10 +61,12 @@ def aif(
     R1b = R10a + rp*cp*(1-H)
     R20sa = 20
     R2sb = R20sa + r2s * cp * (1-H)
+    R1b = R1b.reshape(1, -1)
     if model == '3D-SPGR-SS':
-        aif_ = Signal(model)(S0=S0, R1=R1b, R2s=R2sb, TR=TR, FA=FA, B1corr=B1corr, TE=0)
+        Mz = sig.Mz_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TR, FA * B1corr)
     elif model == '3D-SR-SPGR-SS':
-        aif_ = Signal(model)(S0=S0, R1=R1b, R2s=R2sb, TR=TR, FA=FA, TC=TC, B1corr=B1corr, TE=0)
+        Mz = sig.Mz_pr_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TC, TR, FA * B1corr, 0, 2 * TC, 90) 
+    aif_ = sig.mz_readout(Mz, np.zeros_like(Mz), S0, FA * B1corr, 0, 0)
     time = np.arange(0, tacq, dt)
     aif_ = sample(time, t, aif_, dt)
     sdev = (np.amax(aif_)-aif_[0])/CNR
@@ -161,10 +165,13 @@ def brain(
     r2s = const.r1(field_strength, 'blood', agent)
     R1b = R10a + rp * cp * (1-H)
     R2sb = R20sa + r2s * cp * (1-H)
+
+    R1b = R1b.reshape(1, -1)
     if model == '3D-SPGR-SS':
-        aif_ = Signal(model)(S0=S0, R1=R1b, R2s=R2sb, TR=TR, FA=FA, TE=TE)
+        Mz = sig.Mz_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TR, FA)
     elif model == '3D-SR-SPGR-SS':
-        aif_ = Signal(model)(S0=S0, R1=R1b, R2s=R2sb, TR=TR, FA=FA, TC=TC, TE=TE)
+        Mz = sig.Mz_pr_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TC, TR, FA, 0, 2 * TC, 90) 
+    aif_ = sig.mz_readout(Mz, R2sb, S0, FA, TE, 0)
 
     sdev = (np.amax(aif_)-aif_[0])/CNR
     time = np.arange(0, tacq, dt)
@@ -203,12 +210,15 @@ def brain(
                 ).sum(axis=0)
 
             # Pixel signal
-            R1 = 1/im['T1'][i, j] + rp*C
+            R1 = 1/im['T1'][i, j] + rp * C
             R2s = R20sa + r2s * C
+
+            R1 = R1.reshape(1, -1)
             if model == '3D-SPGR-SS':
-                s = Signal(model)(S0=S0*im['PD'][i, j], R1=R1, R2s=R2s, TR=TR, FA=FA, TE=TE)
+                Mz = sig.Mz_spgr_in_ss(R1, 1, 0, np.zeros_like(R1), 1, TR, FA)
             elif model == '3D-SR-SPGR-SS':
-                s = Signal(model)(S0=S0*im['PD'][i, j], R1=R1, R2s=R2s, TR=TR, FA=FA, TC=TC, TE=TE)
+                Mz = sig.Mz_pr_spgr_in_ss(R1, 1, 0, np.zeros_like(R1), 1, TC, TR, FA, 0, 2 * TC, 90) 
+            s = sig.mz_readout(Mz, R2s, S0*im['PD'][i, j], FA, TE, 0)
 
             sig_noisefree = sample(time, t, s, dt)
             s = add_noise(sig_noisefree, sdev)
@@ -294,8 +304,8 @@ def tissue(
     R1b = R10a + rp*cp*(1-H)
     R20sa = 20
     R2sb = R20sa + r2s * cp * (1-H)
-    R1 = R10 + rp*C
-    R2s = R20sa + r2s * C
+    R1 = R10 + rp * C.sum(axis=0)
+    R2s = R20sa + r2s * C.sum(axis=0)
     if model == '3D-SPGR-SS':
         aif_ = Signal(model)(S0=S0b, R1=R1b, R2s=R2sb, TR=TR, FA=FA, TE=0)
         roi = Signal(model)(S0=S0, R1=R1, R2s=R2s, TR=TR, FA=FA, TE=0)
@@ -504,10 +514,10 @@ def tissue2scan(
     rp = const.r1(field_strength, 'plasma', agent)
     r2s = const.r1(field_strength, 'blood', agent)
     R1b = R10a + rp*cp*(1-H)
-    R1 = R10 + rp*C
+    R1 = R10 + rp * C.sum(axis=0)
     R20sa = 20
     R2sb = R20sa + r2s * cp * (1-H)
-    R2s = R20sa + r2s * C
+    R2s = R20sa + r2s * C.sum(axis=0)
 
     # Generate the signals from the first scan
     if model == '3D-SPGR-SS':
@@ -619,12 +629,12 @@ def kidney(
     rp = const.r1(field_strength, 'plasma', agent)
     r2s = const.r1(field_strength, 'blood', agent)
     R1b = R10a + rp*cp*(1-Hct)
-    R1c = R10c + rp*Cc
-    R1m = R10m + rp*Cm
+    R1c = R10c + rp*Cc.sum(axis=0)
+    R1m = R10m + rp*Cm.sum(axis=0)
     R20sa = 20
     R2sb = R20sa + r2s * cp * (1-Hct)
-    R2sc = R20sa + r2s * Cc
-    R2sm = R20sa + r2s * Cm
+    R2sc = R20sa + r2s * Cc.sum(axis=0)
+    R2sm = R20sa + r2s * Cm.sum(axis=0)
 
     if model == '3D-SPGR-SS':
         aif_ = Signal(model)(S0=S0b, R1=R1b, R2s=R2sb, TR=TR, FA=FA, TE=0)

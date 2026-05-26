@@ -6,31 +6,8 @@ from itertools import product
 import zarr
 import numpy as np
 
-from dcmri.utils.fit import train, loss
+from dcmri.utils.fit import train, scalar_loss
 from dcmri.lexicon import QUANTITIES, select_params, init, export_params
-    
-
-class Input:
-    
-    def __init__(
-        self, 
-        signal: np.ndarray=None, 
-        time:np.ndarray=None,
-        dt=1.0,
-        R10=0.7,
-        B1corr=1.0,
-    ):
-        if not isinstance(signal, np.ndarray):
-            signal = np.array(signal)
-        if time is None:
-            time = dt * np.arange(signal.size)
-
-        self.signal = signal
-        self.time = time
-        self.R10 = R10
-        self.B1corr = B1corr
-
-
     
 
 class SuperModel:
@@ -48,8 +25,8 @@ class SuperModel:
     def _params(self, select=None) -> list:
         return []
     
-    def _predict(self, time):
-        return np.zeros_like(time)
+    def _predict(self):
+        return
     
     @property
     def _shape(self):
@@ -82,20 +59,16 @@ class SuperModel:
     
     def save(self, folder: str):
 
-        def _sanitize_for_json(obj):
-            """Recursively convert numpy types to native python types for JSON."""
-            if isinstance(obj, dict):
-                return {k: _sanitize_for_json(v) for k, v in obj.items()}
-            elif isinstance(obj, (list, tuple)):
-                return [_sanitize_for_json(x) for x in obj]
-            elif isinstance(obj, np.ndarray):
-                return obj.tolist()
-            elif isinstance(obj, (np.integer, np.floating)):
-                return obj.item()
-            return obj
+        # def _sanitize_for_json(obj):
+        #     """Recursively convert numpy types to native python types for JSON."""
+        #     if isinstance(obj, dict):
+        #         return {k: _sanitize_for_json(v) for k, v in obj.items()}
+        #     elif isinstance(obj, (list, tuple)):
+        #         return [_sanitize_for_json(x) for x in obj]
+        #     return obj
     
-        if folder.endswith('.zip') or folder.endswith('.json'):
-            folder = os.path.splitext(folder)[0]
+        # if folder.endswith('.zip') or folder.endswith('.json'):
+        #     folder = os.path.splitext(folder)[0]
 
         root = zarr.open_group(folder, mode='w')
         
@@ -112,10 +85,11 @@ class SuperModel:
                     chunks=v.shape, 
                     overwrite=True
                 )
-                if hasattr(z_arr, 'update'):
-                    z_arr.update(v)
-                else:
-                    z_arr[...] = v
+                z_arr[...] = v
+                # if hasattr(z_arr, 'update'):
+                #     z_arr.update(v)
+                # else:
+                #     z_arr[...] = v
                 array_keys.append(k)
             else:
                 # Collect scalars
@@ -123,13 +97,13 @@ class SuperModel:
 
         # SANITIZE and SAVE
         # This ensures scalars like np.float64 become readable 1.23 instead of binary junk
-        readable_meta = _sanitize_for_json({
+        readable_meta = {
             'model': self.__class__.__name__,
             'version': self._version,
             'config': self._cnfg,
             'pars_scalar': metadata_pars,
             'array_keys': array_keys
-        })
+        }
 
         root.attrs.update(readable_meta)
         return self
@@ -153,7 +127,6 @@ class SuperModel:
             self._pars[key] = np.array(root[key])
 
         return self
-
 
     def _set_free_pars(self, free: dict=None, bounds: dict=None, lexicon:dict=None):
         if lexicon is None: lexicon=QUANTITIES
@@ -206,73 +179,92 @@ class SuperModel:
         pars_x = {k: v[x] for k, v in p.items() if k in pixel_pars}
         pars_x |= {k: v for k, v in p.items() if k not in pixel_pars}
         return pars_x
-
+    
     def _run_parallel(self, pixel_func, *args, **kwargs) -> np.ndarray: # (n_pixels, ) + other dimensions
         # pixel_func must have signature pixel_func(a, b, x, c=1, d=2)
         # i.e. x must be the last of the arguments just before the keyword arguments
-        if self._shape[0]==1:
+        nx = self._shape[0]
+        if nx==1:
+            # The overhead of parallellization is not worth it for 1-pixel functions
             results = [pixel_func(*(args + (0,)), **kwargs)]
         else:
-            results = Parallel(n_jobs=-1)(delayed(pixel_func)(*(args + (x,)), **kwargs) for x in range(self._shape[0]))
+            results = Parallel(n_jobs=-1)(delayed(pixel_func)(*(args + (x,)), **kwargs) for x in range(nx))
         return results
 
     def _train_batch_configurations(self, time, signal, free, configs, select, **kwargs):
         # Single pixel - parallellize over models
         if self._shape[0]==1:
             x = 0
-            results = [self.__train_configurations(time, signal, free, configs, select, x, parallel=True, **kwargs)]
+            results = [self._train_batch_configurations_pixel(time, signal, free, configs, select, x, parallel=True, **kwargs)]
 
         # Multiple pixels - parallellize over pixels
         else:
+            # results = [self._train_batch_configurations_pixel(
+            #     time, signal, free, configs, select, x, parallel=False,
+            #     ) for x in range(self._shape[0])
+            # ]
             results = Parallel(n_jobs=-1)(
-                delayed(self.__train_configurations)(
+                delayed(self._train_batch_configurations_pixel)(
                     time, signal, free, configs, select, x, parallel=False,
                 ) for x in range(self._shape[0])
             )
         return results
     
     
-    def __train_configurations(self, time, signal, free, models, metric, x, parallel=True, **kwargs):
-        def train_single_configuration(**cnfg):
-            submodel = self.__class__(**cnfg)
+    def _train_batch_configurations_pixel(self, time, signal, free, models, metric, x, parallel=True, **kwargs):
+        # def train_single_configuration(**cnfg):
+        #     submodel = self.__class__(**cnfg)
 
-            # Check if the submodel is nested
-            pars_topmodel = self._params()
-            pars_submodel = submodel._params()
-            if not set(pars_submodel).issubset(pars_topmodel):
-                return None
+        #     # Check if the submodel is nested
+        #     pars_topmodel = self._params()
+        #     pars_submodel = submodel._params()
+        #     if not set(pars_submodel).issubset(pars_topmodel):
+        #         return None
             
-            # Identify the free parameters of the submodel
-            free_submodel = {k: v for k, v in free.items() if k in pars_submodel}
-            if free_submodel == {}:
-                return None
+        #     # Identify the free parameters of the submodel
+        #     free_submodel = {k: v for k, v in free.items() if k in pars_submodel}
+        #     if free_submodel == {}:
+        #         return None
             
-            # Initialize the submodel to match the top model
-            for p in submodel._pars:
-                submodel._pars[p] = deepcopy(self._pars[p])
+        #     # Initialize the submodel to match the top model
+        #     for p in submodel._pars:
+        #         submodel._pars[p] = deepcopy(self._pars[p])
             
-            # Train single pixel to submodel
-            result = train(submodel._predict, time, signal[x,:,:], submodel._pars, free_submodel, x, **kwargs)
+        #     # Train single pixel to submodel
+        #     result = train(submodel._predict, time, signal[x,...], submodel._pars, free_submodel, x, **kwargs)
             
-            # Compute cost
-            s_pred = submodel._predict(time, x)
-            cost = loss(s_pred, signal[x,:,:], metric, len(free_submodel))
+        #     # Compute cost
+        #     s_pred = submodel._predict(time, x)
+        #     cost = scalar_loss(s_pred, signal[x,...], metric, len(free_submodel))
 
-            # print(cost, cnfg)
-            return cnfg, result, cost
+        #     # print(cost, cnfg)
+        #     return cnfg, result, cost
         
         configs = {k: v for k, v in self.configs.items() if k in models}
         configs = configs | {k: [v] for k, v in self._cnfg.items() if k not in models}
 
+        # if parallel:
+        #     results = Parallel(n_jobs=-1)(
+        #         delayed(train_single_configuration)(**dict(zip(configs.keys(), args))) 
+        #         for args in product(*configs.values())
+        #     )
+        # else:
+        #     results = [
+        #         train_single_configuration(**dict(zip(configs.keys(), args)))
+        #         for args in product(*configs.values())
+        #     ]
+
         if parallel:
             results = Parallel(n_jobs=-1)(
-                delayed(train_single_configuration)(**dict(zip(configs.keys(), args))) 
-                for args in product(*configs.values())
+                delayed(self._train_single_configuration_pixel)(
+                    dict(zip(configs.keys(), args)), time, signal, free, metric, x, **kwargs
+                ) for args in product(*configs.values())
             )
         else:
             results = [
-                train_single_configuration(**dict(zip(configs.keys(), args)))
-                for args in product(*configs.values())
+                self._train_single_configuration_pixel(
+                    dict(zip(configs.keys(), args)), time, signal, free, metric, x, **kwargs
+                ) for args in product(*configs.values())
             ]
 
         # Rebuild dictionaries
@@ -286,8 +278,35 @@ class SuperModel:
         result = result_dict[best_model] + (best_model,)
 
         # Update state with optimized values
-        for p, v in result[0].items(): 
-            self._pars[p] = v
+        for p, v in result[0].items():
+            self._pars[p][x] = v
 
         return result
     
+    def _train_single_configuration_pixel(self, cnfg, time, signal, free, metric, x, **kwargs):
+        submodel = self.__class__(**cnfg)
+
+        # Check if the submodel is nested
+        pars_topmodel = self._params()
+        pars_submodel = submodel._params()
+        if not set(pars_submodel).issubset(pars_topmodel):
+            return None
+        
+        # Identify the free parameters of the submodel
+        free_submodel = {k: v for k, v in free.items() if k in pars_submodel}
+        if free_submodel == {}:
+            return None
+        
+        # Initialize the submodel to match the top model
+        for p in submodel._pars:
+            submodel._pars[p] = deepcopy(self._pars[p])
+        
+        # Train single pixel to submodel
+        result = train(submodel._predict, time, signal[x,...], submodel._pars, free_submodel, x, **kwargs)
+        
+        # Compute cost
+        s_pred = submodel._predict(time, x)
+        cost = scalar_loss(s_pred, signal[x,...], metric, len(free_submodel))
+
+        # print(cost, cnfg)
+        return cnfg, result, cost

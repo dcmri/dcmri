@@ -714,8 +714,7 @@ class AortaLiverDynamicDrug(SuperModel):
 
     def _train(
             self, time: tuple, signal: tuple, free: dict, 
-            bounds:dict, n0: list, 
-            staged: int, sigma: tuple=None, n_runs=10, **kwargs,
+            bounds:dict, n0: list, n_runs: int, sigma: tuple=None, **kwargs,
         ):
 
         # Normalize signal
@@ -764,33 +763,7 @@ class AortaLiverDynamicDrug(SuperModel):
             p[f'{visit}_Si_1_l'] /= scl[2 + 4 * i]
             p[f'{visit}_Si_2_l'] /= scl[3 + 4 * i]
 
-        return best_vals, best_sdev, best_pcov
-
-            # train_diff(self._predict, time, signal, p, free, sigma=sigma, **kwargs)
-
-            # free_list = list(free.keys())
-            # reg_indices = [free_list.index(k) for k in free if k not in ['c_BAT_1',  'c_BAT_2', 'd_BAT_1',  'd_BAT_2']]
-
-            # def loss_func(ypred, y, pars=None, sigma=None):
-            #     # Base Loss: Weighted or standard Least Squares
-            #     if sigma is not None:
-            #         residuals = (y - ypred) / sigma
-            #     else:
-            #         residuals = y - ypred
-                
-            #     loss = np.sum(residuals ** 2)
-                
-            #     # # Normalize so reg terms become comparable
-            #     # loss = np.sum(residuals ** 2) / np.sum(y ** 2)
-                
-            #     # # Regularization Terms
-            #     # if reg_indices:
-            #     #     loss += 1e-9 * np.mean(np.square(pars[reg_indices]))
-                    
-            #     return loss
-            
-            # train_custom(self._predict, time, signal, p, free, sigma=sigma, loss=loss_func, **kwargs)
-        
+        return best_vals, best_sdev, best_pcov        
 
     # ==========================================
     # I/O and Reporting
@@ -1093,7 +1066,7 @@ class AortaLiverDynamicDrug(SuperModel):
 
     def train(
             self, time: dict, signal: dict, free=None, 
-            bounds:dict=None, n0=[1, 1], staged=0, **kwargs,
+            bounds:dict=None, n0=[1, 1], n_runs=1, **kwargs,
         ):
         """Train the free parameters
 
@@ -1103,7 +1076,7 @@ class AortaLiverDynamicDrug(SuperModel):
             free (dict, optional): Free parameters and their bounds.
             bounds (dict, optional): Override default bounds for specific parameters.
             n0 (int, optional): Number of baseline time points. Defaults to 1.
-            staged (int, optional): values 0 (no staging), 1 (coarse staging), 2 (finer staging)
+            n_runs (int, optional): Number of fits to run. A different set of initial values is chosen each time.
             kwargs: any keyword parameters accepted by `scipy.optimize.curve_fit`.
 
         Returns:
@@ -1125,7 +1098,7 @@ class AortaLiverDynamicDrug(SuperModel):
                 signal['drug', 'aorta', 1], signal['drug', 'aorta', 2], 
                 signal['drug', 'liver', 1], signal['drug', 'liver', 2], 
             )
-        return self._train(time, signal, free, bounds, n0, staged, **kwargs)
+        return self._train(time, signal, free, bounds, n0, n_runs, **kwargs)
 
 
     def plot(self, time: dict, signal: dict, xlim=None, clim=None, fname=None, show=True):

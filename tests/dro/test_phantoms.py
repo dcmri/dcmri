@@ -3,8 +3,7 @@ import dcmri as dc
 
 
 def test_shepp_logan():
-
-    n=64
+    n = 64
     roi = dc.phantoms.shepp_logan(n=n)
     im = dc.phantoms.shepp_logan('T1', 'T2', 'PD', 'Fb', 'vb', 'PS', 'vi', n=n)
 
@@ -26,8 +25,6 @@ def test_shepp_logan():
     vals = im[roi['CSF left']==1]
     assert 0 == np.amin(vals)
     assert 0 == np.amax(vals)
-
-
 
 
 if __name__ == "__main__":
