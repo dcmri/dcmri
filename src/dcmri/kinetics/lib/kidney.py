@@ -1,7 +1,7 @@
 import copy
 import numpy as np
 
-import dcmri.kinetics.lib as pk
+import dcmri.kinetics.lib.blocks as pk
 
 
 def _div(a, b):
@@ -13,7 +13,6 @@ def dpars_kidney(p, kinetics='2CF', H=0.45) -> dict:
 
     p = copy.deepcopy(p)
 
-
     if {'Fp'}.issubset(p):
         p['Fb'] = _div(p['Fp'], 1 - H)
 
@@ -23,10 +22,10 @@ def dpars_kidney(p, kinetics='2CF', H=0.45) -> dict:
     if {'vp', 'Fp'}.issubset(p):
         p['Tv'] = _div(p['vp'], p['Fp'])
 
-    if {'Ft', 'Fp'}.issubset(p):
+    if {'FF', 'Fp'}.issubset(p):
+        p['Ft'] = p['FF'] * p['Fp']
         p['Eg'] = _div(p['Ft'], p['Ft'] + p['Fp'])
-        p['FF'] = _div(p['Ft'], p['Fp'])
-
+        
     if {'Ft', 'vol'}.issubset(p):
         p['GFR'] = p['Ft'] * p['vol']  
 
@@ -44,19 +43,57 @@ def dpars_kidney(p, kinetics='2CF', H=0.45) -> dict:
 
 
 
-def conc_kidney_2cf(ca, t=None, dt=1.0, Fp=None, vp=None, Ft=None, Tt=None):
-    Tp = vp/(Fp+Ft)
+def conc_kidney_2cf(ca, t=None, dt=1.0, Fp=None, vp=None, FF=None, Tt=None):
+    Ft = FF * Fp
+    Tp = vp / (Fp + Ft)
     Cp = pk.conc_comp(Fp*ca, Tp, t=t, dt=dt)
     cp = Cp/vp
     Ct = pk.conc_comp(Ft*cp, Tt, t=t, dt=dt)
     return np.stack((Cp, Ct))
 
-def conc_kidney_hf(ca, t=None, dt=1.0, vp=None, Ft=None, Tt=None):
-    Cp = vp*ca
-    Ct = pk.conc_comp(Ft*ca, Tt, t=t, dt=dt)
+def conc_kidney_2pf(ca, t=None, dt=1.0, Fp=None, vp=None, FF=None, Tt=None):
+    Ft = FF * Fp
+    Tp = vp / (Fp + Ft)
+    Cp = pk.conc_plug(Fp*ca, Tp, t=t, dt=dt)
+    cp = Cp/vp
+    Ct = pk.conc_plug(Ft*cp, Tt, t=t, dt=dt)
     return np.stack((Cp, Ct))
 
-def conc_kidney_fn(ca, t=None, dt=1.0, TT=None, Fp=None, Tp=None, Ft=None, ht=None):
+def conc_kidney_cpf(ca, t=None, dt=1.0, Fp=None, vp=None, FF=None, Tt=None):
+    Ft = FF * Fp
+    Tp = vp / (Fp + Ft)
+    Cp = pk.conc_comp(Fp*ca, Tp, t=t, dt=dt)
+    cp = Cp/vp
+    Ct = pk.conc_plug(Ft*cp, Tt, t=t, dt=dt)
+    return np.stack((Cp, Ct))
+
+def conc_kidney_2pfu(ca, t=None, dt=1.0, Fp=None, vp=None, FF=None):
+    Ft = FF * Fp
+    Tp = vp / (Fp + Ft)
+    Cp = pk.conc_plug(Fp*ca, Tp, t=t, dt=dt)
+    cp = Cp/vp
+    Ct = pk.conc_trap(Ft*cp, t=t, dt=dt)
+    return np.stack((Cp, Ct))
+
+def conc_kidney_2cfu(ca, t=None, dt=1.0, Fp=None, vp=None, FF=None):
+    Ft = FF * Fp
+    Tp = vp / (Fp + Ft)
+    Cp = pk.conc_comp(Fp * ca, Tp, t=t, dt=dt)
+    cp = Cp/vp
+    Ct = pk.conc_trap(Ft * cp, t=t, dt=dt)
+    return np.stack((Cp, Ct))
+
+def conc_kidney_hf(ca, t=None, dt=1.0, vp=None, Ft=None, Tt=None):
+    Cp = vp * ca
+    Ct = pk.conc_comp(Ft * ca, Tt, t=t, dt=dt)
+    return np.stack((Cp, Ct))
+
+def conc_kidney_hfu(ca, t=None, dt=1.0, vp=None, Ft=None):
+    Cp = vp*ca
+    Ct = pk.conc_trap(Ft*ca, t=t, dt=dt)
+    return np.stack((Cp, Ct))
+
+def conc_kidney_fn(ca, t=None, dt=1.0, TT=None, Fp=None, vp=None, FF=None, ht=None):
     if TT is None:
         if t is None:
             tmax = dt*np.size(ca)
@@ -64,10 +101,11 @@ def conc_kidney_fn(ca, t=None, dt=1.0, TT=None, Fp=None, Tp=None, Ft=None, ht=No
             tmax = np.amax(t)
         nTT = 1 + np.size(ht)
         TT = np.linspace(0, tmax, nTT)
-    vp = Tp*(Fp+Ft)
-    Cp = pk.conc_plug(Fp*ca, Tp, t=t, dt=dt)
+    Ft = FF * Fp
+    Tp = vp / (Fp + Ft)
+    Cp = pk.conc_plug(Fp * ca, Tp, t=t, dt=dt)
     cp = Cp/vp
-    Ct = pk.conc_free(Ft*cp, ht, dt=dt, TT=TT, solver='step')
+    Ct = pk.conc_free(Ft * cp, ht, dt=dt, TT=TT, solver='step')
     return np.stack((Cp, Ct))
 
 
@@ -121,40 +159,40 @@ def conc_kidney_cm9(ca, t=None, dt=1.0, Fp=None, Eg=None, fc=None, Tglom=None, T
         - **Tlh** (float): Lis of Henle mean transit time in sec
         - **Tdt** (float): Distal tubuli mean transit time in sec
         - **Tcd** (float): Collecting duct mean transit time in sec
-
-    Example:
-
-        Plot concentration in cortex and medulla for typical values:
-
-    .. plot::
-        :include-source:
-
-        >>> import matplotlib.pyplot as plt
-        >>> import numpy as np
-        >>> import dcmri as dc
-
-        Generate a population-average input function:
-
-        >>> t = np.arange(0, 300, 1.5)
-        >>> ca = dc.aif.parker(t, BAT=20)
-
-        Use the function to generate total cortex and medulla tissue concentrations:
-
-        >>> Fp, Eg, fc, Tg, Tv, Tpt, Tlh, Tdt, Tcd = 0.03, 0.15, 0.8, 4, 10, 60, 60, 30, 30
-        >>> Cc, Cm = dc.conc_kidney_cm(ca, Fp, Eg, fc, Tg, Tv, Tpt, Tlh, Tdt, Tcd, t=t, kinetics='7C')
-
-        Plot all concentrations:
-
-        >>> fig, ax = plt.subplots(1,1,figsize=(6,5))
-        >>> ax.set_title('Kidney concentrations')
-        >>> ax.plot(t/60, 1000*Cc, linestyle='-', linewidth=3.0, color='darkblue', label='Cortex')
-        >>> ax.plot(t/60, 1000*Cm, linestyle='-', linewidth=3.0, color='darkgreen', label='Medulla')
-        >>> ax.plot(t/60, 1000*(Cc+Cm), linestyle='-', linewidth=3.0, color='darkgrey', label='Whole kidney')
-        >>> ax.set_xlabel('Time (min)')
-        >>> ax.set_ylabel('Tissue concentration (mM)')
-        >>> ax.legend()
-        >>> plt.show()
     """
+    # Example:
+
+    #     Plot concentration in cortex and medulla for typical values:
+
+    # .. plot::
+    #     :include-source:
+
+    #     >>> import matplotlib.pyplot as plt
+    #     >>> import numpy as np
+    #     >>> import dcmri as dc
+
+    #     Generate a population-average input function:
+
+    #     >>> t = np.arange(0, 300, 1.5)
+    #     >>> ca = dc.aif.parker(t, BAT=20)
+
+    #     Use the function to generate total cortex and medulla tissue concentrations:
+
+    #     >>> Fp, Eg, fc, Tg, Tv, Tpt, Tlh, Tdt, Tcd = 0.03, 0.15, 0.8, 4, 10, 60, 60, 30, 30
+    #     >>> Cc, Cm = dc.conc_kidney_cm(ca, Fp, Eg, fc, Tg, Tv, Tpt, Tlh, Tdt, Tcd, t=t, kinetics='7C')
+
+    #     Plot all concentrations:
+
+    #     >>> fig, ax = plt.subplots(1,1,figsize=(6,5))
+    #     >>> ax.set_title('Kidney concentrations')
+    #     >>> ax.plot(t/60, 1000*Cc, linestyle='-', linewidth=3.0, color='darkblue', label='Cortex')
+    #     >>> ax.plot(t/60, 1000*Cm, linestyle='-', linewidth=3.0, color='darkgreen', label='Medulla')
+    #     >>> ax.plot(t/60, 1000*(Cc+Cm), linestyle='-', linewidth=3.0, color='darkgrey', label='Whole kidney')
+    #     >>> ax.set_xlabel('Time (min)')
+    #     >>> ax.set_ylabel('Tissue concentration (mM)')
+    #     >>> ax.legend()
+    #     >>> plt.show()
+    
     # Flux out of the glomeruli and arterial tree
     Jg = pk.flux(Fp*ca, Tglom, t=t, dt=dt, model='comp')
 

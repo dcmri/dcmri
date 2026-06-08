@@ -1,14 +1,14 @@
 from tqdm import tqdm
 import numpy as np
 
-import dcmri
-from dcmri import const
-from dcmri import phantoms
+from dcmri.utils import const
+from dcmri.dro import phantoms
 from dcmri.utils.misc import sample, add_noise
-from dcmri.kinetics import ConcTissueX, ConcLiver, ConcCortMed
-import dcmri.kinetics.lib as pk
-from dcmri.bloch import Signal
-import dcmri.bloch.lib as sig
+from dcmri.kinetics.conc import ConcTissueX, ConcLiver, ConcCortMed
+from dcmri.kinetics.lib.blocks import flux_comp
+from dcmri.bloch.tissue import Signal
+from dcmri.bloch.lib import seqs
+from dcmri.dro.aif import parker
 
 
 def aif(
@@ -55,7 +55,7 @@ def aif(
         - **gt**: dictionary with ground truth values.
     """
     t = np.arange(0, tacq+dt, dt_sim)
-    cp = dcmri.aif.parker(t, BAT)
+    cp = parker(t, BAT)
     rp = const.r1(field_strength, 'plasma', agent)
     r2s = const.r1(field_strength, 'blood', agent)
     R1b = R10a + rp*cp*(1-H)
@@ -63,10 +63,10 @@ def aif(
     R2sb = R20sa + r2s * cp * (1-H)
     R1b = R1b.reshape(1, -1)
     if model == '3D-SPGR-SS':
-        Mz = sig.Mz_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TR, FA * B1corr)
+        Mz = seqs.Mz_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TR, FA * B1corr)
     elif model == '3D-SR-SPGR-SS':
-        Mz = sig.Mz_pr_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TC, TR, FA * B1corr, 0, 2 * TC, 90) 
-    aif_ = sig.mz_readout(Mz, np.zeros_like(Mz), S0, FA * B1corr, 0, 0)
+        Mz = seqs.Mz_pr_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TC, TR, FA * B1corr, 0, 2 * TC, 90) 
+    aif_ = seqs.mz_readout(Mz, np.zeros_like(Mz), S0, FA * B1corr, 0, 0)
     time = np.arange(0, tacq, dt)
     aif_ = sample(time, t, aif_, dt)
     sdev = (np.amax(aif_)-aif_[0])/CNR
@@ -158,7 +158,7 @@ def brain(
 
     # Input
     t = np.arange(0, tacq+dt, dt_sim)
-    cp = dcmri.aif.parker(t, BAT)
+    cp = parker(t, BAT)
 
     # Arterial signal
     rp = const.r1(field_strength, 'plasma', agent)
@@ -168,10 +168,10 @@ def brain(
 
     R1b = R1b.reshape(1, -1)
     if model == '3D-SPGR-SS':
-        Mz = sig.Mz_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TR, FA)
+        Mz = seqs.Mz_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TR, FA)
     elif model == '3D-SR-SPGR-SS':
-        Mz = sig.Mz_pr_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TC, TR, FA, 0, 2 * TC, 90) 
-    aif_ = sig.mz_readout(Mz, R2sb, S0, FA, TE, 0)
+        Mz = seqs.Mz_pr_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TC, TR, FA, 0, 2 * TC, 90) 
+    aif_ = seqs.mz_readout(Mz, R2sb, S0, FA, TE, 0)
 
     sdev = (np.amax(aif_)-aif_[0])/CNR
     time = np.arange(0, tacq, dt)
@@ -198,7 +198,7 @@ def brain(
             if roi['anterior artery'][i, j]:
                 C = cp.copy()
             elif roi['sagittal sinus'][i, j]:
-                C = pk.flux_comp(cp, Tav, dt=dt_sim)
+                C = flux_comp(cp, Tav, dt=dt_sim)
             else:
                 Fb = im['Fb'][i, j]
                 vb = im['vb'][i, j]
@@ -215,10 +215,10 @@ def brain(
 
             R1 = R1.reshape(1, -1)
             if model == '3D-SPGR-SS':
-                Mz = sig.Mz_spgr_in_ss(R1, 1, 0, np.zeros_like(R1), 1, TR, FA)
+                Mz = seqs.Mz_spgr_in_ss(R1, 1, 0, np.zeros_like(R1), 1, TR, FA)
             elif model == '3D-SR-SPGR-SS':
-                Mz = sig.Mz_pr_spgr_in_ss(R1, 1, 0, np.zeros_like(R1), 1, TC, TR, FA, 0, 2 * TC, 90) 
-            s = sig.mz_readout(Mz, R2s, S0*im['PD'][i, j], FA, TE, 0)
+                Mz = seqs.Mz_pr_spgr_in_ss(R1, 1, 0, np.zeros_like(R1), 1, TC, TR, FA, 0, 2 * TC, 90) 
+            s = seqs.mz_readout(Mz, R2s, S0*im['PD'][i, j], FA, TE, 0)
 
             sig_noisefree = sample(time, t, s, dt)
             s = add_noise(sig_noisefree, sdev)
@@ -297,7 +297,7 @@ def tissue(
         - **gt**: dictionary with ground truth values for concentrations and tissue parameters.
     """
     t = np.arange(0, tacq+dt, dt_sim)
-    cp = dcmri.aif.parker(t, BAT)
+    cp = parker(t, BAT)
     C = ConcTissueX('2CX')(cp*(1-H), dt=dt_sim, H=H, Fb=Fb, vb=vb, PS=PS, vi=vi)
     rp = const.r1(field_strength, 'plasma', agent)
     r2s = const.r1(field_strength, 'blood', agent)
@@ -401,8 +401,8 @@ def liver(
           tissue parameters.
     """
     t = np.arange(0, tacq+dt, dt_sim)
-    cp = dcmri.aif.parker(t, BAT)
-    cv = pk.flux_comp(cp, Tg, t)
+    cp = parker(t, BAT)
+    cv = flux_comp(cp, Tg, t)
     ci = (cp*(1-H), cv*(1-H))
     # C = liver.conc_liver(
     #     ci, dt=dt_sim, sum=False, kinetics='2I-IC',
@@ -508,8 +508,8 @@ def tissue2scan(
     """
     # Simulate relaxation rates over the full time range
     t = np.arange(0, 2*tacq+tbreak+dt, dt_sim)
-    cp = dcmri.aif.parker(t, BAT)
-    cp += dcmri.aif.parker(t, tacq+tbreak+BAT)
+    cp = parker(t, BAT)
+    cp += parker(t, tacq+tbreak+BAT)
     C = ConcTissueX('2CX')(cp*(1-H), dt=dt_sim, H=H, Fb=Fb, vb=vb, PS=PS, vi=vi)
     rp = const.r1(field_strength, 'plasma', agent)
     r2s = const.r1(field_strength, 'blood', agent)
@@ -624,7 +624,7 @@ def kidney(
         - **gt**: dictionary with ground truth values for concentrations.
     """
     t = np.arange(0, tacq+dt, dt_sim)
-    cp = dcmri.aif.parker(t, BAT)
+    cp = parker(t, BAT)
     Cc, Cm = ConcCortMed(kinetics='7C', Fp=Fp, Eg=Eg, fc=fc, Tglom=Tglom, Tv=Tv, Tpt=Tpt, Tlh=Tlh, Tdt=Tdt, Tcd=Tcd)(cp, dt=dt_sim)
     rp = const.r1(field_strength, 'plasma', agent)
     r2s = const.r1(field_strength, 'blood', agent)

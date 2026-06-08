@@ -1,7 +1,7 @@
 import itertools
 import numpy as np
 
-from dcmri.bloch import Readout, Signal, Longitudinal
+from dcmri import Readout, Signal, Longitudinal
 
 
 def test_coverage_readout():

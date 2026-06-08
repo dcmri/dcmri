@@ -1,9 +1,7 @@
 import numpy as np
 import itertools
 
-from dcmri.kinetics import ConcTissueX
-from dcmri.relaxivity import Relax, RelaxTissueX
-from dcmri.bloch import MzTissueX, SignalTissueX
+from dcmri import ConcTissueX, Relax, RelaxTissueX, MzTissueX, SignalTissueX
 
 
 

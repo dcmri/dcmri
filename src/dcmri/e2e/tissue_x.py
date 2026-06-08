@@ -34,81 +34,82 @@ Args:
 See Also:
     `Liver`, `Kidney`
 
-Example:
 
-    Fit an extended Tofts model to data:
-
-.. plot::
-    :include-source:
-    :context: close-figs
-
-    >>> import dcmri as dc
-
-    Use `fake.tissue` to generate synthetic test data:
-
-    >>> time, aif, roi, gt = dc.fake.tissue(CNR=50)
-
-    Build a tissue and set the parameters to match the experimental
-    conditions of the synthetic data:
-
-    >>> tissue = dc.TissueX(
-    ...     aif = aif,
-    ...     dt = time[1],
-    ...     r1 = dc.const.r1(3, 'blood','gadodiamide'),
-    ...     TR = 0.005,
-    ...     FA = 15,
-    ...     n0 = 15,
-    ... )
-
-    Train the tissue on the data:
-
-    >>> tissue.train(time, roi)
-
-    Print the optimized tissue parameters, their standard deviations and
-    any derived parameters:
-
-    >>> tissue.print_params(round_to=2)
-    <BLANKLINE>
-    --------------------------------
-    Free parameters with their stdev
-    --------------------------------
-    <BLANKLINE>
-    Blood volume (vb): 0.03 (0.0) mL/cm3
-    Interstitial volume (vi): 0.2 (0.0) mL/cm3
-    Permeability-surface area product (PS): 0.0 (0.0) mL/sec/cm3
-    <BLANKLINE>
-    ----------------------------
-    Fixed and derived parameters
-    ----------------------------
-    <BLANKLINE>
-    Tissue Hematocrit (H): 0.45 
-    Plasma volume (vp): 0.02 mL/cm3
-    Interstitial mean transit time (Ti): 58.92 sec
-    B1-corrected Flip Angle (FAcorr): 15 deg
-
-    Plot the fit to the data and the reconstructed concentrations, using
-    the noise-free ground truth as reference:
-
-    >>> tissue.plot(time, roi, ref=gt)
 """
+
+# Example:
+
+#     Fit an extended Tofts model to data:
+
+# .. plot::
+#     :include-source:
+#     :context: close-figs
+
+#     >>> import dcmri as dc
+
+#     Use `fake.tissue` to generate synthetic test data:
+
+#     >>> time, aif, roi, gt = dc.fake.tissue(CNR=50)
+
+#     Build a tissue and set the parameters to match the experimental
+#     conditions of the synthetic data:
+
+#     >>> tissue = dc.TissueX(
+#     ...     aif = aif,
+#     ...     dt = time[1],
+#     ...     r1 = dc.const.r1(3, 'blood','gadodiamide'),
+#     ...     TR = 0.005,
+#     ...     FA = 15,
+#     ...     n0 = 15,
+#     ... )
+
+#     Train the tissue on the data:
+
+#     >>> tissue.train(time, roi)
+
+#     Print the optimized tissue parameters, their standard deviations and
+#     any derived parameters:
+
+#     >>> tissue.print_params(round_to=2)
+#     <BLANKLINE>
+#     --------------------------------
+#     Free parameters with their stdev
+#     --------------------------------
+#     <BLANKLINE>
+#     Blood volume (vb): 0.03 (0.0) mL/cm3
+#     Interstitial volume (vi): 0.2 (0.0) mL/cm3
+#     Permeability-surface area product (PS): 0.0 (0.0) mL/sec/cm3
+#     <BLANKLINE>
+#     ----------------------------
+#     Fixed and derived parameters
+#     ----------------------------
+#     <BLANKLINE>
+#     Tissue Hematocrit (H): 0.45 
+#     Plasma volume (vp): 0.02 mL/cm3
+#     Interstitial mean transit time (Ti): 58.92 sec
+#     B1-corrected Flip Angle (FAcorr): 15 deg
+
+#     Plot the fit to the data and the reconstructed concentrations, using
+#     the noise-free ground truth as reference:
+
+#     >>> tissue.plot(time, roi, ref=gt)
+
 from copy import deepcopy
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri.lexicon import SEQUENCES, QUANTITIES, string_params, init
-
+from dcmri.lexicon.dicts import SEQUENCES, QUANTITIES
+from dcmri.lexicon.tools import string_params, init, print_params
 from dcmri.inverse.sig2conc import SignalToConc
-from dcmri.core import SuperModel, Input
+from dcmri.core.model import SuperModel
+from dcmri.core.types import Input
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import loss, train_batch, format_batch_training
-
-from dcmri.kinetics import ConcTissueX
-from dcmri.relaxivity import RelaxTissueX
-from dcmri.relaxivity import R1 as Relax1
-from dcmri.bloch import MzTissueX, SignalTissueX
-from dcmri.bloch.tissue_x import WaterVolumesTissueX, WaterFlowsTissueX
-from dcmri.relaxivity.tissue_x import WaterConcTissueX, ContrastConcTissueX
+from dcmri.kinetics.conc import ConcTissueX
+from dcmri.relaxivity.tissue_x import RelaxTissueX, WaterConcTissueX, ContrastConcTissueX
+from dcmri.relaxivity.tissue import R1 as Relax1
+from dcmri.bloch.tissue_x import MzTissueX, SignalTissueX, WaterVolumesTissueX, WaterFlowsTissueX
 
 
 class TissueX(SuperModel):
@@ -134,6 +135,13 @@ class TissueX(SuperModel):
         't2s_relaxation': ['lin', 'quad', 'leakage'],
         'sequence': deepcopy(list(SEQUENCES.keys())),
     }
+
+
+    # ==========================================
+    # User interface
+    # ==========================================
+
+
     def __init__(
         self,
         kinetics='HF', 
@@ -157,9 +165,9 @@ class TissueX(SuperModel):
             'kinetics': kinetics, 
             'water_exchange': water_exchange, 
             't2s_relaxation': t2s_relaxation,
-            't2_relaxation': 'lin',
-            't1_relaxation': 'lin',
-            'tissue_props': set(SEQUENCES[sequence]['parameters']['tissue']),
+            # 't2_relaxation': 'lin',
+            # 't1_relaxation': 'lin',
+            #'tissue_props': set(SEQUENCES[sequence]['parameters']['tissue']),
             'sequence': sequence,  
         }
         self._cnfg = self._set_config(**cnfg)
@@ -219,6 +227,330 @@ class TissueX(SuperModel):
         for p in self._params('pixel'):
             if self._pars[p].size == 1:
                 self._pars[p] = np.full(self._shape[0], self._pars[p][0])
+
+    # Take this to SuperPixelModel
+    def print_params(self, *args, round_to=None, group=None, fixed_only=False, free_only=False):
+        """Pretty print model parameters"""
+        if self._pixels_shape == ():
+            pars = self._pixel_pars(0)
+        else:
+            pars = self._pars
+        if args != ():
+            pars = {k: v for k, v in pars.items() if k in args}
+        if fixed_only:
+            pars = {k: v for k, v in pars.items() if k not in self._params('free')}
+        if free_only:
+            pars = {k: v for k, v in pars.items() if k in self._params('free')}
+        print_params(pars, round_to=round_to, group=group)
+
+    def params(self, *args) -> dict: # Could go to new pixel core model
+        if self._pixels_shape == ():
+            pars = self._pixel_pars(0)
+        else:
+            pars = self._pars
+        if args == ():
+            return pars
+        for k in args:
+            if k not in pars:
+                raise ValueError(f"{k} is not a valid model parameter. Use print_params() to get a list of valid parameters.")
+        values = [pars[k] for k in args]
+        if len(args) == 1:
+            return values[0]
+        else:
+            return values
+
+    def time(self) -> np.ndarray:
+        """Kidney signal time points"""
+        return self._time()
+
+    def conc(self) -> np.ndarray:
+        """Return the tissue concentration
+
+        Returns:
+            np.ndarray: Concentration in M
+
+        """
+
+        # Example:
+
+        #     Build a tissue, and plot the tissue concentrations in each
+        #     compartment:
+
+        # .. plot::
+        #     :include-source:
+        #     :context: close-figs
+
+        #     >>> import dcmri as dc
+        #     >>> import matplotlib.pyplot as plt
+
+        #     >>> t, aif, _ = dc.fake.aif()
+        #     >>> tissue = dc.TissueX('HFU', 'RR', aif=aif, t=t)
+        #     >>> C = tissue.conc(sum=False)
+
+        #     >>> _ = plt.figure()
+        #     >>> _ = plt.plot(t/60, 1e3*C[0,:], label='Plasma')
+        #     >>> _ = plt.plot(t/60, 1e3*C[1,:], label='Interstitium')
+        #     >>> _ = plt.xlabel('Time (min)')
+        #     >>> _ = plt.ylabel('Concentration (mM)')
+        #     >>> _ = plt.legend()
+        #     >>> _ = plt.show()
+        
+        conc = self._tissue_conc_all() # (n_pixels, n_compartments, n_times)
+        conc = conc.reshape(self._pixels_shape + conc.shape[1:]) # (nx, ny, nz, n_compartments, n_times)
+        if conc.shape[-2] == 1:
+            return conc[..., 0,:] # (nx, ny, nz, n_times)
+        else:
+            return conc # (nx, ny, nz, n_compartments, n_times)
+    
+
+    def relax(self) -> np.ndarray:
+        """Compartmental relaxation rates, volume fractions and
+        water-permeability matrix.
+
+        tuple: relaxation rates of tissue compartments and their volumes.
+            - **R1** (numpy.ndarray): in the fast water exchange limit, the
+              relaxation rates are a 1D array. In all other situations,
+              relaxation rates are a 2D-array with dimensions (k,n), where k is
+              the number of compartments and n is the number of time points
+              in ca.
+            - **v** (numpy.ndarray or None): the volume fractions of the tissue
+              compartments. Returns None in 'FF' regime.
+            - **Fw** (numpy.ndarray or None): 2D array with water exchange
+              rates between tissue compartments. Returns None in 'FF' regime.
+
+        """
+
+        # Example:
+
+        #     Build a tissue, print its compartmental volumes and water
+        #     permeability matrix, and plot the free relaxation rates of each
+        #     compartment:
+
+        # .. plot::
+        #     :include-source:
+        #     :context: close-figs
+
+        #     >>> import dcmri as dc
+        #     >>> t, aif, _ = dc.fake.aif()
+        #     >>> tissue = dc.TissueX('2CX', 'RR', aif=aif, t=t)
+        #     >>> R1, v, Fw = tissue.relax()
+
+        #     >>> v
+        #     array([0.1, 0.3, 0.6])
+
+        #     >>> Fw
+        #     array([[0.02, 0.03, 0.  ],
+        #            [0.03, 0.  , 0.03],
+        #            [0.  , 0.03, 0.  ]])
+
+        #     >>> import matplotlib.pyplot as plt
+        #     >>> _ = plt.figure()
+        #     >>> _ = plt.plot(t/60, R1[0,:], label='Blood')
+        #     >>> _ = plt.plot(t/60, R1[1,:], label='Interstitium')
+        #     >>> _ = plt.plot(t/60, R1[2,:], label='Cells')
+        #     >>> _ = plt.xlabel('Time (min)')
+        #     >>> _ = plt.ylabel('Relaxation rate (Hz)')
+        #     >>> _ = plt.legend()
+        #     >>> plt.show()
+        
+        def reshapeR(R):
+            R = np.stack(R)
+            # R = n_samples, n_compartments, n_times
+            R = R.reshape(self._pixels_shape + R.shape[1:]) # (nx, ny, nz, n_compartments, n_times)
+            # Squeeze out compartments of 1
+            if R.shape[-2] == 1:
+                return R[...,0,:]
+            else:
+                return R
+            
+        def reshapeR2s(R):
+            R = np.stack(R)
+            # R = n_samples, n_times
+            return R.reshape(self._pixels_shape + (R.shape[1], )) # (nx, ny, nz, n_times)
+        
+        results = self._run_parallel(self._relax)
+
+        R1 = [r[0] for r in results]
+        R2 = [r[1] for r in results]
+        R2s = [r[2] for r in results]
+
+        R1_ret = None if R1[0] is None else reshapeR(R1)
+        R2_ret = None if R2[0] is None else reshapeR(R2)
+        R2s_ret = None if R2s[0] is None else reshapeR2s(R2s)
+        
+        return R1_ret, R2_ret, R2s_ret   # (nx, ny, nz, n_compartments, n_times) or None
+    
+    def mz(self) -> np.ndarray:
+        """Pseudocontinuous magnetization
+
+        Returns:
+            np.ndarray: the magnetization as a 1D array.
+        """
+        Mz = self._mz_all() # (n_pixels, n_compartments, n_times)
+        Mz = Mz.reshape(self._pixels_shape + Mz.shape[1:]) # (nx, ny, nz, n_compartments, n_times)
+        if Mz.shape[-2] == 1:
+            return Mz[...,0,:] # (nx, ny, nz, n_times)
+        else:
+            return Mz # (nx, ny, nz, n_compartments, n_times)
+        
+    def signal(self) -> np.ndarray:
+        """Pseudocontinuous signal
+
+        Returns:
+            np.ndarray: the signal as a 1D array.
+        """
+        signal_pred = self._signal_all() # (n_pixels, n_channels, n_times)
+        signal_pred = signal_pred.reshape(self._pixels_shape + signal_pred.shape[1:]) # (nx, ny, nz, n_compartments, n_times)
+        if signal_pred.shape[-2] == 1:
+            return signal_pred[...,0,:] # (nx, ny, nz, n_times)
+        else:
+            return signal_pred # (nx, ny, nz, n_channels, n_times)
+
+    def predict(self, time: np.ndarray) -> np.ndarray:
+        """Predict the data at specific time points
+
+        Args:
+            time (array-like): Array of time points.
+
+        Returns:
+            np.ndarray: Array of predicted data for each element of *time*.
+        """
+        signal_pred = self._predict_all(time) # (n_pixels, n_channels, n_times)
+        signal_pred = signal_pred.reshape(self._pixels_shape + signal_pred.shape[1:]) # (nx, ny, nz, n_channels, n_times)
+        if signal_pred.shape[-2] == 1: # one channel - squeeze out
+            return signal_pred[...,0,:] # (nx, ny, nz, n_times)
+        else:
+            return signal_pred # (nx, ny, nz, n_channels, n_times)
+
+    def train(
+        self, time: np.ndarray, signal: np.ndarray, 
+        aif: dict=None, free: dict=None, bounds: dict=None, 
+        n0=1, configs: list=None, select='AIC', **kwargs
+    ):
+        """Train the free parameters
+
+        Args:
+            time (array-like): Array with time points.
+            signal (array-like): Array with measured signals for each element
+              of *time*.
+            modsel (bool, optional): Of True, all submodels are tested and the best is selected.
+            kwargs: any keyword parameters accepted by the specified fit
+              method. For 'NNLS' these are all parameters accepted by
+              `scipy.optimize.curve_fit`, except for bounds.
+
+        Returns:
+            self
+        """
+
+        if select not in ['AIC', 'BIC']:
+            raise ValueError("'modsel' must be either 'AIC' (Akaike Information Criterion) or 'BIC' (Baysian Information Criterion)")
+
+        p = self._pars
+
+        if aif is not None:
+            seq = self._cnfg['sequence']
+            input = Input(aif)
+            ca = SignalToConc(seq, **p)(
+                input.signal, S0=None, R10=input.R10, n0=n0, 
+                B1corr=input.B1corr, r1=p['r1']
+            )
+            t = np.arange(0, np.amax(time) + p['dt'], p['dt'])
+            p['c_a'] = np.interp(t, input.time, ca)
+
+        if self._shape[1] == 1:
+            pixels_shape = signal.shape[:-1]
+        else:
+            pixels_shape = signal.shape[:-2]
+
+        # Derive the shape from the data
+        if np.prod(pixels_shape) != self._shape[0]:
+            self._pixels_shape = pixels_shape
+            # Reset pixel parameters
+            pixel_pars = init(self._params('pixel'), QUANTITIES)
+            for p, v in pixel_pars.items():
+                self._pars[p] = np.full(self._shape[0], v)
+
+        signal = signal.reshape(self._shape[0], self._shape[1], -1)
+        vals, sdev, pcov, model = self._train(time, signal, free, bounds, n0, configs, select, **kwargs)
+
+        # Convert to input shape
+        vals = {k: v.reshape(self._pixels_shape + v.shape[1:]) for k, v in vals.items()}
+        sdev = {k: v.reshape(self._pixels_shape + v.shape[1:]) for k, v in sdev.items()}
+        if self._pixels_shape == ():
+            pcov = pcov[0]
+            model = model[0]
+        else:
+            pcov = pcov.reshape(self._pixels_shape)
+            model = model.reshape(self._pixels_shape)
+
+        if configs is None:
+            return vals, sdev, pcov
+        else:
+            return vals, sdev, pcov, model
+
+    def plot(
+        self, time: np.ndarray=None, signal: np.ndarray=None, sdev: dict=None,
+        round_to=None, xlim=None, fname=None, show=True
+    ):
+        """Plot the model fit against data.
+
+        Args:
+            time (array-like, optional): Array with time points.
+            signal (array-like, optional): Array with measured signals for
+              each element of *time*.
+            sdev (dict): Standard deviations of free parameters
+            xlim (array_like, optional): 2-element array with lower and upper
+              boundaries of the x-axis. Defaults to None.
+            round_to (int, optional): Rounding for the model parameters.
+            ref (tuple, optional): Tuple of optional test data in the form
+              (x,y), where x is an array with x-values and y is an array with
+              y-values. Defaults to None.
+            fname (path, optional): Filepath to save the image. If no value is
+              provided, the image is not saved. Defaults to None.
+            show (bool, optional): If True, the plot is shown. Defaults to
+              True.
+        """
+        if signal is not None:
+            signal = signal.reshape(self._shape[0], self._shape[1], -1)
+        self._plot(time, signal, sdev, round_to, xlim, fname, show)
+
+    def cost(self, time: np.ndarray, signal: np.ndarray, metric: str = 'NRMS', nfree=None) -> float:
+        """Return the goodness-of-fit
+
+        Args:
+            time (np.ndarray): array with time points
+            signal (array-like): array with signal data for all pixels.
+            metric (str, optional): Which metric to use (see notes for 
+                possible values). Defaults to 'NRMS'.
+
+        Returns:
+            float: goodness of fit.
+
+        Notes:
+
+            Available options are: 
+            
+            - 'RMS': Root-mean-square.
+            - 'NRMS': Normalized root-mean-square. 
+            - 'AIC': Akaike information criterion. 
+            - 'cAIC': Corrected Akaike information criterion for small 
+                models.
+            - 'BIC': Baysian information criterion.
+        """
+        signal_pred = self._predict_all(time)
+        signal = signal.reshape(self._shape[0], self._shape[1], -1)
+
+        cost = loss(signal_pred, signal, metric, nfree)
+        if self._pixels_shape == ():
+            return cost[0]
+        else:
+            return cost
+        
+
+    # ==========================================
+    # Backend
+    # ==========================================  
+
     
     @property
     def _shape(self):
@@ -237,7 +569,8 @@ class TissueX(SuperModel):
 
         if select == 'all':
             p = ['c_a', 'dt', 'TS']
-            if 'R1' in self._cnfg['tissue_props']:
+            #if 'R1' in self._cnfg['tissue_props']:
+            if 'R1' in set(SEQUENCES[self._cnfg['sequence']]['parameters']['tissue']):
                 p += ['R10_a']
             p += ConcTissueX(**cnfg)._params()
             p += RelaxTissueX(**cnfg)._params()
@@ -265,7 +598,7 @@ class TissueX(SuperModel):
                 + WaterFlowsTissueX(**cnfg)._params()
                 + ['r2s_vasc', 'r2s_ees']
             )
-            return [p for p in list(set(pars)) if p != 'H' and p in self._params()]
+            return [p for p in list(set(pars)) if p not in ['H', 'T_a'] and p in self._params()]
 
 
     # ==========================================
@@ -292,20 +625,29 @@ class TissueX(SuperModel):
         p = self._cnfg | self._pixel_pars(x)
         C = ConcTissueX(**p)(p['c_a'])
         R1, R2, R2s = RelaxTissueX(**p)(C)
-        R1a = None if R1 is None else Relax1(**p)(p['c_a'], R10=p['R10_a'])
+        R1a = None
+        if (R1 is not None) and ('R10_a' in p):
+            R1a = Relax1(**p)(p['c_a'], R10=p['R10_a'])
         if R1 is not None:
             Mz = MzTissueX(**p)(R1, R1a)
-        elif R2 is not None:
-            Mz = np.full_like(R2, p['me'])
-        elif R2s is not None:
-            Mz = np.full_like(R2s, p['me']).reshape(1, -1)
+
+        # These lines are fine but not covered by tests and I don't think 
+        # the scenario exists. Commenting out for now: 
+
+        # elif R2 is not None:
+        #     Mz = np.full_like(R2, p['me'])
+        # elif R2s is not None:
+        #     Mz = np.full_like(R2s, p['me']).reshape(1, -1)
+
         return Mz
     
     def _signal(self, x) -> np.ndarray: # (n_channels, n_times)
         p = self._cnfg | self._pixel_pars(x)
         C = ConcTissueX(**p)(p['c_a']) # (ncomp, ntimes)
         R1, R2, R2s = RelaxTissueX(**p)(C) 
-        R1a = None if R1 is None else Relax1(**p)(p['c_a'], R10=p['R10_a'])
+        R1a = None
+        if (R1 is not None) and ('R10_a' in p):
+            R1a = Relax1(**p)(p['c_a'], R10=p['R10_a'])
         S = SignalTissueX(**p)(R1, R2, R2s, R1a)  # (n_channels, n_times) or (n_times,)
         return S.reshape(-1, S.shape[-1])
     
@@ -342,7 +684,7 @@ class TissueX(SuperModel):
     # Inverse Model: Training
     # ==========================================
 
-    def _estimate_parameters(self, signal: np.ndarray, aif: Input, n0: int):
+    def _estimate_parameters(self, signal: np.ndarray, n0: int):
         # signal (n_pixels, n_channels, n_times)
         p = self._pars
         
@@ -351,7 +693,9 @@ class TissueX(SuperModel):
             px = self._cnfg | self._pixel_pars(x)
             C = ConcTissueX(**px)([0]) # Values are 0 but this get the right shape for C
             R1, R2, R2s = RelaxTissueX(**px)(C)
-            R1a = None if R1 is None else [p['R10_a']]
+            R1a = None 
+            if (R1 is not None) and ('R10_a' in p):
+                R1a = [p['R10_a']]
             s_ref = SignalTissueX(**px)(R1, R2, R2s, R1a, S0=1)
 
             s_ref = s_ref.flatten()
@@ -362,20 +706,13 @@ class TissueX(SuperModel):
         S0 = np.stack([s0_pixel(x) for x in range(self._shape[0])]) # n_pixels, n_channels
         p['S0'] = np.mean(S0, axis=1)  # n_pixels - average over channels
 
-        if aif is not None:
-            seq = self._cnfg['sequence']
-            ca = SignalToConc(seq, **p)(aif.signal, S0=None, R10=aif.R10, n0=n0, B1corr=aif.B1corr)
-            # Interpolate on internal time
-            self._t = np.arange(0, aif.time[-1] + p['dt'], p['dt'])
-            p['c_a'] = np.interp(self._t, aif.time, ca)
-
 
     def _train(
         self, time: np.ndarray, signal: np.ndarray, 
-        aif: Input, free: dict, bounds: dict, 
+        free: dict, bounds: dict, 
         n0: int, configs: list, select: str, **kwargs
     ):
-        self._estimate_parameters(signal, aif, n0)
+        self._estimate_parameters(signal, n0)
         #return None, None, None
         free = self._set_free_pars(free, bounds)
 
@@ -479,9 +816,10 @@ class TissueX(SuperModel):
             ax_text = ax[2]
 
         ax00.set_title('MRI signals')
-        for ci in range(signal.shape[1]):
-            ax00.plot(time / 60, self._predict_all(time)[0, ci, :], marker='o', linestyle='None', color='cornflowerblue', label='Predicted data')
-            ax00.plot(time / 60, signal[0, ci, :], marker='x', linestyle='None', color='darkblue', label='Data')
+        for ci in range(self._shape[1]):
+            if time is not None:
+                ax00.plot(time / 60, self._predict_all(time)[0, ci, :], marker='o', linestyle='None', color='cornflowerblue', label='Predicted data')
+                ax00.plot(time / 60, signal[0, ci, :], marker='x', linestyle='None', color='darkblue', label='Data')
             ax00.plot(t / 60, S[0, ci, :], linestyle='-', linewidth=3.0, color='darkblue', label='Model')
         ax00.set(ylabel='MRI signal (a.u.)', xlabel='Time (min)', xlim=xlim)
         ax00.legend()
@@ -534,283 +872,3 @@ class TissueX(SuperModel):
         if show: plt.show()
         else: plt.close()
 
-    # ==========================================
-    # Public API: Data Extraction
-    # ==========================================
-
-    def time(self) -> np.ndarray:
-        """Kidney signal time points"""
-        return self._time()
-
-    def conc(self) -> np.ndarray:
-        """Return the tissue concentration
-
-        Returns:
-            np.ndarray: Concentration in M
-
-        Example:
-
-            Build a tissue, and plot the tissue concentrations in each
-            compartment:
-
-        .. plot::
-            :include-source:
-            :context: close-figs
-
-            >>> import dcmri as dc
-            >>> import matplotlib.pyplot as plt
-
-            >>> t, aif, _ = dc.fake.aif()
-            >>> tissue = dc.TissueX('HFU', 'RR', aif=aif, t=t)
-            >>> C = tissue.conc(sum=False)
-
-            >>> _ = plt.figure()
-            >>> _ = plt.plot(t/60, 1e3*C[0,:], label='Plasma')
-            >>> _ = plt.plot(t/60, 1e3*C[1,:], label='Interstitium')
-            >>> _ = plt.xlabel('Time (min)')
-            >>> _ = plt.ylabel('Concentration (mM)')
-            >>> _ = plt.legend()
-            >>> _ = plt.show()
-        """
-        C = self._tissue_conc_all() # (n_pixels, n_compartments, n_times)
-        C = C.reshape(self._pixels_shape + C.shape[1:]) # (nx, ny, nz, n_compartments, n_times)
-        if C.shape[-2] == 1:
-            return C[...,0,:]
-        else:
-            return C
-    
-
-    def relax(self) -> np.ndarray:
-        """Compartmental relaxation rates, volume fractions and
-        water-permeability matrix.
-
-        tuple: relaxation rates of tissue compartments and their volumes.
-            - **R1** (numpy.ndarray): in the fast water exchange limit, the
-              relaxation rates are a 1D array. In all other situations,
-              relaxation rates are a 2D-array with dimensions (k,n), where k is
-              the number of compartments and n is the number of time points
-              in ca.
-            - **v** (numpy.ndarray or None): the volume fractions of the tissue
-              compartments. Returns None in 'FF' regime.
-            - **Fw** (numpy.ndarray or None): 2D array with water exchange
-              rates between tissue compartments. Returns None in 'FF' regime.
-
-        Example:
-
-            Build a tissue, print its compartmental volumes and water
-            permeability matrix, and plot the free relaxation rates of each
-            compartment:
-
-        .. plot::
-            :include-source:
-            :context: close-figs
-
-            >>> import dcmri as dc
-            >>> t, aif, _ = dc.fake.aif()
-            >>> tissue = dc.TissueX('2CX', 'RR', aif=aif, t=t)
-            >>> R1, v, Fw = tissue.relax()
-
-            >>> v
-            array([0.1, 0.3, 0.6])
-
-            >>> Fw
-            array([[0.02, 0.03, 0.  ],
-                   [0.03, 0.  , 0.03],
-                   [0.  , 0.03, 0.  ]])
-
-            >>> import matplotlib.pyplot as plt
-            >>> _ = plt.figure()
-            >>> _ = plt.plot(t/60, R1[0,:], label='Blood')
-            >>> _ = plt.plot(t/60, R1[1,:], label='Interstitium')
-            >>> _ = plt.plot(t/60, R1[2,:], label='Cells')
-            >>> _ = plt.xlabel('Time (min)')
-            >>> _ = plt.ylabel('Relaxation rate (Hz)')
-            >>> _ = plt.legend()
-            >>> plt.show()
-
-        """
-        def reshapeR(R):
-            R = np.stack(R)
-            # R = n_samples, n_compartments, n_times
-            R = R.reshape(self._pixels_shape + R.shape[1:]) # (nx, ny, nz, n_compartments, n_times)
-            # Squeeze out compartments of 1
-            if R.shape[-2] == 1:
-                return R[...,0,:]
-            else:
-                return R
-            
-        def reshapeR2s(R):
-            R = np.stack(R)
-            # R = n_samples, n_times
-            return R.reshape(self._pixels_shape + (R.shape[1], )) # (nx, ny, nz, n_times)
-        
-        results = self._run_parallel(self._relax)
-
-        R1 = [r[0] for r in results]
-        R2 = [r[1] for r in results]
-        R2s = [r[2] for r in results]
-
-        R1_ret = None if R1[0] is None else reshapeR(R1)
-        R2_ret = None if R2[0] is None else reshapeR(R2)
-        R2s_ret = None if R2s[0] is None else reshapeR2s(R2s)
-        
-        return R1_ret, R2_ret, R2s_ret   # (n_pixels, n_compartments, n_times) or None
-    
-    
-    def mz(self) -> np.ndarray:
-        """Pseudocontinuous magnetization
-
-        Returns:
-            np.ndarray: the magnetization as a 1D array.
-        """
-        Mz = self._mz_all() # (n_pixels, n_compartments, n_times)
-        Mz = Mz.reshape(self._pixels_shape + Mz.shape[1:]) # (nx, ny, nz, n_compartments, n_times)
-        if Mz.shape[-2] == 1:
-            return Mz[...,0,:]
-        else:
-            return Mz
-        
-    def signal(self) -> np.ndarray:
-        """Pseudocontinuous signal
-
-        Returns:
-            np.ndarray: the signal as a 1D array.
-        """
-        S = self._signal_all() # (n_pixels, n_channels, n_times)
-        S = S.reshape(self._pixels_shape + S.shape[1:]) # (nx, ny, nz, n_compartments, n_times)
-        if S.shape[-2] == 1:
-            return S[...,0,:] # (nx, ny, nz, n_times)
-        else:
-            return S # (nx, ny, nz, n_channels, n_times) or # (nx, ny, nz, n_times)
-
-    def predict(self, time: np.ndarray) -> np.ndarray:
-        """Predict the data at specific time points
-
-        Args:
-            time (array-like): Array of time points.
-
-        Returns:
-            np.ndarray: Array of predicted data for each element of *time*.
-        """
-        S = self._predict_all(time) # (n_pixels, n_channels, n_times)
-        S = S.reshape(self._pixels_shape + S.shape[1:]) # (nx, ny, nz, n_channels, n_times)
-        if S.shape[-2] == 1: # one channel - squeeze out
-            return S[...,0,:] # (nx, ny, nz, n_times)
-        else:
-            return S # (nx, ny, nz, n_channels, n_times) or # (nx, ny, nz, n_times)
-
-    def train(
-        self, time: np.ndarray, signal: np.ndarray, 
-        aif: Input=None, free: dict=None, bounds: dict=None, 
-        n0=1, configs: list=None, select='AIC', **kwargs
-    ):
-        """Train the free parameters
-
-        Args:
-            time (array-like): Array with time points.
-            signal (array-like): Array with measured signals for each element
-              of *time*.
-            modsel (bool, optional): Of True, all submodels are tested and the best is selected.
-            kwargs: any keyword parameters accepted by the specified fit
-              method. For 'NNLS' these are all parameters accepted by
-              `scipy.optimize.curve_fit`, except for bounds.
-
-        Returns:
-            self
-        """
-
-        if select not in ['AIC', 'BIC']:
-            raise ValueError("'modsel' must be either 'AIC' (Akaike Information Criterion) or 'BIC' (Baysian Information Criterion)")
-    
-        if aif is not None:
-            n_times = aif.signal.size
-        else:
-            n_times = self._pars['c_a'].size
-
-        if self._cnfg['sequence'] in ['Eq-DE-EPI', 'DE-EPI']:
-            n_channels = 2
-        else:
-            n_channels = 1
-
-        # Derive the shape from the data
-        if np.prod(signal.shape) != self._shape[0] * n_channels * n_times:
-            self._pixels_shape = signal.shape[:-1]
-            # Reset pixel parameters
-            pixel_pars = init(self._params('pixel'), QUANTITIES)
-            for p, v in pixel_pars.items():
-                self._pars[p] = np.full(self._shape[0], v)
-
-        signal = signal.reshape(self._shape[0], n_channels, n_times)
-        vals, sdev, pcov, model = self._train(time, signal, aif, free, bounds, n0, configs, select, **kwargs)
-
-        # Convert to input shape
-        vals = {k: v.reshape(self._pixels_shape + v.shape[1:]) for k, v in vals.items()}
-        sdev = {k: v.reshape(self._pixels_shape + v.shape[1:]) for k, v in sdev.items()}
-        if self._pixels_shape == ():
-            pcov = pcov[0]
-            model = model[0]
-        else:
-            pcov = pcov.reshape(self._pixels_shape)
-            model = model.reshape(self._pixels_shape)
-
-        if configs is None:
-            return vals, sdev, pcov
-        else:
-            return vals, sdev, pcov, model
-
-    def plot(
-        self, time: np.ndarray, signal: np.ndarray, sdev: dict=None,
-        round_to=None, xlim=None, fname=None, show=True
-    ):
-        """Plot the model fit against data.
-
-        Args:
-            time (array-like, optional): Array with time points.
-            signal (array-like, optional): Array with measured signals for
-              each element of *time*.
-            sdev (dict): Standard deviations of free parameters
-            xlim (array_like, optional): 2-element array with lower and upper
-              boundaries of the x-axis. Defaults to None.
-            round_to (int, optional): Rounding for the model parameters.
-            ref (tuple, optional): Tuple of optional test data in the form
-              (x,y), where x is an array with x-values and y is an array with
-              y-values. Defaults to None.
-            fname (path, optional): Filepath to save the image. If no value is
-              provided, the image is not saved. Defaults to None.
-            show (bool, optional): If True, the plot is shown. Defaults to
-              True.
-        """
-        signal = signal.reshape(self._shape)
-        self._plot(time, signal, sdev, round_to, xlim, fname, show)
-
-    def cost(self, time: np.ndarray, signal: np.ndarray, metric: str = 'NRMS', nfree=None) -> float:
-        """Return the goodness-of-fit
-
-        Args:
-            time (np.ndarray): array with time points
-            signal (array-like): array with signal data for all pixels.
-            metric (str, optional): Which metric to use (see notes for 
-                possible values). Defaults to 'NRMS'.
-
-        Returns:
-            float: goodness of fit.
-
-        Notes:
-
-            Available options are: 
-            
-            - 'RMS': Root-mean-square.
-            - 'NRMS': Normalized root-mean-square. 
-            - 'AIC': Akaike information criterion. 
-            - 'cAIC': Corrected Akaike information criterion for small 
-                models.
-            - 'BIC': Baysian information criterion.
-        """
-        signal = signal.reshape(self._shape[0], np.prod(self._shape[1:]))
-        signal_pred = self._predict_all(time).reshape(self._shape[0], np.prod(self._shape[1:]))
-
-        cost = loss(signal_pred, signal, metric, nfree)
-        if self._pixels_shape == ():
-            return cost[0]
-        else:
-            return cost

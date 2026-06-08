@@ -60,6 +60,7 @@ def flux_aorta_hlo(J_vena: np.ndarray,
         t=None, dt=1.0, E=0.1, 
         heartlung=['pfcomp', (10, 0.2)],
         organs=['2cxm', ([20, 120], 0.15)],
+        veins=['pass', ()],
         tol=0.001,
         max_it=None,
     ):
@@ -83,6 +84,9 @@ def flux_aorta_hlo(J_vena: np.ndarray,
 
         # Pass through organs
         J_vena = Ro * flux(J_aorta, *organs[1], t=t, dt=dt, model=organs[0])
+
+        # Pass through the venous return
+        J_vena = flux(J_vena, *veins[1], t=t, dt=dt, model=veins[0])
 
         # Get residual dose in current pass
         dose = trapezoid(J_vena, x=t, dx=dt)
@@ -128,6 +132,51 @@ def flux_aorta_hlol(J_vena: np.ndarray,
         # Venous flux of the current pass
         J_vena = Ro * flux(J_aorta, *organs[1], t=t, dt=dt, model=organs[0])
         J_vena += Rl * flux(J_aorta, *liver[1], t=t, dt=dt, model=liver[0])
+
+        # Get residual dose in current pass
+        dose = trapezoid(J_vena, x=t, dx=dt)
+
+        if dose <= min_dose:
+            break
+        
+        it += 1
+        if max_it is not None:
+            if it > max_it:
+                break
+
+    return J_aorta_total
+
+
+def flux_aorta_hlok(J_vena: np.ndarray,
+        t=None, dt=1.0, El=0.1, Ek=0.1, FFk=0.0,
+        heartlung=['pfcomp', (10, 0.2)],
+        organs=['2cxm', ([20, 120], 0.15)],
+        kidney=['comp', (10,)],
+        tol=0.001,
+        max_it=None,
+    ):
+    dose = trapezoid(J_vena, x=t, dx=dt)
+    min_dose = tol*dose
+
+    # Residuals of each pathway
+    Rk = FFk * (1 - Ek)
+    Ro = (1 - FFk) * (1 - El)
+
+    # Initialize output
+    J_aorta_total = np.zeros(J_vena.size)
+
+    it=0
+    while True:
+      
+        # Aorta flux of the current pass
+        J_aorta = flux(J_vena, *heartlung[1], t=t, dt=dt, model=heartlung[0])
+
+        # Add to the total aorta flux
+        J_aorta_total += J_aorta
+
+        # Venous flux of the current pass
+        J_vena = Ro * flux(J_aorta, *organs[1], t=t, dt=dt, model=organs[0])
+        J_vena += Rk * flux(J_aorta, *kidney[1], t=t, dt=dt, model=kidney[0])
 
         # Get residual dose in current pass
         dose = trapezoid(J_vena, x=t, dx=dt)

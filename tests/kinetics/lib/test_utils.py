@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.integrate import trapezoid
 
-from dcmri import convolution
+import dcmri as dc
 from dcmri.kinetics.lib import utils
 
 
@@ -37,11 +37,11 @@ def test_ddelta():
     h = utils.ddelta(4, t)
     assert np.abs(trapezoid(h,t)-1) < 1e-12
 
-    # Check that this is a unit for the convolution.
+    # Check that this is a unit for the dc.
     t = tfib(10, 30)
     h = utils.ddelta(0,t)
     f = np.exp(-t/30)/30
-    g = convolution.conv(f, h, t)
+    g = dc.conv(f, h, t)
     assert np.linalg.norm(g[1:]-f[1:])/np.linalg.norm(f[1:]) < 1e-2
 
 def test_dstep():

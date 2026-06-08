@@ -246,10 +246,15 @@ Example:
 import copy
 import numpy as np
 
-from dcmri import const
-from dcmri.core import LayerFunction
-import dcmri.kinetics.lib as pk
-from dcmri.lexicon import QUANTITIES
+from dcmri.utils import const
+from dcmri.core.layer import LayerFunction
+from dcmri.kinetics.lib.input import ca_injection
+from dcmri.kinetics.lib.aorta import flux_aorta
+from dcmri.kinetics.lib.blocks import flux, flux_plug
+import dcmri.kinetics.lib.kidney as pk_kidney
+import dcmri.kinetics.lib.tissue as pk_tissue
+import dcmri.kinetics.lib.liver as pk_liver
+from dcmri.lexicon.dicts import QUANTITIES
 
 
 class ConcAorta(LayerFunction):
@@ -321,10 +326,10 @@ class ConcAorta(LayerFunction):
             organs = ['2cxm', ([p['To'], p['To_e']], p['Eo'])]
 
         conc = const.ca_conc(p['agent'])
-        Ji = pk.ca_injection(
+        Ji = ca_injection(
             t, p['weight'], conc, p['dose'], p['rate'], p['BAT']
         )
-        Jb = pk.flux_aorta(
+        Jb = flux_aorta(
             Ji, E=p['Eb'], dt=p['dt'], tol=p['dose_tolerance'],
             heartlung=heartlung, organs=organs,
         )
@@ -337,6 +342,8 @@ QUANTITIES_LIVER = QUANTITIES | {
     'T_a': {'init': 2, 'bounds': [0, 30], 'name': 'Arterial mean transit time', 'unit': 'sec'},
     'Fp': {'init': 0.008, 'bounds': [0, 1], 'name': 'Liver plasma flow', 'unit': 'mL/sec/cm3'},
 }
+
+# TODO: This should NOT return dimension (2, n) or EC models. Just (1, n)
 
 class ConcLiver(LayerFunction):
     """
@@ -416,7 +423,7 @@ class ConcLiver(LayerFunction):
         if ns != None:
             conc += '__' + ns.lower()    
 
-        model_func = getattr(pk, conc)  
+        model_func = getattr(pk_liver, conc)  
         return model_func(ca, t=t, dt=dt, **p)
 
         
@@ -438,12 +445,17 @@ class ConcKidney(LayerFunction):
     """
 
     _params_dict = {
-        '2CF': ['T_a', 'Fp', 'vp', 'Ft', 'Tt'],
+        '2CF': ['T_a', 'Fp', 'vp', 'FF', 'Tt'],
+        '2PF': ['T_a', 'Fp', 'vp', 'FF', 'Tt'],
+        'CPF': ['T_a', 'Fp', 'vp', 'FF', 'Tt'],
+        '2CFU': ['T_a', 'Fp', 'vp', 'FF'],
+        '2PFU': ['T_a', 'Fp', 'vp', 'FF'],
+        'FN': ['T_a', 'Fp', 'vp', 'FF', 'ht'],
         'HF': ['T_a', 'vp', 'Ft', 'Tt'],
-        'FN': ['T_a', 'Fp', 'Tp', 'Ft', 'ht'],
+        'HFU': ['T_a', 'vp', 'Ft'],
     }
     configs = {
-        'kinetics': ['2CF', 'HF', 'FN'],
+        'kinetics': ['2CF', '2PF', 'CPF', '2CFU', '2PFU', 'HF', 'HFU', 'FN'],
     }
     def __init__(self, kinetics='2CF', **params):
         cnfg = {'kinetics': kinetics}
@@ -470,11 +482,11 @@ class ConcKidney(LayerFunction):
         p = self._update_pars(**params)
         kin = self._cnfg['kinetics']
 
-        ca = pk.flux(ca, p['T_a'], dt=dt, model='plug')
+        ca = flux(ca, p['T_a'], dt=dt, model='plug')
         p = {k: v for k, v in p.items() if k != 'T_a'}
 
         conc = 'conc_kidney_' + kin.lower()   
-        model_func = getattr(pk, conc)  
+        model_func = getattr(pk_kidney, conc)  
         return model_func(ca, t=t, dt=dt, **p)
 
         
@@ -519,11 +531,11 @@ class ConcCortMed(LayerFunction):
         p = self._update_pars(**params)
         kin = self._cnfg['kinetics']
 
-        ca = pk.flux(ca, p['T_a'], dt=dt, model='plug')
+        ca = flux(ca, p['T_a'], dt=dt, model='plug')
         p = {k: v for k, v in p.items() if k != 'T_a'}
 
         if kin == '7C':
-            return pk.conc_kidney_cm9(ca, t=t, dt=dt, **p)
+            return pk_kidney.conc_kidney_cm9(ca, t=t, dt=dt, **p)
         
 
 
@@ -571,21 +583,12 @@ class ConcTissueX(LayerFunction):
         """
         p = self._update_pars(**params)
 
-        ca = pk.flux_plug(ca, p['T_a'], dt=dt)
+        ca = flux_plug(ca, p['T_a'], dt=dt)
         params = {k: v for k, v in p.items() if k != 'T_a'}
         
         kin = self._cnfg['kinetics']
         conc = 'conc_tissue_' + kin.lower()   
-        model_func = getattr(pk, conc)  
+        model_func = getattr(pk_tissue, conc)  
         return model_func(ca, t=t, dt=dt, **params)
-    
-        # if kinetics == 'U': return pk.conc_tissue_u(ca, t=t, dt=dt, **params)
-        # if kinetics == 'FX': return pk.conc_tissue_fx(ca, t=t, dt=dt, **params)
-        # if kinetics == 'NX': return pk.conc_tissue_nx(ca, t=t, dt=dt, **params)
-        # if kinetics == 'NXP': return pk.conc_tissue_nxp(ca, t=t, dt=dt, **params)
-        # if kinetics == 'WV': return pk.conc_tissue_wv(ca, t=t, dt=dt, **params)
-        # if kinetics == 'HFU': return pk.conc_tissue_hfu(ca, t=t, dt=dt, **params)
-        # if kinetics == 'HF': return pk.conc_tissue_hf(ca, t=t, dt=dt, **params)
-        # if kinetics == '2CU': return pk.conc_tissue_2cu(ca, t=t, dt=dt, **params)
-        # if kinetics == '2CX': return pk.conc_tissue_2cx(ca, t=t, dt=dt, **params)
+
 

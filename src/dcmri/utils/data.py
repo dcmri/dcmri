@@ -37,7 +37,6 @@ DATASETS = {
     'tristan_rats_healthy_multiple_dosing': {'doi': DOI['TRISTAN'], 'ext': '.dmr.zip'},
     'tristan_rats_healthy_reproducibility': {'doi': DOI['TRISTAN'], 'ext': '.dmr.zip'},
     'tristan_rats_healthy_six_drugs': {'doi': DOI['TRISTAN'], 'ext': '.dmr.zip'},
-
 }
 
 
@@ -81,7 +80,18 @@ def fetch(dataset=None, clear_cache=False, download_all=False) -> dict:
         Other
 
             - minipig_renal_fibrosis: Kidney data in a minipig with 
-              unilateral ureter stenosis. More detail in future versions..
+              unilateral ureter stenosis. Data contributed by 
+              `Nichlas Vous Christensen <https://www.au.dk/en/nvc@clin.au.dk>`_ 
+              and 
+              `Mohsen Redda <https://www.au.dk/en/au569527@biomed.au.dk>`_.
+
+                Nikolaj Bøgh, Lotte B Bertelsen, 
+                Camilla W Rasmussen, Sabrina K Bech, Anna K Keller, Mia G Madsen, 
+                Frederik Harving, Thomas H Thorsen, Ida K Mieritz, Esben Ss Hansen, 
+                Alkwin Wanders, Christoffer Laustsen. Metabolic MRI With 
+                Hyperpolarized 13C-Pyruvate for Early Detection 
+                of Fibrogenic Kidney Metabolism. 
+                [`DOI <https://doi.org/10.1097/rli.0000000000001094>`_].
 
 
     Example:

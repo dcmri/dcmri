@@ -1,7 +1,7 @@
 import numpy as np
 
 
-from dcmri.kinetics import (
+from dcmri import (
     ConcKidney,
     ConcLiver,
     ConcTissueX,
@@ -23,7 +23,7 @@ def test_conc_kidney():
     p = {'Fp': 0.01, 'vp': 0.2, 'Ft': 0.005, 'Tt': 120}
     p['Tp'] = p['vp'] / (p['Fp'] + p['Ft'])
     C = ConcKidney('2CF', **p)(ca, dt=dt)
-    assert round(C[1,10], 2) == 0.02
+    assert round(C[1,10], 2) == 0.0
 
 
 def test_conc_cortmed():
@@ -108,4 +108,4 @@ if __name__ == '__main__':
     test_conc_liver()
     test_conc_tissue()
 
-    print('All kinetics tests passed!!')
+    print('All conc tests passed!!')

@@ -1,4 +1,5 @@
 import os
+from pprint import pprint
 from copy import deepcopy
 from joblib import Parallel, delayed
 from itertools import product
@@ -7,7 +8,8 @@ import zarr
 import numpy as np
 
 from dcmri.utils.fit import train, scalar_loss
-from dcmri.lexicon import QUANTITIES, select_params, init, export_params
+from dcmri.lexicon.dicts import QUANTITIES
+from dcmri.lexicon.tools import select_params, init, export_params, print_params
     
 
 class SuperModel:
@@ -15,12 +17,33 @@ class SuperModel:
     # Must be reimplemented
 
     configs = {}
+
+    @classmethod
+    def print_configs(cls):
+        # pprint(cls.configs, width=2, sort_dicts=True)
+        for key, list_of_strings in cls.configs.items():
+            print(f"{key}:")
+            for item in list_of_strings:
+                print(f"  - {item}")
+            print() 
     
     def __init__(self, **params):
         self._version = '0'
         self._cnfg = {}
         self._pars = {}
         self._override_pars(**params)
+
+    def print_params(self, *args, lexicon:dict=None, round_to=None, group=None, fixed_only=False, free_only=False):
+        """Pretty print model parameters"""
+        if args == ():
+            pars = self._pars
+        else:
+            pars = {k: v for k, v in self._pars.items() if k in args}
+        if fixed_only:
+            pars = {k: v for k, v in pars.items() if k not in self._params('free')}
+        if free_only:
+            pars = {k: v for k, v in pars.items() if k in self._params('free')}
+        print_params(pars, round_to=round_to, group=group, lexicon=lexicon)
 
     def _params(self, select=None) -> list:
         return []
@@ -45,17 +68,32 @@ class SuperModel:
         return self._cnfg
     
     def _set_pars(self, lexicon:dict=QUANTITIES, **params):
-        self._pars = init(self._params(), lexicon=lexicon, **params)
+        pars_list = self._params()
+        for p in params:
+            if p not in pars_list:
+                raise ValueError(
+                    f"'{p}' is not a valid parameter for this configuration.\n"
+                    f"Use print_params() to print a list of all valid parameters."
+                )
+        self._pars = init(pars_list, lexicon=lexicon, **params)
         return self._pars
     
     def params(self, select=None) -> dict:
         return self._pars
     
     def _override_pars(self, **params):
-        [self._pars.update({k:v}) for k, v in params.items() if k in self._pars]
-
-    def export_params(self, lexicon:dict=QUANTITIES):
-        return export_params(self._pars, lexicon=lexicon)
+        for k, v in params.items():
+            if k not in self._params():
+                raise ValueError(
+                    f"'{k}' is not a valid parameter for this configuration.\n"
+                    f"Use print_params() to print a list of all valid parameters."
+                )
+            self._pars.update({k:v})
+            
+    def export_params(self, lexicon:dict=None, sdev=None, num_only=False):
+        if lexicon is None:
+            lexicon = QUANTITIES
+        return export_params(self._pars, lexicon=lexicon, sdev=sdev, num_only=num_only)
     
     def save(self, folder: str):
 
@@ -144,10 +182,13 @@ class SuperModel:
                     free[p] = b
 
         # --- 2. Boundary Validation ---
-        pars = self.params('all')
+        pars = self._pars
         for p, bnds in free.items():
             if p not in pars:
-                raise ValueError(f"'{p}' is not a valid parameter for this configuration.")
+                raise ValueError(
+                    f"'{p}' is not a valid parameter for this configuration.\n"
+                    f"Use print_params() to print a list of all valid parameters."
+                )
             elif p in select_params(lexicon, bounds_type='add'):
                 if (bnds[0] > 0) or (bnds[1] < 0):
                     raise ValueError(f"Bounds on {p} must be (negative, positive).")

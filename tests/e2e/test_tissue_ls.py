@@ -4,8 +4,6 @@ import itertools
 import matplotlib.pyplot as plt
 import numpy as np
 import dcmri as dc
-from dcmri.bloch import Signal
-from dcmri.core import Input
 from dcmri import TissueLS as Model
 #from dcmri.fake import fake_brain
 
@@ -45,7 +43,10 @@ def test_coverage():
 
     # Coverage config options
     Model(irf=np.ones((128, 480)))
-
+    model = Model(shape=(10,), S0=np.ones(10), irf=np.ones((10, 300)), c_a=np.ones(300))
+    time = model.time()
+    signal = model.predict(time)
+    model.cost(time, signal)
 
 def test_io():
 
@@ -131,24 +132,14 @@ def test_exceptions():
         assert False
 
     try:
-        model = Model()
-        model.plot_2d(model.time(), model.signal())
+        model = Model(S0=np.ones(20), R10=np.ones(10), irf=np.ones(300), c_a=np.ones(300))
     except ValueError:
         pass 
     else:
         assert False
 
     try:
-        model = Model((10, ))
-        model.plot_2d(model.time(), model.signal())
-    except ValueError:
-        pass 
-    else:
-        assert False
-
-    try:
-        model = Model((10, ))
-        model.plot_3d(model.time(), model.signal())
+        model = Model(shape=(10,), S0=np.ones(20), irf=np.ones(300), c_a=np.ones(300))
     except ValueError:
         pass 
     else:
@@ -156,14 +147,6 @@ def test_exceptions():
 
     try:
         model = Model()
-        model.plot_3d(model.time(), model.signal())
-    except ValueError:
-        pass 
-    else:
-        assert False
-
-    try:
-        model = Model((10, 10, 10))
         model.plot_2d(model.time(), model.signal())
     except ValueError:
         pass 
@@ -171,7 +154,15 @@ def test_exceptions():
         assert False
 
     try:
-        model = Model((10, 10))
+        model = Model(shape=(10, ))
+        model.plot_2d(model.time(), model.signal())
+    except ValueError:
+        pass 
+    else:
+        assert False
+
+    try:
+        model = Model(shape=(10, ))
         model.plot_3d(model.time(), model.signal())
     except ValueError:
         pass 
@@ -179,11 +170,36 @@ def test_exceptions():
         assert False
 
     try:
-        Model(sequence='X')
+        model = Model()
+        model.plot_3d(model.time(), model.signal())
     except ValueError:
         pass 
     else:
         assert False
+
+    try:
+        model = Model(shape=(10, 10, 10))
+        model.plot_2d(model.time(), model.signal())
+    except ValueError:
+        pass 
+    else:
+        assert False
+
+    try:
+        model = Model(shape=(10, 10))
+        model.plot_3d(model.time(), model.signal())
+    except ValueError:
+        pass 
+    else:
+        assert False
+
+
+    # try:
+    #     Model(sequence='X')
+    # except ValueError:
+    #     pass 
+    # else:
+    #     assert False
 
 
 def test_array_1d():
@@ -194,21 +210,21 @@ def test_array_1d():
     FA, TR, TE = 15, 0.005, 0.002 # Defaults
 
     # Input signals
-    rp = dc.const.r1(B0, 'blood', agent)
-    r2s = dc.const.r2s(B0, 'blood', agent)
+    rp = dc.r1(B0, 'blood', agent)
+    r2s = dc.r2s(B0, 'blood', agent)
     aif_time = np.arange(0, tmax, dt)
-    aif_conc = dc.aif.tristan(aif_time, BAT=10)
+    aif_conc = dc.tristan(aif_time, BAT=10)
     aif_R1 = R10a + rp * aif_conc
     aif_R2s = R20sa + r2s * aif_conc
-    aif_signal = Signal(seq)(R1=aif_R1, R2s=aif_R2s, S0=S0a, FA=FA, TR=TR, TE=TE, B1corr=B1a)
-    aif_ = Input(aif_signal, aif_time, R10=R10a, B1corr=B1a)
+    aif_signal = dc.Signal(seq)(R1=aif_R1, R2s=aif_R2s, S0=S0a, FA=FA, TR=TR, TE=TE, B1corr=B1a)
+    aif_ = {'signal': aif_signal, 'time': aif_time, 'R10': R10a, 'B1corr':B1a}
 
     # Tissue
     params = {
         'dt': dt, 
         'c_a': aif_conc,
-        'field_strength': B0,
-        'agent': agent,
+        # 'field_strength': B0,
+        # 'agent': agent,
         'FA': FA, 
         'TR': TR,
         'TE': TE,
@@ -235,7 +251,7 @@ def test_array_1d():
 def test_array_1d_brain():
     # Generated with a 2CX model
     npix = 64
-    time, signal, aif, gt = dc.fake.brain(n=npix)
+    time, signal, aif, gt = dc.brain(n=npix)
 
     # ca = SignalToConc('3D-SPGR-SS')(aif, S0=None, R10=1/dc.const.T1(3.0, 'blood'), n0=1, B1corr=1, TR=0.005, FA=15, TE=0, r1=const.r1(3, 'plasma', 'gadodiamide'))
     # plt.plot(time, ca, 'bo')
@@ -255,17 +271,16 @@ def test_array_1d_brain():
     params = {
         'dt': 1.5,
         'sequence': '3D-SPGR-SS',
-        'agent': 'gadodiamide',
-        'field_strength': 3,
+        # 'agent': 'gadodiamide',
+        # 'field_strength': 3,
         'TR': 0.005,
         'FA': 15,
         'R10': R10,
         'TE': 0,
     }
-
     model = Model(**params)
 
-    aif = Input(aif, time, R10=1/dc.const.T1(3.0, 'blood'))
+    aif = {'signal': aif, 'time': time, 'R10': 1/dc.T1(3.0, 'blood')}
 
     # Fit with generated AIF signal
     model.train(time, signal, aif)
@@ -280,7 +295,7 @@ def test_array_1d_brain():
 def test_array_2d():
     # Generated with a 2CX model
     npix = 64
-    time, signal, aif, gt = dc.fake.brain(n=npix)
+    time, signal, aif, gt = dc.brain(n=npix)
 
     # Compute R10
     R10 = np.zeros_like(gt['T1'], dtype=float)
@@ -290,14 +305,14 @@ def test_array_2d():
     tissue = Model(
         dt = 1.5,
         sequence = '3D-SPGR-SS',
-        agent = 'gadodiamide',
-        field_strength = 3,
+        # agent = 'gadodiamide',
+        # field_strength = 3,
         TR = 0.005,
         FA = 15,
         R10 = R10,
     )
 
-    aif = Input(aif, time, R10=1/dc.const.T1(3.0, 'blood'))
+    aif = {'signal': aif, 'time': time, 'R10': 1/dc.T1(3.0, 'blood')}
     tissue.train(time, signal, aif, n0=10, tol=0.01)
 
     vmin = {'Fp':0, 've':0, 'Te':0}
@@ -309,7 +324,7 @@ def test_array_2d():
 
 def test_array_3d():
     n, nz = 64, 12
-    time, signal, aif, gt = dc.fake.brain(n)
+    time, signal, aif, gt = dc.brain(n)
 
     # Compute R10
     R10 = np.zeros_like(gt['T1'], dtype=float)
@@ -324,14 +339,14 @@ def test_array_3d():
     tissue = Model(
         dt = 1.5,
         sequence = '3D-SPGR-SS',
-        agent = 'gadodiamide',
-        field_strength = 3,
+        # agent = 'gadodiamide',
+        # field_strength = 3,
         TR = 0.005,
         FA = 15,
         R10 = R10,
     )
 
-    aif = Input(aif, time, R10=1/dc.const.T1(3.0, 'blood'))
+    aif = {'signal': aif, 'time': time, 'R10': 1/dc.T1(3.0, 'blood')}
     tissue.train(time, signal, aif, n0=10, tol=0.01)
 
     vmin = {'Fp':0, 've':0, 'Te':0}
@@ -345,16 +360,16 @@ def test_array_3d():
 
 if __name__ == "__main__":
 
-    # Coverage tests
-    test_coverage()
-    test_io()
-    test_exceptions()
-    
     # Functional tests
     test_array_1d()
     test_array_1d_brain()
     test_array_2d()
     test_array_3d()
+
+    # Coverage tests
+    test_coverage()
+    test_io()
+    test_exceptions()
     
     print('All tissue_ls tests passed!!')
 

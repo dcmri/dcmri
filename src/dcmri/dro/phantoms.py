@@ -1,6 +1,6 @@
 
 import numpy as np
-from dcmri import const
+from dcmri.utils import const
 
 
 def _ellipse(array, center, axes, angle, value):
@@ -262,7 +262,7 @@ def shepp_logan(*params, n=256, B0=3):
 
         Simulate a synthetic blood flow image:
 
-        >>> im = dc.phantoms.shepp_logan('Fb')
+        >>> im = dc.shepp_logan('Fb')
 
         Plot the result in units of mL/min/100mL:
 
@@ -281,7 +281,7 @@ def shepp_logan(*params, n=256, B0=3):
 
         Generate the MR Shepp-Logan phantom in low resolution:
 
-        >>> im = dc.phantoms.shepp_logan('PD', 'T1', 'T2', n=64)
+        >>> im = dc.shepp_logan('PD', 'T1', 'T2', n=64)
 
         Plot the result:
 
@@ -301,7 +301,7 @@ def shepp_logan(*params, n=256, B0=3):
 
         Generate the MR Shepp-Logan phantom masks:
 
-        >>> im = dc.phantoms.shepp_logan(n=128)
+        >>> im = dc.shepp_logan(n=128)
 
         Plot all masks:
 

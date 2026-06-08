@@ -77,3 +77,6 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.coverage.run]
+concurrency = ["multiprocessing"] # This ensures that tests with multiprocessing report coverage correctly

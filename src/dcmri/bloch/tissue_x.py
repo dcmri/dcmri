@@ -362,9 +362,9 @@ Returns:
 from copy import deepcopy
 import numpy as np
 
-from dcmri.bloch import Longitudinal, Readout
-from dcmri.core import LayerFunction
-from dcmri.lexicon import SEQUENCES
+from dcmri.bloch.tissue import Longitudinal, Readout
+from dcmri.core.layer import LayerFunction
+from dcmri.lexicon.dicts import SEQUENCES
 
 
 class WaterVolumesTissueX(LayerFunction):

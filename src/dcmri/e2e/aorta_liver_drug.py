@@ -122,18 +122,20 @@ Example:
 
 """
 
-from matplotlib.pylab import copy
 import matplotlib.pyplot as plt
 import numpy as np
 
-import dcmri.kinetics.lib as pk
-from dcmri.kinetics import ConcAorta, ConcLiver
-from dcmri import const
-from dcmri.lexicon import QUANTITIES, export_params
-from dcmri.bloch import Signal
+from dcmri.kinetics.lib.input import ca_injection
+from dcmri.kinetics.lib.aorta import flux_aorta_hlol
+from dcmri.kinetics.lib.blocks import flux_comp
+from dcmri.kinetics.conc import ConcAorta, ConcLiver
+from dcmri.utils import const
+from dcmri.lexicon.dicts import QUANTITIES
+from dcmri.lexicon.tools import export_params
+from dcmri.bloch.tissue import Signal
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
-from dcmri.core import SuperModel
+from dcmri.core.model import SuperModel
 
 
 QUANTITIES = QUANTITIES | {
@@ -421,7 +423,7 @@ class AortaLiverDrug(SuperModel):
         
         # Source
         conc = const.ca_conc(p['agent'])
-        J = pk.ca_injection(
+        J = ca_injection(
             t, p['weight'], conc, p[f'{visit}_dose'], p['rate'], 
             p[f'{visit}_BAT'],
         )
@@ -437,7 +439,7 @@ class AortaLiverDrug(SuperModel):
         Fpk = (1 - FFl) * p[f'CO'] * (1 - p['H'])
         Ek = CL / (CL + Fpk)
 
-        Jb = pk.flux_aorta_hlol(
+        Jb = flux_aorta_hlol(
             J, El=El, Ek=Ek, FFl=FFl, dt=p['dt'], tol=p['dose_tolerance'],
             heartlung=['pfcomp', (p[f'Thl'], p[f'Dhl'])],
             organs=['2cxm', ([p[f'To'], p[f'To_e']], p[f'Eo'])],
@@ -448,7 +450,7 @@ class AortaLiverDrug(SuperModel):
     def _conc_liver(self, cb, visit):
         p = self._pars
 
-        cb = pk.flux_comp(cb, p[f'Tg'], dt=p['dt'])
+        cb = flux_comp(cb, p[f'Tg'], dt=p['dt'])
         cp = cb / (1 - p['H'])
     
         vh = 1 - p[f've'] / (1 - p['H'])
@@ -602,15 +604,15 @@ class AortaLiverDrug(SuperModel):
     # Forward Model: All scans
     # ==========================================
 
-    def _predict_aorta(self, time):
-        Sac = self._predict_aorta_control(time[0])
-        Sad = self._predict_aorta_drug(time[1])
-        return Sac, Sad
+    # def _predict_aorta(self, time):
+    #     Sac = self._predict_aorta_control(time[0])
+    #     Sad = self._predict_aorta_drug(time[1])
+    #     return Sac, Sad
     
-    def _predict_liver(self, time):
-        Slc = self._predict_liver_control(time[0])
-        Sld = self._predict_liver_drug(time[1])
-        return Slc, Sld
+    # def _predict_liver(self, time):
+    #     Slc = self._predict_liver_control(time[0])
+    #     Sld = self._predict_liver_drug(time[1])
+    #     return Slc, Sld
 
     def _predict_control(self, time):
         Sa = self._predict_aorta_control(time[0])

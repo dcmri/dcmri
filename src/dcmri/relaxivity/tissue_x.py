@@ -542,9 +542,9 @@ from itertools import combinations
 
 import numpy as np
 
-from dcmri.core import LayerFunction
-from dcmri.relaxivity import R2, R2s, R1
-import dcmri.relaxivity.lib as rel
+from dcmri.core.layer import LayerFunction
+from dcmri.relaxivity.tissue import R2, R2s, R1
+from dcmri.relaxivity.lib import relax_t2s
 
 
 class R1TissueX(LayerFunction):
@@ -670,7 +670,7 @@ class R2sTissueX(LayerFunction):
 
         if t2r == 'leakage':
             c = ContrastConcTissueX(self._cnfg['kinetics'])(C)
-            return rel.relax_t2s(c, p['R20s'], r2s_vasc=p['r2s_vasc'], r2s_ees=p['r2s_ees'], model='leakage')
+            return relax_t2s(c, p['R20s'], r2s_vasc=p['r2s_vasc'], r2s_ees=p['r2s_ees'], model='leakage')
 
 # Build all possible combinations of relaxation rates
 weighting = ['R1', 'R2', 'R2s']

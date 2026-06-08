@@ -3,13 +3,13 @@ import shutil
 
 import numpy as np
 
-from dcmri.core import SuperModel
-from dcmri.lexicon import QUANTITIES
+from dcmri.core.model import SuperModel
+from dcmri.lexicon.dicts import QUANTITIES
 from dcmri.utils.fit import train_batch, format_batch_training
 
 
 CUSTOM = QUANTITIES | {
-    'XX': {'init': 15, 'bounds': [0, 180], 'name': 'Custom quantity', 'unit': ''},
+    'XX': {'init': 15, 'bounds': [0, 180], 'name': 'Custom quantity', 'unit': '', 'group': 'indicator'},
 }
 
 # --- Mock Concrete Class Implementation for testing ---
@@ -22,7 +22,7 @@ class MockModel(SuperModel):
         }
         self._version = '1.0'
         self._cnfg = self._set_config(**cnfg)
-        self._pars = self._set_pars(CUSTOM, S0=100 + np.arange(10), R1=1 + 0.1 * np.arange(10)) # overrule defaults
+        self._pars = self._set_pars(lexicon=CUSTOM, S0=100 + np.arange(10), R1=1 + 0.1 * np.arange(10)) # overrule defaults
         self._override_pars(**params) # set user-defined parameters
 
     def _params(self, select='all') -> list:
@@ -70,7 +70,23 @@ def test_supermodel_init():
         pass
     else:
         assert False
+    try:
+        MockModel(YY=1)
+    except:
+        pass
+    else:
+        assert False
+    try:
+        MockModel()._set_pars(lexicon=CUSTOM, YY=1)
+    except:
+        pass
+    else:
+        assert False
     print("-> test_supermodel_init passed!")
+
+def test_supermodel_coverage():
+    MockModel.print_configs()
+    print("-> test_supermodel_coverage passed!")
 
 def test_supermodel_params():
     model = MockModel()
@@ -85,11 +101,25 @@ def test_supermodel_predict():
     assert pred.shape == t.shape
     print("-> test_supermodel_predict_abstract passed!")
 
+def test_supermodel_print_params():
+    model = MockModel()
+    model.print_params(lexicon=CUSTOM)
+    model.print_params('XX', lexicon=CUSTOM)
+    model.print_params(lexicon=CUSTOM, fixed_only=True)
+    model.print_params(lexicon=CUSTOM, free_only=True)
+    print("-> test_supermodel_print_params passed!")
+
 def test_supermodel_export_params():
     model = MockModel()
     res = model.export_params(CUSTOM)
     assert 'R1' in res
     assert res['R1']['value'][0] == 1
+    try:
+        model.export_params() # Without the custom lexicon cant find the detail
+    except:
+        pass
+    else:
+        assert False
     print("-> test_supermodel_export_params passed!")
 
 def test_supermodel_save_and_load():
@@ -273,11 +303,13 @@ def test_supermodel_train_batch_configurations():
 # =============================================================================
 
 if __name__ == '__main__':
+    test_supermodel_coverage()
     test_supermodel_init_super()
     test_supermodel_init()
     test_supermodel_params()
     test_supermodel_predict()
     test_supermodel_export_params()
+    test_supermodel_print_params()
     test_supermodel_save_and_load()
     test_supermodel_set_free_pars()
     test_supermodel_pixel_pars()

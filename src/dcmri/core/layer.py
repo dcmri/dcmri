@@ -1,4 +1,5 @@
-from dcmri.lexicon import QUANTITIES, init
+from dcmri.lexicon.dicts import QUANTITIES
+from dcmri.lexicon.tools import init
 
 class LayerFunction:
 

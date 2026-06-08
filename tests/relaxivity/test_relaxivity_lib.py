@@ -1,15 +1,16 @@
 import numpy as np
 
-import dcmri.relaxivity.lib as rel
+import dcmri as dc
+
 
 def test_conc_t1():
     R1 = np.arange(10) + 5
-    c = rel.conc_t1(R1, 0.1)
+    c = dc.conc_t1(R1, 0.1)
     assert np.sum(c) == 450.0
     R1 = np.stack((R1, 2*R1))
-    c = rel.conc_t1(R1, [5,4])
+    c = dc.conc_t1(R1, [5,4])
     assert np.sum(c) == 31.5
-    c = rel.conc_t1(R1, 5)
+    c = dc.conc_t1(R1, 5)
     assert np.sum(c) == 27
 
 
@@ -22,24 +23,24 @@ def test_relax_t1():
     # One time point - ROI
     R10 = 1
     c = 1
-    assert rel.relax_t1(c, R10, r1) == 2
+    assert dc.relax_t1(c, R10, r1) == 2
 
     # One time point - image
     shape = (3,3)
     R10 = np.ones(shape)
     c = np.ones(shape)
-    assert np.array_equal(rel.relax_t1(c, R10, r1), np.full(shape,2))
+    assert np.array_equal(dc.relax_t1(c, R10, r1), np.full(shape,2))
 
     # 4 time points - ROI
     R10 = 1
     c = np.ones(4)
-    assert np.array_equal(rel.relax_t1(c, R10, r1), np.full((4,),2))
+    assert np.array_equal(dc.relax_t1(c, R10, r1), np.full((4,),2))
 
     # 4 time points - image
     shape = (3,3,4)
     R10 = np.ones(shape[:2])
     c = np.ones(shape)
-    assert np.array_equal(rel.relax_t1(c, R10, r1), np.full(shape,2))
+    assert np.array_equal(dc.relax_t1(c, R10, r1), np.full(shape,2))
 
     # Two compartments
     ##################
@@ -48,24 +49,24 @@ def test_relax_t1():
     # One time point - ROI
     R10 = [1,1]
     c = [1,1]
-    assert np.array_equal(rel.relax_t1(c, R10, r1), np.full((2,),2))
+    assert np.array_equal(dc.relax_t1(c, R10, r1), np.full((2,),2))
 
     # One time point - image
     shape = (2,3,3)
     R10 = np.ones(shape)
     c = np.ones(shape)
-    assert np.array_equal(rel.relax_t1(c, R10, r1), np.full(shape,2))
+    assert np.array_equal(dc.relax_t1(c, R10, r1), np.full(shape,2))
 
     # 4 time points - ROI
     R10 = [1,1]
     c = np.ones((2,4))
-    assert np.array_equal(rel.relax_t1(c, R10, r1), np.full((2,4),2))
+    assert np.array_equal(dc.relax_t1(c, R10, r1), np.full((2,4),2))
 
     # 4 time points - image
     shape = (2,3,3,4)
     R10 = np.ones(shape[:3])
     c = np.ones(shape)
-    assert np.array_equal(rel.relax_t1(c, R10, r1), np.full(shape,2))
+    assert np.array_equal(dc.relax_t1(c, R10, r1), np.full(shape,2))
 
 
 def test_relax_t2s():
@@ -77,7 +78,7 @@ def test_relax_t2s():
     r2s_scalar = 2.0
     expected_scalar = 1.0 + 2.0 * 0.5  # 2.0
     
-    result_scalar = rel.relax_t2s(c_scalar, R20s_scalar, r2s=r2s_scalar, model='lin')
+    result_scalar = dc.relax_t2s(c_scalar, R20s_scalar, r2s=r2s_scalar, model='lin')
     assert np.isclose(result_scalar, expected_scalar)
 
     # --- Case 2: 'lin' model with a 1D array ---
@@ -86,7 +87,7 @@ def test_relax_t2s():
     r2s_1d = 2.5
     expected_1d = 1.5 + 2.5 * c_1d
     
-    result_1d = rel.relax_t2s(c_1d, R20s_1d, r2s=r2s_1d, model='lin')
+    result_1d = dc.relax_t2s(c_1d, R20s_1d, r2s=r2s_1d, model='lin')
     np.testing.assert_array_almost_equal(result_1d, expected_1d)
 
     # --- Case 3: 'quad' model with linear and quadratic terms ---
@@ -96,7 +97,7 @@ def test_relax_t2s():
     r2s_quad_term = 0.3
     expected_quad = R20s_quad + r2s_quad_lin * c_quad + r2s_quad_term * c_quad**2
     
-    result_quad = rel.relax_t2s(c_quad, R20s_quad, r2s=r2s_quad_lin, r2s_quad=r2s_quad_term, model='quad')
+    result_quad = dc.relax_t2s(c_quad, R20s_quad, r2s=r2s_quad_lin, r2s_quad=r2s_quad_term, model='quad')
     np.testing.assert_array_almost_equal(result_quad, expected_quad)
 
     # --- Case 4: 'leakage' model with a 2D multi-compartment array ---
@@ -109,7 +110,7 @@ def test_relax_t2s():
     r2s_ees = 1.5
     expected_leak = 1.2 + 3.0 * np.abs(c_2d[0,:] - c_2d[1,:]) + 1.5 * c_2d[1,:]
     
-    result_leak = rel.relax_t2s(c_2d, R20s_leak, r2s_vasc=r2s_vasc, r2s_ees=r2s_ees, model='leakage')
+    result_leak = dc.relax_t2s(c_2d, R20s_leak, r2s_vasc=r2s_vasc, r2s_ees=r2s_ees, model='leakage')
     np.testing.assert_array_almost_equal(result_leak, expected_leak)
 
 
@@ -122,12 +123,12 @@ def test_relax_t2():
     r2 = 4.0
     expected = 0.5 + 4.0 * c
     
-    result = rel.relax_t2(c, R20, r2=r2, model='lin')
+    result = dc.relax_t2(c, R20, r2=r2, model='lin')
     np.testing.assert_array_almost_equal(result, expected)
     
     # --- Case 2: Ensure an error is thrown for an invalid model name ---
     try:
-        rel.relax_t2(c, R20, r2=2.0, model='invalid_model_name')
+        dc.relax_t2(c, R20, r2=2.0, model='invalid_model_name')
         # If the line above doesn't throw an error, force the test to fail
         assert False, "relax_t2 should have raised a ValueError for an invalid model."
     except ValueError as e:

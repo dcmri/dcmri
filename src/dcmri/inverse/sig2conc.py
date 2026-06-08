@@ -2,10 +2,10 @@ from copy import deepcopy
 
 import numpy as np
 
-from dcmri.lexicon import SEQUENCES
+from dcmri.lexicon.dicts import SEQUENCES
 import dcmri.inverse.lib as solve
-from dcmri.core import LayerFunction
-from dcmri.bloch import Signal
+from dcmri.core.layer import LayerFunction
+from dcmri.bloch.tissue import Signal
 
 
 invertible_seqs = [s for s, v in SEQUENCES.items() if v['steady-state']]

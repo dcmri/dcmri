@@ -1,8 +1,11 @@
 import os
 import itertools
 
+import numpy as np
+
 import matplotlib.pyplot as plt
 from dcmri import AortaLiverDynamicDrug as Model
+from dcmri.e2e.aorta_liver_dynamic_drug import _div
 
 
 DEBUG = False
@@ -25,7 +28,7 @@ def test_configs():
         time = model.time()
         signal = model.predict(time)
         R1, R2s = model.relax()
-        model.train(time, signal, verbose=2, xtol=0.1)
+        model.train(time, signal, verbose=2, xtol=0.001)
         model.plot(time, signal, show=DEBUG)
         cost = model.cost(time, signal)
         print(cnfgs, cost)
@@ -37,12 +40,14 @@ def test_configs():
     # Test Variations (override parameter and staged training)
     model = Model(CO=99)
     time = model.time()
+    time = (time['ctrl', 'aorta', 1], time['ctrl', 'aorta', 2])
     signal = model.predict(time)
-    model.train(time, signal, n_runs=2, verbose=2, xtol=0.1)
-    model.plot(time, signal, show=DEBUG)
+    _, sdev, _ = model.train(time, signal, n_runs=2, verbose=2, xtol=0.1)
+    model.plot(time, signal, show=DEBUG, clim=[1,1])
     cost = model.cost(time, signal)
     print(cost)
     assert cost < 5
+    model.export_params(desc=True, sdev=sdev)
 
 def test_api():
 
@@ -64,6 +69,10 @@ def test_api():
     finally:
         if os.path.exists(test_plot_file):
             os.remove(test_plot_file)
+
+    # Tests a standard division case
+    result = _div(6, 0)
+    assert np.isinf(result)  # 1/0 in numpy results in infinity (inf)
 
 
 

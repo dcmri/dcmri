@@ -120,52 +120,119 @@ def sample(t, tp, Sp, dt=None) -> np.ndarray:
     if t.size == 0:
         return np.array([])
 
-    # 1. With dt=0 this is just interpolation
+    tp_min, tp_max = tp[0], tp[-1]
+    # Get boundary values for extrapolation: shape (n_samples, 1)
+    sp_left = Sp[:, 0][:, np.newaxis]
+    sp_right = Sp[:, -1][:, np.newaxis]
+
+    # --- 1. Pure Interpolation Path ---
     if dt is None or dt == 0:
+        # fill_value=(left_val, right_val) extends the edge values constantly
         sig_interp = interp1d(tp, Sp, kind='linear', axis=-1, 
-                              bounds_error=False, fill_value=0)
+                              bounds_error=False, fill_value=(Sp[:, 0], Sp[:, -1]))
         res = sig_interp(t)
         return res.flatten() if is_1d else res
 
-    # 2. Windowed Trapezoidal Logic
+    # --- 2. Windowed Trapezoidal Logic ---
     cum_int = cumulative_trapezoid(Sp, tp, initial=0, axis=-1)
     
-    # Use fill_value=(0, 'extrapolate') or a constant to handle boundaries
-    # Since we want it to be 0 outside the range, we manually handle the right-side fill
+    # Standard interpolation for inside the boundary bounds
     int_interp = interp1d(tp, cum_int, kind='linear', axis=-1, 
-                          bounds_error=False, fill_value=(0, np.nan))
+                          bounds_error=False, fill_value=np.nan)
     
     t_start = t - dt/2
     t_end = t + dt/2
 
-    # Override the FIRST point only (index 0)
-    # We make it start at t[0] and end at t[0] + dt/2
-    if t[0] - dt/2 < tp[0]:  # Only adjust if the first window extends before tp[0]
-        t_start[0] = t[0]
-        t_end[0] = t[0] + dt/2
-
     F_start = int_interp(t_start)
     F_end = int_interp(t_end)
 
-    # Correctly handle boundaries for any Sp shape
-    tp_min, tp_max = tp[0], tp[-1]
-    total_integral = cum_int[:, -1][:, np.newaxis] # Shape (n_samples, 1)
+    # Total integral at the rightmost boundary
+    total_integral = cum_int[:, -1][:, np.newaxis] 
 
-    # If t < tp_min -> 0
-    # If t > tp_max -> total_integral
-    F_start = np.where(t_start < tp_min, 0, F_start)
-    F_start = np.where(t_start > tp_max, total_integral, F_start)
+    # --- Correctly handle boundaries with constant extension physics ---
+    # Left side extrapolation: integral decreases linearly moving backwards from tp_min
+    F_start = np.where(t_start < tp_min, 0 - (tp_min - t_start) * sp_left, F_start)
+    F_end = np.where(t_end < tp_min, 0 - (tp_min - t_end) * sp_left, F_end)
 
-    F_end = np.where(t_end < tp_min, 0, F_end)
-    F_end = np.where(t_end > tp_max, total_integral, F_end)
+    # Right side extrapolation: integral increases linearly moving forwards from tp_max
+    F_start = np.where(t_start > tp_max, total_integral + (t_start - tp_max) * sp_right, F_start)
+    F_end = np.where(t_end > tp_max, total_integral + (t_end - tp_max) * sp_right, F_end)
 
-    # Define the divisors (dt for most, dt/2 for the first point)
-    divisors = np.full_like(t, dt, dtype=np.float64)
-    if t[0] - dt/2 < tp[0]:
-        divisors[0] = dt/2
-    Ss = (F_end - F_start) / divisors
+    # Average value over the window of duration dt
+    Ss = (F_end - F_start) / dt
     
     return Ss.flatten() if is_1d else Ss
+
+# def sample_old(t, tp, Sp, dt=None) -> np.ndarray:
+#     """Sample a signal at given time points.
+
+#     Args:
+#         t (array): The 1D time points at which to evaluate the signal.
+#         tp (array): the 1D time points of the signal to be sampled.
+#         Sp (array): the 1D or 2D values (n_samples, n_times) of the signal to be sampled.
+#         dt (float, optional): sampling duration.
+
+#     Returns:
+#         np.ndarray: Signals sampled at times t.
+#     """
+#     t = np.asarray(t)
+#     tp = np.asarray(tp)
+#     Sp = np.asarray(Sp)
+    
+#     # Handle 1D input by promoting it to 2D (1, n_times)
+#     is_1d = Sp.ndim == 1
+#     if is_1d:
+#         Sp = Sp[np.newaxis, :]
+
+#     if t.size == 0:
+#         return np.array([])
+
+#     # 1. With dt=0 this is just interpolation
+#     if dt is None or dt == 0:
+#         sig_interp = interp1d(tp, Sp, kind='linear', axis=-1, 
+#                               bounds_error=False, fill_value=0)
+#         res = sig_interp(t)
+#         return res.flatten() if is_1d else res
+
+#     # 2. Windowed Trapezoidal Logic
+#     cum_int = cumulative_trapezoid(Sp, tp, initial=0, axis=-1)
+    
+#     # Use fill_value=(0, 'extrapolate') or a constant to handle boundaries
+#     # Since we want it to be 0 outside the range, we manually handle the right-side fill
+#     int_interp = interp1d(tp, cum_int, kind='linear', axis=-1, 
+#                           bounds_error=False, fill_value=(0, np.nan))
+    
+#     t_start = t - dt/2
+#     t_end = t + dt/2
+
+#     # Override the FIRST point only (index 0)
+#     # We make it start at t[0] and end at t[0] + dt/2
+#     if t[0] - dt/2 < tp[0]:  # Only adjust if the first window extends before tp[0]
+#         t_start[0] = t[0]
+#         t_end[0] = t[0] + dt/2
+
+#     F_start = int_interp(t_start)
+#     F_end = int_interp(t_end)
+
+#     # Correctly handle boundaries for any Sp shape
+#     tp_min, tp_max = tp[0], tp[-1]
+#     total_integral = cum_int[:, -1][:, np.newaxis] # Shape (n_samples, 1)
+
+#     # If t < tp_min -> 0
+#     # If t > tp_max -> total_integral
+#     F_start = np.where(t_start < tp_min, 0, F_start)
+#     F_start = np.where(t_start > tp_max, total_integral, F_start)
+
+#     F_end = np.where(t_end < tp_min, 0, F_end)
+#     F_end = np.where(t_end > tp_max, total_integral, F_end)
+
+#     # Define the divisors (dt for most, dt/2 for the first point)
+#     divisors = np.full_like(t, dt, dtype=np.float64)
+#     if t[0] - dt/2 < tp[0]:
+#         divisors[0] = dt/2
+#     Ss = (F_end - F_start) / divisors
+    
+#     return Ss.flatten() if is_1d else Ss
 
 
 # def _orig_sample(t, tp, Sp, dt=None) -> np.ndarray:

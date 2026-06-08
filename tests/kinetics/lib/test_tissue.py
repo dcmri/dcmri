@@ -1,9 +1,8 @@
 import numpy as np
 from scipy.integrate import cumulative_trapezoid
 
-import numpy as np
 import dcmri as dc
-import dcmri.kinetics.lib as pk
+from dcmri.kinetics.lib.tissue import dpars_tissue
 
 
 def test_conc_tissue():
@@ -12,12 +11,12 @@ def test_conc_tissue():
         'vb': 0.2,
         've': 0.2,
     }
-    pk.dpars_tissue(p)
+    dpars_tissue(p)
     p = {
         'vb': 0.2,
         'vi': 0.2,
     }
-    pk.dpars_tissue(p)
+    dpars_tissue(p)
 
     # conc_nxp
 
@@ -27,10 +26,10 @@ def test_conc_tissue():
     vb = 0.1
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    C = pk.conc_tissue_nxp(ca, t=t, vb=vb, Fb=Fb)
+    C = dc.conc_tissue_nxp(ca, t=t, vb=vb, Fb=Fb)
     assert C[0,0] == 0
     Fb = 0
-    C = pk.conc_tissue_nxp(ca, t=t, vb=vb, Fb=Fb)
+    C = dc.conc_tissue_nxp(ca, t=t, vb=vb, Fb=Fb)
     assert C[0,0] == 0
 
 
@@ -42,10 +41,10 @@ def test_conc_tissue():
     vb = 0.1
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    C = pk.conc_tissue_nx(ca, t=t,  vb=vb, Fb=Fb)
+    C = dc.conc_tissue_nx(ca, t=t,  vb=vb, Fb=Fb)
     assert C[0,0] == 0
     Fb = 0
-    C = pk.conc_tissue_nx(ca, t=t, vb=vb, Fb=Fb) 
+    C = dc.conc_tissue_nx(ca, t=t, vb=vb, Fb=Fb) 
     assert C[0,0] == 0
 
     # conc_u
@@ -55,7 +54,7 @@ def test_conc_tissue():
     Fb = 2
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    C = pk.conc_tissue_u(ca, t=t, Fb=Fb)
+    C = dc.conc_tissue_u(ca, t=t, Fb=Fb)
     C0 = Fb*cumulative_trapezoid(ca, t, initial=0)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.01
 
@@ -68,11 +67,11 @@ def test_conc_tissue():
     H = 0.45
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    C = pk.conc_tissue_fx(ca, t=t, H=H, ve=ve, Fb=Fb) 
+    C = dc.conc_tissue_fx(ca, t=t, H=H, ve=ve, Fb=Fb) 
     Fp = Fb*(1-H)
-    C0 = Fp*dc.convolution.biexpconv(Ta, ve/Fp, t)*ve/Fp/(1-H)
+    C0 = Fp*dc.biexpconv(Ta, ve/Fp, t)*ve/Fp/(1-H)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.01
-    C = pk.conc_tissue_fx(ca, t=t, H=H, ve=ve, Fb=0)
+    C = dc.conc_tissue_fx(ca, t=t, H=H, ve=ve, Fb=0)
     assert np.linalg.norm(C) == 0
 
     # conc_wv
@@ -84,12 +83,12 @@ def test_conc_tissue():
     H = 0.45
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    C = pk.conc_tissue_wv(ca, t=t, H=H,  vi=vi, Ktrans=Ktrans) 
-    C0 = Ktrans*dc.convolution.biexpconv(Ta, vi/Ktrans, t)*vi/Ktrans/(1-H)
+    C = dc.conc_tissue_wv(ca, t=t, H=H,  vi=vi, Ktrans=Ktrans) 
+    C0 = Ktrans*dc.biexpconv(Ta, vi/Ktrans, t)*vi/Ktrans/(1-H)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.01
-    C = pk.conc_tissue_wv(ca, t=t, H=H, vi=vi, Ktrans=Ktrans)
+    C = dc.conc_tissue_wv(ca, t=t, H=H, vi=vi, Ktrans=Ktrans)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.01
-    C = pk.conc_tissue_wv(ca, t=t, H=H, vi=vi, Ktrans=0)
+    C = dc.conc_tissue_wv(ca, t=t, H=H, vi=vi, Ktrans=0)
     assert np.linalg.norm(C) == 0
 
     # conc_hfu
@@ -101,12 +100,12 @@ def test_conc_tissue():
     H = 0.45
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    C = pk.conc_tissue_hfu(ca, t=t, H=H, vb=vb, PS=PS)
+    C = dc.conc_tissue_hfu(ca, t=t, H=H, vb=vb, PS=PS)
     C0 = vb*ca
-    C1 = PS*pk.conc_trap(ca/(1-H), t)
+    C1 = PS*dc.conc_trap(ca/(1-H), t)
     assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 0.01
     assert np.linalg.norm(C[1,:]-C1)/np.linalg.norm(C1) < 0.01
-    C = pk.conc_tissue_hfu(ca, t=t, H=H, vb=vb, PS=PS).sum(axis=0)
+    C = dc.conc_tissue_hfu(ca, t=t, H=H, vb=vb, PS=PS).sum(axis=0)
     C0 = C0+C1
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.01
 
@@ -120,20 +119,20 @@ def test_conc_tissue():
     H = 0.45
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    C = pk.conc_tissue_hf(ca, t=t, H=H, vb=vb, vi=vi, PS=PS)
+    C = dc.conc_tissue_hf(ca, t=t, H=H, vb=vb, vi=vi, PS=PS)
     C0 = vb*ca
-    C1 = PS*dc.convolution.biexpconv(Ta, vi/PS, t)*vi/PS/(1-H)
+    C1 = PS*dc.biexpconv(Ta, vi/PS, t)*vi/PS/(1-H)
     assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 0.01
     assert np.linalg.norm(C[1,:]-C1)/np.linalg.norm(C1) < 0.01
-    C = pk.conc_tissue_hf(ca, t=t, H=H, vb=vb, vi=vi, PS=PS).sum(axis=0)
+    C = dc.conc_tissue_hf(ca, t=t, H=H, vb=vb, vi=vi, PS=PS).sum(axis=0)
     C0 = C0+C1
     assert np.linalg.norm(C-C0)/np.linalg.norm(C0) < 0.01
-    C = pk.conc_tissue_hf(ca, t=t, H=H, vb=vb, vi=0, PS=PS)
+    C = dc.conc_tissue_hf(ca, t=t, H=H, vb=vb, vi=0, PS=PS)
     C0 = vb*ca
     C1 = np.zeros(len(ca))
     assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 0.01
     assert np.linalg.norm(C[1,:]-C1) == 0
-    C = pk.conc_tissue_hf(ca, t=t, H=H, vb=vb, vi=vi, PS=0)
+    C = dc.conc_tissue_hf(ca, t=t, H=H, vb=vb, vi=vi, PS=0)
     assert 0==np.linalg.norm(C[1,:])
 
     # conc_2cu
@@ -148,20 +147,20 @@ def test_conc_tissue():
     vp = (1-H)*vb
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    C = pk.conc_tissue_2cu(ca, t=t, H=H, vb=vb, Fb=Fb, PS=PS)
+    C = dc.conc_tissue_2cu(ca, t=t, H=H, vb=vb, Fb=Fb, PS=PS)
     Tp = vp/(Fp+PS)
-    C0 = Tp*Fp*dc.convolution.biexpconv(Ta, Tp, t)/(1-H)
+    C0 = Tp*Fp*dc.biexpconv(Ta, Tp, t)/(1-H)
     assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 0.01
-    Cs = pk.conc_tissue_2cu(ca, t=t, H=H, vb=vb, Fb=Fb, PS=PS).sum(axis=0)
+    Cs = dc.conc_tissue_2cu(ca, t=t, H=H, vb=vb, Fb=Fb, PS=PS).sum(axis=0)
     C0 = C0+C[1,:]
     assert np.linalg.norm(Cs-C0)/np.linalg.norm(C0) < 0.01
-    Cs = pk.conc_tissue_2cu(ca, t=t, H=H, vb=0, Fb=Fb, PS=PS).sum(axis=0)
-    C0 = pk.conc_tissue_u(ca/(1-H), t=t, Fb=PS*Fp/(PS+Fp))
+    Cs = dc.conc_tissue_2cu(ca, t=t, H=H, vb=0, Fb=Fb, PS=PS).sum(axis=0)
+    C0 = dc.conc_tissue_u(ca/(1-H), t=t, Fb=PS*Fp/(PS+Fp))
     assert np.linalg.norm(Cs-C0)/np.linalg.norm(C0) < 0.01
-    Cs = pk.conc_tissue_2cu(ca, t=t, H=H, vb=vb, Fb=0, PS=0).sum(axis=0)
+    Cs = dc.conc_tissue_2cu(ca, t=t, H=H, vb=vb, Fb=0, PS=0).sum(axis=0)
     assert np.linalg.norm(Cs)==0
-    Cs = pk.conc_tissue_2cu(ca, t=t, H=H, vb=vb, Fb=np.inf, PS=1)
-    Cn = pk.conc_tissue_hfu(ca, t=t, H=H, vb=vb, PS=1)
+    Cs = dc.conc_tissue_2cu(ca, t=t, H=H, vb=vb, Fb=np.inf, PS=1)
+    Cn = dc.conc_tissue_hfu(ca, t=t, H=H, vb=vb, PS=1)
     assert np.linalg.norm(Cs-Cn)==0
 
     # conc_2cx
@@ -181,22 +180,22 @@ def test_conc_tissue():
     H = 0.45
     Fb = Fp/(1-H)
     vb = vp/(1-H)
-    C0 = pk.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
-    C = pk.conc_ncomp(J, T, Emat, t)
+    C0 = dc.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
+    C = dc.conc_ncomp(J, T, Emat, t)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C) < 1e-3
-    Cs = pk.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS).sum(axis=0)
+    Cs = dc.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS).sum(axis=0)
     C0 = np.sum(C,axis=0)
     assert np.linalg.norm(Cs-C0)/np.linalg.norm(C0) < 0.01
-    Cs = pk.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=0, PS=0).sum(axis=0)
+    Cs = dc.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=0, PS=0).sum(axis=0)
     assert np.linalg.norm(Cs) == 0
-    Cs = pk.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=0, PS=0)
+    Cs = dc.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=0, PS=0)
     assert np.linalg.norm(Cs) == 0
-    Cs = pk.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=0).sum(axis=0)
-    C0 = pk.conc_tissue_nx(ca*(1-H), t=t, vb=vb, Fb=Fb)
+    Cs = dc.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=0).sum(axis=0)
+    C0 = dc.conc_tissue_nx(ca*(1-H), t=t, vb=vb, Fb=Fb)
     assert np.linalg.norm(Cs-C0)/np.linalg.norm(C) < 1e-3
-    C = pk.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=0)
+    C = dc.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=0)
     assert np.linalg.norm(C[0,:]-C0)/np.linalg.norm(C0) < 1e-3
-    C = pk.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=0, vi=0, Fb=0, PS=0).sum(axis=0)
+    C = dc.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=0, vi=0, Fb=0, PS=0).sum(axis=0)
     assert np.linalg.norm(C) == 0
 
     # Test boundaries (Fp=inf)
@@ -204,15 +203,15 @@ def test_conc_tissue():
     PS = 0.001
     vb = 0.1
     vi = 0.2
-    C0 = pk.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
+    C0 = dc.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
     Fb = 0.05
-    C1 = pk.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
+    C1 = dc.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
     Fb = 0.1
-    C2 = pk.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
+    C2 = dc.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
     Fb = 10.0
-    C3 = pk.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
+    C3 = dc.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
     Fb = np.inf
-    C4 = pk.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
+    C4 = dc.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
     # Check convergence to solution
     err0 = np.linalg.norm(C0[:,1:]-C4[:,1:])
     err1 = np.linalg.norm(C1[:,1:]-C4[:,1:])
@@ -239,7 +238,7 @@ def test_conc_tissue():
     PS = 0
     vb = 0.1
     vi = 0.2
-    C0 = pk.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
+    C0 = dc.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
     assert np.linalg.norm(C0) == 0
 
     # Test boundaries (PS=0)
@@ -247,8 +246,8 @@ def test_conc_tissue():
     PS = 0
     vb = 0.1
     vi = 0.2
-    C0 = pk.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS).sum(axis=0)
-    C1 = pk.conc_tissue_nx(ca*(1-H), t=t, vb=vb, Fb=Fb)
+    C0 = dc.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS).sum(axis=0)
+    C1 = dc.conc_tissue_nx(ca*(1-H), t=t, vb=vb, Fb=Fb)
     assert np.linalg.norm(C0-C1) < 1e-9
 
 
@@ -264,10 +263,10 @@ def test_flux_tissue():
     vb = 0.1
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    J = pk.flux_tissue_nxp(ca, t=t, vb=vb, Fb=Fb)
+    J = dc.flux_tissue_nxp(ca, t=t, vb=vb, Fb=Fb)
     assert J[0] == 0
     Fb = 0
-    J = pk.flux_tissue_nxp(ca, t=t, vb=vb, Fb=Fb)
+    J = dc.flux_tissue_nxp(ca, t=t, vb=vb, Fb=Fb)
     assert J[0] == 0
 
     # flux_nx
@@ -278,10 +277,10 @@ def test_flux_tissue():
     vb = 0.1
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    J = pk.flux_tissue_nx(ca, t=t, vb=vb, Fb=Fb)
+    J = dc.flux_tissue_nx(ca, t=t, vb=vb, Fb=Fb)
     assert J[0] == 0
     Fb = 0
-    J = pk.flux_tissue_nx(ca, t=t, vb=vb, Fb=Fb)
+    J = dc.flux_tissue_nx(ca, t=t, vb=vb, Fb=Fb)
     assert J[0] == 0
 
     # flux_u
@@ -291,7 +290,7 @@ def test_flux_tissue():
     Fb = 2
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    J = pk.flux_tissue_u(ca, Fb=Fb)
+    J = dc.flux_tissue_u(ca, Fb=Fb)
     J0 = np.zeros(len(t))
     assert np.linalg.norm(J-J0) < 0.01
 
@@ -304,11 +303,11 @@ def test_flux_tissue():
     H = 0.45
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    J = pk.flux_tissue_fx(ca, t=t, H=H, ve=ve, Fb=Fb)
+    J = dc.flux_tissue_fx(ca, t=t, H=H, ve=ve, Fb=Fb)
     Fp = Fb*(1-H)
-    J0 = Fp*dc.convolution.biexpconv(Ta, ve/Fp, t)/(1-H)
+    J0 = Fp*dc.biexpconv(Ta, ve/Fp, t)/(1-H)
     assert np.linalg.norm(J-J0)/np.linalg.norm(J0) < 0.01
-    J = pk.flux_tissue_fx(ca, t=t, H=H, ve=ve, Fb=0)
+    J = dc.flux_tissue_fx(ca, t=t, H=H, ve=ve, Fb=0)
     assert np.linalg.norm(J) == 0
 
     # flux_wv
@@ -321,10 +320,10 @@ def test_flux_tissue():
     vi = Ktrans/kep
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    J = pk.flux_tissue_wv(ca, t=t, H=H, vi=vi, Ktrans=Ktrans)
-    J0 = Ktrans*dc.convolution.biexpconv(Ta, 1/kep, t)/(1-H)
+    J = dc.flux_tissue_wv(ca, t=t, H=H, vi=vi, Ktrans=Ktrans)
+    J0 = Ktrans*dc.biexpconv(Ta, 1/kep, t)/(1-H)
     assert np.linalg.norm(J[0,1,:]-J0)/np.linalg.norm(J0) < 0.01
-    J = pk.flux_tissue_wv(ca, t=t, H=H, vi=vi, Ktrans=0)
+    J = dc.flux_tissue_wv(ca, t=t, H=H, vi=vi, Ktrans=0)
     assert np.linalg.norm(J[0,1,:]) == 0
 
     # flux_hfu
@@ -335,7 +334,7 @@ def test_flux_tissue():
     H = 0.45
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    J = pk.flux_tissue_hfu(ca, H=H, PS=PS)
+    J = dc.flux_tissue_hfu(ca, H=H, PS=PS)
     J0 = PS*ca/(1-H)
     assert np.linalg.norm(J[1,0,:]-J0)/np.linalg.norm(J0) < 0.01
 
@@ -349,10 +348,10 @@ def test_flux_tissue():
     H = 0.45
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    J = pk.flux_tissue_hf(ca, t=t, H=H, vi=vi, PS=PS)
-    J0 = kep*PS*dc.convolution.biexpconv(Ta, 1/kep, t)/kep/(1-H)
+    J = dc.flux_tissue_hf(ca, t=t, H=H, vi=vi, PS=PS)
+    J0 = kep*PS*dc.biexpconv(Ta, 1/kep, t)/kep/(1-H)
     assert np.linalg.norm(J[0,1,:]-J0)/np.linalg.norm(J0) < 0.01
-    J = pk.flux_tissue_hf(ca, t=t, H=H, vi=vi, PS=0)
+    J = dc.flux_tissue_hf(ca, t=t, H=H, vi=vi, PS=0)
     assert 0==np.linalg.norm(J[0,1,:])
 
     # flux_2cu
@@ -367,11 +366,11 @@ def test_flux_tissue():
     Fp = (1-H)*Fb
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    J = pk.flux_tissue_2cu(ca, t=t, H=H, vb=vb, Fb=Fb, PS=PS)
+    J = dc.flux_tissue_2cu(ca, t=t, H=H, vb=vb, Fb=Fb, PS=PS)
     Tp = vp/(Fp+PS)
-    J0 = Tp*Fp*dc.convolution.biexpconv(Ta, Tp, t)*Fp/vp
+    J0 = Tp*Fp*dc.biexpconv(Ta, Tp, t)*Fp/vp
     assert np.linalg.norm(J[0,0,:]-J0)/np.linalg.norm(J0) < 0.01
-    J = pk.flux_tissue_2cu(ca, t=t, H=H, vb=0, Fb=Fb, PS=PS)
+    J = dc.flux_tissue_2cu(ca, t=t, H=H, vb=0, Fb=Fb, PS=PS)
     assert np.linalg.norm(J[0,0,:]-Fb*ca)/np.linalg.norm(Fb*ca) < 0.01
     
     # flux_2cx
@@ -391,16 +390,16 @@ def test_flux_tissue():
     H = 0.45
     vb = vp/(1-H)
     Fb = Fp/(1-H) 
-    Jo0 = pk.flux_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS) 
-    Jo = pk.flux_ncomp(J, T, Emat, t)
+    Jo0 = dc.flux_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS) 
+    Jo = dc.flux_ncomp(J, T, Emat, t)
     assert np.linalg.norm(Jo-Jo0)/np.linalg.norm(Jo) < 1e-1
-    Jo0 = pk.flux_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=0, PS=0) 
+    Jo0 = dc.flux_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=0, PS=0) 
     assert np.linalg.norm(Jo0) == 0
-    Jo0 = pk.flux_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=0) 
-    Jo = pk.flux_tissue_nx(ca*(1-H), t=t, vb=vb, Fb=Fb)
+    Jo0 = dc.flux_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=0) 
+    Jo = dc.flux_tissue_nx(ca*(1-H), t=t, vb=vb, Fb=Fb)
     assert np.linalg.norm(Jo-Jo0[0,0,:])/np.linalg.norm(Jo) < 1e-3
 
-    Jo = pk.flux_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=0) 
+    Jo = dc.flux_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=0) 
     assert Jo[0,0,0] == 0
 
     # Test boundary
@@ -409,7 +408,7 @@ def test_flux_tissue():
     PS = 0.001
     vi = 0.2
     H = 0.45
-    J = pk.flux_tissue_2cx(ca, t=t, H=H, vb=vb, vi=vi, Fb=np.inf, PS=PS)
+    J = dc.flux_tissue_2cx(ca, t=t, H=H, vb=vb, vi=vi, Fb=np.inf, PS=PS)
     assert np.isinf(J[0,0,0])
 
 

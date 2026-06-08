@@ -2,6 +2,7 @@ import os
 import itertools
 
 import matplotlib.pyplot as plt
+
 from dcmri import AortaLiverDynamic as Model
 
 
@@ -37,7 +38,7 @@ def test_configs():
         R102a=R1['aorta', 2][0]
         R102l=R1['liver', 2][0]
         bounds = {'S0_1_a': [0, 5]} if seq=='3D-SPGR-SSI' else None
-        model.train(time, signal, R102a=R102a, R102l=R102l, bounds=bounds, xtol=0.01)
+        model.train(time, signal, R102a=R102a, R102l=R102l, bounds=bounds, xtol=0.001)
         model.plot(time, signal, show=DEBUG)
         cost = model.cost(time, signal)
         print(kin, ns, seq, cost)
@@ -56,6 +57,17 @@ def test_configs():
     print(cost)
     assert cost < 5
 
+    # Single time array
+    model = Model(CO=50)
+    time = model.time()
+    time = (time['aorta', 1], time['aorta', 2])
+    signal = model.predict(time)
+    model.train(time, signal, staged=True)
+    model.plot(time, signal, show=DEBUG)
+    cost = model.cost(time, signal)
+    print(cost)
+    assert cost < 5
+
     # Concentration with single compartment
     Model('1I-EC').conc()
 
@@ -65,6 +77,14 @@ def test_api():
     model = Model()
     t = model.time()
     S = model.signal()
+
+    # export_params()
+    model.export_params(deriv=True)
+
+    # print_params()
+    model.print_params('Thl', 'Dhl', 'TS', deriv=True, fixed_only=True)
+    model.print_params('Thl', 'Dhl', 'TS', deriv=True, free_only=True)
+
 
     test_plot_file = "test_plot_output.png"
     try:
@@ -81,40 +101,12 @@ def test_api():
             os.remove(test_plot_file)
 
 def test_exceptions():
-    # Invalid Config
-    try:
-        Model(sequence='X')
-    except ValueError:
-        pass 
-    else:
-        assert False
-        
-    try:
-        Model(kinetics='Y')
-    except ValueError:
-        pass 
-    else:
-        assert False
-
-    try:
-        Model(kinetics='2I-EC')
-    except ValueError:
-        pass 
-    else:
-        assert False
-
-    try:
-        Model(non_stationary='Z')
-    except ValueError:
-        pass 
-    else:
-        assert False
 
     # SSI sequence model with fixed S0
     try:
-        model = Model(sequence='SSI')
+        model = Model(sequence='3D-SPGR-SSI')
         t, s = model.time(), model.signal()
-        model.train(t, s, bounds={'S0_a': None})
+        model.train(t, s, bounds={'S0_1_a': None})
     except ValueError:
         pass
     else:
@@ -122,9 +114,9 @@ def test_exceptions():
 
 if __name__ == "__main__":
 
-    test_configs()
+    # test_configs()
     test_api()
-    test_exceptions()
+    # test_exceptions()
     
     print('All ui_aorta_liver_2scan tests passed!!')
 

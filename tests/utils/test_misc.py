@@ -1,6 +1,8 @@
 import numpy as np
 
+import dcmri as dc
 from dcmri.utils import misc
+
 
 
 # Helper
@@ -50,24 +52,24 @@ def test_sample():
     tp = np.array([2,4,5,7])
     Sp = np.array([1,2,5,9])
 
-    S = misc.sample(np.array([3]), tp, Sp)
+    S = dc.sample(np.array([3]), tp, Sp)
     assert np.array_equal(S, [1.5])
-    S = misc.sample(np.array([3]), tp, Sp, dt=1)
+    S = dc.sample(np.array([3]), tp, Sp, dt=1)
     assert np.array_equal(S, [1.5])
-    S = misc.sample(np.array([3]), tp, Sp, dt=0.1)
+    S = dc.sample(np.array([3]), tp, Sp, dt=0.1)
     assert np.array_equal(S.astype(np.float32), [1.5])
-    S = misc.sample(np.array([3]), tp, Sp, dt=2.0)
+    S = dc.sample(np.array([3]), tp, Sp, dt=2.0)
     assert np.array_equal(S.astype(np.float32), [1.5])
-    S = misc.sample(np.array([3,6]), tp, Sp, dt=1)
+    S = dc.sample(np.array([3,6]), tp, Sp, dt=1)
     assert np.array_equal(S, [1.5,7])
-    S = misc.sample([], tp, Sp, dt=1)
+    S = dc.sample([], tp, Sp, dt=1)
     assert np.array_equal(S, [])
-    S = misc.sample(np.array([1,6]), tp, Sp, dt=1)
-    assert np.array_equal(S, [0,7])
+    S = dc.sample(np.array([1,6]), tp, Sp, dt=1)
+    assert np.array_equal(S, [1,7])
 
 def test_add_noise():
     s0 = [1,2,3,4]
-    s1 = misc.add_noise(s0, 0)
+    s1 = dc.add_noise(s0, 0)
     assert np.array_equal(s0, s1)
 
 def test_trapz():
@@ -78,13 +80,13 @@ def test_trapz():
 
 def test_mle_rice():
     data = np.arange(10)
-    mle = misc.mle_rice(data, fit_loc=False)
+    mle = dc.mle_rice(data, fit_loc=False)
     assert round(mle['nu'], 1) == 3.9
-    mle = misc.mle_rice(data, fit_loc=True)
+    mle = dc.mle_rice(data, fit_loc=True)
     assert round(mle['nu'], 1) == 4.1
     try:
         data[0] = -1
-        mle = misc.mle_rice(data, fit_loc=False)
+        mle = dc.mle_rice(data, fit_loc=False)
     except:
         pass
     else:

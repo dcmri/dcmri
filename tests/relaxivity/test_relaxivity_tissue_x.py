@@ -1,16 +1,15 @@
 import itertools
 import numpy as np
 
-from dcmri import aif
-from dcmri.kinetics import ConcTissueX
-from dcmri.relaxivity import R1TissueX, R2TissueX, R2sTissueX, RelaxTissueX
+import dcmri as dc
+from dcmri import ConcTissueX, R1TissueX, R2TissueX, R2sTissueX, RelaxTissueX
 
 
 
 def test_relax_tissue():
 
     t = np.arange(0, 300, 1.5)
-    ca = aif.parker(t, BAT=20)
+    ca = dc.parker(t, BAT=20)
     H = 0.45
 
     # Test WV limit - exact

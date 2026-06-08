@@ -48,12 +48,12 @@ def test_convmat():
         t = np.arange(0,tmax,dt)
         f = np.exp(-t/Tf)/Tf
         h = np.exp(-t/Th)/Th
-        mat = convolution.convmat(f)
+        mat = dc.convmat(f)
         #g = dt*np.matmul(mat.T, h)
         g = dt * (mat @ h)
         g0 = (Tf*f-Th*h)/(Tf-Th)
         assert np.linalg.norm(g-g0)/np.linalg.norm(g0) < prec[i]
-        mat = convolution.convmat(f, order=1)
+        mat = dc.convmat(f, order=1)
         g1 = dt * (mat @ h)
         assert np.linalg.norm(g-g0) < np.linalg.norm(g1-g0)
 
@@ -66,20 +66,20 @@ def test_invconvmat():
     order = 1
     t = np.arange(0,tmax,dt)
     f = np.exp(-t/Tf)/Tf
-    mat = convolution.convmat(f, order=order)
+    mat = dc.convmat(f, order=order)
 
-    matinv = convolution.invconvmat(f, order=order, tol=1e-12)
+    matinv = dc.invconvmat(f, order=order, tol=1e-12)
     id = mat @ matinv
     idexact = np.eye(len(t))
     assert np.linalg.norm(id-idexact)/np.linalg.norm(idexact) < 1e-9
 
-    matinv = convolution.invconvmat(f, order=order, tol=1e-12, method='Tikhonov')
+    matinv = dc.invconvmat(f, order=order, tol=1e-12, method='Tikhonov')
     id = mat @ matinv
     idexact = np.eye(len(t))
     assert np.linalg.norm(id-idexact)/np.linalg.norm(idexact) < 1e-9
 
     try:
-        matinv = convolution.invconvmat(f, order=order, tol=1e-12, method='X')
+        matinv = dc.invconvmat(f, order=order, tol=1e-12, method='X')
     except:
         pass
     else:
@@ -97,31 +97,31 @@ def test_deconv():
     t = np.arange(0,tmax,dt)
     f = np.exp(-t/Tf)/Tf
     g = np.exp(-t/Tg)/Tg
-    h = (convolution.convmat(g) @ f) * dt
-    frec = convolution.deconv(h, g, dt)
+    h = (dc.convmat(g) @ f) * dt
+    frec = dc.deconv(h, g, dt)
     assert np.linalg.norm(f-frec)/np.linalg.norm(f) < 0.1
 
     F = np.tile(f[:, None], (1, 3))
     H = np.tile(h[:, None], (1, 3))
-    Frec = convolution.deconv(H, g, dt)
+    Frec = dc.deconv(H, g, dt)
     assert np.linalg.norm(F-Frec)/np.linalg.norm(F) < 0.1
 
     try:
-        Frec = convolution.deconv(H, np.zeros((2,3)), dt)
+        Frec = dc.deconv(H, np.zeros((2,3)), dt)
     except:
         pass
     else:
         assert False
 
     try:
-        Frec = convolution.deconv(np.zeros((2,3,4)), g, dt)
+        Frec = dc.deconv(np.zeros((2,3,4)), g, dt)
     except:
         pass
     else:
         assert False
 
     try:
-        Frec = convolution.deconv(np.zeros((1, 2)), g, dt)
+        Frec = dc.deconv(np.zeros((1, 2)), g, dt)
     except:
         pass
     else:
@@ -141,7 +141,7 @@ def test_expconv():
         t = np.arange(0,tmax,dt)
         f = np.exp(-t/Tf)/Tf
         h = np.exp(-t/Th)/Th
-        g = dc.convolution.expconv(f, Th, dt=dt)
+        g = dc.expconv(f, Th, dt=dt)
         g0 = (Tf*f-Th*h)/(Tf-Th)
         assert np.linalg.norm(g-g0)/np.linalg.norm(g0) < prec[i]
 
@@ -152,7 +152,7 @@ def test_expconv():
         t = dt0*t0
         f = np.exp(-t/Tf)/Tf
         h = np.exp(-t/Th)/Th
-        g = dc.convolution.expconv(f, Th, t)
+        g = dc.expconv(f, Th, t)
         g0 = (Tf*f-Th*h)/(Tf-Th)
         assert np.linalg.norm(g-g0)/np.linalg.norm(g0) < prec[i]
 
@@ -160,49 +160,49 @@ def test_expconv():
     dt = 1.0
     t = np.arange(0, tmax, dt)
     f = np.exp(-t/Tf)/Tf
-    assert np.array_equal(f, dc.convolution.expconv(f, 0, t))
+    assert np.array_equal(f, dc.expconv(f, 0, t))
 
     #Special case: T=inf
     f = [1, 2, 3]
-    assert np.array_equal([0, 0, 0], dc.convolution.expconv(f, np.inf, dt=1))
+    assert np.array_equal([0, 0, 0], dc.expconv(f, np.inf, dt=1))
 
     # Special case: small T - check convergence to T=0 solution
     f = np.exp(-t/Tf)/Tf
-    f_conv_0 = dc.convolution.expconv(f, 0, dt=dt)
-    err_7 = np.linalg.norm(f_conv_0[1:] - dc.convolution.expconv(f, 1e-7, dt=dt, tol=1e-6)[1:])
-    err_8 = np.linalg.norm(f_conv_0[1:] - dc.convolution.expconv(f, 1e-8, dt=dt, tol=1e-6)[1:])
-    err_9 = np.linalg.norm(f_conv_0[1:] - dc.convolution.expconv(f, 1e-9, dt=dt, tol=1e-6)[1:])
+    f_conv_0 = dc.expconv(f, 0, dt=dt)
+    err_7 = np.linalg.norm(f_conv_0[1:] - dc.expconv(f, 1e-7, dt=dt, tol=1e-6)[1:])
+    err_8 = np.linalg.norm(f_conv_0[1:] - dc.expconv(f, 1e-8, dt=dt, tol=1e-6)[1:])
+    err_9 = np.linalg.norm(f_conv_0[1:] - dc.expconv(f, 1e-9, dt=dt, tol=1e-6)[1:])
     assert err_8 < err_7
     assert err_9 < err_8
 
     # Special case: large T - check convergence to T=inf solution
     f = np.exp(-t/Tf)/Tf
-    f_conv_inf = dc.convolution.expconv(f, np.inf, dt=dt)
-    err_7 = np.linalg.norm(f_conv_inf - dc.convolution.expconv(f, 1e+7, dt=dt, tol=1e-6))
-    err_8 = np.linalg.norm(f_conv_inf - dc.convolution.expconv(f, 1e+8, dt=dt, tol=1e-6))
-    err_9 = np.linalg.norm(f_conv_inf - dc.convolution.expconv(f, 1e+9, dt=dt, tol=1e-6))
+    f_conv_inf = dc.expconv(f, np.inf, dt=dt)
+    err_7 = np.linalg.norm(f_conv_inf - dc.expconv(f, 1e+7, dt=dt, tol=1e-6))
+    err_8 = np.linalg.norm(f_conv_inf - dc.expconv(f, 1e+8, dt=dt, tol=1e-6))
+    err_9 = np.linalg.norm(f_conv_inf - dc.expconv(f, 1e+9, dt=dt, tol=1e-6))
     assert err_8 < err_7
     assert err_9 < err_8
 
     # Special case = length = 1
-    assert np.array_equal([0], dc.convolution.expconv([1], 1, dt=1))
+    assert np.array_equal([0], dc.expconv([1], 1, dt=1))
 
     # Special case: non-uniform with small T - check convergence to T=0 solution
     t = np.array([0, 0.5, 1.5, 3.0, 5.0, 7.5, 10.5, 14, 18])
     f = np.exp(-t/Tf)/Tf
-    f_conv_0 = dc.convolution.expconv(f, 0, t)
-    err_7 = np.linalg.norm(f_conv_0[1:] - dc.convolution.expconv(f, 1e-7, t, tol=1e-6)[1:])
-    err_8 = np.linalg.norm(f_conv_0[1:] - dc.convolution.expconv(f, 1e-8, t, tol=1e-6)[1:])
-    err_9 = np.linalg.norm(f_conv_0[1:] - dc.convolution.expconv(f, 1e-9, t, tol=1e-6)[1:])
+    f_conv_0 = dc.expconv(f, 0, t)
+    err_7 = np.linalg.norm(f_conv_0[1:] - dc.expconv(f, 1e-7, t, tol=1e-6)[1:])
+    err_8 = np.linalg.norm(f_conv_0[1:] - dc.expconv(f, 1e-8, t, tol=1e-6)[1:])
+    err_9 = np.linalg.norm(f_conv_0[1:] - dc.expconv(f, 1e-9, t, tol=1e-6)[1:])
     assert err_8 < err_7
     assert err_9 < err_8
 
     # Special case: non-uniform with large T - check convergence to T=inf solution
     f = np.exp(-t/Tf)/Tf
-    f_conv_inf = dc.convolution.expconv(f, np.inf, t)
-    err_7 = np.linalg.norm(f_conv_inf - dc.convolution.expconv(f, 1e+7, t, tol=1e-6))
-    err_8 = np.linalg.norm(f_conv_inf - dc.convolution.expconv(f, 1e+8, t, tol=1e-6))
-    err_9 = np.linalg.norm(f_conv_inf - dc.convolution.expconv(f, 1e+9, t, tol=1e-6))
+    f_conv_inf = dc.expconv(f, np.inf, t)
+    err_7 = np.linalg.norm(f_conv_inf - dc.expconv(f, 1e+7, t, tol=1e-6))
+    err_8 = np.linalg.norm(f_conv_inf - dc.expconv(f, 1e+8, t, tol=1e-6))
+    err_9 = np.linalg.norm(f_conv_inf - dc.expconv(f, 1e+9, t, tol=1e-6))
     assert err_8 < err_7
     assert err_9 < err_8
 
@@ -224,11 +224,11 @@ def test_stepconv():
         h = np.zeros(n)
         h[(t>=T0)*(t<=T1)] = 1/(T1-T0)
         f = np.sqrt(t)
-        g = dc.convolution.stepconv(f, T, D, dt=t[1])
-        g0 = dc.convolution.conv(f, h, dt=t[1])
+        g = dc.stepconv(f, T, D, dt=t[1])
+        g0 = dc.conv(f, h, dt=t[1])
         assert np.linalg.norm(g-g0)/np.linalg.norm(g0) < prec[k]
     try:
-        dc.convolution.stepconv(f, T, 2, dt=t[1])
+        dc.stepconv(f, T, 2, dt=t[1])
     except:
         assert True
 
@@ -299,7 +299,7 @@ def test_conv():
         t = np.arange(0,tmax,dt)
         f = np.exp(-t/Tf)/Tf
         h = np.exp(-t/Th)/Th
-        g = dc.convolution.conv(f, h, dt=dt)
+        g = dc.conv(f, h, dt=dt)
         g0 = (Tf*f-Th*h)/(Tf-Th)
         assert np.linalg.norm(g-g0)/np.linalg.norm(g0) < prec[i]
 
@@ -310,7 +310,7 @@ def test_conv():
         t = dt0*t0
         f = np.exp(-t/Tf)/Tf
         h = np.exp(-t/Th)/Th
-        g = dc.convolution.conv(f, h, t)
+        g = dc.conv(f, h, t)
         g0 = (Tf*f-Th*h)/(Tf-Th)
         assert np.linalg.norm(g-g0)/np.linalg.norm(g0) < prec[i]
 
@@ -325,8 +325,8 @@ def test_conv():
         f = np.exp(-t/10)
         h = np.exp(-((t-30)/15)**2)
         area = trapezoid(f,t)*trapezoid(h,t)
-        g0 = dc.convolution.conv(f, h, dt=dt)
-        g1 = dc.convolution.conv(h, f, dt=dt)
+        g0 = dc.conv(f, h, dt=dt)
+        g1 = dc.conv(h, f, dt=dt)
         assert (trapezoid(g0,t)-area)**2/area**2 < 5*prec_area[i]
         assert np.linalg.norm(g0-g1)/np.linalg.norm(g0)  < prec_symm
 
@@ -340,8 +340,8 @@ def test_conv():
         f = np.exp(-t/10)
         h = np.exp(-((t-30)/15)**2)
         area = trapezoid(f,t)*trapezoid(h,t)
-        g0 = dc.convolution.conv(f, h, t)
-        g1 = dc.convolution.conv(h, f, t)
+        g0 = dc.conv(f, h, t)
+        g1 = dc.conv(h, f, t)
         assert (trapezoid(g0,t)-area)**2/area**2 < prec_area
         assert np.linalg.norm(g0-g1)/np.linalg.norm(g0)  < prec_symm
 
@@ -351,18 +351,18 @@ def test_conv():
     f = np.exp(-t/Tf)/Tf
     h = np.exp(-t/Th)/Th
     g0 = (Tf*f-Th*h)/(Tf-Th)
-    g = dc.convolution.conv(f, h, dt=dt)
+    g = dc.conv(f, h, dt=dt)
     assert np.linalg.norm(g-g0) < 1e-3*np.linalg.norm(g0)
-    g = dc.convolution.conv(f, h, dt=dt, solver='trap')
+    g = dc.conv(f, h, dt=dt, solver='trap')
     assert np.linalg.norm(g-g0) < 1e-3*np.linalg.norm(g0)
-    g = dc.convolution.conv(f, h, t)
+    g = dc.conv(f, h, t)
     assert np.linalg.norm(g-g0) < 1e-3*np.linalg.norm(g0)
-    g = dc.convolution.conv(f, h, t, solver='trap')
+    g = dc.conv(f, h, t, solver='trap')
     assert np.linalg.norm(g-g0) < 1e-3*np.linalg.norm(g0)
 
     # Check error handling
     try:
-        dc.convolution.conv([1,2,3], [1,2])
+        dc.conv([1,2,3], [1,2])
     except:
         assert True
     else:
@@ -372,10 +372,10 @@ def test_biexpconv():
     Tf = 20
     Th = 30
     t = np.array([0,1,2,3,5,8,13,21,34])
-    g = dc.convolution.biexpconv(Tf, Th, t)
+    g = dc.biexpconv(Tf, Th, t)
     g0 = (np.exp(-t/Tf)-np.exp(-t/Th))/(Tf-Th)
     assert np.linalg.norm(g-g0) == 0
-    g = dc.convolution.biexpconv(Th, Th, t)
+    g = dc.biexpconv(Th, Th, t)
     g0 = (t/Th) * np.exp(-t/Th)/Th
     assert np.linalg.norm(g-g0) == 0
 
@@ -389,12 +389,12 @@ def test_nexpconv():
 
     n=2
     T=MTT/n
-    g = dc.convolution.nexpconv(n, T, t)
+    g = dc.nexpconv(n, T, t)
     # Check against analytical
     g0 = (t/T) * np.exp(-t/T)/T
     assert np.linalg.norm(g-g0) == 0
     # Check against expconv
-    g0 = dc.convolution.expconv(np.exp(-t/T)/T, T, t)
+    g0 = dc.expconv(np.exp(-t/T)/T, T, t)
     assert np.linalg.norm(g-g0) < 1e-4
     # Check area = 1
     assert np.abs(trapezoid(g,t)-1) < 1e-3
@@ -403,7 +403,7 @@ def test_nexpconv():
     
     n=20
     T=MTT/n
-    g = dc.convolution.nexpconv(n, T, t)
+    g = dc.nexpconv(n, T, t)
     # Check area = 1
     assert np.abs(trapezoid(g,t)-1) < 1e-12
     # Check MTT
@@ -412,26 +412,26 @@ def test_nexpconv():
     # In this case the numerical approximation is used
     n=200
     T=MTT/n
-    g = dc.convolution.nexpconv(n, T, t)
+    g = dc.nexpconv(n, T, t)
     # Check area = 1
     assert np.abs(trapezoid(g,t)-1) < 1e-12
     # Check MTT
     assert np.abs(trapezoid(t*g,t)-MTT) < 0.1
     # Check case of non-integer n
-    g = dc.convolution.nexpconv(200.5, T, t)
+    g = dc.nexpconv(200.5, T, t)
     assert np.abs(trapezoid(g,t)-1) < 1e-12
 
     # Test list input format
-    g = dc.convolution.nexpconv(200.5, T, list(t))
+    g = dc.nexpconv(200.5, T, list(t))
     assert np.abs(trapezoid(g,t)-1) < 1e-12
 
     # Test exceptions
     try:
-        dc.convolution.nexpconv(n, -1, t)
+        dc.nexpconv(n, -1, t)
     except:
         assert True
     try:
-        dc.convolution.nexpconv(0.5, T, t)
+        dc.nexpconv(0.5, T, t)
     except:
         assert True
 

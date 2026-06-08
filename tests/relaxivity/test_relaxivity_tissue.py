@@ -1,7 +1,7 @@
 import itertools
 import numpy as np
 
-from dcmri.relaxivity import R1, R2, R2s, Relax
+from dcmri import R1, R2, R2s, Relax
 
 
 

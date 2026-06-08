@@ -5,9 +5,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import dcmri as dc
 from dcmri import CortMed as Model
-from dcmri.core import Input
-from dcmri.bloch import Signal
-from dcmri import aif
 
 
 DEBUG = False
@@ -38,6 +35,16 @@ def test_configs():
         model.signal()
         assert cost < 1e-6
 
+    model = Model()
+    time = model.time()
+    time = time['cort']
+    signal = model.predict(time)
+    model.train(time, signal, verbose=VERBOSE, xtol=0.1)
+    model.plot(time, signal, show=DEBUG)
+    cost = model.cost(time, signal)
+    print(cost)
+    assert cost < 5
+
 def test_api():
     model = Model()
     
@@ -61,11 +68,29 @@ def test_api():
             os.remove(test_plot_file)
 
 def test_exceptions():
-    # Invalid Config
+    # # Invalid Config
+    # try:
+    #     Model(sequence='InversionRecovery')
+    # except ValueError:
+    #     pass 
+
+    model = Model()
+    time = model.time()
+    signal = model.signal()
+    time = np.append(time['cort'], time['cort'].max() * 2)
     try:
-        Model(sequence='InversionRecovery')
-    except ValueError:
-        pass 
+        model.predict(time)
+    except:
+        pass
+    else:
+        assert False
+    try:
+        model.train(time, signal)
+    except:
+        pass
+    else:
+        assert False
+
 
 def test_function():
 
@@ -75,18 +100,17 @@ def test_function():
     FA, TR, TE = 15, 0.005, 0.002 # Defaults
     
     # Input signals
-    rp = dc.const.r1(B0, 'blood', agent)
-    r2s = dc.const.r2s(B0, 'blood', agent)
+    rp = dc.r1(B0, 'blood', agent)
+    r2s = dc.r2s(B0, 'blood', agent)
     aif_time = np.arange(0, tmax, dt)
-    aif_conc = aif.tristan(aif_time, BAT=10)
+    aif_conc = dc.tristan(aif_time, BAT=10)
     aif_R1 = R10a + rp * aif_conc
     aif_R2s = R20sa + r2s * aif_conc
-    aif_signal = Signal(seq)(R1=aif_R1, R2s=aif_R2s, S0=S0a, FA=FA, TR=TR, TE=TE, B1corr=B1a)
-    aif_ = Input(aif_signal, aif_time, R10=R10a, B1corr=B1a)
-
+    aif_signal = dc.Signal(seq)(R1=aif_R1, R2s=aif_R2s, S0=S0a, FA=FA, TR=TR, TE=TE, B1corr=B1a)
+    
     # Kidney signals
     params = {
-        'dt': dt, 
+        'dt': dt,
         'c_a': aif_conc,
         'field_strength': B0,
         'agent': agent,
@@ -99,11 +123,12 @@ def test_function():
     # Tissue model
     model = Model(sequence=seq, **params)
     time = model.time()
-    signal = model.predict(time)
+    signal = model.predict(time) 
     
-    # Fit with AIF and VIF signal
-    model.train(time, signal, aif_)
-    model.plot(time, signal)
+    # Fit with AIF signal
+    aif = {'signal': aif_signal, 'time': aif_time, 'R10': R10a, 'B1corr':B1a}
+    model.train(time, signal, aif) 
+    model.plot(time, signal, show=DEBUG)
     assert model.cost(time, signal) < 1
 
     # Test some training options
@@ -114,14 +139,10 @@ def test_function():
 
 
 if __name__ == "__main__":
-
-    # Coverage tests
+    test_function()
     test_configs()
     test_api()
     test_exceptions()
-    
-    # Functional tests
-    test_function()
     
     print('All ui_kidney_cort_med tests passed!!')
 

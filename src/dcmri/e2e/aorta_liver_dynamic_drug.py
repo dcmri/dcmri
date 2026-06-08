@@ -125,14 +125,17 @@ Example:
 import matplotlib.pyplot as plt
 import numpy as np
 
-import dcmri.kinetics.lib as pk
-from dcmri import const
-from dcmri.lexicon import QUANTITIES, export_params
-from dcmri.bloch import Signal
+from dcmri.kinetics.lib.input import ca_injection
+from dcmri.kinetics.lib.aorta import flux_aorta_hlol
+from dcmri.kinetics.lib.blocks import flux_comp
+from dcmri.utils import const
+from dcmri.lexicon.dicts import QUANTITIES
+from dcmri.lexicon.tools import export_params
+from dcmri.bloch.tissue import Signal
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
-from dcmri.core import SuperModel
-from dcmri.kinetics import ConcLiver
+from dcmri.core.model import SuperModel
+from dcmri.kinetics.conc import ConcLiver
 
 
 QUANTITIES = QUANTITIES | {
@@ -371,10 +374,11 @@ def _deriv_params(p, c_t, d_t, sdev=None):
 
 
 def _sample_signal(time, t, S, TS) -> tuple:
-    if isinstance(time, np.ndarray):
-        return sample(time, t, S, TS)
-    else:
-        return tuple([sample(ti, t, S, TS) for ti in time])
+    return tuple([sample(ti, t, S, TS) for ti in time])
+    # if isinstance(time, np.ndarray):
+    #     return sample(time, t, S, TS)
+    # else:
+    #     return tuple([sample(ti, t, S, TS) for ti in time])
 
 
 class AortaLiverDynamicDrug(SuperModel):
@@ -389,6 +393,10 @@ class AortaLiverDynamicDrug(SuperModel):
     See Also:
         `AortaLiver`
     """
+    
+    # ==========================================
+    # User Interface
+    # ==========================================
 
     configs = {'sequence': ['ZTE-3D-SPGR-SS', '3D-SPGR-SS', '3D-SPGR-SSI']}
 
@@ -396,7 +404,212 @@ class AortaLiverDynamicDrug(SuperModel):
         self._version = '1.0'
         self._cnfg = self._set_config(sequence=sequence)
         self._pars = self._set_pars(lexicon=QUANTITIES, **params)
+
+    def export_params(self, sdev=None, desc=False) -> dict:
+        """Parameters with values, definition and units"""
+        self._set_time()
+        tc, td = self._t_control, self._t_drug
+        pars_deriv, sdev_deriv = _deriv_params(self._pars, tc, td, sdev)
+        if desc:
+            pars_deriv = pars_deriv | self._desc()
+        pars = self._pars | pars_deriv
+        sdev = sdev | sdev_deriv if sdev is not None else sdev_deriv
+        return export_params(pars, sdev=sdev, lexicon=QUANTITIES)
+
+    def time(self) -> dict:
+        """Time points in aorta and liver for the two visits"""
+        return self._time_dict()
+
+    def conc(self) -> dict:
+        """Concentrations in aorta and liver.
+
+        Returns:
+            tuple: aorta blood concentrations, liver concentrations.
+        """
+        return self._conc_dict()         
+    
+    def relax(self) -> dict:
+        """Relaxation rates in aorta and liver.
+
+        Returns:
+            tuple: aorta blood R1, liver R1.
+        """
+        return self._relax_dict()
+    
+    def signal(self) -> dict:
+        """Signal in aorta and liver.
+
+        Returns:
+            tuple: aorta blood signal, liver 
+              signal.
+        """
+        return self._signal_dict() 
+    
+    def predict(self, time: dict) -> dict:
+        """Predict the data at given time points
+
+        Args:
+            time (tuple): tuple of 8 arrays with time points. The first 
+              four are from the control visit: aorta in 
+              the first scan, aorta in the second scan, liver in the first 
+              scan, and liver in the second scan, in that order. 
+              The second group of 4 is the same data for the treatment visit.
+
+        Returns:
+            tuple: tuple of 8 arrays with signals corresponding to time.
+        """
+        if isinstance(time, dict):
+            time = (
+                time['ctrl', 'aorta', 1], time['ctrl', 'aorta', 2], 
+                time['ctrl', 'liver', 1], time['ctrl', 'liver', 2], 
+                time['drug', 'aorta', 1], time['drug', 'aorta', 2], 
+                time['drug', 'liver', 1], time['drug', 'liver', 2], 
+            )
+        else:
+            time = tuple([time[0], time[1], time[0], time[1], time[0], time[1], time[0], time[1]])
+        p = self._pars
+        for i, visit in enumerate(['c', 'd']):
+            p[f'{visit}_tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time[4 * i: 4 * i + 4]))
+        Sc = self._predict_control(time[:4])
+        Sd = self._predict_drug(time[4:])
+        return {
+            ('ctrl', 'aorta', 1): Sc[0],
+            ('ctrl', 'aorta', 2): Sc[1],
+            ('ctrl', 'liver', 1): Sc[2],
+            ('ctrl', 'liver', 2): Sc[3],
+            ('drug', 'aorta', 1): Sd[0],
+            ('drug', 'aorta', 2): Sd[1],
+            ('drug', 'liver', 1): Sd[2],
+            ('drug', 'liver', 2): Sd[3],
+        } 
+
+    def train(
+            self, time: dict, signal: dict, free=None, 
+            bounds:dict=None, n0=[1, 1], n_runs=1, **kwargs,
+        ):
+        """Train the free parameters
+
+        Args:
+            time (tuple): (time_1_aorta, time_2_aorta, time_1_liver, time_2_liver)
+            signal (tuple): (signal_1_aorta, signal_2_aorta, signal_1_liver, signal_2_liver).
+            free (dict, optional): Free parameters and their bounds.
+            bounds (dict, optional): Override default bounds for specific parameters.
+            n0 (int, optional): Number of baseline time points. Defaults to 1.
+            n_runs (int, optional): Number of fits to run. A different set of initial values is chosen each time.
+            kwargs: any keyword parameters accepted by `scipy.optimize.curve_fit`.
+
+        Returns:
+            AortaLiver2scan: A reference to the model instance.
+        """
+        if isinstance(time, dict):
+            time = (
+                time['ctrl', 'aorta', 1], time['ctrl', 'aorta', 2], 
+                time['ctrl', 'liver', 1], time['ctrl', 'liver', 2], 
+                time['drug', 'aorta', 1], time['drug', 'aorta', 2], 
+                time['drug', 'liver', 1], time['drug', 'liver', 2], 
+            )
+        else:
+            time = tuple([time[0], time[1], time[0], time[1], time[0], time[1], time[0], time[1]])
+        if isinstance(signal, dict):
+            signal = (
+                signal['ctrl', 'aorta', 1], signal['ctrl', 'aorta', 2], 
+                signal['ctrl', 'liver', 1], signal['ctrl', 'liver', 2], 
+                signal['drug', 'aorta', 1], signal['drug', 'aorta', 2], 
+                signal['drug', 'liver', 1], signal['drug', 'liver', 2], 
+            )
+        return self._train(time, signal, free, bounds, n0, n_runs, **kwargs)
+
+
+    def plot(self, time: dict, signal: dict, xlim=None, clim=None, fname=None, show=True):
+        """Plot the model fit against data
+
+        Args:
+            time (tuple): tuple of 4 arrays with time points for aorta in the 
+              first scan, aorta in the second stand, liver in the first scan, 
+              and liver in the second scan, in that order. The four arrays can 
+              be different in length and value.
+            signal (tuple): tuple of 4 arrays with signals for aorta in the 
+              first scan, aorta in the second stand, liver in the first scan, 
+              and liver in the second scan, in that order. The arrays can be 
+              different in length but each has to have the same length as its 
+              corresponding array of time points.
+            xlim (array_like, optional): 2-element array with lower and upper 
+              boundaries of the x-axis. Defaults to None.
+            fname (path, optional): Filepath to save the image. If no value 
+              is provided, the image is not saved. Defaults to None.
+            show (bool, optional): If True, the plot is shown. Defaults to 
+              True.
+        """
+        if isinstance(time, dict):
+            time = (
+                time['ctrl', 'aorta', 1], time['ctrl', 'aorta', 2], 
+                time['ctrl', 'liver', 1], time['ctrl', 'liver', 2], 
+                time['drug', 'aorta', 1], time['drug', 'aorta', 2], 
+                time['drug', 'liver', 1], time['drug', 'liver', 2], 
+            )
+        else:
+            time = tuple([time[0], time[1], time[0], time[1], time[0], time[1], time[0], time[1]])
+        if isinstance(signal, dict):
+            signal = (
+                signal['ctrl', 'aorta', 1], signal['ctrl', 'aorta', 2], 
+                signal['ctrl', 'liver', 1], signal['ctrl', 'liver', 2], 
+                signal['drug', 'aorta', 1], signal['drug', 'aorta', 2], 
+                signal['drug', 'liver', 1], signal['drug', 'liver', 2], 
+            )
+        p = self._pars
+        for i, visit in enumerate(['c', 'd']):
+            p[f'{visit}_tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time[4 * i: 4 * i + 4]))
+        self._plot(time, signal, xlim, clim, fname, show)
+
+    def cost(self, time: dict, signal: dict, metric: str = 'NRMS', nfree=None) -> float:
+        """Return the goodness-of-fit
+
+        Args:
+            time (np.ndarray): array with time points
+            signal (array-like): array with signal data for all pixels.
+            metric (str, optional): Which metric to use (see notes for 
+                possible values). Defaults to 'NRMS'.
+
+        Returns:
+            float: goodness of fit.
+
+        Notes:
+
+            Available options are: 
             
+            - 'RMS': Root-mean-square.
+            - 'NRMS': Normalized root-mean-square. 
+            - 'AIC': Akaike information criterion. 
+            - 'cAIC': Corrected Akaike information criterion for small 
+                models.
+            - 'BIC': Baysian information criterion.
+        """
+        if isinstance(time, dict):
+            time = (
+                time['ctrl', 'aorta', 1], time['ctrl', 'aorta', 2], 
+                time['ctrl', 'liver', 1], time['ctrl', 'liver', 2], 
+                time['drug', 'aorta', 1], time['drug', 'aorta', 2], 
+                time['drug', 'liver', 1], time['drug', 'liver', 2], 
+            )
+        else:
+            time = tuple([time[0], time[1], time[0], time[1], time[0], time[1], time[0], time[1]])
+        if isinstance(signal, dict):
+            signal = (
+                signal['ctrl', 'aorta', 1], signal['ctrl', 'aorta', 2], 
+                signal['ctrl', 'liver', 1], signal['ctrl', 'liver', 2], 
+                signal['drug', 'aorta', 1], signal['drug', 'aorta', 2], 
+                signal['drug', 'liver', 1], signal['drug', 'liver', 2], 
+            )
+        return self._cost(time, signal, metric, nfree)
+
+
+
+    # ==========================================
+    # Backend
+    # ==========================================
+
+
+
     def _params(self, select=None):
         if select is None:
             select = 'all'
@@ -463,12 +676,12 @@ class AortaLiverDynamicDrug(SuperModel):
         
         # Source
         conc = const.ca_conc(p['agent'])
-        J = pk.ca_injection(
+        J = ca_injection(
             t, p['weight'], conc, p[f'{visit}_dose_1'], p['rate'], 
             p[f'{visit}_BAT_1'],
         )
         if scans==2:
-            J += pk.ca_injection(
+            J += ca_injection(
                 t, p['weight'], conc, p[f'{visit}_dose_2'], p['rate'], 
                 p[f'{visit}_BAT_2'],
             )
@@ -488,7 +701,7 @@ class AortaLiverDynamicDrug(SuperModel):
         # Rl = FFl * (1 - El)
         # Ro = (1 - FFl) * (1 - Ek)
 
-        Jb = pk.flux_aorta_hlol(
+        Jb = flux_aorta_hlol(
             J, El=El, Ek=Ek, FFl=FFl, dt=p['dt'], tol=p['dose_tolerance'],
             heartlung=['pfcomp', (p[f'Thl'], p[f'Dhl'])],
             organs=['2cxm', ([p[f'To'], p[f'To_e']], p[f'Eo'])],
@@ -499,7 +712,7 @@ class AortaLiverDynamicDrug(SuperModel):
     def _conc_liver(self, cb, visit, scans):
         p = self._pars
         
-        cb = pk.flux_comp(cb, p[f'Tg'], dt=p['dt'])
+        cb = flux_comp(cb, p[f'Tg'], dt=p['dt'])
         cp = cb / (1 - p['H'])
 
         vh = 1 - p[f've'] / (1 - p['H'])
@@ -555,10 +768,11 @@ class AortaLiverDynamicDrug(SuperModel):
             S0 = p[f'{visit}_Si_{scan}_{roi}'] / S_ref if S_ref > 0 else 0
             return signal(R1=R1_scan, R2s=R2s_scan, S0=S0)
 
-        if scans==1:
-            S = scan_signal(1, R1, R2s)
+        # if scans==1:
+        #     S = scan_signal(1, R1, R2s)
 
-        elif scans==2:
+        # TODO: This is the only option used so can remove the scans keyword.
+        if scans==2:
             t = self._time(visit)
             S = np.zeros_like(t)
 
@@ -981,207 +1195,7 @@ class AortaLiverDynamicDrug(SuperModel):
 
         return pars
 
-    
-    # ==========================================
-    # Public API: Data Extraction TODO provided option of 1 time array, use dict for signals
-    # ==========================================
 
-    def export_params(self, sdev=None, desc=False) -> dict:
-        """Parameters with values, definition and units"""
-        self._set_time()
-        tc, td = self._t_control, self._t_drug
-        pars_deriv, sdev_deriv = _deriv_params(self._pars, tc, td, sdev)
-        if desc:
-            pars_deriv = pars_deriv | self._desc()
-        pars = self._pars | pars_deriv
-        sdev = sdev | sdev_deriv if sdev is not None else sdev_deriv
-        return export_params(pars, sdev=sdev, lexicon=QUANTITIES)
-
-    def time(self) -> dict:
-        """Time points in aorta and liver for the two visits"""
-        return self._time_dict()
-
-    def conc(self) -> dict:
-        """Concentrations in aorta and liver.
-
-        Returns:
-            tuple: aorta blood concentrations, liver concentrations.
-        """
-        return self._conc_dict()         
-    
-    def relax(self) -> dict:
-        """Relaxation rates in aorta and liver.
-
-        Returns:
-            tuple: aorta blood R1, liver R1.
-        """
-        return self._relax_dict()
-    
-    def signal(self) -> dict:
-        """Signal in aorta and liver.
-
-        Returns:
-            tuple: aorta blood signal, liver 
-              signal.
-        """
-        return self._signal_dict() 
-    
-    def predict(self, time: dict) -> dict:
-        """Predict the data at given time points
-
-        Args:
-            time (tuple): tuple of 8 arrays with time points. The first 
-              four are from the control visit: aorta in 
-              the first scan, aorta in the second scan, liver in the first 
-              scan, and liver in the second scan, in that order. 
-              The second group of 4 is the same data for the treatment visit.
-
-        Returns:
-            tuple: tuple of 8 arrays with signals corresponding to time.
-        """
-        if isinstance(time, dict):
-            time = (
-                time['ctrl', 'aorta', 1], time['ctrl', 'aorta', 2], 
-                time['ctrl', 'liver', 1], time['ctrl', 'liver', 2], 
-                time['drug', 'aorta', 1], time['drug', 'aorta', 2], 
-                time['drug', 'liver', 1], time['drug', 'liver', 2], 
-            )
-        elif isinstance(time, np.ndarray):
-            time = tuple(8 * [time])
-        p = self._pars
-        for i, visit in enumerate(['c', 'd']):
-            p[f'{visit}_tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time[4 * i: 4 * i + 4]))
-        Sc = self._predict_control(time[:4])
-        Sd = self._predict_drug(time[4:])
-        return {
-            ('ctrl', 'aorta', 1): Sc[0],
-            ('ctrl', 'aorta', 2): Sc[1],
-            ('ctrl', 'liver', 1): Sc[2],
-            ('ctrl', 'liver', 2): Sc[3],
-            ('drug', 'aorta', 1): Sd[0],
-            ('drug', 'aorta', 2): Sd[1],
-            ('drug', 'liver', 1): Sd[2],
-            ('drug', 'liver', 2): Sd[3],
-        } 
-
-    def train(
-            self, time: dict, signal: dict, free=None, 
-            bounds:dict=None, n0=[1, 1], n_runs=1, **kwargs,
-        ):
-        """Train the free parameters
-
-        Args:
-            time (tuple): (time_1_aorta, time_2_aorta, time_1_liver, time_2_liver)
-            signal (tuple): (signal_1_aorta, signal_2_aorta, signal_1_liver, signal_2_liver).
-            free (dict, optional): Free parameters and their bounds.
-            bounds (dict, optional): Override default bounds for specific parameters.
-            n0 (int, optional): Number of baseline time points. Defaults to 1.
-            n_runs (int, optional): Number of fits to run. A different set of initial values is chosen each time.
-            kwargs: any keyword parameters accepted by `scipy.optimize.curve_fit`.
-
-        Returns:
-            AortaLiver2scan: A reference to the model instance.
-        """
-        if isinstance(time, dict):
-            time = (
-                time['ctrl', 'aorta', 1], time['ctrl', 'aorta', 2], 
-                time['ctrl', 'liver', 1], time['ctrl', 'liver', 2], 
-                time['drug', 'aorta', 1], time['drug', 'aorta', 2], 
-                time['drug', 'liver', 1], time['drug', 'liver', 2], 
-            )
-        elif isinstance(time, np.ndarray):
-            time = tuple(8 * [time])
-        if isinstance(signal, dict):
-            signal = (
-                signal['ctrl', 'aorta', 1], signal['ctrl', 'aorta', 2], 
-                signal['ctrl', 'liver', 1], signal['ctrl', 'liver', 2], 
-                signal['drug', 'aorta', 1], signal['drug', 'aorta', 2], 
-                signal['drug', 'liver', 1], signal['drug', 'liver', 2], 
-            )
-        return self._train(time, signal, free, bounds, n0, n_runs, **kwargs)
-
-
-    def plot(self, time: dict, signal: dict, xlim=None, clim=None, fname=None, show=True):
-        """Plot the model fit against data
-
-        Args:
-            time (tuple): tuple of 4 arrays with time points for aorta in the 
-              first scan, aorta in the second stand, liver in the first scan, 
-              and liver in the second scan, in that order. The four arrays can 
-              be different in length and value.
-            signal (tuple): tuple of 4 arrays with signals for aorta in the 
-              first scan, aorta in the second stand, liver in the first scan, 
-              and liver in the second scan, in that order. The arrays can be 
-              different in length but each has to have the same length as its 
-              corresponding array of time points.
-            xlim (array_like, optional): 2-element array with lower and upper 
-              boundaries of the x-axis. Defaults to None.
-            fname (path, optional): Filepath to save the image. If no value 
-              is provided, the image is not saved. Defaults to None.
-            show (bool, optional): If True, the plot is shown. Defaults to 
-              True.
-        """
-        if isinstance(time, dict):
-            time = (
-                time['ctrl', 'aorta', 1], time['ctrl', 'aorta', 2], 
-                time['ctrl', 'liver', 1], time['ctrl', 'liver', 2], 
-                time['drug', 'aorta', 1], time['drug', 'aorta', 2], 
-                time['drug', 'liver', 1], time['drug', 'liver', 2], 
-            )
-        elif isinstance(time, np.ndarray):
-            time = tuple(8 * [time])
-        if isinstance(signal, dict):
-            signal = (
-                signal['ctrl', 'aorta', 1], signal['ctrl', 'aorta', 2], 
-                signal['ctrl', 'liver', 1], signal['ctrl', 'liver', 2], 
-                signal['drug', 'aorta', 1], signal['drug', 'aorta', 2], 
-                signal['drug', 'liver', 1], signal['drug', 'liver', 2], 
-            )
-        p = self._pars
-        for i, visit in enumerate(['c', 'd']):
-            p[f'{visit}_tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time[4 * i: 4 * i + 4]))
-        self._plot(time, signal, xlim, clim, fname, show)
-
-    def cost(self, time: dict, signal: dict, metric: str = 'NRMS', nfree=None) -> float:
-        """Return the goodness-of-fit
-
-        Args:
-            time (np.ndarray): array with time points
-            signal (array-like): array with signal data for all pixels.
-            metric (str, optional): Which metric to use (see notes for 
-                possible values). Defaults to 'NRMS'.
-
-        Returns:
-            float: goodness of fit.
-
-        Notes:
-
-            Available options are: 
-            
-            - 'RMS': Root-mean-square.
-            - 'NRMS': Normalized root-mean-square. 
-            - 'AIC': Akaike information criterion. 
-            - 'cAIC': Corrected Akaike information criterion for small 
-                models.
-            - 'BIC': Baysian information criterion.
-        """
-        if isinstance(time, dict):
-            time = (
-                time['ctrl', 'aorta', 1], time['ctrl', 'aorta', 2], 
-                time['ctrl', 'liver', 1], time['ctrl', 'liver', 2], 
-                time['drug', 'aorta', 1], time['drug', 'aorta', 2], 
-                time['drug', 'liver', 1], time['drug', 'liver', 2], 
-            )
-        elif isinstance(time, np.ndarray):
-            time = tuple(8 * [time])
-        if isinstance(signal, dict):
-            signal = (
-                signal['ctrl', 'aorta', 1], signal['ctrl', 'aorta', 2], 
-                signal['ctrl', 'liver', 1], signal['ctrl', 'liver', 2], 
-                signal['drug', 'aorta', 1], signal['drug', 'aorta', 2], 
-                signal['drug', 'liver', 1], signal['drug', 'liver', 2], 
-            )
-        return self._cost(time, signal, metric, nfree)
     
 
 # def sdev_effect(v, dv):

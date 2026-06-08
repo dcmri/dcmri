@@ -1,5 +1,5 @@
 import numpy as np
-import dcmri.kinetics.lib as pk
+import dcmri as dc
 
 
 def test_ca_injection():
@@ -12,20 +12,20 @@ def test_ca_injection():
     dt = 0.1
 
     t = np.arange(0, 20, dt)
-    j = pk.ca_injection(t, weight, conc, dose, rate, t0)
+    j = dc.ca_injection(t, weight, conc, dose, rate, t0)
 
     assert np.around(np.sum(j)*dt) == np.around(weight*dose*conc)
 
     # Test exceptions
     try:
-        j = pk.ca_injection(t, 0*weight, conc, dose, rate, t0)
+        j = dc.ca_injection(t, 0*weight, conc, dose, rate, t0)
     except:
         assert True
     else:
         assert False
 
     try:
-        j = pk.ca_injection(t, weight, conc, 0.01*dose, rate, t0)
+        j = dc.ca_injection(t, weight, conc, 0.01*dose, rate, t0)
     except:
         assert True
     else:

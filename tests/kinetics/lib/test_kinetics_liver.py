@@ -1,6 +1,7 @@
 import numpy as np
 
-import dcmri.kinetics.lib as pk
+import dcmri as dc
+from dcmri.kinetics.lib.liver import dpars_liver
 
 
 def test_liver():
@@ -20,19 +21,19 @@ def test_liver():
         'Th_f': 300,
         'Th': 300,
         'E': 0.5,
-        'vol': 1000,
+        'vol_l': 1000,
     }
-    pk.dpars_liver(p)   
-    pk.dpars_liver(p, '1I-EC')
-    pk.dpars_liver(p, '2I-EC')
-    pk.dpars_liver(p, '1I-IC')
-    pk.dpars_liver(p, '2I-IC')
-    pk.dpars_liver(p, '1I-IC-HF')
-    pk.dpars_liver(p, '1I-IC-D')
-    pk.dpars_liver(p, '2I-IC-HF')
-    pk.dpars_liver(p, '1I-IC-HFD')
-    pk.dpars_liver(p, '1I-IC-HFDU')
-    pk.dpars_liver(p, '2I-IC-U')
+    dpars_liver(p)   
+    dpars_liver(p, '1I-EC')
+    dpars_liver(p, '2I-EC')
+    dpars_liver(p, '1I-IC')
+    dpars_liver(p, '2I-IC')
+    dpars_liver(p, '1I-IC-HF')
+    dpars_liver(p, '1I-IC-D')
+    dpars_liver(p, '2I-IC-HF')
+    dpars_liver(p, '1I-IC-HFD')
+    dpars_liver(p, '1I-IC-HFDU')
+    dpars_liver(p, '2I-IC-U')
 
     # EC
 
@@ -48,13 +49,13 @@ def test_liver():
          'T_a': 0, 
          'Tg': 0,
         }
-    C0 = pk.conc_liver_1i_ec(ca, t, **p)
+    C0 = dc.conc_liver_1i_ec(ca, t, **p)
 
     p = {'ve': 0.1, 
          'Te': 0.1 / 0.01, 
          'De': 1.0,
         }
-    C1 = pk.conc_liver_1i_ec_d(ca, t, **p)
+    C1 = dc.conc_liver_1i_ec_d(ca, t, **p)
 
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-9
 
@@ -64,13 +65,13 @@ def test_liver():
          'T_a': 0, 
          'Tg': 0,
         }
-    C0 = pk.conc_liver_1i_ec(ca, t, **p)
+    C0 = dc.conc_liver_1i_ec(ca, t, **p)
 
     p = {'ve': 0.1, 
          'fa': 1.0, 
          'T_a': 0, 
         }
-    C1 = pk.conc_liver_2i_ec_hf((ca, ca), t, **p)
+    C1 = dc.conc_liver_2i_ec_hf((ca, ca), t, **p)
 
     assert np.linalg.norm(C0[0,1:]-C1[0,1:]) / np.linalg.norm(C0[0,1:]) < 1e-3
 
@@ -79,7 +80,7 @@ def test_liver():
          'fa': 1.0, 
          'T_a': 0, 
         }
-    C1 = pk.conc_liver_2i_ec((ca, ca), t, **p)
+    C1 = dc.conc_liver_2i_ec((ca, ca), t, **p)
 
     assert np.linalg.norm(C0[0,1:]-C1[0,1:]) / np.linalg.norm(C0[0,1:]) < 1e-3
 
@@ -96,14 +97,14 @@ def test_liver():
          'khe': 0.005, 
          'Th': 15,
         }
-    C0 = pk.conc_liver_1i_ic_hf(ca, t, **p)
+    C0 = dc.conc_liver_1i_ic_hf(ca, t, **p)
 
     p = {'ve': 0.1, 
          'khe_i': 0.005, 
          'khe_f': 0.005, 
          'Th': 15,
         }
-    C1 = pk.conc_liver_1i_ic_hf__u(ca, t, **p)
+    C1 = dc.conc_liver_1i_ic_hf__u(ca, t, **p)
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-3
 
     p = {'ve': 0.1, 
@@ -111,7 +112,7 @@ def test_liver():
          'Th_i': 15,
          'Th_f': 15,
         }
-    C1 = pk.conc_liver_1i_ic_hf__e(ca, t, **p)
+    C1 = dc.conc_liver_1i_ic_hf__e(ca, t, **p)
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-1
 
     p = {'ve': 0.1, 
@@ -120,7 +121,7 @@ def test_liver():
          'Th_i': 15,
          'Th_f': 15,
         }
-    C1 = pk.conc_liver_1i_ic_hf__ue(ca, t, **p)
+    C1 = dc.conc_liver_1i_ic_hf__ue(ca, t, **p)
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-1
 
     p = {'ve': 0.1, 
@@ -129,7 +130,7 @@ def test_liver():
          'Tg': 0,
          'Dg': 1,
         }
-    C1 = pk.conc_liver_1i_ic_hfd(ca, t, **p)
+    C1 = dc.conc_liver_1i_ic_hfd(ca, t, **p)
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-1
 
     p = {'ve': 0.1, 
@@ -139,7 +140,7 @@ def test_liver():
          'Tg': 0, 
          'Dg': 1,
         }
-    C1 = pk.conc_liver_1i_ic_hfd__u(ca, t, **p)
+    C1 = dc.conc_liver_1i_ic_hfd__u(ca, t, **p)
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-1
 
     p = {'ve': 0.1, 
@@ -149,7 +150,7 @@ def test_liver():
          'Tg': 0,
          'Dg': 1,
         }
-    C1 = pk.conc_liver_1i_ic_hfd__e(ca, t, **p)
+    C1 = dc.conc_liver_1i_ic_hfd__e(ca, t, **p)
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-1
 
     p = {'ve': 0.1, 
@@ -160,7 +161,7 @@ def test_liver():
          'Tg': 0,
          'Dg': 1,
         }
-    C1 = pk.conc_liver_1i_ic_hfd__ue(ca, t, **p)
+    C1 = dc.conc_liver_1i_ic_hfd__ue(ca, t, **p)
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-1
 
     p = {'ve': 0.1, 
@@ -169,14 +170,14 @@ def test_liver():
          'Tg': 10,
          'Dg': 0.5,
         }
-    C0 = pk.conc_liver_1i_ic_hfd(ca, t, **p)
+    C0 = dc.conc_liver_1i_ic_hfd(ca, t, **p)
 
     p = {'ve': 0.1, 
          'khe': 0.005, 
          'Tg': 10,
          'Dg': 0.5,
         }
-    C1 = pk.conc_liver_1i_ic_hfdu(ca, t, **p)
+    C1 = dc.conc_liver_1i_ic_hfdu(ca, t, **p)
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-1
 
     p = {'ve': 0.1, 
@@ -185,16 +186,16 @@ def test_liver():
          'Tg': 10,
          'Dg': 0.5,
         }
-    C1 = pk.conc_liver_1i_ic_hfdu__u(ca, t, **p)
+    C1 = dc.conc_liver_1i_ic_hfdu__u(ca, t, **p)
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-1
 
     p = {'ve': 0.1, 
          'khe': 0.005, 
          'Th': 15,
         }
-    C0 = pk.conc_liver_1i_ic_hf(ca, t, **p)
+    C0 = dc.conc_liver_1i_ic_hf(ca, t, **p)
 
-    C = pk.conc_liver_1i_ic_hf(ca, t, **p)
+    C = dc.conc_liver_1i_ic_hf(ca, t, **p)
     assert np.array_equal(C, C0)
 
     p = {'ve': 0.1, 
@@ -203,7 +204,7 @@ def test_liver():
          'T_a': 0,
          'fa': 1,
         }
-    C1 = pk.conc_liver_2i_ic_hf((ca, ca), t, **p)
+    C1 = dc.conc_liver_2i_ic_hf((ca, ca), t, **p)
 
     p = {'ve': 0.1, 
          'khe_i': 0.005, 
@@ -212,7 +213,7 @@ def test_liver():
          'T_a': 0,
          'fa': 1,
         }
-    C1 = pk.conc_liver_2i_ic_hf__u((ca, ca), t, **p)
+    C1 = dc.conc_liver_2i_ic_hf__u((ca, ca), t, **p)
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-3
 
     p = {'ve': 0.1, 
@@ -222,7 +223,7 @@ def test_liver():
          'T_a': 0,
          'fa': 1,
         }
-    C1 = pk.conc_liver_2i_ic_hf__e((ca, ca), t, **p)
+    C1 = dc.conc_liver_2i_ic_hf__e((ca, ca), t, **p)
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-1
 
     p = {'ve': 0.1, 
@@ -233,7 +234,7 @@ def test_liver():
          'T_a': 0,
          'fa': 1,
         }
-    C1 = pk.conc_liver_2i_ic_hf__ue((ca, ca), t, **p)
+    C1 = dc.conc_liver_2i_ic_hf__ue((ca, ca), t, **p)
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-1
 
     p = {'ve': 0.1, 
@@ -242,7 +243,7 @@ def test_liver():
          'T_a': 0,
          'fa': 1,
         }
-    C0 = pk.conc_liver_2i_ic_hf((ca, ca), t, **p)
+    C0 = dc.conc_liver_2i_ic_hf((ca, ca), t, **p)
 
     p = {'ve': 0.1 / (1 - 0.001), 
          'Fp': 5, 
@@ -251,7 +252,7 @@ def test_liver():
          'T_a': 0,
          'fa': 1,
         }
-    C1 = pk.conc_liver_2i_ic((ca, ca), t, **p)
+    C1 = dc.conc_liver_2i_ic((ca, ca), t, **p)
     assert np.linalg.norm(C0[0,1:]-C1[0,1:]) / np.linalg.norm(C0[0,1:]) < 0.1
 
     p = {'ve': 0.1 / (1 - 0.001), 
@@ -259,7 +260,7 @@ def test_liver():
          'E': 0.001, 
          'Th': 15,
         }
-    C1 = pk.conc_liver_1i_ic(ca, t, **p)
+    C1 = dc.conc_liver_1i_ic(ca, t, **p)
 
     p = {'ve': 0.1 / (1 - 0.001), 
          'Fp': 5, 
@@ -267,7 +268,7 @@ def test_liver():
          'E_f': 0.001, 
          'Th': 15,
         }
-    C1 = pk.conc_liver_1i_ic__u(ca, t, **p)
+    C1 = dc.conc_liver_1i_ic__u(ca, t, **p)
 
     p = {'ve': 0.1 / (1 - 0.001), 
          'Fp': 5, 
@@ -275,7 +276,7 @@ def test_liver():
          'Th_i': 15,
          'Th_f': 15,
         }
-    C1 = pk.conc_liver_1i_ic__e(ca, t, **p)
+    C1 = dc.conc_liver_1i_ic__e(ca, t, **p)
 
     p = {'ve': 0.1 / (1 - 0.001), 
          'Fp': 5, 
@@ -285,7 +286,7 @@ def test_liver():
          'Th_i': 15,
          'Th_f': 15,
         }
-    C1 = pk.conc_liver_1i_ic__ue(ca, t, **p)
+    C1 = dc.conc_liver_1i_ic__ue(ca, t, **p)
 
     p = {'ve': 0.1 / (1 - 0.001), 
          'Fp': 5, 
@@ -295,7 +296,7 @@ def test_liver():
          'T_a': 0,
          'fa': 1,
         }
-    C1 = pk.conc_liver_2i_ic__u((ca, ca), t, **p)
+    C1 = dc.conc_liver_2i_ic__u((ca, ca), t, **p)
     assert np.linalg.norm(C0[0,1:]-C1[0,1:]) / np.linalg.norm(C0[0,1:]) < 1e-1
 
     p = {'ve': 0.1 / (1 - 0.001), 
@@ -306,7 +307,7 @@ def test_liver():
          'T_a': 0,
          'fa': 1,
         }
-    C1 = pk.conc_liver_2i_ic__e((ca, ca), t, **p)
+    C1 = dc.conc_liver_2i_ic__e((ca, ca), t, **p)
     assert np.linalg.norm(C0[0,1:]-C1[0,1:]) / np.linalg.norm(C0[0,1:]) < 1e-1
 
     p = {'ve': 0.1 / (1 - 0.001), 
@@ -318,7 +319,7 @@ def test_liver():
          'T_a': 0,
          'fa': 1,
         }
-    C1 = pk.conc_liver_2i_ic__ue((ca, ca), t, **p)
+    C1 = dc.conc_liver_2i_ic__ue((ca, ca), t, **p)
     assert np.linalg.norm(C0[0,1:]-C1[0,1:]) / np.linalg.norm(C0[0,1:]) < 1e-1
 
     p = {'ve': 0.1 / (1 - 0.001), 
@@ -328,9 +329,9 @@ def test_liver():
          'T_a': 0,
          'fa': 1,
         }
-    C0 = pk.conc_liver_2i_ic((ca, ca), t, **p)
+    C0 = dc.conc_liver_2i_ic((ca, ca), t, **p)
 
-    C = pk.conc_liver_2i_ic((ca, ca), t, **p)
+    C = dc.conc_liver_2i_ic((ca, ca), t, **p)
     assert np.array_equal(C, C0)
 
     p = {'ve': 0.1 / (1 - 0.001), 
@@ -339,7 +340,7 @@ def test_liver():
          'T_a': 0,
          'fa': 1,
         }
-    C1 = pk.conc_liver_2i_ic_u((ca, ca), t, **p)
+    C1 = dc.conc_liver_2i_ic_u((ca, ca), t, **p)
     assert np.linalg.norm(C0[0,1:]-C1[0,1:]) / np.linalg.norm(C0[0,1:]) < 1e-1
 
     p = {'ve': 0.1 / (1 - 0.001), 
@@ -349,7 +350,7 @@ def test_liver():
          'T_a': 0,
          'fa': 1,
         }
-    C1 =  pk.conc_liver_2i_ic_u__u((ca, ca), t, **p)
+    C1 =  dc.conc_liver_2i_ic_u__u((ca, ca), t, **p)
     assert np.linalg.norm(C0[0,1:]-C1[0,1:]) / np.linalg.norm(C0[0,1:]) < 1e-1
 
 

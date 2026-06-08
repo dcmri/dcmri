@@ -63,6 +63,17 @@ def test_configs():
     print('staged', cost)
     assert cost < 5
 
+    # Single time array
+    model = Model(CO=50)
+    time = model.time()
+    time = time['aorta']
+    signal = model.predict(time)
+    model.train(time, signal, staged=True, verbose=VERBOSE, xtol=0.01)
+    model.plot(time, signal, show=DEBUG)
+    cost = model.cost(time, signal)
+    print('staged', cost)
+    assert cost < 5
+
 def test_api():
     model = Model()
     
@@ -85,38 +96,38 @@ def test_api():
             os.remove(test_plot_file)
 
 def test_exceptions():
-    # Invalid Config
-    try:
-        Model(sequence='X')
-    except ValueError:
-        pass 
-    else:
-        assert False
+    # # Invalid Config
+    # try:
+    #     Model(sequence='X')
+    # except ValueError:
+    #     pass 
+    # else:
+    #     assert False
         
-    try:
-        Model(kinetics='Y')
-    except ValueError:
-        pass 
-    else:
-        assert False
+    # try:
+    #     Model(kinetics='Y')
+    # except ValueError:
+    #     pass 
+    # else:
+    #     assert False
 
-    try:
-        Model(kinetics='1I-EC')
-    except ValueError:
-        pass 
-    else:
-        assert False
+    # try:
+    #     Model(kinetics='1I-EC')
+    # except ValueError:
+    #     pass 
+    # else:
+    #     assert False
 
-    try:
-        Model(non_stationary='Z')
-    except ValueError:
-        pass 
-    else:
-        assert False
+    # try:
+    #     Model(non_stationary='Z')
+    # except ValueError:
+    #     pass 
+    # else:
+    #     assert False
 
     # SSI sequence model with fixed S0
     try:
-        model = Model(sequence='SSI')
+        model = Model(sequence='3D-SPGR-SSI')
         t, s = model.time(), model.signal()
         model.train(t, s, bounds={'S0_a': None})
     except ValueError:

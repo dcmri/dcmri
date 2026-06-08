@@ -1,9 +1,7 @@
 import numpy as np
 
 
-from dcmri.kinetics import (
-    FluxTissueX,
-)
+from dcmri import FluxTissueX
 
 
 

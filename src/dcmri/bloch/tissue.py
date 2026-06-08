@@ -132,9 +132,9 @@ from copy import deepcopy
 
 import numpy as np
 
-from dcmri.core import LayerFunction
-from dcmri.lexicon import SEQUENCES
-import dcmri.bloch.lib as lib
+from dcmri.core.layer import LayerFunction
+from dcmri.lexicon.dicts import SEQUENCES
+from dcmri.bloch.lib import seqs
 
 
 # TODO: For some ss sequences there is some duplication with K, J and KinvJ computed multiple times
@@ -263,33 +263,33 @@ def _Mz(mz_prep_sequence, R1:np.ndarray, v, Fw, j, p):
     if mz_prep_sequence == 'Eq': 
         return np.full_like(R1, me)
     if mz_prep_sequence == 'IR-SS':
-        return lib.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TA'], 180)
+        return seqs.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TA'], 180)
     if mz_prep_sequence == 'SR-SS':
-        return lib.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TA'], 90)
+        return seqs.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TA'], 90)
     if mz_prep_sequence == 'PR-SS':
-        return lib.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TA'], p['PA'])
+        return seqs.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TA'], p['PA'])
     if mz_prep_sequence == 'SPGR':
-        return lib.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], 0, p['TA'], 0) 
+        return seqs.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], 0, p['TA'], 0) 
     if mz_prep_sequence == 'SR-SPGR':
-        return lib.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 90) 
+        return seqs.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 90) 
     if mz_prep_sequence == 'IR-SPGR':
-        return lib.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 180) 
+        return seqs.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 180) 
     if mz_prep_sequence == 'PR-SPGR':
-        return lib.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], p['PA'])
+        return seqs.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], p['PA'])
     if mz_prep_sequence == 'SPGR-SS':
-        return lib.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TR'], p['FA'] * p['B1corr'])
+        return seqs.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TR'], p['FA'] * p['B1corr'])
     if mz_prep_sequence == 'SR-SPGR-SS':
-        return lib.Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 90) 
+        return seqs.Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 90) 
     if mz_prep_sequence == 'IR-SPGR-SS':
-        return lib.Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 180)
+        return seqs.Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 180)
     if mz_prep_sequence == 'PR-SPGR-SS':
-        return lib.Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], p['PA']) 
+        return seqs.Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], p['PA']) 
     if mz_prep_sequence == 'SSI':
-        return lib.Mz_ssi(R1, v, Fw, j, me, p['TR'], p['FA'] * p['B1corr'], p['TF'], p['SA'])
+        return seqs.Mz_ssi(R1, v, Fw, j, me, p['TR'], p['FA'] * p['B1corr'], p['TF'], p['SA'])
     if mz_prep_sequence == 'SE-SS':
-        return lib.Mz_se(R1, v, Fw, j, me, p['TE'], p['TR'], p['FA'] * p['B1corr'])
+        return seqs.Mz_se(R1, v, Fw, j, me, p['TE'], p['TR'], p['FA'] * p['B1corr'])
     if mz_prep_sequence == 'DE-SS':
-        return lib.Mz_se(R1, v, Fw, j, me, p['TE2'], p['TR'], p['FA'] * p['B1corr'])
+        return seqs.Mz_se(R1, v, Fw, j, me, p['TE2'], p['TR'], p['FA'] * p['B1corr'])
 
 
 class Readout(LayerFunction): 
@@ -359,22 +359,22 @@ class Readout(LayerFunction):
             R2 = R2.reshape(nc, nt)
 
         if seq in ['Eq-SE-EPI', 'SE-EPI']:
-            signal = lib.mz_readout(Mz, R2, p['S0'], p['FA'] * p['B1corr'], p['TE'], p['noise_sdev'])
+            signal = seqs.mz_readout(Mz, R2, p['S0'], p['FA'] * p['B1corr'], p['TE'], p['noise_sdev'])
             signal = signal.reshape(1, -1)
         
         elif seq in ['Eq-DE-EPI', 'DE-EPI']:
             # if np.size(R2) != np.size(R2s):
             #     raise ValueError('R2 and R2s must have the same size.')
-            GE = lib.mz_readout(Mz, R2s, p['S0'], p['FA'] * p['B1corr'], p['TE1'], p['noise_sdev'])
-            SE = lib.mz_readout(Mz, R2, p['S0'], p['FA'] * p['B1corr'], p['TE2'], p['noise_sdev'])
+            GE = seqs.mz_readout(Mz, R2s, p['S0'], p['FA'] * p['B1corr'], p['TE1'], p['noise_sdev'])
+            SE = seqs.mz_readout(Mz, R2, p['S0'], p['FA'] * p['B1corr'], p['TE2'], p['noise_sdev'])
             signal = np.stack((GE, SE)) # n_channels, n_times
 
         elif seq in ['ZTE-3D-SPGR-SS', 'ZTE-3D-IR-SPGR-SS']:
-            signal = lib.mz_readout(Mz, np.zeros_like(Mz), p['S0'], p['FA'] * p['B1corr'], 0, p['noise_sdev'])
+            signal = seqs.mz_readout(Mz, np.zeros_like(Mz), p['S0'], p['FA'] * p['B1corr'], 0, p['noise_sdev'])
             signal = signal.reshape(1, -1)
         
         else:
-            signal = lib.mz_readout(Mz, R2s, p['S0'], p['FA'] * p['B1corr'], p['TE'], p['noise_sdev'])
+            signal = seqs.mz_readout(Mz, R2s, p['S0'], p['FA'] * p['B1corr'], p['TE'], p['noise_sdev'])
             signal = signal.reshape(1, -1)
 
         # signal dimensions (n_channels, n_times)

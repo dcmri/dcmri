@@ -2,8 +2,8 @@ from itertools import combinations
 
 import numpy as np
 
-from dcmri.core import LayerFunction
-import dcmri.relaxivity.lib as rel
+from dcmri.core.layer import LayerFunction
+from dcmri.relaxivity.lib import relax_t1, relax_t2s
 
 
 class R1(LayerFunction):
@@ -30,7 +30,7 @@ class R1(LayerFunction):
         
         if t1r == 'lin':
             if c.ndim==1:
-                return rel.relax_t1(c, p['R10'], p['r1'])
+                return relax_t1(c, p['R10'], p['r1'])
             else:
                 if c.shape[0] != np.size(p['R10']):
                     R10 = np.full(c.shape[0], p['R10'])
@@ -41,7 +41,7 @@ class R1(LayerFunction):
                 else:
                     r1 = p['r1']
                 # Compute R1 of water compartments
-                R1_result = [rel.relax_t1(c[i,:], R10[i], r1[i]) for i in range(c.shape[0])]
+                R1_result = [relax_t1(c[i,:], R10[i], r1[i]) for i in range(c.shape[0])]
                 return np.stack(R1_result)
 
 
@@ -69,7 +69,7 @@ class R2(LayerFunction):
         
         if t2r == 'lin':
             if c.ndim==1:
-                return rel.relax_t1(c, p['R20'], p['r2'])
+                return relax_t1(c, p['R20'], p['r2'])
             else:
                 if c.shape[0] != np.size(p['R20']):
                     R20 = np.full(c.shape[0], p['R20'])
@@ -80,7 +80,7 @@ class R2(LayerFunction):
                 else:
                     r2 = p['r2']
                 # Compute R2 of water compartments
-                R2_result = [rel.relax_t1(c[i,:], R20[i], r2[i]) for i in range(c.shape[0])]
+                R2_result = [relax_t1(c[i,:], R20[i], r2[i]) for i in range(c.shape[0])]
                 return np.stack(R2_result)
         
 
@@ -111,10 +111,10 @@ class R2s(LayerFunction):
         #     raise ValueError('T2*-relaxation requires a single concentration averaged over all compartments.')
 
         if t2r == 'lin':
-            return rel.relax_t2s(c, p['R20s'], p['r2s'], model='lin')
+            return relax_t2s(c, p['R20s'], p['r2s'], model='lin')
 
         if t2r == 'quad':
-            return rel.relax_t2s(c, p['R20s'], p['r2s'], p['r2s_quad'] , model='quad')
+            return relax_t2s(c, p['R20s'], p['r2s'], p['r2s_quad'] , model='quad')
 
 
 # Build all possible combinations of relaxation rates

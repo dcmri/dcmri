@@ -87,14 +87,16 @@ Example:
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri import const
-import dcmri.kinetics.lib as pk
-from dcmri.kinetics import ConcLiver
-from dcmri.lexicon import SEQUENCES
-from dcmri.bloch import Signal
+from dcmri.utils import const
+from dcmri.kinetics.lib.input import ca_injection
+from dcmri.kinetics.lib.aorta import flux_aorta
+from dcmri.kinetics.lib.blocks import flux_chain
+from dcmri.kinetics.conc import ConcLiver
+from dcmri.lexicon.dicts import SEQUENCES
+from dcmri.bloch.tissue import Signal
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
-from dcmri.core import SuperModel
+from dcmri.core.model import SuperModel
 
 
 class AortaPortalLiver(SuperModel):
@@ -135,8 +137,8 @@ class AortaPortalLiver(SuperModel):
         self._cnfg = self._set_config(**cnfg)
         self._pars = self._set_pars(**params)
 
-        if not kinetics.startswith('2'):
-            raise ValueError("Only dual-inlet models are allowed.")
+        # if not kinetics.startswith('2'):
+        #     raise ValueError("Only dual-inlet models are allowed.")
 
     def _params(self, select=None):
         if select is None:
@@ -181,10 +183,10 @@ class AortaPortalLiver(SuperModel):
         p = self._pars
         
         conc = const.ca_conc(p['agent'])
-        Ji = pk.ca_injection(
+        Ji = ca_injection(
             self._t, p['weight'], conc, p['dose'], p['rate'], p['BAT']
         )
-        Jb = pk.flux_aorta(
+        Jb = flux_aorta(
             Ji, E=p['Eb'], dt=p['dt'], tol=p['dose_tolerance'],
             heartlung=['pfcomp', (p['Thl'], p['Dhl'])], 
             organs=['2cxm', ([p['To'], p['To_e']], p['Eo'])],
@@ -221,7 +223,7 @@ class AortaPortalLiver(SuperModel):
     
     def _compute_conc_portal(self):
         p = self._pars
-        self._cv = pk.flux_chain(self._ca, p['Tg'], p['Dg'], dt=p['dt'])
+        self._cv = flux_chain(self._ca, p['Tg'], p['Dg'], dt=p['dt'])
     
     def _compute_relax_portal(self):
         self._compute_conc_portal()
@@ -270,9 +272,9 @@ class AortaPortalLiver(SuperModel):
         if self._Cl.shape[0] == 2:
             self._R1l = p['R10_l'] + rp * self._Cl[0, :] + rh * self._Cl[1, :]
             self._R2sl = p['R20s_l'] + r2s * self._Cl.sum(axis=0) 
-        else:
-            self._R1l = p['R10_l'] + rp * self._Cl[0,:]
-            self._R2sl = p['R20s_l'] + r2s * self._Cl
+        # else:
+        #     self._R1l = p['R10_l'] + rp * self._Cl[0,:]
+        #     self._R2sl = p['R20s_l'] + r2s * self._Cl[0,:]
 
     def _compute_signal_liver(self):
         self._compute_relax_liver()
@@ -401,12 +403,12 @@ class AortaPortalLiver(SuperModel):
 
         ax6.set(xlabel='Time (min)', ylabel='Tissue concentration (mM)', xlim=xlim)
         ax6.plot(self._t/60, 0*self._t, color='gray')
-        if self._Cl.ndim==2:
+        if self._Cl.shape[0]==2:
             ax6.plot(self._t/60, 1000*self._Cl[0, :], linestyle='-.', color='darkblue', linewidth=2.0, label='Extracellular')
             ax6.plot(self._t/60, 1000*self._Cl[1, :], linestyle='--', color='darkblue', linewidth=2.0, label='Hepatocytes')
             ax6.plot(self._t/60, 1000*self._Cl.sum(axis=0), linestyle='-', color='darkblue', linewidth=2.0, label='Liver')
-        else:
-            ax6.plot(self._t/60, 1000*self._Cl, linestyle='-', color='darkblue', linewidth=2.0, label='Liver')
+        # else:
+        #     ax6.plot(self._t/60, 1000*self._Cl, linestyle='-', color='darkblue', linewidth=2.0, label='Liver')
         ax6.legend()
 
         if fname: plt.savefig(fname=fname)

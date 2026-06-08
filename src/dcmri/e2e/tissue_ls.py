@@ -59,22 +59,24 @@ import matplotlib.pyplot as plt
 from joblib import Parallel, delayed
 from matplotlib.gridspec import GridSpec
 
-from dcmri.bloch import Signal
-from dcmri.lexicon import string_params, SEQUENCES  
-from dcmri.inverse import SignalToConc
-from dcmri.core import SuperModel, Input, LayerFunction
-import dcmri.relaxivity.lib as rel
-from dcmri.relaxivity import Relax
-from dcmri.bloch import Signal
+from dcmri.bloch.tissue import Signal
+from dcmri.lexicon.dicts import SEQUENCES  
+from dcmri.lexicon.tools import string_params
+from dcmri.inverse.sig2conc import SignalToConc
+from dcmri.core.model import SuperModel
+from dcmri.core.types import Input
+from dcmri.core.layer import LayerFunction
+from dcmri.relaxivity.tissue import Relax
+from dcmri.bloch.tissue import Signal
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import loss
-from dcmri import convolution
+from dcmri.utils import convolution
 
 
 def conc_ls(ca, irf, dt):
     ca = np.array(ca)
-    if ca.size != irf.shape[-1]:
-        raise ValueError("Cannot compute concentrations as IRF and AIF have different number of time points")
+    # if ca.size != irf.shape[-1]:
+    #     raise ValueError("Cannot compute concentrations as IRF and AIF have different number of time points")
     
     ca_mat = dt * convolution.convmat(ca)
     # Reshape IRF to 2D (n_samples, n_times)
@@ -230,6 +232,11 @@ class TissueLS(SuperModel):
         `TissueX`
 
     """
+
+    # ==========================================
+    # User interface
+    # ==========================================
+
     configs = {
         'sequence': [s for s, v in SEQUENCES.items() if v['steady-state']]
     }
@@ -326,6 +333,187 @@ class TissueLS(SuperModel):
             if self._pars[p].size == 1:
                 self._pars[p] = np.full(self._shape[0], self._pars[p][0])
 
+    def parameters(self, iv=False, Hct=0.45):
+        """Parameters derived from the impulse response"""
+        params = self._parameters(iv, Hct)
+        return {k: v.reshape(self._pixels_shape) for k, v in params.items()}
+    
+    def time(self) -> np.ndarray:
+        """Signal time points"""
+        return self._time()
+
+    def conc(self):
+        """Return the tissue concentration
+
+        Returns:
+            np.ndarray: Concentration in M
+        """
+        C = self._concentration() # (n_pixels, n_compartments, n_times)
+        C = C.reshape(self._pixels_shape + C.shape[1:]) # (nx, ny, nz, n_compartments, n_times)
+        if C.shape[-2] == 1:
+            return C[...,0,:]
+        else:
+            return C
+
+    def signal(self) -> np.ndarray:
+        """Pseudocontinuous signal
+
+        Returns:
+            np.ndarray: the signal as a 1D array.
+        """
+        S = self._signal() # (n_pixels, n_channels, n_times)
+        S = S.reshape(self._pixels_shape + S.shape[1:]) # (nx, ny, nz, n_compartments, n_times)
+        if S.shape[-2] == 1:
+            return S[...,0,:] # (nx, ny, nz, n_times)
+        else:
+            return S # (nx, ny, nz, n_channels, n_times) or # (nx, ny, nz, n_times)
+
+    def predict(self, time: np.ndarray) -> np.ndarray:
+        """Predict the data at specific time points
+
+        Args:
+            time (array-like): Array of time points.
+
+        Returns:
+            np.ndarray: Predicted Signal for each element of *time*.
+        """
+        S = self._predict(time) # (n_pixels, n_channels, n_times)
+        S = S.reshape(self._pixels_shape + S.shape[1:]) # (nx, ny, nz, n_channels, n_times)
+        if S.shape[-2] == 1: # one channel - squeeze out
+            return S[...,0,:] # (nx, ny, nz, n_times)
+        else:
+            return S # (nx, ny, nz, n_channels, n_times) or # (nx, ny, nz, n_times)
+
+    def train(self, time, signal:np.ndarray, aif:dict=None, n0=1, tol=0.1):
+        """Train the free parameters
+
+        Args:
+            signal (array-like): Array with measured signals.
+            aif (dict, optional): AIF signal, time and baseline R1.
+            n0 (int, optional): Number of baseline time points.
+            tol: cut-off value for the singular values in the 
+                computation of the matrix pseudo-inverse.
+
+        Returns:
+            ndarray: impulse response function
+        """ 
+        p = self._pars
+
+        if aif is not None:
+            seq = self._cnfg['sequence']
+            input = Input(aif)
+            ca = SignalToConc(seq, **p)(
+                input.signal, S0=None, R10=input.R10, n0=n0, 
+                B1corr=input.B1corr, r1=p['r1']
+            )
+            t = np.arange(0, np.amax(time) + p['dt'], p['dt'])
+            p['c_a'] = np.interp(t, input.time, ca)
+
+        n_times = p['c_a'].size
+
+        if self._cnfg['sequence'] in ['DE-EPI']:
+            n_channels = 2
+        else:
+            n_channels = 1
+
+        signal = signal.reshape(int(np.prod(self._pixels_shape)), n_channels, n_times)
+        self._train(time, signal, n0, tol)
+
+        orig_shape = self._pixels_shape + self._shape[-2:]
+        return p['irf'].reshape(orig_shape)
+    
+        
+    def plot(
+        self, time, signal: np.ndarray, round_to=None, fname=None, 
+        show=True
+    ):
+        """Plot the model fit against data
+
+        Args:
+            time (array-like): Array with time points
+            signal (array-like, optional): Array with measured signals.
+            round_to (int, optional): Rounding for the model parameters.
+            fname (path, optional): Filepath to save the image. If no value is
+              provided, the image is not saved. 
+            show (bool, optional): If True, the plot is shown. 
+        """
+        signal = signal.reshape(self._shape)
+        self._plot(time, signal, fname, show, round_to)
+
+    def plot_2d(
+        self, time, signal: np.ndarray, fname=None, 
+        show=True, vmin=None, vmax=None, truth=None
+    ):
+        """Plot the model fit against data
+
+        Args:
+            time (array-like): Array with time points
+            signal (array-like, optional): Array with measured signals.
+            fname (path, optional): Filepath to save the image. If no value is
+              provided, the image is not saved. 
+            show (bool, optional): If True, the plot is shown. 
+        """
+        if len(self._pixels_shape) in [0,1]:
+            raise ValueError("Cannot apply plot_2d() to a 1D signal. Please use plot() instead")
+        elif len(self._pixels_shape)==3:
+            raise ValueError("Cannot apply plot_2d() to a 3D signal. Please use plot_3d() instead")
+
+        signal = signal.reshape(self._shape)
+        self._plot_2d(time, signal, fname, show, vmin, vmax, truth)
+
+    def plot_3d(
+        self, time, signal: np.ndarray, fname=None, 
+        show=True, vmin=None, vmax=None,
+    ):
+        """Plot the model fit against data
+
+        Args:
+            time (array-like): Array with time points
+            signal (array-like, optional): Array with measured signals.
+            fname (path, optional): Filepath to save the image. If no value is
+              provided, the image is not saved. 
+            show (bool, optional): If True, the plot is shown. 
+        """
+        if len(self._pixels_shape) in [0,1]:
+            raise ValueError("Cannot apply plot_3d() to a 1D signal. Please use plot() instead")
+        elif len(self._pixels_shape)==2:
+            raise ValueError("Cannot apply plot_3d() to a 2D signal. Please use plot_2d() instead")
+
+        signal = signal.reshape(self._shape)
+        self._plot_3d(time, signal, fname, show, vmin, vmax)
+
+    def cost(self, time: np.ndarray, signal: np.ndarray, metric: str = 'NRMS', nfree=None) -> float:
+        """Return the goodness-of-fit
+
+        Args:
+            time (np.ndarray): array with time points
+            signal (array-like): array with signal data for all pixels.
+            metric (str, optional): Which metric to use (see notes for 
+                possible values). Defaults to 'NRMS'.
+
+        Returns:
+            float: goodness of fit.
+
+        Notes:
+
+            Available options are: 
+            
+            - 'RMS': Root-mean-square.
+            - 'NRMS': Normalized root-mean-square. 
+            - 'AIC': Akaike information criterion. 
+            - 'cAIC': Corrected Akaike information criterion for small 
+                models.
+            - 'BIC': Baysian information criterion.
+        """
+        signal = signal.reshape(self._shape)
+        signal_pred = self._predict(time).reshape(self._shape[0], np.prod(self._shape[1:]))
+
+        cost = loss(signal_pred, signal, metric, nfree)
+        if self._pixels_shape == ():
+            return cost[0]
+        else:
+            return cost
+
     @property
     def _shape(self):
         n_pixels = 1 if self._pixels_shape==() else np.prod(self._pixels_shape)
@@ -344,26 +532,14 @@ class TissueLS(SuperModel):
             return ['c_a', 'TS'] + SignalTissueLS(seq)._params()
         if select == 'pixel':
             return [p for p in self._params() if p in ['S0', 'B1corr', 'R10']]
-  
+
+
     # ==========================================
-    # Inverse Model
+    # Backend
     # ==========================================
 
-    def _estimate_parameters(self, aif: Input, n0: int):
-        if aif is None:
-            return
-        p = self._pars
-        seq = self._cnfg['sequence']
 
-        ca = SignalToConc(seq, **p)(aif.signal, S0=None, R10=aif.R10, n0=n0, B1corr=aif.B1corr)
-        # Interpolate on internal time
-        t = np.arange(0, aif.time[-1] + p['dt'], p['dt'])
-        p['c_a'] = np.interp(t, aif.time, ca)
-
-
-    def _train(self, time, signal, aif: Input, n0=1, tol=0.1):
-        self._estimate_parameters(aif, n0)
-
+    def _train(self, time, signal, n0=1, tol=0.1):
         t = self._time()
         p = self._pars
         seq = self._cnfg['sequence']
@@ -658,179 +834,4 @@ class TissueLS(SuperModel):
                 plt.close(fig)
 
 
-    # ==========================================
-    # Inverse Model: Training
-    # ==========================================
 
-
-    def parameters(self, iv=False, Hct=0.45):
-        """Parameters derived from the impulse response"""
-        params = self._parameters(iv, Hct)
-        return {k: v.reshape(self._pixels_shape) for k, v in params.items()}
-    
-    def time(self) -> np.ndarray:
-        """Signal time points"""
-        return self._time()
-
-    def conc(self):
-        """Return the tissue concentration
-
-        Returns:
-            np.ndarray: Concentration in M
-        """
-        C = self._concentration() # (n_pixels, n_compartments, n_times)
-        C = C.reshape(self._pixels_shape + C.shape[1:]) # (nx, ny, nz, n_compartments, n_times)
-        if C.shape[-2] == 1:
-            return C[...,0,:]
-        else:
-            return C
-
-    def signal(self) -> np.ndarray:
-        """Pseudocontinuous signal
-
-        Returns:
-            np.ndarray: the signal as a 1D array.
-        """
-        S = self._signal() # (n_pixels, n_channels, n_times)
-        S = S.reshape(self._pixels_shape + S.shape[1:]) # (nx, ny, nz, n_compartments, n_times)
-        if S.shape[-2] == 1:
-            return S[...,0,:] # (nx, ny, nz, n_times)
-        else:
-            return S # (nx, ny, nz, n_channels, n_times) or # (nx, ny, nz, n_times)
-
-    def predict(self, time: np.ndarray) -> np.ndarray:
-        """Predict the data at specific time points
-
-        Args:
-            time (array-like): Array of time points.
-
-        Returns:
-            np.ndarray: Predicted Signal for each element of *time*.
-        """
-        S = self._predict(time) # (n_pixels, n_channels, n_times)
-        S = S.reshape(self._pixels_shape + S.shape[1:]) # (nx, ny, nz, n_channels, n_times)
-        if S.shape[-2] == 1: # one channel - squeeze out
-            return S[...,0,:] # (nx, ny, nz, n_times)
-        else:
-            return S # (nx, ny, nz, n_channels, n_times) or # (nx, ny, nz, n_times)
-
-    def train(self, time, signal:np.ndarray, aif:Input=None, n0=1, tol=0.1):
-        """Train the free parameters
-
-        Args:
-            signal (array-like): Array with measured signals.
-            aif (Input, optional): AIF signal, time and baseline R1.
-            n0 (int, optional): Number of baseline time points.
-            tol: cut-off value for the singular values in the 
-                computation of the matrix pseudo-inverse.
-
-        Returns:
-            ndarray: impulse response function
-        """ 
-        if aif is not None:
-            n_times = aif.signal.size
-        else:
-            n_times = self._pars['c_a'].size
-
-        if self._cnfg['sequence'] in ['DE-EPI']:
-            n_channels = 2
-        else:
-            n_channels = 1
-
-        signal = signal.reshape(int(np.prod(self._pixels_shape)), n_channels, n_times)
-        self._train(time, signal, aif, n0, tol)
-
-        orig_shape = self._pixels_shape + self._shape[-2:]
-        return self._pars['irf'].reshape(orig_shape)
-    
-        
-    def plot(
-        self, time, signal: np.ndarray, round_to=None, fname=None, 
-        show=True
-    ):
-        """Plot the model fit against data
-
-        Args:
-            time (array-like): Array with time points
-            signal (array-like, optional): Array with measured signals.
-            round_to (int, optional): Rounding for the model parameters.
-            fname (path, optional): Filepath to save the image. If no value is
-              provided, the image is not saved. 
-            show (bool, optional): If True, the plot is shown. 
-        """
-        signal = signal.reshape(self._shape)
-        self._plot(time, signal, fname, show, round_to)
-
-    def plot_2d(
-        self, time, signal: np.ndarray, fname=None, 
-        show=True, vmin=None, vmax=None, truth=None
-    ):
-        """Plot the model fit against data
-
-        Args:
-            time (array-like): Array with time points
-            signal (array-like, optional): Array with measured signals.
-            fname (path, optional): Filepath to save the image. If no value is
-              provided, the image is not saved. 
-            show (bool, optional): If True, the plot is shown. 
-        """
-        if len(self._pixels_shape) in [0,1]:
-            raise ValueError("Cannot apply plot_2d() to a 1D signal. Please use plot() instead")
-        elif len(self._pixels_shape)==3:
-            raise ValueError("Cannot apply plot_2d() to a 3D signal. Please use plot_3d() instead")
-
-        signal = signal.reshape(self._shape)
-        self._plot_2d(time, signal, fname, show, vmin, vmax, truth)
-
-    def plot_3d(
-        self, time, signal: np.ndarray, fname=None, 
-        show=True, vmin=None, vmax=None,
-    ):
-        """Plot the model fit against data
-
-        Args:
-            time (array-like): Array with time points
-            signal (array-like, optional): Array with measured signals.
-            fname (path, optional): Filepath to save the image. If no value is
-              provided, the image is not saved. 
-            show (bool, optional): If True, the plot is shown. 
-        """
-        if len(self._pixels_shape) in [0,1]:
-            raise ValueError("Cannot apply plot_3d() to a 1D signal. Please use plot() instead")
-        elif len(self._pixels_shape)==2:
-            raise ValueError("Cannot apply plot_3d() to a 2D signal. Please use plot_2d() instead")
-
-        signal = signal.reshape(self._shape)
-        self._plot_3d(time, signal, fname, show, vmin, vmax)
-
-    def cost(self, time: np.ndarray, signal: np.ndarray, metric: str = 'NRMS', nfree=None) -> float:
-        """Return the goodness-of-fit
-
-        Args:
-            time (np.ndarray): array with time points
-            signal (array-like): array with signal data for all pixels.
-            metric (str, optional): Which metric to use (see notes for 
-                possible values). Defaults to 'NRMS'.
-
-        Returns:
-            float: goodness of fit.
-
-        Notes:
-
-            Available options are: 
-            
-            - 'RMS': Root-mean-square.
-            - 'NRMS': Normalized root-mean-square. 
-            - 'AIC': Akaike information criterion. 
-            - 'cAIC': Corrected Akaike information criterion for small 
-                models.
-            - 'BIC': Baysian information criterion.
-        """
-        signal = signal.reshape(self._shape)
-        signal_pred = self._predict(time).reshape(self._shape[0], np.prod(self._shape[1:]))
-
-        cost = loss(signal_pred, signal, metric, nfree)
-        if self._pixels_shape == ():
-            return cost[0]
-        else:
-            return cost

@@ -1,6 +1,6 @@
 import numpy as np
 
-import dcmri.inverse.lib as inv
+import dcmri as dc
 
 
 def test_conc_dce():
@@ -16,16 +16,16 @@ def test_conc_dce():
     r1 = 4.5
     
     # Case 1: Run with automatic baseline normalization (S0=None, R20s=None)
-    res_normalized = inv.conc_dce(dummy_sn_model, S, n0=1, R10=R10, S0=None, r1=r1, R20s=None)
+    res_normalized = dc.conc_dce(dummy_sn_model, S, n0=1, R10=R10, S0=None, r1=r1, R20s=None)
     assert res_normalized.shape == (1, 3)
 
     # Case 2: Run with pre-defined S0 and explicit R20s / TE params dictionary
-    res_explicit = inv.conc_dce(dummy_sn_model, S, n0=1, R10=R10, S0=np.array([10.0]), r1=r1, R20s=1.5, TE=0.02)
+    res_explicit = dc.conc_dce(dummy_sn_model, S, n0=1, R10=R10, S0=np.array([10.0]), r1=r1, R20s=1.5, TE=0.02)
     assert res_explicit.shape == (1, 3)
 
-    res_explicit = inv.conc_dce(dummy_sn_model, S, n0=1, R10=R10, S0=np.array([10.0]), r1=r1, R20s=1.5)
-    res_explicit = inv.conc_dce(dummy_sn_model, S, n0=1, R10=R10, S0=None, r1=r1, R20s=np.array([1.5]))
-    res_explicit = inv.conc_dce(dummy_sn_model, S, n0=1, R10=None, S0=np.array([10.0]), r1=r1, R20s=1.5)
+    res_explicit = dc.conc_dce(dummy_sn_model, S, n0=1, R10=R10, S0=np.array([10.0]), r1=r1, R20s=1.5)
+    res_explicit = dc.conc_dce(dummy_sn_model, S, n0=1, R10=R10, S0=None, r1=r1, R20s=np.array([1.5]))
+    res_explicit = dc.conc_dce(dummy_sn_model, S, n0=1, R10=None, S0=np.array([10.0]), r1=r1, R20s=1.5)
 
 
 def test_conc_dsc():
@@ -40,7 +40,7 @@ def test_conc_dsc():
     TE = 0.05
 
     # Check safe execution
-    C = inv.conc_dsc(S, n0, r2, TE)
+    C = dc.conc_dsc(S, n0, r2, TE)
     assert C.shape == (2, 3)
     # The concentration should increase as the signal drops below baseline
     assert C[0, 2] > C[0, 0] 
@@ -60,14 +60,14 @@ def test_conc_ss():
     }
 
     # Case 1: Standard computation with auto baseline calculation
-    C_auto = inv.conc_ss(S, n0=n0, R10=R10, S0=None, R20s=1.5, r1=r1, **sequence_params)
+    C_auto = dc.conc_ss(S, n0=n0, R10=R10, S0=None, R20s=1.5, r1=r1, **sequence_params)
     assert C_auto.shape == (1, 3)
 
     # Case 2: Explicit baseline array injection profile override
-    C_explicit = inv.conc_ss(S, n0=n0, R10=R10, S0=np.array([100.0]), R20s=None, r1=r1, **sequence_params)
+    C_explicit = dc.conc_ss(S, n0=n0, R10=R10, S0=np.array([100.0]), R20s=None, r1=r1, **sequence_params)
     assert C_explicit.shape == (1, 3)
 
-    C_explicit = inv.conc_ss(S, n0=n0, R10=None, S0=np.array([100.0]), R20s=None, r1=r1, **sequence_params)
+    C_explicit = dc.conc_ss(S, n0=n0, R10=None, S0=np.array([100.0]), R20s=None, r1=r1, **sequence_params)
 
 
 def test_conc_dce_lin():
@@ -78,14 +78,14 @@ def test_conc_dce_lin():
     r1 = 3.5
 
     # Case 1: Compute without S0 to trigger the initialization path
-    C_auto = inv.conc_dce_lin(S, n0=n0, R10=R10, S0=None, r1=r1)
+    C_auto = dc.conc_dce_lin(S, n0=n0, R10=R10, S0=None, r1=r1)
     assert C_auto.shape == (1, 3)
 
     # Case 2: Direct calculation via pre-specified scaling factor
-    C_explicit = inv.conc_dce_lin(S, n0=n0, R10=R10, S0=np.array([5.0]), r1=r1)
+    C_explicit = dc.conc_dce_lin(S, n0=n0, R10=R10, S0=np.array([5.0]), r1=r1)
     assert C_explicit.shape == (1, 3)
 
-    C_explicit = inv.conc_dce_lin(S, n0=n0, R10=None, S0=np.array([5.0]), r1=r1)
+    C_explicit = dc.conc_dce_lin(S, n0=n0, R10=None, S0=np.array([5.0]), r1=r1)
 
 
 def test_vfa_nonlinear():
@@ -101,13 +101,13 @@ def test_vfa_nonlinear():
     signals_1d = target_s0 * np.sin(alphas) * (1 - e1) / (1 - np.cos(alphas) * e1)
 
     # Case 1: Valid 1D array profile fit execution
-    r1_fit, s0_fit = inv.vfa_nonlinear(signals_1d, flip_angles, tr)
+    r1_fit, s0_fit = dc.vfa_nonlinear(signals_1d, flip_angles, tr)
     assert np.isclose(r1_fit, 1.0, atol=1e-1)
     assert np.isclose(s0_fit, 1000.0, atol=10.0)
 
     # Case 2: Shape validation error branch (mismatched sizes)
     try:
-        inv.vfa_nonlinear(signals_1d, flip_angles[:-1], tr)
+        dc.vfa_nonlinear(signals_1d, flip_angles[:-1], tr)
         assert False, "Should have raised ValueError due to length mismatch."
     except ValueError:
         pass
@@ -118,7 +118,7 @@ def test_vfa_nonlinear():
     signals_2d[0, :] = signals_1d
     signals_2d[1, :] = signals_1d
             
-    r1_grid, s0_grid = inv.vfa_nonlinear(signals_2d, flip_angles, tr)
+    r1_grid, s0_grid = dc.vfa_nonlinear(signals_2d, flip_angles, tr)
     assert r1_grid.shape == (2,)
     assert s0_grid.shape == (2,)
 
@@ -141,13 +141,13 @@ def test_vfa_linear():
     signals_1d = (target_s0 * (1 - target_e1)) / denom
 
     # Case 1: Clean linear fit estimation matching expected targets
-    r1_fit, s0_fit = inv.vfa_linear(signals_1d, flip_angles, tr)
+    r1_fit, s0_fit = dc.vfa_linear(signals_1d, flip_angles, tr)
     assert np.isclose(r1_fit, 1.2, atol=1e-2)
     assert np.isclose(s0_fit, 500.0, atol=1e-1)
 
     # Case 2: Validation boundary error (mismatched size profiles)
     try:
-        inv.vfa_linear(signals_1d, flip_angles[:-1], tr)
+        dc.vfa_linear(signals_1d, flip_angles[:-1], tr)
         assert False, "Should have raised ValueError due to length mismatch."
     except ValueError:
         pass
@@ -155,21 +155,21 @@ def test_vfa_linear():
     # Case 3: Flat data
     flat_signals = np.array([100.0, 100.0, 100.0, 100.0])
     custom_bounds = ([0.1, 10.0], [10.0, 2000.0])
-    r1, s0 = inv.vfa_linear(flat_signals, flip_angles, tr, bounds=custom_bounds, verbose=0)
+    r1, s0 = dc.vfa_linear(flat_signals, flip_angles, tr, bounds=custom_bounds, verbose=0)
 
     # Case 4: Multidimensional image mapping block verification (e.g., 2 pixels)
     signals_2d = np.zeros((2, len(flip_angles)))
     signals_2d[0, :] = signals_1d
     signals_2d[1, :] = signals_1d
     
-    r1_arr, s0_arr = inv.vfa_linear(signals_2d, flip_angles, tr)
+    r1_arr, s0_arr = dc.vfa_linear(signals_2d, flip_angles, tr)
     assert r1_arr.shape == (2,)
     assert s0_arr.shape == (2,)
 
     flat_signals = np.array([100.0])
     flip_angles = np.array([15.0])
     custom_bounds = ([0.1, 10.0], [10.0, 2000.0])
-    r1, s0 = inv.vfa_linear(flat_signals, flip_angles, tr, bounds=custom_bounds, verbose=1)
+    r1, s0 = dc.vfa_linear(flat_signals, flip_angles, tr, bounds=custom_bounds, verbose=1)
 
 # =========================================================================
     # EXTENSION: Unphysical Slope Coverage
@@ -181,7 +181,7 @@ def test_vfa_linear():
     # Signal that increases unrealistically fast with flip angle yields a steep slope >= 1.
     # This leads to a negative or undefined R1 because ln(e1) becomes >= 0.
     unphysical_high_signals = np.array([10.0, 50.0, 200.0, 800.0])
-    r1_high, s0_high = inv.vfa_linear(
+    r1_high, s0_high = dc.vfa_linear(
         unphysical_high_signals, flip_angles, tr, bounds=custom_bounds, verbose=1
     )
     # Assert it falls back exactly to the lower bounds provided
@@ -192,7 +192,7 @@ def test_vfa_linear():
     # Signal that drops off far quicker than the SPGR equation expects yields a negative slope.
     # This leads to an undefined R1 because ln(e1) cannot evaluate a negative number.
     unphysical_low_signals = np.array([800.0, 200.0, 50.0, 10.0])
-    r1_low, s0_low = inv.vfa_linear(
+    r1_low, s0_low = dc.vfa_linear(
         unphysical_low_signals, flip_angles, tr, bounds=custom_bounds, verbose=1
     )
     # Assert it falls back exactly to the lower bounds provided

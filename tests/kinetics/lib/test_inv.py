@@ -1,6 +1,6 @@
 import numpy as np
 
-import dcmri.kinetics.lib as pk
+import dcmri as dc
 from dcmri.kinetics.lib.inv import _params_2cfm
 
 
@@ -9,7 +9,7 @@ def test_linfit_2cfm():
     imgs = np.arange(nx * nt).reshape((nx, nt))
     aif = np.ones(nt)
     time = np.arange(nt)
-    fir, pars = pk.linfit_2cfm(imgs, aif, time)
+    fir, pars = dc.linfit_2cfm(imgs, aif, time)
 
     _params_2cfm([1, 1, 1, 1])
     _params_2cfm([1, 3, 1, 1])

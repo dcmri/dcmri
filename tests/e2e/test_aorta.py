@@ -1,7 +1,9 @@
 import os
 import itertools
 
+import numpy as np
 import matplotlib.pyplot as plt
+
 from dcmri import Aorta as Model
 
 
@@ -41,11 +43,21 @@ def test_configs():
 
 def test_api():
     model = Model()
+
+    # params()
+    assert 'Thl' in model.params()
+    try:
+        model.params('XX')
+    except:
+        pass
+    else:
+        assert False
+    assert np.isscalar(model.params('Thl')) 
+    assert not np.isscalar(model.params('Thl', 'Dhl')) 
     
     # Test Forward API outputs
     t = model.time()
     S = model.signal()
-
 
     test_plot_file = "test_plot_output.png"
     try:
@@ -101,5 +113,5 @@ if __name__ == "__main__":
     test_api()
     test_exceptions()
     
-    print('All ui_aorta tests passed!!')
+    print('All Aorta tests passed!!')
 

@@ -139,14 +139,13 @@ from typing import Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri import const
-from dcmri.lexicon import SEQUENCES
-from dcmri.kinetics import ConcAorta
-from dcmri.bloch import Signal
+from dcmri.utils import const
+from dcmri.lexicon.dicts import SEQUENCES
+from dcmri.kinetics.conc import ConcAorta, ConcKidney
+from dcmri.bloch.tissue import Signal
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
-from dcmri.core import SuperModel
-from dcmri.kinetics import ConcKidney
+from dcmri.core.model import SuperModel
 
 
 class AortaKidneys(SuperModel):
@@ -168,8 +167,12 @@ class AortaKidneys(SuperModel):
 
     """
 
+    # ==========================================
+    # User interface
+    # ==========================================
+
     configs = ConcAorta.configs | {
-        'kidneys': ['2CF', 'HF'],
+        'kidneys': ['2CF', '2PF'],
         'sequence': ['3D-SPGR-SS', '3D-SR-SPGR-SS', '3D-SPGR-SSI'],
         'liver_clearance': [True, False],
       }
@@ -193,6 +196,228 @@ class AortaKidneys(SuperModel):
         self._version = '1.0'
         self._cnfg = self._set_config(**cnfg)
         self._pars = self._set_pars(**params)
+
+    def time(self) -> dict:
+        """Internal time array
+
+        Returns:
+            Tuple: (aorta_time, portal_time, liver_time).
+        """
+        self._compute_time()
+        return {
+            'aorta': self._t, 
+            'kidney_left': self._t, 
+            'kidney_right': self._t,
+        }
+
+    def conc(self) -> dict:
+        """Concentrations in aorta and kidney.
+
+        Args:
+            sum (bool, optional): If set to true, the kidney 
+              concentrations are the sum over all compartments. If 
+              set to false, the compartmental concentrations are 
+              returned individually. Defaults to True.
+
+        Returns:
+            tuple: time points, aorta blood concentrations, left 
+              kidney concentrations, right kidney concentrations.
+        """
+        self._compute_conc_aorta()
+        self._compute_conc_kidneys()
+        return {
+            'aorta': self._ca, 
+            'kidney_left': self._Ck['lk'], 
+            'kidney_right': self._Ck['rk'],
+        }
+
+    def relax(self) -> dict:
+        """Relaxation rates in aorta and kidney.
+
+        Returns:
+            tuple: time points, aorta relaxation rate, left kidney 
+              relaxation rate, right kidney relaxation rate.
+        """
+        self._compute_relax_aorta()
+        self._compute_relax_kidneys()
+        R1 = {
+            'aorta': self._R1a, 
+            'kidney_left': self._R1k['lk'], 
+            'kidney_right': self._R1k['rk'],
+        }
+        R2s = {
+            'aorta': self._R2sa, 
+            'kidney_left': self._R2sk['lk'], 
+            'kidney_right': self._R2sk['rk'],
+        }
+        return R1, R2s
+    
+    def signal(self) -> dict:
+        """Return signals in aorta and liver.
+
+        Returns:
+            tuple: signals for (aorta, portal, liver)
+        """
+        self._compute_signal_aorta()
+        self._compute_signal_kidneys()
+        return {
+            'aorta': self._Sa, 
+            'kidney_left': self._Sk['lk'], 
+            'kidney_right': self._Sk['rk'],
+        }
+
+    def predict(self, time) -> dict:
+        """Predict the data at given time
+
+        Args:
+            time (tuple): Tuple of 3 arrays with time points for 
+              aorta, left kidney and right kidney, in that order. 
+              The three arrays can all be different in length and value.
+
+        Returns:
+            tuple: Tuple of 3 arrays with signals for aorta, left 
+              kidney and right kidney, in that order. The three 
+              arrays can all be different in length and value but 
+              each has to have the same length as its corresponding 
+              array of time points.
+        """
+        if isinstance(time, dict):
+            time = (
+                time['aorta'], 
+                time['kidney_left'],
+                time['kidney_right'], 
+            )
+        elif isinstance(time, np.ndarray):
+            time = tuple(3 * [time])
+
+        signal = self._predict(time)
+
+        return {
+            'aorta': signal[0],
+            'kidney_left': signal[1],
+            'kidney_right': signal[2],
+        }
+
+    def train(
+        self, time: dict, signal: dict, free: dict = None, 
+        bounds: dict = None, n0=1, staged=False, **kwargs
+    ) -> Tuple[dict, dict, np.ndarray]:
+        """Train the free parameters
+
+       Args:
+            time (tuple): (time_aorta, time_portal, time_liver) arrays.
+            signal (tuple): (signal_aorta, signal_portal, signal_liver) arrays.
+            free (dict, optional): Free parameters and their bounds.
+            bounds (dict, optional): Override default bounds for specific params.
+            n0 (int, optional): Baseline points for S0 estimation. Defaults to 1.
+            staged (bool, optional): If True, the training is performed in stages
+            **kwargs: Passed to scipy.optimize.curve_fit via utils.train.
+
+        Returns:
+            vals, sdev, pcov: Values, standard deviations and 
+              covariance matrix of free parameters
+
+        """
+        if isinstance(time, dict):
+            time = (
+                time['aorta'], 
+                time['kidney_left'],
+                time['kidney_right'], 
+            )
+        else:
+            time = tuple(3 * [time])
+        if isinstance(signal, dict):
+            signal = (
+                signal['aorta'], 
+                signal['kidney_left'], 
+                signal['kidney_right'], 
+            )
+        return self._train(time, signal, free, bounds, n0, staged, **kwargs)
+
+    def plot(
+        self, time: dict, signal: dict, xlim: list = None, 
+        fname: str = None, show = True,
+    ):
+        """Plot the model fit against data
+
+        Args:
+            time (tuple): tuple of 3 arrays with time points for aorta, 
+              portal vein and liver, in that order. The two arrays can be 
+              different in length and value.
+            signal (array-like): tuple of 3 arrays with signals for aorta, 
+              portal vein and liver, in that order. The arrays can be 
+              different in length and value but each has to have the same 
+              length as its corresponding array of time points.
+            xlim (array_like, optional): 2-element array with lower and upper 
+              boundaries of the x-axis. Defaults to None.
+            fname (path, optional): Filepath to save the image. If no value 
+              is provided, the image is not saved. Defaults to None.
+            show (bool, optional): If True, the plot is shown. Defaults to 
+              True.
+        """
+        if isinstance(time, dict):
+            time = (
+                time['aorta'], 
+                time['kidney_left'],
+                time['kidney_right'], 
+            )
+        else:
+            time = tuple(3 * [time])
+        if isinstance(signal, dict):
+            signal = (
+                signal['aorta'], 
+                signal['kidney_left'], 
+                signal['kidney_right'], 
+            )
+        self._plot(time, signal, xlim, fname, show)
+
+    def cost(self, time: dict, signal: dict, metric: str = 'NRMS', nfree=None) -> float:
+        """Return the goodness-of-fit
+
+        Args:
+            time (np.ndarray): array with time points
+            signal (array-like): array with signal data for all pixels.
+            metric (str, optional): Which metric to use (see notes for 
+                possible values). Defaults to 'NRMS'.
+
+        Returns:
+            float: goodness of fit.
+
+        Notes:
+
+            Available options are: 
+            
+            - 'RMS': Root-mean-square.
+            - 'NRMS': Normalized root-mean-square. 
+            - 'AIC': Akaike information criterion. 
+            - 'cAIC': Corrected Akaike information criterion for small 
+                models.
+            - 'BIC': Baysian information criterion.
+        """
+        if isinstance(time, dict):
+            time = (
+                time['aorta'], 
+                time['kidney_left'], 
+                time['kidney_right'], 
+            )
+        else:
+            time = tuple(3 * [time])
+        if isinstance(signal, dict):
+            signal = (
+                signal['aorta'], 
+                signal['kidney_left'], 
+                signal['kidney_right'], 
+            )
+        signal = np.concatenate(signal)
+        signal_pred = np.concatenate(self._predict(time))
+        cost = loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
+        return cost[0]
+    
+
+    # ==========================================
+    # Backend
+    # ==========================================
+    
     
     def _params(self, select='all'):
     
@@ -202,7 +427,7 @@ class AortaKidneys(SuperModel):
 
         kidneys = {
             '2CF': ['DRPF'],
-            'HF': [],
+            '2PF': [],
         }[self._cnfg['kidneys']]
 
         sequence = SEQUENCES[seq]['parameters']['prep']
@@ -215,7 +440,7 @@ class AortaKidneys(SuperModel):
         pars_list = {
             'all': aorta_conc._params() + kidneys + agent + sequence + [
                 'TS',
-                'H', 'RPF', 'DRF',
+                'H', 'RPF', 'DRF', 'DRPF',
                 'T_a_lk', 'vp_lk', 'Tt_lk', 'vol_lk', 
                 'T_a_rk', 'vp_rk', 'Tt_rk', 'vol_rk', 
                 'R10_a', 'R10_lk', 'R10_rk',
@@ -224,7 +449,7 @@ class AortaKidneys(SuperModel):
                 'B1corr_a', 'B1corr_lk', 'B1corr_rk',
             ],
             'free': aorta_conc._params('body') + free_inflow + kidneys + agent + [
-                'RPF', 'DRF',
+                'RPF', 'DRF', 'DRPF',
                 'T_a_lk', 'vp_lk', 'Tt_lk',
                 'T_a_rk', 'vp_rk', 'Tt_rk',
             ],
@@ -237,7 +462,6 @@ class AortaKidneys(SuperModel):
         }
         return pars_list[select]
     
-
     # ==========================================
     # Forward Model: Aorta
     # ==========================================
@@ -300,12 +524,11 @@ class AortaKidneys(SuperModel):
             pk['T_a'] = p[f'T_a_{k}']
             pk['vp'] = p[f'vp_{k}']
             pk['Tt'] = p[f'Tt_{k}']
-            pk['Ft'] = Ft[k]
-            if 'Fp' in pk:
-                pk['Fp'] = {
-                    'lk': p['DRPF'] * p['RPF'] / p[f'vol_lk'],
-                    'rk': (1 - p['DRPF']) * p['RPF'] / p['vol_rk']
-                }[k]   
+            pk['Fp'] = {
+                'lk': p['DRPF'] * p['RPF'] / p[f'vol_lk'],
+                'rk': (1 - p['DRPF']) * p['RPF'] / p['vol_rk']
+            }[k]  
+            pk['FF'] = Ft[k] / pk['Fp'] 
             self._Ck[k] = conc(ca, dt=p['dt'], **pk)              
 
     def _compute_relax_kidneys(self):
@@ -467,221 +690,7 @@ class AortaKidneys(SuperModel):
         if show: plt.show()
         else: plt.close()
 
-    # ==========================================
-    # Public API: dict Extraction
-    # ==========================================
 
-    def time(self) -> dict:
-        """Internal time array
-
-        Returns:
-            Tuple: (aorta_time, portal_time, liver_time).
-        """
-        self._compute_time()
-        return {
-            'aorta': self._t, 
-            'kidney_left': self._t, 
-            'kidney_right': self._t,
-        }
-
-    def conc(self) -> dict:
-        """Concentrations in aorta and kidney.
-
-        Args:
-            sum (bool, optional): If set to true, the kidney 
-              concentrations are the sum over all compartments. If 
-              set to false, the compartmental concentrations are 
-              returned individually. Defaults to True.
-
-        Returns:
-            tuple: time points, aorta blood concentrations, left 
-              kidney concentrations, right kidney concentrations.
-        """
-        self._compute_conc_aorta()
-        self._compute_conc_kidneys()
-        return {
-            'aorta': self._ca, 
-            'kidney_left': self._Ck['lk'], 
-            'kidney_right': self._Ck['rk'],
-        }
-
-    def relax(self) -> dict:
-        """Relaxation rates in aorta and kidney.
-
-        Returns:
-            tuple: time points, aorta relaxation rate, left kidney 
-              relaxation rate, right kidney relaxation rate.
-        """
-        self._compute_relax_aorta()
-        self._compute_relax_kidneys()
-        R1 = {
-            'aorta': self._R1a, 
-            'kidney_left': self._R1k['lk'], 
-            'kidney_right': self._R1k['rk'],
-        }
-        R2s = {
-            'aorta': self._R2sa, 
-            'kidney_left': self._R2sk['lk'], 
-            'kidney_right': self._R2sk['rk'],
-        }
-        return R1, R2s
-    
-    def signal(self) -> dict:
-        """Return signals in aorta and liver.
-
-        Returns:
-            tuple: signals for (aorta, portal, liver)
-        """
-        self._compute_signal_aorta()
-        self._compute_signal_kidneys()
-        return {
-            'aorta': self._Sa, 
-            'kidney_left': self._Sk['lk'], 
-            'kidney_right': self._Sk['rk'],
-        }
-
-    def predict(self, time) -> dict:
-        """Predict the data at given time
-
-        Args:
-            time (tuple): Tuple of 3 arrays with time points for 
-              aorta, left kidney and right kidney, in that order. 
-              The three arrays can all be different in length and value.
-
-        Returns:
-            tuple: Tuple of 3 arrays with signals for aorta, left 
-              kidney and right kidney, in that order. The three 
-              arrays can all be different in length and value but 
-              each has to have the same length as its corresponding 
-              array of time points.
-        """
-        if isinstance(time, dict):
-            time = (
-                time['aorta'], 
-                time['kidney_left'],
-                time['kidney_right'], 
-            )
-        else:
-            time = tuple(3 * [time])
-
-        signal = self._predict(time)
-
-        return {
-            'aorta': signal[0],
-            'kidney_left': signal[1],
-            'kidney_right': signal[2],
-        }
-
-    def train(
-        self, time: dict, signal: dict, free: dict = None, 
-        bounds: dict = None, n0=1, staged=False, **kwargs
-    ) -> Tuple[dict, dict, np.ndarray]:
-        """Train the free parameters
-
-       Args:
-            time (tuple): (time_aorta, time_portal, time_liver) arrays.
-            signal (tuple): (signal_aorta, signal_portal, signal_liver) arrays.
-            free (dict, optional): Free parameters and their bounds.
-            bounds (dict, optional): Override default bounds for specific params.
-            n0 (int, optional): Baseline points for S0 estimation. Defaults to 1.
-            staged (bool, optional): If True, the training is performed in stages
-            **kwargs: Passed to scipy.optimize.curve_fit via utils.train.
-
-        Returns:
-            vals, sdev, pcov: Values, standard deviations and 
-              covariance matrix of free parameters
-
-        """
-        if isinstance(time, dict):
-            time = (
-                time['aorta'], 
-                time['kidney_left'],
-                time['kidney_right'], 
-            )
-        else:
-            time = tuple(3 * [time])
-        signal = (
-            signal['aorta'], 
-            signal['kidney_left'], 
-            signal['kidney_right'], 
-        )
-        return self._train(time, signal, free, bounds, n0, staged, **kwargs)
-
-    def plot(
-        self, time: dict, signal: dict, xlim: list = None, 
-        fname: str = None, show = True,
-    ):
-        """Plot the model fit against data
-
-        Args:
-            time (tuple): tuple of 3 arrays with time points for aorta, 
-              portal vein and liver, in that order. The two arrays can be 
-              different in length and value.
-            signal (array-like): tuple of 3 arrays with signals for aorta, 
-              portal vein and liver, in that order. The arrays can be 
-              different in length and value but each has to have the same 
-              length as its corresponding array of time points.
-            xlim (array_like, optional): 2-element array with lower and upper 
-              boundaries of the x-axis. Defaults to None.
-            fname (path, optional): Filepath to save the image. If no value 
-              is provided, the image is not saved. Defaults to None.
-            show (bool, optional): If True, the plot is shown. Defaults to 
-              True.
-        """
-        if isinstance(time, dict):
-            time = (
-                time['aorta'], 
-                time['kidney_left'],
-                time['kidney_right'], 
-            )
-        else:
-            time = tuple(3 * [time])
-        signal = (
-            signal['aorta'], 
-            signal['kidney_left'], 
-            signal['kidney_right'], 
-        )
-        self._plot(time, signal, xlim, fname, show)
-
-    def cost(self, time: dict, signal: dict, metric: str = 'NRMS', nfree=None) -> float:
-        """Return the goodness-of-fit
-
-        Args:
-            time (np.ndarray): array with time points
-            signal (array-like): array with signal data for all pixels.
-            metric (str, optional): Which metric to use (see notes for 
-                possible values). Defaults to 'NRMS'.
-
-        Returns:
-            float: goodness of fit.
-
-        Notes:
-
-            Available options are: 
-            
-            - 'RMS': Root-mean-square.
-            - 'NRMS': Normalized root-mean-square. 
-            - 'AIC': Akaike information criterion. 
-            - 'cAIC': Corrected Akaike information criterion for small 
-                models.
-            - 'BIC': Baysian information criterion.
-        """
-        if isinstance(time, dict):
-            time = (
-                time['aorta'], 
-                time['kidney_left'], 
-                time['kidney_right'], 
-            )
-        else:
-            time = tuple(3 * [time])
-        signal = np.concatenate((
-            signal['aorta'], 
-            signal['kidney_left'], 
-            signal['kidney_right'], 
-        ))
-        signal_pred = np.concatenate(self._predict(time))
-        cost = loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
-        return cost[0]
 
 
 

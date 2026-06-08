@@ -2,6 +2,7 @@ import os
 import itertools
 
 import matplotlib.pyplot as plt
+
 from dcmri import AortaKidneys as Model
 
 
@@ -39,6 +40,8 @@ def test_configs():
         model.signal()
         assert cost < 6
 
+    # Variations
+
     # Staged Training
     model = Model(**pars)
     time = model.time()
@@ -46,6 +49,16 @@ def test_configs():
     model.train(time, signal, staged=True, verbose=VERBOSE, xtol=0.01)
     model.plot(time, signal, show=DEBUG)
     cost = model.cost(time, signal)
+    print('staged', cost)
+    assert cost < 5
+
+    # One time array
+    model = Model(**pars)
+    time = model.time()
+    signal = model.predict(time['aorta'])
+    model.train(time['aorta'], signal, staged=True, verbose=VERBOSE, xtol=0.01)
+    model.plot(time['aorta'], signal, show=DEBUG)
+    cost = model.cost(time['aorta'], signal)
     print('staged', cost)
     assert cost < 5
 

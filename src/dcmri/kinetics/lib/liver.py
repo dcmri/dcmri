@@ -3,7 +3,7 @@ from typing import Optional
 
 import numpy as np
 
-import dcmri.kinetics.lib as pk
+import dcmri.kinetics.lib.blocks as pk
 from dcmri.utils.misc import tarray, interp
 
 
@@ -12,8 +12,10 @@ def _div(a, b):
         return np.divide(a, b)
 
 
-def dpars_liver(p, kinetics=None, H=0.45) -> dict:
+def dpars_liver(p, kinetics=None) -> dict:
 
+    H = p['H'] if 'H' in p else 0.45
+    
     p = copy.deepcopy(p)
         
     # Non-stationary options
@@ -77,8 +79,8 @@ def dpars_liver(p, kinetics=None, H=0.45) -> dict:
         p['Fa'] = p['fa'] * p['Fp']
         p['Fv'] = (1 - p['fa']) * p['Fp']
 
-    if {'khe', 'vol'}.issubset(p):
-        p['CL'] = p['khe'] * p['vol']
+    if {'khe', 'vol_l'}.issubset(p):
+        p['CL'] = p['khe'] * p['vol_l']
 
     return p
     

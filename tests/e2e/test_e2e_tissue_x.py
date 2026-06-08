@@ -1,16 +1,13 @@
 import os
 import itertools
 from joblib import parallel_config, Parallel, delayed
-from tqdm import tqdm
 
 import matplotlib.pyplot as plt
 import numpy as np
+
 import dcmri as dc
-from dcmri.bloch import Signal
-from dcmri.core import Input
 from dcmri import TissueX as Model
-from dcmri import aif
-from dcmri.lexicon import SEQUENCES
+from dcmri.lexicon.dicts import SEQUENCES
 
 
 DEBUG = False
@@ -26,6 +23,15 @@ else:
 
 
 def test_coverage():
+
+    # Derive shape from data
+    model = Model()
+    time = np.arange(10)
+    signal = np.ones((5,10))
+    aif = {'signal': np.ones(20), 'time': np.arange(20)}
+    model.train(time, signal, aif, xtol=0.1)
+    model.cost(time, signal)
+
     def run_single_config(cnfg):
         print(cnfg)
         # if cnfg != ('2CX', 'FF', 'lin', 'SE-EPI'):
@@ -59,7 +65,7 @@ def test_coverage():
             for cnfgs in itertools.product(*values)
         ]
         # results = Parallel(n_jobs=-1)(
-        #     delayed(run_single_config)(*cnfgs) 
+        #     delayed(run_single_config)(cnfgs)
         #     for cnfgs in itertools.product(*values)
         # )
 
@@ -69,13 +75,31 @@ def test_coverage():
 
 
 
+
+
 def test_api():
 
     # Run some options
-    Model(vb=np.zeros((5,5)))
-    Model(vb=np.zeros((5,5)), shape=(5,5))
+    model = Model(vb=np.zeros((5,5)))
+    model = Model(vb=np.zeros((5,5)), shape=(5,5))
 
-    model =Model()
+    model.print_params()
+    model.params()
+    model.params('vb')
+    model.params('vb', 'TS')
+    try:
+        model.params('XX')
+    except:
+        pass
+    else:
+        assert False
+
+    model = Model()
+
+    # print_params()
+    model.print_params('vb', 'R10', 'TS', fixed_only=True)
+    model.print_params('vb', 'R10', 'TS', free_only=True)
+
     
     # Test Forward API outputs
     t = model.time()
@@ -98,39 +122,59 @@ def test_api():
             os.remove(test_plot_file)
 
 def test_exceptions():
-    # Invalid Config
+    # # Invalid Config
+    # try:
+    #    Model(sequence='X')
+    # except:
+    #     pass 
+    # else:
+    #     assert False
+    # try:
+    #    Model(kinetics='X')
+    # except:
+    #     pass 
+    # else:
+    #     assert False
+    # try:
+    #    Model(water_exchange='X')
+    # except:
+    #     pass 
+    # else:
+    #     assert False
     try:
-       Model(sequence='X')
+        Model(shape=(10,10,10,10))
     except:
         pass 
     else:
         assert False
     try:
-       Model(kinetics='X')
+        Model(vb=np.zeros((5,5)), vi=np.zeros((6,5)),)
     except:
         pass 
     else:
         assert False
     try:
-       Model(water_exchange='X')
+        Model(vb=np.zeros((5,5)), shape=(6,6))
     except:
         pass 
     else:
         assert False
+
     try:
-       Model(shape=(10,10,10,10))
+        model = Model(shape=(10,))
+        time = model.time()
+        signal = model.predict(time)
+        model.train(time, signal, free={'TR':[0, 1]})
     except:
         pass 
     else:
         assert False
+
     try:
-       Model(vb=np.zeros((5,5)), vi=np.zeros((6,5)),)
-    except:
-        pass 
-    else:
-        assert False
-    try:
-       Model(vb=np.zeros((5,5)), shape=(6,6))
+        model = Model(shape=(10,))
+        time = model.time()
+        signal = model.predict(time)
+        model.train(time, signal, select='X')
     except:
         pass 
     else:
@@ -144,15 +188,15 @@ def test_function():
     dt, tmax, B0, agent, R10a, S0a, B1a = 0.5, 180, 3, 'gadoterate', 0.7, 3, 0.75
     FA, TR, TE = 15, 0.005, 0.0 # Defaults
 
-    rp = dc.const.r1(B0, 'blood', agent)
+    rp = dc.r1(B0, 'blood', agent)
     aif_time = np.arange(0, tmax, dt)
-    aif_conc = aif.tristan(aif_time, BAT=10)
+    aif_conc = dc.tristan(aif_time, BAT=10)
 
     params = {
         'dt': dt, 
         'c_a': aif_conc, 
-        'field_strength': B0,
-        'agent': agent,
+        # 'field_strength': B0,
+        # 'agent': agent,
         'FA': FA, 
         'TR': TR,
         'TE': TE,
@@ -161,27 +205,27 @@ def test_function():
 
     seq = '3D-SPGR-SS'
 
-    model =Model('2CX', 'FF', sequence=seq, **params)
+    model = Model('2CX', 'FF', sequence=seq, **params)
     time = model.time()
     signal = model.predict(time)
 
     # Generate AIF with the same signal model and parameters
     aif_R1 = R10a + rp * aif_conc
     aif_R2s = np.zeros_like(aif_R1) # required for 
-    aif_signal = Signal(seq)(R1=aif_R1, R2s=aif_R2s, S0=S0a, FA=FA, TR=TR, TE=TE, B1corr=B1a)
+    aif_signal = dc.Signal(seq)(R1=aif_R1, R2s=aif_R2s, S0=S0a, FA=FA, TR=TR, TE=TE, B1corr=B1a)
 
     # This is OK
     # ca_rec = dc.SignalToConc(seq)(aif_signal, FA=FA, TR=TR, R10=R10a, r1=rp, B1corr=B1a)
     # err = np.linalg.norm(aif_conc-ca_rec) / np.linalg.norm(aif_conc)
 
     # Fit with generated AIF signal
-    aif_ = Input(aif_signal, aif_time, R10=R10a, B1corr=B1a)
-    model.train(time, signal, aif_)
+    aif = {'signal': aif_signal, 'time': aif_time, 'R10': R10a, 'B1corr': B1a}
+    model.train(time, signal, aif)
     model.plot(time, signal)
     assert model.cost(time, signal) < 0.01
 
     # Test some training options
-    model =Model(dt=dt, c_a=aif_conc)
+    model = Model(dt=dt, c_a=aif_conc)
     time = model.time()
     signal = model.predict(time)
     model.train(time, signal, n0=10, bounds={'PS': [0,1], 'vb': None, 'S0':[0,5]})
@@ -194,7 +238,7 @@ def test_function():
 
     # Use model selection on a more complex model to find the optimal configuration
     configs = ['kinetics', 'water_exchange']
-    model =Model('2CX', 'RR', dt=dt, c_a=aif_conc)
+    model = Model('2CX', 'RR', dt=dt, c_a=aif_conc)
     vals, sdev, pcov, best_config = model.train(time, signal, n0=1, configs=configs, xtol=0.01) 
     assert best_config == ('HF', 'FR')  
 
@@ -209,16 +253,34 @@ def test_function():
         model.train(time, signal, n0=1, configs=configs, xtol=0.1)
 
 
+def test_tutorial():
+    tmax = 120
+    dt = 1.5
+    t = np.arange(0, tmax, dt)
+    ca_A = dc.tristan(t, BAT=20, CO=150)
+    gm = {'kinetics': 'NX', 'vb': 0.05, 'Fb': 0.01}
+
+    gm_A = Model(c_a=ca_A, dt=dt, **gm)
+    time = gm_A.time()
+    signal = gm_A.predict(time)
+
+    gm_A = Model(c_a=ca_A, dt=dt, kinetics='NX', vb=0.1, Fb=0.03)  
+    gm_A.train(time, signal)
+    print(gm_A.params('vb'), gm['vb'])
+    print(gm_A.params('Fb'), gm['Fb'])
+    print(gm_A.cost(time, signal))
+    #gm_A.plot(time, signal, round_to=2)
+
+    assert np.isclose(gm_A.params('vb'), gm['vb'], atol=0.01)
+    assert np.isclose(gm_A.params('Fb'), gm['Fb'], atol=0.01)
+#
+
 if __name__ == "__main__":
-
-    # Functional tests
+    test_coverage()
     test_function()
-
-    # Coverage tests
+    test_tutorial()
     test_api()
     test_exceptions()
 
-    test_coverage()
-    
     print('All tissue_x tests passed!!')
 

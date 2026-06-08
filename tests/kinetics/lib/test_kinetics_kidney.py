@@ -1,6 +1,7 @@
 import numpy as np
 
-import dcmri.kinetics.lib as pk
+from dcmri.kinetics.lib.kidney import dpars_kidney
+import dcmri as dc
 
 
 def test_kidney():
@@ -11,6 +12,7 @@ def test_kidney():
         'Fp': 0.01, 
         'vp': 0.2, 
         'Ft': 0.005, 
+        'FF': 0.005 / 0.01,
         'Tt': 120, 
         'ht': [1,2,3,4,3,2,1],
         'vol': 150,
@@ -21,29 +23,29 @@ def test_kidney():
         'Tdt': 15, 
         'Tcd': 10,
     }
-    p = p | pk.dpars_kidney(p)
+    p = p | dpars_kidney(p)
 
-    pm = {k: v for k, v in p.items() if k in ['Fp', 'vp', 'Ft', 'Tt']}
-    C = pk.conc_kidney_2cf(ca, dt=dt, **pm)
+    pm = {k: v for k, v in p.items() if k in ['Fp', 'vp', 'FF', 'Tt']}
+    C = dc.conc_kidney_2cf(ca, dt=dt, **pm)
     assert round(C[1, 10], 2) == 0.02
 
     pm = {k: v for k, v in p.items() if k in ['vp', 'Ft', 'Tt']}
-    C = pk.conc_kidney_hf(ca, dt=dt, **pm)
+    C = dc.conc_kidney_hf(ca, dt=dt, **pm)
     assert round(C[1, 10], 2) == 0.07
 
-    pm = {k: v for k, v in p.items() if k in ['Fp', 'Tp', 'Ft', 'ht']}
-    C = pk.conc_kidney_fn(ca, dt=dt, **pm)
+    pm = {k: v for k, v in p.items() if k in ['Fp', 'vp', 'FF', 'ht']}
+    C = dc.conc_kidney_fn(ca, dt=dt, **pm)
     assert round(C[1, 10], 2) == 0.02
-    C = pk.conc_kidney_fn(ca, t=dt*np.arange(ca.size), **pm)
+    C = dc.conc_kidney_fn(ca, t=dt*np.arange(ca.size), **pm)
     assert round(C[1, 10], 2) == 0.02
 
     pm = {k: v for k, v in p.items() if k in ['Fp', 'Eg', 'fc', 'Tglom', 'Tv', 'Tpt', 'Tlh', 'Tdt', 'Tcd']}
-    Ccor, Cmed = pk.conc_kidney_cm9(ca, dt=dt, **pm)
+    Ccor, Cmed = dc.conc_kidney_cm9(ca, dt=dt, **pm)
     assert round(Ccor[-1, -1], 3) == 0.015
     assert round(Cmed[-1, -1], 3) == 0.005
 
     # Exceptions
-    pk.dpars_kidney({'Fp': 1}, H=1)
+    dpars_kidney({'Fp': 1}, H=1)
 
 
 

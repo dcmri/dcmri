@@ -73,14 +73,17 @@ from typing import Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri.inverse import SignalToConc
-from dcmri import const
-from dcmri.core import SuperModel, Input
-from dcmri.lexicon import SEQUENCES
-from dcmri.kinetics import ConcLiver
-from dcmri.bloch import Signal
+from dcmri.inverse.sig2conc import SignalToConc
+from dcmri.utils import const
+from dcmri.core.model import SuperModel
+from dcmri.core.types import Input
+from dcmri.lexicon.dicts import SEQUENCES
+from dcmri.lexicon.tools import print_params, export_params
+from dcmri.kinetics.conc import ConcLiver
+from dcmri.bloch.tissue import Signal
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
+from dcmri.kinetics.lib.liver import dpars_liver
 
 
 class Liver(SuperModel):
@@ -99,6 +102,10 @@ class Liver(SuperModel):
         `Tissue`
 
     """
+
+    # ==========================================
+    # User interface: Frontend
+    # ==========================================
 
     configs = {
         'kinetics': ['1I-EC-D', '1I-EC', '2I-EC-HF', '2I-EC', '1I-IC', '1I-IC-HF', '1I-IC-HFD', '1I-IC-HFDU', '2I-IC-HF', '2I-IC', '2I-IC-U'],
@@ -119,6 +126,136 @@ class Liver(SuperModel):
         if kinetics.startswith('2'):
             if self._pars['c_a'].size != self._pars['c_v'].size:
                 raise ValueError("Arterial- and venous inputs have different lengths")
+
+    def export_params(self, sdev=None, group=None, num_only=False, deriv=False, scalar_only=False):
+        pars = self._pars
+        if deriv:
+            pars = dpars_liver(pars, self._cnfg['kinetics'])
+        return export_params(pars, sdev=sdev, num_only=num_only, scalar_only=scalar_only, group=group)
+
+    def print_params(self, *args, round_to=None, group=None, 
+                     fixed_only=False, free_only=False, deriv=False):
+        """Pretty print model parameters"""
+        pars = self._pars
+        if deriv:
+            pars = dpars_liver(pars, self._cnfg['kinetics'])
+        if args != ():
+            pars = {k: v for k, v in self._pars.items() if k in args}
+        if fixed_only:
+            pars = {k: v for k, v in pars.items() if k not in self._params('free')}
+        if free_only:
+            pars = {k: v for k, v in pars.items() if k in self._params('free')}
+        print_params(pars, round_to=round_to, group=group)
+
+    def time(self) -> np.ndarray:
+        """Internal time array"""
+        self._set_time()
+        return self._t
+       
+    def conc(self) -> np.ndarray:
+        """Returns liver concentrations."""
+        self._compute_concentration()
+        return self._C
+
+    def relax(self) -> np.ndarray:
+        """Returns liver relaxation rates (R1)."""
+        self._compute_relaxation_rate()
+        return self._R1, self._R2s
+
+    def signal(self) -> np.ndarray:
+        """Returns predicted liver signal."""
+        self._compute_signal()
+        return self._S
+
+    def predict(self, time: np.ndarray) -> np.ndarray:
+        """Predicts liver signal at specific time points."""
+        self._set_time()
+        if max(self._t) < np.max(time) + self._pars['TS']:
+            raise ValueError(f'The largest time point that can be predicted with the current AIF is {max(self._t)/60} mins.')
+        return self._predict(time)
+    
+    def train(
+            self, time: np.ndarray, signal: np.ndarray, 
+            aif: dict=None, vif: dict=None, free: dict=None, 
+            bounds: dict=None, n0=1, **kwargs
+        ) -> Tuple[dict, dict, np.ndarray]:
+        """Train the free parameters
+
+        Args:
+            time (array-like): Array with time points
+            signal (array-like): Array with signal values
+            aif (dict, optional): AIF signal, time and baseline R1.
+            vif (dict, optional): VIF signal, time and baseline R1.
+            free (dict, optional): Dictionary with free parameters and their
+              bounds. If not provided, a default set of free parameters is used.
+              Defaults to None.
+            bounds (dict, optional): Override default bounds for specific parameters.
+            n0 (int, optional): Number of baseline time points. Defaults to 1.
+            kwargs: any keyword parameters accepted by 
+              `scipy.optimize.curve_fit`, except for bounds.
+
+        Returns:
+            vals, sdev, pcov: Values, standard deviations and covariance matrix of free parameters
+        """
+        def conc(input: Input):
+            p = self._pars
+            seq = self._cnfg['sequence']
+            rp = const.r1(p['field_strength'], 'blood', p['agent'])
+            ci = SignalToConc(seq, **p)(
+                input.signal, S0=None, R10=input.R10, n0=n0, 
+                B1corr=input.B1corr, r1=rp,
+            )
+            t = np.arange(0, np.amax(time) + p['dt'], p['dt'])
+            return np.interp(t, input.time, ci)
+      
+        if aif is not None: self._pars['c_a'] = conc(Input(aif))
+        if vif is not None: self._pars['c_v'] = conc(Input(vif))
+
+        return self._train(time, signal, free, bounds, n0, **kwargs)
+
+    def plot(self, time: np.ndarray, signal:np.ndarray, 
+             xlim:list=None, fname:str=None, show=True):
+        """Plot the model fit against data
+
+        Args:
+            time (tuple): Time points of signals
+            signal (tuple): Liver signals            
+            xlim (list, optional): Lower and upper boundaries of the x-axis. Defaults to None.
+            fname (path, optional): Filepath to save the image. If no value is provided, the image is not saved. Defaults to None.
+            show (bool, optional): If True, the plot is shown. Defaults to True.
+        """
+        self._plot(time, signal, xlim, fname, show)
+
+    def cost(self, time: np.ndarray, signal: np.ndarray, metric: str = 'NRMS', nfree=None) -> float:
+        """Return the goodness-of-fit
+
+        Args:
+            time (np.ndarray): array with time points
+            signal (array-like): array with signal data for all pixels.
+            metric (str, optional): Which metric to use (see notes for 
+                possible values). Defaults to 'NRMS'.
+
+        Returns:
+            float: goodness of fit.
+
+        Notes:
+
+            Available options are: 
+            
+            - 'RMS': Root-mean-square.
+            - 'NRMS': Normalized root-mean-square. 
+            - 'AIC': Akaike information criterion. 
+            - 'cAIC': Corrected Akaike information criterion for small 
+                models.
+            - 'BIC': Baysian information criterion.
+        """
+        signal_pred = self._predict(time)
+        cost = loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
+        return cost[0]
+    
+    # ==========================================
+    # Private API: Backend
+    # ==========================================
 
     def _params(self, select=None):
         if select is None:
@@ -163,9 +300,9 @@ class Liver(SuperModel):
         if self._C.shape[0] == 2:
             self._R1 = p['R10'] + rp * self._C[0, :] + rh * self._C[1, :]
             self._R2s = p['R20s'] + r2s * self._C.sum(axis=0)
-        else:
-            self._R1 = p['R10'] + rp * self._C
-            self._R2s = p['R20s'] + r2s * self._C
+        # else:
+        #     self._R1 = p['R10'] + rp * self._C[0,:]
+        #     self._R2s = p['R20s'] + r2s * self._C[0,:]
 
     def _compute_signal(self):
         self._compute_relaxation_rate()
@@ -186,34 +323,19 @@ class Liver(SuperModel):
     # Inverse Model: Training
     # ==========================================
 
-    def _estimate_parameters(
-        self, signal: np.ndarray, n0: int, aif: Input, vif: Input
-    ):
+    def _estimate_parameters(self, signal: np.ndarray, n0: int):
         p = self._pars
         seq = self._cnfg['sequence']
-        rp = const.r1(p['field_strength'], 'blood', p['agent'])
 
         # Estimate S0
         s_ref = Signal(seq, **p)(R1=p['R10'], R2s=p['R20s'], S0=1)
         p['S0'] = np.mean(signal[:n0]) / s_ref if s_ref > 0 else 0
 
-        # Input concentrations
-        def conc(input: Input):
-            ci = SignalToConc(seq, **p)(
-                input.signal, S0=None, R1=input.R10, n0=n0, 
-                B1corr=input.B1corr, r1=rp,
-            )
-            return np.interp(self._t, input.time, ci)
-      
-        if aif is not None: p['c_a'] = conc(aif)
-        if vif is not None: p['c_v'] = conc(vif)
-
     def _train(
         self, time: np.ndarray, signal: np.ndarray, 
-        aif: Input, vif: Input, free: dict, 
-        bounds: dict, n0: int, **kwargs
+        free: dict, bounds: dict, n0: int, **kwargs
     ):
-        self._estimate_parameters(signal, n0, aif, vif)
+        self._estimate_parameters(signal, n0)
         free = self._set_free_pars(free, bounds)
         return train(self._predict, time, signal, self._pars, free, **kwargs)
    
@@ -235,11 +357,12 @@ class Liver(SuperModel):
 
         # Concentration Plot
         ax1.set_title('Concentration Reconstruction')
-        if self._C.shape[0] == 1:
-            ax1.plot(self._t/60, 1000*self._C[0,:], '-', linewidth=3, color='cornflowerblue', label='Liver')
-        else:
+        if self._C.shape[0] == 2:
             ax1.plot(self._t/60, 1000*self._C[0,:], '-.', linewidth=3, color='darkblue', label='Extracellular')
             ax1.plot(self._t/60, 1000*self._C[1,:], '-', linewidth=3, color='green', label='Hepatocytes]')
+        # else:
+        #     ax1.plot(self._t/60, 1000*self._C[0,:], '-', linewidth=3, color='cornflowerblue', label='Liver')
+
         ax1.plot(self._t/60, 1000*p['c_a'], '-', linewidth=3, color='darkred', label='Artery')
         if 'c_v' in p:
             ax1.plot(self._t/60, 1000*p['c_v'], '-', linewidth=3, color='purple', label='Portal Vein')
@@ -251,101 +374,3 @@ class Liver(SuperModel):
         if show: plt.show()
         else: plt.close()
 
-    # ==========================================
-    # Public API
-    # ==========================================
-
-    def time(self) -> np.ndarray:
-        """Internal time array"""
-        self._set_time()
-        return self._t
-       
-    def conc(self) -> np.ndarray:
-        """Returns liver concentrations."""
-        self._compute_concentration()
-        return self._C
-
-    def relax(self) -> np.ndarray:
-        """Returns liver relaxation rates (R1)."""
-        self._compute_relaxation_rate()
-        return self._R1, self._R2s
-
-    def signal(self) -> np.ndarray:
-        """Returns predicted liver signal."""
-        self._compute_signal()
-        return self._S
-
-    def predict(self, time: np.ndarray) -> np.ndarray:
-        """Predicts liver signal at specific time points."""
-        self._set_time()
-        if max(self._t) < np.max(time) + self._pars['TS']:
-            raise ValueError(f'The largest time point that can be predicted with the current AIF is {max(self._t)/60} mins.')
-        return self._predict(time)
-    
-    def train(
-            self, time: np.ndarray, signal: np.ndarray, 
-            aif: Input=None, vif: Input=None, free: dict=None, 
-            bounds: dict=None, n0=1, **kwargs
-        ) -> Tuple[dict, dict, np.ndarray]:
-        """Train the free parameters
-
-        Args:
-            time (array-like): Array with time points
-            signal (array-like): Array with signal values
-            aif (dict, optional): AIF signal, time and baseline R1.
-            vif (dict, optional): VIF signal, time and baseline R1.
-            free (dict, optional): Dictionary with free parameters and their
-              bounds. If not provided, a default set of free parameters is used.
-              Defaults to None.
-            bounds (dict, optional): Override default bounds for specific parameters.
-            n0 (int, optional): Number of baseline time points. Defaults to 1.
-            kwargs: any keyword parameters accepted by 
-              `scipy.optimize.curve_fit`, except for bounds.
-
-        Returns:
-            vals, sdev, pcov: Values, standard deviations and covariance matrix of free parameters
-        """
-        self._set_time()
-        if max(self._t) < np.max(time) + self._pars['TS']:
-            raise ValueError(f'The largest time point that can be predicted with the current AIF is {max(self._t)/60} mins.')
-        return self._train(time, signal, aif, vif, free, bounds, n0, **kwargs)
-
-    def plot(self, time: np.ndarray, signal:np.ndarray, 
-             xlim:list=None, fname:str=None, show=True):
-        """Plot the model fit against data
-
-        Args:
-            time (tuple): Time points of signals
-            signal (tuple): Liver signals            
-            xlim (list, optional): Lower and upper boundaries of the x-axis. Defaults to None.
-            fname (path, optional): Filepath to save the image. If no value is provided, the image is not saved. Defaults to None.
-            show (bool, optional): If True, the plot is shown. Defaults to True.
-        """
-        self._plot(time, signal, xlim, fname, show)
-
-    def cost(self, time: np.ndarray, signal: np.ndarray, metric: str = 'NRMS', nfree=None) -> float:
-        """Return the goodness-of-fit
-
-        Args:
-            time (np.ndarray): array with time points
-            signal (array-like): array with signal data for all pixels.
-            metric (str, optional): Which metric to use (see notes for 
-                possible values). Defaults to 'NRMS'.
-
-        Returns:
-            float: goodness of fit.
-
-        Notes:
-
-            Available options are: 
-            
-            - 'RMS': Root-mean-square.
-            - 'NRMS': Normalized root-mean-square. 
-            - 'AIC': Akaike information criterion. 
-            - 'cAIC': Corrected Akaike information criterion for small 
-                models.
-            - 'BIC': Baysian information criterion.
-        """
-        signal_pred = self._predict(time)
-        cost = loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
-        return cost[0]

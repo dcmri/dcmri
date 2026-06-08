@@ -1,7 +1,7 @@
 import numpy as np
 
-from dcmri.core import LayerFunction
-from dcmri.lexicon import QUANTITIES
+from dcmri.core.layer import LayerFunction
+from dcmri.lexicon.dicts import QUANTITIES
 
 
 CUSTOM = QUANTITIES | {

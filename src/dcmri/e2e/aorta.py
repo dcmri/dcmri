@@ -82,14 +82,13 @@ from typing import Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri import const
-from dcmri.kinetics import ConcAorta
-from dcmri.lexicon import SEQUENCES
-from dcmri.core import SuperModel
-from dcmri.bloch import Signal
+from dcmri.utils import const
+from dcmri.kinetics.conc import ConcAorta
+from dcmri.lexicon.dicts import SEQUENCES
+from dcmri.core.model import SuperModel
+from dcmri.bloch.tissue import Signal
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
-
 
 
 class Aorta(SuperModel):
@@ -106,10 +105,12 @@ class Aorta(SuperModel):
         **params: override parameter defaults
     """
 
+    # ---- User interface ----
+
     configs = {
         'heartlung': ['comp', 'pfcomp', 'chain'],
         'organs': ['comp','2cxm'],
-        'sequence': ['3D-SPGR-SS', '3D-SR-SPGR-SS', '3D-SPGR-SSI'],
+        'sequence': ['ZTE-3D-SPGR-SS', '3D-SPGR-SS', '3D-SR-SPGR-SS', '3D-SPGR-SSI'],
     }
 
     def __init__(
@@ -127,6 +128,120 @@ class Aorta(SuperModel):
         self._version = '1.0'
         self._cnfg = self._set_config(**cnfg)
         self._pars = self._set_pars(**params)
+
+    def params(self, *args) -> dict: 
+        """Model parameters and their values"""
+        pars = self._pars
+        if args == ():
+            return pars
+        for k in args:
+            if k not in pars:
+                raise ValueError(f"{k} is not a valid model parameter. Use print_params() to get a list of valid parameters.")
+        values = [pars[k] for k in args]
+        if len(args) == 1:
+            return values[0]
+        else:
+            return values
+        
+    def time(self) -> np.ndarray:
+        """Internal time array"""
+        self._compute_time()
+        return self._t
+
+    def conc(self) -> np.ndarray:
+        """Returns the predicted aorta blood concentration."""
+        self._compute_conc()
+        return self._C
+
+    def relax(self) -> tuple:
+        """Returns the predicted relaxation rates."""
+        self._compute_relax()
+        return self._R1, self._R2s
+    
+    def signal(self) -> np.ndarray:
+        """Returns time points and predicted liver signal."""
+        self._compute_signal()
+        return self._S
+
+    def predict(self, time:np.ndarray) -> np.ndarray:
+        """Predicts the aorta signal at specified time points."""
+        p = self._pars
+        p['tmax'] = p['dt'] + p['TS'] + np.max(time)
+        return self._predict(time)
+    
+    def train(
+            self, time: tuple, signal: tuple, free: dict=None, 
+            bounds: dict=None, n0=1, **kwargs
+        ) -> Tuple[dict, dict, np.ndarray]:
+        """Train the free parameters
+
+        Args:
+            time (array-like): Array with time points
+            signal (array-like): Array with signal values
+            free (dict, optional): Dictionary with free parameters and their
+              bounds. If not provided, a default set of free parameters is used.
+              Defaults to None.
+            bounds (dict, optional): Override default bounds for specific parameters.
+            kwargs: any keyword parameters accepted by 
+              `scipy.optimize.curve_fit`, except for bounds.
+
+        Returns:
+            vals, sdev, pcov: Values, standard deviations and covariance matrix of free parameters
+        """
+        p = self._pars
+        p['tmax'] = p['dt'] + p['TS'] + np.max(time)        
+        return self._train(time, signal, free, bounds, n0, **kwargs)
+    
+    
+    def plot(self, time: np.ndarray, signal:np.ndarray, 
+             fname:str=None, show=True):
+        """Plot the model fit against data
+
+        Args:
+            time (tuple): Time points of signals
+            signal (tuple): Liver signals            
+            fname (path, optional): Filepath to save the image. If no value is provided, the image is not saved. Defaults to None.
+            show (bool, optional): If True, the plot is shown. Defaults to True.
+        """
+        p = self._pars
+        p['tmax'] = p['dt'] + p['TS'] + np.max(time)
+        self._plot(time, signal, fname, show)
+
+
+    def cost(self, time: dict, signal: dict, metric: str = 'NRMS', nfree=None) -> float:
+        """Return the goodness-of-fit
+
+        Args:
+            time (np.ndarray): array with time points
+            signal (array-like): array with signal data for all pixels.
+            metric (str, optional): Which metric to use (see notes for 
+                possible values). Defaults to 'NRMS'.
+
+        Returns:
+            float: goodness of fit.
+
+        Notes:
+
+            Available options are: 
+            
+            - 'RMS': Root-mean-square.
+            - 'NRMS': Normalized root-mean-square. 
+            - 'AIC': Akaike information criterion. 
+            - 'cAIC': Corrected Akaike information criterion for small 
+                models.
+            - 'BIC': Baysian information criterion.
+        """
+        p = self._pars
+        p['tmax'] = p['dt'] + p['TS'] + np.max(time)
+        signal_pred = self._predict(time)
+        cost = loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
+        return cost[0]
+
+
+
+    # ---- Backend ----
+
+
 
     def _params(self, select=None):
         # Sequence parameters
@@ -222,15 +337,15 @@ class Aorta(SuperModel):
         
         # Signal Plot
         ax0.set_title('MRI Signal Prediction')
-        ax0.plot(time/60, signal, 'ko', alpha=0.5, label='Data')
-        ax0.plot(self._t/60, self._S, 'r-', linewidth=2, label='Prediction')
+        ax0.plot(time/60, signal, marker='o', color='lightcoral', alpha=0.5, label='Data')
+        ax0.plot(self._t/60, self._S, linestyle='-', color='darkred', linewidth=3, label='Prediction')
         ax0.set_xlabel('Time (min)')
         ax0.set_ylabel('Signal (a.u.)')
         ax0.legend()
 
         # Concentration Plot
         ax1.set_title('Concentration Reconstruction')
-        ax1.plot(self._t/60, 1000*self._C, 'r-', label='Reconstruction')
+        ax1.plot(self._t/60, 1000*self._C, linestyle='-', color='darkred', linewidth=3, label='Reconstruction')
         ax1.set_xlabel('Time (min)')
         ax1.set_ylabel('Concentration (mM)')
         ax1.legend()
@@ -240,98 +355,3 @@ class Aorta(SuperModel):
         else: plt.close()
 
 
-    # ---- Public API ----
-
-    def time(self) -> np.ndarray:
-        """Internal time array"""
-        self._compute_time()
-        return self._t
-
-    def conc(self) -> np.ndarray:
-        """Returns the predicted aorta blood concentration."""
-        self._compute_conc()
-        return self._C
-
-    def relax(self) -> tuple:
-        """Returns the predicted relaxation rates."""
-        self._compute_relax()
-        return self._R1, self._R2s
-    
-    def signal(self) -> np.ndarray:
-        """Returns time points and predicted liver signal."""
-        self._compute_signal()
-        return self._S
-
-    def predict(self, time:np.ndarray) -> np.ndarray:
-        """Predicts the aorta signal at specified time points."""
-        p = self._pars
-        p['tmax'] = p['dt'] + p['TS'] + np.max(time)
-        return self._predict(time)
-    
-    def train(
-            self, time: tuple, signal: tuple, free: dict=None, 
-            bounds: dict=None, n0=1, **kwargs
-        ) -> Tuple[dict, dict, np.ndarray]:
-        """Train the free parameters
-
-        Args:
-            time (array-like): Array with time points
-            signal (array-like): Array with signal values
-            free (dict, optional): Dictionary with free parameters and their
-              bounds. If not provided, a default set of free parameters is used.
-              Defaults to None.
-            bounds (dict, optional): Override default bounds for specific parameters.
-            kwargs: any keyword parameters accepted by 
-              `scipy.optimize.curve_fit`, except for bounds.
-
-        Returns:
-            vals, sdev, pcov: Values, standard deviations and covariance matrix of free parameters
-        """
-        p = self._pars
-        p['tmax'] = p['dt'] + p['TS'] + np.max(time)        
-        return self._train(time, signal, free, bounds, n0, **kwargs)
-    
-    
-    def plot(self, time: np.ndarray, signal:np.ndarray, 
-             fname:str=None, show=True):
-        """Plot the model fit against data
-
-        Args:
-            time (tuple): Time points of signals
-            signal (tuple): Liver signals            
-            fname (path, optional): Filepath to save the image. If no value is provided, the image is not saved. Defaults to None.
-            show (bool, optional): If True, the plot is shown. Defaults to True.
-        """
-        p = self._pars
-        p['tmax'] = p['dt'] + p['TS'] + np.max(time)
-        self._plot(time, signal, fname, show)
-
-
-    def cost(self, time: dict, signal: dict, metric: str = 'NRMS', nfree=None) -> float:
-        """Return the goodness-of-fit
-
-        Args:
-            time (np.ndarray): array with time points
-            signal (array-like): array with signal data for all pixels.
-            metric (str, optional): Which metric to use (see notes for 
-                possible values). Defaults to 'NRMS'.
-
-        Returns:
-            float: goodness of fit.
-
-        Notes:
-
-            Available options are: 
-            
-            - 'RMS': Root-mean-square.
-            - 'NRMS': Normalized root-mean-square. 
-            - 'AIC': Akaike information criterion. 
-            - 'cAIC': Corrected Akaike information criterion for small 
-                models.
-            - 'BIC': Baysian information criterion.
-        """
-        p = self._pars
-        p['tmax'] = p['dt'] + p['TS'] + np.max(time)
-        signal_pred = self._predict(time)
-        cost = loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
-        return cost[0]

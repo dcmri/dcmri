@@ -3,12 +3,10 @@ import itertools
 
 import matplotlib.pyplot as plt
 import numpy as np
+
 import dcmri as dc
 from dcmri import Liver as Model
-import dcmri.kinetics.lib as pk
-from dcmri.bloch import Signal
-from dcmri.core import Input
-from dcmri import aif
+
 
 
 DEBUG = False
@@ -47,6 +45,13 @@ def test_configs():
 
 def test_api():
     model = Model()
+
+    # export_params()
+    model.export_params(deriv=True)
+
+    # print_params()
+    model.print_params('ve', 'R10', 'Fp', deriv=True, fixed_only=True)
+    model.print_params('ve', 'R10', 'Fp', deriv=True, free_only=True)
     
     # Test Forward API outputs
     t = model.time()
@@ -68,17 +73,20 @@ def test_api():
             os.remove(test_plot_file)
 
 def test_exceptions():
-    # Invalid Config
+    model = Model()
+    time = model.time()
+    signal = model.signal()
+    time = np.append(time, 2 * time.max())
     try:
-        Model(sequence='InversionRecovery')
-    except ValueError:
-        pass 
+        model.predict(time)
+    except:
+        pass
     else:
         assert False
     try:
-        Model(kinetics='Liver')
-    except ValueError:
-        pass 
+        model.train(time, signal)
+    except:
+        pass
     else:
         assert False
 
@@ -98,19 +106,19 @@ def test_function():
     FA, TR, TE = 15, 0.005, 0.002 # Defaults
     
     # Input signals
-    rp = dc.const.r1(B0, 'blood', agent)
-    r2s = dc.const.r2s(B0, 'blood', agent)
+    rp = dc.r1(B0, 'blood', agent)
+    r2s = dc.r2s(B0, 'blood', agent)
     aif_time = np.arange(0, tmax, dt)
-    aif_conc = aif.tristan(aif_time, BAT=10)
-    vif_conc = pk.flux_chain(aif_conc, 10, 0.5, dt=dt)
+    aif_conc = dc.tristan(aif_time, BAT=10)
+    vif_conc = dc.flux_chain(aif_conc, 10, 0.5, dt=dt)
     aif_R1 = R10a + rp * aif_conc
     vif_R1 = R10a + rp * vif_conc
     aif_R2s = R20sa + r2s * aif_conc
     vif_R2s = R20sa + r2s * vif_conc
-    aif_signal = Signal(seq)(R1=aif_R1, R2s=aif_R2s, S0=S0a, FA=FA, TR=TR, TE=TE, B1corr=B1a)
-    vif_signal = Signal(seq)(R1=vif_R1, R2s=vif_R2s, S0=S0a, FA=FA, TR=TR, TE=TE, B1corr=B1a)
-    aif_ = Input(aif_signal, aif_time, R10=R10a, B1corr=B1a)
-    vif = Input(vif_signal, aif_time, R10=R10a, B1corr=B1a)
+    aif_signal = dc.Signal(seq)(R1=aif_R1, R2s=aif_R2s, S0=S0a, FA=FA, TR=TR, TE=TE, B1corr=B1a)
+    vif_signal = dc.Signal(seq)(R1=vif_R1, R2s=vif_R2s, S0=S0a, FA=FA, TR=TR, TE=TE, B1corr=B1a)
+    aif_ = {'signal': aif_signal, 'time':aif_time, 'R10':R10a, 'B1corr':B1a}
+    vif = {'signal':vif_signal, 'time':aif_time, 'R10':R10a, 'B1corr':B1a}
 
     # Liver signals
     params = {
@@ -143,14 +151,10 @@ def test_function():
 
 
 if __name__ == "__main__":
-
-    # # Coverage tests
     test_configs()
     test_api()
     test_exceptions()
-    
-    # Functional tests
     test_function()
     
-    print('All ui_liver tests passed!!')
+    print('All Liver tests passed!!')
 

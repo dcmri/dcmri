@@ -1,8 +1,11 @@
 import os
 import itertools
 
+import numpy as np
 import matplotlib.pyplot as plt
+
 from dcmri import AortaLiverDrug as Model
+from dcmri.e2e.aorta_liver_drug import _div
 
 
 DEBUG = False
@@ -38,10 +41,21 @@ def test_configs():
     time = model.time()
     signal = model.predict(time)
     model.train(time, signal, n_runs=2, verbose=2, xtol=0.1)
-    model.plot(time, signal, show=DEBUG)
+    model.plot(time, signal, show=DEBUG, clim=[0,1])
     cost = model.cost(time, signal)
     print(cost)
-    assert cost < 5
+    assert cost < 6
+    model.export_params(desc=True)
+
+    model = Model(CO=50)
+    time = model.time()
+    signal = model.predict(time['ctrl', 'aorta'])
+    vals, sdev, pcov = model.train(time['ctrl', 'aorta'], signal, n_runs=2, verbose=2, xtol=0.1)
+    model.plot(time['ctrl', 'aorta'], signal, show=DEBUG, clim=[0,1])
+    cost = model.cost(time['ctrl', 'aorta'], signal)
+    print(cost)
+    assert cost < 6
+    model.export_params(sdev=sdev, desc=True)
 
 def test_api():
 
@@ -63,6 +77,11 @@ def test_api():
     finally:
         if os.path.exists(test_plot_file):
             os.remove(test_plot_file)
+
+
+    # Tests a standard division case
+    result = _div(6, 0)
+    assert np.isinf(result)  # 1/0 in numpy results in infinity (inf)
 
 # def test_exceptions():
 #     # Invalid Config

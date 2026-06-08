@@ -13,7 +13,7 @@ def train_batch(predict, time, signal, pars, free, **kwargs):
     if signal.shape[0]==1:
         results = [train_pixel(0)]
     else:
-        # results = [train_pixel(x) for x in range(signal.shape[0])] 
+        #results = [train_pixel(x) for x in range(signal.shape[0])] 
         results = Parallel(n_jobs=-1)(delayed(train_pixel)(x) for x in range(signal.shape[0]))  
 
     return results 
@@ -51,7 +51,7 @@ def train(predict, time, signal, pars, free, x=None, reset=False, sigma=None, **
     """Optimization logic using normalized parameter values."""
 
     if free == {}:
-        return None, None
+        return None, None, None
     
     # Flatten the signal
     if isinstance(signal, tuple):
@@ -235,4 +235,6 @@ def loss(ypred, ydata, metric='NRMS', nfree=None) -> float:
             raise ValueError('Please specify the number of free parameters.')
         with np.errstate(divide='ignore'):
             loss = nfree*np.log(n) + n*np.log(rss/n)
+    else:
+        raise ValueError(f"Unknown metric {metric}")
     return loss

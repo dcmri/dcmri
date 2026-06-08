@@ -1,8 +1,9 @@
 import copy
 import numpy as np
 
-import dcmri.kinetics.lib as pk
-from dcmri.core import LayerFunction
+import dcmri.kinetics.lib.tissue as pk_tissue
+from dcmri.kinetics.lib.blocks import flux_plug
+from dcmri.core.layer import LayerFunction
 
 class FluxTissueX(LayerFunction):
     """Flux out of vascular-interstitial tissue.
@@ -48,12 +49,12 @@ class FluxTissueX(LayerFunction):
         """
         p = self._update_pars(**params)
 
-        ca = pk.flux_plug(ca, p['T_a'], dt=dt)
+        ca = flux_plug(ca, p['T_a'], dt=dt)
         params = {k: v for k, v in p.items() if k != 'T_a'}
 
         kin = self._cnfg['kinetics']
         conc = 'flux_tissue_' + kin.lower()   
-        model_func = getattr(pk, conc)  
+        model_func = getattr(pk_tissue, conc)  
         return model_func(ca, t=t, dt=dt, **params)
 
 

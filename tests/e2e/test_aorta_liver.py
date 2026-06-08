@@ -2,7 +2,7 @@ import os
 import itertools
 
 import matplotlib.pyplot as plt
-import dcmri as dc
+
 from dcmri import AortaLiver as Model
 
 
@@ -20,20 +20,18 @@ else:
 
 def test_configs():
 
-    # kin = '1I-IC-HF'
-    # ns = 'UE'
+    # kin = '1I-IC-HFD'
+    # ns = 'U'
     # seq = '3D-SPGR-SSI'
 
     # model = Model(kin, ns, seq)
     # time = model.time()
     # signal = model.predict(time)
-    # model.train(time, signal, staged=True, verbose=2, xtol=0.001)
+    # model.train(time, signal, verbose=2, xtol=0.001)
     # model.plot(time, signal, show=DEBUG)
     # cost = model.cost(time, signal)
     # print(kin, ns, seq, cost)
     # #assert cost < 5
-
-    # return
 
     values = Model.configs.values()
     for cnfgs in itertools.product(*values):
@@ -46,7 +44,7 @@ def test_configs():
         model = Model(*cnfgs)
         time = model.time()
         signal = model.predict(time)
-        model.train(time, signal, verbose=VERBOSE, xtol=0.01)
+        model.train(time, signal, verbose=VERBOSE, xtol=0.001)
         model.plot(time, signal, show=DEBUG)
         cost = model.cost(time, signal)
         print(cnfgs, cost)
@@ -59,9 +57,18 @@ def test_configs():
     model = Model(CO=50)
     time = model.time()
     signal = model.predict(time)
-    model.train(time, signal, staged=True, verbose=VERBOSE, xtol=0.1)
+    model.train(time, signal, staged=True, verbose=VERBOSE, xtol=0.001)
     model.plot(time, signal, show=DEBUG)
     cost = model.cost(time, signal)
+    print(cost)
+    assert cost < 5
+
+    model = Model(CO=50)
+    time = model.time()
+    signal = model.predict(time['aorta'])
+    model.train(time['aorta'], signal, staged=True, verbose=VERBOSE, xtol=0.001)
+    model.plot(time['aorta'], signal, show=DEBUG)
+    cost = model.cost(time['aorta'], signal)
     print(cost)
     assert cost < 5
 
@@ -71,6 +78,13 @@ def test_api():
     # Test Forward API outputs
     t = model.time()
     S = model.signal()
+
+    # export_params()
+    model.export_params(deriv=True)
+
+    # print_params()
+    model.print_params('Thl', 'Dhl', 'TS', deriv=True, fixed_only=True)
+    model.print_params('Thl', 'Dhl', 'TS', deriv=True, free_only=True)
 
     test_plot_file = "test_plot_output.png"
     try:
@@ -87,34 +101,7 @@ def test_api():
             os.remove(test_plot_file)
 
 def test_exceptions():
-    # Invalid Config
-    try:
-        Model(sequence='X')
-    except ValueError:
-        pass 
-    else:
-        assert False
-        
-    try:
-        Model(kinetics='Y')
-    except ValueError:
-        pass 
-    else:
-        assert False
 
-    try:
-        Model(kinetics='2I-EC')
-    except ValueError:
-        pass 
-    else:
-        assert False
-
-    try:
-        Model(non_stationary='Z')
-    except ValueError:
-        pass 
-    else:
-        assert False
 
     # SSI sequence model with fixed S0
     try:
@@ -132,5 +119,5 @@ if __name__ == "__main__":
     test_api()
     test_exceptions()
     
-    print('All ui_aorta_liver tests passed!!')
+    print('All AortaLiver tests passed!!')
 

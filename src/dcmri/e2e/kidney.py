@@ -94,12 +94,13 @@ from typing import Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri.inverse import SignalToConc
-from dcmri import const
-from dcmri.core import SuperModel, Input
-from dcmri.lexicon import SEQUENCES
-from dcmri.kinetics import ConcKidney
-from dcmri.bloch import Signal
+from dcmri.inverse.sig2conc import SignalToConc
+from dcmri.utils import const
+from dcmri.core.model import SuperModel
+from dcmri.core.types import Input
+from dcmri.lexicon.dicts import SEQUENCES
+from dcmri.kinetics.conc import ConcKidney
+from dcmri.bloch.tissue import Signal
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
 
@@ -116,8 +117,12 @@ class Kidney(SuperModel):
         params (dict, optional): override parameter defaults.
     """
 
+    # ==========================================
+    # User interface
+    # ==========================================
+
     configs = {
-        'kinetics': ['2CF', 'HF'],
+        'kinetics': ['2CF', '2PF', 'CPF', '2CFU', '2PFU', 'HF', 'HFU'],
         'sequence': ['3D-SPGR-SS', '2D-SR-SPGR-SS'],
     }
 
@@ -128,118 +133,20 @@ class Kidney(SuperModel):
         cnfg = {'kinetics': kinetics, 'sequence': sequence}
         self._cnfg = self._set_config(**cnfg)
         self._pars = self._set_pars(**params)
-    
-    def _params(self, select=None):
-        pars_kin = ConcKidney(self._cnfg['kinetics'])._params()
-        seq = self._cnfg['sequence']
-        pars_seq = SEQUENCES[seq]['parameters']['prep']
-        pars_seq += SEQUENCES[seq]['parameters']['read']
 
-        if select is None:
-            pars_list = [
-                'c_a', 'dt', 'field_strength', 'agent',
-                'H', 'S0', 'R10', 'R20s', 'TS',
-            ]
-            pars_list += pars_kin + pars_seq
-        elif select=='free':
-            pars_list = pars_kin
-        return pars_list
-
-    # ==========================================
-    # Forward Model
-    # ==========================================   
-
-    def _compute_concentration(self):
-        p = self._pars
-        ca = p['c_a'] / (1 - p['H'])
-        self._C = ConcKidney(self._cnfg['kinetics'], **p)(ca, dt=p['dt'])
-        
-    def _compute_relaxation_rate(self):
-        self._compute_concentration()
-        p = self._pars
-        rp = const.r1(p['field_strength'], 'blood', p['agent'])
-        self._R1 = p['R10'] + rp * self._C.sum(axis=0)
-        r2s = const.r2s(p['field_strength'], 'tissue', p['agent'])
-        self._R2s = p['R20s'] + r2s * self._C.sum(axis=0)
-
-    def _compute_signal(self):
-        self._compute_relaxation_rate()
-        p = self._pars
-        seq = self._cnfg['sequence']
-        self._S = Signal(seq, **p)(R1=self._R1, R2s=self._R2s)
-
-    def _set_time(self):
-        p = self._pars
-        self._t = p['dt'] * np.arange(p['c_a'].size)
-
-    def _predict(self, time):
-        self._set_time()
-        self._compute_signal()
-        return sample(time, self._t, self._S, self._pars['TS'])
-    
-    # ==========================================
-    # Inverse Model: Training
-    # ==========================================
-
-    def _estimate_parameters(self, signal: np.ndarray, n0: int, aif: Input):
-        p = self._pars
-        seq = self._cnfg['sequence']
-        
-        # Estimate S0
-        s_ref = Signal(seq, **p)(R1=p['R10'], R2s=p['R20s'], S0=1)
-        p['S0'] = np.mean(signal[:n0]) / s_ref if s_ref > 0 else 0
-
-        if aif is not None:
-            rp = const.r1(p['field_strength'], 'blood', p['agent'])
-            ca = SignalToConc(seq, **p)(
-                aif.signal, S0=None, R1=aif.R10, n0=n0, 
-                B1corr=aif.B1corr, r1=rp,
-            )
-            p['c_a'] = np.interp(self._t, aif.time, ca)
-
-    def _train(
-        self, time: np.ndarray, signal: np.ndarray, aif: Input, 
-        free: dict, bounds: dict, n0: int, **kwargs,
-    ):
-        self._estimate_parameters(signal, n0, aif)
-        free = self._set_free_pars(free, bounds)
-        return train(self._predict, time, signal, self._pars, free, **kwargs)
-
-    def _plot(self, time:np.ndarray, signal:np.ndarray, xlim:list, 
-              fname:str, show:bool):
-        self._set_time()
-        self._compute_signal()
-        if xlim is None:
-            xlim = [np.amin(time), np.amax(time)]
-
-        fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 5))
-
-        # Signals Plot
-        ax0.set_title('Prediction of the MRI signals.')
-        ax0.plot(time/60, signal, marker='o', linestyle='None', color='cornflowerblue', label='Data')
-        ax0.plot(self._t/60, self._S, linestyle='-', linewidth=3.0, color='darkblue', label='Prediction')
-        ax0.set(xlabel='Time (min)', ylabel='MRI signal (a.u.)', xlim=np.array(xlim)/60)
-        ax0.legend()
-
-        ax1.set_title('Reconstruction of concentrations')
-
-        ax1.plot(self._t/60, 1000*self._pars['c_a'], '-', linewidth=3, color='darkred', label='Arterial Pred')
-        ax1.plot(self._t/60, 1000*self._C[0,:], linestyle='-', linewidth=3.0, color='darkred', label='Blood')
-        ax1.plot(self._t/60, 1000*self._C[1,:], linestyle='-', linewidth=3.0, color='darkcyan', label='Tubuli')
-           
-        ax1.set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=np.array(xlim)/60)
-        ax1.legend()
-
-        if fname is not None:
-            plt.savefig(fname=fname)
-        if show:
-            plt.show()
+    def params(self, *args) -> dict: 
+        """Model parameters and their values"""
+        pars = self._pars
+        if args == ():
+            return pars
+        for k in args:
+            if k not in pars:
+                raise ValueError(f"{k} is not a valid model parameter. Use print_params() to get a list of valid parameters.")
+        values = [pars[k] for k in args]
+        if len(args) == 1:
+            return values[0]
         else:
-            plt.close()
-
-    # ==========================================
-    # Public API
-    # ==========================================
+            return values
 
     def time(self) -> np.ndarray:
         """Kidney signal time points"""
@@ -264,12 +171,12 @@ class Kidney(SuperModel):
     def predict(self, time: np.ndarray) -> np.ndarray:
         """Predicts kidney signal at specific time points."""
         self._set_time()
-        if max(self._t) < np.max(time) + self._pars['TS']:
+        if max(self._t) + self._pars['TS'] < np.max(time) :
             raise ValueError(f'The largest time point that can be predicted with the current AIF is {max(self._t)/60} mins.')
         return self._predict(time)
     
     def train(
-        self, time: np.ndarray, signal: np.ndarray, aif: Input=None, 
+        self, time: np.ndarray, signal: np.ndarray, aif:dict=None, 
         free: dict=None, bounds: dict=None, n0=1, **kwargs
     ) -> Tuple[dict, dict, np.ndarray]:
         """Train the free parameters
@@ -277,7 +184,7 @@ class Kidney(SuperModel):
         Args:
             time (array-like): Array with time points
             signal (array-like): Array with signal values
-            aif (dict, optional): AIF signal, time and baseline R1.
+            aif (dict, optional): Dictionary with required key 'signal' (AIF signal) and 'R10' (baseline R1).
             free (dict, optional): Dictionary with free parameters and their
               bounds. If not provided, a default set of free parameters is used.
               Defaults to None.
@@ -290,10 +197,19 @@ class Kidney(SuperModel):
             vals, sdev, pcov: Values, standard deviations and covariance matrix of free parameters
 
         """
-        self._set_time()
-        if max(self._t) < np.max(time) + self._pars['TS']:
-            raise ValueError(f'The largest time point that can be predicted with the current AIF is {max(self._t)/60} mins.')
-        return self._train(time, signal, aif, free, bounds, n0, **kwargs)
+        if aif is not None:
+            input = Input(aif)
+            p = self._pars
+            seq = self._cnfg['sequence']
+            rp = const.r1(p['field_strength'], 'blood', p['agent']) 
+            ca = SignalToConc(seq, **p)(
+                input.signal, S0=None, R10=input.R10, n0=n0, 
+                B1corr=input.B1corr, r1=rp,
+            )
+            t = np.arange(0, np.amax(time) + p['dt'], p['dt'])
+            p['c_a'] = np.interp(t, input.time, ca)
+
+        return self._train(time, signal, free, bounds, n0, **kwargs)
 
 
     def plot(self, time: np.ndarray, signal:np.ndarray, 
@@ -335,3 +251,110 @@ class Kidney(SuperModel):
         signal_pred = self._predict(time)
         cost = loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
         return cost[0]
+    
+
+    # ==========================================
+    # Backend
+    # ==========================================
+
+    
+    def _params(self, select=None):
+        pars_kin = ConcKidney(self._cnfg['kinetics'])._params()
+        seq = self._cnfg['sequence']
+        pars_seq = SEQUENCES[seq]['parameters']['prep']
+        pars_seq += SEQUENCES[seq]['parameters']['read']
+
+        if select is None:
+            pars_list = [
+                'c_a', 'dt', 'field_strength', 'agent',
+                'H', 'S0', 'R10', 'R20s', 'TS',
+            ]
+            pars_list += pars_kin + pars_seq
+        elif select=='free':
+            pars_list = [k for k in pars_kin if k != 'T_a']
+        return pars_list
+
+    # ==========================================
+    # Forward Model
+    # ==========================================   
+
+    def _compute_concentration(self):
+        p = self._pars
+        ca = p['c_a'] / (1 - p['H'])
+        self._C = ConcKidney(self._cnfg['kinetics'], **p)(ca, dt=p['dt'])
+        
+    def _compute_relaxation_rate(self):
+        self._compute_concentration()
+        p = self._pars
+        rp = const.r1(p['field_strength'], 'blood', p['agent'])
+        self._R1 = p['R10'] + rp * self._C.sum(axis=0)
+        r2s = const.r2s(p['field_strength'], 'tissue', p['agent'])
+        self._R2s = p['R20s'] + r2s * self._C.sum(axis=0)
+
+    def _compute_signal(self):
+        self._compute_relaxation_rate()
+        p = self._pars
+        seq = self._cnfg['sequence']
+        self._S = Signal(seq, **p)(R1=self._R1, R2s=self._R2s)
+
+    def _set_time(self):
+        p = self._pars
+        self._t = p['dt'] * np.arange(p['c_a'].size)
+
+    def _predict(self, time):
+        self._set_time()
+        self._compute_signal()
+        return sample(time, self._t, self._S, self._pars['TS'])
+    
+    # ==========================================
+    # Inverse Model: Training
+    # ==========================================
+
+    def _estimate_parameters(self, signal: np.ndarray, n0: int):
+        p = self._pars
+        seq = self._cnfg['sequence']
+        
+        # Estimate S0
+        s_ref = Signal(seq, **p)(R1=p['R10'], R2s=p['R20s'], S0=1)
+        p['S0'] = np.mean(signal[:n0]) / s_ref if s_ref > 0 else 0
+
+    def _train(
+        self, time: np.ndarray, signal: np.ndarray,  
+        free: dict, bounds: dict, n0: int, **kwargs,
+    ):
+        self._estimate_parameters(signal, n0)
+        free = self._set_free_pars(free, bounds)
+        return train(self._predict, time, signal, self._pars, free, **kwargs)
+
+    def _plot(self, time:np.ndarray, signal:np.ndarray, xlim:list, 
+              fname:str, show:bool):
+        self._set_time()
+        self._compute_signal()
+        if xlim is None:
+            xlim = [np.amin(time), np.amax(time)]
+
+        fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 5))
+
+        # Signals Plot
+        ax0.set_title('Prediction of the MRI signals.')
+        ax0.plot(time/60, signal, marker='o', linestyle='None', color='cornflowerblue', label='Data')
+        ax0.plot(self._t/60, self._S, linestyle='-', linewidth=3.0, color='darkblue', label='Prediction')
+        ax0.set(xlabel='Time (min)', ylabel='MRI signal (a.u.)', xlim=np.array(xlim)/60)
+        ax0.legend()
+
+        ax1.set_title('Reconstruction of concentrations')
+
+        ax1.plot(self._t/60, 1000*self._pars['c_a'], '-', linewidth=3, color='darkred', label='Arterial Pred')
+        ax1.plot(self._t/60, 1000*self._C[0,:], linestyle='-', linewidth=3.0, color='darkred', label='Blood')
+        ax1.plot(self._t/60, 1000*self._C[1,:], linestyle='-', linewidth=3.0, color='darkcyan', label='Tubuli')
+           
+        ax1.set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=np.array(xlim)/60)
+        ax1.legend()
+
+        if fname is not None:
+            plt.savefig(fname=fname)
+        if show:
+            plt.show()
+        else:
+            plt.close()
+
