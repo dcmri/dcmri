@@ -450,7 +450,7 @@ class AortaLiverDrug(SuperModel):
     def _conc_liver(self, cb, visit):
         p = self._pars
 
-        cb = flux_comp(cb, p[f'Tg'], dt=p['dt'])
+        # cb = flux_comp(cb, p[f'Tg'], dt=p['dt'])
         cp = cb / (1 - p['H'])
     
         vh = 1 - p[f've'] / (1 - p['H'])
@@ -464,6 +464,8 @@ class AortaLiverDrug(SuperModel):
 
         return ConcLiver('1I-IC')(
             cp, dt=p['dt'], 
+            T_a = 0,
+            Tg = p['Tg'],
             ve = p[f've'],
             Fp = Fpl,
             E = El,

@@ -138,7 +138,7 @@ class AortaLiver(SuperModel):
     # ==========================================
 
     configs = {
-        'kinetics': ['1I-EC-D', '1I-EC', '1I-IC', '1I-IC-HF', '1I-IC-HFD', '1I-IC-HFDU'],
+        'kinetics': ['1I-EC', '1I-EC-HF', '1I-IC', '1I-IC-HF'],
         'non_stationary': [None, 'U', 'E', 'UE'],
         'sequence': ['3D-SPGR-SS', '3D-SPGR-SSI']
     }
@@ -373,6 +373,7 @@ class AortaLiver(SuperModel):
 
         aorta_kinetics = ['BAT', 'CO', 'Thl', 'Dhl', 'To', 'Eo', 'To_e', 'Eb']
         liver_kinetics = ConcLiver(kin, ns)._params()
+        liver_kinetics = [k for k in liver_kinetics if k != 'T_a']
         liver_sequence = SEQUENCES[seq]['parameters']['prep']
         liver_sequence += SEQUENCES[seq]['parameters']['read']
         free_inflow = ['TF', 'S0_a'] if seq == '3D-SPGR-SSI' else []
@@ -449,7 +450,7 @@ class AortaLiver(SuperModel):
         p = self._pars
         cp = self._ca / (1 - p['H'])
         kin, ns = self._cnfg['kinetics'], self._cnfg['non_stationary']
-        self._Cl = ConcLiver(kin, ns, **p)(cp, dt=p['dt'])
+        self._Cl = ConcLiver(kin, ns, **p)(cp, dt=p['dt'], T_a=0)
         
     def _compute_relax_liver(self):
         self._compute_conc_liver()

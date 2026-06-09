@@ -51,20 +51,20 @@ def test_conc_liver():
         }
     C0 = ConcLiver('1I-EC', **p)(ca, t)
 
-    p = {'ve': 0.1, 
-         'Te': 0.1 / 0.01, 
-         'De': 1.0,
-        }
-    C1 = ConcLiver('1I-EC-D', **p)(ca, t)
+    # p = {'ve': 0.1, 
+    #      'Te': 0.1 / 0.01, 
+    #      'De': 1.0,
+    #     }
+    # C1 = ConcLiver('1I-EC-D', **p)(ca, t)
 
-    assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-9
+    # assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-9
 
-    try:
-        C1 = ConcLiver('1I-EC-D', 'U')
-    except:
-        pass
-    else:
-        assert False
+    # try:
+    #     C1 = ConcLiver('1I-EC-D', 'U')
+    # except:
+    #     pass
+    # else:
+    #     assert False
 
     # IC
 
@@ -87,6 +87,13 @@ def test_conc_liver():
         }
     C1 = ConcLiver('1I-IC-HF', 'U', **p)(ca, t)
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-3
+
+    try:
+        C1 = ConcLiver('XX', 'U', **p)(ca, t)
+    except:
+        pass
+    else:
+        assert False
 
 
 def test_conc_tissue():

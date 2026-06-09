@@ -108,7 +108,7 @@ class Liver(SuperModel):
     # ==========================================
 
     configs = {
-        'kinetics': ['1I-EC-D', '1I-EC', '2I-EC-HF', '2I-EC', '1I-IC', '1I-IC-HF', '1I-IC-HFD', '1I-IC-HFDU', '2I-IC-HF', '2I-IC', '2I-IC-U'],
+        'kinetics': ['1I-EC', '1I-EC-HF', '2I-EC-HF', '2I-EC', '1I-IC', '1I-IC-HF', '2I-IC-HF', '2I-IC', '2I-IC-U'],
         'non_stationary': [None, 'U', 'E', 'UE'],
         'sequence': ['3D-SPGR-SS', '2D-SR-SPGR-SS'],
     }

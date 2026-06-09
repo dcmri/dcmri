@@ -356,38 +356,59 @@ class ConcLiver(LayerFunction):
     """
 
     _params_dict = {
-        ('1I-EC-D', None): ['ve', 'Te', 'De'],
-        ('1I-EC', None): ['fa', 'T_a', 'Tg', 've', 'Fp'],
-        ('2I-EC-HF', None): ['fa', 'T_a', 've'],
-        ('2I-EC', None): ['fa', 'T_a', 've', 'Fp'],
-        ('1I-IC', None): ['ve', 'Fp', 'E', 'Th'],
-        ('1I-IC', 'U'): ['ve', 'Fp', 'E_i', 'E_f', 'Th'],
-        ('1I-IC', 'E'): ['ve', 'Fp', 'E', 'Th_i', 'Th_f'],
-        ('1I-IC', 'UE'): ['ve', 'Fp', 'E_i', 'E_f', 'Th_i', 'Th_f'],
-        ('1I-IC-HF', None): ['ve', 'khe', 'Th'],
-        ('1I-IC-HF', 'U'): ['ve', 'khe_i', 'khe_f', 'Th'],
-        ('1I-IC-HF', 'E'): ['ve', 'khe', 'Th_i', 'Th_f'],
-        ('1I-IC-HF', 'UE'): ['ve', 'khe_i', 'khe_f', 'Th_i', 'Th_f'],
-        ('1I-IC-HFD', None): ['Tg', 'Dg', 've', 'khe', 'Th'],
-        ('1I-IC-HFD', 'U'): ['Tg', 'Dg', 've', 'khe_i', 'khe_f', 'Th'],
-        ('1I-IC-HFD', 'E'): ['Tg', 'Dg', 've', 'khe', 'Th_i', 'Th_f'],
-        ('1I-IC-HFD', 'UE'): ['Tg', 'Dg', 've', 'khe_i', 'khe_f', 'Th_i', 'Th_f'],
-        ('1I-IC-HFDU', None): ['Tg', 'Dg', 've', 'khe'],
-        ('1I-IC-HFDU', 'U'): ['Tg', 'Dg', 've', 'khe_i', 'khe_f'],
-        ('2I-IC-HF', None): ['fa', 'T_a', 've', 'khe', 'Th'],
-        ('2I-IC-HF', 'U'): ['fa', 'T_a', 've', 'khe_i', 'khe_f', 'Th'],
-        ('2I-IC-HF', 'E'): ['fa', 'T_a', 've', 'khe', 'Th_i', 'Th_f'],
-        ('2I-IC-HF', 'UE'): ['fa', 'T_a', 've', 'khe_i', 'khe_f', 'Th_i', 'Th_f'],
-        ('2I-IC', None): ['fa', 'T_a', 've', 'Fp', 'E', 'Th'],
-        ('2I-IC', 'U'): ['fa', 'T_a', 've', 'Fp', 'E_i', 'E_f', 'Th'],
-        ('2I-IC', 'E'): ['fa', 'T_a', 've', 'Fp', 'E', 'Th_i', 'Th_f'],
-        ('2I-IC', 'UE'): ['fa', 'T_a', 've', 'Fp', 'E_i', 'E_f', 'Th_i', 'Th_f'],
-        ('2I-IC-U', None): ['fa', 'T_a', 've', 'Fp', 'E'],
-        ('2I-IC-U', 'U'): ['fa', 'T_a', 've', 'Fp', 'E_i', 'E_f'],
+        ('2I-EC', None): ['T_a', 'fa', 've', 'Fp'],
+        ('2I-EC-HF', None): ['T_a', 'fa', 've'],
+
+        ('1I-EC', None): ['T_a', 'Tg', 've', 'Fp'],
+        ('1I-EC-HF', None): ['T_a', 'Tg', 've'],
+        # ('1I-EC-D', None): ['ve', 'Te', 'De'],
+
+        ('2I-IC', None): ['T_a', 'fa', 've', 'Fp', 'E', 'Th'],
+        ('2I-IC', 'U'): ['T_a', 'fa', 've', 'Fp', 'E_i', 'E_f', 'Th'],
+        ('2I-IC', 'E'): ['T_a', 'fa', 've', 'Fp', 'E', 'Th_i', 'Th_f'],
+        ('2I-IC', 'UE'): ['T_a', 'fa', 've', 'Fp', 'E_i', 'E_f', 'Th_i', 'Th_f'], 
+
+        ('2I-IC-HF', None): ['T_a', 'fa', 've', 'khe', 'Th'],
+        ('2I-IC-HF', 'U'): ['T_a', 'fa', 've', 'khe_i', 'khe_f', 'Th'],
+        ('2I-IC-HF', 'E'): ['T_a', 'fa', 've', 'khe', 'Th_i', 'Th_f'],
+        ('2I-IC-HF', 'UE'): ['T_a', 'fa', 've', 'khe_i', 'khe_f', 'Th_i', 'Th_f'],
+
+        ('2I-IC-U', None): ['T_a', 'fa', 've', 'Fp', 'E'],
+        ('2I-IC-U', 'U'): ['T_a', 'fa', 've', 'Fp', 'E_i', 'E_f'],
+
+        ('1I-IC', None): ['T_a', 'Tg', 've', 'Fp', 'E', 'Th'],
+        ('1I-IC', 'U'): ['T_a', 'Tg', 've', 'Fp', 'E_i', 'E_f', 'Th'],
+        ('1I-IC', 'E'): ['T_a', 'Tg', 've', 'Fp', 'E', 'Th_i', 'Th_f'],
+        ('1I-IC', 'UE'): ['T_a', 'Tg', 've', 'Fp', 'E_i', 'E_f', 'Th_i', 'Th_f'],
+
+        ('1I-IC-HF', None): ['T_a', 'Tg', 've', 'khe', 'Th'],
+        ('1I-IC-HF', 'U'): ['T_a', 'Tg', 've', 'khe_i', 'khe_f', 'Th'],
+        ('1I-IC-HF', 'E'): ['T_a', 'Tg', 've', 'khe', 'Th_i', 'Th_f'],
+        ('1I-IC-HF', 'UE'): ['T_a', 'Tg', 've', 'khe_i', 'khe_f', 'Th_i', 'Th_f'],
+
+        # ('1I-IC-HFD', None): ['Tg', 'Dg', 've', 'khe', 'Th'],
+        # ('1I-IC-HFD', 'U'): ['Tg', 'Dg', 've', 'khe_i', 'khe_f', 'Th'],
+        # ('1I-IC-HFD', 'E'): ['Tg', 'Dg', 've', 'khe', 'Th_i', 'Th_f'],
+        # ('1I-IC-HFD', 'UE'): ['Tg', 'Dg', 've', 'khe_i', 'khe_f', 'Th_i', 'Th_f'],
+        # ('1I-IC-HFDU', None): ['Tg', 'Dg', 've', 'khe'],
+        # ('1I-IC-HFDU', 'U'): ['Tg', 'Dg', 've', 'khe_i', 'khe_f'],
     }
 
     configs = {
-        'kinetics': ['1I-EC-D', '1I-EC', '2I-EC-HF', '2I-EC', '1I-IC', '1I-IC-HF', '1I-IC-HFD', '1I-IC-HFDU', '2I-IC-HF', '2I-IC', '2I-IC-U'],
+        'kinetics': [
+            '2I-EC',#
+            '2I-EC-HF', #
+            
+            '1I-EC', #
+            '1I-EC-HF', #
+
+            '2I-IC',
+            '2I-IC-HF', 
+            '2I-IC-U',
+
+            '1I-IC', 
+            '1I-IC-HF',
+        ],
         'non_stationary': [None, 'U', 'E', 'UE'],
     }
 
@@ -398,8 +419,8 @@ class ConcLiver(LayerFunction):
 
     def _params(self):
         model = (self._cnfg['kinetics'], self._cnfg['non_stationary'])
-        if model not in self._params_dict:
-            raise ValueError("This model is not recognised")
+        # if model not in self._params_dict:
+        #     raise ValueError("This model is not recognised")
         return copy.deepcopy(self._params_dict[model])
     
     def __call__(self, ca: np.ndarray, t=None, dt=1.0, **params) -> np.ndarray:
@@ -421,7 +442,7 @@ class ConcLiver(LayerFunction):
         # Define model function
         conc = 'conc_liver_' + kin.lower().replace('-', '_')
         if ns != None:
-            conc += '__' + ns.lower()    
+            conc += '_ns' + ns.lower()    
 
         model_func = getattr(pk_liver, conc)  
         return model_func(ca, t=t, dt=dt, **p)

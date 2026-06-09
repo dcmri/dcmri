@@ -463,6 +463,7 @@ class AortaLiverDynamic(SuperModel):
 
         aorta_kinetics = ['BAT_1', 'BAT_2', 'CO', 'Thl', 'Dhl', 'To', 'Eo', 'To_e', 'Eb']
         liver_kinetics = ConcLiver(kin, ns)._params()
+        liver_kinetics = [k for k in liver_kinetics if k != 'T_a']
         kinetics = aorta_kinetics + liver_kinetics
         liver_sequence = SEQUENCES[seq]['parameters']['prep']
         liver_sequence += SEQUENCES[seq]['parameters']['read']
@@ -552,7 +553,7 @@ class AortaLiverDynamic(SuperModel):
         p = self._pars
         cp = self._ca / (1 - p['H'])
         kin, ns = self._cnfg['kinetics'], self._cnfg['non_stationary']
-        self._Cl = ConcLiver(kin, ns, **p)(cp, dt=p['dt'])
+        self._Cl = ConcLiver(kin, ns, **p)(cp, T_a=0, dt=p['dt'])
 
     def _compute_relax_liver(self):
         self._compute_conc_liver()
