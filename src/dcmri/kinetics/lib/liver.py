@@ -129,7 +129,7 @@ def conc_liver_2i_ec(ci, t=None, dt=1.0, T_a=None, fa=None,
     conc_liver_2i_ic : Dual-inlet intracellular agent liver concentration.
 
     Examples
-     --------
+    --------
     >>> import dcmri as dc
     >>> t = [0, 5, 15, 30, 60]
     >>> ca = [1, 2, 3, 3, 2]
