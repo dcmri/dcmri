@@ -175,14 +175,14 @@ class AortaLiverDynamic(SuperModel):
     # ==========================================
 
     configs = {
-        'kinetics': ['1I-EC-D', '1I-EC', '1I-IC', '1I-IC-HF', '1I-IC-HFD', '1I-IC-HFDU'],
+        'kinetics': ['1I-EC', '1I-EC-HF', '1I-IC', '1I-IC-HF'],
         'non_stationary': [None, 'U', 'E', 'UE'],
         'sequence': ['ZTE-3D-SPGR-SS', '3D-SPGR-SS', '3D-SPGR-SSI']
     }
 
     def __init__(
         self, 
-        kinetics = '1I-IC-HFD', 
+        kinetics = '1I-IC-HF', 
         non_stationary=None, 
         sequence='ZTE-3D-SPGR-SS', 
         **params,

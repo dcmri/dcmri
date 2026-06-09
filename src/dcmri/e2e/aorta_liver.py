@@ -145,7 +145,7 @@ class AortaLiver(SuperModel):
 
     def __init__(
         self, 
-        kinetics='1I-IC-HFD', 
+        kinetics='1I-IC-HF', 
         non_stationary=None, 
         sequence='3D-SPGR-SS', 
         **params,
