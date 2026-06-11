@@ -1,7 +1,7 @@
 import numpy as np
 
 import dcmri as dc
-from dcmri.kinetics.lib.inv import _params_2cfm
+from dcmri.kinetics.inv import _params_2cfm
 
 
 def test_linfit_2cfm():

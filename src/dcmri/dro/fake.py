@@ -5,9 +5,9 @@ from dcmri.utils import const
 from dcmri.dro import phantoms
 from dcmri.utils.misc import sample, add_noise
 from dcmri.kinetics.conc import ConcTissueX, ConcLiver, ConcCortMed
-from dcmri.kinetics.lib.blocks import flux_comp
+from dcmri.kinetics.blocks import flux_comp
 from dcmri.bloch.tissue import Signal
-from dcmri.bloch.lib import seqs
+from dcmri.bloch import seqs
 from dcmri.dro.aif import parker
 
 
@@ -198,7 +198,7 @@ def brain(
             if roi['anterior artery'][i, j]:
                 C = cp.copy()
             elif roi['sagittal sinus'][i, j]:
-                C = flux_comp(cp, Tav, dt=dt_sim)
+                C = flux_comp(cp, dt=dt_sim, T=Tav)
             else:
                 Fb = im['Fb'][i, j]
                 vb = im['vb'][i, j]
@@ -402,7 +402,7 @@ def liver(
     """
     t = np.arange(0, tacq+dt, dt_sim)
     cp = parker(t, BAT)
-    cv = flux_comp(cp, Tg, t)
+    cv = flux_comp(cp, t, T=Tg)
     ci = (cp*(1-H), cv*(1-H))
     # C = liver.conc_liver(
     #     ci, dt=dt_sim, sum=False, kinetics='2I-IC',

@@ -125,9 +125,9 @@ Example:
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri.kinetics.lib.input import ca_injection
-from dcmri.kinetics.lib.aorta import flux_aorta_hlol
-from dcmri.kinetics.lib.blocks import flux_comp
+from dcmri.kinetics.input import ca_injection
+from dcmri.kinetics.aorta import flux_aorta_hlol
+from dcmri.kinetics.blocks import flux_comp
 from dcmri.kinetics.conc import ConcAorta, ConcLiver
 from dcmri.utils import const
 from dcmri.lexicon.dicts import QUANTITIES
@@ -441,9 +441,9 @@ class AortaLiverDrug(SuperModel):
 
         Jb = flux_aorta_hlol(
             J, El=El, Ek=Ek, FFl=FFl, dt=p['dt'], tol=p['dose_tolerance'],
-            heartlung=['pfcomp', (p[f'Thl'], p[f'Dhl'])],
-            organs=['2cxm', ([p[f'To'], p[f'To_e']], p[f'Eo'])],
-            liver=['bicomp', ([p[f'Tg'], Te], )],
+            heartlung=['pfcomp', {'T':p[f'Thl'], 'D':p[f'Dhl']}],
+            organs=['2cxm', {'T':[p[f'To'], p[f'To_e']], 'E':p[f'Eo']}],
+            liver=['bicomp', {'T':[p[f'Tg'], Te]}],
         )
         return Jb / p[f'CO']
 

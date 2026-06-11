@@ -3,7 +3,7 @@ from scipy.linalg import expm
 from scipy.special import i0, i1
 
 
-from dcmri.bloch.lib import pulse
+from dcmri.bloch import pulse
 
 
 def mz_readout(Mz: np.ndarray, R2: np.ndarray, S0, FA, TE, noise_sdev):

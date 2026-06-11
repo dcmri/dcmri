@@ -1,6 +1,6 @@
 import numpy as np
 
-from dcmri.bloch.lib import pulse
+from dcmri.bloch import pulse
 
 
 def test_nc_function():

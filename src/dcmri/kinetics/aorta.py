@@ -1,15 +1,14 @@
 import numpy as np
 from scipy.integrate import trapezoid
-
-from dcmri.kinetics.lib.blocks import flux
+import dcmri.kinetics.blocks as blocks
 
 
 def flux_aorta(J_vena: np.ndarray,
         t=None, dt=1.0, E=0.1, FFkl=0.0, FFk=0.5,
-        heartlung=['pfcomp', (10, 0.2)],
-        organs=['2cxm', ([20, 120], 0.15)],
-        kidneys=['comp', (10,)],
-        liver=['pfcomp', (10, 0.2)],
+        heartlung=['pfcomp', {'T':10, 'D':0.2}],
+        organs=['2cxm', {'T':[20, 120], 'E':0.15}],
+        kidneys=['comp', {'T':10}],
+        liver=['pfcomp', {'T':10, 'D':0.2}],
         tol=0.001,
         max_it=None,
     ):
@@ -28,19 +27,19 @@ def flux_aorta(J_vena: np.ndarray,
     while True:
       
         # Aorta flux of the current pass
-        J_aorta = flux(J_vena, *heartlung[1], t=t, dt=dt, model=heartlung[0])
+        J_aorta = blocks.flux(heartlung[0], J_vena, t=t, dt=dt, **heartlung[1])
 
         # Add to the total aorta flux
         J_aorta_total += J_aorta
 
         # Venous flux of the current pass
-        J_vena = Ro * flux(J_aorta, *organs[1], t=t, dt=dt, model=organs[0])
+        J_vena = Ro * blocks.flux(organs[0], J_aorta, t=t, dt=dt, **organs[1])
 
         if np.sum(Rl) > 0:
-            J_vena += Rl * flux(J_aorta, *liver[1], t=t, dt=dt, model=liver[0])
+            J_vena += Rl * blocks.flux(liver[0], J_aorta, t=t, dt=dt, **liver[1])
 
         if np.sum(Rk) > 0:
-            J_vena += Rk * flux(J_aorta, *kidneys[1], t=t, dt=dt, model=kidneys[0])
+            J_vena += Rk * blocks.flux(kidneys[0], J_aorta, t=t, dt=dt, **kidneys[1])
 
         # Get residual dose in current pass
         dose = trapezoid(J_vena, x=t, dx=dt)
@@ -58,9 +57,9 @@ def flux_aorta(J_vena: np.ndarray,
 
 def flux_aorta_hlo(J_vena: np.ndarray,
         t=None, dt=1.0, E=0.1, 
-        heartlung=['pfcomp', (10, 0.2)],
-        organs=['2cxm', ([20, 120], 0.15)],
-        veins=['pass', ()],
+        heartlung=['pfcomp', {'T':10, 'D':0.2}],
+        organs=['2cxm', {'T':[20, 120], 'E':0.15}],
+        veins=['pass', {}],
         tol=0.001,
         max_it=None,
     ):
@@ -77,16 +76,16 @@ def flux_aorta_hlo(J_vena: np.ndarray,
     while True:
       
         # Pass through heart and lungs
-        J_aorta = flux(J_vena, *heartlung[1], t=t, dt=dt, model=heartlung[0])
+        J_aorta = blocks.flux(heartlung[0], J_vena, t=t, dt=dt, **heartlung[1])
 
         # Add to the total aorta flux
         J_aorta_total += J_aorta
 
         # Pass through organs
-        J_vena = Ro * flux(J_aorta, *organs[1], t=t, dt=dt, model=organs[0])
+        J_vena = Ro * blocks.flux(organs[0], J_aorta, t=t, dt=dt, **organs[1])
 
         # Pass through the venous return
-        J_vena = flux(J_vena, *veins[1], t=t, dt=dt, model=veins[0])
+        J_vena = blocks.flux(veins[0], J_vena, t=t, dt=dt, **veins[1])
 
         # Get residual dose in current pass
         dose = trapezoid(J_vena, x=t, dx=dt)
@@ -104,9 +103,9 @@ def flux_aorta_hlo(J_vena: np.ndarray,
 
 def flux_aorta_hlol(J_vena: np.ndarray,
         t=None, dt=1.0, El=0.1, Ek=0.1, FFl=0.0,
-        heartlung=['pfcomp', (10, 0.2)],
-        organs=['2cxm', ([20, 120], 0.15)],
-        liver=['pfcomp', (10, 0.2)],
+        heartlung=['pfcomp', {'T':10, 'D':0.2}],
+        organs=['2cxm', {'T':[20, 120], 'E':0.15}],
+        liver=['pfcomp', {'T':10, 'D':0.2}],
         tol=0.001,
         max_it=None,
     ):
@@ -124,14 +123,14 @@ def flux_aorta_hlol(J_vena: np.ndarray,
     while True:
       
         # Aorta flux of the current pass
-        J_aorta = flux(J_vena, *heartlung[1], t=t, dt=dt, model=heartlung[0])
+        J_aorta = blocks.flux(heartlung[0], J_vena, t=t, dt=dt, **heartlung[1])
 
         # Add to the total aorta flux
         J_aorta_total += J_aorta
 
         # Venous flux of the current pass
-        J_vena = Ro * flux(J_aorta, *organs[1], t=t, dt=dt, model=organs[0])
-        J_vena += Rl * flux(J_aorta, *liver[1], t=t, dt=dt, model=liver[0])
+        J_vena = Ro * blocks.flux(organs[0], J_aorta, t=t, dt=dt, **organs[1])
+        J_vena += Rl * blocks.flux(liver[0], J_aorta, t=t, dt=dt, **liver[1])
 
         # Get residual dose in current pass
         dose = trapezoid(J_vena, x=t, dx=dt)
@@ -149,9 +148,9 @@ def flux_aorta_hlol(J_vena: np.ndarray,
 
 def flux_aorta_hlok(J_vena: np.ndarray,
         t=None, dt=1.0, El=0.1, Ek=0.1, FFk=0.0,
-        heartlung=['pfcomp', (10, 0.2)],
-        organs=['2cxm', ([20, 120], 0.15)],
-        kidney=['comp', (10,)],
+        heartlung=['pfcomp', {'T':10, 'D':0.2}],
+        organs=['2cxm', {'T':[20, 120], 'E':0.15}],
+        kidney=['comp', {'T':10}],
         tol=0.001,
         max_it=None,
     ):
@@ -169,14 +168,14 @@ def flux_aorta_hlok(J_vena: np.ndarray,
     while True:
       
         # Aorta flux of the current pass
-        J_aorta = flux(J_vena, *heartlung[1], t=t, dt=dt, model=heartlung[0])
+        J_aorta = blocks.flux(heartlung[0], J_vena, t=t, dt=dt, **heartlung[1])
 
         # Add to the total aorta flux
         J_aorta_total += J_aorta
 
         # Venous flux of the current pass
-        J_vena = Ro * flux(J_aorta, *organs[1], t=t, dt=dt, model=organs[0])
-        J_vena += Rk * flux(J_aorta, *kidney[1], t=t, dt=dt, model=kidney[0])
+        J_vena = Ro * blocks.flux(organs[0], J_aorta, t=t, dt=dt, **organs[1])
+        J_vena += Rk * blocks.flux(kidney[0], J_aorta, t=t, dt=dt, **kidney[1])
 
         # Get residual dose in current pass
         dose = trapezoid(J_vena, x=t, dx=dt)

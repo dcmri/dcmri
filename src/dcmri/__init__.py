@@ -33,6 +33,7 @@ from dcmri.lexicon.tools import (
 )
 
 from dcmri.kinetics.conc import (
+   ConcBlock,
    ConcAorta,
    ConcLiver,
    ConcKidney,
@@ -40,9 +41,10 @@ from dcmri.kinetics.conc import (
    ConcTissueX,   
 )
 from dcmri.kinetics.flux import (
+    FluxBlock,
     FluxTissueX
 )
-from dcmri.kinetics.lib.blocks import (
+from dcmri.kinetics.blocks import (
     res_trap,
     res_pass,
     res_comp,
@@ -61,7 +63,6 @@ from dcmri.kinetics.lib.blocks import (
     prop_free,
     prop_ncomp,
 
-    conc,
     conc_trap,
     conc_pass,
     conc_comp,
@@ -75,7 +76,6 @@ from dcmri.kinetics.lib.blocks import (
     conc_mmcomp,
     conc_2cxm,
 
-    flux,
     flux_trap,
     flux_pass,
     flux_comp,
@@ -90,7 +90,7 @@ from dcmri.kinetics.lib.blocks import (
     flux_mmcomp,
     flux_2cxm,
 )
-from dcmri.kinetics.lib.tissue import (
+from dcmri.kinetics.tissue import (
     conc_tissue_u,
     conc_tissue_fx,
     conc_tissue_nx,
@@ -111,7 +111,7 @@ from dcmri.kinetics.lib.tissue import (
     flux_tissue_2cu,
     flux_tissue_2cx,
 )
-from dcmri.kinetics.lib.liver import (
+from dcmri.kinetics.liver import (
     # conc_liver_1i_ec_d,
     conc_liver_1i_ec,
     conc_liver_1i_ec_hf,
@@ -142,7 +142,7 @@ from dcmri.kinetics.lib.liver import (
     conc_liver_2i_ic_u,
     conc_liver_2i_ic_u_nsu,
 )
-from dcmri.kinetics.lib.kidney import (
+from dcmri.kinetics.kidney import (
     conc_kidney_2cf,
     conc_kidney_2pf,
     conc_kidney_cpf,
@@ -153,21 +153,21 @@ from dcmri.kinetics.lib.kidney import (
     conc_kidney_hfu,
     conc_kidney_cm9,
 )
-from dcmri.kinetics.lib.aorta import (
+from dcmri.kinetics.aorta import (
     flux_aorta,
     flux_aorta_hlo,
     flux_aorta_hlol,
     flux_aorta_hlok,
 )
-from dcmri.kinetics.lib.inv import (
+from dcmri.kinetics.inv import (
     linfit_2cfm
 )
-from dcmri.kinetics.lib.input import (
+from dcmri.kinetics.input import (
     ca_injection
 )
 
 
-# Configurable functions built on standalone tools
+# Function functions built on standalone tools
 
 from dcmri.relaxivity.tissue import (
     R1,
@@ -197,14 +197,14 @@ from dcmri.bloch.tissue_x import (
     MzTissueX,
     SignalTissueX,
 )
-from dcmri.bloch.lib.pulse import (
+from dcmri.bloch.pulse import (
    Mz_pr_spgr_ss,
    Mz_pr_spgr_prop,
    Mz_ss,
    Mz_prop,
    Mz_ss_spgr,
 )
-from dcmri.bloch.lib.seqs import (
+from dcmri.bloch.seqs import (
    Mz_spgr_in_ss,
    Mz_pr_spgr,
    Mz_pr_spgr_in_ss,

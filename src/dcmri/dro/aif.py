@@ -1,9 +1,9 @@
 import numpy as np
 
 from dcmri.utils import const
-from dcmri.kinetics.lib.input import ca_injection
-from dcmri.kinetics.lib.aorta import flux_aorta
-from dcmri.kinetics.lib.blocks import flux_2cxm
+from dcmri.kinetics.input import ca_injection
+from dcmri.kinetics.aorta import flux_aorta
+from dcmri.kinetics.blocks import flux_2cxm
 
 def parker(t, BAT: float = 0.0) -> np.ndarray:
     """Population AIF model as defined by `Parker et al (2006) <https://onlinelibrary.wiley.com/doi/full/10.1002/mrm.21066>`_
@@ -148,8 +148,8 @@ def tristan(
     conc = const.ca_conc(agent)
     Ji = ca_injection(t, weight,conc, dose, rate, BAT)
     Jb = flux_aorta(Ji, t, E=E,
-                    heartlung=['chain', (Thl, Dhl)],
-                    organs=['2cxm', ([Tp, Te], Ee)],
+                    heartlung=['chain', {'T':Thl, 'D':Dhl}],
+                    organs=['2cxm', {'T':[Tp, Te], 'E':Ee}],
                     tol=dtol)
     return Jb/CO
 
@@ -264,7 +264,7 @@ def tristan_rat(t, BAT=4.6 * 60, duration=30) -> np.ndarray:
     TE = VE / P
     E = P / (K + P)
 
-    Jp = flux_2cxm(J, [TP, TE], E, t)
+    Jp = flux_2cxm(J, t, T=[TP, TE], E=E)
     cp = Jp / K
 
     return cp * (1 - Hct)

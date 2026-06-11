@@ -83,7 +83,7 @@ from dcmri.kinetics.conc import ConcLiver
 from dcmri.bloch.tissue import Signal
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
-from dcmri.kinetics.lib.liver import dpars_liver
+from dcmri.kinetics.liver import dpars_liver
 
 
 class Liver(SuperModel):

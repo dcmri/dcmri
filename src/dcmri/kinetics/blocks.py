@@ -4,166 +4,31 @@ from scipy.integrate import trapezoid
 from scipy.special import lambertw
 
 from dcmri.utils import convolution, misc
-from dcmri.kinetics.lib import utils
+from dcmri.kinetics import utils
 
 
-# Wrappers
+# Functions
 
 
-def flux(J: np.ndarray, *params, t=None, dt=1.0, model='comp', **kwargs) -> np.ndarray:
-    """
-    Calculate the indicator flux leaving a system block.
-
-    This is a wrapper function to calculate the 
-    outflux out of any of the building blocks. 
-
-    Parameters
-    ----------
-    J : array_like
-        The indicator flux entering the system.
-    *params : tuple
-        Positional model parameters required by the specified model.
-    t : array_like, optional
-        The time points corresponding to the indicator flux `J`. If None, 
-        the time points are assumed to be uniformly spaced with spacing `dt`. 
-        Defaults to None.
-    dt : float, optional
-        Spacing between time points for uniformly spaced data. This parameter 
-        is ignored if `t` is explicitly provided. Defaults to 1.0.
-    model : str, optional
-        The model architecture to use. Options include: 'trap', 'pass', 
-        'comp', 'bicomp', 'plug', 'chain', 'step', 'free', 'ncomp', 
-        'nscomp', 'pfcomp', 'mmcomp', '2cxm'. Defaults to 'comp'.
-    **kwargs : dict
-        Additional keyword arguments required by the underlying model.
-
-    Returns
-    -------
-    np.ndarray
-        Total outflux leaving the system.
-
-    Raises
-    ------
-    ValueError
-        If the specified `model` is not currently implemented.
-
-    Examples
-    --------
-    >>> import numpy as np
-    >>> J_in = np.array([1.0, 2.0, 1.5, 0.5, 0.0])
-    >>> flux(J_in, 2.0, model='comp')
-    array([0.         0.60653066 1.04828746 1.01296118 0.70459602])
-    """
-
-    if model == 'trap':
-        return flux_trap(J)
-    if model == 'pass':
-        return flux_pass(J)
-    if model == 'comp':
-        return flux_comp(J, *params, t=t, dt=dt, **kwargs)
-    if model == 'bicomp':
-        return flux_bicomp(J, *params, t=t, dt=dt, **kwargs)
-    if model == 'plug':
-        return flux_plug(J, *params, t=t, dt=dt, **kwargs)
-    if model == 'chain':
-        return flux_chain(J, *params, t=t, dt=dt, **kwargs)
-    if model == 'step':
-        return flux_step(J, *params, t=t, dt=dt, **kwargs)
-    if model == 'free':
-        return flux_free(J, *params, t=t, dt=dt, **kwargs)
-    if model == 'ncomp':
-        return flux_ncomp(J, *params, t=t, dt=dt, **kwargs)
-    if model == 'nscomp':
-        return flux_nscomp(J, *params, t=t, dt=dt)
-    if model == 'pfcomp':
-        return flux_pfcomp(J, *params, t=t, dt=dt, **kwargs)
-    if model == 'mmcomp':
-        return flux_mmcomp(J, *params, t=t, dt=dt, **kwargs)
-    if model == '2cxm':
-        return flux_2cxm(J, *params, t=t, dt=dt, **kwargs)
-    msg = 'Model ' + model + ' is not currently implemented.'
-    raise ValueError(msg)
+def flux(model, *args, **kwargs) -> np.ndarray:
+    """Internal wrapper function not exposed to users"""
+    if model in ['pass','trap']:
+        kwargs = {k: v for k, v in kwargs.items() if k not in ['t', 'dt']}
+    return globals()[f"flux_{model}"](*args, **kwargs)
 
 
-def conc(J: np.ndarray, *params, t=None, dt=1.0, model='comp', 
-         **kwargs) -> np.ndarray:
-    """
-    Calculate the tissue concentration within a system block.
-
-    This is a wrapper function to calculate the 
-    tissue concentration in of any of the building blocks.
-
-    Parameters
-    ----------
-    J : array_like
-        The indicator flux entering the system.
-    *params : tuple
-        Positional model parameters required by the specified model.
-    t : array_like, optional
-        The time points corresponding to the indicator flux `J`. If None, 
-        the time points are assumed to be uniformly spaced with spacing `dt`. 
-        Defaults to None.
-    dt : float, optional
-        Spacing between time points for uniformly spaced data. This parameter 
-        is ignored if `t` is explicitly provided. Defaults to 1.0.
-    model : str, optional
-        The model architecture to use. Options include: 'trap', 'pass', 
-        'comp', 'bicomp', 'plug', 'chain', 'step', 'free', 'ncomp', 
-        'nscomp', 'mmcomp', '2cxm'. Defaults to 'comp'.
-    **kwargs : dict
-        Additional keyword arguments required by the underlying model.
-
-    Returns
-    -------
-    np.ndarray
-        Concentration within the system over time.
-
-    Raises
-    ------
-    ValueError
-        If the specified `model` is not currently implemented.
-
-    Examples
-    --------
-    >>> import numpy as np
-    >>> J_in = np.array([1.0, 2.0, 1.5, 0.5, 0.0])
-    >>> conc(J_in, 2.0, model='comp')
-    array([0.         1.21306132 2.09657492 2.02592235 1.40919204])
-    """
-
-    if model == 'trap':
-        return conc_trap(J, t=t, dt=dt)
-    if model == 'pass':
-        return conc_pass(J, *params)
-    if model == 'comp':
-        return conc_comp(J, *params, t=t, dt=dt, **kwargs)
-    if model == 'bicomp':
-        return conc_bicomp(J, *params, t=t, dt=dt, **kwargs)
-    if model == 'plug':
-        return conc_plug(J, *params, t=t, dt=dt, **kwargs)
-    if model == 'chain':
-        return conc_chain(J, *params, t=t, dt=dt, **kwargs)
-    if model == 'step':
-        return conc_step(J, *params, t=t, dt=dt, **kwargs)
-    if model == 'free':
-        return conc_free(J, *params, t=t, dt=dt, **kwargs)
-    if model == 'ncomp':
-        return conc_ncomp(J, *params, t=t, dt=dt, **kwargs)
-    if model == 'nscomp':
-        return conc_nscomp(J, *params, t=t, dt=dt) # no need for this, check if rate constant is a scalar
-    if model == 'mmcomp':
-        return conc_mmcomp(J, *params, t=t, dt=dt, **kwargs)
-    if model == '2cxm':
-        return conc_2cxm(J, *params, t=t, dt=dt, **kwargs)
-    msg = 'Model ' + model + ' is not currently implemented.'
-    raise ValueError(msg)
+def conc(model, *args, **kwargs) -> np.ndarray:
+    """Internal wrapper function not exposed to users"""
+    if model in ['pass']:
+        kwargs = {k: v for k, v in kwargs.items() if k not in ['t', 'dt']}
+    return globals()[f"conc_{model}"](*args, **kwargs)
 
 
 # 0 Parameters
 
 # Trap
 
-def res_trap(t):
+def res_trap(t=None):
     """
     Residue function of a trap.
 
@@ -195,7 +60,7 @@ def res_trap(t):
     return np.ones(len(t))
 
 
-def prop_trap(t):
+def prop_trap(t=None):
     """
     Propagator of a trap.
 
@@ -301,7 +166,7 @@ def flux_trap(J):
 
 # Pass (no dispersion)
 
-def res_pass(T, t):
+def res_pass(t, T=None):
     """
     Residue function of a pass.
 
@@ -309,10 +174,10 @@ def res_pass(T, t):
 
     Parameters
     ----------
-    T : float
-        Transit time of the pass.
     t : array_like
         Time points where the residue function is calculated.
+    T : float
+        Transit time of the pass.
 
     Returns
     -------
@@ -329,10 +194,10 @@ def res_pass(T, t):
     --------
     >>> import dcmri as dc
     >>> t = [0, 3, 4, 6]
-    >>> dc.res_pass(5, t)
+    >>> dc.res_pass(t, 5)
     array([3.33333333, 0.        , 0.        , 0.        ])
     """
-    return T*utils.ddelta(0, t)
+    return T * utils.ddelta(0, t)
 
 
 def prop_pass(t):
@@ -367,7 +232,7 @@ def prop_pass(t):
     return utils.ddelta(0, t)
 
 
-def conc_pass(J, T):
+def conc_pass(J, T=None):
     """
     Tissue concentration in a pass.
 
@@ -398,7 +263,7 @@ def conc_pass(J, T):
     >>> dc.conc_pass(J, 5)
     array([ 5, 10, 15, 15, 10])
     """
-    return T*np.array(J)
+    return T * np.array(J)
 
 
 def flux_pass(J):
@@ -435,7 +300,7 @@ def flux_pass(J):
 
 # Compartment
 
-def res_comp(T, t):
+def res_comp(t, T=None):
     """
     Residue function of a compartment.
 
@@ -443,13 +308,13 @@ def res_comp(T, t):
 
     Parameters
     ----------
+    t : array_like
+        Time points where the residue function is calculated, in the same 
+        units as `T`.
     T : float
         Mean transit time of the compartment. Any non-negative value is 
         allowed, including T = 0 and T = inf (in which case the compartment 
         acts as a trap).
-    t : array_like
-        Time points where the residue function is calculated, in the same 
-        units as `T`.
 
     Returns
     -------
@@ -466,7 +331,7 @@ def res_comp(T, t):
     --------
     >>> import dcmri as dc
     >>> t = [0, 3, 4, 6]
-    >>> dc.res_comp(5, t)
+    >>> dc.res_comp(t, 5)
     array([1.        , 0.54881164, 0.44932896, 0.30119421])
     """
     if T == np.inf:
@@ -478,7 +343,7 @@ def res_comp(T, t):
     return np.exp(-np.array(t)/T)
 
 
-def prop_comp(T, t):
+def prop_comp(t, T=None):
     """
     Propagator of a compartment.
 
@@ -486,13 +351,13 @@ def prop_comp(T, t):
 
     Parameters
     ----------
+    t : array_like
+        Time points where the propagator is calculated, in the same units 
+        as `T`.
     T : float
         Mean transit time of the compartment. Any non-negative value is 
         allowed, including T = 0 and T = inf (in which case the compartment 
         acts as a trap).
-    t : array_like
-        Time points where the propagator is calculated, in the same units 
-        as `T`.
 
     Returns
     -------
@@ -509,7 +374,7 @@ def prop_comp(T, t):
     --------
     >>> import dcmri as dc
     >>> t = [0, 3, 4, 6]
-    >>> dc.prop_comp(5, t)
+    >>> dc.prop_comp(t, 5)
     array([0.2       , 0.10976233, 0.08986579, 0.06023884])
     """
     if T == np.inf:
@@ -519,7 +384,7 @@ def prop_comp(T, t):
     return np.exp(-np.array(t)/T)/T
 
 
-def conc_comp(J, T, t=None, dt=1.0):
+def conc_comp(J, t=None, dt=1.0, T=None):
     """
     Tissue concentration in a compartment.
 
@@ -529,10 +394,6 @@ def conc_comp(J, T, t=None, dt=1.0):
     ----------
     J : array_like
         The indicator flux entering the compartment.
-    T : float
-        Mean transit time of the compartment. Any non-negative value is 
-        allowed, including T = 0 and T = inf (in which case the compartment 
-        acts as a trap).
     t : array_like, optional
         The time points of the indicator flux `J`, in the same units as `T`. 
         If None, the time points are assumed to be uniformly spaced with 
@@ -541,6 +402,10 @@ def conc_comp(J, T, t=None, dt=1.0):
         Spacing between time points for uniformly spaced data, in the same 
         units as `T`. This parameter is ignored if `t` is explicitly 
         provided. Defaults to 1.0.
+    T : float
+        Mean transit time of the compartment. Any non-negative value is 
+        allowed, including T = 0 and T = inf (in which case the compartment 
+        acts as a trap).
 
     Returns
     -------
@@ -558,7 +423,7 @@ def conc_comp(J, T, t=None, dt=1.0):
     >>> import dcmri as dc
     >>> t = [0, 5, 15, 30, 60]
     >>> J = [1, 2, 3, 3, 2]
-    >>> dc.conc_comp(J, 5, t)
+    >>> dc.conc_comp(J, t, T=5)
     array([ 0.        ,  5.        , 12.16166179, 14.85868746, 10.83091743])
     """
     if T == np.inf:
@@ -568,7 +433,7 @@ def conc_comp(J, T, t=None, dt=1.0):
     return T * convexp
 
 
-def flux_comp(J, T, t=None, dt=1.0):
+def flux_comp(J, t=None, dt=1.0, T=None):
     """
     Flux out of a compartment.
 
@@ -578,10 +443,6 @@ def flux_comp(J, T, t=None, dt=1.0):
     ----------
     J : array_like
         The indicator flux entering the compartment.
-    T : float
-        Mean transit time of the compartment. Any non-negative value is 
-        allowed, including T = 0 and T = inf (in which case the compartment 
-        acts as a trap).
     t : array_like, optional
         The time points of the indicator flux `J`, in the same units as `T`. 
         If None, the time points are assumed to be uniformly spaced with 
@@ -590,6 +451,10 @@ def flux_comp(J, T, t=None, dt=1.0):
         Spacing between time points for uniformly spaced data, in the same 
         units as `T`. This parameter is ignored if `t` is explicitly 
         provided. Defaults to 1.0.
+    T : float
+        Mean transit time of the compartment. Any non-negative value is 
+        allowed, including T = 0 and T = inf (in which case the compartment 
+        acts as a trap).
 
     Returns
     -------
@@ -607,7 +472,7 @@ def flux_comp(J, T, t=None, dt=1.0):
     >>> import dcmri as dc
     >>> t = [0, 5, 15, 30, 60]
     >>> J = [1, 2, 3, 3, 2]
-    >>> dc.flux_comp(J, 5, t)
+    >>> dc.flux_comp(J, t, T=5)
     array([0.        , 1.        , 2.43233236, 2.97173749, 2.16618349])
     """
     if T == np.inf:
@@ -617,7 +482,7 @@ def flux_comp(J, T, t=None, dt=1.0):
 
 # Bicomp
 
-def conc_bicomp(J, T, t=None, dt=1.0):
+def conc_bicomp(J, t=None, dt=1.0, T=None):
     """
     Tissue concentration in a chain of 2 compartments.
 
@@ -625,10 +490,6 @@ def conc_bicomp(J, T, t=None, dt=1.0):
     ----------
     J : array_like
         The indicator flux entering the first compartment.
-    T : list of float
-        Mean transit times of the two compartments. Any non-negative value is 
-        allowed, including T = 0 and T = inf (in which case the compartment 
-        acts as a trap).
     t : array_like, optional
         The time points of the indicator flux `J`, in the same units as `T`. 
         If None, the time points are assumed to be uniformly spaced with 
@@ -637,6 +498,11 @@ def conc_bicomp(J, T, t=None, dt=1.0):
         Spacing between time points for uniformly spaced data, in the same 
         units as `T`. This parameter is ignored if `t` is explicitly 
         provided. Defaults to 1.0.
+    T : list of float
+        Mean transit times of the two compartments. Any non-negative value is 
+        allowed, including T = 0 and T = inf (in which case the compartment 
+        acts as a trap).
+
 
     Returns
     -------
@@ -654,26 +520,26 @@ def conc_bicomp(J, T, t=None, dt=1.0):
     >>> import dcmri as dc
     >>> t = [0, 5, 15, 30, 60]
     >>> J = [1, 2, 3, 3, 2]
-    >>> dc.conc_bicomp(J, [5, 10], t)
+    >>> dc.conc_bicomp(J, t, T=[5, 10])
     array([ 0.        ,  7.13061319, 24.53593245, 39.11621776, 34.77241541])
     """
     Tc = T[0]
     if np.isscalar(Tc):
-        C0 = conc_comp(J, Tc, t=t, dt=dt)
-        J = flux_comp(J, Tc, t=t, dt=dt) # unnecessary conv here
+        C0 = conc_comp(J, t=t, dt=dt, T=Tc)
+        J = flux_comp(J, t=t, dt=dt, T=Tc) # unnecessary conv here
     else:
-        C0 = conc_nscomp(J, Tc, t=t, dt=dt)
-        J = flux_nscomp(J, Tc, t=t, dt=dt) # unnecessary conv here
+        C0 = conc_nscomp(J, t=t, dt=dt, T=Tc)
+        J = flux_nscomp(J, t=t, dt=dt, T=Tc) # unnecessary conv here
         
     Tc = T[1]
     if np.isscalar(Tc):
-        C1 = conc_comp(J, Tc, t=t, dt=dt)
+        C1 = conc_comp(J, t=t, dt=dt, T=Tc)
     else:
-        C1 = conc_nscomp(J, Tc, t=t, dt=dt)
+        C1 = conc_nscomp(J, t=t, dt=dt, T=Tc)
         
     return C0 + C1
 
-def flux_bicomp(J, T, t=None, dt=1.0):
+def flux_bicomp(J, t=None, dt=1.0, T=None):
     """
     Flux out of a chain of 2 compartments.
 
@@ -683,10 +549,6 @@ def flux_bicomp(J, T, t=None, dt=1.0):
     ----------
     J : array_like
         The indicator flux entering the first compartment.
-    T : list of float
-        Mean transit times of the two compartments. Any non-negative value is 
-        allowed, including T = 0 and T = inf (in which case the compartment 
-        acts as a trap).
     t : array_like, optional
         The time points of the indicator flux `J`, in the same units as `T`. 
         If None, the time points are assumed to be uniformly spaced with 
@@ -695,6 +557,11 @@ def flux_bicomp(J, T, t=None, dt=1.0):
         Spacing between time points for uniformly spaced data, in the same 
         units as `T`. This parameter is ignored if `t` is explicitly 
         provided. Defaults to 1.0.
+    T : list of float
+        Mean transit times of the two compartments. Any non-negative value is 
+        allowed, including T = 0 and T = inf (in which case the compartment 
+        acts as a trap).
+
 
     Returns
     -------
@@ -712,18 +579,19 @@ def flux_bicomp(J, T, t=None, dt=1.0):
     >>> import dcmri as dc
     >>> t = [0, 5, 15, 30, 60]
     >>> J = [1, 2, 3, 3, 2]
-    >>> dc.flux_bicomp(J, [5, 10], t)
+    >>> dc.flux_bicomp(J, t, T=[5, 10])
+    array([0.        , 0.21306132, 1.23742707, 2.42575303, 2.3941498 ])
     """
     for Tc in T:
         if np.isscalar(Tc):
-            J = flux_comp(J, Tc, t=t, dt=dt)
+            J = flux_comp(J, t=t, dt=dt, T=Tc)
         else:
-            J = flux_nscomp(J, Tc, t=t, dt=dt)
+            J = flux_nscomp(J, t=t, dt=dt, T=Tc)
     return J
 
 # Plug flow
 
-def prop_plug(T, t):
+def prop_plug(t, T=None):
     """
     Propagator of a plug flow system.
 
@@ -731,12 +599,13 @@ def prop_plug(T, t):
 
     Parameters
     ----------
-    T : float
-        Mean transit time of the system. Any non-negative value is allowed, 
-        including T = 0 and T = inf (in which case the system acts as a trap).
     t : array_like
         Time points where the propagator is calculated, in the same units 
         as `T`.
+    T : float
+        Mean transit time of the system. Any non-negative value is allowed, 
+        including T = 0 and T = inf (in which case the system acts as a trap).
+
 
     Returns
     -------
@@ -753,13 +622,13 @@ def prop_plug(T, t):
     --------
     >>> import dcmri as dc
     >>> t = [0, 3, 4, 6]
-    >>> dc.prop_plug(5, t)
+    >>> dc.prop_plug(t, 5)
     array([0.        , 0.        , 0.33333333, 0.5       ])
     """
     return utils.ddelta(T, t)
 
 
-def res_plug(T, t):
+def res_plug(t, T=None):
     """
     Residue function of a plug flow system.
 
@@ -767,12 +636,12 @@ def res_plug(T, t):
 
     Parameters
     ----------
-    T : float
-        Mean transit time of the system. Any non-negative value is allowed, 
-        including T = 0 and T = inf (in which case the system acts as a trap).
     t : array_like
         Time points where the residue function is calculated, in the same 
         units as `T`.
+    T : float
+        Mean transit time of the system. Any non-negative value is allowed, 
+        including T = 0 and T = inf (in which case the system acts as a trap).
 
     Returns
     -------
@@ -789,14 +658,14 @@ def res_plug(T, t):
     --------
     >>> import dcmri as dc
     >>> t = [0, 3, 4, 6]
-    >>> dc.res_plug(5, t)
+    >>> dc.res_plug(t, 5)
     array([1.00000000e+00, 1.00000000e+00, 8.33333333e-01, 1.11022302e-16])
     """
-    h = prop_plug(T, t)
-    return 1-misc.trapz(h, t)
+    h = prop_plug(t, T)
+    return 1 - misc.trapz(h, t)
 
 
-def conc_plug(J, T, t=None, dt=1.0, solver='interp'):
+def conc_plug(J, t=None, dt=1.0, T=None, solver='interp'):
     """
     Tissue concentration in a plug flow system.
 
@@ -806,9 +675,6 @@ def conc_plug(J, T, t=None, dt=1.0, solver='interp'):
     ----------
     J : array_like
         The indicator flux entering the system.
-    T : float
-        Mean transit time of the system. Any non-negative value is allowed, 
-        including T = 0 and T = inf (in which case the system acts as a trap).
     t : array_like, optional
         The time points of the indicator flux `J`, in the same units as `T`. 
         If None, the time points are assumed to be uniformly spaced with 
@@ -817,6 +683,9 @@ def conc_plug(J, T, t=None, dt=1.0, solver='interp'):
         Spacing between time points for uniformly spaced data, in the same 
         units as `T`. This parameter is ignored if `t` is explicitly 
         provided. Defaults to 1.0.
+    T : float
+        Mean transit time of the system. Any non-negative value is allowed, 
+        including T = 0 and T = inf (in which case the system acts as a trap).
     solver : str, optional
         Solver for the system, either 'conv' for explicit convolution with a 
         discrete impulse response (slow) or 'interp' for interpolation 
@@ -838,8 +707,8 @@ def conc_plug(J, T, t=None, dt=1.0, solver='interp'):
     >>> import dcmri as dc
     >>> t = [0, 5, 15, 30, 60]
     >>> J = [1, 2, 3, 3, 2]
-    >>> dc.conc_plug(J, 5, t)
-    array([ 0.        ,  6.38888889, 18.61111111, 22.5       , 16.25      ])
+    >>> dc.conc_plug(J, t, T=5)
+    array([ 0.  ,  5.  , 12.5 , 16.25, 13.75])
     """
     if T == np.inf:
         return conc_trap(J)
@@ -847,14 +716,14 @@ def conc_plug(J, T, t=None, dt=1.0, solver='interp'):
         return 0*J
     t = misc.tarray(len(J), t=t, dt=dt)
     if solver == 'conv':
-        r = res_plug(T, t)
+        r = res_plug(t, T)
         return convolution.conv(r, J, t=t, dt=dt)
     elif solver == 'interp':
         Jo = np.interp(t-T, t, J, left=0)
         return misc.trapz(J-Jo, t)
 
 
-def flux_plug(J, T, t=None, dt=1.0, solver='interp'):
+def flux_plug(J, t=None, dt=1.0, T=None, solver='interp'):
     """
     Flux out of a plug flow system.
 
@@ -864,9 +733,6 @@ def flux_plug(J, T, t=None, dt=1.0, solver='interp'):
     ----------
     J : array_like
         The indicator flux entering the system.
-    T : float
-        Mean transit time of the system. Any non-negative value is allowed, 
-        including T = 0 and T = inf (in which case the system acts as a trap).
     t : array_like, optional
         The time points of the indicator flux `J`, in the same units as `T`. 
         If None, the time points are assumed to be uniformly spaced with 
@@ -875,6 +741,9 @@ def flux_plug(J, T, t=None, dt=1.0, solver='interp'):
         Spacing between time points for uniformly spaced data, in the same 
         units as `T`. This parameter is ignored if `t` is explicitly 
         provided. Defaults to 1.0.
+    T : float
+        Mean transit time of the system. Any non-negative value is allowed, 
+        including T = 0 and T = inf (in which case the system acts as a trap).
     solver : str, optional
         Solver for the system, either 'conv' for explicit convolution with a 
         discrete impulse response (slow) or 'interp' for interpolation 
@@ -896,8 +765,8 @@ def flux_plug(J, T, t=None, dt=1.0, solver='interp'):
     >>> import dcmri as dc
     >>> t = [0, 5, 15, 30, 60]
     >>> J = [1, 2, 3, 3, 2]
-    >>> dc.flux_plug(J, 5, t)
-    array([0.        , 0.44444444, 23.0555556 , 3.        , 2.22222222])
+    >>> dc.flux_plug(J, t, T=5)
+    array([0.        , 1.        , 2.5       , 3.        , 2.16666667])
     """
     if T == np.inf:
         return flux_trap(J)
@@ -905,7 +774,7 @@ def flux_plug(J, T, t=None, dt=1.0, solver='interp'):
         return J
     t = misc.tarray(len(J), t=t, dt=dt)
     if solver == 'conv':
-        h = prop_plug(T, t)
+        h = prop_plug(t, T)
         return convolution.conv(h, J, t=t, dt=dt)
     elif solver == 'interp':
         return np.interp(t-T, t, J, left=0)
@@ -917,7 +786,7 @@ def flux_plug(J, T, t=None, dt=1.0, solver='interp'):
 
 # Chain
 
-def prop_chain(T, D, t):
+def prop_chain(t, T=None, D=None):
     """
     Propagator of a chain.
 
@@ -925,15 +794,15 @@ def prop_chain(T, D, t):
 
     Parameters
     ----------
+    t : array_like
+        Time points where the propagator is calculated, in the same units 
+        as `T`.
     T : float
         Mean transit time of the system. Any non-negative value is allowed, 
         including T = 0 and T = inf (in which case the system acts as a trap).
     D : float
         Dispersion of the system. Values must be between 0 (no dispersion) 
         and 1 (maximal dispersion).
-    t : array_like
-        Time points where the propagator is calculated, in the same units 
-        as `T`.
 
     Returns
     -------
@@ -955,7 +824,7 @@ def prop_chain(T, D, t):
     --------
     >>> import dcmri as dc
     >>> t = [0, 3, 4, 6]
-    >>> dc.prop_chain(5, 0.5, t)
+    >>> dc.prop_chain(t, T=5, D=0.5)
     array([0.        , 0.14457322, 0.12921377, 0.08708924])
     """
     if T < 0:
@@ -965,15 +834,15 @@ def prop_chain(T, D, t):
     if D > 1:
         raise ValueError('D cannot be larger than 1')
     if D == 0:
-        return prop_plug(T, t)
+        return prop_plug(t, T)
     if D == 1:
-        return prop_comp(T, t)
+        return prop_comp(t, T)
     n = 1/D
     g = convolution.nexpconv(n, T/n, t)
     return g
 
 
-def res_chain(T, D, t):
+def res_chain(t, T=None, D=None):
     """
     Residue function of a chain.
 
@@ -981,15 +850,16 @@ def res_chain(T, D, t):
 
     Parameters
     ----------
+    t : array_like
+        Time points where the residue function is calculated, in the same 
+        units as `T`.
     T : float
         Mean transit time of the system. Any non-negative value is allowed, 
         including T = 0 and T = inf (in which case the system acts as a trap).
     D : float
         Dispersion of the system. Values must be between 0 (no dispersion) 
         and 1 (maximal dispersion).
-    t : array_like
-        Time points where the residue function is calculated, in the same 
-        units as `T`.
+
 
     Returns
     -------
@@ -1006,18 +876,18 @@ def res_chain(T, D, t):
     --------
     >>> import dcmri as dc
     >>> t = [0, 3, 4, 6]
-    >>> dc.res_chain(5, 0.5, t)
+    >>> dc.res_chain(t, 5, 0.5)
     array([1.        , 0.78314017, 0.64624667, 0.42994366])
     """
     if D == 0:
-        return res_plug(T, t)
+        return res_plug(t, T)
     if D == 1:
-        return res_comp(T, t)
-    h = prop_chain(T, D, t)
+        return res_comp(t, T)
+    h = prop_chain(t, T, D)
     return 1-misc.trapz(h, t)
 
 
-def conc_chain(J, T, D, t=None, dt=1.0, solver='step'):
+def conc_chain(J, t=None, dt=1.0, T=None, D=None, solver='step'):
     """
     Tissue concentration in a chain.
 
@@ -1027,13 +897,6 @@ def conc_chain(J, T, D, t=None, dt=1.0, solver='step'):
     ----------
     J : array_like
         The indicator flux entering the system.
-    T : float
-        Mean transit time of the system. Any non-negative value is allowed, 
-        including T = 0 and T = inf (in which case the compartment acts as 
-        a trap).
-    D : float
-        Dispersion of the system. Values must be between 0 (no dispersion) 
-        and 1 (maximal dispersion).
     t : array_like, optional
         The time points of the indicator flux `J`, in the same units as `T`. 
         If None, the time points are assumed to be uniformly spaced with 
@@ -1042,6 +905,13 @@ def conc_chain(J, T, D, t=None, dt=1.0, solver='step'):
         Spacing between time points for uniformly spaced data, in the same 
         units as `T`. This parameter is ignored if `t` is explicitly 
         provided. Defaults to 1.0.
+    T : float
+        Mean transit time of the system. Any non-negative value is allowed, 
+        including T = 0 and T = inf (in which case the compartment acts as 
+        a trap).
+    D : float
+        Dispersion of the system. Values must be between 0 (no dispersion) 
+        and 1 (maximal dispersion).
     solver : str, optional
         Solver used for the chain system calculation. Defaults to 'step'.
 
@@ -1061,13 +931,13 @@ def conc_chain(J, T, D, t=None, dt=1.0, solver='step'):
     >>> import dcmri as dc
     >>> t = [0, 5, 15, 30, 60]
     >>> J = [1, 2, 3, 3, 2]
-    >>> dc.conc_chain(J, 5, 0.5, t)
-    array([ 0.        ,  6.59776478, 20.98038139, 30.80370764, 33.53283379])
+    >>> dc.conc_chain(J, t, T=5, D=0.5)
+    array([ 0.        ,  6.82332358, 21.45008965, 30.86598366, 33.12222937])
     """
     if D == 0:
-        return conc_plug(J, T, t=t, dt=dt)
+        return conc_plug(J, t=t, dt=dt, T=T)
     if D == 1:
-        return conc_comp(J, T, t=t, dt=dt)
+        return conc_comp(J, t=t, dt=dt, T=T)
 
     # TODO: THIS NEEDS DEBUGGING
     # if solver=='diag':
@@ -1083,11 +953,11 @@ def conc_chain(J, T, D, t=None, dt=1.0, solver='step'):
     #     return C/2
 
     tr = misc.tarray(len(J), t=t, dt=dt)
-    r = res_chain(T, D, tr)
+    r = res_chain(tr, T, D)
     return convolution.conv(r, J, t=t, dt=dt, solver=solver)
 
 
-def flux_chain(J, T, D, t=None, dt=1.0, solver='step'):
+def flux_chain(J, t=None, dt=1.0, T=None, D=None, solver='step'):
     """
     Flux out of a chain.
 
@@ -1097,13 +967,6 @@ def flux_chain(J, T, D, t=None, dt=1.0, solver='step'):
     ----------
     J : array_like
         The indicator flux entering the system.
-    T : float
-        Mean transit time of the system. Any non-negative value is allowed, 
-        including T = 0 and T = inf (in which case the compartment acts as 
-        a trap).
-    D : float
-        Dispersion of the system. Values must be between 0 (no dispersion) 
-        and 1 (maximal dispersion).
     t : array_like, optional
         The time points of the indicator flux `J`, in the same units as `T`. 
         If None, the time points are assumed to be uniformly spaced with 
@@ -1112,6 +975,13 @@ def flux_chain(J, T, D, t=None, dt=1.0, solver='step'):
         Spacing between time points for uniformly spaced data, in the same 
         units as `T`. This parameter is ignored if `t` is explicitly 
         provided. Defaults to 1.0.
+    T : float
+        Mean transit time of the system. Any non-negative value is allowed, 
+        including T = 0 and T = inf (in which case the compartment acts as 
+        a trap).
+    D : float
+        Dispersion of the system. Values must be between 0 (no dispersion) 
+        and 1 (maximal dispersion).
     solver : str, optional
         Solver used for the chain system calculation. Defaults to 'step'.
 
@@ -1131,13 +1001,13 @@ def flux_chain(J, T, D, t=None, dt=1.0, solver='step'):
     >>> import dcmri as dc
     >>> t = [0, 5, 15, 30, 60]
     >>> J = [1, 2, 3, 3, 2]
-    >>> dc.flux_chain(J, 5, 0.5, t)
-    array([0.        , 0.36089409, 1.92047375, 2.63639739, 1.99640464])
+    >>> dc.flux_chain(J, t, T=5, D=0.5)
+    array([0.        , 0.27067057, 1.9393115 , 2.64461893, 1.94721897])
     """
     if D == 0:
-        return flux_plug(J, T, t=t, dt=dt)
+        return flux_plug(J, t=t, dt=dt, T=T)
     if D == 1:
-        return flux_comp(J, T, t=t, dt=dt)
+        return flux_comp(J, t=t, dt=dt, T=T)
 
     # TODO: This needs debugging
     # if solver=='diag':
@@ -1153,7 +1023,7 @@ def flux_chain(J, T, D, t=None, dt=1.0, solver='step'):
     #     return Jo/2
 
     th = misc.tarray(len(J), t=t, dt=dt)
-    h = prop_chain(T, D, th)
+    h = prop_chain(th, T, D)
     return convolution.conv(h, J, t=t, dt=dt, solver=solver)
 
 # Helper function in diag solver for chain model
@@ -1169,7 +1039,7 @@ def flux_chain(J, T, D, t=None, dt=1.0, solver='step'):
 
 # Step
 
-def prop_step(T, D, t):
+def prop_step(t, T=None, D=None):
     """
     Propagator of a step.
 
@@ -1177,6 +1047,9 @@ def prop_step(T, D, t):
 
     Parameters
     ----------
+    t : array_like
+        Time points where the propagator is calculated, in the same units 
+        as `T`.
     T : float
         Mean transit time of the system. Any non-negative value is allowed, 
         including T = 0 and T = inf (in which case the system acts as a trap).
@@ -1184,9 +1057,6 @@ def prop_step(T, D, t):
         Dispersion of the system, or half-width of the step given as a 
         fraction of `T`. Values must be between 0 (no dispersion) and 1 
         (maximal dispersion).
-    t : array_like
-        Time points where the propagator is calculated, in the same units 
-        as `T`.
 
     Returns
     -------
@@ -1208,7 +1078,7 @@ def prop_step(T, D, t):
     --------
     >>> import dcmri as dc
     >>> t = [0, 3, 4, 6]
-    >>> dc.prop_step(5, 0.5, t)
+    >>> dc.prop_step(t, 5, 0.5)
     array([0.03508772, 0.21052632, 0.21052632, 0.21052632])
     """
     if not isinstance(t, np.ndarray):
@@ -1222,11 +1092,11 @@ def prop_step(T, D, t):
     if T == np.inf:
         return prop_trap(t)
     if D == 0:
-        return prop_plug(T, t)
+        return prop_plug(t, T)
     return utils.dstep(T-D*T, T+D*T, t)
 
 
-def res_step(T, D, t):
+def res_step(t, T=None, D=None):
     """
     Residue function of a step.
 
@@ -1234,6 +1104,9 @@ def res_step(T, D, t):
 
     Parameters
     ----------
+    t : array_like
+        Time points where the residue function is calculated, in the same 
+        units as `T`.
     T : float
         Mean transit time of the system. Any non-negative value is allowed, 
         including T = 0 and T = inf (in which case the system acts as a trap).
@@ -1241,9 +1114,7 @@ def res_step(T, D, t):
         Dispersion of the system, or half-width of the step given as a 
         fraction of `T`. Values must be between 0 (no dispersion) and 1 
         (maximal dispersion).
-    t : array_like
-        Time points where the residue function is calculated, in the same 
-        units as `T`.
+
 
     Returns
     -------
@@ -1260,14 +1131,14 @@ def res_step(T, D, t):
     --------
     >>> import dcmri as dc
     >>> t = [0, 3, 4, 6]
-    >>> dc.res_step(5, 0.5, t)
+    >>> dc.res_step(t, 5, 0.5)
     array([1.        , 0.63157895, 0.42105263, 0.        ])
     """
-    h = prop_step(T, D, t)
-    return 1-misc.trapz(h, t)
+    h = prop_step(t, T, D)
+    return 1 - misc.trapz(h, t)
 
 
-def conc_step(J, T, D, t=None, dt=1.0):
+def conc_step(J, t=None, dt=1.0, T=None, D=None):
     """
     Tissue concentration inside a step.
 
@@ -1277,14 +1148,6 @@ def conc_step(J, T, D, t=None, dt=1.0):
     ----------
     J : array_like
         The indicator flux entering the system.
-    T : float
-        Mean transit time of the system. Any non-negative value is allowed, 
-        including T = 0 and T = inf (in which case the compartment acts as 
-        a trap).
-    D : float
-        Dispersion of the system, or half-width of the step given as a 
-        fraction of `T`. Values must be between 0 (no dispersion) and 1 
-        (maximal dispersion).
     t : array_like, optional
         The time points of the indicator flux `J`, in the same units as `T`. 
         If None, the time points are assumed to be uniformly spaced with 
@@ -1293,6 +1156,14 @@ def conc_step(J, T, D, t=None, dt=1.0):
         Spacing between time points for uniformly spaced data, in the same 
         units as `T`. This parameter is ignored if `t` is explicitly 
         provided. Defaults to 1.0.
+    T : float
+        Mean transit time of the system. Any non-negative value is allowed, 
+        including T = 0 and T = inf (in which case the compartment acts as 
+        a trap).
+    D : float
+        Dispersion of the system, or half-width of the step given as a 
+        fraction of `T`. Values must be between 0 (no dispersion) and 1 
+        (maximal dispersion).
 
     Returns
     -------
@@ -1310,17 +1181,17 @@ def conc_step(J, T, D, t=None, dt=1.0):
     >>> import dcmri as dc
     >>> t = [0, 5, 15, 30, 60]
     >>> J = [1, 2, 3, 3, 2]
-    >>> dc.conc_step(J, 5, 0.5, t)
-    array([ 0.        ,  6.44736842, 20.19736842, 28.20175439, 21.58625731])
+    >>> dc.conc_step(J, t, T=5, D=0.5)
+    array([ 0.        ,  6.71052632, 20.65789474, 28.42105263, 21.05263158])
     """
     if D == 0:
-        return conc_plug(J, T, t=t, dt=dt)
+        return conc_plug(J, t=t, dt=dt, T=T)
     t = misc.tarray(len(J), t=t, dt=dt)
-    r = res_step(T, D, t)
+    r = res_step(t, T, D)
     return convolution.conv(r, J, t)
 
 
-def flux_step(J, T, D, t=None, dt=1.0):
+def flux_step(J, t=None, dt=1.0, T=None, D=None):
     """
     Flux out of a step.
 
@@ -1330,14 +1201,6 @@ def flux_step(J, T, D, t=None, dt=1.0):
     ----------
     J : array_like
         The indicator flux entering the system.
-    T : float
-        Mean transit time of the system. Any non-negative value is allowed, 
-        including T = 0 and T = inf (in which case the compartment acts as 
-        a trap).
-    D : float
-        Dispersion of the system, or half-width of the step given as a 
-        fraction of `T`. Values must be between 0 (no dispersion) and 1 
-        (maximal dispersion).
     t : array_like, optional
         The time points of the indicator flux `J`, in the same units as `T`. 
         If None, the time points are assumed to be uniformly spaced with 
@@ -1346,6 +1209,14 @@ def flux_step(J, T, D, t=None, dt=1.0):
         Spacing between time points for uniformly spaced data, in the same 
         units as `T`. This parameter is ignored if `t` is explicitly 
         provided. Defaults to 1.0.
+    T : float
+        Mean transit time of the system. Any non-negative value is allowed, 
+        including T = 0 and T = inf (in which case the compartment acts as 
+        a trap).
+    D : float
+        Dispersion of the system, or half-width of the step given as a 
+        fraction of `T`. Values must be between 0 (no dispersion) and 1 
+        (maximal dispersion).
 
     Returns
     -------
@@ -1363,17 +1234,17 @@ def flux_step(J, T, D, t=None, dt=1.0):
     >>> import dcmri as dc
     >>> t = [0, 5, 15, 30, 60]
     >>> J = [1, 2, 3, 3, 2]
-    >>> dc.flux_step(J, 5, 0.5, t)
-    array([0.        , 0.45614035, 1.9254386 , 2.91812865, 2.29239766])
+    >>> dc.flux_step(J, t, T=5, D=0.5)
+    array([0.        , 0.42105263, 1.94736842, 2.94736842, 2.23684211])
     """
     if D == 0:
-        return flux_plug(J, T, t=t, dt=dt)
+        return flux_plug(J, t=t, dt=dt, T=T)
     t = misc.tarray(len(J), t=t, dt=dt)
-    h = prop_step(T, D, t)
+    h = prop_step(t, T, D)
     return convolution.conv(h, J, t)
 
 
-def flux_pfcomp(J, T, D, t=None, dt=1.0, solver='interp'):
+def flux_pfcomp(J, t=None, dt=1.0, T=None, D=None, solver='interp'):
     """
     Flux out of a plug-flow compartment.
 
@@ -1383,13 +1254,6 @@ def flux_pfcomp(J, T, D, t=None, dt=1.0, solver='interp'):
     ----------
     J : array_like
         The indicator flux entering the compartment (mmol/sec).
-    T : float
-        Mean transit time of the compartment (sec). Any non-negative value is 
-        allowed, including T = 0 and T = inf (in which case the compartment 
-        acts as a trap).
-    D : float
-        Dispersion of the system defined as the ratio of the compartmental 
-        mean transit time versus the total mean transit time.
     t : array_like, optional
         The time points of the indicator flux `J` (sec). If None, the time 
         points are assumed to be uniformly spaced with spacing `dt`. 
@@ -1397,6 +1261,13 @@ def flux_pfcomp(J, T, D, t=None, dt=1.0, solver='interp'):
     dt : float, optional
         Spacing between time points for uniformly spaced data (sec). This 
         parameter is ignored if `t` is explicitly provided. Defaults to 1.0.
+    T : float
+        Mean transit time of the compartment (sec). Any non-negative value is 
+        allowed, including T = 0 and T = inf (in which case the compartment 
+        acts as a trap).
+    D : float
+        Dispersion of the system defined as the ratio of the compartmental 
+        mean transit time versus the total mean transit time.
     solver : str, optional
         Solver for the system, either 'conv' for explicit convolution with a 
         discrete impulse response (slow) or 'interp' for interpolation 
@@ -1418,19 +1289,19 @@ def flux_pfcomp(J, T, D, t=None, dt=1.0, solver='interp'):
     >>> import dcmri as dc
     >>> t = [0, 5, 15, 30, 60]
     >>> J = [1, 2, 3, 3, 2]
-    >>> dc.flux_pfcomp(J, 5, 0.2, t)
+    >>> dc.flux_pfcomp(J, t, T=5, D=0.2)
     array([0.        , 0.35892193, 2.45784099, 2.97333203, 2.16222222])
     """
     if D < 0 or D > 1:
         raise ValueError('Dispersion must be in the range [0,1]')
     if D == 0:
-        return flux_plug(J, T, t=t, dt=dt, solver=solver)
+        return flux_plug(J, t=t, dt=dt, T=T, solver=solver)
     if D == 1:
-        return flux_comp(J, T, t=t, dt=dt)
-    Tc = D*T
-    Tp = (1-D)*T
-    J = flux_comp(J, Tc, t=t, dt=dt)
-    J = flux_plug(J, Tp, t=t, dt=dt, solver=solver)
+        return flux_comp(J, t=t, dt=dt, T=T)
+    Tc = D * T
+    Tp = (1 - D) * T
+    J = flux_comp(J, t=t, dt=dt, T=Tc)
+    J = flux_plug(J, t=t, dt=dt, T=Tp, solver=solver)
     return J
 
 
@@ -1440,7 +1311,7 @@ def flux_pfcomp(J, T, D, t=None, dt=1.0, solver='interp'):
 # Free
 
 
-def prop_free(H, t, TT=None, TTmin=0, TTmax=None):
+def prop_free(t, h=None, TT=None, TTmin=0, TTmax=None):
     """
     Propagator of a free system.
 
@@ -1448,13 +1319,13 @@ def prop_free(H, t, TT=None, TTmin=0, TTmax=None):
 
     Parameters
     ----------
+    t : array_like
+        Time points where the propagator is calculated, in the same units 
+        as `TT`.
     H : array_like
         Frequencies of the transit time histogram in each transit time bin. 
         These do not have to be normalized - the function normalizes to unit 
         area by default.
-    t : array_like
-        Time points where the propagator is calculated, in the same units 
-        as `TT`.
     TT : array_like, optional
         Boundaries of the transit time histogram bins. The number of elements 
         in this array must be one more than the number of elements in `H`. 
@@ -1493,13 +1364,13 @@ def prop_free(H, t, TT=None, TTmin=0, TTmax=None):
     covering the entire time interval, with frequencies 2 and 1, 
     respectively:
 
-    >>> dc.prop_free([2, 1], t)
+    >>> dc.prop_free(t, [2, 1])
     array([0.33333333, 0.41666667, 0.33333333, 0.16666667])
 
     Assume the transit time has two equally sized bins, but between the 
     values [0.5, 2.5]:
 
-    >>> dc.prop_free([2, 1], t, TTmin=0.5, TTmax=2.5)
+    >>> dc.prop_free(t, [2, 1], TTmin=0.5, TTmax=2.5)
     array([0.19047619, 0.47619048, 0.38095238, 0.0952381 ])
 
     Assume the transit time histogram is provided by two bins in the same 
@@ -1507,10 +1378,10 @@ def prop_free(H, t, TT=None, TTmin=0, TTmax=None):
     1 to 2.5. The frequencies in the bins are the same as in the previous 
     example:
 
-    >>> dc.prop_free([2, 1], t, TT=[0.5, 1.0, 2.5])
+    >>> dc.prop_free(t, [2, 1], TT=[0.5, 1.0, 2.5])
     array([0.33333333, 0.64814815, 0.14814815, 0.07407407])
     """
-    nTT = len(H)
+    nTT = len(h)
     if TT is None:
         if TTmax is None:
             TTmax = np.amax(t)
@@ -1520,11 +1391,11 @@ def prop_free(H, t, TT=None, TTmin=0, TTmax=None):
             msg = 'The array of transit time boundaries needs to have length N+1, '
             msg += '\n with N the size of the transit time distribution H.'
             raise ValueError(msg)
-    h = utils.ddist(H, TT, t)
+    h = utils.ddist(h, TT, t)
     return h/trapezoid(h, t)
 
 
-def res_free(H, t, TT=None, TTmin=0, TTmax=None):
+def res_free(t, h=None, TT=None, TTmin=0, TTmax=None):
     """
     Residue function of a free system.
 
@@ -1532,13 +1403,13 @@ def res_free(H, t, TT=None, TTmin=0, TTmax=None):
 
     Parameters
     ----------
+    t : array_like
+        Time points where the residue function is calculated, in the same units 
+        as `TT`.
     H : array_like
         Frequencies of the transit time histogram in each transit time bin. 
         These do not have to be normalized - the function normalizes to unit 
         area by default.
-    t : array_like
-        Time points where the residue function is calculated, in the same units 
-        as `TT`.
     TT : array_like, optional
         Boundaries of the transit time histogram bins. The number of elements 
         in this array must be one more than the number of elements in `H`. 
@@ -1577,13 +1448,13 @@ def res_free(H, t, TT=None, TTmin=0, TTmax=None):
     covering the entire time interval, with frequencies 2 and 1, 
     respectively:
 
-    >>> dc.res_free([2, 1], t)
+    >>> dc.res_free(t, [2, 1])
     array([1.   , 0.625, 0.25 , 0.   ])
 
     Assume the transit time has two equally sized bins, but between the 
     values [0.5, 2.5]:
 
-    >>> dc.res_free([2, 1], t, TTmin=0.5, TTmax=2.5)
+    >>> dc.res_free(t, [2, 1], TTmin=0.5, TTmax=2.5)
     array([1.00000000e+00, 6.66666667e-01, 2.38095238e-01, 2.22044605e-16])
 
     Assume the transit time histogram is provided by two bins in the same 
@@ -1591,16 +1462,16 @@ def res_free(H, t, TT=None, TTmin=0, TTmax=None):
     1 to 2.5. The frequencies in the bins are the same as in the previous 
     example:
 
-    >>> dc.res_free([2, 1], t, TT=[0.5, 1.0, 2.5])
+    >>> dc.res_free(t, [2, 1], TT=[0.5, 1.0, 2.5])
     array([1.00000000e+00, 5.09259259e-01, 1.11111111e-01, 2.22044605e-16])
     """
-    h = prop_free(H, t, TT=TT, TTmin=TTmin, TTmax=TTmax)
+    h = prop_free(t, h, TT=TT, TTmin=TTmin, TTmax=TTmax)
     r = 1 - misc.trapz(h, t)
     r[r < 0] = 0
     return r
 
 
-def conc_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None, solver='trap'):
+def conc_free(J, t=None, dt=1.0, h=None, TT=None, TTmin=0, TTmax=None, solver='trap'):
     """
     Tissue concentration in a free system.
 
@@ -1610,10 +1481,6 @@ def conc_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None, solver='trap')
     ----------
     J : array_like
         The indicator flux entering the system.
-    H : array_like
-        Frequencies of the transit time histogram in each transit time bin. 
-        These do not have to be normalized - the function normalizes to unit 
-        area by default.
     t : array_like, optional
         The time points of the indicator flux `J`, in the same units as `TT`. 
         If None, the time points are assumed to be uniformly spaced with 
@@ -1622,6 +1489,10 @@ def conc_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None, solver='trap')
         Spacing between time points for uniformly spaced data, in the same 
         units as `TT`. This parameter is ignored if `t` is explicitly 
         provided. Defaults to 1.0.
+    H : array_like
+        Frequencies of the transit time histogram in each transit time bin. 
+        These do not have to be normalized - the function normalizes to unit 
+        area by default.
     TT : array_like, optional
         Boundaries of the transit time histogram bins. The number of elements 
         in this array must be one more than the number of elements in `H`. 
@@ -1657,13 +1528,13 @@ def conc_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None, solver='trap')
     covering the entire time interval, with frequencies 2 and 1, 
     respectively:
 
-    >>> dc.conc_free(J, [2, 1], t)
+    >>> dc.conc_free(J, t, h=[2, 1])
     array([ 0.        ,  7.25308642, 29.41358025, 61.41975309, 77.56944444])
 
     Assume the transit time has two equally sized bins, but between the 
     values [0.5, 2.5]:
 
-    >>> dc.conc_free(J, [2, 1], t, TTmin=0.5, TTmax=2.5)
+    >>> dc.conc_free(J, t, h=[2, 1], TTmin=0.5, TTmax=2.5)
     array([ 0.        ,  4.75925926, 10.15740741, 11.5       ,  8.10185185])
 
     Assume the transit time histogram is provided by two bins in the same 
@@ -1671,27 +1542,27 @@ def conc_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None, solver='trap')
     1 to 2.5. The frequencies in the bins are the same as in the previous 
     example:
 
-    >>> dc.conc_free(J, [2, 1], t, TT=[0.5, 1.0, 2.5])
+    >>> dc.conc_free(J, t, h=[2, 1], TT=[0.5, 1.0, 2.5])
     array([ 0.        ,  4.64814815,  9.58101852, 10.75      ,  7.5462963 ])
 
     If the time array is not provided, the function assumes uniform time 
     resolution with a time step of 1:
 
-    >>> dc.conc_free(J, [2, 1], TT=[0.5, 1.0, 2.5])
+    >>> dc.conc_free(J, h=[2, 1], TT=[0.5, 1.0, 2.5])
     array([0.        , 1.17777778, 2.45555556, 3.25277778, 3.075     ])
 
     If the time step is different from 1, it needs to be provided 
     explicitly:
 
-    >>> dc.conc_free(J, [2, 1], dt=2.0, TT=[0.5, 1.0, 2.5])
+    >>> dc.conc_free(J, dt=2.0, h=[2, 1], TT=[0.5, 1.0, 2.5])
     array([0.        , 2.05555556, 3.87037037, 4.76388889, 4.14351852])
     """
     u = misc.tarray(len(J), t=t, dt=dt)
-    r = res_free(H, u, TT=TT, TTmin=TTmin, TTmax=TTmax)
+    r = res_free(u, h, TT=TT, TTmin=TTmin, TTmax=TTmax)
     return convolution.conv(r, J, t=t, dt=dt, solver=solver)
 
 
-def flux_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
+def flux_free(J, t=None, dt=1.0, h=None, TT=None, TTmin=0, TTmax=None):
     """
     Flux out of a free system.
 
@@ -1701,10 +1572,6 @@ def flux_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
     ----------
     J : array_like
         The indicator flux entering the system.
-    H : array_like
-        Frequencies of the transit time histogram in each transit time bin. 
-        These do not have to be normalized - the function normalizes to unit 
-        area by default.
     t : array_like, optional
         The time points of the indicator flux `J`, in the same units as `TT`. 
         If None, the time points are assumed to be uniformly spaced with 
@@ -1713,6 +1580,10 @@ def flux_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
         Spacing between time points for uniformly spaced data, in the same 
         units as `TT`. This parameter is ignored if `t` is explicitly 
         provided. Defaults to 1.0.
+    H : array_like
+        Frequencies of the transit time histogram in each transit time bin. 
+        These do not have to be normalized - the function normalizes to unit 
+        area by default.
     TT : array_like, optional
         Boundaries of the transit time histogram bins. The number of elements 
         in this array must be one more than the number of elements in `H`. 
@@ -1746,37 +1617,37 @@ def flux_free(J, H, t=None, dt=1.0, TT=None, TTmin=0, TTmax=None):
     covering the entire time interval, with frequencies 2 and 1, 
     respectively:
 
-    >>> dc.flux_free(J, [2, 1], t)
-    array([0.        , 0.11111111, 0.48148148, 1.25102881, 2.60802469])
+    >>> dc.flux_free(J, t, h=[2, 1])
+    array([0.        , 0.11111111, 0.48148148, 1.24074074, 2.625     ])
 
     Assume the transit time has two equally sized bins, but between the 
     values [0.5, 2.5]:
 
-    >>> dc.flux_free(J, [2, 1], t, TTmin=0.5, TTmax=2.5)
-    array([0.        , 1.34074074, 2.69259259, 3.        , 2.1       ])
+    >>> dc.flux_free(J, t, h=[2, 1], TTmin=0.5, TTmax=2.5)
+    array([0.        , 1.55555556, 2.82222222, 3.        , 2.04444444])
 
     Assume the transit time histogram is provided by two bins in the same 
     range, but with different sizes: one from 0.5 to 1 and the other from 
     1 to 2.5. The frequencies in the bins are the same as in the previous 
     example:
 
-    >>> dc.flux_free(J, [2, 1], t, TT=[0.5, 1.0, 2.5])
-    array([0.        , 1.40185185, 2.71898148, 3.        , 2.09166667])
+    >>> dc.flux_free(J, t, h=[2, 1], TT=[0.5, 1.0, 2.5])
+    array([0.        , 1.63888889, 2.85555556, 3.        , 2.03611111])
 
     If the time array is not provided, the function assumes uniform time 
     resolution with a time step of 1:
 
-    >>> dc.flux_free(J, [2, 1], TT=[0.5, 1.0, 2.5])
-    array([0.        , 0.7       , 1.8       , 2.60555556, 2.69444444])
+    >>> dc.flux_free(J, h=[2, 1], TT=[0.5, 1.0, 2.5])
+    array([0.        , 0.65      , 1.83333333, 2.7       , 2.76666667])
 
     If the time step is different from 1, it needs to be provided 
     explicitly:
 
-    >>> dc.flux_free(J, [2, 1], dt=2.0, TT=[0.5, 1.0, 2.5])
-    array([0.        , 1.10185185, 2.24074074, 2.86574074, 2.59722222])
+    >>> dc.flux_free(J, dt=2.0, h=[2, 1], TT=[0.5, 1.0, 2.5])
+    array([0.        , 1.18055556, 2.38888889, 2.94444444, 2.52777778])
     """
     u = misc.tarray(len(J), t=t, dt=dt)
-    h = prop_free(H, u, TT=TT, TTmin=TTmin, TTmax=TTmax)
+    h = prop_free(u, h, TT=TT, TTmin=TTmin, TTmax=TTmax)
     return convolution.conv(h, J, t=t, dt=dt)
 
 
@@ -1833,7 +1704,7 @@ def _J_ncomp(C, T, E):
 # Helper function
 
 
-def conc_ncomp_prop(J, T, E, t=None, dt=1.0, dt_prop=None):
+def _conc_ncomp_prop(J, T, E, t=None, dt=1.0, dt_prop=None):
     t = misc.tarray(len(J[0, :]), t=t, dt=dt)
     K = _K_ncomp(T, E)
     nt, nc = len(t), len(T)
@@ -1861,7 +1732,7 @@ def conc_ncomp_prop(J, T, E, t=None, dt=1.0, dt_prop=None):
 # Helper function
 
 
-def conc_ncomp_diag(J, T, E, t=None, dt=1.0):
+def _conc_ncomp_diag(J, T, E, t=None, dt=1.0):
     t = misc.tarray(J.shape[1], t=t, dt=dt)
     # Calculate system matrix, eigenvalues and eigenvectors
     K = _K_ncomp(T, E)
@@ -1877,7 +1748,7 @@ def conc_ncomp_diag(J, T, E, t=None, dt=1.0):
         # Loop over the eigenvalues
         for d in range(nc):
             # Calculate elements of diagonal matrix
-            Ei[d, :] = conc_comp(J[i, :], 1/K[d], t)
+            Ei[d, :] = conc_comp(J[i, :], t, T=1/K[d])
             # Right-multiply with inverse eigenvector matrix
             Ei[d, :] *= Qi[d, i]
         # Left-multiply with eigenvector matrix
@@ -1886,7 +1757,7 @@ def conc_ncomp_diag(J, T, E, t=None, dt=1.0):
     return np.absolute(C)
 
 
-def conc_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
+def conc_ncomp(J, t=None, dt=1.0, T=None, E=None, solver='diag', dt_prop=None):
     """
     Concentration in an n-compartment system.
 
@@ -1898,13 +1769,6 @@ def conc_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
         The indicator flux entering the system, as a rectangular 2D array with 
         dimensions `(n, k)`, where `n` is the number of compartments and `k` 
         is the number of time points in `J`.
-    T : array_like
-        An `n`-element array with mean transit times of each compartment.
-    E : array_like
-        Dimensionless and square `n x n` matrix. An off-diagonal element 
-        `E[j, i]` is the extraction fraction from compartment `i` to 
-        compartment `j`. A diagonal element `E[i, i]` is the extraction 
-        fraction from compartment `i` to the outside.
     t : array_like, optional
         The time points of the indicator flux `J`, in the same units as `T`. 
         If `t` is not provided, the time points are assumed to be uniformly 
@@ -1913,6 +1777,13 @@ def conc_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
         Spacing between time points for uniformly spaced time points, in the 
         same units as `T`. This parameter is ignored if `t` is explicitly 
         provided. Defaults to 1.0.
+    T : array_like
+        An `n`-element array with mean transit times of each compartment.
+    E : array_like
+        Dimensionless and square `n x n` matrix. An off-diagonal element 
+        `E[j, i]` is the extraction fraction from compartment `i` to 
+        compartment `j`. A diagonal element `E[i, i]` is the extraction 
+        fraction from compartment `i` to the outside.
     solver : str, optional
         A string specifying the numerical method for solving the system. Two 
         options are available:
@@ -1984,7 +1855,7 @@ def conc_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
 
     Calculate the concentrations in both compartments of the system:
 
-    >>> C = dc.conc_ncomp(J, T, E, t)
+    >>> C = dc.conc_ncomp(J, t, T=T, E=E)
 
     The concentrations in compartment 0 are:
 
@@ -2001,7 +1872,7 @@ def conc_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
     Solving by forward propagation produces a different result because of the 
     relatively low time resolution:
 
-    >>> C = dc.conc_ncomp(J, T, E, t, solver='prop')
+    >>> C = dc.conc_ncomp(J, t, T=T, E=E, solver='prop')
     >>> C[1, :]
     array([ 0.        ,  4.44444444,  8.3127572 , 11.69333943, 14.65551209,
            17.25550803, 19.54012974, 21.54905722, 23.31636527, 24.87156916])
@@ -2010,20 +1881,20 @@ def conc_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
     `dt_prop` (at the cost of some computation time). In this case the 
     results become very close with `dt_prop = 0.01`:
 
-    >>> C = dc.conc_ncomp(J, T, E, t, solver='prop', dt_prop=0.01)
+    >>> C = dc.conc_ncomp(J, t, T=T, E=E, solver='prop', dt_prop=0.01)
     >>> C[1, :]
     array([ 0.        ,  4.17147736,  7.84511918, 11.08681805, 13.95158088,
            16.48597905, 18.72988986, 20.71776196, 22.47955758, 24.04147164])
     """
     if solver == 'prop':
-        return conc_ncomp_prop(J, T, E, t=t, dt=dt, dt_prop=dt_prop)
+        return _conc_ncomp_prop(J, T, E, t=t, dt=dt, dt_prop=dt_prop)
     if solver == 'diag':
         if len(T) == 2:
             return _conc_2comp(J, T, E, t=t, dt=dt)
-        return conc_ncomp_diag(J, T, E, t=t, dt=dt)
+        return _conc_ncomp_diag(J, T, E, t=t, dt=dt)
 
 
-def flux_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
+def flux_ncomp(J, t=None, dt=1.0, T=None, E=None, solver='diag', dt_prop=None):
     """
     Flux out of an n-compartment system.
 
@@ -2035,13 +1906,6 @@ def flux_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
         The indicator flux entering the system, as a rectangular 2D array with 
         dimensions `(n, k)`, where `n` is the number of compartments and `k` 
         is the number of time points in `J`.
-    T : array_like
-        An `n`-element array with mean transit times of each compartment.
-    E : array_like
-        Dimensionless and square `n x n` matrix. An off-diagonal element 
-        `E[j, i]` is the extraction fraction from compartment `i` to 
-        compartment `j`. A diagonal element `E[i, i]` is the extraction 
-        fraction from compartment `i` to the outside.
     t : array_like, optional
         The time points of the indicator flux `J`, in the same units as `T`. 
         If `t` is not provided, the time points are assumed to be uniformly 
@@ -2050,6 +1914,13 @@ def flux_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
         Spacing between time points for uniformly spaced time points, in the 
         same units as `T`. This parameter is ignored if `t` is explicitly 
         provided. Defaults to 1.0.
+    T : array_like
+        An `n`-element array with mean transit times of each compartment.
+    E : array_like
+        Dimensionless and square `n x n` matrix. An off-diagonal element 
+        `E[j, i]` is the extraction fraction from compartment `i` to 
+        compartment `j`. A diagonal element `E[i, i]` is the extraction 
+        fraction from compartment `i` to the outside.
     solver : str, optional
         A string specifying the numerical method for solving the system. Two 
         options are available:
@@ -2113,25 +1984,25 @@ def flux_ncomp(J, T, E, t=None, dt=1.0, solver='diag', dt_prop=None):
 
     Calculate the outflux out of both compartments:
 
-    >>> J_out = dc.flux_ncomp(J_in, T, E, t)
+    >>> J_out = dc.flux_ncomp(J_in, t, T=T, E=E)
 
     The indicator flux out of compartment 0 to the outside is:
 
     >>> J_out[0, 0, :]
-    array([0.        , 0.25925926, 0.49931413, 0.71731951, 0.91301198,
-           1.0874238 , 1.24217685, 1.37910125, 1.50003511, 1.60672472])
+    array([0.        , 0.24928049, 0.47774017, 0.68515636, 0.87223925,
+           1.04020603, 1.19051627, 1.32471051, 1.4443144 , 1.55078428])
 
     The indicator flux from compartment 1 to 0 is:
 
     >>> J_out[1, 0, :]
-    array([0.        , 0.11111111, 0.21399177, 0.30742265, 0.39129085,
-           0.46603877, 0.53236151, 0.59104339, 0.64287219, 0.68859631])
+    array([0.        , 0.1068345 , 0.20474579, 0.29363844, 0.37381682,
+           0.44580258, 0.51022126, 0.56773308, 0.61899188, 0.66462183])
     """
-    C = conc_ncomp(J, T, E, t=t, dt=dt, solver=solver, dt_prop=dt_prop)
+    C = conc_ncomp(J, t=t, dt=dt, T=T, E=E, solver=solver, dt_prop=dt_prop)
     return _J_ncomp(C, T, E)
 
 
-def res_ncomp(T, E, t):
+def res_ncomp(t, T=None, E=None):
     """
     Residue function of an n-compartment system.
 
@@ -2139,6 +2010,9 @@ def res_ncomp(T, E, t):
 
     Parameters
     ----------
+    t : array_like
+        The time points where the residue function is calculated, in the same 
+        units as `T`.
     T : array_like
         An `n`-element array with mean transit times of each compartment.
     E : array_like
@@ -2146,9 +2020,6 @@ def res_ncomp(T, E, t):
         `E[j, i]` is the extraction fraction from compartment `i` to 
         compartment `j`. A diagonal element `E[i, i]` is the extraction 
         fraction from compartment `i` to the outside.
-    t : array_like
-        The time points where the residue function is calculated, in the same 
-        units as `T`.
 
     Returns
     -------
@@ -2181,7 +2052,7 @@ def res_ncomp(T, E, t):
 
     Calculate the residue in both compartments:
 
-    >>> R = dc.res_ncomp(T, E, t)
+    >>> R = dc.res_ncomp(t, T, E)
 
     Given an impulse in compartment 1 at time `t = 0`, the residue in 
     compartment 1 is strictly decreasing:
@@ -2194,8 +2065,9 @@ def res_ncomp(T, E, t):
     compartment 0 is zero initially and peaks at a later time:
 
     >>> R[1, 0, :]
-    array([0.        , 0.01895809, 0.02356375, 0.02370372, 0.02252098,
-           0.02100968, 0.01947964, 0.01802307, 0.01666336, 0.0154024 ])
+    array([-2.12339668e-17,  5.68742770e-01,  7.06912434e-01,  7.11111562e-01,
+            6.75629514e-01,  6.30290545e-01,  5.84389102e-01,  5.40692137e-01,
+            4.99900895e-01,  4.62071906e-01])
     """
     if len(T) == 2:
         return _res_2comp(T, E, t)
@@ -2221,7 +2093,7 @@ def res_ncomp(T, E, t):
     return np.absolute(R)
 
 
-def prop_ncomp(T, E, t):
+def prop_ncomp(t, T=None, E=None):
     """
     Propagator of an n-compartment system.
 
@@ -2229,6 +2101,9 @@ def prop_ncomp(T, E, t):
 
     Parameters
     ----------
+    t : array_like
+        The time points where the propagator is calculated, in the same units 
+        as `T`.
     T : array_like
         An `n`-element array with mean transit times of each compartment.
     E : array_like
@@ -2236,9 +2111,6 @@ def prop_ncomp(T, E, t):
         `E[j, i]` is the extraction fraction from compartment `i` to 
         compartment `j`. A diagonal element `E[i, i]` is the extraction 
         fraction from compartment `i` to the outside.
-    t : array_like
-        The time points where the propagator is calculated, in the same units 
-        as `T`.
 
     Returns
     -------
@@ -2272,23 +2144,25 @@ def prop_ncomp(T, E, t):
 
     Calculate the propagator for the system:
 
-    >>> H = dc.prop_ncomp(T, E, t)
+    >>> H = dc.prop_ncomp(t, T, E)
 
     The propagator from the inlet at 1 (first index = 1) to the outlet of 
     compartment 0 to the environment (diagonal case) is:
 
     >>> H[1, 0, 0, :]
-    array([0.        , 0.019906  , 0.02474194, 0.0248889 , 0.02364703,
-           0.02206017, 0.02045362, 0.01892422, 0.01749653, 0.01617252])
+    array([-7.43188837e-19,  1.99059970e-02,  2.47419352e-02,  2.48889047e-02,
+            2.36470330e-02,  2.20601691e-02,  2.04536186e-02,  1.89242248e-02,
+            1.74965313e-02,  1.61725167e-02])
 
     The propagator from the inlet at 1 (first index = 1) to the outlet from 
     compartment 0 to 1 is:
 
     >>> H[1, 1, 0, :]
-    array([0.        , 0.00853114, 0.01060369, 0.01066667, 0.01013444,
-           0.00945436, 0.00876584, 0.00811038, 0.00749851, 0.00693108])
+    array([-3.18509502e-19,  8.53114156e-03,  1.06036865e-02,  1.06666734e-02,
+            1.01344427e-02,  9.45435818e-03,  8.76583652e-03,  8.11038205e-03,
+            7.49851343e-03,  6.93107859e-03])
     """
-    R = res_ncomp(T, E, t)
+    R = res_ncomp(t, T, E)
     nc, nt = len(T), len(t)
     H = np.zeros((nc, nc, nc, nt))
     for i in range(nc):
@@ -2342,7 +2216,7 @@ def _conc_2comp(J, T, E, t=None, dt=1.0):
         # Loop over th eigenvalues
         for d in [0, 1]:
             # Calculate elements of diagonal matrix
-            Ei[d, :] = conc_comp(J[i, :], 1/K[d], t)
+            Ei[d, :] = conc_comp(J[i, :], t, T=1/K[d])
             # Right-multiply with inverse eigenvector matrix
             Ei[d, :] *= Qi[d, i]
         # Left-multiply with eigenvector matrix
@@ -2373,7 +2247,7 @@ def _res_2comp(T, E, t):
 # Non-stationary compartment
 
 
-def conc_nscomp(J, T, t=None, dt=1.0):
+def conc_nscomp(J, t=None, dt=1.0, T=None):
     """
     Tissue concentration in a non-stationary compartment.
 
@@ -2383,9 +2257,6 @@ def conc_nscomp(J, T, t=None, dt=1.0):
     ----------
     J : array_like
         The indicator flux entering the compartment.
-    T : array_like
-        Array with the mean transit time as a function of time, with the same 
-        length as `J`. Only finite and strictly positive values are allowed.
     t : array_like, optional
         The time points of the indicator flux `J`, in the same units as `T`. 
         If None, the time points are assumed to be uniformly spaced with 
@@ -2394,6 +2265,9 @@ def conc_nscomp(J, T, t=None, dt=1.0):
         Spacing between time points for uniformly spaced time points, in the 
         same units as `T`. This parameter is ignored if `t` is explicitly 
         provided. Defaults to 1.0.
+    T : array_like
+        Array with the mean transit time as a function of time, with the same 
+        length as `J`. Only finite and strictly positive values are allowed.
 
     Returns
     -------
@@ -2416,7 +2290,7 @@ def conc_nscomp(J, T, t=None, dt=1.0):
     >>> t = [0, 5, 15, 30, 60]
     >>> J = [1, 2, 3, 3, 2]
     >>> T = [1, 2, 3, 4, 5]
-    >>> dc.conc_nscomp(J, T, t)
+    >>> dc.conc_nscomp(J, t, T=T)
     array([ 0.        ,  3.09885687,  7.96130923, 11.53123615, 10.28639254])
     """
     if np.isscalar(T):
@@ -2455,7 +2329,7 @@ def conc_nscomp(J, T, t=None, dt=1.0):
     return C
 
 
-def flux_nscomp(J, T, t=None, dt=1.0):
+def flux_nscomp(J, t=None, dt=1.0, T=None):
     """
     Flux out of a non-stationary compartment.
 
@@ -2465,9 +2339,6 @@ def flux_nscomp(J, T, t=None, dt=1.0):
     ----------
     J : array_like
         The indicator flux entering the compartment.
-    T : array_like
-        Array with the mean transit time as a function of time, with the same 
-        length as `J`. Only finite and strictly positive values are allowed.
     t : array_like, optional
         The time points of the indicator flux `J`, in the same units as `T`. 
         If None, the time points are assumed to be uniformly spaced with 
@@ -2476,6 +2347,9 @@ def flux_nscomp(J, T, t=None, dt=1.0):
         Spacing between time points for uniformly spaced data, in the same 
         units as `T`. This parameter is ignored if `t` is explicitly 
         provided. Defaults to 1.0.
+    T : array_like
+        Array with the mean transit time as a function of time, with the same 
+        length as `J`. Only finite and strictly positive values are allowed.
 
     Returns
     -------
@@ -2492,10 +2366,10 @@ def flux_nscomp(J, T, t=None, dt=1.0):
     >>> t = [0, 5, 15, 30, 60]
     >>> J = [1, 2, 3, 3, 2]
     >>> T = [1, 2, 3, 4, 5]
-    >>> dc.flux_nscomp(J, T, t)
+    >>> dc.flux_nscomp(J, t, T=T)
     array([0.        , 1.54942844, 2.65376974, 2.88280904, 2.05727851])
     """
-    C = conc_nscomp(J, T, t=t, dt=dt)
+    C = conc_nscomp(J, t=t, dt=dt, T=T)
     return C/T
 
 # TODO: Defaults for solver to None - everywhere
@@ -2538,7 +2412,7 @@ def _mmcomp_prop(J, Vmax, Km, t):
     return C
 
 
-def conc_mmcomp(J, Vmax, Km, t=None, dt=1.0, solver='SM'):
+def conc_mmcomp(J, t=None, dt=1.0, Vmax=None, Km=None, solver='SM'):
     """
     Tissue concentration in a Michaelis-Menten compartment.
 
@@ -2548,11 +2422,6 @@ def conc_mmcomp(J, Vmax, Km, t=None, dt=1.0, solver='SM'):
     ----------
     J : array_like
         The indicator flux entering the compartment.
-    Vmax : float
-        Limiting rate in the same units as `J`. Must be non-negative.
-    Km : float
-        Michaelis-Menten constant in units of concentration (or flux x time). 
-        Must be non-negative.
     t : array_like, optional
         The time points of the indicator flux `J`, in the same units as 
         `Km / Vmax`. If None, the time points are assumed to be uniformly 
@@ -2561,6 +2430,11 @@ def conc_mmcomp(J, Vmax, Km, t=None, dt=1.0, solver='SM'):
         Spacing between time points for uniformly spaced data, in the same 
         units as `Km / Vmax`. This parameter is ignored if `t` is explicitly 
         provided. Defaults to 1.0.
+    Vmax : float
+        Limiting rate in the same units as `J`. Must be non-negative.
+    Km : float
+        Michaelis-Menten constant in units of concentration (or flux x time). 
+        Must be non-negative.
     solver : str, optional
         Choose which solver to use. The options are:
         
@@ -2590,7 +2464,7 @@ def conc_mmcomp(J, Vmax, Km, t=None, dt=1.0, solver='SM'):
     >>> t = [0, 5, 15, 30, 60]
     >>> J = [1, 2, 3, 3, 2]
     >>> Vmax, Km = 1, 12
-    >>> dc.conc_mmcomp(J, Vmax, Km, t)
+    >>> dc.conc_mmcomp(J, t, Vmax=Vmax, Km=Km)
     array([  0.        ,   7.5       ,  29.26723718,  64.27756059,
            114.97656637])
     """
@@ -2605,7 +2479,7 @@ def conc_mmcomp(J, Vmax, Km, t=None, dt=1.0, solver='SM'):
         return _mmcomp_prop(J, Vmax, Km, t)
 
 
-def flux_mmcomp(J, Vmax, Km, t=None, solver='SM', dt=1.0):
+def flux_mmcomp(J, t=None, dt=1.0, Vmax=None, Km=None, solver='SM'):
     """
     Flux out of a Michaelis-Menten compartment.
 
@@ -2615,15 +2489,20 @@ def flux_mmcomp(J, Vmax, Km, t=None, solver='SM', dt=1.0):
     ----------
     J : array_like
         The indicator flux entering the compartment.
+    t : array_like, optional
+        The time points of the indicator flux `J`, in the same units as 
+        `Km / Vmax`. If None, the time points are assumed to be uniformly 
+        spaced with spacing `dt`. Defaults to None.
+    dt : float, optional
+        Spacing between time points for uniformly spaced data, in the same 
+        units as `Km / Vmax`. This parameter is ignored if `t` is explicitly 
+        provided. Defaults to 1.0.
     Vmax : float
         Limiting rate in the same units as `J`. Must be non-negative.
     Km : float
         Michaelis-Menten constant in units of concentration (or flux x time). 
         Must be non-negative.
-    t : array_like, optional
-        The time points of the indicator flux `J`, in the same units as 
-        `Km / Vmax`. If None, the time points are assumed to be uniformly 
-        spaced with spacing `dt`. Defaults to None.
+
     solver : str, optional
         Choose which solver to use. The options are:
         
@@ -2631,10 +2510,6 @@ def flux_mmcomp(J, Vmax, Km, t=None, solver='SM', dt=1.0):
         * 'prop' : Numerical solution by forward propagation.
         
         Defaults to 'SM'.
-    dt : float, optional
-        Spacing between time points for uniformly spaced data, in the same 
-        units as `Km / Vmax`. This parameter is ignored if `t` is explicitly 
-        provided. Defaults to 1.0.
 
     Returns
     -------
@@ -2657,16 +2532,16 @@ def flux_mmcomp(J, Vmax, Km, t=None, solver='SM', dt=1.0):
     >>> t = [0, 5, 15, 30, 60]
     >>> J = [1, 2, 3, 3, 2]
     >>> Vmax, Km = 1, 12
-    >>> dc.flux_mmcomp(J, Vmax, Km, t)
+    >>> dc.flux_mmcomp(J, t, Vmax=Vmax, Km=Km)
     array([0.        , 0.38461538, 0.70921242, 0.84267981, 0.90549437])
     """
-    C = conc_mmcomp(J, Vmax, Km, t=t, solver=solver, dt=dt)
+    C = conc_mmcomp(J, t, dt, Vmax, Km, solver=solver)
     return C*Vmax/(Km+C)
 
 
 # Two-compartment exchange
 
-def conc_2cxm(J, T, E, t=None, dt=1.0) -> np.ndarray:
+def conc_2cxm(J, t=None, dt=1.0, T=None, E=None) -> np.ndarray:
     """
     Tissue concentration in a 2-compartment exchange system.
 
@@ -2676,6 +2551,13 @@ def conc_2cxm(J, T, E, t=None, dt=1.0) -> np.ndarray:
     ----------
     J : array_like
         The indicator flux entering the compartment (mmol/sec).
+    t : array_like, optional
+        The time points of the indicator flux `J` (sec). If None, the time 
+        points are assumed to be uniformly spaced with spacing `dt`. 
+        Defaults to None.
+    dt : float, optional
+        Spacing between time points for uniformly spaced data (sec). This 
+        parameter is ignored if `t` is explicitly provided. Defaults to 1.0.
     T : array_like
         A 2-element array containing the mean transit times of the plasma 
         and extravascular compartments, respectively. Mean transit times 
@@ -2686,13 +2568,6 @@ def conc_2cxm(J, T, E, t=None, dt=1.0) -> np.ndarray:
         between 0 and 1; boundary values E = 0 and E = 1 are correctly 
         handled. Values outside this range are unphysical but will only 
         trigger an error if no solution exists.
-    t : array_like, optional
-        The time points of the indicator flux `J` (sec). If None, the time 
-        points are assumed to be uniformly spaced with spacing `dt`. 
-        Defaults to None.
-    dt : float, optional
-        Spacing between time points for uniformly spaced data (sec). This 
-        parameter is ignored if `t` is explicitly provided. Defaults to 1.0.
 
     Returns
     -------
@@ -2720,7 +2595,9 @@ def conc_2cxm(J, T, E, t=None, dt=1.0) -> np.ndarray:
     >>> J = [1, 2, 3, 3, 2]
     >>> T = [2.0, 10.0]
     >>> E = 0.4
-    >>> dc.conc_2cxm(J, T, E, t)
+    >>> dc.conc_2cxm(J, t, T=T, E=E)
+    array([[ 0.        ,  3.26322857,  6.84087835,  8.75116763,  7.34480955],
+           [ 0.        ,  1.52522203,  7.44971676, 14.44375764, 15.85129012]])
     """
     # T = [ Tp, Te]
 
@@ -2763,7 +2640,7 @@ def conc_2cxm(J, T, E, t=None, dt=1.0) -> np.ndarray:
     # ci            0      -1/Ti   1/Ti      ci
 
     if E == 0:
-        Cp = conc_comp(J, T[0], t=t, dt=dt)
+        Cp = conc_comp(J, t=t, dt=dt, T=T[0])
         Ce = np.zeros(len(J))
         return np.stack((Cp, Ce))
 
@@ -2915,7 +2792,7 @@ def conc_2cxm(J, T, E, t=None, dt=1.0) -> np.ndarray:
 
         # Cp = 0*Jp
         Cp = np.zeros(len(J))
-        Ce = Jneg*T[1]*E/(1-E)
+        Ce = Jneg * T[1] * E / (1-E)
 
         return np.stack((Cp, Ce))
 
@@ -2948,9 +2825,9 @@ def conc_2cxm(J, T, E, t=None, dt=1.0) -> np.ndarray:
         return np.stack((Cp, Ce))
 
     if np.isinf(T[1]):
-        Cp = conc_comp(J, T[0], t=t, dt=dt)
+        Cp = conc_comp(J, t=t, dt=dt, T=T[0])
         Jp = Cp/T[0]
-        Ce = conc_trap(E*Jp, t=t, dt=dt)
+        Ce = conc_trap(E * Jp, t=t, dt=dt)
         return np.stack((Cp, Ce))
 
     K = np.array([
@@ -2988,7 +2865,7 @@ def conc_2cxm(J, T, E, t=None, dt=1.0) -> np.ndarray:
     return np.stack((Cp, Ce))
 
 
-def flux_2cxm(J, T, E, t=None, dt=1.0):
+def flux_2cxm(J, t=None, dt=1.0, T=None, E=None):
     """
     Flux out of a 2-compartment exchange system.
 
@@ -2998,6 +2875,13 @@ def flux_2cxm(J, T, E, t=None, dt=1.0):
     ----------
     J : array_like
         The indicator flux entering the compartment (mmol/sec).
+    t : array_like, optional
+        The time points of the indicator flux `J` (sec). If None, the time 
+        points are assumed to be uniformly spaced with spacing `dt`. 
+        Defaults to None.
+    dt : float, optional
+        Spacing between time points for uniformly spaced data (sec). This 
+        parameter is ignored if `t` is explicitly provided. Defaults to 1.0.
     T : array_like
         A 2-element array containing the mean transit times of the plasma 
         and extravascular compartments, respectively. Mean transit times 
@@ -3008,13 +2892,6 @@ def flux_2cxm(J, T, E, t=None, dt=1.0):
         between 0 and 1; boundary values E = 0 and E = 1 are correctly 
         handled. Values outside this range are unphysical but will only 
         trigger an error if no solution exists.
-    t : array_like, optional
-        The time points of the indicator flux `J` (sec). If None, the time 
-        points are assumed to be uniformly spaced with spacing `dt`. 
-        Defaults to None.
-    dt : float, optional
-        Spacing between time points for uniformly spaced data (sec). This 
-        parameter is ignored if `t` is explicitly provided. Defaults to 1.0.
     solver : str, optional
         Solver for the system, either 'conv' for explicit convolution with a 
         discrete impulse response (slow) or 'interp' for interpolation 
@@ -3044,7 +2921,8 @@ def flux_2cxm(J, T, E, t=None, dt=1.0):
     >>> J = [1, 2, 3, 3, 2]
     >>> T = [2.0, 10.0]
     >>> E = 0.4
-    >>> dc.flux_2cxm(J, T, E, t)
+    >>> dc.flux_2cxm(J, t, T=T, E=E)
+    array([0.        , 0.97896857, 2.0522635 , 2.62535029, 2.20344286])
     """
     # T = [ Tp, Te]
 
@@ -3097,7 +2975,7 @@ def flux_2cxm(J, T, E, t=None, dt=1.0):
         Jneg = convolution.expconv(J, T[1]/(1-E), t=t, dt=dt)
         return (1-E)*Jpos + E*Jneg
 
-    C = conc_2cxm(J, T, E, t=t, dt=dt)
+    C = conc_2cxm(J, t=t, dt=dt, T=T, E=E)
     Jp = C[0, :]*(1-E)/T[0]
 
     return Jp

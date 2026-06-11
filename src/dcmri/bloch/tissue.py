@@ -134,7 +134,7 @@ import numpy as np
 
 from dcmri.core.layer import LayerFunction
 from dcmri.lexicon.dicts import SEQUENCES
-from dcmri.bloch.lib import seqs
+from dcmri.bloch import seqs
 
 
 # TODO: For some ss sequences there is some duplication with K, J and KinvJ computed multiple times

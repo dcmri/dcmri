@@ -127,10 +127,10 @@ import numpy as np
 from dcmri.utils import const
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
-from dcmri.kinetics.lib.input import ca_injection
+from dcmri.kinetics.input import ca_injection
 from dcmri.kinetics.conc import ConcLiver
-from dcmri.kinetics.lib.aorta import flux_aorta
-from dcmri.kinetics.lib.liver import dpars_liver
+from dcmri.kinetics.aorta import flux_aorta
+from dcmri.kinetics.liver import dpars_liver
 from dcmri.lexicon.tools import print_params, export_params
 from dcmri.lexicon.dicts import SEQUENCES, QUANTITIES
 from dcmri.bloch.tissue import Signal
@@ -509,8 +509,8 @@ class AortaLiverDynamic(SuperModel):
         )
         Jb = flux_aorta(
             J1 + J2, E=p['Eb'], dt=p['dt'], tol=p['dose_tolerance'],
-            heartlung = ['pfcomp', (p['Thl'], p['Dhl'])],
-            organs = ['2cxm', ([p['To'], p['To_e']], p['Eo'])]
+            heartlung=['pfcomp', {'T':p[f'Thl'], 'D':p[f'Dhl']}],
+            organs=['2cxm', {'T':[p[f'To'], p[f'To_e']], 'E':p[f'Eo']}],
         )
         self._ca = Jb / p['CO']
 

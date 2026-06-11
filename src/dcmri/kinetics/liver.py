@@ -3,7 +3,7 @@ from typing import Optional
 
 import numpy as np
 
-import dcmri.kinetics.lib.blocks as pk
+import dcmri.kinetics.blocks as pk
 from dcmri.utils.misc import tarray
 
 
@@ -1598,7 +1598,7 @@ def _conc_liver(
     
     # Propagate through arterial tree
     if Ta is not None:
-        ca = pk.flux(ca, Ta, t=t, dt=dt, model='plug')
+        ca = pk.flux_plug(ca, t=t, dt=dt, T=Ta)
 
     # If a portal venous concentration is provided, use it
     if cv is not None:
@@ -1607,38 +1607,33 @@ def _conc_liver(
     # Otherwise see if it can be derived by propagation through the gut
     elif Tg is not None:
         if Dg is None:
-            ca = pk.flux_comp(ca, Tg, t=t, dt=dt)
+            ca = pk.flux_comp(ca, t=t, dt=dt, T=Tg)
         # else: # No case for this
         #     ca = pk.flux_pfcomp(ca, Tg, Dg, t=t, dt=dt)
 
     # Propagate through the extracellular space
     if Te is None:
-        ec_model, ec_pars = 'pass', ()
+        ce = ca
     elif De is None:
         if np.isscalar(Te):
-            ec_model, ec_pars = 'comp', (Te,)
+            ce = pk.flux_comp(ca, t=t, dt=dt, T=Te)
         else:
-            ec_model, ec_pars = 'nscomp', (Te,)
+            ce = pk.flux_nscomp(ca, t=t, dt=dt, T=Te)
     # else:
     #     ec_model, ec_pars = 'pfcomp', (Te, De,)
-
-    ce = pk.flux(ca, *ec_pars, t=t, dt=dt, model=ec_model)
 
     # Tissue concentration in the extracellular space
     Ce = ve_app * ce
 
     # Tissue concentration in the hepatocytes
-    if Th is None:
-        hep_model, hep_pars = "trap", ()
-    elif np.isscalar(Th):
-        hep_model, hep_pars = "comp", (Th,)
-    else:
-        hep_model, hep_pars = "nscomp", (Th,)
-
     if Ktrans is None:
         Ch = np.zeros(len(ce))
+    elif Th is None:
+        Ch = pk.conc_trap(Ktrans * ce, t=t, dt=dt)
+    elif np.isscalar(Th):
+        Ch = pk.conc_comp(Ktrans * ce, t=t, dt=dt, T=Th)
     else:
-        Ch = pk.conc(Ktrans * ce, *hep_pars, t=t, dt=dt, model=hep_model)
+        Ch = pk.conc_nscomp(Ktrans * ce, t=t, dt=dt, T=Th)
 
     return np.stack((Ce, Ch))
     

@@ -1,7 +1,7 @@
 import numpy as np
 
 import dcmri as dc
-from dcmri.kinetics.lib.liver import dpars_liver
+from dcmri.kinetics.liver import dpars_liver
 
 
 def test_liver():

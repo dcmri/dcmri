@@ -2,7 +2,7 @@ import numpy as np
 from scipy.integrate import cumulative_trapezoid
 
 import dcmri as dc
-from dcmri.kinetics.lib.tissue import dpars_tissue
+from dcmri.kinetics.tissue import dpars_tissue
 
 
 def test_conc_tissue():
@@ -181,7 +181,7 @@ def test_conc_tissue():
     Fb = Fp/(1-H)
     vb = vp/(1-H)
     C0 = dc.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS)
-    C = dc.conc_ncomp(J, T, Emat, t)
+    C = dc.conc_ncomp(J, t, T=T, E=Emat)
     assert np.linalg.norm(C-C0)/np.linalg.norm(C) < 1e-3
     Cs = dc.conc_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS).sum(axis=0)
     C0 = np.sum(C,axis=0)
@@ -391,7 +391,7 @@ def test_flux_tissue():
     vb = vp/(1-H)
     Fb = Fp/(1-H) 
     Jo0 = dc.flux_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=Fb, PS=PS) 
-    Jo = dc.flux_ncomp(J, T, Emat, t)
+    Jo = dc.flux_ncomp(J, t, T=T, E=Emat)
     assert np.linalg.norm(Jo-Jo0)/np.linalg.norm(Jo) < 1e-1
     Jo0 = dc.flux_tissue_2cx(ca*(1-H), t=t, H=H, vb=vb, vi=vi, Fb=0, PS=0) 
     assert np.linalg.norm(Jo0) == 0

@@ -1,6 +1,6 @@
 import numpy as np
 
-from dcmri.kinetics.lib.kidney import dpars_kidney
+from dcmri.kinetics.kidney import dpars_kidney
 import dcmri as dc
 
 
@@ -14,7 +14,7 @@ def test_kidney():
         'Ft': 0.005, 
         'FF': 0.005 / 0.01,
         'Tt': 120, 
-        'ht': [1,2,3,4,3,2,1],
+        'h': [1,2,3,4,3,2,1],
         'vol': 150,
         'fc': 0.8,
         'Tglom': 2, 
@@ -33,7 +33,7 @@ def test_kidney():
     C = dc.conc_kidney_hf(ca, dt=dt, **pm)
     assert round(C[1, 10], 2) == 0.07
 
-    pm = {k: v for k, v in p.items() if k in ['Fp', 'vp', 'FF', 'ht']}
+    pm = {k: v for k, v in p.items() if k in ['Fp', 'vp', 'FF', 'h']}
     C = dc.conc_kidney_fn(ca, dt=dt, **pm)
     assert round(C[1, 10], 2) == 0.02
     C = dc.conc_kidney_fn(ca, t=dt*np.arange(ca.size), **pm)

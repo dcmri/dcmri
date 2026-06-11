@@ -1,20 +1,22 @@
 import numpy as np
 
 
-from dcmri import (
-    ConcKidney,
-    ConcLiver,
-    ConcTissueX,
-    ConcCortMed,
-    ConcAorta,
-)
+import dcmri as dc
+
+def test_conc_block():
+    dt = 1.5
+    t = dt * np.arange(20)
+    J = np.ones(20)
+    C = dc.ConcBlock('comp')(J, t=t, T=20)
+    assert round(C[-1]) == 15
+    dc.ConcBlock()._param_names()
 
 def test_conc_aorta():
-    C = ConcAorta('comp', 'comp')()
-    C = ConcAorta('pfcomp', 'comp')()
-    C = ConcAorta('chain', 'comp')()
-    C = ConcAorta('comp', '2cxm')()
-    ConcAorta()._params('body')
+    C = dc.ConcAorta('comp', 'comp')()
+    C = dc.ConcAorta('pfcomp', 'comp')()
+    C = dc.ConcAorta('chain', 'comp')()
+    C = dc.ConcAorta('comp', '2cxm')()
+    dc.ConcAorta()._params('body')
 
 def test_conc_kidney():
     dt = 1.5
@@ -22,14 +24,14 @@ def test_conc_kidney():
     ca = np.ones(20)
     p = {'Fp': 0.01, 'vp': 0.2, 'Ft': 0.005, 'Tt': 120}
     p['Tp'] = p['vp'] / (p['Fp'] + p['Ft'])
-    C = ConcKidney('2CF', **p)(ca, dt=dt)
+    C = dc.ConcKidney('2CF', **p)(ca, dt=dt)
     assert round(C[1,10], 2) == 0.0
 
 
 def test_conc_cortmed():
     dt = 1.5
     ca = np.ones(20)
-    Ccor, Cmed = ConcCortMed('7C')(ca, dt=dt)
+    Ccor, Cmed = dc.ConcCortMed('7C')(ca, dt=dt)
     assert round(Ccor[1,10], 2) == 0.09
 
 
@@ -49,7 +51,7 @@ def test_conc_liver():
          'T_a': 0, 
          'Tg': 0,
         }
-    C0 = ConcLiver('1I-EC', **p)(ca, t)
+    C0 = dc.ConcLiver('1I-EC', **p)(ca, t)
 
     # p = {'ve': 0.1, 
     #      'Te': 0.1 / 0.01, 
@@ -78,18 +80,18 @@ def test_conc_liver():
          'khe': 0.005, 
          'Th': 15,
         }
-    C0 = ConcLiver('1I-IC-HF', **p)(ca, t)
+    C0 = dc.ConcLiver('1I-IC-HF', **p)(ca, t)
 
     p = {'ve': 0.1, 
          'khe_i': 0.005, 
          'khe_f': 0.005, 
          'Th': 15,
         }
-    C1 = ConcLiver('1I-IC-HF', 'U', **p)(ca, t)
+    C1 = dc.ConcLiver('1I-IC-HF', 'U', **p)(ca, t)
     assert np.linalg.norm(C0-C1) / np.linalg.norm(C0) < 1e-3
 
     try:
-        C1 = ConcLiver('XX', 'U', **p)(ca, t)
+        C1 = dc.ConcLiver('XX', 'U', **p)(ca, t)
     except:
         pass
     else:
@@ -103,12 +105,13 @@ def test_conc_tissue():
     vb = 0.1
     t = np.linspace(0, 20, n)
     ca = np.exp(-t/Ta)/Ta
-    C = ConcTissueX(kinetics='NXP')(ca, t=t, vb=vb, Fb=Fb)
+    C = dc.ConcTissueX(kinetics='NXP')(ca, t=t, vb=vb, Fb=Fb)
     assert C[0,0] == 0
 
 
 if __name__ == '__main__':
 
+    test_conc_block()
     test_conc_aorta()
     test_conc_cortmed()
     test_conc_kidney()

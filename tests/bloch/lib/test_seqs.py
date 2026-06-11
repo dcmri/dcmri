@@ -1,5 +1,5 @@
 import numpy as np
-from dcmri.bloch.lib import seqs
+from dcmri.bloch import seqs
 
 def test_mz_readout():
     """Test mz_readout outputs the correct array shape and values."""

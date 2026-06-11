@@ -248,13 +248,74 @@ import numpy as np
 
 from dcmri.utils import const
 from dcmri.core.layer import LayerFunction
-from dcmri.kinetics.lib.input import ca_injection
-from dcmri.kinetics.lib.aorta import flux_aorta
-from dcmri.kinetics.lib.blocks import flux, flux_plug
-import dcmri.kinetics.lib.kidney as pk_kidney
-import dcmri.kinetics.lib.tissue as pk_tissue
-import dcmri.kinetics.lib.liver as pk_liver
+from dcmri.core.function import Function
+from dcmri.kinetics.input import ca_injection
+from dcmri.kinetics.aorta import flux_aorta
+from dcmri.kinetics.blocks import flux_plug
+import dcmri.kinetics.blocks as blocks
+import dcmri.kinetics.kidney as pk_kidney
+import dcmri.kinetics.tissue as pk_tissue
+import dcmri.kinetics.liver as pk_liver
 from dcmri.lexicon.dicts import QUANTITIES
+
+
+class ConcBlock(Function):
+    configs = {
+        'block': [
+            'trap', 
+            'pass', 
+            'comp', 
+            'bicomp', 
+            'plug', 
+            'chain', 
+            'step', 
+            'free', 
+            'ncomp', 
+            'nscomp', 
+            'mmcomp', 
+            '2cxm',
+        ],
+    }
+    def __init__(self, block='comp', **defaults):
+        cnfg = {
+            'block': block, 
+        }
+        self._set_config(**cnfg)
+        self._set_params(**defaults)
+
+    def _param_names(self):
+        params = {
+            'trap': [], 
+            'pass': ['T'], 
+            'comp': ['T'], 
+            'bicomp': ['T'], 
+            'plug': ['T'], 
+            'chain': ['T', 'D'], 
+            'step': ['T', 'D'], 
+            'free': ['h', 'TT', 'TTmin', 'TTmax', 'solver'], 
+            'ncomp': ['T', 'E', 'solver', 'dt_prop'], 
+            'nscomp': ['T'], 
+            'mmcomp': ['Vmax', 'Km', 'solver'], 
+            '2cxm': ['T', 'E'],
+        }[self._cnfg['block']]
+
+        return params
+    
+    def __call__(self, J, t=None, dt=1.0, **kwargs) -> np.ndarray:
+        """Aorta indicator concentration.
+
+        Args: 
+            **params: override parameter defaults.
+
+        Returns:
+            np.ndarray: Aorta blood concentration.
+        """
+        p = self._update_params(**kwargs)
+        model = self._cnfg['block']
+        model_func = getattr(blocks, f"conc_{model}")  
+        return model_func(J, t=t, dt=dt, **p)
+
+
 
 
 class ConcAorta(LayerFunction):
@@ -314,16 +375,16 @@ class ConcAorta(LayerFunction):
         hl, orgs = self._cnfg['heartlung'], self._cnfg['organs']
 
         if hl=='comp':
-            heartlung = ['comp', (p['Thl'],)]
+            heartlung = ['comp', {'T': p['Thl']}]
         elif hl=='pfcomp':
-            heartlung = ['pfcomp', (p['Thl'], p['Dhl'])]
+            heartlung = ['pfcomp', {'T':p['Thl'], 'D':p['Dhl']}]
         elif hl=='chain':
-            heartlung = ['chain', (p['Thl'], p['Dhl'])]
+            heartlung = ['chain', {'T':p['Thl'], 'D':p['Dhl']}]
 
         if orgs=='comp':
-            organs = ['comp', (p['To'],)]
+            organs = ['comp', {'T': p['To']}]
         elif orgs=='2cxm':
-            organs = ['2cxm', ([p['To'], p['To_e']], p['Eo'])]
+            organs = ['2cxm', {'T':[p['To'], p['To_e']], 'E':p['Eo']}]
 
         conc = const.ca_conc(p['agent'])
         Ji = ca_injection(
@@ -503,7 +564,7 @@ class ConcKidney(LayerFunction):
         p = self._update_pars(**params)
         kin = self._cnfg['kinetics']
 
-        ca = flux(ca, p['T_a'], dt=dt, model='plug')
+        ca = flux_plug(ca, T=p['T_a'], dt=dt)
         p = {k: v for k, v in p.items() if k != 'T_a'}
 
         conc = 'conc_kidney_' + kin.lower()   
@@ -552,7 +613,7 @@ class ConcCortMed(LayerFunction):
         p = self._update_pars(**params)
         kin = self._cnfg['kinetics']
 
-        ca = flux(ca, p['T_a'], dt=dt, model='plug')
+        ca = blocks.flux_plug(ca, T=p['T_a'], dt=dt)
         p = {k: v for k, v in p.items() if k != 'T_a'}
 
         if kin == '7C':
@@ -604,7 +665,7 @@ class ConcTissueX(LayerFunction):
         """
         p = self._update_pars(**params)
 
-        ca = flux_plug(ca, p['T_a'], dt=dt)
+        ca = flux_plug(ca, dt=dt, T=p['T_a'])
         params = {k: v for k, v in p.items() if k != 'T_a'}
         
         kin = self._cnfg['kinetics']

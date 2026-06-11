@@ -1,6 +1,7 @@
 from dcmri.lexicon.dicts import QUANTITIES
 from dcmri.lexicon.tools import init
 
+
 class LayerFunction:
 
     # These need to be reimplemented
@@ -30,7 +31,8 @@ class LayerFunction:
         return self._cnfg
     
     def _set_pars(self, lexicon:dict=QUANTITIES, **params):
-        self._pars = init(self._params(), lexicon=lexicon, **params)
+        # Not sure this is right to silently initialize at this level. Should be done in models
+        self._pars = init(self._params(), lexicon=lexicon, **params) 
         return self._pars
     
     def params(self) -> dict:

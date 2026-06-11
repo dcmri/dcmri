@@ -1,8 +1,7 @@
 import copy
 import numpy as np
 
-from dcmri.kinetics.lib import blocks
-import dcmri.kinetics.lib as pk
+from dcmri.kinetics import blocks
 
 
 
@@ -174,7 +173,7 @@ def conc_tissue_fx(ca, t=None, dt=1.0, H=None, ve=None, Fb=None):
         ce = ca*0
     else:
         Fp = (1-H)*Fb
-        ce = blocks.flux_comp(ca/(1-H), ve/Fp, t=t, dt=dt)
+        ce = blocks.flux_comp(ca/(1-H), t=t, dt=dt, T=ve/Fp)
     return ve*ce.reshape(1, -1)
 
 def conc_tissue_nx(ca, t=None, dt=1.0, vb=None, Fb=None):
@@ -218,7 +217,7 @@ def conc_tissue_nx(ca, t=None, dt=1.0, vb=None, Fb=None):
     if Fb == 0:
         Cb = ca*0
     else:
-        Cb = blocks.conc_comp(Fb*ca, vb/Fb, t=t, dt=dt)
+        Cb = blocks.conc_comp(Fb*ca, t=t, dt=dt, T=vb/Fb)
     return Cb.reshape(1, -1)
 
 def conc_tissue_nxp(ca, t=None, dt=1.0, vb=None, Fb=None):
@@ -262,7 +261,7 @@ def conc_tissue_nxp(ca, t=None, dt=1.0, vb=None, Fb=None):
     if Fb == 0:
         Cb = ca*0
     else:
-        Cb = blocks.conc_plug(Fb*ca, vb/Fb, t=t, dt=dt)
+        Cb = blocks.conc_plug(Fb*ca, t=t, dt=dt, T=vb/Fb)
     return Cb.reshape(1, -1)
 
 def conc_tissue_wv(ca, t=None, dt=1.0, H=None, vi=None, Ktrans=None):
@@ -308,7 +307,7 @@ def conc_tissue_wv(ca, t=None, dt=1.0, H=None, vi=None, Ktrans=None):
     if Ktrans == 0:
         ci = ca*0
     else:
-        ci = blocks.flux_comp(ca/(1-H), vi/Ktrans, t=t, dt=dt)
+        ci = blocks.flux_comp(ca/(1-H), t=t, dt=dt, T=vi/Ktrans)
     return vi*ci.reshape(1, -1)
 
 def conc_tissue_hfu(ca, t=None, dt=1.0, H=None, vb=None, PS=None):
@@ -406,7 +405,7 @@ def conc_tissue_hf(ca, t=None, dt=1.0, H=None, vi=None, vb=None, PS=None):
     if PS == 0:
         Ci = 0*ca
     else:
-        Ci = blocks.conc_comp(PS*ca, vi/PS, t=t, dt=dt)
+        Ci = blocks.conc_comp(PS*ca, t=t, dt=dt, T=vi/PS)
     return np.stack((Cp, Ci))
 
 def conc_tissue_2cu(ca, t=None, dt=1.0, H=None, vb=None, Fb=None, PS=None):
@@ -460,7 +459,7 @@ def conc_tissue_2cu(ca, t=None, dt=1.0, H=None, vb=None, Fb=None, PS=None):
     if Fp+PS == 0:
         return np.zeros((2, len(ca)))
     Tp = vp/(Fp+PS)
-    Cp = blocks.conc_comp(Fp*ca, Tp, t=t, dt=dt)
+    Cp = blocks.conc_comp(Fp*ca, t=t, dt=dt, T=Tp)
     if vp == 0:
         Ktrans = PS*Fp/(PS+Fp)
         Ci = blocks.conc_trap(Ktrans*ca, t=t, dt=dt)
@@ -530,12 +529,12 @@ def conc_tissue_2cx(ca, t=None, dt=1.0, H=None, vi=None, vb=None, Fb=None, PS=No
     E = PS/(Fp+PS)
 
     if PS == 0:
-        Cp = blocks.conc_comp(Fp*ca, Tp, t=t, dt=dt)
+        Cp = blocks.conc_comp(Fp*ca, t=t, dt=dt, T=Tp)
         Ci = np.zeros(len(ca))
         return np.stack((Cp, Ci))
 
     Ti = vi/PS
-    C = blocks.conc_2cxm(J, [Tp, Ti], E, t=t, dt=dt)
+    C = blocks.conc_2cxm(J, t=t, dt=dt, T=[Tp, Ti], E=E)
     return C
     
 
@@ -578,7 +577,7 @@ def flux_tissue_u(ca, t=None, dt=1.0, Fb=None):
     array([0., 0., 0., 0., 0.])
     """
     ca = np.array(ca)
-    return blocks.flux(Fb*ca, model='trap')
+    return blocks.flux_trap(Fb*ca)
 
 def flux_tissue_fx(ca, t=None, dt=1.0, H=None, ve=None, Fb=None):
     """
@@ -623,7 +622,7 @@ def flux_tissue_fx(ca, t=None, dt=1.0, H=None, ve=None, Fb=None):
     if Fb == 0:
         return np.zeros(len(ca))
     Fp = Fb*(1-H)
-    return blocks.flux(Fb*ca, ve/Fp, t=t, dt=dt, model='comp')
+    return blocks.flux_comp(Fb*ca, t=t, dt=dt, T=ve/Fp)
 
 def flux_tissue_nx(ca, t=None, dt=1.0, vb=None, Fb=None):
     """
@@ -665,7 +664,7 @@ def flux_tissue_nx(ca, t=None, dt=1.0, vb=None, Fb=None):
     ca = np.array(ca)
     if Fb == 0:
         return np.zeros(len(ca))
-    return blocks.flux(Fb*ca, vb/Fb, t=t, dt=dt, model='comp')
+    return blocks.flux_comp(Fb*ca, t=t, dt=dt, T=vb/Fb)
 
 def flux_tissue_nxp(ca, t=None, dt=1.0, vb=None, Fb=None):
     """
@@ -707,7 +706,7 @@ def flux_tissue_nxp(ca, t=None, dt=1.0, vb=None, Fb=None):
     ca = np.array(ca)
     if Fb == 0:
         return np.zeros(len(ca))
-    return blocks.flux(Fb*ca, vb/Fb, t=t, dt=dt, model='plug')
+    return blocks.flux_plug(Fb*ca, t=t, dt=dt, T=vb/Fb)
 
 def flux_tissue_wv(ca, t=None, dt=1.0, H=None, vi=None, Ktrans=None):
     """
@@ -758,7 +757,7 @@ def flux_tissue_wv(ca, t=None, dt=1.0, H=None, vi=None, Ktrans=None):
     J[0, 0, :] = np.nan # TODO: double-check this
     J[1, 0, :] = Ktrans * ca
     if Ktrans != 0:
-        J[0, 1, :] = blocks.flux(Ktrans*ca, vi/Ktrans, t=t, dt=dt, model='comp')
+        J[0, 1, :] = blocks.flux_comp(Ktrans*ca, t=t, dt=dt, T=vi/Ktrans)
     return J
 
 def flux_tissue_hfu(ca, t=None, dt=1.0, H=None, PS=None):
@@ -859,7 +858,7 @@ def flux_tissue_hf(ca, t=None, dt=1.0, H=None, vi=None, PS=None):
     if PS == 0:
         J[0, 1, :] = 0*ca
     else:
-        J[0, 1, :] = blocks.flux(PS*ca, vi/PS, t=t, dt=dt, model='comp')
+        J[0, 1, :] = blocks.flux_comp(PS*ca, t=t, dt=dt, T=vi/PS)
     return J
 
 def flux_tissue_2cu(ca, t=None, dt=1.0, H=None, vb=None, Fb=None, PS=None):

@@ -2,7 +2,7 @@ import numpy as np
 from scipy.integrate import trapezoid
 
 import dcmri as dc
-from dcmri.kinetics.lib import utils
+from dcmri.kinetics import utils
 
 
 # Helper

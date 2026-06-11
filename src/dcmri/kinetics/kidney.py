@@ -1,7 +1,7 @@
 import copy
 import numpy as np
 
-import dcmri.kinetics.lib.blocks as pk
+import dcmri.kinetics.blocks as pk
 
 
 def _div(a, b):
@@ -100,9 +100,9 @@ def conc_kidney_2cf(ca, t=None, dt=1.0, Fp=None, vp=None, FF=None, Tt=None):
     ca = np.array(ca)
     Ft = FF * Fp
     Tp = vp / (Fp + Ft)
-    Cp = pk.conc_comp(Fp * ca, Tp, t=t, dt=dt)
+    Cp = pk.conc_comp(Fp * ca, t=t, dt=dt, T=Tp)
     cp = Cp/vp
-    Ct = pk.conc_comp(Ft * cp, Tt, t=t, dt=dt)
+    Ct = pk.conc_comp(Ft * cp, t=t, dt=dt, T=Tt)
     return np.stack((Cp, Ct))
 
 # def conc_kidney_3cf(ca, t=None, dt=1.0, Fp=None, vgp=None, vpp=None, FF=None, Tt=None):
@@ -190,9 +190,9 @@ def conc_kidney_2pf(ca, t=None, dt=1.0, Fp=None, vp=None, FF=None, Tt=None):
     ca = np.array(ca)
     Ft = FF * Fp
     Tp = vp / (Fp + Ft)
-    Cp = pk.conc_plug(Fp * ca, Tp, t=t, dt=dt)
+    Cp = pk.conc_plug(Fp * ca, t=t, dt=dt, T=Tp)
     cp = Cp/vp
-    Ct = pk.conc_plug(Ft * cp, Tt, t=t, dt=dt)
+    Ct = pk.conc_plug(Ft * cp, t=t, dt=dt, T=Tt)
     return np.stack((Cp, Ct))
 
 def conc_kidney_cpf(ca, t=None, dt=1.0, Fp=None, vp=None, FF=None, Tt=None):
@@ -253,9 +253,9 @@ def conc_kidney_cpf(ca, t=None, dt=1.0, Fp=None, vp=None, FF=None, Tt=None):
     ca = np.array(ca)
     Ft = FF * Fp
     Tp = vp / (Fp + Ft)
-    Cp = pk.conc_comp(Fp * ca, Tp, t=t, dt=dt)
+    Cp = pk.conc_comp(Fp * ca, t=t, dt=dt, T=Tp)
     cp = Cp/vp
-    Ct = pk.conc_plug(Ft * cp, Tt, t=t, dt=dt)
+    Ct = pk.conc_plug(Ft * cp, t=t, dt=dt, T=Tt)
     return np.stack((Cp, Ct))
 
 def conc_kidney_2pfu(ca, t=None, dt=1.0, Fp=None, vp=None, FF=None):
@@ -316,7 +316,7 @@ def conc_kidney_2pfu(ca, t=None, dt=1.0, Fp=None, vp=None, FF=None):
     ca = np.array(ca)
     Ft = FF * Fp
     Tp = vp / (Fp + Ft)
-    Cp = pk.conc_plug(Fp * ca, Tp, t=t, dt=dt)
+    Cp = pk.conc_plug(Fp * ca, t=t, dt=dt, T=Tp)
     cp = Cp/vp
     Ct = pk.conc_trap(Ft * cp, t=t, dt=dt)
     return np.stack((Cp, Ct))
@@ -379,7 +379,7 @@ def conc_kidney_2cfu(ca, t=None, dt=1.0, Fp=None, vp=None, FF=None):
     ca = np.array(ca)
     Ft = FF * Fp
     Tp = vp / (Fp + Ft)
-    Cp = pk.conc_comp(Fp * ca, Tp, t=t, dt=dt)
+    Cp = pk.conc_comp(Fp * ca, t=t, dt=dt, T=Tp)
     cp = Cp/vp
     Ct = pk.conc_trap(Ft * cp, t=t, dt=dt)
     return np.stack((Cp, Ct))
@@ -440,7 +440,7 @@ def conc_kidney_hf(ca, t=None, dt=1.0, vp=None, Ft=None, Tt=None):
     """
     ca = np.array(ca)
     Cp = vp * ca
-    Ct = pk.conc_comp(Ft * ca, Tt, t=t, dt=dt)
+    Ct = pk.conc_comp(Ft * ca, t=t, dt=dt, T=Tt)
     return np.stack((Cp, Ct))
 
 def conc_kidney_hfu(ca, t=None, dt=1.0, vp=None, Ft=None):
@@ -500,7 +500,7 @@ def conc_kidney_hfu(ca, t=None, dt=1.0, vp=None, Ft=None):
     Ct = pk.conc_trap(Ft*ca, t=t, dt=dt)
     return np.stack((Cp, Ct))
 
-def conc_kidney_fn(ca, t=None, dt=1.0, TT=None, Fp=None, vp=None, FF=None, ht=None):
+def conc_kidney_fn(ca, t=None, dt=1.0, h=None, TT=None, Fp=None, vp=None, FF=None):
     """
     Free nephron filtration model for kidney tissue concentration.
 
@@ -537,7 +537,7 @@ def conc_kidney_fn(ca, t=None, dt=1.0, TT=None, Fp=None, vp=None, FF=None, ht=No
         Filtration fraction (dimensionless fraction between 0.0 and 1.0), representing 
         the ratio of glomerular filtration rate (GFR) to plasma flow (Fp). 
         Defaults to None.
-    ht : array_like, optional
+    h : array_like, optional
         The histogram heights representing the relative distribution of transit 
         times across the nephron population. Defaults to None.
 
@@ -570,14 +570,14 @@ def conc_kidney_fn(ca, t=None, dt=1.0, TT=None, Fp=None, vp=None, FF=None, ht=No
             tmax = dt*np.size(ca)
         else:
             tmax = np.amax(t)
-        nTT = 1 + np.size(ht)
+        nTT = 1 + np.size(h)
         TT = np.linspace(0, tmax, nTT)
     ca = np.array(ca)
     Ft = FF * Fp
     Tp = vp / (Fp + Ft)
-    Cp = pk.conc_plug(Fp * ca, Tp, t=t, dt=dt)
+    Cp = pk.conc_plug(Fp * ca, t=t, dt=dt, T=Tp)
     cp = Cp/vp
-    Ct = pk.conc_free(Ft * cp, ht, dt=dt, TT=TT, solver='step')
+    Ct = pk.conc_free(Ft * cp, dt=dt, h=h, TT=TT, solver='step')
     return np.stack((Cp, Ct))
 
 
@@ -675,22 +675,22 @@ def conc_kidney_cm9(ca, t=None, dt=1.0, Fp=None, Eg=None, fc=None, Tglom=None, T
     ca = np.array(ca)
     
     # Flux out of the glomeruli and arterial tree
-    Jg = pk.flux(Fp*ca, Tglom, t=t, dt=dt, model='comp')
+    Jg = pk.flux_comp(Fp*ca, t=t, dt=dt, T=Tglom)
 
     # Flux out of the peritubular capillaries and venous system
-    Jv = pk.flux((1-Eg)*Jg, Tv, t=t, dt=dt, model='comp')
+    Jv = pk.flux_comp((1-Eg)*Jg, t=t, dt=dt, T=Tv)
 
     # Flux out of the proximal tubuli
-    Jpt = pk.flux(Eg*Jg, Tpt, t=t, dt=dt, model='comp')
+    Jpt = pk.flux_comp(Eg*Jg, t=t, dt=dt, T=Tpt)
 
     # Flux out of the lis of Henle
-    Jlh = pk.flux(Jpt, Tlh, t=t, dt=dt, model='comp')
+    Jlh = pk.flux_comp(Jpt, t=t, dt=dt, T=Tlh)
 
     # Flux out of the distal tubuli
-    Jdt = pk.flux(Jlh, Tdt, t=t, dt=dt, model='comp')
+    Jdt = pk.flux_comp(Jlh, t=t, dt=dt, T=Tdt)
 
     # Flux out of the collecting ducts
-    Jcd = pk.flux(Jdt, Tcd, t=t, dt=dt, model='comp')
+    Jcd = pk.flux_comp(Jdt, t=t, dt=dt, T=Tcd)
 
     # Build cortical concentrations
     Cg = Tglom*Jg      # arteries/glomeruli
