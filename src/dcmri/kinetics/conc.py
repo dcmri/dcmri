@@ -390,7 +390,7 @@ class ConcAorta(LayerFunction):
         Ji = ca_injection(
             t, p['weight'], conc, p['dose'], p['rate'], p['BAT']
         )
-        Jb = flux_aorta(
+        Jb = flux_aorta( 
             Ji, E=p['Eb'], dt=p['dt'], tol=p['dose_tolerance'],
             heartlung=heartlung, organs=organs,
         )

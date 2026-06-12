@@ -63,6 +63,7 @@ from dcmri.kinetics.blocks import (
     prop_free,
     prop_ncomp,
 
+    conc,
     conc_trap,
     conc_pass,
     conc_comp,
@@ -76,6 +77,7 @@ from dcmri.kinetics.blocks import (
     conc_mmcomp,
     conc_2cxm,
 
+    flux,
     flux_trap,
     flux_pass,
     flux_comp,
@@ -153,7 +155,10 @@ from dcmri.kinetics.kidney import (
     conc_kidney_hfu,
     conc_kidney_cm9,
 )
-from dcmri.kinetics.aorta import (
+from dcmri.kinetics.body import (
+    conc_aorta,
+)
+from dcmri.kinetics.aorta import ( # phase out
     flux_aorta,
     flux_aorta_hlo,
     flux_aorta_hlol,

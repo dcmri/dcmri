@@ -224,7 +224,7 @@ class AortaPortalLiver(SuperModel):
     
     def _compute_conc_portal(self):
         p = self._pars
-        self._cv = flux_chain(self._ca, p['Tg'], p['Dg'], dt=p['dt'])
+        self._cv = flux_chain(self._ca, dt=p['dt'], T=p['Tg'], D=p['Dg'])
     
     def _compute_relax_portal(self):
         self._compute_conc_portal()

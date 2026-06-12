@@ -110,7 +110,7 @@ def test_function():
     r2s = dc.r2s(B0, 'blood', agent)
     aif_time = np.arange(0, tmax, dt)
     aif_conc = dc.tristan(aif_time, BAT=10)
-    vif_conc = dc.flux_chain(aif_conc, 10, 0.5, dt=dt)
+    vif_conc = dc.flux_chain(aif_conc, dt=dt, T=10, D=0.5)
     aif_R1 = R10a + rp * aif_conc
     vif_R1 = R10a + rp * vif_conc
     aif_R2s = R20sa + r2s * aif_conc

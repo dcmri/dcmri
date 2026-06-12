@@ -11,14 +11,14 @@ from dcmri.kinetics import utils
 
 
 def flux(model, *args, **kwargs) -> np.ndarray:
-    """Internal wrapper function not exposed to users"""
+    """wrapper function"""
     if model in ['pass','trap']:
         kwargs = {k: v for k, v in kwargs.items() if k not in ['t', 'dt']}
     return globals()[f"flux_{model}"](*args, **kwargs)
 
 
 def conc(model, *args, **kwargs) -> np.ndarray:
-    """Internal wrapper function not exposed to users"""
+    """wrapper function"""
     if model in ['pass']:
         kwargs = {k: v for k, v in kwargs.items() if k not in ['t', 'dt']}
     return globals()[f"conc_{model}"](*args, **kwargs)
