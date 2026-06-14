@@ -11,14 +11,90 @@ from dcmri.kinetics import utils
 
 
 def flux(model, *args, **kwargs) -> np.ndarray:
-    """wrapper function"""
+    """
+    Wrapper function to compute the flux for a specified model.
+
+    This function dynamically dispatches the flux calculation to a model-specific
+    function named `flux_<model>`. 
+
+    Parameters
+    ----------
+    model : str
+        The name of the flux model to evaluate (e.g., 'pass', 'trap'). This 
+        determines which underlying function (`flux_<model>`) is called.
+    *args : tuple
+        Positional arguments passed directly to the underlying model function.
+    **kwargs : dict, optional
+        Keyword arguments passed to the underlying model function. If `model` 
+        is 'pass' or 'trap', the keys 't' and 'dt' are stripped out.
+
+    Returns
+    -------
+    numpy.ndarray
+        The calculated flux values from the designated model function.
+
+    Raises
+    ------
+    KeyError
+        If the corresponding function `flux_<model>` does not exist in the 
+        global namespace.
+
+    See Also
+    --------
+    conc : Corresponding wrapper function for concentration models.
+
+    Examples
+    --------
+    >>> import dcmri as dc
+    >>> J = [1, 2, 3, 3, 2]
+    >>> dc.flux('chain', J, dt=2.0, T=5, D=0.5)  
+    array([0.        , 0.14378527, 0.70435485, 1.46665593, 2.0385268 ])
+    """
     if model in ['pass','trap']:
         kwargs = {k: v for k, v in kwargs.items() if k not in ['t', 'dt']}
     return globals()[f"flux_{model}"](*args, **kwargs)
 
 
 def conc(model, *args, **kwargs) -> np.ndarray:
-    """wrapper function"""
+    """
+    Wrapper function to compute the concentration for a specified model.
+
+    This function dynamically dispatches the concentration calculation to a 
+    model-specific function named `conc_<model>`. 
+
+    Parameters
+    ----------
+    model : str
+        The name of the concentration model to evaluate (e.g., 'pass'). This 
+        determines which underlying function (`conc_<model>`) is called.
+    *args : tuple
+        Positional arguments passed directly to the underlying model function.
+    **kwargs : dict, optional
+        Keyword arguments passed to the underlying model function. If `model` 
+        is 'pass', the keys 't' and 'dt' are stripped out.
+
+    Returns
+    -------
+    numpy.ndarray
+        The calculated concentration values from the designated model function.
+
+    Raises
+    ------
+    KeyError
+        If the corresponding function `conc_<model>` does not exist in the 
+        global namespace.
+
+    See Also
+    --------
+    flux : Corresponding wrapper function for flux models.
+
+    Examples
+    --------
+    >>> import dcmri as dc
+    >>> J = [1, 2, 3, 3, 2]
+    >>> dc.conc('chain', J, dt=2.0, T=5, D=0.5)  
+    array([ 0.        ,  2.85621473,  7.00807462, 10.83706384, 12.33188111])
+    """
     if model in ['pass']:
         kwargs = {k: v for k, v in kwargs.items() if k not in ['t', 'dt']}
     return globals()[f"conc_{model}"](*args, **kwargs)

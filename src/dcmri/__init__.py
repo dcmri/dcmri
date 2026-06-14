@@ -155,14 +155,12 @@ from dcmri.kinetics.kidney import (
     conc_kidney_hfu,
     conc_kidney_cm9,
 )
-from dcmri.kinetics.body import (
-    conc_aorta,
-)
 from dcmri.kinetics.aorta import ( # phase out
     flux_aorta,
     flux_aorta_hlo,
     flux_aorta_hlol,
     flux_aorta_hlok,
+    flux_aorta_hlokk,
 )
 from dcmri.kinetics.inv import (
     linfit_2cfm

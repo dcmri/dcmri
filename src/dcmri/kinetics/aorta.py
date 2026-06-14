@@ -190,5 +190,62 @@ def flux_aorta_hlok(J_vena: np.ndarray,
 
     return J_aorta_total
 
+def flux_aorta_hlokk(J_vena: np.ndarray,
+        t=None, dt=1.0, 
+        El=0.1, Elk=0.1, Erk=0.1, FFlk=0.1, FFrk=0.1,
+        heartlung=['pfcomp', {'T':10, 'D':0.2}],
+        organs=['2cxm', {'T':[20, 120], 'E':0.15}],
+        left_kidney=['comp', {'T':10}],
+        right_kidney=['comp', {'T':10}],
+        tol=0.001,
+        max_it=None,
+    ):
+    dose = trapezoid(J_vena, x=t, dx=dt)
+    min_dose = tol*dose
+
+    # Residuals of each pathway
+    Rlk = FFlk * (1 - Elk)
+    Rrk = FFrk * (1 - Erk)
+    FFo = 1 - (FFlk + FFrk)
+    Ro = (1 - FFo) * (1 - El)
+
+    # Initialize output
+    nt = J_vena.size
+    J_aorta_total = np.zeros(nt)
+
+    it=0
+    while True:
+      
+        # Aorta flux of the current pass
+        J_aorta = flux(heartlung[0], J_vena, t=t, dt=dt, **heartlung[1])
+
+        # Add to the total aorta flux
+        J_aorta_total += J_aorta
+
+        # Venous flux of the current pass
+        J_vena = np.zeros(nt)
+
+        if Ro > 0:
+            J_vena += Ro * flux(organs[0], J_aorta, t=t, dt=dt, **organs[1])
+
+        if Rrk > 0:
+            J_vena += Rrk * flux(right_kidney[0], J_aorta, t=t, dt=dt, **right_kidney[1])
+
+        if Rlk > 0:
+            J_vena += Rlk * flux(left_kidney[0], J_aorta, t=t, dt=dt, **left_kidney[1])
+
+        # Get residual dose in current pass
+        dose = trapezoid(J_vena, x=t, dx=dt)
+
+        if dose <= min_dose:
+            break
+        
+        it += 1
+        if max_it is not None:
+            if it > max_it:
+                break
+
+    return J_aorta_total
+
 
 

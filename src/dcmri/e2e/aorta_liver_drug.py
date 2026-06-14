@@ -127,7 +127,6 @@ import numpy as np
 
 from dcmri.kinetics.input import ca_injection
 from dcmri.kinetics.aorta import flux_aorta_hlol
-from dcmri.kinetics.blocks import flux_comp
 from dcmri.kinetics.conc import ConcAorta, ConcLiver
 from dcmri.utils import const
 from dcmri.lexicon.dicts import QUANTITIES
@@ -389,6 +388,8 @@ class AortaLiverDrug(SuperModel):
                 'd_B1corr_l', 'd_B1corr_a',
                 # Predict
                 'TS',
+                # fix: FFl, CO, GFR, ve
+                # var: khe, kbh
             ],
             'free': inflow_pars + [
                 # _conc_aorta 
@@ -439,13 +440,16 @@ class AortaLiverDrug(SuperModel):
         Fpk = (1 - FFl) * p[f'CO'] * (1 - p['H'])
         Ek = CL / (CL + Fpk)
 
+        # 3 flow parameters
+
         Jb = flux_aorta_hlol(
-            J, El=El, Ek=Ek, FFl=FFl, dt=p['dt'], tol=p['dose_tolerance'],
+            J, dt=p['dt'], El=El, Ek=Ek, FFl=FFl, tol=p['dose_tolerance'],
             heartlung=['pfcomp', {'T':p[f'Thl'], 'D':p[f'Dhl']}],
             organs=['2cxm', {'T':[p[f'To'], p[f'To_e']], 'E':p[f'Eo']}],
             liver=['bicomp', {'T':[p[f'Tg'], Te]}],
         )
         return Jb / p[f'CO']
+    
 
     def _conc_liver(self, cb, visit):
         p = self._pars
