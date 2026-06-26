@@ -37,8 +37,8 @@ Example:
     ...     r1 = dc.const.r1(3, 'blood','gadodiamide'),
     ...     TR = 0.005,
     ...     FA = 15,
-    ...     R10a = 1/dc.const.T1(3.0,'blood'),
-    ...     R10 = 1/dc.const.T1(3.0,'muscle'),
+    ...     R1ba = 1/dc.const.T1(3.0,'blood'),
+    ...     R1b = 1/dc.const.T1(3.0,'muscle'),
     ... )
 
     Train the tissue on the data. Since have noise-free synthetic 
@@ -60,12 +60,12 @@ from joblib import Parallel, delayed
 from matplotlib.gridspec import GridSpec
 
 from dcmri.bloch.tissue import Signal
-from dcmri.lexicon.dicts import SEQUENCES  
-from dcmri.lexicon.tools import string_params
+from dcmri.core.sequences import SEQUENCES  
+from dcmri.core.tools import string_params
 from dcmri.inverse.sig2conc import SignalToConc
-from dcmri.core.model import SuperModel
+from dcmri.core.pixel_model import SuperPixelModel
 from dcmri.core.types import Input
-from dcmri.core.layer import LayerFunction
+from dcmri.core.function import Function
 from dcmri.relaxivity.tissue import Relax
 from dcmri.bloch.tissue import Signal
 from dcmri.utils.misc import sample
@@ -100,47 +100,51 @@ def irf_ls(ca, c, dt, tol=1e-2):
     # Transpose back to get result in standard form (n_samples, n_times)
     # Then convert back to original shape 
     return irf.T.reshape(shape)
-        
 
-class SignalTissueLS(LayerFunction):
+CONSTANTS = {'Fw': 0, 'v': 1, 'me': 1, 'noise_sdev':0}    
+
+class SignalTissueLS(Function):
     configs = {
         'sequence': [s for s, v in SEQUENCES.items() if v['steady-state']]
     }  
-    def __init__(self, sequence='3D-SPGR-SS', **params):
-        self._cnfg = self._set_config(sequence=sequence)
-        self._pars = self._set_pars(**params)   
+    def __init__(self, sequence='3D-SPGR-SS', defaults=None, **params):
+        cnfg = {
+            'sequence': sequence,
+        }
+        self._set_config(cnfg)
+        self._set_params(defaults)   
 
     def __call__(self, ca, **params):
-        p = self._update_pars(**params)
+        p = self._update_params(params)
         seq = self._cnfg['sequence']
         wght = set(SEQUENCES[seq]['parameters']['tissue'])
 
-        relax = Relax(tissue_props=wght, **p)
-        signal = Signal(seq, **p)
+        relax = Relax(tissue_props=wght, defaults=p)
+        signal = Signal(seq, defaults=p)
 
         C = conc_ls(ca, p['irf'], p['dt'])
         if C.shape[0]==1:
-            R1, R2, R2s = relax(C[0,:], R20=0, R20s=0)
+            R = relax(C=C[0,:], R2b=0, R2sb=0)
         else: # Dual-echo sequence - 2 signal channels
-            R1, R2, R2s = relax(
-                C, 
-                R10=[p['R10'], p['R10']], 
-                R20=[0,0], 
-                R20s=0, 
+            R = relax(
+                C=C, 
+                R1b=[p['R1b'], p['R1b']], 
+                R2b=[0,0], 
+                R2sb=0, 
                 r1=[p['r1'], p['r1']], 
                 r2=[p['r2'], p['r2']],
             )
-            if R1 is not None:
-                R1 = np.mean(R1, axis=0)
-            R2 = R2[0,:]
-            R2s = R2s[1,:]
-        return signal(R1, R2, R2s, R1i=None)
+            if 'R1' in R:
+                R1 = np.mean(R['R1'], axis=0)
+            R2 = R['R2'][0,:]
+            R2s = R['R2s'][1,:]
+        return signal(R1=R1, R2=R2, R2s=R2s, **CONSTANTS)
 
         # if seq == 'SE-EPI':
         #     #R2 = rel.relax_t2(C, 0, p['r2'])
         #     return signal(R2=R2, TA=np.inf, PA=None)
         # elif seq == 'GE-EPI':
-        #     #R1 = rel.relax_t1(C, p['R10'], p['r1']) 
+        #     #R1 = rel.relax_t1(C, p['R1b'], p['r1']) 
         #     R2s = rel.relax_t2s(C, 0, p['r2s']) 
         #     return signal(R2s=R2s, TA=np.inf, PA=None)
         # elif seq == 'DE-EPI':
@@ -148,17 +152,17 @@ class SignalTissueLS(LayerFunction):
         #     #R2s = rel.relax_t2s(C[1,:], 0, p['r2s'])
         #     return signal(R2=R2, R2s=R2s, TA=np.inf, PA=None)
         # else:
-        #     R1 = rel.relax_t1(C, p['R10'], p['r1'])  
+        #     R1 = rel.relax_t1(C, p['R1b'], p['r1'])  
         #     R2s = rel.relax_t2s(C[1,:], 0, p['r2s'])
         #     return signal(R1=R1, R2s=R2s)  
     
-    def _params(self):
+    def params(self):
         seq = self._cnfg['sequence']
         wght = set(SEQUENCES[seq]['parameters']['tissue'])
 
         p = ['irf', 'dt']
-        p += [k for k in Relax(tissue_props=wght)._params() if k not in ['R20', 'R20s']]
-        p += [k for k in Signal(seq)._params() if k not in ['R1', 'R2', 'R2s', 'R1i']]
+        p += [k for k in Relax(tissue_props=wght).params() if k not in ['R2b', 'R2sb']]
+        p += [k for k in Signal(seq).params() if k not in ['R1', 'R2', 'R2s', 'R1i']]
 
         # p_excl = ['R1', 'R2s', 'R2', 'R1i', 'Fi', 'me', 'v', 'Fw']
         # if seq == 'SE-EPI':
@@ -171,12 +175,12 @@ class SignalTissueLS(LayerFunction):
         #     p += ['r2', 'r2s']
         #     p_excl += ['TA', 'PA']
         # else:
-        #     p += ['R10', 'r1']  
+        #     p += ['R1b', 'r1']  
         #     p_excl += ['TE'] 
         # p += [ps for ps in Signal(seq)._params() if ps not in p_excl]
         return p
     
-# class BaselineSignal(LayerFunction):
+# class BaselineSignal(Function):
 #     configs = {
 #         'sequence': [s for s, v in SEQUENCES.items() if v['steady-state']]
 #     }  
@@ -188,7 +192,7 @@ class SignalTissueLS(LayerFunction):
 #         p = self._update_pars(**params)
 #         seq = self._cnfg['sequence']
 #         signal = Signal(seq, **p)
-#         return signal(R1=p['R10'], R2=0, R2s=0, S0=1)
+#         return signal(R1=p['R1b'], R2=0, R2s=0, S0=1)
 
 #         # if seq == 'SE-EPI':
 #         #     return signal(R2=0, TA=np.inf, PA=None)
@@ -197,7 +201,7 @@ class SignalTissueLS(LayerFunction):
 #         # elif seq == 'DE-EPI':
 #         #     return signal(R2=0, R2s=0, TA=np.inf, PA=None)
 #         # else:
-#         #     return signal(R1=p['R10'], TE=0)  
+#         #     return signal(R1=p['R1b'], TE=0)  
     
 #     def _params(self):
 #         seq = self._cnfg['sequence']
@@ -213,14 +217,14 @@ class SignalTissueLS(LayerFunction):
 #         # elif seq == 'DE-EPI':
 #         #     p_excl += ['TA', 'PA']
 #         # else:
-#         #     p += ['R10']  
+#         #     p += ['R1b']  
 #         #     p_excl += ['TE'] 
 #         # p += [ps for ps in Signal(seq)._params() if ps not in p_excl]
 #         # return p
     
 
 
-class TissueLS(SuperModel):
+class TissueLS(SuperPixelModel):
     """Linear and stationary tissue pixels with a known input.
 
     Args:
@@ -402,14 +406,14 @@ class TissueLS(SuperModel):
         if aif is not None:
             seq = self._cnfg['sequence']
             input = Input(aif)
-            ca = SignalToConc(seq, **p)(
-                input.signal, S0=None, R10=input.R10, n0=n0, 
+            ca = SignalToConc(seq, defaults=p)(
+                input.signal, R1b=input.R1b, n0=n0, 
                 B1corr=input.B1corr, r1=p['r1']
             )
             t = np.arange(0, np.amax(time) + p['dt'], p['dt'])
-            p['c_a'] = np.interp(t, input.time, ca)
+            p['ca'] = np.interp(t, input.time, ca)
 
-        n_times = p['c_a'].size
+        n_times = p['ca'].size
 
         if self._cnfg['sequence'] in ['DE-EPI']:
             n_channels = 2
@@ -517,7 +521,7 @@ class TissueLS(SuperModel):
     @property
     def _shape(self):
         n_pixels = 1 if self._pixels_shape==() else np.prod(self._pixels_shape)
-        n_times = self._pars['c_a'].size
+        n_times = self._pars['ca'].size
         if self._cnfg['sequence'] in ['Eq-DE-EPI', 'DE-EPI']:
             n_channels = 2
         else:
@@ -529,9 +533,9 @@ class TissueLS(SuperModel):
             select = 'all'
         seq = self._cnfg['sequence']
         if select == 'all':
-            return ['c_a', 'TS'] + SignalTissueLS(seq)._params()
+            return ['ca', 'TS'] + SignalTissueLS(seq).params()
         if select == 'pixel':
-            return [p for p in self._params() if p in ['S0', 'B1corr', 'R10']]
+            return [p for p in self._params() if p in ['S0', 'B1corr', 'R1b']]
 
 
     # ==========================================
@@ -547,11 +551,11 @@ class TissueLS(SuperModel):
         # Compute tissue concentration
         def _conc_pixel(x):
             kwargs_x = self._pixel_pars(x)
-            C_x = SignalToConc(seq, **kwargs_x)(signal[x, ...], S0=None, n0=n0)
+            C_x = SignalToConc(seq, defaults=kwargs_x)(signal[x, ...], n0=n0)
             C_x = np.stack([np.interp(t, time, C_x[i,:], right=0, left=0) for i in range(C_x.shape[0])])
             # Compute S0 on the fly so signal predictions can be verified
             # s_ref = BaselineSignal(seq, **kwargs_x)()
-            s_ref = Signal(seq, **kwargs_x)(R1=kwargs_x['R10'], R2=0, R2s=0, S0=1)
+            s_ref = Signal(seq, defaults=kwargs_x)(R1=kwargs_x['R1b'], R2=0, R2s=0, S0=1, **CONSTANTS)
             s_ref = np.mean(s_ref)
             s_avr = np.mean(signal[x, :, :n0]) 
             S0_x = np.divide(s_avr, s_ref, out=np.zeros_like(s_avr), where=s_ref != 0)
@@ -566,7 +570,7 @@ class TissueLS(SuperModel):
         p['S0'] = np.array([r[1] for r in results]).reshape(self._shape[0])
 
         # Deconvolve with arterial concentration
-        p['irf'] = irf_ls(p['c_a'], C, p['dt'], tol=tol)
+        p['irf'] = irf_ls(p['ca'], C, p['dt'], tol=tol)
 
 
     # ==========================================
@@ -575,7 +579,7 @@ class TissueLS(SuperModel):
 
     def _concentration(self):
         p = self._pars
-        return conc_ls(p['c_a'], p['irf'], p['dt'])
+        return conc_ls(p['ca'], p['irf'], p['dt'])
     
     def _signal(self) -> np.ndarray: # (n_pixels, n_channels, n_times)
         p = self._pars
@@ -583,7 +587,7 @@ class TissueLS(SuperModel):
         def pixel_signal(x) -> np.ndarray: # (n_channels, n_times)
             kwargs_x = self._cnfg | self._pixel_pars(x)
             kwargs_x = {k: v for k, v in kwargs_x.items() if k != 'irf'} | {'irf': p['irf'][x, ...]}
-            S = SignalTissueLS(**kwargs_x)(p['c_a'])
+            S = SignalTissueLS(defaults=kwargs_x)(p['ca'])
             return S.reshape(-1, S.shape[-1])  # (n_channels, n_times)
         
         if self._shape[0]==1:
@@ -595,7 +599,7 @@ class TissueLS(SuperModel):
 
     def _time(self):
         p = self._pars
-        return p['dt'] * np.arange(p['c_a'].size) # (n_times, )
+        return p['dt'] * np.arange(p['ca'].size) # (n_times, )
 
     def _predict(self, time):
         t = self._time()
@@ -660,7 +664,7 @@ class TissueLS(SuperModel):
         ax[1].set_title('Tissue concentrations')
         ax[1].set(ylabel='Concentration (mM)', xlabel='Time (min)')
         ax[1].plot(
-            t / 60, 1000 * p['c_a'], linestyle='-', linewidth=5.0,
+            t / 60, 1000 * p['ca'], linestyle='-', linewidth=5.0,
             color='lightcoral', label='Arterial blood',
         )
         for i in range(C.shape[1]):

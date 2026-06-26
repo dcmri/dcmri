@@ -51,9 +51,9 @@ Example:
     ...     field_strength = 3.0,
     ...     TR = 0.005,
     ...     FA = 15,
-    ...     R10 = 1/dc.const.T1(3.0,'liver'),
-    ...     R10a = 1/dc.const.T1(3.0, 'blood'), 
-    ...     R10v = 1/dc.const.T1(3.0, 'blood'), 
+    ...     R1b = 1/dc.const.T1(3.0,'liver'),
+    ...     R1ba = 1/dc.const.T1(3.0, 'blood'), 
+    ...     R1bv = 1/dc.const.T1(3.0, 'blood'), 
     ... )
 
     Train the model on the ROI data:
@@ -77,14 +77,15 @@ from dcmri.inverse.sig2conc import SignalToConc
 from dcmri.utils import const
 from dcmri.core.model import SuperModel
 from dcmri.core.types import Input
-from dcmri.lexicon.dicts import SEQUENCES
-from dcmri.lexicon.tools import print_params, export_params
-from dcmri.kinetics.conc import ConcLiver
+from dcmri.core.sequences import SEQUENCES
+from dcmri.core.tools import print_params, export_params
+from dcmri.kinetics.modules_conc import ConcLiver
 from dcmri.bloch.tissue import Signal
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
-from dcmri.kinetics.liver import dpars_liver
+from dcmri.kinetics.functions_liver import dpars_liver
 
+CONSTANTS = {'Fw': 0, 'v': 1, 'me': 1, 'noise_sdev':0}
 
 class Liver(SuperModel):
     """Liver tissue with known inputs.
@@ -124,7 +125,7 @@ class Liver(SuperModel):
 
         # Test validity of parameters
         if kinetics.startswith('2'):
-            if self._pars['c_a'].size != self._pars['c_v'].size:
+            if self._pars['ca'].size != self._pars['cv'].size:
                 raise ValueError("Arterial- and venous inputs have different lengths")
 
     def export_params(self, sdev=None, group=None, num_only=False, deriv=False, scalar_only=False):
@@ -201,15 +202,15 @@ class Liver(SuperModel):
             p = self._pars
             seq = self._cnfg['sequence']
             rp = const.r1(p['field_strength'], 'blood', p['agent'])
-            ci = SignalToConc(seq, **p)(
-                input.signal, S0=None, R10=input.R10, n0=n0, 
+            ci = SignalToConc(seq, defaults=p)(
+                input.signal, R1b=input.R1b, n0=n0, 
                 B1corr=input.B1corr, r1=rp,
             )
             t = np.arange(0, np.amax(time) + p['dt'], p['dt'])
             return np.interp(t, input.time, ci)
       
-        if aif is not None: self._pars['c_a'] = conc(Input(aif))
-        if vif is not None: self._pars['c_v'] = conc(Input(vif))
+        if aif is not None: self._pars['ca'] = conc(Input(aif))
+        if vif is not None: self._pars['cv'] = conc(Input(vif))
 
         return self._train(time, signal, free, bounds, n0, **kwargs)
 
@@ -260,19 +261,19 @@ class Liver(SuperModel):
     def _params(self, select=None):
         if select is None:
             select = 'all'
-        pars_kin = ConcLiver(self._cnfg['kinetics'], self._cnfg['non_stationary'])._params()
+        pars_kin = ConcLiver(**self._cnfg).params()
         seq = self._cnfg['sequence']
         pars_seq = SEQUENCES[seq]['parameters']['prep']
         pars_seq += SEQUENCES[seq]['parameters']['read']
 
         if select == 'all':
             pars_list = [
-                'c_a', 'dt', 'field_strength', 'agent',
-                'H', 'T_a', 'S0', 'R10', 'R20s', 'TS'
+                'ca', 'dt', 'field_strength', 'agent',
+                'H', 'Ta', 'S0', 'R1b', 'R2sb', 'TS'
             ]
             pars_list += pars_kin + pars_seq
             if self._cnfg['kinetics'].startswith('2'):
-                pars_list += ['c_v']
+                pars_list += ['cv']
         elif select=='free':
             pars_list = pars_kin
         return pars_list
@@ -283,12 +284,11 @@ class Liver(SuperModel):
 
     def _compute_concentration(self):
         p = self._pars
-        ca_plasma = p['c_a'] / (1 - p['H'])
-        if 'c_v' in p:
-            ca_plasma = (ca_plasma, p['c_v'] / (1 - p['H']))
+        ca_plasma = p['ca'] / (1 - p['H'])
+        if 'cv' in p:
+            ca_plasma = (ca_plasma, p['cv'] / (1 - p['H']))
 
-        kin, ns = self._cnfg['kinetics'], self._cnfg['non_stationary']
-        self._C = ConcLiver(kin, ns, **p)(ca_plasma, dt=p['dt'])
+        self._C = ConcLiver(**self._cnfg, defaults=p)(ci=ca_plasma, dt=p['dt'])
 
     def _compute_relaxation_rate(self):
         self._compute_concentration()
@@ -298,21 +298,21 @@ class Liver(SuperModel):
         rh = const.r1(p['field_strength'], 'hepatocytes', p['agent'])
         r2s = const.r2s(p['field_strength'], 'tissue', p['agent'])
         if self._C.shape[0] == 2:
-            self._R1 = p['R10'] + rp * self._C[0, :] + rh * self._C[1, :]
-            self._R2s = p['R20s'] + r2s * self._C.sum(axis=0)
+            self._R1 = p['R1b'] + rp * self._C[0, :] + rh * self._C[1, :]
+            self._R2s = p['R2sb'] + r2s * self._C.sum(axis=0)
         # else:
-        #     self._R1 = p['R10'] + rp * self._C[0,:]
-        #     self._R2s = p['R20s'] + r2s * self._C[0,:]
+        #     self._R1 = p['R1b'] + rp * self._C[0,:]
+        #     self._R2s = p['R2sb'] + r2s * self._C[0,:]
 
     def _compute_signal(self):
         self._compute_relaxation_rate()
         p = self._pars
         seq = self._cnfg['sequence']
-        self._S = Signal(seq, **p)(R1=self._R1, R2s=self._R2s)
+        self._S = Signal(seq, defaults=p)(R1=self._R1, R2s=self._R2s, **CONSTANTS)
 
     def _set_time(self):
         p = self._pars
-        self._t = p['dt'] * np.arange(p['c_a'].size)
+        self._t = p['dt'] * np.arange(p['ca'].size)
 
     def _predict(self, time):
         self._set_time()
@@ -328,7 +328,7 @@ class Liver(SuperModel):
         seq = self._cnfg['sequence']
 
         # Estimate S0
-        s_ref = Signal(seq, **p)(R1=p['R10'], R2s=p['R20s'], S0=1)
+        s_ref = Signal(seq, defaults=p)(R1=p['R1b'], R2s=p['R2sb'], S0=1, **CONSTANTS)
         p['S0'] = np.mean(signal[:n0]) / s_ref if s_ref > 0 else 0
 
     def _train(
@@ -363,9 +363,9 @@ class Liver(SuperModel):
         # else:
         #     ax1.plot(self._t/60, 1000*self._C[0,:], '-', linewidth=3, color='cornflowerblue', label='Liver')
 
-        ax1.plot(self._t/60, 1000*p['c_a'], '-', linewidth=3, color='darkred', label='Artery')
-        if 'c_v' in p:
-            ax1.plot(self._t/60, 1000*p['c_v'], '-', linewidth=3, color='purple', label='Portal Vein')
+        ax1.plot(self._t/60, 1000*p['ca'], '-', linewidth=3, color='darkred', label='Artery')
+        if 'cv' in p:
+            ax1.plot(self._t/60, 1000*p['cv'], '-', linewidth=3, color='purple', label='Portal Vein')
 
         ax1.set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=np.array(xlim)/60)
         ax1.legend()

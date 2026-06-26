@@ -3,27 +3,121 @@ from tqdm import tqdm
 from scipy.optimize import curve_fit
 from scipy import stats
 
-
-
-def conc_dce(Sn_model, S, n0=None, R10=None, S0=None, r1=None, R20s=None, **params):
+def estimate_bat(t, signal, n0=10, threshold_multiplier=1.1, persistence=3):
+    """
+    Estimates the time point where a noisy 1D signal departs from its initial baseline
+    using the maximum deviation from the mean as the noise metric.
     
-    # TE does not affect the concentration
-    if R20s is None:
-        TE = 0
-        R20s = 1
-    elif 'TE' in params:
-        TE = params['TE']
-    else:
-        TE = 0
+    Parameters:
+    -----------
+    t : array_like
+        1D array of time points corresponding to the signal data.
+    signal : array_like
+        1D discrete data vector representing the signal over time.
+    n0 : int
+        The number of initial data points used to calculate the baseline properties.
+    threshold_multiplier : float
+        Multiplier applied to the maximum baseline difference to set the threshold.
+        Must be > 1.0 (e.g., 1.1 means 10% higher than the maximum baseline noise).
+    persistence : int
+        Number of consecutive points that must exceed the threshold to trigger detection.
+        
+    Returns:
+    --------
+    float or None
+        The estimated time point where the change starts, or None if no change is detected.
+    """
+    t = np.asarray(t)
+    signal = np.asarray(signal)
 
-    #Normalize signal
+    # For a multi-channel signal, return an average over channels
+    if signal.ndim > 1:
+        est = [estimate_bat(t, signal[i,:], n0=n0, threshold_multiplier=threshold_multiplier, persistence=persistence) for i in range(signal.shape[0])]
+        return np.mean(est)
+
+    if n0==1:
+        return t[1]
+    
+    if len(signal) != len(t):
+        raise ValueError("The time array 't' and 'signal' must have the same length.")
+    if len(signal) <= n0:
+        raise ValueError("Signal length must be greater than the baseline length.")
+    
+    # 1. Estimate baseline properties
+    baseline = signal[:n0]
+    baseline_mean = np.mean(baseline)
+    
+    # Calculate noise level as the maximum absolute difference from the mean
+    max_baseline_diff = np.max(np.abs(baseline - baseline_mean))
+    
+    # 2. Define upper and lower thresholds
+    # We scale the maximum observed noise slightly to create a safety boundary
+    threshold_deviation = max_baseline_diff * threshold_multiplier
+    upper_thresh = baseline_mean + threshold_deviation
+    lower_thresh = baseline_mean - threshold_deviation
+    
+    # 3. Find where the signal exceeds the threshold bounds
+    out_of_bounds = (signal > upper_thresh) | (signal < lower_thresh)
+    
+    # 4. Enforce persistence to avoid false triggers
+    for i in range(n0, len(signal) - persistence + 1):
+        if np.all(out_of_bounds[i : i + persistence]):
+            # Return the exact time from the time array 't'
+            return t[i]
+            
+    return None
+
+def _estimate_bat(t, y):
+    """
+    Finds the smallest time point corresponding to the half maximum of y 
+    using linear interpolation.
+    """
+    # Convert inputs to numpy arrays just in case
+    t = np.asarray(t)
+    y = np.asarray(y)
+
+    # For a multi-channel signal, return an average over channels
+    if y.ndim > 1:
+        est = [estimate_bat(t, y[i,:]) for i in range(y.shape[0])]
+        return np.mean(est)
+
+    # Calculate the half-maximum value
+    y_min = np.min(y)
+    y_max = np.max(y)
+    half_max = y_min + (y_max - y_min) / 2.0
+    
+    # Find the first index where y is greater than or equal to the half-maximum
+    # (Excluding the very first point because we need a previous point to interpolate from)
+    idx_above = np.where(y[1:] >= half_max)[0]
+    
+    if len(idx_above) == 0:
+        raise ValueError("The signal never reaches the calculated half-maximum.")
+        
+    # Correct index shift because we sliced from y[1:]
+    idx = idx_above[0] + 1
+    
+    # Points for interpolation
+    t0, t1 = t[idx - 1], t[idx]
+    # y0, y1 = y[idx - 1], y[idx]
+    
+    # # Edge case: If the two y-values are identical, avoid division by zero
+    # if y1 == y0:
+    #     return t0
+        
+    # Linear interpolation formula solved for t:
+    # t = t0 + (half_max - y0) * (t1 - t0) / (y1 - y0)
+    # t_half = t0 + (half_max - y0) * (t1 - t0) / (y1 - y0)
+    t_half = (t0 + t1) / 2
+    
+    return t_half
+
+
+def conc_dce(signal, S, r1=None, n0=None, S0=None, R1b=None):
+    
+    # Normalize signal
     if S0 is None:
+        Sn0 = signal(R1=R1b, S0=1, R2s=np.ones_like(R1b), TE=0, v=1, Fw=0, me=1) # Exp factor absorbed in S0
         Sb = np.sum(S[:, :n0], axis=1) / n0
-        if np.isscalar(R20s):
-            R20sb = np.full_like(R10, R20s)
-        else:
-            R20sb = R20s
-        Sn0 = Sn_model(R1=R10, TE=TE, R2s=R20sb, S0=1, v=1, Fw=0, me=1, R1i=None, Fi=None) # Baseline R20 absorbed in S0
         S0 = np.divide(Sb, Sn0, out=np.zeros_like(Sb, dtype=float), where=Sn0 > 0)
 
     S0 = S0[:, np.newaxis]
@@ -35,28 +129,18 @@ def conc_dce(Sn_model, S, n0=None, R10=None, S0=None, r1=None, R20s=None, **para
     c_range = np.arange(0, c_max, c_step)
     R1_min = 0
     R1_lookup = R1_min + r1 * c_range
-    Sn_lookup = Sn_model(R1=R1_lookup, TE=TE, R2s=np.full_like(R1_lookup, R20s), S0=1, v=1, Fw=0, me=1, R1i=None, Fi=None)
+    Sn_lookup = signal(R1=R1_lookup, S0=1, R2s=np.ones_like(R1_lookup), TE=0, v=1, Fw=0, me=1)
 
-    # # Check that lookup values are strictly increasing
-    # if not np.all(np.diff(Sn_lookup) > 0):
-    #     raise ValueError(
-    #         f"Cannot convert signal to concentration directly. "
-    #         "The signal values are not monotonously increasing for the given concentration range. \n"
-    #         "You can avoid direct inversion by fitting straight to signal data."
-    #     )
-
-    # Look up R1 values
+    # Look up conc values
     R1 = np.interp(Sn_data, Sn_lookup, R1_lookup)
-    
-    # Convert to concentration
-    if R10 is None:
-        R10 = np.sum(R1[:, :n0], axis=1) / n0
 
-    R10 = R10[:, np.newaxis]
-    return (R1 - R10) / r1
+    # Convert R1 to conc
+    R1b = np.sum(R1[:, :n0], axis=1) / n0
+    R1b = R1b[:, np.newaxis]
+    return (R1 - R1b) / r1
 
 
-def conc_dsc(S, n0, r2, TE) -> np.ndarray:
+def conc_dsc(S, r2=None, TE=None, n0=None) -> np.ndarray:
     # S/Sb = exp(-TE(R2-R2b))
     #   ln(S/Sb) = -TE(R2-R2b)
     #   R2-R2b = -ln(S/Sb)/TE
@@ -75,55 +159,52 @@ def conc_dsc(S, n0, r2, TE) -> np.ndarray:
     return C
     
 
-def conc_ss(S, n0=None, R10=None, S0=None, R20s=None, r1=None, **p) -> np.ndarray:
+def conc_ss(S, r1=None, FA=None, TR=None, B1corr=None, n0=None, S0=None, R1b=None) -> np.ndarray:
     # S = Sinf * (1-exp(-TR*R1)) / (1-cFA*exp(-TR*R1))
-    # Sb = Sinf * (1-exp(-TR*R10)) / (1-cFA*exp(-TR*R10))
+    # Sb = Sinf * (1-exp(-TR*R1b)) / (1-cFA*exp(-TR*R1b))
     # Sn = (1-exp(-TR*R1)) / (1-cFA*exp(-TR*R1))
     # Sn * (1-cFA*exp(-TR*R1)) = 1-exp(-TR*R1)
     # exp(-TR*R1) - Sn *cFA*exp(-TR*R1) = 1-Sn
     # (1-Sn*cFA) * exp(-TR*R1) = 1-Sn
-    FA = np.radians(p['FA'] * p['B1corr'])
+    FA = np.radians(FA * B1corr)
     cFA = np.cos(FA)
     sFA = np.sin(FA)
 
     if S0 is None:
         Sb = np.sum(S[:, :n0], axis=1) / n0
-        E0 = np.exp(-p['TR'] * R10)
-        ED = 1 if R20s is None else np.exp(-p['TE'] * R20s)
-        Sn0 = ED * sFA * (1 - E0) / (1 - cFA * E0)
+        E0 = np.exp(-TR * R1b)
+        Sn0 = sFA * (1 - E0) / (1 - cFA * E0)
         S0 = np.divide(Sb, Sn0, out=np.zeros_like(Sb, dtype=float), where=Sn0 > 0)
 
     S0 = S0[:, np.newaxis]
     Sn = np.divide(S, S0, out=np.zeros_like(S, dtype=float), where=S0 > 0)
 
-    # Invert analytically
+    # Invert analytically for R1
     Sn = Sn / sFA
     En = (1 - Sn) / (1 - cFA * Sn)
     with np.errstate(divide='ignore', invalid='ignore'):
-        R1 = np.where(En <= 0, 0, -np.log(En)/p['TR'])
+        R1 = np.where(En <= 0, 0, -np.log(En)/TR)
 
-    if R10 is None:
-        R10 = np.sum(R1[:, :n0], axis=1) / n0
+    # Convert R1 to conc
+    R1b = np.sum(R1[:, :n0], axis=1) / n0
+    R1b = R1b[:, np.newaxis]
+    return (R1 - R1b) / r1
 
-    R10 = R10[:, np.newaxis]
-    return (R1 - R10) / r1
 
-
-def conc_dce_lin(S, n0, R10, S0, r1):
+def conc_dce_lin(S, r1=None, n0=None, S0=None, R1b=None):
     # S = S0 * R1
     if S0 is None:
         Sb = np.sum(S[:, :n0], axis=1) / n0
-        S0 = Sb / R10
-        S0 = np.divide(Sb, R10, out=np.zeros_like(Sb, dtype=float), where=R10 > 0)
+        S0 = Sb / R1b
+        S0 = np.divide(Sb, R1b, out=np.zeros_like(Sb, dtype=float), where=R1b > 0)
 
     S0 = S0[:, np.newaxis] 
     R1 = np.divide(S, S0, out=np.zeros_like(S, dtype=float), where=S0 > 0)
 
-    if R10 is None:
-        R10 = np.sum(R1[:, :n0], axis=1) / n0
-
-    R10 = R10[:, np.newaxis]
-    return (R1 - R10) / r1
+    # Convert R1 to conc
+    R1b = np.sum(R1[:, :n0], axis=1) / n0
+    R1b = R1b[:, np.newaxis]
+    return (R1 - R1b) / r1
 
 
 def vfa_nonlinear(signal_intensities, flip_angles_deg, tr, bounds=None, verbose=0):

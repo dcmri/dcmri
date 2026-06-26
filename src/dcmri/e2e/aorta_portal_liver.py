@@ -7,7 +7,7 @@ For more detail on the whole-body model, see :ref:`whole-body-tissues`.
 For more detail on the liver model, see :ref:`liver-tissues`. 
 
 Args:
-    kinetics (str, optional): Tracer-kinetic liver model. See table 
+    liver (str, optional): Tracer-kinetic liver model. See table 
         :ref:`table-liver-models` for options - only dual-inlet models 
         are allowed. Defaults to '2I-EC'.
     non_stationary (str, optional): For intracellular tracers - stationarity 
@@ -56,7 +56,7 @@ Example:
     conditions of the fake liver data:
 
     >>> model = dc.AortaPortalLiver(
-    ...     kinetics = '2I-IC',
+    ...     liver = '2I-IC',
     ...     sequence = 'SSI',
     ...     dt = 0.5,
     ...     tmax = 180,
@@ -83,23 +83,22 @@ Example:
 
 
 """
-
 import matplotlib.pyplot as plt
 import numpy as np
 
+from dcmri.core.roi_model import SuperRoiModel
+from dcmri.core.quantities import QVALUES
+from dcmri.core.sequences import SEQUENCES
 from dcmri.utils import const
-from dcmri.kinetics.input import ca_injection
-from dcmri.kinetics.aorta import flux_aorta
-from dcmri.kinetics.blocks import flux_chain
-from dcmri.kinetics.conc import ConcLiver
-from dcmri.lexicon.dicts import SEQUENCES
-from dcmri.bloch.tissue import Signal
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
-from dcmri.core.model import SuperModel
+from dcmri.inverse.lib import estimate_bat
+from dcmri.kinetics.modules_conc import ConcAortaLiver
+from dcmri.relaxivity.tissue import Relax
+from dcmri.bloch.tissue import Signal
 
 
-class AortaPortalLiver(SuperModel):
+class AortaPortalLiver(SuperRoiModel):
     """Joint prediction of aorta, portal vein and liver signals.
 
     A whole-body model to simultaneously predict signals in 
@@ -116,245 +115,159 @@ class AortaPortalLiver(SuperModel):
     """
 
     configs = {
-        'kinetics': ['2I-EC-HF', '2I-EC', '2I-IC-HF', '2I-IC', '2I-IC-HF', '2I-IC-U'],
-        'non_stationary': [None, 'U', 'E', 'UE'],
-        'sequence': ['3D-SPGR-SS', '3D-SPGR-SSI']
+        'heartlung': ConcAortaLiver.configs['heartlung'],
+        'organs': ConcAortaLiver.configs['organs'],
+        'liver': ConcAortaLiver.configs['liver'],
+        'non_stationary': ConcAortaLiver.configs['non_stationary'],
+        'sequence': Signal.configs['sequence'],
       }
     
     def __init__(
         self, 
-        kinetics='2I-EC', 
+        heartlung='pfcomp', 
+        organs='comp', 
+        liver='1I-EC', 
         non_stationary=None, 
         sequence='3D-SPGR-SS', 
         **params,
     ):
+        self._version = '1.0'
         cnfg = {
-            'kinetics': kinetics, 
+            'heartlung': heartlung, 
+            'organs': organs, 
+            'liver': liver, 
             'non_stationary': non_stationary, 
             'sequence': sequence,
         }
-        self._version = '1.0'
-        self._cnfg = self._set_config(**cnfg)
-        self._pars = self._set_pars(**params)
+        self._set_config(cnfg)
+        self._set_params(QVALUES | params)
 
-        # if not kinetics.startswith('2'):
-        #     raise ValueError("Only dual-inlet models are allowed.")
+        # Set multi-channel baseline if not done by the user
+        if sequence in ['Eq-DE-EPI', 'DE-EPI']:
+            for roi in ['a', 'pv', 'l']:
+                Sb = f"Sb_{roi}"
+                if Sb not in params:
+                    self._pars[Sb] = np.full(2, self._pars[Sb])
+
+    # ==========================================
+    # Backend
+    # ==========================================
+
+    # Helper function
+    def _sequence(self, roi):
+        seq = self._cnfg['sequence']
+        if roi in ['pv', 'l'] and seq == '3D-SPGR-SSI':
+            return '3D-SPGR-SS'
+        return seq
+    
+    # Helper function
+    def _tissue_props(self, roi):
+        return set(SEQUENCES[self._sequence(roi)]['parameters']['tissue'])
+    
+    # ==========================================
+    # Model Parameters
+    # ==========================================
 
     def _params(self, select=None):
+        pars = []
         if select is None:
-            select = 'all'
-        kin, ns, seq = self._cnfg['kinetics'], self._cnfg['non_stationary'], self._cnfg['sequence']
+            # Explicit parameters
+            pars += ['field_strength', 'agent', 'uv', 'dt', 'tmax', 'TS']
+            for roi in ['a', 'pv', 'l']:
+                pars += [f"{relax_rate}b_{roi}" for relax_rate in self._tissue_props(roi)]
+                pars += [f"Sb_{roi}", f"B1corr_{roi}"]
 
-        aorta_kinetics = ['BAT', 'CO', 'Thl', 'Dhl', 'To', 'Eo', 'To_e', 'Eb']
-        liver_kinetics = ConcLiver(kin, ns)._params()
-        liver_kinetics = [k for k in liver_kinetics if k != 'T_a']
-        portal_kinetics = ['Tg', 'Dg', 'uv']
-        kinetics = aorta_kinetics + liver_kinetics + portal_kinetics
-        liver_sequence = SEQUENCES[seq]['parameters']['prep']
-        liver_sequence += SEQUENCES[seq]['parameters']['read']
-        free_inflow = ['TF', 'S0_a'] if seq == '3D-SPGR-SSI' else []
+            # Implicit parameters
+            pars += ConcAortaLiver(**self._cnfg).params()
+            for roi in ['a', 'pv', 'l']:
+                pars += Relax(tissue_props=self._tissue_props(roi), **self._cnfg).params()
+                pars += Signal(calibrate=True, sequence=self._sequence(roi)).params()
+        
+        if select=='free':
+            pars += ConcAortaLiver(**self._cnfg).params('free')
 
-        pars_list = {
-            'all': kinetics + liver_sequence + [
-                'dt', 'tmax', 'dose_tolerance', 'field_strength',
-                'agent', 'weight', 'dose', 'rate',
-                'TS', 'H', 
-                'R10_a', 'R10_v', 'R10_l', 
-                'R20s_a', 'R20s_v', 'R20s_l', 
-                'S0_a', 'S0_v', 'S0_l', 
-                'B1corr', 'B1corr_a', 'B1corr_v', 
-            ],
-            'free': kinetics + free_inflow,
-            'free_liver': liver_kinetics,
-            'free_aorta': aorta_kinetics + free_inflow,
-            'free_portal': portal_kinetics,
+        # Derived parameters
+        derived = [
+            'C',
+            'r1', 'r2', 'r2s', 'R1b', 'R2b', 'R2sb', 
+            'R1', 'R2', 'R2s', 'Sb', 'B1corr',
+        ]
+        pars = {p for p in pars if p not in derived}
+        return list(pars)
+
+    # ==========================================
+    # Forward Model
+    # ==========================================
+
+    def _compute_conc(self):
+        p = self._pars
+        self._C = ConcAortaLiver(**self._cnfg, defaults=p)()
+
+    def _compute_relax(self):  
+        self._compute_conc()
+        p = self._pars
+        
+        rb = const.relaxivity(p['field_strength'], 'blood', p['agent'])
+        rh = const.relaxivity(p['field_strength'], 'hepatocytes', p['agent'])
+        relaxivity = {
+            'a': rb,
+            'pv': {k: v * p['uv'] for k, v in rb.items()},
+            'l': {'r1': [rb['r1'], rh['r1']], 'r2': [rb['r2'], rh['r2']], 'r2s': rb['r2s']}
         }
-        return pars_list[select]
 
-    # ==========================================
-    # Forward Model: Aorta
-    # ==========================================
+        self._R = {}
+        for roi in ['a', 'pv', 'l']:
+            props = self._tissue_props(roi)
+            baseline_relaxation_rate = {f"{relax_rate}b": p[f"{relax_rate}b_{roi}"] for relax_rate in props}
 
-    def _set_time(self):
-        p = self._pars
-        self._t = np.arange(0, p['tmax'], p['dt'])
-
-    def _compute_conc_aorta(self):
-        self._set_time()
-        p = self._pars
-        
-        conc = const.ca_conc(p['agent'])
-        Ji = ca_injection(
-            self._t, p['weight'], conc, p['dose'], p['rate'], p['BAT']
-        )
-        Jb = flux_aorta(
-            Ji, E=p['Eb'], dt=p['dt'], tol=p['dose_tolerance'],
-            heartlung=['pfcomp', {'T':p[f'Thl'], 'D':p[f'Dhl']}],
-            organs=['2cxm', {'T':[p[f'To'], p[f'To_e']], 'E':p[f'Eo']}],
-        )
-        self._ca = Jb / p['CO']
-
-    def _compute_relax_aorta(self):  
-        self._compute_conc_aorta()
-        p = self._pars
-        rb = const.r1(p['field_strength'], 'blood', p['agent'])
-        self._R1a = p['R10_a'] + rb * self._ca
-        r2s = const.r2s(p['field_strength'], 'blood', p['agent'])
-        self._R2sa = p['R20s_a'] + r2s * self._ca
-
-    def _compute_signal_aorta(self):
-        self._compute_relax_aorta()
-        p = self._pars
-        self._Sa = Signal(self._cnfg['sequence'], **p)(
-            R1=self._R1a, 
-            R2s=self._R2sa,
-            S0=p['S0_a'], 
-            B1corr=p['B1corr_a'],
-        )
-
-    def _predict_aorta(self, time: np.ndarray):
-        self._set_time()
-        self._compute_signal_aorta()
-        p = self._pars
-        return sample(time, self._t, self._Sa, p['TS'])
-
-    # ==========================================
-    # Forward Model: Portal
-    # ==========================================
+            inputs = self._pars | relaxivity[roi] | baseline_relaxation_rate | {'C': self._C[roi]}
+            config = self._cnfg | {'tissue_props': props, 'fast_water_exchange': True}
+            self._R[roi] = Relax(defaults=inputs, **config)()
     
-    def _compute_conc_portal(self):
+    def _compute_signal(self):
+        self._compute_relax()
         p = self._pars
-        self._cv = flux_chain(self._ca, dt=p['dt'], T=p['Tg'], D=p['Dg'])
-    
-    def _compute_relax_portal(self):
-        self._compute_conc_portal()
-        p = self._pars
-        rb = const.r1(p['field_strength'], 'blood', p['agent'])
-        self._R1v = p['R10_v'] + rb * p['uv'] * self._cv
-        r2s = const.r2s(p['field_strength'], 'blood', p['agent'])
-        self._R2sv = p['R20s_v'] + r2s * p['uv'] * self._cv
-    
-    def _compute_signal_portal(self):
-        self._compute_relax_portal()
-        p = self._pars
-        seq = '3D-SPGR-SS' if self._cnfg['sequence']=='3D-SPGR-SSI' else self._cnfg['sequence']
-        self._Sv = Signal(seq, **p)(
-            R1=self._R1v, 
-            R2s=self._R2sv,
-            S0=p['S0_v'], 
-            B1corr=p['B1corr_v'],
-        )
 
-    def _predict_portal(self, time: np.ndarray) -> np.ndarray:
-        p = self._pars
-        p['tmax'] = p['dt'] + p['TS'] + np.max(time)
-        self._compute_signal_portal()
-        return sample(time, self._t, self._Sv, p['TS'])
+        self._S = {}
+        for roi in ['a', 'pv', 'l']:
+            inputs = self._pars | self._R[roi] | {'Sb': p[f'Sb_{roi}'], 'B1corr': p[f'B1corr_{roi}']}
+            config = self._cnfg | {'calibrate': True, 'sequence': self._sequence(roi)}
+            self._S[roi] = Signal(defaults=inputs, **config)()
 
-    # ==========================================
-    # Forward Model: Liver
-    # ==========================================
+    def _time(self):
+        p = self._pars
+        return np.arange(0, p['tmax'], p['dt'])
 
-    def _compute_conc_liver(self):
-        p = self._pars
-  
-        ca_plasma = self._ca / (1 - p['H'])
-        cv_plasma = self._cv / (1 - p['H'])
-        cp = (ca_plasma, cv_plasma)
-        kin, ns = self._cnfg['kinetics'], self._cnfg['non_stationary']
-        self._Cl = ConcLiver(kin, ns, **p)(cp, dt=p['dt'], T_a=0)
-        
-    def _compute_relax_liver(self):
-        self._compute_conc_liver()
-        p = self._pars
-        rp = const.r1(p['field_strength'], 'plasma', p['agent'])
-        rh = const.r1(p['field_strength'], 'hepatocytes', p['agent'])
-        r2s = const.r2s(p['field_strength'], 'tissue', p['agent'])
-        if self._Cl.shape[0] == 2:
-            self._R1l = p['R10_l'] + rp * self._Cl[0, :] + rh * self._Cl[1, :]
-            self._R2sl = p['R20s_l'] + r2s * self._Cl.sum(axis=0) 
-        # else:
-        #     self._R1l = p['R10_l'] + rp * self._Cl[0,:]
-        #     self._R2sl = p['R20s_l'] + r2s * self._Cl[0,:]
-
-    def _compute_signal_liver(self):
-        self._compute_relax_liver()
-        p = self._pars
-        seq = '3D-SPGR-SS' if self._cnfg['sequence']=='3D-SPGR-SSI' else self._cnfg['sequence']
-        self._Sl = Signal(seq, **p)(R1=self._R1l, R2s=self._R2sl, S0=p['S0_l'])
-
-    def _predict_liver(self, time: np.ndarray) -> np.ndarray:
-        p = self._pars
-        p['tmax'] = p['dt'] + p['TS'] + np.max(time)
-        self._compute_signal_liver()
-        return sample(time, self._t, self._Sl, p['TS'])
-    
-    # ===========================================
-    # Forward Model: Liver, Portal Vein and Aorta
-    # ===========================================
-    
     def _predict(self, time: dict) -> dict:
+        self._compute_signal()
+        t = self._time()
         p = self._pars
-        p['tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time))
-        return (
-            self._predict_aorta(time[0]),
-            self._predict_portal(time[1]),
-            self._predict_liver(time[2]),
-        )
+        signal = [
+            sample(time[i], t, self._S[roi], p['TS']) 
+            for i, roi in enumerate(['a', 'pv', 'l'])
+        ]
+        return tuple(signal)
 
     # ==========================================
     # Inverse Model: Training
     # ==========================================
 
-    def _estimate_parameters(self, time: dict, signal: dict, n0: int):
-        p = self._pars
-        p['tmax'] = np.max(np.concatenate(time)) + p['dt'] + p['TS']
-
-        # Estimate BAT based on peak signal
-        t_hl, d_hl = p['Thl'], p['Dhl']
-        bat = time[0][np.argmax(signal[0])] - (1 - d_hl) * t_hl
-        p['BAT'] = max(bat, 0)
-
-        # 2. Scaling Factor (S0) aorta
-        seq = self._cnfg['sequence']
-        s_ref = Signal(seq, **p)(R1=p['R10_a'], R2s=p['R20s_a'], S0=1, B1corr=p['B1corr_a'])
-        p['S0_a'] = np.mean(signal[0][:n0]) / s_ref if s_ref > 0 else 0
-
-        # 3. Scaling Factor (S0) portal vein
-        seq = '3D-SPGR-SS' if self._cnfg['sequence']=='3D-SPGR-SSI' else self._cnfg['sequence']
-        s_ref = Signal(seq, **p)(R1=p['R10_v'], R2s=p['R20s_v'], S0=1, B1corr=p['B1corr_v'])
-        p['S0_v'] = np.mean(signal[1][:n0]) / s_ref if s_ref > 0 else 0
-
-        # 4. Scaling Factor (S0) liver
-        seq = '3D-SPGR-SS' if self._cnfg['sequence']=='3D-SPGR-SSI' else self._cnfg['sequence']
-        s_ref = Signal(seq, **p)(R1=p['R10_l'],  R2s=p['R20s_l'], S0=1, B1corr=p['B1corr'])
-        p['S0_l'] = np.mean(signal[2][:n0]) / s_ref if s_ref > 0 else 0
-
     def _train(
-        self, time: dict, signal: dict, free: dict, 
-        bounds: dict, n0: int, staged: bool, **kwargs
-    ):
-        self._estimate_parameters(time, signal, n0)
+            self, time: dict, signal: dict, free: dict, 
+            bounds: dict, n0: int, **kwargs
+        ):
+        p = self._pars
+
+        # Estimate BAT 
+        bat = estimate_bat(time[0], signal[0], n0)
+        p['BAT'] = max(bat - p['Thl'], 0)
+
+        # Estimate baseline
+        for i, roi in enumerate(['a', 'pv', 'l']):
+            p[f"Sb_{roi}"] = signal[i][..., :n0]
+
+        # Perform training
         free = self._set_free_pars(free, bounds) 
-
-        # Extra conditions for SSI sequence
-        if self._cnfg['sequence'] == '3D-SPGR-SSI' and 'S0_a' not in free:
-            raise ValueError("For SSI sequence, 'S0_a' must be a free parameter.")
-        
-        if staged:
-            # Optimize Aorta parameters
-            free_aorta = {k: v for k, v in free.items() if k in self._params('free_aorta')}
-            train(self._predict_aorta, time[0], signal[0], self._pars, free_aorta, **kwargs)
-
-            # Optimize Portal parameters
-            free_portal = {k: v for k, v in free.items() if k in self._params('free_portal')}
-            train(self._predict_portal, time[1], signal[1], self._pars, free_portal, **kwargs)
-
-            # Optimize Liver parameters
-            free_liver = {k: v for k, v in free.items() if k in self._params('free_liver')}
-            train(self._predict_liver, time[2], signal[2], self._pars, free_liver, **kwargs)
-
-        # Joint Optimization
         return train(self._predict, time, signal, self._pars, free, **kwargs)
 
 
@@ -367,13 +280,11 @@ class AortaPortalLiver(SuperModel):
         self, time: dict, signal: dict, xlim: list, fname: str, 
         show: bool,
     ):
+        self._compute_signal()
+        t = self._time()
         p = self._pars
-        p['tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time))
-        self._compute_signal_aorta()
-        self._compute_signal_portal()
-        self._compute_signal_liver()
 
-        if xlim is None: xlim = [self._t[0], self._t[-1]]
+        if xlim is None: xlim = [t[0], t[-1]]
         xlim = np.array(xlim)/60
         
         fig, axes = plt.subplots(3, 2, figsize=(10, 8))
@@ -381,33 +292,38 @@ class AortaPortalLiver(SuperModel):
         ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = axes
         
         # Plot signals
-        def plot_data(sig, t, s, ax, clr):
+        def plot_data(sig, ts, s, ax, clr):
             ax.set(xlabel='Time (min)', ylabel='MR Signal (a.u.)', xlim=xlim)
-            ax.plot(t / 60, s, marker='o', color=clr[0], label='data', linestyle='None')
-            ax.plot(self._t / 60, sig, linestyle='-', color=clr[1], linewidth=3.0, label='fit')
+            if s.ndim==1:
+                ax.plot(ts / 60, s, marker='o', color=clr[0], label='Data', linestyle='None')
+                ax.plot(t / 60, sig, linestyle='-', color=clr[1], linewidth=3.0, label='Prediction')
+            else:
+                for i in range(s.shape[0]):
+                    ax.plot(ts / 60, s[i,:], marker='o', color=clr[0], label='Data', linestyle='None')
+                    ax.plot(t / 60, sig[i,:], linestyle='-', color=clr[1], linewidth=3.0, label='Prediction')
             ax.legend()
 
-        plot_data(self._Sa, time[0], signal[0], ax1, ['lightcoral', 'darkred'])
-        plot_data(self._Sv, time[1], signal[1], ax3, ['orchid', 'purple'])
-        plot_data(self._Sl, time[2], signal[2], ax5, ['cornflowerblue', 'darkblue'])
+        plot_data(self._S['a'], time[0], signal[0], ax1, ['lightcoral', 'darkred'])
+        plot_data(self._S['pv'], time[1], signal[1], ax3, ['orchid', 'purple'])
+        plot_data(self._S['l'], time[2], signal[2], ax5, ['cornflowerblue', 'darkblue'])
         
         # Plot concentrations
         ax2.set(ylabel='Concentration (mM)', xlim=xlim)
-        ax2.plot(self._t/60, 0*self._t, color='gray')
-        ax2.plot(self._t/60, 1000*self._ca, linestyle='-', color='darkred', linewidth=2.0, label='Aorta')
+        ax2.plot(t / 60, 0 * t, color='gray')
+        ax2.plot(t / 60, 1000 * self._C['a'], linestyle='-', color='darkred', linewidth=2.0, label='Aorta')
         ax2.legend()
 
         ax4.set(ylabel='Concentration (mM)', xlim=xlim)
-        ax4.plot(self._t/60, 0*self._t, color='gray')
-        ax4.plot(self._t/60, 1000*self._cv, linestyle='-', color='purple', linewidth=2.0, label='Portal vein')
+        ax4.plot(t / 60, 0 * t, color='gray')
+        ax4.plot(t / 60, 1000 * self._C['pv'], linestyle='-', color='purple', linewidth=2.0, label='Portal vein')
         ax4.legend()
 
         ax6.set(xlabel='Time (min)', ylabel='Tissue concentration (mM)', xlim=xlim)
-        ax6.plot(self._t/60, 0*self._t, color='gray')
-        if self._Cl.shape[0]==2:
-            ax6.plot(self._t/60, 1000*self._Cl[0, :], linestyle='-.', color='darkblue', linewidth=2.0, label='Extracellular')
-            ax6.plot(self._t/60, 1000*self._Cl[1, :], linestyle='--', color='darkblue', linewidth=2.0, label='Hepatocytes')
-            ax6.plot(self._t/60, 1000*self._Cl.sum(axis=0), linestyle='-', color='darkblue', linewidth=2.0, label='Liver')
+        ax6.plot(t / 60, 0 * t, color='gray')
+        if self._C['l'].shape[0]==2:
+            ax6.plot(t / 60, 1000 * self._C['l'][0, :], linestyle='-.', color='darkblue', linewidth=2.0, label='Extracellular')
+            ax6.plot(t / 60, 1000 * self._C['l'][1, :], linestyle='--', color='darkblue', linewidth=2.0, label='Hepatocytes')
+            ax6.plot(t / 60, 1000 * self._C['l'].sum(axis=0), linestyle='-', color='darkblue', linewidth=2.0, label='Liver')
         # else:
         #     ax6.plot(self._t/60, 1000*self._Cl, linestyle='-', color='darkblue', linewidth=2.0, label='Liver')
         ax6.legend()
@@ -418,10 +334,12 @@ class AortaPortalLiver(SuperModel):
 
 
     # ==========================================
-    # Public API: dict Extraction
+    # User Interface
     # ==========================================
 
-    
+    def params(self, select=None) -> list:
+        """Return a list of model parameters"""
+        return self._params(select)
 
     def time(self) -> dict:
         """Internal time array
@@ -429,11 +347,11 @@ class AortaPortalLiver(SuperModel):
         Returns:
             tuple: (aorta_time, portal_time, liver_time).
         """
-        self._set_time()
+        t = self._time()
         return {
-            'aorta': self._t, 
-            'portal': self._t, 
-            'liver': self._t,
+            'aorta': t, 
+            'portal': t, 
+            'liver': t,
         }
 
     def conc(self) -> dict:
@@ -442,13 +360,11 @@ class AortaPortalLiver(SuperModel):
         Returns:
             tuple: (aorta_conc, portal_conc, liver_conc).
         """
-        self._compute_conc_aorta()
-        self._compute_conc_portal()
-        self._compute_conc_liver()
+        self._compute_conc()
         return {
-            'aorta': self._ca, 
-            'portal': self._cv, 
-            'liver': self._Cl,
+            'aorta': self._C['a'], 
+            'portal': self._C['pv'], 
+            'liver': self._C['l'],
         }
 
     def relax(self) -> dict:
@@ -457,20 +373,12 @@ class AortaPortalLiver(SuperModel):
         Returns:
             tuple: (R1_aorta, R1_portal, R1_liver).
         """
-        self._compute_relax_aorta()
-        self._compute_relax_portal()
-        self._compute_relax_liver()
-        R1 = {
-            'aorta': self._R1a, 
-            'portal': self._R1v, 
-            'liver': self._R1l,
+        self._compute_relax()
+        return {
+            'aorta': self._R['a'], 
+            'portal': self._R['pv'], 
+            'liver': self._R['l'],
         }
-        R2s = {
-            'aorta': self._R2sa, 
-            'portal': self._R2sv, 
-            'liver': self._R2sl,
-        }
-        return R1, R2s
     
     def signal(self) -> dict:
         """Return signals in aorta and liver.
@@ -478,13 +386,11 @@ class AortaPortalLiver(SuperModel):
         Returns:
             tuple: signals for (aorta, portal, liver)
         """
-        self._compute_signal_aorta()
-        self._compute_signal_portal()
-        self._compute_signal_liver()
+        self._compute_signal()
         return {
-            'aorta': self._Sa, 
-            'portal': self._Sv, 
-            'liver': self._Sl,
+            'aorta': self._S['a'], 
+            'portal': self._S['pv'], 
+            'liver': self._S['l'], 
         }
 
     def predict(self, time: dict) -> dict:
@@ -502,8 +408,11 @@ class AortaPortalLiver(SuperModel):
                 time['portal'],
                 time['liver'], 
             )
-        else:
+        elif isinstance(time, np.ndarray):
             time = tuple(3 * [time])
+
+        p = self._pars
+        p['tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time))
 
         signal = self._predict(time)
 
@@ -515,7 +424,7 @@ class AortaPortalLiver(SuperModel):
     
     def train(
         self, time: dict, signal: dict, free: dict = None, 
-        bounds: dict = None, n0=1, staged=False, **kwargs
+        bounds: dict = None, n0=10, **kwargs
     ) -> tuple:
         """Train the free parameters against provided data.
 
@@ -524,8 +433,7 @@ class AortaPortalLiver(SuperModel):
             signal (tuple): (signal_aorta, signal_portal, signal_liver) arrays.
             free (dict, optional): Free parameters and their bounds.
             bounds (dict, optional): Override default bounds for specific params.
-            n0 (int, optional): Baseline points for S0 estimation. Defaults to 1.
-            staged (bool, optional): If True, the training is performed in stages
+            n0 (int, optional): Baseline points for S0 estimation. Defaults to 10.
             **kwargs: Passed to scipy.optimize.curve_fit via utils.train.
 
         Returns:
@@ -538,14 +446,17 @@ class AortaPortalLiver(SuperModel):
                 time['portal'],  
                 time['liver'], 
             )
-        else:
+        elif isinstance(time, np.ndarray):
             time = tuple(3 * [time])
-        signal = (
-            signal['aorta'], 
-            signal['portal'], 
-            signal['liver'], 
-        )
-        return self._train(time, signal, free, bounds, n0, staged, **kwargs)
+        if isinstance(signal, dict):
+            signal = (
+                signal['aorta'], 
+                signal['portal'], 
+                signal['liver'], 
+            )
+        p = self._pars
+        p['tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time))
+        return self._train(time, signal, free, bounds, n0, **kwargs)
 
     def plot(
         self, time: dict, signal: dict, xlim: list = None, 
@@ -574,13 +485,16 @@ class AortaPortalLiver(SuperModel):
                 time['portal'],  
                 time['liver'], 
             )
-        else:
+        elif isinstance(time, np.ndarray):
             time = tuple(3 * [time])
-        signal = (
-            signal['aorta'], 
-            signal['portal'], 
-            signal['liver'], 
-        )
+        if isinstance(signal, dict):
+            signal = (
+                signal['aorta'], 
+                signal['portal'], 
+                signal['liver'], 
+            )
+        p = self._pars
+        p['tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time))
         self._plot(time, signal, xlim, fname, show)
 
     def cost(self, time: dict, signal: dict, metric: str = 'NRMS', nfree=None) -> float:
@@ -611,13 +525,17 @@ class AortaPortalLiver(SuperModel):
                 time['portal'], 
                 time['liver'], 
             )
-        else:
+        elif isinstance(time, np.ndarray):
             time = tuple(3 * [time])
-        signal = np.concatenate((
-            signal['aorta'], 
-            signal['portal'], 
-            signal['liver'], 
-        ))
+        if isinstance(signal, dict):
+            signal = (
+                signal['aorta'], 
+                signal['portal'], 
+                signal['liver'], 
+            )
+        p = self._pars
+        p['tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time))
+        signal = np.concatenate(signal)
         signal_pred = np.concatenate(self._predict(time))
         cost = loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
         return cost[0]

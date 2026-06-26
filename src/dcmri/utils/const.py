@@ -13,6 +13,51 @@ AGENTS = [
     'gadopiclenol',
 ]
 
+# -----------------------------------------------------------------------------
+# Global Relaxivity Databases (Hz/mM)
+# -----------------------------------------------------------------------------
+
+_R1_RELAXIVITY = {
+    'plasma': {
+        'gadopiclenol': {1.5: 12.8, 3.0: 11.6},
+        'gadopentetate': {0.47: 3.8, 1.5: 4.1, 3.0: 3.7, 4.7: 3.8}, # Magnevist
+        'gadobutrol': {0.47: 6.1, 1.5: 5.2, 3.0: 5.0, 4.7: 4.7}, # Gadovist
+        'gadoteridol': {0.47: 4.8, 1.5: 4.1, 3.0: 3.7, 4.7: 3.7}, # Prohance
+        'gadobenade': {0.47: 9.2, 1.5: 6.3, 3.0: 5.5, 4.7: 5.2}, # Multihance
+        'gadoterate': {0.47: 4.3, 1.5: 3.6, 3.0: 3.5, 4.7: 3.3}, # Dotarem
+        'gadodiamide': {0.47: 4.4, 1.0: 4.35, 1.5: 4.3, 3.0: 4.0, 4.7: 3.9}, # Omniscan
+        'mangafodipir': {0.47: 3.6, 1.5: 3.6, 3.0: 2.7, 4.7: 2.2}, # Teslascan
+        'gadoversetamide': {0.47: 5.7, 1.5: 4.7, 3.0: 4.5, 4.7: 4.4}, # Optimark
+        'ferucarbotran': {0.47: 15.0, 1.5: 7.4, 3.0: 3.3, 4.7: 1.7},  # Resovist
+        'ferumoxide': {1.5: 4.5, 3.0: 2.7, 4.7: 1.2}, # Feridex
+        'gadoxetate': {0.47: 8.7, 1.5: 8.1, 3.0: 6.4, 4.7: 6.4, 7.0: 6.2, 9.0: 6.1}, # Primovist
+    }
+}
+
+# Deep-copy plasma parameters over for hepatocytes as base configuration
+_R1_RELAXIVITY['hepatocytes'] = copy.deepcopy(_R1_RELAXIVITY['plasma'])
+_R1_RELAXIVITY['hepatocytes']['gadoxetate'] = {
+    1.5: 14.6, 3.0: 9.8, 4.7: 7.6, 7.0: 6.0, 9.0: 6.1
+}
+
+# Known literature value mapping for pure r2 (spin-echo / CPMG sequence data).
+# Missing entries are entirely omitted to leave out unknown combinations.
+_R2_RELAXIVITY = {
+    'plasma': {
+        'gadopiclenol': {1.5: 13.2, 3.0: 15.4},
+        'gadopentetate': {0.47: 4.6, 1.5: 4.6, 3.0: 4.8, 4.7: 5.0},
+        'gadobutrol': {0.47: 7.3, 1.5: 6.1, 3.0: 7.4, 4.7: 6.1},
+        'gadoteridol': {0.47: 5.6, 1.5: 5.0, 3.0: 4.9, 4.7: 5.1},
+        'gadobenade': {0.47: 10.9, 1.5: 8.4, 3.0: 8.1, 4.7: 8.3},
+        'gadoterate': {0.47: 5.1, 1.5: 4.4, 3.0: 4.7, 4.7: 4.5},
+        'gadodiamide': {0.47: 5.2, 1.5: 5.1, 3.0: 5.0, 4.7: 5.2},
+        'mangafodipir': {0.47: 4.2, 1.5: 4.4, 3.0: 3.6, 4.7: 3.1},
+        'gadoversetamide': {0.47: 6.8, 1.5: 5.9, 3.0: 6.0, 4.7: 6.2},
+        'gadoxetate': {0.47: 10.8, 1.5: 10.1, 3.0: 8.8, 4.7: 9.1},
+    }
+}
+_R2_RELAXIVITY['hepatocytes'] = copy.deepcopy(_R2_RELAXIVITY['plasma'])
+
 
 def ca_conc(agent: str) -> float:
     """Contrast agent concentration
@@ -117,20 +162,18 @@ def ca_std_dose(agent: str) -> float:
         f"Possible values are {AGENTS}."
     )
 
-def r2s(field_strength=3.0, tissue='blood', agent='gadoxetate') -> float:
-    """R2*-relaxivity"""
-    # TODO: Look up literature values
-    r2s = {
-        'blood': 10e3, # Estimated from the range [0, 5mM] in data by van Osch MJ, Vonken EJ, Viergever MA, van der Grond J, Bakker CJ. Measuring the arterial input function with gradient echo sequences. Magn Reson Med 2003;49:1067–1076
-        'tissue': 20e3,
-    }
-    if tissue not in r2s:
-        raise ValueError(f"Currently only r2* values in {r2s.keys()} are available.")
-    return r2s[tissue] 
 
+
+def relaxivity(field_strength=3.0, tissue='plasma', agent='gadoxetate') -> dict:
+    """Contrast agent relaxivity values in units of Hz/M"""
+    return {
+        'r1': r1(field_strength, tissue, agent),
+        'r2': r2(field_strength, tissue, agent),
+        'r2s': r2s(field_strength, tissue, agent),
+    }
 
 def r1(field_strength=3.0, tissue='plasma', agent='gadoxetate') -> float:
-    """Contrast agent relaxivity values in units of Hz/M
+    """Longitudinal contrast agent relaxivity values in units of Hz/M
 
     Args:
         field_strength (float, optional): Field strength in Tesla. Defaults to 3.0.
@@ -184,101 +227,93 @@ def r1(field_strength=3.0, tissue='plasma', agent='gadoxetate') -> float:
         >>> print('The plasma relaxivity of gadobutrol at 3T is', 1e-3*dc.relaxivity(3.0, 'plasma', 'gadobutrol'), 'Hz/mM')
         The plasma relaxivity of gadobutrol at 3T is 5.0 Hz/mM
     """
-    # Blood and plasma have (theoretically) the same relaxivity
-    type = 'T1'
     if tissue == 'blood':
         tissue = 'plasma'
-    rel = {}
-    rel['T1'] = {
-        'plasma': {
-            'gadopiclenol': {
-                1.5: 12.8,
-                3.0: 11.6,
-            },
-            'gadopentetate': {  # Magnevist
-                0.47: 3.8,
-                1.5: 4.1,
-                3.0: 3.7,
-                4.7: 3.8,
-            },
-            'gadobutrol': {  # Gadovist
-                0.47: 6.1,
-                1.5: 5.2,
-                3.0: 5.0,
-                4.7: 4.7,
-            },
-            'gadoteridol': {  # Prohance
-                0.47: 4.8,
-                1.5: 4.1,
-                3.0: 3.7,
-                4.7: 3.7,
-            },
-            'gadobenade': {  # Multihance
-                0.47: 9.2,
-                1.5: 6.3,
-                3.0: 5.5,
-                4.7: 5.2,
-            },
-            'gadoterate': {  # Dotarem
-                0.47: 4.3,
-                1.5: 3.6,
-                3.0: 3.5,
-                4.7: 3.3,
-            },
-            'gadodiamide': {  # Omniscan
-                0.47: 4.4,
-                1.0: 4.35,  # Interpolated
-                1.5: 4.3,
-                3.0: 4.0,
-                4.7: 3.9,
-            },
-            'mangafodipir': {  # Teslascan
-                0.47: 3.6,
-                1.5: 3.6,
-                3.0: 2.7,
-                4.7: 2.2,
-            },
-            'gadoversetamide': {  # Optimark
-                0.47: 5.7,
-                1.5: 4.7,
-                3.0: 4.5,
-                4.7: 4.4,
-            },
-            'ferucarbotran': {  # Resovist
-                0.47: 15,
-                1.5: 7.4,
-                3.0: 3.3,
-                4.7: 1.7,
-            },
-            'ferumoxide': {  # Feridex
-                1.5: 4.5,
-                3.0: 2.7,
-                4.7: 1.2,
-            },
-            'gadoxetate': {  # Primovist
-                0.47: 8.7,
-                1.5: 8.1,
-                3.0: 6.4,
-                4.7: 6.4,
-                7.0: 6.2,
-                9.0: 6.1
-            },
-        },
-    }
-    rel['T1']['hepatocytes'] = copy.deepcopy(rel['T1']['plasma'])
-    rel['T1']['hepatocytes']['gadoxetate'] = {
-        1.5: 14.6,
-        3.0: 9.8,
-        4.7: 7.6,
-        7.0: 6.0,
-        9.0: 6.1,
-    }
+        
     try:
-        return 1000 * rel[type][tissue][agent][field_strength]
+        # Values in dictionary are stored in Hz/mM; convert to Hz/M (multiply by 1000)
+        return 1000.0 * _R1_RELAXIVITY[tissue][agent][field_strength]
     except KeyError:
-        msg = 'No relaxivity data for ' + agent + \
-            ' at ' + str(field_strength) + ' T.'
-        raise ValueError(msg)
+        raise ValueError(
+            f"No r1 relaxivity data available for {agent} in {tissue} at {field_strength} T."
+        )
+    
+
+def r2(field_strength=3.0, tissue='plasma', agent='gadoxetate') -> float:
+    """Transverse contrast agent relaxivity values in units of Hz/M
+
+    Args:
+        field_strength (float, optional): Field strength in Tesla. Defaults to 3.0.
+        tissue (str, optional): Tissue type - options are 'plasma', 'hepatocytes'. Defaults to 'plasma'.
+        agent (str, optional): Generic contrast agent name, all lower case. Examples are 'gadobutrol', 'gadobenate', etc.. Defaults to 'gadoxetate'.
+
+    Returns:
+        float: relaxivity in Hz/M or 1/(sec*M)
+
+    Note:
+
+        This library is in construction and not all known values are currently available through this function.
+
+        Available contrasts:
+            - T1
+
+        Available tissues:
+            - blood
+            - plasma
+            - hepatocytes
+
+        Available agents:
+            - gadopentetate
+            - gadobutrol
+            - gadoteridol
+            - gadobenade
+            - gadoterate
+            - gadodiamide
+            - mangafodipir
+            - gadoversetamide
+            - ferucarbotran
+            - ferumoxide
+            - gadoxetate
+            - gadopiclenol
+
+        Available field strengths:
+            - 0.47
+            - 1.5
+            - 3
+            - 4.7
+            - 7.0 (gadoxetate)
+            - 9.0 (gadoxetate)
+
+        Sources:
+            - Rohrer M, et al. Comparison of Magnetic Properties of MRI Contrast Media Solutions at Different Magnetic Field Strengths. Investigative Radiology 40(11):p 715-724, November 2005. DOI: `10.1097/01.rli.0000184756.66360.d3 <https://journals.lww.com/investigativeradiology/FullText/2005/11000/Comparison_of_Magnetic_Properties_of_MRI_Contrast.5.aspx>`_
+            - Szomolanyi P, et al. Comparison of the Relaxivities of Macrocyclic Gadolinium-Based Contrast Agents in Human Plasma at 1.5, 3, and 7 T, and Blood at 3 T. Invest Radiol. 2019 Sep;54(9):559-564. doi: `10.1097/RLI.0000000000000577 <https://pubmed.ncbi.nlm.nih.gov/31124800/>`_
+
+    Example:
+
+        >>> import dcmri as dc
+        >>> print('The plasma relaxivity of gadobutrol at 3T is', 1e-3*dc.relaxivity(3.0, 'plasma', 'gadobutrol'), 'Hz/mM')
+        The plasma relaxivity of gadobutrol at 3T is 5.0 Hz/mM
+    """
+    if tissue == 'blood':
+        tissue = 'plasma'
+        
+    try:
+        # Values in dictionary are stored in Hz/mM; convert to Hz/M (multiply by 1000)
+        return 1000.0 * _R2_RELAXIVITY[tissue][agent][field_strength]
+    except KeyError:
+        raise ValueError(
+            f"No r1 relaxivity data available for {agent} in {tissue} at {field_strength} T."
+        )
+
+
+def r2s(field_strength=3.0, tissue='blood', agent='gadoxetate') -> float:
+    """R2*-relaxivity"""
+    if tissue=='blood':
+        # Estimated from the range [0, 5mM] in data by van Osch MJ, Vonken EJ, Viergever MA, van der Grond J, Bakker CJ. Measuring the arterial input function with gradient echo sequences. Magn Reson Med 2003;49:1067–1076
+        return 10e3
+    else:
+        # TODO: Look up literature values
+        return 20e3
 
 
 def T1(field_strength=3.0, tissue='blood', Hct=0.45) -> float:

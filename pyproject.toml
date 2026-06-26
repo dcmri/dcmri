@@ -66,6 +66,7 @@ include-package-data = true
 dev = [
     'pytest',
     'pytest-cov',
+    'pytest-accept',
     'pytest-mock',
     'pydmr',
     'autopep8',

@@ -57,14 +57,14 @@ Example:
     ...     FA=pars['FA'],
     ...     TS=pars['TS'],
     ...     CO=60, 
-    ...     R10=1/dc.const.T1(pars['B0'], 'blood'),
+    ...     R1b=1/dc.const.T1(pars['B0'], 'blood'),
     ... )
 
     Create an array of time points:
 
     >>> time = pars['TS'] * np.arange(len(rois['Aorta']))
 
-    Train the system to the data:
+    Train the system to the data:ConcAorta
 
     >>> aorta.train(time, rois['Aorta'])
 
@@ -82,16 +82,19 @@ from typing import Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 
+from dcmri.core.roi_model import SuperRoiModel
+from dcmri.core.quantities import QVALUES
+from dcmri.core.sequences import SEQUENCES
 from dcmri.utils import const
-from dcmri.kinetics.conc import ConcAorta
-from dcmri.lexicon.dicts import SEQUENCES
-from dcmri.core.model import SuperModel
-from dcmri.bloch.tissue import Signal
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
+from dcmri.inverse.lib import estimate_bat
+from dcmri.kinetics.modules_conc import ConcAorta
+from dcmri.relaxivity.tissue import Relax
+from dcmri.bloch.tissue import Signal
 
 
-class Aorta(SuperModel):
+class Aorta(SuperRoiModel):
     """Whole-body model for the aorta signal.
 
     This model uses a whole-body pharmacokinetic architecture to predict the 
@@ -104,20 +107,16 @@ class Aorta(SuperModel):
         sequence (str, optional): Imaging sequence.
         **params: override parameter defaults
     """
-
-    # ---- User interface ----
-
     configs = {
-        'heartlung': ['comp', 'pfcomp', 'chain'],
-        'organs': ['comp','2cxm'],
-        'sequence': ['ZTE-3D-SPGR-SS', '3D-SPGR-SS', '3D-SR-SPGR-SS', '3D-SPGR-SSI'],
+        'heartlung': ConcAorta.configs['heartlung'],
+        'organs': ConcAorta.configs['organs'],
+        'sequence': Signal.configs['sequence'],
     }
-
     def __init__(
         self, 
-        heartlung='pfcomp', 
-        organs='comp', 
-        sequence='3D-SPGR-SS', 
+        heartlung='pfcomp',
+        organs='comp',
+        sequence='3D-SPGR-SS',
         **params,
     ):
         cnfg = {
@@ -126,27 +125,151 @@ class Aorta(SuperModel):
             'sequence': sequence, 
         }
         self._version = '1.0'
-        self._cnfg = self._set_config(**cnfg)
-        self._pars = self._set_pars(**params)
+        self._set_config(cnfg)
+        self._set_params(QVALUES | params)
 
-    def params(self, *args) -> dict: 
-        """Model parameters and their values"""
-        pars = self._pars
-        if args == ():
-            return pars
-        for k in args:
-            if k not in pars:
-                raise ValueError(f"{k} is not a valid model parameter. Use print_params() to get a list of valid parameters.")
-        values = [pars[k] for k in args]
-        if len(args) == 1:
-            return values[0]
-        else:
-            return values
+        # Set multi-channel baseline if not done by the user
+        if sequence in ['Eq-DE-EPI', 'DE-EPI']:
+            if 'Sb_a' not in params:
+                self._pars['Sb_a'] = np.full(2, self._pars['Sb_a'])
+
+    # ==========================================
+    # Backend
+    # ==========================================
+
+    # Helper function
+    def _tissue_props(self):
+        return set(SEQUENCES[self._cnfg['sequence']]['parameters']['tissue'])
+
+    # ==========================================
+    # Model Parameters
+    # ==========================================
+
+    def _params(self, select=None):
+        props = self._tissue_props()
+        pars = []
+        if select is None:
+            # Explicit parameters
+            pars = [
+                'field_strength', 'agent', 'tmax', 'dt', 'TS',
+                'R1b_a', 'R2b_a', 'R2sb_a', 
+                'Sb_a', 'B1corr_a', 
+            ]
+            # Implicit parameters
+            pars += ConcAorta(**self._cnfg).params() 
+            pars += Relax(tissue_props=props, **self._cnfg).params()
+            pars += Signal(calibrate=True, **self._cnfg).params()
+            
+        if select == 'free':
+            pars += ConcAorta(**self._cnfg).params('free')  
+
+        derived = [
+            'c', 
+            'r1', 'r2', 'r2s', 'R1b', 'R2b', 'R2sb', 
+            'R1', 'R2', 'R2s', 'Sb', 'B1corr',
+            ]
+        pars = {p for p in pars if p not in derived}
+        return list(pars) 
+
+    # ==========================================
+    # Forward Model
+    # ==========================================
+
+    def _compute_conc(self) -> np.ndarray:
+        p = self._pars
+        self._C = ConcAorta(**self._cnfg, defaults=p)()
+
+    def _compute_relax(self):
+        self._compute_conc()
+        p = self._pars
+        props = self._tissue_props()
+        relaxivity = const.relaxivity(p['field_strength'], 'blood', p['agent'])
+        baseline_relaxation_rate = {f"{relax_rate}b": p[f"{relax_rate}b_a"] for relax_rate in props} 
+
+        inputs = self._pars | relaxivity | baseline_relaxation_rate | {'c': self._C}
+        config = self._cnfg | {'tissue_props': props}
+        self._R = Relax(defaults=inputs, **config)()
+
+    def _compute_signal(self):
+        self._compute_relax()
+        p = self._pars
+
+        inputs = self._pars | self._R | {'Sb': p['Sb_a'], 'B1corr': p['B1corr_a']}
+        config = self._cnfg | {'calibrate': True}
+        self._S = Signal(defaults=inputs, **config)()
+
+    def _time(self):
+        p = self._pars
+        return np.arange(0, p['tmax'], p['dt'])
+
+    def _predict(self, time):
+        self._compute_signal()
+        t = self._time()
+        return sample(time, t, self._S, self._pars['TS'])
+    
+    # ==========================================
+    # Inverse Model: Training
+    # ==========================================
+
+    def _train(
+        self, time: np.ndarray, signal: np.ndarray, free:dict=None,
+        bounds:dict=None, n0=1, **kwargs,
+    ):
+        # Estimate parameters
+        p = self._pars
+        bat = estimate_bat(time, signal)
+        p['BAT'] = max(bat - p['Thl'], 0)
+        p['Sb_a'] = signal[..., :n0]
+
+        # Perform training
+        free = self._set_free_pars(free, bounds) 
+        return train(self._predict, time, signal, p, free, **kwargs)
+    
+    # ==========================================
+    # Plot
+    # ==========================================
+
+    def _plot(self, time: np.ndarray, signal: np.ndarray, fname: str, show: bool):
+        self._compute_signal()
+        t = self._time()
         
+        fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 5))
+        
+        # Signal Plot
+        ax0.set_title('MRI Signal Prediction')
+        if signal.ndim==1:
+            ax0.plot(time/60, signal, marker='o', color='lightcoral', alpha=0.5, label='Data')
+            ax0.plot(t/60, self._S, linestyle='-', color='darkred', linewidth=3, label='Prediction')
+        else:
+            for i in range(signal.shape[0]):
+                ax0.plot(time/60, signal[i,:], marker='o', color='lightcoral', alpha=0.5, label='Data')
+                ax0.plot(t/60, self._S[i,:], linestyle='-', color='darkred', linewidth=3, label='Prediction')                
+        ax0.set_xlabel('Time (min)')
+        ax0.set_ylabel('Signal (a.u.)')
+        ax0.legend()
+
+        # Concentration Plot
+        ax1.set_title('Concentration Reconstruction')
+        ax1.plot(t/60, 1000*self._C, linestyle='-', color='darkred', linewidth=3, label='Reconstruction')
+        ax1.set_xlabel('Time (min)')
+        ax1.set_ylabel('Concentration (mM)')
+        ax1.legend()
+
+        if fname: plt.savefig(fname)
+        if show: plt.show()
+        else: plt.close()
+
+    # ==========================================
+    # User Interface
+    # ==========================================
+
+    def params(self, select=None) -> list:
+        """Return a list of model parameters"""
+        return self._params(select)
+
     def time(self) -> np.ndarray:
         """Internal time array"""
-        self._compute_time()
-        return self._t
+        return self._time()
 
     def conc(self) -> np.ndarray:
         """Returns the predicted aorta blood concentration."""
@@ -156,7 +279,7 @@ class Aorta(SuperModel):
     def relax(self) -> tuple:
         """Returns the predicted relaxation rates."""
         self._compute_relax()
-        return self._R1, self._R2s
+        return self._R
     
     def signal(self) -> np.ndarray:
         """Returns time points and predicted liver signal."""
@@ -170,8 +293,8 @@ class Aorta(SuperModel):
         return self._predict(time)
     
     def train(
-            self, time: tuple, signal: tuple, free: dict=None, 
-            bounds: dict=None, n0=1, **kwargs
+            self, time: np.ndarray, signal: np.ndarray, free: dict=None, 
+            bounds: dict=None, n0=10, **kwargs
         ) -> Tuple[dict, dict, np.ndarray]:
         """Train the free parameters
 
@@ -192,7 +315,6 @@ class Aorta(SuperModel):
         p['tmax'] = p['dt'] + p['TS'] + np.max(time)        
         return self._train(time, signal, free, bounds, n0, **kwargs)
     
-    
     def plot(self, time: np.ndarray, signal:np.ndarray, 
              fname:str=None, show=True):
         """Plot the model fit against data
@@ -207,8 +329,7 @@ class Aorta(SuperModel):
         p['tmax'] = p['dt'] + p['TS'] + np.max(time)
         self._plot(time, signal, fname, show)
 
-
-    def cost(self, time: dict, signal: dict, metric: str = 'NRMS', nfree=None) -> float:
+    def cost(self, time: dict, signal: dict, metric: str='NRMS', nfree=None) -> float:
         """Return the goodness-of-fit
 
         Args:
@@ -221,7 +342,6 @@ class Aorta(SuperModel):
             float: goodness of fit.
 
         Notes:
-
             Available options are: 
             
             - 'RMS': Root-mean-square.
@@ -236,122 +356,3 @@ class Aorta(SuperModel):
         signal_pred = self._predict(time)
         cost = loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
         return cost[0]
-
-
-
-    # ---- Backend ----
-
-
-
-    def _params(self, select=None):
-        # Sequence parameters
-        seq = self._cnfg['sequence']
-        sequence = SEQUENCES[seq]['parameters']['prep']
-        sequence += SEQUENCES[seq]['parameters']['read']
-        replace = {'S0': 'S0_a', 'B1corr': 'B1corr_a'}
-        sequence = [replace.get(x, x) for x in sequence]
-    
-        free_inflow = ['TF', 'S0_a'] if seq == '3D-SPGR-SSI' else []
-
-        c = ConcAorta(**self._cnfg)
-
-        if select in [None, 'all']:
-            return c._params() + sequence + ['TS', 'R10_a', 'R20s_a']
-        if select in ['free']:
-            return c._params('body') + free_inflow     
-
-    # ==========================================
-    # Forward Model
-    # ==========================================
-
-    def _compute_time(self):
-        p = self._pars
-        self._t = np.arange(0, p['tmax'], p['dt'])
-
-    def _compute_conc(self) -> np.ndarray:
-        self._C = ConcAorta(**self._cnfg)(**self._pars)
-
-    def _compute_relax(self):
-        self._compute_conc()
-        p = self._pars
-        r1 = const.r1(p['field_strength'], 'blood', p['agent'])
-        r2s = const.r2s(p['field_strength'], 'blood', p['agent'])
-        self._R1 = p['R10_a'] + r1 * self._C
-        self._R2s = p['R20s_a'] + r2s * self._C
-
-    def _compute_signal(self):
-        self._compute_relax()
-        p = self._pars
-        seq = self._cnfg['sequence']
-        self._S = Signal(seq, **p)(
-            R1=self._R1, 
-            R2s=self._R2s,
-            S0=p['S0_a'], 
-            B1corr=p['B1corr_a'],
-        )
-
-    def _predict(self, time):
-        self._compute_time()
-        self._compute_signal()
-        return sample(time, self._t, self._S, self._pars['TS'])
-    
-    # ==========================================
-    # Inverse Model: Training
-    # ==========================================
-
-    def _estimate_parameters(self, time: tuple, signal: tuple, n0: int):
-        p = self._pars
-
-        # Estimate BAT based on peak signal
-        if self._cnfg['heartlung']=='comp':
-            offset = p['Thl']
-        else:
-            offset = (1 - p['Dhl']) * p['Thl']
-        bat = time[np.argmax(signal)] - offset
-        p['BAT'] = max(bat, 0)
-
-        # Scaling Factor (S0) aorta
-        seq = self._cnfg['sequence']
-        s_ref = Signal(seq, **p)(R1=p['R10_a'], R2s=p['R20s_a'], S0=1, B1corr=p['B1corr_a'])
-        p['S0_a'] = np.mean(signal[:n0]) / s_ref if s_ref > 0 else 0
-
-
-    def _train(
-        self, time: tuple, signal: tuple, free:dict=None, 
-        bounds:dict=None, n0=1, **kwargs,
-    ):
-        self._estimate_parameters(time, signal, n0)
-        free = self._set_free_pars(free, bounds) 
-
-        # Extra conditions for SSI sequence
-        if self._cnfg['sequence'] == '3D-SPGR-SSI' and 'S0_a' not in free:
-            raise ValueError("For SSI sequence, 'S0_a' must be a free parameter.")
-        
-        # Optimization
-        return train(self._predict, time, signal, self._pars, free, **kwargs)
-
-    def _plot(self, time: np.ndarray, signal: np.ndarray, fname: str, show: bool):
-        self._compute_signal()
-        
-        fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 5))
-        
-        # Signal Plot
-        ax0.set_title('MRI Signal Prediction')
-        ax0.plot(time/60, signal, marker='o', color='lightcoral', alpha=0.5, label='Data')
-        ax0.plot(self._t/60, self._S, linestyle='-', color='darkred', linewidth=3, label='Prediction')
-        ax0.set_xlabel('Time (min)')
-        ax0.set_ylabel('Signal (a.u.)')
-        ax0.legend()
-
-        # Concentration Plot
-        ax1.set_title('Concentration Reconstruction')
-        ax1.plot(self._t/60, 1000*self._C, linestyle='-', color='darkred', linewidth=3, label='Reconstruction')
-        ax1.set_xlabel('Time (min)')
-        ax1.set_ylabel('Concentration (mM)')
-        ax1.legend()
-
-        if fname: plt.savefig(fname)
-        if show: plt.show()
-        else: plt.close()
-
-

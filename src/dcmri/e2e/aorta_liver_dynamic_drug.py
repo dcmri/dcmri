@@ -42,7 +42,7 @@ Example:
     Use `fake.tissue` to generate synthetic test data from 
     experimentally-derived concentrations:
 
-    >>> time, aif, roi, gt = dc.fake.tissue2scan(R10=1/dc.const.T1(3.0,'liver'))
+    >>> time, aif, roi, gt = dc.fake.tissue2scan(R1b=1/dc.const.T1(3.0,'liver'))
 
     Since this model generates four time curves, the x- and y-data are 
     tuples:
@@ -113,9 +113,9 @@ Example:
     ----------------------------
     Fixed and derived parameters
     ----------------------------
-    Aorta first baseline R1 (R10a): 0.614 Hz
+    Aorta first baseline R1 (R1ba): 0.614 Hz
     Aorta first signal scale factor (S0a): 100.117 a.u.
-    Liver first baseline R1 (R10l): 1.33 Hz
+    Liver first baseline R1 (R1bl): 1.33 Hz
     Liver first signal scale factor (S0l): 150.003 a.u.
     Initial hepatocellular mean transit time (Th_i): 70.022 (12.142) sec
     Final hepatocellular mean transit time (Th_f): 72.227 (8.407) sec
@@ -125,17 +125,16 @@ Example:
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri.kinetics.input import ca_injection
-from dcmri.kinetics.aorta import flux_aorta_hlol
-from dcmri.kinetics.blocks import flux_comp
+from dcmri.kinetics.functions_input import ca_injection
+from dcmri.kinetics.functions_aorta import flux_aorta
 from dcmri.utils import const
-from dcmri.lexicon.dicts import QUANTITIES
-from dcmri.lexicon.tools import export_params
+from dcmri.core.quantities import QUANTITIES
+from dcmri.core.tools import export_params
 from dcmri.bloch.tissue import Signal
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
 from dcmri.core.model import SuperModel
-from dcmri.kinetics.conc import ConcLiver
+from dcmri.kinetics.modules_conc import ConcLiver
 
 
 QUANTITIES = QUANTITIES | {
@@ -165,10 +164,10 @@ QUANTITIES = QUANTITIES | {
     'FFl': {'init': 0.25, 'bounds': [0.01, 0.99], 'name': 'Liver flow fraction', 'unit': ''},
 
     # MRI signal parameters - control visit
-    'c_R10_a': {'init': 1/const.T1(3.0, 'blood'), 'name': 'Control visit - aorta first baseline R1', 'unit': 'Hz'},
-    'c_R10_l': {'init': 1/const.T1(3.0, 'liver'), 'name': 'Control visit - liver first baseline R1', 'unit': 'Hz'},
-    'c_R20s_a': {'init': 20, 'name': 'Control visit - aorta first baseline R2*', 'unit': 'Hz'},
-    'c_R20s_l': {'init': 20, 'name': 'Control visit - liver first baseline R2*', 'unit': 'Hz'},
+    'c_R1b_a': {'init': 1/const.T1(3.0, 'blood'), 'name': 'Control visit - aorta first baseline R1', 'unit': 'Hz'},
+    'c_R1b_l': {'init': 1/const.T1(3.0, 'liver'), 'name': 'Control visit - liver first baseline R1', 'unit': 'Hz'},
+    'c_R2sb_a': {'init': 20, 'name': 'Control visit - aorta first baseline R2*', 'unit': 'Hz'},
+    'c_R2sb_l': {'init': 20, 'name': 'Control visit - liver first baseline R2*', 'unit': 'Hz'},
     'c_S0_1_a': {'init': 1, 'bounds': [0, 2], 'name': 'Control visit - aorta first signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
     'c_S0_1_l': {'init': 1, 'bounds': [0, 2], 'name': 'Control visit - liver first signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
     'c_S0_2_a': {'init': 1, 'bounds': [0, 2], 'name': 'Control visit - aorta second signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
@@ -179,10 +178,10 @@ QUANTITIES = QUANTITIES | {
     'c_Si_2_l': {'init': 1, 'bounds': [0, 2], 'name': 'Control visit - liver second baseline signal', 'unit': 'a.u.', 'bounds_type': 'mult'},
 
     # MRI signal parameters - drug visit
-    'd_R10_a': {'init': 1/const.T1(3.0, 'blood'), 'name': 'Drug visit - aorta first baseline R1', 'unit': 'Hz'},
-    'd_R10_l': {'init': 1/const.T1(3.0, 'liver'), 'name': 'Drug visit - liver first baseline R1', 'unit': 'Hz'},
-    'd_R20s_a': {'init': 20, 'name': 'Drug visit - aorta first baseline R2*', 'unit': 'Hz'},
-    'd_R20s_l': {'init': 20, 'name': 'Drug visit - liver first baseline R2*', 'unit': 'Hz'},
+    'd_R1b_a': {'init': 1/const.T1(3.0, 'blood'), 'name': 'Drug visit - aorta first baseline R1', 'unit': 'Hz'},
+    'd_R1b_l': {'init': 1/const.T1(3.0, 'liver'), 'name': 'Drug visit - liver first baseline R1', 'unit': 'Hz'},
+    'd_R2sb_a': {'init': 20, 'name': 'Drug visit - aorta first baseline R2*', 'unit': 'Hz'},
+    'd_R2sb_l': {'init': 20, 'name': 'Drug visit - liver first baseline R2*', 'unit': 'Hz'},
     'd_S0_1_a': {'init': 1, 'bounds': [0, 2], 'name': 'Drug visit - aorta first signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
     'd_S0_1_l': {'init': 1, 'bounds': [0, 2], 'name': 'Drug visit - liver first signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
     'd_S0_2_a': {'init': 1, 'bounds': [0, 2], 'name': 'Drug visit - aorta second signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
@@ -380,6 +379,7 @@ def _sample_signal(time, t, S, TS) -> tuple:
     # else:
     #     return tuple([sample(ti, t, S, TS) for ti in time])
 
+CONSTANTS = {'Fw': 0, 'v': 1, 'me': 1, 'noise_sdev':0}
 
 class AortaLiverDynamicDrug(SuperModel):
     """Aorta and liver signals over two vists with two scans each.
@@ -634,9 +634,9 @@ class AortaLiverDynamicDrug(SuperModel):
                 #'c_Kbh', 'd_Kbh',  
                 # _relax_aorta
                 'field_strength', 
-                'R10_a', 'R20s_a', 
+                'R1b_a', 'R2sb_a', 
                 # _relax_liver
-                'R10_l', 'R20s_l',
+                'R1b_l', 'R2sb_l',
                 # sequence
                 'TR', 
                 'c_FA_1', 'c_FA_2', 'd_FA_1', 'd_FA_2', 
@@ -698,14 +698,18 @@ class AortaLiverDynamicDrug(SuperModel):
         Fpk = (1 - FFl) * p[f'CO'] * (1 - p['H'])
         Ek = CL / (CL + Fpk)
 
-        # Rl = FFl * (1 - El)
-        # Ro = (1 - FFl) * (1 - Ek)
+        Rl = FFl * (1 - El)
+        Ro = (1 - FFl) * (1 - Ek)
 
-        Jb = flux_aorta_hlol(
-            J, El=El, Ek=Ek, FFl=FFl, dt=p['dt'], tol=p['dose_tolerance'],
-            heartlung=['pfcomp', {'T':p[f'Thl'], 'D':p[f'Dhl']}],
-            organs=['2cxm', {'T':[p[f'To'], p[f'To_e']], 'E':p[f'Eo']}],
-            liver=['bicomp', {'T':[p[f'Tg'], Te]}],
+        Jb = flux_aorta(
+            J, dt=p['dt'], tol=p['dose_tolerance'],
+            heartlung = {'model': 'pfcomp', 'params': {'T':p[f'Thl'], 'D':p[f'Dhl']}},
+            organs = [
+                # Liver
+                {'vr': Rl, 'model': 'bicomp', 'params': {'T':[p[f'Tg'], Te]}},
+                # Other organs
+                {'vr': Ro, 'model': '2cxm', 'params': {'T':[p[f'To'], p[f'To_e']], 'E':p[f'Eo']}},
+            ]
         )
         return Jb / p[f'CO']
 
@@ -724,8 +728,8 @@ class AortaLiverDynamicDrug(SuperModel):
         Elf = p[f'{visit}_khe_f'] / (p[f'{visit}_khe_f'] + Fpl)
 
         return ConcLiver('1I-IC', 'U')(
-            cp, dt=p['dt'], 
-            T_a = 0,
+            ci=cp, dt=p['dt'], 
+            Ta = 0,
             Tg = p['Tg'],
             ve = p[f've'],
             Fp = Fpl,
@@ -737,18 +741,18 @@ class AortaLiverDynamicDrug(SuperModel):
     def _relax_aorta(self, ca, visit):
         p = self._pars
         rb = const.r1(p['field_strength'], 'blood', p['agent'])
-        R1a = p[f'R10_a'] + rb * ca
+        R1a = p[f'R1b_a'] + rb * ca
         r2s = const.r2s(p['field_strength'], 'blood', p['agent'])
-        R2sa = p[f'R20s_a'] + r2s * ca
+        R2sa = p[f'R2sb_a'] + r2s * ca
         return R1a, R2sa
 
     def _relax_liver(self, Cl, visit):
         p = self._pars
         rp = const.r1(p['field_strength'], 'plasma', p['agent'])
         rh = const.r1(p['field_strength'], 'hepatocytes', p['agent'])
-        R1l = p[f'R10_l'] + rp * Cl[0, :] + rh * Cl[1, :]
+        R1l = p[f'R1b_l'] + rp * Cl[0, :] + rh * Cl[1, :]
         r2s = const.r2s(p['field_strength'], 'tissue', p['agent'])
-        R2sl = p[f'R20s_l'] + r2s * Cl.sum(axis=0) 
+        R2sl = p[f'R2sb_l'] + r2s * Cl.sum(axis=0) 
         return R1l, R2sl
 
 
@@ -765,10 +769,10 @@ class AortaLiverDynamicDrug(SuperModel):
         def scan_signal(scan, R1_scan, R2s_scan):
             FA = p[f'{visit}_FA_{scan}']
             B1 = p[f'{visit}_B1corr_{scan}_{roi}']
-            signal = Signal(roi_seq, B1corr=B1, FA=FA, **p)
-            S_ref = signal(R1=R1_scan[0], R2s=R2s_scan[0], S0=1)
+            signal = Signal(roi_seq, defaults=p)
+            S_ref = signal(R1=R1_scan[0], R2s=R2s_scan[0], S0=1, B1corr=B1, FA=FA, **CONSTANTS)
             S0 = p[f'{visit}_Si_{scan}_{roi}'] / S_ref if S_ref > 0 else 0
-            return signal(R1=R1_scan, R2s=R2s_scan, S0=S0)
+            return signal(R1=R1_scan, R2s=R2s_scan, S0=S0, B1corr=B1, FA=FA, **CONSTANTS)
 
         # if scans==1:
         #     S = scan_signal(1, R1, R2s)

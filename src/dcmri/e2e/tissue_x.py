@@ -99,20 +99,22 @@ from copy import deepcopy
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri.lexicon.dicts import SEQUENCES, QUANTITIES
-from dcmri.lexicon.tools import string_params, init, print_params
+from dcmri.core.sequences import SEQUENCES
+from dcmri.core.quantities import QUANTITIES
+from dcmri.core.tools import string_params, init, print_params
 from dcmri.inverse.sig2conc import SignalToConc
-from dcmri.core.model import SuperModel
+from dcmri.core.pixel_model import SuperPixelModel
 from dcmri.core.types import Input
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import loss, train_batch, format_batch_training
-from dcmri.kinetics.conc import ConcTissueX
+from dcmri.kinetics.modules_conc import ConcTissueX
 from dcmri.relaxivity.tissue_x import RelaxTissueX, WaterConcTissueX, ContrastConcTissueX
 from dcmri.relaxivity.tissue import R1 as Relax1
 from dcmri.bloch.tissue_x import MzTissueX, SignalTissueX, WaterVolumesTissueX, WaterFlowsTissueX
 
+CONSTANTS = {'Fw': 0, 'v': 1, 'me': 1, 'noise_sdev':0}
 
-class TissueX(SuperModel):
+class TissueX(SuperPixelModel):
     """Vascular-interstitial tissue pixels with a known input.
 
     This is the most common tissue type as found in for instance brain,
@@ -134,6 +136,7 @@ class TissueX(SuperModel):
         'water_exchange': ['FF','RF','NF','FR','RR','NR','FN','RN','NN'],
         't2s_relaxation': ['lin', 'quad', 'leakage'],
         'sequence': deepcopy(list(SEQUENCES.keys())),
+        'inflow': [False, True],
     }
 
 
@@ -148,6 +151,7 @@ class TissueX(SuperModel):
         water_exchange='FF', 
         t2s_relaxation='lin',
         sequence='3D-SPGR-SS',
+        inflow=False,
         shape=None, 
         **params
     ):
@@ -169,6 +173,7 @@ class TissueX(SuperModel):
             # 't1_relaxation': 'lin',
             #'tissue_props': set(SEQUENCES[sequence]['parameters']['tissue']),
             'sequence': sequence,  
+            'inflow': inflow,
         }
         self._cnfg = self._set_config(**cnfg)
         self._pars = self._set_pars(**params)
@@ -448,14 +453,13 @@ class TissueX(SuperModel):
         p = self._pars
 
         if aif is not None:
-            seq = self._cnfg['sequence']
             input = Input(aif)
-            ca = SignalToConc(seq, **p)(
-                input.signal, S0=None, R10=input.R10, n0=n0, 
+            ca = SignalToConc(**self._cnfg, defaults=p)(
+                input.signal, R1b=input.R1b, n0=n0, 
                 B1corr=input.B1corr, r1=p['r1']
             )
             t = np.arange(0, np.amax(time) + p['dt'], p['dt'])
-            p['c_a'] = np.interp(t, input.time, ca)
+            p['ca'] = np.interp(t, input.time, ca)
 
         if self._shape[1] == 1:
             pixels_shape = signal.shape[:-1]
@@ -555,7 +559,7 @@ class TissueX(SuperModel):
     @property
     def _shape(self):
         n_pixels = 1 if self._pixels_shape==() else np.prod(self._pixels_shape)
-        n_times = self._pars['c_a'].size
+        n_times = self._pars['ca'].size
         if self._cnfg['sequence'] in ['Eq-DE-EPI', 'DE-EPI']:
             n_channels = 2
         else:
@@ -567,38 +571,42 @@ class TissueX(SuperModel):
             select = 'all'
         cnfg = self._cnfg
 
+        derived = ['R1', 'R1a', 'R2', 'R2s']
+
         if select == 'all':
-            p = ['c_a', 'dt', 'TS']
-            #if 'R1' in self._cnfg['tissue_props']:
-            if 'R1' in set(SEQUENCES[self._cnfg['sequence']]['parameters']['tissue']):
-                p += ['R10_a']
-            p += ConcTissueX(**cnfg)._params()
-            p += RelaxTissueX(**cnfg)._params()
-            p += SignalTissueX(**cnfg)._params()
-            return list(set(p))
+            pars = ['ca', 'dt', 'TS']
+            pars += ConcTissueX(**cnfg).params()
+            pars += RelaxTissueX(**cnfg).params()
+            pars += SignalTissueX(**cnfg).params()
+            if self._cnfg['inflow']:
+                pars += ['R1b_a']
+            pars = {p for p in pars if p not in derived}
+            return list(pars)
         
         elif select == 'pixel': # pixel-based parameters
             pars = (
-                ConcTissueX(**cnfg)._params()
-                + WaterConcTissueX(**cnfg)._params()
-                + ContrastConcTissueX(**cnfg)._params()
-                + WaterVolumesTissueX(**cnfg)._params()
-                + WaterFlowsTissueX(**cnfg)._params()
-                + ['R10', 'R20', 'R20s', 'r2s', 'r2s_quad', 'r2s_vasc', 'r2s_ees']
+                ConcTissueX(**cnfg).params()
+                + WaterConcTissueX(**cnfg).params()
+                + ContrastConcTissueX(**cnfg).params()
+                + WaterVolumesTissueX(**cnfg).params()
+                + WaterFlowsTissueX(**cnfg).params()
+                + ['R1b', 'R2b', 'R2sb', 'r2s', 'r2s_quad', 'r2s_vasc', 'r2s_ees']
                 + ['S0', 'B1corr', 'noise_sdev']
             )
-            return [p for p in list(set(pars)) if p != 'H' and p in self._params()]
+            pars = {p for p in pars if p not in derived}
+            return [p for p in pars if p != 'H' and p in self._params()]
         
         elif select == 'free': # default free parameters (subset of ppixel)
             pars = (
-                ConcTissueX(**cnfg)._params()
-                + WaterConcTissueX(**cnfg)._params()
-                + ContrastConcTissueX(**cnfg)._params()
-                + WaterVolumesTissueX(**cnfg)._params()
-                + WaterFlowsTissueX(**cnfg)._params()
+                ConcTissueX(**cnfg).params()
+                + WaterConcTissueX(**cnfg).params()
+                + ContrastConcTissueX(**cnfg).params()
+                + WaterVolumesTissueX(**cnfg).params()
+                + WaterFlowsTissueX(**cnfg).params()
                 + ['r2s_vasc', 'r2s_ees']
             )
-            return [p for p in list(set(pars)) if p not in ['H', 'T_a'] and p in self._params()]
+            pars = {p for p in pars if p not in derived}
+            return [p for p in pars if p not in ['H', 'Ta'] and p in self._params()]
 
 
     # ==========================================
@@ -606,54 +614,46 @@ class TissueX(SuperModel):
     # ==========================================   
 
     def _conc(self, x):
-        p = self._cnfg | self._pixel_pars(x)
-        C = ConcTissueX(**p)(p['c_a'])
-        c = WaterConcTissueX(**p)(C)
+        p = self._pixel_pars(x)
+        C = ConcTissueX(**self._cnfg, defaults=p)(p['ca'])
+        c = WaterConcTissueX(**self._cnfg, defaults=p)(C)
         return c
     
     def _tissue_conc(self, x):
-        p = self._cnfg | self._pixel_pars(x)
-        C = ConcTissueX(**p)(p['c_a'])
-        return C
+        p = self._pixel_pars(x)
+        return ConcTissueX(**self._cnfg, defaults=p)(p['ca'])
     
     def _relax(self, x):
-        p = self._cnfg | self._pixel_pars(x)
-        C = ConcTissueX(**p)(p['c_a'])
-        return RelaxTissueX(**p)(C)
+        p = self._pixel_pars(x)
+        C = ConcTissueX(**self._cnfg, defaults=p)(p['ca'])
+        return RelaxTissueX(**self._cnfg, defaults=p)(C)
     
     def _mz(self, x):
-        p = self._cnfg | self._pixel_pars(x)
-        C = ConcTissueX(**p)(p['c_a'])
-        R1, R2, R2s = RelaxTissueX(**p)(C)
-        R1a = None
-        if (R1 is not None) and ('R10_a' in p):
-            R1a = Relax1(**p)(p['c_a'], R10=p['R10_a'])
-        if R1 is not None:
-            Mz = MzTissueX(**p)(R1, R1a)
+        p = self._pixel_pars(x)
+        C = ConcTissueX(**self._cnfg, defaults=p)(p['ca'])
+        p['R1'], p['R2'], p['R2s'] = RelaxTissueX(**self._cnfg, defaults=p)(C)
+        if self._cnfg['inflow']:
+            p['R1a'] = Relax1(**self._cnfg, defaults=p)(p['ca'], R1b=p['R1b_a'])
 
-        # These lines are fine but not covered by tests and I don't think 
-        # the scenario exists. Commenting out for now: 
-
-        # elif R2 is not None:
-        #     Mz = np.full_like(R2, p['me'])
-        # elif R2s is not None:
-        #     Mz = np.full_like(R2s, p['me']).reshape(1, -1)
-
-        return Mz
+        # This is ugly - need a more symmetric treatment of Mz and Mxy in Bloch module
+        mz = MzTissueX(**self._cnfg, defaults=p)
+        if 'R1' in mz.params():
+            return mz()
+        else:
+            return np.full(p['R1'].shape, p['me'], dtype=float)
     
     def _signal(self, x) -> np.ndarray: # (n_channels, n_times)
-        p = self._cnfg | self._pixel_pars(x)
-        C = ConcTissueX(**p)(p['c_a']) # (ncomp, ntimes)
-        R1, R2, R2s = RelaxTissueX(**p)(C) 
-        R1a = None
-        if (R1 is not None) and ('R10_a' in p):
-            R1a = Relax1(**p)(p['c_a'], R10=p['R10_a'])
-        S = SignalTissueX(**p)(R1, R2, R2s, R1a)  # (n_channels, n_times) or (n_times,)
+        p = self._pixel_pars(x)
+        C = ConcTissueX(**self._cnfg, defaults=p)(p['ca']) # (ncomp, ntimes)
+        p['R1'], p['R2'], p['R2s'] = RelaxTissueX(**self._cnfg, defaults=p)(C) 
+        if self._cnfg['inflow']:
+            p['R1a'] = Relax1(**self._cnfg, defaults=p)(p['ca'], R1b=p['R1b_a'])
+        S = SignalTissueX(**self._cnfg, defaults=p)()  # (n_channels, n_times) or (n_times,)
         return S.reshape(-1, S.shape[-1])
     
     def _time(self):
         p = self._pars
-        return p['dt'] * np.arange(p['c_a'].size) # (n_times, )
+        return p['dt'] * np.arange(p['ca'].size) # (n_times, )
     
     def _predict(self, time, x):
         t = self._time()
@@ -689,14 +689,13 @@ class TissueX(SuperModel):
         p = self._pars
         
         def s0_pixel(x):
+            px = self._pixel_pars(x)
 
-            px = self._cnfg | self._pixel_pars(x)
-            C = ConcTissueX(**px)([0]) # Values are 0 but this get the right shape for C
-            R1, R2, R2s = RelaxTissueX(**px)(C)
-            R1a = None 
-            if (R1 is not None) and ('R10_a' in p):
-                R1a = [p['R10_a']]
-            s_ref = SignalTissueX(**px)(R1, R2, R2s, R1a, S0=1)
+            Cx = ConcTissueX(**self._cnfg, defaults=px)([0]) # Values are 0 but this gets the right shape for C
+            px['R1'], px['R2'], px['R2s'] = RelaxTissueX(**self._cnfg, defaults=px)(Cx)
+            if self._cnfg['inflow']:
+                px['R1a'] = [p['R1b_a']]
+            s_ref = SignalTissueX(**self._cnfg, defaults=px)(S0=1)
 
             s_ref = s_ref.flatten()
             s_avr = np.mean(signal[x, :, :n0], axis=-1) 
@@ -795,7 +794,7 @@ class TissueX(SuperModel):
         p = self._pars
 
         x = 0
-        v = WaterVolumesTissueX(self._cnfg['kinetics'], self._cnfg['water_exchange'])(**self._pixel_pars(x))
+        v = WaterVolumesTissueX(**self._cnfg, defaults=self._pixel_pars(x))()
 
         if xlim is None: xlim = [np.amin(t), np.amax(t)]
         xlim=np.array(xlim) / 60
@@ -828,7 +827,7 @@ class TissueX(SuperModel):
         relax_comp = plot_labels_relax(self._cnfg['kinetics'], self._cnfg['water_exchange'])
     
         ax01.set_title('Tissue concentration in indicator compartments')
-        ax01.plot(t / 60, 1000 * self._pars['c_a'], linestyle='-', linewidth=5.0, color='lightcoral', label='Arterial blood')
+        ax01.plot(t / 60, 1000 * self._pars['ca'], linestyle='-', linewidth=5.0, color='lightcoral', label='Arterial blood')
         for k, vk in enumerate(conc_comp):
             # ck = C[k, ...] / p[vk] if p[vk] > 0 else 0 * C[k, ...]
             ax01.plot(t / 60, 1000 * C[0, k, :], linestyle='-', linewidth=3.0, label=conc_label[k], color=clr[conc_label[k]])

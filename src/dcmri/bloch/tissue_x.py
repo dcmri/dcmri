@@ -125,7 +125,7 @@ compartments in the absence of water exchange between them.
 
 Args:
     ca (array-like): concentration in the blood of the arterial input.
-    R10 (float): precontrast relaxation rate. The tissue is assumed to be 
+    R1b (float): precontrast relaxation rate. The tissue is assumed to be 
     in fast exchange before injection of contrast agent.
     r1 (float): contrast agent relaxivity. 
     t (array_like, optional): the time points in sec of the input function 
@@ -176,15 +176,15 @@ Example:
 
     Define constants and model parameters: 
 
-    >>> R10, r1 = 1/dc.const.T1(), dc.const.r1()     
+    >>> R1b, r1 = 1/dc.const.T1(), dc.const.r1()     
     >>> pf = {'H':0.5, 'vb':0.05, 'vi':0.3, 'Fb':0.01, 'PS':0.005}   
     >>> pn = {'H':0.5, 'vb':0.1, 'vi':0.3, 'Fb':0.01, 'PS':0.005}
 
     Calculate tissue relaxation rates without water exchange, 
     and also in the fast exchange limit for comparison:
 
-    >>> R1f = dc.tissue.relax(ca, R10, r1, t=t, water_exchange='FF', **pf)['R1]
-    >>> R1n = dc.tissue.relax(ca, R10, r1, t=t, water_exchange='NN', **pn)['R1]
+    >>> R1f = dc.tissue.relax(ca, R1b, r1, t=t, water_exchange='FF', **pf)['R1]
+    >>> R1n = dc.tissue.relax(ca, R1b, r1, t=t, water_exchange='NN', **pn)['R1]
 
     Plot the relaxation rates in the three compartments, and compare 
     against the fast exchange result:
@@ -221,7 +221,7 @@ detail see :ref:`two-site-exchange`.
 
 Args:
     ca (array-like): concentration in the blood of the arterial input.
-    R10 (float): precontrast relaxation rate. The tissue is assumed to be 
+    R1b (float): precontrast relaxation rate. The tissue is assumed to be 
     in fast exchange before injection of contrast agent.
     r1 (float): contrast agent relaxivity. 
     t (array_like, optional): the time points in sec of the input function 
@@ -243,7 +243,7 @@ Args:
     outflow of magnetization is ignored. To include 
     inflow effects, **inflow** must be dictionary with the signal model 
     parameters for the arterial input. For the 'SS' signal model, 
-    required parameters are 'R10a' and 'B1corr_a'. Defaults to None.
+    required parameters are 'R1ba' and 'B1corr_a'. Defaults to None.
     params (dict): model parameters. See :ref:`Tissue-signal-parameters` 
     for more detail. Note: the tissue parameters are keyword 
     arguments for convenience, but a value is required.
@@ -279,12 +279,12 @@ Example:
 
     Define constants and model parameters: 
 
-    >>> R10, r1 = 1, 5000
+    >>> R1b, r1 = 1, 5000
     >>> seq = {'model': 'SS', 'FA':15, 'TR': 0.001, 'B1corr':1}
     >>> pars = {
     >>>     'sequence':seq, 'kinetics':'2CX', 'water_exchange':'NN', 
     >>>     'H':0.045, 'vb':0.05, 'vi':0.3, 'Fb':0.01, 'PS':0.005} 
-    >>> inflow = {'R10a': 0.7, 'B1corr_a':1}
+    >>> inflow = {'R1ba': 0.7, 'B1corr_a':1}
 
     Generate arterial blood concentrations:
 
@@ -293,8 +293,8 @@ Example:
 
     Calculate the signal with and without inflow:
 
-    >>> Mf = dc.tissue.Mz(ca, R10, r1, t=t, inflow=inflow, **pars)
-    >>> Mn = dc.tissue.Mz(ca, R10, r1, t=t, **pars)
+    >>> Mf = dc.tissue.Mz(ca, R1b, r1, t=t, inflow=inflow, **pars)
+    >>> Mn = dc.tissue.Mz(ca, R1b, r1, t=t, **pars)
 
     Compare them in a plot:
 
@@ -326,7 +326,7 @@ Notes:
         * - TP, TC
         - If **sequence** is 'SR'
         - :ref:`params-per-sequence`
-        * - R10a, B1corr_a
+        * - R1ba, B1corr_a
         - If **inflow** is not None
         - :ref:`relaxation-params`, :ref:`params-per-sequence`
 
@@ -363,24 +363,139 @@ from copy import deepcopy
 import numpy as np
 
 from dcmri.bloch.tissue import Longitudinal, Readout
-from dcmri.core.layer import LayerFunction
-from dcmri.lexicon.dicts import SEQUENCES
+from dcmri.core.function import Function
+from dcmri.core.sequences import SEQUENCES
 
 
-class WaterVolumesTissueX(LayerFunction):
+class MzTissueX(Function):
+    configs = {
+        'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'],
+        'water_exchange': ['FF','RF','NF','FR','RR','NR','FN','RN','NN'],
+        'sequence': list(SEQUENCES.keys()),
+        'inflow': [False, True],
+    }
+    def __init__(
+        self, 
+        kinetics='2CX', 
+        water_exchange='FF', 
+        sequence='3D-SPGR-SS', 
+        inflow=False,
+        defaults=None,
+        **params,
+    ):
+        cnfg = {
+            'kinetics': kinetics, 
+            'water_exchange': water_exchange, 
+            'sequence': sequence,
+            'inflow': inflow,
+        }
+        self._set_config(cnfg)
+        self._set_params(defaults)
+
+    def params(self) -> dict:
+        pars = WaterVolumesTissueX(**self._cnfg).params()
+        pars += WaterFlowsTissueX(**self._cnfg).params()
+        pars += Longitudinal(**self._cnfg).params()
+
+        if 'R1' not in pars:
+            return WaterVolumesTissueX(**self._cnfg).params() + ['me']
+        
+        if self._cnfg['inflow']:
+            pars += ['R1', 'R1a', 'Fb']
+
+        derived = ['v', 'R1i', 'Fi', 'Fw']
+        pars = {p for p in pars if p not in derived}
+
+        return list(pars)
+
+    def __call__(self, **params) -> np.ndarray:
+        p = self._update_params(params)
+
+        # # Check that required parameters are provided
+        # weighting = SEQUENCES[seq]['parameters']['tissue']
+        # if 'R1' in weighting:
+        #     if 'R1' not in p:
+        #         raise ValueError("R1 must be provided for a T1*-weighted sequence.")
+
+        # Compartment volumes
+        p['v'] = WaterVolumesTissueX(**self._cnfg, defaults=p)()
+        
+        # If the sequence does not have T1-weighting, return equilibrium
+        if 'R1' not in p:
+            return np.full_like(p['v'].size, p['me'])
+
+        # Inlet flow and relaxation rates
+        if self._cnfg['inflow']:
+            p['R1i'] = np.zeros_like(p['R1'])
+            p['R1i'][0,:] = p['R1a']
+            p['Fi'] = np.zeros(p['R1'].shape[0])
+            p['Fi'][0] = p['Fb']
+
+        # Compartment flows
+        p['Fw'] = WaterFlowsTissueX(**self._cnfg, defaults=p)()
+
+        return Longitudinal(**self._cnfg, defaults=p)()
+
+
+class SignalTissueX(Function):
+    configs = {
+        'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'],
+        'water_exchange': ['FF','RF','NF','FR','RR','NR','FN','RN','NN'],
+        'sequence': list(SEQUENCES.keys()),
+        'inflow': [False, True],
+    }
+
+    def __init__(self, 
+        kinetics='2CX', 
+        water_exchange='FF', 
+        sequence='3D-SPGR-SS', 
+        inflow=False,
+        defaults=None,
+        **params,
+    ):
+        cnfg = {
+            'kinetics': kinetics, 
+            'water_exchange': water_exchange, 
+            'sequence': sequence, 
+            'inflow': inflow,
+        }
+        self._set_config(cnfg)
+        self._set_params(defaults)
+
+    def params(self):
+        pars = MzTissueX(**self._cnfg).params()
+        pars += Readout(**self._cnfg).params()
+        return list(set(pars))
+
+    def __call__(self, **params):
+        p = self._update_params(params)
+
+        if 'R1' in p:
+            Mz_arr = MzTissueX(**self._cnfg, defaults=p)()
+        elif 'R2' in p:
+            Mz_arr = np.full(np.shape(p['R2']), p['me'], dtype=float)
+        elif 'R2s' in p:
+            Mz_arr = np.full(np.shape(p['R2s']), p['me'], dtype=float).reshape(1, -1)
+        
+        # Signal
+        return Readout(**self._cnfg)(Mz_arr, **p)
+    
+
+
+class WaterVolumesTissueX(Function):
     configs = {
         'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'],
         'water_exchange': ['FF','RF','NF','FR','RR','NR','FN','RN','NN'],
     }
-    def __init__(self, kinetics='2CX', water_exchange='FF', **params):
+    def __init__(self, kinetics='2CX', water_exchange='FF', defaults=None, **params):
         cnfg = {
             'kinetics': kinetics, 
             'water_exchange': water_exchange,
         }
-        self._cnfg = self._set_config(**cnfg)
-        self._pars = self._set_pars(**params)
+        self._set_config(cnfg)
+        self._set_params(defaults)
 
-    def _params(self):
+    def params(self):
         geom = {
             ('2CX', 'FF'): [],
             ('2CU', 'FF'): [],
@@ -426,7 +541,7 @@ class WaterVolumesTissueX(LayerFunction):
         return geom[(kin, wex)] 
 
     def __call__(self, **params) -> np.ndarray:
-        p = self._update_pars(**params)
+        p = self._update_params(params)
 
         kin, wex = self._cnfg['kinetics'], self._cnfg['water_exchange']
         wex = wex.replace('N','R')
@@ -477,20 +592,20 @@ class WaterVolumesTissueX(LayerFunction):
         if (kin, wex) == ('FX', 'RR'): return np.array([p['vb'], p['vi'], p['vc']])
 
 
-class WaterFlowsTissueX(LayerFunction):
+class WaterFlowsTissueX(Function):
     configs = {
         'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'],
         'water_exchange': ['FF','RF','NF','FR','RR','NR','FN','RN','NN'],
     }
-    def __init__(self, kinetics='2CX', water_exchange='FF', **params):
+    def __init__(self, kinetics='2CX', water_exchange='FF', defaults=None, **params):
         cnfg = {
             'kinetics': kinetics, 
             'water_exchange': water_exchange,
         }
-        self._cnfg = self._set_config(**cnfg)
-        self._pars = self._set_pars(**params)
+        self._set_config(cnfg)
+        self._set_params(defaults)
 
-    def _params(self) -> dict:
+    def params(self) -> dict:
         geom = {
             ('2CX', 'FF'): ['Fb'],
             ('2CU', 'FF'): ['Fb'],
@@ -541,7 +656,7 @@ class WaterFlowsTissueX(LayerFunction):
         return p
 
     def __call__(self, **params) -> np.ndarray:
-        p = self._update_pars(**params)
+        p = self._update_params(params)
         kin, wex = self._cnfg['kinetics'], self._cnfg['water_exchange']
 
         if wex[0] == 'N':
@@ -591,99 +706,3 @@ class WaterFlowsTissueX(LayerFunction):
         if (kin, wex) == ('U', 'RR'): return np.array([[0, p['PSe'], 0], [p['PSe'], 0, p['PSc']], [0, p['PSc'], 0]])
         if (kin, wex) == ('FX', 'RR'): return np.array([[p['Fb'], p['PSe'], 0], [p['PSe'], 0, p['PSc']], [0, p['PSc'], 0]])
 
-
-
-
-class MzTissueX(LayerFunction):
-    configs = deepcopy(WaterVolumesTissueX.configs | Longitudinal.configs)
-
-    def __init__(
-        self, 
-        kinetics='2CX', 
-        water_exchange='FF', 
-        sequence='3D-SPGR-SS', 
-        **params,
-    ):
-        cnfg = {
-            'kinetics': kinetics, 
-            'water_exchange': water_exchange, 
-            'sequence': sequence,
-        }
-        self._cnfg = self._set_config(**cnfg)
-        self._pars = self._set_pars(**params)
-
-    def _params(self) -> dict:
-        kin, wex, seq = self._cnfg.values()
-
-        pars = WaterVolumesTissueX(kin, wex)._params()
-        pars += WaterFlowsTissueX(kin, wex)._params() 
-        pars += [p for p in Longitudinal(seq)._params() if p not in ['R1', 'R1i', 'Fi', 'v', 'Fw']]
-        return list(set(pars))
-
-    def __call__(self, R1=None, R1a=None, **params) -> np.ndarray:
-        p = self._update_pars(**params)
-        kin, wex, seq = self._cnfg.values()
-
-        # Check that required parameters are provided
-        weighting = SEQUENCES[seq]['parameters']['tissue']
-        if 'R1' in weighting:
-            if R1 is None:
-                raise ValueError("R1 must be provided for a T1*-weighted sequence.")
-
-        # Compartment volumes and flows
-        vw = WaterVolumesTissueX(kin, wex)(**p) 
-        Fw = WaterFlowsTissueX(kin, wex)(**p)
-
-        # If the sequence does not have T1-weighting, return equilibrium
-        if R1 is None:
-            return np.full_like(vw.size, p['me'])
-
-        # Inlet flow and relaxation rates
-        if 'Fb' in p:
-            R1i = np.zeros_like(R1)
-            R1i[0,:] = R1a
-            Fi = np.zeros(R1i.shape[0])
-            Fi[0] = p['Fb']
-        else:
-            R1i = None
-            Fi = None
-
-        return Longitudinal(seq, **p)(R1=R1, R1i=R1i, Fi=Fi, v=vw, Fw=Fw)
-
-
-class SignalTissueX(LayerFunction):
-    configs = deepcopy(MzTissueX.configs)
-
-    def __init__(self, 
-        kinetics='2CX', 
-        water_exchange='FF', 
-        sequence='3D-SPGR-SS', 
-        **params,
-    ):
-        cnfg = {
-            'kinetics': kinetics, 
-            'water_exchange': water_exchange, 
-            'sequence': sequence, 
-        }
-        self._cnfg = self._set_config(**cnfg)
-        self._pars = self._set_pars(**params)
-
-    def _params(self):
-        kin, wex, seq = self._cnfg.values()
-        p = MzTissueX(kin, wex, seq)._params()
-        p += [k for k in Readout(seq)._params() if k not in ['Mz', 'R2s', 'R2']]
-        return list(set(p))
-
-    def __call__(self, R1=None, R2=None, R2s=None, R1a=None, **params):
-        p = self._update_pars(**params)
-        kin, wex, seq = self._cnfg.values()
-
-        if R1 is not None:
-            Mz_arr = MzTissueX(kin, wex, seq, **p)(R1, R1a)
-        elif R2 is not None:
-            Mz_arr = np.full(R2.shape, p['me'], dtype=float)
-        elif R2s is not None:
-            Mz_arr = np.full(R2s.shape, p['me'], dtype=float).reshape(1, -1)
-        
-        # Signal
-        return Readout(seq, **p)(Mz=Mz_arr, R2=R2, R2s=R2s)

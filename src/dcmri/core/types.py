@@ -6,7 +6,7 @@ class Input:
 
         self.signal = None
         self.time = None
-        self.R10 = 0.7
+        self.R1b = 0.7
         self.B1corr = 1.0
 
         if 'signal' in aif:
@@ -21,8 +21,8 @@ class Input:
         else:
             raise ValueError('Either time or dt must be provided to construct an AIF.')
 
-        if 'R10' in aif:
-            self.R10 = aif['R10']
+        if 'R1b' in aif:
+            self.R1b = aif['R1b']
 
         if 'B1corr' in aif:
             self.B1corr = aif['B1corr']

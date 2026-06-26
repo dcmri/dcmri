@@ -1,14 +1,17 @@
 from tqdm import tqdm
 import numpy as np
 
+from dcmri.core.tools import init
 from dcmri.utils import const
 from dcmri.dro import phantoms
 from dcmri.utils.misc import sample, add_noise
-from dcmri.kinetics.conc import ConcTissueX, ConcLiver, ConcCortMed
-from dcmri.kinetics.blocks import flux_comp
+from dcmri.kinetics.modules_conc import ConcTissueX, ConcLiver, ConcCortMed
+from dcmri.kinetics.functions_blocks import flux_comp
 from dcmri.bloch.tissue import Signal
 from dcmri.bloch import seqs
 from dcmri.dro.aif import parker
+
+DEFAULTS = init()
 
 
 def aif(
@@ -18,7 +21,7 @@ def aif(
         field_strength=3.0,
         agent='gadodiamide',
         H=0.45,
-        R10a=1/const.T1(3.0, 'blood'),
+        R1ba=1/const.T1(3.0, 'blood'),
         S0=150,
         model='3D-SPGR-SS',
         TR=0.005,
@@ -37,7 +40,7 @@ def aif(
         field_strength (float, optional): B0 field in T. Defaults to 3.0.
         agent (str, optional): Contrast agent generic name. Defaults to 'gadodiamide'.
         H (float, optional): Hematocrit. Defaults to 0.45.
-        R10a (_type_, optional): Precontrast relaxation rate for blood in 1/sec. Defaults to 1/dc.const.T1(3.0, 'blood').
+        R1ba (_type_, optional): Precontrast relaxation rate for blood in 1/sec. Defaults to 1/dc.const.T1(3.0, 'blood').
         S0 (int, optional): Signal scaling factor in blood (arbitrary units). Defaults to 150.
         model (str, optional): Scanning sequences, either steady-state ('SS') or saturation-recovery ('SR')
         TR (float, optional): Repetition time in sec. Defaults to 0.005.
@@ -58,9 +61,9 @@ def aif(
     cp = parker(t, BAT)
     rp = const.r1(field_strength, 'plasma', agent)
     r2s = const.r1(field_strength, 'blood', agent)
-    R1b = R10a + rp*cp*(1-H)
-    R20sa = 20
-    R2sb = R20sa + r2s * cp * (1-H)
+    R1b = R1ba + rp*cp*(1-H)
+    R2sba = 20
+    R2sb = R2sba + r2s * cp * (1-H)
     R1b = R1b.reshape(1, -1)
     if model == '3D-SPGR-SS':
         Mz = seqs.Mz_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TR, FA * B1corr)
@@ -86,8 +89,8 @@ def brain(
         field_strength=3.0,
         agent='gadodiamide',
         H=0.45,
-        R10a=1/const.T1(3.0, 'blood'),
-        R20sa=20,
+        R1ba=1/const.T1(3.0, 'blood'),
+        R2sba=20,
         S0=150,
         model='3D-SPGR-SS',
         TR=0.005,
@@ -109,7 +112,7 @@ def brain(
         field_strength (float, optional): B0 field in T. Defaults to 3.0.
         agent (str, optional): Contrast agent generic name. Defaults to 'gadodiamide'.
         H (float, optional): Hematocrit. Defaults to 0.45.
-        R10a (_type_, optional): Precontrast relaxation rate for blood in 1/sec. Defaults to 1/dc.const.T1(3.0, 'blood').
+        R1ba (_type_, optional): Precontrast relaxation rate for blood in 1/sec. Defaults to 1/dc.const.T1(3.0, 'blood').
         S0 (int, optional): Signal scaling factor for tissue (arbitrary units). Defaults to 150.
         model (str, optional): Scanning sequences, either steady-state ('SS') or saturation-recovery ('SR')
         TR (float, optional): Repetition time in sec. Defaults to 0.005.
@@ -163,8 +166,8 @@ def brain(
     # Arterial signal
     rp = const.r1(field_strength, 'plasma', agent)
     r2s = const.r1(field_strength, 'blood', agent)
-    R1b = R10a + rp * cp * (1-H)
-    R2sb = R20sa + r2s * cp * (1-H)
+    R1b = R1ba + rp * cp * (1-H)
+    R2sb = R2sba + r2s * cp * (1-H)
 
     R1b = R1b.reshape(1, -1)
     if model == '3D-SPGR-SS':
@@ -206,12 +209,12 @@ def brain(
                 PS = im['PS'][i, j]
                 C = ConcTissueX('2CX')(
                     cp*(1-H), dt=dt_sim, 
-                    H=H, Fb=Fb, vb=vb, vi=vi, PS=PS
+                    H=H, Fb=Fb, vb=vb, vi=vi, PS=PS, Ta=0
                 ).sum(axis=0)
 
             # Pixel signal
             R1 = 1/im['T1'][i, j] + rp * C
-            R2s = R20sa + r2s * C
+            R2s = R2sba + r2s * C
 
             R1 = R1.reshape(1, -1)
             if model == '3D-SPGR-SS':
@@ -253,8 +256,8 @@ def tissue(
     field_strength=3.0,
     agent='gadodiamide',
     H=0.45,
-    R10a=1/const.T1(3.0, 'blood'),
-    R10=1/const.T1(3.0, 'muscle'),
+    R1ba=1/const.T1(3.0, 'blood'),
+    R1b=1/const.T1(3.0, 'muscle'),
     S0b=100,
     S0=150,
     model='3D-SPGR-SS',
@@ -277,8 +280,8 @@ def tissue(
         field_strength (float, optional): B0 field in T. Defaults to 3.0.
         agent (str, optional): Contrast agent generic name. Defaults to 'gadodiamide'.
         H (float, optional): Hematocrit. Defaults to 0.45.
-        R10a (_type_, optional): Precontrast relaxation rate for blood in 1/sec. Defaults to 1/dc.const.T1(3.0, 'blood').
-        R10 (int, optional): Precontrast relaxation rate for tissue in 1/sec. Defaults to 1.
+        R1ba (_type_, optional): Precontrast relaxation rate for blood in 1/sec. Defaults to 1/dc.const.T1(3.0, 'blood').
+        R1b (int, optional): Precontrast relaxation rate for tissue in 1/sec. Defaults to 1.
         S0b (int, optional): Signal scaling factor for blood (arbitrary units). Defaults to 100.
         S0 (int, optional): Signal scaling factor for tissue (arbitrary units). Defaults to 150.
         model (str, optional): Scanning sequences, either steady-state ('SS') or saturation-recovery ('SR')
@@ -298,20 +301,20 @@ def tissue(
     """
     t = np.arange(0, tacq+dt, dt_sim)
     cp = parker(t, BAT)
-    C = ConcTissueX('2CX')(cp*(1-H), dt=dt_sim, H=H, Fb=Fb, vb=vb, PS=PS, vi=vi)
+    C = ConcTissueX('2CX')(cp*(1-H), dt=dt_sim, H=H, Fb=Fb, vb=vb, PS=PS, vi=vi, Ta=0)
     rp = const.r1(field_strength, 'plasma', agent)
     r2s = const.r1(field_strength, 'blood', agent)
-    R1b = R10a + rp*cp*(1-H)
-    R20sa = 20
-    R2sb = R20sa + r2s * cp * (1-H)
-    R1 = R10 + rp * C.sum(axis=0)
-    R2s = R20sa + r2s * C.sum(axis=0)
+    R1b = R1ba + rp*cp*(1-H)
+    R2sba = 20
+    R2sb = R2sba + r2s * cp * (1-H)
+    R1 = R1b + rp * C.sum(axis=0)
+    R2s = R2sba + r2s * C.sum(axis=0)
     if model == '3D-SPGR-SS':
-        aif_ = Signal(model)(S0=S0b, R1=R1b, R2s=R2sb, TR=TR, FA=FA, TE=0)
-        roi = Signal(model)(S0=S0, R1=R1, R2s=R2s, TR=TR, FA=FA, TE=0)
+        aif_ = Signal(model, defaults=DEFAULTS)(S0=S0b, R1=R1b, R2s=R2sb, TR=TR, FA=FA, TE=0)
+        roi = Signal(model, defaults=DEFAULTS)(S0=S0, R1=R1, R2s=R2s, TR=TR, FA=FA, TE=0)
     elif model == '2D-SR-SPGR-SS':
-        aif_ = Signal('3D-SR-SPGR-SS')(S0=S0b, R1=R1b, R2s=R2sb, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
-        roi = Signal('2D-SR-SPGR-SS')(S0=S0b, R1=R1b, R2s=R2s, TC=TC, TR=TR, FA=FA, TE=0)
+        aif_ = Signal('3D-SR-SPGR-SS', defaults=DEFAULTS)(S0=S0b, R1=R1b, R2s=R2sb, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
+        roi = Signal('2D-SR-SPGR-SS', defaults=DEFAULTS)(S0=S0b, R1=R1b, R2s=R2s, TC=TC, TR=TR, FA=FA, TE=0)
 
     time = np.arange(0, tacq, dt)
     aif_ = sample(time, t, aif_, dt)
@@ -341,8 +344,8 @@ def liver(
     Th = 20*60,  
     field_strength = 3.0,
     agent = 'gadoxetate',
-    R10a = 1/const.T1(3.0, 'blood'),
-    R10 = 1/const.T1(3.0, 'liver'),
+    R1ba = 1/const.T1(3.0, 'blood'),
+    R1b = 1/const.T1(3.0, 'liver'),
     S0b = 100,
     S0 = 150,
     sequence = '3D-SPGR-SS',
@@ -371,9 +374,9 @@ def liver(
         field_strength (float, optional): B0 field in T. Defaults to 3.0.
         agent (str, optional): Contrast agent generic name. Defaults to 
           'gadoxetate'.
-        R10a (_type_, optional): Precontrast relaxation rate for blood in 
+        R1ba (_type_, optional): Precontrast relaxation rate for blood in 
           1/sec. Defaults to 1/dc.const.T1(3.0, 'blood').
-        R10 (int, optional): Precontrast relaxation rate for tissue in 1/sec. 
+        R1b (int, optional): Precontrast relaxation rate for tissue in 1/sec. 
           Defaults to 1.
         S0b (int, optional): Signal scaling factor for blood (arbitrary 
           units). Defaults to 100.
@@ -408,27 +411,27 @@ def liver(
     #     ci, dt=dt_sim, sum=False, kinetics='2I-IC',
     #     ve=ve, Fp=Fp, fa=fa, Ta=Ta, E=E, Th=Th)
     C = ConcLiver('2I-IC')(
-        ci, dt=dt_sim, sum=False,
+        ci=ci, dt=dt_sim, sum=False,
         ve=ve, Fp=Fp, fa=fa, Ta=Ta, E=E, Th=Th)    
     rp = const.r1(field_strength, 'plasma', agent)
     rh = const.r1(field_strength, 'hepatocytes', agent)
     r2s = const.r1(field_strength, 'blood', agent)
-    R20sa = 20
-    R1a = R10a + rp*cp*(1-H)
-    R1v = R10a + rp*cv*(1-H)
-    R1 = R10 + rp*C[0, :] + rh*C[1, :]
-    R2sa = R20sa + r2s*cp*(1-H)
-    R2sv = R20sa + r2s*cv*(1-H)
-    R2s = R20sa + r2s*C.sum(axis=0)
+    R2sba = 20
+    R1a = R1ba + rp*cp*(1-H)
+    R1v = R1ba + rp*cv*(1-H)
+    R1 = R1b + rp*C[0, :] + rh*C[1, :]
+    R2sa = R2sba + r2s*cp*(1-H)
+    R2sv = R2sba + r2s*cv*(1-H)
+    R2s = R2sba + r2s*C.sum(axis=0)
 
     if sequence == '3D-SPGR-SS':
-        aif_ = Signal(sequence)(S0=S0b, R1=R1a, R2s=R2sa, TR=TR, FA=FA, TE=0)
-        vif = Signal(sequence)(S0=S0b, R1=R1v, R2s=R2sv, TR=TR, FA=FA, TE=0)
-        roi = Signal(sequence)(S0=S0, R1=R1, R2s=R2s, TR=TR, FA=FA, TE=0)
+        aif_ = Signal(sequence, defaults=DEFAULTS)(S0=S0b, R1=R1a, R2s=R2sa, TR=TR, FA=FA, TE=0)
+        vif = Signal(sequence, defaults=DEFAULTS)(S0=S0b, R1=R1v, R2s=R2sv, TR=TR, FA=FA, TE=0)
+        roi = Signal(sequence, defaults=DEFAULTS)(S0=S0, R1=R1, R2s=R2s, TR=TR, FA=FA, TE=0)
     elif sequence == '3D-SPGR-SSI':
-        aif_ = Signal(sequence)(S0=S0b, R1=R1a, R2s=R2sa, TR=TR, FA=FA, TF=TC, TE=0)
-        vif = Signal('3D-SPGR-SS')(S0=S0b, R1=R1v, R2s=R2sv, TR=TR, FA=FA, TE=0)
-        roi = Signal('3D-SPGR-SS')(S0=S0, R1=R1, R2s=R2s, TR=TR, FA=FA, TE=0)
+        aif_ = Signal(sequence, defaults=DEFAULTS)(S0=S0b, R1=R1a, R2s=R2sa, TR=TR, FA=FA, TF=TC, TE=0)
+        vif = Signal('3D-SPGR-SS', defaults=DEFAULTS)(S0=S0b, R1=R1v, R2s=R2sv, TR=TR, FA=FA, TE=0)
+        roi = Signal('3D-SPGR-SS', defaults=DEFAULTS)(S0=S0, R1=R1, R2s=R2s, TR=TR, FA=FA, TE=0)
 
     time = np.arange(0, tacq, dt)
     aif_ = sample(time, t, aif_, dt)
@@ -441,7 +444,7 @@ def liver(
     gt = {'t': t, 'cp': cp, 'cv':cv*(1-H), 
           'C': np.sum(C,axis=0), 'cb': cp*(1-H),
           've': ve, 'Fp': Fp, 
-          'Fb': Fp/(1-H), 'fa': fa, 'T_a': Ta, 'E': E, 'Th': Th,
+          'Fb': Fp/(1-H), 'fa': fa, 'Ta': Ta, 'E': E, 'Th': Th,
           'TR': TR, 'FA': FA, 'S0': S0}
     return time, aif_, vif, roi, gt
 
@@ -458,8 +461,8 @@ def tissue2scan(
     field_strength=3.0,
     agent='gadodiamide',
     H=0.45,
-    R10a=1/const.T1(3.0, 'blood'),
-    R10=1/const.T1(3.0, 'muscle'),
+    R1ba=1/const.T1(3.0, 'blood'),
+    R1b=1/const.T1(3.0, 'muscle'),
     S0b1=100,
     S01=150,
     S0b2=200,
@@ -485,8 +488,8 @@ def tissue2scan(
         field_strength (float, optional): B0 field in T. Defaults to 3.0.
         agent (str, optional): Contrast agent generic name. Defaults to 'gadodiamide'.
         H (float, optional): Hematocrit. Defaults to 0.45.
-        R10a (_type_, optional): Precontrast relaxation rate for blood in 1/sec. Defaults to 1/dc.const.T1(3.0, 'blood').
-        R10 (int, optional): Precontrast relaxation rate for tissue in 1/sec. Defaults to 1.
+        R1ba (_type_, optional): Precontrast relaxation rate for blood in 1/sec. Defaults to 1/dc.const.T1(3.0, 'blood').
+        R1b (int, optional): Precontrast relaxation rate for tissue in 1/sec. Defaults to 1.
         S0b1 (int, optional): Signal scaling factor for blood in the first scan (arbitrary units). Defaults to 100.
         S01 (int, optional): Signal scaling factor for tissue in the first scan (arbitrary units). Defaults to 150.
         S0b2 (int, optional): Signal scaling factor for blood in the second scan (arbitrary units). Defaults to 100.
@@ -510,22 +513,22 @@ def tissue2scan(
     t = np.arange(0, 2*tacq+tbreak+dt, dt_sim)
     cp = parker(t, BAT)
     cp += parker(t, tacq+tbreak+BAT)
-    C = ConcTissueX('2CX')(cp*(1-H), dt=dt_sim, H=H, Fb=Fb, vb=vb, PS=PS, vi=vi)
+    C = ConcTissueX('2CX')(cp*(1-H), dt=dt_sim, H=H, Fb=Fb, vb=vb, PS=PS, vi=vi, Ta=0)
     rp = const.r1(field_strength, 'plasma', agent)
     r2s = const.r1(field_strength, 'blood', agent)
-    R1b = R10a + rp*cp*(1-H)
-    R1 = R10 + rp * C.sum(axis=0)
-    R20sa = 20
-    R2sb = R20sa + r2s * cp * (1-H)
-    R2s = R20sa + r2s * C.sum(axis=0)
+    R1b = R1ba + rp*cp*(1-H)
+    R1 = R1b + rp * C.sum(axis=0)
+    R2sba = 20
+    R2sb = R2sba + r2s * cp * (1-H)
+    R2s = R2sba + r2s * C.sum(axis=0)
 
     # Generate the signals from the first scan
     if model == '3D-SPGR-SS':
-        aif_ = Signal(model)(S0=S0b1, R1=R1b, R2s=R2sb, TR=TR, FA=FA, TE=0)
-        roi = Signal(model)(S0=S01, R1=R1, R2s=R2s, TR=TR, FA=FA, TE=0)
+        aif_ = Signal(model, defaults=DEFAULTS)(S0=S0b1, R1=R1b, R2s=R2sb, TR=TR, FA=FA, TE=0)
+        roi = Signal(model, defaults=DEFAULTS)(S0=S01, R1=R1, R2s=R2s, TR=TR, FA=FA, TE=0)
     elif model == '2D-SR-SPGR-SS':
-        aif_ = Signal('3D-SR-SPGR-SS')(S0=S0b1, R1=R1b, R2s=R2sb, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
-        roi = Signal('2D-SR-SPGR-SS')(S0=S01, R1=R1, R2s=R2s, TC=TC, TR=TR, FA=FA, TE=0)
+        aif_ = Signal('3D-SR-SPGR-SS', defaults=DEFAULTS)(S0=S0b1, R1=R1b, R2s=R2sb, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
+        roi = Signal('2D-SR-SPGR-SS', defaults=DEFAULTS)(S0=S01, R1=R1, R2s=R2s, TC=TC, TR=TR, FA=FA, TE=0)
     time1 = np.arange(0, tacq, dt)
     aif1 = sample(time1, t, aif_, dt)
     roi1 = sample(time1, t, roi, dt)
@@ -535,11 +538,11 @@ def tissue2scan(
 
     # Generate the second signals
     if model == '3D-SPGR-SS':
-        aif_ = Signal(model)(S0=S0b2, R1=R1b, R2s=R2sb, TR=TR, FA=FA, TE=0)
-        roi = Signal(model)(S0=S02, R1=R1, R2s=R2s, TR=TR, FA=FA, TE=0)
+        aif_ = Signal(model, defaults=DEFAULTS)(S0=S0b2, R1=R1b, R2s=R2sb, TR=TR, FA=FA, TE=0)
+        roi = Signal(model, defaults=DEFAULTS)(S0=S02, R1=R1, R2s=R2s, TR=TR, FA=FA, TE=0)
     elif model == '2D-SR-SPGR-SS':
-        aif_ = Signal('3D-SR-SPGR-SS')(S0=S0b2, R1=R1b, R2s=R2sb, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
-        roi = Signal('2D-SR-SPGR-SS')(S0=S02, R1=R1, R2s=R2s, TC=TC, TR=TR, FA=FA, TE=0)
+        aif_ = Signal('3D-SR-SPGR-SS', defaults=DEFAULTS)(S0=S0b2, R1=R1b, R2s=R2sb, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
+        roi = Signal('2D-SR-SPGR-SS', defaults=DEFAULTS)(S0=S02, R1=R1, R2s=R2s, TC=TC, TR=TR, FA=FA, TE=0)
     time2 = np.arange(tacq+tbreak, 2*tacq+tbreak, dt)
     aif2 = sample(time2, t, aif_, dt)
     roi2 = sample(time2, t, roi, dt)
@@ -574,9 +577,9 @@ def kidney(
     field_strength=3.0,
     agent='gadoterate',
     Hct=0.45,
-    R10a=1/const.T1(3.0, 'blood'),
-    R10c=1/const.T1(3.0, 'kidney'),
-    R10m=1/const.T1(3.0, 'kidney'),
+    R1ba=1/const.T1(3.0, 'blood'),
+    R1bc=1/const.T1(3.0, 'kidney'),
+    R1bm=1/const.T1(3.0, 'kidney'),
     S0b=100,
     S0=150,
     model='2D-SR-SPGR-SS',
@@ -604,9 +607,9 @@ def kidney(
         field_strength (float, optional): B0 field in T. Defaults to 3.0.
         agent (str, optional): Contrast agent generic name. Defaults to 'gadodiamide'.
         Hct (float, optional): Hematocrit. Defaults to 0.45.
-        R10a (float, optional): Precontrast relaxation rate for blood in 1/sec. Defaults to 1/dc.const.T1(3.0, 'blood').
-        R10c (float, optional): Precontrast relaxation rate for cortex in 1/sec. Defaults to 1.
-        R10m (float, optional): Precontrast relaxation rate for cortex in 1/sec. Defaults to 1.
+        R1ba (float, optional): Precontrast relaxation rate for blood in 1/sec. Defaults to 1/dc.const.T1(3.0, 'blood').
+        R1bc (float, optional): Precontrast relaxation rate for cortex in 1/sec. Defaults to 1.
+        R1bm (float, optional): Precontrast relaxation rate for cortex in 1/sec. Defaults to 1.
         S0b (float, optional): Signal scaling factor for blood (arbitrary units). Defaults to 100.
         S0 (float, optional): Signal scaling factor for tissue (arbitrary units). Defaults to 150.
         TC (float, optional): Time to readout of the k-space center in sec. Defaults to 0.2.
@@ -625,25 +628,25 @@ def kidney(
     """
     t = np.arange(0, tacq+dt, dt_sim)
     cp = parker(t, BAT)
-    Cc, Cm = ConcCortMed(kinetics='7C', Fp=Fp, Eg=Eg, fc=fc, Tglom=Tglom, Tv=Tv, Tpt=Tpt, Tlh=Tlh, Tdt=Tdt, Tcd=Tcd)(cp, dt=dt_sim)
+    Cc, Cm = ConcCortMed(kinetics='7C', defaults=DEFAULTS)(cp, dt=dt_sim, Ta=0, Fp=Fp, Eg=Eg, fc=fc, Tglom=Tglom, Tv=Tv, Tpt=Tpt, Tlh=Tlh, Tdt=Tdt, Tcd=Tcd)
     rp = const.r1(field_strength, 'plasma', agent)
     r2s = const.r1(field_strength, 'blood', agent)
-    R1b = R10a + rp*cp*(1-Hct)
-    R1c = R10c + rp*Cc.sum(axis=0)
-    R1m = R10m + rp*Cm.sum(axis=0)
-    R20sa = 20
-    R2sb = R20sa + r2s * cp * (1-Hct)
-    R2sc = R20sa + r2s * Cc.sum(axis=0)
-    R2sm = R20sa + r2s * Cm.sum(axis=0)
+    R1b = R1ba + rp*cp*(1-Hct)
+    R1c = R1bc + rp*Cc.sum(axis=0)
+    R1m = R1bm + rp*Cm.sum(axis=0)
+    R2sba = 20
+    R2sb = R2sba + r2s * cp * (1-Hct)
+    R2sc = R2sba + r2s * Cc.sum(axis=0)
+    R2sm = R2sba + r2s * Cm.sum(axis=0)
 
     if model == '3D-SPGR-SS':
-        aif_ = Signal(model)(S0=S0b, R1=R1b, R2s=R2sb, TR=TR, FA=FA, TE=0)
-        roic = Signal(model)(S0=S0, R1=R1c, R2s=R2sc, TR=TR, FA=FA, TE=0)
-        roim = Signal(model)(S0=S0, R1=R1m, R2s=R2sm, TR=TR, FA=FA, TE=0)
+        aif_ = Signal(model, defaults=DEFAULTS)(S0=S0b, R1=R1b, R2s=R2sb, TR=TR, FA=FA, TE=0)
+        roic = Signal(model, defaults=DEFAULTS)(S0=S0, R1=R1c, R2s=R2sc, TR=TR, FA=FA, TE=0)
+        roim = Signal(model, defaults=DEFAULTS)(S0=S0, R1=R1m, R2s=R2sm, TR=TR, FA=FA, TE=0)
     elif model == '2D-SR-SPGR-SS':
-        aif_ = Signal('3D-SR-SPGR-SS')(S0=S0b, R1=R1b, R2s=R2sb, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
-        roic = Signal('2D-SR-SPGR-SS')(S0=S0, R1=R1c, R2s=R2sc, TC=TC, TR=TR, FA=FA, TE=0)
-        roim = Signal('2D-SR-SPGR-SS')(S0=S0, R1=R1m, R2s=R2sm, TC=TC, TR=TR, FA=FA, TE=0)
+        aif_ = Signal('3D-SR-SPGR-SS', defaults=DEFAULTS)(S0=S0b, R1=R1b, R2s=R2sb, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
+        roic = Signal('2D-SR-SPGR-SS', defaults=DEFAULTS)(S0=S0, R1=R1c, R2s=R2sc, TC=TC, TR=TR, FA=FA, TE=0)
+        roim = Signal('2D-SR-SPGR-SS', defaults=DEFAULTS)(S0=S0, R1=R1m, R2s=R2sm, TC=TC, TR=TR, FA=FA, TE=0)
 
     time = np.arange(0, tacq, dt)
     aif_ = sample(time, t, aif_, dt)

@@ -63,8 +63,8 @@ Example:
     ...    TS=pars['TS'], 
     ...    TR=pars['TR'],
     ...    FA=pars['FA'],
-    ...    R10a=1/dc.const.T1(pars['B0'], 'blood'),
-    ...    R10=1/dc.const.T1(pars['B0'], 'kidney'),
+    ...    R1ba=1/dc.const.T1(pars['B0'], 'blood'),
+    ...    R1b=1/dc.const.T1(pars['B0'], 'kidney'),
     >>> )
 
     Train the kidney on the data:
@@ -98,12 +98,13 @@ from dcmri.inverse.sig2conc import SignalToConc
 from dcmri.utils import const
 from dcmri.core.model import SuperModel
 from dcmri.core.types import Input
-from dcmri.lexicon.dicts import SEQUENCES
-from dcmri.kinetics.conc import ConcKidney
+from dcmri.core.sequences import SEQUENCES
+from dcmri.kinetics.modules_conc import ConcKidney
 from dcmri.bloch.tissue import Signal
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
 
+CONSTANTS = {'Fw': 0, 'v': 1, 'me': 1, 'noise_sdev':0}
 
 class Kidney(SuperModel):
     """Whole-kidney signals with a known input.
@@ -184,7 +185,7 @@ class Kidney(SuperModel):
         Args:
             time (array-like): Array with time points
             signal (array-like): Array with signal values
-            aif (dict, optional): Dictionary with required key 'signal' (AIF signal) and 'R10' (baseline R1).
+            aif (dict, optional): Dictionary with required key 'signal' (AIF signal) and 'R1b' (baseline R1).
             free (dict, optional): Dictionary with free parameters and their
               bounds. If not provided, a default set of free parameters is used.
               Defaults to None.
@@ -202,12 +203,12 @@ class Kidney(SuperModel):
             p = self._pars
             seq = self._cnfg['sequence']
             rp = const.r1(p['field_strength'], 'blood', p['agent']) 
-            ca = SignalToConc(seq, **p)(
-                input.signal, S0=None, R10=input.R10, n0=n0, 
+            ca = SignalToConc(seq, defaults=p)(
+                input.signal, R1b=input.R1b, n0=n0, 
                 B1corr=input.B1corr, r1=rp,
             )
             t = np.arange(0, np.amax(time) + p['dt'], p['dt'])
-            p['c_a'] = np.interp(t, input.time, ca)
+            p['ca'] = np.interp(t, input.time, ca)
 
         return self._train(time, signal, free, bounds, n0, **kwargs)
 
@@ -259,19 +260,21 @@ class Kidney(SuperModel):
 
     
     def _params(self, select=None):
-        pars_kin = ConcKidney(self._cnfg['kinetics'])._params()
+        pars_kin = ConcKidney(**self._cnfg).params()
         seq = self._cnfg['sequence']
         pars_seq = SEQUENCES[seq]['parameters']['prep']
         pars_seq += SEQUENCES[seq]['parameters']['read']
 
         if select is None:
             pars_list = [
-                'c_a', 'dt', 'field_strength', 'agent',
-                'H', 'S0', 'R10', 'R20s', 'TS',
+                'ca', 'field_strength', 'agent',
+                'H', 'S0', 'R1b', 'R2sb', 'TS',
             ]
             pars_list += pars_kin + pars_seq
         elif select=='free':
-            pars_list = [k for k in pars_kin if k != 'T_a']
+            pars_list = [k for k in pars_kin if k != 'Ta']
+        derived = ['ci']
+        pars_list = list({p for p in pars_list if p not in derived})
         return pars_list
 
     # ==========================================
@@ -280,26 +283,26 @@ class Kidney(SuperModel):
 
     def _compute_concentration(self):
         p = self._pars
-        ca = p['c_a'] / (1 - p['H'])
-        self._C = ConcKidney(self._cnfg['kinetics'], **p)(ca, dt=p['dt'])
-        
+        p['ci'] = p['ca'] / (1 - p['H'])
+        self._C = ConcKidney(**self._cnfg)(**p)
+       
     def _compute_relaxation_rate(self):
         self._compute_concentration()
         p = self._pars
         rp = const.r1(p['field_strength'], 'blood', p['agent'])
-        self._R1 = p['R10'] + rp * self._C.sum(axis=0)
+        self._R1 = p['R1b'] + rp * self._C.sum(axis=0)
         r2s = const.r2s(p['field_strength'], 'tissue', p['agent'])
-        self._R2s = p['R20s'] + r2s * self._C.sum(axis=0)
+        self._R2s = p['R2sb'] + r2s * self._C.sum(axis=0)
 
     def _compute_signal(self):
         self._compute_relaxation_rate()
         p = self._pars
         seq = self._cnfg['sequence']
-        self._S = Signal(seq, **p)(R1=self._R1, R2s=self._R2s)
+        self._S = Signal(seq, defaults=p)(R1=self._R1, R2s=self._R2s, **CONSTANTS)
 
     def _set_time(self):
         p = self._pars
-        self._t = p['dt'] * np.arange(p['c_a'].size)
+        self._t = p['dt'] * np.arange(p['ca'].size)
 
     def _predict(self, time):
         self._set_time()
@@ -315,7 +318,7 @@ class Kidney(SuperModel):
         seq = self._cnfg['sequence']
         
         # Estimate S0
-        s_ref = Signal(seq, **p)(R1=p['R10'], R2s=p['R20s'], S0=1)
+        s_ref = Signal(seq, defaults=p)(R1=p['R1b'], R2s=p['R2sb'], S0=1, **CONSTANTS)
         p['S0'] = np.mean(signal[:n0]) / s_ref if s_ref > 0 else 0
 
     def _train(
@@ -344,7 +347,7 @@ class Kidney(SuperModel):
 
         ax1.set_title('Reconstruction of concentrations')
 
-        ax1.plot(self._t/60, 1000*self._pars['c_a'], '-', linewidth=3, color='darkred', label='Arterial Pred')
+        ax1.plot(self._t/60, 1000*self._pars['ca'], '-', linewidth=3, color='darkred', label='Arterial Pred')
         ax1.plot(self._t/60, 1000*self._C[0,:], linestyle='-', linewidth=3.0, color='darkred', label='Blood')
         ax1.plot(self._t/60, 1000*self._C[1,:], linestyle='-', linewidth=3.0, color='darkcyan', label='Tubuli')
            

@@ -1,15 +1,18 @@
 import numpy as np
 
 
-def relax_t2s(c, R20s, r2s=None, r2s_quad=None, r2s_vasc=None, r2s_ees=None, model='lin') -> np.ndarray:
-    """Transverse R2* from tissue concentrations assuming a linear 
-    relation.
+def relax_t2s(c: np.ndarray, R2sb, r2s=None, r2s_quad=None, r2s_vasc=None, r2s_ees=None, model='lin') -> np.ndarray:
+    """Transverse R2* from concentrations.
+
+    Note this requires concentrations rather than tissue concentrations, 
+    though for linear or quadratic models there is no numerical difference 
+    as the concentrations are averaged over the whole region.
 
     Args:
         c (array-like): Concentrations, either as a one-dimensionsal 
           array for one-compartment systems, or two-dimensional where the 1st 
           dimension is the number of compartments.
-        R20s (array-like or float): Precontrast R2*, either a single value for 
+        R2sb (array-like or float): Precontrast R2*, either a single value for 
           one-compartment tissues or an array with one value for each tissue 
           compartment.
         r2s (float or array-like): relaxivity, either a single value for 
@@ -24,14 +27,17 @@ def relax_t2s(c, R20s, r2s=None, r2s_quad=None, r2s_vasc=None, r2s_ees=None, mod
         np.ndarray: Array with longitudinal relaxivities, same shape as C.
     """
     if model == 'lin':
-        return R20s + r2s * c
+        return R2sb + r2s * c
     if model == 'quad':
-        return R20s + r2s * c + r2s_quad * c**2
+        return R2sb + r2s * c + r2s_quad * c**2
     if model == 'leakage':
-        return R20s + r2s_vasc * np.abs(c[0,:] - c[1,:]) + r2s_ees * c[1,:]
+        if c.ndim==1: # Equal concentrations
+            return R2sb + r2s_ees * c
+        else:
+            return R2sb + r2s_vasc * np.abs(c[0,:] - c[1,:]) + r2s_ees * c[1,:]
     
 
-def relax_t2(c, R20, r2=None, model='lin') -> np.ndarray:
+def relax_t2(c, R2b, r2=None, model='lin') -> np.ndarray:
     """Transverse R2* from tissue concentrations assuming a linear 
     relation.
 
@@ -39,7 +45,7 @@ def relax_t2(c, R20, r2=None, model='lin') -> np.ndarray:
         c (array-like): Concentrations, either as a one-dimensionsal 
           array for one-compartment systems, or two-dimensional where the 1st 
           dimension is the number of compartments.
-        R20s (array-like or float): Precontrast R2*, either a single value for 
+        R2sb (array-like or float): Precontrast R2*, either a single value for 
           one-compartment tissues or an array with one value for each tissue 
           compartment.
         r2s (float or array-like): relaxivity, either a single value for 
@@ -49,12 +55,12 @@ def relax_t2(c, R20, r2=None, model='lin') -> np.ndarray:
         np.ndarray: Array with longitudinal relaxivities, same shape as C.
     """
     if model == 'lin':
-        return R20 + r2 * c
+        return relax_t1(c, R2b, r2)
     
     raise ValueError(f'Model {model} not recognized. Must be "lin".')
 
 
-def relax_t1(c, R10, r1) -> np.ndarray:
+def relax_t1(c, R1b, r1) -> np.ndarray:
     """Derive longitudinal R1 from tissue concentrations assuming a linear 
     relation.
 
@@ -62,7 +68,7 @@ def relax_t1(c, R10, r1) -> np.ndarray:
         c (array-like): Concentrations, either as a one-dimensionsal 
           array for one-compartment systems, or two-dimensional where the 1st 
           dimension is the number of compartments.
-        R10 (array-like or float): Precontrast R1, either a single value for 
+        R1b (array-like or float): Precontrast R1, either a single value for 
           one-compartment tissues or an array with one value for each tissue 
           compartment.
         r1 (float or array-like): relaxivity, either a single value for 
@@ -75,41 +81,41 @@ def relax_t1(c, R10, r1) -> np.ndarray:
     c = np.array(c)
     # One compartment tissues
     if np.isscalar(r1):
-        if np.isscalar(R10):
+        if np.isscalar(R1b):
             # c is scalar or 1D
-            return R10 + r1*c
+            return R1b + r1*c
         else:
             # concentrations at 1 time point
-            if c.shape == R10.shape:
-                return R10 + r1*c
+            if c.shape == R1b.shape:
+                return R1b + r1*c
             # concentrations at multiple time points
             else:
-                return R10[..., np.newaxis] + r1 * c
+                return R1b[..., np.newaxis] + r1 * c
 
     # n-compartment tissues (compartment is first dimension)
     else:
 
         r1 = np.array(r1)
-        R10 = np.array(R10)
+        R1b = np.array(R1b)
         c = np.array(c)
 
         n = len(r1)
         R1 = np.zeros(c.shape)
-        if R10.ndim == 1:
-            if c.shape == R10.shape:
-                return R10 + r1*c
+        if R1b.ndim == 1:
+            if c.shape == R1b.shape:
+                return R1b + r1*c
             else:
                 for i in range(n):
-                    R1[i, :] = R10[i] + r1[i] * c[i,:]
+                    R1[i, :] = R1b[i] + r1[i] * c[i,:]
                 return R1
         else:
-            if c.shape == R10.shape:
+            if c.shape == R1b.shape:
                 for i in range(n):
-                    R1[i,...] = R10[i,...] + r1[i] * c[i,...]
+                    R1[i,...] = R1b[i,...] + r1[i] * c[i,...]
                 return R1
             else:
                 for i in range(n):
-                    R1[i,...] = R10[i,...,np.newaxis] + r1[i] * c[i,...]
+                    R1[i,...] = R1b[i,...,np.newaxis] + r1[i] * c[i,...]
                 return R1
 
 def conc_t1(R1, r1) -> np.ndarray:

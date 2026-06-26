@@ -42,7 +42,7 @@ Example:
     Use `fake.tissue` to generate synthetic test data from 
     experimentally-derived concentrations:
 
-    >>> time, aif, roi, gt = dc.fake.tissue2scan(R10=1/dc.const.T1(3.0,'liver'))
+    >>> time, aif, roi, gt = dc.fake.tissue2scan(R1b=1/dc.const.T1(3.0,'liver'))
 
     Since this model generates four time curves, the x- and y-data are 
     tuples:
@@ -113,9 +113,9 @@ Example:
     ----------------------------
     Fixed and derived parameters
     ----------------------------
-    Aorta first baseline R1 (R10a): 0.614 Hz
+    Aorta first baseline R1 (R1ba): 0.614 Hz
     Aorta first signal scale factor (S0a): 100.117 a.u.
-    Liver first baseline R1 (R10l): 1.33 Hz
+    Liver first baseline R1 (R1bl): 1.33 Hz
     Liver first signal scale factor (S0l): 150.003 a.u.
     Initial hepatocellular mean transit time (Th_i): 70.022 (12.142) sec
     Final hepatocellular mean transit time (Th_f): 72.227 (8.407) sec
@@ -125,16 +125,18 @@ Example:
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri.kinetics.input import ca_injection
-from dcmri.kinetics.aorta import flux_aorta_hlol
-from dcmri.kinetics.conc import ConcAorta, ConcLiver
+from dcmri.core.roi_model import SuperRoiModel
+from dcmri.core.quantities import QUANTITIES
+from dcmri.core.sequences import SEQUENCES
+from dcmri.core.tools import export_params
 from dcmri.utils import const
-from dcmri.lexicon.dicts import QUANTITIES
-from dcmri.lexicon.tools import export_params
-from dcmri.bloch.tissue import Signal
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
-from dcmri.core.model import SuperModel
+from dcmri.kinetics.functions_input import ca_injection
+from dcmri.kinetics.functions_aorta import flux_aorta
+from dcmri.kinetics.modules_conc import ConcAortaLiver
+from dcmri.bloch.tissue import Signal
+
 
 
 QUANTITIES = QUANTITIES | {
@@ -153,20 +155,20 @@ QUANTITIES = QUANTITIES | {
     'd_BAT': {'init': 120, 'bounds': [-60, 60], 'name': 'Drug visit - first bolus arrival time', 'unit': 'sec', 'bounds_type': 'add'},
  
     # MRI signal parameters - control visit
-    'c_R10_a': {'init': 1/const.T1(3.0, 'blood'), 'name': 'Control visit - aorta first baseline R1', 'unit': 'Hz'},
-    'c_R10_l': {'init': 1/const.T1(3.0, 'liver'), 'name': 'Control visit - liver first baseline R1', 'unit': 'Hz'},
-    'c_R20s_a': {'init': 20, 'name': 'Control visit - aorta first baseline R2*', 'unit': 'Hz'},
-    'c_R20s_l': {'init': 20, 'name': 'Control visit - liver first baseline R2*', 'unit': 'Hz'},
+    'c_R1b_a': {'init': 1/const.T1(3.0, 'blood'), 'name': 'Control visit - aorta first baseline R1', 'unit': 'Hz'},
+    'c_R1b_l': {'init': 1/const.T1(3.0, 'liver'), 'name': 'Control visit - liver first baseline R1', 'unit': 'Hz'},
+    'c_R2sb_a': {'init': 20, 'name': 'Control visit - aorta first baseline R2*', 'unit': 'Hz'},
+    'c_R2sb_l': {'init': 20, 'name': 'Control visit - liver first baseline R2*', 'unit': 'Hz'},
     'c_S0_a': {'init': 1, 'bounds': [0, 2], 'name': 'Control visit - aorta first signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
     'c_S0_l': {'init': 1, 'bounds': [0, 2], 'name': 'Control visit - liver first signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
     'c_Si_a': {'init': 1, 'bounds': [0, 2], 'name': 'Control visit - aorta baseline signal', 'unit': 'a.u.', 'bounds_type': 'mult'},
     'c_Si_l': {'init': 1, 'bounds': [0, 2], 'name': 'Control visit - liver baseline signal', 'unit': 'a.u.', 'bounds_type': 'mult'},
 
     # MRI signal parameters - drug visit
-    'd_R10_a': {'init': 1/const.T1(3.0, 'blood'), 'name': 'Drug visit - aorta first baseline R1', 'unit': 'Hz'},
-    'd_R10_l': {'init': 1/const.T1(3.0, 'liver'), 'name': 'Drug visit - liver first baseline R1', 'unit': 'Hz'},
-    'd_R20s_a': {'init': 20, 'name': 'Drug visit - aorta first baseline R2*', 'unit': 'Hz'},
-    'd_R20s_l': {'init': 20, 'name': 'Drug visit - liver first baseline R2*', 'unit': 'Hz'},
+    'd_R1b_a': {'init': 1/const.T1(3.0, 'blood'), 'name': 'Drug visit - aorta first baseline R1', 'unit': 'Hz'},
+    'd_R1b_l': {'init': 1/const.T1(3.0, 'liver'), 'name': 'Drug visit - liver first baseline R1', 'unit': 'Hz'},
+    'd_R2sb_a': {'init': 20, 'name': 'Drug visit - aorta first baseline R2*', 'unit': 'Hz'},
+    'd_R2sb_l': {'init': 20, 'name': 'Drug visit - liver first baseline R2*', 'unit': 'Hz'},
     'd_S0_a': {'init': 1, 'bounds': [0, 2], 'name': 'Drug visit - aorta first signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
     'd_S0_l': {'init': 1, 'bounds': [0, 2], 'name': 'Drug visit - liver first signal scale factor', 'unit': 'a.u.', 'bounds_type': 'mult'},
     'd_Si_a': {'init': 1, 'bounds': [0, 2], 'name': 'Drug visit - aorta baseline signal', 'unit': 'a.u.', 'bounds_type': 'mult'},
@@ -177,10 +179,8 @@ QUANTITIES = QUANTITIES | {
     'd_B1corr_a': {'init': 1, 'bounds': [0, 5], 'name': 'Drug visit - Arterial B1-correction factor', 'unit': ''},
     'd_B1corr_l': {'init': 1, 'bounds': [0, 5], 'name': 'Drug visit - Liver B1-correction factor', 'unit': ''},
 
-    'FFl': {'init': 0.25, 'bounds': [0.01, 0.99], 'name': 'Liver flow fraction', 'unit': ''},
-
     # Aorta Kinetics - control visit
-    'c_FFl': {'init': 0.25, 'bounds': [0.01, 0.99], 'name': 'Control visit - Liver flow fraction', 'unit': ''},
+    'c_fCO_l': {'init': 0.25, 'bounds': [0.01, 0.99], 'name': 'Control visit - Liver flow fraction', 'unit': ''},
     'c_Eb': {'init': 0.05, 'bounds': [0.01, 0.15], 'name': 'Control visit - Body extraction', 'unit': ''},
     'c_CO': {'init': 100, 'bounds': [0, 500], 'name': 'Control visit - Cardiac output', 'unit': 'mL/s'},
     'c_GFR': {'init': 2, 'bounds': [0.5, 3], 'name': 'Control visit - glomerular filtration rate', 'unit': 'mL/sec'},
@@ -198,12 +198,12 @@ QUANTITIES = QUANTITIES | {
     'c_Th': {'init': 3000, 'bounds': [0, 6 * 3600], 'name': 'Control visit - hepatocellular transit time', 'unit': 'sec'},
     'c_Tg': {'init': 30, 'bounds': [15, 120], 'name': 'Control visit - Gut transit time', 'unit': 'sec'},
     'c_Dg': {'init': 0.5, 'bounds': [0.01, 0.99], 'name': 'Control visit - Gut dispersion', 'unit': ''},
-    'c_CL': {'name': 'Control visit - liver plasma clearance', 'unit': 'mL/sec'},
+    'c_CL': {'init': None, 'name': 'Control visit - liver plasma clearance', 'unit': 'mL/sec'},
     'c_ve': {'init': 0.3, 'bounds': [0.01, 0.6], 'name': 'Control visit - Extracellular volume fraction', 'unit': 'mL/cm3'},
     'c_El': {'init': 0.05, 'bounds': [0, 1], 'name': 'Control visit - Liver extraction fraction', 'unit': ''},
 
     # Aorta Kinetics - drug visit
-    'd_FFl': {'init': 0.25, 'bounds': [0.01, 0.99], 'name': 'Drug visit - Liver flow fraction', 'unit': ''},
+    'd_fCO_l': {'init': 0.25, 'bounds': [0.01, 0.99], 'name': 'Drug visit - Liver flow fraction', 'unit': ''},
     'd_Eb': {'init': 0.05, 'bounds': [0.01, 0.15], 'name': 'Drug visit - Body extraction', 'unit': ''},
     'd_CO': {'init': 100, 'bounds': [0, 500], 'name': 'Drug visit - Cardiac output', 'unit': 'mL/s'},
     'd_GFR': {'init': 2, 'bounds': [0.5, 3], 'name': 'Drug visit - glomerular filtration rate', 'unit': 'mL/sec'},
@@ -221,41 +221,42 @@ QUANTITIES = QUANTITIES | {
     'd_Th': {'init': 3000, 'bounds': [0, 6 * 3600], 'name': 'Drug visit - hepatocellular transit time', 'unit': 'sec'},
     'd_Tg': {'init': 30, 'bounds': [15, 120], 'name': 'Drug visit - Gut transit time', 'unit': 'sec'},
     'd_Dg': {'init': 0.5, 'bounds': [0.01, 0.99], 'name': 'Drug visit - Gut dispersion', 'unit': ''},
-    'd_CL': {'name': 'Drug visit - liver plasma clearance', 'unit': 'mL/sec'},
+    'd_CL': {'init': None, 'name': 'Drug visit - liver plasma clearance', 'unit': 'mL/sec'},
     'd_ve': {'init': 0.3, 'bounds': [0.01, 0.6], 'name': 'Drug visit -Extracellular volume fraction', 'unit': 'mL/cm3'},
     'd_El': {'init': 0.05, 'bounds': [0, 1], 'name': 'Control visit - Liver extraction fraction', 'unit': ''},
 
     # Kinetics - common
     'GFR': {'init': 2, 'bounds': [0.5, 3], 'name': 'Glomerular filtration rate', 'unit': 'mL/sec'},
-    'a_Eb': {'name': 'Absolute effect in Body extraction', 'unit': ''},
-    'r_Eb': {'name': 'Relative effect in Body extraction', 'unit': ''},
-    'r_khe': {'name': 'Relative effect in hepatocellular uptake rate', 'unit': ''},
-    'r_kbh': {'name': 'Relative effect in biliary excretion rate', 'unit': ''},
-    'r_CL': {'name': 'Relative effect in liver plasma clearance', 'unit': ''},
-    'a_khe': {'name': 'Absolute effect in hepatocellular uptake rate', 'unit': 'mL/sec/cm3'},
-    'a_kbh': {'name': 'Absolute effect in biliary excretion rate', 'unit': 'mL/sec/cm3'},
-    'a_CL': {'name': 'Absolute effect in liver plasma clearance', 'unit': 'mL/sec'},
+    'a_Eb': {'init': None, 'name': 'Absolute effect in Body extraction', 'unit': ''},
+    'r_Eb': {'init': None, 'name': 'Relative effect in Body extraction', 'unit': ''},
+    'r_khe': {'init': None, 'name': 'Relative effect in hepatocellular uptake rate', 'unit': ''},
+    'r_kbh': {'init': None, 'name': 'Relative effect in biliary excretion rate', 'unit': ''},
+    'r_CL': {'init': None, 'name': 'Relative effect in liver plasma clearance', 'unit': ''},
+    'a_khe': {'init': None, 'name': 'Absolute effect in hepatocellular uptake rate', 'unit': 'mL/sec/cm3'},
+    'a_kbh': {'init': None, 'name': 'Absolute effect in biliary excretion rate', 'unit': 'mL/sec/cm3'},
+    'a_CL': {'init': None, 'name': 'Absolute effect in liver plasma clearance', 'unit': 'mL/sec'},
 
     # Derived AUC and RE
-    'c_AUC_Cb': {'name': 'Control visit AUC for Cb (0-inf)', 'unit': 'M*sec'},
-    'c_AUC_Cl': {'name': 'Control visit AUC for Cl (0-inf)', 'unit': 'M*sec'}, 
-    'c_AUC35_Cb': {'name': 'Control visit AUC for Cb (0-35min)', 'unit': 'M*sec'},
-    'c_AUC35_Cl': {'name': 'Control visit AUC for Cl (0-35min)', 'unit': 'M*sec'}, 
-    'c_RE_R1b': {'name': 'Control visit RE for R1b at 20min', 'unit': ''},
-    'c_RE_R1l': {'name': 'Control visit RE for R1l at 20min', 'unit': ''},
-    'c_RE_Sb': {'name': 'Control visit RE for Sb at 20min', 'unit': ''},
-    'c_RE_Sl': {'name': 'Control visit RE for Sl at 20min', 'unit': ''},
+    'c_AUC_Cb': {'init': None, 'name': 'Control visit AUC for Cb (0-inf)', 'unit': 'M*sec'},
+    'c_AUC_Cl': {'init': None, 'name': 'Control visit AUC for Cl (0-inf)', 'unit': 'M*sec'}, 
+    'c_AUC35_Cb': {'init': None, 'name': 'Control visit AUC for Cb (0-35min)', 'unit': 'M*sec'},
+    'c_AUC35_Cl': {'init': None, 'name': 'Control visit AUC for Cl (0-35min)', 'unit': 'M*sec'}, 
+    'c_RE_R1b': {'init': None, 'name': 'Control visit RE for R1b at 20min', 'unit': ''},
+    'c_RE_R1l': {'init': None, 'name': 'Control visit RE for R1l at 20min', 'unit': ''},
+    'c_RE_Sb': {'init': None, 'name': 'Control visit RE for Sb at 20min', 'unit': ''},
+    'c_RE_Sl': {'init': None, 'name': 'Control visit RE for Sl at 20min', 'unit': ''},
 
-    'd_AUC_Cb': {'name': 'Drug visit AUC for Cb (0-inf)', 'unit': 'M*sec'},
-    'd_AUC_Cl': {'name': 'Drug visit AUC for Cl (0-inf)', 'unit': 'M*sec'}, 
-    'd_AUC35_Cb': {'name': 'Drug visit AUC for Cb (0-35min)', 'unit': 'M*sec'},
-    'd_AUC35_Cl': {'name': 'Drug visit AUC for Cl (0-35min)', 'unit': 'M*sec'}, 
-    'd_RE_R1b': {'name': 'Drug visit RE for R1b at 20min', 'unit': ''},
-    'd_RE_R1l': {'name': 'Drug visit RE for R1l at 20min', 'unit': ''},
-    'd_RE_Sb': {'name': 'Drug visit RE for Sb at 20min', 'unit': ''},
-    'd_RE_Sl': {'name': 'Drug visit RE for Sl at 20min', 'unit': ''},
+    'd_AUC_Cb': {'init': None, 'name': 'Drug visit AUC for Cb (0-inf)', 'unit': 'M*sec'},
+    'd_AUC_Cl': {'init': None, 'name': 'Drug visit AUC for Cl (0-inf)', 'unit': 'M*sec'}, 
+    'd_AUC35_Cb': {'init': None, 'name': 'Drug visit AUC for Cb (0-35min)', 'unit': 'M*sec'},
+    'd_AUC35_Cl': {'init': None, 'name': 'Drug visit AUC for Cl (0-35min)', 'unit': 'M*sec'}, 
+    'd_RE_R1b': {'init': None, 'name': 'Drug visit RE for R1b at 20min', 'unit': ''},
+    'd_RE_R1l': {'init': None, 'name': 'Drug visit RE for R1l at 20min', 'unit': ''},
+    'd_RE_Sb': {'init': None, 'name': 'Drug visit RE for Sb at 20min', 'unit': ''},
+    'd_RE_Sl': {'init': None, 'name': 'Drug visit RE for Sl at 20min', 'unit': ''},
 }
 
+QVALUES = {k: v['init'] for k, v in QUANTITIES.items()}
 
 def _div(a, b):
     with np.errstate(divide='ignore'):
@@ -263,8 +264,8 @@ def _div(a, b):
     
 def _deriv_params(p, sdev=None):
 
-    FFl = p[f'FFl']
-    Fb = FFl * p[f'CO'] / p[f'c_vol']
+    fCO_l = p[f'fCO_l']
+    Fb = fCO_l * p[f'CO'] / p[f'c_vol']
 
     Fpl = Fb * (1 - p['H'])
     Te = p[f've'] / Fpl
@@ -273,7 +274,7 @@ def _deriv_params(p, sdev=None):
     d_El = p[f'd_khe'] / (p[f'd_khe'] + Fpl)
 
     CL = p[f'GFR']
-    Fpk = (1 - FFl) * p[f'CO'] * (1 - p['H'])
+    Fpk = (1 - fCO_l) * p[f'CO'] * (1 - p['H'])
     Eg = CL / (CL + Fpk)
 
     # c_Eb
@@ -329,7 +330,7 @@ def _deriv_params(p, sdev=None):
 
 
 
-class AortaLiverDrug(SuperModel):
+class AortaLiverDrug(SuperRoiModel):
     """Aorta and liver signals over control and treatment visits.
 
     This model uses a whole-body model to simultaneously predict signals in 
@@ -344,27 +345,91 @@ class AortaLiverDrug(SuperModel):
         `AortaLiver`
     """
 
-    configs = {'sequence': ['ZTE-3D-SPGR-SS', '3D-SPGR-SS', '3D-SPGR-SSI']}
+    configs = {
+        'heartlung': ConcAortaLiver.configs['heartlung'],
+        'organs': ConcAortaLiver.configs['organs'],
+        'liver': ConcAortaLiver.configs['liver'],
+        'non_stationary': ConcAortaLiver.configs['non_stationary'],
+        'sequence': ['3D-SPGR-SS', '3D-SPGR-SSI', 'ZTE-3D-SPGR-SS'],
+    }
     
-    def __init__(self, sequence='ZTE-3D-SPGR-SS', **params):
+    def __init__(
+            self, 
+            heartlung='pfcomp', 
+            organs='comp', 
+            liver='1I-IC', 
+            non_stationary=None, 
+            sequence='3D-SPGR-SS', 
+            **params,
+        ):
         self._version = '1.0'
-        self._cnfg = self._set_config(sequence=sequence)
-        self._pars = self._set_pars(lexicon=QUANTITIES, **params)
+        cnfg = {
+            'heartlung': heartlung, 
+            'organs': organs, 
+            'liver': liver, 
+            'non_stationary': non_stationary, 
+            'sequence': sequence,
+        }
+        self._set_config(cnfg)
+        self._conc = {
+            'c': ConcAortaLiver(**self._cnfg).connect_inputs(self._map('c')),
+            'd': ConcAortaLiver(**self._cnfg).connect_inputs(self._map('d')),
+        }
+        self._set_params(QVALUES | params)
+
+        # Set multi-channel baseline if not done by the user
+        if sequence in ['Eq-DE-EPI', 'DE-EPI']:
+            for roi in ['a', 'l']:
+                Sb = f"Sb_{roi}"
+                if Sb not in params:
+                    self._pars[Sb] = np.full(2, self._pars[Sb])
+
+    # ==========================================
+    # Backend
+    # ==========================================
+
+    # Helper function
+    def _sequence(self, roi):
+        seq = self._cnfg['sequence']
+        if roi in ['l'] and seq == '3D-SPGR-SSI':
+            return '3D-SPGR-SS'
+        return seq
+    
+    # Helper function
+    def _tissue_props(self, roi):
+        return set(SEQUENCES[self._sequence(roi)]['parameters']['tissue'])
+    
+    # ==========================================
+    # Model Parameters
+    # ==========================================
+
+    def _map(self, visit):
+        visit_pars = [
+            # _conc_aorta
+            'tmax',
+            'khe', 'vol_l',
+            'dose',
+            'BAT',
+            # _conc_liver
+            'kbh', 
+            'FA', 
+            # Signal
+            'Si_a', 'Si_l',
+            'B1corr_l', 'B1corr_a',
+        ]
+        return {f'{visit}_{p}': p  for p in visit_pars}
 
     def _params(self, select=None):
-        if select is None:
-            select = 'all'
         seq = self._cnfg['sequence']
         inflow_pars = ['TF'] if seq == '3D-SPGR-SSI' else []
 
-        pars_list = {
-            'all': inflow_pars + [
+        if select is None:
+            pars = inflow_pars + [
                 # _conc_aorta
-                # [p for p in ConcAorta('pfcomp', '2cxm')._params() if p not in ['tmax', 'dose', 'BAT']]
                 'dt', 'c_tmax', 'd_tmax', 
                 'dose_tolerance', 'agent', 'weight', 'rate',  
-                'H', 
-                'FFl', 'CO', 'GFR', 'Thl', 'Dhl', 'To', 'To_e', 'Eo',
+                'H', 'Thl', 'Dhl', 'To', 'To_e', 'Eo', 
+                'fCO_l', 'CO', 'GFR',
                 'c_khe', 'c_vol',
                 'd_khe', 'd_vol', 
                 'c_dose', 'd_dose',
@@ -375,11 +440,11 @@ class AortaLiverDrug(SuperModel):
                 #'c_Kbh', 'd_Kbh', 
                 # _relax_aorta
                 'field_strength', 
-                'R10_a', 'R20s_a', 
+                'R1b_a', 'R2sb_a', 
                 # _relax_liver
-                'R10_l', 'R20s_l',  
+                'R1b_l', 'R2sb_l',  
                 # sequence
-                'TR', 
+                'TR', 'TE',
                 'c_FA', 'd_FA', 
                 # Signal
                 'c_Si_a', 'c_Si_l',
@@ -388,113 +453,56 @@ class AortaLiverDrug(SuperModel):
                 'd_B1corr_l', 'd_B1corr_a',
                 # Predict
                 'TS',
-                # fix: FFl, CO, GFR, ve
-                # var: khe, kbh
-            ],
-            'free': inflow_pars + [
+            ]
+
+        if select=='free':
+            pars = [
                 # _conc_aorta 
                 'c_BAT', 'd_BAT',
-                'FFl', 'CO', 'GFR', 'Thl', 'Dhl', 'To', 'To_e', 'Eo',
+                'fCO_l', 'CO', 'GFR', 'Thl', 'Dhl', 'To', 'To_e', 'Eo',
                 # _conc_liver
                 'Tg', 've', 
                 'c_khe', 'c_kbh', #'c_Kbh',
                 'd_khe', 'd_kbh', #'d_Kbh',
-            ],
-        }
-        return pars_list[select]
+            ]
+        
+        return pars
     
     # ==========================================
     # Forward Model: Helpers
     # ==========================================
 
-    def _time(self, visit):
-        p = self._pars
-        return np.arange(0, p[f'{visit}_tmax'], p['dt'])
+    def _compute_conc(self):
+        p = self._pars 
+        self._C = {visit: self._conc[visit](**p) for visit in ['c', 'd']}
 
-    def _conc_aorta(self, visit):
-        p = self._pars
-        t = self._time(visit)
-
-        # Replace this
-        # ca = ConcAorta('pfcomp', '2cxm', **p)(
-        #     tmax = p[f'{visit}_tmax'],
-        #     dose = p[f'{visit}_dose'],
-        #     BAT = p[f'{visit}_BAT'],
-        # )
-        
-        # Source
-        conc = const.ca_conc(p['agent'])
-        J = ca_injection(
-            t, p['weight'], conc, p[f'{visit}_dose'], p['rate'], 
-            p[f'{visit}_BAT'],
-        )
-
-        FFl = p[f'FFl']
-        Fpl = FFl * p[f'CO'] * (1 - p['H']) / p[f'{visit}_vol']
-
-        El = p[f'{visit}_khe'] / (p[f'{visit}_khe'] + Fpl)
-        Te = p[f've'] / Fpl
-        #Te = p[f've'] * (1 - El) / Fpl
-
-        CL = p[f'GFR']
-        Fpk = (1 - FFl) * p[f'CO'] * (1 - p['H'])
-        Ek = CL / (CL + Fpk)
-
-        # 3 flow parameters
-
-        Jb = flux_aorta_hlol(
-            J, dt=p['dt'], El=El, Ek=Ek, FFl=FFl, tol=p['dose_tolerance'],
-            heartlung=['pfcomp', {'T':p[f'Thl'], 'D':p[f'Dhl']}],
-            organs=['2cxm', {'T':[p[f'To'], p[f'To_e']], 'E':p[f'Eo']}],
-            liver=['bicomp', {'T':[p[f'Tg'], Te]}],
-        )
-        return Jb / p[f'CO']
-    
-
-    def _conc_liver(self, cb, visit):
-        p = self._pars
-
-        # cb = flux_comp(cb, p[f'Tg'], dt=p['dt'])
-        cp = cb / (1 - p['H'])
-    
-        vh = 1 - p[f've'] / (1 - p['H'])
-        Th = vh / p[f'{visit}_kbh'] 
-        #Kbh = p[f'{visit}_Kbh'] 
-        #Th = 1 / Kbh if Kbh > 0 else np.inf
-
-        FFl = p[f'FFl']
-        Fpl = FFl * p[f'CO'] * (1 - p['H']) / p[f'{visit}_vol']
-        El = p[f'{visit}_khe'] / (p[f'{visit}_khe'] + Fpl)
-
-        return ConcLiver('1I-IC')(
-            cp, dt=p['dt'], 
-            T_a = 0,
-            Tg = p['Tg'],
-            ve = p[f've'],
-            Fp = Fpl,
-            E = El,
-            Th = Th,
-        )
-
-    def _relax_aorta(self, ca, visit):
+    def _relax_aorta(self, ca):
         p = self._pars
         rb = const.r1(p['field_strength'], 'blood', p['agent'])
         r2s = const.r2s(p['field_strength'], 'blood', p['agent'])
-        R1a = p[f'R10_a'] + rb * ca
-        R2sa = p[f'R20s_a'] + r2s * ca
+        R1a = p[f'R1b_a'] + rb * ca
+        R2sa = p[f'R2sb_a'] + r2s * ca
         return R1a, R2sa
 
-    def _relax_liver(self, Cl, visit):
+    def _relax_liver(self, Cl):
         p = self._pars
         rp = const.r1(p['field_strength'], 'plasma', p['agent'])
         rh = const.r1(p['field_strength'], 'hepatocytes', p['agent'])
         r2s = const.r2s(p['field_strength'], 'tissue', p['agent'])
-        R1l = p[f'R10_l'] + rp * Cl[0, :] + rh * Cl[1, :]
-        R2sl = p[f'R20s_l'] + r2s * Cl.sum(axis=0) 
+        R1l = p[f'R1b_l'] + rp * Cl[0, :] + rh * Cl[1, :]
+        R2sl = p[f'R2sb_l'] + r2s * Cl.sum(axis=0) 
         return R1l, R2sl
 
+    def _compute_relax(self):
+        self._compute_conc()
+        self._R1a_control, self._R2sa_control = self._relax_aorta(self._ca_control)
+        self._R1l_control, self._R2sl_control = self._relax_liver(self._Cl_control)
+        self._R1a_drug, self._R2sa_drug = self._relax_aorta(self._ca_drug)
+        self._R1l_drug, self._R2sl_drug = self._relax_liver(self._Cl_drug)
+
+
     def _signal(self, R1, R2s, visit, roi):
-        p = self._pars
+        p =self._pars
 
         # Signal model
         seq = self._cnfg['sequence']
@@ -504,136 +512,35 @@ class AortaLiverDrug(SuperModel):
         }[roi]
         FA = p[f'{visit}_FA']
         B1 = p[f'{visit}_B1corr_{roi}']
-        signal = Signal(roi_seq, FA=FA, B1corr=B1, **p)
-
+        const = {'Fw': 0, 'v': 1, 'me': 1, 'noise_sdev':0, 'FA': FA, 'B1corr': B1}
+        signal = Signal(roi_seq, defaults=p)
+    
         # Derive S0 from the baseline signal
-        S_ref = signal(R1=R1[0], R2s=R2s[0], S0=1)
+        S_ref = signal(R1=R1[0], R2s=R2s[0], S0=1, **const)
         S0 = p[f'{visit}_Si_{roi}'] / S_ref if S_ref > 0 else 0
 
-        return signal(R1=R1, R2s=R2s, S0=S0)
-    
-    # ==========================================
-    # Forward Model: Times
-    # ==========================================
+        return signal(R1=R1, R2s=R2s, S0=S0, **const)
 
-    def _set_time_control(self):
-        self._t_control = self._time('c')
-
-    def _set_time_drug(self):
-        self._t_drug = self._time('d')
-
-    def _set_time(self):
-        self._t_control = self._time('c')
-        self._t_drug = self._time('d')
-
-    # ==========================================
-    # Forward Model: Aorta Control
-    # ==========================================
-
-    def _compute_conc_aorta_control(self):
-        self._ca_control = self._conc_aorta('c')
-
-    def _compute_relax_aorta_control(self):
-        self._compute_conc_aorta_control()
-        self._R1a_control, self._R2sa_control = self._relax_aorta(self._ca_control, 'c')
-
-    def _compute_signal_aorta_control(self):
-        self._compute_relax_aorta_control()
+    def _compute_signal(self):
+        self._compute_relax()
         self._Sa_control = self._signal(self._R1a_control, self._R2sa_control, 'c', 'a')
-
-    def _predict_aorta_control(self, time):
-        self._set_time_control()
-        self._compute_signal_aorta_control()
-        return sample(time, self._t_control, self._Sa_control, self._pars['TS'])
-
-    # ==========================================
-    # Forward Model: Aorta Drug
-    # ==========================================
-
-    def _compute_conc_aorta_drug(self):
-        self._ca_drug = self._conc_aorta('d')
-
-    def _compute_relax_aorta_drug(self):
-        self._compute_conc_aorta_drug()
-        self._R1a_drug, self._R2sa_drug = self._relax_aorta(self._ca_drug, 'd')
-
-    def _compute_signal_aorta_drug(self):
-        self._compute_relax_aorta_drug()
         self._Sa_drug = self._signal(self._R1a_drug, self._R2sa_drug, 'd', 'a')
-
-    def _predict_aorta_drug(self, time):
-        self._set_time_drug()
-        self._compute_signal_aorta_drug()
-        return sample(time, self._t_drug, self._Sa_drug, self._pars['TS'])
-
-    # ==========================================
-    # Forward Model: Liver Control
-    # ==========================================
-
-    def _compute_conc_liver_control(self):
-        self._Cl_control = self._conc_liver(self._ca_control, 'c')
-
-    def _compute_relax_liver_control(self):
-        self._compute_conc_liver_control()
-        self._R1l_control, self._R2sl_control = self._relax_liver(self._Cl_control, 'c')
-
-    def _compute_signal_liver_control(self):
-        self._compute_relax_liver_control()
         self._Sl_control = self._signal(self._R1l_control, self._R2sl_control, 'c', 'l')
-
-    def _predict_liver_control(self, time):
-        self._set_time_control()
-        self._compute_signal_liver_control()
-        return sample(time, self._t_control, self._Sl_control, self._pars['TS'])
-    
-    # ==========================================
-    # Forward Model: Liver Drug
-    # ==========================================
-
-    def _compute_conc_liver_drug(self):
-        self._Cl_drug = self._conc_liver(self._ca_drug, 'd')
-
-    def _compute_relax_liver_drug(self):
-        self._compute_conc_liver_drug()
-        self._R1l_drug, self._R2sl_drug = self._relax_liver(self._Cl_drug, 'd')
-
-    def _compute_signal_liver_drug(self):
-        self._compute_relax_liver_drug()
         self._Sl_drug = self._signal(self._R1l_drug, self._R2sl_drug, 'd', 'l')
 
-    def _predict_liver_drug(self, time):
-        self._set_time_drug()
-        self._compute_signal_liver_drug()
-        return sample(time, self._t_drug, self._Sl_drug, self._pars['TS'])
-
-    # ==========================================
-    # Forward Model: All scans
-    # ==========================================
-
-    # def _predict_aorta(self, time):
-    #     Sac = self._predict_aorta_control(time[0])
-    #     Sad = self._predict_aorta_drug(time[1])
-    #     return Sac, Sad
-    
-    # def _predict_liver(self, time):
-    #     Slc = self._predict_liver_control(time[0])
-    #     Sld = self._predict_liver_drug(time[1])
-    #     return Slc, Sld
-
-    def _predict_control(self, time):
-        Sa = self._predict_aorta_control(time[0])
-        Sl = self._predict_liver_control(time[1])
-        return Sa, Sl
-    
-    def _predict_drug(self, time):
-        Sa = self._predict_aorta_drug(time[0])
-        Sl = self._predict_liver_drug(time[1])
-        return Sa, Sl
+    def _time(self, visit):
+        p = self._pars
+        return np.arange(0, p[f'{visit}_tmax'], p['dt'])
     
     def _predict(self, time):
-        Sc = self._predict_control(time[:2])
-        Sd = self._predict_drug(time[2:])
-        return Sc + Sd
+        self._compute_signal()
+        tc, td = self._time('c'), self._time('d')
+
+        Sac = sample(time[0], tc, self._Sa_control, self._pars['TS'])   
+        Slc = sample(time[1], tc, self._Sl_control, self._pars['TS'])
+        Sad = sample(time[2], td, self._Sa_drug, self._pars['TS'])
+        Sld = sample(time[3], td, self._Sl_drug, self._pars['TS'])
+        return Sac, Slc, Sad,  Sld
     
     # ==========================================
     # Inverse Model: Training
@@ -1090,19 +997,3 @@ class AortaLiverDrug(SuperModel):
                 signal['drug', 'liver'], 
             )
         return self._cost(time, signal, metric, nfree)
-
-
-# def sdev_effect(v, dv):
-#     # z = (x-y)/y = x/y-1 
-#     # dz = sqrt((dy * dz/dy)**2 + (dx * dz/dx)**2)
-#     # dz/dx = 1/y
-#     # dz/dy = -x/y**2
-#     x, y = v[0], v[1]
-#     dx, dy = dv[0], dv[1]
-#     dz_dx = 1 / y if y != 0 else 0
-#     dz_dy = - x / y**2 if y != 0 else 0
-#     return np.sqrt((dy * dz_dy)**2 + (dx * dz_dx)**2)
-
-
-
-

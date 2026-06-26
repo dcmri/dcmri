@@ -147,4 +147,3 @@ def Mz_ssi(R1, v, Fw, j, me, TR, FA, TF, SA):
 
     M = [_Mz_ssi_prop(R1[:,k].T, j[:,k].T) for k in range(nt)]
     return np.array(M).T.reshape(nc, nt)
-

@@ -303,7 +303,7 @@ compartments in the absence of water exchange between them.
 
 Args:
     ca (array-like): concentration in the blood of the arterial input.
-    R10 (float): precontrast relaxation rate. The tissue is assumed to be 
+    R1b (float): precontrast relaxation rate. The tissue is assumed to be 
     in fast exchange before injection of contrast agent.
     r1 (float): contrast agent relaxivity. 
     t (array_like, optional): the time points in sec of the input function 
@@ -354,15 +354,15 @@ Example:
 
     Define constants and model parameters: 
 
-    >>> R10, r1 = 1/dc.const.T1(), dc.const.r1()     
+    >>> R1b, r1 = 1/dc.const.T1(), dc.const.r1()     
     >>> pf = {'H':0.5, 'vb':0.05, 'vi':0.3, 'Fb':0.01, 'PS':0.005}   
     >>> pn = {'H':0.5, 'vb':0.1, 'vi':0.3, 'Fb':0.01, 'PS':0.005}
 
     Calculate tissue relaxation rates without water exchange, 
     and also in the fast exchange limit for comparison:
 
-    >>> R1f = dc.tissue.relax(ca, R10, r1, t=t, water_exchange='FF', **pf)['R1]
-    >>> R1n = dc.tissue.relax(ca, R10, r1, t=t, water_exchange='NN', **pn)['R1]
+    >>> R1f = dc.tissue.relax(ca, R1b, r1, t=t, water_exchange='FF', **pf)['R1]
+    >>> R1n = dc.tissue.relax(ca, R1b, r1, t=t, water_exchange='NN', **pn)['R1]
 
     Plot the relaxation rates in the three compartments, and compare 
     against the fast exchange result:
@@ -399,7 +399,7 @@ detail see :ref:`two-site-exchange`.
 
 Args:
     ca (array-like): concentration in the blood of the arterial input.
-    R10 (float): precontrast relaxation rate. The tissue is assumed to be 
+    R1b (float): precontrast relaxation rate. The tissue is assumed to be 
     in fast exchange before injection of contrast agent.
     r1 (float): contrast agent relaxivity. 
     t (array_like, optional): the time points in sec of the input function 
@@ -421,7 +421,7 @@ Args:
     outflow of magnetization is ignored. To include 
     inflow effects, **inflow** must be dictionary with the signal model 
     parameters for the arterial input. For the 'SS' signal model, 
-    required parameters are 'R10a' and 'B1corr_a'. Defaults to None.
+    required parameters are 'R1ba' and 'B1corr_a'. Defaults to None.
     params (dict): model parameters. See :ref:`Tissue-signal-parameters` 
     for more detail. Note: the tissue parameters are keyword 
     arguments for convenience, but a value is required.
@@ -457,12 +457,12 @@ Example:
 
     Define constants and model parameters: 
 
-    >>> R10, r1 = 1, 5000
+    >>> R1b, r1 = 1, 5000
     >>> seq = {'model': 'SS', 'FA':15, 'TR': 0.001, 'B1corr':1}
     >>> pars = {
     >>>     'sequence':seq, 'kinetics':'2CX', 'water_exchange':'NN', 
     >>>     'H':0.045, 'vb':0.05, 'vi':0.3, 'Fb':0.01, 'PS':0.005} 
-    >>> inflow = {'R10a': 0.7, 'B1corr_a':1}
+    >>> inflow = {'R1ba': 0.7, 'B1corr_a':1}
 
     Generate arterial blood concentrations:
 
@@ -471,8 +471,8 @@ Example:
 
     Calculate the signal with and without inflow:
 
-    >>> Mf = dc.tissue.Mz(ca, R10, r1, t=t, inflow=inflow, **pars)
-    >>> Mn = dc.tissue.Mz(ca, R10, r1, t=t, **pars)
+    >>> Mf = dc.tissue.Mz(ca, R1b, r1, t=t, inflow=inflow, **pars)
+    >>> Mn = dc.tissue.Mz(ca, R1b, r1, t=t, **pars)
 
     Compare them in a plot:
 
@@ -504,7 +504,7 @@ Notes:
         * - TP, TC
         - If **sequence** is 'SR'
         - :ref:`params-per-sequence`
-        * - R10a, B1corr_a
+        * - R1ba, B1corr_a
         - If **inflow** is not None
         - :ref:`relaxation-params`, :ref:`params-per-sequence`
 
@@ -542,12 +542,12 @@ from itertools import combinations
 
 import numpy as np
 
-from dcmri.core.layer import LayerFunction
+from dcmri.core.function import Function
 from dcmri.relaxivity.tissue import R2, R2s, R1
 from dcmri.relaxivity.lib import relax_t2s
 
 
-class R1TissueX(LayerFunction):
+class R1TissueX(Function):
     configs = {
         'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'],
         'water_exchange': ['FF','RF','NF','FR','RR','NR','FN','RN','NN'],
@@ -558,36 +558,37 @@ class R1TissueX(LayerFunction):
         kinetics='2CX', 
         water_exchange='FF', 
         t1_relaxation='lin',
-        **params,
+        defaults=None,
+        **kwargs,
     ):
         cnfg = {
             'kinetics': kinetics, 
             'water_exchange': water_exchange,
             't1_relaxation': t1_relaxation,
         }
-        self._cnfg = self._set_config(**cnfg)
-        self._pars = self._set_pars(**params)
+        self._set_config(cnfg)
+        self._set_params(defaults)
 
-    def _params(self) -> list:
-        p = WaterConcTissueX(**self._cnfg)._params()
-        p += R1(**self._cnfg)._params()
-        return p
+    def params(self) -> list:
+        p = WaterConcTissueX(**self._cnfg).params()
+        p += R1(**self._cnfg).params()
+        return list(p)
 
     def __call__(self, C, **params):
-        p = self._update_pars(**params)
+        p = self._update_params(params)
         t1r = self._cnfg['t1_relaxation']
 
         # Compute concentration in water compartments
-        c = WaterConcTissueX(**self._cnfg)(C, **p)
+        c = WaterConcTissueX(**self._cnfg, defaults=p)(C)
 
-        # Assume R10 and r1 is the same in all compartments
-        R10 = np.full(c.shape[0], p['R10'])
+        # Assume R1b and r1 is the same in all compartments
+        R1b = np.full(c.shape[0], p['R1b'])
         r1 = np.full(c.shape[0], p['r1'])
 
-        return R1(t1r, **p)(c, R10=R10, r1=r1)
+        return R1(t1r, defaults=p)(c=c, R1b=R1b, r1=r1)
     
 
-class R2TissueX(LayerFunction):
+class R2TissueX(Function):
     configs = {
         'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'],
         'water_exchange': ['FF','RF','NF','FR','RR','NR','FN','RN','NN'],
@@ -598,36 +599,37 @@ class R2TissueX(LayerFunction):
         kinetics='2CX', 
         water_exchange='FF', 
         t2_relaxation='lin',
-        **params,
+        defaults=None,
+        **kwargs,
     ):
         cnfg = {
             'kinetics': kinetics, 
             'water_exchange': water_exchange,
             't2_relaxation': t2_relaxation,
         }
-        self._cnfg = self._set_config(**cnfg)
-        self._pars = self._set_pars(**params)
+        self._set_config(cnfg)
+        self._set_params(defaults)
 
-    def _params(self) -> list:
-        p = WaterConcTissueX(**self._cnfg)._params()
-        p += R2(**self._cnfg)._params()
-        return p
+    def params(self) -> list:
+        p = WaterConcTissueX(**self._cnfg).params()
+        p += R2(**self._cnfg).params()
+        return list(p)
 
     def __call__(self, C, **params):
-        p = self._update_pars(**params)
+        p = self._update_params(params)
         t2r = self._cnfg['t2_relaxation']
 
         # Compute concentration in water compartments
-        c = WaterConcTissueX(**self._cnfg)(C, **p)
+        c = WaterConcTissueX(**self._cnfg, defaults=p)(C)
 
-        # Assume R20 and r2 is the same in all compartments
-        R20 = np.full(c.shape[0], p['R20'])
+        # Assume R2b and r2 is the same in all compartments
+        R2b = np.full(c.shape[0], p['R2b'])
         r2 = np.full(c.shape[0], p['r2'])
 
-        return R2(t2r, **p)(c, R20=R20, r2=r2)
+        return R2(t2r, **p)(c=c, R2b=R2b, r2=r2)
 
 
-class R2sTissueX(LayerFunction): 
+class R2sTissueX(Function): 
     configs = {
         'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'],
         't2s_relaxation': ['lin', 'quad', 'leakage'],
@@ -636,7 +638,8 @@ class R2sTissueX(LayerFunction):
         self, 
         kinetics=None, 
         t2s_relaxation='lin', 
-        **params,
+        defaults=None,
+        **kwargs,
     ):
         if t2s_relaxation == 'leakage' and kinetics is None:
             raise ValueError('kinetics must be specified when t2s_relaxation is leakage.')
@@ -644,21 +647,23 @@ class R2sTissueX(LayerFunction):
             'kinetics': kinetics,
             't2s_relaxation': t2s_relaxation, 
         }
-        self._cnfg = self._set_config(**cnfg)
-        self._pars = self._set_pars(**params)
+        self._set_config(cnfg)
+        self._set_params(defaults)
 
-    def _params(self) -> list:
+    def params(self) -> list:
         t2r = self._cnfg['t2s_relaxation']
 
         if t2r in R2s.configs['t2s_relaxation']:
-            return R2s(t2r)._params()
+            p = R2s(t2r).params()
         
         if t2r == 'leakage':
-            p = ['R20s', 'r2s_vasc', 'r2s_ees'] 
-            return p + ContrastConcTissueX(self._cnfg['kinetics'])._params()
+            p = ['R2sb', 'r2s_vasc', 'r2s_ees'] 
+            p += ContrastConcTissueX(self._cnfg['kinetics']).params()
+
+        return list(p)
     
     def __call__(self, C: np.ndarray, **params):
-        p = self._update_pars(**params)
+        p = self._update_params(params)
         t2r = self._cnfg['t2s_relaxation']
         
         C = np.array(C)
@@ -666,11 +671,11 @@ class R2sTissueX(LayerFunction):
         if t2r in R2s.configs['t2s_relaxation']:
             if C.ndim==2:
                 C = C.sum(axis=0)
-            return R2s(t2r)(C, **p)
+            return R2s(t2r, defaults=p | {'C': C})()
 
-        if t2r == 'leakage':
-            c = ContrastConcTissueX(self._cnfg['kinetics'])(C)
-            return relax_t2s(c, p['R20s'], r2s_vasc=p['r2s_vasc'], r2s_ees=p['r2s_ees'], model='leakage')
+        if t2r == 'leakage': # TODO: Use R2s(c=c)
+            c = ContrastConcTissueX(**self._cnfg, defaults=p)(C)
+            return relax_t2s(c, p['R2sb'], r2s_vasc=p['r2s_vasc'], r2s_ees=p['r2s_ees'], model='leakage')
 
 # Build all possible combinations of relaxation rates
 weighting = ['R1', 'R2', 'R2s']
@@ -680,7 +685,7 @@ all_combinations = [
     for combo in combinations(weighting, r)
 ]
 
-class RelaxTissueX(LayerFunction):
+class RelaxTissueX(Function):
 
     configs = {
         'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'],
@@ -698,7 +703,8 @@ class RelaxTissueX(LayerFunction):
         t2_relaxation='lin', 
         t1_relaxation='lin', 
         tissue_props={'R1', 'R2', 'R2s'},
-        **params,
+        defaults=None,
+        **kwargs,
     ):
         cnfg = {
             'kinetics': kinetics, 
@@ -708,38 +714,38 @@ class RelaxTissueX(LayerFunction):
             't1_relaxation': t1_relaxation,
             'tissue_props': tissue_props,
         }
-        self._cnfg = self._set_config(**cnfg)
-        self._pars = self._set_pars(**params)
+        self._set_config(cnfg)
+        self._set_params(defaults)
 
-    def _params(self):
+    def params(self):
         props = self._cnfg['tissue_props']
         p = []
         if 'R1' in props:
-            p += R1TissueX(**self._cnfg)._params()
+            p += R1TissueX(**self._cnfg).params()
         if 'R2' in props:
-            p += R2TissueX(**self._cnfg)._params()
+            p += R2TissueX(**self._cnfg).params()
         if 'R2s' in props:
-            p += R2sTissueX(**self._cnfg)._params()
-        return p
+            p += R2sTissueX(**self._cnfg).params()
+        return list(p)
     
     def __call__(self, C, **params):
-        p = self._update_pars(**params)
+        p = self._update_params(params)
         props = self._cnfg['tissue_props']
 
         R1_arr = R2_arr = R2s_arr = None
         
         if 'R1' in props:
-            R1_arr = R1TissueX(**self._cnfg)(C, **p)
+            R1_arr = R1TissueX(**self._cnfg, defaults=p)(C)
         if 'R2' in props:
-            R2_arr = R2TissueX(**self._cnfg)(C, **p)
+            R2_arr = R2TissueX(**self._cnfg, defaults=p)(C)
         if 'R2s' in props:
-            R2s_arr = R2sTissueX(**self._cnfg)(C, **p)
+            R2s_arr = R2sTissueX(**self._cnfg, defaults=p)(C)
 
         return R1_arr, R2_arr, R2s_arr
 
 
 
-class ContrastConcTissueX(LayerFunction):
+class ContrastConcTissueX(Function):
     # Convert tissue concentration in blood and interstitium to concentration.
     # For uptake models this introduces a new parameter
 
@@ -747,12 +753,12 @@ class ContrastConcTissueX(LayerFunction):
         'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U']
     }
 
-    def __init__(self, kinetics='2CX', **params):
+    def __init__(self, kinetics='2CX', defaults=None, **kwargs):
         cnfg = {'kinetics': kinetics}
-        self._cnfg = self._set_config(**cnfg)
-        self._pars = self._set_pars(**params)
+        self._set_config(cnfg)
+        self._set_params(defaults)
         
-    def _params(self) -> list:
+    def params(self) -> list:
         kinetics = self._cnfg['kinetics']
         if kinetics == 'FX':
             p = ['H', 've']
@@ -765,7 +771,7 @@ class ContrastConcTissueX(LayerFunction):
         return p
 
     def __call__(self, C, **params):
-        p = self._update_pars(**params)
+        p = self._update_params(params)
         kinetics = self._cnfg['kinetics']
 
         C = np.array(C)
@@ -800,17 +806,17 @@ class ContrastConcTissueX(LayerFunction):
         
         return c
 
-class WaterConcTissueX(LayerFunction):
+class WaterConcTissueX(Function):
     # Convert tissue concentration in kinetic compartments to concentration in water compartments.
 
     configs = deepcopy(R1TissueX.configs)
 
-    def __init__(self, kinetics='2CX', water_exchange='FF', **params):
+    def __init__(self, kinetics='2CX', water_exchange='FF', defaults=None, **kwargs):
         cnfg = {'kinetics': kinetics, 'water_exchange': water_exchange}
-        self._cnfg = self._set_config(**cnfg)
-        self._pars = self._set_pars(**params)
+        self._set_config(cnfg)
+        self._set_params(defaults)
         
-    def _params(self) -> list:
+    def params(self) -> list:
         kinetics = self._cnfg['kinetics']
         wex = self._cnfg['water_exchange'].replace('N','R')
 
@@ -853,7 +859,7 @@ class WaterConcTissueX(LayerFunction):
 
 
     def __call__(self, C, **params) -> np.ndarray: # (n_comp, n_times)
-        p = self._update_pars(**params)
+        p = self._update_params(params)
         C = np.array(C)
         if C.ndim==1:
             C = C.reshape(1, -1)

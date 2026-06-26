@@ -51,13 +51,14 @@ from dcmri.core.model import SuperModel
 from dcmri.core.types import Input
 
 from dcmri.utils import const
-from dcmri.lexicon.dicts import SEQUENCES
-from dcmri.kinetics.conc import ConcCortMed
+from dcmri.core.sequences import SEQUENCES
+from dcmri.kinetics.modules_conc import ConcCortMed
 from dcmri.bloch.tissue import Signal
 from dcmri.inverse.sig2conc import SignalToConc
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
 
+CONSTANTS = {'Fw': 0, 'v': 1, 'me': 1, 'noise_sdev':0}
 
 class CortMed(SuperModel):
     """Kidney cortex and medulla with a known input.
@@ -174,12 +175,12 @@ class CortMed(SuperModel):
             seq = self._cnfg['sequence']
             rp = const.r1(p['field_strength'], 'blood', p['agent'])
             input = Input(aif)
-            ca = SignalToConc(seq, **p)(
-                input.signal, S0=None, R10=input.R10, n0=n0, 
-                B1corr=input.B1corr, r1=rp,
+            ca = SignalToConc(seq, defaults=p)(
+                input.signal, R1b=input.R1b, n0=n0, 
+                B1corr=input.B1corr, r1=rp, 
             )
             t = np.arange(0, np.amax(np.concatenate(time)) + p['dt'], p['dt'])
-            p['c_a'] = np.interp(t, input.time, ca)
+            p['ca'] = np.interp(t, input.time, ca)
 
         return self._train(time, signal, free, bounds, n0, **kwargs)
 
@@ -241,16 +242,16 @@ class CortMed(SuperModel):
 
     def _params(self, select=None):
         kin, seq = self._cnfg['kinetics'], self._cnfg['sequence']
-        pars_kin = ConcCortMed(kin)._params()
+        pars_kin = ConcCortMed(kin).params()
         pars_seq = SEQUENCES[seq]['parameters']['prep']
         pars_seq += SEQUENCES[seq]['parameters']['read']
 
         if select is None:
             pars_list = [
-                'c_a', 'dt', 'field_strength', 'agent',
+                'ca', 'dt', 'field_strength', 'agent',
                 'H', 'S0_c', 'S0_m', 
-                'R10_c', 'R10_m', 
-                'R20s_c', 'R20s_m', 
+                'R1b_c', 'R1b_m', 
+                'R2sb_c', 'R2sb_m', 
                 'TS',
             ]
             pars_list += pars_kin + pars_seq
@@ -265,29 +266,29 @@ class CortMed(SuperModel):
     def _compute_concentration(self):
         p = self._pars
         kin = self._cnfg['kinetics']
-        ca = p['c_a'] / (1 - p['H'])
-        self._Cc, self._Cm = ConcCortMed(kin, **p)(ca, dt=p['dt'])
+        ca = p['ca'] / (1 - p['H'])
+        self._Cc, self._Cm = ConcCortMed(kin, defaults=p)(ca, dt=p['dt'])
 
     def _compute_relaxation_rate(self):
         self._compute_concentration()
         p = self._pars
         rp = const.r1(p['field_strength'], 'blood', p['agent'])
-        self._R1c = p['R10_c'] + rp * self._Cc.sum(axis=0)
-        self._R1m = p['R10_m'] + rp * self._Cm.sum(axis=0)
+        self._R1c = p['R1b_c'] + rp * self._Cc.sum(axis=0)
+        self._R1m = p['R1b_m'] + rp * self._Cm.sum(axis=0)
         r2s = const.r2s(p['field_strength'], 'tissue', p['agent'])
-        self._R2sc = p['R20s_c'] + r2s * self._Cc.sum(axis=0)
-        self._R2sm = p['R20s_m'] + r2s * self._Cm.sum(axis=0)
+        self._R2sc = p['R2sb_c'] + r2s * self._Cc.sum(axis=0)
+        self._R2sm = p['R2sb_m'] + r2s * self._Cm.sum(axis=0)
 
     def _compute_signal(self):
         self._compute_relaxation_rate()
         p = self._pars
         seq = self._cnfg['sequence']
-        self._Sc = Signal(seq, **p)(R1=self._R1c, R2s=self._R2sc)
-        self._Sm = Signal(seq, **p)(R1=self._R1m, R2s=self._R2sm)
+        self._Sc = Signal(seq, defaults=p)(R1=self._R1c, R2s=self._R2sc, **CONSTANTS)
+        self._Sm = Signal(seq, defaults=p)(R1=self._R1m, R2s=self._R2sm, **CONSTANTS)
 
     def _set_time(self):
         p = self._pars
-        self._t = p['dt'] * np.arange(p['c_a'].size)
+        self._t = p['dt'] * np.arange(p['ca'].size)
         
     def _predict(self, time) -> Tuple[np.ndarray, np.ndarray]:
         self._set_time()
@@ -306,8 +307,8 @@ class CortMed(SuperModel):
         seq = self._cnfg['sequence']
 
         # Estimate S0
-        s_ref_c = Signal(seq, **p)(R1=p['R10_c'], R2s=p['R20s_c'], S0=1)
-        s_ref_m = Signal(seq, **p)(R1=p['R10_m'], R2s=p['R20s_m'], S0=1)
+        s_ref_c = Signal(seq, defaults=p)(R1=p['R1b_c'], R2s=p['R2sb_c'], S0=1, **CONSTANTS)
+        s_ref_m = Signal(seq, defaults=p)(R1=p['R1b_m'], R2s=p['R2sb_m'], S0=1, **CONSTANTS)
         p['S0_c'] = np.mean(signal[0][:n0]) / s_ref_c if s_ref_c > 0 else 0
         p['S0_m'] = np.mean(signal[1][:n0]) / s_ref_m if s_ref_m > 0 else 0
 
@@ -339,7 +340,7 @@ class CortMed(SuperModel):
 
         ax1.plot(self._t/60, 1000*self._Cc.sum(axis=0), linestyle='-', linewidth=3.0, color='darkblue', label='Cortex prediction')
         ax1.plot(self._t/60, 1000*self._Cm.sum(axis=0), linestyle='--', linewidth=3.0, color='darkblue', label='Medulla prediction')
-        ax1.plot(self._t/60, 1000*self._pars['c_a'], linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
+        ax1.plot(self._t/60, 1000*self._pars['ca'], linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
         ax1.set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=np.array(xlim)/60)
         ax1.legend()
 

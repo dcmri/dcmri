@@ -1,8 +1,10 @@
 from dcmri.utils.const import (
     ca_conc,
     ca_std_dose,
+    relaxivity,
     r2s,
     r1,
+    r2,
     T1,
     T2,
     PD,
@@ -26,25 +28,33 @@ from dcmri.utils.misc import (
     add_noise,
     mle_rice,
 )
-from dcmri.lexicon.tools import (
+from dcmri.core.quantities import (
+    QUANTITIES,
+    QVALUES,
+    QBOUNDS,
+)
+from dcmri.core.tools import (
     init,
     bounds,
     select_params,
 )
 
-from dcmri.kinetics.conc import (
-   ConcBlock,
+from dcmri.kinetics.modules_conc import (
    ConcAorta,
+   ConcAortaKidneys,
+   ConcAortaLiver,
    ConcLiver,
    ConcKidney,
    ConcCortMed,
    ConcTissueX,   
 )
-from dcmri.kinetics.flux import (
-    FluxBlock,
+from dcmri.kinetics.modules_flux import (
+    Flux,
+    FluxInjection,
+    FluxAorta,
     FluxTissueX
 )
-from dcmri.kinetics.blocks import (
+from dcmri.kinetics.functions_blocks import (
     res_trap,
     res_pass,
     res_comp,
@@ -82,6 +92,7 @@ from dcmri.kinetics.blocks import (
     flux_pass,
     flux_comp,
     flux_bicomp,
+    flux_plucom,
     flux_plug,
     flux_chain,
     flux_step,
@@ -92,7 +103,7 @@ from dcmri.kinetics.blocks import (
     flux_mmcomp,
     flux_2cxm,
 )
-from dcmri.kinetics.tissue import (
+from dcmri.kinetics.functions_tissue import (
     conc_tissue_u,
     conc_tissue_fx,
     conc_tissue_nx,
@@ -113,7 +124,7 @@ from dcmri.kinetics.tissue import (
     flux_tissue_2cu,
     flux_tissue_2cx,
 )
-from dcmri.kinetics.liver import (
+from dcmri.kinetics.functions_liver import (
     # conc_liver_1i_ec_d,
     conc_liver_1i_ec,
     conc_liver_1i_ec_hf,
@@ -144,7 +155,7 @@ from dcmri.kinetics.liver import (
     conc_liver_2i_ic_u,
     conc_liver_2i_ic_u_nsu,
 )
-from dcmri.kinetics.kidney import (
+from dcmri.kinetics.functions_kidney import (
     conc_kidney_2cf,
     conc_kidney_2pf,
     conc_kidney_cpf,
@@ -155,17 +166,13 @@ from dcmri.kinetics.kidney import (
     conc_kidney_hfu,
     conc_kidney_cm9,
 )
-from dcmri.kinetics.aorta import ( # phase out
+from dcmri.kinetics.functions_aorta import ( 
     flux_aorta,
-    flux_aorta_hlo,
-    flux_aorta_hlol,
-    flux_aorta_hlok,
-    flux_aorta_hlokk,
 )
-from dcmri.kinetics.inv import (
+from dcmri.kinetics.functions_inv import (
     linfit_2cfm
 )
-from dcmri.kinetics.input import (
+from dcmri.kinetics.functions_input import (
     ca_injection
 )
 
@@ -221,6 +228,7 @@ from dcmri.inverse.sig2conc import (
     SignalToConc
 )
 from dcmri.inverse.lib import (
+    estimate_bat,
     conc_dce,
     conc_dsc,
     conc_ss,
