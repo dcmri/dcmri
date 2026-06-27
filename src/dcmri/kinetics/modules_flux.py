@@ -21,13 +21,14 @@ class Flux(Module):
         'block': 'comp',
     }
     def inputs(self):
+        # TODO: Better to change the functions to use the same parametrization T1, T2 vs T=[T1, T2] etc
         inputs = set(blocks.FLUX_PARAMETERS[self.config['block']])
         if self.config['block']=='plucom':
             inputs -= {'T'}
             inputs |= {'Tc', 'Tp'}
         elif self.config['block']=='2cxm':
             inputs -= {'T'}
-            inputs |= {'T1', 'T2'}
+            inputs |= {'T1', 'T2'} 
         return inputs
     
     def outputs(self):

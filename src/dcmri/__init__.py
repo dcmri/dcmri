@@ -73,7 +73,7 @@ from dcmri.kinetics.functions_blocks import (
     prop_free,
     prop_ncomp,
 
-    conc,
+    conc, # TODO: remove, replace by new module Conc()
     conc_trap,
     conc_pass,
     conc_comp,
@@ -87,7 +87,7 @@ from dcmri.kinetics.functions_blocks import (
     conc_mmcomp,
     conc_2cxm,
 
-    flux,
+    flux, # TODO: remove, replace by new module Flux()
     flux_trap,
     flux_pass,
     flux_comp,
