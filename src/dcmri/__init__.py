@@ -179,48 +179,48 @@ from dcmri.kinetics.functions_input import (
 
 # Function functions built on standalone tools
 
-from dcmri.relaxivity.tissue import (
+from dcmri.relaxivity.modules_tissue import (
     R1,
     R2,
     R2s,
     Relax,
 )
-from dcmri.relaxivity.tissue_x import (
+from dcmri.relaxivity.modules_tissue_x import (
    R1TissueX,
    R2TissueX,
    R2sTissueX,
    RelaxTissueX,
 )
-from dcmri.relaxivity.lib import (
+from dcmri.relaxivity.functions_relaxivity import (
    relax_t2s,
    relax_t2,
    relax_t1,
    conc_t1,
 )
 
-from dcmri.bloch.tissue import (
-    Longitudinal,
-    Readout,
-    Signal,
+from dcmri.bloch.modules_tissue import (
+    MzPrep,
+    MxyReadMz,
 )
-from dcmri.bloch.tissue_x import (
+from dcmri.bloch.modules_tissue_x import (
     MzTissueX,
     SignalTissueX,
 )
-from dcmri.bloch.pulse import (
+from dcmri.bloch.functions_pulse import (
    Mz_pr_spgr_ss,
    Mz_pr_spgr_prop,
    Mz_ss,
    Mz_prop,
    Mz_ss_spgr,
 )
-from dcmri.bloch.seqs import (
+from dcmri.bloch.functions_seqs import (
    Mz_spgr_in_ss,
    Mz_pr_spgr,
    Mz_pr_spgr_in_ss,
    Mz_ssi,
    Mz_se,
    mz_readout,
+   signal_readout,
    signal_rice,
 )
 

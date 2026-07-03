@@ -59,15 +59,15 @@ import matplotlib.pyplot as plt
 from joblib import Parallel, delayed
 from matplotlib.gridspec import GridSpec
 
-from dcmri.bloch.tissue import Signal
+from dcmri.signal.modules_tissue import Signal
 from dcmri.core.sequences import SEQUENCES  
 from dcmri.core.tools import string_params
 from dcmri.inverse.sig2conc import SignalToConc
 from dcmri.core.pixel_model import SuperPixelModel
 from dcmri.core.types import Input
 from dcmri.core.function import Function
-from dcmri.relaxivity.tissue import Relax
-from dcmri.bloch.tissue import Signal
+from dcmri.relaxivity.modules_tissue import Relax
+from dcmri.signal.modules_tissue import Signal
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import loss
 from dcmri.utils import convolution

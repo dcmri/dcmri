@@ -3,16 +3,27 @@ from scipy.linalg import expm
 from scipy.special import i0, i1
 
 
-from dcmri.bloch import pulse
+from dcmri.bloch import functions_pulse
 
 
-def mz_readout(Mz: np.ndarray, R2: np.ndarray, S0, FA, TE, noise_sdev):
+def mz_readout(Mz: np.ndarray, R2: np.ndarray, FA, TE):
     # Shapes for Mz, R2: (nc, nt)
     # Other parameters are scalar
-    # returns shape (nt,)
+    # returns shape (nc, nt,)
     sFA = np.sin(np.radians(FA))
     decay = np.exp(-TE * R2)
     Mxy = decay * sFA * Mz
+    return Mxy
+
+    # Mxy = np.sum(Mxy, axis=0) # sum over compartments
+    # signal = S0 * np.abs(Mxy)
+    # return signal_rice(signal, noise_sdev)
+
+
+def signal_readout(Mxy: np.ndarray, S0, noise_sdev):
+    # Shapes for Mxy: (2, nc, nt)
+    # Other parameters are scalar
+    # returns shape (nt,)
     Mxy = np.sum(Mxy, axis=0) # sum over compartments
     signal = S0 * np.abs(Mxy)
     return signal_rice(signal, noise_sdev)
@@ -57,7 +68,7 @@ def Mz_se(R1, v, Fw, j, me, TE, TR, FA):
         [180, TR - TE/2]
     ]
     def _Mz_se_t(R1_t, j_t):
-        return pulse.Mz_ss(R1_t, v, Fw, j_t, me, pulse_sequence)
+        return functions_pulse.Mz_ss(R1_t, v, Fw, j_t, me, pulse_sequence)
 
     nc, nt = R1.shape
     M = [_Mz_se_t(R1[:,k].T, j[:,k].T) for k in range(nt)]
@@ -72,7 +83,7 @@ def Mz_spgr_in_ss(R1, v, Fw, j, me, TR, FA) -> np.ndarray:
     
     nc, nt = R1.shape
 
-    M = [pulse.Mz_ss_spgr(R1[:,t], v, Fw, j[:,t], me, TR, FA) for t in range(nt)]
+    M = [functions_pulse.Mz_ss_spgr(R1[:,t], v, Fw, j[:,t], me, TR, FA) for t in range(nt)]
     return np.array(M).T.reshape(nc, nt)
 
 
@@ -93,7 +104,7 @@ def Mz_pr_spgr(R1, v, Fw, j, me, TC, TR, FA, TP, TA, PA):
 
     M = []
     for k in range(nt):
-        M_sig, Mt = pulse.Mz_pr_spgr_prop(Mt, R1[:,k].T, v, Fw, j[:,k].T, *args)
+        M_sig, Mt = functions_pulse.Mz_pr_spgr_prop(Mt, R1[:,k].T, v, Fw, j[:,k].T, *args)
         M.append(M_sig)
     
     return np.array(M).T.reshape(nc, nt)
@@ -107,8 +118,8 @@ def Mz_pr_spgr_in_ss(R1, v, Fw, j, me, TC, TR, FA, TP, TA, PA):
     """
     args = (me, PA, TP, TC, TR, FA, TA)
     def _Mz_pr_spgr_in_ss_t(R1_t, j_t):
-        Mss_t = pulse.Mz_pr_spgr_ss(R1_t, v, Fw, j_t, *args)
-        M_sig, _ = pulse.Mz_pr_spgr_prop(Mss_t, R1_t, v, Fw, j_t, *args)
+        Mss_t = functions_pulse.Mz_pr_spgr_ss(R1_t, v, Fw, j_t, *args)
+        M_sig, _ = functions_pulse.Mz_pr_spgr_prop(Mss_t, R1_t, v, Fw, j_t, *args)
         return M_sig
     
     nc, nt = R1.shape
@@ -134,8 +145,8 @@ def Mz_ssi(R1, v, Fw, j, me, TR, FA, TF, SA):
     M0 = cSA * v * me
 
     def _Mz_ssi_prop(R1_t, j_t):
-        K_t = pulse.Mz_K(R1_t, v, Fw)
-        Mss_t = pulse.Mz_ss_spgr(R1_t, v, Fw, j_t, me, TR, FA)
+        K_t = functions_pulse.Mz_K(R1_t, v, Fw)
+        Mss_t = functions_pulse.Mz_ss_spgr(R1_t, v, Fw, j_t, me, TR, FA)
         # FA-pulses until time TF to get the Mz before readout
         if nc==1:
             En_t = np.exp(-TF * K_t)

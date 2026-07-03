@@ -5,7 +5,7 @@ import numpy as np
 from dcmri.core.sequences import SEQUENCES
 import dcmri.inverse.lib as solve
 from dcmri.core.function import Function
-from dcmri.bloch.tissue import Signal
+from dcmri.signal.modules_tissue import Signal
 
 
 invertible_seqs = [s for s, v in SEQUENCES.items() if v['steady-state']]

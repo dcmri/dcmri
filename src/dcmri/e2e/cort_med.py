@@ -53,7 +53,7 @@ from dcmri.core.types import Input
 from dcmri.utils import const
 from dcmri.core.sequences import SEQUENCES
 from dcmri.kinetics.modules_conc import ConcCortMed
-from dcmri.bloch.tissue import Signal
+from dcmri.signal.modules_tissue import Signal
 from dcmri.inverse.sig2conc import SignalToConc
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss

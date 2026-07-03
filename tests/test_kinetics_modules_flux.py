@@ -8,7 +8,7 @@ def test_flux():
     def _test_config(cnfg):
         cnfg = {k: cnfg[i] for i, k in enumerate(dc.Flux.configs.keys())}
         try:
-           flux = dc.Flux(cnfg)
+           flux = dc.Flux(**cnfg)
         except ValueError:
             return
         data = {k: 1 for k in flux.inputs()}
@@ -34,7 +34,7 @@ def test_flux_tissue_x():
     def _test_config(cnfg):
         cnfg = {k: cnfg[i] for i, k in enumerate(dc.FluxTissueX.configs.keys())}
         try:
-           flux = dc.FluxTissueX(cnfg)
+           flux = dc.FluxTissueX(**cnfg)
         except ValueError:
             return
         data = {k: dc.QVALUES[k] for k in flux.inputs()}
@@ -52,7 +52,7 @@ def test_flux_injection():
     def _test_config(cnfg):
         cnfg = {k: cnfg[i] for i, k in enumerate(dc.FluxInjection.configs.keys())}
         try:
-           flux = dc.FluxInjection(cnfg)
+           flux = dc.FluxInjection(**cnfg)
         except ValueError:
             return
         data = {k: dc.QVALUES[k] for k in flux.mapped_inputs()}
@@ -69,7 +69,7 @@ def test_flux_aorta():
     def _test_config(cnfg):
         cnfg = {k: cnfg[i] for i, k in enumerate(dc.FluxAorta.configs.keys())}
         try:
-           flux = dc.FluxAorta(cnfg)
+           flux = dc.FluxAorta(**cnfg)
         except ValueError:
             return
         

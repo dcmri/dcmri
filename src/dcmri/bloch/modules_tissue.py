@@ -128,57 +128,151 @@ Example:
     >>> plt.show()      
 
 """
-from copy import deepcopy
-
 import numpy as np
 
-from dcmri.core.function import Function
+from dcmri.core.module import Module
 from dcmri.core.sequences import SEQUENCES
-from dcmri.bloch import seqs
+from dcmri.bloch import functions_seqs
 
 
 # TODO: For some ss sequences there is some duplication with K, J and KinvJ computed multiple times
 # This needs rationalising
 
 
-class Longitudinal(Function):
+class MxyReadMz(Module): 
     configs = {
-        'sequence': deepcopy(list(SEQUENCES.keys())),
-        'inflow': [False, True],
+        'sequence': set(SEQUENCES.keys()),
     }
-    def __init__(self, sequence='SPGR-SS', inflow=False, defaults=None, **params):
-        cnfg = {
-            'sequence': sequence,
-            'inflow': inflow,
-        }
-        self._set_config(cnfg)
-        self._set_params(defaults) 
-
-    def params(self):
-        seq = self._cnfg['sequence']
-        # Sequence parameters
-        pars = deepcopy(SEQUENCES[seq]['parameters']['prep'])
+    defaults = {
+        'sequence': '3D-SPGR-SS'
+    }    
+    def inputs(self):
+        params = SEQUENCES[self.config['sequence']]['parameters']
         # Tissue parameters
-        pars += ['v', 'Fw', 'me']
-        if SEQUENCES[seq]['mz_prep_tissue'] != 'Eq':
-            pars += ['R1']
-        if self._cnfg['inflow']:
-            if SEQUENCES[seq]['mz_prep_inflow'] != 'Eq':
-                pars += ['Fi', 'R1i']
-        pars = list(set(pars))
-        pars.sort()
-        return pars
+        weighting = params['tissue']
+        # Sequence parameters
+        inputs = {'Mz'} # shape (nc, n_times) or (nc, ) or scalar
+        inputs |= set(params['read'])
+        if 'R2s' in weighting:
+            inputs |= {'R2s'}
+        if 'R2' in weighting:
+            inputs |= {'R2'}
+        return inputs
     
-    def __call__(self, **params):
-        p = self._update_params(params)
-        sequence = self._cnfg['sequence']
+    def outputs(self):
+        return {'Mxy'} # (2, nc, n_times) or (2, nc, )
+
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data, kwargs)
+        seq = self.config['sequence']
+
+        # # Check that required parameters are provided
+        # if 'R2s' in p:
+        #     if p['R2s'] is None:
+        #         raise ValueError("R2* must be provided for a T2*-weighted sequence.")
+        # if 'R2' in p:
+        #     if p['R2'] is None:
+        #         raise ValueError("R2 must be provided for a T2-weighted sequence.")
+
+        # Possible shapes for Mz are scalar, (ncomps, ) or (ncomps, nt)
+        # R2 and R2s must match Mz in size but not shape
+        # All other parameters are scalars
+
+        # Result is returned in shape (2, n_times) or (2,)
+
+        # --- Convert input shapes to standard format (ntimes, )
+        input_shape = np.shape(p['Mz'])
+        Mz = np.atleast_1d(p['Mz']) # shape (nt, ) or (nc, nt)
+        if Mz.ndim==1: # 1D is interpreted as (nc, ) - i.e. NOT (nt, )
+            nc, nt = Mz.size, 1
+            Mz = Mz.reshape(nc, nt)
+        else:
+            nc, nt = Mz.shape
+
+        if 'R2s' in self._inputs:
+            R2s = np.atleast_1d(p['R2s'])
+            if R2s.size == nt:
+                R2s = np.stack([R2s] * nc, axis=0)
+            if R2s.size != nc * nt:
+                raise ValueError(f"Size of R2* ({R2s.size}) does not match dimensions ({nc}, {nt}) of Mz.")
+            R2s = R2s.reshape(nc, nt)
+
+        if 'R2' in self._inputs:
+            R2 = np.atleast_1d(p['R2'])
+            if R2.size == nt:
+                R2 = np.stack([R2] * nc, axis=0)
+            if R2.size != nc * nt:
+                raise ValueError(f"Size of R2 ({R2.size}) does not match dimensions ({nc}, {nt}) of Mz.")
+            R2 = R2.reshape(nc, nt)
+
+        FA = p['FA'] * p['B1corr']
+
+        if seq in ['Eq-SE-EPI', 'SE-EPI']:
+            Mxy = functions_seqs.mz_readout(Mz, R2, FA, p['TE'])
+        
+        elif seq in ['Eq-DE-EPI', 'DE-EPI']:
+            # if np.size(R2) != np.size(R2s):
+            #     raise ValueError('R2 and R2s must have the same size.')
+            MxyGE = functions_seqs.mz_readout(Mz, R2s, FA, p['TE1'])
+            MxySE = functions_seqs.mz_readout(Mz, R2, FA, p['TE2'])
+            Mxy = np.stack((MxyGE, MxySE)) # 2 (channels), 2 (components), nc (compartments), nt (times)
+
+        elif seq in ['ZTE-3D-SPGR-SS', 'ZTE-3D-IR-SPGR-SS']:
+            Mxy = functions_seqs.mz_readout(Mz, np.zeros_like(Mz), FA, 0)
+        
+        else:
+            Mxy = functions_seqs.mz_readout(Mz, R2s, FA, p['TE'])
+
+        # Mxy dimensions (2, nc, nt) or (2, 2, nc, nt)
+
+        # input shape (nc, n_times) or (nc, ) or scalar
+
+        # If the input is scalar
+        if input_shape == ():
+            Mxy = Mxy[..., 0, 0]
+
+        elif len(input_shape)==1:
+            Mxy = Mxy[..., 0, 0]
+
+        return {'Mxy': Mxy}  
+
+
+
+class MzPrep(Module): # For sequences that have NO T2 or T2* weighting
+    configs = {
+        'sequence': set(SEQUENCES.keys()),
+        'inflow': {False, True},
+    }
+    defaults = {
+        'sequence': 'SPGR-SS',
+        'inflow': False,
+    }
+    def inputs(self):
+        seq = self.config['sequence']
+        # Sequence parameters
+        inputs = set(SEQUENCES[seq]['parameters']['prep'])
+        # Tissue parameters
+        inputs |= {'v', 'Fw', 'me'}
+        if SEQUENCES[seq]['mz_prep_tissue'] != 'Eq':
+            inputs |= {'R1'}
+        if self.config['inflow']:
+            if SEQUENCES[seq]['mz_prep_inflow'] != 'Eq':
+                inputs |= {'Fi', 'R1i'}
+        return inputs
+    
+    def outputs(self):
+        return {'Mz'}
+    
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data, kwargs)
+        sequence = self.config['sequence']
 
         # --- Format vw
         v = np.atleast_1d(p['v'])
         nc = v.size # -- The number of compartments is decided by the size of v
 
         # If the sequence does not have T1-weighting, return scalar equilibrium
-        if 'R1' not in self.params():
+        if 'R1' not in self.inputs():
             return np.full(nc, p['me'])
 
         # Possible input shapes for R1:
@@ -218,7 +312,7 @@ class Longitudinal(Function):
 
         # Inflow of magnetization
         j = None
-        if self._cnfg['inflow']:
+        if self.config['inflow']:
             if 'R1i' not in p: # inflow at equilibrium
                 j = np.full_like(R1, p['me'])
             elif np.size(p['R1i']) != nc * nt:
@@ -243,199 +337,24 @@ class Longitudinal(Function):
 
         # Return result must one of the input shapes for Readout: scalar, (nc, ) or (nc, nt)
         if input_shape == ():  #scalar, 1D (nt), 1D (nc), 2D (nc, nt)
-            return Mz[0,0] #input scalar, return scalar
+            Mz = Mz[0,0] #input scalar, return scalar
         elif np.size(input_shape)==1:
             if nc==1: # input 1D (nt)
-                return Mz # return (1, nt)
+                pass # return (1, nt)
             else: # input 1D (nc)
-                return Mz[:,0] # return (nc, )
+                Mz = Mz[:,0] # return (nc, )
         else: # input 2D (nc, nt)
-            return Mz # output 2D (nc, nt)
+            pass # output 2D (nc, nt)
+
+        return {'Mz': Mz}
         
-
-
-
-class Readout(Function): 
-    configs = {'sequence': deepcopy(list(SEQUENCES.keys()))}
-    
-    def __init__(self, sequence='3D-SPGR-SS', defaults=None, **params):
-        cnfg = {
-            'sequence': sequence
-        }
-        self._set_config(cnfg)
-        self._set_params(defaults)
-    
-    def params(self):
-        seq = self._cnfg['sequence']
-        # Sequence parameters
-        pars = SEQUENCES[seq]['parameters']['read']
-        # Tissue parameters
-        weighting = SEQUENCES[seq]['parameters']['tissue']
-        if 'R2s' in weighting:
-            pars += ['R2s']
-        if 'R2' in weighting:
-            pars += ['R2']
-        pars.sort()
-        return deepcopy(pars)
-
-    def __call__(self, Mz, **params) -> np.ndarray: # (n_channels, n_times) or (n_times)
-        p = self._update_params(params)
-        seq = self._cnfg['sequence']
-
-        # # Check that required parameters are provided
-        # if 'R2s' in p:
-        #     if p['R2s'] is None:
-        #         raise ValueError("R2* must be provided for a T2*-weighted sequence.")
-        # if 'R2' in p:
-        #     if p['R2'] is None:
-        #         raise ValueError("R2 must be provided for a T2-weighted sequence.")
-
-        # Possible shapes for Mz are scalar, (ncomps, ) or (ncomps, nt)
-        # R2 and R2s must match Mz in size but not shape
-        # All other parameters are scalars
-
-        # Result is returned in shape (n_channels, n_times) or (n_times) or (n_channels) or scalar
-
-        # --- Convert input shapes to standard format (ncomps, ntimes)
-        input_shape = np.shape(Mz)
-        Mz = np.atleast_1d(Mz)
-        if Mz.ndim==1:
-            nc, nt = Mz.size, 1
-            Mz = Mz.reshape(nc, nt)
-        else:
-            nc, nt = Mz.shape
-
-        if 'R2s' in self.params():
-            R2s = np.atleast_1d(p['R2s'])
-            if R2s.size == nt:
-                R2s = np.stack([R2s] * nc, axis=0)
-            if R2s.size != nc * nt:
-                raise ValueError(f"Size of R2* ({R2s.size}) does not match dimensions ({nc}, {nt}) of Mz.")
-            R2s = R2s.reshape(nc, nt)
-
-        if 'R2' in self.params():
-            R2 = np.atleast_1d(p['R2'])
-            if R2.size == nt:
-                R2 = np.stack([R2] * nc, axis=0)
-            if R2.size != nc * nt:
-                raise ValueError(f"Size of R2 ({R2.size}) does not match dimensions ({nc}, {nt}) of Mz.")
-            R2 = R2.reshape(nc, nt)
-
-        if seq in ['Eq-SE-EPI', 'SE-EPI']:
-            signal = seqs.mz_readout(Mz, R2, p['S0'], p['FA'] * p['B1corr'], p['TE'], p['noise_sdev'])
-            signal = signal.reshape(1, -1)
-        
-        elif seq in ['Eq-DE-EPI', 'DE-EPI']:
-            # if np.size(R2) != np.size(R2s):
-            #     raise ValueError('R2 and R2s must have the same size.')
-            GE = seqs.mz_readout(Mz, R2s, p['S0'], p['FA'] * p['B1corr'], p['TE1'], p['noise_sdev'])
-            SE = seqs.mz_readout(Mz, R2, p['S0'], p['FA'] * p['B1corr'], p['TE2'], p['noise_sdev'])
-            signal = np.stack((GE, SE)) # n_channels, n_times
-
-        elif seq in ['ZTE-3D-SPGR-SS', 'ZTE-3D-IR-SPGR-SS']:
-            signal = seqs.mz_readout(Mz, np.zeros_like(Mz), p['S0'], p['FA'] * p['B1corr'], 0, p['noise_sdev'])
-            signal = signal.reshape(1, -1)
-        
-        else:
-            signal = seqs.mz_readout(Mz, R2s, p['S0'], p['FA'] * p['B1corr'], p['TE'], p['noise_sdev'])
-            signal = signal.reshape(1, -1)
-
-        # signal dimensions (n_channels, n_times)
-
-        # If the input is scalar, return scalar or (n_channels)
-        if input_shape == ():
-            if signal.shape[0] == 1:
-                return signal[0,0]
-            return signal[:,0]
-        
-        # If the input is array, return array
-        
-        # If n_channels=1, return shape (n_times,)
-        if signal.shape[0] == 1:
-            return signal[0,:]
-        
-        # return (n_channels, n_times)
-        return signal
- 
-
-
-class Signal(Function):
-    configs = {
-        'sequence': list(SEQUENCES.keys()),
-        'inflow': [False, True],
-        'calibrate': [False, True],
-    }
-    def __init__(self, 
-            sequence='3D-SPGR-SS', 
-            inflow=False, 
-            calibrate=False,
-            defaults=None, 
-            **params,
-        ):
-        cnfg = {
-            'sequence': sequence,
-            'inflow': inflow,
-            'calibrate': calibrate,
-        }
-        self._set_config(cnfg)
-        self._set_params(defaults) 
-    
-    def params(self):
-        pars = Longitudinal(**self._cnfg).params()
-        pars += Readout(**self._cnfg).params()
-        derived = []
-        if self._cnfg['calibrate']:
-            pars += ['Sb']
-            derived += ['S0']
-        pars = {p for p in pars if p not in derived}
-        return list(pars)
-    
-    def __call__(self, **params): 
-        p = self._update_params(params)
-
-        if self._cnfg['calibrate']:
-            multichannel = self._cnfg['sequence'] in ['Eq-DE-EPI', 'DE-EPI'] # TODO: All signals multichannel? Or have property in SEQUENCE?
-
-            # Baseline values
-            baseline = {'S0': 1}
-            for R in {'R1', 'R2', 'R2s'}:
-                if R in p:
-                    Rb = p[R] if np.isscalar(p[R]) else p[R][0]
-
-                    # The baseline signal is not always a scalar constant (non steady state sequences)
-                    # Extend into (nt,) array if p["Sb"] is (nc, nt) (multichannel) or (nt, ) (single channel)
-                    if multichannel:
-                        if p['Sb'].ndim == 2:
-                            Rb = np.full(p['Sb'].shape[1], Rb)
-                    else:
-                        if not np.isscalar(p['Sb']):
-                            Rb = np.full(p['Sb'].shape[0], Rb)
-                    baseline[R] = Rb
-
-            # Derive S0
-            s_cal = _signal(self._cnfg, p | baseline)
-            p['S0'] = np.mean(np.where(s_cal > 0, p["Sb"] / s_cal, 0.0))
-
-        return _signal(self._cnfg, p)
-    
-
-def _signal(cnfg, pars):
-    if 'R1' in pars:
-        Mz_arr = Longitudinal(**cnfg, defaults=pars)()
-    elif 'R2' in pars:
-        Mz_arr = np.full_like(pars['R2'], pars['me']).reshape(1, -1)
-    elif 'R2s' in pars:
-        Mz_arr = np.full_like(pars['R2s'], pars['me']).reshape(1, -1)
-    return Readout(**cnfg, defaults=pars)(Mz_arr)
-    
-
 
 
 
 def _Mz(mz_prep_sequence, R1:np.ndarray, v, Fw, j, p):
     if j is None:
         j = np.zeros_like(R1) # wasteful. Catch j=None in lib.functions
-    # All library functions require shape (nc, nt)
+    # All library functions require shape (nc, nt) TODO: Apply this to all modules
     R1 = R1.reshape(-1, R1.shape[-1])
     j = j.reshape(R1.shape)
     me = p['me']
@@ -443,30 +362,30 @@ def _Mz(mz_prep_sequence, R1:np.ndarray, v, Fw, j, p):
     # if mz_prep_sequence == 'Eq': 
     #     return np.full_like(R1, me)
     if mz_prep_sequence == 'IR-SS':
-        return seqs.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TA'], 180)
+        return functions_seqs.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TA'], 180)
     if mz_prep_sequence == 'SR-SS':
-        return seqs.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TA'], 90)
+        return functions_seqs.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TA'], 90)
     if mz_prep_sequence == 'PR-SS':
-        return seqs.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TA'], p['PA'])
+        return functions_seqs.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TA'], p['PA'])
     if mz_prep_sequence == 'SPGR':
-        return seqs.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], 0, p['TA'], 0) 
+        return functions_seqs.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], 0, p['TA'], 0) 
     if mz_prep_sequence == 'SR-SPGR':
-        return seqs.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 90) 
+        return functions_seqs.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 90) 
     if mz_prep_sequence == 'IR-SPGR':
-        return seqs.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 180) 
+        return functions_seqs.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 180) 
     if mz_prep_sequence == 'PR-SPGR':
-        return seqs.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], p['PA'])
+        return functions_seqs.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], p['PA'])
     if mz_prep_sequence == 'SPGR-SS':
-        return seqs.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TR'], p['FA'] * p['B1corr'])
+        return functions_seqs.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TR'], p['FA'] * p['B1corr'])
     if mz_prep_sequence == 'SR-SPGR-SS':
-        return seqs.Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 90) 
+        return functions_seqs.Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 90) 
     if mz_prep_sequence == 'IR-SPGR-SS':
-        return seqs.Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 180)
+        return functions_seqs.Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 180)
     if mz_prep_sequence == 'PR-SPGR-SS':
-        return seqs.Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], p['PA']) 
+        return functions_seqs.Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], p['PA']) 
     if mz_prep_sequence == 'SSI':
-        return seqs.Mz_ssi(R1, v, Fw, j, me, p['TR'], p['FA'] * p['B1corr'], p['TF'], p['SA'])
+        return functions_seqs.Mz_ssi(R1, v, Fw, j, me, p['TR'], p['FA'] * p['B1corr'], p['TF'], p['SA'])
     if mz_prep_sequence == 'SE-SS':
-        return seqs.Mz_se(R1, v, Fw, j, me, p['TE'], p['TR'], p['FA'] * p['B1corr'])
+        return functions_seqs.Mz_se(R1, v, Fw, j, me, p['TE'], p['TR'], p['FA'] * p['B1corr'])
     if mz_prep_sequence == 'DE-SS':
-        return seqs.Mz_se(R1, v, Fw, j, me, p['TE2'], p['TR'], p['FA'] * p['B1corr'])
+        return functions_seqs.Mz_se(R1, v, Fw, j, me, p['TE2'], p['TR'], p['FA'] * p['B1corr'])

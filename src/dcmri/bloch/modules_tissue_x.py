@@ -362,54 +362,51 @@ Returns:
 from copy import deepcopy
 import numpy as np
 
-from dcmri.bloch.tissue import Longitudinal, Readout
-from dcmri.core.function import Function
+from dcmri.bloch.modules_tissue import MzPrep, MxyReadMz
+from dcmri.core.module import Module
 from dcmri.core.sequences import SEQUENCES
 
 
-class MzTissueX(Function):
+class MzPrepTissueX(Module):
     configs = {
-        'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'],
-        'water_exchange': ['FF','RF','NF','FR','RR','NR','FN','RN','NN'],
-        'sequence': list(SEQUENCES.keys()),
-        'inflow': [False, True],
+        'kinetics': {'2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'},
+        'water_exchange': {'FF','RF','NF','FR','RR','NR','FN','RN','NN'},
+        'sequence': set(SEQUENCES.keys()),
+        'inflow': {False, True},
     }
-    def __init__(
-        self, 
-        kinetics='2CX', 
-        water_exchange='FF', 
-        sequence='3D-SPGR-SS', 
-        inflow=False,
-        defaults=None,
-        **params,
-    ):
-        cnfg = {
-            'kinetics': kinetics, 
-            'water_exchange': water_exchange, 
-            'sequence': sequence,
-            'inflow': inflow,
-        }
-        self._set_config(cnfg)
-        self._set_params(defaults)
+    defaults = {
+        'kinetics': '2CX', 
+        'water_exchange': 'FF', 
+        'sequence': '3D-SPGR-SS',
+        'inflow': False,
+    }
+    def __init__(self, imap:dict=None, **config):
+        self.set_config(config)
+        self._water_vol = WaterVolumesTissueX(**self.config)
+        self._water_flow = WaterFlowsTissueX(**self.config)
+        self._mz_prep = MzPrep(**self.config)
+        self.map_inputs(imap)
 
-    def params(self) -> dict:
-        pars = WaterVolumesTissueX(**self._cnfg).params()
-        pars += WaterFlowsTissueX(**self._cnfg).params()
-        pars += Longitudinal(**self._cnfg).params()
+    def inputs(self) -> set:
+        inputs = self._water_vol.mapped_inputs()
+        inputs |= self._water_flow.mapped_inputs()
+        inputs |= self._mz_prep.mapped_inputs()
 
-        if 'R1' not in pars:
-            return WaterVolumesTissueX(**self._cnfg).params() + ['me']
+        if 'R1' not in inputs: # ???
+            return self._water_vol.mapped_inputs() + ['me']
         
-        if self._cnfg['inflow']:
-            pars += ['R1', 'R1a', 'Fb']
+        if self.config['inflow']:
+            inputs += {'R1', 'R1a', 'Fb'}
+            inputs -= {'R1i', 'Fi'}
 
-        derived = ['v', 'R1i', 'Fi', 'Fw']
-        pars = {p for p in pars if p not in derived}
+        inputs -= {'v', 'Fw'}
+        return inputs
+    
+    def outputs(self):
+        return {'Mz'}
 
-        return list(pars)
-
-    def __call__(self, **params) -> np.ndarray:
-        p = self._update_params(params)
+    def __call__(self, data: dict=None, **kwargs):
+        p = self.map_data(data, kwargs)
 
         # # Check that required parameters are provided
         # weighting = SEQUENCES[seq]['parameters']['tissue']
@@ -418,83 +415,79 @@ class MzTissueX(Function):
         #         raise ValueError("R1 must be provided for a T1*-weighted sequence.")
 
         # Compartment volumes
-        p['v'] = WaterVolumesTissueX(**self._cnfg, defaults=p)()
+        p['v'] = self._water_vol(p)['v']
         
         # If the sequence does not have T1-weighting, return equilibrium
         if 'R1' not in p:
             return np.full_like(p['v'].size, p['me'])
 
         # Inlet flow and relaxation rates
-        if self._cnfg['inflow']:
+        if self.config['inflow']:
             p['R1i'] = np.zeros_like(p['R1'])
             p['R1i'][0,:] = p['R1a']
             p['Fi'] = np.zeros(p['R1'].shape[0])
             p['Fi'][0] = p['Fb']
 
         # Compartment flows
-        p['Fw'] = WaterFlowsTissueX(**self._cnfg, defaults=p)()
+        p['Fw'] = self._water_flow(p)['Fw']
 
-        return Longitudinal(**self._cnfg, defaults=p)()
+        return self._mz_prep(p)
 
 
-class SignalTissueX(Function):
-    configs = {
-        'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'],
-        'water_exchange': ['FF','RF','NF','FR','RR','NR','FN','RN','NN'],
-        'sequence': list(SEQUENCES.keys()),
-        'inflow': [False, True],
-    }
+# class MxyReadMzTissueX(Module):
+#     configs = {
+#         'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'],
+#         'water_exchange': ['FF','RF','NF','FR','RR','NR','FN','RN','NN'],
+#         'sequence': list(SEQUENCES.keys()),
+#         'inflow': [False, True],
+#     }
 
-    def __init__(self, 
-        kinetics='2CX', 
-        water_exchange='FF', 
-        sequence='3D-SPGR-SS', 
-        inflow=False,
-        defaults=None,
-        **params,
-    ):
-        cnfg = {
-            'kinetics': kinetics, 
-            'water_exchange': water_exchange, 
-            'sequence': sequence, 
-            'inflow': inflow,
-        }
-        self._set_config(cnfg)
-        self._set_params(defaults)
+#     def __init__(self, 
+#         kinetics='2CX', 
+#         water_exchange='FF', 
+#         sequence='3D-SPGR-SS', 
+#         inflow=False,
+#         defaults=None,
+#         **params,
+#     ):
+#         cnfg = {
+#             'kinetics': kinetics, 
+#             'water_exchange': water_exchange, 
+#             'sequence': sequence, 
+#             'inflow': inflow,
+#         }
+#         self._set_config(cnfg)
+#         self._set_params(defaults)
 
-    def params(self):
-        pars = MzTissueX(**self._cnfg).params()
-        pars += Readout(**self._cnfg).params()
-        return list(set(pars))
+#     def params(self):
+#         pars = MzPrepTissueX(**self._cnfg).params()
+#         pars += MxyReadMz(**self._cnfg).params()
+#         return list(set(pars))
 
-    def __call__(self, **params):
-        p = self._update_params(params)
+#     def __call__(self, **params):
+#         p = self._update_params(params)
 
-        if 'R1' in p:
-            Mz_arr = MzTissueX(**self._cnfg, defaults=p)()
-        elif 'R2' in p:
-            Mz_arr = np.full(np.shape(p['R2']), p['me'], dtype=float)
-        elif 'R2s' in p:
-            Mz_arr = np.full(np.shape(p['R2s']), p['me'], dtype=float).reshape(1, -1)
+#         if 'R1' in p:
+#             Mz_arr = MzPrepTissueX(**self._cnfg, defaults=p)()
+#         elif 'R2' in p:
+#             Mz_arr = np.full(np.shape(p['R2']), p['me'], dtype=float)
+#         elif 'R2s' in p:
+#             Mz_arr = np.full(np.shape(p['R2s']), p['me'], dtype=float).reshape(1, -1)
         
-        # Signal
-        return Readout(**self._cnfg)(Mz_arr, **p)
+#         # Signal
+#         return MxyReadMz(**self._cnfg)(Mz_arr, **p)
     
 
 
-class WaterVolumesTissueX(Function):
+class WaterVolumesTissueX(Module):
     configs = {
-        'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'],
-        'water_exchange': ['FF','RF','NF','FR','RR','NR','FN','RN','NN'],
+        'kinetics': {'2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'},
+        'water_exchange': {'FF','RF','NF','FR','RR','NR','FN','RN','NN'},
     }
-    def __init__(self, kinetics='2CX', water_exchange='FF', defaults=None, **params):
-        cnfg = {
-            'kinetics': kinetics, 
-            'water_exchange': water_exchange,
-        }
-        self._set_config(cnfg)
-        self._set_params(defaults)
-
+    defaults = {
+        'kinetics': '2CX',
+        'water_exchange': 'FF',
+    }
     def params(self):
         geom = {
             ('2CX', 'FF'): [],
@@ -592,7 +585,7 @@ class WaterVolumesTissueX(Function):
         if (kin, wex) == ('FX', 'RR'): return np.array([p['vb'], p['vi'], p['vc']])
 
 
-class WaterFlowsTissueX(Function):
+class WaterFlowsTissueX(Module):
     configs = {
         'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'],
         'water_exchange': ['FF','RF','NF','FR','RR','NR','FN','RN','NN'],

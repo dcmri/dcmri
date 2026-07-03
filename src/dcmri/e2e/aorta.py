@@ -82,6 +82,7 @@ from typing import Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 
+from dcmri.core.module import Module
 from dcmri.core.roi_model import SuperRoiModel
 from dcmri.core.quantities import QVALUES
 from dcmri.core.sequences import SEQUENCES
@@ -90,126 +91,90 @@ from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
 from dcmri.inverse.lib import estimate_bat
 from dcmri.kinetics.modules_conc import ConcAorta
-from dcmri.relaxivity.tissue import Relax
-from dcmri.bloch.tissue import Signal
+from dcmri.relaxivity.modules_tissue import Relax
+from dcmri.signal.modules_tissue import Signal
 
 
-class Aorta(SuperRoiModel):
-    """Whole-body model for the aorta signal.
 
-    This model uses a whole-body pharmacokinetic architecture to predict the 
-    MRI signal in the aorta by modeling the injection, heart-lung transit, 
-    and systemic circulation.
-
-    Args:
-        heartlung (str, optional): Model for the heart-lung system. 
-        organs (str, optional): Model for the systemic organs. 
-        sequence (str, optional): Imaging sequence.
-        **params: override parameter defaults
-    """
+class SignalAorta(Module):
+    """Whole-body model for the aorta signal."""
     configs = {
         'heartlung': ConcAorta.configs['heartlung'],
         'organs': ConcAorta.configs['organs'],
         'sequence': Signal.configs['sequence'],
     }
-    def __init__(
-        self, 
-        heartlung='pfcomp',
-        organs='comp',
-        sequence='3D-SPGR-SS',
-        **params,
-    ):
-        cnfg = {
-            'heartlung': heartlung, 
-            'organs': organs, 
-            'sequence': sequence, 
-        }
+    defaults = {
+        'heartlung': 'pfcomp', 
+        'organs': 'comp', 
+        'sequence': '3D-SPGR-SS', 
+    }
+    def __init__(self, config:dict=None, imap:dict=None):
+        self.set_config(config)
+        props = set(SEQUENCES[self.config['sequence']]['parameters']['tissue'])
+
+        self._conc_aorta = ConcAorta(config)
+        self._relax_rate = Relax(
+            config = self.config | {'tissue_props': props}, 
+            imap = {'R1b': 'R1b_a', 'R2b': 'R2b_a', 'R2sb': 'R2sb_a', 'c': 'C'},
+        )
+        self._signal = Signal(
+            config = self.config | {'calibrate': True},
+            imap = {'Sb': 'Sb_a', 'B1corr': 'B1corr_a'},
+        )
+        self.map_inputs(imap)
+
+    def inputs(self, group=None) -> set:
+        if group == 'phys':
+            inputs = self._conc_aorta.inputs()
+
+        inputs = {'field_strength', 'agent'}
+        inputs |= self._conc_aorta.inputs()
+        inputs |= self._relax_rate.inputs()
+        inputs |= self._signal.inputs()   
+        return inputs
+    
+    def outputs(self):
+        outputs = self._conc_aorta.outputs()
+        outputs |= self._relax_rate.outputs()
+        outputs |= self._signal.outputs()
+        return outputs
+
+    def __call__(self, data: dict) -> dict:
+        p = self.map_data(data)
+        p |= const.relaxivity(p['field_strength'], 'blood', p['agent'])
+
+        conc = self._conc_aorta(p)
+        relax = self._relax_rate(p | conc)
+        signal = self._signal(p | relax)
+        return signal | relax | conc
+
+
+class Aorta(SuperRoiModel):
+    """Whole-body model for the aorta signal.
+    """
+
+    def __init__(self, config: dict=None, data: dict=None):
         self._version = '1.0'
-        self._set_config(cnfg)
-        self._set_params(QVALUES | params)
+        self._signal_model = SignalAorta(config)
+        self._set_params(QVALUES | data)
 
         # Set multi-channel baseline if not done by the user
-        if sequence in ['Eq-DE-EPI', 'DE-EPI']:
-            if 'Sb_a' not in params:
+        if self._signal_model.config['sequence'] in ['Eq-DE-EPI', 'DE-EPI']:
+            if 'Sb_a' not in data:
                 self._pars['Sb_a'] = np.full(2, self._pars['Sb_a'])
 
-    # ==========================================
-    # Backend
-    # ==========================================
-
-    # Helper function
-    def _tissue_props(self):
-        return set(SEQUENCES[self._cnfg['sequence']]['parameters']['tissue'])
-
-    # ==========================================
-    # Model Parameters
-    # ==========================================
-
-    def _params(self, select=None):
-        props = self._tissue_props()
-        pars = []
-        if select is None:
-            # Explicit parameters
-            pars = [
-                'field_strength', 'agent', 'tmax', 'dt', 'TS',
-                'R1b_a', 'R2b_a', 'R2sb_a', 
-                'Sb_a', 'B1corr_a', 
-            ]
-            # Implicit parameters
-            pars += ConcAorta(**self._cnfg).params() 
-            pars += Relax(tissue_props=props, **self._cnfg).params()
-            pars += Signal(calibrate=True, **self._cnfg).params()
-            
-        if select == 'free':
-            pars += ConcAorta(**self._cnfg).params('free')  
-
-        derived = [
-            'c', 
-            'r1', 'r2', 'r2s', 'R1b', 'R2b', 'R2sb', 
-            'R1', 'R2', 'R2s', 'Sb', 'B1corr',
-            ]
-        pars = {p for p in pars if p not in derived}
-        return list(pars) 
-
-    # ==========================================
-    # Forward Model
-    # ==========================================
-
-    def _compute_conc(self) -> np.ndarray:
-        p = self._pars
-        self._C = ConcAorta(**self._cnfg, defaults=p)()
-
-    def _compute_relax(self):
-        self._compute_conc()
-        p = self._pars
-        props = self._tissue_props()
-        relaxivity = const.relaxivity(p['field_strength'], 'blood', p['agent'])
-        baseline_relaxation_rate = {f"{relax_rate}b": p[f"{relax_rate}b_a"] for relax_rate in props} 
-
-        inputs = self._pars | relaxivity | baseline_relaxation_rate | {'c': self._C}
-        config = self._cnfg | {'tissue_props': props}
-        self._R = Relax(defaults=inputs, **config)()
-
-    def _compute_signal(self):
-        self._compute_relax()
-        p = self._pars
-
-        inputs = self._pars | self._R | {'Sb': p['Sb_a'], 'B1corr': p['B1corr_a']}
-        config = self._cnfg | {'calibrate': True}
-        self._S = Signal(defaults=inputs, **config)()
-
-    def _time(self):
+    def _time(self): # Measure Module?
         p = self._pars
         return np.arange(0, p['tmax'], p['dt'])
 
     def _predict(self, time):
-        self._compute_signal()
+        p = self._pars
         t = self._time()
-        return sample(time, t, self._S, self._pars['TS'])
+        signal = self._signal_model(p)
+        return sample(time, t, signal['S'], self._pars['TS'])
     
-    # ==========================================
-    # Inverse Model: Training
-    # ==========================================
+        # TODO: Build Sample Module, so _predict(time) becomes
+        # return self._signal_model(p | {'time': time})['signal']
 
     def _train(
         self, time: np.ndarray, signal: np.ndarray, free:dict=None,
@@ -225,12 +190,9 @@ class Aorta(SuperRoiModel):
         free = self._set_free_pars(free, bounds) 
         return train(self._predict, time, signal, p, free, **kwargs)
     
-    # ==========================================
-    # Plot
-    # ==========================================
-
     def _plot(self, time: np.ndarray, signal: np.ndarray, fname: str, show: bool):
-        self._compute_signal()
+        # self._compute_signal()
+        signal = self._signal_model(self._pars)
         t = self._time()
         
         fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 5))
@@ -265,7 +227,7 @@ class Aorta(SuperRoiModel):
 
     def params(self, select=None) -> list:
         """Return a list of model parameters"""
-        return self._params(select)
+        return self._signal_model.inputs(select)
 
     def time(self) -> np.ndarray:
         """Internal time array"""
@@ -273,18 +235,18 @@ class Aorta(SuperRoiModel):
 
     def conc(self) -> np.ndarray:
         """Returns the predicted aorta blood concentration."""
-        self._compute_conc()
-        return self._C
+        signal = self._signal_model(self._pars)
+        return signal['C']
 
     def relax(self) -> tuple:
         """Returns the predicted relaxation rates."""
-        self._compute_relax()
-        return self._R
+        signal = self._signal_model(self._pars)
+        return signal['R']
     
     def signal(self) -> np.ndarray:
         """Returns time points and predicted liver signal."""
-        self._compute_signal()
-        return self._S
+        signal = self._signal_model(self._pars)
+        return signal['S']
 
     def predict(self, time:np.ndarray) -> np.ndarray:
         """Predicts the aorta signal at specified time points."""

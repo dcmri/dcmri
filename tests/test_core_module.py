@@ -26,6 +26,57 @@ def test_nested_data():
         'ZZ_2': 10,
     }
 
+class FaultyModule1(Module):
+    configs = {
+        'mode': {'A', 'B'}
+    }
+    defaults = {
+        'mode': 'A',
+    }   
+    def outputs(self):
+        if self.config['mode'] == 'A':
+            return {'aa'}
+        else:
+            return {'bb'}
+    def __call__(self, t, x, data: dict=None, **kwargs):
+        p = self.map_data(data, kwargs)
+        return 0
+
+class FaultyModule2(Module):
+    configs = {
+        'mode': {'A', 'B'}
+    }
+    defaults = {
+        'mode': 'A',
+    }
+    def inputs(self):
+        if self.config['mode'] == 'A':
+            return {'a'}
+        else:
+            return {'b'}   
+    def __call__(self, t, x, data: dict=None, **kwargs):
+        p = self.map_data(data, kwargs)
+        return 0
+    
+class FaultyModule3(Module):
+    configs = {
+        'mode': {'A', 'B'}
+    }
+    defaults = {
+        'mode': 'A',
+    }
+    def inputs(self):
+        if self.config['mode'] == 'A':
+            return {'a'}
+        else:
+            return {'b'}   
+    def outputs(self):
+        if self.config['mode'] == 'A':
+            return {'aa'}
+        else:
+            return {'bb'}
+
+
 # --- Mock Concrete Class Implementation for testing ---
 class MockModule(Module):
     configs = {
@@ -44,8 +95,8 @@ class MockModule(Module):
     def outputs(self): 
         return {'YY'} 
 
-    def __call__(self, data, t, x):
-        p = self.map_data(data)
+    def __call__(self, t, x, data: dict=None, **kwargs):
+        p = self.map_data(data, kwargs)
         if self.config['order'] == 'linear':
             return {'YY': p['XX'] + p['S0'][x] * (1 + p['R1'][x] * t)}
         else:
@@ -61,11 +112,11 @@ class NestedModule(Module):
         'order_1': 'linear',
         'order_2': 'nonlinear',
     }
-    def __init__(self, config:dict=None, imap:dict=None):
+    def __init__(self, imap:dict=None, **config):
         self.set_config(config)
 
-        self._module_1 = MockModule({'order': self.config['order_1']})
-        self._module_2 = MockModule({'order': self.config['order_2']})
+        self._module_1 = MockModule(order=self.config['order_1'])
+        self._module_2 = MockModule(order=self.config['order_2'])
 
         # XX is a shared input and not mapped
         imap_1 = {i: f'{i}_1' for i in self._module_1.inputs() if i not in {'XX'}}
@@ -80,39 +131,75 @@ class NestedModule(Module):
         inputs = set()
         inputs |= self._module_1.mapped_inputs()
         inputs |= self._module_2.mapped_inputs()
-
-        derived = {'BAT_2'}
-        inputs = {i for i in inputs if i not in derived}
+        inputs -= {'BAT_2'}
         return inputs
 
     def outputs(self): 
         return {'YY', 'YY_1', 'YY_2'}
 
-    def __call__(self, data: dict, t, x) -> dict:
-        p = self.map_data(data)
+    def __call__(self, t, x, data: dict=None, **override) -> dict:
+        p = self.map_data(data, override)
 
         p['BAT_2'] = 10
 
-        result_1 = self._module_1(p, t, x)
-        result_2 = self._module_2(p, t, x)
+        result_1 = self._module_1(t, x, p)
+        result_2 = self._module_2(t, x, p)
         return {
             'YY': result_1['YY'] + result_2['YY'],
             'YY_1': result_1['YY'], 
             'YY_2': result_2['YY'],
         }
 
+def test_faulty_modules():
+    try:
+        FaultyModule1()
+    except:
+        pass
+    else:
+        assert False
+    try:
+        FaultyModule2().outputs()
+    except:
+        pass
+    else:
+        assert False
+    try:
+        FaultyModule3()()
+    except:
+        pass
+    else:
+        assert False
+    print("-> test_super passed!")
 
 def test_nested_module():
     t = np.arange(3)
     
     data = test_nested_data()
     mdl = NestedModule()
-    mdl(data, t, 9)
+    mdl(t, 9, data)
     
     # Correct input mapping  
-    mdl = NestedModule(imap={'XX':'QQ'})
+    mdl = NestedModule({'XX':'QQ'})
 
     # Error because QQ is not in data
+    try:
+        mdl(t, 9, data)
+    except:
+        pass
+    else:
+        assert False
+
+    # Error because QQ is not in data
+    try:
+        mdl(t, 9)
+    except:
+        pass
+    else:
+        assert False
+
+    data['QQ'] = 5
+
+    # Error data is not a dict (wrong arg order)
     try:
         mdl(data, t, 9)
     except:
@@ -120,8 +207,8 @@ def test_nested_module():
     else:
         assert False
 
-    data['QQ'] = 5
-    mdl(data, t, 9)
+    mdl(t, 9, data)
+    mdl(t, 9, data, QQ=10)
 
     assert 'BAT_2' not in data # Internal derived data are not saved
 
@@ -132,19 +219,16 @@ def test_nested_module():
     assert 'BAT_1' not in mdl.mapped_inputs() # default = linear
 
     # If order_1 = nonlinear, BAT_1 is an input
-    mdl = NestedModule({'order_1': 'nonlinear'})
+    mdl = NestedModule(order_1='nonlinear')
     assert 'BAT_1' in mdl.mapped_inputs()
 
     
 
-def test_super():
-    module = Module()
-    module({})
-    print("-> test_super passed!")
+
 
 def test_module():
     try:
-        MockModule(config={'order':'quadratic'}) # false value
+        MockModule(order='quadratic') # false value
     except:
         pass
     else:
@@ -155,25 +239,25 @@ def test_module():
     # Intialize without arguments
     data = test_data()
     model = MockModule()
-    result = model(data, t, 9) 
+    result = model(t, 9, data) 
     assert result['YY'][0] == 901
 
     # Overwrite defaults
     data = test_data()
-    model = MockModule(config={'order':'linear'})
-    result = model(data, t, 9) 
+    model = MockModule(order='linear')
+    result = model(t, 9, data) 
     assert result['YY'][0] == 901
 
     # Non-default config
     data = test_data()
-    model = MockModule(config={'order':'nonlinear'})
-    result = model(data, t, 9) 
+    model = MockModule(order='nonlinear')
+    result = model(t, 9, data) 
     assert result['YY'][0] == 2701
 
     # Use input map
     data = test_data()
-    model = MockModule(imap={'XX': 'ZZ'})
-    result = model(data, t, 9) 
+    model = MockModule({'XX': 'ZZ'})
+    result = model(t, 9, data) 
     assert result['YY'][0] == 910
 
     # Missing data
@@ -181,7 +265,7 @@ def test_module():
     model = MockModule()
     data.pop('XX')
     try:
-        model(data, t, 9) 
+        model(t, 9, data) 
     except:
         pass
     else:
@@ -189,7 +273,7 @@ def test_module():
 
 
 if __name__ == '__main__':
-    test_super()
+    test_faulty_modules()
     test_module()
     test_nested_module()
 

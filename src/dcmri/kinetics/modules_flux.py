@@ -4,11 +4,9 @@ from scipy.integrate import trapezoid
 from dcmri.core.module import Module
 from dcmri.utils import const
 from dcmri.kinetics.functions_input import ca_injection
-from dcmri.kinetics.functions_aorta import flux_aorta
 from dcmri.kinetics.functions_blocks import flux_plug
 import dcmri.kinetics.functions_tissue as pk_tissue
 import dcmri.kinetics.functions_blocks as blocks
-from dcmri.kinetics.functions_blocks import flux
 
 
 class Flux(Module):
@@ -37,8 +35,8 @@ class Flux(Module):
             outputs |= {'Jc', 'Jp'}
         return outputs
     
-    def __call__(self, data) -> dict:
-        p = self.map_data(data)
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data, kwargs)
         model_func = getattr(blocks, f"flux_{self.config['block']}") 
 
         if self.config['block']=='plucom':
@@ -77,10 +75,10 @@ class FluxInjection(Module):
         return inputs
     
     def outputs(self):
-        return {'J'}
+        return {'Ji'}
 
-    def __call__(self, data: dict) -> dict:
-        p = self.map_data(data)
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data, kwargs)
 
         t = np.arange(0, p['tmax'], p['dt'])
         conc = const.ca_conc(p['agent'])
@@ -98,9 +96,7 @@ class FluxInjection(Module):
             )
             J = J1 + J2
         
-        return {'J': J}
-
-
+        return {'Ji': J}
 
 
 class FluxTissueX(Module):
@@ -125,8 +121,8 @@ class FluxTissueX(Module):
     def outputs(self):
         return ['J']
 
-    def __call__(self, data: dict) -> dict:
-        p = self.map_data(data)
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data, kwargs)
 
         ca = flux_plug(p['ca'], dt=p['dt'], T=p['Ta'])
         p = {k: v for k, v in p.items() if k not in ['ca', 'Ta']}
@@ -160,22 +156,22 @@ class FluxAorta(Module):
         'lagut': None,
         'bolus': 'single',
     }
-    def __init__(self, config=None, imap=None):
+    def __init__(self, imap:dict=None, **config):
         self.set_config(config)
         if self.config['lagut'] is not None:
             if self.config['liver'] is None:
                 raise ValueError("A liver artery and gut component requires a liver component too.")
             
         self._flux_injection = FluxInjection(self.config)
-        self._flux_heartlung = Flux({'block': self.config['heartlung']}, {'T': 'Thl', 'D': 'Dhl'})
-        self._flux_organs = Flux({'block': self.config['organs']}, {'T':'To', 'T1': 'To', 'T2': 'To_e', 'E':'Eo'})
+        self._flux_heartlung = Flux({'T': 'Thl', 'D': 'Dhl'}, block= self.config['heartlung'])
+        self._flux_organs = Flux({'T':'To', 'T1': 'To', 'T2': 'To_e', 'E':'Eo'}, block = self.config['organs'])
         if self.config['kidneys'] is not None:
-            self._flux_lk = Flux({'block': self.config['kidneys']}, {'T':'Tp_lk'})
-            self._flux_rk = Flux({'block': self.config['kidneys']}, {'T':'Tp_rk'})
+            self._flux_lk = Flux({'T':'Tp_lk'}, block=self.config['kidneys'])
+            self._flux_rk = Flux({'T':'Tp_rk'}, block=self.config['kidneys'])
         if self.config['liver'] is not None:
-            self._flux_liver = Flux({'block': self.config['liver']}, {'T':'Te_l'})
+            self._flux_liver = Flux({'T':'Te_l'}, block=self.config['liver'])
         if self.config['lagut'] is not None:
-            self._flux_lagut = Flux({'block': self.config['lagut']}, {'T':'Tg', 'Tp':'Ta', 'Tc':'Tg', 'fp':'fa'})
+            self._flux_lagut = Flux({'T':'Tg', 'Tp':'Ta', 'Tc':'Tg', 'fp':'fa'}, block=self.config['lagut'])
 
         self.map_inputs(imap)
         
@@ -192,11 +188,11 @@ class FluxAorta(Module):
             inputs |= self._flux_lagut.mapped_inputs()
 
         inputs |= {'dt', 'dose_tolerance'}
-        derived = {'J'}
-        return {i for i in inputs if i not in derived}
+        inputs -= {'Ji', 'J'} # derived
+        return inputs
     
     def outputs(self):
-        outputs = {'J', 'Jv', 'Jo'}
+        outputs = {'Ja', 'Jv', 'Jo'}
         if self.config['kidneys'] is not None:
             outputs |= {'Jlk', 'Jrk'}
         if self.config['liver'] is not None:
@@ -208,19 +204,19 @@ class FluxAorta(Module):
 
         return outputs 
     
-    def __call__(self, data) -> dict:
-        p = self.map_data(data)
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data, kwargs)
         max_it = 500
 
         influx = self._flux_injection(p)
-        J_aorta = self._flux_heartlung(p | influx)['J']
+        J_aorta = self._flux_heartlung(p, J=influx['Ji'])['J']
         dose = trapezoid(J_aorta, dx=p['dt'])
         min_dose = p['dose_tolerance'] * dose
 
         J_aorta_total = J_aorta
         it=0
         while True:
-            J_aorta = self._propagate_J_aorta(p, J_aorta)['J']
+            J_aorta = self._propagate_J_aorta(p, J_aorta)['Ja']
             J_aorta_total += J_aorta
 
             dose = trapezoid(J_aorta, dx=p['dt'])
@@ -260,7 +256,7 @@ class FluxAorta(Module):
             Jv += p['vr_l'] * result['Jl']
 
         Ja = self._flux_heartlung(p | {'J': Jv})['J']
-        return result | {'J': Ja, 'Jv':Jv}
+        return result | {'Ja': Ja, 'Jv':Jv}
     
 
 # This is a functioning class but not needed any more

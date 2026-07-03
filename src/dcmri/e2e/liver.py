@@ -80,7 +80,7 @@ from dcmri.core.types import Input
 from dcmri.core.sequences import SEQUENCES
 from dcmri.core.tools import print_params, export_params
 from dcmri.kinetics.modules_conc import ConcLiver
-from dcmri.bloch.tissue import Signal
+from dcmri.signal.modules_tissue import Signal
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
 from dcmri.kinetics.functions_liver import dpars_liver

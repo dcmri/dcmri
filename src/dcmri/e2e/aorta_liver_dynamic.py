@@ -134,7 +134,7 @@ from dcmri.kinetics.functions_liver import dpars_liver
 from dcmri.core.tools import print_params, export_params
 from dcmri.core.sequences import SEQUENCES
 from dcmri.core.quantities import QUANTITIES
-from dcmri.bloch.tissue import Signal
+from dcmri.signal.modules_tissue import Signal
 from dcmri.core.model import SuperModel
 
 CONSTANTS = {'Fw': 0, 'v': 1, 'me': 1, 'noise_sdev':0}

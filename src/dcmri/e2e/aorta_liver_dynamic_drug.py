@@ -130,7 +130,7 @@ from dcmri.kinetics.functions_aorta import flux_aorta
 from dcmri.utils import const
 from dcmri.core.quantities import QUANTITIES
 from dcmri.core.tools import export_params
-from dcmri.bloch.tissue import Signal
+from dcmri.signal.modules_tissue import Signal
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
 from dcmri.core.model import SuperModel

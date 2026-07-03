@@ -537,246 +537,245 @@ Returns:
     is the flux from *i* directly to the outside. The flux is returned in 
     units of mmol/sec/mL or M/sec.
 """
-from copy import deepcopy
 from itertools import combinations
 
 import numpy as np
 
-from dcmri.core.function import Function
-from dcmri.relaxivity.tissue import R2, R2s, R1
-from dcmri.relaxivity.lib import relax_t2s
+from dcmri.core.module import Module
+from dcmri.relaxivity.modules_tissue import R2, R2s, R1
 
 
-class R1TissueX(Function):
+class R1TissueX(Module):
     configs = {
-        'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'],
-        'water_exchange': ['FF','RF','NF','FR','RR','NR','FN','RN','NN'],
-        't1_relaxation': ['lin'],
+        'kinetics': {'2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'},
+        'water_exchange': {'FF','RF','NF','FR','RR','NR','FN','RN','NN'},
+        't1_relaxation': {'lin'},
     }
-    def __init__(
-        self, 
-        kinetics='2CX', 
-        water_exchange='FF', 
-        t1_relaxation='lin',
-        defaults=None,
-        **kwargs,
-    ):
-        cnfg = {
-            'kinetics': kinetics, 
-            'water_exchange': water_exchange,
-            't1_relaxation': t1_relaxation,
-        }
-        self._set_config(cnfg)
-        self._set_params(defaults)
+    defaults = {
+        'kinetics': '2CX', 
+        'water_exchange': 'FF',
+        't1_relaxation': 'lin',
+    }
+    def __init__(self, imap: dict=None, **config):
+        self.set_config(config)
+        self._conc = WaterConcTissueX(**config)
+        self._R1 = R1(fast_water_exchange=False, **config)
+        self.map_inputs(imap)
 
-    def params(self) -> list:
-        p = WaterConcTissueX(**self._cnfg).params()
-        p += R1(**self._cnfg).params()
-        return list(p)
+    def inputs(self) -> set:
+        inputs = {'C', 'R1b', 'r1'}
+        inputs |= self._R1.mapped_inputs()
+        inputs |= self._conc.mapped_inputs()
+        inputs -= self._conc.outputs()
+        return inputs
+    
+    def outputs(self) -> set:
+        return {'R1'}
 
-    def __call__(self, C, **params):
-        p = self._update_params(params)
-        t1r = self._cnfg['t1_relaxation']
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data, kwargs)
 
-        # Compute concentration in water compartments
-        c = WaterConcTissueX(**self._cnfg, defaults=p)(C)
+        # R1b and r1 are scalar
+        # c is dims (nc, nt)
+
+        # Concentration in water compartments
+        c = self._conc(p)
 
         # Assume R1b and r1 is the same in all compartments
-        R1b = np.full(c.shape[0], p['R1b'])
-        r1 = np.full(c.shape[0], p['r1'])
+        p |= c
+        p['R1b'] = np.full(c['c'].shape[0], p['R1b'])
+        p['r1'] = np.full(c['c'].shape[0], p['r1'])
 
-        return R1(t1r, defaults=p)(c=c, R1b=R1b, r1=r1)
+        return self._R1(p)
     
 
-class R2TissueX(Function):
+class R2TissueX(Module):
     configs = {
-        'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'],
-        'water_exchange': ['FF','RF','NF','FR','RR','NR','FN','RN','NN'],
-        't2_relaxation': ['lin'],
+        'kinetics': {'2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'},
+        'water_exchange': {'FF','RF','NF','FR','RR','NR','FN','RN','NN'},
+        't2_relaxation': {'lin'},
     }
-    def __init__(
-        self, 
-        kinetics='2CX', 
-        water_exchange='FF', 
-        t2_relaxation='lin',
-        defaults=None,
-        **kwargs,
-    ):
-        cnfg = {
-            'kinetics': kinetics, 
-            'water_exchange': water_exchange,
-            't2_relaxation': t2_relaxation,
-        }
-        self._set_config(cnfg)
-        self._set_params(defaults)
+    defaults = {
+        'kinetics': '2CX', 
+        'water_exchange': 'FF',
+        't2_relaxation': 'lin',
+    }
+    def __init__(self, imap: dict=None, **config):
+        self.set_config(config)
+        self._conc = WaterConcTissueX(**config)
+        self._R2 = R2(fast_water_exchange=False, **config)
+        self.map_inputs(imap)
 
-    def params(self) -> list:
-        p = WaterConcTissueX(**self._cnfg).params()
-        p += R2(**self._cnfg).params()
-        return list(p)
+    def inputs(self) -> set:
+        inputs = {'C', 'R2b', 'r2'}
+        inputs |= self._R2.mapped_inputs()
+        inputs |= self._conc.mapped_inputs()
+        inputs -= self._conc.outputs()
+        return inputs
+    
+    def outputs(self) -> set:
+        return {'R2'}
+    
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data, kwargs)
 
-    def __call__(self, C, **params):
-        p = self._update_params(params)
-        t2r = self._cnfg['t2_relaxation']
+        # Cconcentration in water compartments
+        c = self._conc(p)
 
-        # Compute concentration in water compartments
-        c = WaterConcTissueX(**self._cnfg, defaults=p)(C)
+        # Assume R1b and r1 is the same in all compartments
+        p |= c
+        p['R2b'] = np.full(c['c'].shape[0], p['R2b'])
+        p['r2'] = np.full(c['c'].shape[0], p['r2'])
 
-        # Assume R2b and r2 is the same in all compartments
-        R2b = np.full(c.shape[0], p['R2b'])
-        r2 = np.full(c.shape[0], p['r2'])
-
-        return R2(t2r, **p)(c=c, R2b=R2b, r2=r2)
+        return self._R2(p)
 
 
-class R2sTissueX(Function): 
+class R2sTissueX(Module): 
     configs = {
-        'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'],
-        't2s_relaxation': ['lin', 'quad', 'leakage'],
+        'kinetics': {'2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'},
+        't2s_relaxation': {'lin', 'quad', 'leakage'},
     }
-    def __init__(
-        self, 
-        kinetics=None, 
-        t2s_relaxation='lin', 
-        defaults=None,
-        **kwargs,
-    ):
-        if t2s_relaxation == 'leakage' and kinetics is None:
+    defaults = {
+        'kinetics': None,
+        't2s_relaxation': 'leakage', 
+    }
+    def __init__(self, imap: dict=None, **config):
+        self.set_config(config)
+
+        if self.config['t2s_relaxation'] == 'leakage' and self.config['kinetics'] is None:
             raise ValueError('kinetics must be specified when t2s_relaxation is leakage.')
-        cnfg = {
-            'kinetics': kinetics,
-            't2s_relaxation': t2s_relaxation, 
-        }
-        self._set_config(cnfg)
-        self._set_params(defaults)
-
-    def params(self) -> list:
-        t2r = self._cnfg['t2s_relaxation']
-
-        if t2r in R2s.configs['t2s_relaxation']:
-            p = R2s(t2r).params()
         
-        if t2r == 'leakage':
-            p = ['R2sb', 'r2s_vasc', 'r2s_ees'] 
-            p += ContrastConcTissueX(self._cnfg['kinetics']).params()
+        if self.config['t2s_relaxation'] == 'leakage':
+            self._conc = ContrastConcTissueX(**config)
 
-        return list(p)
+        self._R2s = R2s(**config)
+        self.map_inputs(imap)
+
+    def inputs(self) -> set:
+        inputs = {'C'}
+        inputs |= self._R2s.mapped_inputs()
+
+        if self.config['t2s_relaxation'] == 'leakage':
+            inputs |= self._conc.mapped_inputs()
+            inputs -= self._conc.outputs()
+
+        return inputs
     
-    def __call__(self, C: np.ndarray, **params):
-        p = self._update_params(params)
-        t2r = self._cnfg['t2s_relaxation']
-        
-        C = np.array(C)
+    def outputs(self) -> set:
+        return {'R2s'}
+    
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data, kwargs)
 
-        if t2r in R2s.configs['t2s_relaxation']:
-            if C.ndim==2:
-                C = C.sum(axis=0)
-            return R2s(t2r, defaults=p | {'C': C})()
+        if self.config['t2s_relaxation'] == 'leakage':
+            p |= self._conc(p)
+            
+        return self._R2s(p)
 
-        if t2r == 'leakage': # TODO: Use R2s(c=c)
-            c = ContrastConcTissueX(**self._cnfg, defaults=p)(C)
-            return relax_t2s(c, p['R2sb'], r2s_vasc=p['r2s_vasc'], r2s_ees=p['r2s_ees'], model='leakage')
 
-# Build all possible combinations of relaxation rates
-weighting = ['R1', 'R2', 'R2s']
-all_combinations = [
-    set(combo)
-    for r in range(1, len(weighting) + 1)
-    for combo in combinations(weighting, r)
-]
+# # Build all possible combinations of relaxation rates
+# weighting = ['R1', 'R2', 'R2s']
+# all_combinations = [
+#     tuple(set(combo))
+#     for r in range(1, len(weighting) + 1)
+#     for combo in combinations(weighting, r)
+# ]
 
-class RelaxTissueX(Function):
-
+class RelaxTissueX(Module):
     configs = {
-        'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'],
-        'water_exchange': ['FF','RF','NF','FR','RR','NR','FN','RN','NN'],
-        't2s_relaxation': ['lin', 'quad', 'leakage'],
-        't2_relaxation': ['lin'],
-        't1_relaxation': ['lin'],
-        'tissue_props': all_combinations,
+        'kinetics': {'2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'},
+        'water_exchange': {'FF','RF','NF','FR','RR','NR','FN','RN','NN'},
+        't2s_relaxation': {None, 'lin', 'quad', 'leakage'},
+        't2_relaxation': {None, 'lin'},
+        't1_relaxation': {None, 'lin'},
     }
+    defaults = {
+        'kinetics': '2CX', 
+        'water_exchange': 'FF', 
+        't2s_relaxation': 'lin',
+        't2_relaxation': 'lin',
+        't1_relaxation': 'lin',
+    }
+    def __init__(self, imap: dict=None, **config):
+        self.set_config(config)
 
-    def __init__(self, 
-        kinetics='2CX', 
-        water_exchange='FF', 
-        t2s_relaxation='lin', 
-        t2_relaxation='lin', 
-        t1_relaxation='lin', 
-        tissue_props={'R1', 'R2', 'R2s'},
-        defaults=None,
-        **kwargs,
-    ):
-        cnfg = {
-            'kinetics': kinetics, 
-            'water_exchange': water_exchange, 
-            't2s_relaxation': t2s_relaxation,
-            't2_relaxation': t2_relaxation,
-            't1_relaxation': t1_relaxation,
-            'tissue_props': tissue_props,
-        }
-        self._set_config(cnfg)
-        self._set_params(defaults)
-
-    def params(self):
-        props = self._cnfg['tissue_props']
-        p = []
-        if 'R1' in props:
-            p += R1TissueX(**self._cnfg).params()
-        if 'R2' in props:
-            p += R2TissueX(**self._cnfg).params()
-        if 'R2s' in props:
-            p += R2sTissueX(**self._cnfg).params()
-        return list(p)
-    
-    def __call__(self, C, **params):
-        p = self._update_params(params)
-        props = self._cnfg['tissue_props']
-
-        R1_arr = R2_arr = R2s_arr = None
+        if self.config['t1_relaxation']:
+            self._R1 = R1TissueX(**config)
+        if self.config['t2_relaxation']:
+            self._R2 = R2TissueX(**config)
+        if self.config['t2s_relaxation']:
+            self._R2s = R2sTissueX(**config)
         
-        if 'R1' in props:
-            R1_arr = R1TissueX(**self._cnfg, defaults=p)(C)
-        if 'R2' in props:
-            R2_arr = R2TissueX(**self._cnfg, defaults=p)(C)
-        if 'R2s' in props:
-            R2s_arr = R2sTissueX(**self._cnfg, defaults=p)(C)
+        self.map_inputs(imap)
 
-        return R1_arr, R2_arr, R2s_arr
+    def inputs(self) -> set:
+        inputs = set()
+        if self.config['t1_relaxation']:
+            inputs |= self._R1.mapped_inputs()
+        if self.config['t2_relaxation']:
+            inputs |= self._R2.mapped_inputs()
+        if self.config['t2s_relaxation']:
+            inputs |= self._R2s.mapped_inputs()
+        return inputs
+    
+    def outputs(self) -> set:
+        outputs = set()
+        if self.config['t1_relaxation']:
+            outputs |= self._R1.outputs()
+        if self.config['t2_relaxation']:
+            outputs |= self._R2.outputs()
+        if self.config['t2s_relaxation']:
+            outputs |= self._R2s.outputs()
+        return outputs
+    
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data, kwargs)
+
+        R = {}
+        if self.config['t1_relaxation']:
+            R |= self._R1(p)
+        if self.config['t2_relaxation']:
+            R |= self._R2(p)
+        if self.config['t2s_relaxation']:
+            R |= self._R2s(p)
+
+        return R
 
 
 
-class ContrastConcTissueX(Function):
+class ContrastConcTissueX(Module):
     # Convert tissue concentration in blood and interstitium to concentration.
     # For uptake models this introduces a new parameter
 
     configs = {
-        'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U']
+        'kinetics': {'2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'}
     }
+    defaults = {
+        'kinetics': '2CX',
+    }    
+    def inputs(self) -> set:
+        inputs = {'C'}
+        if self.config['kinetics'] == 'FX':
+            inputs |= {'H', 've'}
+        elif self.config['kinetics'] in {'U', 'NX', 'NXP'}:
+            inputs |= {'vb'}
+        elif self.config['kinetics'] == 'WV':
+            inputs |= {'vi'}
+        elif self.config['kinetics'] in {'HFU', '2CU', 'HF', '2CX'}:
+            inputs |= {'vb', 'vi'}
+        return inputs
+    
+    def outputs(self) -> set:
+        return {'c'}
 
-    def __init__(self, kinetics='2CX', defaults=None, **kwargs):
-        cnfg = {'kinetics': kinetics}
-        self._set_config(cnfg)
-        self._set_params(defaults)
-        
-    def params(self) -> list:
-        kinetics = self._cnfg['kinetics']
-        if kinetics == 'FX':
-            p = ['H', 've']
-        elif kinetics in ['U', 'NX', 'NXP']:
-            p = ['vb']
-        elif kinetics == 'WV':
-            p = ['vi']
-        elif kinetics in ['HFU', '2CU', 'HF', '2CX']:
-            p = ['vb', 'vi']
-        return p
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data, kwargs)
+        kinetics = self.config['kinetics']
 
-    def __call__(self, C, **params):
-        p = self._update_params(params)
-        kinetics = self._cnfg['kinetics']
-
-        C = np.array(C)
-        if C.ndim==1:
-            C = C.reshape(1, -1)
+        if p['C'].ndim==1:
+            C = np.array(p['C']).reshape(1, -1)
+        else:
+            C = np.array(p['C'])
 
         def div(Ci, vi):
             return Ci / vi if vi > 0 else Ci * 0
@@ -804,68 +803,76 @@ class ContrastConcTissueX(Function):
             c[0,:] = div(C[0,:], p['vb'])
             c[1,:] = div(C[1,:], p['vi']) # New parameter vi
         
-        return c
+        return {'c': c}
 
-class WaterConcTissueX(Function):
+
+class WaterConcTissueX(Module):
     # Convert tissue concentration in kinetic compartments to concentration in water compartments.
 
-    configs = deepcopy(R1TissueX.configs)
-
-    def __init__(self, kinetics='2CX', water_exchange='FF', defaults=None, **kwargs):
-        cnfg = {'kinetics': kinetics, 'water_exchange': water_exchange}
-        self._set_config(cnfg)
-        self._set_params(defaults)
+    configs = {
+        'kinetics': R1TissueX.configs['kinetics'],
+        'water_exchange': R1TissueX.configs['water_exchange'],
+    }
+    defaults = {
+        'kinetics': R1TissueX.defaults['kinetics'],
+        'water_exchange': R1TissueX.defaults['water_exchange'],
+    }
         
-    def params(self) -> list:
-        kinetics = self._cnfg['kinetics']
-        wex = self._cnfg['water_exchange'].replace('N','R')
+    def inputs(self) -> set:
+        kinetics = self.config['kinetics']
+        wex = self.config['water_exchange'].replace('N','R')
 
-        p = []
+        inputs = {'C'}
 
         if kinetics == 'FX':
             if wex[0] != 'F':
-                p += ['ve', 'vb', 'H']
+                inputs |= {'ve', 'vb', 'H'}
 
         if wex == 'FF':
-            p += []
+            pass
 
         elif wex == 'RF':
             if kinetics == 'WV':
-                p += []
+                pass
             elif kinetics in ['U', 'NX', 'NXP', 'FX', 'HFU', 'HF', '2CU', '2CX']:
-                p += ['vb']
+                inputs |= {'vb'}
 
         elif wex == 'FR':
             if kinetics == 'WV':
-                p += ['vi']
+                inputs |= {'vi'}
             elif kinetics in ['U']:
-                p += ['vc']
+                inputs |= {'vc'}
             elif kinetics in ['FX']:
-                p += ['vb', 'H', 've'] 
+                inputs |= {'vb', 'H', 've'}
             elif kinetics in ['NX', 'NXP', 'HFU', 'HF', '2CU', '2CX']:
-                p += ['vb', 'vi']
+                inputs |= {'vb', 'vi'}
 
         elif wex == 'RR':
             if kinetics == 'WV':
-                p += ['vi']
+                inputs |= {'vi'}
             elif kinetics in ['NX', 'NXP', 'U']:
-                p += ['vb']
+                inputs |= {'vb'}
             elif kinetics in ['FX']:
-                p += ['vb', 'H', 've']
+                inputs |= {'vb', 'H', 've'}
             elif kinetics in ['HF', 'HFU', '2CU', '2CX']:
-                p += ['vb', 'vi']
+                inputs |= {'vb', 'vi'}
 
-        return list(set(p))
+        return inputs
+    
+
+    def outputs(self) -> set:
+        return {'c'}
 
 
-    def __call__(self, C, **params) -> np.ndarray: # (n_comp, n_times)
-        p = self._update_params(params)
-        C = np.array(C)
+    def __call__(self, data: dict) -> dict: # (n_comp, n_times)
+        p = self.map_data(data)
+
+        C = np.array(p['C'])
         if C.ndim==1:
             C = C.reshape(1, -1)
 
-        kinetics = self._cnfg['kinetics']
-        wex = self._cnfg['water_exchange'].replace('N','R')
+        kinetics = self.config['kinetics']
+        wex = self.config['water_exchange'].replace('N','R')
 
         # Define helper functions
         def div(Ci, vi):
@@ -911,36 +918,38 @@ class WaterConcTissueX(Function):
 
         # Map indicator compartments to water compartments
         if wex == 'FF':
-            return mix_1_comp(C)
+            c = mix_1_comp(C)
 
         elif wex == 'RF':
             if kinetics == 'WV': # i
-                return mix_1_comp(C)
+                c = mix_1_comp(C)
             elif kinetics in ['U', 'NX', 'NXP']: # b
-                return mix_1_comp(C, p['vb'])
+                c = mix_1_comp(C, p['vb'])
             elif kinetics in ['FX', 'HFU', 'HF', '2CU', '2CX']: #bi
-                return mix_2_comp(C, p['vb'])
+                c = mix_2_comp(C, p['vb'])
 
         elif wex == 'FR':
             if kinetics == 'WV':
-                return mix_1_comp(C, p['vi']) #i
+                c = mix_1_comp(C, p['vi']) #i
             elif kinetics in ['U']:
-                return mix_1_comp(C, 1 - p['vc'])  #b
+                c = mix_1_comp(C, 1 - p['vc'])  #b
             elif kinetics == 'FX':
                 p['vp'] = (1 - p['H']) * p['vb']
                 p['vi'] = p['ve'] - p['vp']
-                return mix_1_comp(C, p['vb'] + p['vi'])
+                c = mix_1_comp(C, p['vb'] + p['vi'])
             elif kinetics in ['NX', 'NXP', 'HFU', 'HF', '2CU', '2CX']:
-                return mix_1_comp(C, p['vb'] + p['vi']) # 1-vc
+                c = mix_1_comp(C, p['vb'] + p['vi']) # 1-vc
 
         elif wex == 'RR':
             if kinetics == 'WV':
-                return mix_1_comp(C, p['vi'])
+                c = mix_1_comp(C, p['vi'])
             elif kinetics in ['NX', 'NXP', 'U']:
-                return mix_3_comp(C, [p['vb']])
+                c = mix_3_comp(C, [p['vb']])
             elif kinetics == 'FX':
                 p['vp'] = (1 - p['H']) * p['vb']
                 p['vi'] = p['ve'] - p['vp']
-                return mix_3_comp(C, [p['vb'], p['vi']])
+                c = mix_3_comp(C, [p['vb'], p['vi']])
             elif kinetics in ['HF', 'HFU', '2CU', '2CX']:
-                return mix_3_comp(C, [p['vb'], p['vi']])
+                c = mix_3_comp(C, [p['vb'], p['vi']])
+
+        return {'c': c}

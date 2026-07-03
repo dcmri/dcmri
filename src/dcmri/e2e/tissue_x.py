@@ -108,9 +108,9 @@ from dcmri.core.types import Input
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import loss, train_batch, format_batch_training
 from dcmri.kinetics.modules_conc import ConcTissueX
-from dcmri.relaxivity.tissue_x import RelaxTissueX, WaterConcTissueX, ContrastConcTissueX
-from dcmri.relaxivity.tissue import R1 as Relax1
-from dcmri.bloch.tissue_x import MzTissueX, SignalTissueX, WaterVolumesTissueX, WaterFlowsTissueX
+from dcmri.relaxivity.modules_tissue_x import RelaxTissueX, WaterConcTissueX, ContrastConcTissueX
+from dcmri.relaxivity.modules_tissue import R1 as Relax1
+from dcmri.bloch.modules_tissue_x import MzTissueX, SignalTissueX, WaterVolumesTissueX, WaterFlowsTissueX
 
 CONSTANTS = {'Fw': 0, 'v': 1, 'me': 1, 'noise_sdev':0}
 

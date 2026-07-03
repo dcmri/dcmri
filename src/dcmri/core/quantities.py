@@ -1,6 +1,5 @@
-from types import MappingProxyType
 
-_QUANTITIES = {
+QUANTITIES = {
  
     # ---- Simulation parameters ---
     'dose_tolerance': {'init': 0.1, 'bounds': None, 'name': 'Dose tolerance', 'unit': '', 'group': 'hyper', 'dicom_key': None, 'osipi_key': None},
@@ -303,10 +302,6 @@ _QUANTITIES = {
     'uv': {'init': 1.0,  'bounds': [0.0, 1.0], 'name': 'Portal vein volume fraction', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
 }
 
-_QVALUES = {k: v['init'] for k, v in _QUANTITIES.items()}
-_QBOUNDS = {k: v['bounds'] for k, v in _QUANTITIES.items()}
+QVALUES = {k: v['init'] for k, v in QUANTITIES.items()}
+QBOUNDS = {k: v['bounds'] for k, v in QUANTITIES.items()}
 
-
-QUANTITIES = MappingProxyType(_QUANTITIES)
-QVALUES = MappingProxyType(_QVALUES)
-QBOUNDS = MappingProxyType(_QBOUNDS)

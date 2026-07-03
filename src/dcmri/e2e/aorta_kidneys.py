@@ -147,8 +147,8 @@ from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
 from dcmri.inverse.lib import estimate_bat
 from dcmri.kinetics.modules_conc import ConcAortaKidneys
-from dcmri.relaxivity.tissue import Relax
-from dcmri.bloch.tissue import Signal
+from dcmri.relaxivity.modules_tissue import Relax
+from dcmri.signal.modules_tissue import Signal
 
 class AortaKidneys(SuperRoiModel):
     """Joint model for signals from aorta and both kidneys.

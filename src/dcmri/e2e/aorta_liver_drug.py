@@ -135,7 +135,7 @@ from dcmri.utils.fit import train, loss
 from dcmri.kinetics.functions_input import ca_injection
 from dcmri.kinetics.functions_aorta import flux_aorta
 from dcmri.kinetics.modules_conc import ConcAortaLiver
-from dcmri.bloch.tissue import Signal
+from dcmri.signal.modules_tissue import Signal
 
 
 

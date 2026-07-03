@@ -55,7 +55,7 @@ def relax_t2(c, R2b, r2=None, model='lin') -> np.ndarray:
         np.ndarray: Array with longitudinal relaxivities, same shape as C.
     """
     if model == 'lin':
-        return relax_t1(c, R2b, r2)
+        return R2b + r2 * c
     
     raise ValueError(f'Model {model} not recognized. Must be "lin".')
 
@@ -78,45 +78,7 @@ def relax_t1(c, R1b, r1) -> np.ndarray:
     Returns:
         np.ndarray: Array with longitudinal relaxivities, same shape as C.
     """
-    c = np.array(c)
-    # One compartment tissues
-    if np.isscalar(r1):
-        if np.isscalar(R1b):
-            # c is scalar or 1D
-            return R1b + r1*c
-        else:
-            # concentrations at 1 time point
-            if c.shape == R1b.shape:
-                return R1b + r1*c
-            # concentrations at multiple time points
-            else:
-                return R1b[..., np.newaxis] + r1 * c
-
-    # n-compartment tissues (compartment is first dimension)
-    else:
-
-        r1 = np.array(r1)
-        R1b = np.array(R1b)
-        c = np.array(c)
-
-        n = len(r1)
-        R1 = np.zeros(c.shape)
-        if R1b.ndim == 1:
-            if c.shape == R1b.shape:
-                return R1b + r1*c
-            else:
-                for i in range(n):
-                    R1[i, :] = R1b[i] + r1[i] * c[i,:]
-                return R1
-        else:
-            if c.shape == R1b.shape:
-                for i in range(n):
-                    R1[i,...] = R1b[i,...] + r1[i] * c[i,...]
-                return R1
-            else:
-                for i in range(n):
-                    R1[i,...] = R1b[i,...,np.newaxis] + r1[i] * c[i,...]
-                return R1
+    return R1b + r1 * c
 
 def conc_t1(R1, r1) -> np.ndarray:
     """Derive concentrations from relaxation rates using a linear relationship.

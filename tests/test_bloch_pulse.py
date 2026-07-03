@@ -1,6 +1,6 @@
 import numpy as np
 
-from dcmri.bloch import pulse
+from dcmri.bloch import functions_pulse
 
 
 def test_nc_function():
@@ -20,11 +20,11 @@ def test_nc_function():
     TC = 512 * TR
     TP = 0.1
 
-    ss_approx_1 = pulse.Mz_ss(R1, v, Fw, j, me, seq)
-    ss_approx_2 = pulse.Mz_prop(M0, R1, v, Fw, j, me, seq)
-    ss_approx_3, _ = pulse.Mz_pr_spgr_prop(M0, R1, v, Fw, j, me, 0, TP, TC, TR, FA, TP + 2 * (TC-TP))
-    ss_approx_4 = pulse.Mz_pr_spgr_ss(R1, v, Fw, j, me, 0, TP, TC, TR, FA, TP + 2 * (TC-TP))
-    ss_exact = pulse.Mz_ss_spgr(R1, v, Fw, j, me, TR, FA)
+    ss_approx_1 = functions_pulse.Mz_ss(R1, v, Fw, j, me, seq)
+    ss_approx_2 = functions_pulse.Mz_prop(M0, R1, v, Fw, j, me, seq)
+    ss_approx_3, _ = functions_pulse.Mz_pr_spgr_prop(M0, R1, v, Fw, j, me, 0, TP, TC, TR, FA, TP + 2 * (TC-TP))
+    ss_approx_4 = functions_pulse.Mz_pr_spgr_ss(R1, v, Fw, j, me, 0, TP, TC, TR, FA, TP + 2 * (TC-TP))
+    ss_exact = functions_pulse.Mz_ss_spgr(R1, v, Fw, j, me, TR, FA)
 
     assert np.linalg.norm(ss_approx_1 - ss_exact) < 1e-6
     assert np.linalg.norm(ss_approx_2 - ss_exact) < 1e-6
@@ -34,20 +34,20 @@ def test_nc_function():
     # Extend coverage
 
     # Include wait time at the end
-    pulse.Mz_pr_spgr_prop(M0, R1, v, Fw, j, me, 0, TP, TC, TR, FA, 2 * TP + 2 * (TC-TP) )
+    functions_pulse.Mz_pr_spgr_prop(M0, R1, v, Fw, j, me, 0, TP, TC, TR, FA, 2 * TP + 2 * (TC-TP) )
 
     # No exchange
     Fw = np.array([[1,0], [0,4]])
-    ss_exact = pulse.Mz_ss_spgr(R1, v, Fw, j, me, TR, FA)
+    ss_exact = functions_pulse.Mz_ss_spgr(R1, v, Fw, j, me, TR, FA)
 
     # Fast exchange
     Fw = np.array([[1,np.inf], [np.inf,4]])
-    ss_exact = pulse.Mz_ss_spgr(R1, v, Fw, j, me, TR, FA)
+    ss_exact = functions_pulse.Mz_ss_spgr(R1, v, Fw, j, me, TR, FA)
 
     # Not implemented
     try:
         Fw = np.array([[1,np.inf], [0,4]])
-        ss_exact = pulse.Mz_ss_spgr(R1, v, Fw, j, me, TR, FA)
+        ss_exact = functions_pulse.Mz_ss_spgr(R1, v, Fw, j, me, TR, FA)
     except NotImplementedError:
         pass
     else:
@@ -70,11 +70,11 @@ def test_1c_function():
     TC = 512 * TR
     TP = 0.5
 
-    ss_approx_1 = pulse.Mz_ss(R1, v, Fw, j, me, seq)
-    ss_approx_2 = pulse.Mz_prop(M0, R1, v, Fw, j, me, seq)
-    ss_approx_3, _ = pulse.Mz_pr_spgr_prop(M0, R1, v, Fw, j, me, 0, TP, TC, TR, FA, TP + 2 * (TC-TP))
-    ss_approx_4 = pulse.Mz_pr_spgr_ss(R1, v, Fw, j, me, 0, TP, TC, TR, FA, TP + 2 * (TC-TP))
-    ss_exact = pulse.Mz_ss_spgr(R1, v, Fw, j, me, TR, FA)
+    ss_approx_1 = functions_pulse.Mz_ss(R1, v, Fw, j, me, seq)
+    ss_approx_2 = functions_pulse.Mz_prop(M0, R1, v, Fw, j, me, seq)
+    ss_approx_3, _ = functions_pulse.Mz_pr_spgr_prop(M0, R1, v, Fw, j, me, 0, TP, TC, TR, FA, TP + 2 * (TC-TP))
+    ss_approx_4 = functions_pulse.Mz_pr_spgr_ss(R1, v, Fw, j, me, 0, TP, TC, TR, FA, TP + 2 * (TC-TP))
+    ss_exact = functions_pulse.Mz_ss_spgr(R1, v, Fw, j, me, TR, FA)
 
     assert np.linalg.norm(ss_approx_1 - ss_exact) < 1e-6
     assert np.linalg.norm(ss_approx_2 - ss_exact) < 1e-6
@@ -84,7 +84,7 @@ def test_1c_function():
     # Extend coverage
 
     # Include wait time at the end
-    pulse.Mz_pr_spgr_prop(M0, R1, v, Fw, j, me, 0, TP, TC, TR, FA, 2 * TP + 2 * (TC-TP) )
+    functions_pulse.Mz_pr_spgr_prop(M0, R1, v, Fw, j, me, 0, TP, TC, TR, FA, 2 * TP + 2 * (TC-TP) )
 
 def test_1c_scalar_function():
     # Compare two ways of computing SPGR SS
@@ -103,11 +103,11 @@ def test_1c_scalar_function():
     TC = 512 * TR
     TP = 0.5
 
-    ss_approx_1 = pulse.Mz_ss(R1, v, Fw, j, me, seq)
-    ss_approx_2 = pulse.Mz_prop(M0, R1, v, Fw, j, me, seq)
-    ss_approx_3, _ = pulse.Mz_pr_spgr_prop(M0, R1, v, Fw, j, me, 0, TP, TC, TR, FA, TP + 2 * (TC-TP))
-    ss_approx_4 = pulse.Mz_pr_spgr_ss(R1, v, Fw, j, me, 0, TP, TC, TR, FA, TP + 2 * (TC-TP))
-    ss_exact = pulse.Mz_ss_spgr(R1, v, Fw, j, me, TR, FA)
+    ss_approx_1 = functions_pulse.Mz_ss(R1, v, Fw, j, me, seq)
+    ss_approx_2 = functions_pulse.Mz_prop(M0, R1, v, Fw, j, me, seq)
+    ss_approx_3, _ = functions_pulse.Mz_pr_spgr_prop(M0, R1, v, Fw, j, me, 0, TP, TC, TR, FA, TP + 2 * (TC-TP))
+    ss_approx_4 = functions_pulse.Mz_pr_spgr_ss(R1, v, Fw, j, me, 0, TP, TC, TR, FA, TP + 2 * (TC-TP))
+    ss_exact = functions_pulse.Mz_ss_spgr(R1, v, Fw, j, me, TR, FA)
 
     assert np.linalg.norm(ss_approx_1 - ss_exact) < 1e-6
     assert np.linalg.norm(ss_approx_2 - ss_exact) < 1e-6
@@ -116,7 +116,7 @@ def test_1c_scalar_function():
 
 
 def test_complete_coverage():
-    pulse._Mz_ss_aex(np.zeros(2), np.ones(2), np.zeros((2,2)), 0, 1, 1, 1)
+    functions_pulse._Mz_ss_aex(np.zeros(2), np.ones(2), np.zeros((2,2)), 0, 1, 1, 1)
 
 
 

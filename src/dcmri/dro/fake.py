@@ -7,8 +7,8 @@ from dcmri.dro import phantoms
 from dcmri.utils.misc import sample, add_noise
 from dcmri.kinetics.modules_conc import ConcTissueX, ConcLiver, ConcCortMed
 from dcmri.kinetics.functions_blocks import flux_comp
-from dcmri.bloch.tissue import Signal
-from dcmri.bloch import seqs
+from dcmri.signal.modules_tissue import Signal
+from dcmri.bloch import functions_seqs
 from dcmri.dro.aif import parker
 
 DEFAULTS = init()
@@ -66,10 +66,10 @@ def aif(
     R2sb = R2sba + r2s * cp * (1-H)
     R1b = R1b.reshape(1, -1)
     if model == '3D-SPGR-SS':
-        Mz = seqs.Mz_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TR, FA * B1corr)
+        Mz = functions_seqs.Mz_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TR, FA * B1corr)
     elif model == '3D-SR-SPGR-SS':
-        Mz = seqs.Mz_pr_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TC, TR, FA * B1corr, 0, 2 * TC, 90) 
-    aif_ = seqs.mz_readout(Mz, np.zeros_like(Mz), S0, FA * B1corr, 0, 0)
+        Mz = functions_seqs.Mz_pr_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TC, TR, FA * B1corr, 0, 2 * TC, 90) 
+    aif_ = functions_seqs.mz_readout(Mz, np.zeros_like(Mz), S0, FA * B1corr, 0, 0)
     time = np.arange(0, tacq, dt)
     aif_ = sample(time, t, aif_, dt)
     sdev = (np.amax(aif_)-aif_[0])/CNR
@@ -171,10 +171,10 @@ def brain(
 
     R1b = R1b.reshape(1, -1)
     if model == '3D-SPGR-SS':
-        Mz = seqs.Mz_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TR, FA)
+        Mz = functions_seqs.Mz_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TR, FA)
     elif model == '3D-SR-SPGR-SS':
-        Mz = seqs.Mz_pr_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TC, TR, FA, 0, 2 * TC, 90) 
-    aif_ = seqs.mz_readout(Mz, R2sb, S0, FA, TE, 0)
+        Mz = functions_seqs.Mz_pr_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TC, TR, FA, 0, 2 * TC, 90) 
+    aif_ = functions_seqs.mz_readout(Mz, R2sb, S0, FA, TE, 0)
 
     sdev = (np.amax(aif_)-aif_[0])/CNR
     time = np.arange(0, tacq, dt)
@@ -218,10 +218,10 @@ def brain(
 
             R1 = R1.reshape(1, -1)
             if model == '3D-SPGR-SS':
-                Mz = seqs.Mz_spgr_in_ss(R1, 1, 0, np.zeros_like(R1), 1, TR, FA)
+                Mz = functions_seqs.Mz_spgr_in_ss(R1, 1, 0, np.zeros_like(R1), 1, TR, FA)
             elif model == '3D-SR-SPGR-SS':
-                Mz = seqs.Mz_pr_spgr_in_ss(R1, 1, 0, np.zeros_like(R1), 1, TC, TR, FA, 0, 2 * TC, 90) 
-            s = seqs.mz_readout(Mz, R2s, S0*im['PD'][i, j], FA, TE, 0)
+                Mz = functions_seqs.Mz_pr_spgr_in_ss(R1, 1, 0, np.zeros_like(R1), 1, TC, TR, FA, 0, 2 * TC, 90) 
+            s = functions_seqs.mz_readout(Mz, R2s, S0*im['PD'][i, j], FA, TE, 0)
 
             sig_noisefree = sample(time, t, s, dt)
             s = add_noise(sig_noisefree, sdev)
