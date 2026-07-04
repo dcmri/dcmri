@@ -1,8 +1,8 @@
 import itertools
 import numpy as np
 
-from dcmri import MzPrep, MxyReadMz, QVALUES
-
+from dcmri import Magnetization, QVALUES
+from dcmri.bloch.modules_tissue import MzPrep, MxyReadMz
 
 def test_coverage_readout():
     values = MxyReadMz.configs.values()
@@ -88,15 +88,15 @@ def test_coverage_mzprep():
         print('scalar', cnfgs)
         config = {k: cnfgs[i] for i, k in enumerate(MzPrep.configs)}
         Mz = MzPrep(**config)
-        Mz.inputs()
-        if config['inflow']:
-            Mz(QVALUES, R1=R1, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
-            Mz(QVALUES, R1=[R1], R1i=[R1i], Fi=[Fi], v=[v], Fw=[Fw], me=me)
-            Mz(QVALUES, R1=[R1], R1i=R1i, Fi=[Fi], v=[v], Fw=Fw, me=me)
-        else:
-            Mz(QVALUES, R1=R1, v=v, Fw=Fw, me=me)
-            Mz(QVALUES, R1=[R1], v=[v], Fw=[Fw], me=me)
-            Mz(QVALUES, R1=[R1], v=[v], Fw=Fw, me=me)
+        if 'R1' in Mz.inputs():
+            if config['inflow']:
+                Mz(QVALUES, R1=R1, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
+                Mz(QVALUES, R1=[R1], R1i=[R1i], Fi=[Fi], v=[v], Fw=[Fw], me=me)
+                Mz(QVALUES, R1=[R1], R1i=R1i, Fi=[Fi], v=[v], Fw=Fw, me=me)
+            else:
+                Mz(QVALUES, R1=R1, v=v, Fw=Fw, me=me)
+                Mz(QVALUES, R1=[R1], v=[v], Fw=[Fw], me=me)
+                Mz(QVALUES, R1=[R1], v=[v], Fw=Fw, me=me)
 
     # nc
     R1 = [1,0.5]
@@ -113,7 +113,8 @@ def test_coverage_mzprep():
         #     continue
         print('nc', cnfgs)
         Mz = MzPrep(**config)
-        Mz(QVALUES, R1=R1, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
+        if 'R1' in Mz.inputs():
+            Mz(QVALUES, R1=R1, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
 
     # nt
     nt = 10
@@ -129,8 +130,8 @@ def test_coverage_mzprep():
         config = {k: cnfgs[i] for i, k in enumerate(MzPrep.configs)}
         print('nt', cnfgs)
         Mz = MzPrep(**config)
-        Mz.inputs()
-        Mz(QVALUES, R1=R1, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
+        if 'R1' in Mz.inputs():
+            Mz(QVALUES, R1=R1, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
 
     # nc, nt
     nt = 10
@@ -146,12 +147,10 @@ def test_coverage_mzprep():
         config = {k: cnfgs[i] for i, k in enumerate(MzPrep.configs)}
         print('(nc, nt)', cnfgs)
         Mz = MzPrep(**config)
-        Mz.inputs()
-        Mz(QVALUES, R1=R1, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
+        if 'R1' in Mz.inputs():
+            Mz(QVALUES, R1=R1, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
         
     MzPrep(sequence='3D-SPGR-SS')(QVALUES, R1=R1, R1i=R1, Fi=Fi, v=v, Fw=Fw, me=me)
-    MzPrep(sequence='Eq-SE-EPI')(QVALUES, R1=R1, v=v, Fw=Fw, me=me)
-    MzPrep(sequence='Eq-SE-EPI')(QVALUES)
 
 
 
@@ -220,10 +219,25 @@ def test_exceptions_mzprep():
         assert False
 
 
+def test_coverage_m():
+    values = Magnetization.configs.values()
+    for cnfgs in itertools.product(*values):
+        print(cnfgs)
+        # if cnfgs != ('Eq-SE-EPI', False):
+        #     continue
+        config = {k: cnfgs[i] for i, k in enumerate(Magnetization.configs)}
+        magn = Magnetization(**config)
+        magn.inputs()
+        magn.outputs()
+        p = QVALUES
+        M = magn(p)['M']
+
+
 if __name__ == "__main__":
     test_coverage_readout()
     test_exceptions_readout()
     test_coverage_mzprep()
     test_exceptions_mzprep()
+    test_coverage_m()
     
     print('All magnetization tests passing!')

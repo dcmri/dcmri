@@ -160,28 +160,22 @@ class MxyReadMz(Module):
         return inputs
     
     def outputs(self):
-        return {'Mxy'} # (2, nc, n_times) or (2, nc, )
+        # (components, compartments, times) 
+        # or 
+        # (channels, components, compartments, times)
+        return {'Mxy'}
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)
         seq = self.config['sequence']
 
-        # # Check that required parameters are provided
-        # if 'R2s' in p:
-        #     if p['R2s'] is None:
-        #         raise ValueError("R2* must be provided for a T2*-weighted sequence.")
-        # if 'R2' in p:
-        #     if p['R2'] is None:
-        #         raise ValueError("R2 must be provided for a T2-weighted sequence.")
-
         # Possible shapes for Mz are scalar, (ncomps, ) or (ncomps, nt)
         # R2 and R2s must match Mz in size but not shape
         # All other parameters are scalars
 
-        # Result is returned in shape (2, n_times) or (2,)
+        # Result is returned in shape (components, compartments, times) or (channels, components, compartments, times)
 
         # --- Convert input shapes to standard format (ntimes, )
-        input_shape = np.shape(p['Mz'])
         Mz = np.atleast_1d(p['Mz']) # shape (nt, ) or (nc, nt)
         if Mz.ndim==1: # 1D is interpreted as (nc, ) - i.e. NOT (nt, )
             nc, nt = Mz.size, 1
@@ -208,37 +202,32 @@ class MxyReadMz(Module):
         FA = p['FA'] * p['B1corr']
 
         if seq in ['Eq-SE-EPI', 'SE-EPI']:
-            Mxy = functions_seqs.mz_readout(Mz, R2, FA, p['TE'])
+            Mxy = np.zeros((2, nc, nt), dtype=float) # (channels, compartments, times)
+            Mxy[0,:,:] = functions_seqs.mz_readout(Mz, R2, FA, p['TE'])
         
         elif seq in ['Eq-DE-EPI', 'DE-EPI']:
-            # if np.size(R2) != np.size(R2s):
-            #     raise ValueError('R2 and R2s must have the same size.')
-            MxyGE = functions_seqs.mz_readout(Mz, R2s, FA, p['TE1'])
-            MxySE = functions_seqs.mz_readout(Mz, R2, FA, p['TE2'])
-            Mxy = np.stack((MxyGE, MxySE)) # 2 (channels), 2 (components), nc (compartments), nt (times)
+            # 2 (channels), 2 (components), nc (compartments), nt (times)
+            Mxy = np.zeros((2, 2, nc, nt), dtype=float)
+            Mxy[0,0,:,:] = functions_seqs.mz_readout(Mz, R2s, FA, p['TE1'])
+            Mxy[1,0,:,:] = functions_seqs.mz_readout(Mz, R2, FA, p['TE2'])
 
         elif seq in ['ZTE-3D-SPGR-SS', 'ZTE-3D-IR-SPGR-SS']:
-            Mxy = functions_seqs.mz_readout(Mz, np.zeros_like(Mz), FA, 0)
+            Mxy = np.zeros((2, nc, nt), dtype=float) # (channels, compartments, times)
+            Mxy[0,:,:] = functions_seqs.mz_readout(Mz, np.zeros_like(Mz), FA, 0)
         
         else:
-            Mxy = functions_seqs.mz_readout(Mz, R2s, FA, p['TE'])
+            Mxy = np.zeros((2, nc, nt), dtype=float) # (channels, compartments, times)
+            Mxy[0,:,:] = functions_seqs.mz_readout(Mz, R2s, FA, p['TE'])
 
-        # Mxy dimensions (2, nc, nt) or (2, 2, nc, nt)
-
-        # input shape (nc, n_times) or (nc, ) or scalar
-
-        # If the input is scalar
-        if input_shape == ():
-            Mxy = Mxy[..., 0, 0]
-
-        elif len(input_shape)==1:
-            Mxy = Mxy[..., 0, 0]
+        # (channels, components, compartments, times)
+        # or
+        # (components, compartments, times)
 
         return {'Mxy': Mxy}  
 
 
 
-class MzPrep(Module): # For sequences that have NO T2 or T2* weighting
+class MzPrep(Module): 
     configs = {
         'sequence': set(SEQUENCES.keys()),
         'inflow': {False, True},
@@ -252,16 +241,17 @@ class MzPrep(Module): # For sequences that have NO T2 or T2* weighting
         # Sequence parameters
         inputs = set(SEQUENCES[seq]['parameters']['prep'])
         # Tissue parameters
-        inputs |= {'v', 'Fw', 'me'}
-        if SEQUENCES[seq]['mz_prep_tissue'] != 'Eq':
+        weighting = SEQUENCES[seq]['parameters']['tissue']
+        if 'R1' in weighting:
             inputs |= {'R1'}
+        inputs |= {'v', 'Fw', 'me'}
         if self.config['inflow']:
             if SEQUENCES[seq]['mz_prep_inflow'] != 'Eq':
                 inputs |= {'Fi', 'R1i'}
         return inputs
     
     def outputs(self):
-        return {'Mz'}
+        return {'Mz'} # (compartments, times)
     
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)
@@ -271,19 +261,16 @@ class MzPrep(Module): # For sequences that have NO T2 or T2* weighting
         v = np.atleast_1d(p['v'])
         nc = v.size # -- The number of compartments is decided by the size of v
 
-        # If the sequence does not have T1-weighting, return scalar equilibrium
-        if 'R1' not in self.inputs():
-            return np.full(nc, p['me'])
-
         # Possible input shapes for R1:
         # scalar, 1D (nt), 1D (nc), 2D (nc, nt)  
         # Corresponding Mz output shapes are scalar, (nc, ) or (nc, nt)
         # Arguments are converted to standard 2D shape (nc, nt) for computations   
-        input_shape = np.shape(p['R1'])
+        if 'R1' not in p:
+            raise ValueError('MzPrep should only be called on R1-weighted sequences')
         R1 = np.atleast_1d(p['R1'])
         if R1.ndim==2:
             if nc != R1.shape[0]:
-                raise ValueError("v must have one element for each tissue compartment")
+                raise ValueError("R1 must have one element for each tissue compartment")
         
         # --- Check formatting of Fw
         # Reshape Fw to (nc, nc)
@@ -335,21 +322,59 @@ class MzPrep(Module): # For sequences that have NO T2 or T2* weighting
         mz_prep_sequence = SEQUENCES[sequence]['mz_prep_tissue']
         Mz = _Mz(mz_prep_sequence, R1, v, Fw, j, p)
 
-        # Return result must one of the input shapes for Readout: scalar, (nc, ) or (nc, nt)
-        if input_shape == ():  #scalar, 1D (nt), 1D (nc), 2D (nc, nt)
-            Mz = Mz[0,0] #input scalar, return scalar
-        elif np.size(input_shape)==1:
-            if nc==1: # input 1D (nt)
-                pass # return (1, nt)
-            else: # input 1D (nc)
-                Mz = Mz[:,0] # return (nc, )
-        else: # input 2D (nc, nt)
-            pass # output 2D (nc, nt)
-
+        # Return dimensions (compartments, times)
         return {'Mz': Mz}
         
 
+class Magnetization(Module): 
+    configs = {
+        'sequence': set(SEQUENCES.keys()),
+        'inflow': {False, True},
+    }
+    defaults = {
+        'sequence': 'SPGR-SS',
+        'inflow': False,
+    }
+    def __init__(self, imap:dict=None, **config):
+        self.set_config(config)
+        self._mz_prep = MzPrep(**self.config)
+        self._mxy_read = MxyReadMz(**self.config)
+        self.map_inputs(imap)  
+        
+    def inputs(self):
+        inputs = self._mz_prep.mapped_inputs()
+        inputs |= self._mxy_read.mapped_inputs()
+        return inputs - {'Mz'}
+    
+    def outputs(self):
+        return {'M'}
 
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data, kwargs)  
+
+        if 'R1' in p:
+            Mz = self._mz_prep(p)['Mz'] # (compartments, times)
+        elif 'R2' in p:
+            R2 = np.atleast_1d(p['R2'])
+            R2 = R2.reshape(1, R2.shape[-1])
+            v = np.atleast_1d(p['v'])
+            Mz = np.full(R2.shape, p['me'], dtype=float)
+            Mz *= v[:, np.newaxis]
+        else:
+            v = np.atleast_1d(p['v'])
+            shape = (v.size, ) + np.atleast_1d(p['R2s']).shape
+            Mz = np.full(shape, p['me'], dtype=float) 
+
+        Mxy = self._mxy_read(p, Mz=Mz)['Mxy'] # (channels, components, compartments, times) or (components, compartments, times)
+        if Mxy.ndim==3:
+            M = np.zeros((1 + Mxy.shape[0], Mxy.shape[1], Mxy.shape[2]), dtype=Mxy.dtype)
+            M[:2, :, :] = Mxy
+            M[2, :, :] = Mz
+        else:
+            M = np.zeros((Mxy.shape[0], 1 + Mxy.shape[1], Mxy.shape[2], Mxy.shape[3]), dtype=Mxy.dtype)
+            M[:, :2, :, :] = Mxy
+            M[:, 2, :, :] = Mz
+        return {'M': M}
 
 def _Mz(mz_prep_sequence, R1:np.ndarray, v, Fw, j, p):
     if j is None:

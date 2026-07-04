@@ -139,7 +139,7 @@ class AortaLiver(SuperRoiModel):
         'organs': ConcAortaLiver.configs['organs'],
         'liver': ConcAortaLiver.configs['liver'],
         'non_stationary': ConcAortaLiver.configs['non_stationary'],
-        'sequence': Signal.configs['sequence'],
+        # 'sequence': Signal.configs['sequence'],
     }
 
     def __init__(

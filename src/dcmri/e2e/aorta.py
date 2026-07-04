@@ -101,7 +101,7 @@ class SignalAorta(Module):
     configs = {
         'heartlung': ConcAorta.configs['heartlung'],
         'organs': ConcAorta.configs['organs'],
-        'sequence': Signal.configs['sequence'],
+        #'sequence': Signal.configs['sequence'],
     }
     defaults = {
         'heartlung': 'pfcomp', 

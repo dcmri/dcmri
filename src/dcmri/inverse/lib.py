@@ -112,11 +112,11 @@ def _estimate_bat(t, y):
     return t_half
 
 
-def conc_dce(signal, S, r1=None, n0=None, S0=None, R1b=None):
+def conc_dce(signal, S, r1=None, n0=None, S0=None, R1b=None, defaults=None):
     
     # Normalize signal
     if S0 is None:
-        Sn0 = signal(R1=R1b, S0=1, R2s=np.ones_like(R1b), TE=0, v=1, Fw=0, me=1) # Exp factor absorbed in S0
+        Sn0 = signal(defaults, R1=R1b, S0=1, R2s=np.ones_like(R1b), TE=0, v=1, Fw=0, me=1)['S'] # Exp factor absorbed in S0
         Sb = np.sum(S[:, :n0], axis=1) / n0
         S0 = np.divide(Sb, Sn0, out=np.zeros_like(Sb, dtype=float), where=Sn0 > 0)
 
@@ -129,7 +129,7 @@ def conc_dce(signal, S, r1=None, n0=None, S0=None, R1b=None):
     c_range = np.arange(0, c_max, c_step)
     R1_min = 0
     R1_lookup = R1_min + r1 * c_range
-    Sn_lookup = signal(R1=R1_lookup, S0=1, R2s=np.ones_like(R1_lookup), TE=0, v=1, Fw=0, me=1)
+    Sn_lookup = signal(defaults, R1=R1_lookup, S0=1, R2s=np.ones_like(R1_lookup), TE=0, v=1, Fw=0, me=1)['S']
 
     # Look up conc values
     R1 = np.interp(Sn_data, Sn_lookup, R1_lookup)

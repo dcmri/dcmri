@@ -4,89 +4,86 @@ import numpy as np
 
 from dcmri.core.sequences import SEQUENCES
 import dcmri.inverse.lib as solve
-from dcmri.core.function import Function
+from dcmri.core.module import Module
 from dcmri.signal.modules_tissue import Signal
+from dcmri.bloch.modules_tissue import Magnetization
 
 
 invertible_seqs = [s for s, v in SEQUENCES.items() if v['steady-state']]
+analytical_inversion = ['3D-SPGR-SS', 'ZTE-3D-SPGR-SS', 'lin', 'Eq-GE-EPI', 'GE-EPI', 'Eq-SE-EPI', 'SE-EPI', 'Eq-DE-EPI', 'DE-EPI']
 
-class SignalToConc(Function):
+class SignalToConc(Module):
     configs = {
-        'sequence': list(invertible_seqs + ['lin']),
-        'inflow': [False, True],
-        'calibrate': [False, True],
+        'sequence': set(invertible_seqs + ['lin']),
+        'calibrate': {False, True},
     }
-    def __init__(
-            self, 
-            sequence='3D-SPGR-SS', 
-            inflow=False, 
-            calibrate=True,
-            defaults=None,
-            **params,
-        ):
-        cnfg = {
-            'sequence': sequence,
-            'inflow': inflow,
-            'calibrate': calibrate,
-        }
-        self._set_config(cnfg)
-        self._set_params(defaults) 
-    
-    def params(self):
-        sequence = self._cnfg['sequence']
+    defaults = {
+        'sequence': '3D-SPGR-SS',
+        'calibrate': True,
+    }
+    def __init__(self, imap:dict=None, **config):
+        self.set_config(config)
+        if self.config['sequence'] not in analytical_inversion:
+            self._R1_to_S = R1ToSignal(**self.config)
+        self.map_inputs(imap)  
+
+    def inputs(self):
+        sequence = self.config['sequence']
+        inputs = {'S'}
 
         if sequence in ['3D-SPGR-SS']:
-            pars = ['r1', 'FA', 'TR', 'B1corr', 'n0']
-            if self._cnfg['calibrate']:
-                pars += ['R1b']  
+            inputs |= {'r1', 'FA', 'TR', 'B1corr', 'n0'}
+            if self.config['calibrate']:
+                inputs |= {'R1b'}  
             else:
-                pars += ['S0']  
+                inputs |= {'S0'}  
 
         elif sequence in ['ZTE-3D-SPGR-SS']:
-            pars = ['r1', 'FA', 'TR', 'B1corr', 'n0']
-            if self._cnfg['calibrate']:
-                pars += ['R1b']  
+            inputs |= {'r1', 'FA', 'TR', 'B1corr', 'n0'}
+            if self.config['calibrate']:
+                inputs |= {'R1b'}  
             else:
-                pars += ['S0'] 
+                inputs |= {'S0'} 
 
         elif sequence == 'lin':
-            pars = ['r1', 'n0']
-            if self._cnfg['calibrate']:
-                pars += ['R1b']  
+            inputs |= {'r1', 'n0'}
+            if self.config['calibrate']:
+                inputs |= {'R1b'}  
             else:
-                pars += ['S0'] 
+                inputs |= {'S0'} 
 
         elif sequence in ['Eq-GE-EPI', 'GE-EPI']:
-            pars = ['n0', 'r2s', 'TE']
+            inputs |= {'n0', 'r2s', 'TE'}
 
         elif sequence in ['Eq-SE-EPI', 'SE-EPI']:
-            pars = ['n0', 'r2', 'TE']
+            inputs |= {'n0', 'r2', 'TE'}
 
         elif sequence in ['Eq-DE-EPI', 'DE-EPI']:
-            pars = ['n0', 'r2', 'r2s', 'TE1', 'TE2']
+            inputs |= {'n0', 'r2', 'r2s', 'TE1', 'TE2'}
 
         else:
-            derived = ['R1', 'R2s', 'TE', 'v', 'Fw', 'me']
-            pars = Signal(sequence).params()
-            pars += ['n0', 'r1']
-            if self._cnfg['calibrate']:
-                pars += ['R1b'] 
-                derived += ['S0']
+            derived = {'R1', 'R2s', 'TE', 'v', 'Fw', 'me'}
+            inputs |= self._R1_to_S.inputs()
+            inputs |= {'n0', 'r1'}
+            if self.config['calibrate']:
+                inputs |= {'R1b'} 
+                derived |= {'S0'}
             else:
-                pars += ['S0'] 
-            pars = {p for p in pars if p not in derived}
+                inputs |= {'S0'} 
+            inputs -= derived
 
-        pars = list(set(pars))
-        pars.sort()
-        return pars
+        return inputs
+    
+    def outputs(self):
+        return {'C'}  # (n_samples, n_channels, n_times) or (n_channels, n_times) or (n_times)
 
-    def __call__(self, S, **params):
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data, kwargs)  
+
         # Input shape is either (n_samples, n_channels, n_times) or (n_channels, n_times) or (n_times)
-        # Output shapes are the same
-        p = self._update_params(params)
-        
+        # Output shapes are the same        
         # Check input
-        S = np.array(S)
+        S = np.array(p['S'])
         if S.size <= 1:
             raise ValueError("Signal needs more than 1 time point for concentration calculation")
         
@@ -118,7 +115,8 @@ class SignalToConc(Function):
             p['S0'] = S0
 
         # Delegate computation to specialised functions
-        sequence = self._cnfg['sequence']
+        sequence = self.config['sequence']
+        p = {k: v for k, v in p.items() if k != 'S'}
 
         if sequence in ['3D-SPGR-SS']:
             conc = solve.conc_ss(S[:,0,:], **p)
@@ -149,17 +147,46 @@ class SignalToConc(Function):
             conc = np.concatenate((conc_ge, conc_se), axis=1)
 
         else:
-            Sn_model = Signal(sequence, defaults=p)
-            if self._cnfg['calibrate']:
-                conc = solve.conc_dce(Sn_model, S[:,0,:], r1=p['r1'], n0=p['n0'], R1b=p['R1b'])
+            if self.config['calibrate']:
+                conc = solve.conc_dce(self._R1_to_S, S[:,0,:], r1=p['r1'], n0=p['n0'], R1b=p['R1b'], defaults=p)
             else:
-                conc = solve.conc_dce(Sn_model, S[:,0,:], r1=p['r1'], n0=p['n0'], S0=p['S0'])
+                conc = solve.conc_dce(self._R1_to_S, S[:,0,:], r1=p['r1'], n0=p['n0'], S0=p['S0'], defaults=p)
             conc = conc[:, None, :]
 
         if ndim==1:
-            return conc[0,0,:]
+            conc = conc[0,0,:]
         elif ndim==2:
-            return conc[0,:,:]
+            conc = conc[0,:,:]
         else:
-            return conc
+            conc = conc
+
+        return {'C': conc}
+        
+
+
+class R1ToSignal(Module): 
+    configs = {
+        'sequence': set(SEQUENCES.keys()),
+    }
+    defaults = {
+        'sequence': 'SPGR-SS',
+    }
+    def __init__(self, imap:dict=None, **config):
+        self.set_config(config)
+        self._mag = Magnetization(**self.config)
+        self._sig = Signal(magnitude=True)
+        self.map_inputs(imap)  
+        
+    def inputs(self):
+        inputs = self._mag.mapped_inputs()
+        inputs |= self._sig.mapped_inputs()
+        return inputs - {'M'}
+    
+    def outputs(self):
+        return self._sig.outputs()
+
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data, kwargs)  
+        M = self._mag(p)['M']
+        return self._sig(p, M=M)
 

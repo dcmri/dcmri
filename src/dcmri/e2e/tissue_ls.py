@@ -62,10 +62,10 @@ from matplotlib.gridspec import GridSpec
 from dcmri.signal.modules_tissue import Signal
 from dcmri.core.sequences import SEQUENCES  
 from dcmri.core.tools import string_params
-from dcmri.inverse.sig2conc import SignalToConc
+from dcmri.inverse.sig2conc import SignalToConc, R1ToSignal
 from dcmri.core.pixel_model import SuperPixelModel
 from dcmri.core.types import Input
-from dcmri.core.function import Function
+from dcmri.core.module import Module
 from dcmri.relaxivity.modules_tissue import Relax
 from dcmri.signal.modules_tissue import Signal
 from dcmri.utils.misc import sample
@@ -103,26 +103,52 @@ def irf_ls(ca, c, dt, tol=1e-2):
 
 CONSTANTS = {'Fw': 0, 'v': 1, 'me': 1, 'noise_sdev':0}    
 
-class SignalTissueLS(Function):
-    configs = {
-        'sequence': [s for s, v in SEQUENCES.items() if v['steady-state']]
-    }  
-    def __init__(self, sequence='3D-SPGR-SS', defaults=None, **params):
-        cnfg = {
-            'sequence': sequence,
-        }
-        self._set_config(cnfg)
-        self._set_params(defaults)   
+# TODO This needs a rewrite and debugging 
 
-    def __call__(self, ca, **params):
-        p = self._update_params(params)
-        seq = self._cnfg['sequence']
+class SignalTissueLS(Module):
+    configs = {
+        'sequence': {s for s, v in SEQUENCES.items() if v['steady-state']}
+    }  
+    defaults = {
+        'sequence': '3D-SPGR-SS',
+    }
+    def inputs(self):
+        seq = self.config['sequence']
+        wght = set(SEQUENCES[seq]['parameters']['tissue'])
+
+        p = ['irf', 'dt']
+        p += [k for k in Relax(tissue_props=wght).params() if k not in ['R2b', 'R2sb']]
+        p += [k for k in Signal(seq).params() if k not in ['R1', 'R2', 'R2s', 'R1i']]
+
+        # p_excl = ['R1', 'R2s', 'R2', 'R1i', 'Fi', 'me', 'v', 'Fw']
+        # if seq == 'SE-EPI':
+        #     p += ['r2']
+        #     p_excl += ['TA', 'PA']
+        # elif seq == 'GE-EPI':
+        #     p += ['r2s']
+        #     p_excl += ['TA', 'PA']
+        # elif seq == 'DE-EPI':
+        #     p += ['r2', 'r2s']
+        #     p_excl += ['TA', 'PA']
+        # else:
+        #     p += ['R1b', 'r1']  
+        #     p_excl += ['TE'] 
+        # p += [ps for ps in Signal(seq)._params() if ps not in p_excl]
+        return p
+    
+    def outputs(self):
+        return {'S'}
+    
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data, kwargs)
+
+        seq = self.config['sequence']
         wght = set(SEQUENCES[seq]['parameters']['tissue'])
 
         relax = Relax(tissue_props=wght, defaults=p)
         signal = Signal(seq, defaults=p)
 
-        C = conc_ls(ca, p['irf'], p['dt'])
+        C = conc_ls(p['ca'], p['irf'], p['dt'])
         if C.shape[0]==1:
             R = relax(C=C[0,:], R2b=0, R2sb=0)
         else: # Dual-echo sequence - 2 signal channels
@@ -156,31 +182,9 @@ class SignalTissueLS(Function):
         #     R2s = rel.relax_t2s(C[1,:], 0, p['r2s'])
         #     return signal(R1=R1, R2s=R2s)  
     
-    def params(self):
-        seq = self._cnfg['sequence']
-        wght = set(SEQUENCES[seq]['parameters']['tissue'])
 
-        p = ['irf', 'dt']
-        p += [k for k in Relax(tissue_props=wght).params() if k not in ['R2b', 'R2sb']]
-        p += [k for k in Signal(seq).params() if k not in ['R1', 'R2', 'R2s', 'R1i']]
-
-        # p_excl = ['R1', 'R2s', 'R2', 'R1i', 'Fi', 'me', 'v', 'Fw']
-        # if seq == 'SE-EPI':
-        #     p += ['r2']
-        #     p_excl += ['TA', 'PA']
-        # elif seq == 'GE-EPI':
-        #     p += ['r2s']
-        #     p_excl += ['TA', 'PA']
-        # elif seq == 'DE-EPI':
-        #     p += ['r2', 'r2s']
-        #     p_excl += ['TA', 'PA']
-        # else:
-        #     p += ['R1b', 'r1']  
-        #     p_excl += ['TE'] 
-        # p += [ps for ps in Signal(seq)._params() if ps not in p_excl]
-        return p
     
-# class BaselineSignal(Function):
+# class BaselineSignal(Module):
 #     configs = {
 #         'sequence': [s for s, v in SEQUENCES.items() if v['steady-state']]
 #     }  

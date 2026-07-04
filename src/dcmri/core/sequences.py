@@ -1,4 +1,4 @@
-from types import MappingProxyType
+# TODO: Tissue parameters need to be in prep and read rather than a separate entry.
 
 
 SEQUENCES = {

@@ -172,7 +172,7 @@ class AortaKidneys(SuperRoiModel):
         'heartlung': ConcAortaKidneys.configs['heartlung'],
         'organs': ConcAortaKidneys.configs['organs'],
         'kidneys': ConcAortaKidneys.configs['kidneys'],
-        'sequence': Signal.configs['sequence'],
+        # 'sequence': Signal.configs['sequence'],
     }
     def __init__(
         self, 

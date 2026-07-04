@@ -199,12 +199,12 @@ from dcmri.relaxivity.functions_relaxivity import (
 )
 
 from dcmri.bloch.modules_tissue import (
-    MzPrep,
-    MxyReadMz,
+    Magnetization,
 )
 from dcmri.bloch.modules_tissue_x import (
-    MzTissueX,
-    SignalTissueX,
+    MagnetizationTissueX,
+    WaterVolumesTissueX,
+    WaterFlowsTissueX,
 )
 from dcmri.bloch.functions_pulse import (
    Mz_pr_spgr_ss,
@@ -223,7 +223,9 @@ from dcmri.bloch.functions_seqs import (
    signal_readout,
    signal_rice,
 )
-
+from dcmri.signal.modules_tissue import (
+    Signal
+)
 from dcmri.inverse.sig2conc import (
     SignalToConc
 )
@@ -248,7 +250,7 @@ from dcmri.e2e.aorta_liver_dynamic_drug import AortaLiverDynamicDrug
 from dcmri.e2e.kidney import Kidney
 from dcmri.e2e.liver import Liver
 from dcmri.e2e.cort_med import CortMed
-from dcmri.e2e.tissue_x import TissueX
+# from dcmri.e2e.tissue_x import TissueX
 from dcmri.e2e.tissue_ls import TissueLS
 
 from dcmri.dro.aif import (
