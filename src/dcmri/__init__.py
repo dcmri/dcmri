@@ -220,11 +220,10 @@ from dcmri.bloch.functions_seqs import (
    Mz_ssi,
    Mz_se,
    mz_readout,
-   signal_readout,
-   signal_rice,
 )
 from dcmri.signal.modules_tissue import (
-    Signal
+    Signal,
+    CalibrateSignal,
 )
 from dcmri.inverse.sig2conc import (
     SignalToConc
@@ -238,6 +237,9 @@ from dcmri.inverse.lib import (
     vfa_nonlinear,
     vfa_linear,
 )
+
+# End-to-end forward Models
+from dcmri.models.aorta import AortaModel
 
 # End user tools
 from dcmri.e2e.aorta import Aorta

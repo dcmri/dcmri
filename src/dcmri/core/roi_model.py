@@ -25,21 +25,24 @@ class SuperRoiModel:
 
     # Reusable functions
 
-    def state(self, *args, select=None) -> dict: 
-        """Model parameters and their values"""
-        pars = self._pars
-        if select is not None:
-            pars = {k: v for k, v in pars.items() if k in self.params(select)}
-        if args == ():
-            return pars
-        for k in args:
-            if k not in pars:
-                raise ValueError(f"{k} is not a valid model parameter. Use print_params() to get a list of valid parameters.")
-        values = [pars[k] for k in args]
-        if len(args) == 1:
-            return values[0]
-        else:
-            return values
+    @property
+    def state(self):
+        return dict(self._pars)
+    # def state(self, *args, select=None) -> dict: 
+    #     """Model parameters and their values"""
+    #     pars = self._pars
+    #     if select is not None:
+    #         pars = {k: v for k, v in pars.items() if k in self.params(select)}
+    #     if args == ():
+    #         return pars
+    #     for k in args:
+    #         if k not in pars:
+    #             raise ValueError(f"{k} is not a valid model parameter. Use print_params() to get a list of valid parameters.")
+    #     values = [pars[k] for k in args]
+    #     if len(args) == 1:
+    #         return values[0]
+    #     else:
+    #         return values
 
     def _set_config(self, cnfg:dict):
         for key, value in cnfg.items():

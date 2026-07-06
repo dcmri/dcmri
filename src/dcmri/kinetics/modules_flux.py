@@ -69,8 +69,8 @@ class FluxInjection(Module):
             }
         else:
             inputs |= {
-                'dose_1', 'rate_1', 'BAT_1',
-                'dose_2', 'rate_2', 'BAT_2'
+                'dose_1', 'rate_1', 'BAT',
+                'dose_2', 'rate_2', 'bolus_delay'
             }
         return inputs
     
@@ -89,10 +89,10 @@ class FluxInjection(Module):
             )
         else:
             J1 = ca_injection(
-                t, p['weight'], conc, p['dose_1'], p['rate_1'], p['BAT_1']
+                t, p['weight'], conc, p['dose_1'], p['rate_1'], p['BAT']
             )
             J2 = ca_injection(
-                t, p['weight'], conc, p['dose_2'], p['rate_2'], p['BAT_2']
+                t, p['weight'], conc, p['dose_2'], p['rate_2'], p['BAT'] + p['bolus_delay']
             )
             J = J1 + J2
         
@@ -258,61 +258,3 @@ class FluxAorta(Module):
         Ja = self._flux_heartlung(p | {'J': Jv})['J']
         return result | {'Ja': Ja, 'Jv':Jv}
     
-
-# This is a functioning class but not needed any more
-    
-# class FluxLaGut(Module): 
-#     """Flux through the liver artery and gut.
-#     """
-#     configs = {
-#         'lagut': {'pass', 'comp', 'plucom'},
-#     }
-#     defaults = {
-#         'lagut': 'plucom',
-#     }
-#     def __init__(self, config: dict=None, imap: dict=None):
-#         self.set_config(config)
-
-#         if self.config['lagut']=='pass':
-#             self._flux = Flux({'block': 'pass'})
-
-#         if self.config['lagut']=='comp':
-#             self._flux = Flux({'block': 'comp'}, {'T': 'Tg'})
-
-#         elif self.config['lagut']=='plucom':
-#             self._cflux = Flux({'block': 'comp'}, {'T': 'Tg'})
-#             self._pflux = Flux({'block': 'plug'}, {'T': 'Ta'})
-
-#         self.map_inputs(imap)
-
-#     def inputs(self):
-#         inputs = {
-#             'pass': set(),
-#             'comp': {'Tg'},
-#             'plucom': {'Ta', 'Tg', 'fa'},
-#         }[self.config['lagut']]
-
-#         inputs |= {'dt', 'J'}
-#         return inputs
-    
-#     def outputs(self):
-#         outputs = {'J'}
-#         if self.config['lagut']=='plucom':
-#             outputs |= {'Jla', 'Jpv'}
-#         return outputs
-    
-#     def __call__(self, data: dict) -> dict:
-#         p = self.map_data(data)
-
-#         if self.config['lagut'] in ['pass', 'comp']:
-#             result = self._flux(p)
-
-#         elif self.config['lagut']=='plucom':
-#             cflux = self._cflux(p)
-#             pflux = self._pflux(p)
-#             result = {
-#                 'J': p['fa'] * pflux['J'] + (1 - p['fa']) * cflux['J'],
-#                 'Jpv': cflux['J'],
-#                 'Jla': pflux['J'],
-#             }
-#         return result

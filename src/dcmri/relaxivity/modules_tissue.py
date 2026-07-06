@@ -1,5 +1,3 @@
-from itertools import combinations
-
 import numpy as np
 
 from dcmri.core.module import Module
@@ -120,7 +118,7 @@ class R2s(Module):
         return inputs
     
     def outputs(self) -> set:
-        return {'R2s}'}
+        return {'R2s'}
     
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)
@@ -163,9 +161,9 @@ class R2s(Module):
 
 class Relax(Module):
     configs = {
-        't2s_relaxation': {None} | R2s.configs['t2s_relaxation'],
-        't2_relaxation': {None} | R2.configs['t2_relaxation'],
         't1_relaxation': {None} | R1.configs['t1_relaxation'],
+        't2_relaxation': {None} | R2.configs['t2_relaxation'],
+        't2s_relaxation': {None} | R2s.configs['t2s_relaxation'],
         'fast_water_exchange': {False, True},
     }
     defaults = {
@@ -211,10 +209,10 @@ class Relax(Module):
 
         R_arr = {}
         if self.config['t1_relaxation']:
-            R_arr['R1'] = self._R1(p)
+            R_arr |= self._R1(p)
         if self.config['t2_relaxation']:
-            R_arr['R2'] = self._R2(p)
+            R_arr |= self._R2(p)
         if self.config['t2s_relaxation']:
-            R_arr['R2s'] = self._R2s(p)
+            R_arr |= self._R2s(p)
 
         return R_arr

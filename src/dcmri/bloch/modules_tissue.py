@@ -139,91 +139,58 @@ from dcmri.bloch import functions_seqs
 # This needs rationalising
 
 
-class MxyReadMz(Module): 
+class Magnetization(Module): 
     configs = {
         'sequence': set(SEQUENCES.keys()),
+        'inflow': {False, True},
     }
     defaults = {
-        'sequence': '3D-SPGR-SS'
-    }    
+        'sequence': '3D-SPGR-SS',
+        'inflow': False,
+    }
+    def __init__(self, imap:dict=None, **config):
+        self.set_config(config)
+        self._mz_prep = MzPrep(**self.config)
+        self._mxy_read = MxyReadMz(**self.config)
+        self.map_inputs(imap)  
+        
     def inputs(self):
-        params = SEQUENCES[self.config['sequence']]['parameters']
-        # Tissue parameters
-        weighting = params['tissue']
-        # Sequence parameters
-        inputs = {'Mz'} # shape (nc, n_times) or (nc, ) or scalar
-        inputs |= set(params['read'])
-        if 'R2s' in weighting:
-            inputs |= {'R2s'}
-        if 'R2' in weighting:
-            inputs |= {'R2'}
-        return inputs
+        inputs = self._mz_prep.mapped_inputs()
+        inputs |= self._mxy_read.mapped_inputs()
+        return inputs - {'Mz'}
     
     def outputs(self):
-        # (components, compartments, times) 
-        # or 
-        # (channels, components, compartments, times)
-        return {'Mxy'}
+        return {'M'}
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)
-        seq = self.config['sequence']
+        p = self.map_data(data, kwargs)  
 
-        # Possible shapes for Mz are scalar, (ncomps, ) or (ncomps, nt)
-        # R2 and R2s must match Mz in size but not shape
-        # All other parameters are scalars
-
-        # Result is returned in shape (components, compartments, times) or (channels, components, compartments, times)
-
-        # --- Convert input shapes to standard format (ntimes, )
-        Mz = np.atleast_1d(p['Mz']) # shape (nt, ) or (nc, nt)
-        if Mz.ndim==1: # 1D is interpreted as (nc, ) - i.e. NOT (nt, )
-            nc, nt = Mz.size, 1
-            Mz = Mz.reshape(nc, nt)
-        else:
-            nc, nt = Mz.shape
-
-        if 'R2s' in self._inputs:
-            R2s = np.atleast_1d(p['R2s'])
-            if R2s.size == nt:
-                R2s = np.stack([R2s] * nc, axis=0)
-            if R2s.size != nc * nt:
-                raise ValueError(f"Size of R2* ({R2s.size}) does not match dimensions ({nc}, {nt}) of Mz.")
-            R2s = R2s.reshape(nc, nt)
-
-        if 'R2' in self._inputs:
+        if 'R1' in p:
+            Mz = self._mz_prep(p)['Mz'] # (compartments, times)
+            
+        elif 'R2' in p:
             R2 = np.atleast_1d(p['R2'])
-            if R2.size == nt:
-                R2 = np.stack([R2] * nc, axis=0)
-            if R2.size != nc * nt:
-                raise ValueError(f"Size of R2 ({R2.size}) does not match dimensions ({nc}, {nt}) of Mz.")
-            R2 = R2.reshape(nc, nt)
-
-        FA = p['FA'] * p['B1corr']
-
-        if seq in ['Eq-SE-EPI', 'SE-EPI']:
-            Mxy = np.zeros((2, nc, nt), dtype=float) # (channels, compartments, times)
-            Mxy[0,:,:] = functions_seqs.mz_readout(Mz, R2, FA, p['TE'])
-        
-        elif seq in ['Eq-DE-EPI', 'DE-EPI']:
-            # 2 (channels), 2 (components), nc (compartments), nt (times)
-            Mxy = np.zeros((2, 2, nc, nt), dtype=float)
-            Mxy[0,0,:,:] = functions_seqs.mz_readout(Mz, R2s, FA, p['TE1'])
-            Mxy[1,0,:,:] = functions_seqs.mz_readout(Mz, R2, FA, p['TE2'])
-
-        elif seq in ['ZTE-3D-SPGR-SS', 'ZTE-3D-IR-SPGR-SS']:
-            Mxy = np.zeros((2, nc, nt), dtype=float) # (channels, compartments, times)
-            Mxy[0,:,:] = functions_seqs.mz_readout(Mz, np.zeros_like(Mz), FA, 0)
-        
+            R2 = R2.reshape(1, R2.shape[-1])
+            v = np.atleast_1d(p['v'])
+            Mz = np.full(R2.shape, p['me'], dtype=float)
+            Mz *= v[:, np.newaxis]
         else:
-            Mxy = np.zeros((2, nc, nt), dtype=float) # (channels, compartments, times)
-            Mxy[0,:,:] = functions_seqs.mz_readout(Mz, R2s, FA, p['TE'])
+            v = np.atleast_1d(p['v'])
+            shape = (v.size, ) + np.atleast_1d(p['R2s']).shape
+            Mz = np.full(shape, p['me'], dtype=float) 
 
-        # (channels, components, compartments, times)
-        # or
-        # (components, compartments, times)
+        Mxy = self._mxy_read(p, Mz=Mz)['Mxy'] # (channels, components, compartments, times) or (components, compartments, times)
+        if Mxy.ndim==3:
+            M = np.zeros((1 + Mxy.shape[0], Mxy.shape[1], Mxy.shape[2]), dtype=Mxy.dtype)
+            M[:2, :, :] = Mxy
+            M[2, :, :] = Mz
+        else:
+            M = np.zeros((Mxy.shape[0], 1 + Mxy.shape[1], Mxy.shape[2], Mxy.shape[3]), dtype=Mxy.dtype)
+            M[:, :2, :, :] = Mxy
+            M[:, 2, :, :] = Mz
+        return {'M': M}
+    
 
-        return {'Mxy': Mxy}  
 
 
 
@@ -326,55 +293,92 @@ class MzPrep(Module):
         return {'Mz': Mz}
         
 
-class Magnetization(Module): 
+class MxyReadMz(Module): 
     configs = {
         'sequence': set(SEQUENCES.keys()),
-        'inflow': {False, True},
     }
     defaults = {
-        'sequence': 'SPGR-SS',
-        'inflow': False,
-    }
-    def __init__(self, imap:dict=None, **config):
-        self.set_config(config)
-        self._mz_prep = MzPrep(**self.config)
-        self._mxy_read = MxyReadMz(**self.config)
-        self.map_inputs(imap)  
-        
+        'sequence': '3D-SPGR-SS'
+    }    
     def inputs(self):
-        inputs = self._mz_prep.mapped_inputs()
-        inputs |= self._mxy_read.mapped_inputs()
-        return inputs - {'Mz'}
+        params = SEQUENCES[self.config['sequence']]['parameters']
+        # Tissue parameters
+        weighting = params['tissue']
+        # Sequence parameters
+        inputs = {'Mz'} # shape (nc, n_times) or (nc, ) or scalar
+        inputs |= set(params['read'])
+        if 'R2s' in weighting:
+            inputs |= {'R2s'}
+        if 'R2' in weighting:
+            inputs |= {'R2'}
+        return inputs
     
     def outputs(self):
-        return {'M'}
+        # (components, compartments, times) 
+        # or 
+        # (channels, components, compartments, times)
+        return {'Mxy'}
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)  
+        p = self.map_data(data, kwargs)
+        seq = self.config['sequence']
 
-        if 'R1' in p:
-            Mz = self._mz_prep(p)['Mz'] # (compartments, times)
-        elif 'R2' in p:
+        # Possible shapes for Mz are scalar, (ncomps, ) or (ncomps, nt)
+        # R2 and R2s must match Mz in size but not shape
+        # All other parameters are scalars
+
+        # Result is returned in shape (components, compartments, times) or (channels, components, compartments, times)
+
+        # --- Convert input shapes to standard format (ntimes, )
+        Mz = np.atleast_1d(p['Mz']) # shape (nt, ) or (nc, nt)
+        if Mz.ndim==1: # 1D is interpreted as (nc, ) - i.e. NOT (nt, )
+            nc, nt = Mz.size, 1
+            Mz = Mz.reshape(nc, nt)
+        else:
+            nc, nt = Mz.shape
+
+        if 'R2s' in self._inputs:
+            R2s = np.atleast_1d(p['R2s'])
+            if R2s.size == nt:
+                R2s = np.stack([R2s] * nc, axis=0)
+            if R2s.size != nc * nt:
+                raise ValueError(f"Size of R2* ({R2s.size}) does not match dimensions ({nc}, {nt}) of Mz.")
+            R2s = R2s.reshape(nc, nt)
+
+        if 'R2' in self._inputs:
             R2 = np.atleast_1d(p['R2'])
-            R2 = R2.reshape(1, R2.shape[-1])
-            v = np.atleast_1d(p['v'])
-            Mz = np.full(R2.shape, p['me'], dtype=float)
-            Mz *= v[:, np.newaxis]
-        else:
-            v = np.atleast_1d(p['v'])
-            shape = (v.size, ) + np.atleast_1d(p['R2s']).shape
-            Mz = np.full(shape, p['me'], dtype=float) 
+            if R2.size == nt:
+                R2 = np.stack([R2] * nc, axis=0)
+            if R2.size != nc * nt:
+                raise ValueError(f"Size of R2 ({R2.size}) does not match dimensions ({nc}, {nt}) of Mz.")
+            R2 = R2.reshape(nc, nt)
 
-        Mxy = self._mxy_read(p, Mz=Mz)['Mxy'] # (channels, components, compartments, times) or (components, compartments, times)
-        if Mxy.ndim==3:
-            M = np.zeros((1 + Mxy.shape[0], Mxy.shape[1], Mxy.shape[2]), dtype=Mxy.dtype)
-            M[:2, :, :] = Mxy
-            M[2, :, :] = Mz
+        FA = p['FA'] * p['B1corr']
+
+        if seq in ['Eq-SE-EPI', 'SE-EPI']:
+            Mxy = np.zeros((2, nc, nt), dtype=float) # (channels, compartments, times)
+            Mxy[0,:,:] = functions_seqs.mz_readout(Mz, R2, FA, p['TE'])
+        
+        elif seq in ['Eq-DE-EPI', 'DE-EPI']:
+            # 2 (channels), 2 (components), nc (compartments), nt (times)
+            Mxy = np.zeros((2, 2, nc, nt), dtype=float)
+            Mxy[0,0,:,:] = functions_seqs.mz_readout(Mz, R2s, FA, p['TE1'])
+            Mxy[1,0,:,:] = functions_seqs.mz_readout(Mz, R2, FA, p['TE2'])
+
+        elif seq in ['ZTE-3D-SPGR-SS', 'ZTE-3D-IR-SPGR-SS']:
+            Mxy = np.zeros((2, nc, nt), dtype=float) # (channels, compartments, times)
+            Mxy[0,:,:] = functions_seqs.mz_readout(Mz, np.zeros_like(Mz), FA, 0)
+        
         else:
-            M = np.zeros((Mxy.shape[0], 1 + Mxy.shape[1], Mxy.shape[2], Mxy.shape[3]), dtype=Mxy.dtype)
-            M[:, :2, :, :] = Mxy
-            M[:, 2, :, :] = Mz
-        return {'M': M}
+            Mxy = np.zeros((2, nc, nt), dtype=float) # (channels, compartments, times)
+            Mxy[0,:,:] = functions_seqs.mz_readout(Mz, R2s, FA, p['TE'])
+
+        # (channels, components, compartments, times)
+        # or
+        # (components, compartments, times)
+
+        return {'Mxy': Mxy}  
+
 
 def _Mz(mz_prep_sequence, R1:np.ndarray, v, Fw, j, p):
     if j is None:

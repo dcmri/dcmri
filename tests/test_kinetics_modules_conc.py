@@ -47,7 +47,6 @@ def test_conc_aorta_kidneys():
 
 def test_conc_aorta():
     def _test_config(cnfg):
-        cnfg = {k: cnfg[i] for i, k in enumerate(dc.ConcAorta.configs.keys())}
         try:
            conc = dc.ConcAorta(**cnfg)
         except ValueError:
@@ -55,16 +54,13 @@ def test_conc_aorta():
         data = {k: dc.QVALUES[k] for k in conc.inputs()}
         c = conc(data)
         assert c['ca'].ndim==1
-
-    values = dc.ConcAorta.configs.values()
     [
         _test_config(cnfg) 
-        for cnfg in itertools.product(*values)
+        for cnfg in dc.ConcAorta.configurations()
     ]
 
 def test_conc_cortmed():
     def _test_config(cnfg):
-        cnfg = {k: cnfg[i] for i, k in enumerate(dc.ConcCortMed.configs.keys())}
         try:
            conc = dc.ConcCortMed(**cnfg)
         except ValueError:
@@ -75,10 +71,9 @@ def test_conc_cortmed():
         assert c['Cc'].ndim==2
         assert c['Cm'].ndim==2
 
-    values = dc.ConcCortMed.configs.values()
     [
         _test_config(cnfg) 
-        for cnfg in itertools.product(*values)
+        for cnfg in dc.ConcCortMed.configurations()
     ]
 
 def test_conc_kidney():

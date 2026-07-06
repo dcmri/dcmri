@@ -1,14 +1,12 @@
-import itertools
 import numpy as np
 
-from dcmri import Signal, QVALUES
+from dcmri import Signal, CalibrateSignal, QVALUES
+
 
 
 def test_coverage_signal():
-    values = Signal.configs.values()
-    for cnfgs in itertools.product(*values):
-        print(cnfgs)
-        config = {k: cnfgs[i] for i, k in enumerate(Signal.configs)}
+    for config in Signal.configurations():
+        print(config)
         sig = Signal(**config)
         sig.inputs()
         sig.outputs()
@@ -18,7 +16,20 @@ def test_coverage_signal():
         S = sig(QVALUES, M=M, time=time)['S']
 
 
+def test_coverage_calibrate_signal():
+    for config in CalibrateSignal.configurations():
+        print(config)
+        cal = CalibrateSignal(**config)
+        cal.inputs()
+        cal.outputs()
+
+        p = cal.map_lexicon(QVALUES)
+        S0 = cal(p)['S0']
+        print(S0)
+
+
 if __name__ == "__main__":
     test_coverage_signal()
+    test_coverage_calibrate_signal()
     
-    print('All magnetization tests passing!')
+    print('All signal tests passing!')

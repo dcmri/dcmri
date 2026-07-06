@@ -1,4 +1,5 @@
 from copy import deepcopy
+import itertools
 
 class Module:
 
@@ -35,6 +36,9 @@ class Module:
                     self._imap[key] = value
 
         return self
+    
+    def set_output_map(self, omap: dict=None):
+        self._omap = omap
 
     def mapped_inputs(self):
         # Get mapped inputs
@@ -62,8 +66,39 @@ class Module:
                 raise ValueError(f'The data dictionary is missing the input key {j}.')
         return p
     
-    def map_lexicon(self, qvalues):
-        return self.map_data(qvalues)
+    def map_results(self, results: dict) -> dict:
+        p = {}
+        omap = self._omap
+        for k, v in results.items():
+            if k in omap:
+                p[omap[k]] = v
+            else:
+                p[k] = v
+        return p     
+
+    def map_outputs(self, outputs: set) -> set:
+        mapped_outputs = set()
+        omap = self._omap
+        for o in outputs:
+            if o in omap:
+                mapped_outputs |= omap[o]
+            else:
+                mapped_outputs |= o
+        return mapped_outputs     
+    
+    def map_lexicon(self, qvalues, **kwargs):
+        return self.map_data(qvalues, kwargs)
+    
+    @classmethod
+    def configurations(cls):
+        # Separate keys and their corresponding list of values to maintain order
+        keys = list(cls.configs.keys())
+        value_lists = [cls.configs[key] for key in keys]
+        
+        # itertools.product generates all combinations of the values
+        for combination in itertools.product(*value_lists):
+            # Pair each key with the current combination's value
+            yield dict(zip(keys, combination))
         
     #
     # The following functions need to be reimplemented

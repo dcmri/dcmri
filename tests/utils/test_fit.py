@@ -152,74 +152,40 @@ def test_train_batch():
 # 5. Tests for Loss Calculations
 # =====================================================================
 
-def test_scalar_loss():
+def test_loss():
     ypred = np.array([2.0, 4.0])
     ydata = np.array([2.0, 5.0])
 
     # RMS Loss calculation checking
-    assert mm.scalar_loss(ypred, ydata, metric='RMS') == pytest.approx(1.0)
+    assert mm.loss(ypred, ydata, metric='RMS') == pytest.approx(1.0)
     
     # Check that lack of nfree raises ValueError for AIC metrics
     with pytest.raises(ValueError):
-        mm.scalar_loss(ypred, ydata, metric='AIC', nfree=None)
+        mm.loss(ypred, ydata, metric='AIC', nfree=None)
     
     # Check AIC with proper elements
-    loss_val = mm.scalar_loss(ypred, ydata, metric='AIC', nfree=10)
-    assert isinstance(loss_val, float)
-
-    loss_val = mm.scalar_loss(ypred, ydata, metric='NRMS')
-    assert isinstance(loss_val, float)
-
-    loss_val = mm.scalar_loss(ypred, ydata, metric='cAIC', nfree=10)
-    assert isinstance(loss_val, float)
-
-    with pytest.raises(ValueError):
-        mm.scalar_loss(ypred, ydata, metric='cAIC', nfree=None)
-
-    loss_val = mm.scalar_loss(ypred, ydata, metric='BIC', nfree=10)
-    assert isinstance(loss_val, float)
-
-    with pytest.raises(ValueError):
-        mm.scalar_loss(ypred, ydata, metric='BIC', nfree=None)
-
-    # Ensure incorrect metrics break safely
-    with pytest.raises(ValueError):
-        mm.scalar_loss(ypred, ydata, metric='UNKNOWN')
-
-def test_loss():
-    # Multi-dimensional batch arrays tracking
-    ypred = np.array([[2.0, 4.0], [1.0, 3.0]])
-    ydata = np.array([[2.0, 5.0], [1.0, 3.0]])
-
-    losses = mm.loss(ypred, ydata, metric='RMS')
-    # Row 1 error = 1.0, Row 2 error = 0.0
-    assert np.allclose(losses, [1.0, 0.0])
-
-    # Ensure incorrect metrics break safely
-    with pytest.raises(ValueError):
-        mm.loss(ypred, ydata, metric='UNKNOWN')
-
-    # Check AIC with proper elements
     loss_val = mm.loss(ypred, ydata, metric='AIC', nfree=10)
-    assert isinstance(loss_val, np.ndarray)
-
-    with pytest.raises(ValueError):
-        mm.loss(ypred, ydata, metric='AIC', nfree=None)
+    assert isinstance(loss_val, float)
 
     loss_val = mm.loss(ypred, ydata, metric='NRMS')
-    assert isinstance(loss_val, np.ndarray)
+    assert isinstance(loss_val, float)
 
     loss_val = mm.loss(ypred, ydata, metric='cAIC', nfree=10)
-    assert isinstance(loss_val, np.ndarray)
+    assert isinstance(loss_val, float)
 
     with pytest.raises(ValueError):
         mm.loss(ypred, ydata, metric='cAIC', nfree=None)
 
     loss_val = mm.loss(ypred, ydata, metric='BIC', nfree=10)
-    assert isinstance(loss_val, np.ndarray)
+    assert isinstance(loss_val, float)
 
     with pytest.raises(ValueError):
         mm.loss(ypred, ydata, metric='BIC', nfree=None)
+
+    # Ensure incorrect metrics break safely
+    with pytest.raises(ValueError):
+        mm.loss(ypred, ydata, metric='UNKNOWN')
+
 
 
 if __name__ == '__main__':
@@ -240,7 +206,6 @@ if __name__ == '__main__':
     test_train_batch()
     
     # Loss Calculation Tests
-    test_scalar_loss()
     test_loss()
     
     print("All tests passed successfully!")

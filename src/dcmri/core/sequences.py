@@ -8,7 +8,7 @@ SEQUENCES = {
         'steady-state': True,
         'parameters': {
             'tissue': ['R1'],
-            'read': ['S0', 'FA', 'B1corr', 'noise_sdev'],
+            'read': ['FA', 'B1corr'],
         },
     },
     'ZTE-3D-IR-SPGR-SS': {
@@ -17,7 +17,7 @@ SEQUENCES = {
         'steady-state': True,
         'parameters': {
             'tissue': ['R1'],
-            'read': ['S0', 'FA', 'B1corr', 'noise_sdev'],
+            'read': ['FA', 'B1corr'],
         },
     },
     '3D-SPGR-SS': {
@@ -26,7 +26,7 @@ SEQUENCES = {
         'steady-state': True,
         'parameters': {
             'tissue': ['R1', 'R2s'],
-            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+            'read': ['FA', 'B1corr', 'TE'],
         },
     },
     '3D-IR-SPGR-SS': {
@@ -35,7 +35,7 @@ SEQUENCES = {
         'steady-state': True,
         'parameters': {
             'tissue': ['R1', 'R2s'],
-            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+            'read': ['FA', 'B1corr', 'TE'],
         },
     },
     '3D-SR-SPGR-SS': {
@@ -44,7 +44,7 @@ SEQUENCES = {
         'steady-state': True,
         'parameters': {
             'tissue': ['R1', 'R2s'],
-            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+            'read': ['FA', 'B1corr', 'TE'],
         },
     },
     '3D-PR-SPGR-SS': {
@@ -53,7 +53,7 @@ SEQUENCES = {
         'steady-state': True,
         'parameters': {
             'tissue': ['R1', 'R2s'],
-            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+            'read': ['FA', 'B1corr', 'TE'],
         },
     },
     '2D-SPGR-SS': {
@@ -62,7 +62,7 @@ SEQUENCES = {
         'steady-state': True,
         'parameters': {
             'tissue': ['R1', 'R2s'],
-            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+            'read': ['FA', 'B1corr', 'TE'],
         },
     },
     '2D-IR-SPGR-SS': {
@@ -71,7 +71,7 @@ SEQUENCES = {
         'steady-state': True,
         'parameters': {
             'tissue': ['R1', 'R2s'],
-            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+            'read': ['FA', 'B1corr', 'TE'],
         },
     }, # Non-selective preparation, so inflow is freely recovering
     '2D-SR-SPGR-SS': {
@@ -80,7 +80,7 @@ SEQUENCES = {
         'steady-state': True,
         'parameters': {
             'tissue': ['R1', 'R2s'],
-            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+            'read': ['FA', 'B1corr', 'TE'],
         },
     },
     '2D-PR-SPGR-SS': {
@@ -89,7 +89,7 @@ SEQUENCES = {
         'steady-state': True,
         'parameters': {
             'tissue': ['R1', 'R2s'],
-            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+            'read': ['FA', 'B1corr', 'TE'],
         },
     },
     '3D-SPGR': {
@@ -98,7 +98,7 @@ SEQUENCES = {
         'steady-state': False,
         'parameters': {
             'tissue': ['R1', 'R2s'],
-            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+            'read': ['FA', 'B1corr', 'TE'],
         },
     },
     '3D-IR-SPGR': {
@@ -107,7 +107,7 @@ SEQUENCES = {
         'steady-state': False,
         'parameters': {
             'tissue': ['R1', 'R2s'],
-            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+            'read': ['FA', 'B1corr', 'TE'],
         },
     },
     '3D-SR-SPGR': {
@@ -116,7 +116,7 @@ SEQUENCES = {
         'steady-state': True,
         'parameters': {
             'tissue': ['R1', 'R2s'],
-            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+            'read': ['FA', 'B1corr', 'TE'],
         },
     },
     '3D-PR-SPGR': {
@@ -125,7 +125,7 @@ SEQUENCES = {
         'steady-state': False,
         'parameters': {
             'tissue': ['R1', 'R2s'],
-            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+            'read': ['FA', 'B1corr', 'TE'],
         },
     },
     '3D-PR-SS': {
@@ -134,7 +134,7 @@ SEQUENCES = {
         'steady-state': False,
         'parameters': {
             'tissue': ['R1', 'R2s'],
-            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+            'read': ['FA', 'B1corr', 'TE'],
         },
     },
     '3D-IR-SS': {
@@ -143,7 +143,7 @@ SEQUENCES = {
         'steady-state': False,
         'parameters': {
             'tissue': ['R1', 'R2s'],
-            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+            'read': ['FA', 'B1corr', 'TE'],
         },
     },
     '3D-SR-SS': {
@@ -152,7 +152,7 @@ SEQUENCES = {
         'steady-state': False,
         'parameters': {
             'tissue': ['R1', 'R2s'],
-            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+            'read': ['FA', 'B1corr', 'TE'],
         },
     },
     '2D-SPGR': {
@@ -161,7 +161,7 @@ SEQUENCES = {
         'steady-state': False,
         'parameters': {
             'tissue': ['R1', 'R2s'],
-            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+            'read': ['FA', 'B1corr', 'TE'],
         },
     },
     '2D-IR-SPGR': {
@@ -170,7 +170,7 @@ SEQUENCES = {
         'steady-state': False,
         'parameters': {
             'tissue': ['R1', 'R2s'],
-            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+            'read': ['FA', 'B1corr', 'TE'],
         },
     },
     '2D-SR-SPGR': {
@@ -179,7 +179,7 @@ SEQUENCES = {
         'steady-state': True,
         'parameters': {
             'tissue': ['R1', 'R2s'],
-            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+            'read': ['FA', 'B1corr', 'TE'],
         },
     },
     '2D-PR-SPGR': {
@@ -188,7 +188,7 @@ SEQUENCES = {
         'steady-state': False,
         'parameters': {
             'tissue': ['R1', 'R2s'],
-            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+            'read': ['FA', 'B1corr', 'TE'],
         },
     },
     '3D-SPGR-SSI': {
@@ -197,7 +197,7 @@ SEQUENCES = {
         'steady-state': True,
         'parameters': {
             'tissue': ['R1', 'R2s'],
-            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+            'read': ['FA', 'B1corr', 'TE'],
         },
     },
     'GE-EPI': {
@@ -206,7 +206,7 @@ SEQUENCES = {
         'steady-state': True,
         'parameters': {
             'tissue': ['R1', 'R2s'],
-            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+            'read': ['FA', 'B1corr', 'TE'],
         },
     },
     'SE-EPI': {
@@ -215,7 +215,7 @@ SEQUENCES = {
         'steady-state': True,
         'parameters': {
             'tissue': ['R1', 'R2'],
-            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+            'read': ['FA', 'B1corr', 'TE'],
         },
     },
     'DE-EPI': {
@@ -224,7 +224,7 @@ SEQUENCES = {
         'steady-state': True,
         'parameters': {
             'tissue': ['R1', 'R2', 'R2s'],
-            'read': ['S0', 'FA', 'B1corr', 'TE1', 'TE2', 'noise_sdev'],
+            'read': ['FA', 'B1corr', 'TE1', 'TE2'],
         },
     },
     'Eq-GE-EPI': {
@@ -233,7 +233,7 @@ SEQUENCES = {
         'steady-state': True,
         'parameters': {
             'tissue': ['R2s'],
-            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+            'read': ['FA', 'B1corr', 'TE'],
         },
     },
     'Eq-SE-EPI': {
@@ -242,7 +242,7 @@ SEQUENCES = {
         'steady-state': True,
         'parameters': {
             'tissue': ['R2'],
-            'read': ['S0', 'FA', 'B1corr', 'TE', 'noise_sdev'],
+            'read': ['FA', 'B1corr', 'TE'],
         },
     },
     'Eq-DE-EPI': {
@@ -251,7 +251,7 @@ SEQUENCES = {
         'steady-state': True,
         'parameters': {
             'tissue': ['R2', 'R2s'],
-            'read': ['S0', 'FA', 'B1corr', 'TE1', 'TE2', 'noise_sdev'],
+            'read': ['FA', 'B1corr', 'TE1', 'TE2'],
         },
     },
 }

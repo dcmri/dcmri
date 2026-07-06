@@ -129,28 +129,27 @@ Example:
 
 """
 import numpy as np
+from scipy.special import i0, i1
 
 from dcmri.core.module import Module
 from dcmri.utils.misc import sample
+from dcmri.bloch.modules_tissue import Magnetization
 
 
 class Signal(Module):
     configs = {
         'magnitude': {False, True},
-        'sample': {False, True},
     }
     defaults = {
-        'magnitude': False,
-        'sample': False,
+        'magnitude': True,
     }
     def inputs(self):
-        inputs = {'M', 'S0'}
-        if self.config['sample']:
-            inputs += {'time', 'TS', 'dt'}
+        inputs = {'M', 'S0', 'noise_sdev'}
+        inputs |= {'tacq', 'TS', 'dt'}
         return inputs
     
     def outputs(self):
-        return {'S'} # (times) or (channels, times)
+        return {'S'} # (channels, components, times)
     
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)
@@ -165,108 +164,102 @@ class Signal(Module):
             # (components, compartments, times)
             Mxy = p['M'][:2, :, :].sum(axis=1) 
             # (components, times)
-            if self.config['sample']:
-                t = p['dt'] * np.arange(p['M'].shape[-1])
-                Mxy = sample(p['time'], t, Mxy, p['TS'])
+
+            # Sample
+            t = p['dt'] * np.arange(p['M'].shape[-1])
+            Mxy = sample(p['tacq'], t, Mxy, p['TS'])
             # (components, times)
-            xy_axis = 0
+
+            # Add channel dimension of 1
+            Mxy = Mxy[None, ...]
+            # (channels, components, times)
 
         else:
             # (channels, components, compartments, times)
             Mxy = p['M'][:, :2, :, :].sum(axis=2) 
             # (channels, components, times)
-            if self.config['sample']:
-                Mxy = Mxy.reshape(-1, shape[-1])
-                # (channels * components, times)
-                t = p['dt'] * np.arange(p['M'].shape[-1])
-                Mxy = sample(p['time'], t, Mxy, p['TS'])
-                Mxy = Mxy.reshape((shape[0], 2, -1))
-                # (channels, components, times)
-            xy_axis = 1
+
+            # Sample
+            Mxy = Mxy.reshape(-1, shape[-1])
+            # (channels * components, times)
+            t = p['dt'] * np.arange(p['M'].shape[-1])
+            Mxy = sample(p['tacq'], t, Mxy, p['TS'])
+            Mxy = Mxy.reshape((shape[0], 2, -1))
+            # (channels, components, times)
 
         if self.config['magnitude']:
-            Mxy = np.linalg.norm(Mxy, axis=xy_axis)
-            # (times) or (channels, times)
+            Mxy = np.linalg.norm(Mxy, axis=1, keepdims=True)
+            S = signal_rice(p['S0'] * Mxy, p['noise_sdev'])
+            # (channels, 1, times)
+        else:
+            S = p['S0'] * Mxy
 
-        S = p['S0'] * Mxy
+        return {'S': S} # (channels, components, times)
+    
 
-        return {'S': S}
+def signal_rice(nu, sigma)-> np.ndarray:
+    if sigma==0:
+        return nu
+    with np.errstate(divide='ignore', over='ignore', invalid='ignore'):
+        K = nu**2 / (2*sigma**2)
+        arg = K/2
+        pref = sigma * np.sqrt(np.pi/2)
+        rice_mean = pref * np.exp(-K/2) * ((1+K)*i0(arg) + K*i1(arg))
+    # Nan values are points where the distribution is indistinguisable from Gaussian
+    return np.where(np.isnan(rice_mean) | np.isinf(rice_mean), nu, rice_mean)
+
    
 
 
-# Original Signal class including the calibration option
-# In the new setup, calibration needs to be done at end-to-end model level.
+class CalibrateSignal(Module):
+    configs = Magnetization.configs | Signal.configs
+    defaults = Magnetization.defaults | Signal.defaults
 
-# class Signal(Module):
-#     configs = {
-#         'sequence': set(SEQUENCES.keys()),
-#         'inflow': {False, True},
-#         'calibrate': {False, True},
-#     }
-#     defaults = {
-#         'sequence': '3D-SPGR-SS',
-#         'inflow': False,
-#         'calibrate': False,
-#     }
-#     def __init__(self, imap: dict=None, **config):
-#         self.set_config(config)
-#         self._long = Longitudinal(**config)
-#         self._read = Readout(**config)
-#         self.map_inputs(imap) 
+    def __init__(self, imap:dict=None, **config):
+        self.set_config(config)
+        self._magn = Magnetization(
+            imap = {'R1':'R1b', 'R2':'R2b', 'R2s':'R2sb', 'R1i':'R1ib'}, 
+            **config,
+        )
+        self._signal = Signal(**config)
+        self.map_inputs(imap)
+
+    def inputs(self) -> set:
+        inputs = {'Sb'}
+        inputs |= self._magn.mapped_inputs()
+        inputs |= self._signal.mapped_inputs()
+        inputs -= {'S0', 'M'}
+        return inputs
+
+    def outputs(self) -> set:
+        return 'S0'
     
-#     def inputs(self):
-#         inputs = self._long.mapped_inputs()
-#         inputs |= self._read.mapped_inputs()
-#         if self.config['calibrate']:
-#             inputs |= {'Sb'}
-#             inputs -= {'S0'}
-#         return inputs
-    
-#     def outputs(self):
-#         return {'S'}
-    
-#     def __call__(self, data: dict=None, **kwargs) -> dict:
-#         p = self.map_data(data, kwargs)
+    def map_lexicon(self, qvalues, data={}):
+        p = self.map_data(qvalues, data)
+        if 'Sb' in data:
+            return p
+        # Set baseline if not provided
+        channels = 2 if self.config['sequence'] in ['Eq-DE-EPI', 'DE-EPI'] else 1
+        components = 1 if self.config['magnitude'] else 2
+        p['Sb'] = np.full((channels, components, 1), qvalues['Sb']) 
+        p['tacq'] = np.atleast_1d(p['tacq'])       
+        return p
 
-#         if self.config['calibrate']:
-#             multichannel = self.config['sequence'] in ['Eq-DE-EPI', 'DE-EPI'] # TODO: All signals multichannel? Or have property in SEQUENCE?
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data, kwargs)    
 
-#             # Baseline values
-#             baseline = {'S0': 1}
-#             for R in {'R1', 'R2', 'R2s'}:
-#                 if R in p:
-#                     Rb = p[R] if np.isscalar(p[R]) else p[R][0]
+        # If needed: extend scalar baseline values in time to match duration of Sb
+        # Extend into (nt,) array
+        relax_b = {}
+        for Rb in ['R1b', 'R2b', 'R2sb', 'R1ib']:
+            if Rb in p:
+                relax_b[Rb] = np.full(p['Sb'].shape[2], p[Rb])
 
-#                     # The baseline signal is not always a scalar constant (non steady state sequences)
-#                     # Extend into (nt,) array if p["Sb"] is (nc, nt) (multichannel) or (nt, ) (single channel)
-#                     if multichannel:
-#                         if p['Sb'].ndim == 2:
-#                             Rb = np.full(p['Sb'].shape[1], Rb)
-#                     else:
-#                         if not np.isscalar(p['Sb']):
-#                             Rb = np.full(p['Sb'].shape[0], Rb)
-#                     baseline[R] = Rb
+        # Compute signal scaling factor
+        magn_b = self._magn(p, **relax_b)
+        
+        s_cal = self._signal(p, S0=1, tacq=p['tacq'][:p['Sb'].shape[2]], **magn_b)['S'] 
+        with np.errstate(divide='ignore', invalid='ignore'):
+            S0 = np.nanmean(np.where(s_cal != 0, p['Sb'] / s_cal, np.nan))
 
-#             # Derive S0
-#             s_cal = self._signal(p | baseline)
-#             p['S0'] = np.mean(np.where(s_cal > 0, p["Sb"] / s_cal, 0.0))
-
-#         return self._signal(p)
-    
-#     def _signal(self, p):
-#         if 'R1' in p:
-#             Mz_arr = self._long(p)['Mz']
-#         elif 'R2' in p:
-#             Mz_arr = np.full_like(p['R2'], p['me']).reshape(1, -1)
-#         elif 'R2s' in p:
-#             Mz_arr = np.full_like(p['R2s'], p['me']).reshape(1, -1)
-#         return self._read(p | {'Mz': Mz_arr})['S']
-    
-#     def map_lexicon(self, qvalues):
-#         p = self.map_data(qvalues)
-#         if self.config['calibrate']:
-#             if self.config['sequence'] in ['Eq-DE-EPI', 'DE-EPI']:
-#                 p['Sb'] = np.full(2, p['Sb'])
-#         return p     
-
-
+        return {'S0': S0}

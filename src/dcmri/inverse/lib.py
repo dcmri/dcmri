@@ -29,11 +29,54 @@ def estimate_bat(t, signal, n0=10, threshold_multiplier=1.1, persistence=3):
     """
     t = np.asarray(t)
     signal = np.asarray(signal)
+    # (channels, components, times)
 
-    # For a multi-channel signal, return an average over channels
-    if signal.ndim > 1:
-        est = [estimate_bat(t, signal[i,:], n0=n0, threshold_multiplier=threshold_multiplier, persistence=persistence) for i in range(signal.shape[0])]
-        return np.mean(est)
+    # Convert to magnitude signal
+    signal = np.linalg.norm(signal, axis=1)
+    # (channels, times)
+
+    # Return an average over channels
+    bat = []
+    for channel in range(signal.shape[0]):
+        bat += [_estimate_bat_channel(t, signal[channel,:], n0=n0, threshold_multiplier=threshold_multiplier, persistence=persistence)]
+
+    return np.mean(bat)
+
+    # if n0==1:
+    #     return t[1]
+    
+    # if len(signal) != len(t):
+    #     raise ValueError("The time array 't' and 'signal' must have the same length.")
+    # if len(signal) <= n0:
+    #     raise ValueError("Signal length must be greater than the baseline length.")
+    
+    # # 1. Estimate baseline properties
+    # baseline = signal[:n0]
+    # baseline_mean = np.mean(baseline)
+    
+    # # Calculate noise level as the maximum absolute difference from the mean
+    # max_baseline_diff = np.max(np.abs(baseline - baseline_mean))
+    
+    # # 2. Define upper and lower thresholds
+    # # We scale the maximum observed noise slightly to create a safety boundary
+    # threshold_deviation = max_baseline_diff * threshold_multiplier
+    # upper_thresh = baseline_mean + threshold_deviation
+    # lower_thresh = baseline_mean - threshold_deviation
+    
+    # # 3. Find where the signal exceeds the threshold bounds
+    # out_of_bounds = (signal > upper_thresh) | (signal < lower_thresh)
+    
+    # # 4. Enforce persistence to avoid false triggers
+    # for i in range(n0, len(signal) - persistence + 1):
+    #     if np.all(out_of_bounds[i : i + persistence]):
+    #         # Return the exact time from the time array 't'
+    #         return t[i]
+            
+    # return t[0]
+
+
+def _estimate_bat_channel(t, signal, n0=10, threshold_multiplier=1.1, persistence=3):
+    # (times)
 
     if n0==1:
         return t[1]
@@ -65,7 +108,8 @@ def estimate_bat(t, signal, n0=10, threshold_multiplier=1.1, persistence=3):
             # Return the exact time from the time array 't'
             return t[i]
             
-    return None
+    return t[0]
+
 
 def _estimate_bat(t, y):
     """

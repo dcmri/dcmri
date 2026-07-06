@@ -4,6 +4,8 @@ QUANTITIES = {
     # ---- Simulation parameters ---
     'dose_tolerance': {'init': 0.1, 'bounds': None, 'name': 'Dose tolerance', 'unit': '', 'group': 'hyper', 'dicom_key': None, 'osipi_key': None},
     'tmax': {'init': 240, 'bounds': None, 'name': 'Max time', 'unit': 'sec', 'group': 'hyper', 'dicom_key': None, 'osipi_key': None},
+    'dt': {'init': 0.5, 'bounds': None, 'name': 'Forward model time step', 'unit': 'sec', 'group': 'hyper', 'dicom_key': None, 'osipi_key': None},
+    'tacq': {'init': 60, 'bounds': None, 'name': 'Acquisition times', 'unit': 'sec', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
 
     # --- Injection & Contrast Agent ---
     'c': {'init': 0.005, 'bounds': None, 'name': 'Concentration', 'unit': 'M', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
@@ -23,7 +25,7 @@ QUANTITIES = {
     'r2s_vasc': {'init': 20000, 'bounds': [0, 1e5], 'name': 'Vacular transverse contrast agent relaxivity', 'unit': 'Hz/M', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
     'r2s_ees': {'init': 20000, 'bounds': [0, 1e5], 'name': 'Extravascular, extracellular transverse contrast agent relaxivity', 'unit': 'Hz/M', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
     'agent': {'init': 'gadoterate', 'bounds': None, 'name': 'Contrast agent', 'unit': None, 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
-    'weight': {'init': 70, 'bounds': [0, 300], 'name': 'Weight', 'unit': 'kg', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    'weight': {'init': 70, 'bounds': [0, 300], 'name': 'Weight', 'unit': 'kg', 'group': 'body', 'dicom_key': None, 'osipi_key': None},
     'dose': {'init': 0.1, 'bounds': [0, 0.2], 'name': 'Dose', 'unit': 'mL/kg', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
     'dose_1': {'init': 0.05, 'bounds': [0, 0.2], 'name': 'First contrast agent dose in a dual injection', 'unit': 'mL/kg', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
     'dose_2': {'init': 0.05, 'bounds': [0, 0.2], 'name': 'Second contrast agent dose in a dual injection', 'unit': 'mL/kg', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
@@ -32,12 +34,8 @@ QUANTITIES = {
     'rate_1': {'init': 1, 'bounds': [0, 10], 'name': 'First dose injection rate in a dual injection', 'unit': 'mL/s', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
     'rate_2': {'init': 1, 'bounds': [0, 10], 'name': 'Second dose injection rate in a dual injection', 'unit': 'mL/s', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
     'BAT': {'init': 60, 'bounds': [-30, 30], 'name': 'Bolus arrival time', 'unit': 'sec', 'bounds_type': 'add', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
-    'BAT_1': {'init': 120 + 60, 'bounds': [-60.0, 60.0], 'name': 'First bolus arrival time in a dual-injection', 'unit': 'sec', 'bounds_type': 'add', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
-    'BAT_2': {'init': 120 + 60, 'bounds': [-60.0, 60.0], 'name': 'Second bolus arrival time in a dual-injection', 'unit': 'sec', 'bounds_type': 'add', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
+    'bolus_delay': {'init': 60, 'bounds': [0, 600.0], 'name': 'Delay between the first and second bolus in a dual-injection', 'unit': 'sec', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
     'BAT2': {'init': 120 + 60, 'bounds': [-60.0, 60.0], 'name': 'Second bolus arrival time', 'unit': 'sec', 'bounds_type': 'add', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
-    
-    # --- Input Function ---
-    'dt': {'init': 0.5, 'bounds': None, 'name': 'Forward model time step', 'unit': 'sec', 'group': 'hyper', 'dicom_key': None, 'osipi_key': None},
     'irf': {'init': 0.02, 'bounds': [0, 10], 'name': 'Impulse response function', 'unit': 'mL/sec/cm3', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
 
     # --- Experimental Setup ---
@@ -84,6 +82,7 @@ QUANTITIES = {
 
     # --- Relaxation ---
     'R1': {'init': 0.65, 'bounds': [0, 5], 'name': 'Tissue R1', 'unit': 'Hz', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
+    'R1ib': {'init': 1/1.5, 'bounds': [0, 5], 'name': 'Inflow R1 at baseline', 'unit': 'Hz', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
     'R1b': {'init': 0.65, 'bounds': [0, 5], 'name': 'Tissue precontrast R1', 'unit': 'Hz', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
     'R1b_c': {'init': 0.65, 'bounds': [0, 5], 'name': 'Cortex precontrast R1', 'unit': 'Hz', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
     'R1b_m': {'init': 0.65, 'bounds': [0, 5], 'name': 'Medulla precontrast R1', 'unit': 'Hz', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
@@ -134,10 +133,12 @@ QUANTITIES = {
     'Sb_rk': {'init': 1.0, 'bounds': [0, 5], 'name': 'Right kidney signal baseline', 'unit': 'a.u.', 'group': 'signal', 'dicom_key': None, 'osipi_key': 'Q.MS1.002.[rk]'},
 
     # Organ volumes
-    'vol_k': {'init': 150, 'bounds': [0.0, 10000], 'name': 'Single-kidney volume', 'unit': 'cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    'vol_l': {'init': 1000, 'bounds': [0, 10000], 'name': 'Liver volume', 'unit': 'cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    'vol_lk': {'init': 150, 'bounds': [0.0, 10000], 'name': 'Left kidney volume', 'unit': 'mL', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    'vol_rk': {'init': 150, 'bounds': [0.0, 10000], 'name': 'Right kidney volume', 'unit': 'mL', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    'vol_a': {'init': 10, 'bounds': [0.0, 1000], 'name': 'Aorta volume', 'unit': 'mL', 'group': 'body', 'dicom_key': None, 'osipi_key': None},
+    'vol_l': {'init': 1000, 'bounds': [0, 10000], 'name': 'Liver volume', 'unit': 'cm3', 'group': 'body', 'dicom_key': None, 'osipi_key': None},
+    'vol_k': {'init': 150, 'bounds': [0.0, 10000], 'name': 'Single-kidney volume', 'unit': 'cm3', 'group': 'body', 'dicom_key': None, 'osipi_key': None},
+    'vol_l': {'init': 1000, 'bounds': [0, 10000], 'name': 'Liver volume', 'unit': 'cm3', 'group': 'body', 'dicom_key': None, 'osipi_key': None},
+    'vol_lk': {'init': 150, 'bounds': [0.0, 10000], 'name': 'Left kidney volume', 'unit': 'mL', 'group': 'body', 'dicom_key': None, 'osipi_key': None},
+    'vol_rk': {'init': 150, 'bounds': [0.0, 10000], 'name': 'Right kidney volume', 'unit': 'mL', 'group': 'body', 'dicom_key': None, 'osipi_key': None},
 
     # Water kinetics
     'PSe': {'init': 0.03, 'bounds': [0, 100], 'name': 'Transendothelial water PS', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
@@ -179,7 +180,7 @@ QUANTITIES = {
     'fCO_rk': {'init': 0.1, 'bounds': [0, 0.5], 'name': 'Right kidney fraction of the cardiac output', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
 
     'vr': {'init': 0.15, 'bounds': [0, 1], 'name': 'Venous return', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    'vr_o': {'init': 0.15, 'bounds': [0, 1], 'name': 'Organs venous return', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    'vr_o': {'init': 0.9, 'bounds': [0, 1], 'name': 'Organs venous return', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'vr_l': {'init': 0.15, 'bounds': [0, 1], 'name': 'Liver venous return', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'vr_k': {'init': 0.15, 'bounds': [0, 1], 'name': 'Kidneys venous return', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'vr_lk': {'init': 0.15, 'bounds': [0, 1], 'name': 'Left kidney venous return', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
@@ -304,4 +305,3 @@ QUANTITIES = {
 
 QVALUES = {k: v['init'] for k, v in QUANTITIES.items()}
 QBOUNDS = {k: v['bounds'] for k, v in QUANTITIES.items()}
-

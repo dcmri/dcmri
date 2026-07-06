@@ -7,7 +7,7 @@ from itertools import product
 import zarr
 import numpy as np
 
-from dcmri.utils.fit import train, scalar_loss
+from dcmri.utils.fit import train, loss
 from dcmri.core.quantities import QUANTITIES
 from dcmri.core.tools import select_params, init, export_params, print_params
     
@@ -308,7 +308,7 @@ class SuperPixelModel:
         
         # Compute cost
         s_pred = submodel._predict(time, x)
-        cost = scalar_loss(s_pred, signal[x,...], metric, len(free_submodel))
+        cost = loss(s_pred, signal[x,...], metric, len(free_submodel))
 
         # print(cost, cnfg)
         return cnfg, result, cost

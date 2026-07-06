@@ -290,21 +290,30 @@ class ConcAorta(Module):
 
     def __init__(self, imap:dict=None, **config):
         self.set_config(config)
-        self._flux_aorta = FluxAorta(**self.config)
+        self._flux = FluxAorta(**config)
+        self._conc = Conc(block='plug')
         self.map_inputs(imap)
         
     def inputs(self):
-        inputs = self._flux_aorta.mapped_inputs()
-        inputs |= {'CO'}
-        return inputs
+        inputs = {'vol_a', 'CO'}
+        inputs |= self._flux.mapped_inputs()
+        inputs |= self._conc.mapped_inputs() - {'T', 'J'}
+        return inputs 
     
     def outputs(self):
         return {'ca'}
     
     def __call__(self, data: dict=None, **kwargs):
         p = self.map_data(data, kwargs)
-        flux = self._flux_aorta(p)
-        return {'ca': flux['Ja'] / p['CO']}
+        flux = self._flux(p)
+        ci = flux['Ja'] / p['CO']
+        if p['vol_a']==0:
+            ca = ci
+        else:
+            Ta = p['vol_a'] / p['CO']
+            conc = self._conc(p, T=Ta, J=flux['Ja'])
+            ca = conc['C'] / p['vol_a']
+        return {'ca': ca, 'ci': ci}
     
 
 class ConcKidney(Module):

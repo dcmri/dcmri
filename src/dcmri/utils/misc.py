@@ -121,6 +121,14 @@ def sample(t, tp, Sp, dt=None) -> np.ndarray:
         return np.array([])
 
     tp_min, tp_max = tp[0], tp[-1]
+    
+    # --- Exception for tp_min == tp_max ---
+    if tp_min == tp_max:
+        # Broadcast the single column of values across the length of t
+        # Sp[:, 0][:, np.newaxis] has shape (n_samples, 1) -> tiles to (n_samples, len(t))
+        res = np.tile(Sp[:, 0][:, np.newaxis], (1, t.size))
+        return res.flatten() if is_1d else res
+    
     # Get boundary values for extrapolation: shape (n_samples, 1)
     sp_left = Sp[:, 0][:, np.newaxis]
     sp_right = Sp[:, -1][:, np.newaxis]
