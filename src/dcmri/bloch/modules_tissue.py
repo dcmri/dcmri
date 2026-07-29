@@ -129,14 +129,253 @@ Example:
 
 """
 import numpy as np
+from scipy.interpolate import interp1d
 
 from dcmri.core.module import Module
 from dcmri.core.sequences import SEQUENCES
-from dcmri.bloch import functions_seqs
+from dcmri.bloch import functions_dynamic_sequences
+from dcmri.bloch import functions_sequences
 
 
 # TODO: For some ss sequences there is some duplication with K, J and KinvJ computed multiple times
 # This needs rationalising
+
+
+class MzPrep(Module): 
+    configs = {
+        'sequence': set(SEQUENCES.keys()),
+        'inflow': {False, True},
+    }
+    defaults = {
+        'sequence': 'SPGR-SS',
+        'inflow': False,
+    }
+    def inputs(self):
+        seq = self.config['sequence']
+        # Sequence parameters
+        inputs = set(SEQUENCES[seq]['parameters']['prep'])
+        # Tissue parameters
+        weighting = SEQUENCES[seq]['parameters']['tissue']
+        inputs |= {'tR'}
+        if 'R1' in weighting:
+            inputs |= {'R1'}
+        inputs |= {'v', 'Fw', 'me'}
+        if self.config['inflow']:
+            inputs |= {'Fi', 'R1i'}
+        return inputs
+    
+    def outputs(self):
+        return {'tacq', 'Mz'} # (compartments, times)
+    
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data, kwargs)
+        sequence = self.config['sequence']
+
+        # --- Reshape vw to (nc, )
+        v = np.atleast_1d(p['v'])
+        nc = v.size # -- The number of compartments is decided by the size of v
+
+        # --- Reshape Fw to (nc, nc)
+        Fw = np.atleast_1d(p['Fw'])
+        if nc > 1:
+            if Fw.size==1:
+                Fw = np.full((nc, nc), Fw[0])
+                np.fill_diagonal(Fw, 0)
+        if Fw.size != nc * nc:
+            raise ValueError("For an n-compartment tissue, Fw must have shape (n, n).")
+        Fw = Fw.reshape(nc, nc)
+
+        # --- Reshape R1 to (nc, nt)     
+        if 'R1' not in p: # Assume full recovery between pulses (T1 = 0)
+            nt = np.size(p['tR'])
+            R1 = np.full((nc, nt), np.inf)
+        else:
+            try:
+                R1 = np.reshape(p['R1'], (nc, -1))  
+            except:
+                raise ValueError(f"For a tissue with {nc} compartments and nt times, R1 must have shape ({nc}, nt).")
+            nt = R1.shape[-1]
+
+        # Compute magnetization inflow
+        j = None
+        if self.config['inflow']:
+
+            # Format R1i
+            if 'R1i' not in p: # Assume full recovery between pulses (T1 = 0)
+                R1i = np.full((nc, nt), np.inf)
+            else:
+                try:
+                    R1i = np.reshape(p['R1i'], (nc, nt))  
+                except:
+                    raise ValueError(f'R1i must have the same size as R1 ({nc * nt}) ') 
+
+            # Format Fi
+            Fi = np.array(p['Fi'])
+            if Fi.size != nc:
+                raise ValueError(f"Fi must have the same number of elements as the first dimension of R1i. Fi has {Fi.size} elements and R1i has shape {R1i.shape}.")
+            Fi = Fi.reshape(nc)
+
+            # Compute j for each compartment
+            mz_prep_inflow = SEQUENCES[sequence]['mz_prep_inflow']
+
+            j = np.zeros_like(R1)
+            for i in range(Fi.size):
+                vi, Fwi, ji = 1, 0, None # inflow = 1 closed compartment
+                t_Mzi, Mzi = _Mz(sequence, mz_prep_inflow, p['tR'], R1i[i, :], vi, Fwi, ji, p)
+                j[i, :] = _interp_1d(p['tR'], t_Mzi, Fi[i] * Mzi[0, :, 0])
+
+        # Delegate computation to helper functions
+        mz_prep_sequence = SEQUENCES[sequence]['mz_prep_tissue']
+        tacq, Mz = _Mz(sequence, mz_prep_sequence, p['tR'], R1, v, Fw, j, p)
+
+        # Return dimensions (compartments, times)
+        return {'tacq': tacq, 'Mz': Mz}
+
+
+def _interp_1d(tj, t_Mzi, ji): # TODO: interpolation could be more detailed if using all pulses
+    if np.size(t_Mzi) > 1:
+        return np.interp(tj, t_Mzi, ji)
+    else:
+        return ji
+
+def _Mz(sequence, mz_prep_sequence, tR1, R1, v, Fw, j, p):
+
+    # Catch the scalar case
+    if R1.ndim == 1:
+        R1 = R1.reshape(1, -1)
+        v = np.full(1, v,)
+        Fw = np.full((1, 1), Fw)
+        if j is not None:
+            j = j.reshape(1, -1)
+
+    if mz_prep_sequence == 'Eq':
+        Mz = np.full(R1.shape + (1, ), p['me'])
+        return np.array(tR1), Mz
+    if mz_prep_sequence == 'IR-SS':
+        TA = functions_sequences.repetition_time(sequence, p)
+        return functions_dynamic_sequences.Mz_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], TA, 180, 1)
+    if mz_prep_sequence == 'SR-SS':
+        TA = functions_sequences.repetition_time(sequence, p)
+        return functions_dynamic_sequences.Mz_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], TA, 90, 1)
+    if mz_prep_sequence == 'PR-SS':
+        TA = functions_sequences.repetition_time(sequence, p)
+        return functions_dynamic_sequences.Mz_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], TA, p['PA'], 1)
+    if mz_prep_sequence == 'SPGR':
+        return functions_dynamic_sequences.Mz_pr_spgr(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], 0, 0, 0) 
+    if mz_prep_sequence == 'SR-SPGR':
+        t0 = p['iz'] * (p['TP'] + p['Nph'] * p['TR'] + p['TD']) if sequence == '2D-SR-SPGR' else 0
+        return functions_dynamic_sequences.Mz_pr_spgr(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], 90, t0) 
+    if mz_prep_sequence == 'IR-SPGR':
+        return functions_dynamic_sequences.Mz_pr_spgr(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], 180) 
+    if mz_prep_sequence == 'PR-SPGR':
+        return functions_dynamic_sequences.Mz_pr_spgr(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], p['PA'])
+    if mz_prep_sequence == 'SPGR-SS':
+        return functions_dynamic_sequences.Mz_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'])
+    if mz_prep_sequence == 'SR-SPGR-SS':
+        t0=0
+        return functions_dynamic_sequences.Mz_pr_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], 90, t0) 
+    if mz_prep_sequence == 'IR-SPGR-SS':
+        return functions_dynamic_sequences.Mz_pr_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], 180)
+    if mz_prep_sequence == 'PR-SPGR-SS':
+        return functions_dynamic_sequences.Mz_pr_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], p['PA']) 
+    if mz_prep_sequence == 'SSI':
+        return functions_dynamic_sequences.Mz_spgr_in_ssi(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TF'], p['SA'])
+    if mz_prep_sequence == 'GE-SS':
+        t0 = p['iz'] * p['TR'] / p['Nz'] if sequence == '2D-GE-SS' else 0
+        return functions_dynamic_sequences.Mz_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], 1, t0)
+    if mz_prep_sequence == 'SE-SS':
+        t0 = p['iz'] * p['TR'] / p['Nz'] if sequence == '2D-SE-SS' else 0
+        return functions_dynamic_sequences.Mz_se(tR1, R1, v, Fw, j, p['me'], p['TE'], p['TR'], p['FA'] * p['B1corr'], t0)
+    if mz_prep_sequence == 'DE-SS':
+        t0 = p['iz'] * p['TR'] / p['Nz'] if sequence == '2D-DE-SS' else 0
+        return functions_dynamic_sequences.Mz_se(tR1, R1, v, Fw, j, p['me'], p['TE2'], p['TR'], p['FA'] * p['B1corr'], t0)
+        
+
+
+class MxyReadMz(Module): 
+    configs = {
+        'sequence': set(SEQUENCES.keys()),
+    }
+    defaults = {
+        'sequence': '3D-SPGR-SS'
+    }    
+    def inputs(self):
+        params = SEQUENCES[self.config['sequence']]['parameters']
+        # Tissue parameters
+        weighting = params['tissue']
+        # Sequence parameters
+        inputs = {'tR', 'tacq', 'Mz'} # shape (nc, n_times) 
+        inputs |= set(params['read'])
+        if 'R2s' in weighting:
+            inputs |= {'R2s'}
+        if 'R2' in weighting:
+            inputs |= {'R2'}
+        return inputs
+    
+    def outputs(self):
+        # (components, compartments, times) 
+        # or 
+        # (channels, components, compartments, times)
+        return {'Mxy'}
+
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data, kwargs)
+        seq = self.config['sequence']
+
+        # Inputs:
+        # Mz (compartments, acq times)
+        # R2 (compartments, sim times)
+        # R2s (sim times, )
+
+        # Output Mxy (channels, components, compartments, acq times)
+
+        Mz = p['Mz'] # (ncomps, ntimes)
+        nc, nt = Mz.shape
+
+        if 'R2s' in self._inputs:
+            R2s = np.interp(p['tacq'], np.atleast_1d(p['tR']), np.atleast_1d(p['R2s']))
+            
+        if 'R2' in self._inputs:
+            R2 = np.reshape(p['R2'], (nc, -1))  
+            R2 = _interpolate_2d(p['tacq'], p['tR'], R2)
+
+        FA = p['FA'] * p['B1corr']
+        
+        if seq in ['2D-SE-EPI', '3D-SE-EPI']:
+            Mxy = np.zeros((1, 2, nc, nt), dtype=float) # (channels, components, compartments, times)
+            for c in range(nc):
+                Mxy[0, 0, c, :] = functions_sequences.mz_readout(Mz[c, :], R2[c, :], FA, p['TE'])
+        
+        elif seq in ['2D-DE-EPI', '3D-DE-EPI']:
+            Mxy = np.zeros((2, 2, nc, nt), dtype=float)
+            for c in range(nc):
+                Mxy[0, 0, c, :] = functions_sequences.mz_readout(Mz[c, :], R2s, FA, p['TE1'])
+                Mxy[1, 0, c, :] = functions_sequences.mz_readout(Mz[c, :], R2[c, :], FA, p['TE2'])
+
+        elif seq in ['ZTE-3D-SPGR-SS', 'ZTE-3D-IR-SPGR-SS']:
+            Mxy = np.zeros((1, 2, nc, nt), dtype=float)
+            R2s = np.zeros(nt)
+            for c in range(nc):
+                Mxy[0, 0, c, :] = functions_sequences.mz_readout(Mz[c, :], R2s, FA, 0)
+        
+        else:
+            Mxy = np.zeros((1, 2, nc, nt), dtype=float) 
+            for c in range(nc):
+                Mxy[0, 0, c, :] = functions_sequences.mz_readout(Mz[c, :], R2s, FA, p['TE'])
+
+        # (channels, components, compartments, times)
+        # or
+        # (components, compartments, times)
+
+        return {'Mxy': Mxy} 
+
+
+def _interpolate_2d(t_new, tR, R):
+    if np.size(tR)==1:
+        return np.tile(R, (1, np.size(t_new)))
+    
+    f = interp1d(tR, R, axis=1, kind='linear')
+    return f(t_new) 
 
 
 class Magnetization(Module): 
@@ -156,265 +395,28 @@ class Magnetization(Module):
         
     def inputs(self):
         inputs = self._mz_prep.mapped_inputs()
-        inputs |= self._mxy_read.mapped_inputs()
-        return inputs - {'Mz'}
+        inputs |= self._mxy_read.mapped_inputs() - {'tacq', 'Mz'}
+        return inputs 
     
     def outputs(self):
-        return {'M'}
+        return {'tacq', 'M'}
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)  
 
-        if 'R1' in p:
-            Mz = self._mz_prep(p)['Mz'] # (compartments, times)
-            
-        elif 'R2' in p:
-            R2 = np.atleast_1d(p['R2'])
-            R2 = R2.reshape(1, R2.shape[-1])
-            v = np.atleast_1d(p['v'])
-            Mz = np.full(R2.shape, p['me'], dtype=float)
-            Mz *= v[:, np.newaxis]
-        else:
-            v = np.atleast_1d(p['v'])
-            shape = (v.size, ) + np.atleast_1d(p['R2s']).shape
-            Mz = np.full(shape, p['me'], dtype=float) 
+        # All current sequences use an Mz prep followed by a readout
+        # This could be generalized in the future to sequences that have mixed T1/T2 prep
 
-        Mxy = self._mxy_read(p, Mz=Mz)['Mxy'] # (channels, components, compartments, times) or (components, compartments, times)
-        if Mxy.ndim==3:
-            M = np.zeros((1 + Mxy.shape[0], Mxy.shape[1], Mxy.shape[2]), dtype=Mxy.dtype)
-            M[:2, :, :] = Mxy
-            M[2, :, :] = Mz
-        else:
-            M = np.zeros((Mxy.shape[0], 1 + Mxy.shape[1], Mxy.shape[2], Mxy.shape[3]), dtype=Mxy.dtype)
-            M[:, :2, :, :] = Mxy
-            M[:, 2, :, :] = Mz
-        return {'M': M}
-    
+        # Currently not considering spatial encoding so only need the center line
+        k0 = functions_sequences.pulse_readout(self.config['sequence'], p)
 
+        p |= self._mz_prep(p)
+        p['Mz'] = p['Mz'][:, :, k0] # (compartments, times)
+        Mxy = self._mxy_read(p)['Mxy'] # (channels, components, compartments, times) 
 
+        M = np.zeros((Mxy.shape[0], 3, Mxy.shape[2], Mxy.shape[3]), dtype=Mxy.dtype)
+        M[:, :2, :, :] = Mxy
+        for c in range(M.shape[0]):
+            M[c, 2, :, :] = p['Mz']
 
-
-class MzPrep(Module): 
-    configs = {
-        'sequence': set(SEQUENCES.keys()),
-        'inflow': {False, True},
-    }
-    defaults = {
-        'sequence': 'SPGR-SS',
-        'inflow': False,
-    }
-    def inputs(self):
-        seq = self.config['sequence']
-        # Sequence parameters
-        inputs = set(SEQUENCES[seq]['parameters']['prep'])
-        # Tissue parameters
-        weighting = SEQUENCES[seq]['parameters']['tissue']
-        if 'R1' in weighting:
-            inputs |= {'R1'}
-        inputs |= {'v', 'Fw', 'me'}
-        if self.config['inflow']:
-            if SEQUENCES[seq]['mz_prep_inflow'] != 'Eq':
-                inputs |= {'Fi', 'R1i'}
-        return inputs
-    
-    def outputs(self):
-        return {'Mz'} # (compartments, times)
-    
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)
-        sequence = self.config['sequence']
-
-        # --- Format vw
-        v = np.atleast_1d(p['v'])
-        nc = v.size # -- The number of compartments is decided by the size of v
-
-        # Possible input shapes for R1:
-        # scalar, 1D (nt), 1D (nc), 2D (nc, nt)  
-        # Corresponding Mz output shapes are scalar, (nc, ) or (nc, nt)
-        # Arguments are converted to standard 2D shape (nc, nt) for computations   
-        if 'R1' not in p:
-            raise ValueError('MzPrep should only be called on R1-weighted sequences')
-        R1 = np.atleast_1d(p['R1'])
-        if R1.ndim==2:
-            if nc != R1.shape[0]:
-                raise ValueError("R1 must have one element for each tissue compartment")
-        
-        # --- Check formatting of Fw
-        # Reshape Fw to (nc, nc)
-        Fw = np.atleast_1d(p['Fw'])
-        if nc > 1:
-            if Fw.size==1:
-                Fw = np.full((nc, nc), Fw[0])
-                np.fill_diagonal(Fw, 0)
-        if Fw.size != nc * nc:
-            raise ValueError("For an n-compartment tissue, Fw must have shape (n, n).")
-        Fw = Fw.reshape(nc, nc)
-      
-        # Reshape R1 to (nc, nt)
-        if nc == 1:
-            nt = R1.size
-        else:
-            if R1.size > nc:
-                if R1.ndim != 2:
-                    raise ValueError(f"For a tissue with {nc} compartments and nt time , R1 must have shape ({nc}, nt).")
-                # if R1.shape[0] != nc:
-                #     raise ValueError(f"For a tissue with {nc} compartments and nt time points, R1 must have shape ({nc}, nt).")
-                nt = R1.shape[1]
-            else:
-                nt = 1
-        R1 = R1.reshape(nc, nt)
-
-        # Inflow of magnetization
-        j = None
-        if self.config['inflow']:
-            if 'R1i' not in p: # inflow at equilibrium
-                j = np.full_like(R1, p['me'])
-            elif np.size(p['R1i']) != nc * nt:
-                raise ValueError(f'R1i must have the same size as R1 ({nc * nt}) ')  
-            else:
-                # Compute magnetization inflow
-                mz_prep_inflow = SEQUENCES[sequence]['mz_prep_inflow']
-
-                R1i = np.atleast_1d(p['R1i']).reshape(nc, nt)
-                Fi = np.array(p['Fi'])
-                if Fi.size != R1i.shape[0]:
-                    raise ValueError(f"Fi must have the same number of elements as the first dimension of R1i. Fi has {Fi.size} elements and R1i has shape {R1i.shape}.")
-                Fi = Fi.reshape(nc)
-                j = np.zeros_like(R1i)
-                for i in range(Fi.size):
-                    vi, Fwi, ji = 1, 0, None # inflow = 1 closed compartment
-                    j[i,:] = Fi[i] * _Mz(mz_prep_inflow, R1i[i,:], vi, Fwi, ji, p)
-
-        # Delegate computation in standard form to helper functions
-        mz_prep_sequence = SEQUENCES[sequence]['mz_prep_tissue']
-        Mz = _Mz(mz_prep_sequence, R1, v, Fw, j, p)
-
-        # Return dimensions (compartments, times)
-        return {'Mz': Mz}
-        
-
-class MxyReadMz(Module): 
-    configs = {
-        'sequence': set(SEQUENCES.keys()),
-    }
-    defaults = {
-        'sequence': '3D-SPGR-SS'
-    }    
-    def inputs(self):
-        params = SEQUENCES[self.config['sequence']]['parameters']
-        # Tissue parameters
-        weighting = params['tissue']
-        # Sequence parameters
-        inputs = {'Mz'} # shape (nc, n_times) or (nc, ) or scalar
-        inputs |= set(params['read'])
-        if 'R2s' in weighting:
-            inputs |= {'R2s'}
-        if 'R2' in weighting:
-            inputs |= {'R2'}
-        return inputs
-    
-    def outputs(self):
-        # (components, compartments, times) 
-        # or 
-        # (channels, components, compartments, times)
-        return {'Mxy'}
-
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)
-        seq = self.config['sequence']
-
-        # Possible shapes for Mz are scalar, (ncomps, ) or (ncomps, nt)
-        # R2 and R2s must match Mz in size but not shape
-        # All other parameters are scalars
-
-        # Result is returned in shape (components, compartments, times) or (channels, components, compartments, times)
-
-        # --- Convert input shapes to standard format (ntimes, )
-        Mz = np.atleast_1d(p['Mz']) # shape (nt, ) or (nc, nt)
-        if Mz.ndim==1: # 1D is interpreted as (nc, ) - i.e. NOT (nt, )
-            nc, nt = Mz.size, 1
-            Mz = Mz.reshape(nc, nt)
-        else:
-            nc, nt = Mz.shape
-
-        if 'R2s' in self._inputs:
-            R2s = np.atleast_1d(p['R2s'])
-            if R2s.size == nt:
-                R2s = np.stack([R2s] * nc, axis=0)
-            if R2s.size != nc * nt:
-                raise ValueError(f"Size of R2* ({R2s.size}) does not match dimensions ({nc}, {nt}) of Mz.")
-            R2s = R2s.reshape(nc, nt)
-
-        if 'R2' in self._inputs:
-            R2 = np.atleast_1d(p['R2'])
-            if R2.size == nt:
-                R2 = np.stack([R2] * nc, axis=0)
-            if R2.size != nc * nt:
-                raise ValueError(f"Size of R2 ({R2.size}) does not match dimensions ({nc}, {nt}) of Mz.")
-            R2 = R2.reshape(nc, nt)
-
-        FA = p['FA'] * p['B1corr']
-
-        if seq in ['Eq-SE-EPI', 'SE-EPI']:
-            Mxy = np.zeros((2, nc, nt), dtype=float) # (channels, compartments, times)
-            Mxy[0,:,:] = functions_seqs.mz_readout(Mz, R2, FA, p['TE'])
-        
-        elif seq in ['Eq-DE-EPI', 'DE-EPI']:
-            # 2 (channels), 2 (components), nc (compartments), nt (times)
-            Mxy = np.zeros((2, 2, nc, nt), dtype=float)
-            Mxy[0,0,:,:] = functions_seqs.mz_readout(Mz, R2s, FA, p['TE1'])
-            Mxy[1,0,:,:] = functions_seqs.mz_readout(Mz, R2, FA, p['TE2'])
-
-        elif seq in ['ZTE-3D-SPGR-SS', 'ZTE-3D-IR-SPGR-SS']:
-            Mxy = np.zeros((2, nc, nt), dtype=float) # (channels, compartments, times)
-            Mxy[0,:,:] = functions_seqs.mz_readout(Mz, np.zeros_like(Mz), FA, 0)
-        
-        else:
-            Mxy = np.zeros((2, nc, nt), dtype=float) # (channels, compartments, times)
-            Mxy[0,:,:] = functions_seqs.mz_readout(Mz, R2s, FA, p['TE'])
-
-        # (channels, components, compartments, times)
-        # or
-        # (components, compartments, times)
-
-        return {'Mxy': Mxy}  
-
-
-def _Mz(mz_prep_sequence, R1:np.ndarray, v, Fw, j, p):
-    if j is None:
-        j = np.zeros_like(R1) # wasteful. Catch j=None in lib.functions
-    # All library functions require shape (nc, nt) TODO: Apply this to all modules
-    R1 = R1.reshape(-1, R1.shape[-1])
-    j = j.reshape(R1.shape)
-    me = p['me']
-    
-    # if mz_prep_sequence == 'Eq': 
-    #     return np.full_like(R1, me)
-    if mz_prep_sequence == 'IR-SS':
-        return functions_seqs.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TA'], 180)
-    if mz_prep_sequence == 'SR-SS':
-        return functions_seqs.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TA'], 90)
-    if mz_prep_sequence == 'PR-SS':
-        return functions_seqs.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TA'], p['PA'])
-    if mz_prep_sequence == 'SPGR':
-        return functions_seqs.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], 0, p['TA'], 0) 
-    if mz_prep_sequence == 'SR-SPGR':
-        return functions_seqs.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 90) 
-    if mz_prep_sequence == 'IR-SPGR':
-        return functions_seqs.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 180) 
-    if mz_prep_sequence == 'PR-SPGR':
-        return functions_seqs.Mz_pr_spgr(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], p['PA'])
-    if mz_prep_sequence == 'SPGR-SS':
-        return functions_seqs.Mz_spgr_in_ss(R1, v, Fw, j, me, p['TR'], p['FA'] * p['B1corr'])
-    if mz_prep_sequence == 'SR-SPGR-SS':
-        return functions_seqs.Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 90) 
-    if mz_prep_sequence == 'IR-SPGR-SS':
-        return functions_seqs.Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], 180)
-    if mz_prep_sequence == 'PR-SPGR-SS':
-        return functions_seqs.Mz_pr_spgr_in_ss(R1, v, Fw, j, me, p['TC'], p['TR'], p['FA'] * p['B1corr'], p['TP'], p['TA'], p['PA']) 
-    if mz_prep_sequence == 'SSI':
-        return functions_seqs.Mz_ssi(R1, v, Fw, j, me, p['TR'], p['FA'] * p['B1corr'], p['TF'], p['SA'])
-    if mz_prep_sequence == 'SE-SS':
-        return functions_seqs.Mz_se(R1, v, Fw, j, me, p['TE'], p['TR'], p['FA'] * p['B1corr'])
-    if mz_prep_sequence == 'DE-SS':
-        return functions_seqs.Mz_se(R1, v, Fw, j, me, p['TE2'], p['TR'], p['FA'] * p['B1corr'])
+        return {'tacq': p['tacq'], 'M': M}

@@ -132,7 +132,6 @@ import numpy as np
 from scipy.special import i0, i1
 
 from dcmri.core.module import Module
-from dcmri.utils.misc import sample
 from dcmri.bloch.modules_tissue import Magnetization
 
 
@@ -144,9 +143,7 @@ class Signal(Module):
         'magnitude': True,
     }
     def inputs(self):
-        inputs = {'M', 'S0', 'noise_sdev'}
-        inputs |= {'tacq', 'TS', 'dt'}
-        return inputs
+        return {'M', 'S0', 'noise_sdev'}
     
     def outputs(self):
         return {'S'} # (channels, components, times)
@@ -154,38 +151,13 @@ class Signal(Module):
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)
 
-        if p['M'].ndim not in [3, 4]:
-            raise ValueError("Magnetization M must be a 3D or 4D array with shape (components, compartments, times) or (channels, components, compartments, times)")
-
-        shape = p['M'].shape
+        if p['M'].ndim not in [4]:
+            raise ValueError("Magnetization M must be a 4D array with shape (channels, components, compartments, times)")
+        # (channels, components, compartments, times)
 
         # Sum over compartments
-        if p['M'].ndim==3:
-            # (components, compartments, times)
-            Mxy = p['M'][:2, :, :].sum(axis=1) 
-            # (components, times)
-
-            # Sample
-            t = p['dt'] * np.arange(p['M'].shape[-1])
-            Mxy = sample(p['tacq'], t, Mxy, p['TS'])
-            # (components, times)
-
-            # Add channel dimension of 1
-            Mxy = Mxy[None, ...]
-            # (channels, components, times)
-
-        else:
-            # (channels, components, compartments, times)
-            Mxy = p['M'][:, :2, :, :].sum(axis=2) 
-            # (channels, components, times)
-
-            # Sample
-            Mxy = Mxy.reshape(-1, shape[-1])
-            # (channels * components, times)
-            t = p['dt'] * np.arange(p['M'].shape[-1])
-            Mxy = sample(p['tacq'], t, Mxy, p['TS'])
-            Mxy = Mxy.reshape((shape[0], 2, -1))
-            # (channels, components, times)
+        Mxy = p['M'][:, :2, :, :].sum(axis=2) 
+        # (channels, components, times)
 
         if self.config['magnitude']:
             Mxy = np.linalg.norm(Mxy, axis=1, keepdims=True)
@@ -208,8 +180,6 @@ def signal_rice(nu, sigma)-> np.ndarray:
     # Nan values are points where the distribution is indistinguisable from Gaussian
     return np.where(np.isnan(rice_mean) | np.isinf(rice_mean), nu, rice_mean)
 
-   
-
 
 class CalibrateSignal(Module):
     configs = Magnetization.configs | Signal.configs
@@ -218,7 +188,7 @@ class CalibrateSignal(Module):
     def __init__(self, imap:dict=None, **config):
         self.set_config(config)
         self._magn = Magnetization(
-            imap = {'R1':'R1b', 'R2':'R2b', 'R2s':'R2sb', 'R1i':'R1ib'}, 
+            imap = {'tR':'tSb', 'R1':'R1b', 'R2':'R2b', 'R2s':'R2sb', 'R1i':'R1ib'}, 
             **config,
         )
         self._signal = Signal(**config)
@@ -232,23 +202,12 @@ class CalibrateSignal(Module):
         return inputs
 
     def outputs(self) -> set:
-        return 'S0'
-    
-    def map_lexicon(self, qvalues, data={}):
-        p = self.map_data(qvalues, data)
-        if 'Sb' in data:
-            return p
-        # Set baseline if not provided
-        channels = 2 if self.config['sequence'] in ['Eq-DE-EPI', 'DE-EPI'] else 1
-        components = 1 if self.config['magnitude'] else 2
-        p['Sb'] = np.full((channels, components, 1), qvalues['Sb']) 
-        p['tacq'] = np.atleast_1d(p['tacq'])       
-        return p
+        return {'S0'}
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)    
 
-        # If needed: extend scalar baseline values in time to match duration of Sb
+        # Extend scalar baseline values in time to match duration of Sb
         # Extend into (nt,) array
         relax_b = {}
         for Rb in ['R1b', 'R2b', 'R2sb', 'R1ib']:
@@ -257,9 +216,35 @@ class CalibrateSignal(Module):
 
         # Compute signal scaling factor
         magn_b = self._magn(p, **relax_b)
-        
-        s_cal = self._signal(p, S0=1, tacq=p['tacq'][:p['Sb'].shape[2]], **magn_b)['S'] 
+        s_cal = self._signal(p, S0=1, **magn_b)['S'] 
         with np.errstate(divide='ignore', invalid='ignore'):
             S0 = np.nanmean(np.where(s_cal != 0, p['Sb'] / s_cal, np.nan))
 
         return {'S0': S0}
+    
+
+class RelaxToSignal(Module): 
+    configs = Magnetization.configs | Signal.configs
+    defaults = Magnetization.defaults | Signal.defaults
+
+    def __init__(self, imap:dict=None, **config):
+        self.set_config(config)
+        self._magn = Magnetization(**config)
+        self._signal = Signal(**config)
+        self.map_inputs(imap)  
+        
+    def inputs(self):
+        inputs = self._magn.mapped_inputs()
+        inputs |= self._signal.mapped_inputs() - self._magn.outputs()
+        return inputs
+   
+    def outputs(self):
+        return self._signal.outputs()
+
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data, kwargs)  
+        p |= self._magn(p)
+        return {'tacq': p['tacq']} | self._signal(p)
+    
+    
+

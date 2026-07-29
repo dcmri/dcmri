@@ -63,6 +63,7 @@ QUANTITIES = {
     'TR': {'init': 0.005, 'bounds': [0, 1], 'name': 'Repetition time', 'unit': 'sec', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
     'TC': {'init': 0.2, 'bounds': [0, 10], 'name': 'Time to k-space center', 'unit': 'sec', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
     'TP': {'init': 0.05, 'bounds': [0, 1], 'name': 'Preparation delay', 'unit': 'sec', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
+    'TD': {'init': 0.05, 'bounds': [0, 1], 'name': 'Prepulse delay', 'unit': 'sec', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
     'TE': {'init': 0.001, 'bounds': [0, 10], 'name': 'Echo time', 'unit': 'sec', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
     'TE1': {'init': 0.001, 'bounds': [0, 1], 'name': 'First echo time in a multi-echo sequence', 'unit': 'sec', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
     'TE2': {'init': 0.005, 'bounds': [0, 1], 'name': 'Second echo time in a multi-echo sequence', 'unit': 'sec', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
@@ -70,6 +71,10 @@ QUANTITIES = {
     'TS': {'init': 0, 'bounds': [0, 30], 'name': 'Sampling time', 'unit': 'sec', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
     'n_init': {'init': 1, 'bounds': [0, 1], 'name': 'Initial relative magnetization', 'unit': '', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
     'n0': {'init': 1, 'bounds': [0, 1000], 'name': 'Number of baseline dynamics', 'unit': '', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
+    'iz': {'init': 0, 'bounds': [0, 1000], 'name': 'Slice number in a multi-slice acquisition, starting at iz=0', 'unit': '', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
+    'Nz': {'init': 64, 'bounds': [0, 1000], 'name': 'Number of slices in a multi-slice acquisition', 'unit': '', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
+    'Nph': {'init': 128, 'bounds': [0, 1000], 'name': 'Number of acquired phase lines in k-space', 'unit': '', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
+    'Nk0': {'init': 64, 'bounds': [0, 1000], 'name': 'Number of acquired phase lines to the center of k-space', 'unit': '', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
 
     # --- Magnetization and flow ---
     'TF': {'init': 0.5, 'bounds': [0, 10], 'name': 'Inflow time', 'unit': 'sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},

@@ -62,7 +62,7 @@ from matplotlib.gridspec import GridSpec
 from dcmri.signal.modules_tissue import Signal
 from dcmri.core.sequences import SEQUENCES  
 from dcmri.core.tools import string_params
-from dcmri.inverse.sig2conc import SignalToConc, R1ToSignal
+from dcmri.inverse.sig2conc import SignalToConc, RelaxToSignal
 from dcmri.core.pixel_model import SuperPixelModel
 from dcmri.core.types import Input
 from dcmri.core.module import Module
@@ -121,13 +121,13 @@ class SignalTissueLS(Module):
         p += [k for k in Signal(seq).params() if k not in ['R1', 'R2', 'R2s', 'R1i']]
 
         # p_excl = ['R1', 'R2s', 'R2', 'R1i', 'Fi', 'me', 'v', 'Fw']
-        # if seq == 'SE-EPI':
+        # if seq == '2D-SE-EPI':
         #     p += ['r2']
         #     p_excl += ['TA', 'PA']
-        # elif seq == 'GE-EPI':
+        # elif seq == '2D-GE-EPI':
         #     p += ['r2s']
         #     p_excl += ['TA', 'PA']
-        # elif seq == 'DE-EPI':
+        # elif seq == '2D-DE-EPI':
         #     p += ['r2', 'r2s']
         #     p_excl += ['TA', 'PA']
         # else:
@@ -166,14 +166,14 @@ class SignalTissueLS(Module):
             R2s = R['R2s'][1,:]
         return signal(R1=R1, R2=R2, R2s=R2s, **CONSTANTS)
 
-        # if seq == 'SE-EPI':
+        # if seq == '2D-SE-EPI':
         #     #R2 = rel.relax_t2(C, 0, p['r2'])
         #     return signal(R2=R2, TA=np.inf, PA=None)
-        # elif seq == 'GE-EPI':
+        # elif seq == '2D-GE-EPI':
         #     #R1 = rel.relax_t1(C, p['R1b'], p['r1']) 
         #     R2s = rel.relax_t2s(C, 0, p['r2s']) 
         #     return signal(R2s=R2s, TA=np.inf, PA=None)
-        # elif seq == 'DE-EPI':
+        # elif seq == '2D-DE-EPI':
         #     #R2 = rel.relax_t2(C[0,:], 0, p['r2'])
         #     #R2s = rel.relax_t2s(C[1,:], 0, p['r2s'])
         #     return signal(R2=R2, R2s=R2s, TA=np.inf, PA=None)
@@ -198,11 +198,11 @@ class SignalTissueLS(Module):
 #         signal = Signal(seq, **p)
 #         return signal(R1=p['R1b'], R2=0, R2s=0, S0=1)
 
-#         # if seq == 'SE-EPI':
+#         # if seq == '2D-SE-EPI':
 #         #     return signal(R2=0, TA=np.inf, PA=None)
-#         # elif seq == 'GE-EPI': 
+#         # elif seq == '2D-GE-EPI': 
 #         #     return signal(R2s=0, TA=np.inf, PA=None)
-#         # elif seq == 'DE-EPI':
+#         # elif seq == '2D-DE-EPI':
 #         #     return signal(R2=0, R2s=0, TA=np.inf, PA=None)
 #         # else:
 #         #     return signal(R1=p['R1b'], TE=0)  
@@ -214,11 +214,11 @@ class SignalTissueLS(Module):
 #         # seq = self._cnfg['sequence']
 #         # p = []
 #         # p_excl = ['R1', 'R2s', 'R2', 'R1i', 'Fi', 'me', 'v', 'Fw']
-#         # if seq == 'SE-EPI':
+#         # if seq == '2D-SE-EPI':
 #         #     p_excl += ['TA', 'PA']
-#         # elif seq == 'GE-EPI':
+#         # elif seq == '2D-GE-EPI':
 #         #     p_excl += ['TA', 'PA']
-#         # elif seq == 'DE-EPI':
+#         # elif seq == '2D-DE-EPI':
 #         #     p_excl += ['TA', 'PA']
 #         # else:
 #         #     p += ['R1b']  
@@ -419,7 +419,7 @@ class TissueLS(SuperPixelModel):
 
         n_times = p['ca'].size
 
-        if self._cnfg['sequence'] in ['DE-EPI']:
+        if self._cnfg['sequence'] in ['2D-DE-EPI']:
             n_channels = 2
         else:
             n_channels = 1
@@ -526,7 +526,7 @@ class TissueLS(SuperPixelModel):
     def _shape(self):
         n_pixels = 1 if self._pixels_shape==() else np.prod(self._pixels_shape)
         n_times = self._pars['ca'].size
-        if self._cnfg['sequence'] in ['Eq-DE-EPI', 'DE-EPI']:
+        if self._cnfg['sequence'] in ['Eq-DE-EPI', '2D-DE-EPI']:
             n_channels = 2
         else:
             n_channels = 1

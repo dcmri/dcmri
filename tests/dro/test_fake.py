@@ -25,7 +25,7 @@ def test_fake_tissue():
     time, aif, roi, gt = dc.tissue()
     assert 1230 < trapezoid(aif, time) < 1240
     assert 1100 < trapezoid(roi, time) < 1200
-    time, aif, roi, gt = dc.tissue(model='2D-SR-SPGR-SS')
+    time, aif, roi, gt = dc.tissue(model='2D-SR-SPGR')
     assert 1000 < trapezoid(aif, time) < 1100
     assert 1000 < trapezoid(roi, time) < 1100
 
@@ -45,7 +45,7 @@ def test_fake_tissue2scan():
     assert 3120 < trapezoid(aif[1], time[1]) < 3145
     assert 1100 < trapezoid(roi[0], time[0]) < 1200
     assert 2900 < trapezoid(roi[1], time[1]) < 3000
-    time, aif, roi, gt = dc.tissue2scan(model='2D-SR-SPGR-SS')
+    time, aif, roi, gt = dc.tissue2scan(model='2D-SR-SPGR')
     assert 1000 < trapezoid(aif[0], time[0]) < 1100
     assert 2400 < trapezoid(roi[1], time[1]) < 2500
 

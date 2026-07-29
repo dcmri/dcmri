@@ -176,7 +176,7 @@ class AortaLiver(SuperRoiModel):
         self._set_params(QVALUES | params)
 
         # Set multi-channel baseline if not done by the user
-        if sequence in ['Eq-DE-EPI', 'DE-EPI']:
+        if sequence in ['Eq-DE-EPI', '2D-DE-EPI']:
             for roi in ['a', 'l']:
                 Sb = f"Sb_{roi}"
                 if Sb not in params:

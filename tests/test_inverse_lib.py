@@ -1,29 +1,41 @@
 import numpy as np
-
 import dcmri as dc
 
-DEFAULTS = dc.init()
+from dcmri.signal.modules_tissue import RelaxToSignal
+
 
 def test_conc_dce():
     """Test conc_dce interpolation shapes, baseline norms, and TE overrides."""
     # Define a simple mock signal model that matches the expected signature
 
+    # One sample
+
     # Setup shape parameters: (nc=1 compartment, nt=3 timepoints)
-    S = np.array([[10.0, 11.0, 12.0]])
-    R1b = np.array([0.5])
+    S = np.array([10.0, 11.0, 12.0])
+    R1b = 0.5
     r1 = 4.5
     
     # Case 1: Run with automatic baseline normalization (S0=None, R2sb=None)
-    res_normalized = dc.conc_dce(dc.Signal(defaults=DEFAULTS), S, n0=1, R1b=R1b, S0=None, r1=r1)
-    assert res_normalized.shape == (1, 3)
+    signal = RelaxToSignal()
+    res_normalized = dc.conc_dce(signal, S, R1b=R1b, S0=None, r1=r1, defaults=dc.QVALUES)
+    assert res_normalized.shape == (3, )
 
     # Case 2: Run with pre-defined S0 and explicit R2sb / TE params dictionary
-    res_explicit = dc.conc_dce(dc.Signal(defaults=DEFAULTS), S, n0=1, R1b=R1b, S0=np.array([10.0]), r1=r1)
-    assert res_explicit.shape == (1, 3)
+    res_explicit = dc.conc_dce(signal, S, R1b=R1b, S0=10.0, r1=r1, defaults=dc.QVALUES)
+    assert res_explicit.shape == (3, )
 
-    res_explicit = dc.conc_dce(dc.Signal(defaults=DEFAULTS), S, n0=1, R1b=R1b, S0=np.array([10.0]), r1=r1)
-    res_explicit = dc.conc_dce(dc.Signal(defaults=DEFAULTS), S, n0=1, R1b=R1b, S0=None, r1=r1)
-    res_explicit = dc.conc_dce(dc.Signal(defaults=DEFAULTS), S, n0=1, R1b=None, S0=np.array([10.0]), r1=r1)
+    res_explicit = dc.conc_dce(signal, S, R1b=None, S0=10, r1=r1, defaults=dc.QVALUES)
+
+    # Multiple samples
+
+    S = np.arange(100 * 3).reshape(100, 3)
+    R1b = np.full(100, 0.5)
+    r1 = 4.5
+    
+    # Case 1: Run with automatic baseline normalization (S0=None, R2sb=None)
+    signal = RelaxToSignal()
+    res_normalized = dc.conc_dce(signal, S, R1b=R1b, S0=None, r1=r1, defaults=dc.QVALUES)
+    assert res_normalized.shape == (100, 3)
 
 
 def test_conc_dsc():

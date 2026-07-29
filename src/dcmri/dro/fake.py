@@ -8,7 +8,7 @@ from dcmri.utils.misc import sample, add_noise
 from dcmri.kinetics.modules_conc import ConcTissueX, ConcLiver, ConcCortMed
 from dcmri.kinetics.functions_blocks import flux_comp
 from dcmri.signal.modules_tissue import Signal
-from dcmri.bloch import functions_seqs
+from dcmri.bloch import functions_dynamic_sequences, functions_sequences
 from dcmri.dro.aif import parker
 
 DEFAULTS = init()
@@ -66,10 +66,10 @@ def aif(
     R2sb = R2sba + r2s * cp * (1-H)
     R1b = R1b.reshape(1, -1)
     if model == '3D-SPGR-SS':
-        Mz = functions_seqs.Mz_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TR, FA * B1corr)
+        Mz = functions_dynamic_sequences.Mz_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TR, FA * B1corr)
     elif model == '3D-SR-SPGR-SS':
-        Mz = functions_seqs.Mz_pr_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TC, TR, FA * B1corr, 0, 2 * TC, 90) 
-    aif_ = functions_seqs.mz_readout(Mz, np.zeros_like(Mz), S0, FA * B1corr, 0, 0)
+        Mz = functions_dynamic_sequences.Mz_pr_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TC, TR, FA * B1corr, 0, 2 * TC, 90) 
+    aif_ = functions_sequences.mz_readout(Mz, np.zeros_like(Mz), S0, FA * B1corr, 0, 0)
     time = np.arange(0, tacq, dt)
     aif_ = sample(time, t, aif_, dt)
     sdev = (np.amax(aif_)-aif_[0])/CNR
@@ -171,10 +171,10 @@ def brain(
 
     R1b = R1b.reshape(1, -1)
     if model == '3D-SPGR-SS':
-        Mz = functions_seqs.Mz_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TR, FA)
+        Mz = functions_dynamic_sequences.Mz_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TR, FA)
     elif model == '3D-SR-SPGR-SS':
-        Mz = functions_seqs.Mz_pr_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TC, TR, FA, 0, 2 * TC, 90) 
-    aif_ = functions_seqs.mz_readout(Mz, R2sb, S0, FA, TE, 0)
+        Mz = functions_dynamic_sequences.Mz_pr_spgr_in_ss(R1b, 1, 0, np.zeros_like(R1b), 1, TC, TR, FA, 0, 2 * TC, 90) 
+    aif_ = functions_sequences.mz_readout(Mz, R2sb, S0, FA, TE, 0)
 
     sdev = (np.amax(aif_)-aif_[0])/CNR
     time = np.arange(0, tacq, dt)
@@ -218,10 +218,10 @@ def brain(
 
             R1 = R1.reshape(1, -1)
             if model == '3D-SPGR-SS':
-                Mz = functions_seqs.Mz_spgr_in_ss(R1, 1, 0, np.zeros_like(R1), 1, TR, FA)
+                Mz = functions_dynamic_sequences.Mz_spgr_in_ss(R1, 1, 0, np.zeros_like(R1), 1, TR, FA)
             elif model == '3D-SR-SPGR-SS':
-                Mz = functions_seqs.Mz_pr_spgr_in_ss(R1, 1, 0, np.zeros_like(R1), 1, TC, TR, FA, 0, 2 * TC, 90) 
-            s = functions_seqs.mz_readout(Mz, R2s, S0*im['PD'][i, j], FA, TE, 0)
+                Mz = functions_dynamic_sequences.Mz_pr_spgr_in_ss(R1, 1, 0, np.zeros_like(R1), 1, TC, TR, FA, 0, 2 * TC, 90) 
+            s = functions_sequences.mz_readout(Mz, R2s, S0*im['PD'][i, j], FA, TE, 0)
 
             sig_noisefree = sample(time, t, s, dt)
             s = add_noise(sig_noisefree, sdev)
@@ -312,9 +312,9 @@ def tissue(
     if model == '3D-SPGR-SS':
         aif_ = Signal(model, defaults=DEFAULTS)(S0=S0b, R1=R1b, R2s=R2sb, TR=TR, FA=FA, TE=0)
         roi = Signal(model, defaults=DEFAULTS)(S0=S0, R1=R1, R2s=R2s, TR=TR, FA=FA, TE=0)
-    elif model == '2D-SR-SPGR-SS':
+    elif model == '2D-SR-SPGR':
         aif_ = Signal('3D-SR-SPGR-SS', defaults=DEFAULTS)(S0=S0b, R1=R1b, R2s=R2sb, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
-        roi = Signal('2D-SR-SPGR-SS', defaults=DEFAULTS)(S0=S0b, R1=R1b, R2s=R2s, TC=TC, TR=TR, FA=FA, TE=0)
+        roi = Signal('2D-SR-SPGR', defaults=DEFAULTS)(S0=S0b, R1=R1b, R2s=R2s, TC=TC, TR=TR, FA=FA, TE=0)
 
     time = np.arange(0, tacq, dt)
     aif_ = sample(time, t, aif_, dt)
@@ -526,9 +526,9 @@ def tissue2scan(
     if model == '3D-SPGR-SS':
         aif_ = Signal(model, defaults=DEFAULTS)(S0=S0b1, R1=R1b, R2s=R2sb, TR=TR, FA=FA, TE=0)
         roi = Signal(model, defaults=DEFAULTS)(S0=S01, R1=R1, R2s=R2s, TR=TR, FA=FA, TE=0)
-    elif model == '2D-SR-SPGR-SS':
+    elif model == '2D-SR-SPGR':
         aif_ = Signal('3D-SR-SPGR-SS', defaults=DEFAULTS)(S0=S0b1, R1=R1b, R2s=R2sb, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
-        roi = Signal('2D-SR-SPGR-SS', defaults=DEFAULTS)(S0=S01, R1=R1, R2s=R2s, TC=TC, TR=TR, FA=FA, TE=0)
+        roi = Signal('2D-SR-SPGR', defaults=DEFAULTS)(S0=S01, R1=R1, R2s=R2s, TC=TC, TR=TR, FA=FA, TE=0)
     time1 = np.arange(0, tacq, dt)
     aif1 = sample(time1, t, aif_, dt)
     roi1 = sample(time1, t, roi, dt)
@@ -540,9 +540,9 @@ def tissue2scan(
     if model == '3D-SPGR-SS':
         aif_ = Signal(model, defaults=DEFAULTS)(S0=S0b2, R1=R1b, R2s=R2sb, TR=TR, FA=FA, TE=0)
         roi = Signal(model, defaults=DEFAULTS)(S0=S02, R1=R1, R2s=R2s, TR=TR, FA=FA, TE=0)
-    elif model == '2D-SR-SPGR-SS':
+    elif model == '2D-SR-SPGR':
         aif_ = Signal('3D-SR-SPGR-SS', defaults=DEFAULTS)(S0=S0b2, R1=R1b, R2s=R2sb, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
-        roi = Signal('2D-SR-SPGR-SS', defaults=DEFAULTS)(S0=S02, R1=R1, R2s=R2s, TC=TC, TR=TR, FA=FA, TE=0)
+        roi = Signal('2D-SR-SPGR', defaults=DEFAULTS)(S0=S02, R1=R1, R2s=R2s, TC=TC, TR=TR, FA=FA, TE=0)
     time2 = np.arange(tacq+tbreak, 2*tacq+tbreak, dt)
     aif2 = sample(time2, t, aif_, dt)
     roi2 = sample(time2, t, roi, dt)
@@ -582,7 +582,7 @@ def kidney(
     R1bm=1/const.T1(3.0, 'kidney'),
     S0b=100,
     S0=150,
-    model='2D-SR-SPGR-SS',
+    model='2D-SR-SPGR',
     TC=0.2,
     TR=0.005,
     FA=15,
@@ -643,10 +643,10 @@ def kidney(
         aif_ = Signal(model, defaults=DEFAULTS)(S0=S0b, R1=R1b, R2s=R2sb, TR=TR, FA=FA, TE=0)
         roic = Signal(model, defaults=DEFAULTS)(S0=S0, R1=R1c, R2s=R2sc, TR=TR, FA=FA, TE=0)
         roim = Signal(model, defaults=DEFAULTS)(S0=S0, R1=R1m, R2s=R2sm, TR=TR, FA=FA, TE=0)
-    elif model == '2D-SR-SPGR-SS':
+    elif model == '2D-SR-SPGR':
         aif_ = Signal('3D-SR-SPGR-SS', defaults=DEFAULTS)(S0=S0b, R1=R1b, R2s=R2sb, TA=TR, PA=FA, TE=0) # TODO: Add a TC parameter to match the readout time wit tissue
-        roic = Signal('2D-SR-SPGR-SS', defaults=DEFAULTS)(S0=S0, R1=R1c, R2s=R2sc, TC=TC, TR=TR, FA=FA, TE=0)
-        roim = Signal('2D-SR-SPGR-SS', defaults=DEFAULTS)(S0=S0, R1=R1m, R2s=R2sm, TC=TC, TR=TR, FA=FA, TE=0)
+        roic = Signal('2D-SR-SPGR', defaults=DEFAULTS)(S0=S0, R1=R1c, R2s=R2sc, TC=TC, TR=TR, FA=FA, TE=0)
+        roim = Signal('2D-SR-SPGR', defaults=DEFAULTS)(S0=S0, R1=R1m, R2s=R2sm, TC=TC, TR=TR, FA=FA, TE=0)
 
     time = np.arange(0, tacq, dt)
     aif_ = sample(time, t, aif_, dt)

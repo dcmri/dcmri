@@ -24,7 +24,7 @@ def test_coverage():
 
     values = Model.configs.values()
     for cnfgs in itertools.product(*values):
-        if cnfgs[0] != 'DE-EPI':
+        if cnfgs[0] != '2D-DE-EPI':
             continue
         print(cnfgs)
         model = Model(*cnfgs)

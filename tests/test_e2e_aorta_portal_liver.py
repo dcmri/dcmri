@@ -63,7 +63,7 @@ def test_config_coverage():
 
 
 def test_code_coverage():
-    # _run_single_config(('pfcomp', 'comp', '1I-EC', None, 'GE-EPI'))
+    # _run_single_config(('pfcomp', 'comp', '1I-EC', None, '2D-GE-EPI'))
     _run_single_config(('comp', 'comp', '1I-IC', 'U', '3D-IR-SPGR'))
     
     # Single time array

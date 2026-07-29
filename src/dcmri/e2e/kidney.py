@@ -124,7 +124,7 @@ class Kidney(SuperModel):
 
     configs = {
         'kinetics': ['2CF', '2PF', 'CPF', '2CFU', '2PFU', 'HF', 'HFU'],
-        'sequence': ['3D-SPGR-SS', '2D-SR-SPGR-SS'],
+        'sequence': ['3D-SPGR-SS', '2D-SR-SPGR'],
     }
 
     def __init__(

@@ -65,7 +65,7 @@ def test_config_coverage():
 
 
 def test_code_coverage():
-    _run_single_config(('pfcomp', 'comp', '2PF', 'GE-EPI')) 
+    _run_single_config(('pfcomp', 'comp', '2PF', '2D-GE-EPI')) 
     #_run_single_config(('comp', 'comp', '2CF', '3D-SPGR-SS')) 
 
     # Create some asymmetry for testing

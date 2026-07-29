@@ -111,61 +111,78 @@ def _estimate_bat_channel(t, signal, n0=10, threshold_multiplier=1.1, persistenc
     return t[0]
 
 
-def _estimate_bat(t, y):
-    """
-    Finds the smallest time point corresponding to the half maximum of y 
-    using linear interpolation.
-    """
-    # Convert inputs to numpy arrays just in case
-    t = np.asarray(t)
-    y = np.asarray(y)
+# def _estimate_bat(t, y):
+#     """
+#     Finds the smallest time point corresponding to the half maximum of y 
+#     using linear interpolation.
+#     """
+#     # Convert inputs to numpy arrays just in case
+#     t = np.asarray(t)
+#     y = np.asarray(y)
 
-    # For a multi-channel signal, return an average over channels
-    if y.ndim > 1:
-        est = [estimate_bat(t, y[i,:]) for i in range(y.shape[0])]
-        return np.mean(est)
+#     # For a multi-channel signal, return an average over channels
+#     if y.ndim > 1:
+#         est = [estimate_bat(t, y[i,:]) for i in range(y.shape[0])]
+#         return np.mean(est)
 
-    # Calculate the half-maximum value
-    y_min = np.min(y)
-    y_max = np.max(y)
-    half_max = y_min + (y_max - y_min) / 2.0
+#     # Calculate the half-maximum value
+#     y_min = np.min(y)
+#     y_max = np.max(y)
+#     half_max = y_min + (y_max - y_min) / 2.0
     
-    # Find the first index where y is greater than or equal to the half-maximum
-    # (Excluding the very first point because we need a previous point to interpolate from)
-    idx_above = np.where(y[1:] >= half_max)[0]
+#     # Find the first index where y is greater than or equal to the half-maximum
+#     # (Excluding the very first point because we need a previous point to interpolate from)
+#     idx_above = np.where(y[1:] >= half_max)[0]
     
-    if len(idx_above) == 0:
-        raise ValueError("The signal never reaches the calculated half-maximum.")
+#     if len(idx_above) == 0:
+#         raise ValueError("The signal never reaches the calculated half-maximum.")
         
-    # Correct index shift because we sliced from y[1:]
-    idx = idx_above[0] + 1
+#     # Correct index shift because we sliced from y[1:]
+#     idx = idx_above[0] + 1
     
-    # Points for interpolation
-    t0, t1 = t[idx - 1], t[idx]
-    # y0, y1 = y[idx - 1], y[idx]
+#     # Points for interpolation
+#     t0, t1 = t[idx - 1], t[idx]
+#     # y0, y1 = y[idx - 1], y[idx]
     
-    # # Edge case: If the two y-values are identical, avoid division by zero
-    # if y1 == y0:
-    #     return t0
+#     # # Edge case: If the two y-values are identical, avoid division by zero
+#     # if y1 == y0:
+#     #     return t0
         
-    # Linear interpolation formula solved for t:
-    # t = t0 + (half_max - y0) * (t1 - t0) / (y1 - y0)
-    # t_half = t0 + (half_max - y0) * (t1 - t0) / (y1 - y0)
-    t_half = (t0 + t1) / 2
+#     # Linear interpolation formula solved for t:
+#     # t = t0 + (half_max - y0) * (t1 - t0) / (y1 - y0)
+#     # t_half = t0 + (half_max - y0) * (t1 - t0) / (y1 - y0)
+#     t_half = (t0 + t1) / 2
     
-    return t_half
+#     return t_half
 
-
-def conc_dce(signal, S, r1=None, n0=None, S0=None, R1b=None, defaults=None):
+def _conc_dce_S0(Relax_to_Signal, S, n0, R1b, defaults):
+    Sn0 = Relax_to_Signal(defaults, tR=0, R1=R1b, S0=1, R2s=1, TE=0, v=1, Fw=0, me=1) 
+    Sn0 = Sn0['S'][0, 0, 0]
+    Sb = np.sum(S[:n0]) / n0
+    S0 = Sb / Sn0 if Sn0 > 0 else 0
+    return S0
+    
+def conc_dce(Relax_to_Signal, S, r1=None, n0=1, S0=None, R1b=None, defaults=None):
+    # S has 2 dimensions (n_pixels, n_times)
+    # R1b has 1 dimension (n_pixels)
+    # S0 has 1 dimension (n_pixels)
     
     # Normalize signal
     if S0 is None:
-        Sn0 = signal(defaults, R1=R1b, S0=1, R2s=np.ones_like(R1b), TE=0, v=1, Fw=0, me=1)['S'] # Exp factor absorbed in S0
-        Sb = np.sum(S[:, :n0], axis=1) / n0
-        S0 = np.divide(Sb, Sn0, out=np.zeros_like(Sb, dtype=float), where=Sn0 > 0)
-
-    S0 = S0[:, np.newaxis]
-    Sn_data = np.divide(S, S0, out=np.zeros_like(S, dtype=float), where=S0 > 0)
+        if S.ndim==1:
+            S0 = _conc_dce_S0(Relax_to_Signal, S, n0, R1b, defaults)
+        else:
+            S0 = np.array(
+                [
+                    _conc_dce_S0(Relax_to_Signal, S[i,:], n0, R1b[i], defaults) 
+                    for i in range(S.shape[0])
+                ]
+            )
+    if S.ndim==1:
+        Sn_data = S / S0 if S0 > 0 else S * 0
+    else:
+        with np.errstate(divide='ignore', invalid='ignore'):
+            Sn_data = np.where(S0[:, np.newaxis] == 0, 0, S / S0[:, np.newaxis])
 
     # Create lookup table
     c_step = 0.01 * 1e-3
@@ -173,15 +190,22 @@ def conc_dce(signal, S, r1=None, n0=None, S0=None, R1b=None, defaults=None):
     c_range = np.arange(0, c_max, c_step)
     R1_min = 0
     R1_lookup = R1_min + r1 * c_range
-    Sn_lookup = signal(defaults, R1=R1_lookup, S0=1, R2s=np.ones_like(R1_lookup), TE=0, v=1, Fw=0, me=1)['S']
+    Sn_lookup = [
+        Relax_to_Signal(defaults, tR=0, R1=r, S0=1, R2s=1, TE=0, v=1, Fw=0, me=1)
+        for r in R1_lookup
+    ]
+    Sn_lookup = np.array([s['S'][0, 0, 0] for s in Sn_lookup])
 
     # Look up conc values
     R1 = np.interp(Sn_data, Sn_lookup, R1_lookup)
 
     # Convert R1 to conc
-    R1b = np.sum(R1[:, :n0], axis=1) / n0
-    R1b = R1b[:, np.newaxis]
-    return (R1 - R1b) / r1
+    if R1.ndim == 1:
+        R1b = np.sum(R1[:n0]) / n0
+        return (R1 - R1b) / r1
+    else:
+        R1b = np.sum(R1[:, :n0], axis=1) / n0
+        return (R1 - R1b[:, np.newaxis]) / r1
 
 
 def conc_dsc(S, r2=None, TE=None, n0=None) -> np.ndarray:

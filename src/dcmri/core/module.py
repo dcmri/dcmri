@@ -57,13 +57,13 @@ class Module:
             if j in override:
                 p[i] = override[j]
             elif data is None:
-                raise ValueError(f'The data for input key {j} are not provided.')
+                raise ValueError(f'{self.__class__.__name__} needs a value for input {j}.')
             elif not isinstance(data, dict):
                 raise ValueError(f"The default data argument must be a dictionary.")
             elif j in data:
                 p[i] = data[j]
             else:
-                raise ValueError(f'The data dictionary is missing the input key {j}.')
+                raise ValueError(f'{self.__class__.__name__} needs a value for input {j}.')
         return p
     
     def map_results(self, results: dict) -> dict:

@@ -206,20 +206,21 @@ from dcmri.bloch.modules_tissue_x import (
     WaterVolumesTissueX,
     WaterFlowsTissueX,
 )
-from dcmri.bloch.functions_pulse import (
-   Mz_pr_spgr_ss,
-   Mz_pr_spgr_prop,
-   Mz_ss,
-   Mz_prop,
-   Mz_ss_spgr,
+from dcmri.bloch.functions_sequences import (
+    Mz_ss,
+    Mz_ssi,
+    Mz_ss_spgr,
+    Mz_ss_pr_spgr,
+    Mz_prop,
+    Mz_prop_pr_spgr,
+    mz_readout,
 )
-from dcmri.bloch.functions_seqs import (
+from dcmri.bloch.functions_dynamic_sequences import (
    Mz_spgr_in_ss,
+   Mz_spgr_in_ssi,
    Mz_pr_spgr,
    Mz_pr_spgr_in_ss,
-   Mz_ssi,
    Mz_se,
-   mz_readout,
 )
 from dcmri.signal.modules_tissue import (
     Signal,

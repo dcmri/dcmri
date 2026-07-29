@@ -111,7 +111,7 @@ class Liver(SuperModel):
     configs = {
         'kinetics': ['1I-EC', '1I-EC-HF', '2I-EC-HF', '2I-EC', '1I-IC', '1I-IC-HF', '2I-IC-HF', '2I-IC', '2I-IC-U'],
         'non_stationary': [None, 'U', 'E', 'UE'],
-        'sequence': ['3D-SPGR-SS', '2D-SR-SPGR-SS'],
+        'sequence': ['3D-SPGR-SS', '2D-SR-SPGR'],
     }
     
     def __init__(

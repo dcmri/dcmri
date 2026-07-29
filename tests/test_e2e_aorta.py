@@ -36,7 +36,7 @@ def _run_single_config(cnfg):
     model._model.inputs()
     tacq = model.time()
     signal = model.predict(tacq)
-    result = model.train(tacq, signal, verbose=VERBOSE, n0=10, n_bat=1, xtol=1e-3)
+    result = model.train(tacq, signal, verbose=VERBOSE, n0=10, n_bat=1, xtol=1e-6)
     if result['cost'] > 1:
         result = model.train(tacq, signal, verbose=VERBOSE, n0=10, n_bat=10, xtol=1e-3)
     if result['cost'] > 1:
@@ -77,7 +77,7 @@ def test_config_coverage():
 
 
 def test_code_coverage(): 
-    _run_single_config({'bolus': 'single', 'heartlung': 'pfcomp', 'organs': '2cxm', 't2s_relaxation': 'quad', 'sequence': '3D-PR-SS', 'magnitude': True}) 
+    _run_single_config({'bolus': 'single', 'heartlung': 'pfcomp', 'organs': 'comp', 't2s_relaxation': 'lin', 'sequence': '3D-IR-SPGR', 'magnitude': False}) 
 
     model = Model()
 

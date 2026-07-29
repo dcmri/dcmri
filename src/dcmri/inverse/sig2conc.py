@@ -1,16 +1,13 @@
-from copy import deepcopy
-
 import numpy as np
 
 from dcmri.core.sequences import SEQUENCES
 import dcmri.inverse.lib as solve
 from dcmri.core.module import Module
-from dcmri.signal.modules_tissue import Signal
-from dcmri.bloch.modules_tissue import Magnetization
-
+from dcmri.signal.modules_tissue import RelaxToSignal
 
 invertible_seqs = [s for s, v in SEQUENCES.items() if v['steady-state']]
-analytical_inversion = ['3D-SPGR-SS', 'ZTE-3D-SPGR-SS', 'lin', 'Eq-GE-EPI', 'GE-EPI', 'Eq-SE-EPI', 'SE-EPI', 'Eq-DE-EPI', 'DE-EPI']
+analytical_inversion = ['3D-SPGR-SS', 'ZTE-3D-SPGR-SS', 'lin', '2D-GE-EPI', '2D-SE-EPI', '2D-DE-EPI']
+
 
 class SignalToConc(Module):
     configs = {
@@ -24,7 +21,7 @@ class SignalToConc(Module):
     def __init__(self, imap:dict=None, **config):
         self.set_config(config)
         if self.config['sequence'] not in analytical_inversion:
-            self._R1_to_S = R1ToSignal(**self.config)
+            self._R1_to_S = RelaxToSignal(inflow=False, **self.config)
         self.map_inputs(imap)  
 
     def inputs(self):
@@ -52,18 +49,18 @@ class SignalToConc(Module):
             else:
                 inputs |= {'S0'} 
 
-        elif sequence in ['Eq-GE-EPI', 'GE-EPI']:
+        elif sequence in ['2D-GE-EPI', '3D-GE-EPI']:
             inputs |= {'n0', 'r2s', 'TE'}
 
-        elif sequence in ['Eq-SE-EPI', 'SE-EPI']:
+        elif sequence in ['2D-SE-EPI', '3D-SE-EPI']:
             inputs |= {'n0', 'r2', 'TE'}
 
-        elif sequence in ['Eq-DE-EPI', 'DE-EPI']:
+        elif sequence in ['2D-DE-EPI', '3D-DE-EPI']:
             inputs |= {'n0', 'r2', 'r2s', 'TE1', 'TE2'}
 
         else:
             derived = {'R1', 'R2s', 'TE', 'v', 'Fw', 'me'}
-            inputs |= self._R1_to_S.inputs()
+            inputs |= self._R1_to_S.inputs() - {'tR'}
             inputs |= {'n0', 'r1'}
             if self.config['calibrate']:
                 inputs |= {'R1b'} 
@@ -130,15 +127,15 @@ class SignalToConc(Module):
             conc = solve.conc_dce_lin(S[:,0,:], **p)
             conc = conc[:, None, :]
 
-        elif sequence in ['Eq-GE-EPI', 'GE-EPI']:
+        elif sequence in ['2D-GE-EPI', '3D-GE-EPI']:
             conc = solve.conc_dsc(S[:,0,:], n0=p['n0'], r2=p['r2s'], TE=p['TE'])
             conc = conc[:, None, :]
 
-        elif sequence in ['Eq-SE-EPI', 'SE-EPI']:
+        elif sequence in ['2D-SE-EPI', '3D-SE-EPI']:
             conc = solve.conc_dsc(S[:,0,:], n0=p['n0'], r2=p['r2'], TE=p['TE'])
             conc = conc[:, None, :]
 
-        elif sequence in ['Eq-DE-EPI', 'DE-EPI']:
+        elif sequence in ['2D-DE-EPI', '3D-DE-EPI']:
             S_GE, S_SE = S[:,0,:], S[:,1,:]
             conc_ge = solve.conc_dsc(S_GE, n0=p['n0'], r2=p['r2s'], TE=p['TE1'])
             conc_se = solve.conc_dsc(S_SE, n0=p['n0'], r2=p['r2'], TE=p['TE2'])
@@ -164,29 +161,5 @@ class SignalToConc(Module):
         
 
 
-class R1ToSignal(Module): 
-    configs = {
-        'sequence': set(SEQUENCES.keys()),
-    }
-    defaults = {
-        'sequence': 'SPGR-SS',
-    }
-    def __init__(self, imap:dict=None, **config):
-        self.set_config(config)
-        self._mag = Magnetization(**self.config)
-        self._sig = Signal(magnitude=True)
-        self.map_inputs(imap)  
-        
-    def inputs(self):
-        inputs = self._mag.mapped_inputs()
-        inputs |= self._sig.mapped_inputs()
-        return inputs - {'M'}
-    
-    def outputs(self):
-        return self._sig.outputs()
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)  
-        M = self._mag(p)['M']
-        return self._sig(p, M=M)
 

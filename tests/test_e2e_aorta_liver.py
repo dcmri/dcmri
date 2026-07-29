@@ -63,8 +63,8 @@ def test_config_coverage():
 
 
 def test_code_coverage():
-    #_run_single_config(('pfcomp', 'comp', '2I-EC', None, 'GE-EPI')) 
-    _run_single_config(('comp', 'comp', '2I-EC', None, '2D-IR-SPGR'))
+    #_run_single_config(('pfcomp', 'comp', '2I-EC', None, '2D-GE-EPI')) 
+    _run_single_config(('comp', 'comp', '2I-EC', None, '2D-SR-SPGR'))
     model = Model()
     
     # Test Forward API outputs

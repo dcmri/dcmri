@@ -560,7 +560,7 @@ class TissueX(SuperPixelModel):
     def _shape(self):
         n_pixels = 1 if self._pixels_shape==() else np.prod(self._pixels_shape)
         n_times = self._pars['ca'].size
-        if self._cnfg['sequence'] in ['Eq-DE-EPI', 'DE-EPI']:
+        if self._cnfg['sequence'] in ['Eq-DE-EPI', '2D-DE-EPI']:
             n_channels = 2
         else:
             n_channels = 1
