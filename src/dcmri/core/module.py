@@ -65,6 +65,14 @@ class Module:
             else:
                 raise ValueError(f'{self.__class__.__name__} needs a value for input {j}.')
         return p
+
+    def input_data(self, data) -> dict:
+        p = {}
+        for i in self._inputs:
+            j = self._imap[i]
+            if j in data:
+                p[j] = data[j]
+        return p
     
     def map_results(self, results: dict) -> dict:
         p = {}
@@ -81,13 +89,13 @@ class Module:
         omap = self._omap
         for o in outputs:
             if o in omap:
-                mapped_outputs |= omap[o]
+                mapped_outputs |= {omap[o]}
             else:
-                mapped_outputs |= o
+                mapped_outputs |= {o}
         return mapped_outputs     
     
-    def map_lexicon(self, qvalues, **kwargs):
-        return self.map_data(qvalues, kwargs)
+    def update_data(self, data: dict, p: dict):
+        return data | {self._imap[k]: v for k, v in p.items() if k in self._imap}
     
     @classmethod
     def configurations(cls):

@@ -2,6 +2,7 @@ import numpy as np
 from scipy.integrate import trapezoid
 
 from dcmri.core.module import Module
+from dcmri.core.exceptions import InvalidConfiguration
 from dcmri.utils import const
 from dcmri.kinetics.functions_input import ca_injection
 from dcmri.kinetics.functions_blocks import flux_plug
@@ -75,7 +76,7 @@ class FluxInjection(Module):
         return inputs
     
     def outputs(self):
-        return {'Ji'}
+        return {'t', 'Ji'}
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)
@@ -96,7 +97,7 @@ class FluxInjection(Module):
             )
             J = J1 + J2
         
-        return {'Ji': J}
+        return {'t': t, 'Ji': J}
 
 
 class FluxTissueX(Module):
@@ -160,7 +161,7 @@ class FluxAorta(Module):
         self.set_config(config)
         if self.config['lagut'] is not None:
             if self.config['liver'] is None:
-                raise ValueError("A liver artery and gut component requires a liver component too.")
+                raise InvalidConfiguration("A liver artery and gut component requires a liver component too.")
             
         self._flux_injection = FluxInjection(self.config)
         self._flux_heartlung = Flux({'T': 'Thl', 'D': 'Dhl'}, block= self.config['heartlung'])
@@ -192,7 +193,7 @@ class FluxAorta(Module):
         return inputs
     
     def outputs(self):
-        outputs = {'Ja', 'Jv', 'Jo'}
+        outputs = {'t', 'Ja', 'Jv', 'Jo'}
         if self.config['kidneys'] is not None:
             outputs |= {'Jlk', 'Jrk'}
         if self.config['liver'] is not None:
@@ -227,7 +228,7 @@ class FluxAorta(Module):
             if it > max_it:
                 break
 
-        return self._propagate_J_aorta(p, J_aorta_total)
+        return {'t': influx['t']} | self._propagate_J_aorta(p, J_aorta_total)
     
     # Helper function
     def _propagate_J_aorta(self, p, Ja):

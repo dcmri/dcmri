@@ -10,7 +10,7 @@ from dcmri import Aorta as Model
 import dcmri as dc
 from dcmri.core.exceptions import InvalidConfiguration
 
-DEBUG = False
+DEBUG = True
 
 if DEBUG:
     # Debugging mode
@@ -34,13 +34,13 @@ def _run_single_config(cnfg):
     # print(cnfg)
     free = model.params('free')
     model._model.inputs()
-    tacq = model.time()
-    signal = model.predict(tacq)
-    result = model.train(tacq, signal, verbose=VERBOSE, n0=10, n_bat=1, xtol=1e-6)
-    if result['cost'] > 1:
-        result = model.train(tacq, signal, verbose=VERBOSE, n0=10, n_bat=10, xtol=1e-3)
-    if result['cost'] > 1:
-        result = model.train(tacq, signal, verbose=VERBOSE, n0=10, n_bat=50, xtol=1e-3)
+    pred = model.predict()
+    tacq, signal = pred['tS'], pred['Sa']
+    result = model.train(tacq, signal, verbose=VERBOSE, n0=5, n_bat=1, xtol=1e-6)
+    # if result['cost'] > 1:
+    #     result = model.train(tacq, signal, verbose=VERBOSE, n0=10, n_bat=10, xtol=1e-3)
+    # if result['cost'] > 1:
+    #     result = model.train(tacq, signal, verbose=VERBOSE, n0=10, n_bat=50, xtol=1e-3)
     model.plot(tacq, signal, show=DEBUG)
     cost = model.cost(tacq, signal)
     print(f"{cnfg}: {cost}")
@@ -86,40 +86,27 @@ def test_code_coverage():
     assert np.isscalar(model.state['Thl']) 
     
     # Test Forward API outputs
-    t = model.time()
-    S = model.predict(t)
+    S = model.predict()
 
     test_plot_file = "test_plot_output.png"
     try:
         # This hits plt.savefig(fname)
-        model.plot(t, S, fname=test_plot_file, show=False)
+        model.plot(S['tS'], S['Sa'], fname=test_plot_file, show=False)
         assert os.path.exists(test_plot_file)
         
         # This hits plt.show()
-        # We wrap this in a check to ensure it doesn't hang your tests
+        # We wrap this in a check to ensure it doesn't hang the tests
         plt.ion() # Turn interactive mode on
-        model.plot(t, S, show=True)
+        model.plot(S['tS'], S['Sa'], show=True)
         plt.ioff() # Turn interactive mode off
     finally:
         if os.path.exists(test_plot_file):
             os.remove(test_plot_file)
 
-    # Exceptions
-
-    # # SSI sequence model with fixed S0
-    # try:
-    #     model = Model(sequence='3D-SPGR-SSI')
-    #     t, s = model.time(), model.signal()
-    #     model.train(t, s, bounds={'S0_a': None})
-    # except ValueError:
-    #     pass
-    # else:
-    #     assert False
-
 
 if __name__ == "__main__":
     test_code_coverage()
-    test_config_coverage()
+    # test_config_coverage()
     
     print('All Aorta tests passed!!')
 

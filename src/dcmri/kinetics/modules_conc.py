@@ -301,7 +301,7 @@ class ConcAorta(Module):
         return inputs 
     
     def outputs(self):
-        return {'ca'}
+        return {'t', 'ca', 'ci'}
     
     def __call__(self, data: dict=None, **kwargs):
         p = self.map_data(data, kwargs)
@@ -313,7 +313,7 @@ class ConcAorta(Module):
             Ta = p['vol_a'] / p['CO']
             conc = self._conc(p, T=Ta, J=flux['Ja'])
             ca = conc['C'] / p['vol_a']
-        return {'ca': ca, 'ci': ci}
+        return {'t': flux['t'], 'ca': ca, 'ci': ci}
     
 
 class ConcKidney(Module):

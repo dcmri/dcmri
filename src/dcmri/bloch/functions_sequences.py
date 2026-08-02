@@ -224,12 +224,12 @@ def _Mz_ss_nc(R1, v, Fw, j, me, seq):
 
 
 def _Mz_KinvJ(R1, v, Fw, j, me):
-    nc = np.array(v).size
+    nc = np.size(v)
     K, J = _Mz_KJ(R1, v, Fw, j, me)
 
     if nc==1:
-        Kinv = np.divide(1.0, K, out=np.zeros_like(K, dtype=float), where=K != 0)
-        KinvJ = Kinv * J    
+        KinvJ = J / K if K !=0 else 0
+        KinvJ = np.array(KinvJ)    
     else:
         KinvJ = np.linalg.solve(K, J)
     return K, KinvJ
@@ -240,7 +240,7 @@ def _Mz_KJ(R1, v, Fw, j, me):
     return K, J
 
 def _Mz_K(R1, v, Fw):
-    nc = np.array(v).size
+    nc = np.size(v)
 
     # Case 1: Single Compartment
     if nc==1:
@@ -556,6 +556,86 @@ def _Mz_ss_pr_spgr_nc(R1, v, Fw, j, me, TR, FA, Nph, TP, TD, PA):
 
 
 
+def Mz_ssi(R1, v, Fw, j, me, TR, FA, TF, SA):
+    """
+    Calculate steady-state longitudinal magnetization including inflow effects.
+
+    Simulates the longitudinal magnetization state during SPGR acquisition with 
+    inflow parameters, taking into account saturation from precursor pulses prior 
+    to signal readout. Handles both single-compartment (`nc == 1`) and multi-compartment 
+    (`nc > 1`) systems.
+
+    Parameters
+    ----------
+    R1 : float or array-like
+        Tissue longitudinal relaxation rate(s) [s^-1].
+    v : float or array-like
+        Volume fraction(s) of the compartment(s).
+    Fw : float or array-like
+        Water exchange rate matrix or values between compartments [s^-1].
+    j : float or array-like
+        Exchange flux or compartment-specific flow rate parameters.
+    me : float or array-like
+        Equilibrium magnetization value(s).
+    TR : float
+        Repetition time [ms or s].
+    FA : float
+        Readout flip angle [degrees].
+    TF : float
+        Time period of pulses applied prior to readout [ms or s].
+    SA : float
+        Saturation flip angle applied to inflowing or pre-readout spins [degrees].
+
+    Returns
+    -------
+    M_sig_t : float or ndarray
+        The longitudinal magnetization state available for signal generation, 
+        accounting for inflow and RF saturation history.
+    """
+    if np.isscalar(v):
+        return _Mz_ssi_1c(R1, v, Fw, j, me, TR, FA, TF, SA)
+    elif v.size==1:
+        Mz = _Mz_ssi_1c(R1[0], v[0], Fw[0,0], j[0], me, TR, FA, TF, SA)
+        return np.array(Mz).reshape(R1.shape)
+    else:
+        return _Mz_ssi_nc(R1, v, Fw, j, me, TR, FA, TF, SA)
+
+
+def _Mz_ssi_1c(R1, v, Fw, j, me, TR, FA, TF, SA):
+    cFA = np.cos(np.radians(FA))
+    n = np.floor(TF / TR) # n pulses to readout
+    nFA = cFA**n
+    cSA = np.cos(np.radians(SA))
+    M0 = cSA * v * me
+
+    K_t = _Mz_K(R1, v, Fw)
+    Mss = Mz_ss_spgr(R1, v, Fw, j, me, TR, FA)
+
+    # FA-pulses until time TF to get the Mz before readout
+    En_t = np.exp(-TF * K_t)
+    M_sig = Mss + nFA * En_t * (M0 - Mss)
+
+    return M_sig
+
+
+def _Mz_ssi_nc(R1, v, Fw, j, me, TR, FA, TF, SA):
+    cFA = np.cos(np.radians(FA))
+    n = np.floor(TF / TR) # n pulses to readout
+    nFA = cFA**n
+    cSA = np.cos(np.radians(SA))
+    M0 = cSA * v * me
+
+    K_t = _Mz_K(R1, v, Fw)
+    Mss = Mz_ss_spgr(R1, v, Fw, j, me, TR, FA)
+
+    # FA-pulses until time TF to get the Mz before readout
+    En_t = expm(-TF * K_t)
+    M_sig = Mss + nFA * En_t @ (M0 - Mss)
+
+    return M_sig
+
+
+
 # ###################
 # PROPAGATORS
 # ###################
@@ -598,37 +678,58 @@ def Mz_prop(M, R1, v, Fw, j, me, seq):
     if np.isscalar(v):
         return _Mz_prop_1c(M, R1, v, Fw, j, me, seq)
     elif v.size==1:
-        Mz = _Mz_prop_1c(M[0], R1[0], v[0], Fw[0,0], j[0], me, seq)
-        return np.array(Mz).reshape(R1.shape)
+        return _Mz_prop_1c(M[0], R1[0], v[0], Fw[0,0], j[0], me, seq)
     else:
         return _Mz_prop_nc(M, R1, v, Fw, j, me, seq)
-    
-def _Mz_prop_1c(M, R1, v, Fw, j, me, seq):
-    # Rate constants and influx
-    K, KinvJ = _Mz_KinvJ(R1, v, Fw, j, me)
 
-    for pulse in seq:
+
+def _Mz_prop_1c(M, R1, v, Fw, j, me, seq):
+    const = (2 == np.size(R1) + np.size(j))
+    if const:
+        K, KinvJ = _Mz_KinvJ(R1, v, Fw, j, me)
+
+    M_calc = np.zeros((1, len(seq)))
+    M_curr = M
+
+    for i, pulse in enumerate(seq):
+        if not const:
+            K, KinvJ = _Mz_KinvJ(R1[i], v, Fw, j[i], me)
+
         FA, TR = pulse[0], pulse[1]
         cFA = np.cos(np.radians(FA))
         E = np.exp(-TR * K)
-        M = cFA * M
-        M = E * M + (1 - E) * KinvJ
+        M_next = E * (cFA * M_curr) + (1 - E) * KinvJ 
 
-    return M
+        M_calc[:, i] = M_next
+        M_curr = M_next
+
+    return M_calc
+
 
 def _Mz_prop_nc(M, R1, v, Fw, j, me, seq):
-    nc = R1.size
+    nc = R1.shape[0]
     Id = np.eye(nc)
-    K, KinvJ = _Mz_KinvJ(R1, v, Fw, j, me)
 
-    for pulse in seq:
+    const = (2 == np.ndim(R1) + np.ndim(j))
+    if const:
+        K, KinvJ = _Mz_KinvJ(R1, v, Fw, j, me)
+
+    M_calc = np.zeros((nc, len(seq)))
+    M_curr = M
+
+    for i, pulse in enumerate(seq):
+        if not const:
+            K, KinvJ = _Mz_KinvJ(R1[:,i], v, Fw, j[:,i], me)
+
         FA, TR = pulse[0], pulse[1]
         cFA = np.cos(np.radians(FA))
-        E = expm(-TR * K) # Not efficient if all TR's are the same
-        M = cFA * M
-        M = E @ M + (Id - E) @ KinvJ
+        E = expm(-TR * K)
+        M_next = E @ (cFA * M_curr) + (Id - E) @ KinvJ
 
-    return np.array(M).reshape(R1.shape)
+        M_calc[:, i] = M_next
+        M_curr = M_next
+
+    return M_calc
 
 
 
@@ -751,83 +852,3 @@ def _Mz_prop_pr_spgr_nc(M, R1, v, Fw, j, me, PA, TP, TC, TR, FA, TA):
         M = ED @ M + (Id - ED) @ KinvJ
 
     return M_sig.reshape(R1.shape), M.reshape(R1.shape)
-
-
-
-def Mz_ssi(R1, v, Fw, j, me, TR, FA, TF, SA):
-    """
-    Calculate steady-state longitudinal magnetization including inflow effects.
-
-    Simulates the longitudinal magnetization state during SPGR acquisition with 
-    inflow parameters, taking into account saturation from precursor pulses prior 
-    to signal readout. Handles both single-compartment (`nc == 1`) and multi-compartment 
-    (`nc > 1`) systems.
-
-    Parameters
-    ----------
-    R1 : float or array-like
-        Tissue longitudinal relaxation rate(s) [s^-1].
-    v : float or array-like
-        Volume fraction(s) of the compartment(s).
-    Fw : float or array-like
-        Water exchange rate matrix or values between compartments [s^-1].
-    j : float or array-like
-        Exchange flux or compartment-specific flow rate parameters.
-    me : float or array-like
-        Equilibrium magnetization value(s).
-    TR : float
-        Repetition time [ms or s].
-    FA : float
-        Readout flip angle [degrees].
-    TF : float
-        Time period of pulses applied prior to readout [ms or s].
-    SA : float
-        Saturation flip angle applied to inflowing or pre-readout spins [degrees].
-
-    Returns
-    -------
-    M_sig_t : float or ndarray
-        The longitudinal magnetization state available for signal generation, 
-        accounting for inflow and RF saturation history.
-    """
-    if np.isscalar(v):
-        return _Mz_ssi_1c(R1, v, Fw, j, me, TR, FA, TF, SA)
-    elif v.size==1:
-        Mz = _Mz_ssi_1c(R1[0], v[0], Fw[0,0], j[0], me, TR, FA, TF, SA)
-        return np.array(Mz).reshape(R1.shape)
-    else:
-        return _Mz_ssi_nc(R1, v, Fw, j, me, TR, FA, TF, SA)
-
-
-def _Mz_ssi_1c(R1, v, Fw, j, me, TR, FA, TF, SA):
-    cFA = np.cos(np.radians(FA))
-    n = np.floor(TF / TR) # n pulses to readout
-    nFA = cFA**n
-    cSA = np.cos(np.radians(SA))
-    M0 = cSA * v * me
-
-    K_t = _Mz_K(R1, v, Fw)
-    Mss = Mz_ss_spgr(R1, v, Fw, j, me, TR, FA)
-
-    # FA-pulses until time TF to get the Mz before readout
-    En_t = np.exp(-TF * K_t)
-    M_sig = Mss + nFA * En_t * (M0 - Mss)
-
-    return M_sig
-
-
-def _Mz_ssi_nc(R1, v, Fw, j, me, TR, FA, TF, SA):
-    cFA = np.cos(np.radians(FA))
-    n = np.floor(TF / TR) # n pulses to readout
-    nFA = cFA**n
-    cSA = np.cos(np.radians(SA))
-    M0 = cSA * v * me
-
-    K_t = _Mz_K(R1, v, Fw)
-    Mss = Mz_ss_spgr(R1, v, Fw, j, me, TR, FA)
-
-    # FA-pulses until time TF to get the Mz before readout
-    En_t = expm(-TF * K_t)
-    M_sig = Mss + nFA * En_t @ (M0 - Mss)
-
-    return M_sig

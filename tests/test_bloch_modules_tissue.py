@@ -1,6 +1,8 @@
 import itertools
 import numpy as np
 
+import matplotlib.pyplot as plt
+
 from dcmri import Magnetization, QVALUES
 from dcmri.bloch.modules_tissue import MzPrep, MxyReadMz
 
@@ -14,7 +16,8 @@ def test_coverage_readout():
         read = MxyReadMz(**config)
         read.inputs()
         read.outputs()
-        read(QVALUES | {'tacq': np.ones(3), 'Mz': np.ones((2,3)), 'tR': np.arange(5), 'R2':np.ones((2,5)), 'R2s':np.ones(5)})
+        p = read.map_lexicon(QVALUES)
+        read(p)
 
 
 def test_exceptions_readout():
@@ -80,6 +83,8 @@ def test_coverage_mzprep():
 
     values = MzPrep.configs.values()
     for cnfgs in itertools.product(*values):
+        # if cnfgs != ('2D-SPGR-SS', True):
+        #     continue
         config = {k: cnfgs[i] for i, k in enumerate(MzPrep.configs)}
         print('Mz', cnfgs)
         Mz = MzPrep(**config)
@@ -195,11 +200,42 @@ def test_coverage_m():
         magn(QVALUES, tR=tR, R1=R1, R2=R2, R2s=R2s, R1i=R1i, Fi=Fi, v=v, Fw=Fw, me=me)
 
 
+def test_function_mzprep():
+    config = {'sequence': '3D-IR-SPGR', 'inflow': False}
+    mz = MzPrep(**config) # data = mz.lexicon_data()
+    nR = 50
+    dt = 0.1
+    data = {
+        # Relaxation rates
+        'tR': dt * np.arange(nR),
+        'R1i': 0.65 * np.ones(nR),
+        'R1': 0.65 * np.ones(nR),
+        # Seq params
+        'FA': 15,
+        'TR': 0.005,
+        'TD': 0.5,
+        'TP': 0.001,
+        'Nph': 128,
+        # Tissue props
+        'B1corr': 1,
+        'v': 1,
+        'me': 1,
+        'Fi': 10,
+        'Fw': 10,
+    }
+    result = mz(data)
+
+    plt.plot(result['tM'].flatten(), result['Mz'].flatten())
+    plt.show()
+    pass
+
+
 if __name__ == "__main__":
     test_coverage_readout()
     test_exceptions_readout()
     test_coverage_mzprep()
     test_exceptions_mzprep()
     test_coverage_m()
+    # test_function_mzprep()
     
     print('All magnetization tests passing!')

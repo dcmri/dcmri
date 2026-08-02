@@ -3,6 +3,8 @@ import itertools
 import numpy as np
 import dcmri as dc
 
+from dcmri.core.exceptions import InvalidConfiguration
+
 
 def test_flux():
     def _test_config(cnfg):
@@ -67,20 +69,21 @@ def test_flux_injection():
 
 def test_flux_aorta():
     def _test_config(cnfg):
-        cnfg = {k: cnfg[i] for i, k in enumerate(dc.FluxAorta.configs.keys())}
+        print(cnfg)
         try:
            flux = dc.FluxAorta(**cnfg)
-        except ValueError:
+        except InvalidConfiguration:
             return
-        
         data = {k: dc.QVALUES[k] for k in flux.mapped_inputs()}
         flux(data)
 
-    values = dc.FluxAorta.configs.values()
-    [
-        _test_config(cnfg) 
-        for cnfg in itertools.product(*values)
-    ]
+    cnt = 0
+    for cnfg in dc.FluxAorta.configurations():
+        cnt += 1
+        _test_config(cnfg)
+
+    print(f'Successfully covered {cnt} FluxAorta configurations!')
+
 
 
 if __name__ == '__main__':

@@ -39,7 +39,7 @@ def test_nc_function():
     TD = 0
 
     ss_approx_1 = dc.Mz_ss(R1, v, Fw, j, me, seq)
-    ss_approx_2 = dc.Mz_prop(M0, R1, v, Fw, j, me, seq)
+    ss_approx_2 = dc.Mz_prop(M0, R1, v, Fw, j, me, seq)[:, -1]
     ss_approx_3, _ = dc.Mz_prop_pr_spgr(M0, R1, v, Fw, j, me, 0, TP, TC, TR, FA, TP + 2 * (TC-TP))
     ss_approx_4 = dc.Mz_ss_pr_spgr(R1, v, Fw, j, me, TR, FA, Nph, TP, TD, 0)
     ss_exact = dc.Mz_ss_spgr(R1, v, Fw, j, me, TR, FA)
@@ -91,7 +91,7 @@ def test_1c_function():
     TD = 0
 
     ss_approx_1 = dc.Mz_ss(R1, v, Fw, j, me, seq)
-    ss_approx_2 = dc.Mz_prop(M0, R1, v, Fw, j, me, seq)
+    ss_approx_2 = dc.Mz_prop(M0, R1, v, Fw, j, me, seq)[:, -1]
     ss_approx_3, _ = dc.Mz_prop_pr_spgr(M0, R1, v, Fw, j, me, 0, TP, TC, TR, FA, TP + 2 * (TC-TP))
     ss_approx_4 = dc.Mz_ss_pr_spgr(R1, v, Fw, j, me, TR, FA, Nph, TP, TD, 0)
     ss_exact = dc.Mz_ss_spgr(R1, v, Fw, j, me, TR, FA)
@@ -126,7 +126,7 @@ def test_1c_scalar_function():
     TD = 0
 
     ss_approx_1 = dc.Mz_ss(R1, v, Fw, j, me, seq)
-    ss_approx_2 = dc.Mz_prop(M0, R1, v, Fw, j, me, seq)
+    ss_approx_2 = dc.Mz_prop(M0, R1, v, Fw, j, me, seq)[:, -1]
     ss_approx_3, _ = dc.Mz_prop_pr_spgr(M0, R1, v, Fw, j, me, 0, TP, TC, TR, FA, TP + 2 * (TC-TP))
     ss_approx_4 = dc.Mz_ss_pr_spgr(R1, v, Fw, j, me, TR, FA, Nph, TP, TD, 0)
     ss_exact = dc.Mz_ss_spgr(R1, v, Fw, j, me, TR, FA)

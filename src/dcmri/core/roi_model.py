@@ -1,5 +1,5 @@
 import os
-from copy import deepcopy
+import pprint
 
 import zarr
 import numpy as np
@@ -148,7 +148,11 @@ class SuperRoiModel:
         if free_only:
             pars = {k: v for k, v in pars.items() if k in self.params('free')}
         print_params(pars, round_to=round_to, group=group, lexicon=lexicon)
-    
+
+    def pprint_pars(self, pars=None):
+        if pars is None:
+            pars = self._pars
+        pprint.pprint(pars, sort_dicts=True, indent=4)
 
     def save(self, folder: str):
         root = zarr.open_group(folder, mode='w')

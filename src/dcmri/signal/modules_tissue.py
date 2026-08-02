@@ -133,20 +133,35 @@ from scipy.special import i0, i1
 
 from dcmri.core.module import Module
 from dcmri.bloch.modules_tissue import Magnetization
+from dcmri.bloch.functions_sequences import channels
 
 
 class Signal(Module):
     configs = {
         'magnitude': {False, True},
+        'trigger': {False, True},
     }
     defaults = {
         'magnitude': True,
+        'trigger': False,
     }
     def inputs(self):
-        return {'M', 'S0', 'noise_sdev'}
+        inputs = {'tM', 'M', 'S0', 'noise_sdev'} # TODO: rename tacq -> tM?
+        if self.config['trigger']:
+            inputs |= {'trigger'}
+        return inputs
     
     def outputs(self):
-        return {'S'} # (channels, components, times)
+        return {'tS', 'S'} # (channels, components, times)
+
+    def map_lexicon(self, qvalues):
+        p = {
+            'M': np.ones((1, 3, 1, 1)), # (channels, components, compartments, times)
+            'tM': np.zeros(1)
+        }
+        if self.config['trigger']:
+            p['trigger'] = np.ones(1)
+        return self.update_data(qvalues, p)
     
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)
@@ -166,7 +181,13 @@ class Signal(Module):
         else:
             S = p['S0'] * Mxy
 
-        return {'S': S} # (channels, components, times)
+        if self.config['trigger']:
+            S = S[:, :, p['trigger']==1]
+            tS = p['tM'][p['trigger']==1]
+        else:
+            tS = p['tM']
+
+        return {'tS': tS, 'S': S} # (channels, components, times)
     
 
 def signal_rice(nu, sigma)-> np.ndarray:
@@ -197,28 +218,42 @@ class CalibrateSignal(Module):
     def inputs(self) -> set:
         inputs = {'Sb'}
         inputs |= self._magn.mapped_inputs()
-        inputs |= self._signal.mapped_inputs()
-        inputs -= {'S0', 'M'}
+        inputs |= self._signal.mapped_inputs() - {'tM', 'M'}
+        inputs -= {'S0'}
         return inputs
 
     def outputs(self) -> set:
         return {'S0'}
 
+    def map_lexicon(self, qvalues):
+        n_channels = channels(self.config['sequence'])
+        components = 1 if self.config['magnitude'] else 2
+        nt = 1
+        Sb = np.zeros((n_channels, components, nt))
+        Sb[:, 0, :] = qvalues['Sb']
+        p = {
+            'tSb': np.arange(nt),
+            'Sb': Sb
+        }
+        if self.config['trigger']:
+            p['trigger'] = np.ones(nt)
+        return self.update_data(qvalues, p)
+
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)    
 
         # Extend scalar baseline values in time to match duration of Sb
-        # Extend into (nt,) array
-        relax_b = {}
+        p['tR'] = p['tSb']
         for Rb in ['R1b', 'R2b', 'R2sb', 'R1ib']:
             if Rb in p:
-                relax_b[Rb] = np.full(p['Sb'].shape[2], p[Rb])
+                p[Rb] = np.full(p['Sb'].shape[2], p[Rb])
 
         # Compute signal scaling factor
-        magn_b = self._magn(p, **relax_b)
-        s_cal = self._signal(p, S0=1, **magn_b)['S'] 
+        p |= self._magn(p)
+        s_cal = self._signal(p, S0=1)['S']
+        Sb = p['Sb'][:, :, :s_cal.shape[2]]
         with np.errstate(divide='ignore', invalid='ignore'):
-            S0 = np.nanmean(np.where(s_cal != 0, p['Sb'] / s_cal, np.nan))
+            S0 = np.nanmean(np.where(s_cal != 0, Sb / s_cal, np.nan))
 
         return {'S0': S0}
     
@@ -241,10 +276,21 @@ class RelaxToSignal(Module):
     def outputs(self):
         return self._signal.outputs()
 
+    def map_lexicon(self, q):
+        nc, nt = 1, 1
+        p = {
+            'v': np.ones(nc) / nc,
+            'Fw': np.eye(nc),
+            'tR': np.arange(nt),
+            'R1': np.full((nc, nt), q['R1']),
+            'R2': np.full((nc, nt), q['R2']),
+            'R2s': np.full(nt, q['R2s']),
+            'Fi': np.ones(nc),
+            'R1i': np.full((nc, nt), q['R1i']),
+        } 
+        return self._signal.map_lexicon(q) | self.update_data(q, p)       
+
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)  
         p |= self._magn(p)
-        return {'tacq': p['tacq']} | self._signal(p)
-    
-    
-
+        return self._signal(p)

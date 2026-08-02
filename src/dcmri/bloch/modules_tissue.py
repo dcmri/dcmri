@@ -165,7 +165,7 @@ class MzPrep(Module):
         return inputs
     
     def outputs(self):
-        return {'tacq', 'Mz'} # (compartments, times)
+        return {'tM', 'Mz'} # (compartments, times)
     
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)
@@ -196,8 +196,11 @@ class MzPrep(Module):
                 raise ValueError(f"For a tissue with {nc} compartments and nt times, R1 must have shape ({nc}, nt).")
             nt = R1.shape[-1]
 
+        # --- Reshape tR1 to (nt, )
+        tR = np.atleast_1d(p['tR'])
+
         # Compute magnetization inflow
-        j = None
+        j, tj = None, None
         if self.config['inflow']:
 
             # Format R1i
@@ -218,27 +221,22 @@ class MzPrep(Module):
             # Compute j for each compartment
             mz_prep_inflow = SEQUENCES[sequence]['mz_prep_inflow']
 
-            j = np.zeros_like(R1)
             for i in range(Fi.size):
                 vi, Fwi, ji = 1, 0, None # inflow = 1 closed compartment
-                t_Mzi, Mzi = _Mz(sequence, mz_prep_inflow, p['tR'], R1i[i, :], vi, Fwi, ji, p)
-                j[i, :] = _interp_1d(p['tR'], t_Mzi, Fi[i] * Mzi[0, :, 0])
+                tj, Mzi = _Mz(sequence, mz_prep_inflow, tR, R1i[i, :], vi, Fwi, ji, p)
+                if j is None:
+                    j = np.zeros((nc, ) + tj.shape)
+                j[i, :, :] = Fi[i] * Mzi[0, :, :]
 
         # Delegate computation to helper functions
         mz_prep_sequence = SEQUENCES[sequence]['mz_prep_tissue']
-        tacq, Mz = _Mz(sequence, mz_prep_sequence, p['tR'], R1, v, Fw, j, p)
+        tM, Mz = _Mz(sequence, mz_prep_sequence, tR, R1, v, Fw, j, p, tj)
 
         # Return dimensions (compartments, times)
-        return {'tacq': tacq, 'Mz': Mz}
+        return {'tM': tM, 'Mz': Mz}
 
 
-def _interp_1d(tj, t_Mzi, ji): # TODO: interpolation could be more detailed if using all pulses
-    if np.size(t_Mzi) > 1:
-        return np.interp(tj, t_Mzi, ji)
-    else:
-        return ji
-
-def _Mz(sequence, mz_prep_sequence, tR1, R1, v, Fw, j, p):
+def _Mz(sequence, mz_prep_sequence, tR1, R1, v, Fw, j, p, tj=None):
 
     # Catch the scalar case
     if R1.ndim == 1:
@@ -250,47 +248,54 @@ def _Mz(sequence, mz_prep_sequence, tR1, R1, v, Fw, j, p):
 
     if mz_prep_sequence == 'Eq':
         Mz = np.full(R1.shape + (1, ), p['me'])
-        return np.array(tR1), Mz
+        return tR1.reshape((tR1.size, 1)), Mz
     if mz_prep_sequence == 'IR-SS':
         TA = functions_sequences.repetition_time(sequence, p)
-        return functions_dynamic_sequences.Mz_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], TA, 180, 1)
+        return functions_dynamic_sequences.Mz_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], TA, 180, 1, tj=tj)
     if mz_prep_sequence == 'SR-SS':
         TA = functions_sequences.repetition_time(sequence, p)
-        return functions_dynamic_sequences.Mz_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], TA, 90, 1)
+        return functions_dynamic_sequences.Mz_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], TA, 90, 1, tj=tj)
     if mz_prep_sequence == 'PR-SS':
         TA = functions_sequences.repetition_time(sequence, p)
-        return functions_dynamic_sequences.Mz_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], TA, p['PA'], 1)
+        return functions_dynamic_sequences.Mz_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], TA, p['PA'], 1, tj=tj)
     if mz_prep_sequence == 'SPGR':
-        return functions_dynamic_sequences.Mz_pr_spgr(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], 0, 0, 0) 
+        return functions_dynamic_sequences.Mz_spgr(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], tj=tj) 
     if mz_prep_sequence == 'SR-SPGR':
+        _check_TP(p['TP'])
         t0 = p['iz'] * (p['TP'] + p['Nph'] * p['TR'] + p['TD']) if sequence == '2D-SR-SPGR' else 0
-        return functions_dynamic_sequences.Mz_pr_spgr(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], 90, t0) 
+        return functions_dynamic_sequences.Mz_pr_spgr(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], 90, t0=t0, tj=tj) 
     if mz_prep_sequence == 'IR-SPGR':
-        return functions_dynamic_sequences.Mz_pr_spgr(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], 180) 
+        _check_TP(p['TP'])
+        return functions_dynamic_sequences.Mz_pr_spgr(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], 180, tj=tj) 
     if mz_prep_sequence == 'PR-SPGR':
-        return functions_dynamic_sequences.Mz_pr_spgr(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], p['PA'])
+        _check_TP(p['TP'])
+        return functions_dynamic_sequences.Mz_pr_spgr(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], p['PA'], tj=tj)
     if mz_prep_sequence == 'SPGR-SS':
-        return functions_dynamic_sequences.Mz_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'])
+        return functions_dynamic_sequences.Mz_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], tj=tj)
     if mz_prep_sequence == 'SR-SPGR-SS':
-        t0=0
-        return functions_dynamic_sequences.Mz_pr_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], 90, t0) 
+        _check_TP(p['TP'])
+        return functions_dynamic_sequences.Mz_pr_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], 90, tj=tj) 
     if mz_prep_sequence == 'IR-SPGR-SS':
-        return functions_dynamic_sequences.Mz_pr_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], 180)
+        _check_TP(p['TP'])
+        return functions_dynamic_sequences.Mz_pr_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], 180, tj=tj)
     if mz_prep_sequence == 'PR-SPGR-SS':
-        return functions_dynamic_sequences.Mz_pr_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], p['PA']) 
+        _check_TP(p['TP'])
+        return functions_dynamic_sequences.Mz_pr_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], p['PA'], tj=tj) 
     if mz_prep_sequence == 'SSI':
         return functions_dynamic_sequences.Mz_spgr_in_ssi(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TF'], p['SA'])
     if mz_prep_sequence == 'GE-SS':
         t0 = p['iz'] * p['TR'] / p['Nz'] if sequence == '2D-GE-SS' else 0
-        return functions_dynamic_sequences.Mz_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], 1, t0)
+        return functions_dynamic_sequences.Mz_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], 1, t0=t0, tj=tj)
     if mz_prep_sequence == 'SE-SS':
         t0 = p['iz'] * p['TR'] / p['Nz'] if sequence == '2D-SE-SS' else 0
-        return functions_dynamic_sequences.Mz_se(tR1, R1, v, Fw, j, p['me'], p['TE'], p['TR'], p['FA'] * p['B1corr'], t0)
+        return functions_dynamic_sequences.Mz_se(tR1, R1, v, Fw, j, p['me'], p['TE'], p['TR'], p['FA'] * p['B1corr'], t0=t0, tj=tj)
     if mz_prep_sequence == 'DE-SS':
         t0 = p['iz'] * p['TR'] / p['Nz'] if sequence == '2D-DE-SS' else 0
-        return functions_dynamic_sequences.Mz_se(tR1, R1, v, Fw, j, p['me'], p['TE2'], p['TR'], p['FA'] * p['B1corr'], t0)
-        
+        return functions_dynamic_sequences.Mz_se(tR1, R1, v, Fw, j, p['me'], p['TE2'], p['TR'], p['FA'] * p['B1corr'], t0=t0, tj=tj)
 
+def _check_TP(TP):
+    if TP==0:
+        raise ValueError("The delay time (TP) after a preparation pulse must be greater than 0.")
 
 class MxyReadMz(Module): 
     configs = {
@@ -304,7 +309,7 @@ class MxyReadMz(Module):
         # Tissue parameters
         weighting = params['tissue']
         # Sequence parameters
-        inputs = {'tR', 'tacq', 'Mz'} # shape (nc, n_times) 
+        inputs = {'tR', 'tM', 'Mz'} # shape (nc, n_times) 
         inputs |= set(params['read'])
         if 'R2s' in weighting:
             inputs |= {'R2s'}
@@ -317,6 +322,17 @@ class MxyReadMz(Module):
         # or 
         # (channels, components, compartments, times)
         return {'Mxy'}
+
+    def map_lexicon(self, qvalues):
+        nc, ntR, ntM = 2, 5, 3
+        p = {
+            'tM': np.ones(ntM), 
+            'Mz': np.ones((nc, ntM)), 
+            'tR': np.arange(ntR), 
+            'R2':np.ones((nc, ntR)), 
+            'R2s':np.ones(ntR),
+        }
+        return self.update_data(qvalues, p)
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)
@@ -333,11 +349,11 @@ class MxyReadMz(Module):
         nc, nt = Mz.shape
 
         if 'R2s' in self._inputs:
-            R2s = np.interp(p['tacq'], np.atleast_1d(p['tR']), np.atleast_1d(p['R2s']))
+            R2s = np.interp(p['tM'], np.atleast_1d(p['tR']), np.atleast_1d(p['R2s']))
             
         if 'R2' in self._inputs:
             R2 = np.reshape(p['R2'], (nc, -1))  
-            R2 = _interpolate_2d(p['tacq'], p['tR'], R2)
+            R2 = _interpolate_2d(p['tM'], p['tR'], R2)
 
         FA = p['FA'] * p['B1corr']
         
@@ -391,15 +407,15 @@ class Magnetization(Module):
         self.set_config(config)
         self._mz_prep = MzPrep(**self.config)
         self._mxy_read = MxyReadMz(**self.config)
-        self.map_inputs(imap)  
+        self.map_inputs(imap)
         
     def inputs(self):
         inputs = self._mz_prep.mapped_inputs()
-        inputs |= self._mxy_read.mapped_inputs() - {'tacq', 'Mz'}
+        inputs |= self._mxy_read.mapped_inputs() - {'tM', 'Mz'}
         return inputs 
     
     def outputs(self):
-        return {'tacq', 'M'}
+        return {'tM', 'M'}
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)  
@@ -412,6 +428,7 @@ class Magnetization(Module):
 
         p |= self._mz_prep(p)
         p['Mz'] = p['Mz'][:, :, k0] # (compartments, times)
+        p['tM'] = p['tM'][:, k0] # (times, )
         Mxy = self._mxy_read(p)['Mxy'] # (channels, components, compartments, times) 
 
         M = np.zeros((Mxy.shape[0], 3, Mxy.shape[2], Mxy.shape[3]), dtype=Mxy.dtype)
@@ -419,4 +436,4 @@ class Magnetization(Module):
         for c in range(M.shape[0]):
             M[c, 2, :, :] = p['Mz']
 
-        return {'tacq': p['tacq'], 'M': M}
+        return {'tM': p['tM'], 'M': M}

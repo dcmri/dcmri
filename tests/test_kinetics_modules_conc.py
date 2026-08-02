@@ -3,6 +3,8 @@ import itertools
 import numpy as np
 import dcmri as dc
 
+from dcmri.core.exceptions import InvalidConfiguration
+
 def test_conc_aorta_liver():
     def _test_config(cnfg):
         cnfg = {k: cnfg[i] for i, k in enumerate(dc.ConcAortaLiver.configs.keys())}
@@ -47,17 +49,23 @@ def test_conc_aorta_kidneys():
 
 def test_conc_aorta():
     def _test_config(cnfg):
+        print('ConcAorta', cnfg)
         try:
            conc = dc.ConcAorta(**cnfg)
-        except ValueError:
+        except InvalidConfiguration:
             return
         data = {k: dc.QVALUES[k] for k in conc.inputs()}
         c = conc(data)
         assert c['ca'].ndim==1
-    [
-        _test_config(cnfg) 
-        for cnfg in dc.ConcAorta.configurations()
-    ]
+
+    cnt = 0
+    for cnfg in dc.ConcAorta.configurations():
+        cnt += 1
+        _test_config(cnfg)
+
+    print(f'Successfully covered {cnt} ConcAorta configurations!')
+
+
 
 def test_conc_cortmed():
     def _test_config(cnfg):
