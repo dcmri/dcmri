@@ -6,9 +6,9 @@ class Module:
     configs = {}
     defaults = {}
 
-    def __init__(self, imap: dict=None, **config):
+    def __init__(self, imap: dict=None, omap: dict=None, **config):
         self.set_config(config)
-        self.map_inputs(imap)
+        self.map_io(imap, omap)
 
     def set_config(self, config: dict=None):
         # Initialise configuration
@@ -23,31 +23,40 @@ class Module:
                     self._config[key] = value
         return self
 
+    def map_io(self, imap: dict=None, omap: dict=None):
+        self.map_inputs(imap)
+        self.map_outputs(omap)
+        return self
+
     def map_inputs(self, imap: dict=None):
-        # Set inputs 
         inputs = self.inputs()
-        # if not isinstance(inputs, set):
-        #     raise ValueError('The function inputs() must return a set. Inputs are unique.')
         self._inputs = inputs
         self._imap = {i: i for i in self._inputs}
         if imap is not None:
             for key, value in imap.items():
                 if key in self._inputs:
                     self._imap[key] = value
-
         return self
-    
-    def set_output_map(self, omap: dict=None):
-        self._omap = omap
 
-    def mapped_inputs(self):
-        # Get mapped inputs
-        return {self._imap[i] for i in self._inputs}
-
+    def map_outputs(self, omap: dict=None):
+        outputs = self.outputs()
+        self._outputs = outputs
+        self._omap = {o: o for o in self._outputs}
+        if omap is not None:
+            for key, value in omap.items():
+                if key in self._outputs:
+                    self._omap[key] = value
+        return self
 
     @property
     def config(self):
         return dict(self._config) # prevent accidental overwrite
+
+    def mapped_inputs(self):
+        return {self._imap[i] for i in self._inputs}
+
+    def mapped_outputs(self):
+        return {self._omap[o] for o in self._outputs}
     
     def map_data(self, data: dict | None, override={}) -> dict:
         p = {}
@@ -66,14 +75,6 @@ class Module:
                 raise ValueError(f'{self.__class__.__name__} needs a value for input {j}.')
         return p
 
-    def input_data(self, data) -> dict:
-        p = {}
-        for i in self._inputs:
-            j = self._imap[i]
-            if j in data:
-                p[j] = data[j]
-        return p
-    
     def map_results(self, results: dict) -> dict:
         p = {}
         omap = self._omap
@@ -82,17 +83,15 @@ class Module:
                 p[omap[k]] = v
             else:
                 p[k] = v
-        return p     
+        return p 
 
-    def map_outputs(self, outputs: set) -> set:
-        mapped_outputs = set()
-        omap = self._omap
-        for o in outputs:
-            if o in omap:
-                mapped_outputs |= {omap[o]}
-            else:
-                mapped_outputs |= {o}
-        return mapped_outputs     
+    def input_data(self, data) -> dict:
+        p = {}
+        for i in self._inputs:
+            j = self._imap[i]
+            if j in data:
+                p[j] = data[j]
+        return p
     
     def update_data(self, data: dict, p: dict):
         return data | {self._imap[k]: v for k, v in p.items() if k in self._imap}
@@ -121,5 +120,5 @@ class Module:
     def __call__(self, *args, data: dict=None, **kwargs) -> dict:
         # Any reimplementation needs to start with mapping the data:
         # p = self.map_data(data, kwargs)
-        return_value = {}
+        # return_value = {}
         raise NotImplementedError('No __call__ method defined')

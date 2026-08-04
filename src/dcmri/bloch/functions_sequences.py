@@ -556,7 +556,7 @@ def _Mz_ss_pr_spgr_nc(R1, v, Fw, j, me, TR, FA, Nph, TP, TD, PA):
 
 
 
-def Mz_ssi(R1, v, Fw, j, me, TR, FA, TF, SA):
+def Mz_ss_spgri(R1, v, Fw, j, me, TR, FA, TF, SA):
     """
     Calculate steady-state longitudinal magnetization including inflow effects.
 
@@ -593,15 +593,15 @@ def Mz_ssi(R1, v, Fw, j, me, TR, FA, TF, SA):
         accounting for inflow and RF saturation history.
     """
     if np.isscalar(v):
-        return _Mz_ssi_1c(R1, v, Fw, j, me, TR, FA, TF, SA)
+        return _Mz_ss_spgri_1c(R1, v, Fw, j, me, TR, FA, TF, SA)
     elif v.size==1:
-        Mz = _Mz_ssi_1c(R1[0], v[0], Fw[0,0], j[0], me, TR, FA, TF, SA)
+        Mz = _Mz_ss_spgri_1c(R1[0], v[0], Fw[0,0], j[0], me, TR, FA, TF, SA)
         return np.array(Mz).reshape(R1.shape)
     else:
-        return _Mz_ssi_nc(R1, v, Fw, j, me, TR, FA, TF, SA)
+        return _Mz_ss_spgri_nc(R1, v, Fw, j, me, TR, FA, TF, SA)
 
 
-def _Mz_ssi_1c(R1, v, Fw, j, me, TR, FA, TF, SA):
+def _Mz_ss_spgri_1c(R1, v, Fw, j, me, TR, FA, TF, SA):
     cFA = np.cos(np.radians(FA))
     n = np.floor(TF / TR) # n pulses to readout
     nFA = cFA**n
@@ -618,7 +618,7 @@ def _Mz_ssi_1c(R1, v, Fw, j, me, TR, FA, TF, SA):
     return M_sig
 
 
-def _Mz_ssi_nc(R1, v, Fw, j, me, TR, FA, TF, SA):
+def _Mz_ss_spgri_nc(R1, v, Fw, j, me, TR, FA, TF, SA):
     cFA = np.cos(np.radians(FA))
     n = np.floor(TF / TR) # n pulses to readout
     nFA = cFA**n

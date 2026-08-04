@@ -246,6 +246,7 @@ Example:
 import numpy as np
 
 from dcmri.core.module import Module
+from dcmri.core.exceptions import InvalidConfiguration
 from dcmri.kinetics.functions_blocks import flux_plug
 from dcmri.kinetics.modules_flux import FluxAorta
 import dcmri.kinetics.functions_kidney as pk_kidney
@@ -389,7 +390,7 @@ class ConcLiver(Module):
     def __init__(self, imap:dict=None, **config):
         self.set_config(config)
         if (self.config['kinetics'], self.config['non_stationary']) not in pk_liver.PARAMETERS.keys():
-            raise ValueError('For extracellular tracers the non-stationary configuration is invalid.')
+            raise InvalidConfiguration('For extracellular tracers the non-stationary configuration is invalid.')
         self.map_inputs(imap)
             
     def inputs(self):
@@ -541,7 +542,7 @@ class ConcAortaLiver(Module):
         self.map_inputs(imap)
 
     def outputs(self):
-        outputs = {'ca', 'ci', 'Cl'}
+        outputs = {'t', 'ca', 'ci', 'Cl'}
         if self.config['lagut'] == 'plucom':
             outputs |= {'cla', 'cpv'}
         return outputs
@@ -581,6 +582,7 @@ class ConcAortaLiver(Module):
 
         # Build output
         results = {
+            't': self._flux_aorta['t'],
             'ca': aorta['Ja'] / p['CO'],
             'ci': aorta['Jl'] / p['CO'],
             'Cl': conc['Cl']

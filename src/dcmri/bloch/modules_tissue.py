@@ -133,7 +133,7 @@ from scipy.interpolate import interp1d
 
 from dcmri.core.module import Module
 from dcmri.core.sequences import SEQUENCES
-from dcmri.bloch import functions_dynamic_sequences
+from dcmri.bloch import functions_dynamic
 from dcmri.bloch import functions_sequences
 
 
@@ -251,47 +251,47 @@ def _Mz(sequence, mz_prep_sequence, tR1, R1, v, Fw, j, p, tj=None):
         return tR1.reshape((tR1.size, 1)), Mz
     if mz_prep_sequence == 'IR-SS':
         TA = functions_sequences.repetition_time(sequence, p)
-        return functions_dynamic_sequences.Mz_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], TA, 180, 1, tj=tj)
+        return functions_dynamic.Mz_dyn_spgr_ss(tR1, R1, v, Fw, j, p['me'], TA, 180, 1, tj=tj)
     if mz_prep_sequence == 'SR-SS':
         TA = functions_sequences.repetition_time(sequence, p)
-        return functions_dynamic_sequences.Mz_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], TA, 90, 1, tj=tj)
+        return functions_dynamic.Mz_dyn_spgr_ss(tR1, R1, v, Fw, j, p['me'], TA, 90, 1, tj=tj)
     if mz_prep_sequence == 'PR-SS':
         TA = functions_sequences.repetition_time(sequence, p)
-        return functions_dynamic_sequences.Mz_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], TA, p['PA'], 1, tj=tj)
+        return functions_dynamic.Mz_dyn_spgr_ss(tR1, R1, v, Fw, j, p['me'], TA, p['PA'], 1, tj=tj)
     if mz_prep_sequence == 'SPGR':
-        return functions_dynamic_sequences.Mz_spgr(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], tj=tj) 
+        return functions_dynamic.Mz_dyn_spgr(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], tj=tj) 
     if mz_prep_sequence == 'SR-SPGR':
         _check_TP(p['TP'])
         t0 = p['iz'] * (p['TP'] + p['Nph'] * p['TR'] + p['TD']) if sequence == '2D-SR-SPGR' else 0
-        return functions_dynamic_sequences.Mz_pr_spgr(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], 90, t0=t0, tj=tj) 
+        return functions_dynamic.Mz_dyn_pr_spgr(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], 90, t0=t0, tj=tj) 
     if mz_prep_sequence == 'IR-SPGR':
         _check_TP(p['TP'])
-        return functions_dynamic_sequences.Mz_pr_spgr(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], 180, tj=tj) 
+        return functions_dynamic.Mz_dyn_pr_spgr(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], 180, tj=tj) 
     if mz_prep_sequence == 'PR-SPGR':
         _check_TP(p['TP'])
-        return functions_dynamic_sequences.Mz_pr_spgr(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], p['PA'], tj=tj)
+        return functions_dynamic.Mz_dyn_pr_spgr(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], p['PA'], tj=tj)
     if mz_prep_sequence == 'SPGR-SS':
-        return functions_dynamic_sequences.Mz_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], tj=tj)
+        return functions_dynamic.Mz_dyn_spgr_ss(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], tj=tj)
     if mz_prep_sequence == 'SR-SPGR-SS':
         _check_TP(p['TP'])
-        return functions_dynamic_sequences.Mz_pr_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], 90, tj=tj) 
+        return functions_dynamic.Mz_dyn_pr_spgr_ss(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], 90, tj=tj) 
     if mz_prep_sequence == 'IR-SPGR-SS':
         _check_TP(p['TP'])
-        return functions_dynamic_sequences.Mz_pr_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], 180, tj=tj)
+        return functions_dynamic.Mz_dyn_pr_spgr_ss(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], 180, tj=tj)
     if mz_prep_sequence == 'PR-SPGR-SS':
         _check_TP(p['TP'])
-        return functions_dynamic_sequences.Mz_pr_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], p['PA'], tj=tj) 
+        return functions_dynamic.Mz_dyn_pr_spgr_ss(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TP'], p['TD'], p['PA'], tj=tj) 
     if mz_prep_sequence == 'SSI':
-        return functions_dynamic_sequences.Mz_spgr_in_ssi(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TF'], p['SA'])
+        return functions_dynamic.Mz_dyn_spgr_ssi(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TF'], p['SA'])
     if mz_prep_sequence == 'GE-SS':
         t0 = p['iz'] * p['TR'] / p['Nz'] if sequence == '2D-GE-SS' else 0
-        return functions_dynamic_sequences.Mz_spgr_in_ss(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], 1, t0=t0, tj=tj)
+        return functions_dynamic.Mz_dyn_spgr_ss(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], 1, t0=t0, tj=tj)
     if mz_prep_sequence == 'SE-SS':
         t0 = p['iz'] * p['TR'] / p['Nz'] if sequence == '2D-SE-SS' else 0
-        return functions_dynamic_sequences.Mz_se(tR1, R1, v, Fw, j, p['me'], p['TE'], p['TR'], p['FA'] * p['B1corr'], t0=t0, tj=tj)
+        return functions_dynamic.Mz_dyn_se(tR1, R1, v, Fw, j, p['me'], p['TE'], p['TR'], p['FA'] * p['B1corr'], t0=t0, tj=tj)
     if mz_prep_sequence == 'DE-SS':
         t0 = p['iz'] * p['TR'] / p['Nz'] if sequence == '2D-DE-SS' else 0
-        return functions_dynamic_sequences.Mz_se(tR1, R1, v, Fw, j, p['me'], p['TE2'], p['TR'], p['FA'] * p['B1corr'], t0=t0, tj=tj)
+        return functions_dynamic.Mz_dyn_se(tR1, R1, v, Fw, j, p['me'], p['TE2'], p['TR'], p['FA'] * p['B1corr'], t0=t0, tj=tj)
 
 def _check_TP(TP):
     if TP==0:

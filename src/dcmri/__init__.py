@@ -208,19 +208,19 @@ from dcmri.bloch.modules_tissue_x import (
 )
 from dcmri.bloch.functions_sequences import (
     Mz_ss,
-    Mz_ssi,
+    Mz_ss_spgri,
     Mz_ss_spgr,
     Mz_ss_pr_spgr,
     Mz_prop,
     Mz_prop_pr_spgr,
     mz_readout,
 )
-from dcmri.bloch.functions_dynamic_sequences import (
-   Mz_spgr_in_ss,
-   Mz_spgr_in_ssi,
-   Mz_pr_spgr,
-   Mz_pr_spgr_in_ss,
-   Mz_se,
+from dcmri.bloch.functions_dynamic import (
+   Mz_dyn_spgr_ss,
+   Mz_dyn_spgr_ssi,
+   Mz_dyn_pr_spgr,
+   Mz_dyn_pr_spgr_ss,
+   Mz_dyn_se,
 )
 from dcmri.signal.modules_tissue import (
     Signal,

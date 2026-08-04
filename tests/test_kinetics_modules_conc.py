@@ -7,10 +7,10 @@ from dcmri.core.exceptions import InvalidConfiguration
 
 def test_conc_aorta_liver():
     def _test_config(cnfg):
-        cnfg = {k: cnfg[i] for i, k in enumerate(dc.ConcAortaLiver.configs.keys())}
+        print('ConcAortaLiver', cnfg)
         try:
            conc = dc.ConcAortaLiver(**cnfg)
-        except ValueError:
+        except InvalidConfiguration:
             return
         data = {k: dc.QVALUES[k] for k in conc.inputs()}
         data['ca'] = np.ones(5)
@@ -21,18 +21,19 @@ def test_conc_aorta_liver():
             else:
                 assert v.ndim==1
 
-    values = dc.ConcAortaLiver.configs.values()
-    [
-        _test_config(cnfg) 
-        for cnfg in itertools.product(*values)
-    ]
+    cnt = 0
+    for cnfg in dc.ConcAortaLiver.configurations():
+        cnt += 1
+        _test_config(cnfg)
+
+    print(f'Successfully covered {cnt} ConcAortaLiver configurations!')
 
 def test_conc_aorta_kidneys():
     def _test_config(cnfg):
-        cnfg = {k: cnfg[i] for i, k in enumerate(dc.ConcAortaKidneys.configs.keys())}
+        print('ConcAortaKidneys', cnfg)
         try:
            conc = dc.ConcAortaKidneys(**cnfg)
-        except ValueError:
+        except InvalidConfiguration:
             return
         data = {k: dc.QVALUES[k] for k in conc.inputs()}
         data['ca'] = np.ones(5)
@@ -41,11 +42,12 @@ def test_conc_aorta_kidneys():
         assert c['Clk'].ndim==2
         assert c['Crk'].ndim==2
 
-    values = dc.ConcAortaKidneys.configs.values()
-    [
-        _test_config(cnfg) 
-        for cnfg in itertools.product(*values)
-    ]
+    cnt = 0
+    for cnfg in dc.ConcAortaKidneys.configurations():
+        cnt += 1
+        _test_config(cnfg)
+
+    print(f'Successfully covered {cnt} ConcAortaKidneys configurations!')
 
 def test_conc_aorta():
     def _test_config(cnfg):
@@ -69,9 +71,10 @@ def test_conc_aorta():
 
 def test_conc_cortmed():
     def _test_config(cnfg):
+        print('ConcCortMed', cnfg)
         try:
            conc = dc.ConcCortMed(**cnfg)
-        except ValueError:
+        except InvalidConfiguration:
             return
         data = {k: dc.QVALUES[k] for k in conc.inputs()}
         data['ca'] = np.ones(5)
@@ -79,65 +82,69 @@ def test_conc_cortmed():
         assert c['Cc'].ndim==2
         assert c['Cm'].ndim==2
 
-    [
-        _test_config(cnfg) 
-        for cnfg in dc.ConcCortMed.configurations()
-    ]
+    cnt = 0
+    for cnfg in dc.ConcCortMed.configurations():
+        cnt += 1
+        _test_config(cnfg)
+
+    print(f'Successfully covered {cnt} ConcCortMed configurations!')
 
 def test_conc_kidney():
     def _test_config(cnfg):
-        cnfg = {k: cnfg[i] for i, k in enumerate(dc.ConcKidney.configs.keys())}
+        print('ConcKidney', cnfg)
         try:
            conc = dc.ConcKidney(**cnfg)
-        except ValueError:
+        except InvalidConfiguration:
             return
         data = {k: dc.QVALUES[k] for k in conc.inputs()}
         data['ca'] = np.ones(5)
         c = conc(data)
         assert c['Ck'].ndim==2
 
-    values = dc.ConcKidney.configs.values()
-    [
-        _test_config(cnfg) 
-        for cnfg in itertools.product(*values)
-    ]
+    cnt = 0
+    for cnfg in dc.ConcKidney.configurations():
+        cnt += 1
+        _test_config(cnfg)
+
+    print(f'Successfully covered {cnt} ConcKidney configurations!')
 
 def test_conc_liver():
     def _test_config(cnfg):
-        cnfg = {k: cnfg[i] for i, k in enumerate(dc.ConcLiver.configs.keys())}
-        print(cnfg)
+        print('ConcLiver', cnfg)
         try:
            conc = dc.ConcLiver(**cnfg)
-        except ValueError:
+        except InvalidConfiguration:
             return
         data = {k: dc.QVALUES[k] for k in conc.inputs()}
         data['ci'] = np.ones(5) if '1I' in cnfg['kinetics'] else (np.ones(5), np.ones(5))
         c = conc(data)
         assert c['Cl'].ndim==2
 
-    values = dc.ConcLiver.configs.values()
-    [
-        _test_config(cnfg) 
-        for cnfg in itertools.product(*values)
-    ]
+    cnt = 0
+    for cnfg in dc.ConcLiver.configurations():
+        cnt += 1
+        _test_config(cnfg)
+
+    print(f'Successfully covered {cnt} ConcLiver configurations!')
 
 def test_conc_tissue_x():
     def _test_config(cnfg):
-        cnfg = {k: cnfg[i] for i, k in enumerate(dc.ConcTissueX.configs.keys())}
+        print('ConcTissueX', cnfg)
         try:
            conc = dc.ConcTissueX(**cnfg)
-        except ValueError:
+        except InvalidConfiguration:
             return
         data = {k: dc.QVALUES[k] for k in conc.inputs()}
         data['ca'] = np.ones(5)
         c = conc(data)
         assert c['C'].ndim==2
 
-    values = dc.ConcTissueX.configs.values()
-    [
-        _test_config(cnfg) 
-        for cnfg in itertools.product(*values)
-    ]
+    cnt = 0
+    for cnfg in dc.ConcTissueX.configurations():
+        cnt += 1
+        _test_config(cnfg)
+
+    print(f'Successfully covered {cnt} ConcLiver configurations!')
 
 
 if __name__ == '__main__':

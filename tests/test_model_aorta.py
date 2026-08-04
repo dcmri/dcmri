@@ -14,7 +14,7 @@ from dcmri.core.exceptions import InvalidConfiguration
 # kernprof automatically injects 'profile' into builtins when run via command line
 # kernprof -l -v tests/test_model_aorta.py
 try:
-    dc.bloch.functions_dynamic_sequences.Mz_se = profile(dc.bloch.functions_dynamic_sequences.Mz_se)
+    dc.bloch.functions_dynamic.Mz_dyn_se = profile(dc.bloch.functions_dynamic.Mz_dyn_se)
 except NameError:
     # Fallback so the script doesn't crash if run with standard 'python' instead of 'kernprof'
     pass

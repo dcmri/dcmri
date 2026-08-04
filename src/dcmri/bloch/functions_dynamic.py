@@ -20,7 +20,7 @@ def _interpolate_2d_var(t_new, tR, R):
     return f(t_new)
 
 
-def Mz_spgr(tR1:np.ndarray, R1:np.ndarray, v, Fw, j:np.ndarray, me, TR, FA, Nph, tj:np.ndarray=None, t0=0): 
+def Mz_dyn_spgr(tR1:np.ndarray, R1:np.ndarray, v, Fw, j:np.ndarray, me, TR, FA, Nph, tj:np.ndarray=None, t0=0): 
     """
     Model longitudinal magnetization for a prep-recovery SPGR sequence with linear k-space ordering.
 
@@ -70,7 +70,7 @@ def Mz_spgr(tR1:np.ndarray, R1:np.ndarray, v, Fw, j:np.ndarray, me, TR, FA, Nph,
 
 
 
-def Mz_pr_spgr(tR1:np.ndarray, R1:np.ndarray, v, Fw, j:np.ndarray, me, TR, FA, Nph, TP, TD, PA, tj:np.ndarray=None, t0=0): 
+def Mz_dyn_pr_spgr(tR1:np.ndarray, R1:np.ndarray, v, Fw, j:np.ndarray, me, TR, FA, Nph, TP, TD, PA, tj:np.ndarray=None, t0=0): 
     """
     Model longitudinal magnetization for a prep-recovery SPGR sequence with linear k-space ordering.
 
@@ -130,7 +130,7 @@ def Mz_pr_spgr(tR1:np.ndarray, R1:np.ndarray, v, Fw, j:np.ndarray, me, TR, FA, N
     return Mz_dyn(tR1, R1, v, Fw, j, me, pulses_per_period, tj, t0)
 
 
-def Mz_pr_spgr_in_ss(tR1:np.ndarray, R1:np.ndarray, v, Fw, j:np.ndarray, me, TR, FA, Nph, TP, TD, PA, tj:np.ndarray=None, t0=0):
+def Mz_dyn_pr_spgr_ss(tR1:np.ndarray, R1:np.ndarray, v, Fw, j:np.ndarray, me, TR, FA, Nph, TP, TD, PA, tj:np.ndarray=None, t0=0):
     """
     Model steady-state longitudinal magnetization for a prep-recovery SPGR sequence.
 
@@ -186,7 +186,7 @@ def Mz_pr_spgr_in_ss(tR1:np.ndarray, R1:np.ndarray, v, Fw, j:np.ndarray, me, TR,
     -----
     - Frame duration is calculated as `duration = TP + Nph * TR + TD`.
     - Solves steady-state initial conditions independently at each time step $k$.
-    - Unlike `Mz_pr_spgr`, this function assumes inter-frame steady state rather than 
+    - Unlike `Mz_dyn_pr_spgr`, this function assumes inter-frame steady state rather than 
       dynamically carrying forward the end-of-frame residual magnetization.
     """
     # Dimensions
@@ -233,7 +233,7 @@ def Mz_pr_spgr_in_ss(tR1:np.ndarray, R1:np.ndarray, v, Fw, j:np.ndarray, me, TR,
     return t_pulses, Mz
 
 
-def Mz_spgr_in_ss(tR1:np.ndarray, R1:np.ndarray, v, Fw, j:np.ndarray, me, TR, FA, Nph, tj:np.ndarray=None, t0=0) -> tuple:
+def Mz_dyn_spgr_ss(tR1:np.ndarray, R1:np.ndarray, v, Fw, j:np.ndarray, me, TR, FA, Nph, tj:np.ndarray=None, t0=0) -> tuple:
     """
     Calculate the steady-state longitudinal magnetization (Mz) for an SPGR sequence.
 
@@ -308,7 +308,7 @@ def Mz_spgr_in_ss(tR1:np.ndarray, R1:np.ndarray, v, Fw, j:np.ndarray, me, TR, FA
 
     # Compute
     Mz = np.zeros((n_comps, n_pulses)) 
-    for i in range(n_pulses): # TODO vectorize Mz_ssi and reduce to a single call
+    for i in range(n_pulses): # TODO vectorize and reduce to a single call
         Mz[:, i] = functions_sequences.Mz_ss_spgr(R1_pulses[:, i], v, Fw, j_pulses[:, i], me, TR, FA)
 
     # Reshape
@@ -318,7 +318,7 @@ def Mz_spgr_in_ss(tR1:np.ndarray, R1:np.ndarray, v, Fw, j:np.ndarray, me, TR, FA
     return t_pulses, Mz
 
 
-def Mz_se(tR1:np.ndarray, R1:np.ndarray, v, Fw, j:np.ndarray, me, TE, TR, FA, tj:np.ndarray=None, t0=0) -> tuple: 
+def Mz_dyn_se(tR1:np.ndarray, R1:np.ndarray, v, Fw, j:np.ndarray, me, TE, TR, FA, tj:np.ndarray=None, t0=0) -> tuple: 
     """
     Calculate steady-state longitudinal magnetization (Mz) for a single slice in a SE sequence.
 
@@ -368,7 +368,7 @@ def Mz_se(tR1:np.ndarray, R1:np.ndarray, v, Fw, j:np.ndarray, me, TE, TR, FA, tj
     return Mz_dyn_ss(tR1, R1, v, Fw, j, me, pulses_per_period, tj, t0)
 
 
-def Mz_spgr_in_ssi(tR1:np.ndarray, R1:np.ndarray, v, Fw, j:np.ndarray, me, TR, FA, Nph, TF, SA, tj:np.ndarray=None): 
+def Mz_dyn_spgr_ssi(tR1:np.ndarray, R1:np.ndarray, v, Fw, j:np.ndarray, me, TR, FA, Nph, TF, SA, tj:np.ndarray=None): 
     """
     Model steady-state imaging (SSI) longitudinal magnetization with inflow effects.
 
@@ -447,8 +447,8 @@ def Mz_spgr_in_ssi(tR1:np.ndarray, R1:np.ndarray, v, Fw, j:np.ndarray, me, TR, F
 
     # Compute
     Mz = np.zeros((n_comps, n_pulses)) 
-    for i in range(n_pulses): # TODO vectorize Mz_ssi and reduce to a single call
-        Mz[:, i] = functions_sequences.Mz_ssi(R1_pulses[:, i], v, Fw, j_pulses[:, i], me, TR, FA, TF, SA)
+    for i in range(n_pulses): # TODO vectorize Mz_ss_spgri and reduce to a single call
+        Mz[:, i] = functions_sequences.Mz_ss_spgri(R1_pulses[:, i], v, Fw, j_pulses[:, i], me, TR, FA, TF, SA)
 
     # Reshape
     t_pulses = t_pulses.reshape((n_periods, n_pulses_per_period))
