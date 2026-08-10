@@ -112,7 +112,7 @@ class NestedModule(Module):
         'order_1': 'linear',
         'order_2': 'nonlinear',
     }
-    def __init__(self, imap:dict=None, **config):
+    def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
 
         self._module_1 = MockModule(order=self.config['order_1'])
@@ -125,7 +125,7 @@ class NestedModule(Module):
         self._module_1.map_inputs(imap_1)
         self._module_2.map_inputs(imap_2)
 
-        self.map_inputs(imap)
+        self.map_io(imap, omap)
 
     def inputs(self):
         inputs = set()

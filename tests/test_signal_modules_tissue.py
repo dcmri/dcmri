@@ -25,7 +25,7 @@ def test_coverage_signal():
         sig.inputs()
         sig.outputs()
 
-        p = sig.map_lexicon(QVALUES)
+        p = QVALUES | sig.map_lexicon(QVALUES)
         S = sig(p)['S']
 
 
@@ -36,7 +36,7 @@ def test_coverage_calibrate_signal():
         cal.inputs()
         cal.outputs()
 
-        p = cal.map_lexicon(QVALUES)
+        p = QVALUES | cal.map_lexicon(QVALUES)
         S0 = cal(p)['S0']
         print(S0)
 
@@ -48,7 +48,7 @@ def test_coverage_relax_to_signal():
         sig.inputs()
         sig.outputs()
 
-        p = sig.map_lexicon(QVALUES)
+        p = QVALUES | sig.map_lexicon(QVALUES)
         S = sig(p)['S']
 
 
@@ -59,7 +59,7 @@ def test_function_calibrate_signal():
 
     # Compute S0
     scal = CalibrateSignal(imap=imap, **config)
-    pars = scal.map_lexicon(QVALUES) | {'v': 1, 'Fw': 10, 'me': 1, 'Fi': 10} 
+    pars = QVALUES | scal.map_lexicon(QVALUES) | {'v': 1, 'Fw': 10, 'me': 1, 'Fi': 10} 
     p = scal(pars) 
     S0_1 = p['S0']
 
@@ -83,7 +83,7 @@ def test_function_calibrate_signal():
     # Set signals and compute S0 again
     n0=5
     scal = CalibrateSignal(imap=imap, **config)
-    pars = scal.map_lexicon(QVALUES) | {'v': 1, 'Fw': 10, 'me': 1, 'Fi': 10} 
+    pars = QVALUES | scal.map_lexicon(QVALUES) | {'v': 1, 'Fw': 10, 'me': 1, 'Fi': 10} 
     pars['Sb_a'] = s['S'][..., :n0]
     pars['tSb_a'] = s['tS'][:n0]
     p = scal(pars)  

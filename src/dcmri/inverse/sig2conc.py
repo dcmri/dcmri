@@ -18,11 +18,11 @@ class SignalToConc(Module):
         'sequence': '3D-SPGR-SS',
         'calibrate': True,
     }
-    def __init__(self, imap:dict=None, **config):
+    def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
         if self.config['sequence'] not in analytical_inversion:
             self._R1_to_S = RelaxToSignal(inflow=False, **self.config)
-        self.map_inputs(imap)  
+        self.map_io(imap, omap)  
 
     def inputs(self):
         sequence = self.config['sequence']
@@ -157,9 +157,5 @@ class SignalToConc(Module):
         else:
             conc = conc
 
-        return {'C': conc}
-        
-
-
-
-
+        results = {'C': conc}
+        return self.map_results(results)

@@ -137,8 +137,7 @@ from dcmri.bloch import functions_dynamic
 from dcmri.bloch import functions_sequences
 
 
-# TODO: For some ss sequences there is some duplication with K, J and KinvJ computed multiple times
-# This needs rationalising
+# class JzPrep(Module)
 
 
 class MzPrep(Module): 
@@ -210,7 +209,7 @@ class MzPrep(Module):
                 try:
                     R1i = np.reshape(p['R1i'], (nc, nt))  
                 except:
-                    raise ValueError(f'R1i must have the same size as R1 ({nc * nt}) ') 
+                    raise ValueError(f'R1i ({p['R1i'].size}) must have the same size as R1 ({nc * nt}) ') 
 
             # Format Fi
             Fi = np.array(p['Fi'])
@@ -222,18 +221,20 @@ class MzPrep(Module):
             mz_prep_inflow = SEQUENCES[sequence]['mz_prep_inflow']
 
             for i in range(Fi.size):
-                vi, Fwi, ji = 1, 0, None # inflow = 1 closed compartment
-                tj, Mzi = _Mz(sequence, mz_prep_inflow, tR, R1i[i, :], vi, Fwi, ji, p)
-                if j is None:
-                    j = np.zeros((nc, ) + tj.shape)
-                j[i, :, :] = Fi[i] * Mzi[0, :, :]
+                if not np.isnan(Fi[i]):
+                    vi, Fwi, ji = 1, 0, None # inflow = 1 closed compartment
+                    tj, Mzi = _Mz(sequence, mz_prep_inflow, tR, R1i[i], vi, Fwi, ji, p)
+                    if j is None:
+                        j = np.zeros((nc, ) + tj.shape)
+                    j[i, :, :] = Fi[i] * Mzi[0, :, :]  # (mL/min/cm3) * (magn/mL) = magn/min/cm3
 
         # Delegate computation to helper functions
         mz_prep_sequence = SEQUENCES[sequence]['mz_prep_tissue']
         tM, Mz = _Mz(sequence, mz_prep_sequence, tR, R1, v, Fw, j, p, tj)
 
         # Return dimensions (compartments, times)
-        return {'tM': tM, 'Mz': Mz}
+        results = {'tM': tM, 'Mz': Mz}
+        return self.map_results(results)
 
 
 def _Mz(sequence, mz_prep_sequence, tR1, R1, v, Fw, j, p, tj=None):
@@ -332,7 +333,7 @@ class MxyReadMz(Module):
             'R2':np.ones((nc, ntR)), 
             'R2s':np.ones(ntR),
         }
-        return self.update_data(qvalues, p)
+        return self.update_data(p)
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)
@@ -383,7 +384,8 @@ class MxyReadMz(Module):
         # or
         # (components, compartments, times)
 
-        return {'Mxy': Mxy} 
+        results = {'Mxy': Mxy}
+        return self.map_results(results)
 
 
 def _interpolate_2d(t_new, tR, R):
@@ -403,11 +405,11 @@ class Magnetization(Module):
         'sequence': '3D-SPGR-SS',
         'inflow': False,
     }
-    def __init__(self, imap:dict=None, **config):
+    def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
         self._mz_prep = MzPrep(**self.config)
         self._mxy_read = MxyReadMz(**self.config)
-        self.map_inputs(imap)
+        self.map_io(imap, omap)
         
     def inputs(self):
         inputs = self._mz_prep.mapped_inputs()
@@ -436,4 +438,5 @@ class Magnetization(Module):
         for c in range(M.shape[0]):
             M[c, 2, :, :] = p['Mz']
 
-        return {'tM': p['tM'], 'M': M}
+        results = {'tM': p['tM'], 'M': M}
+        return self.map_results(results)

@@ -29,40 +29,66 @@ class Module:
         return self
 
     def map_inputs(self, imap: dict=None):
-        inputs = self.inputs()
-        self._inputs = inputs
-        self._imap = {i: i for i in self._inputs}
-        if imap is not None:
-            for key, value in imap.items():
-                if key in self._inputs:
-                    self._imap[key] = value
+        self._inputs = self.inputs()
+        if imap is None:
+            self._imap = {}
+        else:
+            self._imap = {k: v for k, v in imap.items() if k in self._inputs}
         return self
+        # self._imap = {i: i for i in self._inputs}
+        # if imap is not None:
+        #     for key, value in imap.items():
+        #         if key in self._inputs:
+        #             self._imap[key] = value
+        # return self
 
     def map_outputs(self, omap: dict=None):
-        outputs = self.outputs()
-        self._outputs = outputs
-        self._omap = {o: o for o in self._outputs}
-        if omap is not None:
-            for key, value in omap.items():
-                if key in self._outputs:
-                    self._omap[key] = value
+        self._outputs = self.outputs()
+        if omap is None:
+            self._omap = {}
+        else:
+            self._omap = {k: v for k, v in omap.items() if k in self._outputs}
         return self
+        # self._outputs = self.outputs()
+        # self._omap = {o: o for o in self._outputs}
+        # if omap is not None:
+        #     for key, value in omap.items():
+        #         if key in self._outputs:
+        #             self._omap[key] = value
+        # return self
 
     @property
     def config(self):
         return dict(self._config) # prevent accidental overwrite
 
     def mapped_inputs(self):
-        return {self._imap[i] for i in self._inputs}
+        result = set()
+        for i in self._inputs:
+            if i in self._imap:
+                result.add(self._imap[i])
+            else:
+                result.add(i)
+        return result
+        # return {self._imap[i] for i in self._inputs}
 
     def mapped_outputs(self):
-        return {self._omap[o] for o in self._outputs}
-    
-    def map_data(self, data: dict | None, override={}) -> dict:
+        result = set()
+        for o in self._outputs:
+            if o in self._omap:
+                result.add(self._omap[o])
+            else:
+                result.add(o)
+        return result
+        # return {self._omap[o] for o in self._outputs}
+
+    def map_data(self, data: dict | None, override={}, all=True) -> dict:
         p = {}
         imap = self._imap
         for i in self._inputs:
-            j = imap[i]
+            if i in imap:
+                j = imap[i]
+            else:
+                j = i
             if j in override:
                 p[i] = override[j]
             elif data is None:
@@ -71,30 +97,46 @@ class Module:
                 raise ValueError(f"The default data argument must be a dictionary.")
             elif j in data:
                 p[i] = data[j]
-            else:
+            elif all:
                 raise ValueError(f'{self.__class__.__name__} needs a value for input {j}.')
         return p
 
-    def map_results(self, results: dict) -> dict:
-        p = {}
-        omap = self._omap
-        for k, v in results.items():
-            if k in omap:
-                p[omap[k]] = v
+    def map_results(self, data: dict) -> dict:
+        results = {}
+        for o in self._outputs:
+            if o in self._omap:
+                j = self._omap[o]
             else:
-                p[k] = v
-        return p 
+                j = o
+            if o in data:
+                results[j] = data[o]
+        return results
+        # return {self._omap[o]: results[o] for o in self._outputs}
 
     def input_data(self, data) -> dict:
         p = {}
         for i in self._inputs:
-            j = self._imap[i]
+            if i in self._imap:
+                j = self._imap[i]
+            else:
+                j = i
             if j in data:
                 p[j] = data[j]
         return p
     
-    def update_data(self, data: dict, p: dict):
-        return data | {self._imap[k]: v for k, v in p.items() if k in self._imap}
+    def update_data(self, p: dict):
+        results = {}
+        for i in self._inputs:
+            if i in self._imap:
+                j = self._imap[i]
+            else:
+                j = i
+            if i in p:
+                results[j] = p[i]
+        return results
+
+    def map_lexicon(self, qvalues):
+        return {}
     
     @classmethod
     def configurations(cls):

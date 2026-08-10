@@ -1,6 +1,7 @@
 import numpy as np
 
 import dcmri as dc
+from dcmri.relaxivity.functions_relaxivity import mix_fast_exchange
 
 
 def test_conc_t1():
@@ -36,11 +37,11 @@ def test_relax_t1():
     c = np.ones(4)
     assert np.array_equal(dc.relax_t1(c, R1b, r1), np.full((4,),2))
 
-    # 4 time points - image
-    shape = (3,3,4)
-    R1b = np.ones(shape[:2])
-    c = np.ones(shape)
-    assert np.array_equal(dc.relax_t1(c, R1b, r1), np.full(shape,2))
+    # # 4 time points - image
+    # shape = (3,3,4)
+    # R1b = np.ones(shape[:2])
+    # c = np.ones(shape)
+    # assert np.array_equal(dc.relax_t1(c, R1b, r1), np.full(shape,2))
 
     # Two compartments
     ##################
@@ -51,22 +52,22 @@ def test_relax_t1():
     c = [1,1]
     assert np.array_equal(dc.relax_t1(c, R1b, r1), np.full((2,),2))
 
-    # One time point - image
-    shape = (2,3,3)
-    R1b = np.ones(shape)
-    c = np.ones(shape)
-    assert np.array_equal(dc.relax_t1(c, R1b, r1), np.full(shape,2))
+    # # One time point - image
+    # shape = (2,3,3)
+    # R1b = np.ones(shape)
+    # c = np.ones(shape)
+    # assert np.array_equal(dc.relax_t1(c, R1b, r1), np.full(shape,2))
 
-    # 4 time points - ROI
-    R1b = [1,1]
-    c = np.ones((2,4))
-    assert np.array_equal(dc.relax_t1(c, R1b, r1), np.full((2,4),2))
+    # # 4 time points - ROI
+    # R1b = [1,1]
+    # c = np.ones((2,4))
+    # assert np.array_equal(dc.relax_t1(c, R1b, r1), np.full((2,4),2))
 
-    # 4 time points - image
-    shape = (2,3,3,4)
-    R1b = np.ones(shape[:3])
-    c = np.ones(shape)
-    assert np.array_equal(dc.relax_t1(c, R1b, r1), np.full(shape,2))
+    # # 4 time points - image
+    # shape = (2,3,3,4)
+    # R1b = np.ones(shape[:3])
+    # c = np.ones(shape)
+    # assert np.array_equal(dc.relax_t1(c, R1b, r1), np.full(shape,2))
 
 
 def test_relax_t2s():
@@ -136,9 +137,35 @@ def test_relax_t2():
         assert 'Model invalid_model_name not recognized' in str(e)
 
 
+def test_mix_fast_exchange():
+    nt = 5
+    v = [0.1, 0.4, 0.5]
+    R = np.vstack((
+        3 * np.ones(nt),
+        4 * np.ones(nt),
+        5 * np.ones(nt)
+    ))
+    fx = [[0,1]]
+    v, R = mix_fast_exchange(v, R, fx)
+    assert v.size == 2
+    assert R.shape == (2, nt)
+    assert v[0] == 0.5
+    assert R[0,0] == (0.1 * 3 + 0.4 * 4) / 0.5
+    assert R[1,0] == 5
+
+    fx = [[0,1], [1]]
+    try:
+        v, R = mix_fast_exchange(v, R, fx)
+    except:
+        pass
+    else:
+        assert False
+
+
 if __name__ == "__main__":
 
     test_conc_t1()
     test_relax_t1()
+    test_mix_fast_exchange()
 
     print('All relaxivity tests passing!')

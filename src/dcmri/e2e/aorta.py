@@ -87,7 +87,6 @@ from dcmri.core.quantities import QVALUES, QUANTITIES
 from dcmri.models.aorta import AortaModel
 from dcmri.utils.fit import train_bat, loss
 from dcmri.inverse.lib import estimate_bat
-from dcmri.signal.modules_tissue import CalibrateSignal
 
 class Aorta(SuperRoiModel):
     """Whole-body model for the aorta.
@@ -97,55 +96,44 @@ class Aorta(SuperRoiModel):
             data = {}
 
         self._version = '1.0'
-
-        # Setup modules
         self._model = AortaModel(**config)
-        self._scal = CalibrateSignal(
-            imap={'tSb': 'tSb_a', 'Sb':'Sb_a', 'R1b':'R1b_a', 'R2b':'R2b_a', 'R2sb':'R2sb_a', 'R1ib':'R1b_a', 'B1corr': 'B1corr_a'}, 
-            inflow=True, **config,
-        )
+
         # Initialise model parameters
-        pars = self._model.map_lexicon(QVALUES) | self._scal.map_lexicon(QVALUES) | data
-        self._pars = self._model.input_data(pars) | self._scal.input_data(pars)
+        pars = QVALUES | self._model.map_lexicon(QVALUES) | data
+        self._pars = self._model.input_data(pars)
 
     def _params(self, group=None):
-        params = self._model.mapped_inputs() | self._scal.mapped_inputs()
-        params -= {'S0'}
+        params = self._model.mapped_inputs()
         if group == 'free':
             params_free = {p for p in params if p in QUANTITIES and QUANTITIES[p]['group']=='phys'}
             params_free |= {p for p in ['BAT'] if p in params}
             return params_free
         return params
 
-    def _compute(self):
-        p = self._pars 
-        cal_pars = p | {'v': 1, 'Fw': p['CO'] / p['vol_a'], 'me': 1, 'Fi': p['CO'] / p['vol_a']} 
-        p = self._scal(cal_pars) # Compute S0
-        return self._model(self._pars | p)
-
-    def _predict(self, tacq):
-        pred = self._compute()
-        return pred['Sa'][:, :, :len(tacq)]
+    def _predict(self, time):
+        pred = self._model(self._pars)
+        return pred['S_a'][:, :, :len(time)]
     
     def _train(
-        self, tacq: np.ndarray, signal: np.ndarray, free:dict=None,
+        self, time: np.ndarray, signal: np.ndarray, free:dict=None,
         bounds:dict=None, n0=10, n_bat=1, **kwargs,
     ):
         p = self._pars
 
         # Estimate parameters
-        bat = estimate_bat(tacq, signal)
+        bat = estimate_bat(time, signal, n0)
         p['BAT'] = max(bat - p['Thl'], 0)
-        p['Sb_a'] = signal[..., :n0]
-        p['tSb_a'] = tacq[:n0]
+
+        if self._model.config['calibrate']:
+            p['Sb_a'] = signal[..., :n0]
+            p['tSb_a'] = time[:n0]
 
         # Perform training
         free = self._set_free_pars(free, bounds) 
-        return train_bat(self._predict, tacq, signal, p, free, n_bat=n_bat, **kwargs)
+        return train_bat(self._predict, time, signal, p, free, n_bat=n_bat, **kwargs)
     
-    def _plot(self, tacq: np.ndarray, signal: np.ndarray, fname: str, show: bool):
-        p = self._pars
-        prediction = self._compute()
+    def _plot(self, time: np.ndarray, signal: np.ndarray, fname: str, show: bool):
+        prediction = self._model(self._pars)
         
         fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 5))
         
@@ -153,15 +141,15 @@ class Aorta(SuperRoiModel):
         ax0.set_title('MRI Signal Prediction')
         for i in range(signal.shape[0]):
             for j in range(signal.shape[1]):
-                ax0.plot(tacq / 60, signal[i, j, :], marker='o', color='lightcoral', alpha=0.5, label='Data')
-                ax0.plot(prediction['tS'] / 60, prediction['Sa'][i, j, :], linestyle='-', color='darkred', linewidth=3, label='Prediction')                
+                ax0.plot(time / 60, signal[i, j, :], marker='o', color='lightcoral', alpha=0.5, label='Data')
+                ax0.plot(prediction['tS_a'] / 60, prediction['S_a'][i, j, :], linestyle='-', color='darkred', linewidth=3, label='Prediction')                
         ax0.set_xlabel('Time (min)')
         ax0.set_ylabel('Signal (a.u.)')
         ax0.legend()
 
         # Concentration Plot
         ax1.set_title('Concentration Reconstruction')
-        ax1.plot(prediction['t'] / 60, 1000 * prediction['ca'], linestyle='-', color='darkred', linewidth=3, label='Reconstruction')
+        ax1.plot(prediction['t'] / 60, 1000 * prediction['C_a'][0], linestyle='-', color='darkred', linewidth=3, label='Reconstruction')
         ax1.set_xlabel('Time (min)')
         ax1.set_ylabel('Concentration (mM)')
         ax1.legend()
@@ -180,10 +168,10 @@ class Aorta(SuperRoiModel):
 
     def predict(self) -> np.ndarray:
         """Predicts the aorta data."""
-        return self._compute()
+        return self._model(self._pars)
     
     def train(
-            self, tacq: np.ndarray, signal: np.ndarray, free: dict=None, 
+            self, data: dict, free: dict=None, 
             bounds: dict=None, n0=10, n_bat=1, **kwargs
         ) -> Tuple[dict, dict, np.ndarray]:
         """Train the free parameters
@@ -201,12 +189,15 @@ class Aorta(SuperRoiModel):
         Returns:
             vals, sdev, pcov: Values, standard deviations and covariance matrix of free parameters
         """
+        time = data['tS_a']
+        signal = data['S_a']
+
         if signal.ndim==1:
             signal = signal.reshape(1, 1, -1)  
-        self._pars['tmax'] = self._pars['dt'] + np.max(tacq) + (tacq[-1] - tacq[-2])
-        return self._train(tacq, signal, free, bounds, n0, n_bat, **kwargs)
+        self._pars['tmax'] = self._pars['dt'] + np.max(time) + (time[-1] - time[-2])
+        return self._train(time, signal, free, bounds, n0, n_bat, **kwargs)
     
-    def plot(self, tacq: np.ndarray, signal:np.ndarray, fname:str=None, show=True):
+    def plot(self, data: dict, fname:str=None, show=True):
         """Plot the model fit against data
 
         Args:
@@ -215,12 +206,15 @@ class Aorta(SuperRoiModel):
             fname (path, optional): Filepath to save the image. If no value is provided, the image is not saved. Defaults to None.
             show (bool, optional): If True, the plot is shown. Defaults to True.
         """
+        time = data['tS_a']
+        signal = data['S_a']
+
         if signal.ndim==1:
             signal = signal.reshape(1, 1, -1)  
-        self._pars['tmax'] = self._pars['dt'] + np.max(tacq) + (tacq[-1] - tacq[-2])
-        self._plot(tacq, signal, fname, show)
+        self._pars['tmax'] = self._pars['dt'] + np.max(time) + (time[-1] - time[-2])
+        self._plot(time, signal, fname, show)
 
-    def cost(self, tacq: np.ndarray, signal: np.ndarray, metric: str='NRMS', nfree=None) -> float:
+    def cost(self, data: dict, metric: str='NRMS', nfree=None) -> float:
         """Return the goodness-of-fit
 
         Args:
@@ -240,10 +234,13 @@ class Aorta(SuperRoiModel):
             - 'AIC': Akaike information criterion. 
             - 'cAIC': Corrected Akaike information criterion for small 
                 models.
-            - 'BIC': Baysian information criterion.
+            - 'BIC': Bayesian information criterion.
         """
+        time = data['tS_a']
+        signal = data['S_a']
+
         if signal.ndim==1:
             signal = signal.reshape(1, 1, -1)  
-        self._pars['tmax'] = self._pars['dt'] + np.max(tacq) + (tacq[-1] - tacq[-2])
-        signal_pred = self._predict(tacq)
+        self._pars['tmax'] = self._pars['dt'] + np.max(time) + (time[-1] - time[-2])
+        signal_pred = self._predict(time)
         return loss(signal_pred, signal, metric, nfree)

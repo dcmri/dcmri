@@ -161,7 +161,7 @@ class Signal(Module):
         }
         if self.config['trigger']:
             p['trigger'] = np.ones(1)
-        return self.update_data(qvalues, p)
+        return self.update_data(p)
     
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)
@@ -187,8 +187,8 @@ class Signal(Module):
         else:
             tS = p['tM']
 
-        return {'tS': tS, 'S': S} # (channels, components, times)
-    
+        results = {'tS': tS, 'S': S} # (channels, components, times)
+        return self.map_results(results)
 
 def signal_rice(nu, sigma)-> np.ndarray:
     if sigma==0:
@@ -206,14 +206,14 @@ class CalibrateSignal(Module):
     configs = Magnetization.configs | Signal.configs
     defaults = Magnetization.defaults | Signal.defaults
 
-    def __init__(self, imap:dict=None, **config):
+    def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
         self._magn = Magnetization(
             imap = {'tR':'tSb', 'R1':'R1b', 'R2':'R2b', 'R2s':'R2sb', 'R1i':'R1ib'}, 
             **config,
         )
         self._signal = Signal(**config)
-        self.map_inputs(imap)
+        self.map_io(imap, omap)
 
     def inputs(self) -> set:
         inputs = {'Sb'}
@@ -237,7 +237,7 @@ class CalibrateSignal(Module):
         }
         if self.config['trigger']:
             p['trigger'] = np.ones(nt)
-        return self.update_data(qvalues, p)
+        return self.update_data(p)
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)    
@@ -246,7 +246,11 @@ class CalibrateSignal(Module):
         p['tR'] = p['tSb']
         for Rb in ['R1b', 'R2b', 'R2sb', 'R1ib']:
             if Rb in p:
-                p[Rb] = np.full(p['Sb'].shape[2], p[Rb])
+                nt = p['Sb'].shape[2]
+                if np.isscalar(p[Rb]):
+                    p[Rb] = np.full(nt, p[Rb])
+                else:
+                    p[Rb] = np.tile(np.atleast_1d(p[Rb])[:, np.newaxis], (1, nt))
 
         # Compute signal scaling factor
         p |= self._magn(p)
@@ -255,18 +259,19 @@ class CalibrateSignal(Module):
         with np.errstate(divide='ignore', invalid='ignore'):
             S0 = np.nanmean(np.where(s_cal != 0, Sb / s_cal, np.nan))
 
-        return {'S0': S0}
-    
+        results = {'S0': S0}
+        return self.map_results(results)
+
 
 class RelaxToSignal(Module): 
     configs = Magnetization.configs | Signal.configs
     defaults = Magnetization.defaults | Signal.defaults
 
-    def __init__(self, imap:dict=None, **config):
+    def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
         self._magn = Magnetization(**config)
         self._signal = Signal(**config)
-        self.map_inputs(imap)  
+        self.map_io(imap, omap)  
         
     def inputs(self):
         inputs = self._magn.mapped_inputs()
@@ -288,9 +293,12 @@ class RelaxToSignal(Module):
             'Fi': np.ones(nc),
             'R1i': np.full((nc, nt), q['R1i']),
         } 
-        return self._signal.map_lexicon(q) | self.update_data(q, p)       
+        return self._signal.map_lexicon(q) | self.update_data(p)       
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)  
+
         p |= self._magn(p)
-        return self._signal(p)
+        results = self._signal(p)
+        
+        return self.map_results(results)

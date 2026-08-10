@@ -50,7 +50,8 @@ class Flux(Module):
             p |= {'T': [p['T1'], p['T2']]}
             p.pop('T1'), p.pop('T2')
         J = model_func(**p)
-        return {'J': J}
+        results = {'J': J}
+        return self.map_results(results)
 
 
 class FluxInjection(Module):
@@ -97,7 +98,7 @@ class FluxInjection(Module):
             )
             J = J1 + J2
         
-        return {'t': t, 'Ji': J}
+        return self.map_results({'t': t, 'Ji': J})
 
 
 class FluxTissueX(Module):
@@ -130,8 +131,9 @@ class FluxTissueX(Module):
 
         flux = 'flux_tissue_' + self.config['kinetics'].lower()   
         model_func = getattr(pk_tissue, flux)  
-        return {'J':model_func(ca, **p)}
-    
+        results = {'J':model_func(ca, **p)}
+
+        return self.map_results(results)
 
 class FluxAorta(Module):
     """Whole-body model for indicator flux in the aorta.
@@ -157,7 +159,7 @@ class FluxAorta(Module):
         'lagut': None,
         'bolus': 'single',
     }
-    def __init__(self, imap:dict=None, **config):
+    def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
         if self.config['lagut'] is not None:
             if self.config['liver'] is None:
@@ -174,7 +176,7 @@ class FluxAorta(Module):
         if self.config['lagut'] is not None:
             self._flux_lagut = Flux({'T':'Tg', 'Tp':'Ta', 'Tc':'Tg', 'fp':'fa'}, block=self.config['lagut'])
 
-        self.map_inputs(imap)
+        self.map_io(imap, omap)
         
     def inputs(self):
         inputs = self._flux_injection.mapped_inputs()
@@ -227,9 +229,10 @@ class FluxAorta(Module):
             it += 1
             if it > max_it:
                 break
+        results = {'t': influx['t']} | self._propagate_J_aorta(p, J_aorta_total)
 
-        return {'t': influx['t']} | self._propagate_J_aorta(p, J_aorta_total)
-    
+        return self.map_results(results)
+
     # Helper function
     def _propagate_J_aorta(self, p, Ja):
         # Store all results along the way so they can be returned

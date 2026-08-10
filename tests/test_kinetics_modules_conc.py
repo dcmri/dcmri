@@ -1,9 +1,25 @@
-import itertools
-
 import numpy as np
 import dcmri as dc
 
 from dcmri.core.exceptions import InvalidConfiguration
+
+def test_conc_aorta():
+    def _test_config(cnfg):
+        print('ConcAorta', cnfg)
+        try:
+           conc = dc.ConcAorta(**cnfg)
+        except InvalidConfiguration:
+            return
+        data = dc.QVALUES | conc.map_lexicon(dc.QVALUES)
+        c = conc(data)
+        assert c['C_a'].ndim==2
+
+    cnt = 0
+    for cnfg in dc.ConcAorta.configurations():
+        cnt += 1
+        _test_config(cnfg)
+
+    print(f'Successfully covered {cnt} ConcAorta configurations!')
 
 def test_conc_aorta_liver():
     def _test_config(cnfg):
@@ -12,14 +28,9 @@ def test_conc_aorta_liver():
            conc = dc.ConcAortaLiver(**cnfg)
         except InvalidConfiguration:
             return
-        data = {k: dc.QVALUES[k] for k in conc.inputs()}
-        data['ca'] = np.ones(5)
+        data = dc.QVALUES | conc.map_lexicon(dc.QVALUES)
         c = conc(data)
-        for k, v in c.items():
-            if k=='Cl':
-                assert v.ndim==2
-            else:
-                assert v.ndim==1
+        assert c['C_l'].ndim==2
 
     cnt = 0
     for cnfg in dc.ConcAortaLiver.configurations():
@@ -49,23 +60,7 @@ def test_conc_aorta_kidneys():
 
     print(f'Successfully covered {cnt} ConcAortaKidneys configurations!')
 
-def test_conc_aorta():
-    def _test_config(cnfg):
-        print('ConcAorta', cnfg)
-        try:
-           conc = dc.ConcAorta(**cnfg)
-        except InvalidConfiguration:
-            return
-        data = {k: dc.QVALUES[k] for k in conc.inputs()}
-        c = conc(data)
-        assert c['ca'].ndim==1
 
-    cnt = 0
-    for cnfg in dc.ConcAorta.configurations():
-        cnt += 1
-        _test_config(cnfg)
-
-    print(f'Successfully covered {cnt} ConcAorta configurations!')
 
 
 
@@ -115,10 +110,10 @@ def test_conc_liver():
            conc = dc.ConcLiver(**cnfg)
         except InvalidConfiguration:
             return
-        data = {k: dc.QVALUES[k] for k in conc.inputs()}
-        data['ci'] = np.ones(5) if '1I' in cnfg['kinetics'] else (np.ones(5), np.ones(5))
+        data = dc.QVALUES | conc.map_lexicon(dc.QVALUES)
+        data['ci_l'] = np.ones(5) if '1I' in cnfg['kinetics'] else (np.ones(5), np.ones(5))
         c = conc(data)
-        assert c['Cl'].ndim==2
+        assert c['C_l'].ndim==2
 
     cnt = 0
     for cnfg in dc.ConcLiver.configurations():

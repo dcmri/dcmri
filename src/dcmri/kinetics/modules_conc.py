@@ -254,7 +254,17 @@ import dcmri.kinetics.functions_tissue as pk_tissue
 import dcmri.kinetics.functions_liver as pk_liver
 import dcmri.kinetics.functions_blocks as blocks
 
+# Helper function
+def divC(C, v):
+    if np.isscalar(v):
+        if v==0:
+            return C * 0 # In this case the result does not matter
+        else:
+            return C / v
+    else:
+        return np.vstack([divC(C[k], v[k]) for k in range(v.size)])
 
+    
 class Conc(Module):
     """Concentration in a generic building block.
     """
@@ -272,10 +282,13 @@ class Conc(Module):
     def outputs(self):
         return {'C'}
     
-    def __call__(self, data: dict=None, **kwargs):
+    def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)
-        model_func = getattr(blocks, f"conc_{self.config['block']}") 
-        return {'C': model_func(**p)}
+
+        model_func = getattr(blocks, f"conc_{self.config['block']}")
+        results = {'C': model_func(**p)}
+
+        return self.map_results(results)
 
 
 class ConcAorta(Module):
@@ -289,64 +302,39 @@ class ConcAorta(Module):
     configs = FluxAorta.configs
     defaults = FluxAorta.defaults
 
-    def __init__(self, imap:dict=None, **config):
+    def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
         self._flux = FluxAorta(**config)
         self._conc = Conc(block='plug')
-        self.map_inputs(imap)
+        self.map_io(imap, omap)
         
     def inputs(self):
         inputs = {'vol_a', 'CO'}
         inputs |= self._flux.mapped_inputs()
-        inputs |= self._conc.mapped_inputs() - {'T', 'J'}
-        return inputs 
+        inputs |= self._conc.mapped_inputs() 
+        return inputs - {'T', 'J'}
     
     def outputs(self):
-        return {'t', 'ca', 'ci'}
+        return {'t', 'C_a', 'v_a', 'c_a', 'Fi_a', 'ci_a'}
     
     def __call__(self, data: dict=None, **kwargs):
         p = self.map_data(data, kwargs)
+
+        v_a = 1 # assume no partial volume effect: v_a = 1mL/cm3
         flux = self._flux(p)
-        ci = flux['Ja'] / p['CO']
-        if p['vol_a']==0:
-            ca = ci
-        else:
-            Ta = p['vol_a'] / p['CO']
-            conc = self._conc(p, T=Ta, J=flux['Ja'])
-            ca = conc['C'] / p['vol_a']
-        return {'t': flux['t'], 'ca': ca, 'ci': ci}
-    
+        Ta = v_a * p['vol_a'] / p['CO']
+        conc = self._conc(p, T=Ta, J=flux['Ja']) 
+        C = conc['C'].reshape(1, -1) / p['vol_a']
+        results = {
+            't': flux['t'], 
+            'C_a': C,                                     # (nc, nt)
+            'v_a': np.array([v_a]),                       # (nc, )
+            'c_a': divC(C, v_a),                          # (nc, nt)
+            'Fi_a': np.array([p['CO'] / p['vol_a']]),     # (nc, )
+            'ci_a': flux['Ja'].reshape(1, -1) / p['CO'],  # (nc, nt)
+        }
+        return self.map_results(results)
 
-class ConcKidney(Module):
-    """Concentration in kidney tissue.
-    """
-    configs = {
-        'kinetics': set(pk_kidney.PARAMETERS.keys()),
-    }
-    defaults = {
-        'kinetics': '2CF',
-    }
-    def inputs(self, group=None):
-        inputs = set(pk_kidney.PARAMETERS[self.config['kinetics']])
-        inputs |= {'ca', 'Ta', 'dt'}
-        if group=='phys':
-            inputs -= {'ca', 'dt'}
-        return inputs
-    
-    def outputs(self):
-        return {'Ck'}
-    
-    def __call__(self, data: dict=None, **kwargs):
-        p = self.map_data(data, kwargs)
-
-        ca = flux_plug(p['ca'], T=p['Ta'], dt=p['dt'])
-        func = 'conc_kidney_' + self.config['kinetics'].lower()   
-        kidney_conc = getattr(pk_kidney, func)
-        p = {k: v for k, v in p.items() if k not in ['ca', 'Ta']} 
-        return {'Ck': kidney_conc(ca, **p)}
-    
-
-# TODO: This should NOT return dimension (2, n) for EC models. Just (1, n) or (n,)
 
 class ConcLiver(Module):
     """
@@ -385,38 +373,41 @@ class ConcLiver(Module):
         'non_stationary': None,
     }
 
-    # TODO: models as tuples from pk_liver.MODELS so there are no incompatible configs
-
-    def __init__(self, imap:dict=None, **config):
+    def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
         if (self.config['kinetics'], self.config['non_stationary']) not in pk_liver.PARAMETERS.keys():
             raise InvalidConfiguration('For extracellular tracers the non-stationary configuration is invalid.')
-        self.map_inputs(imap)
+        self.map_io(imap, omap)
             
     def inputs(self):
         model = (self.config['kinetics'], self.config['non_stationary'])
         inputs = set(pk_liver.PARAMETERS[model])
-        inputs |= {'ci'}
+        inputs |= {'ci_l'}
         return inputs 
 
     def outputs(self):
-        return {'Cl'}
+        return {'C_l'}
+
+    def map_lexicon(self, qvalues):
+        p = {'ci_l': qvalues['ci']}
+        return self.update_data(p)
     
     def __call__(self, data: dict=None, **kwargs):
         p = self.map_data(data, kwargs)
-        kin, ns = self.config['kinetics'], self.config['non_stationary']
         
         # Model function
+        kin, ns = self.config['kinetics'], self.config['non_stationary']
         func = 'conc_liver_' + kin.lower().replace('-', '_')
         if ns != None:
             func += '_ns' + ns.lower()    
         liver_conc = getattr(pk_liver, func)
 
-        phys = {k: v for k, v in p.items() if k not in ['ci']}
-        return {'Cl': liver_conc(p['ci'], **phys)}
+        phys = {k: v for k, v in p.items() if k not in ['ci_l']}
+        results = {'C_l': liver_conc(p['ci_l'], **phys)}
+        return self.map_results(results)
 
     def deriv(self, parameter, data):
-        p = self.map_data(data, {})
+        p = self.map_data(data, {}, all=False)
         if parameter=='El':
             if 'EC' in self.config['kinetics']:
                 return 0
@@ -425,7 +416,143 @@ class ConcLiver(Module):
             if self.config['non_stationary'] in [None, 'E']:
                 return p['E']
             return np.mean([p['E_i'], p['E_f']])
+
+
+class ConcAortaLiver(Module):
+    """Concentration in aorta and liver.
+    """
+    configs = {
+        'bolus': FluxAorta.configs['bolus'],
+        'heartlung': FluxAorta.configs['heartlung'],
+        'organs': FluxAorta.configs['organs'],
+        'lagut': {'pass', 'comp', 'plucom'},
+        'liver': {'1I-EC', '1I-IC'},
+        'non_stationary': ConcLiver.configs['non_stationary'],
+    }
+    defaults = {
+        'bolus': 'single',
+        'heartlung': 'pfcomp', 
+        'organs': 'comp', 
+        'lagut': 'comp',
+        'liver': '1I-EC',
+        'non_stationary': None,
+    }
+    def __init__(self, imap:dict=None, omap:dict=None, **config):
+        self.set_config(config)
+
+        config_aorta = self.config | {'liver': 'comp'}
+        config_liver = self.config | {'kinetics': self.config['liver']}
+        
+        self._flux_aorta = FluxAorta(**config_aorta)
+        self._conc_liver = ConcLiver(**config_liver)
+
+        self.map_io(imap, omap)
+
+    def outputs(self):
+        outputs = {'t', 'C_a', 'C_l', 'v_a', 'c_a', 'Fi_a', 'ci_a', 'v_l', 'c_l', 'Fi_l', 'ci_l'} 
+        if self.config['lagut'] == 'plucom':
+            outputs |= {'C_la', 'v_la', 'c_la', 'C_pv', 'v_pv', 'c_pv'}
+        return outputs
+
+    def inputs(self):
+        inputs = {'fCO_l', 'CO'}
+        inputs |= self._flux_aorta.mapped_inputs()
+        inputs |= self._conc_liver.mapped_inputs()
+        inputs |= {'H', 'GFR', 'vol_l', 'vol_a'}
+        inputs -= {'vr_l', 'vr_o', 'Te_l', 'Fp', 'ci_l'}
+        return inputs
+        
+    def __call__(self, data: dict=None, **kwargs):
+        p = self.map_data(data, kwargs)
+
+        # Kidney extraction fraction       
+        PF = (1 - p['fCO_l']) * p[f'CO'] * (1 - p['H'])
+        Ek = p['GFR'] / (p['GFR'] + PF)
+
+        # Liver extraction fraction
+        Fp = p['fCO_l'] * p['CO'] * (1 - p['H']) / p['vol_l']
+        El = self._conc_liver.deriv('El', p)
+        
+        # Compute aorta flux
+        p |= {
+            'vr_l': p['fCO_l'] * (1 - El),
+            'vr_o': (1 - p['fCO_l']) * (1 - Ek),
+            'Te_l': p['ve'] / Fp,
+        }
+        aorta = self._flux_aorta(p)
+   
+        # Compute liver concentrations
+        p |= {
+            'Fp': Fp,
+            'ci_l': aorta['Jl'] / p['CO'] / (1 - p['H'])
+        }
+        conc = self._conc_liver(p)
+
+        # Build output
+        C_a = aorta['Ja'].reshape(1, -1) / p['CO']
+        C_l = conc['C_l']
+        v_l = np.array([p['ve'], 1 - p['ve']])
+
+        results = {
+            't': aorta['t'],
+            'C_a': C_a, 
+            'C_l': C_l,
+
+            'v_a': np.array([1]),
+            'c_a': C_a,
+            'Fi_a': np.array([p['CO'] / p['vol_a']]),
+            'ci_a': aorta['Ja'].reshape(1, -1) / p['CO'],
+
+            'v_l': v_l,
+            'c_l': divC(C_l, v_l),
+            'Fi_l': np.array([p['fCO_l'] * p['CO'] / p['vol_l'], np.nan]),
+            'ci_l': np.stack([aorta['Jl'] / p['CO'], np.full_like(aorta['t'], np.nan)]),
+        }
+        if self.config['lagut']=='plucom':
+            C_la = aorta['Jla'].reshape(1, -1) / p['CO']
+            C_pv = aorta['Jpv'].reshape(1, -1) / p['CO']
+            results |= {
+                'v_la': np.array([1]),
+                'C_la': C_la,
+                'c_la': C_la,
+                
+                'v_pv': np.array([1]),
+                'C_pv': C_pv,
+                'c_pv': C_pv,
+            }            
+            
+        return self.map_results(results)
+
+
+
+class ConcKidney(Module):
+    """Concentration in kidney tissue.
+    """
+    configs = {
+        'kinetics': set(pk_kidney.PARAMETERS.keys()),
+    }
+    defaults = {
+        'kinetics': '2CF',
+    }
+    def inputs(self, group=None):
+        inputs = set(pk_kidney.PARAMETERS[self.config['kinetics']])
+        inputs |= {'ca', 'Ta', 'dt'}
+        if group=='phys':
+            inputs -= {'ca', 'dt'}
+        return inputs
     
+    def outputs(self):
+        return {'Ck'}
+    
+    def __call__(self, data: dict=None, **kwargs):
+        p = self.map_data(data, kwargs)
+
+        ca = flux_plug(p['ca'], T=p['Ta'], dt=p['dt'])
+        func = 'conc_kidney_' + self.config['kinetics'].lower()   
+        kidney_conc = getattr(pk_kidney, func)
+        p = {k: v for k, v in p.items() if k not in ['ca', 'Ta']} 
+        results = {'Ck': kidney_conc(ca, **p)}
+        return self.map_results(results)
 
 class ConcAortaKidneys(Module):
     """Concentration in aorta and both kidneys.
@@ -442,7 +569,7 @@ class ConcAortaKidneys(Module):
         'kidneys': '2CF',
         'bolus': 'single',
     }
-    def __init__(self, imap:dict=None, **config):
+    def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
 
         # Setup aorta module
@@ -457,7 +584,7 @@ class ConcAortaKidneys(Module):
         self._conc_lk.map_inputs({k: f'{k}_lk' for k in self._conc_lk.inputs(group='phys')})
         self._conc_rk.map_inputs({k: f'{k}_rk' for k in self._conc_rk.inputs(group='phys')})
 
-        self.map_inputs(imap)
+        self.map_io(imap, omap)
 
     def outputs(self):
         return {'ca', 'Clk', 'Crk'}
@@ -508,90 +635,8 @@ class ConcAortaKidneys(Module):
         rk = self._conc_rk(p, ci=ci)
 
         # Save output
-        return {'ca': ca, 'Clk': lk['Ck'], 'Crk': rk['Ck']}
-    
-
-class ConcAortaLiver(Module):
-    """Concentration in aorta and liver.
-    """
-    configs = {
-        'bolus': FluxAorta.configs['bolus'],
-        'heartlung': FluxAorta.configs['heartlung'],
-        'organs': FluxAorta.configs['organs'],
-        'lagut': {'pass', 'comp', 'plucom'},
-        'liver': {'1I-IC', '1I-EC'},
-        'non_stationary': ConcLiver.configs['non_stationary'],
-    }
-    defaults = {
-        'bolus': 'single',
-        'heartlung': 'pfcomp', 
-        'organs': 'comp', 
-        'lagut': 'comp',
-        'liver': '1I-EC',
-        'non_stationary': None,
-    }
-    def __init__(self, imap:dict=None, **config):
-        self.set_config(config)
-
-        config_aorta = self.config | {'liver': 'comp'}
-        config_liver = self.config | {'kinetics': self.config['liver']}
-        
-        self._flux_aorta = FluxAorta(**config_aorta)
-        self._conc_liver = ConcLiver(**config_liver)
-
-        self.map_inputs(imap)
-
-    def outputs(self):
-        outputs = {'t', 'ca', 'ci', 'Cl'}
-        if self.config['lagut'] == 'plucom':
-            outputs |= {'cla', 'cpv'}
-        return outputs
-
-    def inputs(self):
-        inputs = {'fCO_l', 'CO'}
-        inputs |= self._flux_aorta.mapped_inputs()
-        inputs |= self._conc_liver.mapped_inputs()
-        inputs |= {'H', 'GFR', 'vol_l'}
-        return inputs
-        
-    def __call__(self, data: dict=None, **kwargs):
-        p = self.map_data(data, kwargs)
-
-        # Kidney extraction fraction       
-        PF = (1 - p['fCO_l']) * p[f'CO'] * (1 - p['H'])
-        Ek = p['GFR'] / (p['GFR'] + PF)
-
-        # Liver extraction fraction
-        Fp = p['fCO_l'] * p['CO'] * (1 - p['H']) / p['vol_l']
-        El = self._conc_liver.deriv('El', p)
-        
-         # Compute aorta flux
-        p |= {
-            'vr_l': p['fCO_l'] * (1 - El),
-            'vr_o': (1 - p['fCO_l']) * (1 - Ek),
-            'Te_l': p['ve'] / Fp,
-        }
-        aorta = self._flux_aorta(p)
-    
-        # Compute liver concentrations
-        p |= {
-            'Fp': Fp,
-            'ci': aorta['Jl'] / p['CO'] / (1 - p['H'])
-        }
-        conc = self._conc_liver(p)
-
-        # Build output
-        results = {
-            't': self._flux_aorta['t'],
-            'ca': aorta['Ja'] / p['CO'],
-            'ci': aorta['Jl'] / p['CO'],
-            'Cl': conc['Cl']
-        }
-        if self.config['lagut']=='plucom':
-            results['cla'] = aorta['Jla'] / p['CO']
-            results['cpv'] = aorta['Jpv'] / p['CO']
-        return results
-    
+        results = {'ca': ca, 'Clk': lk['Ck'], 'Crk': rk['Ck']}
+        return self.map_results(results)
     
 class ConcCortMed(Module):
     """Concentration in kidney cortex and medulla.
@@ -629,8 +674,8 @@ class ConcCortMed(Module):
         if self.config['kinetics'] == '7C':
             Ccor, Cmed = pk_kidney.conc_kidney_cm9(ca, **p)
 
-        return {'Cc': Ccor, 'Cm': Cmed}
-        
+        results = {'Cc': Ccor, 'Cm': Cmed}
+        return self.map_results(results)
 
 
 class ConcTissueX(Module):
@@ -663,6 +708,5 @@ class ConcTissueX(Module):
         
         conc = 'conc_tissue_' + self.config['kinetics'].lower()   
         model_func = getattr(pk_tissue, conc)  
-        return {'C': model_func(ca, **p)}
-
-
+        results = {'C': model_func(ca, **p)}
+        return self.map_results(results)

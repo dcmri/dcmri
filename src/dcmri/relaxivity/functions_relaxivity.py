@@ -1,6 +1,80 @@
 import numpy as np
 
 
+def mix_fast_exchange(v, R, fx):
+    """
+    Processes compartment volume fractions and 2D properties, automatically 
+    including unlisted compartments as standalone entries. Discards any compartment 
+    from the group average if its R series contains one or more NaN values.
+    
+    Parameters:
+    - v: 1D array-like, volume fractions of each compartment (length n).
+    - R: 2D array-like, properties of each compartment over time (shape: n x time).
+    - fx: list of lists, where each inner list contains compartment indices in fast exchange.
+    
+    Returns:
+    - v_grouped: 1D numpy array of grouped volume fractions (sum of ALL compartments in group).
+    - R_grouped: 2D numpy array of weighted-average properties for valid compartments in each group.
+    """
+    v = np.asarray(v, dtype=float)
+    R = np.asarray(R, dtype=float)
+    n_compartments = len(v)
+    
+    if R.ndim != 2:
+        raise ValueError("Property array R must be 2D with dimensions (compartments, time).")
+    
+    # (1) Check that the lists in fx are distinct and find all covered indices
+    seen_indices = set()
+    for group in fx:
+        for idx in group:
+            if idx in seen_indices:
+                raise ValueError(f"Compartment index {idx} appears in multiple fast-exchange groups.")
+            seen_indices.add(idx)
+            
+    # Check bounds
+    if seen_indices and (max(seen_indices) >= n_compartments or min(seen_indices) < 0 or max(seen_indices) >= R.shape[0]):
+        raise IndexError("Fast-exchange indices are out of bounds for the input arrays.")
+
+    # Identify compartments not present in any fast-exchange group
+    all_compartments = set(range(n_compartments))
+    isolated_compartments = all_compartments - seen_indices
+    
+    # Combine the explicit fast-exchange groups with the isolated compartments (as singletons)
+    complete_fx = list(fx) + [[idx] for idx in sorted(isolated_compartments)]
+
+    v_grouped = []
+    R_grouped = []
+    
+    # Process each group (both merged fast-exchange and standalone isolated ones)
+    for group in complete_fx:
+        group_v = v[group]       
+        group_R = R[group, :]    
+        
+        # Total volume fraction for the group (all compartments)
+        total_v = np.sum(group_v)
+        v_grouped.append(total_v)
+        
+        # Identify valid compartments in the group (no NaNs anywhere across time)
+        valid_compartments = ~np.isnan(group_R).any(axis=1)
+        
+        # Filter down to non-NaN compartments for the average
+        valid_v = group_v[valid_compartments]
+        valid_R = group_R[valid_compartments, :]
+        
+        sum_valid_v = np.sum(valid_v)
+        
+        # Calculate weighted average using only valid compartments
+        if sum_valid_v == 0:
+            # If all compartments in the group had NaNs, return NaNs for all time points
+            weighted_avg_R = np.full(R.shape[1], np.nan)
+        else:
+            weighted_avg_R = np.sum(valid_v[:, np.newaxis] * valid_R, axis=0) / sum_valid_v
+            
+        R_grouped.append(weighted_avg_R)
+        
+    return np.array(v_grouped), np.array(R_grouped)
+
+
 def relax_t2s(c: np.ndarray, R2sb, r2s=None, r2s_quad=None, r2s_vasc=None, r2s_ees=None, model='lin') -> np.ndarray:
     """Transverse R2* from concentrations.
 
@@ -34,7 +108,7 @@ def relax_t2s(c: np.ndarray, R2sb, r2s=None, r2s_quad=None, r2s_vasc=None, r2s_e
         if c.ndim==1: # Equal concentrations
             return R2sb + r2s_ees * c
         else:
-            return R2sb + r2s_vasc * np.abs(c[0,:] - c[1,:]) + r2s_ees * c[1,:]
+            return R2sb + r2s_vasc * np.abs(c[0] - c[1]) + r2s_ees * c[1]
     
 
 def relax_t2(c, R2b, r2=None, model='lin') -> np.ndarray:
@@ -55,7 +129,7 @@ def relax_t2(c, R2b, r2=None, model='lin') -> np.ndarray:
         np.ndarray: Array with longitudinal relaxivities, same shape as C.
     """
     if model == 'lin':
-        return R2b + r2 * c
+        return np.array(R2b) + np.array(r2) * np.array(c)
     
     raise ValueError(f'Model {model} not recognized. Must be "lin".')
 
@@ -78,7 +152,7 @@ def relax_t1(c, R1b, r1) -> np.ndarray:
     Returns:
         np.ndarray: Array with longitudinal relaxivities, same shape as C.
     """
-    return R1b + r1 * c
+    return np.array(R1b) + np.array(r1) * np.array(c)
 
 def conc_t1(R1, r1) -> np.ndarray:
     """Derive concentrations from relaxation rates using a linear relationship.

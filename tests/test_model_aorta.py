@@ -26,14 +26,12 @@ def test_aorta_times():
     profiler = cProfile.Profile()
 
     def _test_config(cnfg):
-        print(cnfg)
         try:
             model = dc.AortaModel(**cnfg)
         except InvalidConfiguration:
-            print(f"  [Invalid configuration]")
             return
-
-        data = model.map_lexicon(dc.QVALUES)
+        print(cnfg)
+        data = dc.QVALUES | model.map_lexicon(dc.QVALUES)
         # data |= {'dt': 2.0, 'tmax': 30}
 
         # --- DIAGNOSTIC TIMING ---
@@ -47,7 +45,7 @@ def test_aorta_times():
         elapsed = time.perf_counter() - t0
         print(f"  [Total model execution time: {elapsed:.4f}s]")
 
-        assert results["Sa"].ndim == 3
+        assert results["S_a"].ndim == 3
 
     cnt = 0
     for cnfg in dc.AortaModel.configurations():
@@ -71,14 +69,17 @@ def test_aorta():
     def _test_config(cnfg):
         # if cnfg != {'bolus': 'dual', 'heartlung': 'comp', 'organs': 'comp', 't2s_relaxation': None, 'sequence': 'Eq-SE-EPI', 'magnitude': False}:
         #     return
-        print(cnfg)
         try:
            model = dc.AortaModel(**cnfg)
         except InvalidConfiguration:
             return
-        data = model.map_lexicon(dc.QVALUES)
+        print(cnfg)
+        data = dc.QVALUES | model.map_lexicon(dc.QVALUES)
+        t0 = time.perf_counter()
         results = model(data)
-        assert results['Sa'].ndim == 3
+        elapsed = time.perf_counter() - t0
+        print(f"  [Total model execution time: {elapsed:.4f}s]")
+        assert results['S_a'].ndim == 3
 
     cnt = 0
     for cnfg in dc.AortaModel.configurations():
@@ -91,22 +92,31 @@ def test_aorta():
 
 
 def test_aorta_function():
-    for cnfg in dc.AortaModel.configurations():
-        try:
-           model = dc.AortaModel(**cnfg)
-        except InvalidConfiguration:
-            continue
-        print(cnfg)
-        data = model.map_lexicon(dc.QVALUES)
-        results = model(data)
-        print(model.outputs())
-        plt.plot(results['tacq'], results['Sa'][0, 0, :], 'ro')
-        plt.show()
-        break
+    cnfg = {
+        'bolus': 'dual', 
+        'heartlung': 'pfcomp', 
+        'organs': '2cxm', 
+        't2s_relaxation': None, 
+        'sequence': 'ZTE-3D-IR-SPGR-SS', 
+        'magnitude': False, 
+        'calibrate': True,
+    }
+    try:
+        model = dc.AortaModel(**cnfg)
+    except InvalidConfiguration:
+        return
+    print(model.inputs())
+    print(model.outputs())
+    data = dc.QVALUES | model.map_lexicon(dc.QVALUES)
+    results = model(data)
+    
+    plt.plot(results['tS_a'], results['S_a'][0, 0, :], 'ro')
+    plt.show()
+
 
 if __name__ == '__main__':
-    # test_aorta()
-    test_aorta_times()
-    # test_aorta_function()
+    test_aorta()
+    #test_aorta_times()
+    #test_aorta_function()
 
     print('All model coverage tests passed!!')

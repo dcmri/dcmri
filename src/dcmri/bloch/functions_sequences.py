@@ -232,19 +232,19 @@ def _Mz_KinvJ(R1, v, Fw, j, me):
         KinvJ = np.array(KinvJ)    
     else:
         KinvJ = np.linalg.solve(K, J)
-    return K, KinvJ
+    return K, KinvJ # magn / cm3
 
 def _Mz_KJ(R1, v, Fw, j, me):
     K = _Mz_K(R1, v, Fw)
-    J = (R1 * v + j) * me
-    return K, J
+    J = R1 * v * me + j   #1/s * mL/cm3 * magn/mL = magn/s/cm3
+    return K, J # J/K = (1/s * magn/cm3) / 1/s 
 
 def _Mz_K(R1, v, Fw):
     nc = np.size(v)
 
     # Case 1: Single Compartment
     if nc==1:
-        return R1 + Fw / v
+        return R1 + Fw / v 
 
     # Case 2: Multi-Compartment
     # Off-diagonal elements: -Fw[row, col] / v[col]

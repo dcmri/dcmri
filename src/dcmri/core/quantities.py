@@ -138,12 +138,12 @@ QUANTITIES = {
     'Sb_rk': {'init': 1.0, 'bounds': [0, 5], 'name': 'Right kidney signal baseline', 'unit': 'a.u.', 'group': 'signal', 'dicom_key': None, 'osipi_key': 'Q.MS1.002.[rk]'},
 
     # Organ volumes
-    'vol_a': {'init': 10, 'bounds': [0.0, 1000], 'name': 'Aorta volume', 'unit': 'mL', 'group': 'body', 'dicom_key': None, 'osipi_key': None},
+    'vol_a': {'init': 10, 'bounds': [0.0, 1000], 'name': 'Aorta volume', 'unit': 'cm3', 'group': 'body', 'dicom_key': None, 'osipi_key': None},
     'vol_l': {'init': 1000, 'bounds': [0, 10000], 'name': 'Liver volume', 'unit': 'cm3', 'group': 'body', 'dicom_key': None, 'osipi_key': None},
     'vol_k': {'init': 150, 'bounds': [0.0, 10000], 'name': 'Single-kidney volume', 'unit': 'cm3', 'group': 'body', 'dicom_key': None, 'osipi_key': None},
     'vol_l': {'init': 1000, 'bounds': [0, 10000], 'name': 'Liver volume', 'unit': 'cm3', 'group': 'body', 'dicom_key': None, 'osipi_key': None},
-    'vol_lk': {'init': 150, 'bounds': [0.0, 10000], 'name': 'Left kidney volume', 'unit': 'mL', 'group': 'body', 'dicom_key': None, 'osipi_key': None},
-    'vol_rk': {'init': 150, 'bounds': [0.0, 10000], 'name': 'Right kidney volume', 'unit': 'mL', 'group': 'body', 'dicom_key': None, 'osipi_key': None},
+    'vol_lk': {'init': 150, 'bounds': [0.0, 10000], 'name': 'Left kidney volume', 'unit': 'cm3', 'group': 'body', 'dicom_key': None, 'osipi_key': None},
+    'vol_rk': {'init': 150, 'bounds': [0.0, 10000], 'name': 'Right kidney volume', 'unit': 'cm3', 'group': 'body', 'dicom_key': None, 'osipi_key': None},
 
     # Water kinetics
     'PSe': {'init': 0.03, 'bounds': [0, 100], 'name': 'Transendothelial water PS', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
