@@ -16,7 +16,7 @@ def test_coverage_readout():
         read = MxyReadMz(**config)
         read.inputs()
         read.outputs()
-        p = QVALUES | read.map_lexicon(QVALUES)
+        p = QVALUES | read.lexicon_data(QVALUES)
         read(p)
 
 

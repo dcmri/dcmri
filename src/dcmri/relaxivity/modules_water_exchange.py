@@ -54,6 +54,84 @@ class WaterExchangeLiver(Module):
         return self.map_results({'fx_l':fx, 'Fw_l':Fw_l})
 
 
+class WaterExchangeKidney(Module):
+    configs = { 
+        'water_exchange': {'(btc)', '(b, tc)', '(bc, t)', '(b, t, c)'},
+    }
+    defaults = {
+        'water_exchange': '(btc)',
+    }
+    def inputs(self) -> set:
+        inputs = {'Fi'}
+        
+        if self.config['water_exchange']=='(b, tc)': 
+            inputs |= {'PSw_b_tc', 'PSw_tc_b'}
+
+        elif self.config['water_exchange']=='(bc, t)':
+            inputs |= {'PSw_bc_t', 'PSw_t_bc'}
+
+        elif self.config['water_exchange']=='(bt, c)':
+            inputs |= {'PSw_bt_c', 'PSw_c_bt'}
+
+        elif self.config['water_exchange']=='(b, t, c)':
+            inputs |= {'PSw_bt', 'PSw_bc', 'PSw_tb', 'PSw_tc', 'PSw_cb', 'PSw_ct'}
+
+        return inputs
+    
+    def outputs(self) -> set:
+        return {'fx', 'Fw'}
+
+    def lexicon_data(self, q: dict=None): 
+        PSw = {k: 0 for k in WaterExchangeKidney.all_inputs() if k[:3]=='PSw'}
+        return self.update_data(q | PSw) 
+
+    def __call__(self, data: dict=None, **kwargs) -> dict: 
+        p = self.map_data(data, kwargs)
+
+        # 0: blood
+        # 1: tubuli
+        # 2: tissue
+
+        Fi = p['Fi'][0]
+
+        if self.config['water_exchange']=='(btc)':
+            fx = [[0, 1, 2]]
+            Fw = np.array([Fi])  
+
+        elif self.config['water_exchange']=='(b, tc)': 
+            fx = [[0], [1, 2]] 
+            Fw = np.array([
+                [Fi,            p['PSw_b_tc']], 
+                [p['PSw_tc_b'], 0            ],
+            ])
+
+        elif self.config['water_exchange']=='(bc, t)':
+            fx = [[0, 2], [1]]
+            Fw = np.array([
+                [Fi,            p['PSw_bc_t']], 
+                [p['PSw_t_bc'], 0            ],
+            ])
+
+        elif self.config['water_exchange']=='(bt, c)':
+            fx = [[0, 1], [2]]
+            Fw = np.array([
+                [Fi,            p['PSw_bt_c']], 
+                [p['PSw_c_bt'], 0            ],
+            ])
+
+        elif self.config['water_exchange']=='(b, t, c)':
+            fx = [[0], [1], [2]] 
+            Fw = np.array([
+                [Fi,          p['PSw_bt'], p['PSw_bc']], 
+                [p['PSw_tb'], 0,           p['PSw_tc']],
+                [p['PSw_cb'], p['PSw_ct'], 0          ],
+            ])
+
+        results = {'fx':fx, 'Fw':Fw}
+
+        return self.map_results(results)
+
+
 
 
 

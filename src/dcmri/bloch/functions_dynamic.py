@@ -290,7 +290,7 @@ def Mz_dyn_spgr_ss(tR1:np.ndarray, R1:np.ndarray, v, Fw, j:np.ndarray, me, TR, F
     n_pulses = int(n_pulses_per_period * n_periods)
 
     if n_periods==0:
-        raise ValueError(f"Maximum time for R1 {tR1.max()} is less than the duration {period} of a single pulse cycle. Extend R1-range and try again.")
+        raise ValueError(f"Maximum time for R1 ({tR1.max()}) is less than the duration {period} of a single pulse cycle. Extend R1-range and try again.")
 
     # Pulse locations
     t_pulses = t0 + TR * np.arange(n_pulses)

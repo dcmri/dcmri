@@ -43,6 +43,7 @@ from dcmri.kinetics.modules_conc import (
    ConcAorta,
    ConcAortaKidneys,
    ConcAortaLiver,
+   ConcAortaPortalLiver,
    ConcLiver,
    ConcKidney,
    ConcCortMed,
@@ -230,6 +231,8 @@ from dcmri.inverse.lib import (
 # End-to-end forward Models
 from dcmri.models.aorta import AortaModel
 from dcmri.models.aorta_liver import AortaLiverModel
+from dcmri.models.aorta_portal_liver import AortaPortalLiverModel
+from dcmri.models.aorta_kidneys import AortaKidneysModel
 
 # End user tools
 from dcmri.e2e.aorta import Aorta

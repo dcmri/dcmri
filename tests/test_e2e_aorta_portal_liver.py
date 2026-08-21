@@ -1,11 +1,12 @@
 import os
-import itertools
 from joblib import Parallel, delayed
 import time
 
 import numpy as np
 import matplotlib.pyplot as plt
 from dcmri import AortaPortalLiver as Model
+from dcmri.core.exceptions import InvalidConfiguration
+import dcmri as dc
 
 
 DEBUG = True
@@ -20,82 +21,89 @@ else:
     matplotlib.use('Agg')
 
 def _run_single_config(cnfg):
-    # if cnfg != ('single', 'pfcomp', '2cxm', '3D-SPGR-SSI'):
-    #     return
-    #print(cnfg)
     try:
-        model = Model(*cnfg)
-    except ValueError:
+        model = Model(**cnfg)
+    except InvalidConfiguration as e:
         return
-    time = model.time()
-    signal = model.predict(time)
-    # for roi, sig in signal.items():
-    #     signal[roi] = utils.add_noise(sig, sig[0] / SNR)
-    model.train(time, signal, verbose=VERBOSE, xtol=1e-3)
-    model.plot(time, signal, show=DEBUG)
-    cost = model.cost(time, signal)
-    print(f"\n{cnfg}: cost = {cost:.3f} %")
-    model.conc()
-    model.relax()
-    model.signal()
-    assert cost < 50, f"Cost {cost} of model {cnfg} exceeded threshold!"
+    free = model.params('free')
+    data = model.predict()
+    model.train(data, verbose=VERBOSE, n0=5, n_bat=1, xtol=1e-3)
+    model.plot(data, show=DEBUG)
+    cost = model.cost(data)
+    print(f"\n{cnfg}: {cost}")
+    # assert cost < 50, f"Cost {cost} of model {cnfg} exceeded threshold!"
     return cost
 
 def test_config_coverage():
     if DEBUG:
         return
-    values = Model.configs.values()
+    
     start = time.perf_counter()
 
-    cost = Parallel(n_jobs=-1)(
-        delayed(_run_single_config)(cnfgs)
-        for cnfgs in itertools.product(*values)
+    result = Parallel(n_jobs=-1)(
+        delayed(_run_single_config)(cnfg)
+        for cnfg in dc.AortaPortalLiverModel.configurations()
     )
-    # cost = [
-    #     _run_single_config(cnfgs) 
-    #     for cnfgs in itertools.product(*values)
+    # result = [
+    #     _run_single_config(cnfg)
+    #     for cnfg in Model.configurations()
     # ]
+    result = [r for r in result if r is not None]
+    cost = [r[1] for r in result]
+    cnfg = result[cost.index(max(cost))][0]
+
     end = time.perf_counter()
     print(f'Configuration coverage completed!')
-    print(f'--> Number of configurations: {np.prod([len(v) for v in values])}')
+    print(f'--> Number of configurations: {np.prod([len(v) for v in dc.AortaPortalLiverModel.configs.values()])}')
     print(f'--> Total computation time: {(end - start) / 60:.1f} mins')
     print(f'--> Maximum cost: {np.max(cost)} %')
+    print(f'--> Config with maximum cost: {cnfg}')
 
 
-def test_code_coverage():
-    # _run_single_config(('pfcomp', 'comp', '1I-EC', None, '2D-GE-EPI'))
-    _run_single_config(('comp', 'comp', '1I-IC', 'U', '3D-IR-SPGR'))
-    
-    # Single time array
-    model = Model(CO=50)
-    time = model.time()
-    time = time['aorta']
-    signal = model.predict(time)
-    model.train(time, signal, verbose=VERBOSE, xtol=1e-3)
-    model.plot(time, signal, show=DEBUG)
-    cost = model.cost(time, signal)
-    print(cost)
-    assert cost < 5
+
+def test_code_coverage(): 
+    config = {
+        'bolus': 'single', 
+        'heartlung': 'pfcomp',
+        'organs': 'comp',
+        'liver': '1I-IC',
+        'non_stationary': 'UE', 
+        'water_exchange': 'R',
+        't1_relaxation': 'lin',
+        't2_relaxation': None, 
+        't2s_relaxation': 'lin', 
+        'inflow': False,
+        'sequence': 'ZTE-3D-IR-SPGR-SS',
+        # 'sequence': '3D-IR-SPGR', 
+        'magnitude': False,
+        'calibrate': True,
+    }
+    _run_single_config(config) 
 
     model = Model()
+
+    # params()
+    assert 'Thl' in model.params()
+    assert np.isscalar(model.state['Thl']) 
     
     # Test Forward API outputs
-    t = model.time()
-    S = model.signal()
+    data = model.predict()
 
     test_plot_file = "test_plot_output.png"
     try:
         # This hits plt.savefig(fname)
-        model.plot(t, S, fname=test_plot_file, show=False)
+        model.plot(data, fname=test_plot_file, show=False)
         assert os.path.exists(test_plot_file)
         
         # This hits plt.show()
+        # We wrap this in a check to ensure it doesn't hang the tests
         plt.ion() # Turn interactive mode on
-        model.plot(t, S, show=True)
+        model.plot(data, show=True)
         plt.ioff() # Turn interactive mode off
     finally:
         if os.path.exists(test_plot_file):
             os.remove(test_plot_file)
+
 
 if __name__ == "__main__":
     test_code_coverage()

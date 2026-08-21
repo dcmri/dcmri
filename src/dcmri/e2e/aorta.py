@@ -83,7 +83,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from dcmri.core.roi_model import SuperRoiModel
-from dcmri.core.quantities import QVALUES, QUANTITIES
+from dcmri.core.quantities import QUANTITIES
 from dcmri.models.aorta import AortaModel
 from dcmri.utils.fit import train_bat, loss
 from dcmri.inverse.lib import estimate_bat
@@ -92,14 +92,13 @@ class Aorta(SuperRoiModel):
     """Whole-body model for the aorta.
     """
     def __init__(self, data: dict=None, **config):
-        if data is None:
-            data = {}
-
         self._version = '1.0'
         self._model = AortaModel(**config)
 
         # Initialise model parameters
-        pars = QVALUES | self._model.map_lexicon(QVALUES) | data
+        pars = self._model.lexicon_data()
+        if data is not None:
+            pars |= data
         self._pars = self._model.input_data(pars)
 
     def _params(self, group=None):
@@ -126,7 +125,6 @@ class Aorta(SuperRoiModel):
 
         if self._model.config['calibrate']:
             p['Sb_a'] = signal[..., :n0]
-            p['tSb_a'] = time[:n0]
 
         # Perform training
         free = self._set_free_pars(free, bounds) 

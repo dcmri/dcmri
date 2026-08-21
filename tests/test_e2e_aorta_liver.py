@@ -21,16 +21,13 @@ else:
     matplotlib.use('Agg')
 
 def _run_single_config(cnfg):
-    # if cnfg != ('single', 'pfcomp', '2cxm', '3D-SPGR-SSI'):
-    #     return
     try:
         model = Model(**cnfg)
     except InvalidConfiguration as e:
-        print(f"Invalid configuration error: {e}")
         return
     free = model.params('free')
     data = model.predict()
-    model.train(data, verbose=VERBOSE, xtol=1e-3)
+    model.train(data, verbose=VERBOSE, n0=5, n_bat=1, xtol=1e-3)
     model.plot(data, show=DEBUG)
     cost = model.cost(data)
     print(f"\n{cnfg}: {cost}")
@@ -68,15 +65,19 @@ def test_code_coverage():
     config = {
         'bolus': 'single', 
         'heartlung': 'pfcomp',
+        'organs': 'comp',
         'lagut': 'plucom',
         'liver': '1I-IC',
         'non_stationary': 'UE', 
-        'organs': 'comp', 
         'water_exchange': 'R',
+        't1_relaxation': 'lin',
+        't2_relaxation': None, 
         't2s_relaxation': 'lin', 
-        'sequence': '3D-IR-SPGR', 
+        'inflow': False,
+        'sequence': 'ZTE-3D-IR-SPGR-SS',
+        # 'sequence': '3D-IR-SPGR', 
         'magnitude': False,
-        'calibrate': False,
+        'calibrate': True,
     }
     _run_single_config(config) 
 
@@ -107,7 +108,7 @@ def test_code_coverage():
 
 if __name__ == "__main__":
     test_code_coverage()
-    # test_config_coverage()
+    test_config_coverage()
     
     print('All AortaLiver tests passed!!')
 

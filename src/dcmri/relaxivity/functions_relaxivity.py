@@ -50,26 +50,25 @@ def mix_fast_exchange(v, R, fx):
         group_v = v[group]       
         group_R = R[group, :]    
         
-        # Total volume fraction for the group (all compartments)
-        total_v = np.sum(group_v)
-        v_grouped.append(total_v)
-        
         # Identify valid compartments in the group (no NaNs anywhere across time)
         valid_compartments = ~np.isnan(group_R).any(axis=1)
         
         # Filter down to non-NaN compartments for the average
         valid_v = group_v[valid_compartments]
         valid_R = group_R[valid_compartments, :]
-        
+
+        # Sum up volumes of valid compartments
+        # TODO: If None return nan
         sum_valid_v = np.sum(valid_v)
         
-        # Calculate weighted average using only valid compartments
+        # Calculate weighted average of R using only valid compartments
         if sum_valid_v == 0:
             # If all compartments in the group had NaNs, return NaNs for all time points
             weighted_avg_R = np.full(R.shape[1], np.nan)
         else:
             weighted_avg_R = np.sum(valid_v[:, np.newaxis] * valid_R, axis=0) / sum_valid_v
-            
+
+        v_grouped.append(sum_valid_v)
         R_grouped.append(weighted_avg_R)
         
     return np.array(v_grouped), np.array(R_grouped)

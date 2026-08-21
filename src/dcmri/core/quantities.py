@@ -144,6 +144,8 @@ QUANTITIES = {
     'vol_l': {'init': 1000, 'bounds': [0, 10000], 'name': 'Liver volume', 'unit': 'cm3', 'group': 'body', 'dicom_key': None, 'osipi_key': None},
     'vol_lk': {'init': 150, 'bounds': [0.0, 10000], 'name': 'Left kidney volume', 'unit': 'cm3', 'group': 'body', 'dicom_key': None, 'osipi_key': None},
     'vol_rk': {'init': 150, 'bounds': [0.0, 10000], 'name': 'Right kidney volume', 'unit': 'cm3', 'group': 'body', 'dicom_key': None, 'osipi_key': None},
+    'vol_la': {'init': 150, 'bounds': [0.0, 10000], 'name': 'Liver artery volume', 'unit': 'cm3', 'group': 'body', 'dicom_key': None, 'osipi_key': None},
+    'vol_pv': {'init': 150, 'bounds': [0.0, 10000], 'name': 'Portal vein volume', 'unit': 'cm3', 'group': 'body', 'dicom_key': None, 'osipi_key': None},
 
     # Water kinetics
     'PSe': {'init': 0.03, 'bounds': [0, 100], 'name': 'Transendothelial water PS', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
@@ -270,7 +272,8 @@ QUANTITIES = {
     'Ft_lk': {'init': 0.005, 'bounds': [0, 0.05], 'name': 'Left kidney tubular flow', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'FF_lk': {'init': 0.1, 'bounds': [0, 0.5], 'name': 'Left kidney filtration fraction', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'ht_lk': {'init': 1, 'bounds': [0, 1e6], 'name': 'Left kidney tubular transit time distribution', 'unit': '1/sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    
+    'vt_lk': {'init': 0.1, 'bounds': [0, 1], 'name': 'Left kidney tubular volume', 'unit': 'mL/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+
     # Right kidney
     'RPF_rk': {'init': 10, 'bounds': [0, 100], 'name': 'Right kidney plasma flow', 'unit': 'mL/sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'GFR_rk': {'init': 2, 'bounds': [0, 20], 'name': 'Right kidney glomerular filtration rate', 'unit': 'mL/sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
@@ -279,7 +282,8 @@ QUANTITIES = {
     'Ft_rk': {'init': 0.005, 'bounds': [0, 0.05], 'name': 'Right kidney tubular flow', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'FF_rk': {'init': 0.1, 'bounds': [0, 0.5], 'name': 'Right kidney filtration fraction', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'ht_rk': {'init': 1, 'bounds': [0, 1e6], 'name': 'Right kidney tubular transit time distribution', 'unit': '1/sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    
+    'vt_rk': {'init': 0.1, 'bounds': [0, 1], 'name': 'Right kidney tubular volume', 'unit': 'mL/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+
     # --- Liver Kinetics ---
     'vh': {'init': 0.6, 'bounds': [0.1, 1.0], 'name': 'Hepatocellular volume fraction', 'unit': 'mL/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'fa': {'init': 0.2, 'bounds': [0, 1], 'name': 'Arterial flow fraction', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},

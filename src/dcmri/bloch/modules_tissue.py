@@ -285,13 +285,13 @@ def _Mz(sequence, mz_prep_sequence, tR1, R1, v, Fw, j, p, tj=None):
     if mz_prep_sequence == 'SSI':
         return functions_dynamic.Mz_dyn_spgr_ssi(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], p['Nph'], p['TF'], p['SA'])
     if mz_prep_sequence == 'GE-SS':
-        t0 = p['iz'] * p['TR'] / p['Nz'] if sequence == '2D-GE-SS' else 0
+        t0 = p['iz'] * p['TR'] / p['Nz'] if sequence == '2D-GE-EPI' else 0
         return functions_dynamic.Mz_dyn_spgr_ss(tR1, R1, v, Fw, j, p['me'], p['TR'], p['FA'] * p['B1corr'], 1, t0=t0, tj=tj)
     if mz_prep_sequence == 'SE-SS':
-        t0 = p['iz'] * p['TR'] / p['Nz'] if sequence == '2D-SE-SS' else 0
+        t0 = p['iz'] * p['TR'] / p['Nz'] if sequence == '2D-SE-EPI' else 0
         return functions_dynamic.Mz_dyn_se(tR1, R1, v, Fw, j, p['me'], p['TE'], p['TR'], p['FA'] * p['B1corr'], t0=t0, tj=tj)
     if mz_prep_sequence == 'DE-SS':
-        t0 = p['iz'] * p['TR'] / p['Nz'] if sequence == '2D-DE-SS' else 0
+        t0 = p['iz'] * p['TR'] / p['Nz'] if sequence == '2D-DE-EPI' else 0
         return functions_dynamic.Mz_dyn_se(tR1, R1, v, Fw, j, p['me'], p['TE2'], p['TR'], p['FA'] * p['B1corr'], t0=t0, tj=tj)
 
 def _check_TP(TP):
@@ -324,7 +324,7 @@ class MxyReadMz(Module):
         # (channels, components, compartments, times)
         return {'Mxy'}
 
-    def map_lexicon(self, qvalues):
+    def lexicon_data(self, qvalues):
         nc, ntR, ntM = 2, 5, 3
         p = {
             'tM': np.ones(ntM), 

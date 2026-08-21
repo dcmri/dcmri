@@ -107,8 +107,8 @@ import numpy as np
 
 from dcmri.core.roi_model import SuperRoiModel
 from dcmri.core.tools import print_params, export_params
-from dcmri.core.quantities import QVALUES, QUANTITIES
-from dcmri.utils.fit import train, loss
+from dcmri.core.quantities import QUANTITIES
+from dcmri.utils.fit import train, train_bat, loss
 from dcmri.inverse.lib import estimate_bat
 from dcmri.kinetics.functions_liver import dpars_liver
 from dcmri.models.aorta_liver import AortaLiverModel
@@ -137,7 +137,9 @@ class AortaLiver(SuperRoiModel):
         self._model = AortaLiverModel(**config)
 
         # Initialise model parameters
-        pars = QVALUES | self._model.map_lexicon(QVALUES) | data
+        pars = self._model.lexicon_data()
+        if data is not None:
+            pars |= data
         self._pars = self._model.input_data(pars)
 
     def _params(self, group=None):
@@ -166,11 +168,10 @@ class AortaLiver(SuperRoiModel):
         if self._model.config['calibrate']:
             for i, roi in enumerate(['a', 'l']):
                 p[f"Sb_{roi}"] = signal[i][..., :n0]
-                p[f"tSb_{roi}"] = signal[i][..., :n0]
 
         # Perform training
         free = self._set_free_pars(free, bounds) 
-        return train(self._predict, time, signal, self._pars, free, **kwargs)
+        return train_bat(self._predict, time, signal, self._pars, free, **kwargs)
 
 
     def _plot(
@@ -202,7 +203,7 @@ class AortaLiver(SuperRoiModel):
         # Plot concentrations
         ax2.set(ylabel='Concentration (mM)', xlim=xlim)
         ax2.plot(prediction['t'] / 60, 0 * prediction['t'], color='gray')
-        ax2.plot(prediction['t'] / 60, 1000 * prediction['C_a'], linestyle='-', color='darkred', linewidth=2.0, label='Aorta')
+        ax2.plot(prediction['t'] / 60, 1000 * prediction['C_a'][0], linestyle='-', color='darkred', linewidth=2.0, label='Aorta')
         ax2.legend()
 
         ax4.set(xlabel='Time (min)', ylabel='Tissue concentration (mM)', xlim=xlim)

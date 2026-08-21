@@ -10,7 +10,7 @@ def test_conc_aorta():
            conc = dc.ConcAorta(**cnfg)
         except InvalidConfiguration:
             return
-        data = dc.QVALUES | conc.map_lexicon(dc.QVALUES)
+        data = dc.QVALUES | conc.lexicon_data(dc.QVALUES)
         c = conc(data)
         assert c['C_a'].ndim==2
 
@@ -28,7 +28,7 @@ def test_conc_aorta_liver():
            conc = dc.ConcAortaLiver(**cnfg)
         except InvalidConfiguration:
             return
-        data = dc.QVALUES | conc.map_lexicon(dc.QVALUES)
+        data = dc.QVALUES | conc.lexicon_data(dc.QVALUES)
         c = conc(data)
         assert c['C_l'].ndim==2
 
@@ -39,6 +39,24 @@ def test_conc_aorta_liver():
 
     print(f'Successfully covered {cnt} ConcAortaLiver configurations!')
 
+def test_conc_aorta_portal_liver():
+    def _test_config(cnfg):
+        print('ConcAortaPortalLiver', cnfg)
+        try:
+           conc = dc.ConcAortaPortalLiver(**cnfg)
+        except InvalidConfiguration:
+            return
+        data = dc.QVALUES | conc.lexicon_data(dc.QVALUES)
+        c = conc(data)
+        assert c['C_l'].ndim==2
+
+    cnt = 0
+    for cnfg in dc.ConcAortaPortalLiver.configurations():
+        cnt += 1
+        _test_config(cnfg)
+
+    print(f'Successfully covered {cnt} ConcAortaPortalLiver configurations!')
+
 def test_conc_aorta_kidneys():
     def _test_config(cnfg):
         print('ConcAortaKidneys', cnfg)
@@ -46,12 +64,11 @@ def test_conc_aorta_kidneys():
            conc = dc.ConcAortaKidneys(**cnfg)
         except InvalidConfiguration:
             return
-        data = {k: dc.QVALUES[k] for k in conc.inputs()}
-        data['ca'] = np.ones(5)
+        data = dc.QVALUES | conc.lexicon_data(dc.QVALUES)
         c = conc(data)
-        assert c['ca'].ndim==1
-        assert c['Clk'].ndim==2
-        assert c['Crk'].ndim==2
+        assert c['C_a'].ndim==2
+        assert c['C_lk'].ndim==2
+        assert c['C_rk'].ndim==2
 
     cnt = 0
     for cnfg in dc.ConcAortaKidneys.configurations():
@@ -110,7 +127,7 @@ def test_conc_liver():
            conc = dc.ConcLiver(**cnfg)
         except InvalidConfiguration:
             return
-        data = dc.QVALUES | conc.map_lexicon(dc.QVALUES)
+        data = dc.QVALUES | conc.lexicon_data(dc.QVALUES)
         data['ci_l'] = np.ones(5) if '1I' in cnfg['kinetics'] else (np.ones(5), np.ones(5))
         c = conc(data)
         assert c['C_l'].ndim==2
@@ -144,6 +161,7 @@ def test_conc_tissue_x():
 
 if __name__ == '__main__':
     test_conc_aorta_liver()
+    test_conc_aorta_portal_liver()
     test_conc_aorta_kidneys()
     test_conc_aorta()
     test_conc_cortmed()

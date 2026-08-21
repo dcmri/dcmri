@@ -1,6 +1,8 @@
 from copy import deepcopy
 import itertools
 
+from dcmri.core.exceptions import InvalidConfiguration
+
 class Module:
 
     configs = {}
@@ -135,7 +137,7 @@ class Module:
                 results[j] = p[i]
         return results
 
-    def map_lexicon(self, qvalues):
+    def lexicon_data(self, qvalues):
         return {}
     
     @classmethod
@@ -148,6 +150,43 @@ class Module:
         for combination in itertools.product(*value_lists):
             # Pair each key with the current combination's value
             yield dict(zip(keys, combination))
+
+    @classmethod
+    def all_inputs(cls):
+        inputs = set()
+        for cnfg in cls.configurations():
+            try:
+                model = cls(**cnfg)
+            except InvalidConfiguration:
+                continue
+            else:
+                inputs |= model.inputs()
+        return inputs 
+
+    @classmethod
+    def all_outputs(cls):
+        outputs = set()
+        for cnfg in cls.configurations():
+            try:
+                model = cls(**cnfg)
+            except InvalidConfiguration:
+                continue
+            else:
+                outputs |= model.outputs()
+        return outputs 
+
+    @classmethod
+    def all_io(cls):
+        io = set()
+        for cnfg in cls.configurations():
+            try:
+                model = cls(**cnfg)
+            except InvalidConfiguration:
+                continue
+            else:
+                io |= model.inputs()
+                io |= model.outputs()
+        return io
         
     #
     # The following functions need to be reimplemented

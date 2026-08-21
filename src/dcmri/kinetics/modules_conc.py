@@ -388,7 +388,7 @@ class ConcLiver(Module):
     def outputs(self):
         return {'C_l'}
 
-    def map_lexicon(self, qvalues):
+    def lexicon_data(self, qvalues):
         p = {'ci_l': qvalues['ci']}
         return self.update_data(p)
     
@@ -449,9 +449,9 @@ class ConcAortaLiver(Module):
         self.map_io(imap, omap)
 
     def outputs(self):
-        outputs = {'t', 'C_a', 'C_l', 'v_a', 'c_a', 'Fi_a', 'ci_a', 'v_l', 'c_l', 'Fi_l', 'ci_l'} 
-        if self.config['lagut'] == 'plucom':
-            outputs |= {'C_la', 'v_la', 'c_la', 'C_pv', 'v_pv', 'c_pv'}
+        outputs = self._flux_aorta.outputs()
+        for roi in ['a', 'l']:
+            outputs |= {f'C_{roi}', f'v_{roi}', f'c_{roi}', f'Fi_{roi}', f'ci_{roi}'}
         return outputs
 
     def inputs(self):
@@ -479,49 +479,83 @@ class ConcAortaLiver(Module):
             'vr_o': (1 - p['fCO_l']) * (1 - Ek),
             'Te_l': p['ve'] / Fp,
         }
-        aorta = self._flux_aorta(p)
+        p |= self._flux_aorta(p)
    
         # Compute liver concentrations
         p |= {
             'Fp': Fp,
-            'ci_l': aorta['Jl'] / p['CO'] / (1 - p['H'])
+            'ci_l': p['Jl'] / p['CO'] / (1 - p['H'])
         }
-        conc = self._conc_liver(p)
+        p |= self._conc_liver(p)
 
         # Build output
-        C_a = aorta['Ja'].reshape(1, -1) / p['CO']
-        C_l = conc['C_l']
+        C_a = p['Ja'].reshape(1, -1) / p['CO']
+        C_l = p['C_l']
         v_l = np.array([p['ve'], 1 - p['ve']])
 
-        results = {
-            't': aorta['t'],
-            'C_a': C_a, 
-            'C_l': C_l,
-
+        p |= {
             'v_a': np.array([1]),
-            'c_a': C_a,
             'Fi_a': np.array([p['CO'] / p['vol_a']]),
-            'ci_a': aorta['Ja'].reshape(1, -1) / p['CO'],
+            'C_a': C_a, 
+            'c_a': C_a,
+            'ci_a': C_a,
 
             'v_l': v_l,
-            'c_l': divC(C_l, v_l),
             'Fi_l': np.array([p['fCO_l'] * p['CO'] / p['vol_l'], np.nan]),
-            'ci_l': np.stack([aorta['Jl'] / p['CO'], np.full_like(aorta['t'], np.nan)]),
-        }
-        if self.config['lagut']=='plucom':
-            C_la = aorta['Jla'].reshape(1, -1) / p['CO']
-            C_pv = aorta['Jpv'].reshape(1, -1) / p['CO']
-            results |= {
-                'v_la': np.array([1]),
-                'C_la': C_la,
-                'c_la': C_la,
-                
-                'v_pv': np.array([1]),
-                'C_pv': C_pv,
-                'c_pv': C_pv,
-            }            
-            
-        return self.map_results(results)
+            'C_l': C_l,
+            'c_l': divC(C_l, v_l),
+            'ci_l': np.stack([p['Jl'] / p['CO'], np.full_like(p['t'], np.nan)]),
+        } 
+        return self.map_results(p)
+
+
+class ConcAortaPortalLiver(Module):
+    """Concentration in aorta, portal vein, liver artery and liver.
+    """
+    configs = {k:v for k, v in ConcAortaLiver.configs.items() if k != 'lagut'}
+    defaults = {k:v for k, v in ConcAortaLiver.defaults.items() if k != 'lagut'}
+
+    def __init__(self, imap:dict=None, omap:dict=None, **config):
+        self.set_config(config)
+        self._conc_aol = ConcAortaLiver(lagut='plucom', **self.config)
+        self.map_io(imap, omap)
+
+    def outputs(self):
+        outputs = self._conc_aol.outputs()
+        for roi in ['la', 'pv']:
+            outputs |= {f'C_{roi}', f'v_{roi}', f'c_{roi}', f'Fi_{roi}', f'ci_{roi}'}
+        return outputs
+
+    def inputs(self):
+        inputs = self._conc_aol.inputs()
+        inputs |= {'vol_pv', 'vol_la'}
+        return inputs
+        
+    def __call__(self, data: dict=None, **kwargs):
+        p = self.map_data(data, kwargs)
+    
+        p |= self._conc_aol(p)
+
+        fCO_la = p['fa'] * p['fCO_l']
+        fCO_pv = (1 - p['fa']) * p['fCO_l']
+
+        C_la = p['Jla'].reshape(1, -1) / p['CO']
+        C_pv = p['Jpv'].reshape(1, -1) / p['CO']
+
+        p |= {
+            'v_la': np.array([1]),
+            'Fi_la': np.array([fCO_la * p['CO'] / p['vol_la']]),
+            'C_la': C_la,
+            'c_la': C_la,
+            'ci_la': C_la,
+
+            'v_pv': np.array([1]),
+            'Fi_pv': np.array([fCO_pv * p['CO'] / p['vol_pv']]),
+            'C_pv': C_pv,
+            'c_pv': C_pv,
+            'ci_pv': C_pv,
+        }              
+        return self.map_results(p)
 
 
 
@@ -578,23 +612,26 @@ class ConcAortaKidneys(Module):
         self._flux_aorta = FluxAorta(**config_aorta)
 
         # Setup Kidney modules
-        self._conc_lk = ConcKidney(kinetics=self.config['kidneys'])
-        self._conc_rk = ConcKidney(kinetics=self.config['kidneys'])
+        imap = {k: f'{k}_lk' for k in {'Fp', 'vp', 'FF', 'Tt', 'ht'}}
+        self._conc_lk = ConcKidney(imap=imap, kinetics=self.config['kidneys'])
 
-        self._conc_lk.map_inputs({k: f'{k}_lk' for k in self._conc_lk.inputs(group='phys')})
-        self._conc_rk.map_inputs({k: f'{k}_rk' for k in self._conc_rk.inputs(group='phys')})
+        imap = {k: f'{k}_rk' for k in {'Fp', 'vp', 'FF', 'Tt', 'ht'}}
+        self._conc_rk = ConcKidney(imap=imap, kinetics=self.config['kidneys'])
 
         self.map_io(imap, omap)
 
     def outputs(self):
-        return {'ca', 'Clk', 'Crk'}
+        outputs = self._flux_aorta.outputs()
+        for roi in ['a', 'lk', 'rk']:
+            outputs |= {f'C_{roi}', f'v_{roi}', f'c_{roi}', f'Fi_{roi}', f'ci_{roi}'}
+        return outputs
     
     def inputs(self):
-        inputs = {'fCO_k', 'DRPF', 'CO'}
+        inputs = {'H', 'fCO_k', 'DRPF', 'CO', 'vol_a'}
         inputs |= self._conc_lk.mapped_inputs()
         inputs |= self._conc_rk.mapped_inputs()
         inputs |= self._flux_aorta.mapped_inputs()
-        inputs |= {'El', 'vol_lk', 'vol_rk', 'H'}
+        inputs |= {'El', 'vol_lk', 'vol_rk', 'vt_lk', 'vt_rk'}
         return inputs
     
     def __call__(self, data: dict=None, **kwargs):
@@ -621,22 +658,52 @@ class ConcAortaKidneys(Module):
             'vr_o': (1 - p['fCO_k']) * (1 - p['El']),
         }
 
-        # Compute aorta flux
-        flux = self._flux_aorta(p)
-
-        # Compute concentrations
-        ca = flux['Ja'] / p['CO']
-
-        # Extend data dictionary
-        ci = ca / (1 - p['H'])
+        # Aorta flux
+        p |= self._flux_aorta(p)
 
         # Kidney concentration
-        lk = self._conc_lk(p, ci=ci)
-        rk = self._conc_rk(p, ci=ci)
+        cp = p['Ja'] / p['CO'] / (1 - p['H'])
+        lk = self._conc_lk(p, ca=cp)
+        rk = self._conc_rk(p, ca=cp)
 
         # Save output
-        results = {'ca': ca, 'Clk': lk['Ck'], 'Crk': rk['Ck']}
-        return self.map_results(results)
+        C_a = p['Ja'].reshape(1, -1) / p['CO']
+
+        C_lk = np.pad(lk['Ck'], ((0, 1), (0, 0))) # append zeros for tissue compartment
+        vb_lk = p['vp_lk'] / (1 - p['H'])
+        ve_lk = 1 - vb_lk - p['vt_lk']
+        if ve_lk < 0: ve_lk = 0
+        v_lk = np.array([vb_lk, p['vt_lk'], ve_lk])
+
+        C_rk = np.pad(rk['Ck'], ((0, 1), (0, 0))) # append zeros for tissue compartment
+        vb_rk = p['vp_rk'] / (1 - p['H'])
+        ve_rk = 1 - vb_rk - p['vt_rk']
+        if ve_rk < 0: ve_rk = 0
+        v_rk = np.array([vb_rk, p['vt_rk'], ve_rk])
+
+        cnan = np.full_like(p['t'], np.nan)
+
+        p |= {
+            'v_a': np.array([1]),
+            'Fi_a': np.array([p['CO'] / p['vol_a']]),
+            'C_a': C_a, 
+            'c_a': C_a,
+            'ci_a': C_a,
+
+            'v_lk': v_lk,
+            'Fi_lk': np.array([fco_lk * p['CO'] / p['vol_lk'], np.nan, np.nan]),
+            'C_lk': C_lk, 
+            'c_lk': divC(C_lk, v_lk),
+            'ci_lk': np.stack([p['Jlk'] / p['CO'], cnan, cnan]),
+
+            'v_rk': v_rk,
+            'Fi_rk': np.array([fco_rk * p['CO'] / p['vol_rk'], np.nan, np.nan]),
+            'C_rk': C_rk,
+            'c_rk': divC(C_rk, v_rk),
+            'ci_rk': np.stack([p['Jrk'] / p['CO'], cnan, cnan]),
+        }
+        return self.map_results(p)
+    
     
 class ConcCortMed(Module):
     """Concentration in kidney cortex and medulla.

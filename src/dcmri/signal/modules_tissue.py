@@ -131,9 +131,11 @@ Example:
 import numpy as np
 from scipy.special import i0, i1
 
+
 from dcmri.core.module import Module
+from dcmri.relaxivity.modules_tissue import Relax
 from dcmri.bloch.modules_tissue import Magnetization
-from dcmri.bloch.functions_sequences import channels
+from dcmri.bloch.functions_sequences import channels, repetition_time
 
 
 class Signal(Module):
@@ -154,7 +156,7 @@ class Signal(Module):
     def outputs(self):
         return {'tS', 'S'} # (channels, components, times)
 
-    def map_lexicon(self, qvalues):
+    def lexicon_data(self, qvalues):
         p = {
             'M': np.ones((1, 3, 1, 1)), # (channels, components, compartments, times)
             'tM': np.zeros(1)
@@ -209,7 +211,7 @@ class CalibrateSignal(Module):
     def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
         self._magn = Magnetization(
-            imap = {'tR':'tSb', 'R1':'R1b', 'R2':'R2b', 'R2s':'R2sb', 'R1i':'R1ib'}, 
+            imap = {'R1':'R1b', 'R2':'R2b', 'R2s':'R2sb', 'R1i':'R1ib'}, 
             **config,
         )
         self._signal = Signal(**config)
@@ -217,7 +219,7 @@ class CalibrateSignal(Module):
 
     def inputs(self) -> set:
         inputs = {'Sb'}
-        inputs |= self._magn.mapped_inputs()
+        inputs |= self._magn.mapped_inputs() - {'tR'}
         inputs |= self._signal.mapped_inputs() - {'tM', 'M'}
         inputs -= {'S0'}
         return inputs
@@ -225,37 +227,56 @@ class CalibrateSignal(Module):
     def outputs(self) -> set:
         return {'S0'}
 
-    def map_lexicon(self, qvalues):
+    def lexicon_data(self, q):
         n_channels = channels(self.config['sequence'])
         components = 1 if self.config['magnitude'] else 2
-        nt = 1
-        Sb = np.zeros((n_channels, components, nt))
-        Sb[:, 0, :] = qvalues['Sb']
-        p = {
-            'tSb': np.arange(nt),
-            'Sb': Sb
-        }
-        if self.config['trigger']:
-            p['trigger'] = np.ones(nt)
+        nc, n0 = 2, 2
+
+        Sb = np.zeros((n_channels, components, n0))
+        Sb[:, 0, :] = q['Sb']
+
+        p = q | {
+            # Not in Lexicon
+            'trigger': np.ones(n0),
+
+            # In Lexicon but non scalar
+            'R1b': q['R1b'] * np.ones(nc),
+            'R2b': q['R2b'] * np.ones(nc),
+            'R1ib': q['R1ib'] * np.ones(nc),
+            'v': q['v'] * np.ones(nc) / nc,
+            'Fi': q['Fi'] * np.ones(nc),
+            'Fw': q['Fw'] * np.eye(nc),
+            'Sb': Sb,
+
+            # In Lexicon and scalar but needs conditional value
+            'TR': 1 if 'EPI' in self.config['sequence'] else q['TR'],
+            'TE': 0.05 if 'EPI' in self.config['sequence'] else q['TE'],
+        } 
         return self.update_data(p)
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)    
 
         # Extend scalar baseline values in time to match duration of Sb
-        p['tR'] = p['tSb']
+        nt = p['Sb'].shape[2]
+        TR = repetition_time(self.config['sequence'], p)
+        p['tR'] = TR * np.arange(nt + 1)
+
         for Rb in ['R1b', 'R2b', 'R2sb', 'R1ib']:
             if Rb in p:
-                nt = p['Sb'].shape[2]
                 if np.isscalar(p[Rb]):
-                    p[Rb] = np.full(nt, p[Rb])
+                    p[Rb] = np.full(nt + 1, p[Rb])
                 else:
-                    p[Rb] = np.tile(np.atleast_1d(p[Rb])[:, np.newaxis], (1, nt))
+                    p[Rb] = np.tile(np.atleast_1d(p[Rb])[:, np.newaxis], (1, nt + 1))
 
         # Compute signal scaling factor
         p |= self._magn(p)
+
         s_cal = self._signal(p, S0=1)['S']
-        Sb = p['Sb'][:, :, :s_cal.shape[2]]
+        nb = min(nt, s_cal.shape[2])
+        Sb = p['Sb'][:, :, :nb]
+        s_cal = s_cal[:, :, :nb]
+
         with np.errstate(divide='ignore', invalid='ignore'):
             S0 = np.nanmean(np.where(s_cal != 0, Sb / s_cal, np.nan))
 
@@ -281,7 +302,7 @@ class RelaxToSignal(Module):
     def outputs(self):
         return self._signal.outputs()
 
-    def map_lexicon(self, q):
+    def lexicon_data(self, q):
         nc, nt = 1, 1
         p = {
             'v': np.ones(nc) / nc,
@@ -293,7 +314,7 @@ class RelaxToSignal(Module):
             'Fi': np.ones(nc),
             'R1i': np.full((nc, nt), q['R1i']),
         } 
-        return self._signal.map_lexicon(q) | self.update_data(p)       
+        return self._signal.lexicon_data(q) | self.update_data(p)       
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)  
@@ -302,3 +323,105 @@ class RelaxToSignal(Module):
         results = self._signal(p)
         
         return self.map_results(results)
+
+
+class ConcToSignal(Module): 
+    configs = Relax.configs | Magnetization.configs |  {
+        't2s_relaxation': {None, 'lin', 'quad'},
+        'magnitude': Signal.configs['magnitude'],
+        'calibrate': [True, False],
+    }
+    defaults = Relax.defaults | Magnetization.defaults | {
+        'magnitude': Signal.defaults['magnitude'],
+        'calibrate': False,
+    }
+
+    def __init__(self, imap:dict=None, omap:dict=None, **config):
+        self.set_config(config)
+
+        self._relax_tissue = Relax(**self.config)
+        if self.config['inflow']:
+            self._relax_inlets = Relax(
+                imap = {'v':'Fi', 'R1b':'R1ib', 'c':'ci', 'r1':'r1i'},
+                omap = {'v':'Fi', 'R1b':'R1ib', 'R1':'R1i'},
+                **self.config,
+            ) 
+        self._magn = Magnetization(**self.config) 
+        if self.config['calibrate']:
+            self._derive_s0 = CalibrateSignal(**self.config)
+        self._signal = Signal(**self.config)
+
+        self.map_io(imap, omap)  
+        
+    def inputs(self):
+        inputs = self._relax_tissue.mapped_inputs()
+        if self.config['inflow']:
+            inputs |= self._relax_inlets.mapped_inputs()
+        inputs |= self._magn.mapped_inputs()
+        inputs |= self._signal.mapped_inputs()
+        if self.config['calibrate']:
+            inputs |= self._derive_s0.mapped_inputs() 
+
+        inputs -= {'R1', 'R2', 'R2s'}
+        inputs -= {'R1i'}
+        inputs -= self._magn.mapped_outputs()
+        if self.config['calibrate']:
+            inputs -= self._derive_s0.mapped_outputs() 
+        return inputs 
+   
+    def outputs(self):
+        outputs = self._relax_tissue.mapped_outputs() 
+        if self.config['inflow'] and 'R1' in outputs:
+                outputs |= self._relax_inlets.mapped_outputs() 
+        outputs |= self._magn.mapped_outputs()
+        if self.config['calibrate']:
+            outputs |= self._derive_s0.mapped_outputs()
+        outputs |= self._signal.mapped_outputs()
+        return outputs
+
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data, kwargs)  
+
+        p |= self._relax_tissue(p)
+        if self.config['inflow']:
+            if 'R1' in p:
+                p |= self._relax_inlets(p)
+        p |= self._magn(p)
+        if self.config['calibrate']:
+            p |= self._derive_s0(p)
+        p |= self._signal(p)
+
+        return self.map_results(p)
+
+    def lexicon_data(self, q: dict=None, nc=2, nt=5, n0=2): 
+
+        # Baseline signal
+        n_channels = channels(self.config['sequence'])
+        components = 1 if self.config['magnitude'] else 2
+        Sb = np.zeros((n_channels, components, n0))
+        Sb[:, 0, :] = q['Sb']
+
+        p = {
+            # Not in Lexicon
+            'r1i': q['r1'] * np.ones(nc),
+            'fx': [],
+            'tR': np.arange(nt),
+
+            # In Lexicon but not scalar
+            'c': q['c'] * np.ones((nc, nt)),
+            'ci': q['ci'] * np.ones((nc, nt)),
+            'R1b': q['R1b'] * np.ones(nc),
+            'R2b': q['R2b'] * np.ones(nc),
+            'R1ib': q['R1ib'] * np.ones(nc),
+            'r1': q['r1'] * np.ones(nc),
+            'r2': q['r2'] * np.ones(nc),
+            'Fi': q['Fi'] * np.ones(nc),
+            'Fw': q['Fw'] * np.eye(nc),
+            'v': q['v'] * np.ones(nc) / nc,
+            'Sb': Sb,
+
+            # In Lexicon and scalar but conditional value
+            'TR': 1 if 'EPI' in self.config['sequence'] else q['TR'],
+            'TE': 0.05 if 'EPI' in self.config['sequence'] else q['TE'],
+        } 
+        return self.update_data(q | p) 

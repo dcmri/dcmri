@@ -32,31 +32,34 @@ def pulse_readout(sequence, pars):
 
 def repetition_time(sequence, p):
     if sequence in [
-            'ZTE-3D-SPGR-SS',
-            '3D-SPGR-SS',
-            '2D-SPGR-SS',
-            '3D-SPGR',
-            '2D-SPGR',
-            '3D-SPGR-SSI',
+        'ZTE-3D-SPGR-SS',
+        '3D-SPGR-SS',
+        '2D-SPGR-SS',
+        '3D-SPGR',
+        '2D-SPGR',
+        '3D-SPGR-SSI',
     ]:
         return p['Nph'] * p['TR']
 
     elif sequence in [
-            'ZTE-3D-IR-SPGR-SS',
-            '3D-IR-SPGR-SS',
-            '3D-SR-SPGR-SS',
-            '3D-PR-SPGR-SS',
-            '3D-IR-SPGR',
-            '3D-SR-SPGR',
-            '3D-PR-SPGR',
-            '2D-SR-SPGR',
+        'ZTE-3D-IR-SPGR-SS',
+        '3D-IR-SPGR-SS',
+        '3D-SR-SPGR-SS',
+        '3D-PR-SPGR-SS',
+        '3D-IR-SPGR',
+        '3D-SR-SPGR',
+        '3D-PR-SPGR',
+        '2D-SR-SPGR',
     ]:
         return p['TP'] + p['Nph'] * p['TR'] + p['TD']
 
     elif sequence in [
-            '2D-GE-EPI',
-            '2D-SE-EPI',
-            '2D-DE-EPI',
+        '2D-GE-EPI',
+        '2D-SE-EPI',
+        '2D-DE-EPI',
+        '3D-GE-EPI',
+        '3D-SE-EPI',
+        '3D-DE-EPI',
     ]:
         return p['TR']
     

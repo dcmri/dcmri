@@ -23,7 +23,7 @@ class R1(Module):
         return inputs
     
     def outputs(self) -> set:
-        return {'R1', 'v'}
+        return {'v', 'R1', 'R1b'}
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)
@@ -47,7 +47,7 @@ class R1(Module):
                 R1 = relax_t1(p['c'], p['R1b'], p['r1']) # (nt, )
 
         v, R1 = mix_fast_exchange(p['v'], R1, p['fx'])
-        return self.map_results({'v': v, 'R1': R1})
+        return self.map_results({'v': v, 'R1': R1, 'R1b': R1[:,0]})
 
 
 class R2(Module):
@@ -67,7 +67,7 @@ class R2(Module):
         return inputs
     
     def outputs(self) -> set:
-        return {'R2'}
+        return {'v', 'R2', 'R2b'}
     
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)
@@ -90,7 +90,7 @@ class R2(Module):
                 R2 = relax_t2(p['c'], p['R2b'], p['r2']) # (nt, )
 
         v, R2 = mix_fast_exchange(p['v'], R2, p['fx'])
-        return self.map_results({'v': v, 'R2': R2})
+        return self.map_results({'v': v, 'R2': R2, 'R2b': R2[:,0]})
 
 
 class R2s(Module): 
@@ -160,7 +160,7 @@ class Relax(Module):
         t2s = config['t2s_relaxation'] if 't2s_relaxation' in config else self.defaults['t2s_relaxation']
 
         # Make sure that the contrasts needed by the sequence are computed
-        if sequence is None:
+        if sequence is not None:
             props = set(SEQUENCES[sequence]['parameters']['tissue'])
             if 'R1' in props:
                 if not t1:

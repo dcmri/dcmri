@@ -9,7 +9,7 @@ from dcmri import Aorta as Model
 import dcmri as dc
 from dcmri.core.exceptions import InvalidConfiguration
 
-DEBUG = True
+DEBUG = False
 
 if DEBUG:
     # Debugging mode
@@ -22,9 +22,6 @@ else:
 
 
 def _run_single_config(cnfg):
-    # if cnfg != ('comp', '2cxm', '3D-IR-SPGR'):
-    #     return
-    # data = {'dose': 0.2, 'rate': 5, 'TE': 0.05, 'TE1': 0.03, 'TE2': 0.05, 'TR': 15.5, 'FA': 90}
     try:
         model = Model(**cnfg)
     except InvalidConfiguration:
@@ -74,13 +71,16 @@ def test_config_coverage():
 
 def test_code_coverage():
     config = {
-        'bolus': 'single', 
+        'bolus': 'dual', 
         'heartlung': 'pfcomp', 
-        'organs': 'comp', 
-        't2s_relaxation': 'lin', 
-        'sequence': '3D-IR-SPGR', 
+        'organs': '2cxm', 
+        't1_relaxation': 'lin',
+        't2_relaxation': None, 
+        't2s_relaxation': None, 
+        'inflow': False,
+        'sequence': 'ZTE-3D-IR-SPGR-SS', 
         'magnitude': False, 
-        'calibrate': False,
+        'calibrate': True,
     }
     _run_single_config(config) 
 
@@ -111,7 +111,7 @@ def test_code_coverage():
 
 if __name__ == "__main__":
     test_code_coverage()
-    # test_config_coverage()
+    test_config_coverage()
     
     print('All Aorta tests passed!!')
 

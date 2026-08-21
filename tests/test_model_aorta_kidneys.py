@@ -2,14 +2,14 @@ import time
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from dcmri import AortaLiverModel
+from dcmri import AortaKidneysModel
 from dcmri.core.exceptions import InvalidConfiguration
 
 
-def test_aorta_liver():
+def test_aorta_kidneys():
     def _test_config(cnfg):
         try:
-           model = AortaLiverModel(**cnfg)
+           model = AortaKidneysModel(**cnfg)
         except InvalidConfiguration:
             return
         
@@ -19,9 +19,9 @@ def test_aorta_liver():
         results = model(data)
         elapsed = time.perf_counter() - t0
         print(f"  [Total model execution time: {elapsed:.4f}s]")
-        assert results['S_l'].ndim == 3
+        assert results['S_lk'].ndim == 3
 
-    configs = AortaLiverModel.configurations()
+    configs = AortaKidneysModel.configurations()
     cnt = 0
     for cnfg in tqdm(list(configs)):
         cnt += 1
@@ -32,15 +32,13 @@ def test_aorta_liver():
     print(f'Successfully covered {cnt} AortaLiver configurations!')
 
 
-def test_aorta_liver_function():
+def test_aorta_kidneys_function():
     cnfg = {
         'bolus': 'dual', 
         'heartlung': 'pfcomp', 
         'organs': '2cxm', 
-        'lagut': 'plucom', 
-        'liver': '1I-EC', 
-        'non_stationary': None, 
-        'water_exchange': 'F',
+        'kidneys': '2CF', 
+        'water_exchange': '(b, t, c)',
         't1_relaxation': 'lin',
         't2_relaxation': None, 
         't2s_relaxation': None, 
@@ -50,20 +48,21 @@ def test_aorta_liver_function():
         'calibrate': True,
     }
     try:
-        model = AortaLiverModel(**cnfg)
+        model = AortaKidneysModel(**cnfg)
     except InvalidConfiguration:
         return
+    
     print(model.inputs())
     print(model.outputs())
 
     data = model.lexicon_data()
     results = model(data)
 
-    plt.plot(results['tS_l'], results['S_l'][0, 0, :], 'ro')
+    plt.plot(results['tS_lk'], results['S_lk'][0, 0, :], 'ro')
     plt.show()
 
 if __name__ == '__main__':
-    test_aorta_liver()
-    #test_aorta_liver_function()
-
-    print('All AortaLiver model coverage tests passed!!')
+    # test_aorta_kidneys_function()
+    test_aorta_kidneys()
+    
+    print('All AortaKidneysModel coverage tests passed!!')

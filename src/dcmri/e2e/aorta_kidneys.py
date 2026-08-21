@@ -134,167 +134,49 @@ Example:
     Right kidney extraction fraction (E_rk): 0.038
 """
 
-from typing import Tuple
-
 import matplotlib.pyplot as plt
 import numpy as np
 
 from dcmri.core.roi_model import SuperRoiModel
-from dcmri.core.quantities import QVALUES
-from dcmri.core.sequences import SEQUENCES
-from dcmri.utils import const
-from dcmri.utils.misc import sample
-from dcmri.utils.fit import train, loss
+from dcmri.core.quantities import QUANTITIES
+from dcmri.utils.fit import train_bat, loss
 from dcmri.inverse.lib import estimate_bat
-from dcmri.kinetics.modules_conc import ConcAortaKidneys
-from dcmri.relaxivity.modules_tissue import Relax
-from dcmri.signal.modules_tissue import Signal
+from dcmri.models.aorta_kidneys import AortaKidneysModel
+
 
 class AortaKidneys(SuperRoiModel):
-    """Joint model for signals from aorta and both kidneys.
+    """Joint model or aorta, portal vein and liver signals.
 
-    A whole body model to simultaneously predict 
-    signals in aorta and both kidneys. 
-
-    See Also:
-        `Aorta`, `Kidney`
-
-    Args:
-        heartlung (str, optional): Model for the heart-lung system. 
-        organs (str, optional): Model for the systemic organs. 
-        kidneys (str, optional): Kidney tracer-kinetic model.
-        sequence (str, optional): Imaging sequence.
-        liver_clearance (bool, optional): Contrast agent with liver clearance.
-        **params: override parameter defaults
-
+    A whole-body model to simultaneously predict signals in 
+    aorta, portal vein and liver.  
     """
-    configs = {
-        'heartlung': ConcAortaKidneys.configs['heartlung'],
-        'organs': ConcAortaKidneys.configs['organs'],
-        'kidneys': ConcAortaKidneys.configs['kidneys'],
-        # 'sequence': Signal.configs['sequence'],
-    }
-    def __init__(
-        self, 
-        heartlung='pfcomp', 
-        organs='comp', 
-        kidneys='2CF', 
-        sequence='3D-SPGR-SS',
-        **params,
-    ):
+    def __init__(self, data: dict=None, **config):
+        if data is None:
+            data = {}
+
         self._version = '1.0'
-        cnfg = {
-            'heartlung': heartlung, 
-            'organs': organs, 
-            'kidneys': kidneys, 
-            'sequence': sequence, 
-        }
-        self._set_config(cnfg)
-        self._set_params(QVALUES | params)
+        self._model = AortaKidneysModel(**config)
 
-        # Set multi-channel baseline if not done by the user
-        if sequence in ['Eq-DE-EPI', '2D-DE-EPI']:
-            for roi in ['a', 'lk', 'rk']:
-                Sb = f"Sb_{roi}"
-                if Sb not in params:
-                    self._pars[Sb] = np.full(2, self._pars[Sb])
+        # Initialise model parameters
+        pars = self._model.lexicon_data()
+        if data is not None:
+            pars |= data
+        self._pars = self._model.input_data(pars)
 
-    # ==========================================
-    # Backend
-    # ==========================================
+    def _params(self, group=None):
+        params = self._model.mapped_inputs()
+        if group == 'free':
+            params_free = {p for p in params if p in QUANTITIES and QUANTITIES[p]['group']=='phys'} # needs to be more general
+            params_free |= {p for p in ['BAT'] if p in params}
+            return params_free
+        return params
 
-    # Helper function
-    def _sequence(self, roi):
-        seq = self._cnfg['sequence']
-        if roi in ['lk', 'rk'] and seq == '3D-SPGR-SSI':
-            return '3D-SPGR-SS'
-        return seq
-    
-    # Helper function
-    def _tissue_props(self, roi):
-        return set(SEQUENCES[self._sequence(roi)]['parameters']['tissue'])
-    
-    # ==========================================
-    # Model Parameters
-    # ==========================================
-    
-    def _params(self, select=None):
-        pars = []
-        if select is None:
-            # Explicit parameters
-            pars += ['field_strength', 'agent', 'dt', 'tmax', 'TS']
-            for roi in ['a', 'lk', 'rk']:
-                pars += [f"{relax_rate}b_{roi}" for relax_rate in self._tissue_props(roi)]
-                pars += [f"Sb_{roi}", f"B1corr_{roi}"]
-
-            # Implicit parameters
-            pars += ConcAortaKidneys(**self._cnfg).params()
-            for roi in ['a', 'lk', 'rk']:
-                pars += Relax(tissue_props=self._tissue_props(roi), **self._cnfg).params()
-                pars += Signal(calibrate=True, sequence=self._sequence(roi)).params()
-        
-        if select=='free':
-            pars += ConcAortaKidneys(**self._cnfg).params('free')
-
-        # Derived parameters
-        derived = [
-            'C',
-            'r1', 'r2', 'r2s', 'R1b', 'R2b', 'R2sb', 
-            'R1', 'R2', 'R2s', 'Sb', 'B1corr',
-        ]
-        pars = {p for p in pars if p not in derived}
-        return list(pars)
-    
-    # ==========================================
-    # Forward Model
-    # ==========================================
-
-    def _compute_conc(self):
-        p = self._pars
-        self._C = ConcAortaKidneys(**self._cnfg, defaults=p)()
-            
-    def _compute_relax(self):  
-        self._compute_conc()
-        p = self._pars
-        self._R = {}
-        relaxivity = const.relaxivity(p['field_strength'], 'blood', p['agent'])
-        for roi in ['a', 'lk', 'rk']:
-            props = self._tissue_props(roi)
-            baseline_relaxation_rate = {f"{relax_rate}b": p[f"{relax_rate}b_{roi}"] for relax_rate in props}
-
-            inputs = self._pars | relaxivity | baseline_relaxation_rate | {'C': self._C[roi]}
-            config = self._cnfg | {'tissue_props': props, 'fast_water_exchange': True}
-            self._R[roi] = Relax(defaults=inputs, **config)()
-
-    def _compute_signal(self):
-        self._compute_relax()
-        p = self._pars
-        self._S = {}
-        for roi in ['a', 'lk', 'rk']:
-            inputs = self._pars | self._R[roi] | {'Sb': p[f'Sb_{roi}'], 'B1corr': p[f'B1corr_{roi}']}
-            config = self._cnfg | {'calibrate': True, 'sequence': self._sequence(roi)}
-            self._S[roi] = Signal(defaults=inputs, **config)()
-
-    def _time(self):
-        p = self._pars
-        return np.arange(0, p['tmax'], p['dt'])
-     
-    def _predict(self, time: dict) -> dict:
-        self._compute_signal()
-        t = self._time()
-        p = self._pars
-        signal = [
-            sample(time[i], t, self._S[roi], p['TS']) 
-            for i, roi in enumerate(['a', 'lk', 'rk'])
-        ]
-        return tuple(signal)
-    
-    # ==========================================
-    # Inverse Model: Training
-    # ==========================================
+    def _predict(self, time: tuple):
+        pred = self._model(self._pars)
+        return pred['S_a'][:, :, :len(time[0])], pred['S_lk'][:, :, :len(time[1])], pred['S_rk'][:, :, :len(time[2])]
 
     def _train(
-        self, time: dict, signal: dict, free: dict, 
+        self, time: tuple, signal: tuple, free: dict, 
         bounds: dict, n0: int, **kwargs
     ):
         p = self._pars
@@ -304,67 +186,63 @@ class AortaKidneys(SuperRoiModel):
         p['BAT'] = max(bat - p['Thl'], 0)
 
         # Estimate baseline
-        for i, roi in enumerate(['a', 'lk', 'rk']):
-            p[f"Sb_{roi}"] = signal[i][..., :n0]
-            # p[f"Sb_{roi}"] = np.mean(signal[i][..., :n0], axis=-1)
+        if self._model.config['calibrate']:
+            for i, roi in enumerate(['a', 'lk', 'rk']):
+                p[f"Sb_{roi}"] = signal[i][..., :n0]
 
         # Perform training
         free = self._set_free_pars(free, bounds) 
-        return train(self._predict, time, signal, self._pars, free, **kwargs)
+        return train_bat(self._predict, time, signal, self._pars, free, **kwargs)
 
-    # ==========================================
-    # I/O and Reporting
-    # ==========================================
 
-    def _plot(self, time, signal, xlim, fname, show):
-        self._compute_signal()
-        t = self._time()
-        p = self._pars
+    def _plot(
+        self, time: tuple, signal: tuple, xlim: list, fname: str, show: bool
+    ):
+        prediction = self._model(self._pars)
 
-        if xlim is None: xlim = [t[0], t[-1]]
+        if xlim is None: 
+            xlim = [prediction['t'][0], prediction['t'][-1]]
         xlim = np.array(xlim)/60
-
-        fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3, 2, figsize=(10, 12))
+        
+        fig, axes = plt.subplots(3, 2, figsize=(10, 8))
         fig.subplots_adjust(wspace=0.3)
-
-        def plot_data(sig, ts, s, roi, ax, color):
-            ax.set(xlabel='Time (min)', ylabel=f'{roi} signal (a.u.)', xlim=xlim)
-            if s.ndim==1:
-                ax.plot(ts / 60, s, marker='o', color=color[0], label='Data', linestyle='None')
-                ax.plot(t / 60, sig, linestyle='-', color=color[1], linewidth=3.0, label='Prediction')
-            else:
-                for i in range(s.shape[0]):
-                    ax.plot(ts / 60, s[i,:], marker='o', color=color[0], label='Data', linestyle='None')
-                    ax.plot(t / 60, sig[i,:], linestyle='-', color=color[1], linewidth=3.0, label='Prediction')
+        ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = axes
+        
+        # Plot signals
+        def plot_data(roi, ts, s, ax, clr):
+            ax.set_title('MRI Signal Prediction')
+            for i in range(s.shape[0]):
+                for j in range(s.shape[1]):
+                    ax.plot(ts / 60, s[i, j, :], marker='o', color=clr[0], alpha=0.5, label='Data')
+                    ax.plot(prediction[f'tS_{roi}'] / 60, prediction[f'S_{roi}'][i, j, :], linestyle='-', color=clr[1], linewidth=3, label='Prediction')                
+            ax.set_xlabel('Time (min)')
+            ax.set_ylabel('Signal (a.u.)')
             ax.legend()
 
-        plot_data(self._S['a'], time[0], signal[0], 'Aorta', ax1, ['lightcoral', 'darkred'])
-        plot_data(self._S['lk'], time[1], signal[1], 'Left kidney', ax3, ['cornflowerblue', 'darkblue'])
-        plot_data(self._S['rk'], time[2], signal[2], 'Right kidney', ax5, ['cornflowerblue', 'darkblue'])
-
-        # Plot aorta
-        cb_lk = self._C['lk'][0,:] / (p['vp_lk'] / (1 - p['H']))
-        cb_rk = self._C['rk'][0,:] / (p['vp_rk'] / (1 - p['H']))
-
-        ax2.set(xlabel='Time (min)', ylabel='Blood conc (mM)', xlim=xlim)
-        ax2.plot(t / 60, 0 * t, color='gray')
-        ax2.plot(t / 60, 1000 * self._C['a'], linestyle='-', color='darkred', linewidth=2.0, label='Aorta')
-        ax2.plot(t / 60, 1000 * cb_lk, linestyle='--', color='lightcoral', linewidth=2.0, label='Left kidney')
-        ax2.plot(t / 60, 1000 * cb_rk, linestyle='-.', color='lightcoral', linewidth=2.0, label='Right kidney')
+        plot_data('a', time[0], signal[0], ax1, ['lightcoral', 'darkred'])
+        plot_data('lk', time[1], signal[1], ax3, ['cornflowerblue', 'darkblue'])
+        plot_data('rk', time[2], signal[2], ax5, ['cornflowerblue', 'darkblue'])
+        
+        # Plot concentrations
+        ax2.set(ylabel='Concentration (mM)', xlim=xlim)
+        ax2.plot(prediction['t'] / 60, 0 * prediction['t'], color='gray')
+        ax2.plot(prediction['t'] / 60, 1000 * prediction['C_a'][0], linestyle='-', color='darkred', linewidth=2.0, label='Aorta')
+        ax2.plot(prediction['t'] / 60, 1000 * prediction['c_lk'][0], linestyle='--', color='lightcoral', linewidth=2.0, label='Left Kidney')
+        ax2.plot(prediction['t'] / 60, 1000 * prediction['c_rk'][0], linestyle='-.', color='lightcoral', linewidth=2.0, label='Right Kidney')
         ax2.legend()
 
         def plot_conc_kidney(C, kid, ax):
             ax.set(xlabel='Time (min)', ylabel=f'{kid} conc (mM)', xlim=xlim)
-            ax.plot(t / 60, 0 * t, color='gray')
-            ax.plot(t / 60, 1000 * C[0, :], linestyle='-', color='darkred', linewidth=2.0, label='Blood')
-            ax.plot(t / 60, 1000 * C[1, :], linestyle='-', color='darkcyan', linewidth=2.0, label='Tubuli')
-            ax.plot(t / 60, 1000 * C.sum(axis=0), linestyle='-', color='darkblue', linewidth=2.0, label='Tissue')
+            ax.plot(prediction['t'] / 60, 0 * prediction['t'], color='gray')
+            ax.plot(prediction['t'] / 60, 1000 * C[0], linestyle='-', color='darkred', linewidth=2.0, label='Blood')
+            ax.plot(prediction['t'] / 60, 1000 * C[1], linestyle='-', color='darkcyan', linewidth=2.0, label='Tubuli')
+            ax.plot(prediction['t'] / 60, 1000 * C.sum(axis=0), linestyle='-', color='darkblue', linewidth=2.0, label='Tissue')
             ax.legend()
 
-        plot_conc_kidney(self._C['lk'], 'Left kidney', ax4)
-        plot_conc_kidney(self._C['rk'], 'Right kidney', ax6)
+        plot_conc_kidney(prediction['C_lk'], 'Left kidney', ax4)
+        plot_conc_kidney(prediction['C_rk'], 'Right kidney', ax6)
 
-        if fname is not None: plt.savefig(fname=fname)
+        if fname: plt.savefig(fname=fname)
         if show: plt.show()
         else: plt.close()
 
@@ -373,156 +251,50 @@ class AortaKidneys(SuperRoiModel):
     # User Interface
     # ==========================================
 
-    def params(self, select=None) -> list:
+    def params(self, group=None) -> list:
         """Return a list of model parameters"""
-        return self._params(select)
+        return self._params(group)
 
-    def time(self) -> dict:
-        """Internal time array
-
-        Returns:
-            Tuple: (aorta_time, portal_time, liver_time).
-        """
-        t = self._time()
-        return {
-            'aorta': t, 
-            'kidney_left': t, 
-            'kidney_right': t,
-        }
-
-    def conc(self) -> dict:
-        """Concentrations in aorta and kidney.
-
-        Args:
-            sum (bool, optional): If set to true, the kidney 
-              concentrations are the sum over all compartments. If 
-              set to false, the compartmental concentrations are 
-              returned individually. Defaults to True.
-
-        Returns:
-            tuple: time points, aorta blood concentrations, left 
-              kidney concentrations, right kidney concentrations.
-        """
-        self._compute_conc()
-        return {
-            'aorta': self._C['a'], 
-            'kidney_left': self._C['lk'], 
-            'kidney_right': self._C['rk'],
-        }
-
-    def relax(self) -> dict:
-        """Relaxation rates in aorta and kidney.
-
-        Returns:
-            dict: aorta relaxation rates, left kidney 
-              relaxation rates, right kidney relaxation rates.
-        """
-        self._compute_relax()
-        return {
-            'aorta': self._R['a'], 
-            'kidney_left': self._R['lk'], 
-            'kidney_right': self._R['rk'],
-        }
+    def predict(self) -> np.ndarray:
+        """Predicts the data."""
+        return self._model(self._pars)
     
-    def signal(self) -> dict:
-        """Return signals in aorta and liver.
-
-        Returns:
-            tuple: signals for (aorta, portal, liver)
-        """
-        self._compute_signal()
-        return {
-            'aorta': self._S['a'], 
-            'kidney_left': self._S['lk'], 
-            'kidney_right': self._S['rk'],
-        }
-
-    def predict(self, time) -> dict:
-        """Predict the data at given time
+    def train(
+        self, data: dict, free: dict = None, 
+        bounds: dict = None, n0=10, **kwargs
+    ) -> tuple:
+        """Train the model free parameters.
 
         Args:
-            time (tuple): Tuple of 3 arrays with time points for 
-              aorta, left kidney and right kidney, in that order. 
-              The three arrays can all be different in length and value.
-
-        Returns:
-            tuple: Tuple of 3 arrays with signals for aorta, left 
-              kidney and right kidney, in that order. The three 
-              arrays can all be different in length and value but 
-              each has to have the same length as its corresponding 
-              array of time points.
-        """
-        if isinstance(time, dict):
-            time = (
-                time['aorta'], 
-                time['kidney_left'],
-                time['kidney_right'], 
-            )
-        elif isinstance(time, np.ndarray):
-            time = tuple(3 * [time])
-
-        p = self._pars
-        p['tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time))
-        signal = self._predict(time)
-        return {
-            'aorta': signal[0],
-            'kidney_left': signal[1],
-            'kidney_right': signal[2],
-        }
-
-    def train(
-        self, time: dict, signal: dict, free: dict = None, 
-        bounds: dict = None, n0=10, **kwargs
-    ) -> Tuple[dict, dict, np.ndarray]:
-        """Train the free parameters
-
-       Args:
-            time (tuple): (time_aorta, time_portal, time_liver) arrays.
-            signal (tuple): (signal_aorta, signal_portal, signal_liver) arrays.
+            time (tuple): (time_aorta, time_liver) arrays.
+            signal (tuple): (signal_aorta, signal_liver) arrays.
             free (dict, optional): Free parameters and their bounds.
-            bounds (dict, optional): Override default bounds for specific params.
-            n0 (int, optional): Baseline points for S0 estimation. Defaults to 1.
-            **kwargs: Passed to scipy.optimize.curve_fit via utils.train.
+            bounds (dict, optional): Override default bounds for specific parameters.
+            n0 (int, optional): Number of baseline time points for S0 estimation.
+            **kwargs: Arguments passed to scipy.optimize.curve_fit.
 
         Returns:
-            vals, sdev, pcov: Values, standard deviations and 
-              covariance matrix of free parameters
-
+            vals, sdev, pcov: Values, standard deviations and covariance matrix of free parameters
         """
-        if isinstance(time, dict):
-            time = (
-                time['aorta'], 
-                time['kidney_left'],
-                time['kidney_right'], 
-            )
-        elif isinstance(time, np.ndarray):
-            time = tuple(3 * [time])
-        if isinstance(signal, dict):
-            signal = (
-                signal['aorta'], 
-                signal['kidney_left'], 
-                signal['kidney_right'], 
-            )
+        time = (data['tS_a'], data['tS_lk'], data['tS_rk'])
+        signal = (data['S_a'], data['S_lk'], data['S_rk'])
 
-        p = self._pars
-        p['tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time))
-
+        self._pars['tmax'] = self._pars['dt'] + np.max(time[0]) + (time[0][-1] - time[0][-2])
         return self._train(time, signal, free, bounds, n0, **kwargs)
 
     def plot(
-        self, time: dict, signal: dict, xlim: list = None, 
-        fname: str = None, show = True,
+        self, data: dict, xlim=None, fname=None, show=True,
     ):
         """Plot the model fit against data
 
         Args:
-            time (tuple): tuple of 3 arrays with time points for aorta, 
-              portal vein and liver, in that order. The two arrays can be 
-              different in length and value.
-            signal (array-like): tuple of 3 arrays with signals for aorta, 
-              portal vein and liver, in that order. The arrays can be 
-              different in length and value but each has to have the same 
-              length as its corresponding array of time points.
+            time (tuple): tuple of 2 arrays with time points for aorta and 
+              liver, in that order. The two arrays can be different in length 
+              and value.
+            signal (array-like): tuple of 2 arrays with signals for aorta and 
+              liver, in that order. The arrays can be different in length and 
+              value but each has to have the same length as its corresponding 
+              array of time points.
             xlim (array_like, optional): 2-element array with lower and upper 
               boundaries of the x-axis. Defaults to None.
             fname (path, optional): Filepath to save the image. If no value 
@@ -530,26 +302,13 @@ class AortaKidneys(SuperRoiModel):
             show (bool, optional): If True, the plot is shown. Defaults to 
               True.
         """
-        if isinstance(time, dict):
-            time = (
-                time['aorta'], 
-                time['kidney_left'],
-                time['kidney_right'], 
-            )
-        elif isinstance(time, np.ndarray):
-            time = tuple(3 * [time])
-        if isinstance(signal, dict):
-            signal = (
-                signal['aorta'], 
-                signal['kidney_left'], 
-                signal['kidney_right'], 
-            )
+        time = (data['tS_a'], data['tS_lk'], data['tS_rk'])
+        signal = (data['S_a'], data['S_lk'], data['S_rk'])
 
-        p = self._pars
-        p['tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time))
+        self._pars['tmax'] = self._pars['dt'] + np.max(time[0]) + (time[0][-1] - time[0][-2])
         self._plot(time, signal, xlim, fname, show)
 
-    def cost(self, time: dict, signal: dict, metric: str = 'NRMS', nfree=None) -> float:
+    def cost(self, data: dict, metric: str='NRMS', nfree=None) -> float:
         """Return the goodness-of-fit
 
         Args:
@@ -572,23 +331,11 @@ class AortaKidneys(SuperRoiModel):
                 models.
             - 'BIC': Baysian information criterion.
         """
-        if isinstance(time, dict):
-            time = (
-                time['aorta'], 
-                time['kidney_left'], 
-                time['kidney_right'], 
-            )
-        elif isinstance(time, np.ndarray):
-            time = tuple(3 * [time])
-        if isinstance(signal, dict):
-            signal = (
-                signal['aorta'], 
-                signal['kidney_left'], 
-                signal['kidney_right'], 
-            )
-        p = self._pars
-        p['tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time))
+        time = (data['tS_a'], data['tS_lk'], data['tS_rk'])
+        signal = (data['S_a'], data['S_lk'], data['S_rk'])
+
+        self._pars['tmax'] = self._pars['dt'] + np.max(time[0]) + (time[0][-1] - time[0][-2])
+        pred = self._predict(time)
         signal = np.concatenate(signal)
-        signal_pred = np.concatenate(self._predict(time))
-        cost = loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
-        return cost[0]
+        signal_pred = np.concatenate(pred)
+        return loss(signal_pred, signal, metric, nfree)
