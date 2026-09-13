@@ -1,17 +1,17 @@
 import numpy as np
 
-from dcmri.core.sequences import SEQUENCES
+from dcmri.core.tools import get_sequence
 import dcmri.inverse.lib as solve
 from dcmri.core.module import Module
 from dcmri.signal.modules_tissue import RelaxToSignal
+from dcmri.bloch.functions_sequences import channels
 
-invertible_seqs = [s for s, v in SEQUENCES.items() if v['steady-state']]
+invertible_seqs = get_sequence('steady-state')
 analytical_inversion = ['3D-SPGR-SS', 'ZTE-3D-SPGR-SS', 'lin', '2D-GE-EPI', '2D-SE-EPI', '2D-DE-EPI']
-
 
 class SignalToConc(Module):
     configs = {
-        'sequence': set(invertible_seqs + ['lin']),
+        'sequence': invertible_seqs | {'lin'},
         'calibrate': {False, True},
     }
     defaults = {
@@ -21,7 +21,9 @@ class SignalToConc(Module):
     def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
         if self.config['sequence'] not in analytical_inversion:
-            self._R1_to_S = RelaxToSignal(inflow=False, **self.config)
+            # Calibration done during inversion so not in RelaxToSignal
+            config = self.config | {'calibrate': False, 'inflow': False}
+            self._R1_to_S = RelaxToSignal(**config)
         self.map_io(imap, omap)  
 
     def inputs(self):
@@ -29,39 +31,39 @@ class SignalToConc(Module):
         inputs = {'S'}
 
         if sequence in ['3D-SPGR-SS']:
-            inputs |= {'r1', 'FA', 'TR', 'B1corr', 'n0'}
+            inputs |= {'r1', 'FA', 'TR', 'B1corr', 'nb'}
             if self.config['calibrate']:
                 inputs |= {'R1b'}  
             else:
                 inputs |= {'S0'}  
 
         elif sequence in ['ZTE-3D-SPGR-SS']:
-            inputs |= {'r1', 'FA', 'TR', 'B1corr', 'n0'}
+            inputs |= {'r1', 'FA', 'TR', 'B1corr', 'nb'}
             if self.config['calibrate']:
                 inputs |= {'R1b'}  
             else:
                 inputs |= {'S0'} 
 
         elif sequence == 'lin':
-            inputs |= {'r1', 'n0'}
+            inputs |= {'r1', 'nb'}
             if self.config['calibrate']:
                 inputs |= {'R1b'}  
             else:
                 inputs |= {'S0'} 
 
         elif sequence in ['2D-GE-EPI', '3D-GE-EPI']:
-            inputs |= {'n0', 'r2s', 'TE'}
+            inputs |= {'nb', 'r2s', 'TE'}
 
         elif sequence in ['2D-SE-EPI', '3D-SE-EPI']:
-            inputs |= {'n0', 'r2', 'TE'}
+            inputs |= {'nb', 'r2', 'TE'}
 
         elif sequence in ['2D-DE-EPI', '3D-DE-EPI']:
-            inputs |= {'n0', 'r2', 'r2s', 'TE1', 'TE2'}
+            inputs |= {'nb', 'r2', 'r2s', 'TE1', 'TE2'}
 
         else:
-            derived = {'R1', 'R2s', 'TE', 'v', 'Fw', 'me'}
+            derived = {'R1', 'R2s', 'TE', 'vw', 'Kw', 'me'}
             inputs |= self._R1_to_S.inputs() - {'tR'}
-            inputs |= {'n0', 'r1'}
+            inputs |= {'nb', 'r1'}
             if self.config['calibrate']:
                 inputs |= {'R1b'} 
                 derived |= {'S0'}
@@ -128,26 +130,26 @@ class SignalToConc(Module):
             conc = conc[:, None, :]
 
         elif sequence in ['2D-GE-EPI', '3D-GE-EPI']:
-            conc = solve.conc_dsc(S[:,0,:], n0=p['n0'], r2=p['r2s'], TE=p['TE'])
+            conc = solve.conc_dsc(S[:,0,:], nb=p['nb'], r2=p['r2s'], TE=p['TE'])
             conc = conc[:, None, :]
 
         elif sequence in ['2D-SE-EPI', '3D-SE-EPI']:
-            conc = solve.conc_dsc(S[:,0,:], n0=p['n0'], r2=p['r2'], TE=p['TE'])
+            conc = solve.conc_dsc(S[:,0,:], nb=p['nb'], r2=p['r2'], TE=p['TE'])
             conc = conc[:, None, :]
 
         elif sequence in ['2D-DE-EPI', '3D-DE-EPI']:
-            S_GE, S_SE = S[:,0,:], S[:,1,:]
-            conc_ge = solve.conc_dsc(S_GE, n0=p['n0'], r2=p['r2s'], TE=p['TE1'])
-            conc_se = solve.conc_dsc(S_SE, n0=p['n0'], r2=p['r2'], TE=p['TE2'])
+            S_GE, S_SE = S[:1,0,:], S[-1:,0,:] # TODO: do we really need to keep the first dim?
+            conc_ge = solve.conc_dsc(S_GE, nb=p['nb'], r2=p['r2s'], TE=p['TE1'])
+            conc_se = solve.conc_dsc(S_SE, nb=p['nb'], r2=p['r2'], TE=p['TE2'])
             conc_ge = conc_ge[:, None, :]
             conc_se = conc_se[:, None, :]
             conc = np.concatenate((conc_ge, conc_se), axis=1)
 
         else:
             if self.config['calibrate']:
-                conc = solve.conc_dce(self._R1_to_S, S[:,0,:], r1=p['r1'], n0=p['n0'], R1b=p['R1b'], defaults=p)
+                conc = solve.conc_dce(self._R1_to_S, S[:,0,:], r1=p['r1'], nb=p['nb'], R1b=p['R1b'], defaults=p)
             else:
-                conc = solve.conc_dce(self._R1_to_S, S[:,0,:], r1=p['r1'], n0=p['n0'], S0=p['S0'], defaults=p)
+                conc = solve.conc_dce(self._R1_to_S, S[:,0,:], r1=p['r1'], nb=p['nb'], S0=p['S0'], defaults=p)
             conc = conc[:, None, :]
 
         if ndim==1:
@@ -159,3 +161,13 @@ class SignalToConc(Module):
 
         results = {'C': conc}
         return self.map_results(results)
+
+    def dummy_data(self, nt=5):
+        data = self.init_data()
+        n_channels = channels(self.config['sequence'])
+        components = 1
+        S = np.ones((n_channels, components, nt))
+        data |= {
+            'S': S,
+        }
+        return data

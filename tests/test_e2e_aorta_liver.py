@@ -43,11 +43,11 @@ def test_config_coverage():
 
     result = Parallel(n_jobs=-1)(
         delayed(_run_single_config)(cnfg)
-        for cnfg in dc.AortaLiverModel.configurations()
+        for cnfg in dc.AortaLiverModel.all_configs()
     )
     # result = [
     #     _run_single_config(cnfg)
-    #     for cnfg in Model.configurations()
+    #     for cnfg in Model.all_configs()
     # ]
     result = [r for r in result if r is not None]
     cost = [r[1] for r in result]
@@ -84,8 +84,8 @@ def test_code_coverage():
     model = Model()
 
     # params()
-    assert 'Thl' in model.params()
-    assert np.isscalar(model.state['Thl']) 
+    assert 'T_hl' in model.params()
+    assert np.isscalar(model.state['T_hl']) 
     
     # Test Forward API outputs
     data = model.predict()

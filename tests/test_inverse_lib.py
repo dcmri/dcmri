@@ -45,12 +45,12 @@ def test_conc_dsc():
         [10.0, 5.0, 2.0],
         [20.0, 10.0, 4.0]
     ])
-    n0 = 1
+    nb = 1
     r2 = 2.0
     TE = 0.05
 
     # Check safe execution
-    C = dc.conc_dsc(S, n0=n0, r2=r2, TE=TE)
+    C = dc.conc_dsc(S, nb=nb, r2=r2, TE=TE)
     assert C.shape == (2, 3)
     # The concentration should increase as the signal drops below baseline
     assert C[0, 2] > C[0, 0] 
@@ -59,7 +59,7 @@ def test_conc_dsc():
 def test_conc_ss():
     """Test conc_ss analytical steady-state signal inversion."""
     S = np.array([[10.0, 12.0, 14.0]])
-    n0 = 1
+    nb = 1
     R1b = np.array([0.7])
     r1 = 4.0
     sequence_params = {
@@ -69,32 +69,32 @@ def test_conc_ss():
     }
 
     # Case 1: Standard computation with auto baseline calculation
-    C_auto = dc.conc_ss(S, n0=n0, R1b=R1b, r1=r1, **sequence_params)
+    C_auto = dc.conc_ss(S, nb=nb, R1b=R1b, r1=r1, **sequence_params)
     assert C_auto.shape == (1, 3)
 
     # Case 2: Explicit baseline array injection profile override
-    C_explicit = dc.conc_ss(S, n0=n0, R1b=R1b, S0=np.array([100.0]), r1=r1, **sequence_params)
+    C_explicit = dc.conc_ss(S, nb=nb, R1b=R1b, S0=np.array([100.0]), r1=r1, **sequence_params)
     assert C_explicit.shape == (1, 3)
 
-    C_explicit = dc.conc_ss(S, n0=n0, R1b=None, S0=np.array([100.0]), r1=r1, **sequence_params)
+    C_explicit = dc.conc_ss(S, nb=nb, R1b=None, S0=np.array([100.0]), r1=r1, **sequence_params)
 
 
 def test_conc_dce_lin():
     """Test conc_dce_lin simplified linear relaxation estimation."""
     S = np.array([[5.0, 10.0, 15.0]])
-    n0 = 1
+    nb = 1
     R1b = np.array([1.0])
     r1 = 3.5
 
     # Case 1: Compute without S0 to trigger the initialization path
-    C_auto = dc.conc_dce_lin(S, n0=n0, R1b=R1b, S0=None, r1=r1)
+    C_auto = dc.conc_dce_lin(S, nb=nb, R1b=R1b, S0=None, r1=r1)
     assert C_auto.shape == (1, 3)
 
     # Case 2: Direct calculation via pre-specified scaling factor
-    C_explicit = dc.conc_dce_lin(S, n0=n0, R1b=R1b, S0=np.array([5.0]), r1=r1)
+    C_explicit = dc.conc_dce_lin(S, nb=nb, R1b=R1b, S0=np.array([5.0]), r1=r1)
     assert C_explicit.shape == (1, 3)
 
-    C_explicit = dc.conc_dce_lin(S, n0=n0, R1b=None, S0=np.array([5.0]), r1=r1)
+    C_explicit = dc.conc_dce_lin(S, nb=nb, R1b=None, S0=np.array([5.0]), r1=r1)
 
 
 def test_vfa_nonlinear():

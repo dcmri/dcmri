@@ -60,7 +60,7 @@ from joblib import Parallel, delayed
 from matplotlib.gridspec import GridSpec
 
 from dcmri.signal.modules_tissue import Signal
-from dcmri.core.sequences import SEQUENCES  
+from dcmri.core.tools import get_sequence  
 from dcmri.core.tools import string_params
 from dcmri.inverse.sig2conc import SignalToConc, RelaxToSignal
 from dcmri.core.pixel_model import SuperPixelModel
@@ -101,26 +101,26 @@ def irf_ls(ca, c, dt, tol=1e-2):
     # Then convert back to original shape 
     return irf.T.reshape(shape)
 
-CONSTANTS = {'Fw': 0, 'v': 1, 'me': 1, 'noise_sdev':0}    
+CONSTANTS = {'Fw': 0, 'v': 1, 'me': 1, 'NSR':0}    
 
 # TODO This needs a rewrite and debugging 
 
 class SignalTissueLS(Module):
     configs = {
-        'sequence': {s for s, v in SEQUENCES.items() if v['steady-state']}
+        'sequence': get_sequence('name')
     }  
     defaults = {
         'sequence': '3D-SPGR-SS',
     }
     def inputs(self):
         seq = self.config['sequence']
-        wght = set(SEQUENCES[seq]['parameters']['tissue'])
+        wght = get_sequence('tissue_params', seq)
 
         p = ['irf', 'dt']
         p += [k for k in Relax(tissue_props=wght).params() if k not in ['R2b', 'R2sb']]
         p += [k for k in Signal(seq).params() if k not in ['R1', 'R2', 'R2s', 'R1i']]
 
-        # p_excl = ['R1', 'R2s', 'R2', 'R1i', 'Fi', 'me', 'v', 'Fw']
+        # p_excl = ['R1', 'R2s', 'R2', 'R1i', 'Fwi', 'me', 'v', 'Fw']
         # if seq == '2D-SE-EPI':
         #     p += ['r2']
         #     p_excl += ['TA', 'PA']
@@ -143,12 +143,12 @@ class SignalTissueLS(Module):
         p = self.map_data(data, kwargs)
 
         seq = self.config['sequence']
-        wght = set(SEQUENCES[seq]['parameters']['tissue'])
+        wght = get_sequence('tissue_params', seq)
 
         relax = Relax(tissue_props=wght, defaults=p)
         signal = Signal(seq, defaults=p)
 
-        C = conc_ls(p['ca'], p['irf'], p['dt'])
+        C = conc_ls(p['c_a'], p['irf'], p['dt'])
         if C.shape[0]==1:
             R = relax(C=C[0,:], R2b=0, R2sb=0)
         else: # Dual-echo sequence - 2 signal channels
@@ -186,7 +186,7 @@ class SignalTissueLS(Module):
     
 # class BaselineSignal(Module):
 #     configs = {
-#         'sequence': [s for s, v in SEQUENCES.items() if v['steady-state']]
+#         'sequence': get_sequence('name')
 #     }  
 #     def __init__(self, sequence='3D-SPGR-SS', **params):
 #         self._cnfg = self._set_config(sequence=sequence)
@@ -213,7 +213,7 @@ class SignalTissueLS(Module):
 
 #         # seq = self._cnfg['sequence']
 #         # p = []
-#         # p_excl = ['R1', 'R2s', 'R2', 'R1i', 'Fi', 'me', 'v', 'Fw']
+#         # p_excl = ['R1', 'R2s', 'R2', 'R1i', 'Fwi', 'me', 'v', 'Fw']
 #         # if seq == '2D-SE-EPI':
 #         #     p_excl += ['TA', 'PA']
 #         # elif seq == '2D-GE-EPI':
@@ -246,7 +246,7 @@ class TissueLS(SuperPixelModel):
     # ==========================================
 
     configs = {
-        'sequence': [s for s, v in SEQUENCES.items() if v['steady-state']]
+        'sequence': get_sequence('name')
     }
     def __init__(
         self, 
@@ -415,9 +415,9 @@ class TissueLS(SuperPixelModel):
                 B1corr=input.B1corr, r1=p['r1']
             )
             t = np.arange(0, np.amax(time) + p['dt'], p['dt'])
-            p['ca'] = np.interp(t, input.time, ca)
+            p['c_a'] = np.interp(t, input.time, ca)
 
-        n_times = p['ca'].size
+        n_times = p['c_a'].size
 
         if self._cnfg['sequence'] in ['2D-DE-EPI']:
             n_channels = 2
@@ -525,7 +525,7 @@ class TissueLS(SuperPixelModel):
     @property
     def _shape(self):
         n_pixels = 1 if self._pixels_shape==() else np.prod(self._pixels_shape)
-        n_times = self._pars['ca'].size
+        n_times = self._pars['c_a'].size
         if self._cnfg['sequence'] in ['Eq-DE-EPI', '2D-DE-EPI']:
             n_channels = 2
         else:
@@ -537,7 +537,7 @@ class TissueLS(SuperPixelModel):
             select = 'all'
         seq = self._cnfg['sequence']
         if select == 'all':
-            return ['ca', 'TS'] + SignalTissueLS(seq).params()
+            return ['c_a', 'TS'] + SignalTissueLS(seq).params()
         if select == 'pixel':
             return [p for p in self._params() if p in ['S0', 'B1corr', 'R1b']]
 
@@ -574,7 +574,7 @@ class TissueLS(SuperPixelModel):
         p['S0'] = np.array([r[1] for r in results]).reshape(self._shape[0])
 
         # Deconvolve with arterial concentration
-        p['irf'] = irf_ls(p['ca'], C, p['dt'], tol=tol)
+        p['irf'] = irf_ls(p['c_a'], C, p['dt'], tol=tol)
 
 
     # ==========================================
@@ -583,7 +583,7 @@ class TissueLS(SuperPixelModel):
 
     def _concentration(self):
         p = self._pars
-        return conc_ls(p['ca'], p['irf'], p['dt'])
+        return conc_ls(p['c_a'], p['irf'], p['dt'])
     
     def _signal(self) -> np.ndarray: # (n_pixels, n_channels, n_times)
         p = self._pars
@@ -591,7 +591,7 @@ class TissueLS(SuperPixelModel):
         def pixel_signal(x) -> np.ndarray: # (n_channels, n_times)
             kwargs_x = self._cnfg | self._pixel_pars(x)
             kwargs_x = {k: v for k, v in kwargs_x.items() if k != 'irf'} | {'irf': p['irf'][x, ...]}
-            S = SignalTissueLS(defaults=kwargs_x)(p['ca'])
+            S = SignalTissueLS(defaults=kwargs_x)(p['c_a'])
             return S.reshape(-1, S.shape[-1])  # (n_channels, n_times)
         
         if self._shape[0]==1:
@@ -603,7 +603,7 @@ class TissueLS(SuperPixelModel):
 
     def _time(self):
         p = self._pars
-        return p['dt'] * np.arange(p['ca'].size) # (n_times, )
+        return p['dt'] * np.arange(p['c_a'].size) # (n_times, )
 
     def _predict(self, time):
         t = self._time()
@@ -668,7 +668,7 @@ class TissueLS(SuperPixelModel):
         ax[1].set_title('Tissue concentrations')
         ax[1].set(ylabel='Concentration (mM)', xlabel='Time (min)')
         ax[1].plot(
-            t / 60, 1000 * p['ca'], linestyle='-', linewidth=5.0,
+            t / 60, 1000 * p['c_a'], linestyle='-', linewidth=5.0,
             color='lightcoral', label='Arterial blood',
         )
         for i in range(C.shape[1]):

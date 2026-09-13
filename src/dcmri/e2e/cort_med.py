@@ -51,14 +51,14 @@ from dcmri.core.model import SuperModel
 from dcmri.core.types import Input
 
 from dcmri.utils import const
-from dcmri.core.sequences import SEQUENCES
+from dcmri.core.tools import get_sequence
 from dcmri.kinetics.modules_conc import ConcCortMed
 from dcmri.signal.modules_tissue import Signal
 from dcmri.inverse.sig2conc import SignalToConc
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
 
-CONSTANTS = {'Fw': 0, 'v': 1, 'me': 1, 'noise_sdev':0}
+CONSTANTS = {'Fw': 0, 'v': 1, 'me': 1, 'NSR':0}
 
 class CortMed(SuperModel):
     """Kidney cortex and medulla with a known input.
@@ -180,7 +180,7 @@ class CortMed(SuperModel):
                 B1corr=input.B1corr, r1=rp, 
             )
             t = np.arange(0, np.amax(np.concatenate(time)) + p['dt'], p['dt'])
-            p['ca'] = np.interp(t, input.time, ca)
+            p['c_a'] = np.interp(t, input.time, ca)
 
         return self._train(time, signal, free, bounds, n0, **kwargs)
 
@@ -243,12 +243,12 @@ class CortMed(SuperModel):
     def _params(self, select=None):
         kin, seq = self._cnfg['kinetics'], self._cnfg['sequence']
         pars_kin = ConcCortMed(kin).params()
-        pars_seq = SEQUENCES[seq]['parameters']['prep']
-        pars_seq += SEQUENCES[seq]['parameters']['read']
+        pars_seq = get_sequence('prep_params', seq)
+        pars_seq += get_sequence('read_params', seq)
 
         if select is None:
             pars_list = [
-                'ca', 'dt', 'field_strength', 'agent',
+                'c_a', 'dt', 'field_strength', 'agent',
                 'H', 'S0_c', 'S0_m', 
                 'R1b_c', 'R1b_m', 
                 'R2sb_c', 'R2sb_m', 
@@ -266,7 +266,7 @@ class CortMed(SuperModel):
     def _compute_concentration(self):
         p = self._pars
         kin = self._cnfg['kinetics']
-        ca = p['ca'] / (1 - p['H'])
+        ca = p['c_a'] / (1 - p['H'])
         self._Cc, self._Cm = ConcCortMed(kin, defaults=p)(ca, dt=p['dt'])
 
     def _compute_relaxation_rate(self):
@@ -288,7 +288,7 @@ class CortMed(SuperModel):
 
     def _set_time(self):
         p = self._pars
-        self._t = p['dt'] * np.arange(p['ca'].size)
+        self._t = p['dt'] * np.arange(p['c_a'].size)
         
     def _predict(self, time) -> Tuple[np.ndarray, np.ndarray]:
         self._set_time()
@@ -340,7 +340,7 @@ class CortMed(SuperModel):
 
         ax1.plot(self._t/60, 1000*self._Cc.sum(axis=0), linestyle='-', linewidth=3.0, color='darkblue', label='Cortex prediction')
         ax1.plot(self._t/60, 1000*self._Cm.sum(axis=0), linestyle='--', linewidth=3.0, color='darkblue', label='Medulla prediction')
-        ax1.plot(self._t/60, 1000*self._pars['ca'], linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
+        ax1.plot(self._t/60, 1000*self._pars['c_a'], linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
         ax1.set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=np.array(xlim)/60)
         ax1.legend()
 

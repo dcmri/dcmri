@@ -441,7 +441,7 @@ def liver(
     aif_ = add_noise(aif_, sdev)
     vif = add_noise(vif, sdev)
     roi = add_noise(roi, sdev)
-    gt = {'t': t, 'cp': cp, 'cv':cv*(1-H), 
+    gt = {'t': t, 'cp': cp, 'c_v':cv*(1-H), 
           'C': np.sum(C,axis=0), 'cb': cp*(1-H),
           've': ve, 'Fp': Fp, 
           'Fb': Fp/(1-H), 'fa': fa, 'Ta': Ta, 'E': E, 'Th': Th,

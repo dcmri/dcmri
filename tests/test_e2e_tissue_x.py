@@ -176,7 +176,7 @@ def test_function():
     # Generate an AIF
     dt, tmax, B0, agent, R1ba, S0a, B1a = 0.5, 180, 3, 'gadoterate', 0.7, 3, 0.75
     FA, TR, TE = 15, 0.005, 0.0 # Defaults
-    CONSTANTS = {'Fw': 0, 'v': 1, 'me': 1, 'noise_sdev':0}
+    CONSTANTS = {'Fw': 0, 'v': 1, 'me': 1, 'NSR':0}
 
     rp = dc.r1(B0, 'blood', agent)
     aif_time = np.arange(0, tmax, dt)
@@ -184,7 +184,7 @@ def test_function():
 
     params = {
         'dt': dt, 
-        'ca': aif_conc, 
+        'c_a': aif_conc, 
         # 'field_strength': B0,
         # 'agent': agent,
         'FA': FA, 

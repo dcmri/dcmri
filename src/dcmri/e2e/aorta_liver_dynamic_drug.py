@@ -379,7 +379,7 @@ def _sample_signal(time, t, S, TS) -> tuple:
     # else:
     #     return tuple([sample(ti, t, S, TS) for ti in time])
 
-CONSTANTS = {'Fw': 0, 'v': 1, 'me': 1, 'noise_sdev':0}
+CONSTANTS = {'Fw': 0, 'v': 1, 'me': 1, 'NSR':0}
 
 class AortaLiverDynamicDrug(SuperModel):
     """Aorta and liver signals over two vists with two scans each.
@@ -623,13 +623,13 @@ class AortaLiverDynamicDrug(SuperModel):
                 # _conc_aorta
                 'dose_tolerance', 'agent', 'weight', 'rate', 
                 'H', 
-                'FFl', 'CO', 'GFR', 'Thl', 'Dhl', 'To', 'To_e', 'Eo',
+                'FFl', 'CO', 'GFR', 'T_hl', 'D_hl', 'Tb_o', 'Te_o', 'E_o',
                 'c_khe_i', 'c_khe_f', 'c_vol',
                 'd_khe_i', 'd_khe_f', 'd_vol', 
                 'c_dose_1', 'c_BAT_1',  'c_dose_2', 'c_BAT_2',
                 'd_dose_1', 'd_BAT_1',  'd_dose_2', 'd_BAT_2',
                 # _conc_liver
-                'Tg', 've',
+                'T_g', 've',
                 'c_kbh', 'd_kbh', 
                 #'c_Kbh', 'd_Kbh',  
                 # _relax_aorta
@@ -652,9 +652,9 @@ class AortaLiverDynamicDrug(SuperModel):
                 # _conc_aorta 
                 'c_BAT_1',  'c_BAT_2',
                 'd_BAT_1',  'd_BAT_2',
-                'FFl', 'CO', 'GFR', 'Thl', 'Dhl', 'To', 'To_e', 'Eo',
+                'FFl', 'CO', 'GFR', 'T_hl', 'D_hl', 'Tb_o', 'Te_o', 'E_o',
                 # _conc_liver
-                'Tg', 've', 
+                'T_g', 've', 
                 'c_khe_i', 'c_khe_f', 'c_kbh', #'c_Kbh', 
                 'd_khe_i', 'd_khe_f', 'd_kbh', #'d_Kbh',
             ],
@@ -703,12 +703,12 @@ class AortaLiverDynamicDrug(SuperModel):
 
         Jb = flux_aorta(
             J, dt=p['dt'], tol=p['dose_tolerance'],
-            heartlung = {'model': 'pfcomp', 'params': {'T':p[f'Thl'], 'D':p[f'Dhl']}},
+            heartlung = {'model': 'pfcomp', 'params': {'T':p[f'T_hl'], 'D':p[f'D_hl']}},
             organs = [
                 # Liver
-                {'vr': Rl, 'model': 'bicomp', 'params': {'T':[p[f'Tg'], Te]}},
+                {'vr': Rl, 'model': 'bicomp', 'params': {'T':[p[f'T_g'], Te]}},
                 # Other organs
-                {'vr': Ro, 'model': '2cxm', 'params': {'T':[p[f'To'], p[f'To_e']], 'E':p[f'Eo']}},
+                {'vr': Ro, 'model': '2cxm', 'params': {'T':[p[f'Tb_o'], p[f'Te_o']], 'E':p[f'E_o']}},
             ]
         )
         return Jb / p[f'CO']
@@ -716,7 +716,7 @@ class AortaLiverDynamicDrug(SuperModel):
     def _conc_liver(self, cb, visit, scans):
         p = self._pars
         
-        # cb = flux_comp(cb, p[f'Tg'], dt=p['dt'])
+        # cb = flux_comp(cb, p[f'T_g'], dt=p['dt'])
         cp = cb / (1 - p['H'])
 
         vh = 1 - p[f've'] / (1 - p['H'])
@@ -730,7 +730,7 @@ class AortaLiverDynamicDrug(SuperModel):
         return ConcLiver('1I-IC', 'U')(
             ci=cp, dt=p['dt'], 
             Ta = 0,
-            Tg = p['Tg'],
+            Tg = p['T_g'],
             ve = p[f've'],
             Fp = Fpl,
             E_i = Eli,
@@ -916,7 +916,7 @@ class AortaLiverDynamicDrug(SuperModel):
             p[f'{visit}_tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time[i0: i0 + 4]))
 
             # Estimate BAT
-            t_hl, d_hl = p[f'Thl'], p[f'Dhl']
+            t_hl, d_hl = p[f'T_hl'], p[f'D_hl']
             bat1 = time[0 + i0][np.argmax(signal[0 + i0])] - (1 - d_hl) * t_hl
             bat2 = time[1 + i0][np.argmax(signal[1 + i0])] - (1 - d_hl) * t_hl
             p[f'{visit}_BAT_1'] = max(bat1, 0)

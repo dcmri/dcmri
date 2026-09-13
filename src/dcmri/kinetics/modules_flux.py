@@ -20,39 +20,33 @@ class Flux(Module):
         'block': 'comp',
     }
     def inputs(self):
-        # TODO: Better to change the functions to use the same parametrization T1, T2 vs T=[T1, T2] etc
         inputs = set(blocks.FLUX_PARAMETERS[self.config['block']])
-        if self.config['block']=='plucom':
-            inputs -= {'T'}
-            inputs |= {'Tc', 'Tp'}
-        elif self.config['block']=='2cxm':
-            inputs -= {'T'}
-            inputs |= {'T1', 'T2'} 
         return inputs
     
     def outputs(self):
-        outputs = {'J'}
-        if self.config['block']=='plucom':
-            outputs |= {'Jc', 'Jp'}
-        return outputs
+        return {'J'}
     
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)
         model_func = getattr(blocks, f"flux_{self.config['block']}") 
-
-        if self.config['block']=='plucom':
-            p |= {'T': [p['Tc'], p['Tp']]}
-            p.pop('Tc'), p.pop('Tp')
-            Jc, Jp, J = model_func(**p)
-            return {'J': J, 'Jc': Jc, 'Jp': Jp}
-        
-        if self.config['block']=='2cxm':
-            p |= {'T': [p['T1'], p['T2']]}
-            p.pop('T1'), p.pop('T2')
-        J = model_func(**p)
-        results = {'J': J}
+        results = {'J': model_func(**p)}
         return self.map_results(results)
 
+    def dummy_data(self, nt=5, nc=2):
+        data = self.init_data()
+        data['J'] = np.ones(nt)
+        data['h'] = [1]
+        data['TT'] = [0, 1]
+        if self.config['block'] in ['bicomp', 'plucom', '2cxm']:
+            data['T'] = [1, 1]
+        if self.config['block'] == 'ncomp':
+            data['T'] = np.ones(nc)
+            data['J'] = np.ones((nc, nt))
+            data['E'] = np.ones((nc, nc))
+        if self.config['block'] == 'nscomp':
+            data['T'] = np.ones(nt)
+        return data
+    
 
 class FluxInjection(Module):
     """Indicator flux injected"""
@@ -63,6 +57,7 @@ class FluxInjection(Module):
     defaults = {
         'bolus': 'single',
     }
+
     def inputs(self):
         inputs = {'tmax', 'dt', 'agent', 'weight'}
         if self.config['bolus'] == 'single':
@@ -71,13 +66,13 @@ class FluxInjection(Module):
             }
         else:
             inputs |= {
-                'dose_1', 'rate_1', 'BAT',
-                'dose_2', 'rate_2', 'bolus_delay'
+                'dose_1', 'rate_1', 'BAT_1',
+                'dose_2', 'rate_2', 'BAT_2'
             }
         return inputs
     
     def outputs(self):
-        return {'t', 'Ji'}
+        return {'tC', 'Jinj'}
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)
@@ -91,14 +86,15 @@ class FluxInjection(Module):
             )
         else:
             J1 = ca_injection(
-                t, p['weight'], conc, p['dose_1'], p['rate_1'], p['BAT']
+                t, p['weight'], conc, p['dose_1'], p['rate_1'], p['BAT_1']
             )
             J2 = ca_injection(
-                t, p['weight'], conc, p['dose_2'], p['rate_2'], p['BAT'] + p['bolus_delay']
+                t, p['weight'], conc, p['dose_2'], p['rate_2'], p['BAT_2']
             )
             J = J1 + J2
-        
-        return self.map_results({'t': t, 'Ji': J})
+
+        results = {'tC': t, 'Jinj': J}
+        return self.map_results(results)
 
 
 class FluxTissueX(Module):
@@ -113,27 +109,33 @@ class FluxTissueX(Module):
     }
     defaults = {
         'kinetics': '2CX',
-    }  
+    }
          
     def inputs(self):
         inputs = set(pk_tissue.FLUX_PARAMETERS[self.config['kinetics']])
-        inputs |= {'Ta', 'ca', 'dt'}
+        inputs |= {'T_ar', 'c_ar', 'dt'}
         return inputs
     
     def outputs(self):
-        return ['J']
+        return {'J'}
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)
 
-        ca = flux_plug(p['ca'], dt=p['dt'], T=p['Ta'])
-        p = {k: v for k, v in p.items() if k not in ['ca', 'Ta']}
+        ca = flux_plug(p['c_ar'], dt=p['dt'], T=p['T_ar'])
+        p = {k: v for k, v in p.items() if k not in ['c_ar', 'T_ar']}
 
         flux = 'flux_tissue_' + self.config['kinetics'].lower()   
         model_func = getattr(pk_tissue, flux)  
         results = {'J':model_func(ca, **p)}
 
         return self.map_results(results)
+
+    def dummy_data(self, nt=5):
+        data = self.init_data()
+        data['c_ar'] *= np.ones(nt)
+        return data
+    
 
 class FluxAorta(Module):
     """Whole-body model for indicator flux in the aorta.
@@ -159,67 +161,88 @@ class FluxAorta(Module):
         'lagut': None,
         'bolus': 'single',
     }
-    def __init__(self, imap:dict=None, omap:dict=None, **config):
-        self.set_config(config)
+
+    def __init__(self, imap:dict=None, omap:dict=None, iomap: dict=None, cmap: dict=None, **config):
+        self.set_config(config, cmap)
         if self.config['lagut'] is not None:
             if self.config['liver'] is None:
                 raise InvalidConfiguration("A liver artery and gut component requires a liver component too.")
             
-        self._flux_injection = FluxInjection(self.config)
-        self._flux_heartlung = Flux({'T': 'Thl', 'D': 'Dhl'}, block= self.config['heartlung'])
-        self._flux_organs = Flux({'T':'To', 'T1': 'To', 'T2': 'To_e', 'E':'Eo'}, block = self.config['organs'])
+        self._flux_injection = FluxInjection(**self.config)
+        self._flux_heartlung = Flux({'T': 'T_hl', 'D': 'D_hl'}, block=self.config['heartlung'])
+        self._flux_organs = Flux({'T':'T_or', 'E':'E_or'}, block=self.config['organs'])
         if self.config['kidneys'] is not None:
-            self._flux_lk = Flux({'T':'Tp_lk'}, block=self.config['kidneys'])
-            self._flux_rk = Flux({'T':'Tp_rk'}, block=self.config['kidneys'])
+            self._flux_lk = Flux({'T':'T_p_lk'}, block=self.config['kidneys'])
+            self._flux_rk = Flux({'T':'T_p_rk'}, block=self.config['kidneys'])
         if self.config['liver'] is not None:
-            self._flux_liver = Flux({'T':'Te_l'}, block=self.config['liver'])
+            self._flux_liver = Flux({'T':'T_e_li'}, block=self.config['liver'])
         if self.config['lagut'] is not None:
-            self._flux_lagut = Flux({'T':'Tg', 'Tp':'Ta', 'Tc':'Tg', 'fp':'fa'}, block=self.config['lagut'])
+            self._flux_lagut = Flux({'T':'T_lag', 'ffp':'ffa'}, block=self.config['lagut'])
 
-        self.map_io(imap, omap)
+        self.map_io(imap, omap, iomap)
         
     def inputs(self):
-        inputs = self._flux_injection.mapped_inputs()
+        inputs = set()
+        if self.config['organs'] == '2cxm':
+            inputs |= {'T_b_or', 'T_e_or'}
+        else:
+            inputs |= {'T_b_or'}
+        if self.config['lagut'] == 'plucom':
+            inputs |= {'T_la', 'T_gu'}
+        else:
+            inputs |= {'T_gu'}
+        inputs |= self._flux_injection.mapped_inputs()
         inputs |= self._flux_heartlung.mapped_inputs()
-        inputs |= {'vr_o'} | self._flux_organs.mapped_inputs()
+        inputs |= {'vr_or'} | self._flux_organs.mapped_inputs()
         if self.config['kidneys'] is not None:
             inputs |= {'vr_lk'} | self._flux_lk.mapped_inputs()
             inputs |= {'vr_rk'} | self._flux_rk.mapped_inputs()
         if self.config['liver'] is not None:
-            inputs |= {'vr_l'} | self._flux_liver.mapped_inputs()
+            inputs |= {'vr_li'} | self._flux_liver.mapped_inputs()
         if self.config['lagut'] is not None:
             inputs |= self._flux_lagut.mapped_inputs()
 
         inputs |= {'dt', 'dose_tolerance'}
-        inputs -= {'Ji', 'J'} # derived
+        inputs -= {'Jinj', 'J', 'T_or', 'T_lag'} # derived
         return inputs
     
     def outputs(self):
-        outputs = {'t', 'Ja', 'Jv', 'Jo'}
+        outputs = {'tC', 'J_ao', 'J_ve', 'J_or'}
         if self.config['kidneys'] is not None:
-            outputs |= {'Jlk', 'Jrk'}
+            outputs |= {'J_lk', 'J_rk'}
         if self.config['liver'] is not None:
-            outputs |= {'Jl'}
+            outputs |= {'J_li'}
             if self.config['lagut'] is not None:
-                outputs |= {'Jlag'}
+                outputs |= {'J_lag'}
                 if self._flux_lagut.config['block']=='plucom':
-                    outputs |= {'Jla', 'Jpv'}
-
+                    outputs |= {'J_la', 'J_pv'}
         return outputs 
     
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)
+
+        # Format MTTs
+        if self.config['organs'] == '2cxm':
+            p['T_or'] = [p['T_b_or'], p['T_e_or']]
+        else:
+            p['T_or'] = p['T_b_or'] 
+
+        if self.config['lagut'] == 'plucom':
+            p['T_lag'] = [p['T_la'], p['T_gu']]
+        else:
+            p['T_lag'] = p['T_gu']
+
         max_it = 500
 
         influx = self._flux_injection(p)
-        J_aorta = self._flux_heartlung(p, J=influx['Ji'])['J']
+        J_aorta = self._flux_heartlung(p, J=influx['Jinj'])['J']
         dose = trapezoid(J_aorta, dx=p['dt'])
         min_dose = p['dose_tolerance'] * dose
 
         J_aorta_total = J_aorta
         it=0
         while True:
-            J_aorta = self._propagate_J_aorta(p, J_aorta)['Ja']
+            J_aorta = self._propagate_J_aorta(p, J_aorta)['J_ao']
             J_aorta_total += J_aorta
 
             dose = trapezoid(J_aorta, dx=p['dt'])
@@ -229,7 +252,7 @@ class FluxAorta(Module):
             it += 1
             if it > max_it:
                 break
-        results = {'t': influx['t']} | self._propagate_J_aorta(p, J_aorta_total)
+        results = {'tC': influx['tC']} | self._propagate_J_aorta(p, J_aorta_total)
 
         return self.map_results(results)
 
@@ -238,27 +261,29 @@ class FluxAorta(Module):
         # Store all results along the way so they can be returned
         result = {}
         Jv = np.zeros_like(Ja)
-        result['Jo'] = self._flux_organs(p | {'J': Ja})['J']
-        Jv += p['vr_o'] * result['Jo']
+        result['J_or'] = self._flux_organs(p | {'J': Ja})['J']
+        Jv += p['vr_or'] * result['J_or']
 
         if self.config['kidneys'] is not None:
-            result['Jlk'] = self._flux_lk(p | {'J': Ja})['J']
-            result['Jrk'] = self._flux_rk(p | {'J': Ja})['J']
-            Jv += p['vr_lk'] * result['Jlk']
-            Jv += p['vr_rk'] * result['Jrk']
+            result['J_lk'] = self._flux_lk(p | {'J': Ja})['J']
+            result['J_rk'] = self._flux_rk(p | {'J': Ja})['J']
+            Jv += p['vr_lk'] * result['J_lk']
+            Jv += p['vr_rk'] * result['J_rk']
 
         if self.config['liver'] is not None:
             if self.config['lagut'] is not None:
                 Jlag = self._flux_lagut(p | {'J': Ja})
-                result['Jlag'] = Jlag['J']
-                if self._flux_lagut.config['block']=='plucom':
-                    result['Jla'] = Jlag['Jp']
-                    result['Jpv'] = Jlag['Jc']
+                if Jlag['J'].ndim==2:
+                    result['J_lag'] = Jlag['J'].sum(axis=0)
+                    result['J_la'] = Jlag['J'][0]
+                    result['J_pv'] = Jlag['J'][1]
+                else:
+                    result['J_lag'] = Jlag['J']
             else:
-                result['Jlag'] = Ja
-            result['Jl'] = self._flux_liver(p | {'J': result['Jlag']})['J']
-            Jv += p['vr_l'] * result['Jl']
+                result['J_lag'] = Ja
+            result['J_li'] = self._flux_liver(p | {'J': result['J_lag']})['J']
+            Jv += p['vr_li'] * result['J_li']
 
         Ja = self._flux_heartlung(p | {'J': Jv})['J']
-        return result | {'Ja': Ja, 'Jv':Jv}
+        return result | {'J_ao': Ja, 'J_ve':Jv}
     

@@ -127,8 +127,7 @@ import numpy as np
 
 from dcmri.core.roi_model import SuperRoiModel
 from dcmri.core.quantities import QUANTITIES
-from dcmri.core.sequences import SEQUENCES
-from dcmri.core.tools import export_params
+from dcmri.core.tools import export_params, get_sequence
 from dcmri.utils import const
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
@@ -397,7 +396,7 @@ class AortaLiverDrug(SuperRoiModel):
     
     # Helper function
     def _tissue_props(self, roi):
-        return set(SEQUENCES[self._sequence(roi)]['parameters']['tissue'])
+        return get_sequence('tissue_params', self._sequence(roi))
     
     # ==========================================
     # Model Parameters
@@ -428,14 +427,14 @@ class AortaLiverDrug(SuperRoiModel):
                 # _conc_aorta
                 'dt', 'c_tmax', 'd_tmax', 
                 'dose_tolerance', 'agent', 'weight', 'rate',  
-                'H', 'Thl', 'Dhl', 'To', 'To_e', 'Eo', 
+                'H', 'T_hl', 'D_hl', 'Tb_o', 'Te_o', 'E_o', 
                 'fCO_l', 'CO', 'GFR',
                 'c_khe', 'c_vol',
                 'd_khe', 'd_vol', 
                 'c_dose', 'd_dose',
                 'c_BAT', 'd_BAT',
                 # _conc_liver
-                'Tg', 've', 
+                'T_g', 've', 
                 'c_kbh', 'd_kbh', 
                 #'c_Kbh', 'd_Kbh', 
                 # _relax_aorta
@@ -459,9 +458,9 @@ class AortaLiverDrug(SuperRoiModel):
             pars = [
                 # _conc_aorta 
                 'c_BAT', 'd_BAT',
-                'fCO_l', 'CO', 'GFR', 'Thl', 'Dhl', 'To', 'To_e', 'Eo',
+                'fCO_l', 'CO', 'GFR', 'T_hl', 'D_hl', 'Tb_o', 'Te_o', 'E_o',
                 # _conc_liver
-                'Tg', 've', 
+                'T_g', 've', 
                 'c_khe', 'c_kbh', #'c_Kbh',
                 'd_khe', 'd_kbh', #'d_Kbh',
             ]
@@ -512,7 +511,7 @@ class AortaLiverDrug(SuperRoiModel):
         }[roi]
         FA = p[f'{visit}_FA']
         B1 = p[f'{visit}_B1corr_{roi}']
-        const = {'Fw': 0, 'v': 1, 'me': 1, 'noise_sdev':0, 'FA': FA, 'B1corr': B1}
+        const = {'Fw': 0, 'v': 1, 'me': 1, 'NSR':0, 'FA': FA, 'B1corr': B1}
         signal = Signal(roi_seq, defaults=p)
     
         # Derive S0 from the baseline signal
@@ -551,7 +550,7 @@ class AortaLiverDrug(SuperRoiModel):
         for i, visit in enumerate(['c', 'd']):
             p[f'{visit}_tmax'] = p['dt'] + p['TS'] + np.max(np.concatenate(time[2 * i: 2 * i + 2]))
 
-            t_hl, d_hl = p[f'Thl'], p[f'Dhl']
+            t_hl, d_hl = p[f'T_hl'], p[f'D_hl']
             bat = time[2 * i][np.argmax(signal[2 * i])] - (1 - d_hl) * t_hl
             p[f'{visit}_BAT'] = max(bat, 0)
 

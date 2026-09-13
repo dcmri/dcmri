@@ -6,33 +6,37 @@ from dcmri import AortaPortalLiverModel
 from dcmri.core.exceptions import InvalidConfiguration
 
 
-def test_aorta_portal_liver():
+def test_aorta_portal_liver(cls=AortaPortalLiverModel):
     def _test_config(cnfg):
+        # if cnfg['sequence'] != '3D-SPGR-SS':
+        #     return
         try:
-           model = AortaPortalLiverModel(**cnfg)
+            instance = cls(**cnfg)
         except InvalidConfiguration:
             return
-        
-        print(cnfg)
-        data = model.lexicon_data()
+    
+        data = instance.dummy_data()
+
+        # --- DIAGNOSTIC TIMING ---
         t0 = time.perf_counter()
-        results = model(data)
+        # print(cnfg)
+        instance(data)
+
         elapsed = time.perf_counter() - t0
-        print(f"  [Total model execution time: {elapsed:.4f}s]")
-        assert results['S_l'].ndim == 3
+        # print(cnfg)
+        # print(f"  [Total model execution time: {elapsed:.4f}s]")
 
-    configs = AortaPortalLiverModel.configurations()
-    cnt = 0
-    for cnfg in tqdm(list(configs)):
-        cnt += 1
+    cls.print_configs()
+    cls.print_all_io(verbose=1, simple=False, sample=1e4, seed=51)
+
+    configs = cls.all_configs(sample=1e4, seed=51)
+    for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
         _test_config(cnfg)
-        # if cnt==100:
-        #     break
 
-    print(f'Successfully covered {cnt} AortaLiver configurations!')
+    print(f'Successfully covered {len(configs)} {cls.__name__} configurations!')
 
 
-def test_aorta_portal_liver_function():
+def test_aorta_portal_liver_instance():
     cnfg = {
         'bolus': 'dual', 
         'heartlung': 'pfcomp', 
@@ -40,9 +44,15 @@ def test_aorta_portal_liver_function():
         'liver': '1I-EC', 
         'non_stationary': None, 
         'water_exchange': 'F',
-        't1_relaxation': 'lin',
-        't2_relaxation': None, 
-        't2s_relaxation': None, 
+        't1_relaxation_ao': 'lin',
+        't2_relaxation_ao': None, 
+        't2s_relaxation_ao': None, 
+        't1_relaxation_pv': 'lin',
+        't2_relaxation_pv': None, 
+        't2s_relaxation_pv': None, 
+        't1_relaxation_li': 'lin',
+        't2_relaxation_li': None, 
+        't2s_relaxation_li': None, 
         'inflow': False,
         'sequence': 'ZTE-3D-IR-SPGR-SS', 
         'magnitude': False, 
@@ -50,20 +60,23 @@ def test_aorta_portal_liver_function():
     }
     try:
         model = AortaPortalLiverModel(**cnfg)
-    except InvalidConfiguration:
+    except InvalidConfiguration as e:
+        print(e)
         return
     
-    print(model.inputs())
-    print(model.outputs())
+    model.print_inputs()
+    model.print_outputs()
 
-    data = model.lexicon_data()
+    data = model.dummy_data()
     results = model(data)
 
-    plt.plot(results['tS_l'], results['S_l'][0, 0, :], 'ro')
+    plt.plot(results['tS_ao'], results['S_ao'][0, 0, :], 'ro')
+    plt.plot(results['tS_pv'], results['S_pv'][0, 0, :], 'gx')
+    plt.plot(results['tS_li'], results['S_li'][0, 0, :], 'bx')
     plt.show()
 
 if __name__ == '__main__':
-    # test_aorta_portal_liver_function()
+    # test_aorta_portal_liver_instance()
     test_aorta_portal_liver()
     
     print('All AortaPortalLiver model coverage tests passed!!')

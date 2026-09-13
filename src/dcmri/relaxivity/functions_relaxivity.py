@@ -1,5 +1,7 @@
 import numpy as np
 
+from dcmri.utils.const import r1
+
 
 def mix_fast_exchange(v, R, fx):
     """
@@ -128,12 +130,14 @@ def relax_t2(c, R2b, r2=None, model='lin') -> np.ndarray:
         np.ndarray: Array with longitudinal relaxivities, same shape as C.
     """
     if model == 'lin':
+        if np.isnan(r2):
+            return np.full_like(c, R2b)
         return np.array(R2b) + np.array(r2) * np.array(c)
     
     raise ValueError(f'Model {model} not recognized. Must be "lin".')
 
 
-def relax_t1(c, R1b, r1) -> np.ndarray:
+def relax_t1(c, R1b, r1, model='lin') -> np.ndarray:
     """Derive longitudinal R1 from tissue concentrations assuming a linear 
     relation.
 
@@ -151,6 +155,9 @@ def relax_t1(c, R1b, r1) -> np.ndarray:
     Returns:
         np.ndarray: Array with longitudinal relaxivities, same shape as C.
     """
+    if model == 'lin':
+        if np.isnan(r1):
+            return np.full_like(c, R1b)
     return np.array(R1b) + np.array(r1) * np.array(c)
 
 def conc_t1(R1, r1) -> np.ndarray:

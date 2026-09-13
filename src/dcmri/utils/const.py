@@ -1,62 +1,5 @@
-
-import copy
-
-
-AGENTS = [
-    'gadoxetate',
-    'gadobutrol',
-    'gadopentetate',
-    'gadobenate',
-    'gadodiamide',
-    'gadoterate',
-    'gadoteridol',
-    'gadopiclenol',
-]
-
-# -----------------------------------------------------------------------------
-# Global Relaxivity Databases (Hz/mM)
-# -----------------------------------------------------------------------------
-
-_R1_RELAXIVITY = {
-    'plasma': {
-        'gadopiclenol': {1.5: 12.8, 3.0: 11.6},
-        'gadopentetate': {0.47: 3.8, 1.5: 4.1, 3.0: 3.7, 4.7: 3.8}, # Magnevist
-        'gadobutrol': {0.47: 6.1, 1.5: 5.2, 3.0: 5.0, 4.7: 4.7}, # Gadovist
-        'gadoteridol': {0.47: 4.8, 1.5: 4.1, 3.0: 3.7, 4.7: 3.7}, # Prohance
-        'gadobenade': {0.47: 9.2, 1.5: 6.3, 3.0: 5.5, 4.7: 5.2}, # Multihance
-        'gadoterate': {0.47: 4.3, 1.5: 3.6, 3.0: 3.5, 4.7: 3.3}, # Dotarem
-        'gadodiamide': {0.47: 4.4, 1.0: 4.35, 1.5: 4.3, 3.0: 4.0, 4.7: 3.9}, # Omniscan
-        'mangafodipir': {0.47: 3.6, 1.5: 3.6, 3.0: 2.7, 4.7: 2.2}, # Teslascan
-        'gadoversetamide': {0.47: 5.7, 1.5: 4.7, 3.0: 4.5, 4.7: 4.4}, # Optimark
-        'ferucarbotran': {0.47: 15.0, 1.5: 7.4, 3.0: 3.3, 4.7: 1.7},  # Resovist
-        'ferumoxide': {1.5: 4.5, 3.0: 2.7, 4.7: 1.2}, # Feridex
-        'gadoxetate': {0.47: 8.7, 1.5: 8.1, 3.0: 6.4, 4.7: 6.4, 7.0: 6.2, 9.0: 6.1}, # Primovist
-    }
-}
-
-# Deep-copy plasma parameters over for hepatocytes as base configuration
-_R1_RELAXIVITY['hepatocytes'] = copy.deepcopy(_R1_RELAXIVITY['plasma'])
-_R1_RELAXIVITY['hepatocytes']['gadoxetate'] = {
-    1.5: 14.6, 3.0: 9.8, 4.7: 7.6, 7.0: 6.0, 9.0: 6.1
-}
-
-# Known literature value mapping for pure r2 (spin-echo / CPMG sequence data).
-# Missing entries are entirely omitted to leave out unknown combinations.
-_R2_RELAXIVITY = {
-    'plasma': {
-        'gadopiclenol': {1.5: 13.2, 3.0: 15.4},
-        'gadopentetate': {0.47: 4.6, 1.5: 4.6, 3.0: 4.8, 4.7: 5.0},
-        'gadobutrol': {0.47: 7.3, 1.5: 6.1, 3.0: 7.4, 4.7: 6.1},
-        'gadoteridol': {0.47: 5.6, 1.5: 5.0, 3.0: 4.9, 4.7: 5.1},
-        'gadobenade': {0.47: 10.9, 1.5: 8.4, 3.0: 8.1, 4.7: 8.3},
-        'gadoterate': {0.47: 5.1, 1.5: 4.4, 3.0: 4.7, 4.7: 4.5},
-        'gadodiamide': {0.47: 5.2, 1.5: 5.1, 3.0: 5.0, 4.7: 5.2},
-        'mangafodipir': {0.47: 4.2, 1.5: 4.4, 3.0: 3.6, 4.7: 3.1},
-        'gadoversetamide': {0.47: 6.8, 1.5: 5.9, 3.0: 6.0, 4.7: 6.2},
-        'gadoxetate': {0.47: 10.8, 1.5: 10.1, 3.0: 8.8, 4.7: 9.1},
-    }
-}
-_R2_RELAXIVITY['hepatocytes'] = copy.deepcopy(_R2_RELAXIVITY['plasma'])
+import dcmri.core.values as values
+import dcmri.core.quantities as quantities
 
 
 def ca_conc(agent: str) -> float:
@@ -84,26 +27,17 @@ def ca_conc(agent: str) -> float:
 
         import dcmri as dc
 
-        print('gadobutrol is available in a solution of', dc.ca_conc('gadobutrol'), 'M')
-        print('gadoterate is available in a solution of', dc.ca_conc('gadoterate'), 'M')
+        print('gadobutrol is available in a solution of', dc.ca_conc('gadobutrol'), 'mmol/mL')
+        print('gadoterate is available in a solution of', dc.ca_conc('gadoterate'), 'mmol/mL')
     """
-    if agent == 'gadoxetate':
-        return 0.25     # mmol/mL
-    if agent == 'gadobutrol':
-        return 1.0      # mmol/mL
-    if agent in [
-        'gadopentetate',
-        'gadobenate',
-        'gadodiamide',
-        'gadoterate',
-        'gadoteridol',
-        'gadopiclenol',
-    ]:
-        return 0.5  # mmol/mL
-    raise ValueError(
-        f"No concentration data for contrast agent {agent}."
-        f"Possible values are {AGENTS}."
-    )
+    try:
+        return values.CA_CONC[agent]
+    except KeyError:
+        raise ValueError(
+            f"No concentration data for contrast agent {agent}. "
+            f"Currently values are only available for {values.CA_CONC.keys()}. "
+            f"Please extend the dictionary with literature values."
+        ) from None # No traceback to KeyError shown
 
 
 def ca_std_dose(agent: str) -> float:
@@ -142,25 +76,14 @@ def ca_std_dose(agent: str) -> float:
         The standard clinical dose of gadobutrol is 0.1 mL/kg
     """
     # """Standard dose in mL/kg""" # better in mmol/kg, or offer it as an option
-    if agent == 'gadoxetate':
-        # https://www.bayer.com/sites/default/files/2020-11/primovist-pm-en.pdf
-        return 0.1  # mL/kg
-    if agent == 'gadobutrol':
-        return 0.1      # mL/kg
-    if agent == 'gadopiclenol':
-        return 0.1      # mL/kg
-    if agent in [
-            'gadopentetate',
-            'gadobenate',
-            'gadodiamide',
-            'gadoterate',
-            'gadoteridol',
-    ]:
-        return 0.2      # mL/kg  # 0.5 mmol/mL = 0.1 mmol/kg
-    raise ValueError(
-        f"No data available for contrast agent {agent}."
-        f"Possible values are {AGENTS}."
-    )
+    try:
+        return values.CA_DOSE[agent]
+    except KeyError:
+        raise ValueError(
+            f"No data available for contrast agent {agent}."
+            f"Currently values are only available for {values.CA_DOSE.keys()}. "
+            f"Please extend the dictionary with literature values."
+        ) from None
 
 
 
@@ -170,9 +93,10 @@ def relaxivity(field_strength=3.0, tissue='plasma', agent='gadoxetate') -> dict:
         'r1': r1(field_strength, tissue, agent),
         'r2': r2(field_strength, tissue, agent),
         'r2s': r2s(field_strength, tissue, agent),
+        'r2sq': 1e3,
     }
 
-def r1(field_strength=3.0, tissue='plasma', agent='gadoxetate') -> float:
+def r1(field_strength=3.0, tissue='plasma', agent='gadoxetate', force=False) -> float:
     """Longitudinal contrast agent relaxivity values in units of Hz/M
 
     Args:
@@ -227,19 +151,25 @@ def r1(field_strength=3.0, tissue='plasma', agent='gadoxetate') -> float:
         >>> print('The plasma relaxivity of gadobutrol at 3T is', 1e-3*dc.relaxivity(3.0, 'plasma', 'gadobutrol'), 'Hz/mM')
         The plasma relaxivity of gadobutrol at 3T is 5.0 Hz/mM
     """
-    if tissue == 'blood':
-        tissue = 'plasma'
-        
-    try:
-        # Values in dictionary are stored in Hz/mM; convert to Hz/M (multiply by 1000)
-        return 1000.0 * _R1_RELAXIVITY[tissue][agent][field_strength]
-    except KeyError:
-        raise ValueError(
-            f"No r1 relaxivity data available for {agent} in {tissue} at {field_strength} T."
-        )
+
+    val = values.R1_RELAXIVITY
+    map = quantities.COMPS | quantities.ROIS
+
+    tissue_key = tissue if tissue in val else map.get(tissue)
+
+    if tissue_key in val and agent in val[tissue_key] and field_strength in val[tissue_key][agent]:
+        return 1000 * val[tissue_key][agent][field_strength]
+
+    if force:
+        raise ValueError(f'No r1 values for {agent} in {tissue} at {field_strength} T.')
+
+    if agent in val['plasma'] and field_strength in val['plasma'][agent]:
+        return 1000 * val['plasma'][agent][field_strength]
+
+    raise ValueError(f"No plasma r1 values for agent {agent} at field strength {field_strength}")
     
 
-def r2(field_strength=3.0, tissue='plasma', agent='gadoxetate') -> float:
+def r2(field_strength=3.0, tissue='plasma', agent='gadoxetate', force=False) -> float:
     """Transverse contrast agent relaxivity values in units of Hz/M
 
     Args:
@@ -294,29 +224,56 @@ def r2(field_strength=3.0, tissue='plasma', agent='gadoxetate') -> float:
         >>> print('The plasma relaxivity of gadobutrol at 3T is', 1e-3*dc.relaxivity(3.0, 'plasma', 'gadobutrol'), 'Hz/mM')
         The plasma relaxivity of gadobutrol at 3T is 5.0 Hz/mM
     """
-    if tissue == 'blood':
-        tissue = 'plasma'
-        
-    try:
-        # Values in dictionary are stored in Hz/mM; convert to Hz/M (multiply by 1000)
-        return 1000.0 * _R2_RELAXIVITY[tissue][agent][field_strength]
-    except KeyError:
-        raise ValueError(
-            f"No r1 relaxivity data available for {agent} in {tissue} at {field_strength} T."
-        )
+    val = values.R2_RELAXIVITY
+    map = quantities.COMPS | quantities.ROIS
+
+    tissue_key = tissue if tissue in val else map.get(tissue)
+
+    if tissue_key in val and agent in val[tissue_key] and field_strength in val[tissue_key][agent]:
+        return 1000 * val[tissue_key][agent][field_strength]
+
+    if force:
+        raise ValueError(f'No r2 values for {agent} in {tissue} at {field_strength} T.')
+
+    if agent in val['plasma'] and field_strength in val['plasma'][agent]:
+        return 1000 * val['plasma'][agent][field_strength]
+
+    raise ValueError(f"No plasma r2 values for agent {agent} at field strength {field_strength}")
 
 
-def r2s(field_strength=3.0, tissue='blood', agent='gadoxetate') -> float:
+def r2s(field_strength=3.0, tissue='blood', agent='gadoxetate', force=False) -> float:
     """R2*-relaxivity"""
-    if tissue=='blood':
-        # Estimated from the range [0, 5mM] in data by van Osch MJ, Vonken EJ, Viergever MA, van der Grond J, Bakker CJ. Measuring the arterial input function with gradient echo sequences. Magn Reson Med 2003;49:1067–1076
-        return 10e3
-    else:
-        # TODO: Look up literature values
-        return 20e3
+    val = values.R2_STAR_RELAXIVITY
+    map = quantities.COMPS | quantities.ROIS
+
+    tissue_key = tissue if tissue in val else map.get(tissue)
+
+    if tissue_key in val:
+        return 1000 * val[tissue_key]
+
+    if force:
+        raise ValueError(f'No r2* values for {tissue}.')
+
+    return 1000 * val['blood']
 
 
-def T1(field_strength=3.0, tissue='blood', Hct=0.45) -> float:
+def r2sq(field_strength=3.0, tissue='blood', agent='gadoxetate', force=False) -> float:
+    """R2*-relaxivity"""
+    val = values.R2_STAR_RELAXIVITY_SQ
+    map = quantities.COMPS | quantities.ROIS
+
+    tissue_key = tissue if tissue in val else map.get(tissue)
+
+    if tissue_key in val:
+        return 1000 * val[tissue_key]
+
+    if force:
+        raise ValueError(f'No r2* values for {tissue}.')
+
+    return 1000 * val['blood']
+
+
+def T1(field_strength=3.0, tissue='blood', Hct=0.45, force=False) -> float:
     """T1 value of selected tissue types.
 
     Values are taken from literature, mostly from `Stanisz et al 2005 <https://doi.org/10.1002/mrm.20605>`_
@@ -325,6 +282,8 @@ def T1(field_strength=3.0, tissue='blood', Hct=0.45) -> float:
         field_strength (float, optional): Field strength in Tesla (see below for options). Defaults to 3.0.
         tissue (str, optional): Tissue type (see below for options). Defaults to 'blood'.
         Hct (float, optional): Hematocrit value - ignored when tissue is not blood. Defaults to 0.45.
+        force: By default a blood value is returned for any compartments that don't have a dedicated value. 
+            Set Force=True to override this behaviour and raise an exception instead.
 
     Raises:
         ValueError: If the requested T1 values are not available.
@@ -368,88 +327,29 @@ def T1(field_strength=3.0, tissue='blood', Hct=0.45) -> float:
     # H. M. Gach, C. Tanase and F. Boada, "2D & 3D Shepp-Logan Phantom
     # Standards for MRI," 2008 19th International Conference on Systems
     # Engineering, Las Vegas, NV, USA, 2008, pp. 521-526, doi:
-    # 10.1109/ICSEng.2008.15.
+    # 10.1109/ICSEng.2008.15
 
-    T1val = {
-        'skin': {  # Gach 2008 (scalp)
-            1.5: 0.324 * (1.5**0.137),
-            3.0: 0.324 * (3.0**0.137),
-        },
-        'bone marrow': {  # Gach 2008
-            1.5: 0.533 * (1.5**0.088),
-            3.0: 0.533 * (3.0**0.088),
-        },
-        'csf': {  # Gach 2008
-            1.5: 4.20,
-            3.0: 4.20,
-        },
-        'muscle': {
-            1.5: 1.008,
-            3.0: 1.412,
-        },
-        'heart': {
-            1.5: 1.030,
-            3.0: 1.471,
-        },
-        'cartilage': {
-            1.5: 1.024,
-            3.0: 1.168,
-        },
-        'white matter': {
-            1.5: 0.884,
-            3.0: 1.084,
-        },
-        'gray matter': {
-            1.5: 1.124,
-            3.0: 1.820,
-        },
-        'optic nerve': {
-            1.5: 0.815,
-            3.0: 1.083,
-        },
-        'spinal cord': {
-            1.5: 0.745,
-            3.0: 0.993,
-        },
-        'blood': {
-            1.0: 1.378,  # Extrapolated
-            1.5: 1.441,
-            3.0: 1 / (0.52 * Hct + 0.38),  # Lu MRM 2004
-            4.7: 1 / 1.70,  # https://cds.ismrm.org/ismrm-2002/PDF4/1048.PDF
-            7.0: 1 / 2.29,  # 10.1016/j.mri.2012.08.008
-        },
-        'spleen': {
-            4.7: 1 / 0.631,
-            7.0: 1 / 0.611,
-            9.0: 1 / 0.600,
-        },
-        'liver': {
-            1.5: 0.602,  # liver R1 in 1/sec (Waterton 2021)
-            3.0: 0.752,  # liver R1 in 1/sec (Waterton 2021)
-            # liver R1 in 1/sec (Changed from 1.285 on 06/08/2020)
-            4.7: 1 / 1.281,
-            # liver R1 in 1/sec (Changed from 0.8350 on 06/08/2020)
-            7.0: 1 / 1.109,
-            # per sec - liver R1 (https://doi.org/10.1007/s10334-021-00928-x)
-            9.0: 1 / 0.920,
-        },
-        'kidney': {
-            # Reference values average over cortex and medulla from Cox et al
-            # https://academic.oup.com/ndt/article/33/suppl_2/ii41/5078406
-            1.0: 1.017,  # Extrapolated
-            1.5: (1.024 + 1.272) / 2,
-            3.0: (1.399 + 1.685) / 2,
-        },
-    }
-    try:
-        return T1val[tissue][field_strength]
-    except BaseException:
-        msg = 'No T1 values for ' + tissue + \
-            ' at ' + str(field_strength) + ' T.'
-        raise ValueError(msg)
+    if field_strength==3 and tissue=='blood':
+        return 1 / (0.52 * Hct + 0.38)  # Lu MRM 2004
+
+    T1VAL = values.T1_RELAXATION_TIMES
+    map = quantities.COMPS | quantities.ROIS
+
+    tissue_key = tissue if tissue in T1VAL else map.get(tissue)
+
+    if tissue_key in T1VAL and field_strength in T1VAL[tissue_key]:
+        return T1VAL[tissue_key][field_strength]
+
+    if force:
+        raise ValueError(f'No T1 values for {tissue} at {field_strength} T.')
+
+    if field_strength in T1VAL['blood']:
+        return T1VAL['blood'][field_strength]
+
+    raise ValueError(f"No blood T1 values for field strength {field_strength}")
 
 
-def T2(field_strength=3.0, tissue='gray matter') -> float:
+def T2(field_strength=3.0, tissue='gray matter', force=False) -> float:
     """T2 value of selected tissue types.
 
     Values are taken from `Gach et al 2008 <https://ieeexplore.ieee.org/document/4616690>`_
@@ -490,37 +390,47 @@ def T2(field_strength=3.0, tissue='gray matter') -> float:
     # Engineering, Las Vegas, NV, USA, 2008, pp. 521-526, doi:
     # 10.1109/ICSEng.2008.15.
 
-    T2val = {
-        'skin': {  # Gach 2008 (scalp)
-            1.5: 0.07,
-            3.0: 0.07,
-        },
-        'bone marrow': {  # Gach 2008
-            1.5: 0.05,
-            3.0: 0.05,
-        },
-        'csf': {  # Gach 2008
-            1.5: 1.99,
-            3.0: 1.99,
-        },
-        'white matter': {
-            1.5: 0.08,
-            3.0: 0.08,
-        },
-        'gray matter': {
-            1.5: 0.1,
-            3.0: 0.1,
-        },
-    }
-    try:
-        return T2val[tissue][field_strength]
-    except BaseException:
-        msg = 'No T2 values for ' + tissue + \
-            ' at ' + str(field_strength) + ' T.'
-        raise ValueError(msg)
+    VAL = values.T2_RELAXATION_TIMES
+    map = quantities.COMPS | quantities.ROIS
+
+    tissue_key = tissue if tissue in VAL else map.get(tissue)
+
+    if tissue_key in VAL and field_strength in VAL[tissue_key]:
+        return VAL[tissue_key][field_strength]
+
+    if force:
+        raise ValueError(f'No T2 values for {tissue} at {field_strength} T.')
+
+    if field_strength in VAL['blood']:
+        return VAL['blood'][field_strength]
+
+    raise ValueError(f"No blood T2 values for field strength {field_strength}")
 
 
-def PD(tissue='gray matter') -> float:
+def T2s(field_strength=3.0, tissue='gray matter', force=False) -> float:
+    """T2* value of selected tissue types.
+
+    Note these qre quick estimates - need more in-depth research.
+    """
+
+    VAL = values.T2_STAR_RELAXATION_TIMES
+    map = quantities.COMPS | quantities.ROIS
+
+    tissue_key = tissue if tissue in VAL else map.get(tissue)
+
+    if tissue_key in VAL and field_strength in VAL[tissue_key]:
+        return VAL[tissue_key][field_strength]
+
+    if force:
+        raise ValueError(f'No T2* values for {tissue} at {field_strength} T.')
+
+    if field_strength in VAL['blood']:
+        return VAL['blood'][field_strength]
+
+    raise ValueError(f"No blood T2* values for field strength {field_strength}")
+
+
+def PD(tissue='gray matter', force=False) -> float:
     """Relative proton density (PD) value of selected tissue types.
 
     Values are taken from `Gach et al 2008 <https://ieeexplore.ieee.org/document/4616690>`_
@@ -551,23 +461,18 @@ def PD(tissue='gray matter') -> float:
         >>> print('The PD of skin is', dc.PD('skin'))
         The PD of skin is 0.8
     """
-    # H. M. Gach, C. Tanase and F. Boada, "2D & 3D Shepp-Logan Phantom
-    # Standards for MRI," 2008 19th International Conference on Systems
-    # Engineering, Las Vegas, NV, USA, 2008, pp. 521-526, doi:
-    # 10.1109/ICSEng.2008.15.
+    VAL = values.PROTON_DENSITY
+    map = quantities.COMPS | quantities.ROIS
 
-    PDval = {
-        'skin': 0.8,
-        'bone marrow': 0.12,
-        'csf': 0.98,
-        'white matter': 0.617,
-        'gray matter': 0.745,
-    }
-    try:
-        return PDval[tissue]
-    except BaseException:
-        msg = 'No PD values for ' + tissue
-        raise ValueError(msg)
+    tissue_key = tissue if tissue in VAL else map.get(tissue)
+
+    if tissue_key in VAL:
+        return VAL[tissue_key]
+
+    if force:
+        raise ValueError(f'No proton-density values for {tissue}.')
+
+    return VAL['blood']
 
 
 def perfusion(parameter='Fb', tissue='gray matter') -> float:
@@ -600,40 +505,9 @@ def perfusion(parameter='Fb', tissue='gray matter') -> float:
         >>> print('The BF of gray matter is', dc.perfusion('Fb', 'gray matter'), 'mL/sec/mL')
         The BF of gray matter is 0.01 mL/sec/mL
     """
-    if parameter == 'Fb':
-        val = {
-            'skin': 0.005,  # 5 kg/s/m**3 = 5000mL/sec/100*100*100 mL = 0.005mL/sec/mL
-            'bone marrow': 0.0013,  # 0.08 ml/ml/min
-            'csf': 0.0,
-            'white matter': 0.0033,
-            'gray matter': 0.01,
-        }
-    elif parameter == 'vb':
-        val = {
-            'skin': 0.03,
-            'bone marrow': 0.25,
-            'csf': 0.0,
-            'white matter': 0.02,
-            'gray matter': 0.05,
-        }
-    elif parameter == 'PS':  # Needs verification
-        val = {
-            'skin': 0.001,
-            'bone marrow': 0.0002,
-            'csf': 0.0,
-            'white matter': 0.0,
-            'gray matter': 0.0,
-        }
-    elif parameter == 'vi':  # Needs verification
-        val = {
-            'skin': 0.03,
-            'bone marrow': 0.2,
-            'csf': 0.0,
-            'white matter': 0.3,
-            'gray matter': 0.35,
-        }
     try:
-        return val[tissue]
-    except BaseException:
-        msg = 'No ' + parameter + ' values for ' + tissue
-        raise ValueError(msg)
+        return values.PERFUSION[parameter][tissue]
+    except KeyError:
+        raise ValueError(
+            f"No {parameter} values for {tissue}"
+        ) from None

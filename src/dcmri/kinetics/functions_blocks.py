@@ -28,7 +28,7 @@ FLUX_PARAMETERS = {
     'comp': ['J', 'dt', 'T'],
     'plug': ['J', 'dt', 'T'],
     'bicomp': ['J', 'dt', 'T'],
-    'plucom': ['J', 'dt', 'T', 'fp'],
+    'plucom': ['J', 'dt', 'T', 'ffp'],
     'chain': ['J', 'dt', 'T', 'D'],
     'step': ['J', 'dt', 'T', 'D'],
     'pfcomp': ['J', 'dt', 'T', 'D'],
@@ -699,7 +699,7 @@ def flux_bicomp(J=None, t=None, dt=1.0, T=None):
     return J
 
 
-def flux_plucom(J=None, t=None, dt=1.0, T=None, fp=None):
+def flux_plucom(J=None, t=None, dt=1.0, T=None, ffp=None):
     """
     Flux out of a parallel arrangement of a plug-flow system and a compartment. 
 
@@ -719,16 +719,17 @@ def flux_plucom(J=None, t=None, dt=1.0, T=None, fp=None):
         provided. Defaults to 1.0.
     T : list of float
         Mean transit times of two systems, in the following order: 
-        [compartment, plug-flow]. Any non-negative value is allowed, 
+        [plug-flow, compartment]. Any non-negative value is allowed, 
         including T = 0 and T = inf (in which case the compartment acts as a trap).
-    fp : float
+    ffp : float
         Plug-flow fraction, or the fraction of the flux that is going through 
         the plug-flow route. This is a number in the range [0, 1].
 
     Returns
     -------
     np.ndarray
-        Outflux as a 1D array.
+        Outflux as a 2D array with J[0,:] the outflux out of the 
+        plug flow system and J[1,:] the outlfux out of the compartment.
 
     See Also
     --------
@@ -741,12 +742,12 @@ def flux_plucom(J=None, t=None, dt=1.0, T=None, fp=None):
     >>> import dcmri as dc
     >>> t = [0, 5, 15, 30, 60]
     >>> J = [1, 2, 3, 3, 2]
-    >>> dc.flux_plucom(J, t, T=[5, 10], fp=0.2)
+    >>> dc.flux_plucom(J, t, T=[5, 10], ffp=0.2)
     (array([0.        , 1.        , 2.43233236, 2.97173749, 2.16618349]), array([0.        , 0.        , 2.        , 3.        , 2.33333333]), array([0.        , 0.8       , 2.34586589, 2.97738999, 2.19961346]))
     """
-    Jc = flux_comp(J, t=t, dt=dt, T=T[0])
-    Jp = flux_plug(J, t=t, dt=dt, T=T[1])
-    return Jc, Jp, fp * Jp + (1 - fp) * Jc
+    Jp = flux_plug(J, t=t, dt=dt, T=T[0])
+    Jc = flux_comp(J, t=t, dt=dt, T=T[1])
+    return np.stack([ffp * Jp, (1 - ffp) * Jc], axis=0)
 
 # Plug flow
 
@@ -1480,7 +1481,7 @@ def prop_free(t, h=None, TT=None, TTmin=0, TTmax=None):
     t : array_like
         Time points where the propagator is calculated, in the same units 
         as `TT`.
-    H : array_like
+    h : array_like
         Frequencies of the transit time histogram in each transit time bin. 
         These do not have to be normalized - the function normalizes to unit 
         area by default.
@@ -1550,7 +1551,10 @@ def prop_free(t, h=None, TT=None, TTmin=0, TTmax=None):
             msg += '\n with N the size of the transit time distribution H.'
             raise ValueError(msg)
     h = functions_utils.ddist(h, TT, t)
-    return h/trapezoid(h, t)
+    h_int = trapezoid(h, t)
+    if h_int != 0:
+        return h/h_int
+    return h
 
 
 def res_free(t, h=None, TT=None, TTmin=0, TTmax=None):

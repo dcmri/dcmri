@@ -96,7 +96,7 @@ class Aorta(SuperRoiModel):
         self._model = AortaModel(**config)
 
         # Initialise model parameters
-        pars = self._model.lexicon_data()
+        pars = self._model.dummy_data()
         if data is not None:
             pars |= data
         self._pars = self._model.input_data(pars)
@@ -121,7 +121,7 @@ class Aorta(SuperRoiModel):
 
         # Estimate parameters
         bat = estimate_bat(time, signal, n0)
-        p['BAT'] = max(bat - p['Thl'], 0)
+        p['BAT'] = max(bat - p['T_hl'], 0)
 
         if self._model.config['calibrate']:
             p['Sb_a'] = signal[..., :n0]

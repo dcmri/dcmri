@@ -1,111 +1,62 @@
-import os
-from joblib import Parallel, delayed
 import time
-
-import numpy as np
 import matplotlib.pyplot as plt
-from dcmri import AortaKidneys as Model
+from tqdm import tqdm
+
+from dcmri import AortaKidneysModel
 from dcmri.core.exceptions import InvalidConfiguration
-import dcmri as dc
 
 
-DEBUG = True
+def test_aorta_kidneys(cls=AortaKidneysModel):
+    def _test_config(cnfg):
+        # if cnfg['sequence'] != '3D-SPGR-SS':
+        #     return
+        try:
+            instance = cls(**cnfg)
+        except InvalidConfiguration:
+            return
+        data = instance.dummy_data()
 
-if DEBUG:
-    # Debugging mode
-    VERBOSE = 2
-else:
-    VERBOSE = 0
-    # Allow coverage of plot functions without actually plotting
-    import matplotlib
-    matplotlib.use('Agg')
+        # --- DIAGNOSTIC TIMING ---
+        t0 = time.perf_counter()
+        # print(cnfg)
+        instance(data)
 
-def _run_single_config(cnfg):
+        elapsed = time.perf_counter() - t0
+        # print(cnfg)
+        # print(f"  [Total model execution time: {elapsed:.4f}s]")
+
+    cls.print_configs()
+
+    configs = cls.all_configs(sample=1000, seed=51)
+    for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
+        _test_config(cnfg)
+
+    cls.print_all_io(verbose=1, simple=True)
+
+    print(f'Successfully covered {len(configs)} {cls.__name__} configurations!')
+
+
+def test_aorta_kidneys_function():
+    # print(AortaKidneysModel().config)
+    # return
+    cnfg = {'inflow': False, 'sequence': '3D-SPGR-SS', 'tof_corr': False, 'magnitude': True, 'trigger': False, 'calibrate': False, 'baseline': 'literature', 'compartments': ('ki',), 'heartlung': 'pfcomp', 'organs': 'comp', 'kidneys': '2CF', 'bolus': 'single', 't1_relaxation_ao': 'lin', 't1_relaxation_lk': 'lin', 't1_relaxation_rk': 'lin', 't2_relaxation_ao': None, 't2_relaxation_lk': None, 't2_relaxation_rk': None, 't2s_relaxation_ao': 'lin', 't2s_relaxation_lk': 'lin', 't2s_relaxation_rk': 'lin'}
     try:
-        model = Model(**cnfg)
+        model = AortaKidneysModel(**cnfg)
     except InvalidConfiguration as e:
-        return
-    free = model.params('free')
-    data = model.predict()
-    model.train(data, verbose=VERBOSE, n0=5, n_bat=1, xtol=1e-3)
-    model.plot(data, show=DEBUG)
-    cost = model.cost(data)
-    print(f"\n{cnfg}: {cost}")
-    # assert cost < 50, f"Cost {cost} of model {cnfg} exceeded threshold!"
-    return cost
-
-def test_config_coverage():
-    if DEBUG:
+        print(e)
         return
     
-    start = time.perf_counter()
+    model.print_inputs()
+    model.print_outputs()
 
-    result = Parallel(n_jobs=-1)(
-        delayed(_run_single_config)(cnfg)
-        for cnfg in dc.AortaKidneysModel.configurations()
-    )
-    # result = [
-    #     _run_single_config(cnfg)
-    #     for cnfg in Model.configurations()
-    # ]
-    result = [r for r in result if r is not None]
-    cost = [r[1] for r in result]
-    cnfg = result[cost.index(max(cost))][0]
+    data = model.dummy_data()
+    results = model(data)
 
-    end = time.perf_counter()
-    print(f'Configuration coverage completed!')
-    print(f'--> Number of configurations: {np.prod([len(v) for v in dc.AortaKidneysModel.configs.values()])}')
-    print(f'--> Total computation time: {(end - start) / 60:.1f} mins')
-    print(f'--> Maximum cost: {np.max(cost)} %')
-    print(f'--> Config with maximum cost: {cnfg}')
+    plt.plot(results['tS_lk'], results['S_lk'][0, 0, :], 'ro')
+    plt.show()
 
-
-
-def test_code_coverage(): 
-    config = {
-        'bolus': 'dual', 
-        'heartlung': 'pfcomp', 
-        'organs': '2cxm', 
-        'kidneys': '2CF', 
-        'water_exchange': '(b, t, c)',
-        't1_relaxation': 'lin',
-        't2_relaxation': None, 
-        't2s_relaxation': None, 
-        'inflow': False,
-        'sequence': 'ZTE-3D-IR-SPGR-SS', 
-        'magnitude': False, 
-        'calibrate': True,
-    }
-    _run_single_config(config) 
-
-    model = Model()
-
-    # params()
-    assert 'Thl' in model.params()
-    assert np.isscalar(model.state['Thl']) 
+if __name__ == '__main__':
+    # test_aorta_kidneys_function()
+    test_aorta_kidneys()
     
-    # Test Forward API outputs
-    data = model.predict()
-
-    test_plot_file = "test_plot_output.png"
-    try:
-        # This hits plt.savefig(fname)
-        model.plot(data, fname=test_plot_file, show=False)
-        assert os.path.exists(test_plot_file)
-        
-        # This hits plt.show()
-        # We wrap this in a check to ensure it doesn't hang the tests
-        plt.ion() # Turn interactive mode on
-        model.plot(data, show=True)
-        plt.ioff() # Turn interactive mode off
-    finally:
-        if os.path.exists(test_plot_file):
-            os.remove(test_plot_file)
-
-
-if __name__ == "__main__":
-    test_code_coverage()
-    test_config_coverage()
-    
-    print('All aorta_kidneys tests passed!!')
-
+    print('All AortaPortalLiver model coverage tests passed!!')

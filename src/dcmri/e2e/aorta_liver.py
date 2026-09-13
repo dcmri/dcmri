@@ -137,7 +137,7 @@ class AortaLiver(SuperRoiModel):
         self._model = AortaLiverModel(**config)
 
         # Initialise model parameters
-        pars = self._model.lexicon_data()
+        pars = self._model.dummy_data()
         if data is not None:
             pars |= data
         self._pars = self._model.input_data(pars)
@@ -162,7 +162,7 @@ class AortaLiver(SuperRoiModel):
 
         # Estimate BAT 
         bat = estimate_bat(time[0], signal[0], n0)
-        p['BAT'] = max(bat - p['Thl'], 0)
+        p['BAT'] = max(bat - p['T_hl'], 0)
 
         # Estimate baseline
         if self._model.config['calibrate']:

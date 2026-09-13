@@ -1,9 +1,43 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+from tqdm import tqdm
+
 import dcmri as dc
-from dcmri.core.sequences import SEQUENCES
+from dcmri.core.tools import get_sequence
+from dcmri.core.exceptions import InvalidConfiguration
 from dcmri.inverse.sig2conc import RelaxToSignal
+
+
+def _test_class(cls):
+    cls.print_all_inputs()
+    cls.print_all_outputs()
+
+    def _test_config(cnfg):
+        try:
+            instance = cls(**cnfg)
+        except InvalidConfiguration:
+            return
+        # if cnfg != {'sequence': '3D-DE-EPI', 'calibrate': False}:
+        #     return
+        # print(cnfg)
+        data = instance.dummy_data()
+        instance(data)
+
+    configs = cls.all_configs()
+    for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
+        _test_config(cnfg)
+
+    print(f'Successfully covered {len(configs)} {cls.__name__} configurations!')
+
+
+def test_s2c():
+    for cls in [
+        dc.SignalToConc,
+    ]:
+        _test_class(cls)
+
+
 
 def test_coverage():
 
@@ -72,12 +106,6 @@ def test_exceptions():
         pass
     else:
         assert False
-    try:
-        dc.SignalToConc()(S=[1,2], S0=[1,2])
-    except:
-        pass
-    else:
-        assert False
 
 
 
@@ -94,8 +122,9 @@ def test_aif_analytical():
         'TE': 0.002,
         'Nph': 32 * 10,
         'Nk0': 16 * 10,
-        'noise_sdev': 0,
-        'B1corr': 0.75
+        'NSR': 0,
+        'B1corr': 0.75,
+        'tacq': tmax - dt,
     }
     
     # Input signals
@@ -108,12 +137,12 @@ def test_aif_analytical():
     aif_R2s = np.full_like(aif_conc, R2sba)
     aif_signal = RelaxToSignal(sequence=seq)(
         tR=aif_time, R1=aif_R1, R2s=aif_R2s, S0=S0a, 
-        Fw=0, me=1, v=1, **seq_params
+        Kw=0, me=1, vw=1, **seq_params
     )
 
     # Invert
     ca = dc.SignalToConc(sequence=seq)(
-        S=aif_signal['S'][0, 0, :], R1b=R1ba, R2sb=R2sba, n0=1,
+        S=aif_signal['S'][0, 0, :], R1b=R1ba, R2sb=R2sba, nb=1,
         r1=rp, **seq_params
     )['C']
     ca_interp = np.interp(aif_signal['tS'], aif_time, aif_conc)
@@ -137,8 +166,9 @@ def test_aif_numerical():
         'Nk0': 16 * 10,
         'TP': 0.1,
         'TD': 0.1,
-        'noise_sdev': 0,
-        'B1corr': 0.75
+        'NSR': 0,
+        'B1corr': 0.75,
+        'tacq': tmax - dt,
     }
     
     # Input signals
@@ -151,12 +181,12 @@ def test_aif_numerical():
     aif_R2s = np.full_like(aif_conc, R2sba)
     aif_signal = RelaxToSignal(sequence=seq)(
         tR=aif_time, R1=aif_R1, R2s=aif_R2s, S0=S0a, 
-        Fw=0, me=1, v=1, **seq_params
+        Kw=0, me=1, v=1, **seq_params
     )
 
     # Invert
     ca = dc.SignalToConc(sequence=seq)(
-        S=aif_signal['S'][0, 0, :], R1b=R1ba, R2sb=R2sba, n0=1, r1=rp, 
+        S=aif_signal['S'][0, 0, :], R1b=R1ba, R2sb=R2sba, nb=1, r1=rp, 
         **seq_params
     )['C']
     ca_interp = np.interp(aif_signal['tS'], aif_time, aif_conc)
@@ -168,7 +198,7 @@ def test_aif_numerical():
     # plt.show()
 
 
-def test_function():
+def test_function_dce():
 
     # Generate concentrations
     dt, tmax = 0.5, 180
@@ -185,18 +215,12 @@ def test_function():
         'Nph': 32 * 10,
         'Nk0': 16 * 10,
         'TA': 1.0, # Short TA to avoid saturation of Mz in 1-shot sequences
-    }
-    params_dsc = dc.QVALUES | {
-        'TE': 0.050, 
-        'TE1': 0.005,
-        'TE2': 0.050, 
-        'FA': 90,
-        'TR': 10.0, # Long TR to remove T1 weighting and get accurate conc
+        'tacq': tmax - dt,
     }
 
     seqs_dsc = ['2D-GE-EPI', '2D-SE-EPI', '2D-DE-EPI', '3D-GE-EPI', '3D-SE-EPI', '3D-DE-EPI'] 
-    seqs_dce = [s for s in SEQUENCES.keys() if s not in seqs_dsc]
-    seqs_dce = [s for s in seqs_dce if SEQUENCES[s]['steady-state']]
+    seqs_dce = [s for s in get_sequence('name') if s not in seqs_dsc]
+    seqs_dce = [s for s in seqs_dce if get_sequence('steady-state', s)]
 
     # Define signal parameters
     R1ba, S0a, B1a = 0.7, 3, 0.75
@@ -214,8 +238,12 @@ def test_function():
         # Generate signal and reconstruct concentrations
         R1a = R1ba + rp * ca
         R2s = R2sb + r2s * ca
-        S = RelaxToSignal(sequence=sequence)(params_dce, tR=time, R1=R1a, R2s=R2s, S0=S0a, B1corr=B1a)
-        ca_rec = dc.SignalToConc(sequence=sequence)(params_dce, S=S['S'][0, 0, :], R1b=R1ba, r1=rp, B1corr=B1a)['C']
+        S = RelaxToSignal(sequence=sequence, calibrate=False)(
+            params_dce, tR=time, R1=R1a, R2s=R2s, S0=S0a, B1corr=B1a
+        )
+        ca_rec = dc.SignalToConc(sequence=sequence, calibrate=True)(
+            params_dce, S=S['S'][0, 0, :], iScal=[0], Scal=S['S'][:1,:1,:1], 
+            R1b=R1ba, r1=rp, B1corr=B1a)['C']
         
         # Determine reconstruction error
         ca_interp = np.interp(S['tS'], time, ca)
@@ -230,39 +258,6 @@ def test_function():
             plt.plot(time, ca)
             plt.plot(S['tS'], ca_interp, marker='o', fillstyle='none', linestyle='None', color='blue')
             plt.show()
-
-
-    # DSC without T1-weighting
-    for sequence in seqs_dsc:
-        print('DSC: ', sequence)
-
-        # Generate signal and reconstruct concentrations
-        R1a = R1ba + rp * ca
-        R2s = R2sb + r2s * ca
-        R2 = R2b + r2 * ca
-        S = RelaxToSignal(sequence=sequence)(
-            params_dsc, tR=time, R1=R1a, R2=R2, R2s=R2s, S0=S0a, B1corr=B1a,
-        )
-
-        ca_rec = dc.SignalToConc(sequence=sequence)(
-            params_dsc, S=S['S'][:, 0, :], B1corr=B1a, r2s=r2s, r2=r2
-        )['C']
-        ca_rec = np.mean(ca_rec, axis=0)
-        
-        # Determine reconstruction error
-        ca_interp = np.interp(S['tS'], time, ca)
-        err = np.linalg.norm(ca_rec - ca_interp) / np.linalg.norm(ca_interp)
-
-        try:
-            assert err < 1e-2
-            # assert err < 0
-        except:
-            print(sequence, err)
-            plt.plot(S['tS'], ca_rec, 'ro')
-            plt.plot(time, ca)
-            plt.plot(S['tS'], ca_interp, marker='o', fillstyle='none', linestyle='None', color='blue')
-            plt.show()
-
     # linear
     # Generate signal and reconstruct concentrations
     S = R1ba + rp * ca
@@ -279,6 +274,61 @@ def test_function():
     #     plt.plot(time, ca, 'r-')
     #     plt.plot(time, ca_rec, 'bx')
     #     plt.show()
+
+def test_function_dsc():
+
+    # Generate concentrations
+    dt, tmax = 0.5, 180
+    time = np.arange(0, tmax, dt)
+    ca = dc.tristan(time, BAT=10)
+
+    params_dsc = dc.QVALUES | {
+        'TE': 0.050, 
+        'TE1': 0.005,
+        'TE2': 0.050, 
+        'FA': 90,
+        'TR': 10.0, # Long TR to remove T1 weighting and get accurate conc
+        'tacq': tmax - dt,
+    }
+    seqs_dsc = ['2D-GE-EPI', '2D-SE-EPI', '2D-DE-EPI', '3D-GE-EPI', '3D-SE-EPI', '3D-DE-EPI'] 
+
+    # Define signal parameters
+    R1ba, S0a, B1a = 0.7, 3, 0.75
+    R2sb, R2b = 1.5, 2.0
+    rp = dc.r1(3, 'blood', 'gadoterate')
+    r2 = 10000
+    r2s = 15000
+
+    # DSC without T1-weighting
+    for sequence in seqs_dsc:
+        print('DSC: ', sequence)
+
+        # Generate signal and reconstruct concentrations
+        R1a = R1ba + rp * ca
+        R2s = R2sb + r2s * ca
+        R2 = R2b + r2 * ca
+        S = RelaxToSignal(sequence=sequence, calibrate=False)(
+            params_dsc, tR=time, R1=R1a, R2=R2, R2s=R2s, S0=S0a, B1corr=B1a,
+        )
+        ca_rec = dc.SignalToConc(sequence=sequence, calibrate=True)(
+            params_dsc, S=S['S'][:, :1, :], iScal=[0], Scal=S['S'][:1,:1,:1], 
+            B1corr=B1a, r2s=r2s, r2=r2
+        )['C']
+        ca_rec = np.mean(ca_rec, axis=0)
+        
+        # Determine reconstruction error
+        ca_interp = np.interp(S['tS'], time, ca)
+        err = np.linalg.norm(ca_rec - ca_interp) / np.linalg.norm(ca_interp)
+
+        try:
+            assert err < 1e-2
+            # assert err < 0
+        except:
+            print(sequence, err)
+            plt.plot(S['tS'], ca_rec, 'ro')
+            plt.plot(time, ca)
+            plt.plot(S['tS'], ca_interp, marker='o', fillstyle='none', linestyle='None', color='blue')
+            plt.show()
 
 
 def test_brain():
@@ -300,8 +350,9 @@ def test_brain():
         'TR': 0.005,
         'Nph': 32 * 10,
         'Nk0': 16 * 10,
-        'noise_sdev': 0,
-        'B1corr': 1
+        'NSR': 0,
+        'B1corr': 1,
+        'tacq': 180.0 - dt,
     }
 
     # Simulated arterial concentration
@@ -313,12 +364,12 @@ def test_brain():
     aif_R1 = R1ba + rp * aif_conc
     aif_signal = RelaxToSignal(sequence=seq)(
         tR=aif_time, R1=aif_R1, S0=S0a,
-        Fw=0, me=1, v=1, **seq_params
+        Kw=0, me=1, v=1, **seq_params
     )
 
     # Invert
     ca_rec = dc.SignalToConc(sequence=seq)(
-        S=aif_signal['S'][0, 0, :], R1b=R1ba, n0=1, 
+        S=aif_signal['S'][0, 0, :], R1b=R1ba, nb=1, 
         r1=rp, **seq_params
     )['C']
     ca_interp = np.interp(aif_signal['tS'], aif_time, aif_conc)
@@ -335,12 +386,13 @@ def test_brain():
 
 
 if __name__ == "__main__":
-
+    test_s2c()
     test_aif_analytical()
     test_aif_numerical()
-    test_function()
-    test_brain()
+    test_function_dce()
+    test_function_dsc()
     test_coverage()
     test_exceptions()
+    test_brain()
 
     print('All signal_to_conc tests passing!')

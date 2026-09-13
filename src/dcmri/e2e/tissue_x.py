@@ -99,7 +99,7 @@ from copy import deepcopy
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri.core.sequences import SEQUENCES
+from dcmri.core.tools import get_sequence
 from dcmri.core.quantities import QUANTITIES
 from dcmri.core.tools import string_params, init, print_params
 from dcmri.inverse.sig2conc import SignalToConc
@@ -112,7 +112,7 @@ from dcmri.relaxivity.modules_tissue_x import RelaxTissueX, WaterConcTissueX, Co
 from dcmri.relaxivity.modules_tissue import R1 as Relax1
 from dcmri.bloch.modules_tissue_x import MzTissueX, SignalTissueX, WaterVolumesTissueX, WaterFlowsTissueX
 
-CONSTANTS = {'Fw': 0, 'v': 1, 'me': 1, 'noise_sdev':0}
+CONSTANTS = {'Fw': 0, 'v': 1, 'me': 1, 'NSR':0}
 
 class TissueX(SuperPixelModel):
     """Vascular-interstitial tissue pixels with a known input.
@@ -135,7 +135,7 @@ class TissueX(SuperPixelModel):
         'kinetics': ['2CX', 'HF', 'WV', '2CU', 'HFU', 'FX', 'NX', 'NXP', 'U'],
         'water_exchange': ['FF','RF','NF','FR','RR','NR','FN','RN','NN'],
         't2s_relaxation': ['lin', 'quad', 'leakage'],
-        'sequence': deepcopy(list(SEQUENCES.keys())),
+        'sequence': deepcopy(get_sequence('name')),
         'inflow': [False, True],
     }
 
@@ -171,7 +171,7 @@ class TissueX(SuperPixelModel):
             't2s_relaxation': t2s_relaxation,
             # 't2_relaxation': 'lin',
             # 't1_relaxation': 'lin',
-            #'tissue_props': set(SEQUENCES[sequence]['parameters']['tissue']),
+            #'tissue_props': get_sequence('tissue_params', sequence),
             'sequence': sequence,  
             'inflow': inflow,
         }
@@ -459,7 +459,7 @@ class TissueX(SuperPixelModel):
                 B1corr=input.B1corr, r1=p['r1']
             )
             t = np.arange(0, np.amax(time) + p['dt'], p['dt'])
-            p['ca'] = np.interp(t, input.time, ca)
+            p['c_a'] = np.interp(t, input.time, ca)
 
         if self._shape[1] == 1:
             pixels_shape = signal.shape[:-1]
@@ -559,7 +559,7 @@ class TissueX(SuperPixelModel):
     @property
     def _shape(self):
         n_pixels = 1 if self._pixels_shape==() else np.prod(self._pixels_shape)
-        n_times = self._pars['ca'].size
+        n_times = self._pars['c_a'].size
         if self._cnfg['sequence'] in ['Eq-DE-EPI', '2D-DE-EPI']:
             n_channels = 2
         else:
@@ -574,7 +574,7 @@ class TissueX(SuperPixelModel):
         derived = ['R1', 'R1a', 'R2', 'R2s']
 
         if select == 'all':
-            pars = ['ca', 'dt', 'TS']
+            pars = ['c_a', 'dt', 'TS']
             pars += ConcTissueX(**cnfg).params()
             pars += RelaxTissueX(**cnfg).params()
             pars += SignalTissueX(**cnfg).params()
@@ -591,7 +591,7 @@ class TissueX(SuperPixelModel):
                 + WaterVolumesTissueX(**cnfg).params()
                 + WaterFlowsTissueX(**cnfg).params()
                 + ['R1b', 'R2b', 'R2sb', 'r2s', 'r2s_quad', 'r2s_vasc', 'r2s_ees']
-                + ['S0', 'B1corr', 'noise_sdev']
+                + ['S0', 'B1corr', 'NSR']
             )
             pars = {p for p in pars if p not in derived}
             return [p for p in pars if p != 'H' and p in self._params()]
@@ -615,25 +615,25 @@ class TissueX(SuperPixelModel):
 
     def _conc(self, x):
         p = self._pixel_pars(x)
-        C = ConcTissueX(**self._cnfg, defaults=p)(p['ca'])
+        C = ConcTissueX(**self._cnfg, defaults=p)(p['c_a'])
         c = WaterConcTissueX(**self._cnfg, defaults=p)(C)
         return c
     
     def _tissue_conc(self, x):
         p = self._pixel_pars(x)
-        return ConcTissueX(**self._cnfg, defaults=p)(p['ca'])
+        return ConcTissueX(**self._cnfg, defaults=p)(p['c_a'])
     
     def _relax(self, x):
         p = self._pixel_pars(x)
-        C = ConcTissueX(**self._cnfg, defaults=p)(p['ca'])
+        C = ConcTissueX(**self._cnfg, defaults=p)(p['c_a'])
         return RelaxTissueX(**self._cnfg, defaults=p)(C)
     
     def _mz(self, x):
         p = self._pixel_pars(x)
-        C = ConcTissueX(**self._cnfg, defaults=p)(p['ca'])
+        C = ConcTissueX(**self._cnfg, defaults=p)(p['c_a'])
         p['R1'], p['R2'], p['R2s'] = RelaxTissueX(**self._cnfg, defaults=p)(C)
         if self._cnfg['inflow']:
-            p['R1a'] = Relax1(**self._cnfg, defaults=p)(p['ca'], R1b=p['R1b_a'])
+            p['R1a'] = Relax1(**self._cnfg, defaults=p)(p['c_a'], R1b=p['R1b_a'])
 
         # This is ugly - need a more symmetric treatment of Mz and Mxy in Bloch module
         mz = MzTissueX(**self._cnfg, defaults=p)
@@ -644,16 +644,16 @@ class TissueX(SuperPixelModel):
     
     def _signal(self, x) -> np.ndarray: # (n_channels, n_times)
         p = self._pixel_pars(x)
-        C = ConcTissueX(**self._cnfg, defaults=p)(p['ca']) # (ncomp, ntimes)
+        C = ConcTissueX(**self._cnfg, defaults=p)(p['c_a']) # (ncomp, ntimes)
         p['R1'], p['R2'], p['R2s'] = RelaxTissueX(**self._cnfg, defaults=p)(C) 
         if self._cnfg['inflow']:
-            p['R1a'] = Relax1(**self._cnfg, defaults=p)(p['ca'], R1b=p['R1b_a'])
+            p['R1a'] = Relax1(**self._cnfg, defaults=p)(p['c_a'], R1b=p['R1b_a'])
         S = SignalTissueX(**self._cnfg, defaults=p)()  # (n_channels, n_times) or (n_times,)
         return S.reshape(-1, S.shape[-1])
     
     def _time(self):
         p = self._pars
-        return p['dt'] * np.arange(p['ca'].size) # (n_times, )
+        return p['dt'] * np.arange(p['c_a'].size) # (n_times, )
     
     def _predict(self, time, x):
         t = self._time()
@@ -827,7 +827,7 @@ class TissueX(SuperPixelModel):
         relax_comp = plot_labels_relax(self._cnfg['kinetics'], self._cnfg['water_exchange'])
     
         ax01.set_title('Tissue concentration in indicator compartments')
-        ax01.plot(t / 60, 1000 * self._pars['ca'], linestyle='-', linewidth=5.0, color='lightcoral', label='Arterial blood')
+        ax01.plot(t / 60, 1000 * self._pars['c_a'], linestyle='-', linewidth=5.0, color='lightcoral', label='Arterial blood')
         for k, vk in enumerate(conc_comp):
             # ck = C[k, ...] / p[vk] if p[vk] > 0 else 0 * C[k, ...]
             ax01.plot(t / 60, 1000 * C[0, k, :], linestyle='-', linewidth=3.0, label=conc_label[k], color=clr[conc_label[k]])

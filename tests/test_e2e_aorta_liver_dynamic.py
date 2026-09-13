@@ -82,8 +82,8 @@ def test_api():
     model.export_params(deriv=True)
 
     # print_params()
-    model.print_params('Thl', 'Dhl', 'TS', deriv=True, fixed_only=True)
-    model.print_params('Thl', 'Dhl', 'TS', deriv=True, free_only=True)
+    model.print_params('T_hl', 'D_hl', 'TS', deriv=True, fixed_only=True)
+    model.print_params('T_hl', 'D_hl', 'TS', deriv=True, free_only=True)
 
 
     test_plot_file = "test_plot_output.png"

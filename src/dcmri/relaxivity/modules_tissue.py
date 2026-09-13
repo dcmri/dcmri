@@ -1,9 +1,16 @@
 import numpy as np
 
 from dcmri.core.module import Module
-from dcmri.core.sequences import SEQUENCES
+from dcmri.core.tools import get_sequence
 from dcmri.core.exceptions import InvalidConfiguration
-from dcmri.relaxivity.functions_relaxivity import relax_t1, relax_t2, relax_t2s, mix_fast_exchange
+from dcmri.relaxivity.functions_relaxivity import relax_t2s
+
+
+def div(C, v):
+    if v==0:
+        return C * 0 # In this case the result does not matter
+    else:
+        return C / v
 
 
 class R1(Module):
@@ -13,41 +20,50 @@ class R1(Module):
     defaults = {
         't1_relaxation': 'lin',
     }
-    def inputs(self) -> set:
-        # c = Concentration in water compartments, dimensions (nc, nt) or (nt, )
-        # v = volume fractions of water compartments, dimensions (nc, ) or scalar
-        # fwx = list of compartments (indices) that are in fast water exchange
-        inputs = {'c', 'v', 'fx'} 
-        if self.config['t1_relaxation'] == 'lin':
-            inputs |= {'R1b', 'r1'}
-        return inputs
-    
-    def outputs(self) -> set:
-        return {'v', 'R1', 'R1b'}
-
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)
 
-        # Possible input dimensions
-        # ndim=2: conc (nc, nt), R1b (nc), r1 (nc, )
-        # ndim=1: conc (nt, ), R1b (scalar), r1 (scalar)
+        # Input dimensions
+        # conc (nc, nt), R1b (nc), r1 (nc, )
 
         # First compute R1 of each compartment
         if self.config['t1_relaxation'] == 'lin':
-            R1 = np.full_like(p['c'], np.nan)
-            if p['c'].ndim==2:
-                R1b = np.atleast_1d(p['R1b'])
-                r1 = np.atleast_1d(p['r1'])
+            R1b = np.array(p['R1b'])
+            RM = np.array(p['RM'])
+            r1 = np.array(p['r1'])
 
-                for i in range(p['c'].shape[0]):
-                    if not np.isnan(p['c'][i]).any():
-                        R1[i] = relax_t1(p['c'][i], R1b[i], r1[i])
+            R1 = R1b[:, None] + RM @ (r1[:, None] * p['C'])
 
-            elif not np.isnan(p['c']).any():
-                R1 = relax_t1(p['c'], p['R1b'], p['r1']) # (nt, )
+            # shape = (len(p['wx']), p['C'].shape[-1])
+            # R1 = np.zeros(shape)
+            # for i, fx in enumerate(p['wx']):
+            #     # Note division by vw[i] is intentional here
+            #     R1[i] = p['R1b'][i] + np.sum([p['r1'][j] * div(p['C'][j], p['vw'][i]) for j in fx], axis=0)
 
-        v, R1 = mix_fast_exchange(p['v'], R1, p['fx'])
-        return self.map_results({'v': v, 'R1': R1, 'R1b': R1[:,0]})
+        return self.map_results({'R1': R1})
+    
+    def inputs(self) -> set:
+        inputs = {'C'} 
+        if self.config['t1_relaxation'] == 'lin':
+            inputs |= {'R1b', 'RM', 'r1'}
+        return inputs
+    
+    def outputs(self) -> set:
+        return {'R1'}
+
+    def dummy_data(self, nc=2, nt=5):
+        data = self.init_data()
+        data |= {
+            'C': np.ones((nc, nt)), 
+            'R1b': np.ones(nc), 
+            'r1': 1e3 * np.ones(nc), 
+            'RM': np.eye(nc),
+
+            # 'vw': np.ones(nc) / nc, 
+            # 'wx': [[0]],
+        }
+        return data
+
 
 
 class R2(Module):
@@ -57,40 +73,46 @@ class R2(Module):
     defaults = {
         't2_relaxation': 'lin',
     }
-    def inputs(self) -> set:
-        # c = Concentration in water compartments, dimensions (nc, nt) or (nt, )
-        # v = volume fractions of water compartments, dimensions (nc, ) or scalar
-        # fwx = list of compartments (indices) that are in fast water exchange
-        inputs = {'c', 'v', 'fx'} 
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data, kwargs)
+        # Possible input dimensions
+        # conc (nc, nt), R1b (nc), r1 (nc, )
+
         if self.config['t2_relaxation'] == 'lin':
-            inputs |= {'R2b', 'r2'}
+            R2b = np.array(p['R2b'])
+            RM = np.array(p['RM'])
+            r2 = np.array(p['r2'])
+
+            R2 = R2b[:, None] + RM @ (r2[:, None] * p['C'])
+
+            # shape = (len(p['wx']), p['C'].shape[-1])
+            # R2 = np.zeros(shape)
+            # for i, fx in enumerate(p['wx']):
+            #     R2[i] = p['R2b'][i] + np.sum([p['r2'][j] * div(p['C'][j], p['vw'][i]) for j in fx], axis=0)
+
+        return self.map_results({'R2': R2})
+
+    def inputs(self) -> set:
+        inputs = {'C'} 
+        if self.config['t2_relaxation'] == 'lin':
+            inputs |= {'R2b', 'RM', 'r2'}
         return inputs
     
     def outputs(self) -> set:
-        return {'v', 'R2', 'R2b'}
-    
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)
+        return {'R2'}
 
-        # Possible input dimensions
-        # ndim=2: conc (nc, nt), R1b (nc), r1 (nc, )
-        # ndim=1: conc (nt, ), R1b (scalar), r1 (scalar)
+    def dummy_data(self, nc=2, nt=5):
+        data = self.init_data()
+        data |= {
+            'C': np.ones((nc, nt)), 
+            'R2b': np.ones(nc), 
+            'r2': 1e3 * np.ones(nc), 
+            'RM': np.eye(nc),
 
-        if self.config['t2_relaxation'] == 'lin':
-            R2 = np.full_like(p['c'], np.nan)
-            if p['c'].ndim==2:
-                R2b = np.atleast_1d(p['R2b'])
-                r2 = np.atleast_1d(p['r2'])
-
-                for i in range(p['c'].shape[0]):
-                    if not np.isnan(p['c'][i]).any():
-                        R2[i] = relax_t2(p['c'][i], R2b[i], r2[i])
-                        
-            elif not np.isnan(p['c']).any():
-                R2 = relax_t2(p['c'], p['R2b'], p['r2']) # (nt, )
-
-        v, R2 = mix_fast_exchange(p['v'], R2, p['fx'])
-        return self.map_results({'v': v, 'R2': R2, 'R2b': R2[:,0]})
+            # 'wx': [[0]],
+            # 'vw': np.ones(nc) / nc, 
+        }
+        return data
 
 
 class R2s(Module): 
@@ -100,46 +122,50 @@ class R2s(Module):
     defaults = {
         't2s_relaxation': 'lin', 
     }
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data, kwargs)
+        t2r = self.config['t2s_relaxation']
+        # Input dimensions
+        # conc (nc, nt), R1b (nc), r1 (nc, )
+
+        # Output dim always (nt,)
+
+        if t2r == 'lin':
+            C = p['C'].sum(axis=0)
+            R2s = relax_t2s(C, p['R2sb'], p['r2s'], model='lin')
+
+        elif t2r == 'quad':
+            C = p['C'].sum(axis=0)
+            R2s = relax_t2s(C, p['R2sb'], p['r2s'], p['r2sq'] , model='quad')
+        
+        elif t2r == 'leakage':
+            c = np.array([
+                div(p['C'][0], p['v'][0]), 
+                div(p['C'][1], p['v'][1]),
+            ])
+            R2s = relax_t2s(c, p['R2sb'], r2s_vasc=p['r2sv'], r2s_ees=p['r2se'] , model='leakage')
+
+        return self.map_results({'R2s': R2s})
+
     def inputs(self) -> set:
         if self.config['t2s_relaxation'] == 'lin':
-            inputs = {'v', 'c', 'R2sb', 'r2s'}
+            inputs = {'C', 'R2sb', 'r2s'}
         if self.config['t2s_relaxation'] == 'quad':
-            inputs = {'v', 'c', 'R2sb', 'r2s', 'r2s_quad'}
+            inputs = {'C', 'R2sb', 'r2s', 'r2sq'}
         if self.config['t2s_relaxation'] == 'leakage':
-            inputs = {'c', 'R2sb', 'r2s_vasc', 'r2s_ees'} 
+            inputs = {'C', 'v', 'R2sb', 'r2sv', 'r2se'} 
         return inputs
     
     def outputs(self) -> set:
         return {'R2s'}
     
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)
-        t2r = self.config['t2s_relaxation']
-
-        # Possible input dimensions
-        # ndim=2: conc (nc, nt), R1b (nc), r1 (nc, )
-        # ndim=1: conc (nt, ), R1b (scalar), r1 (scalar)
-
-        # Output dim always (nt,)
-
-        if t2r == 'lin':
-            if p['c'].ndim==1:
-                C = p['v'] * p['c']
-            else:
-                C = np.atleast_1d(p['v']) @ p['c']
-            R2s = relax_t2s(C, p['R2sb'], p['r2s'], model='lin')
-
-        elif t2r == 'quad':
-            if p['c'].ndim==1:
-                C = p['v'] * p['c']
-            else:
-                C = np.atleast_1d(p['v']) @ p['c']
-            R2s = relax_t2s(C, p['R2sb'], p['r2s'], p['r2s_quad'] , model='quad')
-        
-        elif t2r == 'leakage':
-            R2s = relax_t2s(p['c'], p['R2sb'], r2s_vasc=p['r2s_vasc'], r2s_ees=p['r2s_ees'] , model='leakage')
-
-        return self.map_results({'R2s': R2s})
+    def dummy_data(self, nc=2, nt=5):
+        data = self.init_data()
+        data |= {
+            'v': np.ones(nc) / nc, 
+            'C': np.ones((nc, nt)), 
+        }
+        return data
 
  
 
@@ -151,7 +177,7 @@ class Relax(Module):
     }
     defaults = {
         't1_relaxation': 'lin',
-        't2_relaxation': 'lin',
+        't2_relaxation': None, # default = DCE
         't2s_relaxation': 'lin',
     }
     def __init__(self, sequence=None, imap:dict=None, omap:dict=None, **config):
@@ -161,46 +187,55 @@ class Relax(Module):
 
         # Make sure that the contrasts needed by the sequence are computed
         if sequence is not None:
-            props = set(SEQUENCES[sequence]['parameters']['tissue'])
+            props = get_sequence('tissue_params', sequence)
             if 'R1' in props:
-                if not t1:
+                if t1 is None:
                     raise InvalidConfiguration(f"The t1_relaxation option can't be None for T1-weighted sequences.")
             if 'R2' in props:
-                if not t2:
+                if t2 is None:
                     raise InvalidConfiguration(f"The t2_relaxation option can't be None for T2-weighted sequences.")
             if 'R2s' in props:
-                if not t2s:
+                if t2s is None:
                     raise InvalidConfiguration(f"The t2s_relaxation option can't be None for T2*-weighted sequences.")
+            if 'R1' not in props:
+                if t1 is not None:
+                    raise InvalidConfiguration(f"The t1_relaxation option must be None for a sequence without T1-weighting.")
+            if 'R2' not in props:
+                if t2 is not None:
+                    raise InvalidConfiguration(f"The t2_relaxation option must be None for a sequence without T2-weighting.")
+            if 'R2s' not in props:
+                if t2s is not None:
+                    raise InvalidConfiguration(f"The t2s_relaxation option must be None for a sequence without T2s-weighting.")
 
         # Set configuration
         self.set_config(config)
 
-        if self.config['t1_relaxation']:
+        if self.config['t1_relaxation'] is not None:
             self._R1 = R1(t1_relaxation=t1)
-        if self.config['t2_relaxation']:
+        if self.config['t2_relaxation'] is not None:
             self._R2 = R2(t2_relaxation=t2)
-        if self.config['t2s_relaxation']:
+        if self.config['t2s_relaxation'] is not None:
             self._R2s = R2s(t2s_relaxation=t2s)
 
         self.map_io(imap, omap)
 
     def inputs(self) -> set:
         inputs = set()
-        if self.config['t1_relaxation']:
+        if self.config['t1_relaxation'] is not None:
             inputs |= self._R1.mapped_inputs()
-        if self.config['t2_relaxation']:
+        if self.config['t2_relaxation'] is not None:
             inputs |= self._R2.mapped_inputs()
-        if self.config['t2s_relaxation']:
+        if self.config['t2s_relaxation'] is not None:
             inputs |= self._R2s.mapped_inputs()
         return inputs
     
     def outputs(self) -> set:
         outputs = set()
-        if self.config['t1_relaxation']:
+        if self.config['t1_relaxation'] is not None:
             outputs |= self._R1.outputs()
-        if self.config['t2_relaxation']:
+        if self.config['t2_relaxation'] is not None:
             outputs |= self._R2.outputs()
-        if self.config['t2s_relaxation']:
+        if self.config['t2s_relaxation'] is not None:
             outputs |= self._R2s.outputs()
         return outputs
     
@@ -216,3 +251,140 @@ class Relax(Module):
             R_arr |= self._R2s(p)
 
         return self.map_results(R_arr)
+
+    def dummy_data(self, nc=2, nt=5):
+        data = {}
+        if self.config['t1_relaxation']:
+            data |= self._R1.dummy_data(nc, nt)
+        if self.config['t2_relaxation']:
+            data |= self._R2.dummy_data(nc, nt)
+        if self.config['t2s_relaxation']:
+            data |= self._R2s.dummy_data(nc, nt)
+        return data
+
+# +--------------------------------------------------------------------------------------------------+
+# |                                ConcToRelax - all configs (n = 4)                                 |
+# +----------------+-----------------------------------------------------------------------+---------+
+# | Key            | Values                                                                | Default |
+# +----------------+-----------------------------------------------------------------------+---------+
+# | t1_relaxation  | None, lin                                                             | lin     |
+# | t2_relaxation  | None, lin                                                             | None    |
+# | t2s_relaxation | None, leakage, lin, quad                                              | lin     |
+# | inflow         | False, True                                                           | False   |
+# +--------------------------------------------------------------------------------------------------+
+
+# +-----------------------------------------------------------------------------------------------------------------------------------------------+
+# |                                                       ConcToRelax - all inputs (n = 16)                                                       |
+# +------+----------+-------------------------------------------------------------------+-----------------+-------+---------------+-------+-------+
+# | Key  | Unit     | Name                                                              | Group           | Init  | Bounds        | DICOM | OSIPI |
+# +------+----------+-------------------------------------------------------------------+-----------------+-------+---------------+-------+-------+
+# | C    | mmol/cm3 | tissue concentration                                              | Indicator       | 0.005 | (0, 1)        |       |       |
+# | ci   | mmol/mL  | inlet concentration                                               | Indicator       | 0.005 |               |       |       |
+# | tC   | sec      | concentration time points                                         | Indicator       | 0.0   |               |       |       |
+# +------+----------+-------------------------------------------------------------------+-----------------+-------+---------------+-------+-------+
+# | R1b  | Hz       | precontrast tissue R1                                             | Electromagnetic | 0.65  | (0, 5)        |       |       |
+# | R1ib | Hz       | precontrast inlet R1                                              | Electromagnetic | 0.65  | (0, 5)        |       |       |
+# | R2b  | Hz       | precontrast tissue R2                                             | Electromagnetic | 20    | (0, 100)      |       |       |
+# | R2sb | Hz       | precontrast tissue R2*                                            | Electromagnetic | 20    | (0, 100)      |       |       |
+# | r1   | Hz/M     | longitudinal contrast agent relaxivity                            | Electromagnetic | 3500  | (0, 10000.0)  |       |       |
+# | r1i  | Hz/M     | inlet longitudinal contrast agent relaxivity                      | Electromagnetic | 3500  | (0, 10000.0)  |       |       |
+# | r2   | Hz/M     | transverse contrast agent relaxivity                              | Electromagnetic | 4000  | (0, 10000.0)  |       |       |
+# | r2s  | Hz/M     | transverse contrast agent relaxivity                              | Electromagnetic | 20000 | (0, 100000.0) |       |       |
+# | r2se | Hz/M     | extravascular, extracellular transverse contrast agent relaxivity | Electromagnetic | 20000 | (0, 100000.0) |       |       |
+# | r2sq | Hz/M^2   | quadratic transverse contrast agent relaxivity                    | Electromagnetic | 1000  | (0, 10000.0)  |       |       |
+# | r2sv | Hz/M     | vascular transverse contrast agent relaxivity                     | Electromagnetic | 20000 | (0, 100000.0) |       |       |
+# +------+----------+-------------------------------------------------------------------+-----------------+-------+---------------+-------+-------+
+# | vw   | mL/cm3   | water volume fraction                                             | Physiological   | 1     | (0, 1)        |       |       |
+# | wx   |          | indicator-to-water compartment map                                | Physiological   |       |               |       |       |
+# +-----------------------------------------------------------------------------------------------------------------------------------------------+
+
+# +--------------------------------------------------------------------------------------------+
+# |                             ConcToRelax - all outputs (n = 5)                              |
+# +-----+------+-----------------------------+-----------------+------+--------+-------+-------+
+# | Key | Unit | Name                        | Group           | Init | Bounds | DICOM | OSIPI |
+# +-----+------+-----------------------------+-----------------+------+--------+-------+-------+
+# | R1  | Hz   | tissue R1                   | Electromagnetic | 0.65 | (0, 5) |       |       |
+# | R1i | Hz   | inlet R1                    | Electromagnetic | 0.65 | (0, 5) |       |       |
+# | R2  | Hz   | tissue R2                   | Electromagnetic | 2.0  | (0, 5) |       |       |
+# | R2s | Hz   | tissue R2*                  | Electromagnetic | 20   | (0, 5) |       |       |
+# | tR  | sec  | relaxation rate time points | Electromagnetic | 0.0  |        |       |       |
+# +--------------------------------------------------------------------------------------------+
+
+class ConcToRelax(Module): 
+    configs = Relax.configs | {
+        'inflow': {False, True},
+    }
+    defaults = Relax.defaults | {'inflow': False}
+
+    def __init__(self, sequence=None, imap:dict=None, omap:dict=None, iomap:dict=None, cmap: dict=None, **config):
+        self.set_config(config, cmap)
+
+        self._relax_tissue = Relax(sequence=sequence, **self.config)
+
+        inflow = self.config['inflow']
+        if sequence is not None:
+            if 'R1' not in get_sequence('tissue_params', sequence):
+                # Only t1_relaxation in current signal models
+                inflow = False
+
+        self._relax_inlets = None
+        if inflow: 
+            if self.config['t1_relaxation'] is None:
+                raise InvalidConfiguration(f"The t1_relaxation option can't be None for T1-weighted sequences.")
+            
+            self._relax_inlets = R1( 
+                #imap = {'C':'ci', 'vw':'vwi', 'wx':'wxi', 'R1b':'R1ib', 'r1':'r1i'},
+                imap = {'C':'ci', 'RM':'RMi', 'R1b':'R1ib', 'r1':'r1i'},
+                omap = {'R1':'R1i'},
+                **self.config,
+            )  
+
+        self.map_io(imap, omap, iomap)  
+        
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data, kwargs)  
+
+        p |= self._relax_tissue(p)
+        if self._relax_inlets is not None:
+            p['RMi'] = np.eye(len(p['r1i'])) # No exchange between inlets
+            # p['wxi'] = [[i] for i in range(len(p['r1i']))] # No exchange between inlets
+            #p['vwi'] = np.ones(len(p['r1i'])) # Inlet volume fractions are 1
+            p |= self._relax_inlets(p)  
+        p['tR'] = p['tC']
+
+        return self.map_results(p)
+
+    def inputs(self):
+        inputs = self._relax_tissue.mapped_inputs()
+        if self._relax_inlets is not None:
+            inputs |= self._relax_inlets.mapped_inputs()
+            #inputs -= {'wxi', 'vwi'}
+            inputs -= {'RMi'}
+        inputs |= {'tC'}
+        return inputs 
+   
+    def outputs(self):
+        outputs = self._relax_tissue.mapped_outputs() 
+        if self._relax_inlets is not None:
+            outputs |= self._relax_inlets.mapped_outputs() 
+        outputs |= {'tR'}
+        return outputs
+
+    def dummy_data(self, nc=2, nt=5): 
+        data = self.init_data()
+        data |= {
+            'C': np.ones((nc, nt)),
+            'ci': np.ones((nc, nt)),
+            'tC': np.arange(nt),
+            'R1b': np.ones(nc),
+            'R1ib': np.ones(nc),
+            'R2b': np.ones(nc),
+            'r1': np.ones(nc),
+            'r1i': np.ones(nc),
+            'r2': np.ones(nc),
+            'RM': np.eye(nc),
+            'v': np.ones(nc) / nc,
+            #'vw': np.ones(nc) / nc,
+            # 'wx': [[0]],
+        } 
+        return data

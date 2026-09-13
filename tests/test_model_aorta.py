@@ -20,6 +20,37 @@ except NameError:
     # Fallback so the script doesn't crash if run with standard 'python' instead of 'kernprof'
     pass
 
+def test_aorta(cls=AortaModel):
+    def _test_config(cnfg):
+        # if cnfg['sequence'] != '3D-SPGR-SS':
+        #     return
+        try:
+            instance = cls(**cnfg)
+        except InvalidConfiguration:
+            return
+    
+        data = instance.dummy_data()
+
+        # --- DIAGNOSTIC TIMING ---
+        t0 = time.perf_counter()
+        # print(cnfg)
+        instance(data)
+
+        elapsed = time.perf_counter() - t0
+        # print(cnfg)
+        # print(f"  [Total model execution time: {elapsed:.4f}s]")
+
+    cls.print_configs()
+    cls.print_all_io(verbose=1, simple=False, sample=1e5, seed=51)
+
+    configs = cls.all_configs(sample=1e4, seed=51)
+    for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
+        _test_config(cnfg)
+
+    print(f'Successfully covered {len(configs)} {cls.__name__} configurations!')
+
+
+
 
 def test_aorta_times():
 
@@ -32,7 +63,7 @@ def test_aorta_times():
         except InvalidConfiguration:
             return
         print(cnfg)
-        data = model.lexicon_data()
+        data = model.dummy_data()
         # data |= {'dt': 2.0, 'tmax': 30}
 
         # --- DIAGNOSTIC TIMING ---
@@ -49,7 +80,7 @@ def test_aorta_times():
         assert results["S_a"].ndim == 3
 
     cnt = 0
-    for cnfg in AortaModel.configurations():
+    for cnfg in AortaModel.all_configs():
         cnt += 1
         _test_config(cnfg)
         if cnt == 100:
@@ -66,65 +97,42 @@ def test_aorta_times():
 
 
 
-def test_aorta():
-    def _test_config(cnfg):
-        try:
-           model = AortaModel(**cnfg)
-        except InvalidConfiguration:
-            return
-    
-        print(cnfg)
-        data = model.lexicon_data()
-        t0 = time.perf_counter()
-        results = model(data)
-        elapsed = time.perf_counter() - t0
-        print(f"  [Total model execution time: {elapsed:.4f}s]")
-        assert results['S_a'].ndim == 3
-
-    configs = AortaModel.configurations()
-    cnt = 0
-    for cnfg in tqdm(list(configs)):
-        cnt += 1
-        _test_config(cnfg)
-        # if cnt==100:
-        #     break
-
-    print(f'Successfully covered {cnt} Aorta configurations!')
-
-
-def test_aorta_function():
+def test_aorta_instance():
     cnfg = {
-        'heartlung': 'comp', 
+        'heartlung': 'pfcomp', 
         'organs': 'comp', 
-        'kidneys': None, 
+        'kidneys': None,
         'liver': None, 
         'lagut': None, 
-        'bolus': 'single', 
+        'bolus': 'dual', 
         't1_relaxation': 'lin', 
         't2_relaxation': None, 
         't2s_relaxation': None, 
-        'sequence': 'ZTE-3D-IR-SPGR-SS', 
-        'inflow': True, 
+        'inflow': False, 
+        'sequence': 'ZTE-3D-SPGR-SS', 
         'magnitude': False, 
-        'calibrate': True,
+        'trigger': True, 
+        'calibrate': False,
     }
     try:
         model = AortaModel(**cnfg)
-    except InvalidConfiguration:
+    except InvalidConfiguration as e:
+        print(e)
         return
-    print(model.inputs())
-    print(model.outputs())
+    
+    model.print_inputs()
+    model.print_outputs()
 
-    data = model.lexicon_data() 
+    data = model.dummy_data() 
     results = model(data)
     
-    plt.plot(results['tS_a'], results['S_a'][0, 0, :], 'ro')
+    plt.plot(results['tS'], results['S'][0, 0, :], 'ro')
     plt.show()
 
 
 if __name__ == '__main__':
     test_aorta()
-    #test_aorta_times()
-    #test_aorta_function()
+    # test_aorta_instance()
+    # test_aorta_times()
 
     print('All model coverage tests passed!!')

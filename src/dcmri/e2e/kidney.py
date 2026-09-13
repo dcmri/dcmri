@@ -98,13 +98,13 @@ from dcmri.inverse.sig2conc import SignalToConc
 from dcmri.utils import const
 from dcmri.core.model import SuperModel
 from dcmri.core.types import Input
-from dcmri.core.sequences import SEQUENCES
+from dcmri.core.tools import get_sequence
 from dcmri.kinetics.modules_conc import ConcKidney
 from dcmri.signal.modules_tissue import Signal
 from dcmri.utils.misc import sample
 from dcmri.utils.fit import train, loss
 
-CONSTANTS = {'Fw': 0, 'v': 1, 'me': 1, 'noise_sdev':0}
+CONSTANTS = {'Fw': 0, 'v': 1, 'me': 1, 'NSR':0}
 
 class Kidney(SuperModel):
     """Whole-kidney signals with a known input.
@@ -208,7 +208,7 @@ class Kidney(SuperModel):
                 B1corr=input.B1corr, r1=rp,
             )
             t = np.arange(0, np.amax(time) + p['dt'], p['dt'])
-            p['ca'] = np.interp(t, input.time, ca)
+            p['c_a'] = np.interp(t, input.time, ca)
 
         return self._train(time, signal, free, bounds, n0, **kwargs)
 
@@ -262,12 +262,12 @@ class Kidney(SuperModel):
     def _params(self, select=None):
         pars_kin = ConcKidney(**self._cnfg).params()
         seq = self._cnfg['sequence']
-        pars_seq = SEQUENCES[seq]['parameters']['prep']
-        pars_seq += SEQUENCES[seq]['parameters']['read']
+        pars_seq = get_sequence('prep_params', seq)
+        pars_seq += get_sequence('read_params', seq)
 
         if select is None:
             pars_list = [
-                'ca', 'field_strength', 'agent',
+                'c_a', 'field_strength', 'agent',
                 'H', 'S0', 'R1b', 'R2sb', 'TS',
             ]
             pars_list += pars_kin + pars_seq
@@ -283,7 +283,7 @@ class Kidney(SuperModel):
 
     def _compute_concentration(self):
         p = self._pars
-        p['ci'] = p['ca'] / (1 - p['H'])
+        p['ci'] = p['c_a'] / (1 - p['H'])
         self._C = ConcKidney(**self._cnfg)(**p)
        
     def _compute_relaxation_rate(self):
@@ -302,7 +302,7 @@ class Kidney(SuperModel):
 
     def _set_time(self):
         p = self._pars
-        self._t = p['dt'] * np.arange(p['ca'].size)
+        self._t = p['dt'] * np.arange(p['c_a'].size)
 
     def _predict(self, time):
         self._set_time()
@@ -347,7 +347,7 @@ class Kidney(SuperModel):
 
         ax1.set_title('Reconstruction of concentrations')
 
-        ax1.plot(self._t/60, 1000*self._pars['ca'], '-', linewidth=3, color='darkred', label='Arterial Pred')
+        ax1.plot(self._t/60, 1000*self._pars['c_a'], '-', linewidth=3, color='darkred', label='Arterial Pred')
         ax1.plot(self._t/60, 1000*self._C[0,:], linestyle='-', linewidth=3.0, color='darkred', label='Blood')
         ax1.plot(self._t/60, 1000*self._C[1,:], linestyle='-', linewidth=3.0, color='darkcyan', label='Tubuli')
            

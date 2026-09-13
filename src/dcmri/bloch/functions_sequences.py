@@ -2,9 +2,9 @@ import numpy as np
 from scipy.linalg import expm
 
 def channels(sequence):
-    return 2 if sequence in ['Eq-DE-EPI', '2D-DE-EPI'] else 1
+    return 2 if sequence in ['Eq-DE-EPI', '2D-DE-EPI', '3D-DE-EPI'] else 1
 
-def pulse_readout(sequence, pars):
+def pulse_readout(sequence, p):
     if sequence in [
             'ZTE-3D-SPGR-SS',
             '3D-SPGR-SS',
@@ -13,7 +13,7 @@ def pulse_readout(sequence, pars):
             '2D-SPGR',
             '3D-SPGR-SSI',
         ]:
-        return pars['Nk0']
+        return p['Nk0']
     
     elif sequence in [
             'ZTE-3D-IR-SPGR-SS',
@@ -25,7 +25,33 @@ def pulse_readout(sequence, pars):
             '3D-PR-SPGR',
             '2D-SR-SPGR',
         ]:
-        return 1 + pars['Nk0']
+        return 1 + p['Nk0']
+
+    else:
+        return 0
+
+def readout_time(sequence, p):
+    if sequence in [
+            'ZTE-3D-SPGR-SS',
+            '3D-SPGR-SS',
+            '2D-SPGR-SS',
+            '3D-SPGR',
+            '2D-SPGR',
+            '3D-SPGR-SSI',
+        ]:
+        return p['Nk0'] * p['TR']
+    
+    elif sequence in [
+            'ZTE-3D-IR-SPGR-SS',
+            '3D-IR-SPGR-SS',
+            '3D-SR-SPGR-SS',
+            '3D-PR-SPGR-SS',
+            '3D-IR-SPGR',
+            '3D-SR-SPGR',
+            '3D-PR-SPGR',
+            '2D-SR-SPGR',
+        ]:
+        return p['TP'] + p['Nk0'] * p['TR']
 
     else:
         return 0
@@ -64,6 +90,13 @@ def repetition_time(sequence, p):
         return p['TR']
     
     return p['TA']
+
+
+def acquisition_times(sequence, p, tacq):
+    TR = repetition_time(sequence, p)
+    t0 = readout_time(sequence, p)
+    nt = np.floor(tacq / TR)
+    return t0 + TR * np.arange(nt)
 
 
 def mz_readout(Mz: np.ndarray, R2: np.ndarray, FA, TE):

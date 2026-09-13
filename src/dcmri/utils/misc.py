@@ -148,10 +148,10 @@ def sample(t, tp, Sp, dt=None) -> np.ndarray:
     int_interp = interp1d(tp, cum_int, kind='linear', axis=-1, 
                           bounds_error=False, fill_value=np.nan)
     
-    t_start = t - dt/2
+    tstart = t - dt/2
     t_end = t + dt/2
 
-    F_start = int_interp(t_start)
+    F_start = int_interp(tstart)
     F_end = int_interp(t_end)
 
     # Total integral at the rightmost boundary
@@ -159,11 +159,11 @@ def sample(t, tp, Sp, dt=None) -> np.ndarray:
 
     # --- Correctly handle boundaries with constant extension physics ---
     # Left side extrapolation: integral decreases linearly moving backwards from tp_min
-    F_start = np.where(t_start < tp_min, 0 - (tp_min - t_start) * sp_left, F_start)
+    F_start = np.where(tstart < tp_min, 0 - (tp_min - tstart) * sp_left, F_start)
     F_end = np.where(t_end < tp_min, 0 - (tp_min - t_end) * sp_left, F_end)
 
     # Right side extrapolation: integral increases linearly moving forwards from tp_max
-    F_start = np.where(t_start > tp_max, total_integral + (t_start - tp_max) * sp_right, F_start)
+    F_start = np.where(tstart > tp_max, total_integral + (tstart - tp_max) * sp_right, F_start)
     F_end = np.where(t_end > tp_max, total_integral + (t_end - tp_max) * sp_right, F_end)
 
     # Average value over the window of duration dt
@@ -210,16 +210,16 @@ def sample(t, tp, Sp, dt=None) -> np.ndarray:
 #     int_interp = interp1d(tp, cum_int, kind='linear', axis=-1, 
 #                           bounds_error=False, fill_value=(0, np.nan))
     
-#     t_start = t - dt/2
+#     tstart = t - dt/2
 #     t_end = t + dt/2
 
 #     # Override the FIRST point only (index 0)
 #     # We make it start at t[0] and end at t[0] + dt/2
 #     if t[0] - dt/2 < tp[0]:  # Only adjust if the first window extends before tp[0]
-#         t_start[0] = t[0]
+#         tstart[0] = t[0]
 #         t_end[0] = t[0] + dt/2
 
-#     F_start = int_interp(t_start)
+#     F_start = int_interp(tstart)
 #     F_end = int_interp(t_end)
 
 #     # Correctly handle boundaries for any Sp shape
@@ -228,8 +228,8 @@ def sample(t, tp, Sp, dt=None) -> np.ndarray:
 
 #     # If t < tp_min -> 0
 #     # If t > tp_max -> total_integral
-#     F_start = np.where(t_start < tp_min, 0, F_start)
-#     F_start = np.where(t_start > tp_max, total_integral, F_start)
+#     F_start = np.where(tstart < tp_min, 0, F_start)
+#     F_start = np.where(tstart > tp_max, total_integral, F_start)
 
 #     F_end = np.where(t_end < tp_min, 0, F_end)
 #     F_end = np.where(t_end > tp_max, total_integral, F_end)

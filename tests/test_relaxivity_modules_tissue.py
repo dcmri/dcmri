@@ -1,25 +1,46 @@
-import itertools
-import numpy as np
+from tqdm import tqdm
 
 import dcmri as dc
 
-def test_coverage():
+from dcmri.core.exceptions import InvalidConfiguration
+from dcmri.core.module import Module
 
-    nc, nt = 5, 10
+def _test_class(cls: Module):
+    def _test_config(cnfg):
+        try:
+            instance = cls(**cnfg)
+        except InvalidConfiguration:
+            return
+        data = instance.dummy_data(nc=2)
+        instance(data)
+        if 't2s_relaxation' in cnfg and cnfg['t2s_relaxation'] == 'leakage':
+            return
+        data = instance.dummy_data()
+        instance(data)
 
-    DEFAULTS = dc.QVALUES | {'v': 1, 'c': np.ones(nt), 'R1b': 1, 'R2b': 1, 'R2sb': 1}
-    DEFAULTS2 = dc.QVALUES | {'v': np.ones(nc) / nc, 'c': np.ones((nc, nt)), 'R1b': np.ones(nc), 'R2b': np.ones(nc), 'R2sb': 1, 'r1': 1e3 * np.ones(nc), 'r2': 1e3 * np.ones(nc)}
+    cls.print_configs()
+    cls.print_all_io(verbose=1, simple=False)
 
-    # Run for coverage
-    for module in [dc.R1, dc.R2, dc.R2s, dc.Relax]:
-        for cnfg in module.configurations():
-            print(cnfg)
-            module(**cnfg)(DEFAULTS)
-            module(**cnfg)(DEFAULTS2)
+    configs = cls.all_configs()
+    for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
+        _test_config(cnfg)
+
+    print(f'Successfully covered {len(configs)} {cls.__name__} configurations!')
+
+
+def test_relax():
+    for cls in [
+        dc.R1,
+        dc.R2,
+        dc.R2s,
+        dc.Relax,
+        dc.ConcToRelax,
+    ]:
+        _test_class(cls)
+
 
 
 if __name__ == "__main__":
-    test_coverage()
-    
+    test_relax()
     
     print('All relaxivity models tests passing!')

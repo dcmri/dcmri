@@ -284,11 +284,24 @@ class Conc(Module):
     
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)
-
         model_func = getattr(blocks, f"conc_{self.config['block']}")
         results = {'C': model_func(**p)}
-
         return self.map_results(results)
+
+    def dummy_data(self, nt=5, nc=2):
+        data = self.init_data()
+        data['J'] = np.ones(nt)
+        data['h'] = [1]
+        data['TT'] = [0, 1]
+        if self.config['block'] in ['bicomp', '2cxm']:
+            data['T'] = [1, 1]
+        if self.config['block'] == 'ncomp':
+            data['T'] = np.ones(nc)
+            data['J'] = np.ones((nc, nt))
+            data['E'] = np.ones((nc, nc))
+        if self.config['block'] == 'nscomp':
+            data['T'] = np.ones(nt)
+        return data
 
 
 class ConcAorta(Module):
@@ -302,95 +315,110 @@ class ConcAorta(Module):
     configs = FluxAorta.configs
     defaults = FluxAorta.defaults
 
-    def __init__(self, imap:dict=None, omap:dict=None, **config):
-        self.set_config(config)
+    def __init__(self, imap:dict=None, omap:dict=None, iomap: dict=None, cmap: dict=None, **config):
+        self.set_config(config, cmap)
         self._flux = FluxAorta(**config)
         self._conc = Conc(block='plug')
-        self.map_io(imap, omap)
+        self.map_io(imap, omap, iomap)
         
     def inputs(self):
-        inputs = {'vol_a', 'CO'}
+        inputs = {'vol_ao', 'CO'}
         inputs |= self._flux.mapped_inputs()
         inputs |= self._conc.mapped_inputs() 
         return inputs - {'T', 'J'}
     
     def outputs(self):
-        return {'t', 'C_a', 'v_a', 'c_a', 'Fi_a', 'ci_a'}
+        return {'tC', 'F_b_ao', 'ci_ao', 'C_ao'}
     
     def __call__(self, data: dict=None, **kwargs):
         p = self.map_data(data, kwargs)
 
         v_a = 1 # assume no partial volume effect: v_a = 1mL/cm3
         flux = self._flux(p)
-        Ta = v_a * p['vol_a'] / p['CO']
-        conc = self._conc(p, T=Ta, J=flux['Ja']) 
-        C = conc['C'].reshape(1, -1) / p['vol_a']
+        Ta = v_a * p['vol_ao'] / p['CO']
+        conc = self._conc(p, T=Ta, J=flux['J_ao']) 
+        C = conc['C'].reshape(1, -1) / p['vol_ao']
         results = {
-            't': flux['t'], 
-            'C_a': C,                                     # (nc, nt)
-            'v_a': np.array([v_a]),                       # (nc, )
-            'c_a': divC(C, v_a),                          # (nc, nt)
-            'Fi_a': np.array([p['CO'] / p['vol_a']]),     # (nc, )
-            'ci_a': flux['Ja'].reshape(1, -1) / p['CO'],  # (nc, nt)
+            'tC': flux['tC'], 
+            
+            'F_b_ao': p['CO'] / p['vol_ao'], 
+            'ci_ao': flux['J_ao'].reshape(1, -1) / p['CO'],  # (nc, nt)
+            'C_ao': C,                                     # (nc, nt)
         }
         return self.map_results(results)
+    
+# +--------------------------------------------------------------------------------------------------+
+# |                                 ConcLiver - all configs (n = 2)                                  |
+# +----------------+-----------------------------------------------------------------------+---------+
+# | Key            | Values                                                                | Default |
+# +----------------+-----------------------------------------------------------------------+---------+
+# | kinetics       | 1I-EC, 1I-EC-HF, 1I-IC, 1I-IC-HF, 2I-EC, 2I-EC-HF, 2I-IC, 2I-IC-HF,   | 2I-EC   |
+# |                | 2I-IC-U                                                               |         |
+# | non_stationary | E, None, U, UE                                                        | None    |
+# +--------------------------------------------------------------------------------------------------+
 
+# +-----------------------------------------------------------------------------------------------------------------------------------------------------+
+# |                                                           ConcLiver - all inputs (n = 14)                                                           |
+# +--------+------------+----------------------------------------------------------------------+-----------------+-------+--------------+-------+-------+
+# | Key    | Unit       | Name                                                                 | Group           | Init  | Bounds       | DICOM | OSIPI |
+# +--------+------------+----------------------------------------------------------------------+-----------------+-------+--------------+-------+-------+
+# | ci_li  | mmol/mL    | inlet concentration in the liver                                     | Indicator       | 0.005 |              |       |       |
+# +--------+------------+----------------------------------------------------------------------+-----------------+-------+--------------+-------+-------+
+# | E_li   |            | extraction fraction in the liver                                     | Physiological   | 0.1   | (0.0, 1.0)   |       |       |
+# | Ef_li  |            | final extraction fraction in the liver                               | Physiological   | 0.1   | (0.0, 1.0)   |       |       |
+# | Ei_li  |            | initial extraction fraction in the liver                             | Physiological   | 0.1   | (0.0, 1.0)   |       |       |
+# | F_p_li | mL/sec/cm3 | flow per unit tissue in plasma of the liver                          | Physiological   | 0.01  | (0, 0.05)    |       |       |
+# | T_h    | sec        | mean transit time in hepatocytes                                     | Physiological   | 1800  | (600, 36000) |       |       |
+# | Tf_h   | sec        | final mean transit time in hepatocytes                               | Physiological   | 1800  | (600, 36000) |       |       |
+# | Ti_h   | sec        | initial mean transit time in hepatocytes                             | Physiological   | 1800  | (600, 36000) |       |       |
+# | ffa    |            | arterial flow fraction                                               | Physiological   | 0.2   | (0, 1)       |       |       |
+# | k_e2h  | mL/sec/cm3 | tissue transfer rate from extracellular space to hepatocytes         | Physiological   | 0.003 | (0.0, 0.1)   |       |       |
+# | kf_e2h | mL/sec/cm3 | final tissue transfer rate from extracellular space to hepatocytes   | Physiological   | 0.003 | (0.0, 0.1)   |       |       |
+# | ki_e2h | mL/sec/cm3 | initial tissue transfer rate from extracellular space to hepatocytes | Physiological   | 0.003 | (0.0, 0.1)   |       |       |
+# | v_e_li | mL/cm3     | volume fraction in extracellular space of the liver                  | Physiological   | 0.3   | (0.01, 0.6)  |       |       |
+# +--------+------------+----------------------------------------------------------------------+-----------------+-------+--------------+-------+-------+
+# | dt     | sec        | pseudo-continuous time step                                          | Hyperparameters | 0.5   |              |       |       |
+# +-----------------------------------------------------------------------------------------------------------------------------------------------------+
+
+# +--------------------------------------------------------------------------------------------------------------+
+# |                                       ConcLiver - all outputs (n = 3)                                        |
+# +-------+----------+----------------------------------------+-----------------+-------+--------+-------+-------+
+# | Key   | Unit     | Name                                   | Group           | Init  | Bounds | DICOM | OSIPI |
+# +-------+----------+----------------------------------------+-----------------+-------+--------+-------+-------+
+# | C_li  | mmol/cm3 | tissue concentration in the liver      | Indicator       | 0.005 | (0, 1) |       |       |
+# | ci_li | mmol/mL  | inlet concentration in the liver       | Indicator       | 0.005 |        |       |       |
+# | tC_li | sec      | concentration time points in the liver | Indicator       | 0.0   |        |       |       |
+# +--------------------------------------------------------------------------------------------------------------+
 
 class ConcLiver(Module):
     """
-    Concentration in liver tissue for a variety of liver models.
-
-    Args:
-        kinetics (str, optional): Tracer-kinetic model.
-        non_stationary (str, optional): Stationarity regime of liver transporters.
-        params (dict, optional): override parameter defaults.
+    Concentration in liver tissue.
     """
 
     configs = {
-        'kinetics': [
-            '2I-EC',
-            '2I-EC-HF', 
-            
-            '1I-EC', 
-            '1I-EC-HF',
-
-            '2I-IC',
-            '2I-IC-HF', 
-            '2I-IC-U',
-
-            '1I-IC', 
-            '1I-IC-HF',
-        ],
-        'non_stationary': [
-            None, 
-            'U', 
-            'E', 
-            'UE'
-        ],
+        'kinetics': {k[0] for k in pk_liver.PARAMETERS.keys()},
+        'non_stationary': {k[1] for k in pk_liver.PARAMETERS.keys()},
     }
     defaults = {
         'kinetics': '2I-EC', 
         'non_stationary': None,
     }
 
-    def __init__(self, imap:dict=None, omap:dict=None, **config):
-        self.set_config(config)
+    def __init__(self, imap:dict=None, omap:dict=None, iomap: dict=None, cmap: dict=None, **config):
+        self.set_config(config, cmap)
         if (self.config['kinetics'], self.config['non_stationary']) not in pk_liver.PARAMETERS.keys():
             raise InvalidConfiguration('For extracellular tracers the non-stationary configuration is invalid.')
-        self.map_io(imap, omap)
+        self.map_io(imap, omap, iomap)
             
     def inputs(self):
+        imap = {'F_p':'F_p_li', 'v_e': 'v_e_li', 'E':'E_li', 'Ei':'Ei_li', 'Ef':'Ef_li'}
         model = (self.config['kinetics'], self.config['non_stationary'])
-        inputs = set(pk_liver.PARAMETERS[model])
-        inputs |= {'ci_l'}
+        inputs = {imap.get(i, i) for i in pk_liver.PARAMETERS[model]}
+        inputs |= {'dt', 'ci_li'}
         return inputs 
 
     def outputs(self):
-        return {'C_l'}
-
-    def lexicon_data(self, qvalues):
-        p = {'ci_l': qvalues['ci']}
-        return self.update_data(p)
+        return {'tC_li', 'C_li', 'ci_li'}
     
     def __call__(self, data: dict=None, **kwargs):
         p = self.map_data(data, kwargs)
@@ -402,21 +430,107 @@ class ConcLiver(Module):
             func += '_ns' + ns.lower()    
         liver_conc = getattr(pk_liver, func)
 
-        phys = {k: v for k, v in p.items() if k not in ['ci_l']}
-        results = {'C_l': liver_conc(p['ci_l'], **phys)}
+        imap = {'F_p_li':'F_p', 'v_e_li':'v_e', 'E_li':'E', 'Ei_li':'Ei', 'Ef_li':'Ef'}
+        phys = {imap.get(k, k): v for k, v in p.items() if k not in ['ci_li']}
+
+        C_li = liver_conc(p['ci_li'], **phys)
+        tC_li = p['dt'] * np.arange(C_li.shape[1])
+        if '2I' in kin:
+            ci = p['ffa'] * p['ci_li'][0] + (1 - p['ffa']) * p['ci_li'][1]
+        else:
+            ci = p['ci_li']
+
+        results = {'tC_li': tC_li, 'C_li': C_li, 'ci_li': ci}
         return self.map_results(results)
 
-    def deriv(self, parameter, data):
-        p = self.map_data(data, {}, all=False)
-        if parameter=='El':
-            if 'EC' in self.config['kinetics']:
-                return 0
-            if 'HF' in self.config['kinetics']:
-                return None
-            if self.config['non_stationary'] in [None, 'E']:
-                return p['E']
-            return np.mean([p['E_i'], p['E_f']])
+    def dummy_data(self, nt=5):
+        data = self.init_data()
+        ci = np.ones(nt)
+        data['ci_li'] = ci if '1I' in self.config['kinetics'] else (ci, ci)
+        return data
 
+# +--------------------------------------------------------------------------------------------------+
+# |                               ConcAortaLiver - all configs (n = 6)                               |
+# +----------------+-----------------------------------------------------------------------+---------+
+# | Key            | Values                                                                | Default |
+# +----------------+-----------------------------------------------------------------------+---------+
+# | bolus          | dual, single                                                          | single  |
+# | heartlung      | chain, comp, pfcomp                                                   | pfcomp  |
+# | organs         | 2cxm, comp                                                            | comp    |
+# | lagut          | comp, pass, plucom                                                    | comp    |
+# | liver          | 1I-EC, 1I-EC-HF, 1I-IC, 1I-IC-HF                                      | 1I-EC   |
+# | non_stationary | E, None, U, UE                                                        | None    |
+# +--------------------------------------------------------------------------------------------------+
+
+# +----------------------------------------------------------------------------------------------------------------------------------------------+
+# |                                                     ConcAortaLiver - all inputs (n = 38)                                                     |
+# +----------------+------------+--------------------------------------------------+-----------------+------------+--------------+-------+-------+
+# | Key            | Unit       | Name                                             | Group           | Init       | Bounds       | DICOM | OSIPI |
+# +----------------+------------+--------------------------------------------------+-----------------+------------+--------------+-------+-------+
+# | BAT            | sec        | bolus arrival time                               | Indicator       | 30         | (-30, 30)    |       |       |
+# | BAT_1          | sec        | 1st bolus arrival time                           | Indicator       | 30         | (-30, 30)    |       |       |
+# | BAT_2          | sec        | 2nd bolus arrival time                           | Indicator       | 30         | (-30, 30)    |       |       |
+# | agent          |            | contrast agent generic name                      | Indicator       | gadoterate |              |       |       |
+# | dose           | mL/kg      | contrast agent dose                              | Indicator       | 0.1        | (0, 0.2)     |       |       |
+# | dose_1         | mL/kg      | 1st contrast agent dose                          | Indicator       | 0.1        | (0, 0.2)     |       |       |
+# | dose_2         | mL/kg      | 2nd contrast agent dose                          | Indicator       | 0.1        | (0, 0.2)     |       |       |
+# | rate           | mL/s       | injection rate                                   | Indicator       | 1          | (0, 10)      |       |       |
+# | rate_1         | mL/s       | 1st injection rate                               | Indicator       | 1          | (0, 10)      |       |       |
+# | rate_2         | mL/s       | 2nd injection rate                               | Indicator       | 1          | (0, 10)      |       |       |
+# +----------------+------------+--------------------------------------------------+-----------------+------------+--------------+-------+-------+
+# | CO             | mL/sec     | cardiac output                                   | Physiological   | 100        | (0, 500)     |       |       |
+# | D_hl           |            | transit time dispersion in the heart and Lungs   | Physiological   | 0.2        | (0.01, 0.99) |       |       |
+# | E_li           |            | extraction fraction in the liver                 | Physiological   | 0.1        | (0.0, 1.0)   |       |       |
+# | E_or           |            | extraction fraction in the organs                | Physiological   | 0.15       | (0, 0.5)     |       |       |
+# | Ef_li          |            | final extraction fraction in the liver           | Physiological   | 0.1        | (0.0, 1.0)   |       |       |
+# | Ei_li          |            | initial extraction fraction in the liver         | Physiological   | 0.1        | (0.0, 1.0)   |       |       |
+# | GFR            | mL/sec     | glomerular filtration rate                       | Physiological   | 2          | (0, 10)      |       |       |
+# | H              |            | hematocrit                                       | Physiological   | 0.45       | (0, 1)       |       |       |
+# | T_b_or         | sec        | mean transit time in blood of the organs         | Physiological   | 20         | (0, 60)      |       |       |
+# | T_e_or         | sec        | mean transit time in extracellular of the organs | Physiological   | 120        | (0, 800)     |       |       |
+# | T_gu           | sec        | mean transit time in the gut                     | Physiological   | 30         | (0.1, 60)    |       |       |
+# | T_h            | sec        | mean transit time in hepatocytes                 | Physiological   | 1800       | (600, 36000) |       |       |
+# | T_hl           | sec        | mean transit time in the heart and Lungs         | Physiological   | 10         | (0, 30)      |       |       |
+# | T_la           | sec        | mean transit time in the liver artery            | Physiological   | 30         | (0.1, 60)    |       |       |
+# | Tf_h           | sec        | final mean transit time in hepatocytes           | Physiological   | 1800       | (600, 36000) |       |       |
+# | Ti_h           | sec        | initial mean transit time in hepatocytes         | Physiological   | 1800       | (600, 36000) |       |       |
+# | fCO_li         |            | fraction of the cardiac output in the liver      | Physiological   | 0.1        | (0, 0.5)     |       |       |
+# | ffa            |            | arterial flow fraction                           | Physiological   | 0.2        | (0, 1)       |       |       |
+# | k_e2h          | mL/sec/cm3 | hepatocellular uptake rate                       | Physiological   | 0.003      | (0.0, 0.1)   |       |       |
+# | kf_e2h         | mL/sec/cm3 | final hepatocellular uptake rate                 | Physiological   | 0.003      | (0.0, 0.1)   |       |       |
+# | ki_e2h         | mL/sec/cm3 | initial hepatocellular uptake rate               | Physiological   | 0.003      | (0.0, 0.1)   |       |       |
+# | v_e_li         | mL/cm3     | volume fraction in extracellular of the liver    | Physiological   | 0.3        | (0.01, 0.6)  |       |       |
+# +----------------+------------+--------------------------------------------------+-----------------+------------+--------------+-------+-------+
+# | dose_tolerance |            | dose tolerance                                   | Hyperparameters | 0.1        |              |       |       |
+# | dt             | sec        | pseudo-continuous time step                      | Hyperparameters | 0.5        |              |       |       |
+# | tmax           | sec        | maximum time point                               | Hyperparameters | 240        |              |       |       |
+# +----------------+------------+--------------------------------------------------+-----------------+------------+--------------+-------+-------+
+# | vol_ao         | cm3        | ROI volume in the aorta                          | Whole-body      | 10         | (0.0, 1000)  |       |       |
+# | vol_li         | cm3        | ROI volume in the liver                          | Whole-body      | 1000       | (0, 10000)   |       |       |
+# | weight         | kg         | body weight                                      | Whole-body      | 70         | (0, 300)     |       |       |
+# +----------------------------------------------------------------------------------------------------------------------------------------------+
+
+# +----------------------------------------------------------------------------------------------------------------------+
+# |                                        ConcAortaLiver - all outputs (n = 14)                                         |
+# +--------+------------+--------------------------------------------+-----------------+-------+---------+-------+-------+
+# | Key    | Unit       | Name                                       | Group           | Init  | Bounds  | DICOM | OSIPI |
+# +--------+------------+--------------------------------------------+-----------------+-------+---------+-------+-------+
+# | C_ao   | mmol/cm3   | tissue concentration in the aorta          | Indicator       | 0.005 | (0, 1)  |       |       |
+# | C_li   | mmol/cm3   | tissue concentration in the liver          | Indicator       | 0.005 | (0, 1)  |       |       |
+# | J_ao   | mmol/sec   | indicator flux in the aorta                | Indicator       | 1     | (0, 10) |       |       |
+# | J_la   | mmol/sec   | indicator flux in the liver artery         | Indicator       | 1     | (0, 10) |       |       |
+# | J_lag  | mmol/sec   | indicator flux in the liver artery and gut | Indicator       | 1     | (0, 10) |       |       |
+# | J_li   | mmol/sec   | indicator flux in the liver                | Indicator       | 1     | (0, 10) |       |       |
+# | J_or   | mmol/sec   | indicator flux in the organs               | Indicator       | 1     | (0, 10) |       |       |
+# | J_pv   | mmol/sec   | indicator flux in the portal vein          | Indicator       | 1     | (0, 10) |       |       |
+# | J_ve   | mmol/sec   | indicator flux in the vein                 | Indicator       | 1     | (0, 10) |       |       |
+# | ci_ao  | mmol/mL    | inlet concentration in the aorta           | Indicator       | 0.005 |         |       |       |
+# | ci_li  | mmol/mL    | inlet concentration in the liver           | Indicator       | 0.005 |         |       |       |
+# | tC     | sec        | concentration time points                  | Indicator       | 0.0   |         |       |       |
+# +--------+------------+--------------------------------------------+-----------------+-------+---------+-------+-------+
+# | F_b_ao | mL/sec/cm3 | flow per unit tissue in blood of the aorta | Physiological   | 0.02  | (0, 1)  |       |       |
+# | F_b_li | mL/sec/cm3 | flow per unit tissue in blood of the liver | Physiological   | 0.02  | (0, 1)  |       |       |
+# +----------------------------------------------------------------------------------------------------------------------+
 
 class ConcAortaLiver(Module):
     """Concentration in aorta and liver.
@@ -426,7 +540,7 @@ class ConcAortaLiver(Module):
         'heartlung': FluxAorta.configs['heartlung'],
         'organs': FluxAorta.configs['organs'],
         'lagut': {'pass', 'comp', 'plucom'},
-        'liver': {'1I-EC', '1I-IC'},
+        'liver': {k for k in ConcLiver.configs['kinetics'] if '1I' in k}, # {'1I-EC', '1I-IC'}, 
         'non_stationary': ConcLiver.configs['non_stationary'],
     }
     defaults = {
@@ -437,8 +551,12 @@ class ConcAortaLiver(Module):
         'liver': '1I-EC',
         'non_stationary': None,
     }
-    def __init__(self, imap:dict=None, omap:dict=None, **config):
-        self.set_config(config)
+
+    _all_inputs = None 
+    _all_outputs = None
+
+    def __init__(self, imap:dict=None, omap:dict=None, iomap: dict=None, cmap: dict=None, **config):
+        self.set_config(config, cmap)
 
         config_aorta = self.config | {'liver': 'comp'}
         config_liver = self.config | {'kinetics': self.config['liver']}
@@ -446,67 +564,75 @@ class ConcAortaLiver(Module):
         self._flux_aorta = FluxAorta(**config_aorta)
         self._conc_liver = ConcLiver(**config_liver)
 
-        self.map_io(imap, omap)
+        self.map_io(imap, omap, iomap)
 
     def outputs(self):
         outputs = self._flux_aorta.outputs()
-        for roi in ['a', 'l']:
-            outputs |= {f'C_{roi}', f'v_{roi}', f'c_{roi}', f'Fi_{roi}', f'ci_{roi}'}
+        for roi in ['ao', 'li']:
+            outputs |= {f'F_b_{roi}', f'ci_{roi}', f'C_{roi}'}
         return outputs
 
     def inputs(self):
-        inputs = {'fCO_l', 'CO'}
+        inputs = {'fCO_li', 'CO', 'H', 'GFR', 'vol_li', 'vol_ao'}
         inputs |= self._flux_aorta.mapped_inputs()
         inputs |= self._conc_liver.mapped_inputs()
-        inputs |= {'H', 'GFR', 'vol_l', 'vol_a'}
-        inputs -= {'vr_l', 'vr_o', 'Te_l', 'Fp', 'ci_l'}
+        inputs -= {'vr_li', 'vr_or', 'T_e_li', 'F_p_li', 'ci_li'}
         return inputs
-        
+
     def __call__(self, data: dict=None, **kwargs):
         p = self.map_data(data, kwargs)
 
         # Kidney extraction fraction       
-        PF = (1 - p['fCO_l']) * p[f'CO'] * (1 - p['H'])
+        PF = (1 - p['fCO_li']) * p[f'CO'] * (1 - p['H'])
         Ek = p['GFR'] / (p['GFR'] + PF)
 
         # Liver extraction fraction
-        Fp = p['fCO_l'] * p['CO'] * (1 - p['H']) / p['vol_l']
-        El = self._conc_liver.deriv('El', p)
+        Fp = p['fCO_li'] * p['CO'] * (1 - p['H']) / p['vol_li']
+        El = self.deriv('E_li', p | {'F_p_li': Fp})    
         
         # Compute aorta flux
         p |= {
-            'vr_l': p['fCO_l'] * (1 - El),
-            'vr_o': (1 - p['fCO_l']) * (1 - Ek),
-            'Te_l': p['ve'] / Fp,
+            'vr_li': p['fCO_li'] * (1 - El),
+            'vr_or': (1 - p['fCO_li']) * (1 - Ek),
+            'T_e_li': p['v_e_li'] / Fp,
         }
         p |= self._flux_aorta(p)
    
         # Compute liver concentrations
         p |= {
-            'Fp': Fp,
-            'ci_l': p['Jl'] / p['CO'] / (1 - p['H'])
+            'F_p_li': Fp,
+            'ci_li': p['J_lag'] / p['CO'] / (1 - p['H'])
         }
         p |= self._conc_liver(p)
 
         # Build output
-        C_a = p['Ja'].reshape(1, -1) / p['CO']
-        C_l = p['C_l']
-        v_l = np.array([p['ve'], 1 - p['ve']])
+        C_a = p['J_ao'].reshape(1, -1) / p['CO']
+        C_l = p['C_li']
 
         p |= {
-            'v_a': np.array([1]),
-            'Fi_a': np.array([p['CO'] / p['vol_a']]),
-            'C_a': C_a, 
-            'c_a': C_a,
-            'ci_a': C_a,
-
-            'v_l': v_l,
-            'Fi_l': np.array([p['fCO_l'] * p['CO'] / p['vol_l'], np.nan]),
-            'C_l': C_l,
-            'c_l': divC(C_l, v_l),
-            'ci_l': np.stack([p['Jl'] / p['CO'], np.full_like(p['t'], np.nan)]),
+            'F_b_ao': p['CO'] / p['vol_ao'],
+            'ci_ao': C_a,
+            'C_ao': C_a, 
+            
+            'F_b_li': p['fCO_li'] * p['CO'] / p['vol_li'],
+            'ci_li': p['J_lag'].reshape(1, -1) / p['CO'],
+            'C_li': C_l,
         } 
         return self.map_results(p)
+
+    def deriv(self, parameter, p): # Helper
+        if parameter=='E_li':
+            if 'EC' in self.config['liver']:
+                return 0
+            if 'HF' in self.config['liver']:
+                if self.config['non_stationary'] in ['U', 'UE']:
+                    khe = np.mean([p['ki_e2h'], p['kf_e2h']])
+                else:
+                    khe = p['k_e2h']
+                return p['F_p_li'] / (p['F_p_li'] + khe)
+            if self.config['non_stationary'] in [None, 'E']:
+                return p['E_li']
+            return np.mean([p['Ei_li'], p['Ef_li']])
 
 
 class ConcAortaPortalLiver(Module):
@@ -515,15 +641,15 @@ class ConcAortaPortalLiver(Module):
     configs = {k:v for k, v in ConcAortaLiver.configs.items() if k != 'lagut'}
     defaults = {k:v for k, v in ConcAortaLiver.defaults.items() if k != 'lagut'}
 
-    def __init__(self, imap:dict=None, omap:dict=None, **config):
-        self.set_config(config)
+    def __init__(self, imap:dict=None, omap:dict=None, iomap: dict=None, cmap: dict=None, **config):
+        self.set_config(config, cmap)
         self._conc_aol = ConcAortaLiver(lagut='plucom', **self.config)
-        self.map_io(imap, omap)
+        self.map_io(imap, omap, iomap)
 
     def outputs(self):
         outputs = self._conc_aol.outputs()
         for roi in ['la', 'pv']:
-            outputs |= {f'C_{roi}', f'v_{roi}', f'c_{roi}', f'Fi_{roi}', f'ci_{roi}'}
+            outputs |= {f'F_b_{roi}', f'ci_{roi}', f'C_{roi}'}
         return outputs
 
     def inputs(self):
@@ -536,24 +662,20 @@ class ConcAortaPortalLiver(Module):
     
         p |= self._conc_aol(p)
 
-        fCO_la = p['fa'] * p['fCO_l']
-        fCO_pv = (1 - p['fa']) * p['fCO_l']
+        fCO_la = p['ffa'] * p['fCO_li']
+        fCO_pv = (1 - p['ffa']) * p['fCO_li']
 
-        C_la = p['Jla'].reshape(1, -1) / p['CO']
-        C_pv = p['Jpv'].reshape(1, -1) / p['CO']
+        C_la = p['J_la'].reshape(1, -1) / p['CO']
+        C_pv = p['J_pv'].reshape(1, -1) / p['CO']
 
         p |= {
-            'v_la': np.array([1]),
-            'Fi_la': np.array([fCO_la * p['CO'] / p['vol_la']]),
+            'F_b_la': fCO_la * p['CO'] / p['vol_la'],
+            'ci_la': p['J_ao'].reshape(1, -1) / p['CO'],
             'C_la': C_la,
-            'c_la': C_la,
-            'ci_la': C_la,
-
-            'v_pv': np.array([1]),
-            'Fi_pv': np.array([fCO_pv * p['CO'] / p['vol_pv']]),
+            
+            'F_b_pv': fCO_pv * p['CO'] / p['vol_pv'],
+            'ci_pv': p['J_ao'].reshape(1, -1) / p['CO'],
             'C_pv': C_pv,
-            'c_pv': C_pv,
-            'ci_pv': C_pv,
         }              
         return self.map_results(p)
 
@@ -568,25 +690,38 @@ class ConcKidney(Module):
     defaults = {
         'kinetics': '2CF',
     }
-    def inputs(self, group=None):
-        inputs = set(pk_kidney.PARAMETERS[self.config['kinetics']])
-        inputs |= {'ca', 'Ta', 'dt'}
-        if group=='phys':
-            inputs -= {'ca', 'dt'}
+    def inputs(self):
+        imap = {'F_p':'F_p_ki', 'v_p': 'v_p_ki'}
+        inputs = {imap.get(i, i) for i in pk_kidney.PARAMETERS[self.config['kinetics']]}
+        inputs |= {'c_ar', 'T_ar', 'dt'}
         return inputs
     
     def outputs(self):
-        return {'Ck'}
+        return {'tC_ki', 'C_ki', 'ci_ki', 'F_u'}
     
     def __call__(self, data: dict=None, **kwargs):
         p = self.map_data(data, kwargs)
 
-        ca = flux_plug(p['ca'], T=p['Ta'], dt=p['dt'])
         func = 'conc_kidney_' + self.config['kinetics'].lower()   
         kidney_conc = getattr(pk_kidney, func)
-        p = {k: v for k, v in p.items() if k not in ['ca', 'Ta']} 
-        results = {'Ck': kidney_conc(ca, **p)}
+
+        imap = {'F_p_ki':'F_p', 'v_p_ki': 'v_p'}
+        pk = {imap.get(k, k): v for k, v in p.items() if k not in ['c_ar', 'T_ar']} 
+
+        ci_k = flux_plug(p['c_ar'], T=p['T_ar'], dt=p['dt'])
+        C_ki = kidney_conc(ci_k, **pk)
+        tC_ki = p['dt'] * np.arange(C_ki.shape[1])
+        results = {'tC_ki':tC_ki, 'ci_ki':ci_k, 'C_ki':C_ki}
+
+        results['F_u'] = p['F_u'] if 'F_u' in p else p['FF'] * p['F_p_ki']
+
         return self.map_results(results)
+
+    def dummy_data(self, nt=5):
+        data = self.init_data()
+        data['c_ar'] *= np.ones(nt)
+        return data
+
 
 class ConcAortaKidneys(Module):
     """Concentration in aorta and both kidneys.
@@ -595,7 +730,7 @@ class ConcAortaKidneys(Module):
         'bolus': FluxAorta.configs['bolus'],
         'heartlung': FluxAorta.configs['heartlung'],
         'organs': FluxAorta.configs['organs'],
-        'kidneys': {v for v in ConcKidney.configs['kinetics'] if v not in ['HF', 'HFU']},
+        'kidneys': ConcKidney.configs['kinetics'],
     }
     defaults = {
         'heartlung': 'pfcomp', 
@@ -603,8 +738,8 @@ class ConcAortaKidneys(Module):
         'kidneys': '2CF',
         'bolus': 'single',
     }
-    def __init__(self, imap:dict=None, omap:dict=None, **config):
-        self.set_config(config)
+    def __init__(self, imap:dict=None, omap:dict=None, iomap: dict=None, cmap: dict=None, **config):
+        self.set_config(config, cmap)
 
         # Setup aorta module
         kidney_vasc = pk_kidney.VASCULAR_MODEL[self.config['kidneys']]
@@ -612,137 +747,128 @@ class ConcAortaKidneys(Module):
         self._flux_aorta = FluxAorta(**config_aorta)
 
         # Setup Kidney modules
-        imap = {k: f'{k}_lk' for k in {'Fp', 'vp', 'FF', 'Tt', 'ht'}}
+        imap = {'F_p_ki':'F_p_lk', 'v_p_ki':'v_p_lk', 'F_u':'F_u_lk', 'FF':'FF_lk', 'T_u':'T_u_lk', 'h_u':'h_u_lk'}
         self._conc_lk = ConcKidney(imap=imap, kinetics=self.config['kidneys'])
 
-        imap = {k: f'{k}_rk' for k in {'Fp', 'vp', 'FF', 'Tt', 'ht'}}
+        imap = {'F_p_ki':'F_p_rk', 'v_p_ki':'v_p_rk', 'F_u':'F_u_rk', 'FF':'FF_rk', 'T_u':'T_u_rk', 'h_u':'h_u_rk'}
         self._conc_rk = ConcKidney(imap=imap, kinetics=self.config['kidneys'])
 
-        self.map_io(imap, omap)
+        self.map_io(imap, omap, iomap)
 
-    def outputs(self):
-        outputs = self._flux_aorta.outputs()
-        for roi in ['a', 'lk', 'rk']:
-            outputs |= {f'C_{roi}', f'v_{roi}', f'c_{roi}', f'Fi_{roi}', f'ci_{roi}'}
-        return outputs
-    
     def inputs(self):
-        inputs = {'H', 'fCO_k', 'DRPF', 'CO', 'vol_a'}
+        inputs = {'H', 'fCO_ki', 'DRPF', 'CO', 'vol_ao'}
         inputs |= self._conc_lk.mapped_inputs()
         inputs |= self._conc_rk.mapped_inputs()
         inputs |= self._flux_aorta.mapped_inputs()
-        inputs |= {'El', 'vol_lk', 'vol_rk', 'vt_lk', 'vt_rk'}
+        inputs |= {'E_li', 'vol_lk', 'vol_rk'}
+        inputs -= {'c_ar', 'F_p_lk', 'T_p_lk', 'vr_lk', 'F_p_rk', 'T_p_rk', 'vr_rk', 'vr_or'}
         return inputs
+
+    def outputs(self):
+        outputs = self._flux_aorta.outputs()
+        outputs |= {'F_u_lk', 'F_u_rk'}
+        for roi in ['ao', 'lk', 'rk']:
+            outputs |= {f'F_b_{roi}', f'ci_{roi}', f'C_{roi}'}
+        return outputs
     
     def __call__(self, data: dict=None, **kwargs):
         p = self.map_data(data, kwargs)
 
         # Derived parameters
-        fco_lk = p['fCO_k'] * p['DRPF']
-        fco_rk = p['fCO_k'] * (1 - p['DRPF'])
+        fco_lk = p['fCO_ki'] * p['DRPF']
+        fco_rk = p['fCO_ki'] * (1 - p['DRPF'])
         
-        E_lk = p['FF_lk'] / (1 + p['FF_lk'])
-        E_rk = p['FF_rk'] / (1 + p['FF_rk'])
-    
         Fp_lk = fco_lk * p['CO'] * (1 - p['H']) / p['vol_lk']
         Fp_rk = fco_rk * p['CO'] * (1 - p['H']) / p['vol_rk']
 
+        FF_lk = p['F_u_lk'] / Fp_lk if 'HF' in self.config['kidneys'] else p['FF_lk']
+        FF_rk = p['F_u_rk'] / Fp_rk if 'HF' in self.config['kidneys'] else p['FF_rk']
+
+        E_lk = FF_lk / (1 + FF_lk)
+        E_rk = FF_rk / (1 + FF_rk)
+
+        Fu_lk = p['F_u_lk'] if 'HF' in self.config['kidneys'] else FF_lk * Fp_lk
+        Fu_rk = p['F_u_rk'] if 'HF' in self.config['kidneys'] else FF_rk * Fp_rk
+
         # Extend data dictionary
         p |= {
-            'Fp_lk': Fp_lk,
-            'Fp_rk': Fp_rk,
-            'Tp_lk': p['vp_lk'] / Fp_lk,
-            'Tp_rk': p['vp_rk'] / Fp_rk,
+            'F_u_lk': Fu_lk,
+            'F_u_rk': Fu_rk,
+            'F_p_lk': Fp_lk,
+            'F_p_rk': Fp_rk,
+            'T_p_lk': p['v_p_lk'] / Fp_lk,
+            'T_p_rk': p['v_p_rk'] / Fp_rk,
             'vr_lk': fco_lk * (1 - E_lk),
             'vr_rk': fco_rk * (1 - E_rk),
-            'vr_o': (1 - p['fCO_k']) * (1 - p['El']),
+            'vr_or': (1 - p['fCO_ki']) * (1 - p['E_li']),
         }
 
         # Aorta flux
         p |= self._flux_aorta(p)
 
         # Kidney concentration
-        cp = p['Ja'] / p['CO'] / (1 - p['H'])
-        lk = self._conc_lk(p, ca=cp)
-        rk = self._conc_rk(p, ca=cp)
+        cb = p['J_ao'] / p['CO']
+        p['c_ar'] = cb / (1 - p['H'])
+        lk = self._conc_lk(p)
+        rk = self._conc_rk(p)
 
         # Save output
-        C_a = p['Ja'].reshape(1, -1) / p['CO']
-
-        C_lk = np.pad(lk['Ck'], ((0, 1), (0, 0))) # append zeros for tissue compartment
-        vb_lk = p['vp_lk'] / (1 - p['H'])
-        ve_lk = 1 - vb_lk - p['vt_lk']
-        if ve_lk < 0: ve_lk = 0
-        v_lk = np.array([vb_lk, p['vt_lk'], ve_lk])
-
-        C_rk = np.pad(rk['Ck'], ((0, 1), (0, 0))) # append zeros for tissue compartment
-        vb_rk = p['vp_rk'] / (1 - p['H'])
-        ve_rk = 1 - vb_rk - p['vt_rk']
-        if ve_rk < 0: ve_rk = 0
-        v_rk = np.array([vb_rk, p['vt_rk'], ve_rk])
-
-        cnan = np.full_like(p['t'], np.nan)
+        C_a = p['J_ao'].reshape(1, -1) / p['CO']
 
         p |= {
-            'v_a': np.array([1]),
-            'Fi_a': np.array([p['CO'] / p['vol_a']]),
-            'C_a': C_a, 
-            'c_a': C_a,
-            'ci_a': C_a,
-
-            'v_lk': v_lk,
-            'Fi_lk': np.array([fco_lk * p['CO'] / p['vol_lk'], np.nan, np.nan]),
-            'C_lk': C_lk, 
-            'c_lk': divC(C_lk, v_lk),
-            'ci_lk': np.stack([p['Jlk'] / p['CO'], cnan, cnan]),
-
-            'v_rk': v_rk,
-            'Fi_rk': np.array([fco_rk * p['CO'] / p['vol_rk'], np.nan, np.nan]),
-            'C_rk': C_rk,
-            'c_rk': divC(C_rk, v_rk),
-            'ci_rk': np.stack([p['Jrk'] / p['CO'], cnan, cnan]),
+            'F_b_ao': p['CO'] / p['vol_ao'],
+            'ci_ao': C_a,
+            'C_ao': C_a, 
+            
+            'F_b_lk': fco_lk * p['CO'] / p['vol_lk'],
+            'ci_lk': cb.reshape(1, -1),
+            'C_lk': lk['C_ki'], 
+            
+            'F_b_rk': fco_rk * p['CO'] / p['vol_rk'],
+            'ci_rk': cb.reshape(1, -1),
+            'C_rk': rk['C_ki'],
         }
         return self.map_results(p)
+
     
     
 class ConcCortMed(Module):
     """Concentration in kidney cortex and medulla.
-
-    Args:
-        kinetics (str, optional): Tracer-kinetic model.
-        params (dict, optional): override parameter defaults.
-
     """
-    _params_dict = {
-        '7C': {'Ta', 'Fp', 'Eg', 'fc', 'Tglom', 'Tv', 'Tpt', 'Tlh', 'Tdt', 'Tcd'}
-    }
     configs = {
-        'kinetics': {'7C'},
+        'kinetics': set(pk_kidney.CM_PARAMETERS.keys()),
     }
     defaults = {
         'kinetics': '7C'
     }
-
     def inputs(self):
-        model = self.config['kinetics']
-        inputs = self._params_dict[model]
-        inputs |= {'ca', 'dt'}
+        imap = {'F_p':'F_p_ki', 'E':'E_ki'}
+        inputs = {imap.get(i, i) for i in pk_kidney.CM_PARAMETERS[self.config['kinetics']]}
+        inputs |= {'c_ar', 'T_ar', 'dt'}
         return inputs
     
     def outputs(self):
-        return {'Cc', 'Cm'}
+        return {'tC', 'ci_ki', 'C_kc', 'C_km'}
     
     def __call__(self, data: dict=None, **kwargs):
         p = self.map_data(data, kwargs)
 
-        ca = flux_plug(p['ca'], dt=p['dt'], T=p['Ta'])
-        p = {k: v for k, v in p.items() if k not in ['ca', 'Ta']}
+        imap = {'F_p_ki':'F_p', 'E_ki':'E'}
+        pk = {imap.get(k, k): v for k, v in p.items() if k not in ['c_ar', 'T_ar']} 
 
+        ci_k = flux_plug(p['c_ar'], T=p['T_ar'], dt=p['dt'])
         if self.config['kinetics'] == '7C':
-            Ccor, Cmed = pk_kidney.conc_kidney_cm9(ca, **p)
+            Ccor, Cmed = pk_kidney.conc_kidney_cm9(ci_k, **pk)
 
-        results = {'Cc': Ccor, 'Cm': Cmed}
+        tC = p['dt'] * np.arange(ci_k.size)
+        results = {'tC':tC, 'ci_ki':ci_k, 'C_kc': Ccor, 'C_km': Cmed}
+        
         return self.map_results(results)
+
+    def dummy_data(self, nt=5):
+        data = self.init_data()
+        data['c_ar'] *= np.ones(nt)
+        return data
 
 
 class ConcTissueX(Module):
@@ -758,22 +884,32 @@ class ConcTissueX(Module):
     defaults = {
         'kinetics': '2CX', 
     }
-    def inputs(self):
-        model = self.config['kinetics']
-        inputs = set(pk_tissue.CONC_PARAMETERS[model])
-        inputs |= {'ca', 'dt'}
-        return inputs
-    
-    def outputs(self):
-        return {'C'}
-    
     def __call__(self, data: dict=None, **kwargs):
         p = self.map_data(data, kwargs)
 
-        ca = flux_plug(p['ca'], dt=p['dt'], T=p['Ta'])
-        p = {k: v for k, v in p.items() if k not in ['ca','Ta']}
-        
-        conc = 'conc_tissue_' + self.config['kinetics'].lower()   
-        model_func = getattr(pk_tissue, conc)  
-        results = {'C': model_func(ca, **p)}
+        func = 'conc_tissue_' + self.config['kinetics'].lower()   
+        conc = getattr(pk_tissue, func)  
+
+        px = {k: v for k, v in p.items() if k not in ['c_ar','T_ar']}
+
+        ci = flux_plug(p['c_ar'], T=p['T_ar'], dt=p['dt'])
+        C = conc(ci, **px)
+        tC = p['dt'] * np.arange(p['c_ar'].size)
+
+        results = {'tC':tC, 'ci':ci, 'C': C}
+
         return self.map_results(results)
+
+    def inputs(self):
+        model = self.config['kinetics']
+        inputs = set(pk_tissue.CONC_PARAMETERS[model])
+        inputs |= {'c_ar', 'T_ar', 'dt'}
+        return inputs
+    
+    def outputs(self):
+        return {'tC', 'ci', 'C'}
+
+    def dummy_data(self, nt=5):
+        data = self.init_data()
+        data['c_ar'] *= np.ones(nt)
+        return data

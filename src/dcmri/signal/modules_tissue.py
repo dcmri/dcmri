@@ -131,66 +131,11 @@ Example:
 import numpy as np
 from scipy.special import i0, i1
 
-
 from dcmri.core.module import Module
-from dcmri.relaxivity.modules_tissue import Relax
+from dcmri.relaxivity.modules_tissue import ConcToRelax
 from dcmri.bloch.modules_tissue import Magnetization
-from dcmri.bloch.functions_sequences import channels, repetition_time
+from dcmri.bloch.functions_sequences import channels
 
-
-class Signal(Module):
-    configs = {
-        'magnitude': {False, True},
-        'trigger': {False, True},
-    }
-    defaults = {
-        'magnitude': True,
-        'trigger': False,
-    }
-    def inputs(self):
-        inputs = {'tM', 'M', 'S0', 'noise_sdev'} # TODO: rename tacq -> tM?
-        if self.config['trigger']:
-            inputs |= {'trigger'}
-        return inputs
-    
-    def outputs(self):
-        return {'tS', 'S'} # (channels, components, times)
-
-    def lexicon_data(self, qvalues):
-        p = {
-            'M': np.ones((1, 3, 1, 1)), # (channels, components, compartments, times)
-            'tM': np.zeros(1)
-        }
-        if self.config['trigger']:
-            p['trigger'] = np.ones(1)
-        return self.update_data(p)
-    
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)
-
-        if p['M'].ndim not in [4]:
-            raise ValueError("Magnetization M must be a 4D array with shape (channels, components, compartments, times)")
-        # (channels, components, compartments, times)
-
-        # Sum over compartments
-        Mxy = p['M'][:, :2, :, :].sum(axis=2) 
-        # (channels, components, times)
-
-        if self.config['magnitude']:
-            Mxy = np.linalg.norm(Mxy, axis=1, keepdims=True)
-            S = signal_rice(p['S0'] * Mxy, p['noise_sdev'])
-            # (channels, 1, times)
-        else:
-            S = p['S0'] * Mxy
-
-        if self.config['trigger']:
-            S = S[:, :, p['trigger']==1]
-            tS = p['tM'][p['trigger']==1]
-        else:
-            tS = p['tM']
-
-        results = {'tS': tS, 'S': S} # (channels, components, times)
-        return self.map_results(results)
 
 def signal_rice(nu, sigma)-> np.ndarray:
     if sigma==0:
@@ -203,225 +148,412 @@ def signal_rice(nu, sigma)-> np.ndarray:
     # Nan values are points where the distribution is indistinguisable from Gaussian
     return np.where(np.isnan(rice_mean) | np.isinf(rice_mean), nu, rice_mean)
 
+# +--------------------------------------------------------------------------------------------------+
+# |                                   Signal - all configs (n = 3)                                   |
+# +-----------+----------------------------------------------------------------------------+---------+
+# | Key       | Values                                                                     | Default |
+# +-----------+----------------------------------------------------------------------------+---------+
+# | magnitude | False, True                                                                | True    |
+# | trigger   | False, True                                                                | False   |
+# | calibrate | False, True                                                                | False   |
+# +--------------------------------------------------------------------------------------------------+
 
-class CalibrateSignal(Module):
-    configs = Magnetization.configs | Signal.configs
-    defaults = Magnetization.defaults | Signal.defaults
+# +------------------------------------------------------------------------------------------------------------+
+# |                                        Signal - all inputs (n = 7)                                         |
+# +--------+------+-------------------------------+-----------------+------+---------------+-------+-----------+
+# | Key    | Unit | Name                          | Group           | Init | Bounds        | DICOM | OSIPI     |
+# +--------+------+-------------------------------+-----------------+------+---------------+-------+-----------+
+# | NSR    |      | noise-to-signal ratio         | Signal          | 0.0  | (0, 100000.0) |       |           |
+# | S0     | a.u. | signal scaling factor         | Signal          | 1.0  | (0, 5)        |       | Q.MS1.010 |
+# | Scal   | a.u. | calibration signal            | Signal          | 1.0  | (0, 5)        |       | Q.MS1.002 |
+# | iScal  |      | indices of calibration signal | Signal          | 0    |               |       |           |
+# | iStrig |      | indices of the signal trigger | Signal          | None |               |       |           |
+# +--------+------+-------------------------------+-----------------+------+---------------+-------+-----------+
+# | M      | A/cm | magnetization                 | Electromagnetic | 1    | (0, 5)        |       |           |
+# | tM     | sec  | magnetization time points     | Electromagnetic | 0.0  |               |       |           |
+# +------------------------------------------------------------------------------------------------------------+
 
-    def __init__(self, imap:dict=None, omap:dict=None, **config):
-        self.set_config(config)
-        self._magn = Magnetization(
-            imap = {'R1':'R1b', 'R2':'R2b', 'R2s':'R2sb', 'R1i':'R1ib'}, 
-            **config,
-        )
-        self._signal = Signal(**config)
-        self.map_io(imap, omap)
+# +------------------------------------------------------------------------------------------+
+# |                               Signal - all outputs (n = 3)                               |
+# +-----+------+-----------------------+-----------------+------+--------+-------+-----------+
+# | Key | Unit | Name                  | Group           | Init | Bounds | DICOM | OSIPI     |
+# +-----+------+-----------------------+-----------------+------+--------+-------+-----------+
+# | S   | a.u. | signal                | Signal          | 1.0  | (0, 5) |       |           |
+# | S0  | a.u. | signal scaling factor | Signal          | 1.0  | (0, 5) |       | Q.MS1.010 |
+# +-----+------+-----------------------+-----------------+------+--------+-------+-----------+
+# | tS  | sec  | signal time points    | Electromagnetic | 0.0  |        |       |           |
+# +------------------------------------------------------------------------------------------+
 
-    def inputs(self) -> set:
-        inputs = {'Sb'}
-        inputs |= self._magn.mapped_inputs() - {'tR'}
-        inputs |= self._signal.mapped_inputs() - {'tM', 'M'}
-        inputs -= {'S0'}
+class Signal(Module):
+    configs = {
+        'magnitude': {False, True},
+        'trigger': {False, True},
+        'calibrate': {False, True},
+    }
+    defaults = {
+        'magnitude': True,
+        'trigger': False,
+        'calibrate': False,
+    }
+    def inputs(self):
+        inputs = {'tM', 'M'} 
+        if self.config['magnitude']:
+            inputs |= {'NSR'}
+        if self.config['calibrate']:
+            inputs |= {'iScal', 'Scal'} 
+        else:
+            inputs |= {'S0'}
+        if self.config['trigger']:
+            inputs |= {'iStrig'}
         return inputs
-
-    def outputs(self) -> set:
-        return {'S0'}
-
-    def lexicon_data(self, q):
-        n_channels = channels(self.config['sequence'])
-        components = 1 if self.config['magnitude'] else 2
-        nc, n0 = 2, 2
-
-        Sb = np.zeros((n_channels, components, n0))
-        Sb[:, 0, :] = q['Sb']
-
-        p = q | {
-            # Not in Lexicon
-            'trigger': np.ones(n0),
-
-            # In Lexicon but non scalar
-            'R1b': q['R1b'] * np.ones(nc),
-            'R2b': q['R2b'] * np.ones(nc),
-            'R1ib': q['R1ib'] * np.ones(nc),
-            'v': q['v'] * np.ones(nc) / nc,
-            'Fi': q['Fi'] * np.ones(nc),
-            'Fw': q['Fw'] * np.eye(nc),
-            'Sb': Sb,
-
-            # In Lexicon and scalar but needs conditional value
-            'TR': 1 if 'EPI' in self.config['sequence'] else q['TR'],
-            'TE': 0.05 if 'EPI' in self.config['sequence'] else q['TE'],
-        } 
-        return self.update_data(p)
+    
+    def outputs(self):
+        outputs = {'tS', 'S'} # (channels, components, times)
+        if self.config['calibrate']:
+            outputs |= {'S0'}
+        return outputs
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)    
+        p = self.map_data(data, kwargs)
 
-        # Extend scalar baseline values in time to match duration of Sb
-        nt = p['Sb'].shape[2]
-        TR = repetition_time(self.config['sequence'], p)
-        p['tR'] = TR * np.arange(nt + 1)
+        if p['M'].ndim not in [4]:
+            raise ValueError("Magnetization M must be a 4D array with shape (channels, components, compartments, times)")
+        # (channels, components, compartments, times)
 
-        for Rb in ['R1b', 'R2b', 'R2sb', 'R1ib']:
-            if Rb in p:
-                if np.isscalar(p[Rb]):
-                    p[Rb] = np.full(nt + 1, p[Rb])
-                else:
-                    p[Rb] = np.tile(np.atleast_1d(p[Rb])[:, np.newaxis], (1, nt + 1))
+        # Sum xy components over compartments
+        Mxy = p['M'][:, :2, :, :].sum(axis=2) 
+        # (channels, components, times)
 
-        # Compute signal scaling factor
-        p |= self._magn(p)
+        results = {}
 
-        s_cal = self._signal(p, S0=1)['S']
-        nb = min(nt, s_cal.shape[2])
-        Sb = p['Sb'][:, :, :nb]
-        s_cal = s_cal[:, :, :nb]
+        # Build signal
+        tS = p['tM']
+        if self.config['calibrate']:
+            S = Mxy # normalized signal (S0=1)
+        else:
+            S = p['S0'] * Mxy
+        
+        if self.config['magnitude']:
+            S = np.linalg.norm(S, axis=1, keepdims=True)
+            Sb = np.mean(S[:, 0, 0])
+            noise_sdev = p['NSR'] / Sb if Sb != 0 else 0
+            S = signal_rice(S, noise_sdev)
+            # (channels, 1, times)
 
-        with np.errstate(divide='ignore', invalid='ignore'):
-            S0 = np.nanmean(np.where(s_cal != 0, Sb / s_cal, np.nan))
+        if self.config['trigger']:
+            if p['iStrig'] is not None:
+                accept = p['iStrig']
+                tS = tS[accept]
+                S = S[:, :, accept]
+                # (channels, components, times)
 
-        results = {'S0': S0}
+        if self.config['calibrate']:
+            s_cal_norm = S[:, :, p['iScal']]
+            s_cal = p['Scal']
+            nozero = np.where(s_cal_norm != 0)
+            results['S0'] = np.mean(s_cal[nozero] / s_cal_norm[nozero])
+            S *= results['S0']
+
+        results |= {'tS': tS, 'S': S}  # (channels, components, times)
         return self.map_results(results)
+    
+    def dummy_data(self, nt=5):
+        data = self.init_data()
+        n_channels = 1
+        n0 = 1
+        components = 1 if self.config['magnitude'] else 2
+        Scal = np.zeros((n_channels, components, n0))
+        Scal[:, 0, :] = 1
+
+        data |= {
+            'tM': np.zeros(nt),
+            'M': np.ones((n_channels, 3, 1, nt)), # (channels, components, compartments, times)
+            'iScal': np.zeros(n0, dtype=int),
+            'Scal': Scal, 
+            'iStrig': np.zeros(n0, dtype=int),
+        }
+        return data
+
+# +--------------------------------------------------------------------------------------------------+
+# |                               RelaxToSignal - all configs (n = 5)                                |
+# +-----------+-------------------------------------------------------------------------+------------+
+# | Key       | Values                                                                  | Default    |
+# +-----------+-------------------------------------------------------------------------+------------+
+# | sequence  | 2D-DE-EPI, 2D-GE-EPI, 2D-SE-EPI, 2D-SPGR, 2D-SPGR-SS, 2D-SR-SPGR,       | 3D-SPGR-SS |
+# |           | 3D-DE-EPI, 3D-GE-EPI, 3D-IR-SPGR, 3D-IR-SPGR-SS, 3D-IR-SS, 3D-PR-SPGR,  |            |
+# |           | 3D-PR-SPGR-SS, 3D-PR-SS, 3D-SE-EPI, 3D-SPGR, 3D-SPGR-SS, 3D-SPGR-SSI,   |            |
+# |           | 3D-SR-SPGR, 3D-SR-SPGR-SS, 3D-SR-SS, ZTE-3D-IR-SPGR-SS, ZTE-3D-SPGR-SS  |            |
+# | inflow    | False, True                                                             | False      |
+# | magnitude | False, True                                                             | True       |
+# | trigger   | False, True                                                             | False      |
+# | calibrate | False, True                                                             | False      |
+# +--------------------------------------------------------------------------------------------------+
+
+# +----------------------------------------------------------------------------------------------------------------------------------------------+
+# |                                                     RelaxToSignal - all inputs (n = 32)                                                      |
+# +---------+------------+---------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
+# | Key     | Unit       | Name                                                    | Group           | Init  | Bounds        | DICOM | OSIPI     |
+# +---------+------------+---------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
+# | NSR     |            | noise-to-signal ratio                                   | Signal          | 0.0   | (0, 100000.0) |       |           |
+# | S0      | a.u.       | signal scaling factor                                   | Signal          | 1.0   | (0, 5)        |       | Q.MS1.010 |
+# | Scal    | a.u.       | calibration signal                                      | Signal          | 1.0   | (0, 5)        |       | Q.MS1.002 |
+# | iScal   |            | indices of calibration signal                           | Signal          | 0     |               |       |           |
+# | iStrig  |            | indices of the signal trigger                           | Signal          | None  |               |       |           |
+# +---------+------------+---------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
+# | FA      | deg        | flip angle                                              | Sequence        | 15    | (0, 180)      |       |           |
+# | Nk0     |            | number of acquired phase lines to the center of k-space | Sequence        | 64    | (0, 1000)     |       |           |
+# | Nph     |            | number of acquired phase lines in k-space               | Sequence        | 128   | (0, 1000)     |       |           |
+# | Nz      |            | number of slices in a multi-slice acquisition           | Sequence        | 64    | (0, 1000)     |       |           |
+# | PA      | deg        | preparation Pulse Flip Angle                            | Sequence        | 90    | (0, 180)      |       |           |
+# | SA      | deg        | saturation Slab Flip Angle                              | Sequence        | 0     | (0, 180)      |       |           |
+# | TA      | sec        | acquisition time                                        | Sequence        | 2.0   | (0, 30)       |       |           |
+# | TD      | sec        | prepulse delay                                          | Sequence        | 0.05  | (0, 1)        |       |           |
+# | TE      | sec        | echo time                                               | Sequence        | 0.001 | (0, 10)       |       |           |
+# | TE1     | sec        | first echo time in a multi-echo sequence                | Sequence        | 0.001 | (0, 1)        |       |           |
+# | TE2     | sec        | second echo time in a multi-echo sequence               | Sequence        | 0.005 | (0, 1)        |       |           |
+# | TP      | sec        | preparation delay                                       | Sequence        | 0.05  | (0, 1)        |       |           |
+# | TR      | sec        | repetition time                                         | Sequence        | 0.005 | (0, 1)        |       |           |
+# | iz      |            | slice number in a multi-slice acquisition               | Sequence        | 0     | (0, 1000)     |       |           |
+# | tacq   | sec        | acquisition duration                                    | Sequence        | 240   | (0, 10000.0)  |       |           |
+# | tstart | sec        | start of the acquisition                                | Sequence        | 0     | (0, 10000.0)  |       |           |
+# +---------+------------+---------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
+# | B1corr  |            | B1-correction factor                                    | Electromagnetic | 1     | (0, 5)        |       |           |
+# | R1      | Hz         | tissue R1                                               | Electromagnetic | 0.65  | (0, 5)        |       |           |
+# | R1i     | Hz         | inlet R1                                                | Electromagnetic | 0.65  | (0, 5)        |       |           |
+# | R2      | Hz         | tissue R2                                               | Electromagnetic | 2.0   | (0, 5)        |       |           |
+# | R2s     | Hz         | tissue R2*                                              | Electromagnetic | 20    | (0, 5)        |       |           |
+# | me      | A cm2/mL   | equilibrium magnetization                               | Electromagnetic | 1     | (0, 5)        |       |           |
+# | tR      | sec        | relaxation rate time points                             | Electromagnetic | 0.0   |               |       |           |
+# +---------+------------+---------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
+# | Fwi     | mL/sec/cm3 | inflow in all water compartments                        | Physiological   | 0.02  | (0, 1)        |       |           |
+# | Kw      | mL/sec/cm3 | water exchange matrix                                   | Physiological   | 0     | (0, 1)        |       |           |
+# | TF      | sec        | fnflow time                                             | Physiological   | 0.5   | (0, 10)       |       |           |
+# | vw      | mL/cm3     | water volume fraction                                   | Physiological   | 1     | (0, 1)        |       |           |
+# +----------------------------------------------------------------------------------------------------------------------------------------------+
+
+# +----------------------------------------------------------------------------------------------+
+# |                             RelaxToSignal - all outputs (n = 5)                              |
+# +-----+------+---------------------------+-----------------+------+--------+-------+-----------+
+# | Key | Unit | Name                      | Group           | Init | Bounds | DICOM | OSIPI     |
+# +-----+------+---------------------------+-----------------+------+--------+-------+-----------+
+# | S   | a.u. | signal                    | Signal          | 1.0  | (0, 5) |       |           |
+# | S0  | a.u. | signal scaling factor     | Signal          | 1.0  | (0, 5) |       | Q.MS1.010 |
+# +-----+------+---------------------------+-----------------+------+--------+-------+-----------+
+# | M   | A/cm | magnetization             | Electromagnetic | 1    | (0, 5) |       |           |
+# | tM  | sec  | magnetization time points | Electromagnetic | 0.0  |        |       |           |
+# | tS  | sec  | signal time points        | Electromagnetic | 0.0  |        |       |           |
+# +----------------------------------------------------------------------------------------------+
 
 
 class RelaxToSignal(Module): 
     configs = Magnetization.configs | Signal.configs
     defaults = Magnetization.defaults | Signal.defaults
 
-    def __init__(self, imap:dict=None, omap:dict=None, **config):
-        self.set_config(config)
-        self._magn = Magnetization(**config)
-        self._signal = Signal(**config)
-        self.map_io(imap, omap)  
+    def __init__(self, imap:dict=None, omap:dict=None, iomap:dict=None, cmap:dict=None, **config):
+        self.set_config(config, cmap)
+        self._magn = Magnetization(**self.config) 
+        self._signal = Signal(**self.config)
+        self.map_io(imap, omap, iomap)  
         
     def inputs(self):
         inputs = self._magn.mapped_inputs()
-        inputs |= self._signal.mapped_inputs() - self._magn.outputs()
-        return inputs
-   
-    def outputs(self):
-        return self._signal.outputs()
-
-    def lexicon_data(self, q):
-        nc, nt = 1, 1
-        p = {
-            'v': np.ones(nc) / nc,
-            'Fw': np.eye(nc),
-            'tR': np.arange(nt),
-            'R1': np.full((nc, nt), q['R1']),
-            'R2': np.full((nc, nt), q['R2']),
-            'R2s': np.full(nt, q['R2s']),
-            'Fi': np.ones(nc),
-            'R1i': np.full((nc, nt), q['R1i']),
-        } 
-        return self._signal.lexicon_data(q) | self.update_data(p)       
-
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)  
-
-        p |= self._magn(p)
-        results = self._signal(p)
-        
-        return self.map_results(results)
-
-
-class ConcToSignal(Module): 
-    configs = Relax.configs | Magnetization.configs |  {
-        't2s_relaxation': {None, 'lin', 'quad'},
-        'magnitude': Signal.configs['magnitude'],
-        'calibrate': [True, False],
-    }
-    defaults = Relax.defaults | Magnetization.defaults | {
-        'magnitude': Signal.defaults['magnitude'],
-        'calibrate': False,
-    }
-
-    def __init__(self, imap:dict=None, omap:dict=None, **config):
-        self.set_config(config)
-
-        self._relax_tissue = Relax(**self.config)
-        if self.config['inflow']:
-            self._relax_inlets = Relax(
-                imap = {'v':'Fi', 'R1b':'R1ib', 'c':'ci', 'r1':'r1i'},
-                omap = {'v':'Fi', 'R1b':'R1ib', 'R1':'R1i'},
-                **self.config,
-            ) 
-        self._magn = Magnetization(**self.config) 
-        if self.config['calibrate']:
-            self._derive_s0 = CalibrateSignal(**self.config)
-        self._signal = Signal(**self.config)
-
-        self.map_io(imap, omap)  
-        
-    def inputs(self):
-        inputs = self._relax_tissue.mapped_inputs()
-        if self.config['inflow']:
-            inputs |= self._relax_inlets.mapped_inputs()
-        inputs |= self._magn.mapped_inputs()
         inputs |= self._signal.mapped_inputs()
-        if self.config['calibrate']:
-            inputs |= self._derive_s0.mapped_inputs() 
-
-        inputs -= {'R1', 'R2', 'R2s'}
-        inputs -= {'R1i'}
-        inputs -= self._magn.mapped_outputs()
-        if self.config['calibrate']:
-            inputs -= self._derive_s0.mapped_outputs() 
+        inputs -= self._magn.new_mapped_outputs()
         return inputs 
    
     def outputs(self):
-        outputs = self._relax_tissue.mapped_outputs() 
-        if self.config['inflow'] and 'R1' in outputs:
-                outputs |= self._relax_inlets.mapped_outputs() 
-        outputs |= self._magn.mapped_outputs()
-        if self.config['calibrate']:
-            outputs |= self._derive_s0.mapped_outputs()
+        outputs = self._magn.mapped_outputs()
         outputs |= self._signal.mapped_outputs()
         return outputs
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)  
-
-        p |= self._relax_tissue(p)
-        if self.config['inflow']:
-            if 'R1' in p:
-                p |= self._relax_inlets(p)
         p |= self._magn(p)
-        if self.config['calibrate']:
-            p |= self._derive_s0(p)
         p |= self._signal(p)
-
         return self.map_results(p)
 
-    def lexicon_data(self, q: dict=None, nc=2, nt=5, n0=2): 
-
-        # Baseline signal
+    def dummy_data(self, nc=2, nt=5):
+        data = self.init_data()
         n_channels = channels(self.config['sequence'])
         components = 1 if self.config['magnitude'] else 2
-        Sb = np.zeros((n_channels, components, n0))
-        Sb[:, 0, :] = q['Sb']
+        n0 = 1
+        Scal = np.zeros((n_channels, components, n0))
+        Scal[:, 0, :] = 1
 
-        p = {
-            # Not in Lexicon
-            'r1i': q['r1'] * np.ones(nc),
-            'fx': [],
+        data |= {
+            'tacq': nt-1,
             'tR': np.arange(nt),
+            'R1': np.ones((nc, nt)),
+            'R2': np.ones((nc, nt)),
+            'R2s': np.ones(nt),
+            'R1i': np.ones((nc, nt)),
+            'Fwi': np.ones(nc),
+            'inlets': np.arange(nc),
+            'Kw': np.eye(nc),
+            'vw': np.ones(nc) / nc,
+            #'wx': [[0]],
+            'iScal': np.zeros(n0, dtype=int),
+            'Scal': Scal, 
+            'iStrig': np.zeros(n0, dtype=int),
+        }
+        return data
 
-            # In Lexicon but not scalar
-            'c': q['c'] * np.ones((nc, nt)),
-            'ci': q['ci'] * np.ones((nc, nt)),
-            'R1b': q['R1b'] * np.ones(nc),
-            'R2b': q['R2b'] * np.ones(nc),
-            'R1ib': q['R1ib'] * np.ones(nc),
-            'r1': q['r1'] * np.ones(nc),
-            'r2': q['r2'] * np.ones(nc),
-            'Fi': q['Fi'] * np.ones(nc),
-            'Fw': q['Fw'] * np.eye(nc),
-            'v': q['v'] * np.ones(nc) / nc,
-            'Sb': Sb,
 
-            # In Lexicon and scalar but conditional value
-            'TR': 1 if 'EPI' in self.config['sequence'] else q['TR'],
-            'TE': 0.05 if 'EPI' in self.config['sequence'] else q['TE'],
-        } 
-        return self.update_data(q | p) 
+# +--------------------------------------------------------------------------------------------------+
+# |                                ConcToSignal - all configs (n = 9)                                |
+# +----------------+--------------------------------------------------------------------+------------+
+# | Key            | Values                                                             | Default    |
+# +----------------+--------------------------------------------------------------------+------------+
+# | t1_relaxation  | None, lin                                                          | lin        |
+# | t2_relaxation  | None, lin                                                          | None       |
+# | t2s_relaxation | None, leakage, lin, quad                                           | lin        |
+# | inflow         | False, True                                                        | False      |
+# | sequence       | 2D-DE-EPI, 2D-GE-EPI, 2D-SE-EPI, 2D-SPGR, 2D-SPGR-SS, 2D-SR-SPGR,  | 3D-SPGR-SS |
+# |                | 3D-DE-EPI, 3D-GE-EPI, 3D-IR-SPGR, 3D-IR-SPGR-SS, 3D-IR-SS,         |            |
+# |                | 3D-PR-SPGR, 3D-PR-SPGR-SS, 3D-PR-SS, 3D-SE-EPI, 3D-SPGR,           |            |
+# |                | 3D-SPGR-SS, 3D-SR-SPGR, 3D-SR-SPGR-SS, 3D-SR-SS,                   |            |
+# |                | ZTE-3D-IR-SPGR-SS, ZTE-3D-SPGR-SS                                  |            |
+# | tof_corr       | False, True                                                        | False      |
+# | magnitude      | False, True                                                        | True       |
+# | trigger        | False, True                                                        | False      |
+# | calibrate      | False, True                                                        | False      |
+# +--------------------------------------------------------------------------------------------------+
+
+# +-------------------------------------------------------------------------------------------------------------------------------------------------------+
+# |                                                           ConcToSignal - all inputs (n = 43)                                                          |
+# +--------+------------+-------------------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
+# | Key    | Unit       | Name                                                              | Group           | Init  | Bounds        | DICOM | OSIPI     |
+# +--------+------------+-------------------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
+# | C      | mmol/cm3   | tissue concentration                                              | Indicator       | 0.005 | (0, 1)        |       |           |
+# | ci     | mmol/mL    | inlet concentration                                               | Indicator       | 0.005 |               |       |           |
+# | tC     | sec        | concentration time points                                         | Indicator       | 0.0   |               |       |           |
+# +--------+------------+-------------------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
+# | NSR    |            | noise-to-signal ratio                                             | Signal          | 0.0   | (0, 100000.0) |       |           |
+# | S0     | a.u.       | signal scaling factor                                             | Signal          | 1.0   | (0, 5)        |       | Q.MS1.010 |
+# | Scal   | a.u.       | calibration signal                                                | Signal          | 1.0   | (0, 5)        |       | Q.MS1.002 |
+# | iScal  |            | indices of calibration signal                                     | Signal          | 0     |               |       |           |
+# | iStrig |            | indices of the signal trigger                                     | Signal          | None  |               |       |           |
+# +--------+------------+-------------------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
+# | FA     | deg        | flip angle                                                        | Sequence        | 15    | (0, 180)      |       |           |
+# | Nk0    |            | number of acquired phase lines to the center of k-space           | Sequence        | 64    | (0, 1000)     |       |           |
+# | Nph    |            | number of acquired phase lines in k-space                         | Sequence        | 128   | (0, 1000)     |       |           |
+# | Nz     |            | number of slices in a multi-slice acquisition                     | Sequence        | 64    | (0, 1000)     |       |           |
+# | PA     | deg        | preparation Pulse Flip Angle                                      | Sequence        | 90    | (0, 180)      |       |           |
+# | SA     | deg        | saturation Slab Flip Angle                                        | Sequence        | 0     | (0, 180)      |       |           |
+# | TA     | sec        | acquisition time                                                  | Sequence        | 2.0   | (0, 30)       |       |           |
+# | TD     | sec        | prepulse delay                                                    | Sequence        | 0.05  | (0, 1)        |       |           |
+# | TE     | sec        | echo time                                                         | Sequence        | 0.001 | (0, 10)       |       |           |
+# | TE1    | sec        | first echo time in a multi-echo sequence                          | Sequence        | 0.001 | (0, 1)        |       |           |
+# | TE2    | sec        | second echo time in a multi-echo sequence                         | Sequence        | 0.005 | (0, 1)        |       |           |
+# | TP     | sec        | preparation delay                                                 | Sequence        | 0.05  | (0, 1)        |       |           |
+# | TR     | sec        | repetition time                                                   | Sequence        | 0.005 | (0, 1)        |       |           |
+# | iz     |            | slice number in a multi-slice acquisition                         | Sequence        | 0     | (0, 1000)     |       |           |
+# | tacq   | sec        | acquisition duration                                              | Sequence        | 240   | (0, 10000.0)  |       |           |
+# | tstart | sec        | start of the acquisition                                          | Sequence        | 0     | (0, 10000.0)  |       |           |
+# +--------+------------+-------------------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
+# | B1corr |            | B1-correction factor                                              | Electromagnetic | 1     | (0, 5)        |       |           |
+# | R1b    | Hz         | precontrast tissue R1                                             | Electromagnetic | 0.65  | (0, 5)        |       |           |
+# | R1ib   | Hz         | precontrast inlet R1                                              | Electromagnetic | 0.65  | (0, 5)        |       |           |
+# | R2b    | Hz         | precontrast tissue R2                                             | Electromagnetic | 20    | (0, 100)      |       |           |
+# | R2sb   | Hz         | precontrast tissue R2*                                            | Electromagnetic | 20    | (0, 100)      |       |           |
+# | me     | A cm2/mL   | equilibrium magnetization                                         | Electromagnetic | 1     | (0, 5)        |       |           |
+# | r1     | Hz/M       | longitudinal contrast agent relaxivity                            | Electromagnetic | 3500  | (0, 10000.0)  |       |           |
+# | r1i    | Hz/M       | inlet longitudinal contrast agent relaxivity                      | Electromagnetic | 3500  | (0, 10000.0)  |       |           |
+# | r2     | Hz/M       | transverse contrast agent relaxivity                              | Electromagnetic | 4000  | (0, 10000.0)  |       |           |
+# | r2s    | Hz/M       | transverse contrast agent relaxivity                              | Electromagnetic | 20000 | (0, 100000.0) |       |           |
+# | r2se   | Hz/M       | extravascular, extracellular transverse contrast agent relaxivity | Electromagnetic | 20000 | (0, 100000.0) |       |           |
+# | r2sq   | Hz/M^2     | quadratic transverse contrast agent relaxivity                    | Electromagnetic | 1000  | (0, 10000.0)  |       |           |
+# | r2sv   | Hz/M       | vascular transverse contrast agent relaxivity                     | Electromagnetic | 20000 | (0, 100000.0) |       |           |
+# +--------+------------+-------------------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
+# | Fwi    | mL/sec/cm3 | inflow in all water compartments                                  | Physiological   | 0.02  | (0, 1)        |       |           |
+# | Kw     | mL/sec/cm3 | water exchange matrix                                             | Physiological   | 0     | (0, 1)        |       |           |
+# | TF     | sec        | inflow time                                                       | Physiological   | 0.5   | (0, 10)       |       |           |
+# | inlets |            | water inlet compartments                                          | Physiological   | (0,)  |               |       |           |
+# | vw     | mL/cm3     | water volume fraction                                             | Physiological   | 1     | (0, 1)        |       |           |
+# | wx     |            | indicator-to-water compartment map                                | Physiological   |       |               |       |           |
+# +-------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+# +------------------------------------------------------------------------------------------------+
+# |                              ConcToSignal - all outputs (n = 10)                               |
+# +-----+------+-----------------------------+-----------------+------+--------+-------+-----------+
+# | Key | Unit | Name                        | Group           | Init | Bounds | DICOM | OSIPI     |
+# +-----+------+-----------------------------+-----------------+------+--------+-------+-----------+
+# | S   | a.u. | signal                      | Signal          | 1.0  | (0, 5) |       |           |
+# | S0  | a.u. | signal scaling factor       | Signal          | 1.0  | (0, 5) |       | Q.MS1.010 |
+# +-----+------+-----------------------------+-----------------+------+--------+-------+-----------+
+# | M   | A/cm | magnetization               | Electromagnetic | 1    | (0, 5) |       |           |
+# | R1  | Hz   | tissue R1                   | Electromagnetic | 0.65 | (0, 5) |       |           |
+# | R1i | Hz   | inlet R1                    | Electromagnetic | 0.65 | (0, 5) |       |           |
+# | R2  | Hz   | tissue R2                   | Electromagnetic | 2.0  | (0, 5) |       |           |
+# | R2s | Hz   | tissue R2*                  | Electromagnetic | 20   | (0, 5) |       |           |
+# | tM  | sec  | magnetization time points   | Electromagnetic | 0.0  |        |       |           |
+# | tR  | sec  | relaxation rate time points | Electromagnetic | 0.0  |        |       |           |
+# | tS  | sec  | signal time points          | Electromagnetic | 0.0  |        |       |           |
+# +------------------------------------------------------------------------------------------------+
+
+class ConcToSignal(Module): 
+    configs = ConcToRelax.configs | RelaxToSignal.configs 
+    defaults = ConcToRelax.defaults | RelaxToSignal.defaults
+
+    _all_inputs = None
+    _all_outputs = None
+
+    def __init__(self, imap:dict=None, omap:dict=None, iomap: dict=None, cmap: dict=None, **config):
+        self.set_config(config, cmap)
+        self._conc_to_relax = ConcToRelax(**self.config)
+        self._relax_to_signal = RelaxToSignal(**self.config)
+        self.map_io(imap, omap, iomap)  
+        
+    def inputs(self):
+        inputs = {'tC'}
+        inputs |= self._conc_to_relax.mapped_inputs()
+        inputs |= self._relax_to_signal.mapped_inputs()
+        inputs -= self._conc_to_relax.new_mapped_outputs()
+        inputs -= self._relax_to_signal.new_mapped_outputs()
+        inputs -= {'tR'}
+        return inputs 
+   
+    def outputs(self):
+        outputs = {'tR'}
+        outputs |= self._conc_to_relax.mapped_outputs() 
+        outputs |= self._relax_to_signal.mapped_outputs()
+        return outputs
+
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data, kwargs) 
+        p['tR'] = p['tC']
+        p |= self._conc_to_relax(p)
+        p |= self._relax_to_signal(p)
+        return self.map_results(p)
+
+    def dummy_data(self, nc=2, nt=5):
+        data = self.init_data()
+        n_channels = channels(self.config['sequence'])
+        components = 1 if self.config['magnitude'] else 2
+        n0 = 1
+        Scal = np.zeros((n_channels, components, n0))
+        Scal[:, 0, :] = 1
+
+        data |= {
+            'tacq': nt-1,
+            'r1i': np.ones(nc),
+            'tC': np.arange(nt),
+            'C': np.ones((nc, nt)),
+            'ci': np.ones((nc, nt)),
+            'R1b': np.ones(nc),
+            'R2b': np.ones(nc),
+            'R1ib': np.ones(nc),
+            'r1': np.ones(nc),
+            'r2': np.ones(nc),
+            'Fwi': np.ones(nc),
+            'inlets': np.arange(nc),
+            'Kw': np.eye(nc),
+            'RM': np.eye(nc),
+            'v': np.ones(nc) / nc,
+            'vw': np.ones(nc) / nc,
+            # 'wx': [[i] for i in range(nc)],
+            'iScal': np.zeros(n0, dtype=int),
+            'Scal': Scal, 
+            'iStrig': np.zeros(n0, dtype=int),
+        }
+        return data

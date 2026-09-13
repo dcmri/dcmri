@@ -7,6 +7,7 @@ from dcmri.utils.const import (
     r2,
     T1,
     T2,
+    T2s,
     PD,
     perfusion,
 )
@@ -31,7 +32,6 @@ from dcmri.utils.misc import (
 from dcmri.core.quantities import (
     QUANTITIES,
     QVALUES,
-    QBOUNDS,
 )
 from dcmri.core.tools import (
     init,
@@ -40,14 +40,15 @@ from dcmri.core.tools import (
 )
 
 from dcmri.kinetics.modules_conc import (
-   ConcAorta,
-   ConcAortaKidneys,
-   ConcAortaLiver,
-   ConcAortaPortalLiver,
-   ConcLiver,
-   ConcKidney,
-   ConcCortMed,
-   ConcTissueX,   
+    Conc,
+    ConcAorta,
+    ConcAortaKidneys,
+    ConcAortaLiver,
+    ConcAortaPortalLiver,
+    ConcLiver,
+    ConcKidney,
+    ConcCortMed,
+    ConcTissueX,   
 )
 from dcmri.kinetics.modules_flux import (
     Flux,
@@ -178,13 +179,24 @@ from dcmri.kinetics.functions_input import (
 )
 
 
-# Function functions built on standalone tools
-
+from dcmri.bloch.modules_rois import (
+    WaterExchangeArtery,
+    WaterExchangeTissueX,
+    WaterExchangeLiver,
+    WaterExchangeKidney,
+)
+from dcmri.relaxivity.modules_rois import (
+    RelaxivityArtery,
+    RelaxivityTissueX,
+    RelaxivityLiver,
+    RelaxivityKidney,
+)
 from dcmri.relaxivity.modules_tissue import (
     R1,
     R2,
     R2s,
     Relax,
+    ConcToRelax,
 )
 from dcmri.relaxivity.functions_relaxivity import (
    relax_t2s,
@@ -213,7 +225,8 @@ from dcmri.bloch.functions_dynamic import (
 )
 from dcmri.signal.modules_tissue import (
     Signal,
-    CalibrateSignal,
+    RelaxToSignal,
+    ConcToSignal,
 )
 from dcmri.inverse.sig2conc import (
     SignalToConc
@@ -230,7 +243,13 @@ from dcmri.inverse.lib import (
 
 # End-to-end forward Models
 from dcmri.models.aorta import AortaModel
+from dcmri.models.liver import LiverModel
+from dcmri.models.kidney import KidneyModel
+from dcmri.models.tissue_x import TissueXModel
 from dcmri.models.aorta_liver import AortaLiverModel
+from dcmri.models.aorta_liver_drug import AortaLiverDrugModel
+from dcmri.models.aorta_liver_dynamic import AortaLiverDynamicModel
+from dcmri.models.aorta_liver_dynamic_drug import AortaLiverDynamicDrugModel
 from dcmri.models.aorta_portal_liver import AortaPortalLiverModel
 from dcmri.models.aorta_kidneys import AortaKidneysModel
 

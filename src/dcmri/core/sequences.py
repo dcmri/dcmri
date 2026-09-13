@@ -5,9 +5,9 @@ SEQUENCES = {
         'mz_prep_inflow': 'SPGR-SS',
         'steady-state': True,
         'parameters': {
-            'tissue': ['R1'],
-            'read': ['FA', 'B1corr', 'Nk0'],
-            'prep': ['TR', 'FA', 'B1corr', 'Nph'],
+            'tissue': {'R1'},
+            'read': {'FA', 'B1corr', 'Nk0'},
+            'prep': {'TR', 'FA', 'B1corr', 'Nph'},
         },
     },
     'ZTE-3D-IR-SPGR-SS': {
@@ -15,9 +15,9 @@ SEQUENCES = {
         'mz_prep_inflow': 'IR-SS',
         'steady-state': True,
         'parameters': {
-            'tissue': ['R1'],
-            'read': ['FA', 'B1corr', 'Nk0'],
-            'prep': ['TR', 'FA', 'B1corr', 'Nph', 'TP', 'TD'],
+            'tissue': {'R1'},
+            'read': {'FA', 'B1corr', 'Nk0'},
+            'prep': {'TR', 'FA', 'B1corr', 'Nph', 'TP', 'TD'},
         },
     },
     '3D-SPGR-SS': {
@@ -25,9 +25,9 @@ SEQUENCES = {
         'mz_prep_inflow': 'SPGR-SS',
         'steady-state': True,
         'parameters': {
-            'tissue': ['R1', 'R2s'],
-            'read': ['FA', 'B1corr', 'TE', 'Nk0'],
-            'prep': ['TR', 'FA', 'B1corr', 'Nph'],
+            'tissue': {'R1', 'R2s'},
+            'read': {'FA', 'B1corr', 'TE', 'Nk0'},
+            'prep': {'TR', 'FA', 'B1corr', 'Nph'},
         },
     },
     '3D-IR-SPGR-SS': {
@@ -35,9 +35,9 @@ SEQUENCES = {
         'mz_prep_inflow': 'IR-SS',
         'steady-state': True,
         'parameters': {
-            'tissue': ['R1', 'R2s'],
-            'read': ['FA', 'B1corr', 'TE', 'Nk0'],
-            'prep': ['TR', 'FA', 'B1corr', 'Nph', 'TP', 'TD'],
+            'tissue': {'R1', 'R2s'},
+            'read': {'FA', 'B1corr', 'TE', 'Nk0'},
+            'prep': {'TR', 'FA', 'B1corr', 'Nph', 'TP', 'TD'},
         },
     },
     '3D-SR-SPGR-SS': {
@@ -45,9 +45,9 @@ SEQUENCES = {
         'mz_prep_inflow': 'SR-SS',
         'steady-state': True,
         'parameters': {
-            'tissue': ['R1', 'R2s'],
-            'read': ['FA', 'B1corr', 'TE', 'Nk0'],
-            'prep': ['TR', 'FA', 'B1corr', 'Nph', 'TP', 'TD'],
+            'tissue': {'R1', 'R2s'},
+            'read': {'FA', 'B1corr', 'TE', 'Nk0'},
+            'prep': {'TR', 'FA', 'B1corr', 'Nph', 'TP', 'TD'},
         },
     },
     '3D-PR-SPGR-SS': {
@@ -55,9 +55,9 @@ SEQUENCES = {
         'mz_prep_inflow': 'PR-SS',
         'steady-state': True,
         'parameters': {
-            'tissue': ['R1', 'R2s'],
-            'read': ['FA', 'B1corr', 'TE', 'Nk0'],
-            'prep': ['TR', 'FA', 'B1corr', 'Nph', 'TP', 'PA', 'TD'],
+            'tissue': {'R1', 'R2s'},
+            'read': {'FA', 'B1corr', 'TE', 'Nk0'},
+            'prep': {'TR', 'FA', 'B1corr', 'Nph', 'TP', 'PA', 'TD'},
         },
     },
     '2D-SPGR-SS': {
@@ -65,9 +65,9 @@ SEQUENCES = {
         'mz_prep_inflow': 'Eq',
         'steady-state': True,
         'parameters': {
-            'tissue': ['R1', 'R2s'],
-            'read': ['FA', 'B1corr', 'TE', 'Nk0'],
-            'prep': ['TR', 'FA', 'B1corr', 'Nph'],
+            'tissue': {'R1', 'R2s'},
+            'read': {'FA', 'B1corr', 'TE', 'Nk0'},
+            'prep': {'TR', 'FA', 'B1corr', 'Nph'},
         },
     },
     '3D-SPGR': {
@@ -75,9 +75,9 @@ SEQUENCES = {
         'mz_prep_inflow': 'SPGR',
         'steady-state': False,
         'parameters': {
-            'tissue': ['R1', 'R2s'],
-            'read': ['FA', 'B1corr', 'TE', 'Nk0'],
-            'prep': ['TR', 'FA', 'B1corr', 'Nph'],
+            'tissue': {'R1', 'R2s'},
+            'read': {'FA', 'B1corr', 'TE', 'Nk0'},
+            'prep': {'TR', 'FA', 'B1corr', 'Nph'},
         },
     },
     '3D-IR-SPGR': {
@@ -85,9 +85,9 @@ SEQUENCES = {
         'mz_prep_inflow': 'IR-SPGR',
         'steady-state': False,
         'parameters': {
-            'tissue': ['R1', 'R2s'],
-            'read': ['FA', 'B1corr', 'TE', 'Nk0'],
-            'prep': ['TR', 'FA', 'B1corr', 'Nph', 'TP', 'TD'],
+            'tissue': {'R1', 'R2s'},
+            'read': {'FA', 'B1corr', 'TE', 'Nk0'},
+            'prep': {'TR', 'FA', 'B1corr', 'Nph', 'TP', 'TD'},
         },
     },
     '3D-SR-SPGR': {
@@ -95,9 +95,9 @@ SEQUENCES = {
         'mz_prep_inflow': 'SR-SPGR',
         'steady-state': True,
         'parameters': {
-            'tissue': ['R1', 'R2s'],
-            'read': ['FA', 'B1corr', 'TE', 'Nk0'],
-            'prep': ['TR', 'FA', 'B1corr', 'Nph', 'TP', 'TD'],
+            'tissue': {'R1', 'R2s'},
+            'read': {'FA', 'B1corr', 'TE', 'Nk0'},
+            'prep': {'TR', 'FA', 'B1corr', 'Nph', 'TP', 'TD'},
         },
     },
     '3D-PR-SPGR': {
@@ -105,9 +105,9 @@ SEQUENCES = {
         'mz_prep_inflow': 'PR-SPGR',
         'steady-state': False,
         'parameters': {
-            'tissue': ['R1', 'R2s'],
-            'read': ['FA', 'B1corr', 'TE', 'Nk0'],
-            'prep': ['TR', 'FA', 'B1corr', 'Nph', 'PA', 'TP', 'TD'],
+            'tissue': {'R1', 'R2s'},
+            'read': {'FA', 'B1corr', 'TE', 'Nk0'},
+            'prep': {'TR', 'FA', 'B1corr', 'Nph', 'PA', 'TP', 'TD'},
         },
     },
     '3D-PR-SS': {
@@ -115,9 +115,9 @@ SEQUENCES = {
         'mz_prep_inflow': 'PR-SS',
         'steady-state': True,
         'parameters': {
-            'tissue': ['R1', 'R2s'],
-            'read': ['FA', 'B1corr', 'TE'],
-            'prep': ['TA', 'PA'],
+            'tissue': {'R1', 'R2s'},
+            'read': {'FA', 'B1corr', 'TE'},
+            'prep': {'TA', 'PA'},
         },
     },
     '3D-IR-SS': {
@@ -125,9 +125,9 @@ SEQUENCES = {
         'mz_prep_inflow': 'IR-SS',
         'steady-state': True,
         'parameters': {
-            'tissue': ['R1', 'R2s'],
-            'read': ['FA', 'B1corr', 'TE'],
-            'prep': ['TA'],
+            'tissue': {'R1', 'R2s'},
+            'read': {'FA', 'B1corr', 'TE'},
+            'prep': {'TA'},
         },
     },
     '3D-SR-SS': {
@@ -135,9 +135,9 @@ SEQUENCES = {
         'mz_prep_inflow': 'SR-SS',
         'steady-state': True,
         'parameters': {
-            'tissue': ['R1', 'R2s'],
-            'read': ['FA', 'B1corr', 'TE'],
-            'prep': ['TA'],
+            'tissue': {'R1', 'R2s'},
+            'read': {'FA', 'B1corr', 'TE'},
+            'prep': {'TA'},
         },
     },
     '2D-SPGR': {
@@ -145,9 +145,9 @@ SEQUENCES = {
         'mz_prep_inflow': 'Eq',
         'steady-state': False,
         'parameters': {
-            'tissue': ['R1', 'R2s'],
-            'read': ['FA', 'B1corr', 'TE', 'Nk0'],
-            'prep': ['TR', 'FA', 'B1corr', 'Nph'],
+            'tissue': {'R1', 'R2s'},
+            'read': {'FA', 'B1corr', 'TE', 'Nk0'},
+            'prep': {'TR', 'FA', 'B1corr', 'Nph'},
         },
     },
     '2D-SR-SPGR': {
@@ -155,9 +155,9 @@ SEQUENCES = {
         'mz_prep_inflow': 'SR-SS',
         'steady-state': True,
         'parameters': {
-            'tissue': ['R1', 'R2s'],
-            'read': ['FA', 'B1corr', 'TE', 'Nk0'],
-            'prep': ['TR', 'FA', 'B1corr', 'Nph', 'TP', 'TD', 'iz'],
+            'tissue': {'R1', 'R2s'},
+            'read': {'FA', 'B1corr', 'TE', 'Nk0'},
+            'prep': {'TR', 'FA', 'B1corr', 'Nph', 'TP', 'TD', 'iz'},
         },
     },
     '3D-SPGR-SSI': {
@@ -165,9 +165,9 @@ SEQUENCES = {
         'mz_prep_inflow': 'SSI',
         'steady-state': True,
         'parameters': {
-            'tissue': ['R1', 'R2s'],
-            'read': ['FA', 'B1corr', 'TE', 'Nk0'],
-            'prep': ['TR', 'FA', 'B1corr', 'Nph', 'TF', 'SA'],
+            'tissue': {'R1', 'R2s'},
+            'read': {'FA', 'B1corr', 'TE', 'Nk0'},
+            'prep': {'TR', 'FA', 'B1corr', 'Nph', 'TF', 'SA'},
         },
     },
     '2D-GE-EPI': {
@@ -175,9 +175,9 @@ SEQUENCES = {
         'mz_prep_inflow': 'Eq',
         'steady-state': True,
         'parameters': {
-            'tissue': ['R1', 'R2s'],
-            'read': ['FA', 'B1corr', 'TE'],
-            'prep': ['TR', 'FA', 'B1corr', 'Nz', 'iz'],
+            'tissue': {'R1', 'R2s'},
+            'read': {'FA', 'B1corr', 'TE'},
+            'prep': {'TR', 'FA', 'B1corr', 'Nz', 'iz'},
         },
     },
     '2D-SE-EPI': {
@@ -185,9 +185,9 @@ SEQUENCES = {
         'mz_prep_inflow': 'Eq',
         'steady-state': True,
         'parameters': {
-            'tissue': ['R1', 'R2'],
-            'read': ['FA', 'B1corr', 'TE'],
-            'prep': ['TE', 'TR', 'FA', 'B1corr', 'Nz', 'iz'],
+            'tissue': {'R1', 'R2'},
+            'read': {'FA', 'B1corr', 'TE'},
+            'prep': {'TE', 'TR', 'FA', 'B1corr', 'Nz', 'iz'},
         },
     },
     '2D-DE-EPI': {
@@ -195,9 +195,9 @@ SEQUENCES = {
         'mz_prep_inflow': 'Eq',
         'steady-state': True,
         'parameters': {
-            'tissue': ['R1', 'R2', 'R2s'],
-            'read': ['FA', 'B1corr', 'TE1', 'TE2'],
-            'prep': ['TE2', 'TR', 'FA', 'B1corr', 'Nz', 'iz'],
+            'tissue': {'R1', 'R2', 'R2s'},
+            'read': {'FA', 'B1corr', 'TE1', 'TE2'},
+            'prep': {'TE2', 'TR', 'FA', 'B1corr', 'Nz', 'iz'},
         },
     },
     '3D-GE-EPI': {
@@ -205,9 +205,9 @@ SEQUENCES = {
         'mz_prep_inflow': 'GE-SS',
         'steady-state': True,
         'parameters': {
-            'tissue': ['R1', 'R2s'],
-            'read': ['FA', 'B1corr', 'TE'],
-            'prep': ['TR', 'FA', 'B1corr'],
+            'tissue': {'R1', 'R2s'},
+            'read': {'FA', 'B1corr', 'TE'},
+            'prep': {'TR', 'FA', 'B1corr'},
         },
     },
     '3D-SE-EPI': {
@@ -215,9 +215,9 @@ SEQUENCES = {
         'mz_prep_inflow': 'SE-SS',
         'steady-state': True,
         'parameters': {
-            'tissue': ['R1', 'R2'],
-            'read': ['FA', 'B1corr', 'TE'],
-            'prep': ['TE', 'TR', 'FA', 'B1corr'],
+            'tissue': {'R1', 'R2'},
+            'read': {'FA', 'B1corr', 'TE'},
+            'prep': {'TE', 'TR', 'FA', 'B1corr'},
         },
     },
     '3D-DE-EPI': {
@@ -225,9 +225,9 @@ SEQUENCES = {
         'mz_prep_inflow': 'DE-SS',
         'steady-state': True,
         'parameters': {
-            'tissue': ['R1', 'R2', 'R2s'],
-            'read': ['FA', 'B1corr', 'TE1', 'TE2'],
-            'prep': ['TE2', 'TR', 'FA', 'B1corr'],
+            'tissue': {'R1', 'R2', 'R2s'},
+            'read': {'FA', 'B1corr', 'TE1', 'TE2'},
+            'prep': {'TE2', 'TR', 'FA', 'B1corr'},
         },
     },
 }

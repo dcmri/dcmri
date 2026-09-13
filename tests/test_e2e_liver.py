@@ -123,8 +123,8 @@ def test_function():
     # Liver signals
     params = {
         'dt': dt, 
-        'ca': aif_conc,
-        'cv': vif_conc, 
+        'c_a': aif_conc,
+        'c_v': vif_conc, 
         'field_strength': B0,
         'agent': agent,
         'FA': FA, 

@@ -131,13 +131,12 @@ from dcmri.kinetics.functions_input import ca_injection
 from dcmri.kinetics.modules_conc import ConcLiver
 from dcmri.kinetics.functions_aorta import flux_aorta
 from dcmri.kinetics.functions_liver import dpars_liver
-from dcmri.core.tools import print_params, export_params
-from dcmri.core.sequences import SEQUENCES
+from dcmri.core.tools import print_params, export_params, get_sequence
 from dcmri.core.quantities import QUANTITIES
 from dcmri.signal.modules_tissue import Signal
 from dcmri.core.model import SuperModel
 
-CONSTANTS = {'Fw': 0, 'v': 1, 'me': 1, 'noise_sdev':0}
+CONSTANTS = {'Fw': 0, 'v': 1, 'me': 1, 'NSR':0}
 
 
 QUANTITIES = QUANTITIES | {
@@ -464,12 +463,12 @@ class AortaLiverDynamic(SuperModel):
             select = 'all'
         kin, ns, seq = self._cnfg['kinetics'], self._cnfg['non_stationary'], self._cnfg['sequence']
 
-        aorta_kinetics = ['BAT_1', 'BAT_2', 'CO', 'Thl', 'Dhl', 'To', 'Eo', 'To_e', 'Eb']
+        aorta_kinetics = ['BAT_1', 'BAT_2', 'CO', 'T_hl', 'D_hl', 'Tb_o', 'E_o', 'Te_o', 'Eb']
         liver_kinetics = ConcLiver(kin, ns).params()
         liver_kinetics = [k for k in liver_kinetics if k != 'Ta']
         kinetics = aorta_kinetics + liver_kinetics
-        liver_sequence = SEQUENCES[seq]['parameters']['prep']
-        liver_sequence += SEQUENCES[seq]['parameters']['read']
+        liver_sequence = get_sequence('prep_params', seq)
+        liver_sequence += get_sequence('read_params', seq)
         if 'FA' in liver_sequence:
             liver_sequence += ['FA_2']
     
@@ -512,8 +511,8 @@ class AortaLiverDynamic(SuperModel):
         )
         Jb = flux_aorta(
             J1 + J2, dt=p['dt'], tol=p['dose_tolerance'],
-            heartlung={'model': 'pfcomp', 'params': {'T':p[f'Thl'], 'D':p[f'Dhl']}},
-            organs=[{'vr': 1 - p['Eb'], 'model': '2cxm', 'params': {'T':[p[f'To'], p[f'To_e']], 'E':p[f'Eo']}}],
+            heartlung={'model': 'pfcomp', 'params': {'T':p[f'T_hl'], 'D':p[f'D_hl']}},
+            organs=[{'vr': 1 - p['Eb'], 'model': '2cxm', 'params': {'T':[p[f'Tb_o'], p[f'Te_o']], 'E':p[f'E_o']}}],
         )
         self._ca = Jb / p['CO']
 
@@ -621,7 +620,7 @@ class AortaLiverDynamic(SuperModel):
         seq_liver = '3D-SPGR-SS' if self._cnfg['sequence']=='3D-SPGR-SSI' else self._cnfg['sequence']
 
         # Estimate BAT and BAT2 and ajust their bounds
-        t_hl, d_hl = p['Thl'], p['Dhl']
+        t_hl, d_hl = p['T_hl'], p['D_hl']
         bat = time[0][np.argmax(signal[0])] - (1 - d_hl) * t_hl
         bat2 = time[1][np.argmax(signal[1])] - (1 - d_hl) * t_hl
         p['BAT_1'] = max(bat, 0)
