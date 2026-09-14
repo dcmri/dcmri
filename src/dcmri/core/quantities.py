@@ -227,7 +227,7 @@ QUANTITIES = {
     'B1corr': {'init': 1, 'bounds': (0, 5), 'name': 'B1-correction factor', 'unit': '', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
 
     # Signal
-    'tS': {'init': 0.0, 'bounds': None, 'name': 'signal time points', 'unit': 'sec', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
+    'tS': {'init': 0.0, 'bounds': None, 'name': 'signal time points', 'unit': 'sec', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
     'S': {'init': 1.0, 'bounds': (0, 5), 'name': 'signal', 'unit': 'a.u.', 'bounds_type': 'mult', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
     'Sb': {'init': 1.0, 'bounds': (0, 5), 'name': 'signal baseline', 'unit': 'a.u.', 'bounds_type': 'mult', 'group': 'signal', 'dicom_key': None, 'osipi_key': 'Q.MS1.002'},
     'nb': {'init': 1, 'bounds': None, 'name': 'number of baseline time points', 'unit': 'a.u.', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},

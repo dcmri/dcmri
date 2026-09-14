@@ -33,31 +33,14 @@ def test_aorta_kidneys(cls=AortaKidneysModel):
     for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
         _test_config(cnfg)
 
-
     print(f'Successfully covered {len(configs)} {cls.__name__} configurations!')
 
 
 def test_aorta_kidneys_instance():
-    cnfg = {
-        'bolus': 'dual', 
-        'heartlung': 'pfcomp', 
-        'organs': '2cxm', 
-        'kidneys': '2CF', 
-        'water_exchange': '(b, t, c)',
-        't1_relaxation_ao': 'lin',
-        't2_relaxation_ao': None, 
-        't2s_relaxation_ao': None, 
-        't1_relaxation_lk': 'lin',
-        't2_relaxation_lk': None, 
-        't2s_relaxation_lk': None, 
-        't1_relaxation_rk': 'lin',
-        't2_relaxation_rk': None, 
-        't2s_relaxation_rk': None, 
-        'inflow': False,
-        'sequence': 'ZTE-3D-IR-SPGR-SS', 
-        'magnitude': False, 
-        'calibrate': True,
-    }
+    # model = AortaKidneysModel()
+    # print(model.config)
+    # return
+    cnfg = {'inflow': False, 'sequence': '3D-SPGR-SS', 'tof_corr': False, 'magnitude': True, 'trigger': False, 'calibrate': False, 'water_exchange': 'F', 'baseline': 'literature', 'heartlung': 'pfcomp', 'organs': 'comp', 'kidneys': '2CF', 'bolus': 'single', 't1_relaxation_ao': 'lin', 't1_relaxation_lk': 'lin', 't1_relaxation_rk': 'lin', 't2_relaxation_ao': None, 't2_relaxation_lk': None, 't2_relaxation_rk': None, 't2s_relaxation_ao': 'lin', 't2s_relaxation_lk': 'lin', 't2s_relaxation_rk': 'lin'}
     try:
         model = AortaKidneysModel(**cnfg)
     except InvalidConfiguration as e:

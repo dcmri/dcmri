@@ -27,7 +27,7 @@ def test_aorta_liver(cls=AortaLiverModel):
         # print(f"  [Total model execution time: {elapsed:.4f}s]")
 
     cls.print_configs()
-    cls.print_all_io(verbose=1, simple=False, sample=1e5, seed=51)
+    cls.print_all_io(verbose=1, simple=True, sample=1e5, seed=51)
 
     configs = cls.all_configs(sample=1e4, seed=51)
     for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
@@ -37,7 +37,10 @@ def test_aorta_liver(cls=AortaLiverModel):
 
 
 def test_aorta_liver_instance():
-    cnfg = {'inflow': True, 'sequence': '3D-SE-EPI', 'magnitude': True, 'trigger': False, 'calibrate': True, 'baseline': 'measured', 'compartments': ('e', 'h'), 'bolus': 'single', 'heartlung': 'comp', 'organs': 'comp', 'lagut': 'plucom', 'liver': '1I-IC-HF', 'non_stationary': None, 't1_relaxation_ao': 'lin', 't1_relaxation_li': 'lin', 't2_relaxation_ao': 'lin', 't2_relaxation_li': 'lin', 't2s_relaxation_ao': None, 't2s_relaxation_li': None}
+    # model = AortaLiverModel()
+    # print(model.config)
+    # return
+    cnfg = {'inflow': False, 'sequence': '3D-SPGR-SS', 'tof_corr': False, 'magnitude': True, 'trigger': False, 'calibrate': False, 'water_exchange': 'F', 'baseline': 'literature', 'bolus': 'single', 'heartlung': 'pfcomp', 'organs': 'comp', 'lagut': 'comp', 'liver': '1I-EC', 'non_stationary': None, 't1_relaxation_ao': 'lin', 't1_relaxation_li': 'lin', 't2_relaxation_ao': None, 't2_relaxation_li': None, 't2s_relaxation_ao': 'lin', 't2s_relaxation_li': 'lin'}
     try:
         model = AortaLiverModel(**cnfg)
     except InvalidConfiguration as e:

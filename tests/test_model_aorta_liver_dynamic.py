@@ -27,12 +27,11 @@ def test_aorta_liver_dynamic(cls=AortaLiverDynamicModel):
         # print(f"  [Total model execution time: {elapsed:.4f}s]")
 
     cls.print_configs()
+    cls.print_all_io(verbose=1, simple=False, sample=1e4, seed=51)
 
     configs = cls.all_configs(sample=1e4, seed=51)
     for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
         _test_config(cnfg)
-
-    cls.print_all_io(verbose=1, simple=False, sample=1e5, seed=51)
 
     print(f'Successfully covered {len(configs)} {cls.__name__} configurations!')
 
@@ -41,7 +40,7 @@ def test_aorta_liver_dynamic_instance():
     # model = AortaLiverDynamicModel()
     # print(model.config)
     # return
-    cnfg = {'sequence': '3D-IR-SS', 'tof_corr': False, 'inflow': False, 'magnitude': False, 'trigger': True, 'calibrate': False, 'baseline': 'literature', 'compartments': ('li',), 'bolus': 'dual', 'heartlung': 'comp', 'organs': 'comp', 'lagut': 'plucom', 'liver': '1I-IC-HF', 'non_stationary': 'U', 't1_relaxation_ao': 'lin', 't1_relaxation_li':'lin', 't2_relaxation_ao': None, 't2_relaxation_li': None, 't2s_relaxation_ao': 'quad', 't2s_relaxation_li': 'lin'}
+    cnfg = {'sequence': '3D-SPGR-SS', 'tof_corr': False, 'inflow': False, 'magnitude': True, 'trigger': False, 'calibrate': False, 'water_exchange': 'F', 'baseline': 'literature', 'bolus': 'single', 'heartlung': 'pfcomp', 'organs': 'comp', 'lagut': 'comp', 'liver': '1I-EC', 'non_stationary': None, 't1_relaxation_ao': 'lin', 't1_relaxation_li': 'lin', 't2_relaxation_ao': None, 't2_relaxation_li': None, 't2s_relaxation_ao': 'lin', 't2s_relaxation_li': 'lin'}
     try:
         model = AortaLiverDynamicModel(**cnfg)
     except InvalidConfiguration as e:

@@ -1,13 +1,3 @@
-import numpy as np
-
-from dcmri.core.module import Module
-from dcmri.core.tools import extend_varname
-from dcmri.kinetics.modules_conc import ConcAortaPortalLiver
-from dcmri.relaxivity.modules_rois import RelaxivityArtery, RelaxivityLiver
-from dcmri.bloch.modules_rois import WaterExchangeArtery, WaterExchangeLiver
-from dcmri.signal.modules_tissue import ConcToSignal
-from dcmri.bloch.functions_sequences import channels
-
 
 # +--------------------------------------------------------------------------------------------------+
 # |                           AortaPortalLiverModel - all configs (n = 22)                           |
@@ -194,6 +184,17 @@ from dcmri.bloch.functions_sequences import channels
 # +----------------------------------------------------------------------------------------------------------------------------+
 
 
+import numpy as np
+
+from dcmri.core.module import Module
+from dcmri.core.tools import extend_varname
+from dcmri.kinetics.modules_conc import ConcAortaPortalLiver
+from dcmri.relaxivity.modules_rois import RelaxivityArtery, RelaxivityLiver
+from dcmri.bloch.modules_rois import WaterExchangeArtery, WaterExchangeLiver
+from dcmri.signal.modules_tissue import ConcToSignal
+from dcmri.bloch.functions_sequences import channels
+
+
 rois = ['ao', 'pv', 'li']
 tissue_rel = {'ao': RelaxivityArtery, 'pv': RelaxivityArtery, 'li': RelaxivityLiver}
 tissue_wex = {'ao': WaterExchangeArtery, 'pv': WaterExchangeArtery, 'li': WaterExchangeLiver}
@@ -201,24 +202,24 @@ tissue_wex = {'ao': WaterExchangeArtery, 'pv': WaterExchangeArtery, 'li': WaterE
 # ROI-specific configurations
 roi_configs = ['t1_relaxation', 't2_relaxation', 't2s_relaxation']
 
-configs = ConcToSignal.configs | WaterExchangeArtery.configs | WaterExchangeLiver.configs | RelaxivityArtery.configs | RelaxivityLiver.configs | ConcAortaPortalLiver.configs
-defaults = ConcToSignal.defaults | WaterExchangeArtery.defaults | WaterExchangeLiver.defaults | RelaxivityArtery.defaults | RelaxivityLiver.defaults | ConcAortaPortalLiver.defaults
-cmap = {roi: {} for roi in rois}
+CONFIGS = ConcToSignal.configs | WaterExchangeArtery.configs | WaterExchangeLiver.configs | RelaxivityArtery.configs | RelaxivityLiver.configs | ConcAortaPortalLiver.configs
+DEFAULTS = ConcToSignal.defaults | WaterExchangeArtery.defaults | WaterExchangeLiver.defaults | RelaxivityArtery.defaults | RelaxivityLiver.defaults | ConcAortaPortalLiver.defaults
+CMAP = {roi: {} for roi in rois}
 
 for key in roi_configs:
-    config = configs.pop(key)
-    default = defaults.pop(key)
+    config = CONFIGS.pop(key)
+    default = DEFAULTS.pop(key)
     for roi in rois:
-        configs[f'{key}_{roi}'] = config
-        defaults[f'{key}_{roi}'] = default
-        cmap[roi] |= {key: f'{key}_{roi}'}
+        CONFIGS[f'{key}_{roi}'] = config
+        DEFAULTS[f'{key}_{roi}'] = default
+        CMAP[roi] |= {key: f'{key}_{roi}'}
         
 
 class AortaPortalLiverModel(Module):
     """Whole-body model for the aorta, portal vein and liver signal."""
 
-    configs = configs
-    defaults = defaults
+    configs = CONFIGS
+    defaults = DEFAULTS
 
     _all_inputs = {'v_li', 'R1_b', 'NSR_ao', 'iz', 'CO', 'dose', 'k_e2h', 'E_or', 'PSw_h2e', 'Ei_li', 'B1corr_li', 'T_h', 'TR', 'Scal_pv', 'Nph', 'T_hl', 'Ti_h', 'fCO_li', 'dose_tolerance', 'H', 'T_b_or', 'BAT_2', 'v_e_li', 'tacq', 'E_li', 'tstart', 'TA', 'T_gu', 'iScal_li', 'dose_1', 'Scal_ao', 'TE2', 'iScal_pv', 'BAT_1', 'TD', 'BAT', 'ffa', 'NSR_pv', 'T_la', 'me', 'PSw_e2h', 'ki_e2h', 'Ef_li', 'rate_1', 'TF', 'GFR', 'vol_ao', 'v_h', 'Nk0', 'agent', 'rate_2', 'vol_li', 'iStrig_pv', 'kf_e2h', 'dt', 'TP', 'S0_ao', 'B1corr_pv', 'NSR_li', 'TE', 'S0_pv', 'D_hl', 'field_strength', 'dose_2', 'TE1', 'R1_h', 'B1corr_ao', 'PA', 'rate', 'vol_la', 'FA', 'iStrig_li', 'R1_e', 'vol_pv', 'iStrig_ao', 'iScal_ao', 'T_e_or', 'S0_li', 'Nz', 'Scal_li', 'weight', 'Tf_h', 'SA'}
     _all_outputs = {'R2s_ao', 'tS_li', 'ci_la', 'R2_pv', 'J_li', 'tM_li', 'M_li', 'ci_pv', 'R1i_li', 'tR_li', 'R1_ao', 'C_li', 'tM_pv', 'J_ao', 'S_li', 'J_lag', 'R1_pv', 'R2_ao', 'tR_pv', 'S_ao', 'C_ao', 'R2s_pv', 'J_ve', 'ci_ao', 'C_la', 'tR_ao', 'S0_ao', 'tS_pv', 'M_ao','tM_ao', 'C_pv', 'tS_ao', 'J_la', 'R1_li', 'S0_pv', 'S_pv', 'J_pv', 'ci_li', 'R2s_li', 'J_or', 'tC', 'R1i_pv', 'S0_li', 'R1i_ao', 'R2_li', 'M_pv'}
@@ -236,8 +237,8 @@ class AortaPortalLiverModel(Module):
 
         return self.map_results(p)
 
-    def __init__(self, imap:dict=None, omap:dict=None, **config):
-        self.set_config(config)
+    def __init__(self, imap:dict=None, omap:dict=None, iomap:dict=None, cmap:dict=None, **config):
+        self.set_config(config, cmap)
 
         # Only aorta has tof_corr
         config = {
@@ -251,15 +252,18 @@ class AortaPortalLiverModel(Module):
         self._conc_to_signal = {}
 
         for roi in rois:
-            iomap = {'F_b_ar': f'F_b_{roi}'}
-            iomap |= {k: extend_varname(k, roi=roi) for k in tissue_rel[roi].all_outputs() | tissue_wex[roi].all_outputs() | {'v_e'}} 
-            self._tissue_rel[roi] = tissue_rel[roi](iomap=iomap, cmap=cmap[roi], **config[roi])
-            self._tissue_wex[roi] = tissue_wex[roi](iomap=iomap, cmap=cmap[roi], **config[roi])
+            iomap_roi = {'F_b_ar': f'F_b_{roi}'}
+            iomap_roi |= {k: extend_varname(k, roi=roi) for k in tissue_rel[roi].all_outputs() | tissue_wex[roi].all_outputs() | {'v_e'}} 
 
-            iomap |= {k: extend_varname(k, roi=roi) for k in {'C', 'ci', 'NSR', 'S0', 'Scal', 'iScal', 'iStrig', 'B1corr', 'S', 'M', 'R1', 'R1i', 'R2', 'R2s', 'tM', 'tS'}}
-            self._conc_to_signal[roi] = ConcToSignal(iomap=iomap, cmap=cmap[roi], **config[roi]) 
+            self._tissue_rel[roi] = tissue_rel[roi](iomap=iomap_roi, cmap=CMAP[roi], **config[roi])
+            self._tissue_wex[roi] = tissue_wex[roi](iomap=iomap_roi, cmap=CMAP[roi], **config[roi])
+
+            vars = {'C', 'ci', 'NSR', 'S0', 'Scal', 'iScal', 'iStrig', 'B1corr', 'S', 'M', 'R1', 'R1i', 'R2', 'R2s', 'tM', 'tS'}
+            iomap_roi |= {k: extend_varname(k, roi=roi) for k in vars}
+
+            self._conc_to_signal[roi] = ConcToSignal(iomap=iomap_roi, cmap=CMAP[roi], **config[roi]) 
     
-        self.map_io(imap, omap)
+        self.map_io(imap, omap, iomap)
 
     
     def inputs(self) -> set:

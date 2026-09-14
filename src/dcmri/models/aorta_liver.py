@@ -24,8 +24,8 @@ from dcmri.bloch.functions_sequences import channels
 # | magnitude         | False, True                                                     | True       |
 # | trigger           | False, True                                                     | False      |
 # | calibrate         | False, True                                                     | False      |
+# | water_exchange    | F, N, R                                                         | F          |
 # | baseline          | literature, measured                                            | literature |
-# | compartments      | ('e', 'h'), ('li',)                                             | ('li',)    |
 # | bolus             | dual, single                                                    | single     |
 # | heartlung         | chain, comp, pfcomp                                             | pfcomp     |
 # | organs            | 2cxm, comp                                                      | comp       |
@@ -40,97 +40,95 @@ from dcmri.bloch.functions_sequences import channels
 # | t2s_relaxation_li | None, lin, quad                                                 | lin        |
 # +--------------------------------------------------------------------------------------------------+
 
-
-# +----------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-# |                                                                   AortaLiverModel - all inputs (n = 76)                                                                    |
-# +----------------+------------+---------------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
-# | Key            | Unit       | Name                                                                      | Group           | Init       | Bounds        | DICOM | OSIPI     |
-# +----------------+------------+---------------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
-# | BAT            | sec        | bolus arrival time                                                        | Indicator       | 30         | (-30, 30)     |       |           |
-# | BAT_1          | sec        | 1st bolus arrival time                                                    | Indicator       | 30         | (-30, 30)     |       |           |
-# | BAT_2          | sec        | 2nd bolus arrival time                                                    | Indicator       | 30         | (-30, 30)     |       |           |
-# | agent          |            | contrast agent generic name                                               | Indicator       | gadoterate |               |       |           |
-# | dose           | mL/kg      | contrast agent dose                                                       | Indicator       | 0.1        | (0, 0.2)      |       |           |
-# | dose_1         | mL/kg      | 1st contrast agent dose                                                   | Indicator       | 0.1        | (0, 0.2)      |       |           |
-# | dose_2         | mL/kg      | 2nd contrast agent dose                                                   | Indicator       | 0.1        | (0, 0.2)      |       |           |
-# | rate           | mL/s       | injection rate                                                            | Indicator       | 1          | (0, 10)       |       |           |
-# | rate_1         | mL/s       | 1st injection rate                                                        | Indicator       | 1          | (0, 10)       |       |           |
-# | rate_2         | mL/s       | 2nd injection rate                                                        | Indicator       | 1          | (0, 10)       |       |           |
-# +----------------+------------+---------------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
-# | NSR_ao         |            | noise-to-signal ratio in the aorta                                        | Signal          | 0.0        | (0, 100000.0) |       |           |
-# | NSR_li         |            | noise-to-signal ratio in the liver                                        | Signal          | 0.0        | (0, 100000.0) |       |           |
-# | S0_ao          | a.u.       | signal scaling factor in the aorta                                        | Signal          | 1.0        | (0, 5)        |       | Q.MS1.010 |
-# | S0_li          | a.u.       | signal scaling factor in the liver                                        | Signal          | 1.0        | (0, 5)        |       | Q.MS1.010 |
-# | Scal_ao        | a.u.       | calibration signal in the aorta                                           | Signal          | 1.0        | (0, 5)        |       | Q.MS1.002 |
-# | Scal_li        | a.u.       | calibration signal in the liver                                           | Signal          | 1.0        | (0, 5)        |       | Q.MS1.002 |
-# | iScal_ao       |            | indices of calibration signal in the aorta                                | Signal          | 0          |               |       |           |
-# | iScal_li       |            | indices of calibration signal in the liver                                | Signal          | 0          |               |       |           |
-# | iStrig_ao      |            | indices of the signal trigger in the aorta                                | Signal          | None       |               |       |           |
-# | iStrig_li      |            | indices of the signal trigger in the liver                                | Signal          | None       |               |       |           |
-# +----------------+------------+---------------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
-# | FA             | deg        | flip angle                                                                | Sequence        | 15         | (0, 180)      |       |           |
-# | Nk0            |            | number of acquired phase lines to the center of k-space                   | Sequence        | 64         | (0, 1000)     |       |           |
-# | Nph            |            | number of acquired phase lines in k-space                                 | Sequence        | 128        | (0, 1000)     |       |           |
-# | Nz             |            | number of slices in a multi-slice acquisition                             | Sequence        | 64         | (0, 1000)     |       |           |
-# | PA             | deg        | preparation Pulse Flip Angle                                              | Sequence        | 90         | (0, 180)      |       |           |
-# | SA             | deg        | saturation Slab Flip Angle                                                | Sequence        | 0          | (0, 180)      |       |           |
-# | TA             | sec        | acquisition time                                                          | Sequence        | 2.0        | (0, 30)       |       |           |
-# | TD             | sec        | prepulse delay                                                            | Sequence        | 0.05       | (0, 1)        |       |           |
-# | TE             | sec        | echo time                                                                 | Sequence        | 0.001      | (0, 10)       |       |           |
-# | TE1            | sec        | first echo time in a multi-echo sequence                                  | Sequence        | 0.001      | (0, 1)        |       |           |
-# | TE2            | sec        | second echo time in a multi-echo sequence                                 | Sequence        | 0.005      | (0, 1)        |       |           |
-# | TP             | sec        | preparation delay                                                         | Sequence        | 0.05       | (0, 1)        |       |           |
-# | TR             | sec        | repetition time                                                           | Sequence        | 0.005      | (0, 1)        |       |           |
-# | field_strength | T          | magnetic field strength                                                   | Sequence        | 3          | (0, 20)       |       |           |
-# | iz             |            | slice number in a multi-slice acquisition                                 | Sequence        | 0          | (0, 1000)     |       |           |
-# | tacq           | sec        | acquisition duration                                                      | Sequence        | 240        | (0, 10000.0)  |       |           |
-# | tstart         | sec        | start of the acquisition                                                  | Sequence        | 0          | (0, 10000.0)  |       |           |
-# +----------------+------------+---------------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
-# | B1corr_ao      |            | B1-correction factor in the aorta                                         | Electromagnetic | 1          | (0, 5)        |       |           |
-# | B1corr_li      |            | B1-correction factor in the liver                                         | Electromagnetic | 1          | (0, 5)        |       |           |
-# | R1_b           | Hz         | tissue R1 in the blood                                                    | Electromagnetic | 0.65       | (0, 5)        |       |           |
-# | R1_e           | Hz         | tissue R1 in extracellular                                                | Electromagnetic | 0.65       | (0, 5)        |       |           |
-# | R1_h           | Hz         | tissue R1 in hepatocytes                                                  | Electromagnetic | 0.65       | (0, 5)        |       |           |
-# | me             | A cm2/mL   | equilibrium magnetization                                                 | Electromagnetic | 1          | (0, 5)        |       |           |
-# +----------------+------------+---------------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
-# | CO             | mL/sec     | cardiac output                                                            | Physiological   | 100        | (0, 500)      |       |           |
-# | D_hl           |            | transit time dispersion in the heart and Lungs                            | Physiological   | 0.2        | (0.01, 0.99)  |       |           |
-# | E_li           |            | extraction fraction in the liver                                          | Physiological   | 0.1        | (0.0, 1.0)    |       |           |
-# | E_or           |            | extraction fraction in the organs                                         | Physiological   | 0.15       | (0, 0.5)      |       |           |
-# | Ef_li          |            | final extraction fraction in the liver                                    | Physiological   | 0.1        | (0.0, 1.0)    |       |           |
-# | Ei_li          |            | initial extraction fraction in the liver                                  | Physiological   | 0.1        | (0.0, 1.0)    |       |           |
-# | GFR            | mL/sec     | glomerular filtration rate                                                | Physiological   | 2          | (0, 10)       |       |           |
-# | H              |            | hematocrit                                                                | Physiological   | 0.45       | (0, 1)        |       |           |
-# | PSw_e2h        | mL/sec/cm3 | water permeability-surface area product from extracellular to hepatocytes | Physiological   | 0.03       | (0, 100)      |       |           |
-# | PSw_h2e        | mL/sec/cm3 | water permeability-surface area product from hepatocytes to extracellular | Physiological   | 0.03       | (0, 100)      |       |           |
-# | TF             | sec        | inflow time                                                               | Physiological   | 0.5        | (0, 10)       |       |           |
-# | T_b_or         | sec        | mean transit time in blood of the organs                                  | Physiological   | 20         | (0, 60)       |       |           |
-# | T_e_or         | sec        | mean transit time in extracellular of the organs                          | Physiological   | 120        | (0, 800)      |       |           |
-# | T_gu           | sec        | mean transit time in the gut                                              | Physiological   | 30         | (0.1, 60)     |       |           |
-# | T_h            | sec        | mean transit time in hepatocytes                                          | Physiological   | 1800       | (600, 36000)  |       |           |
-# | T_hl           | sec        | mean transit time in the heart and Lungs                                  | Physiological   | 10         | (0, 30)       |       |           |
-# | T_la           | sec        | mean transit time in the liver artery                                     | Physiological   | 30         | (0.1, 60)     |       |           |
-# | Tf_h           | sec        | final mean transit time in hepatocytes                                    | Physiological   | 1800       | (600, 36000)  |       |           |
-# | Ti_h           | sec        | initial mean transit time in hepatocytes                                  | Physiological   | 1800       | (600, 36000)  |       |           |
-# | fCO_li         |            | fraction of the cardiac output in the liver                               | Physiological   | 0.1        | (0, 0.5)      |       |           |
-# | ffa            |            | arterial flow fraction                                                    | Physiological   | 0.2        | (0, 1)        |       |           |
-# | k_e2h          | mL/sec/cm3 | hepatocellular uptake rate                                                | Physiological   | 0.003      | (0.0, 0.1)    |       |           |
-# | kf_e2h         | mL/sec/cm3 | final hepatocellular uptake rate                                          | Physiological   | 0.003      | (0.0, 0.1)    |       |           |
-# | ki_e2h         | mL/sec/cm3 | initial hepatocellular uptake rate                                        | Physiological   | 0.003      | (0.0, 0.1)    |       |           |
-# | v_e_li         | mL/cm3     | volume fraction in extracellular of the liver                             | Physiological   | 0.3        | (0.01, 0.6)   |       |           |
-# | v_h            | mL/cm3     | Hepatocellular volume fraction                                            | Physiological   | 0.6        | (0.1, 1.0)    |       |           |
-# | v_li           | mL/cm3     | volume fraction in the liver                                              | Physiological   | 1          | (0, 1)        |       |           |
-# +----------------+------------+---------------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
-# | dose_tolerance |            | dose tolerance                                                            | Hyperparameters | 0.1        |               |       |           |
-# | dt             | sec        | pseudo-continuous time step                                               | Hyperparameters | 0.5        |               |       |           |
-# +----------------+------------+---------------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
-# | vol_ao         | cm3        | ROI volume in the aorta                                                   | Whole-body      | 10         | (0.0, 1000)   |       |           |
-# | vol_li         | cm3        | ROI volume in the liver                                                   | Whole-body      | 1000       | (0, 10000)    |       |           |
-# | weight         | kg         | body weight                                                               | Whole-body      | 70         | (0, 300)      |       |           |
-# +----------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+# +-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+# |                                                                 AortaLiverModel - all inputs (n = 74)                                                                 |
+# +----------------+------------+----------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
+# | Key            | Unit       | Name                                                                 | Group           | Init       | Bounds        | DICOM | OSIPI     |
+# +----------------+------------+----------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
+# | BAT            | sec        | bolus arrival time                                                   | Indicator       | 30         | (-30, 30)     |       |           |
+# | BAT_1          | sec        | 1st bolus arrival time                                               | Indicator       | 30         | (-30, 30)     |       |           |
+# | BAT_2          | sec        | 2nd bolus arrival time                                               | Indicator       | 30         | (-30, 30)     |       |           |
+# | agent          |            | contrast agent generic name                                          | Indicator       | gadoterate |               |       |           |
+# | dose           | mL/kg      | contrast agent dose                                                  | Indicator       | 0.1        | (0, 0.2)      |       |           |
+# | dose_1         | mL/kg      | 1st contrast agent dose                                              | Indicator       | 0.1        | (0, 0.2)      |       |           |
+# | dose_2         | mL/kg      | 2nd contrast agent dose                                              | Indicator       | 0.1        | (0, 0.2)      |       |           |
+# | rate           | mL/s       | injection rate                                                       | Indicator       | 1          | (0, 10)       |       |           |
+# | rate_1         | mL/s       | 1st injection rate                                                   | Indicator       | 1          | (0, 10)       |       |           |
+# | rate_2         | mL/s       | 2nd injection rate                                                   | Indicator       | 1          | (0, 10)       |       |           |
+# +----------------+------------+----------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
+# | NSR_ao         |            | noise-to-signal ratio in the aorta                                   | Signal          | 0.0        | (0, 100000.0) |       |           |
+# | NSR_li         |            | noise-to-signal ratio in the liver                                   | Signal          | 0.0        | (0, 100000.0) |       |           |
+# | S0_ao          | a.u.       | signal scaling factor in the aorta                                   | Signal          | 1.0        | (0, 5)        |       | Q.MS1.010 |
+# | S0_li          | a.u.       | signal scaling factor in the liver                                   | Signal          | 1.0        | (0, 5)        |       | Q.MS1.010 |
+# | Scal_ao        | a.u.       | calibration signal in the aorta                                      | Signal          | 1.0        | (0, 5)        |       | Q.MS1.002 |
+# | Scal_li        | a.u.       | calibration signal in the liver                                      | Signal          | 1.0        | (0, 5)        |       | Q.MS1.002 |
+# | iScal_ao       |            | indices of calibration signal in the aorta                           | Signal          | 0          |               |       |           |
+# | iScal_li       |            | indices of calibration signal in the liver                           | Signal          | 0          |               |       |           |
+# | iStrig_ao      |            | indices of the signal trigger in the aorta                           | Signal          | None       |               |       |           |
+# | iStrig_li      |            | indices of the signal trigger in the liver                           | Signal          | None       |               |       |           |
+# +----------------+------------+----------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
+# | FA             | deg        | flip angle                                                           | Sequence        | 15         | (0, 180)      |       |           |
+# | Nk0            |            | number of acquired phase lines to the center of k-space              | Sequence        | 64         | (0, 1000)     |       |           |
+# | Nph            |            | number of acquired phase lines in k-space                            | Sequence        | 128        | (0, 1000)     |       |           |
+# | Nz             |            | number of slices in a multi-slice acquisition                        | Sequence        | 64         | (0, 1000)     |       |           |
+# | PA             | deg        | preparation Pulse Flip Angle                                         | Sequence        | 90         | (0, 180)      |       |           |
+# | SA             | deg        | saturation Slab Flip Angle                                           | Sequence        | 0          | (0, 180)      |       |           |
+# | TA             | sec        | acquisition time                                                     | Sequence        | 2.0        | (0, 30)       |       |           |
+# | TD             | sec        | prepulse delay                                                       | Sequence        | 0.05       | (0, 1)        |       |           |
+# | TE             | sec        | echo time                                                            | Sequence        | 0.001      | (0, 10)       |       |           |
+# | TE1            | sec        | first echo time in a multi-echo sequence                             | Sequence        | 0.001      | (0, 1)        |       |           |
+# | TE2            | sec        | second echo time in a multi-echo sequence                            | Sequence        | 0.005      | (0, 1)        |       |           |
+# | TP             | sec        | preparation delay                                                    | Sequence        | 0.05       | (0, 1)        |       |           |
+# | TR             | sec        | repetition time                                                      | Sequence        | 0.005      | (0, 1)        |       |           |
+# | field_strength | T          | magnetic field strength                                              | Sequence        | 3          | (0, 20)       |       |           |
+# | iz             |            | slice number in a multi-slice acquisition                            | Sequence        | 0          | (0, 1000)     |       |           |
+# | tacq           | sec        | acquisition duration                                                 | Sequence        | 240        | (0, 10000.0)  |       |           |
+# | tstart         | sec        | start of the acquisition                                             | Sequence        | 0          | (0, 10000.0)  |       |           |
+# +----------------+------------+----------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
+# | B1corr_ao      |            | B1-correction factor in the aorta                                    | Electromagnetic | 1          | (0, 5)        |       |           |
+# | B1corr_li      |            | B1-correction factor in the liver                                    | Electromagnetic | 1          | (0, 5)        |       |           |
+# | R1_b           | Hz         | tissue R1 in the blood                                               | Electromagnetic | 0.65       | (0, 5)        |       |           |
+# | R1_e           | Hz         | tissue R1 in extracellular space                                     | Electromagnetic | 0.65       | (0, 5)        |       |           |
+# | R1_h           | Hz         | tissue R1 in hepatocytes                                             | Electromagnetic | 0.65       | (0, 5)        |       |           |
+# | me             | A cm2/mL   | equilibrium magnetization                                            | Electromagnetic | 1          | (0, 5)        |       |           |
+# +----------------+------------+----------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
+# | CO             | mL/sec     | cardiac output                                                       | Physiological   | 100        | (0, 500)      |       |           |
+# | D_hl           |            | transit time dispersion in the heart and Lungs                       | Physiological   | 0.2        | (0.01, 0.99)  |       |           |
+# | E_li           |            | extraction fraction in the liver                                     | Physiological   | 0.1        | (0.0, 1.0)    |       |           |
+# | E_or           |            | extraction fraction in the organs                                    | Physiological   | 0.15       | (0, 0.5)      |       |           |
+# | Ef_li          |            | final extraction fraction in the liver                               | Physiological   | 0.1        | (0.0, 1.0)    |       |           |
+# | Ei_li          |            | initial extraction fraction in the liver                             | Physiological   | 0.1        | (0.0, 1.0)    |       |           |
+# | GFR            | mL/sec     | glomerular filtration rate                                           | Physiological   | 2          | (0, 10)       |       |           |
+# | H              |            | hematocrit                                                           | Physiological   | 0.45       | (0, 1)        |       |           |
+# | PSw            | mL/sec/cm3 | water permeability-surface area product                              | Physiological   | 0.03       | (0, 100)      |       |           |
+# | TF             | sec        | inflow time                                                          | Physiological   | 0.5        | (0, 10)       |       |           |
+# | T_b_or         | sec        | mean transit time in blood of the organs                             | Physiological   | 20         | (0, 60)       |       |           |
+# | T_e_or         | sec        | mean transit time in extracellular space of the organs               | Physiological   | 120        | (0, 800)      |       |           |
+# | T_gu           | sec        | mean transit time in the gut                                         | Physiological   | 30         | (0.1, 60)     |       |           |
+# | T_h            | sec        | mean transit time in hepatocytes                                     | Physiological   | 1800       | (600, 36000)  |       |           |
+# | T_hl           | sec        | mean transit time in the heart and Lungs                             | Physiological   | 10         | (0, 30)       |       |           |
+# | T_la           | sec        | mean transit time in the liver artery                                | Physiological   | 30         | (0.1, 60)     |       |           |
+# | Tf_h           | sec        | final mean transit time in hepatocytes                               | Physiological   | 1800       | (600, 36000)  |       |           |
+# | Ti_h           | sec        | initial mean transit time in hepatocytes                             | Physiological   | 1800       | (600, 36000)  |       |           |
+# | fCO_li         |            | fraction of the cardiac output in the liver                          | Physiological   | 0.1        | (0, 0.5)      |       |           |
+# | ffa            |            | arterial flow fraction                                               | Physiological   | 0.2        | (0, 1)        |       |           |
+# | k_e2h          | mL/sec/cm3 | tissue transfer rate from extracellular space to hepatocytes         | Physiological   | 0.003      | (0.0, 0.1)    |       |           |
+# | kf_e2h         | mL/sec/cm3 | final tissue transfer rate from extracellular space to hepatocytes   | Physiological   | 0.003      | (0.0, 0.1)    |       |           |
+# | ki_e2h         | mL/sec/cm3 | initial tissue transfer rate from extracellular space to hepatocytes | Physiological   | 0.003      | (0.0, 0.1)    |       |           |
+# | v_e_li         | mL/cm3     | volume fraction in extracellular space of the liver                  | Physiological   | 0.3        | (0.01, 0.6)   |       |           |
+# | v_h            | mL/cm3     | volume fraction in hepatocytes                                       | Physiological   | 1          | (0, 1)        |       |           |
+# | v_li           | mL/cm3     | volume fraction in the liver                                         | Physiological   | 1          | (0, 1)        |       |           |
+# +----------------+------------+----------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
+# | dose_tolerance |            | dose tolerance                                                       | Hyperparameters | 0.1        |               |       |           |
+# | dt             | sec        | pseudo-continuous time step                                          | Hyperparameters | 0.5        |               |       |           |
+# +----------------+------------+----------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
+# | vol_ao         | cm3        | ROI volume in the aorta                                              | Whole-body      | 10         | (0.0, 1000)   |       |           |
+# | vol_li         | cm3        | ROI volume in the liver                                              | Whole-body      | 1000       | (0, 10000)    |       |           |
+# | weight         | kg         | body weight                                                          | Whole-body      | 70         | (0, 300)      |       |           |
+# +-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 # +------------------------------------------------------------------------------------------------------------------------+
-# |                                         AortaLiverModel - all outputs (n = 32)                                         |
+# |                                         AortaLiverModel - all outputs (n = 31)                                         |
 # +--------+----------+--------------------------------------------+-----------------+-------+---------+-------+-----------+
 # | Key    | Unit     | Name                                       | Group           | Init  | Bounds  | DICOM | OSIPI     |
 # +--------+----------+--------------------------------------------+-----------------+-------+---------+-------+-----------+
@@ -164,11 +162,11 @@ from dcmri.bloch.functions_sequences import channels
 # | R2s_li | Hz       | tissue R2* in the liver                    | Electromagnetic | 20    | (0, 5)  |       |           |
 # | tM_ao  | sec      | magnetization time points in the aorta     | Electromagnetic | 0.0   |         |       |           |
 # | tM_li  | sec      | magnetization time points in the liver     | Electromagnetic | 0.0   |         |       |           |
-# | tR_ao  | sec      | relaxation rate time points in the aorta   | Electromagnetic | 0.0   |         |       |           |
-# | tR_li  | sec      | relaxation rate time points in the liver   | Electromagnetic | 0.0   |         |       |           |
+# | tR     | sec      | relaxation rate time points                | Electromagnetic | 0.0   |         |       |           |
 # | tS_ao  | sec      | signal time points in the aorta            | Electromagnetic | 0.0   |         |       |           |
 # | tS_li  | sec      | signal time points in the liver            | Electromagnetic | 0.0   |         |       |           |
 # +------------------------------------------------------------------------------------------------------------------------+
+
 
 
 rois = ['ao', 'li']
@@ -178,27 +176,27 @@ tissue_wex = {'ao': WaterExchangeArtery, 'li': WaterExchangeLiver}
 # ROI-specific configurations
 roi_configs = ['t1_relaxation', 't2_relaxation', 't2s_relaxation']
 
-configs = ConcToSignal.configs | WaterExchangeArtery.configs | WaterExchangeLiver.configs | RelaxivityArtery.configs | RelaxivityLiver.configs | ConcAortaLiver.configs
-defaults = ConcToSignal.defaults | WaterExchangeArtery.defaults | WaterExchangeLiver.defaults | RelaxivityArtery.defaults | RelaxivityLiver.defaults | ConcAortaLiver.defaults
-cmap = {roi: {} for roi in rois}
+CONFIGS = ConcToSignal.configs | WaterExchangeArtery.configs | WaterExchangeLiver.configs | RelaxivityArtery.configs | RelaxivityLiver.configs | ConcAortaLiver.configs
+DEFAULTS = ConcToSignal.defaults | WaterExchangeArtery.defaults | WaterExchangeLiver.defaults | RelaxivityArtery.defaults | RelaxivityLiver.defaults | ConcAortaLiver.defaults
+CMAP = {roi: {} for roi in rois}
 
 for key in roi_configs:
-    config = configs.pop(key)
-    default = defaults.pop(key)
+    config = CONFIGS.pop(key)
+    default = DEFAULTS.pop(key)
     for roi in rois:
-        configs[f'{key}_{roi}'] = config
-        defaults[f'{key}_{roi}'] = default
-        cmap[roi] |= {key: f'{key}_{roi}'}
+        CONFIGS[f'{key}_{roi}'] = config
+        DEFAULTS[f'{key}_{roi}'] = default
+        CMAP[roi] |= {key: f'{key}_{roi}'}
 
 
 class AortaLiverModel(Module):
     """Whole-body model for the aorta and liver signal."""
 
-    configs = configs
-    defaults = defaults
+    configs = CONFIGS
+    defaults = DEFAULTS
 
-    _all_inputs = {'PSw_e2h', 'dt', 'TR', 'GFR', 'fCO_li', 'B1corr_ao', 'vol_ao', 'S0_li', 'vol_li', 'E_li', 'Nk0', 'TD', 'T_b_or', 'Ti_h', 'Tf_h', 'tstart', 'Nph', 'TE1', 'weight', 'iz', 'T_h', 'iStrig_ao', 'iStrig_li', 'k_e2h', 'BAT', 'CO', 'T_hl', 'Scal_ao', 'Scal_li', 'rate_1', 'B1corr_li', 'R1_e', 'T_e_or', 'field_strength', 'Ef_li', 'rate', 'agent', 'FA', 'v_li', 'iScal_li', 'dose_tolerance', 'TE2', 'ffa', 'E_or', 'tacq', 'D_hl', 'v_e_li', 'Nz', 'kf_e2h', 'R1_b', 'ki_e2h', 'dose_1', 'TE', 'NSR_ao', 'v_h', 'T_la', 'H', 'PSw_h2e', 'dose', 'SA', 'T_gu', 'dose_2', 'NSR_li', 'iScal_ao', 'TP', 'BAT_1', 'TF', 'PA', 'R1_h', 'S0_ao', 'me', 'Ei_li', 'rate_2', 'BAT_2', 'TA'}
-    _all_outputs = {'J_li', 'R2_li', 'J_pv', 'ci_li', 'S_li', 'tR_ao', 'S0_li', 'tC', 'C_li', 'M_ao', 'tM_ao', 'M_li', 'tS_ao', 'S_ao', 'R1i_li', 'R1_ao', 'C_ao', 'ci_ao', 'J_ve', 'J_or', 'J_la', 'R2s_li', 'tR_li', 'R1i_ao', 'R2_ao', 'tS_li', 'R2s_ao', 'S0_ao', 'tM_li', 'J_lag', 'R1_li', 'J_ao'}
+    _all_inputs = {'TF', 'Scal_li', 'Ti_h', 'CO', 'TA', 'Scal_ao', 'T_la', 'Nz', 'B1corr_ao', 'E_li', 'GFR', 'Nk0', 'v_li', 'tacq', 'Ef_li', 'iScal_ao', 'dose_tolerance', 'T_h', 'Nph', 'iz', 'R1_b', 'TE1', 'H', 'dt', 'tstart', 'SA', 'BAT_1', 'dose_2', 'TR', 'R1_e', 'S0_li', 'BAT_2', 'TE', 'NSR_li', 'vol_ao', 'T_gu', 'me', 'Ei_li', 'BAT', 'B1corr_li', 'iScal_li', 'rate_1', 'v_h', 'k_e2h', 'kf_e2h', 'S0_ao', 'T_b_or', 'rate', 'ffa', 'weight', 'R1_h', 'FA', 'vol_li', 'field_strength', 'Tf_h', 'agent', 'NSR_ao', 'T_e_or', 'TE2', 'PA', 'rate_2', 'fCO_li', 'TP', 'E_or', 'PSw', 'dose', 'T_hl', 'D_hl', 'iStrig_li', 'dose_1', 'TD', 'v_e_li', 'ki_e2h', 'iStrig_ao'}
+    _all_outputs = {'S0_ao', 'R1_ao', 'J_la', 'ci_ao', 'J_li', 'R1i_ao', 'S_ao', 'tS_li', 'J_ao', 'tC', 'tM_li', 'R2s_li', 'R2_li', 'tR', 'C_ao', 'R1i_li', 'tS_ao', 'J_lag', 'J_or', 'tM_ao', 'R2_ao', 'R2s_ao', 'S0_li', 'J_pv', 'R1_li', 'ci_li', 'M_ao', 'J_ve', 'S_li', 'M_li', 'C_li'}
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)  
@@ -213,8 +211,8 @@ class AortaLiverModel(Module):
 
         return self.map_results(p)
 
-    def __init__(self, imap:dict=None, omap:dict=None, **config):
-        self.set_config(config)
+    def __init__(self, imap:dict=None, omap:dict=None, iomap:dict=None, cmap:dict=None, **config):
+        self.set_config(config, cmap)
 
         # Liver never has tof_corr
         config = {
@@ -227,15 +225,15 @@ class AortaLiverModel(Module):
         self._conc_to_signal = {}
 
         for roi in rois:
-            iomap = {'F_b_ar': 'F_b_ao'}
-            iomap |= {k: extend_varname(k, roi=roi) for k in tissue_rel[roi].all_outputs() | tissue_wex[roi].all_outputs() |{'v_e'}} 
-            self._tissue_rel[roi] = tissue_rel[roi](iomap=iomap, cmap=cmap[roi], **config[roi])
-            self._tissue_wex[roi] = tissue_wex[roi](iomap=iomap, cmap=cmap[roi], **config[roi])
+            iomap_roi = {'F_b_ar': 'F_b_ao'}
+            iomap_roi |= {k: extend_varname(k, roi=roi) for k in tissue_rel[roi].all_outputs() | tissue_wex[roi].all_outputs() |{'v_e'}} 
+            self._tissue_rel[roi] = tissue_rel[roi](iomap=iomap_roi, cmap=CMAP[roi], **config[roi])
+            self._tissue_wex[roi] = tissue_wex[roi](iomap=iomap_roi, cmap=CMAP[roi], **config[roi])
 
-            iomap |= {k: extend_varname(k, roi=roi) for k in {'C', 'ci', 'NSR', 'S0', 'Scal', 'iScal', 'iStrig', 'B1corr', 'S', 'M', 'R1', 'R1i', 'R2', 'R2s', 'tM', 'tS'}}
-            self._conc_to_signal[roi] = ConcToSignal(iomap=iomap, cmap=cmap[roi], **config[roi])
+            iomap_roi |= {k: extend_varname(k, roi=roi) for k in {'C', 'ci', 'NSR', 'S0', 'Scal', 'iScal', 'iStrig', 'B1corr', 'S', 'M', 'R1', 'R1i', 'R2', 'R2s', 'tM', 'tS'}}
+            self._conc_to_signal[roi] = ConcToSignal(iomap=iomap_roi, cmap=CMAP[roi], **config[roi])
         
-        self.map_io(imap, omap)
+        self.map_io(imap, omap, iomap)
 
 
     def inputs(self) -> set:
