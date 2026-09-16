@@ -139,7 +139,7 @@ class Kidney():
     
     def train(
         self, data: dict, aif:dict=None, 
-        free: dict=None, bounds: dict=None, n0=1, **kwargs) -> Tuple[dict, dict, np.ndarray]:
+        free: dict=None, bounds: dict=None, n0=1, **kwargs):
 
         p = self._pars
         
@@ -150,11 +150,10 @@ class Kidney():
                 B1corr=input.B1corr, 
             )
             t = np.arange(0, np.amax(data['tS']) + p['dt'], p['dt'])
-            p['c_ar'] = np.interp(t, input.time, ca['C'][0, 0, :])
+            p['c_ar'] = np.interp(t, input.time, ca['C'])
 
         # Perform training
         free = get_bounds(free, bounds, free_pars=self._params('free'), value=p)
-
         time = data['tS']
         signal = data['S']
         return train_bat(self._predict, time, signal, p, free, **kwargs)

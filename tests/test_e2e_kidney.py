@@ -5,14 +5,13 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
-import dcmri as dc
 from dcmri import Kidney as Model
 from dcmri import KidneyModel as Forward
 from dcmri import AortaModel
 from dcmri.core.exceptions import InvalidConfiguration
 
 
-DEBUG = False
+DEBUG = True
 
 if DEBUG:
     # Debugging mode
@@ -106,7 +105,7 @@ def test_function():
 
     # Kidney signals
     params = data | {
-        'c_ar': aif['C_ao'],
+        'c_ar': aif['C_ao'][0],
         'S0': 5,
     }
 
@@ -115,16 +114,16 @@ def test_function():
     data = model.predict()
     
     # Fit with AIF signal
-    model.train(data, aif={'signal': aif['S'], 'time': aif['tS']})
+    model.train(data, aif={'signal': aif['S'][0,0,:], 'time': aif['tS']})
     model.plot(data, show=DEBUG)
     # assert model.cost(data) < 1
 
 
 if __name__ == "__main__":
     #test_single_config()
-    test_all_configs()
+    # test_all_configs()
     #test_api()
-    # test_function()
+    test_function()
     
     print('All Kidney tests passed!!')
 

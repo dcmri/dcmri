@@ -40,7 +40,7 @@ def test_liver_instance():
     # model = LiverModel()
     # print(model.config)
     # return
-    cnfg = {'t1_relaxation': 'lin', 't2_relaxation': None, 't2s_relaxation': 'lin', 'inflow': False, 'sequence': '3D-SPGR-SS', 'magnitude': True, 'trigger': False, 'calibrate': False, 'compartments': ('li',), 'baseline': 'literature', 'kinetics': '2I-EC', 'non_stationary': None}
+    cnfg = {'t1_relaxation': 'lin', 't2_relaxation': None, 't2s_relaxation': None, 'inflow': True, 'sequence': 'ZTE-3D-SPGR-SS', 'magnitude': False, 'trigger': True, 'calibrate': False, 'water_exchange': 'N', 'baseline': 'measured', 'kinetics': '1I-IC', 'non_stationary': None}
     try:
         model = LiverModel(**cnfg)
     except InvalidConfiguration as e:
@@ -58,7 +58,7 @@ def test_liver_instance():
     plt.show()
 
 if __name__ == '__main__':
-    test_liver()
-    # test_liver_instance()
+    #test_liver()
+    test_liver_instance()
 
     print('All LiverModel coverage tests passed!!')

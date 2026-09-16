@@ -264,7 +264,7 @@ from dcmri.e2e.aorta_liver_dynamic_drug import AortaLiverDynamicDrug
 from dcmri.e2e.kidney import Kidney
 from dcmri.e2e.liver import Liver
 from dcmri.e2e.cort_med import CortMed
-# from dcmri.e2e.tissue_x import TissueX
+from dcmri.e2e.tissue_x import TissueX
 from dcmri.e2e.tissue_ls import TissueLS
 
 from dcmri.dro.aif import (

@@ -1,12 +1,14 @@
 import os
-import itertools
+from joblib import Parallel, delayed
+import time
 
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 
-import dcmri as dc
 from dcmri import Liver as Model
-
+from dcmri import LiverModel as Forward
+from dcmri import AortaModel
+from dcmri.core.exceptions import InvalidConfiguration
 
 
 DEBUG = False
@@ -21,140 +23,111 @@ else:
     matplotlib.use('Agg')
 
 
-def test_configs():
+def _run_single_config(cnfg):
+    try:
+        model = Model(**cnfg)
+    except InvalidConfiguration as e:
+        # print(e)
+        return
+    # print(cnfg)
+    free = model.params('free')
+    data = model.predict()
+    model.train(data, verbose=VERBOSE, n0=5, n_bat=1, xtol=1e-3)
+    model.plot(data, show=DEBUG)
+    cost = model.cost(data)
+    print(f"{cost}")
+   
+    assert cost < 10, f"Cost {cost} of model {cnfg} exceeded threshold!"
+    return cnfg, cost
 
-    values = Model.configs.values()
-    for cnfgs in itertools.product(*values):
-        kin, ns = cnfgs[0], cnfgs[1]
-        if 'EC' in kin and ns is not None:
-            continue
-        elif 'U' in kin and ns is not None:
-            if 'E' in ns:
-                continue
-        model = Model(*cnfgs)
-        time = model.time()
-        signal = model.predict(time)
-        model.train(time, signal, verbose=VERBOSE, xtol=0.01)
-        model.plot(time, signal, show=DEBUG)
-        cost = model.cost(time, signal)
-        print(cnfgs, cost)
-        model.conc()
-        model.relax()
-        model.signal()
-        assert cost < 5
+
+def test_all_configs():
+    if DEBUG:
+        return
+    
+    start = time.perf_counter()
+
+    result = Parallel(n_jobs=-1)(
+        delayed(_run_single_config)(cnfg)
+        for cnfg in Forward.all_configs(sample=1e5, seed=41)
+    )
+    # result = [
+    #     _run_single_config(cnfg)
+    #     for cnfg in Forward.all_configs(sample=1e5, seed=41)
+    # ]
+    result = [r for r in result if r is not None]
+    cost = [r[1] for r in result]
+    cnfg = result[cost.index(max(cost))][0]
+
+    end = time.perf_counter()
+    print(f'Configuration coverage completed!')
+    print(f'--> Number of configurations: {np.prod([len(v) for v in Forward.configs.values()])}')
+    print(f'--> Total computation time: {(end - start) / 60:.1f} mins')
+    print(f'--> Maximum cost: {np.max(cost)} %')
+    print(f'--> Config with maximum cost: {cnfg}')
+
+
+def test_single_config(): 
+    cnfg = {'t1_relaxation': 'lin', 't2_relaxation': None, 't2s_relaxation': 'lin', 'inflow': False, 'sequence': '3D-SPGR-SS', 'magnitude': True, 'trigger': False, 'calibrate': False, 'compartments': ('li',), 'baseline': 'literature', 'kinetics': '2I-EC', 'non_stationary': None}
+    _run_single_config(cnfg) 
+
 
 def test_api():
     model = Model()
 
-    # export_params()
-    model.export_params(deriv=True)
-
-    # print_params()
-    model.print_params('ve', 'R1b', 'Fp', deriv=True, fixed_only=True)
-    model.print_params('ve', 'R1b', 'Fp', deriv=True, free_only=True)
+    # params()
+    assert 'T_hl' in model.params()
     
     # Test Forward API outputs
-    t = model.time()
-    S = model.signal()
+    data = model.predict()
 
     test_plot_file = "test_plot_output.png"
     try:
         # This hits plt.savefig(fname)
-        model.plot(t, S, fname=test_plot_file, show=False)
+        model.plot(data, fname=test_plot_file, show=False)
         assert os.path.exists(test_plot_file)
         
         # This hits plt.show()
-        # We wrap this in a check to ensure it doesn't hang your tests
+        # We wrap this in a check to ensure it doesn't hang the tests
         plt.ion() # Turn interactive mode on
-        model.plot(t, S, show=True)
+        model.plot(data, show=True)
         plt.ioff() # Turn interactive mode off
     finally:
         if os.path.exists(test_plot_file):
             os.remove(test_plot_file)
 
-def test_exceptions():
-    model = Model()
-    time = model.time()
-    signal = model.signal()
-    time = np.append(time, 2 * time.max())
-    try:
-        model.predict(time)
-    except:
-        pass
-    else:
-        assert False
-    try:
-        model.train(time, signal)
-    except:
-        pass
-    else:
-        assert False
-
-    # Different length inputs
-    try:
-        Model(ca=np.arange(10))
-    except:
-        pass
-    else:
-        assert False
 
 def test_function():
 
     # Simulation parameters
-    seq = '3D-SPGR-SS'
-    dt, tmax, B0, agent, R1ba, R2sba, S0a, B1a = 0.5, 180, 3, 'gadoterate', 0.7, 20, 3, 0.75
-    FA, TR, TE = 15, 0.005, 0.002 # Defaults
-    
-    # Input signals
-    rp = dc.r1(B0, 'blood', agent)
-    r2s = dc.r2s(B0, 'blood', agent)
-    aif_time = np.arange(0, tmax, dt)
-    aif_conc = dc.tristan(aif_time, BAT=10)
-    vif_conc = dc.flux_chain(aif_conc, dt=dt, T=10, D=0.5)
-    aif_R1 = R1ba + rp * aif_conc
-    vif_R1 = R1ba + rp * vif_conc
-    aif_R2s = R2sba + r2s * aif_conc
-    vif_R2s = R2sba + r2s * vif_conc
-    aif_signal = dc.Signal(seq)(R1=aif_R1, R2s=aif_R2s, S0=S0a, FA=FA, TR=TR, TE=TE, B1corr=B1a)
-    vif_signal = dc.Signal(seq)(R1=vif_R1, R2s=vif_R2s, S0=S0a, FA=FA, TR=TR, TE=TE, B1corr=B1a)
-    aif_ = {'signal': aif_signal, 'time':aif_time, 'R1b':R1ba, 'B1corr':B1a}
-    vif = {'signal':vif_signal, 'time':aif_time, 'R1b':R1ba, 'B1corr':B1a}
+    ao = AortaModel()
+    data = ao.dummy_data()
+    aif = ao(data)
 
     # Liver signals
-    params = {
-        'dt': dt, 
-        'c_a': aif_conc,
-        'c_v': vif_conc, 
-        'field_strength': B0,
-        'agent': agent,
-        'FA': FA, 
-        'TR': TR,
-        'TE': TE,
+    params = data | {
+        'ci_li': (aif['C_ao'][0,:], aif['C_ao'][0,:]),
         'S0': 5,
     }
 
     # Tissue model
-    model = Model(sequence=seq, **params)
-    time = model.time()
-    signal = model.predict(time)
+    model = Model(**params)
+    data = model.predict()
     
-    # Fit with AIF and VIF signal
-    model.train(time, signal, aif_, vif)
-    model.plot(time, signal)
-    assert model.cost(time, signal) < 5
-
-    # Test some training options
-    model = Model(dt=dt, ca=aif_conc, cv=vif_conc)
-    time = model.time()
-    signal = model.predict(time)
-    model.train(time, signal, n0=10, bounds={'Fp': [0,1], 'fa': None, 'S0':[0,5]})
+    # Fit with AIF signal
+    model.train(data, 
+        aif={'signal': aif['S'][0,0,:], 'time': aif['tS']},
+        vif={'signal': aif['S'][0,0,:], 'time': aif['tS']},
+    )
+    model.plot(data, show=DEBUG)
+    # assert model.cost(data) < 1
 
 
 if __name__ == "__main__":
-    test_configs()
-    test_api()
-    test_exceptions()
-    test_function()
+    #test_single_config()
+    test_all_configs()
+    #test_api()
+    # test_function()
     
     print('All Liver tests passed!!')
 

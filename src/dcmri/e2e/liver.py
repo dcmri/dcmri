@@ -68,309 +68,139 @@ Example:
     >>> model.plot(time, roi, ref=gt)
 
 """
-from typing import Tuple
-
 import matplotlib.pyplot as plt
 import numpy as np
 
 from dcmri.inverse.sig2conc import SignalToConc
-from dcmri.utils import const
-from dcmri.core.model import SuperModel
 from dcmri.core.types import Input
-from dcmri.core.tools import get_sequence
-from dcmri.core.tools import print_params, export_params
-from dcmri.kinetics.modules_conc import ConcLiver
-from dcmri.signal.modules_tissue import Signal
-from dcmri.utils.misc import sample
-from dcmri.utils.fit import train, loss
-from dcmri.kinetics.functions_liver import dpars_liver
+from dcmri.core.tools import get_quantity, get_bounds
+from dcmri.utils.fit import train_bat, loss
+from dcmri.models.liver import LiverModel
 
-CONSTANTS = {'Fw': 0, 'v': 1, 'me': 1, 'NSR':0}
 
-class Liver(SuperModel):
-    """Liver tissue with known inputs.
+class Liver():
 
-    This is the standard interface for liver tissues with known input 
-    function(s).
-
-    Args:
-        kinetics (str, optional): Tracer-kinetic model.
-        non_stationary (str, optional): Stationarity regime of liver transporters.
-        sequence (str, optional): imaging sequence.
-        params (dict, optional): override parameter defaults.
-
-    See Also:
-        `Tissue`
-
-    """
-
-    # ==========================================
-    # User interface: Frontend
-    # ==========================================
-
-    configs = {
-        'kinetics': ['1I-EC', '1I-EC-HF', '2I-EC-HF', '2I-EC', '1I-IC', '1I-IC-HF', '2I-IC-HF', '2I-IC', '2I-IC-U'],
-        'non_stationary': [None, 'U', 'E', 'UE'],
-        'sequence': ['3D-SPGR-SS', '2D-SR-SPGR'],
-    }
-    
-    def __init__(
-        self, kinetics='2I-EC', non_stationary=None,
-        sequence='3D-SPGR-SS', **params,
-    ):
+    def __init__(self, data: dict=None, **config):
         self._version = '1.0'
-        cnfg = {'kinetics': kinetics, 'non_stationary': non_stationary, 'sequence': sequence}
-        self._cnfg = self._set_config(**cnfg)
-        self._pars = self._set_pars(**params)
+        self._model = LiverModel(**config)
 
-        # Test validity of parameters
-        if kinetics.startswith('2'):
-            if self._pars['c_a'].size != self._pars['c_v'].size:
-                raise ValueError("Arterial- and venous inputs have different lengths")
+        # Initialise model parameters
+        pars = self._model.dummy_data()
+        if data is not None:
+            pars |= data
+        self._pars = self._model.input_data(pars)
 
-    def export_params(self, sdev=None, group=None, num_only=False, deriv=False, scalar_only=False):
-        pars = self._pars
-        if deriv:
-            pars = dpars_liver(pars, self._cnfg['kinetics'])
-        return export_params(pars, sdev=sdev, num_only=num_only, scalar_only=scalar_only, group=group)
+    def _params(self, group=None):
+        params = self._model.mapped_inputs()
+        if group == 'free':
+            params_free = {p for p in params if get_quantity(p)['group']=='phys'} 
+            params_free |= {p for p in ['BAT', 'BAT_1', 'BAT_2'] if p in params}
+            return params_free
+        return params
 
-    def print_params(self, *args, round_to=None, group=None, 
-                     fixed_only=False, free_only=False, deriv=False):
-        """Pretty print model parameters"""
-        pars = self._pars
-        if deriv:
-            pars = dpars_liver(pars, self._cnfg['kinetics'])
-        if args != ():
-            pars = {k: v for k, v in self._pars.items() if k in args}
-        if fixed_only:
-            pars = {k: v for k, v in pars.items() if k not in self._params('free')}
-        if free_only:
-            pars = {k: v for k, v in pars.items() if k in self._params('free')}
-        print_params(pars, round_to=round_to, group=group)
+    def _predict(self, time: tuple):
+        pred = self._model(self._pars)
+        return pred['S'][:, :, :len(time)].reshape(-1)
 
-    def time(self) -> np.ndarray:
-        """Internal time array"""
-        self._set_time()
-        return self._t
-       
-    def conc(self) -> np.ndarray:
-        """Returns liver concentrations."""
-        self._compute_concentration()
-        return self._C
+    # ==========================================
+    # User Interface
+    # ==========================================
 
-    def relax(self) -> np.ndarray:
-        """Returns liver relaxation rates (R1)."""
-        self._compute_relaxation_rate()
-        return self._R1, self._R2s
+    def params(self, group=None) -> list:
+        """Return a list of model parameters"""
+        return self._params(group)
 
-    def signal(self) -> np.ndarray:
-        """Returns predicted liver signal."""
-        self._compute_signal()
-        return self._S
-
-    def predict(self, time: np.ndarray) -> np.ndarray:
-        """Predicts liver signal at specific time points."""
-        self._set_time()
-        if max(self._t) < np.max(time) + self._pars['TS']:
-            raise ValueError(f'The largest time point that can be predicted with the current AIF is {max(self._t)/60} mins.')
-        return self._predict(time)
+    def predict(self) -> np.ndarray:
+        """Predicts the data."""
+        return self._model(self._pars)
     
     def train(
-            self, time: np.ndarray, signal: np.ndarray, 
-            aif: dict=None, vif: dict=None, free: dict=None, 
-            bounds: dict=None, n0=1, **kwargs
-        ) -> Tuple[dict, dict, np.ndarray]:
-        """Train the free parameters
+            self, data: dict, aif: dict=None, vif: dict=None, 
+            free: dict=None, bounds: dict=None, n0=1, **kwargs):
 
-        Args:
-            time (array-like): Array with time points
-            signal (array-like): Array with signal values
-            aif (dict, optional): AIF signal, time and baseline R1.
-            vif (dict, optional): VIF signal, time and baseline R1.
-            free (dict, optional): Dictionary with free parameters and their
-              bounds. If not provided, a default set of free parameters is used.
-              Defaults to None.
-            bounds (dict, optional): Override default bounds for specific parameters.
-            n0 (int, optional): Number of baseline time points. Defaults to 1.
-            kwargs: any keyword parameters accepted by 
-              `scipy.optimize.curve_fit`, except for bounds.
+        p = self._pars
 
-        Returns:
-            vals, sdev, pcov: Values, standard deviations and covariance matrix of free parameters
-        """
         def conc(input: Input):
-            p = self._pars
-            seq = self._cnfg['sequence']
-            rp = const.r1(p['field_strength'], 'blood', p['agent'])
-            ci = SignalToConc(seq, defaults=p)(
-                input.signal, R1b=input.R1b, n0=n0, 
-                B1corr=input.B1corr, r1=rp,
+            ca = SignalToConc(**self._model.config)(
+                p, S=input.signal, R1b=input.R1b, nb=n0, 
+                B1corr=input.B1corr, 
             )
-            t = np.arange(0, np.amax(time) + p['dt'], p['dt'])
-            return np.interp(t, input.time, ci)
+            t = np.arange(0, np.amax(data['tS']) + p['dt'], p['dt'])
+            return np.interp(t, input.time, ca['C'])
       
-        if aif is not None: self._pars['c_a'] = conc(Input(aif))
-        if vif is not None: self._pars['c_v'] = conc(Input(vif))
+        if aif is not None: 
+            c_la = conc(Input(aif)) # Needs a better strategy for dual inlet possibly separate ca and cv inputs
+            c_pv = conc(Input(vif))
+            p['ci_li'] = (c_la, c_pv)
 
-        return self._train(time, signal, free, bounds, n0, **kwargs)
+        # Perform training
+        free = get_bounds(free, bounds, free_pars=self._params('free'), value=p)
+        time = data['tS']
+        signal = data['S']
+        return train_bat(self._predict, time, signal, p, free, **kwargs)
 
-    def plot(self, time: np.ndarray, signal:np.ndarray, 
-             xlim:list=None, fname:str=None, show=True):
-        """Plot the model fit against data
-
-        Args:
-            time (tuple): Time points of signals
-            signal (tuple): Liver signals            
-            xlim (list, optional): Lower and upper boundaries of the x-axis. Defaults to None.
-            fname (path, optional): Filepath to save the image. If no value is provided, the image is not saved. Defaults to None.
-            show (bool, optional): If True, the plot is shown. Defaults to True.
-        """
-        self._plot(time, signal, xlim, fname, show)
-
-    def cost(self, time: np.ndarray, signal: np.ndarray, metric: str = 'NRMS', nfree=None) -> float:
-        """Return the goodness-of-fit
-
-        Args:
-            time (np.ndarray): array with time points
-            signal (array-like): array with signal data for all pixels.
-            metric (str, optional): Which metric to use (see notes for 
-                possible values). Defaults to 'NRMS'.
-
-        Returns:
-            float: goodness of fit.
-
-        Notes:
-
-            Available options are: 
-            
-            - 'RMS': Root-mean-square.
-            - 'NRMS': Normalized root-mean-square. 
-            - 'AIC': Akaike information criterion. 
-            - 'cAIC': Corrected Akaike information criterion for small 
-                models.
-            - 'BIC': Baysian information criterion.
-        """
-        signal_pred = self._predict(time)
-        cost = loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
-        return cost[0]
     
-    # ==========================================
-    # Private API: Backend
-    # ==========================================
+    def plot(self, data: dict, xlim:list=None, fname:str=None, show=True):
+        prediction = self._model(self._pars)
 
-    def _params(self, select=None):
-        if select is None:
-            select = 'all'
-        pars_kin = ConcLiver(**self._cnfg).params()
-        seq = self._cnfg['sequence']
-        pars_seq = get_sequence('prep_params', seq)
-        pars_seq += get_sequence('read_params', seq)
-
-        if select == 'all':
-            pars_list = [
-                'c_a', 'dt', 'field_strength', 'agent',
-                'H', 'Ta', 'S0', 'R1b', 'R2sb', 'TS'
-            ]
-            pars_list += pars_kin + pars_seq
-            if self._cnfg['kinetics'].startswith('2'):
-                pars_list += ['c_v']
-        elif select=='free':
-            pars_list = pars_kin
-        return pars_list
-
-    # ==========================================
-    # Forward Model
-    # ==========================================
-
-    def _compute_concentration(self):
-        p = self._pars
-        ca_plasma = p['c_a'] / (1 - p['H'])
-        if 'c_v' in p:
-            ca_plasma = (ca_plasma, p['c_v'] / (1 - p['H']))
-
-        self._C = ConcLiver(**self._cnfg, defaults=p)(ci=ca_plasma, dt=p['dt'])
-
-    def _compute_relaxation_rate(self):
-        self._compute_concentration()
-        p = self._pars
-
-        rp = const.r1(p['field_strength'], 'blood', p['agent'])
-        rh = const.r1(p['field_strength'], 'hepatocytes', p['agent'])
-        r2s = const.r2s(p['field_strength'], 'tissue', p['agent'])
-        if self._C.shape[0] == 2:
-            self._R1 = p['R1b'] + rp * self._C[0, :] + rh * self._C[1, :]
-            self._R2s = p['R2sb'] + r2s * self._C.sum(axis=0)
-        # else:
-        #     self._R1 = p['R1b'] + rp * self._C[0,:]
-        #     self._R2s = p['R2sb'] + r2s * self._C[0,:]
-
-    def _compute_signal(self):
-        self._compute_relaxation_rate()
-        p = self._pars
-        seq = self._cnfg['sequence']
-        self._S = Signal(seq, defaults=p)(R1=self._R1, R2s=self._R2s, **CONSTANTS)
-
-    def _set_time(self):
-        p = self._pars
-        self._t = p['dt'] * np.arange(p['c_a'].size)
-
-    def _predict(self, time):
-        self._set_time()
-        self._compute_signal()
-        return sample(time, self._t, self._S, self._pars['TS'])
-
-    # ==========================================
-    # Inverse Model: Training
-    # ==========================================
-
-    def _estimate_parameters(self, signal: np.ndarray, n0: int):
-        p = self._pars
-        seq = self._cnfg['sequence']
-
-        # Estimate S0
-        s_ref = Signal(seq, defaults=p)(R1=p['R1b'], R2s=p['R2sb'], S0=1, **CONSTANTS)
-        p['S0'] = np.mean(signal[:n0]) / s_ref if s_ref > 0 else 0
-
-    def _train(
-        self, time: np.ndarray, signal: np.ndarray, 
-        free: dict, bounds: dict, n0: int, **kwargs
-    ):
-        self._estimate_parameters(signal, n0)
-        free = self._set_free_pars(free, bounds)
-        return train(self._predict, time, signal, self._pars, free, **kwargs)
-   
-    def _plot(self, time: np.ndarray, signal: np.ndarray, xlim:list, 
-              fname:str, show:bool):
-        self._set_time()
-        self._compute_signal()
-        p = self._pars
-        xlim = xlim or [np.amin(time), np.amax(time)]
-        
+        xlim = xlim or [np.amin(prediction['tR']), np.amax(prediction['tR'])]
         fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 5))
         
         # Signals Plot
         ax0.set_title('MRI Signal Prediction')
-        ax0.plot(time/60, signal, 'o', color='cornflowerblue', label='Data')
-        ax0.plot(self._t/60, self._S, '-', linewidth=3, color='darkblue', label='Prediction')
-        ax0.set(xlabel='Time (min)', ylabel='Signal (a.u.)', xlim=np.array(xlim)/60)
+        for i in range(data['S'].shape[0]):
+            for j in range(data['S'].shape[1]):
+                ax0.plot(data['tS'] / 60, data['S'][i, j, :], 'o', color='cornflowerblue', label='Data')
+                ax0.plot(prediction['tS'] / 60, prediction['S'][i, j, :], '-', linewidth=3, color='darkblue', label='Prediction')
+        ax0.set(xlabel='Time (min)', ylabel='Signal (a.u.)', xlim=np.array(xlim) / 60)
         ax0.legend()
 
         # Concentration Plot
         ax1.set_title('Concentration Reconstruction')
-        if self._C.shape[0] == 2:
-            ax1.plot(self._t/60, 1000*self._C[0,:], '-.', linewidth=3, color='darkblue', label='Extracellular')
-            ax1.plot(self._t/60, 1000*self._C[1,:], '-', linewidth=3, color='green', label='Hepatocytes]')
-        # else:
-        #     ax1.plot(self._t/60, 1000*self._C[0,:], '-', linewidth=3, color='cornflowerblue', label='Liver')
+        if '1I' in self._model.config['kinetics']:
+            ax1.plot(prediction['tC'] / 60, 1000 * self._pars['ci_li'], '-', linewidth=3, color='darkred', label='Input')
+        if '2I' in self._model.config['kinetics']:
+            ax1.plot(prediction['tC'] / 60, 1000 * self._pars['ci_li'][0], '-', linewidth=3, color='darkred', label='Arterial')
+            ax1.plot(prediction['tC'] / 60, 1000 * self._pars['ci_li'][1], '-', linewidth=3, color='purple', label='Portal')
+        ax1.plot(prediction['tC'] / 60, 1000 * prediction['C'][0,:], '-.', linewidth=3, color='darkblue', label='Extracellular')
+        ax1.plot(prediction['tC'] / 60, 1000 * prediction['C'][1,:], '-', linewidth=3, color='green', label='Hepatocytes]')
 
-        ax1.plot(self._t/60, 1000*p['c_a'], '-', linewidth=3, color='darkred', label='Artery')
-        if 'c_v' in p:
-            ax1.plot(self._t/60, 1000*p['c_v'], '-', linewidth=3, color='purple', label='Portal Vein')
-
-        ax1.set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=np.array(xlim)/60)
+        ax1.set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=np.array(xlim) / 60)
         ax1.legend()
 
-        if fname: plt.savefig(fname)
-        if show: plt.show()
-        else: plt.close()
+        if fname: 
+            plt.savefig(fname)
+        if show: 
+            plt.show()
+        else: 
+            plt.close()
+
+
+    def cost(self, data: dict, metric: str = 'NRMS', nfree=None) -> float:
+        time = data['tS']
+        signal = data['S'].reshape(-1)
+        signal_pred = self._predict(time)
+        return loss(signal_pred, signal, metric, nfree)
+    
+
+
+    # def export_params(self, sdev=None, group=None, num_only=False, deriv=False, scalar_only=False):
+    #     pars = self._pars
+    #     if deriv:
+    #         pars = dpars_liver(pars, self._cnfg['kinetics'])
+    #     return export_params(pars, sdev=sdev, num_only=num_only, scalar_only=scalar_only, group=group)
+
+    # def print_params(self, *args, round_to=None, group=None, 
+    #                  fixed_only=False, free_only=False, deriv=False):
+    #     """Pretty print model parameters"""
+    #     pars = self._pars
+    #     if deriv:
+    #         pars = dpars_liver(pars, self._cnfg['kinetics'])
+    #     if args != ():
+    #         pars = {k: v for k, v in self._pars.items() if k in args}
+    #     if fixed_only:
+    #         pars = {k: v for k, v in pars.items() if k not in self._params('free')}
+    #     if free_only:
+    #         pars = {k: v for k, v in pars.items() if k in self._params('free')}
+    #     print_params(pars, round_to=round_to, group=group)
 
