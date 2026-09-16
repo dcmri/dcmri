@@ -69,7 +69,8 @@ def train(predict, time, signal, pars, free, x=None, reset=False, sigma=None, **
     
     # Flatten the signal
     if isinstance(signal, tuple):
-        signal = np.concatenate(signal)
+        signal = np.concatenate([s.reshape(-1) for s in signal])
+        # signal = np.concatenate(signal)
     signal = signal.reshape(-1)
 
     # Flatten sigma

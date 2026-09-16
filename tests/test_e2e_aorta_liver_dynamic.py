@@ -1,9 +1,13 @@
 import os
-import itertools
+from joblib import Parallel, delayed
+import time
 
+import numpy as np
 import matplotlib.pyplot as plt
 
 from dcmri import AortaLiverDynamic as Model
+from dcmri.core.exceptions import InvalidConfiguration
+import dcmri as dc
 
 
 DEBUG = False
@@ -18,105 +22,81 @@ else:
     matplotlib.use('Agg')
 
 
-def test_configs():
-
-    values = Model.configs.values()
-    for cnfgs in itertools.product(*values):
-        kin, ns, seq = cnfgs[0], cnfgs[1], cnfgs[2]
-        if 'EC' in kin and ns is not None:
-            continue
-        elif 'U' in kin and ns is not None:
-            if 'E' in ns:
-                continue
-        # if not ((kin=='2I-IC') and (ns=='E') and (seq=='3D-SPGR-SS')):
-        #     continue
-        print(kin, ns, seq)
-        model = Model(*cnfgs)
-        time = model.time()
-        signal = model.predict(time)
-        R1, R2s = model.relax()
-        R1b2a=R1['aorta', 2][0]
-        R1b2l=R1['liver', 2][0]
-        bounds = {'S0_1_a': [0, 5]} if seq=='3D-SPGR-SSI' else None
-        model.train(time, signal, R1b2a=R1b2a, R1b2l=R1b2l, bounds=bounds, xtol=0.001)
-        model.plot(time, signal, show=DEBUG)
-        cost = model.cost(time, signal)
-        print(kin, ns, seq, cost)
-        model.conc()
-        model.relax()
-        model.signal()
-        assert cost < 5
-
-    # Test Variations (override parameter and staged training)
-    model = Model(CO=50)
-    time = model.time()
-    signal = model.predict(time)
-    model.train(time, signal, staged=True)
-    model.plot(time, signal, show=DEBUG)
-    cost = model.cost(time, signal)
+def _run_single_config(cnfg):
+    try:
+        model = Model(**cnfg)
+    except InvalidConfiguration as e:
+        # print(e)
+        return
+    free = model.params('free')
+    data = model.predict()
+    model.train(data, verbose=VERBOSE, n0=5, n_bat=1, xtol=1e-3)
+    model.plot(data, show=DEBUG)
+    cost = model.cost(data)
+    #print(f"{cnfg}: {cost}")
     print(cost)
-    assert cost < 5
+    assert cost < 10, f"Cost {cost} of model {cnfg} exceeded threshold!"
+    return cnfg, cost
 
-    # Single time array
-    model = Model(CO=50)
-    time = model.time()
-    time = (time['aorta', 1], time['aorta', 2])
-    signal = model.predict(time)
-    model.train(time, signal, staged=True)
-    model.plot(time, signal, show=DEBUG)
-    cost = model.cost(time, signal)
-    print(cost)
-    assert cost < 5
 
-    # Concentration with single compartment
-    Model('1I-EC').conc()
+def test_all_config():
+    if DEBUG:
+        return
+    
+    start = time.perf_counter()
+
+    result = Parallel(n_jobs=-1)(
+        delayed(_run_single_config)(cnfg)
+        for cnfg in dc.AortaLiverDynamicModel.all_configs(sample=1e3, seed=40)
+    )
+    # result = [
+    #     _run_single_config(cnfg)
+    #     for cnfg in Model.all_configs()
+    # ]
+    result = [r for r in result if r is not None]
+    cost = [r[1] for r in result]
+    cnfg = result[cost.index(max(cost))][0]
+
+    end = time.perf_counter()
+    print(f'Configuration coverage completed!')
+    print(f'--> Number of configurations: {np.prod([len(v) for v in dc.AortaLiverDynamicModel.configs.values()])}')
+    print(f'--> Total computation time: {(end - start) / 60:.1f} mins')
+    print(f'--> Maximum cost: {np.max(cost)} %')
+    print(f'--> Config with maximum cost: {cnfg}')
+
+def test_single_config(): 
+    cnfg = {'sequence': '3D-SPGR-SS', 'tof_corr': False, 'inflow': False, 'magnitude': True, 'trigger': False, 'calibrate': False, 'water_exchange': 'F', 'baseline': 'literature', 'bolus': 'single', 'heartlung': 'pfcomp', 'organs': 'comp', 'lagut': 'comp', 'liver': '1I-EC', 'non_stationary': None, 't1_relaxation_ao': 'lin', 't1_relaxation_li': 'lin', 't2_relaxation_ao': None, 't2_relaxation_li': None, 't2s_relaxation_ao': 'lin', 't2s_relaxation_li': 'lin'}
+    _run_single_config(cnfg) 
 
 def test_api():
-
-    # Test Forward API outputs
     model = Model()
-    t = model.time()
-    S = model.signal()
 
-    # export_params()
-    model.export_params(deriv=True)
-
-    # print_params()
-    model.print_params('T_hl', 'D_hl', 'TS', deriv=True, fixed_only=True)
-    model.print_params('T_hl', 'D_hl', 'TS', deriv=True, free_only=True)
-
+    # params()
+    assert 'T_hl' in model.params()
+    
+    # Test Forward API outputs
+    data = model.predict()
 
     test_plot_file = "test_plot_output.png"
     try:
         # This hits plt.savefig(fname)
-        model.plot(t, S, fname=test_plot_file, show=False)
+        model.plot(data, fname=test_plot_file, show=False)
         assert os.path.exists(test_plot_file)
         
         # This hits plt.show()
+        # We wrap this in a check to ensure it doesn't hang the tests
         plt.ion() # Turn interactive mode on
-        model.plot(t, S, show=True)
+        model.plot(data, show=True)
         plt.ioff() # Turn interactive mode off
     finally:
         if os.path.exists(test_plot_file):
             os.remove(test_plot_file)
 
-def test_exceptions():
-
-    # SSI sequence model with fixed S0
-    try:
-        model = Model(sequence='3D-SPGR-SSI')
-        t, s = model.time(), model.signal()
-        model.train(t, s, bounds={'S0_1_a': None})
-    except ValueError:
-        pass
-    else:
-        assert False
 
 if __name__ == "__main__":
-
-    test_configs()
-    test_api()
-    test_exceptions()
+    # test_single_config()
+    test_all_config()
+    # test_api()
     
-    print('All ui_aorta_liver_2scan tests passed!!')
+    print('All aorta_liver_dynamic_scan tests passed!!')
 

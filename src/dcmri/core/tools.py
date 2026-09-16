@@ -35,105 +35,6 @@ def get_sequence(prop, sequence=None):
 
 
 
-# def _get_quantity(k: str, quantities=None):
-#     lexicon = QUANTITIES
-#     if quantities is not None:
-#         lexicon |= quantities
-
-#     if k in lexicon:
-#         return lexicon[k]
-
-#     # Possible formats
-#     # T_roi
-#     # T_comp
-#     # T_comp_roi
-    
-#     k_split = k.split('_')
-
-#     if len(k_split) == 2:
-#         k_generic = k_split[0]
-
-#         # T_roi
-#         if k_split[1] in ROIS:
-#             roi = ROIS[k_split[1]]
-#             if k_generic in lexicon:
-#                 quant = deepcopy(lexicon[k_generic])
-#                 quant['name'] = f"{roi} {quant['name']}"
-#                 if k in QDATA_ROIS:
-#                     quant['init'] = QDATA_ROIS[k]['init']
-#                     quant['bounds'] = QDATA_ROIS[k]['bounds']
-#                 return quant
-
-#         # T_comp
-#         elif k_split[1] in COMPS:
-#             comp = COMPS[k_split[1]]
-#             if k_generic in lexicon:
-#                 quant = deepcopy(lexicon[k_generic])
-#                 quant['name'] = f"{comp} {quant['name']}"
-#                 if k in QDATA_ROIS:
-#                     quant['init'] = QDATA_ROIS[k]['init']
-#                     quant['bounds'] = QDATA_ROIS[k]['bounds']
-#                 return quant
-
-#         # T_comp2comp
-#         elif '2' in k_split[1]:
-#             k_exch = k_split[1].split('2')
-#             if len(k_exch) == 2:
-#                 comp1 = COMPS[k_exch[0]]
-#                 comp2 = COMPS[k_exch[1]]
-#                 if k_generic in lexicon:
-#                     quant = deepcopy(lexicon[k_generic])
-#                     quant['name'] = f"{comp1}-to-{comp2} {quant['name']}"
-#                     if k in QDATA_ROIS:
-#                         # T_comp2comp
-#                         quant['init'] = QDATA_ROIS[k]['init']
-#                         quant['bounds'] = QDATA_ROIS[k]['bounds']
-#                     return quant
-
-#     elif len(k_split) == 3:
-#         k_generic = k_split[0]
-
-#         if k_split[2] in ROIS:
-#             roi = ROIS[k_split[2]]
-
-#             # T_comp_roi
-#             if k_split[1] in COMPS:
-#                 comp = COMPS[k_split[1]]
-#                 if k_generic in lexicon:
-#                     quant = deepcopy(lexicon[k_generic])
-#                     quant['name'] = f"{roi} {comp} {quant['name']}"
-#                     if k in QDATA_ROIS:
-#                         # T_comp_roi values
-#                         quant['init'] = QDATA_ROIS[k]['init']
-#                         quant['bounds'] = QDATA_ROIS[k]['bounds']
-#                     else:
-#                         # T_comp values
-#                         k = f"{k_split[0]}_{k_split[1]}"
-#                         if k in QDATA_ROIS:
-#                             quant['init'] = QDATA_ROIS[k]['init']
-#                             quant['bounds'] = QDATA_ROIS[k]['bounds']
-#                     return quant
-
-#             # T_comp2comp_roi
-#             elif '2' in k_split[1]:
-#                 k_exch = k_split[1].split('2')
-#                 if len(k_exch) == 2:
-#                     comp1 = COMPS[k_exch[0]]
-#                     comp2 = COMPS[k_exch[1]]
-#                     if k_generic in lexicon:
-#                         quant = deepcopy(lexicon[k_generic])
-#                         quant['name'] = f"{roi} {comp1}-to-{comp2} {quant['name']}"
-#                         if k in QDATA_ROIS:
-#                             # T_comp2comp_roi
-#                             quant['init'] = QDATA_ROIS[k]['init']
-#                             quant['bounds'] = QDATA_ROIS[k]['bounds']
-#                         else:
-#                             # T_comp2comp values
-#                             k = f"{k_split[0]}_{k_exch[0]}2{k_exch[1]}_{k_split[2]}"
-#                             if k in QDATA_ROIS:
-#                                 quant['init'] = QDATA_ROIS[k]['init']
-#                                 quant['bounds'] = QDATA_ROIS[k]['bounds']
-#                         return quant
 
 def _ordinal(n):
     if 10 <= n % 100 <= 20:
@@ -220,30 +121,6 @@ def build_varname(name, index=None, compartment=None, roi=None):
 
     return "_".join(parts)
 
-
-# def parse_varname(varname):
-#     tokens = varname.split("_")
-
-#     roi = None
-#     if tokens and tokens[-1] in ROIS:
-#         roi = tokens.pop()
-
-#     compartment = None
-#     if tokens and _is_valid_compartment(tokens[-1]):
-#         compartment = tokens.pop()
-
-#     index = None
-#     if tokens and tokens[-1].isdigit():
-#         index = int(tokens.pop())
-
-#     name = "_".join(tokens)
-
-#     return {
-#         "name": name, # TODO: rename to key. name is used to refer to full description
-#         "index": index,
-#         "compartment": compartment,
-#         "roi": roi,
-#     }
 
 def parse_varname(varname):
     tokens = varname.split("_")
@@ -387,6 +264,77 @@ def print_quantities(title, q):
 
     for line in lines:
         print(line)    
+
+
+
+def get_bounds(free:dict=None, bounds: dict=None, quantities:dict=None, value:dict=None, free_pars:set=None):
+    if free is None:
+        free = {p: get_quantity(p, quantities)['bounds'] for p in free_pars}
+
+    # --- 1. Update Bounds ---
+    if bounds is not None:
+        for p, b in bounds.items():
+            if b is None:
+                free.pop(p, None)
+            else:
+                free[p] = b
+
+    # --- 2. Boundary Validation ---
+    lexicon = QUANTITIES
+    if quantities is not None:
+        lexicon |= quantities
+
+    bounds_add = select_params(lexicon, bounds_type='add')
+    bounds_mult = select_params(lexicon, bounds_type='mult')
+
+    for p, bnds in free.items():
+        var = parse_varname(p)['name']
+        if p not in value:
+            raise ValueError(
+                f"'{p}' is not a valid parameter for this configuration.\n"
+                f"Use print_params() to print a list of all valid parameters."
+            )
+
+        elif var in bounds_add:
+            if (bnds[0] > 0) or (bnds[1] < 0):
+                raise ValueError(f"Bounds on {p} must be (negative, positive).")
+            free[p] = [  
+                np.min(value[p]) + bnds[0],
+                np.max(value[p]) + bnds[1],
+            ]
+            
+        elif var in bounds_mult: 
+            if not (0 <= bnds[0] < bnds[1]):
+                raise ValueError(f"Invalid bounds on {p}: Bounds are relative and must be positive.")
+            free[p] = [
+                np.min(value[p]) * bnds[0],
+                np.max(value[p]) * bnds[1],
+            ]
+
+        elif not (bnds[0] <= np.min(value[p]) <= np.max(value[p]) <= bnds[1]):
+            raise ValueError(f"Initial {p} is out of bounds {bnds}.")
+
+
+    return free
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

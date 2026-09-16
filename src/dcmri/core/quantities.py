@@ -129,8 +129,8 @@ QUANTITIES = {
     'Ti': {'init': 30, 'bounds': (0.1, 60), 'name': 'initial mean transit time', 'unit': 'sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'Tf': {'init': 30, 'bounds': (0.1, 60), 'name': 'final mean transit time', 'unit': 'sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'D': {'init': 0.85, 'bounds': (0, 1), 'name': 'transit time dispersion', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    'h': {'init': 0, 'bounds': (0.1, 60), 'name': 'transit time distribution', 'unit': 'Hz', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    'TT': {'init': 0, 'bounds': (0.1, 60), 'name': 'boundaries of transit time histogram bins', 'unit': 'sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    'h': {'init': 1.0, 'bounds': (0.1, 60), 'name': 'transit time distribution', 'unit': 'Hz', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    'TT': {'init': 1.0, 'bounds': (0.1, 60), 'name': 'boundaries of transit time histogram bins', 'unit': 'sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'E': {'init': 0.1, 'bounds': (0.0, 1.0), 'name': 'extraction fraction', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'Ei': {'init': 0.1, 'bounds': (0.0, 1.0), 'name': 'initial extraction fraction', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'Ef': {'init': 0.1, 'bounds': (0.0, 1.0), 'name': 'final extraction fraction', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
@@ -150,6 +150,7 @@ QUANTITIES = {
     'GFR': {'init': 2, 'bounds': (0, 10), 'name': 'glomerular filtration rate', 'unit': 'mL/sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'FF': {'init': 0.1, 'bounds': (0, 0.5), 'name': 'filtration fraction', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'ffc': {'init': 0.8, 'bounds': (0, 1), 'name': 'cortical flow fraction', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    'DRPF': {'init': 0.5, 'bounds': (0, 1), 'name': 'Differential renal plasma flow', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
 
     # --- Whole Body Kinetics ---
     'CO': {'init': 100, 'bounds': (0, 500), 'name': 'cardiac output', 'unit': 'mL/sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
@@ -248,47 +249,45 @@ QUANTITIES = {
     # 'n0': {'init': 1, 'bounds': (0, 1000), 'name': 'Number of baseline dynamics', 'unit': '', 'group': 'seq', 'dicom_key': None, 'osipi_key': None},
     # 'FAcorr': {'init': 1, 'bounds': (0, 2), 'name': 'B1-corrected Flip Angle', 'unit': 'deg', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
 
-    # --- Relaxation ---
-    'R1b_pv': {'init': 1.25, 'bounds': (0, 5), 'name': 'Portal venous baseline R1', 'unit': 'Hz', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
+    # # --- Relaxation ---
+    # 'R1b_pv': {'init': 1.25, 'bounds': (0, 5), 'name': 'Portal venous baseline R1', 'unit': 'Hz', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
 
+    # # Water kinetics
+    # 'Twc': {'init': 0.1, 'bounds': (0, 1), 'name': 'Intracellular water mean transit time', 'unit': 'sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    # 'Twi': {'init': 0.1, 'bounds': (0, 1), 'name': 'Interstitial water mean transit time', 'unit': 'sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    # 'Twb': {'init': 0.1, 'bounds': (0, 1), 'name': 'Intravascular water mean transit time', 'unit': 'sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
 
-    # Water kinetics
-    'Twc': {'init': 0.1, 'bounds': (0, 1), 'name': 'Intracellular water mean transit time', 'unit': 'sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    'Twi': {'init': 0.1, 'bounds': (0, 1), 'name': 'Interstitial water mean transit time', 'unit': 'sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    'Twb': {'init': 0.1, 'bounds': (0, 1), 'name': 'Intravascular water mean transit time', 'unit': 'sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    # # 'fvr_l': {'init': 0.1, 'bounds': (0, 1), 'name': 'Liver fraction of the venous return', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    # 'Eb': {'init': 0.05, 'bounds': (0.01, 0.15), 'name': 'Body extraction', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
 
-    # 'fvr_l': {'init': 0.1, 'bounds': (0, 1), 'name': 'Liver fraction of the venous return', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    'Eb': {'init': 0.05, 'bounds': (0.01, 0.15), 'name': 'Body extraction', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    # # --- Blood Kinetics ---
+    # 'Tvc': {'init': 10, 'bounds': (0, 30), 'name': 'Vena cava MTT', 'unit': 'sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    # 'Dvc': {'init': 0.2, 'bounds': (0.01, 0.99), 'name': 'Vena cava dispersion', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
 
-    # --- Blood Kinetics ---
-    'Tvc': {'init': 10, 'bounds': (0, 30), 'name': 'Vena cava MTT', 'unit': 'sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    'Dvc': {'init': 0.2, 'bounds': (0.01, 0.99), 'name': 'Vena cava dispersion', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    # # --- Kidney Kinetics ---
+    # 'CBF': {'init': 0.04, 'bounds': (0, 0.1), 'name': 'Cortical blood flow', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    # 'MBF': {'init': 0.004, 'bounds': (0, 0.1), 'name': 'Medullary blood flow', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    # 'RPF': {'init': 20, 'bounds': (0, 100), 'name': 'Renal plasma flow', 'unit': 'mL/sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    # 'DRF': {'init': 0.5, 'bounds': (0, 1.0), 'name': 'Differential renal function', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
 
-    # --- Kidney Kinetics ---
-    'CBF': {'init': 0.04, 'bounds': (0, 0.1), 'name': 'Cortical blood flow', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    'MBF': {'init': 0.004, 'bounds': (0, 0.1), 'name': 'Medullary blood flow', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    'RPF': {'init': 20, 'bounds': (0, 100), 'name': 'Renal plasma flow', 'unit': 'mL/sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    'DRPF': {'init': 0.5, 'bounds': (0, 1), 'name': 'Differential renal plasma flow', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    'DRF': {'init': 0.5, 'bounds': (0, 1.0), 'name': 'Differential renal function', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    # # --- Liver Kinetics ---
+    # # TODO: no underscores in lexicon - just key names. Handle override naming some other way.
+    # 'k_h2bi': {'init': 0.0004, 'bounds': (0.0, 0.001), 'name': 'Biliary excretion rate', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    # 'ki_h2bi': {'init': 0.0004, 'bounds': (0.0, 0.001), 'name': 'Initial biliary excretion rate', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    # 'kf_h2bi': {'init': 0.0004, 'bounds': (0.0, 0.001), 'name': 'Final biliary excretion rate', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    # 'K_h2bi': {'init': 0.0001, 'bounds': (0.0, 0.001), 'name': 'Biliary tissue excretion rate', 'unit': '/sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    # 'K_e2h': {'init': 0.02, 'bounds': (0.0, 0.1), 'name': 'Hepatocellular tissue uptake rate', 'unit': '/sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    # 'Ki_h2bi': {'init': 0.0001, 'bounds': (0.0, 0.001), 'name': 'Initial biliary tissue excretion rate', 'unit': '/sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    # 'Kf_h2bi': {'init': 0.0001, 'bounds': (0.0, 0.001), 'name': 'Final biliary tissue excretion rate', 'unit': '/sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    # 'F_ar': {'init': 0.002, 'bounds': (0, 0.05), 'name': 'Arterial plasma flow', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    # 'F_ve': {'init': 0.008, 'bounds': (0, 0.05), 'name': 'Venous plasma flow', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    # 'CL': {'init': 10, 'bounds': (0.0, 100), 'name': 'Liver plasma clearance', 'unit': 'mL/sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
 
-    # --- Liver Kinetics ---
-    # TODO: no underscores in lexicon - just key names. Handle override naming some other way.
-    'k_h2bi': {'init': 0.0004, 'bounds': (0.0, 0.001), 'name': 'Biliary excretion rate', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    'ki_h2bi': {'init': 0.0004, 'bounds': (0.0, 0.001), 'name': 'Initial biliary excretion rate', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    'kf_h2bi': {'init': 0.0004, 'bounds': (0.0, 0.001), 'name': 'Final biliary excretion rate', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    'K_h2bi': {'init': 0.0001, 'bounds': (0.0, 0.001), 'name': 'Biliary tissue excretion rate', 'unit': '/sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    'K_e2h': {'init': 0.02, 'bounds': (0.0, 0.1), 'name': 'Hepatocellular tissue uptake rate', 'unit': '/sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    'Ki_h2bi': {'init': 0.0001, 'bounds': (0.0, 0.001), 'name': 'Initial biliary tissue excretion rate', 'unit': '/sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    'Kf_h2bi': {'init': 0.0001, 'bounds': (0.0, 0.001), 'name': 'Final biliary tissue excretion rate', 'unit': '/sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    'F_ar': {'init': 0.002, 'bounds': (0, 0.05), 'name': 'Arterial plasma flow', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    'F_ve': {'init': 0.008, 'bounds': (0, 0.05), 'name': 'Venous plasma flow', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    'CL': {'init': 10, 'bounds': (0.0, 100), 'name': 'Liver plasma clearance', 'unit': 'mL/sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    # # Portal vein
+    # 'uv': {'init': 1.0,  'bounds': (0.0, 1.0), 'name': 'Portal vein volume fraction', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
 
-    # Portal vein
-    'uv': {'init': 1.0,  'bounds': (0.0, 1.0), 'name': 'Portal vein volume fraction', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-
-    # LS
-    'irf': {'init': 0.02, 'bounds': (0, 10), 'name': 'Impulse response function', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    # # LS
+    # 'irf': {'init': 0.02, 'bounds': (0, 10), 'name': 'Impulse response function', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
 
 }
 

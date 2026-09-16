@@ -1,12 +1,4 @@
-import numpy as np
 
-from dcmri.core.module import Module
-from dcmri.core.tools import extend_varname
-from dcmri.kinetics.modules_conc import ConcAortaLiver
-from dcmri.relaxivity.modules_rois import RelaxivityArtery, RelaxivityLiver
-from dcmri.bloch.modules_rois import WaterExchangeArtery, WaterExchangeLiver
-from dcmri.signal.modules_tissue import ConcToSignal
-from dcmri.bloch.functions_sequences import channels
 
 
 # +--------------------------------------------------------------------------------------------------+
@@ -167,7 +159,15 @@ from dcmri.bloch.functions_sequences import channels
 # | tS_li  | sec      | signal time points in the liver            | Electromagnetic | 0.0   |         |       |           |
 # +------------------------------------------------------------------------------------------------------------------------+
 
+import numpy as np
 
+from dcmri.core.module import Module
+from dcmri.core.tools import extend_varname
+from dcmri.kinetics.modules_conc import ConcAortaLiver
+from dcmri.relaxivity.modules_rois import RelaxivityArtery, RelaxivityLiver
+from dcmri.bloch.modules_rois import WaterExchangeArtery, WaterExchangeLiver
+from dcmri.signal.modules_tissue import ConcToSignal
+from dcmri.bloch.functions_sequences import channels
 
 rois = ['ao', 'li']
 tissue_rel = {'ao': RelaxivityArtery, 'li': RelaxivityLiver}

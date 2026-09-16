@@ -1,11 +1,3 @@
-import numpy as np
-
-from dcmri.core.module import Module
-from dcmri.kinetics.modules_conc import ConcAorta
-from dcmri.relaxivity.modules_rois import RelaxivityArtery
-from dcmri.bloch.modules_rois import WaterExchangeArtery
-from dcmri.signal.modules_tissue import ConcToSignal
-from dcmri.bloch.functions_sequences import channels
 
 # +--------------------------------------------------------------------------------------------------+
 # |                                AortaModel - all configs (n = 16)                                 |
@@ -127,8 +119,14 @@ from dcmri.bloch.functions_sequences import channels
 # +-------------------------------------------------------------------------------------------------------------+
 
 
-_ALL_INPUTS = {'PA', 'dose', 'Nk0', 'E_or', 'T_b_or', 'D_hl', 'dose_2', 'tstart', 'TR', 'T_p_lk', 'BAT_1', 'field_strength', 'B1corr', 'BAT', 'dt', 'iz', 'iStrig', 'TF', 'TA', 'T_la', 'weight', 'rate', 'TE2', 'Nz', 'agent', 'ffa', 'TD', 'F_b_ar', 'T_gu', 'iScal', 'Scal', 'T_p_rk', 'FA', 'vr_lk', 'TE1', 'me', 'tacq', 'rate_1', 'TE', 'S0', 'T_e_li', 'R1_b', 'vr_rk', 'T_hl', 'rate_2', 'CO', 'T_e_or', 'SA', 'BAT_2', 'NSR', 'dose_1', 'TP', 'dose_tolerance', 'vr_or', 'Nph', 'vol_ao', 'vr_li'}
-_ALL_OUTPUTS = {'tC', 'R2s', 'R1', 'M', 'tM', 'R2', 'C_ao', 'ci_ao', 'tR', 'S', 'R1i', 'S0', 'tS'}
+import numpy as np
+
+from dcmri.core.module import Module
+from dcmri.kinetics.modules_conc import ConcAorta
+from dcmri.relaxivity.modules_rois import RelaxivityArtery
+from dcmri.bloch.modules_rois import WaterExchangeArtery
+from dcmri.signal.modules_tissue import ConcToSignal
+from dcmri.bloch.functions_sequences import channels
 
 roi_quantities = {'F_b', 'ci', 'C'}
 iomap = {k:f'{k}_ao' for k in roi_quantities}
@@ -140,8 +138,8 @@ class AortaModel(Module):
     configs = ConcToSignal.configs | WaterExchangeArtery.configs | RelaxivityArtery.configs | ConcAorta.configs
     defaults = ConcToSignal.defaults | WaterExchangeArtery.defaults | RelaxivityArtery.defaults | ConcAorta.defaults
 
-    _all_inputs = _ALL_INPUTS 
-    _all_outputs = _ALL_OUTPUTS
+    _all_inputs = {'PA', 'dose', 'Nk0', 'E_or', 'T_b_or', 'D_hl', 'dose_2', 'tstart', 'TR', 'T_p_lk', 'BAT_1', 'field_strength', 'B1corr', 'BAT', 'dt', 'iz', 'iStrig', 'TF', 'TA', 'T_la', 'weight', 'rate', 'TE2', 'Nz', 'agent', 'ffa', 'TD', 'F_b_ar', 'T_gu', 'iScal', 'Scal', 'T_p_rk', 'FA', 'vr_lk', 'TE1', 'me', 'tacq', 'rate_1', 'TE', 'S0', 'T_e_li', 'R1_b', 'vr_rk', 'T_hl', 'rate_2', 'CO', 'T_e_or', 'SA', 'BAT_2', 'NSR', 'dose_1', 'TP', 'dose_tolerance', 'vr_or', 'Nph', 'vol_ao', 'vr_li'}
+    _all_outputs = {'tC', 'R2s', 'R1', 'M', 'tM', 'R2', 'C_ao', 'ci_ao', 'tR', 'S', 'R1i', 'S0', 'tS'}
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)

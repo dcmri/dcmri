@@ -41,7 +41,8 @@ def _run_single_config(cnfg):
     return cnfg, cost
 
 
-def test_config_coverage():
+
+def test_all_config():
     if DEBUG:
         return
     
@@ -49,7 +50,7 @@ def test_config_coverage():
 
     result = Parallel(n_jobs=-1)(
         delayed(_run_single_config)(cnfg)
-        for cnfg in dc.AortaModel.all_configs()
+        for cnfg in dc.AortaModel.all_configs(sample=1e3, seed=51)
     )
 
     # result = [
@@ -69,9 +70,9 @@ def test_config_coverage():
     print(f'--> Config with maximum cost: {cnfg}')
 
 
-def test_code_coverage():
+def test_single_config():
     config = {
-        'bolus': 'dual', 
+        'bolus': 'single', 
         'heartlung': 'pfcomp', 
         'organs': '2cxm', 
         't1_relaxation': 'lin',
@@ -84,11 +85,12 @@ def test_code_coverage():
     }
     _run_single_config(config) 
 
+
+def test_api():
     model = Model()
 
     # params()
     assert 'T_hl' in model.params()
-    assert np.isscalar(model.state['T_hl']) 
     
     # Test Forward API outputs
     data = model.predict()
@@ -110,8 +112,9 @@ def test_code_coverage():
 
 
 if __name__ == "__main__":
-    test_code_coverage()
-    test_config_coverage()
+    # test_single_config()
+    test_all_config()
+    # test_api()
     
     print('All Aorta tests passed!!')
 

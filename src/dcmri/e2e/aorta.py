@@ -82,13 +82,12 @@ from typing import Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri.core.roi_model import SuperRoiModel
-from dcmri.core.quantities import QUANTITIES
+from dcmri.core.tools import get_quantity, get_bounds
 from dcmri.models.aorta import AortaModel
 from dcmri.utils.fit import train_bat, loss
 from dcmri.inverse.lib import estimate_bat
 
-class Aorta(SuperRoiModel):
+class Aorta():
     """Whole-body model for the aorta.
     """
     def __init__(self, data: dict=None, **config):
@@ -104,30 +103,31 @@ class Aorta(SuperRoiModel):
     def _params(self, group=None):
         params = self._model.mapped_inputs()
         if group == 'free':
-            params_free = {p for p in params if p in QUANTITIES and QUANTITIES[p]['group']=='phys'}
+            params_free = {p for p in params if get_quantity(p)['group']=='phys'}
             params_free |= {p for p in ['BAT'] if p in params}
             return params_free
         return params
 
     def _predict(self, time):
         pred = self._model(self._pars)
-        return pred['S_a'][:, :, :len(time)]
+        return pred['S'][:, :, :len(time)]
     
     def _train(
         self, time: np.ndarray, signal: np.ndarray, free:dict=None,
         bounds:dict=None, n0=10, n_bat=1, **kwargs,
     ):
         p = self._pars
+        free = get_bounds(free, bounds, free_pars=self._params('free'), value=p)
 
         # Estimate parameters
         bat = estimate_bat(time, signal, n0)
         p['BAT'] = max(bat - p['T_hl'], 0)
 
         if self._model.config['calibrate']:
-            p['Sb_a'] = signal[..., :n0]
+            p['Scal'] = signal[..., :n0]
+            p['iScal'] = np.arange(n0)
 
         # Perform training
-        free = self._set_free_pars(free, bounds) 
         return train_bat(self._predict, time, signal, p, free, n_bat=n_bat, **kwargs)
     
     def _plot(self, time: np.ndarray, signal: np.ndarray, fname: str, show: bool):
@@ -140,14 +140,14 @@ class Aorta(SuperRoiModel):
         for i in range(signal.shape[0]):
             for j in range(signal.shape[1]):
                 ax0.plot(time / 60, signal[i, j, :], marker='o', color='lightcoral', alpha=0.5, label='Data')
-                ax0.plot(prediction['tS_a'] / 60, prediction['S_a'][i, j, :], linestyle='-', color='darkred', linewidth=3, label='Prediction')                
+                ax0.plot(prediction['tS'] / 60, prediction['S'][i, j, :], linestyle='-', color='darkred', linewidth=3, label='Prediction')                
         ax0.set_xlabel('Time (min)')
         ax0.set_ylabel('Signal (a.u.)')
         ax0.legend()
 
         # Concentration Plot
         ax1.set_title('Concentration Reconstruction')
-        ax1.plot(prediction['t'] / 60, 1000 * prediction['C_a'][0], linestyle='-', color='darkred', linewidth=3, label='Reconstruction')
+        ax1.plot(prediction['tC'] / 60, 1000 * prediction['C_ao'][0], linestyle='-', color='darkred', linewidth=3, label='Reconstruction')
         ax1.set_xlabel('Time (min)')
         ax1.set_ylabel('Concentration (mM)')
         ax1.legend()
@@ -187,8 +187,8 @@ class Aorta(SuperRoiModel):
         Returns:
             vals, sdev, pcov: Values, standard deviations and covariance matrix of free parameters
         """
-        time = data['tS_a']
-        signal = data['S_a']
+        time = data['tS']
+        signal = data['S']
 
         if signal.ndim==1:
             signal = signal.reshape(1, 1, -1)  
@@ -204,8 +204,8 @@ class Aorta(SuperRoiModel):
             fname (path, optional): Filepath to save the image. If no value is provided, the image is not saved. Defaults to None.
             show (bool, optional): If True, the plot is shown. Defaults to True.
         """
-        time = data['tS_a']
-        signal = data['S_a']
+        time = data['tS']
+        signal = data['S']
 
         if signal.ndim==1:
             signal = signal.reshape(1, 1, -1)  
@@ -234,8 +234,8 @@ class Aorta(SuperRoiModel):
                 models.
             - 'BIC': Bayesian information criterion.
         """
-        time = data['tS_a']
-        signal = data['S_a']
+        time = data['tS']
+        signal = data['S']
 
         if signal.ndim==1:
             signal = signal.reshape(1, 1, -1)  

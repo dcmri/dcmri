@@ -4,6 +4,7 @@ import time
 
 import numpy as np
 import matplotlib.pyplot as plt
+
 from dcmri import AortaLiver as Model
 from dcmri.core.exceptions import InvalidConfiguration
 import dcmri as dc
@@ -24,18 +25,20 @@ def _run_single_config(cnfg):
     try:
         model = Model(**cnfg)
     except InvalidConfiguration as e:
+        # print(e)
         return
     free = model.params('free')
     data = model.predict()
     model.train(data, verbose=VERBOSE, n0=5, n_bat=1, xtol=1e-3)
     model.plot(data, show=DEBUG)
     cost = model.cost(data)
-    print(f"\n{cnfg}: {cost}")
-    # assert cost < 50, f"Cost {cost} of model {cnfg} exceeded threshold!"
-    return cost
+    #print(f"{cnfg}: {cost}")
+    print(cost)
+    assert cost < 10, f"Cost {cost} of model {cnfg} exceeded threshold!"
+    return cnfg, cost
 
 
-def test_config_coverage():
+def test_all_config():
     if DEBUG:
         return
     
@@ -43,7 +46,7 @@ def test_config_coverage():
 
     result = Parallel(n_jobs=-1)(
         delayed(_run_single_config)(cnfg)
-        for cnfg in dc.AortaLiverModel.all_configs()
+        for cnfg in dc.AortaLiverModel.all_configs(sample=1e4, seed=40)
     )
     # result = [
     #     _run_single_config(cnfg)
@@ -61,7 +64,7 @@ def test_config_coverage():
     print(f'--> Config with maximum cost: {cnfg}')
 
 
-def test_code_coverage(): 
+def test_single_config(): 
     config = {
         'bolus': 'single', 
         'heartlung': 'pfcomp',
@@ -70,9 +73,12 @@ def test_code_coverage():
         'liver': '1I-IC',
         'non_stationary': 'UE', 
         'water_exchange': 'R',
-        't1_relaxation': 'lin',
-        't2_relaxation': None, 
-        't2s_relaxation': 'lin', 
+        't1_relaxation_ao': 'lin',
+        't2_relaxation_ao': None, 
+        't2s_relaxation_ao': None, 
+        't1_relaxation_li': 'lin',
+        't2_relaxation_li': None, 
+        't2s_relaxation_li': None, 
         'inflow': False,
         'sequence': 'ZTE-3D-IR-SPGR-SS',
         # 'sequence': '3D-IR-SPGR', 
@@ -81,11 +87,12 @@ def test_code_coverage():
     }
     _run_single_config(config) 
 
+
+def test_api():
     model = Model()
 
     # params()
     assert 'T_hl' in model.params()
-    assert np.isscalar(model.state['T_hl']) 
     
     # Test Forward API outputs
     data = model.predict()
@@ -107,8 +114,9 @@ def test_code_coverage():
 
 
 if __name__ == "__main__":
-    test_code_coverage()
-    test_config_coverage()
+    test_single_config()
+    # test_all_config()
+    # test_api()
     
     print('All AortaLiver tests passed!!')
 

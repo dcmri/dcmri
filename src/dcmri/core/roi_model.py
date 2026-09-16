@@ -4,6 +4,7 @@ import pprint
 import zarr
 import numpy as np
 
+from dcmri.core.tools import get_quantity, parse_varname
 from dcmri.core.quantities import QUANTITIES
 from dcmri.core.tools import select_params, export_params, print_params
 
@@ -77,7 +78,7 @@ class SuperRoiModel:
 
         # --- 0. Set Defaults ---
         if free is None:
-            free = {p: lexicon[p]['bounds'] for p in self.params('free')}
+            free = {p: get_quantity(p, quantities=lexicon)['bounds'] for p in self.params('free')}
         
         # --- 1. Update Bounds ---
         if bounds is not None:
@@ -89,34 +90,36 @@ class SuperRoiModel:
 
         # --- 2. Boundary Validation ---
         pars = self._pars
+        bounds_add = select_params(lexicon, bounds_type='add')
+        bounds_mult = select_params(lexicon, bounds_type='mult')
+
         for p, bnds in free.items():
+            var = parse_varname(p)['name']
             if p not in pars:
                 raise ValueError(
                     f"'{p}' is not a valid parameter for this configuration.\n"
                     f"Use print_params() to print a list of all valid parameters."
                 )
-            elif p in select_params(lexicon, bounds_type='add'):
+    
+            elif var in bounds_add:
                 if (bnds[0] > 0) or (bnds[1] < 0):
                     raise ValueError(f"Bounds on {p} must be (negative, positive).")
-            elif p in select_params(lexicon, bounds_type='mult'): 
+                free[p] = [  
+                    np.min(pars[p]) + bnds[0],
+                    np.max(pars[p]) + bnds[1],
+                ]
+                
+            elif var in bounds_mult: 
                 if not (0 <= bnds[0] < bnds[1]):
                     raise ValueError(f"Invalid bounds on {p}: Bounds are relative and must be positive.")
+                free[p] = [
+                    np.min(pars[p]) * bnds[0],
+                    np.max(pars[p]) * bnds[1],
+                ]
+
             elif not (bnds[0] <= np.min(pars[p]) <= np.max(pars[p]) <= bnds[1]):
                 raise ValueError(f"Initial {p} is out of bounds {bnds}.")
 
-        # --- 3. Relative to Absolute Bounds
-        for par in select_params(lexicon, bounds_type='add'):
-            if par in free:
-                free[par] = [  
-                    np.min(pars[par]) + free[par][0],
-                    np.max(pars[par]) + free[par][1],
-                ]
-        for par in select_params(lexicon, bounds_type='mult'):
-            if par in free:
-                free[par] = [
-                    np.min(pars[par]) * free[par][0],
-                    np.max(pars[par]) * free[par][1],
-                ]
 
         return free
     

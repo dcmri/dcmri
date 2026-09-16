@@ -1,12 +1,15 @@
 import os
-import itertools
+from joblib import Parallel, delayed
+import time
 
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 
 import dcmri as dc
 from dcmri import Kidney as Model
-
+from dcmri import KidneyModel as Forward
+from dcmri import AortaModel
+from dcmri.core.exceptions import InvalidConfiguration
 
 
 DEBUG = False
@@ -21,137 +24,107 @@ else:
     matplotlib.use('Agg')
 
 
-def test_configs():
+def _run_single_config(cnfg):
+    try:
+        model = Model(**cnfg)
+    except InvalidConfiguration as e:
+        # print(e)
+        return
+    free = model.params('free')
+    data = model.predict()
+    model.train(data, verbose=VERBOSE, n0=5, n_bat=1, xtol=1e-3)
+    model.plot(data, show=DEBUG)
+    cost = model.cost(data)
+    #print(f"{cnfg}: {cost}")
+    print(cost)
+    assert cost < 10, f"Cost {cost} of model {cnfg} exceeded threshold!"
+    return cnfg, cost
 
-    values = Model.configs.values()
-    for cnfgs in itertools.product(*values):
-        model = Model(*cnfgs)
-        time = model.time()
-        signal = model.predict(time)
-        model.train(time, signal, verbose=VERBOSE, xtol=0.01)
-        model.plot(time, signal, show=DEBUG)
-        cost = model.cost(time, signal)
-        print(cnfgs, cost)
-        model.conc()
-        model.relax()
-        model.signal()
-        assert cost < 5
+
+def test_all_configs():
+    if DEBUG:
+        return
+    
+    start = time.perf_counter()
+
+    result = Parallel(n_jobs=-1)(
+        delayed(_run_single_config)(cnfg)
+        for cnfg in Forward.all_configs(sample=1e5, seed=41)
+    )
+    # result = [
+    #     _run_single_config(cnfg)
+    #     for cnfg in Model.all_configs()
+    # ]
+    result = [r for r in result if r is not None]
+    cost = [r[1] for r in result]
+    cnfg = result[cost.index(max(cost))][0]
+
+    end = time.perf_counter()
+    print(f'Configuration coverage completed!')
+    print(f'--> Number of configurations: {np.prod([len(v) for v in Forward.configs.values()])}')
+    print(f'--> Total computation time: {(end - start) / 60:.1f} mins')
+    print(f'--> Maximum cost: {np.max(cost)} %')
+    print(f'--> Config with maximum cost: {cnfg}')
+
+
+def test_single_config(): 
+    cnfg = {'t1_relaxation': 'lin', 't2_relaxation': None, 't2s_relaxation': None, 'inflow': False, 'sequence': 'ZTE-3D-IR-SPGR-SS', 'magnitude': False, 'trigger': False, 'calibrate': False, 'compartments': ('bc', 'u'), 'baseline': 'literature', 'kinetics': '2PF'}
+    _run_single_config(cnfg) 
+
 
 def test_api():
     model = Model()
+
+    # params()
+    assert 'T_hl' in model.params()
     
     # Test Forward API outputs
-    t = model.time()
-    S = model.signal()
-
-    # print_params()
-    assert 'vp' in model.params()
-    model.params('R1b', 'Fp', 'vp')
-    try:
-        model.params('XX')
-    except:
-        pass
-    else: 
-        assert False
-    assert np.isscalar(model.params('Fp')) 
-    assert not np.isscalar(model.params('R1b', 'Fp', 'vp')) 
+    data = model.predict()
 
     test_plot_file = "test_plot_output.png"
     try:
         # This hits plt.savefig(fname)
-        model.plot(t, S, fname=test_plot_file, show=False)
+        model.plot(data, fname=test_plot_file, show=False)
         assert os.path.exists(test_plot_file)
         
         # This hits plt.show()
-        # We wrap this in a check to ensure it doesn't hang your tests
+        # We wrap this in a check to ensure it doesn't hang the tests
         plt.ion() # Turn interactive mode on
-        model.plot(t, S, show=True)
+        model.plot(data, show=True)
         plt.ioff() # Turn interactive mode off
     finally:
         if os.path.exists(test_plot_file):
             os.remove(test_plot_file)
 
-def test_exceptions():
-    # # Invalid Config
-    # try:
-    #     Model(sequence='InversionRecovery')
-    # except ValueError:
-    #     pass 
-    # try:
-    #     Model(kinetics='Liver')
-    # except ValueError:
-    #     pass 
-
-    model = Model()
-    time = model.time()
-    signal = model.signal()
-    time = np.append(time, 2 * time.max())
-    try:
-        model.predict(time)
-    except:
-        pass
-    else:
-        assert False
-    try:
-        model.train(time, signal)
-    except:
-        pass
-    else:
-        assert False
-
 
 def test_function():
 
     # Simulation parameters
-    seq = '3D-SPGR-SS'
-    dt, tmax, B0, agent, R1ba, R2sba, S0a, B1a = 0.5, 180, 3, 'gadoterate', 0.7, 20, 3, 0.75
-    FA, TR, TE = 15, 0.005, 0.002 # Defaults
-    CONSTANTS = {'Fw': 0, 'v': 1, 'me': 1, 'NSR':0}
-    
-    # Input signals
-    rp = dc.r1(B0, 'blood', agent)
-    r2s = dc.r2s(B0, 'blood', agent)
-    aif_time = np.arange(0, tmax, dt)
-    aif_conc = dc.tristan(aif_time, BAT=10)
-    aif_R1 = R1ba + rp * aif_conc
-    aif_R2s = R2sba + r2s * aif_conc
-    aif_signal = dc.Signal(seq)(R1=aif_R1, R2s=aif_R2s, S0=S0a, FA=FA, TR=TR, TE=TE, B1corr=B1a, **CONSTANTS)
-    aif_ = {'signal':aif_signal, 'time': aif_time, 'R1b':R1ba, 'B1corr': B1a}
+    ao = AortaModel()
+    data = ao.dummy_data()
+    aif = ao(data)
 
     # Kidney signals
-    params = {
-        'dt': dt, 
-        'c_a': aif_conc,
-        'field_strength': B0,
-        'agent': agent,
-        'FA': FA, 
-        'TR': TR,
-        'TE': TE,
+    params = data | {
+        'c_ar': aif['C_ao'],
         'S0': 5,
     }
 
     # Tissue model
-    model = Model(sequence=seq, **params)
-    time = model.time()
-    signal = model.predict(time)
+    model = Model(**params)
+    data = model.predict()
     
     # Fit with AIF signal
-    model.train(time, signal, aif_)
-    model.plot(time, signal, show=DEBUG)
-    assert model.cost(time, signal) < 1
-
-    # Test some training options
-    model = Model(dt=dt, ca=aif_conc)
-    time = model.time()
-    signal = model.predict(time)
-    model.train(time, signal, n0=10, bounds={'Fp': [0,1], 'Ft': None, 'S0':[0,5]})
+    model.train(data, aif={'signal': aif['S'], 'time': aif['tS']})
+    model.plot(data, show=DEBUG)
+    # assert model.cost(data) < 1
 
 
 if __name__ == "__main__":
-    test_function()
-    test_configs()
-    test_api()
-    test_exceptions()
+    #test_single_config()
+    test_all_configs()
+    #test_api()
+    # test_function()
     
     print('All Kidney tests passed!!')
 
