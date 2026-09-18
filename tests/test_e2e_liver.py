@@ -68,7 +68,7 @@ def test_all_configs():
 
 
 def test_single_config(): 
-    cnfg = {'t1_relaxation': 'lin', 't2_relaxation': None, 't2s_relaxation': 'lin', 'inflow': False, 'sequence': '3D-SPGR-SS', 'magnitude': True, 'trigger': False, 'calibrate': False, 'compartments': ('li',), 'baseline': 'literature', 'kinetics': '2I-EC', 'non_stationary': None}
+    cnfg = {'t1_relaxation': 'lin', 't2_relaxation': None, 't2s_relaxation': 'lin', 'inflow': 'none', 'sequence': '3D-SPGR-SS', 'magnitude': True, 'trigger': False, 'calibrate': False, 'compartments': ('li',), 'baseline': 'literature', 'kinetics': '2I-EC', 'non_stationary': None}
     _run_single_config(cnfg) 
 
 

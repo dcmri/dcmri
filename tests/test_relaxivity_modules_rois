@@ -27,6 +27,7 @@ def _test_class(cls: Module):
 
 def test_relaxivity_tissue():
     for cls in [
+        dc.RelaxivityGeneric,
         dc.RelaxivityArtery,
         dc.RelaxivityKidney,
         dc.RelaxivityLiver,

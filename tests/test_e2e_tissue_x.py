@@ -67,7 +67,7 @@ def test_all_configs():
 
 
 def test_single_config(): 
-    cnfg = {'t1_relaxation': 'lin', 't2_relaxation': None, 't2s_relaxation': 'lin', 'inflow': False, 'sequence': '3D-SPGR-SS', 'magnitude': True, 'trigger': False, 'calibrate': False, 'water_exchange': 'FF', 'kinetics': '2CX', 'baseline': 'literature'}
+    cnfg = {'t1_relaxation': 'lin', 't2_relaxation': None, 't2s_relaxation': 'lin', 'inflow': 'none', 'sequence': '3D-SPGR-SS', 'magnitude': True, 'trigger': False, 'calibrate': False, 'water_exchange': 'FF', 'kinetics': '2CX', 'baseline': 'literature'}
     _run_single_config(cnfg) 
 
 
@@ -121,9 +121,9 @@ def test_function():
 
 if __name__ == "__main__":
     #test_single_config()
-    test_all_configs()
+    # test_all_configs()
     #test_api()
-    #test_function()
+    test_function()
     
     print('All TissueX tests passed!!')
 

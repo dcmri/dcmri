@@ -2,11 +2,11 @@ import time
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from dcmri import TissueXModel
+from dcmri import CortMedModel
 from dcmri.core.exceptions import InvalidConfiguration
 
 
-def test_tissue_x(cls=TissueXModel):
+def test_cort_med(cls=CortMedModel):
     def _test_config(cnfg):
         # if cnfg['sequence'] != '3D-SPGR-SS':
         #     return
@@ -28,22 +28,22 @@ def test_tissue_x(cls=TissueXModel):
         # print(f"  [Total model execution time: {elapsed:.4f}s]")
 
     cls.print_configs()
-    cls.print_all_io(verbose=1, simple=False, sample=1000, seed=51)
+    cls.print_all_io(verbose=1, simple=False, sample=None, seed=51)
 
-    configs = cls.all_configs(sample=1000, seed=51)
+    configs = cls.all_configs(sample=None, seed=51)
     for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
         _test_config(cnfg)
 
     print(f'Successfully covered {len(configs)} {cls.__name__} configurations!')
 
 
-def test_tissue_x_instance():
-    # model = TissueXModel()
+def test_cort_med_instance():
+    # model = CortMedModel()
     # print(model.config)
     # return
-    cnfg = {'t1_relaxation': 'lin', 't2_relaxation': None, 't2s_relaxation': 'lin', 'inflow': 'none', 'sequence': '3D-SPGR-SS', 'magnitude': True, 'trigger': False, 'calibrate': False, 'water_exchange': 'FF', 'kinetics': '2CX', 'baseline': 'literature'}
+    cnfg = {'t1_relaxation': 'lin', 't2_relaxation': None, 't2s_relaxation': 'lin', 'sequence': '3D-SPGR-SS', 'magnitude': True, 'trigger': False, 'calibrate': False, 'water_exchange': 'F', 'baseline': 'literature', 'kinetics': '7C'}
     try:
-        model = TissueXModel(**cnfg)
+        model = CortMedModel(**cnfg)
     except InvalidConfiguration as e:
         print(e)
         return
@@ -53,13 +53,15 @@ def test_tissue_x_instance():
     data = model.dummy_data()
     results = model(data)
 
-    plt.plot(results['tS'], results['S'][0, 0, :], 'ro')
+    plt.plot(results['tS_kc'], results['S_kc'][0, 0, :], 'ro')
+    plt.plot(results['tS_km'], results['S_km'][0, 0, :], 'bo')
     # plt.plot(results['tC'], results['C'][0], 'ro')
 
     plt.show()
 
-if __name__ == '__main__':
-    test_tissue_x()
-    # test_tissue_x_instance()
 
-    print('All TissueXModel coverage tests passed!!')
+if __name__ == '__main__':
+    test_cort_med()
+    # test_cort_med_instance()
+
+    print('All CortMedModel coverage tests passed!!')

@@ -1,346 +1,110 @@
-"""
-General model for renal cortico-medullary data.
-
-**warning**: This model is functional but under active 
-development. Future versions may change without warning.
-
-See Also:
-    `Kidney`, `Liver`
-
-Example:
-
-    Derive model parameters from simulated data:
-
-.. plot::
-    :include-source:
-    :context: close-figs
-
-    >>> import dcmri as dc
-
-    Use `fake.kidney` to generate synthetic test data:
-
-    >>> time, aif, roi, gt = dc.fake.kidney(CNR=100)
-
-    Build a tissue model and set the constants to match the experimental conditions of the synthetic test data:
-
-    >>> model = dc.KidneyCortMed(
-    ...     aif = aif,
-    ...     dt = time[1],
-    ...     agent = 'gadoterate',
-    ...     TR = 0.005,
-    ...     FA = 15,
-    ...     TC = 0.2,
-    ...     n0 = 10,
-    ... )
-
-    Train the model on the ROI data and predict signals and concentrations:
-
-    >>> model.train(time, roi)
-
-    Plot the reconstructed signals (left) and concentrations (right) and compare the concentrations against the noise-free ground truth:
-
-    >>> model.plot(time, roi, ref=gt)
-"""
-
-from typing import Tuple
-
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri.core.model import SuperModel
+
 from dcmri.core.types import Input
-
-from dcmri.utils import const
-from dcmri.core.tools import get_sequence
-from dcmri.kinetics.modules_conc import ConcCortMed
-from dcmri.signal.modules_tissue import Signal
 from dcmri.inverse.sig2conc import SignalToConc
-from dcmri.utils.misc import sample
-from dcmri.utils.fit import train, loss
+from dcmri.core.tools import get_quantity, get_bounds
+from dcmri.core.types import Input
+from dcmri.utils.fit import train_bat, loss
+from dcmri.models.cort_med import CortMedModel
 
-CONSTANTS = {'Fw': 0, 'v': 1, 'me': 1, 'NSR':0}
 
-class CortMed(SuperModel):
-    """Kidney cortex and medulla with a known input.
+class CortMed():
 
-    Args:
-        kinetics (str, optional): Tracer-kinetic model.
-        sequence (str, optional): imaging sequence.
-        params (dict, optional): override parameter defaults.
+    def __init__(self, data: dict=None, **config):
+        self._version = '1.0'
+        self._model = CortMedModel(**config)
 
-    See Also:
-        `Kidney`, `Liver`
-    """
+        # Initialise model parameters
+        pars = self._model.dummy_data()
+        if data is not None:
+            pars |= data
+        self._pars = self._model.input_data(pars)
+
+    def _params(self, group=None):
+        params = self._model.mapped_inputs()
+        if group == 'free':
+            params_free = {p for p in params if get_quantity(p)['group']=='phys'} 
+            return params_free
+        return params
+
+    def _predict(self, time: tuple):
+        pred = self._model(self._pars)
+        return (
+            pred['S_kc'][:, :, :len(time[0])].reshape(-1),
+            pred['S_km'][:, :, :len(time[1])].reshape(-1),  
+        )
 
     # ==========================================
     # User interface
     # ==========================================
 
-    configs = {
-        'kinetics': ['7C'],
-        'sequence': ['3D-SPGR-SS', '3D-SPGR-SSI']
-      }
-    
-    def __init__(self, kinetics='7C', sequence='3D-SPGR-SS', **params):
-        self._version = '1.0'
-        self._cnfg = self._set_config(kinetics=kinetics, sequence=sequence)
-        self._pars = self._set_pars(**params)
+    def params(self, group=None) -> list:
+        """Return a list of model parameters"""
+        return self._params(group)
 
-    def time(self) -> dict:
-        """Cortex and medulla signal times"""
-        self._set_time()
-        return {
-            'cort': self._t, 
-            'med': self._t,
-        }
+    def predict(self) -> np.ndarray:
+        """Predicts the data."""
+        return self._model(self._pars)
 
-    def conc(self) -> dict:
-        """Returns cortex and medulla concentrations."""
-        self._compute_concentration()
-        return {
-            'cort': self._Cc, 
-            'med': self._Cm,
-        }
-
-    def relax(self) -> dict:
-        """Returns cortex and medulla relaxation rates (R1)."""
-        self._compute_relaxation_rate()
-        R1 = {
-            'cort': self._R1c, 
-            'med': self._R1m,
-        }
-        R2s = {
-            'cort': self._R2sc, 
-            'med': self._R2sm,
-        }
-        return R1, R2s
-
-    def signal(self) -> dict:
-        """Returns cortex and medulla signal."""
-        self._compute_signal()
-        return {
-            'cort': self._Sc, 
-            'med': self._Sm,
-        }
-
-    def predict(self, time: dict) -> dict:
-        """Predicts cortex and medulla signal at specific time points."""
-        if isinstance(time, dict):
-            time = (
-                time['cort'], 
-                time['med'], 
-            )
-        elif isinstance(time, np.ndarray):
-            time = tuple(2 * [time])
-        self._set_time()
-        if max(self._t) < np.max(np.concatenate(time)) + self._pars['TS']:
-            raise ValueError(f'The largest time point that can be predicted with the current AIF is {max(self._t)/60} mins.')
-        signal = self._predict(time)
-        return {
-            'cort': signal[0],
-            'med': signal[1],
-        }
-    
     def train(
-        self, time: tuple, signal: tuple, aif:dict=None, 
-        free: dict=None, bounds:dict=None, n0=1, **kwargs
-    ) -> Tuple[dict, dict, np.ndarray]:
-        """Train the free parameters
+        self, data: dict, aif:dict=None, 
+        free: dict=None, bounds: dict=None, n0=1, **kwargs):
 
-        Args:
-            time (tuple): Time points of cortex and medulla signals
-            signal (tuple): Cortex and medulla signals
-            free (dict, optional): Free parameters and their
-                bounds. If not provided, a default set of free parameters is used.
-            bounds (dict, optional): Override default bounds for specific parameters.
-            n0 (int, optional): Number of baseline time points. Defaults to 1.
-            aif (dict, optional): AIF signal, time and baseline R1.
-            kwargs: any keyword parameters accepted by 
-                `scipy.optimize.curve_fit`, except for bounds.
-
-        Returns:
-            vals, sdev, pcov: Values, standard deviations and covariance matrix of free parameters
-        """
-        if isinstance(time, dict):
-            time = (
-                time['cort'], 
-                time['med'], 
-            )
-        elif isinstance(time, np.ndarray):
-            time = tuple(2 * [time])
-        signal = (signal['cort'], signal['med'])
-
+        p = self._pars
+        
         if aif is not None:
-            p = self._pars
-            seq = self._cnfg['sequence']
-            rp = const.r1(p['field_strength'], 'blood', p['agent'])
             input = Input(aif)
-            ca = SignalToConc(seq, defaults=p)(
-                input.signal, R1b=input.R1b, n0=n0, 
-                B1corr=input.B1corr, r1=rp, 
+            ca = SignalToConc(**self._model.config)(
+                p, S=input.signal, R1b=input.R1b, nb=n0, 
+                B1corr=input.B1corr, 
             )
-            t = np.arange(0, np.amax(np.concatenate(time)) + p['dt'], p['dt'])
-            p['c_a'] = np.interp(t, input.time, ca)
+            t = np.arange(0, np.amax(data['tS_kc']) + p['dt'], p['dt'])
+            p['c_ar'] = np.interp(t, input.time, ca['C'])
 
-        return self._train(time, signal, free, bounds, n0, **kwargs)
+        if self._model.config['calibrate']:
+            for roi in ['kc', 'km']:
+                p[f'Scal_{roi}'] = data[f'S_{roi}'][..., :n0]
+                p[f'iScal_{roi}'] = np.arange(n0)
+
+        # Perform training
+        free = get_bounds(free, bounds, free_pars=self._params('free'), value=p)
+
+        time = (data['tS_kc'], data['tS_km'])
+        signal = (data['S_kc'], data['S_km'])
+        return train_bat(self._predict, time, signal, p, free, **kwargs)
 
 
-    def plot(self, time: tuple, signal: tuple, xlim=None, fname=None, show=True):
-        """Plot the model fit against data
+    def plot(self, data: dict, xlim=None, fname=None, show=True):
+        prediction = self._model(self._pars)
 
-        Args:
-            time (tuple): Time points of cortex and medulla signals
-            signal (tuple): Cortex and medulla signals            
-            xlim (list, optional): Lower and upper boundaries of the x-axis. Defaults to None.
-            fname (path, optional): Filepath to save the image. If no value is provided, the image is not saved. Defaults to None.
-            show (bool, optional): If True, the plot is shown. Defaults to True.
-        """
-        if isinstance(time, dict):
-            time = (
-                time['cort'], 
-                time['med'], 
-            )
-        elif isinstance(time, np.ndarray):
-            time = tuple(2 * [time])
-        signal = (signal['cort'], signal['med'])
-        self._plot(time, signal, xlim, fname, show)
-
-    def cost(self, time: np.ndarray, signal: np.ndarray, metric: str = 'NRMS', nfree=None) -> float:
-        """Return the goodness-of-fit
-
-        Args:
-            time (np.ndarray): array with time points
-            signal (array-like): array with signal data for all pixels.
-            metric (str, optional): Which metric to use (see notes for 
-                possible values). Defaults to 'NRMS'.
-
-        Returns:
-            float: goodness of fit.
-
-        Notes:
-
-            Available options are: 
-            
-            - 'RMS': Root-mean-square.
-            - 'NRMS': Normalized root-mean-square. 
-            - 'AIC': Akaike information criterion. 
-            - 'cAIC': Corrected Akaike information criterion for small 
-                models.
-            - 'BIC': Baysian information criterion.
-        """
-        if isinstance(time, dict):
-            time = (
-                time['cort'], 
-                time['med'], 
-            )
-        elif isinstance(time, np.ndarray):
-            time = tuple(2 * [time])
-        signal = np.concatenate((signal['cort'], signal['med']))
-        signal_pred = np.concatenate(self._predict(time))
-        cost = loss(signal_pred.reshape(1, -1), signal.reshape(1, -1), metric, nfree)
-        return cost[0]
-
-    def _params(self, select=None):
-        kin, seq = self._cnfg['kinetics'], self._cnfg['sequence']
-        pars_kin = ConcCortMed(kin).params()
-        pars_seq = get_sequence('prep_params', seq)
-        pars_seq += get_sequence('read_params', seq)
-
-        if select is None:
-            pars_list = [
-                'c_a', 'dt', 'field_strength', 'agent',
-                'H', 'S0_c', 'S0_m', 
-                'R1b_c', 'R1b_m', 
-                'R2sb_c', 'R2sb_m', 
-                'TS',
-            ]
-            pars_list += pars_kin + pars_seq
-        elif select=='free':
-            pars_list = pars_kin
-        return pars_list
-
-    # ==========================================
-    # Forward Model
-    # ==========================================   
-
-    def _compute_concentration(self):
-        p = self._pars
-        kin = self._cnfg['kinetics']
-        ca = p['c_a'] / (1 - p['H'])
-        self._Cc, self._Cm = ConcCortMed(kin, defaults=p)(ca, dt=p['dt'])
-
-    def _compute_relaxation_rate(self):
-        self._compute_concentration()
-        p = self._pars
-        rp = const.r1(p['field_strength'], 'blood', p['agent'])
-        self._R1c = p['R1b_c'] + rp * self._Cc.sum(axis=0)
-        self._R1m = p['R1b_m'] + rp * self._Cm.sum(axis=0)
-        r2s = const.r2s(p['field_strength'], 'tissue', p['agent'])
-        self._R2sc = p['R2sb_c'] + r2s * self._Cc.sum(axis=0)
-        self._R2sm = p['R2sb_m'] + r2s * self._Cm.sum(axis=0)
-
-    def _compute_signal(self):
-        self._compute_relaxation_rate()
-        p = self._pars
-        seq = self._cnfg['sequence']
-        self._Sc = Signal(seq, defaults=p)(R1=self._R1c, R2s=self._R2sc, **CONSTANTS)
-        self._Sm = Signal(seq, defaults=p)(R1=self._R1m, R2s=self._R2sm, **CONSTANTS)
-
-    def _set_time(self):
-        p = self._pars
-        self._t = p['dt'] * np.arange(p['c_a'].size)
-        
-    def _predict(self, time) -> Tuple[np.ndarray, np.ndarray]:
-        self._set_time()
-        self._compute_signal()
-        return (
-            sample(time[0], self._t, self._Sc, self._pars['TS']),
-            sample(time[1], self._t, self._Sm, self._pars['TS']),
-        )
-    
-    # ==========================================
-    # Inverse Model: Training
-    # ==========================================
-    
-    def _estimate_parameters(self, signal: np.ndarray, n0: int):
-        p = self._pars
-        seq = self._cnfg['sequence']
-
-        # Estimate S0
-        s_ref_c = Signal(seq, defaults=p)(R1=p['R1b_c'], R2s=p['R2sb_c'], S0=1, **CONSTANTS)
-        s_ref_m = Signal(seq, defaults=p)(R1=p['R1b_m'], R2s=p['R2sb_m'], S0=1, **CONSTANTS)
-        p['S0_c'] = np.mean(signal[0][:n0]) / s_ref_c if s_ref_c > 0 else 0
-        p['S0_m'] = np.mean(signal[1][:n0]) / s_ref_m if s_ref_m > 0 else 0
-
-    def _train(
-        self, time, signal, free, bounds, n0, **kwargs
-    ) -> Tuple[dict, dict, np.ndarray]:
-        
-        self._estimate_parameters(signal, n0)
-        free = self._set_free_pars(free, bounds)
-        return train(self._predict, time, signal, self._pars, free, **kwargs)
-    
-    def _plot(self, time, signal, xlim, fname, show):
-        self._set_time()
-        self._compute_signal()
-        if xlim is None:
-            xlim = [np.amin(time), np.amax(time)]
+        if xlim is None: 
+            xlim = [prediction['tR'][0], prediction['tR'][-1]]
+        xlim = np.array(xlim) / 60
 
         fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 5))
 
-        ax0.set_title('Prediction of the MRI signals.')
-        ax0.plot(time[0]/60, signal[0], marker='o', linestyle='None', color='cornflowerblue', label='Cortex data')
-        ax0.plot(time[1]/60, signal[1], marker='x', linestyle='None', color='cornflowerblue', label='Medulla data')
-        ax0.plot(self._t/60, self._Sc, linestyle='-', linewidth=3.0, color='darkblue', label='Cortex prediction')
-        ax0.plot(self._t/60, self._Sm, linestyle='--', linewidth=3.0, color='darkblue', label='Medulla prediction')
-        ax0.set(xlabel='Time (min)', ylabel='MRI signal (a.u.)', xlim=np.array(xlim)/60)
-        ax0.legend()
+        # Plot signals
+        def plot_data(t, s, ti, si, ax, clr):
+            ax.set_title('MRI Signal Prediction')
+            for i in range(si.shape[0]):
+                for j in range(si.shape[1]):
+                    ax.plot(ti / 60, si[i, j, :], marker='o', color=clr[0], alpha=0.5, label='Data')
+                    ax.plot(t / 60, s[i, j, :], linestyle='-', color=clr[1], linewidth=3, label='Prediction')                
+            ax.set_xlabel('Time (min)')
+            ax.set_ylabel('Signal (a.u.)')
+            ax.legend()
 
+        plot_data(prediction['tS_kc'], prediction['S_kc'], data['tS_kc'], data['S_kc'], ax0, ['lightcoral', 'darkred'])
+        plot_data(prediction['tS_km'], prediction['S_km'], data['tS_km'], data['S_km'], ax0, ['cornflowerblue', 'darkblue'])
+
+        # Plot concentrations
         ax1.set_title('Reconstruction of concentrations.')
-
-        ax1.plot(self._t/60, 1000*self._Cc.sum(axis=0), linestyle='-', linewidth=3.0, color='darkblue', label='Cortex prediction')
-        ax1.plot(self._t/60, 1000*self._Cm.sum(axis=0), linestyle='--', linewidth=3.0, color='darkblue', label='Medulla prediction')
-        ax1.plot(self._t/60, 1000*self._pars['c_a'], linestyle='-', linewidth=3.0, color='darkred', label='Arterial prediction')
+        ax1.plot(prediction['tC'] / 60, 0 * prediction['tC'], color='gray')
+        ax1.plot(prediction['tC'] / 60, 1000 * self._pars['c_ar'], '-', linewidth=3, color='darkred', label='Arterial Pred')
+        ax1.plot(prediction['tC'] / 60, 1000 * prediction['C_kc'].sum(axis=0), linestyle='-', linewidth=3.0, color='darkred', label='Cortex')
+        ax1.plot(prediction['tC'] / 60, 1000 * prediction['C_km'].sum(axis=0), linestyle='-', linewidth=3.0, color='darkcyan', label='Medulla')
         ax1.set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=np.array(xlim)/60)
         ax1.legend()
 
@@ -352,3 +116,11 @@ class CortMed(SuperModel):
             plt.close()
 
 
+    def cost(self, data: dict, metric: str='NRMS', nfree=None) -> float:
+        time = (data['tS_kc'], data['tS_km'])
+        signal = (data['S_kc'], data['S_km'])
+
+        pred = self._predict(time)
+        signal = np.concatenate([s.reshape(-1) for s in signal])
+        signal_pred = np.concatenate(pred)
+        return loss(signal_pred, signal, metric, nfree)

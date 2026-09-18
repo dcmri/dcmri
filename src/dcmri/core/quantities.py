@@ -83,10 +83,11 @@ COMPS = { # subvoxel compartments
     'lh': 'lis-of-Henle',
     'p': 'plasma',
     'pcv': 'peritubular capillaries and veins',
+    'pt': 'proximal tubuli',
     't': 'tissue',
     'u': 'tubuli',
     'uc': 'tubuli and cells',
-    'pt': 'proximal tubuli', 
+    'vb': 'venous blood',
 }
 
 
@@ -188,6 +189,7 @@ QUANTITIES = {
     'R1ib': {'init': 0.65, 'bounds': (0, 5), 'name': 'precontrast inlet R1', 'unit': 'Hz', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
 
     # --- Relaxivity ---
+    # 'comps': {'init': ('ti',), 'bounds': None, 'name': 'tissue compartments', 'unit': None, 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'r1': {'init': 3500, 'bounds': (0, 1e4), 'name': 'longitudinal contrast agent relaxivity', 'unit': 'Hz/M', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
     'r2': {'init': 4000, 'bounds': (0, 1e4), 'name': 'transverse contrast agent relaxivity', 'unit': 'Hz/M', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
     'r2s': {'init': 20000, 'bounds': (0, 1e5), 'name': 'transverse contrast agent relaxivity', 'unit': 'Hz/M', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
@@ -201,6 +203,9 @@ QUANTITIES = {
     'me': {'init': 1, 'bounds': (0, 5), 'name': 'equilibrium magnetization', 'unit': 'A cm2/mL', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
     'tM': {'init': 0.0, 'bounds': None, 'name': 'magnetization time points', 'unit': 'sec', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
     'Mz': {'init': 1, 'bounds': (0, 5), 'name': 'longitudinal magnetization', 'unit': 'A/cm', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
+    'tMz': {'init': 0.0, 'bounds': None, 'name': 'longitudinal magnetization time points', 'unit': 'sec', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
+    'Mzi': {'init': 1, 'bounds': (0, 5), 'name': 'longitudinal inlet magnetization', 'unit': 'A/cm', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
+    'tMi': {'init': 0.0, 'bounds': None, 'name': 'inlet magnetization time points', 'unit': 'sec', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
     'Mxy': {'init': 1, 'bounds': (0, 5), 'name': 'transverse magnetization', 'unit': 'A/cm', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
     'M': {'init': 1, 'bounds': (0, 5), 'name': 'magnetization', 'unit': 'A/cm', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
     'TF': {'init': 0.5, 'bounds': (0, 10), 'name': 'inflow time', 'unit': 'sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},

@@ -17,6 +17,7 @@ roi = 'ki'
 configs = ConcToSignal.configs | WaterExchangeKidney.configs | RelaxivityKidney.configs | ConcKidney.configs
 defaults = ConcToSignal.defaults | WaterExchangeKidney.defaults | RelaxivityKidney.defaults | ConcKidney.defaults
 
+configs['inflow'].discard('inlet')
 configs.pop('tof_corr')
 defaults.pop('tof_corr')
 

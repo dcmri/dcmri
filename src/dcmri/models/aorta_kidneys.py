@@ -210,6 +210,8 @@ for key in roi_configs:
         DEFAULTS[f'{key}_{roi}'] = default
         CMAP[roi] |= {key: f'{key}_{roi}'}
 
+CONFIGS['inflow'].discard('inlet')
+
 
 class AortaKidneysModel(Module):
     """Whole-body model for the aorta and kidneys signal."""

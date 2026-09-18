@@ -27,6 +27,7 @@ def _test_class(cls: Module):
 
 def test_wex():
     for cls in [
+        dc.WaterExchangeGeneric,
         dc.WaterExchangeArtery,
         dc.WaterExchangeKidney,
         dc.WaterExchangeLiver,

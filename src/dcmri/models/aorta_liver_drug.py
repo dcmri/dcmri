@@ -227,6 +227,10 @@ from dcmri.bloch.functions_sequences import channels
 
 visits, rois = [1, 2], ['ao', 'li']
 
+configs = AortaLiverModel.configs
+defaults = AortaLiverModel.defaults
+configs['inflow'].discard('inlet')
+
 
 class AortaLiverDrugModel(Module):
     """Whole-body model for the aorta and liver signal acquired over 2 separate acquisitions."""

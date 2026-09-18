@@ -1,96 +1,3 @@
-"""General model for whole-kidney signals.
-
-See Also:
-    `Liver`, `Tissue`
-
-Args:
-    kinetics (str, optional): Kinetic model for the kidneys. 
-        Options are '2CF' (Two-compartment filtration) and 'HF' 
-        (High-flow). Defaults to '2CF'. 
-    sequence (str, optional): imaging sequence model. Possible 
-        values are '3D-SPGR-SS' (steady-state), 'SR' (saturation-recovery), 
-        and 'lin' (linear). Defaults to '3D-SPGR-SS'.
-    params (dict, optional): values for the model parameters,
-        specified as keyword parameters. Defaults are used for any 
-        that are not provided. See table 
-        :ref:`Kidney-defaults` for a list of parameters and 
-        their default values.
-
-Example:
-
-    Use the model to fit minipig data. The AIF is corrupted by 
-    inflow effects so for the purpose of this example we will 
-    use a standard input function:
-
-.. plot::
-    :include-source:
-    :context: close-figs
-
-    >>> import numpy as np
-    >>> import pydmr
-    >>> import dcmri as dc
-
-    Read the dataset:
-
-    >>> datafile = dc.fetch('minipig_renal_fibrosis')
-    >>> data = pydmr.read(datafile, 'nest')
-    >>> rois, pars = data['rois']['Pig']['Test'], data['pars']['Pig']['Test']
-    >>> time = pars['TS'] * np.arange(len(rois['LeftKidney']))
-
-    Generate an AIF at high temporal resolution (250 msec):
-
-    >>> dt = 0.25
-    >>> t = np.arange(0, np.amax(time) + dt, dt) 
-    >>> ca = dc.aif.tristan(
-    ...    t, 
-    ...    agent="gadoterate",
-    ...    dose=pars['dose'],
-    ...    rate=pars['rate'],
-    ...    weight=pars['weight'],
-    ...    CO=60,
-    ...    BAT=time[np.argmax(rois['Aorta'])] - 20,
-    >>> )        
-
-    Initialize the tissue:
-
-    >>> kidney = dc.Kidney(
-    ...    ca=ca,
-    ...    dt=dt,
-    ...    kinetics='HF',
-    ...    field_strength=pars['B0'],
-    ...    agent="gadoterate",
-    ...    t0=pars['TS'] * pars['n0'],
-    ...    TS=pars['TS'], 
-    ...    TR=pars['TR'],
-    ...    FA=pars['FA'],
-    ...    R1ba=1/dc.const.T1(pars['B0'], 'blood'),
-    ...    R1b=1/dc.const.T1(pars['B0'], 'kidney'),
-    >>> )
-
-    Train the kidney on the data:
-
-    >>> kidney.set_free(Ta=[0,30])
-    >>> kidney.train(time, rois['LeftKidney'])
-    
-    Plot the reconstructed signals and concentrations:
-
-    >>> kidney.plot(time, rois['LeftKidney'])
-
-    Print the model parameters:
-
-    >>> kidney.print_params(round_to=4)
-    --------------------------------
-    Free parameters with their stdev
-    --------------------------------
-    Arterial mean transit time (Ta): 13.8658 (0.1643) sec
-    Plasma volume (vp): 0.0856 (0.003) mL/cm3
-    Tubular flow (Ft): 0.0024 (0.0001) mL/sec/cm3
-    Tubular mean transit time (Tt): 116.296 (7.6526) sec
-
-"""
-
-from typing import Tuple
-
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -117,7 +24,6 @@ class Kidney():
         params = self._model.mapped_inputs()
         if group == 'free':
             params_free = {p for p in params if get_quantity(p)['group']=='phys'} 
-            params_free |= {p for p in ['BAT', 'BAT_1', 'BAT_2'] if p in params}
             return params_free
         return params
 
@@ -151,6 +57,10 @@ class Kidney():
             )
             t = np.arange(0, np.amax(data['tS']) + p['dt'], p['dt'])
             p['c_ar'] = np.interp(t, input.time, ca['C'])
+
+        if self._model.config['calibrate']:
+            p['Scal'] = data['S'][..., :n0]
+            p['iScal'] = np.arange(n0)
 
         # Perform training
         free = get_bounds(free, bounds, free_pars=self._params('free'), value=p)

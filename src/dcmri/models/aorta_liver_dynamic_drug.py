@@ -274,11 +274,15 @@ from dcmri.bloch.functions_sequences import channels
 
 visits, scans, rois = [1, 2], [1, 2], ['ao', 'li']
 
+configs = AortaLiverDynamicModel.configs
+defaults = AortaLiverDynamicModel.defaults
+configs['inflow'].discard('inlet')
+
 class AortaLiverDynamicDrugModel(Module):
     """Whole-body model for the aorta and liver signal acquired over 2 separate acquisitions."""
 
-    configs = AortaLiverDynamicModel.configs
-    defaults = AortaLiverDynamicModel.defaults
+    configs = configs
+    defaults = defaults
 
     _all_inputs = {'dose_3', 'iScal_3_li', 'dose_4', 'NSR_1_ao', 'GFR', 'dose_tolerance', 'FA', 'Scal_3_ao', 'iStrig_1_ao', 'tacq_1', 'Scal_2_ao', 'iz', 'TE', 'iScal_4_li', 'v_li', 'NSR_2_ao', 'SA', 'kf_1_e2h', 'iStrig_4_li', 'Nph', 'TD', 'BAT_4', 'ki_2_e2h', 'R1_h', 'TE1', 'S0_2_ao', 'B1corr_3_li', 'agent', 'S0_4_li', 'Nz', 'field_strength', 'vol_1_ao', 'B1corr_4_li', 'T_la', 'iStrig_1_li', 'B1corr_2_li', 'tacq_3', 'v_h', 'T_hl', 'tacq_4', 'H', 'rate_4', 'S0_2_li', 'vol_2_ao', 'T_b_or', 'iScal_2_ao', 'Scal_1_li', 'dose_1', 'PSw', 'rate_2', 'R1_b', 'iStrig_2_ao', 'TA', 'Scal_3_li', 'tacq_2', 'k_1_e2h', 'tstart_3', 'Scal_4_ao', 'dose_2', 'iStrig_3_ao', 'NSR_4_li', 'tstart_2', 'Tf_1_h', 'Ef_1_li', 'TP', 'B1corr_3_ao', 'tstart_1', 'NSR_1_li', 'S0_1_ao', 'kf_2_e2h', 'Ef_2_li', 'PA', 'B1corr_1_li', 'v_e_li', 'NSR_4_ao', 'iScal_1_ao', 'S0_1_li', 'NSR_2_li', 'ki_1_e2h', 'iScal_1_li', 'iScal_3_ao', 'B1corr_4_ao', 'BAT_3', 'iStrig_4_ao', 'Tf_2_h', 'me', 'B1corr_2_ao', 'k_2_e2h', 'Scal_2_li', 'vol_1_li', 'BAT_2', 'Ei_1_li', 'weight', 'D_hl', 'fCO_li', 'iScal_2_li', 'T_e_or', 'Nk0', 'rate_3', 'TE2', 'S0_4_ao', 'iStrig_2_li', 'NSR_3_li', 'TR', 'S0_3_li', 'dt', 'BAT_1', 'rate_1', 'TF', 'ffa', 'Scal_1_ao', 'iScal_4_ao', 'E_1_li', 'Ti_2_h', 'T_gu', 'T_1_h', 'Ei_2_li', 'NSR_3_ao', 'E_or', 'tstart_4', 'Ti_1_h', 'vol_2_li', 'Scal_4_li', 'T_2_h', 'R1_e', 'S0_3_ao', 'E_2_li', 'B1corr_1_ao', 'CO', 'iStrig_3_li'}
     _all_outputs = {'tS_2_ao', 'tM_3_li', 'J_2_lag', 'S_3_li', 'M_1_ao', 'J_1_ao', 'M_3_li', 'ci_1_li', 'R1i_2_li', 'R1i_2_ao', 'C_2_li', 'tS_1_li', 'J_1_ve', 'J_1_lag', 'J_2_pv', 'S0_2_ao', 'R2s_1_ao', 'C_2_ao', 'S0_4_li', 'tC_2', 'ci_2_ao', 'ci_1_ao', 'R1_2_ao', 'S_1_ao', 'R2s_1_li', 'R2s_2_li', 'M_2_li', 'tS_4_li', 'S_3_ao', 'tR_2', 'R1_1_li', 'C_1_li', 'R2_2_ao', 'S0_2_li', 'tS_3_ao', 'M_4_li', 'R2_2_li', 'tS_1_ao', 'tM_4_li', 'J_1_li', 'J_1_or', 'S_4_ao', 'S_2_li', 'R1i_1_ao', 'tR_1', 'tS_2_li', 'tS_4_ao', 'S0_1_ao', 'J_2_ao', 'J_2_la', 'tC_1', 'ci_2_li', 'J_2_ve', 'M_1_li', 'R1i_1_li', 'S0_1_li', 'R2s_2_ao', 'J_2_or', 'tM_4_ao', 'tM_2_ao', 'C_1_ao', 'tM_1_li', 'S_1_li', 'R1_1_ao', 'M_3_ao', 'S0_4_ao', 'tM_1_ao', 'tS_3_li', 'R2_1_ao', 'J_1_pv', 'S0_3_li', 'tM_2_li', 'R1_2_li', 'S_4_li', 'M_2_ao', 'J_1_la', 'S_2_ao', 'J_2_li', 'tM_3_ao', 'S0_3_ao', 'R2_1_li', 'M_4_ao'}

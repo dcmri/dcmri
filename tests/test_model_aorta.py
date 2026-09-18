@@ -108,7 +108,7 @@ def test_aorta_instance():
         't1_relaxation': 'lin', 
         't2_relaxation': None, 
         't2s_relaxation': None, 
-        'inflow': False, 
+        'inflow': 'none', 
         'sequence': 'ZTE-3D-SPGR-SS', 
         'magnitude': False, 
         'trigger': True, 

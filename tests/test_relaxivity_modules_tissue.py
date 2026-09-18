@@ -19,7 +19,7 @@ def _test_class(cls: Module):
         instance(data)
 
     cls.print_configs()
-    cls.print_all_io(verbose=1, simple=False)
+    cls.print_all_io(verbose=0, simple=False)
 
     configs = cls.all_configs()
     for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):

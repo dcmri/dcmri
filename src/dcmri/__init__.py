@@ -180,12 +180,14 @@ from dcmri.kinetics.functions_input import (
 
 
 from dcmri.bloch.modules_rois import (
+    WaterExchangeGeneric,
     WaterExchangeArtery,
     WaterExchangeTissueX,
     WaterExchangeLiver,
     WaterExchangeKidney,
 )
 from dcmri.relaxivity.modules_rois import (
+    RelaxivityGeneric,
     RelaxivityArtery,
     RelaxivityTissueX,
     RelaxivityLiver,
@@ -245,6 +247,7 @@ from dcmri.inverse.lib import (
 from dcmri.models.aorta import AortaModel
 from dcmri.models.liver import LiverModel
 from dcmri.models.kidney import KidneyModel
+from dcmri.models.cort_med import CortMedModel
 from dcmri.models.tissue_x import TissueXModel
 from dcmri.models.aorta_liver import AortaLiverModel
 from dcmri.models.aorta_liver_drug import AortaLiverDrugModel

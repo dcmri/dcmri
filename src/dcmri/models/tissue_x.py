@@ -11,6 +11,7 @@ from dcmri.bloch.functions_sequences import channels
 configs = ConcToSignal.configs | WaterExchangeTissueX.configs | RelaxivityTissueX.configs | ConcTissueX.configs
 defaults = ConcToSignal.defaults | WaterExchangeTissueX.defaults | RelaxivityTissueX.defaults | ConcTissueX.defaults
 
+configs['inflow'].discard('inlet')
 configs.pop('tof_corr')
 defaults.pop('tof_corr')
 

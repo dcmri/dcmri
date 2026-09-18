@@ -10,8 +10,7 @@ from dcmri.inverse.sig2conc import RelaxToSignal
 
 
 def _test_class(cls):
-    cls.print_all_inputs()
-    cls.print_all_outputs()
+
 
     def _test_config(cnfg):
         try:
@@ -23,6 +22,9 @@ def _test_class(cls):
         # print(cnfg)
         data = instance.dummy_data()
         instance(data)
+
+    cls.print_configs()
+    cls.print_all_io(simple=False)
 
     configs = cls.all_configs()
     for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):

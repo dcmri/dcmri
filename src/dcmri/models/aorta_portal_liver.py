@@ -213,6 +213,8 @@ for key in roi_configs:
         CONFIGS[f'{key}_{roi}'] = config
         DEFAULTS[f'{key}_{roi}'] = default
         CMAP[roi] |= {key: f'{key}_{roi}'}
+
+CONFIGS['inflow'].discard('inlet')
         
 
 class AortaPortalLiverModel(Module):

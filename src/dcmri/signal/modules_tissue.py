@@ -1,140 +1,13 @@
-"""Signal after readout of given Mz.
 
-Args:
-    S0 (float): Signal scaling factor (arbitrary units).
-    R2 (array-like): Transverse relaxation rate R1 or R2* in 1/sec. 
-    FAR (float): Readout flip angle (deg)
-    TE (float): Echo time (sec)
-    noise_sdev (float, optional): standard deviation of the signal noise. 
-
-Returns:
-    np.ndarray: Signal in the same units as S0 and with the same 
-    dimensions as Mz.
-"""  
-
-"""Longitudinalitudinal magnetization.
-
-See section :ref:`basics-relaxation-T1` for more detail.
-
-Args:
-    R1 (array-like): Longitudinal relaxation rates in 1/sec. For a tissue 
-        with n compartments, the first dimension of R1 must be n. For a
-        single compartment, R1 can be scalar or a 1D time-array.
-    T (float): duration of free recovery.
-    v (array-like, optional): volume fractions of the compartments. For a 
-        one-compartment tissue this is a scalar - otherwise it is an 
-        array with one value for each compartment. Defaults to 1.
-    Fw (array-like, optional): Water flow between the compartments and to 
-        the environment, in units of mL/sec/cm3. Generally Fw must be a nxn 
-        array, where n is the number of compartments, and the off-diagonal 
-        elements Fw[j,i] are the permeability for water moving from 
-        compartment i into j. The diagonal elements Fw[i,i] quantify the 
-        flow of water from compartment i to outside. For a closed system 
-        with equal permeabilities between all compartments, a scalar value 
-        for Fw can be provided. Defaults to 0.
-    j (array-like, optional): normalized tissue magnetization flux. j has 
-        to have the same shape as R1. Defaults to None.
-    n_init (array-like, optional): initial relative magnetization at T=0. 
-        If this is a scalar, all compartments are assumed to have the same 
-        initial magnetization. Defaults to 0.
-    me (array-like, optional): equilibrium magnetization of the tissue 
-        compartments. If a scalar value is provided, all compartments are 
-        assumed to have the same equilibrium magnetization. Defaults to 1.
-
-Returns:
-    np.ndarray: Magnetization in the compartments after a time T.
-
-Example:
-
-    Magnetization recovery after inversion.
-
-.. plot::
-    :include-source:
-    :context: close-figs
-
-    >>> import numpy as np
-    >>> import matplotlib.pyplot as plt
-    >>> import dcmri as dc
-
-    Plot magnetization recovery for the first 10 seconds after an 
-    inversion pulse, for a closed tissue with R1 = 1 sec, and for an open 
-    tissue with equilibrium inflow and inverted inflow:
-
-    >>> TI = 0.1*np.arange(100)
-    >>> R1 = 1
-    >>> f = 0.5
-
-    >>> Mz = dc._Mz_free(R1, TI, n_init=-1)
-    >>> Mz_e = dc._Mz_free(R1, TI, n_init=-1, Fw=f, j=f)
-    >>> Mz_i = dc._Mz_free(R1, TI, n_init=-1, Fw=f, j=-f)
-
-    >>> plt.plot(TI, Mz, label='No flow', linewidth=3)
-    >>> plt.plot(TI, Mz_e, label='Equilibrium inflow', linewidth=3)
-    >>> plt.plot(TI, Mz_i, label='Inverted inflow', linewidth=3)
-    >>> plt.xlabel('Inversion time (sec)')
-    >>> plt.ylabel('Magnetization (A/cm)')
-    >>> plt.legend()
-    >>> plt.show()
-
-    Now consider a two-compartment model, with a central compartment 
-    that has in- and outflow, and a peripheral compartment that only 
-    exchanges with the central compartment:
-
-    >>> R1 = [1,2]
-    >>> v = [0.3, 0.7]
-    >>> PS = 0.1
-    >>> Fw = [[f, PS], [PS, 0]]
-    >>> Mz = dc._Mz_free(R1, TI, v, Fw, n_init=-1, j=[f, 0])
-
-    >>> plt.plot(TI, Mz[0,:], label='Central compartment', linewidth=3)
-    >>> plt.plot(TI, Mz[1,:], label='Peripheral compartment', linewidth=3)
-    >>> plt.xlabel('Inversion time (sec)')
-    >>> plt.ylabel('Magnetization (A/cm)')
-    >>> plt.legend()
-    >>> plt.show()
-
-    In DC-MRI the more usual situation is one where TI is fixed and the 
-    relaxation rates are variable due to the effect of a contrast agent. 
-    As an illustration, consider the previous result again at TI=500 msec 
-    and an R1 that is linearly declining in the central compartment and 
-    constant in the peripheral compartment:
-
-    >>> TI = 0.5
-    >>> nt = 1000
-    >>> t = 0.1*np.arange(nt)
-    >>> R1 = np.stack((1-t/np.amax(t), np.ones(nt)))
-    >>> j = np.stack((f*np.ones(nt), np.zeros(nt)))
-    >>> Mz = dc._Mz_free(R1, TI, v, Fw, n_init=-1, j=j)
-
-    >>> plt.plot(t, Mz[0,:], label='Central compartment', linewidth=3)
-    >>> plt.plot(t, Mz[1,:], label='Peripheral compartment', linewidth=3)
-    >>> plt.xlabel('Time (sec)')
-    >>> plt.ylabel('Magnetization (A/cm)')
-    >>> plt.legend()
-    >>> plt.show()   
-
-    The function allows for R1 and TI to be both variable. Computing the 
-    result for 10 different TI values and extracting the result 
-    corresponding to TI=0.5 gives again the same result:
-
-    >>> TI = 0.1*np.arange(10)
-    >>> Mz = dc._Mz_free(R1, TI, v, Fw, n_init=-1, j=j)
-
-    >>> plt.plot(t, Mz[0,:,5], label='Central compartment', linewidth=3)
-    >>> plt.plot(t, Mz[1,:,5], label='Peripheral compartment', linewidth=3)
-    >>> plt.xlabel('Time (sec)')
-    >>> plt.ylabel('Magnetization (A/cm)')
-    >>> plt.legend()
-    >>> plt.show()      
-
-"""
 import numpy as np
 from scipy.special import i0, i1
 
+from dcmri.core.tools import get_sequence
 from dcmri.core.module import Module
 from dcmri.relaxivity.modules_tissue import ConcToRelax
 from dcmri.bloch.modules_tissue import Magnetization
 from dcmri.bloch.functions_sequences import channels
+from dcmri.bloch.functions_dynamic import Mz_wrapper
 
 
 def signal_rice(nu, sigma)-> np.ndarray:
@@ -147,6 +20,7 @@ def signal_rice(nu, sigma)-> np.ndarray:
         rice_mean = pref * np.exp(-K/2) * ((1+K)*i0(arg) + K*i1(arg))
     # Nan values are points where the distribution is indistinguisable from Gaussian
     return np.where(np.isnan(rice_mean) | np.isinf(rice_mean), nu, rice_mean)
+
 
 # +--------------------------------------------------------------------------------------------------+
 # |                                   Signal - all configs (n = 3)                                   |
@@ -180,9 +54,10 @@ def signal_rice(nu, sigma)-> np.ndarray:
 # +-----+------+-----------------------+-----------------+------+--------+-------+-----------+
 # | S   | a.u. | signal                | Signal          | 1.0  | (0, 5) |       |           |
 # | S0  | a.u. | signal scaling factor | Signal          | 1.0  | (0, 5) |       | Q.MS1.010 |
-# +-----+------+-----------------------+-----------------+------+--------+-------+-----------+
-# | tS  | sec  | signal time points    | Electromagnetic | 0.0  |        |       |           |
+# | tS  | sec  | signal time points    | Signal          | 0.0  |        |       |           |
 # +------------------------------------------------------------------------------------------+
+
+
 
 class Signal(Module):
     configs = {
@@ -195,6 +70,9 @@ class Signal(Module):
         'trigger': False,
         'calibrate': False,
     }
+    _all_inputs = {'S0', 'Scal', 'NSR', 'iScal', 'tM', 'iStrig', 'M'}
+    _all_outputs = {'S0', 'tS', 'S'}
+
     def inputs(self):
         inputs = {'tM', 'M'} 
         if self.config['magnitude']:
@@ -274,80 +152,90 @@ class Signal(Module):
         }
         return data
 
+
 # +--------------------------------------------------------------------------------------------------+
-# |                               RelaxToSignal - all configs (n = 5)                                |
+# |                               RelaxToSignal - all configs (n = 6)                                |
 # +-----------+-------------------------------------------------------------------------+------------+
 # | Key       | Values                                                                  | Default    |
 # +-----------+-------------------------------------------------------------------------+------------+
 # | sequence  | 2D-DE-EPI, 2D-GE-EPI, 2D-SE-EPI, 2D-SPGR, 2D-SPGR-SS, 2D-SR-SPGR,       | 3D-SPGR-SS |
 # |           | 3D-DE-EPI, 3D-GE-EPI, 3D-IR-SPGR, 3D-IR-SPGR-SS, 3D-IR-SS, 3D-PR-SPGR,  |            |
-# |           | 3D-PR-SPGR-SS, 3D-PR-SS, 3D-SE-EPI, 3D-SPGR, 3D-SPGR-SS, 3D-SPGR-SSI,   |            |
-# |           | 3D-SR-SPGR, 3D-SR-SPGR-SS, 3D-SR-SS, ZTE-3D-IR-SPGR-SS, ZTE-3D-SPGR-SS  |            |
-# | inflow    | False, True                                                             | False      |
+# |           | 3D-PR-SPGR-SS, 3D-PR-SS, 3D-SE-EPI, 3D-SPGR, 3D-SPGR-SS, 3D-SR-SPGR,    |            |
+# |           | 3D-SR-SPGR-SS, 3D-SR-SS, ZTE-3D-IR-SPGR-SS, ZTE-3D-SPGR-SS              |            |
+# | tof_corr  | False, True                                                             | False      |
+# | inflow    | inlet, none, pool                                                       | none       |
 # | magnitude | False, True                                                             | True       |
 # | trigger   | False, True                                                             | False      |
 # | calibrate | False, True                                                             | False      |
 # +--------------------------------------------------------------------------------------------------+
 
-# +----------------------------------------------------------------------------------------------------------------------------------------------+
-# |                                                     RelaxToSignal - all inputs (n = 32)                                                      |
-# +---------+------------+---------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
-# | Key     | Unit       | Name                                                    | Group           | Init  | Bounds        | DICOM | OSIPI     |
-# +---------+------------+---------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
-# | NSR     |            | noise-to-signal ratio                                   | Signal          | 0.0   | (0, 100000.0) |       |           |
-# | S0      | a.u.       | signal scaling factor                                   | Signal          | 1.0   | (0, 5)        |       | Q.MS1.010 |
-# | Scal    | a.u.       | calibration signal                                      | Signal          | 1.0   | (0, 5)        |       | Q.MS1.002 |
-# | iScal   |            | indices of calibration signal                           | Signal          | 0     |               |       |           |
-# | iStrig  |            | indices of the signal trigger                           | Signal          | None  |               |       |           |
-# +---------+------------+---------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
-# | FA      | deg        | flip angle                                              | Sequence        | 15    | (0, 180)      |       |           |
-# | Nk0     |            | number of acquired phase lines to the center of k-space | Sequence        | 64    | (0, 1000)     |       |           |
-# | Nph     |            | number of acquired phase lines in k-space               | Sequence        | 128   | (0, 1000)     |       |           |
-# | Nz      |            | number of slices in a multi-slice acquisition           | Sequence        | 64    | (0, 1000)     |       |           |
-# | PA      | deg        | preparation Pulse Flip Angle                            | Sequence        | 90    | (0, 180)      |       |           |
-# | SA      | deg        | saturation Slab Flip Angle                              | Sequence        | 0     | (0, 180)      |       |           |
-# | TA      | sec        | acquisition time                                        | Sequence        | 2.0   | (0, 30)       |       |           |
-# | TD      | sec        | prepulse delay                                          | Sequence        | 0.05  | (0, 1)        |       |           |
-# | TE      | sec        | echo time                                               | Sequence        | 0.001 | (0, 10)       |       |           |
-# | TE1     | sec        | first echo time in a multi-echo sequence                | Sequence        | 0.001 | (0, 1)        |       |           |
-# | TE2     | sec        | second echo time in a multi-echo sequence               | Sequence        | 0.005 | (0, 1)        |       |           |
-# | TP      | sec        | preparation delay                                       | Sequence        | 0.05  | (0, 1)        |       |           |
-# | TR      | sec        | repetition time                                         | Sequence        | 0.005 | (0, 1)        |       |           |
-# | iz      |            | slice number in a multi-slice acquisition               | Sequence        | 0     | (0, 1000)     |       |           |
+# +---------------------------------------------------------------------------------------------------------------------------------------------+
+# |                                                     RelaxToSignal - all inputs (n = 35)                                                     |
+# +--------+------------+---------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
+# | Key    | Unit       | Name                                                    | Group           | Init  | Bounds        | DICOM | OSIPI     |
+# +--------+------------+---------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
+# | NSR    |            | noise-to-signal ratio                                   | Signal          | 0.0   | (0, 100000.0) |       |           |
+# | S0     | a.u.       | signal scaling factor                                   | Signal          | 1.0   | (0, 5)        |       | Q.MS1.010 |
+# | Scal   | a.u.       | calibration signal                                      | Signal          | 1.0   | (0, 5)        |       | Q.MS1.002 |
+# | iScal  |            | indices of calibration signal                           | Signal          | 0     |               |       |           |
+# | iStrig |            | indices of the signal trigger                           | Signal          | None  |               |       |           |
+# +--------+------------+---------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
+# | FA     | deg        | flip angle                                              | Sequence        | 15    | (0, 180)      |       |           |
+# | Nk0    |            | number of acquired phase lines to the center of k-space | Sequence        | 64    | (0, 1000)     |       |           |
+# | Nph    |            | number of acquired phase lines in k-space               | Sequence        | 128   | (0, 1000)     |       |           |
+# | Nz     |            | number of slices in a multi-slice acquisition           | Sequence        | 64    | (0, 1000)     |       |           |
+# | PA     | deg        | preparation Pulse Flip Angle                            | Sequence        | 90    | (0, 180)      |       |           |
+# | SA     | deg        | saturation Slab Flip Angle                              | Sequence        | 0     | (0, 180)      |       |           |
+# | TA     | sec        | acquisition time                                        | Sequence        | 2.0   | (0, 30)       |       |           |
+# | TD     | sec        | prepulse delay                                          | Sequence        | 0.05  | (0, 1)        |       |           |
+# | TE     | sec        | echo time                                               | Sequence        | 0.001 | (0, 10)       |       |           |
+# | TE1    | sec        | first echo time in a multi-echo sequence                | Sequence        | 0.001 | (0, 1)        |       |           |
+# | TE2    | sec        | second echo time in a multi-echo sequence               | Sequence        | 0.005 | (0, 1)        |       |           |
+# | TP     | sec        | preparation delay                                       | Sequence        | 0.05  | (0, 1)        |       |           |
+# | TR     | sec        | repetition time                                         | Sequence        | 0.005 | (0, 1)        |       |           |
+# | iz     |            | slice number in a multi-slice acquisition               | Sequence        | 0     | (0, 1000)     |       |           |
 # | tacq   | sec        | acquisition duration                                    | Sequence        | 240   | (0, 10000.0)  |       |           |
 # | tstart | sec        | start of the acquisition                                | Sequence        | 0     | (0, 10000.0)  |       |           |
-# +---------+------------+---------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
-# | B1corr  |            | B1-correction factor                                    | Electromagnetic | 1     | (0, 5)        |       |           |
-# | R1      | Hz         | tissue R1                                               | Electromagnetic | 0.65  | (0, 5)        |       |           |
-# | R1i     | Hz         | inlet R1                                                | Electromagnetic | 0.65  | (0, 5)        |       |           |
-# | R2      | Hz         | tissue R2                                               | Electromagnetic | 2.0   | (0, 5)        |       |           |
-# | R2s     | Hz         | tissue R2*                                              | Electromagnetic | 20    | (0, 5)        |       |           |
-# | me      | A cm2/mL   | equilibrium magnetization                               | Electromagnetic | 1     | (0, 5)        |       |           |
-# | tR      | sec        | relaxation rate time points                             | Electromagnetic | 0.0   |               |       |           |
-# +---------+------------+---------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
-# | Fwi     | mL/sec/cm3 | inflow in all water compartments                        | Physiological   | 0.02  | (0, 1)        |       |           |
-# | Kw      | mL/sec/cm3 | water exchange matrix                                   | Physiological   | 0     | (0, 1)        |       |           |
-# | TF      | sec        | fnflow time                                             | Physiological   | 0.5   | (0, 10)       |       |           |
-# | vw      | mL/cm3     | water volume fraction                                   | Physiological   | 1     | (0, 1)        |       |           |
-# +----------------------------------------------------------------------------------------------------------------------------------------------+
+# +--------+------------+---------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
+# | B1corr |            | B1-correction factor                                    | Electromagnetic | 1     | (0, 5)        |       |           |
+# | Mzi    | A/cm       | longitudinal inlet magnetization                        | Electromagnetic | 1     | (0, 5)        |       |           |
+# | R1     | Hz         | tissue R1                                               | Electromagnetic | 0.65  | (0, 5)        |       |           |
+# | R1i    | Hz         | inlet R1                                                | Electromagnetic | 0.65  | (0, 5)        |       |           |
+# | R2     | Hz         | tissue R2                                               | Electromagnetic | 2.0   | (0, 5)        |       |           |
+# | R2s    | Hz         | tissue R2*                                              | Electromagnetic | 20    | (0, 5)        |       |           |
+# | me     | A cm2/mL   | equilibrium magnetization                               | Electromagnetic | 1     | (0, 5)        |       |           |
+# | tMi    | sec        | inlet magnetization time points                         | Electromagnetic | 0.0   |               |       |           |
+# | tR     | sec        | relaxation rate time points                             | Electromagnetic | 0.0   |               |       |           |
+# +--------+------------+---------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
+# | Fwi    | mL/sec/cm3 | inflow in all water compartments                        | Physiological   | 0.02  | (0, 1)        |       |           |
+# | Kw     | mL/sec/cm3 | water exchange matrix                                   | Physiological   | 0     | (0, 1)        |       |           |
+# | TF     | sec        | inflow time                                             | Physiological   | 0.5   | (0, 10)       |       |           |
+# | inlets |            | water inlet compartments                                | Physiological   | (0,)  |               |       |           |
+# | vw     | mL/cm3     | water volume fraction                                   | Physiological   | 1     | (0, 1)        |       |           |
+# +---------------------------------------------------------------------------------------------------------------------------------------------+
 
-# +----------------------------------------------------------------------------------------------+
-# |                             RelaxToSignal - all outputs (n = 5)                              |
-# +-----+------+---------------------------+-----------------+------+--------+-------+-----------+
-# | Key | Unit | Name                      | Group           | Init | Bounds | DICOM | OSIPI     |
-# +-----+------+---------------------------+-----------------+------+--------+-------+-----------+
-# | S   | a.u. | signal                    | Signal          | 1.0  | (0, 5) |       |           |
-# | S0  | a.u. | signal scaling factor     | Signal          | 1.0  | (0, 5) |       | Q.MS1.010 |
-# +-----+------+---------------------------+-----------------+------+--------+-------+-----------+
-# | M   | A/cm | magnetization             | Electromagnetic | 1    | (0, 5) |       |           |
-# | tM  | sec  | magnetization time points | Electromagnetic | 0.0  |        |       |           |
-# | tS  | sec  | signal time points        | Electromagnetic | 0.0  |        |       |           |
-# +----------------------------------------------------------------------------------------------+
+# +-----------------------------------------------------------------------------------------------------------+
+# |                                    RelaxToSignal - all outputs (n = 7)                                    |
+# +-----+------+----------------------------------------+-----------------+------+--------+-------+-----------+
+# | Key | Unit | Name                                   | Group           | Init | Bounds | DICOM | OSIPI     |
+# +-----+------+----------------------------------------+-----------------+------+--------+-------+-----------+
+# | S   | a.u. | signal                                 | Signal          | 1.0  | (0, 5) |       |           |
+# | S0  | a.u. | signal scaling factor                  | Signal          | 1.0  | (0, 5) |       | Q.MS1.010 |
+# | tS  | sec  | signal time points                     | Signal          | 0.0  |        |       |           |
+# +-----+------+----------------------------------------+-----------------+------+--------+-------+-----------+
+# | M   | A/cm | magnetization                          | Electromagnetic | 1    | (0, 5) |       |           |
+# | Mz  | A/cm | longitudinal magnetization             | Electromagnetic | 1    | (0, 5) |       |           |
+# | tM  | sec  | magnetization time points              | Electromagnetic | 0.0  |        |       |           |
+# | tMz | sec  | longitudinal magnetization time points | Electromagnetic | 0.0  |        |       |           |
+# +-----------------------------------------------------------------------------------------------------------+
 
 
 class RelaxToSignal(Module): 
     configs = Magnetization.configs | Signal.configs
     defaults = Magnetization.defaults | Signal.defaults
+
+    _all_inputs = {'Nz', 'R2', 'TR', 'TP', 'Fwi', 'S0', 'TE2', 'Nph', 'iStrig', 'SA', 'iScal', 'PA', 'Mzi', 'FA', 'R2s', 'me', 'TE', 'iz', 'Nk0', 'tMi', 'B1corr', 'vw', 'TF', 'NSR', 'tacq', 'inlets', 'TD', 'Scal', 'TA', 'R1', 'tR', 'tstart', 'TE1', 'Kw', 'R1i'}
+    _all_outputs = {'S', 'tM', 'tS', 'tMz', 'S0', 'M', 'Mz'}
 
     def __init__(self, imap:dict=None, omap:dict=None, iomap:dict=None, cmap:dict=None, **config):
         self.set_config(config, cmap)
@@ -380,10 +268,20 @@ class RelaxToSignal(Module):
         Scal = np.zeros((n_channels, components, n0))
         Scal[:, 0, :] = 1
 
+        tR = np.arange(nt)
+        R1 = np.ones((nc, nt))
+        tacq = nt - 1
+        tstart = data['tstart'] 
+        t_end = tstart + tacq
+        sequence = self.config['sequence']
+        mz_prep_inflow = get_sequence('mz_prep_inflow', sequence)
+        tMi, Mzi = Mz_wrapper(sequence, mz_prep_inflow, tR, R1[0], data, 
+                            v=1, Kw=0, tstart=tstart, t_end=t_end)
+
         data |= {
-            'tacq': nt-1,
-            'tR': np.arange(nt),
-            'R1': np.ones((nc, nt)),
+            'tacq': tacq,
+            'tR': tR,
+            'R1': R1,
             'R2': np.ones((nc, nt)),
             'R2s': np.ones(nt),
             'R1i': np.ones((nc, nt)),
@@ -391,12 +289,14 @@ class RelaxToSignal(Module):
             'inlets': np.arange(nc),
             'Kw': np.eye(nc),
             'vw': np.ones(nc) / nc,
-            #'wx': [[0]],
+            'tMi': tMi,
+            'Mzi': np.stack(nc * [Mzi], axis=0),
             'iScal': np.zeros(n0, dtype=int),
             'Scal': Scal, 
             'iStrig': np.zeros(n0, dtype=int),
         }
         return data
+
 
 
 # +--------------------------------------------------------------------------------------------------+
@@ -407,7 +307,7 @@ class RelaxToSignal(Module):
 # | t1_relaxation  | None, lin                                                          | lin        |
 # | t2_relaxation  | None, lin                                                          | None       |
 # | t2s_relaxation | None, leakage, lin, quad                                           | lin        |
-# | inflow         | False, True                                                        | False      |
+# | inflow         | inlet, none, pool                                                  | none       |
 # | sequence       | 2D-DE-EPI, 2D-GE-EPI, 2D-SE-EPI, 2D-SPGR, 2D-SPGR-SS, 2D-SR-SPGR,  | 3D-SPGR-SS |
 # |                | 3D-DE-EPI, 3D-GE-EPI, 3D-IR-SPGR, 3D-IR-SPGR-SS, 3D-IR-SS,         |            |
 # |                | 3D-PR-SPGR, 3D-PR-SPGR-SS, 3D-PR-SS, 3D-SE-EPI, 3D-SPGR,           |            |
@@ -420,7 +320,7 @@ class RelaxToSignal(Module):
 # +--------------------------------------------------------------------------------------------------+
 
 # +-------------------------------------------------------------------------------------------------------------------------------------------------------+
-# |                                                           ConcToSignal - all inputs (n = 43)                                                          |
+# |                                                           ConcToSignal - all inputs (n = 46)                                                          |
 # +--------+------------+-------------------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
 # | Key    | Unit       | Name                                                              | Group           | Init  | Bounds        | DICOM | OSIPI     |
 # +--------+------------+-------------------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
@@ -452,6 +352,7 @@ class RelaxToSignal(Module):
 # | tstart | sec        | start of the acquisition                                          | Sequence        | 0     | (0, 10000.0)  |       |           |
 # +--------+------------+-------------------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
 # | B1corr |            | B1-correction factor                                              | Electromagnetic | 1     | (0, 5)        |       |           |
+# | Mzi    | A/cm       | longitudinal inlet magnetization                                  | Electromagnetic | 1     | (0, 5)        |       |           |
 # | R1b    | Hz         | precontrast tissue R1                                             | Electromagnetic | 0.65  | (0, 5)        |       |           |
 # | R1ib   | Hz         | precontrast inlet R1                                              | Electromagnetic | 0.65  | (0, 5)        |       |           |
 # | R2b    | Hz         | precontrast tissue R2                                             | Electromagnetic | 20    | (0, 100)      |       |           |
@@ -464,39 +365,43 @@ class RelaxToSignal(Module):
 # | r2se   | Hz/M       | extravascular, extracellular transverse contrast agent relaxivity | Electromagnetic | 20000 | (0, 100000.0) |       |           |
 # | r2sq   | Hz/M^2     | quadratic transverse contrast agent relaxivity                    | Electromagnetic | 1000  | (0, 10000.0)  |       |           |
 # | r2sv   | Hz/M       | vascular transverse contrast agent relaxivity                     | Electromagnetic | 20000 | (0, 100000.0) |       |           |
+# | tMi    | sec        | inlet magnetization time points                                   | Electromagnetic | 0.0   |               |       |           |
 # +--------+------------+-------------------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
 # | Fwi    | mL/sec/cm3 | inflow in all water compartments                                  | Physiological   | 0.02  | (0, 1)        |       |           |
 # | Kw     | mL/sec/cm3 | water exchange matrix                                             | Physiological   | 0     | (0, 1)        |       |           |
+# | RM     |            | relaxivity mapping                                                | Physiological   |       |               |       |           |
 # | TF     | sec        | inflow time                                                       | Physiological   | 0.5   | (0, 10)       |       |           |
 # | inlets |            | water inlet compartments                                          | Physiological   | (0,)  |               |       |           |
+# | v      | mL/cm3     | volume fraction                                                   | Physiological   | 1     | (0, 1)        |       |           |
 # | vw     | mL/cm3     | water volume fraction                                             | Physiological   | 1     | (0, 1)        |       |           |
-# | wx     |            | indicator-to-water compartment map                                | Physiological   |       |               |       |           |
 # +-------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-# +------------------------------------------------------------------------------------------------+
-# |                              ConcToSignal - all outputs (n = 10)                               |
-# +-----+------+-----------------------------+-----------------+------+--------+-------+-----------+
-# | Key | Unit | Name                        | Group           | Init | Bounds | DICOM | OSIPI     |
-# +-----+------+-----------------------------+-----------------+------+--------+-------+-----------+
-# | S   | a.u. | signal                      | Signal          | 1.0  | (0, 5) |       |           |
-# | S0  | a.u. | signal scaling factor       | Signal          | 1.0  | (0, 5) |       | Q.MS1.010 |
-# +-----+------+-----------------------------+-----------------+------+--------+-------+-----------+
-# | M   | A/cm | magnetization               | Electromagnetic | 1    | (0, 5) |       |           |
-# | R1  | Hz   | tissue R1                   | Electromagnetic | 0.65 | (0, 5) |       |           |
-# | R1i | Hz   | inlet R1                    | Electromagnetic | 0.65 | (0, 5) |       |           |
-# | R2  | Hz   | tissue R2                   | Electromagnetic | 2.0  | (0, 5) |       |           |
-# | R2s | Hz   | tissue R2*                  | Electromagnetic | 20   | (0, 5) |       |           |
-# | tM  | sec  | magnetization time points   | Electromagnetic | 0.0  |        |       |           |
-# | tR  | sec  | relaxation rate time points | Electromagnetic | 0.0  |        |       |           |
-# | tS  | sec  | signal time points          | Electromagnetic | 0.0  |        |       |           |
-# +------------------------------------------------------------------------------------------------+
+# +-----------------------------------------------------------------------------------------------------------+
+# |                                    ConcToSignal - all outputs (n = 12)                                    |
+# +-----+------+----------------------------------------+-----------------+------+--------+-------+-----------+
+# | Key | Unit | Name                                   | Group           | Init | Bounds | DICOM | OSIPI     |
+# +-----+------+----------------------------------------+-----------------+------+--------+-------+-----------+
+# | S   | a.u. | signal                                 | Signal          | 1.0  | (0, 5) |       |           |
+# | S0  | a.u. | signal scaling factor                  | Signal          | 1.0  | (0, 5) |       | Q.MS1.010 |
+# | tS  | sec  | signal time points                     | Signal          | 0.0  |        |       |           |
+# +-----+------+----------------------------------------+-----------------+------+--------+-------+-----------+
+# | M   | A/cm | magnetization                          | Electromagnetic | 1    | (0, 5) |       |           |
+# | Mz  | A/cm | longitudinal magnetization             | Electromagnetic | 1    | (0, 5) |       |           |
+# | R1  | Hz   | tissue R1                              | Electromagnetic | 0.65 | (0, 5) |       |           |
+# | R1i | Hz   | inlet R1                               | Electromagnetic | 0.65 | (0, 5) |       |           |
+# | R2  | Hz   | tissue R2                              | Electromagnetic | 2.0  | (0, 5) |       |           |
+# | R2s | Hz   | tissue R2*                             | Electromagnetic | 20   | (0, 5) |       |           |
+# | tM  | sec  | magnetization time points              | Electromagnetic | 0.0  |        |       |           |
+# | tMz | sec  | longitudinal magnetization time points | Electromagnetic | 0.0  |        |       |           |
+# | tR  | sec  | relaxation rate time points            | Electromagnetic | 0.0  |        |       |           |
+# +-----------------------------------------------------------------------------------------------------------+
 
 class ConcToSignal(Module): 
     configs = ConcToRelax.configs | RelaxToSignal.configs 
     defaults = ConcToRelax.defaults | RelaxToSignal.defaults
 
-    _all_inputs = None
-    _all_outputs = None
+    _all_inputs = {'Nz', 'TR', 'TP', 'Fwi', 'S0', 'TE2', 'Nph', 'iStrig', 'RM', 'iScal', 'r2', 'PA', 'FA', 'r2s', 'ci', 'me', 'TE', 'vw', 'r2se', 'Scal', 'R2sb', 'tstart', 'TE1', 'r2sq', 'SA', 'Mzi', 'r1', 'iz', 'Nk0', 'B1corr', 'tMi', 'tC', 'r2sv', 'TF', 'C', 'NSR', 'tacq', 'inlets', 'TD', 'R1b', 'R1ib', 'TA', 'R2b', 'r1i', 'v', 'Kw'}
+    _all_outputs = {'R2', 'tMz', 'S0', 'R1', 'Mz', 'tR', 'S', 'tM', 'tS', 'R2s', 'M', 'R1i'}
 
     def __init__(self, imap:dict=None, omap:dict=None, iomap: dict=None, cmap: dict=None, **config):
         self.set_config(config, cmap)
@@ -534,8 +439,18 @@ class ConcToSignal(Module):
         Scal = np.zeros((n_channels, components, n0))
         Scal[:, 0, :] = 1
 
+        tR = np.arange(nt)
+        R1 = np.ones((nc, nt))
+        tacq = nt - 1
+        tstart = data['tstart'] 
+        t_end = tstart + tacq
+        sequence = self.config['sequence']
+        mz_prep_inflow = get_sequence('mz_prep_inflow', sequence)
+        tMi, Mzi = Mz_wrapper(sequence, mz_prep_inflow, tR, R1[0], data, 
+                            v=1, Kw=0, tstart=tstart, t_end=t_end)
+
         data |= {
-            'tacq': nt-1,
+            'tacq': tacq,
             'r1i': np.ones(nc),
             'tC': np.arange(nt),
             'C': np.ones((nc, nt)),
@@ -551,7 +466,8 @@ class ConcToSignal(Module):
             'RM': np.eye(nc),
             'v': np.ones(nc) / nc,
             'vw': np.ones(nc) / nc,
-            # 'wx': [[i] for i in range(nc)],
+            'tMi': tMi,
+            'Mzi': np.stack(nc * [Mzi], axis=0),
             'iScal': np.zeros(n0, dtype=int),
             'Scal': Scal, 
             'iStrig': np.zeros(n0, dtype=int),

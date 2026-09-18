@@ -12,6 +12,34 @@ def div(C, v):
     else:
         return C / v
 
+# +--------------------------------------------------------------------------------------------------+
+# |                                     R1 - all configs (n = 1)                                     |
+# +---------------+------------------------------------------------------------------------+---------+
+# | Key           | Values                                                                 | Default |
+# +---------------+------------------------------------------------------------------------+---------+
+# | t1_relaxation | lin                                                                    | lin     |
+# +--------------------------------------------------------------------------------------------------+
+
+# +------------------------------------------------------------------------------------------------------------------+
+# |                                             R1 - all inputs (n = 4)                                              |
+# +-----+----------+----------------------------------------+-----------------+-------+--------------+-------+-------+
+# | Key | Unit     | Name                                   | Group           | Init  | Bounds       | DICOM | OSIPI |
+# +-----+----------+----------------------------------------+-----------------+-------+--------------+-------+-------+
+# | C   | mmol/cm3 | tissue concentration                   | Indicator       | 0.005 | (0, 1)       |       |       |
+# +-----+----------+----------------------------------------+-----------------+-------+--------------+-------+-------+
+# | R1b | Hz       | precontrast tissue R1                  | Electromagnetic | 0.65  | (0, 5)       |       |       |
+# | r1  | Hz/M     | longitudinal contrast agent relaxivity | Electromagnetic | 3500  | (0, 10000.0) |       |       |
+# +-----+----------+----------------------------------------+-----------------+-------+--------------+-------+-------+
+# | RM  |          | relaxivity mapping                     | Physiological   |       |              |       |       |
+# +------------------------------------------------------------------------------------------------------------------+
+
+# +--------------------------------------------------------------------------+
+# |                         R1 - all outputs (n = 1)                         |
+# +-----+------+-----------+-----------------+------+--------+-------+-------+
+# | Key | Unit | Name      | Group           | Init | Bounds | DICOM | OSIPI |
+# +-----+------+-----------+-----------------+------+--------+-------+-------+
+# | R1  | Hz   | tissue R1 | Electromagnetic | 0.65 | (0, 5) |       |       |
+# +--------------------------------------------------------------------------+
 
 class R1(Module):
     configs = {
@@ -20,6 +48,9 @@ class R1(Module):
     defaults = {
         't1_relaxation': 'lin',
     }
+    _all_inputs = {'C', 'r1', 'RM', 'R1b'}
+    _all_outputs = {'R1'}
+
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)
 
@@ -65,6 +96,34 @@ class R1(Module):
         return data
 
 
+# +--------------------------------------------------------------------------------------------------+
+# |                                     R2 - all configs (n = 1)                                     |
+# +---------------+------------------------------------------------------------------------+---------+
+# | Key           | Values                                                                 | Default |
+# +---------------+------------------------------------------------------------------------+---------+
+# | t2_relaxation | lin                                                                    | lin     |
+# +--------------------------------------------------------------------------------------------------+
+
+# +----------------------------------------------------------------------------------------------------------------+
+# |                                            R2 - all inputs (n = 4)                                             |
+# +-----+----------+--------------------------------------+-----------------+-------+--------------+-------+-------+
+# | Key | Unit     | Name                                 | Group           | Init  | Bounds       | DICOM | OSIPI |
+# +-----+----------+--------------------------------------+-----------------+-------+--------------+-------+-------+
+# | C   | mmol/cm3 | tissue concentration                 | Indicator       | 0.005 | (0, 1)       |       |       |
+# +-----+----------+--------------------------------------+-----------------+-------+--------------+-------+-------+
+# | R2b | Hz       | precontrast tissue R2                | Electromagnetic | 20    | (0, 100)     |       |       |
+# | r2  | Hz/M     | transverse contrast agent relaxivity | Electromagnetic | 4000  | (0, 10000.0) |       |       |
+# +-----+----------+--------------------------------------+-----------------+-------+--------------+-------+-------+
+# | RM  |          | relaxivity mapping                   | Physiological   |       |              |       |       |
+# +----------------------------------------------------------------------------------------------------------------+
+
+# +--------------------------------------------------------------------------+
+# |                         R2 - all outputs (n = 1)                         |
+# +-----+------+-----------+-----------------+------+--------+-------+-------+
+# | Key | Unit | Name      | Group           | Init | Bounds | DICOM | OSIPI |
+# +-----+------+-----------+-----------------+------+--------+-------+-------+
+# | R2  | Hz   | tissue R2 | Electromagnetic | 2.0  | (0, 5) |       |       |
+# +--------------------------------------------------------------------------+
 
 class R2(Module):
     configs = {
@@ -73,6 +132,10 @@ class R2(Module):
     defaults = {
         't2_relaxation': 'lin',
     }
+
+    _all_inputs = {'r2', 'C', 'R2b', 'RM'}
+    _all_outputs = {'R2'}
+
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)
         # Possible input dimensions
@@ -114,6 +177,38 @@ class R2(Module):
         }
         return data
 
+# +--------------------------------------------------------------------------------------------------+
+# |                                    R2s - all configs (n = 1)                                     |
+# +----------------+-----------------------------------------------------------------------+---------+
+# | Key            | Values                                                                | Default |
+# +----------------+-----------------------------------------------------------------------+---------+
+# | t2s_relaxation | leakage, lin, quad                                                    | lin     |
+# +--------------------------------------------------------------------------------------------------+
+
+# +-----------------------------------------------------------------------------------------------------------------------------------------------+
+# |                                                            R2s - all inputs (n = 7)                                                           |
+# +------+----------+-------------------------------------------------------------------+-----------------+-------+---------------+-------+-------+
+# | Key  | Unit     | Name                                                              | Group           | Init  | Bounds        | DICOM | OSIPI |
+# +------+----------+-------------------------------------------------------------------+-----------------+-------+---------------+-------+-------+
+# | C    | mmol/cm3 | tissue concentration                                              | Indicator       | 0.005 | (0, 1)        |       |       |
+# +------+----------+-------------------------------------------------------------------+-----------------+-------+---------------+-------+-------+
+# | R2sb | Hz       | precontrast tissue R2*                                            | Electromagnetic | 20    | (0, 100)      |       |       |
+# | r2s  | Hz/M     | transverse contrast agent relaxivity                              | Electromagnetic | 20000 | (0, 100000.0) |       |       |
+# | r2se | Hz/M     | extravascular, extracellular transverse contrast agent relaxivity | Electromagnetic | 20000 | (0, 100000.0) |       |       |
+# | r2sq | Hz/M^2   | quadratic transverse contrast agent relaxivity                    | Electromagnetic | 1000  | (0, 10000.0)  |       |       |
+# | r2sv | Hz/M     | vascular transverse contrast agent relaxivity                     | Electromagnetic | 20000 | (0, 100000.0) |       |       |
+# +------+----------+-------------------------------------------------------------------+-----------------+-------+---------------+-------+-------+
+# | v    | mL/cm3   | volume fraction                                                   | Physiological   | 1     | (0, 1)        |       |       |
+# +-----------------------------------------------------------------------------------------------------------------------------------------------+
+
+# +---------------------------------------------------------------------------+
+# |                         R2s - all outputs (n = 1)                         |
+# +-----+------+------------+-----------------+------+--------+-------+-------+
+# | Key | Unit | Name       | Group           | Init | Bounds | DICOM | OSIPI |
+# +-----+------+------------+-----------------+------+--------+-------+-------+
+# | R2s | Hz   | tissue R2* | Electromagnetic | 20   | (0, 5) |       |       |
+# +---------------------------------------------------------------------------+
+
 
 class R2s(Module): 
     configs = {
@@ -122,6 +217,10 @@ class R2s(Module):
     defaults = {
         't2s_relaxation': 'lin', 
     }
+
+    _all_inputs = {'r2se', 'C', 'v', 'r2sv', 'R2sb', 'r2sq', 'r2s'}
+    _all_outputs = {'R2s'}
+
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)
         t2r = self.config['t2s_relaxation']
@@ -168,6 +267,46 @@ class R2s(Module):
         return data
 
  
+# +--------------------------------------------------------------------------------------------------+
+# |                                   Relax - all configs (n = 3)                                    |
+# +----------------+-----------------------------------------------------------------------+---------+
+# | Key            | Values                                                                | Default |
+# +----------------+-----------------------------------------------------------------------+---------+
+# | t1_relaxation  | None, lin                                                             | lin     |
+# | t2_relaxation  | None, lin                                                             | None    |
+# | t2s_relaxation | None, leakage, lin, quad                                              | lin     |
+# +--------------------------------------------------------------------------------------------------+
+
+# +-----------------------------------------------------------------------------------------------------------------------------------------------+
+# |                                                          Relax - all inputs (n = 12)                                                          |
+# +------+----------+-------------------------------------------------------------------+-----------------+-------+---------------+-------+-------+
+# | Key  | Unit     | Name                                                              | Group           | Init  | Bounds        | DICOM | OSIPI |
+# +------+----------+-------------------------------------------------------------------+-----------------+-------+---------------+-------+-------+
+# | C    | mmol/cm3 | tissue concentration                                              | Indicator       | 0.005 | (0, 1)        |       |       |
+# +------+----------+-------------------------------------------------------------------+-----------------+-------+---------------+-------+-------+
+# | R1b  | Hz       | precontrast tissue R1                                             | Electromagnetic | 0.65  | (0, 5)        |       |       |
+# | R2b  | Hz       | precontrast tissue R2                                             | Electromagnetic | 20    | (0, 100)      |       |       |
+# | R2sb | Hz       | precontrast tissue R2*                                            | Electromagnetic | 20    | (0, 100)      |       |       |
+# | r1   | Hz/M     | longitudinal contrast agent relaxivity                            | Electromagnetic | 3500  | (0, 10000.0)  |       |       |
+# | r2   | Hz/M     | transverse contrast agent relaxivity                              | Electromagnetic | 4000  | (0, 10000.0)  |       |       |
+# | r2s  | Hz/M     | transverse contrast agent relaxivity                              | Electromagnetic | 20000 | (0, 100000.0) |       |       |
+# | r2se | Hz/M     | extravascular, extracellular transverse contrast agent relaxivity | Electromagnetic | 20000 | (0, 100000.0) |       |       |
+# | r2sq | Hz/M^2   | quadratic transverse contrast agent relaxivity                    | Electromagnetic | 1000  | (0, 10000.0)  |       |       |
+# | r2sv | Hz/M     | vascular transverse contrast agent relaxivity                     | Electromagnetic | 20000 | (0, 100000.0) |       |       |
+# +------+----------+-------------------------------------------------------------------+-----------------+-------+---------------+-------+-------+
+# | RM   |          | relaxivity mapping                                                | Physiological   |       |               |       |       |
+# | v    | mL/cm3   | volume fraction                                                   | Physiological   | 1     | (0, 1)        |       |       |
+# +-----------------------------------------------------------------------------------------------------------------------------------------------+
+
+# +---------------------------------------------------------------------------+
+# |                        Relax - all outputs (n = 3)                        |
+# +-----+------+------------+-----------------+------+--------+-------+-------+
+# | Key | Unit | Name       | Group           | Init | Bounds | DICOM | OSIPI |
+# +-----+------+------------+-----------------+------+--------+-------+-------+
+# | R1  | Hz   | tissue R1  | Electromagnetic | 0.65 | (0, 5) |       |       |
+# | R2  | Hz   | tissue R2  | Electromagnetic | 2.0  | (0, 5) |       |       |
+# | R2s | Hz   | tissue R2* | Electromagnetic | 20   | (0, 5) |       |       |
+# +---------------------------------------------------------------------------+
 
 class Relax(Module):
     configs = {
@@ -180,6 +319,10 @@ class Relax(Module):
         't2_relaxation': None, # default = DCE
         't2s_relaxation': 'lin',
     }
+
+    _all_inputs = {'r2se', 'C', 'r2', 'r1', 'RM', 'r2sq', 'R2b', 'v', 'r2s', 'r2sv', 'R2sb', 'R1b'}
+    _all_outputs = {'R1', 'R2', 'R2s'}
+
     def __init__(self, sequence=None, imap:dict=None, omap:dict=None, **config):
         t1 = config['t1_relaxation'] if 't1_relaxation' in config else self.defaults['t1_relaxation']
         t2 = config['t2_relaxation'] if 't2_relaxation' in config else self.defaults['t2_relaxation']
@@ -262,6 +405,7 @@ class Relax(Module):
             data |= self._R2s.dummy_data(nc, nt)
         return data
 
+
 # +--------------------------------------------------------------------------------------------------+
 # |                                ConcToRelax - all configs (n = 4)                                 |
 # +----------------+-----------------------------------------------------------------------+---------+
@@ -270,7 +414,7 @@ class Relax(Module):
 # | t1_relaxation  | None, lin                                                             | lin     |
 # | t2_relaxation  | None, lin                                                             | None    |
 # | t2s_relaxation | None, leakage, lin, quad                                              | lin     |
-# | inflow         | False, True                                                           | False   |
+# | inflow         | inlet, none, pool                                                     | none    |
 # +--------------------------------------------------------------------------------------------------+
 
 # +-----------------------------------------------------------------------------------------------------------------------------------------------+
@@ -294,8 +438,8 @@ class Relax(Module):
 # | r2sq | Hz/M^2   | quadratic transverse contrast agent relaxivity                    | Electromagnetic | 1000  | (0, 10000.0)  |       |       |
 # | r2sv | Hz/M     | vascular transverse contrast agent relaxivity                     | Electromagnetic | 20000 | (0, 100000.0) |       |       |
 # +------+----------+-------------------------------------------------------------------+-----------------+-------+---------------+-------+-------+
-# | vw   | mL/cm3   | water volume fraction                                             | Physiological   | 1     | (0, 1)        |       |       |
-# | wx   |          | indicator-to-water compartment map                                | Physiological   |       |               |       |       |
+# | RM   |          | relaxivity mapping                                                | Physiological   |       |               |       |       |
+# | v    | mL/cm3   | volume fraction                                                   | Physiological   | 1     | (0, 1)        |       |       |
 # +-----------------------------------------------------------------------------------------------------------------------------------------------+
 
 # +--------------------------------------------------------------------------------------------+
@@ -312,9 +456,12 @@ class Relax(Module):
 
 class ConcToRelax(Module): 
     configs = Relax.configs | {
-        'inflow': {False, True},
+        'inflow': {'none', 'pool', 'inlet'},
     }
-    defaults = Relax.defaults | {'inflow': False}
+    defaults = Relax.defaults | {'inflow': 'none'} 
+
+    _all_inputs = {'r2se', 'tC', 'C', 'R1ib', 'r1i', 'r2', 'r1', 'RM', 'r2sq', 'R2b', 'v', 'r2s', 'ci', 'r2sv', 'R2sb', 'R1b'}
+    _all_outputs = {'tR', 'R1', 'R2', 'R2s', 'R1i'}
 
     def __init__(self, sequence=None, imap:dict=None, omap:dict=None, iomap:dict=None, cmap: dict=None, **config):
         self.set_config(config, cmap)
@@ -325,10 +472,10 @@ class ConcToRelax(Module):
         if sequence is not None:
             if 'R1' not in get_sequence('tissue_params', sequence):
                 # Only t1_relaxation in current signal models
-                inflow = False
+                inflow = 'none'
 
         self._relax_inlets = None
-        if inflow: 
+        if inflow == 'pool': 
             if self.config['t1_relaxation'] is None:
                 raise InvalidConfiguration(f"The t1_relaxation option can't be None for T1-weighted sequences.")
             

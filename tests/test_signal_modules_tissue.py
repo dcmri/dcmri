@@ -40,7 +40,7 @@ def _test_class(cls: Module):
         instance(data)
 
     cls.print_configs()
-    cls.print_all_io(verbose=1, simple=False)
+    cls.print_all_io(simple=False)
 
     configs = cls.all_configs()
     for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
@@ -59,7 +59,7 @@ def _test_signal_class(cls: Module):
         instance(data)
 
     cls.print_configs()
-    cls.print_all_io()
+    cls.print_all_io(simple=False)
 
     configs = cls.all_configs()
     for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
@@ -75,7 +75,6 @@ def test_signal():
         ConcToSignal,
     ]:
         _test_class(cls)
-
 
 
 if __name__ == "__main__":

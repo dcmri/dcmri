@@ -1,3 +1,4 @@
+from copy import deepcopy
 import numpy as np
 
 from dcmri.core.module import Module
@@ -34,13 +35,102 @@ def build_PSw_labels(labels):
     return K
 
 
+# +--------------------------------------------------------------------------------------------------+
+# |                            WaterExchangeGeneric - all configs (n = 2)                            |
+# +----------------+-----------------------------------------------------------------------+---------+
+# | Key            | Values                                                                | Default |
+# +----------------+-----------------------------------------------------------------------+---------+
+# | water_exchange | F, N, R                                                               | F       |
+# | inflow         | False, True                                                           | False   |
+# +--------------------------------------------------------------------------------------------------+
+
+# +----------------------------------------------------------------------------------------------------------------+
+# |                                   WaterExchangeGeneric - all inputs (n = 3)                                    |
+# +-----+------------+-----------------------------------------+-----------------+------+----------+-------+-------+
+# | Key | Unit       | Name                                    | Group           | Init | Bounds   | DICOM | OSIPI |
+# +-----+------------+-----------------------------------------+-----------------+------+----------+-------+-------+
+# | F_b | mL/sec/cm3 | flow per unit tissue in the blood       | Physiological   | 0.02 | (0, 1)   |       |       |
+# | PSw | mL/sec/cm3 | water permeability-surface area product | Physiological   | 0.03 | (0, 100) |       |       |
+# | v_t | mL/cm3     | volume fraction in tissue               | Physiological   | 1    | (0, 1)   |       |       |
+# +----------------------------------------------------------------------------------------------------------------+
+
+# +----------------------------------------------------------------------------------------------------------+
+# |                                WaterExchangeGeneric - all outputs (n = 4)                                |
+# +--------+------------+----------------------------------+-----------------+------+--------+-------+-------+
+# | Key    | Unit       | Name                             | Group           | Init | Bounds | DICOM | OSIPI |
+# +--------+------------+----------------------------------+-----------------+------+--------+-------+-------+
+# | Fwi    | mL/sec/cm3 | inflow in all water compartments | Physiological   | 0.02 | (0, 1) |       |       |
+# | Kw     | mL/sec/cm3 | water exchange matrix            | Physiological   | 0    | (0, 1) |       |       |
+# | inlets |            | water inlet compartments         | Physiological   | (0,) |        |       |       |
+# | vw     | mL/cm3     | water volume fraction            | Physiological   | 1    | (0, 1) |       |       |
+# +----------------------------------------------------------------------------------------------------------+
+
+
+
+class WaterExchangeGeneric(Module):
+    configs = { 
+        'water_exchange': {'F', 'R', 'N'}, 
+        'inflow': {'none', 'pool', 'inlet'}
+    }
+    defaults = {
+        'water_exchange': 'F',
+        'inflow': 'none',
+    }
+    def __call__(self, data: dict=None, **kwargs) -> dict: 
+        i = self.map_data(data, kwargs)
+
+        wex = self.config['water_exchange']
+        nc = len(i['v_t'])
+
+        o = {}
+        
+        if wex == 'R':
+            o['vw'] = deepcopy(i['v_t'])
+            o['Kw'] = i['PSw'] * (1 - np.eye(nc))
+        elif wex == 'N':
+            o['vw'] = deepcopy(i['v_t'])
+            o['Kw'] = np.zeros((nc, nc))
+        elif wex == 'F':
+            o['vw'] = [np.sum(i['v_t'])]
+            o['Kw'] = np.zeros((1, 1))
+
+        if self.config['inflow'] in {'pool', 'inlet'}:
+            o['Kw'][0,0] = i['F_b']
+            o['inlets'] = [0]
+            o['Fwi'] = [i['F_b']]
+
+        return self.map_results(o)
+    
+    def inputs(self) -> set:
+        inputs = {'v_t'}
+        if self.config['water_exchange'] == 'R':
+            inputs |= {'PSw'}
+
+        if self.config['inflow'] in {'pool', 'inlet'}:
+            inputs |= {'F_b'}
+
+        return inputs
+
+    def outputs(self) -> set:
+        outputs = {'vw', 'Kw'}
+        if self.config['inflow'] in {'pool', 'inlet'}:
+            outputs |= {'inlets', 'Fwi'}
+
+        return outputs  
+
+    def dummy_data(self):
+        data = self.init_data()
+        data['v_t'] = [data['v_t']]
+        return data
+
+
 
 class WaterExchangeArtery(Module):
     configs = { 
-        'inflow': {True, False}
+        'inflow': {'none', 'pool', 'inlet'}
     }
     defaults = {
-        'inflow': False,
+        'inflow': 'none',
     }
     _all_inputs = None
     _all_ouitputs = None
@@ -51,7 +141,7 @@ class WaterExchangeArtery(Module):
         o = {}
         o['vw'] = [1] # assume no pv effect
         o['Kw'] = np.zeros((1, 1))
-        if self.config['inflow']:
+        if self.config['inflow'] in {'pool', 'inlet'}:
             o['Kw'][0,0] = i['F_b_ar']
             o['inlets'] = [0]
             o['Fwi'] = [i['F_b_ar']]
@@ -60,29 +150,25 @@ class WaterExchangeArtery(Module):
     
     def inputs(self) -> set:
         inputs = set()
-        if self.config['inflow']:
+        if self.config['inflow'] in {'pool', 'inlet'}:
             inputs |= {'F_b_ar'}
         return inputs
     
     def outputs(self) -> set:
         outputs = {'vw', 'Kw'}
-        if self.config['inflow']:
+        if self.config['inflow'] in {'pool', 'inlet'}:
             outputs |= {'inlets', 'Fwi'}
 
         return outputs
 
-
-
-
-
 class WaterExchangeKidney(Module):
     configs = { 
         'water_exchange': {'F', 'R', 'N'}, 
-        'inflow': {True, False}
+        'inflow': {'none', 'pool', 'inlet'}
     }
     defaults = {
         'water_exchange': 'F',
-        'inflow': False,
+        'inflow': 'none',
     }
     def __call__(self, data: dict=None, **kwargs) -> dict: 
         i = self.map_data(data, kwargs)
@@ -92,7 +178,7 @@ class WaterExchangeKidney(Module):
         o = {}
         o['vw'] = [i[f'v_{w}'] for w in wcomps]
         o['Kw'] = self._PSw(i)
-        if self.config['inflow']:
+        if self.config['inflow'] in {'pool', 'inlet'}:
             o['Kw'][0,0] = i['F_b_ki']
             o['inlets'] = [0]
             o['Fwi'] = [i['F_b_ki']]
@@ -104,14 +190,14 @@ class WaterExchangeKidney(Module):
 
         inputs = {f'v_{w}' for w in wcomps}
         inputs |= self._PSw_inputs()
-        if self.config['inflow']:
+        if self.config['inflow'] in {'pool', 'inlet'}:
             inputs |= {'F_b_ki'}
 
         return inputs
 
     def outputs(self) -> set:
         outputs = {'vw', 'Kw'}
-        if self.config['inflow']:
+        if self.config['inflow'] in {'pool', 'inlet'}:
             outputs |= {'inlets', 'Fwi'}
 
         return outputs
@@ -154,11 +240,11 @@ class WaterExchangeKidney(Module):
 class WaterExchangeLiver(Module):
     configs = { 
         'water_exchange': {'F', 'R', 'N'}, 
-        'inflow': {True, False}
+        'inflow': {'none', 'pool', 'inlet'}
     }
     defaults = {
         'water_exchange': 'F',
-        'inflow': False,
+        'inflow': 'none',
     }
     _all_inputs = None
     _all_outouts = None
@@ -171,7 +257,7 @@ class WaterExchangeLiver(Module):
         o = {}
         o['vw'] = [i[f'v_{w}'] for w in wcomps]
         o['Kw'] = self._PSw(i)
-        if self.config['inflow']:
+        if self.config['inflow'] in {'pool', 'inlet'}:
             o['Kw'][0,0] = i['F_b_li']
             o['inlets'] = [0]
             o['Fwi'] = [i['F_b_li']]
@@ -183,14 +269,14 @@ class WaterExchangeLiver(Module):
 
         inputs = {f'v_{w}' for w in wcomps}
         inputs |= self._PSw_inputs()
-        if self.config['inflow']:
+        if self.config['inflow'] in {'pool', 'inlet'}:
             inputs |= {'F_b_li'}
 
         return inputs
     
     def outputs(self) -> set:
         outputs = {'vw', 'Kw'}
-        if self.config['inflow']:
+        if self.config['inflow'] in {'pool', 'inlet'}:
             outputs |= {'inlets', 'Fwi'}
 
         return outputs
@@ -228,12 +314,12 @@ class WaterExchangeTissueX(Module):
     configs = { 
         'water_exchange': {'FF', 'RF', 'NF', 'FR', 'RR', 'NR', 'FN', 'RN', 'NN'}, 
         'kinetics': {'2CX', 'HF', '2CU', 'HFU', 'WV', 'FX', 'NX', 'NXP', 'U'},
-        'inflow': {True, False}
+        'inflow': {'none', 'pool', 'inlet'}
     }
     defaults = {
         'water_exchange': 'FF',
         'kinetics': '2CX',
-        'inflow': False,
+        'inflow': 'none',
     }
     def __call__(self, data: dict=None, **kwargs) -> dict: 
         i = self.map_data(data, kwargs)
@@ -243,7 +329,7 @@ class WaterExchangeTissueX(Module):
         o = {}
         o['vw'] = [i[f'v_{w}'] for w in wcomps]
         o['Kw'] = self._PSw(i)
-        if self.config['inflow']:
+        if self.config['inflow'] in {'pool', 'inlet'}:
             if self.config['kinetics'] != 'U':
                 o['Kw'][0,0] = i['F_b']
             o['inlets'] = [0]
@@ -256,14 +342,14 @@ class WaterExchangeTissueX(Module):
 
         inputs = {f'v_{w}' for w in wcomps}
         inputs |= self._PSw_inputs()
-        if self.config['inflow']:
+        if self.config['inflow'] in {'pool', 'inlet'}:
             inputs |= {'F_b'}
 
         return inputs
     
     def outputs(self) -> set:
         outputs = {'vw', 'Kw'}
-        if self.config['inflow']:
+        if self.config['inflow'] in {'pool', 'inlet'}:
             outputs |= {'inlets', 'Fwi'}
 
         return outputs

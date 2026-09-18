@@ -52,6 +52,8 @@ def test_all_config():
     #     _run_single_config(cnfg)
     #     for cnfg in Model.all_configs()
     # ]
+
+    
     result = [r for r in result if r is not None]
     cost = [r[1] for r in result]
     cnfg = result[cost.index(max(cost))][0]
@@ -79,7 +81,7 @@ def test_single_config():
         't1_relaxation_li': 'lin',
         't2_relaxation_li': None, 
         't2s_relaxation_li': None, 
-        'inflow': False,
+        'inflow': 'none',
         'sequence': 'ZTE-3D-IR-SPGR-SS',
         # 'sequence': '3D-IR-SPGR', 
         'magnitude': False,

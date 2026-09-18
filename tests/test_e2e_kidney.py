@@ -11,7 +11,7 @@ from dcmri import AortaModel
 from dcmri.core.exceptions import InvalidConfiguration
 
 
-DEBUG = True
+DEBUG = False
 
 if DEBUG:
     # Debugging mode
@@ -67,7 +67,7 @@ def test_all_configs():
 
 
 def test_single_config(): 
-    cnfg = {'t1_relaxation': 'lin', 't2_relaxation': None, 't2s_relaxation': None, 'inflow': False, 'sequence': 'ZTE-3D-IR-SPGR-SS', 'magnitude': False, 'trigger': False, 'calibrate': False, 'compartments': ('bc', 'u'), 'baseline': 'literature', 'kinetics': '2PF'}
+    cnfg = {'t1_relaxation': 'lin', 't2_relaxation': None, 't2s_relaxation': None, 'inflow': 'none', 'sequence': 'ZTE-3D-IR-SPGR-SS', 'magnitude': False, 'trigger': False, 'calibrate': False, 'compartments': ('bc', 'u'), 'baseline': 'literature', 'kinetics': '2PF'}
     _run_single_config(cnfg) 
 
 
@@ -121,9 +121,9 @@ def test_function():
 
 if __name__ == "__main__":
     #test_single_config()
-    # test_all_configs()
+    test_all_configs()
     #test_api()
-    test_function()
+    # test_function()
     
     print('All Kidney tests passed!!')
 

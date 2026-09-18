@@ -1,42 +1,159 @@
 import numpy as np
-
 from dcmri.core.module import Module
 from dcmri.utils import const
 
 
-# Helper functions
-def div(C, v):
-    if np.isscalar(v):
-        if v==0:
-            return C * 0 # In this case the result does not matter
+# +--------------------------------------------------------------------------------------------------+
+# |                             RelaxivityGeneric - all configs (n = 6)                              |
+# +----------------+--------------------------------------------------------------------+------------+
+# | Key            | Values                                                             | Default    |
+# +----------------+--------------------------------------------------------------------+------------+
+# | water_exchange | F, N, R                                                            | F          |
+# | baseline       | literature, measured                                               | literature |
+# | t1_relaxation  | None, lin                                                          | lin        |
+# | t2_relaxation  | None, lin                                                          | None       |
+# | t2s_relaxation | None, lin, quad                                                    | lin        |
+# | inflow         | False, True                                                        | False      |
+# +--------------------------------------------------------------------------------------------------+
+
+# +----------------------------------------------------------------------------------------------------------------+
+# |                                     RelaxivityGeneric - all inputs (n = 4)                                     |
+# +----------------+--------+-----------------------------+-----------------+------------+---------+-------+-------+
+# | Key            | Unit   | Name                        | Group           | Init       | Bounds  | DICOM | OSIPI |
+# +----------------+--------+-----------------------------+-----------------+------------+---------+-------+-------+
+# | agent          |        | contrast agent generic name | Indicator       | gadoterate |         |       |       |
+# +----------------+--------+-----------------------------+-----------------+------------+---------+-------+-------+
+# | field_strength | T      | magnetic field strength     | Sequence        | 3          | (0, 20) |       |       |
+# +----------------+--------+-----------------------------+-----------------+------------+---------+-------+-------+
+# | R1_t           | Hz     | tissue R1 in tissue         | Electromagnetic | 0.65       | (0, 5)  |       |       |
+# +----------------+--------+-----------------------------+-----------------+------------+---------+-------+-------+
+# | v_t            | mL/cm3 | volume fraction in tissue   | Physiological   | 1          | (0, 1)  |       |       |
+# +----------------------------------------------------------------------------------------------------------------+
+
+# +--------------------------------------------------------------------------------------------------------------------------+
+# |                                         RelaxivityGeneric - all outputs (n = 10)                                         |
+# +------+--------+------------------------------------------------+-----------------+-------+---------------+-------+-------+
+# | Key  | Unit   | Name                                           | Group           | Init  | Bounds        | DICOM | OSIPI |
+# +------+--------+------------------------------------------------+-----------------+-------+---------------+-------+-------+
+# | R1b  | Hz     | precontrast tissue R1                          | Electromagnetic | 0.65  | (0, 5)        |       |       |
+# | R1ib | Hz     | precontrast inlet R1                           | Electromagnetic | 0.65  | (0, 5)        |       |       |
+# | R2b  | Hz     | precontrast tissue R2                          | Electromagnetic | 20    | (0, 100)      |       |       |
+# | R2sb | Hz     | precontrast tissue R2*                         | Electromagnetic | 20    | (0, 100)      |       |       |
+# | r1   | Hz/M   | longitudinal contrast agent relaxivity         | Electromagnetic | 3500  | (0, 10000.0)  |       |       |
+# | r1i  | Hz/M   | inlet longitudinal contrast agent relaxivity   | Electromagnetic | 3500  | (0, 10000.0)  |       |       |
+# | r2   | Hz/M   | transverse contrast agent relaxivity           | Electromagnetic | 4000  | (0, 10000.0)  |       |       |
+# | r2s  | Hz/M   | transverse contrast agent relaxivity           | Electromagnetic | 20000 | (0, 100000.0) |       |       |
+# | r2sq | Hz/M^2 | quadratic transverse contrast agent relaxivity | Electromagnetic | 1000  | (0, 10000.0)  |       |       |
+# +------+--------+------------------------------------------------+-----------------+-------+---------------+-------+-------+
+# | RM   |        | relaxivity mapping                             | Physiological   |       |               |       |       |
+# +--------------------------------------------------------------------------------------------------------------------------+
+
+
+class RelaxivityGeneric(Module):
+    configs = { 
+        'water_exchange': {'F', 'R', 'N'}, 
+        'baseline': {'measured', 'literature'},
+        't1_relaxation': {None, 'lin'},
+        't2_relaxation': {None, 'lin'},
+        't2s_relaxation': {None, 'lin', 'quad'},
+        'inflow': {'none', 'pool', 'inlet'}
+    }
+    defaults = {
+        'water_exchange': 'F',
+        'baseline': 'literature',
+        't1_relaxation': 'lin',
+        't2_relaxation': None,
+        't2s_relaxation': 'lin',
+        'inflow': 'none',
+    }
+    def __call__(self, data: dict=None, **kwargs) -> dict: 
+        i = self.map_data(data, kwargs)
+
+        b0, cm = i['field_strength'], i['agent']
+        nc = len(i['v_t'])
+        
+        o = {}
+
+        if self.config['water_exchange'] == 'F': 
+            o['RM'] = [ 
+                [1 / np.sum(i['v_t']) for _ in range(nc)]
+            ]
+        else: 
+            o['RM'] = [
+                [1 / i['v_t'][k] if k == j else 0 for j in range(nc)] 
+                for k in range(nc)
+            ]
+       
+        if self.config['baseline']=='measured':
+            if self.config['water_exchange'] == 'F':
+                R1b = [np.sum(np.array(i['v_t']) * np.array(i["R1_t"])) / np.sum(i['v_t'])]
+            else:
+                R1b = [np.sum(i["R1_t"])]
         else:
-            return C / v
-    else:
-        return np.vstack([div(C[k], v[k]) for k in range(v.size)])
+            if self.config['water_exchange'] == 'F':
+                R1b = [1 / const.T1(b0, 'muscle')]
+            else:
+                R1b = [1 / const.T1(b0, 'muscle') for _ in range(nc)]
 
+        if self.config['inflow'] == 'pool':
+            o['R1ib'] = [1 / const.T1(b0, 'blood')]
+            o['r1i'] = [const.r1(b0, 'blood', cm)]
 
-def build_PSw(labels, i):
-    n = len(labels)
-    K = np.zeros((n, n))
-    for row, dst in enumerate(labels):
-        for col, src in enumerate(labels):
-            if row == col:
-                continue
-            K[row, col] = i[f'PSw_{src}2{dst}']
-    return K
+        if self.config['t1_relaxation']=='lin':
+            o['R1b'] = R1b
+            o['r1'] = [const.r1(b0, 'muscle', cm) for _ in range(nc)]
 
-def build_PSw_labels(labels):
-    K = set()
-    for row, dst in enumerate(labels):
-        for col, src in enumerate(labels):
-            if row == col:
-                continue
-            K |= {f'PSw_{src}2{dst}'}
-    return K
+        if self.config['t2_relaxation']=='lin':
+            if self.config['water_exchange'] == 'F':
+                o['R2b'] = [1 / const.T2(b0, 'muscle')]
+            else:
+                o['R2b'] = [1 / const.T2(b0, 'muscle') for _ in range(nc)]
+            o['r2'] = [const.r2(b0, 'muscle', cm) for _ in range(nc)]
 
+        if self.config['t2s_relaxation'] in ['lin', 'quad']:
+            o['R2sb'] = 1 / const.T2s(b0, 'arterial blood')
+            o['r2s'] = const.r2s(b0, 'tissue', cm)
 
+        if self.config['t2s_relaxation']=='quad':
+            o['r2sq'] = const.r2sq(b0, 'tissue', cm)
 
+        return self.map_results(o)
 
+    def inputs(self) -> set:
+        # v_t and R1_t are lists here
+        inputs = {'field_strength', 'agent', 'v_t'}
+    
+        if self.config['baseline']=='measured':
+            inputs |= {"R1_t"}
+
+        return inputs
+
+    def outputs(self) -> set:
+        outputs = {'RM'}
+
+        if self.config['t1_relaxation']=='lin':
+            outputs |= {'R1b', 'r1'}
+
+        if self.config['t2_relaxation']=='lin':
+            outputs |= {'R2b', 'r2'}
+
+        if self.config['t2s_relaxation'] in ['lin', 'quad']:
+            outputs |= {'R2sb', 'r2s'}
+
+        if self.config['t2s_relaxation']=='quad':
+            outputs |= {'r2sq'}
+
+        if self.config['inflow'] == 'pool':
+            outputs |= {'r1i', 'R1ib'}
+
+        return outputs
+
+    def dummy_data(self):
+        data = self.init_data()
+        data['v_t'] = [data['v_t']]
+        if self.config['baseline']=='measured':
+            data['R1_t'] = [data['R1_t']]
+        return data
 
 
 class RelaxivityArtery(Module):
@@ -45,14 +162,14 @@ class RelaxivityArtery(Module):
         't1_relaxation': {None, 'lin'},
         't2_relaxation': {None, 'lin'},
         't2s_relaxation': {None, 'lin', 'quad'},
-        'inflow': {True, False}
+        'inflow': {'none', 'pool', 'inlet'}
     }
     defaults = {
         'baseline': 'literature',
         't1_relaxation': 'lin',
         't2_relaxation': None,
         't2s_relaxation': 'lin',
-        'inflow': False,
+        'inflow': 'none',
     }
     _all_inputs = None
     _all_outputs = None
@@ -74,7 +191,7 @@ class RelaxivityArtery(Module):
         else:
             R1b = [1 / const.T1(b0, c) for c in wcomps]
 
-        if self.config['inflow']:
+        if self.config['inflow'] == 'pool':
             o['R1ib'] = [1 / const.T1(b0, 'blood')]
             o['r1i'] = [const.r1(b0, 'blood', cm)]
 
@@ -119,7 +236,7 @@ class RelaxivityArtery(Module):
         if self.config['t2s_relaxation']=='quad':
             outputs |= {'r2sq'}
 
-        if self.config['inflow']:
+        if self.config['inflow'] == 'pool':
             outputs |= {'r1i', 'R1ib'}
 
         return outputs
@@ -135,7 +252,7 @@ class RelaxivityKidney(Module):
         't1_relaxation': {None, 'lin'},
         't2_relaxation': {None, 'lin'},
         't2s_relaxation': {None, 'lin', 'quad'},
-        'inflow': {True, False}
+        'inflow': {'none', 'pool', 'inlet'}
     }
     defaults = {
         'water_exchange': 'F',
@@ -143,7 +260,7 @@ class RelaxivityKidney(Module):
         't1_relaxation': 'lin',
         't2_relaxation': None,
         't2s_relaxation': 'lin',
-        'inflow': False,
+        'inflow': 'none',
     }
     def __call__(self, data: dict=None, **kwargs) -> dict: 
         i = self.map_data(data, kwargs)
@@ -185,7 +302,7 @@ class RelaxivityKidney(Module):
         else:
             R1b = [1 / const.T1(b0, c) for c in wcomps]
 
-        if self.config['inflow']:
+        if self.config['inflow'] == 'pool':
             o['R1ib'] = [1 / const.T1(b0, 'blood')]
             o['r1i'] = [const.r1(b0, 'blood', cm)]
 
@@ -234,7 +351,7 @@ class RelaxivityKidney(Module):
         if self.config['t2s_relaxation']=='quad':
             outputs |= {'r2sq'}
 
-        if self.config['inflow']:
+        if self.config['inflow'] == 'pool':
             outputs |= {'r1i', 'R1ib'}
 
         return outputs
@@ -257,7 +374,7 @@ class RelaxivityLiver(Module):
         't1_relaxation': {None, 'lin'},
         't2_relaxation': {None, 'lin'},
         't2s_relaxation': {None, 'lin', 'quad'},
-        'inflow': {True, False}
+        'inflow': {'none', 'pool', 'inlet'}
     }
     defaults = {
         'water_exchange': 'F',
@@ -265,7 +382,7 @@ class RelaxivityLiver(Module):
         't1_relaxation': 'lin',
         't2_relaxation': None,
         't2s_relaxation': 'lin',
-        'inflow': False,
+        'inflow': 'none',
     }
     _all_inputs = None
     _all_outouts = None
@@ -295,7 +412,7 @@ class RelaxivityLiver(Module):
         else:
             R1b = [1 / const.T1(b0, c) for c in wcomps]
 
-        if self.config['inflow']:
+        if self.config['inflow'] == 'pool':
             o['R1ib'] = [1 / const.T1(b0, 'blood')]
             o['r1i'] = [const.r1(b0, 'blood', cm)]
 
@@ -342,7 +459,7 @@ class RelaxivityLiver(Module):
         if self.config['t2s_relaxation']=='quad':
             outputs |= {'r2sq'}
 
-        if self.config['inflow']:
+        if self.config['inflow'] == 'pool':
             outputs |= {'r1i', 'R1ib'}
 
         return outputs
@@ -365,7 +482,7 @@ class RelaxivityTissueX(Module):
         't1_relaxation': {None, 'lin'},
         't2_relaxation': {None, 'lin'},
         't2s_relaxation': {None, 'lin', 'quad'},
-        'inflow': {True, False}
+        'inflow': {'none', 'pool', 'inlet'}
     }
     defaults = {
         'water_exchange': 'FF',
@@ -374,7 +491,7 @@ class RelaxivityTissueX(Module):
         't1_relaxation': 'lin',
         't2_relaxation': None,
         't2s_relaxation': 'lin',
-        'inflow': False,
+        'inflow': 'none',
     }
     def __call__(self, data: dict=None, **kwargs) -> dict: 
         i = self.map_data(data, kwargs)
@@ -408,7 +525,7 @@ class RelaxivityTissueX(Module):
         if self.config['t2s_relaxation']=='quad':
             o['r2sq'] = const.r2sq(b0, 'tissue', cm)
 
-        if self.config['inflow']:
+        if self.config['inflow'] == 'pool':
             o['R1ib'] = [1 / const.T1(b0, 'blood')]
             o['r1i'] = [const.r1(b0, 'blood', cm)]
 
@@ -440,7 +557,7 @@ class RelaxivityTissueX(Module):
         if self.config['t2s_relaxation']=='quad':
             outputs |= {'r2sq'}
 
-        if self.config['inflow']:
+        if self.config['inflow'] == 'pool':
             outputs |= {'r1i', 'R1ib'}
 
         return outputs

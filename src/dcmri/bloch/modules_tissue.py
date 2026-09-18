@@ -1,133 +1,4 @@
-"""Signal after readout of given Mz.
 
-Args:
-    S0 (float): Signal scaling factor (arbitrary units).
-    R2 (array-like): Transverse relaxation rate R1 or R2* in 1/sec. 
-    FAR (float): Readout flip angle (deg)
-    TE (float): Echo time (sec)
-    noise_sdev (float, optional): standard deviation of the signal noise. 
-
-Returns:
-    np.ndarray: Signal in the same units as S0 and with the same 
-    dimensions as Mz.
-"""  
-
-"""Longitudinalitudinal magnetization.
-
-See section :ref:`basics-relaxation-T1` for more detail.
-
-Args:
-    R1 (array-like): Longitudinal relaxation rates in 1/sec. For a tissue 
-        with n compartments, the first dimension of R1 must be n. For a
-        single compartment, R1 can be scalar or a 1D time-array.
-    T (float): duration of free recovery.
-    v (array-like, optional): volume fractions of the compartments. For a 
-        one-compartment tissue this is a scalar - otherwise it is an 
-        array with one value for each compartment. Defaults to 1.
-    Fw (array-like, optional): Water flow between the compartments and to 
-        the environment, in units of mL/sec/cm3. Generally Fw must be a nxn 
-        array, where n is the number of compartments, and the off-diagonal 
-        elements Fw[j,i] are the permeability for water moving from 
-        compartment i into j. The diagonal elements Fw[i,i] quantify the 
-        flow of water from compartment i to outside. For a closed system 
-        with equal permeabilities between all compartments, a scalar value 
-        for Fw can be provided. Defaults to 0.
-    j (array-like, optional): normalized tissue magnetization flux. j has 
-        to have the same shape as R1. Defaults to None.
-    n_init (array-like, optional): initial relative magnetization at T=0. 
-        If this is a scalar, all compartments are assumed to have the same 
-        initial magnetization. Defaults to 0.
-    me (array-like, optional): equilibrium magnetization of the tissue 
-        compartments. If a scalar value is provided, all compartments are 
-        assumed to have the same equilibrium magnetization. Defaults to 1.
-
-Returns:
-    np.ndarray: Magnetization in the compartments after a time T.
-
-Example:
-
-    Magnetization recovery after inversion.
-
-.. plot::
-    :include-source:
-    :context: close-figs
-
-    >>> import numpy as np
-    >>> import matplotlib.pyplot as plt
-    >>> import dcmri as dc
-
-    Plot magnetization recovery for the first 10 seconds after an 
-    inversion pulse, for a closed tissue with R1 = 1 sec, and for an open 
-    tissue with equilibrium inflow and inverted inflow:
-
-    >>> TI = 0.1*np.arange(100)
-    >>> R1 = 1
-    >>> f = 0.5
-
-    >>> Mz = dc.Mz_wrapper_free(R1, TI, n_init=-1)
-    >>> Mz_e = dc.Mz_wrapper_free(R1, TI, n_init=-1, Fw=f, j=f)
-    >>> Mz_i = dc.Mz_wrapper_free(R1, TI, n_init=-1, Fw=f, j=-f)
-
-    >>> plt.plot(TI, Mz, label='No flow', linewidth=3)
-    >>> plt.plot(TI, Mz_e, label='Equilibrium inflow', linewidth=3)
-    >>> plt.plot(TI, Mz_i, label='Inverted inflow', linewidth=3)
-    >>> plt.xlabel('Inversion time (sec)')
-    >>> plt.ylabel('Magnetization (A/cm)')
-    >>> plt.legend()
-    >>> plt.show()
-
-    Now consider a two-compartment model, with a central compartment 
-    that has in- and outflow, and a peripheral compartment that only 
-    exchanges with the central compartment:
-
-    >>> R1 = [1,2]
-    >>> v = [0.3, 0.7]
-    >>> PS = 0.1
-    >>> Fw = [[f, PS], [PS, 0]]
-    >>> Mz = dc.Mz_wrapper_free(R1, TI, v, Fw, n_init=-1, j=[f, 0])
-
-    >>> plt.plot(TI, Mz[0,:], label='Central compartment', linewidth=3)
-    >>> plt.plot(TI, Mz[1,:], label='Peripheral compartment', linewidth=3)
-    >>> plt.xlabel('Inversion time (sec)')
-    >>> plt.ylabel('Magnetization (A/cm)')
-    >>> plt.legend()
-    >>> plt.show()
-
-    In DC-MRI the more usual situation is one where TI is fixed and the 
-    relaxation rates are variable due to the effect of a contrast agent. 
-    As an illustration, consider the previous result again at TI=500 msec 
-    and an R1 that is linearly declining in the central compartment and 
-    constant in the peripheral compartment:
-
-    >>> TI = 0.5
-    >>> nt = 1000
-    >>> t = 0.1*np.arange(nt)
-    >>> R1 = np.stack((1-t/np.amax(t), np.ones(nt)))
-    >>> j = np.stack((f*np.ones(nt), np.zeros(nt)))
-    >>> Mz = dc.Mz_wrapper_free(R1, TI, v, Fw, n_init=-1, j=j)
-
-    >>> plt.plot(t, Mz[0,:], label='Central compartment', linewidth=3)
-    >>> plt.plot(t, Mz[1,:], label='Peripheral compartment', linewidth=3)
-    >>> plt.xlabel('Time (sec)')
-    >>> plt.ylabel('Magnetization (A/cm)')
-    >>> plt.legend()
-    >>> plt.show()   
-
-    The function allows for R1 and TI to be both variable. Computing the 
-    result for 10 different TI values and extracting the result 
-    corresponding to TI=0.5 gives again the same result:
-
-    >>> TI = 0.1*np.arange(10)
-    >>> Mz = dc.Mz_wrapper_free(R1, TI, v, Fw, n_init=-1, j=j)
-
-    >>> plt.plot(t, Mz[0,:,5], label='Central compartment', linewidth=3)
-    >>> plt.plot(t, Mz[1,:,5], label='Peripheral compartment', linewidth=3)
-    >>> plt.xlabel('Time (sec)')
-    >>> plt.ylabel('Magnetization (A/cm)')
-    >>> plt.legend()
-    >>> plt.show()      
-
-"""
 import numpy as np
 from scipy.interpolate import interp1d
 
@@ -137,21 +8,77 @@ from dcmri.core.module import Module
 from dcmri.bloch.functions_dynamic import Mz_wrapper
 from dcmri.bloch import functions_sequences
 
+# +--------------------------------------------------------------------------------------------------+
+# |                                   MzPrep - all configs (n = 3)                                   |
+# +----------+--------------------------------------------------------------------------+------------+
+# | Key      | Values                                                                   | Default    |
+# +----------+--------------------------------------------------------------------------+------------+
+# | sequence | 2D-DE-EPI, 2D-GE-EPI, 2D-SE-EPI, 2D-SPGR, 2D-SPGR-SS, 2D-SR-SPGR,        | 3D-SPGR-SS |
+# |          | 3D-DE-EPI, 3D-GE-EPI, 3D-IR-SPGR, 3D-IR-SPGR-SS, 3D-IR-SS, 3D-PR-SPGR,   |            |
+# |          | 3D-PR-SPGR-SS, 3D-PR-SS, 3D-SE-EPI, 3D-SPGR, 3D-SPGR-SS, 3D-SR-SPGR,     |            |
+# |          | 3D-SR-SPGR-SS, 3D-SR-SS, ZTE-3D-IR-SPGR-SS, ZTE-3D-SPGR-SS               |            |
+# | tof_corr | False, True                                                              | False      |
+# | inflow   | inlet, none, pool                                                        | none       |
+# +--------------------------------------------------------------------------------------------------+
 
-# TODO class JzPrep(Module)
+# +------------------------------------------------------------------------------------------------------------------------------+
+# |                                                 MzPrep - all inputs (n = 26)                                                 |
+# +--------+------------+-----------------------------------------------+-----------------+-------+--------------+-------+-------+
+# | Key    | Unit       | Name                                          | Group           | Init  | Bounds       | DICOM | OSIPI |
+# +--------+------------+-----------------------------------------------+-----------------+-------+--------------+-------+-------+
+# | FA     | deg        | flip angle                                    | Sequence        | 15    | (0, 180)     |       |       |
+# | Nph    |            | number of acquired phase lines in k-space     | Sequence        | 128   | (0, 1000)    |       |       |
+# | Nz     |            | number of slices in a multi-slice acquisition | Sequence        | 64    | (0, 1000)    |       |       |
+# | PA     | deg        | preparation Pulse Flip Angle                  | Sequence        | 90    | (0, 180)     |       |       |
+# | SA     | deg        | saturation Slab Flip Angle                    | Sequence        | 0     | (0, 180)     |       |       |
+# | TA     | sec        | acquisition time                              | Sequence        | 2.0   | (0, 30)      |       |       |
+# | TD     | sec        | prepulse delay                                | Sequence        | 0.05  | (0, 1)       |       |       |
+# | TE     | sec        | echo time                                     | Sequence        | 0.001 | (0, 10)      |       |       |
+# | TE2    | sec        | second echo time in a multi-echo sequence     | Sequence        | 0.005 | (0, 1)       |       |       |
+# | TP     | sec        | preparation delay                             | Sequence        | 0.05  | (0, 1)       |       |       |
+# | TR     | sec        | repetition time                               | Sequence        | 0.005 | (0, 1)       |       |       |
+# | iz     |            | slice number in a multi-slice acquisition     | Sequence        | 0     | (0, 1000)    |       |       |
+# | tacq   | sec        | acquisition duration                          | Sequence        | 240   | (0, 10000.0) |       |       |
+# | tstart | sec        | start of the acquisition                      | Sequence        | 0     | (0, 10000.0) |       |       |
+# +--------+------------+-----------------------------------------------+-----------------+-------+--------------+-------+-------+
+# | B1corr |            | B1-correction factor                          | Electromagnetic | 1     | (0, 5)       |       |       |
+# | Mzi    | A/cm       | longitudinal inlet magnetization              | Electromagnetic | 1     | (0, 5)       |       |       |
+# | R1     | Hz         | tissue R1                                     | Electromagnetic | 0.65  | (0, 5)       |       |       |
+# | R1i    | Hz         | inlet R1                                      | Electromagnetic | 0.65  | (0, 5)       |       |       |
+# | me     | A cm2/mL   | equilibrium magnetization                     | Electromagnetic | 1     | (0, 5)       |       |       |
+# | tMi    | sec        | inlet magnetization time points               | Electromagnetic | 0.0   |              |       |       |
+# | tR     | sec        | relaxation rate time points                   | Electromagnetic | 0.0   |              |       |       |
+# +--------+------------+-----------------------------------------------+-----------------+-------+--------------+-------+-------+
+# | Fwi    | mL/sec/cm3 | inflow in all water compartments              | Physiological   | 0.02  | (0, 1)       |       |       |
+# | Kw     | mL/sec/cm3 | water exchange matrix                         | Physiological   | 0     | (0, 1)       |       |       |
+# | TF     | sec        | inflow time                                   | Physiological   | 0.5   | (0, 10)      |       |       |
+# | inlets |            | water inlet compartments                      | Physiological   | (0,)  |              |       |       |
+# | vw     | mL/cm3     | water volume fraction                         | Physiological   | 1     | (0, 1)       |       |       |
+# +------------------------------------------------------------------------------------------------------------------------------+
 
+# +-------------------------------------------------------------------------------------------------------+
+# |                                      MzPrep - all outputs (n = 2)                                     |
+# +-----+------+----------------------------------------+-----------------+------+--------+-------+-------+
+# | Key | Unit | Name                                   | Group           | Init | Bounds | DICOM | OSIPI |
+# +-----+------+----------------------------------------+-----------------+------+--------+-------+-------+
+# | Mz  | A/cm | longitudinal magnetization             | Electromagnetic | 1    | (0, 5) |       |       |
+# | tMz | sec  | longitudinal magnetization time points | Electromagnetic | 0.0  |        |       |       |
+# +-------------------------------------------------------------------------------------------------------+
 
 class MzPrep(Module): 
     configs = {
         'sequence': get_sequence('name'),
         'tof_corr': {False, True},
-        'inflow': {False, True},
+        'inflow': {'none', 'pool', 'inlet'}, 
     }
     defaults = {
-        'sequence': 'SPGR-SS',
+        'sequence': '3D-SPGR-SS',
         'tof_corr': False,
-        'inflow': False,
+        'inflow': 'none',
     }
+    _all_inputs = {'inlets', 'Fwi', 'tMi', 'tR', 'TE2', 'SA', 'Nph', 'TD', 'TF', 'me', 'R1i', 'TP', 'B1corr', 'FA', 'tacq', 'vw', 'tstart', 'R1', 'PA', 'TR', 'Nz', 'iz', 'TE', 'Kw', 'TA', 'Mzi'}
+    _all_outputs = {'tMz', 'Mz'}
+
     def __init__(self, imap: dict=None, omap: dict=None, iomap: dict=None, cmap: dict=None, **config):
         self.set_config(config, cmap)
         if self.config['tof_corr'] and self.config['sequence'] != '3D-SPGR-SS':
@@ -180,8 +107,8 @@ class MzPrep(Module):
 
         # --- Result without T1 weighting
         if 'R1' not in get_sequence('tissue_params', sequence):
-            o['tM'] = tstart + functions_sequences.acquisition_times(sequence, p, p['tacq'])
-            ntM = len(o['tM'])
+            o['tMz'] = tstart + functions_sequences.acquisition_times(sequence, p, p['tacq'])
+            ntM = len(o['tMz'])
             o['Mz'] = np.repeat(v[:, None] * p['me'], ntM, axis=1)
             return self.map_results(o)
     
@@ -201,8 +128,26 @@ class MzPrep(Module):
         R1 = np.reshape(p['R1'], (nc, ntR))
 
         # Compute magnetization inflow
-        j, tj = None, None
-        if self.config['inflow']:
+        if self.config['inflow'] == 'none':
+            j, tj = None, None
+
+        elif self.config['inflow'] == 'inlet':
+            tj = p['tMi']
+            ni = len(p['inlets'])
+
+            # Format Fi
+            Fwi = np.array(p['Fwi'])
+            if Fwi.size != ni:
+                raise ValueError(f"Fwi must have the length {ni}")
+            Fwi = Fwi.reshape(ni) 
+
+            for i in range(ni):
+                if i==0:
+                    j = np.zeros((nc, ) + p['Mzi'].shape[1:])
+                inlet = p['inlets'][i] 
+                j[inlet, :, :] = Fwi[i] * p['Mzi'][i, :, :]  # (mL/min/cm3) * (magn/mL) = magn/min/cm3
+   
+        elif self.config['inflow'] == 'pool':
 
             # Format R1i
             ni = len(p['inlets'])
@@ -219,7 +164,7 @@ class MzPrep(Module):
 
             for i in range(ni):
                 tj, Mzi = Mz_wrapper(sequence, mz_prep_inflow, tR, R1i[i], p, v=1, Kw=0, tstart=tstart, t_end=t_end)
-                if j is None:
+                if i==0:
                     j = np.zeros((nc, ) + tj.shape)
                 inlet = p['inlets'][i] 
                 j[inlet, :, :] = Fwi[i] * Mzi[0, :, :]  # (mL/min/cm3) * (magn/mL) = magn/min/cm3
@@ -227,7 +172,7 @@ class MzPrep(Module):
         # Delegate computation to helper functions
         mz_prep_sequence = get_sequence('mz_prep_tissue', sequence)
 
-        o['tM'], o['Mz'] = Mz_wrapper(sequence, mz_prep_sequence, tR, R1, p, v, Kw, tj, j, tstart=tstart, t_end=t_end)
+        o['tMz'], o['Mz'] = Mz_wrapper(sequence, mz_prep_sequence, tR, R1, p, v, Kw, tj, j, tstart=tstart, t_end=t_end)
 
         # Return dimensions (compartments, times)
         return self.map_results(o)
@@ -245,29 +190,79 @@ class MzPrep(Module):
             return inputs
         
         inputs |= {'Kw', 'tR', 'R1'}
-        if self.config['inflow']:
+        if self.config['inflow'] == 'inlet':
+            inputs |= {'Fwi', 'tMi', 'Mzi', 'inlets'}
+        elif self.config['inflow'] == 'pool':
             inputs |= {'Fwi', 'R1i', 'inlets'}
         return inputs
     
     def outputs(self):
-        return {'tM', 'Mz'} # (compartments, times)
+        return {'tMz', 'Mz'} # (compartments, times)
 
     def dummy_data(self, nc=2):
-        data = self.init_data()
+        p = self.init_data()
         ntR = 5
-        data |= {
+        tR = np.arange(ntR)
+        R1 = np.ones((nc, ntR))
+        tacq = ntR - 1
+        tstart = p['tstart'] 
+        t_end = tstart + tacq
+        sequence = self.config['sequence']
+        mz_prep_inflow = get_sequence('mz_prep_inflow', sequence)
+        tMi, Mzi = Mz_wrapper(sequence, mz_prep_inflow, tR, R1[0], p, 
+                            v=1, Kw=0, tstart=tstart, t_end=t_end)
+        p |= {
             'tacq': ntR-1,
-            'tR': np.arange(ntR),
-            'R1': np.ones((nc, ntR)),
+            'tR': tR,
+            'R1': R1,
             'vw': np.ones(nc) / nc, 
             'Kw': np.ones((nc, nc)),
             'R1i': np.ones((nc, ntR)),
+            'tMi': tMi,
+            'Mzi': np.stack(nc * [Mzi], axis=0),
             'Fwi': np.ones(nc),
             'inlets': np.arange(nc),
         }
-        return data
+        return p
 
 
+# +--------------------------------------------------------------------------------------------------+
+# |                                 MxyReadMz - all configs (n = 1)                                  |
+# +----------+--------------------------------------------------------------------------+------------+
+# | Key      | Values                                                                   | Default    |
+# +----------+--------------------------------------------------------------------------+------------+
+# | sequence | 2D-DE-EPI, 2D-GE-EPI, 2D-SE-EPI, 2D-SPGR, 2D-SPGR-SS, 2D-SR-SPGR,        | 3D-SPGR-SS |
+# |          | 3D-DE-EPI, 3D-GE-EPI, 3D-IR-SPGR, 3D-IR-SPGR-SS, 3D-IR-SS, 3D-PR-SPGR,   |            |
+# |          | 3D-PR-SPGR-SS, 3D-PR-SS, 3D-SE-EPI, 3D-SPGR, 3D-SPGR-SS, 3D-SR-SPGR,     |            |
+# |          | 3D-SR-SPGR-SS, 3D-SR-SS, ZTE-3D-IR-SPGR-SS, ZTE-3D-SPGR-SS               |            |
+# +--------------------------------------------------------------------------------------------------+
+
+# +-------------------------------------------------------------------------------------------------------------------------------+
+# |                                                MxyReadMz - all inputs (n = 11)                                                |
+# +--------+------+---------------------------------------------------------+-----------------+-------+-----------+-------+-------+
+# | Key    | Unit | Name                                                    | Group           | Init  | Bounds    | DICOM | OSIPI |
+# +--------+------+---------------------------------------------------------+-----------------+-------+-----------+-------+-------+
+# | FA     | deg  | flip angle                                              | Sequence        | 15    | (0, 180)  |       |       |
+# | Nk0    |      | number of acquired phase lines to the center of k-space | Sequence        | 64    | (0, 1000) |       |       |
+# | TE     | sec  | echo time                                               | Sequence        | 0.001 | (0, 10)   |       |       |
+# | TE1    | sec  | first echo time in a multi-echo sequence                | Sequence        | 0.001 | (0, 1)    |       |       |
+# | TE2    | sec  | second echo time in a multi-echo sequence               | Sequence        | 0.005 | (0, 1)    |       |       |
+# +--------+------+---------------------------------------------------------+-----------------+-------+-----------+-------+-------+
+# | B1corr |      | B1-correction factor                                    | Electromagnetic | 1     | (0, 5)    |       |       |
+# | Mz     | A/cm | longitudinal magnetization                              | Electromagnetic | 1     | (0, 5)    |       |       |
+# | R2     | Hz   | tissue R2                                               | Electromagnetic | 2.0   | (0, 5)    |       |       |
+# | R2s    | Hz   | tissue R2*                                              | Electromagnetic | 20    | (0, 5)    |       |       |
+# | tMz    | sec  | longitudinal magnetization time points                  | Electromagnetic | 0.0   |           |       |       |
+# | tR     | sec  | relaxation rate time points                             | Electromagnetic | 0.0   |           |       |       |
+# +-------------------------------------------------------------------------------------------------------------------------------+
+
+# +-----------------------------------------------------------------------------------------+
+# |                             MxyReadMz - all outputs (n = 1)                             |
+# +-----+------+--------------------------+-----------------+------+--------+-------+-------+
+# | Key | Unit | Name                     | Group           | Init | Bounds | DICOM | OSIPI |
+# +-----+------+--------------------------+-----------------+------+--------+-------+-------+
+# | Mxy | A/cm | transverse magnetization | Electromagnetic | 1    | (0, 5) |       |       |
+# +-----------------------------------------------------------------------------------------+
 
 class MxyReadMz(Module): 
     configs = {
@@ -275,9 +270,12 @@ class MxyReadMz(Module):
     }
     defaults = {
         'sequence': '3D-SPGR-SS'
-    }    
+    }  
+    _all_inputs = {'FA', 'Mz', 'TE1', 'tR', 'TE2', 'tMz', 'R2s', 'Nk0', 'TE', 'R2', 'B1corr'}
+    _all_outputs = {'Mxy'}
+
     def inputs(self):
-        inputs = {'tR', 'tM', 'Mz'} # shape (nc, n_times) 
+        inputs = {'tR', 'tMz', 'Mz'} # shape (nc, n_times) 
         inputs |= get_sequence('read_params', self.config['sequence'])
 
         weighting = get_sequence('tissue_params', self.config['sequence'])
@@ -308,11 +306,11 @@ class MxyReadMz(Module):
         nc, nt = Mz.shape
 
         if 'R2s' in self._inputs:
-            R2s = np.interp(p['tM'], np.atleast_1d(p['tR']), np.atleast_1d(p['R2s']))
+            R2s = np.interp(p['tMz'], np.atleast_1d(p['tR']), np.atleast_1d(p['R2s']))
             
         if 'R2' in self._inputs:
             R2 = np.reshape(p['R2'], (nc, -1))  
-            R2 = _interpolate_2d(p['tM'], p['tR'], R2)
+            R2 = _interpolate_2d(p['tMz'], p['tR'], R2)
 
         FA = p['FA'] * p['B1corr']
         
@@ -350,7 +348,7 @@ class MxyReadMz(Module):
         ntR, ntM = 5, 3
         data |= {
             'tacq': ntR-1,
-            'tM': np.ones(ntM), 
+            'tMz': np.ones(ntM), 
             'Mz': np.ones((nc, ntM)), 
             'tR': np.arange(ntR), 
             'R2':np.ones((nc, ntR)), 
@@ -367,30 +365,89 @@ def _interpolate_2d(t_new, tR, R):
     return f(t_new) 
 
 
+# +--------------------------------------------------------------------------------------------------+
+# |                               Magnetization - all configs (n = 3)                                |
+# +----------+--------------------------------------------------------------------------+------------+
+# | Key      | Values                                                                   | Default    |
+# +----------+--------------------------------------------------------------------------+------------+
+# | sequence | 2D-DE-EPI, 2D-GE-EPI, 2D-SE-EPI, 2D-SPGR, 2D-SPGR-SS, 2D-SR-SPGR,        | 3D-SPGR-SS |
+# |          | 3D-DE-EPI, 3D-GE-EPI, 3D-IR-SPGR, 3D-IR-SPGR-SS, 3D-IR-SS, 3D-PR-SPGR,   |            |
+# |          | 3D-PR-SPGR-SS, 3D-PR-SS, 3D-SE-EPI, 3D-SPGR, 3D-SPGR-SS, 3D-SR-SPGR,     |            |
+# |          | 3D-SR-SPGR-SS, 3D-SR-SS, ZTE-3D-IR-SPGR-SS, ZTE-3D-SPGR-SS               |            |
+# | tof_corr | False, True                                                              | False      |
+# | inflow   | inlet, none, pool                                                        | none       |
+# +--------------------------------------------------------------------------------------------------+
+
+# +----------------------------------------------------------------------------------------------------------------------------------------+
+# |                                                  Magnetization - all inputs (n = 30)                                                   |
+# +--------+------------+---------------------------------------------------------+-----------------+-------+--------------+-------+-------+
+# | Key    | Unit       | Name                                                    | Group           | Init  | Bounds       | DICOM | OSIPI |
+# +--------+------------+---------------------------------------------------------+-----------------+-------+--------------+-------+-------+
+# | FA     | deg        | flip angle                                              | Sequence        | 15    | (0, 180)     |       |       |
+# | Nk0    |            | number of acquired phase lines to the center of k-space | Sequence        | 64    | (0, 1000)    |       |       |
+# | Nph    |            | number of acquired phase lines in k-space               | Sequence        | 128   | (0, 1000)    |       |       |
+# | Nz     |            | number of slices in a multi-slice acquisition           | Sequence        | 64    | (0, 1000)    |       |       |
+# | PA     | deg        | preparation Pulse Flip Angle                            | Sequence        | 90    | (0, 180)     |       |       |
+# | SA     | deg        | saturation Slab Flip Angle                              | Sequence        | 0     | (0, 180)     |       |       |
+# | TA     | sec        | acquisition time                                        | Sequence        | 2.0   | (0, 30)      |       |       |
+# | TD     | sec        | prepulse delay                                          | Sequence        | 0.05  | (0, 1)       |       |       |
+# | TE     | sec        | echo time                                               | Sequence        | 0.001 | (0, 10)      |       |       |
+# | TE1    | sec        | first echo time in a multi-echo sequence                | Sequence        | 0.001 | (0, 1)       |       |       |
+# | TE2    | sec        | second echo time in a multi-echo sequence               | Sequence        | 0.005 | (0, 1)       |       |       |
+# | TP     | sec        | preparation delay                                       | Sequence        | 0.05  | (0, 1)       |       |       |
+# | TR     | sec        | repetition time                                         | Sequence        | 0.005 | (0, 1)       |       |       |
+# | iz     |            | slice number in a multi-slice acquisition               | Sequence        | 0     | (0, 1000)    |       |       |
+# | tacq   | sec        | acquisition duration                                    | Sequence        | 240   | (0, 10000.0) |       |       |
+# | tstart | sec        | start of the acquisition                                | Sequence        | 0     | (0, 10000.0) |       |       |
+# +--------+------------+---------------------------------------------------------+-----------------+-------+--------------+-------+-------+
+# | B1corr |            | B1-correction factor                                    | Electromagnetic | 1     | (0, 5)       |       |       |
+# | Mzi    | A/cm       | longitudinal inlet magnetization                        | Electromagnetic | 1     | (0, 5)       |       |       |
+# | R1     | Hz         | tissue R1                                               | Electromagnetic | 0.65  | (0, 5)       |       |       |
+# | R1i    | Hz         | inlet R1                                                | Electromagnetic | 0.65  | (0, 5)       |       |       |
+# | R2     | Hz         | tissue R2                                               | Electromagnetic | 2.0   | (0, 5)       |       |       |
+# | R2s    | Hz         | tissue R2*                                              | Electromagnetic | 20    | (0, 5)       |       |       |
+# | me     | A cm2/mL   | equilibrium magnetization                               | Electromagnetic | 1     | (0, 5)       |       |       |
+# | tMi    | sec        | inlet magnetization time points                         | Electromagnetic | 0.0   |              |       |       |
+# | tR     | sec        | relaxation rate time points                             | Electromagnetic | 0.0   |              |       |       |
+# +--------+------------+---------------------------------------------------------+-----------------+-------+--------------+-------+-------+
+# | Fwi    | mL/sec/cm3 | inflow in all water compartments                        | Physiological   | 0.02  | (0, 1)       |       |       |
+# | Kw     | mL/sec/cm3 | water exchange matrix                                   | Physiological   | 0     | (0, 1)       |       |       |
+# | TF     | sec        | inflow time                                             | Physiological   | 0.5   | (0, 10)      |       |       |
+# | inlets |            | water inlet compartments                                | Physiological   | (0,)  |              |       |       |
+# | vw     | mL/cm3     | water volume fraction                                   | Physiological   | 1     | (0, 1)       |       |       |
+# +----------------------------------------------------------------------------------------------------------------------------------------+
+
+# +-------------------------------------------------------------------------------------------------------+
+# |                                  Magnetization - all outputs (n = 4)                                  |
+# +-----+------+----------------------------------------+-----------------+------+--------+-------+-------+
+# | Key | Unit | Name                                   | Group           | Init | Bounds | DICOM | OSIPI |
+# +-----+------+----------------------------------------+-----------------+------+--------+-------+-------+
+# | M   | A/cm | magnetization                          | Electromagnetic | 1    | (0, 5) |       |       |
+# | Mz  | A/cm | longitudinal magnetization             | Electromagnetic | 1    | (0, 5) |       |       |
+# | tM  | sec  | magnetization time points              | Electromagnetic | 0.0  |        |       |       |
+# | tMz | sec  | longitudinal magnetization time points | Electromagnetic | 0.0  |        |       |       |
+# +-------------------------------------------------------------------------------------------------------+
+
 class Magnetization(Module): 
-    configs = {
-        'sequence': get_sequence('name'),
-        'tof_corr': {False, True},
-        'inflow': {False, True},
-    }
-    defaults = {
-        'sequence': '3D-SPGR-SS',
-        'tof_corr': False,
-        'inflow': False,
-    }
-    def __init__(self, imap:dict=None, omap:dict=None, **config):
-        self.set_config(config)
+    configs = MzPrep.configs | MxyReadMz.configs
+    defaults = MzPrep.defaults | MxyReadMz.defaults
+
+    _all_inputs = {'TE2', 'TR', 'SA', 'R1i', 'FA', 'R2s', 'TE', 'iz', 'Nk0', 'tacq', 'Nz', 'TA', 'PA', 'me', 'TF', 'TP', 'TD', 'R2', 'Kw', 'Fwi', 'tstart', 'inlets', 'tMi', 'TE1', 'R1', 'B1corr', 'Nph', 'vw', 'tR', 'Mzi'}
+    _all_outputs = {'Mz', 'tM', 'tMz', 'M'}
+
+    def __init__(self, imap:dict=None, omap:dict=None, iomap:dict=None, cmap:dict=None, **config):
+        self.set_config(config, cmap)
         self._mz_prep = MzPrep(**self.config)
         self._mxy_read = MxyReadMz(**self.config)
-        self.map_io(imap, omap)
+        self.map_io(imap, omap, iomap)
         
     def inputs(self):
         inputs = self._mz_prep.mapped_inputs()
-        inputs |= self._mxy_read.mapped_inputs() - {'tM', 'Mz'}
+        inputs |= self._mxy_read.mapped_inputs() - {'tM', 'tMz', 'Mz'}
         return inputs 
     
     def outputs(self):
-        return {'tM', 'M'}
+        return {'tM', 'M', 'tMz', 'Mz'}
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)  
@@ -402,31 +459,43 @@ class Magnetization(Module):
         k0 = functions_sequences.pulse_readout(self.config['sequence'], p)
 
         p |= self._mz_prep(p)
-        p['Mz'] = p['Mz'][:, :, k0] # (compartments, times)
-        p['tM'] = p['tM'][:, k0] # (times, )
-        Mxy = self._mxy_read(p)['Mxy'] # (channels, components, compartments, times) 
 
-        M = np.zeros((Mxy.shape[0], 3, Mxy.shape[2], Mxy.shape[3]), dtype=Mxy.dtype)
-        M[:, :2, :, :] = Mxy
-        for c in range(M.shape[0]):
-            M[c, 2, :, :] = p['Mz']
+        Mz_read = p['Mz'][:, :, k0] # (compartments, times)
+        p['tM'] = p['tMz'][:, k0] # (times, )
 
-        results = {'tM': p['tM'], 'M': M}
-        return self.map_results(results)
+        Mxy = self._mxy_read(p, Mz=Mz_read, tMz=p['tM'])['Mxy'] # (channels, components, compartments, times) 
+
+        p['M'] = np.zeros((Mxy.shape[0], 3, Mxy.shape[2], Mxy.shape[3]), dtype=Mxy.dtype)
+        p['M'][:, :2, :, :] = Mxy
+        for c in range(p['M'].shape[0]):
+             p['M'][c, 2, :, :] = Mz_read
+
+        return self.map_results(p)
 
     def dummy_data(self, nc=2):
-        data = self.init_data()
+        p = self.init_data()
         ntR = 5
-        data |= {
+        tR = np.arange(ntR)
+        R1 = np.ones((nc, ntR))
+        tacq = ntR - 1
+        tstart = p['tstart'] 
+        t_end = tstart + tacq
+        sequence = self.config['sequence']
+        mz_prep_inflow = get_sequence('mz_prep_inflow', sequence)
+        tMi, Mzi = Mz_wrapper(sequence, mz_prep_inflow, tR, R1[0], p, 
+                            v=1, Kw=0, tstart=tstart, t_end=t_end)
+        p |= {
             'tacq': ntR-1,
-            'tR': np.arange(ntR),
-            'R1': np.ones((nc, ntR)),
-            'R2':np.ones((nc, ntR)), 
+            'tR': tR,
+            'R1': R1,
+            'R2': np.ones((nc, ntR)), 
             'R2s':np.ones(ntR),
             'vw': np.ones(nc) / nc, 
             'Kw': np.ones((nc, nc)),
             'R1i': np.ones((nc, ntR)),
+            'tMi': tMi,
+            'Mzi': np.stack(nc * [Mzi, Mzi], axis=0),
             'Fwi': np.ones(nc),
-            'inlets': [0, 1]
+            'inlets': np.arange(nc),
         }
-        return data
+        return p

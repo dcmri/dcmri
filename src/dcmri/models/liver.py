@@ -116,6 +116,7 @@ roi = 'li'
 configs = ConcToSignal.configs | WaterExchangeLiver.configs | RelaxivityLiver.configs | ConcLiver.configs
 defaults = ConcToSignal.defaults | WaterExchangeLiver.defaults | RelaxivityLiver.defaults | ConcLiver.defaults
 
+configs['inflow'].discard('inlet')
 configs.pop('tof_corr')
 defaults.pop('tof_corr')
 

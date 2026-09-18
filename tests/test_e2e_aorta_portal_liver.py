@@ -81,7 +81,7 @@ def test_single_config():
         't1_relaxation_li': 'lin',
         't2_relaxation_li': None, 
         't2s_relaxation_li': None, 
-        'inflow': False,
+        'inflow': 'none',
         'sequence': 'ZTE-3D-IR-SPGR-SS', 
         'magnitude': False, 
         'calibrate': True,

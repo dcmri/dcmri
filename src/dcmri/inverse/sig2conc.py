@@ -9,6 +9,59 @@ from dcmri.bloch.functions_sequences import channels
 invertible_seqs = get_sequence('steady-state')
 analytical_inversion = ['3D-SPGR-SS', 'ZTE-3D-SPGR-SS', 'lin', '2D-GE-EPI', '2D-SE-EPI', '2D-DE-EPI']
 
+
+# +--------------------------------------------------------------------------------------------------+
+# |                                SignalToConc - all configs (n = 2)                                |
+# +-----------+-------------------------------------------------------------------------+------------+
+# | Key       | Values                                                                  | Default    |
+# +-----------+-------------------------------------------------------------------------+------------+
+# | sequence  | 2D-DE-EPI, 2D-GE-EPI, 2D-SE-EPI, 2D-SPGR-SS, 2D-SR-SPGR, 3D-DE-EPI,     | 3D-SPGR-SS |
+# |           | 3D-GE-EPI, 3D-IR-SPGR-SS, 3D-IR-SS, 3D-PR-SPGR-SS, 3D-PR-SS, 3D-SE-EPI, |            |
+# |           | 3D-SPGR-SS, 3D-SR-SPGR, 3D-SR-SPGR-SS, 3D-SR-SS, ZTE-3D-IR-SPGR-SS,     |            |
+# |           | ZTE-3D-SPGR-SS, lin                                                     |            |
+# | calibrate | False, True                                                             | True       |
+# +--------------------------------------------------------------------------------------------------+
+
+# +---------------------------------------------------------------------------------------------------------------------------------------+
+# |                                                   SignalToConc - all inputs (n = 23)                                                  |
+# +--------+------+---------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
+# | Key    | Unit | Name                                                    | Group           | Init  | Bounds        | DICOM | OSIPI     |
+# +--------+------+---------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
+# | NSR    |      | noise-to-signal ratio                                   | Signal          | 0.0   | (0, 100000.0) |       |           |
+# | S      | a.u. | signal                                                  | Signal          | 1.0   | (0, 5)        |       |           |
+# | S0     | a.u. | signal scaling factor                                   | Signal          | 1.0   | (0, 5)        |       | Q.MS1.010 |
+# | nb     | a.u. | number of baseline time points                          | Signal          | 1     |               |       |           |
+# +--------+------+---------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
+# | FA     | deg  | flip angle                                              | Sequence        | 15    | (0, 180)      |       |           |
+# | Nk0    |      | number of acquired phase lines to the center of k-space | Sequence        | 64    | (0, 1000)     |       |           |
+# | Nph    |      | number of acquired phase lines in k-space               | Sequence        | 128   | (0, 1000)     |       |           |
+# | PA     | deg  | preparation Pulse Flip Angle                            | Sequence        | 90    | (0, 180)      |       |           |
+# | TA     | sec  | acquisition time                                        | Sequence        | 2.0   | (0, 30)       |       |           |
+# | TD     | sec  | prepulse delay                                          | Sequence        | 0.05  | (0, 1)        |       |           |
+# | TE     | sec  | echo time                                               | Sequence        | 0.001 | (0, 10)       |       |           |
+# | TE1    | sec  | first echo time in a multi-echo sequence                | Sequence        | 0.001 | (0, 1)        |       |           |
+# | TE2    | sec  | second echo time in a multi-echo sequence               | Sequence        | 0.005 | (0, 1)        |       |           |
+# | TP     | sec  | preparation delay                                       | Sequence        | 0.05  | (0, 1)        |       |           |
+# | TR     | sec  | repetition time                                         | Sequence        | 0.005 | (0, 1)        |       |           |
+# | iz     |      | slice number in a multi-slice acquisition               | Sequence        | 0     | (0, 1000)     |       |           |
+# | tacq   | sec  | acquisition duration                                    | Sequence        | 240   | (0, 10000.0)  |       |           |
+# | tstart | sec  | start of the acquisition                                | Sequence        | 0     | (0, 10000.0)  |       |           |
+# +--------+------+---------------------------------------------------------+-----------------+-------+---------------+-------+-----------+
+# | B1corr |      | B1-correction factor                                    | Electromagnetic | 1     | (0, 5)        |       |           |
+# | R1b    | Hz   | precontrast tissue R1                                   | Electromagnetic | 0.65  | (0, 5)        |       |           |
+# | r1     | Hz/M | longitudinal contrast agent relaxivity                  | Electromagnetic | 3500  | (0, 10000.0)  |       |           |
+# | r2     | Hz/M | transverse contrast agent relaxivity                    | Electromagnetic | 4000  | (0, 10000.0)  |       |           |
+# | r2s    | Hz/M | transverse contrast agent relaxivity                    | Electromagnetic | 20000 | (0, 100000.0) |       |           |
+# +---------------------------------------------------------------------------------------------------------------------------------------+
+
+# +------------------------------------------------------------------------------------------+
+# |                            SignalToConc - all outputs (n = 1)                            |
+# +-----+----------+----------------------+-----------------+-------+--------+-------+-------+
+# | Key | Unit     | Name                 | Group           | Init  | Bounds | DICOM | OSIPI |
+# +-----+----------+----------------------+-----------------+-------+--------+-------+-------+
+# | C   | mmol/cm3 | tissue concentration | Indicator       | 0.005 | (0, 1) |       |       |
+# +------------------------------------------------------------------------------------------+
+
 class SignalToConc(Module):
     configs = {
         'sequence': invertible_seqs | {'lin'},
@@ -18,11 +71,14 @@ class SignalToConc(Module):
         'sequence': '3D-SPGR-SS',
         'calibrate': True,
     }
+    _all_inputs = {'r1', 'TE', 'TR', 'TP', 'r2s', 'S', 'Nph', 'nb', 'tstart', 'TE2', 'NSR', 'R1b', 'Nk0', 'FA', 'B1corr', 'PA', 'TD', 'iz', 'tacq', 'TE1', 'TA', 'S0', 'r2'}
+    _all_outputs = {'C'}
+
     def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
         if self.config['sequence'] not in analytical_inversion:
             # Calibration done during inversion so not in RelaxToSignal
-            config = self.config | {'calibrate': False, 'inflow': False}
+            config = self.config | {'calibrate': False, 'inflow': 'none'}
             self._R1_to_S = RelaxToSignal(**config)
         self.map_io(imap, omap)  
 

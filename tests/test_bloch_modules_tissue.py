@@ -8,25 +8,23 @@ from dcmri.core.exceptions import InvalidConfiguration
 
 
 def _test_class(cls):
-
-
     def _test_config(cnfg):
         try:
             instance = cls(**cnfg)
         except InvalidConfiguration:
             return
-        # print(cnfg)
-        # if cnfg != {'sequence': '3D-SPGR-SS', 'tof_corr': False, 'inflow': False}:
+        # if cnfg != {'sequence': '3D-PR-SS', 'tof_corr': False, 'inflow': 'none'}:
         #     return
+        # print(cnfg)
         data = instance.dummy_data(nc=2)
         instance(data)
+
+    cls.print_configs()
+    cls.print_all_io(verbose=1, simple=False)
 
     configs = cls.all_configs()
     for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
         _test_config(cnfg)
-
-    cls.print_all_inputs()
-    cls.print_all_outputs()
 
     print(f'Successfully covered {len(configs)} {cls.__name__} configurations!')
 
@@ -62,7 +60,7 @@ def test_mzprep_exceptions():
         assert False
 
     try:
-        mz = MzPrep(sequence='3D-SPGR-SS', inflow=True)
+        mz = MzPrep(sequence='3D-SPGR-SS', inflow='pool')
         data = mz.dummy_data(nc=2)
         mz(data, R1i=np.ones(3))
     except:
@@ -71,7 +69,7 @@ def test_mzprep_exceptions():
         assert False
 
     try:
-        mz = MzPrep(sequence='3D-SPGR-SS', inflow=True)
+        mz = MzPrep(sequence='3D-SPGR-SS', inflow='pool')
         data = mz.dummy_data(nc=2)
         mz(data, Fwi=np.ones(3))
     except:
@@ -82,7 +80,7 @@ def test_mzprep_exceptions():
 
 
 def test_mzprep_function():
-    config = {'sequence': '3D-IR-SPGR', 'inflow': False}
+    config = {'sequence': '3D-IR-SPGR', 'inflow': 'none'}
     mz = MzPrep(**config) # data = mz.dummy_data()
     nR = 50
     dt = 0.1
@@ -106,7 +104,7 @@ def test_mzprep_function():
     }
     result = mz(data)
 
-    plt.plot(result['tM'].flatten(), result['Mz'].flatten())
+    plt.plot(result['tMz'].flatten(), result['Mz'].flatten())
     plt.show()
 
 

@@ -40,7 +40,7 @@ def test_liver_instance():
     # model = LiverModel()
     # print(model.config)
     # return
-    cnfg = {'t1_relaxation': 'lin', 't2_relaxation': None, 't2s_relaxation': None, 'inflow': True, 'sequence': 'ZTE-3D-SPGR-SS', 'magnitude': False, 'trigger': True, 'calibrate': False, 'water_exchange': 'N', 'baseline': 'measured', 'kinetics': '1I-IC', 'non_stationary': None}
+    cnfg = {'t1_relaxation': 'lin', 't2_relaxation': None, 't2s_relaxation': None, 'inflow': 'pool', 'sequence': 'ZTE-3D-SPGR-SS', 'magnitude': False, 'trigger': True, 'calibrate': False, 'water_exchange': 'N', 'baseline': 'measured', 'kinetics': '1I-IC', 'non_stationary': None}
     try:
         model = LiverModel(**cnfg)
     except InvalidConfiguration as e:

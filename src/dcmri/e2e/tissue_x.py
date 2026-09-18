@@ -64,6 +64,10 @@ class TissueX():
             t = np.arange(0, np.amax(data['tS']) + p['dt'], p['dt'])
             p['c_ar'] = np.interp(t, input.time, ca['C'])
 
+        if self._model.config['calibrate']:
+            p['Scal'] = data['S'][..., :n0]
+            p['iScal'] = np.arange(n0)
+
         # Perform training
         free = get_bounds(free, bounds, free_pars=self._params('free'), value=p)
         time = data['tS']
