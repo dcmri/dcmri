@@ -2,7 +2,7 @@ import numpy as np
 from scipy.integrate import trapezoid
 
 from dcmri.core.module import Module
-from dcmri.core.exceptions import InvalidConfiguration
+from dcmri.core.module import InvalidConfig
 from dcmri.utils import const
 from dcmri.kinetics.functions_input import ca_injection
 from dcmri.kinetics.functions_blocks import flux_plug
@@ -52,7 +52,7 @@ class FluxInjection(Module):
     """Indicator flux injected"""
 
     configs = {
-        'bolus': {'single', 'dual'}
+        'bolus': {'single', 'double', 'dual'}
     }
     defaults = {
         'bolus': 'single',
@@ -64,7 +64,12 @@ class FluxInjection(Module):
             inputs |= {
                 'dose', 'rate', 'BAT'
             }
-        else:
+        elif self.config['bolus'] == 'double':
+            inputs |= {
+                'dose_1', 'rate_1', 'BAT',
+                'dose_2', 'rate_2', 'bdel'
+            }
+        elif self.config['bolus'] == 'dual':
             inputs |= {
                 'dose_1', 'rate_1', 'BAT_1',
                 'dose_2', 'rate_2', 'BAT_2'
@@ -84,7 +89,17 @@ class FluxInjection(Module):
             J = ca_injection(
                 t, p['weight'], conc, p['dose'], p['rate'], p['BAT']
             )
-        else:
+
+        elif self.config['bolus'] == 'double':
+            J1 = ca_injection(
+                t, p['weight'], conc, p['dose_1'], p['rate_1'], p['BAT']
+            )
+            J2 = ca_injection(
+                t, p['weight'], conc, p['dose_2'], p['rate_2'], p['BAT'] + p['bdel']
+            )
+            J = J1 + J2
+            
+        elif self.config['bolus'] == 'dual':
             J1 = ca_injection(
                 t, p['weight'], conc, p['dose_1'], p['rate_1'], p['BAT_1']
             )
@@ -166,7 +181,7 @@ class FluxAorta(Module):
         self.set_config(config, cmap)
         if self.config['lagut'] is not None:
             if self.config['liver'] is None:
-                raise InvalidConfiguration("A liver artery and gut component requires a liver component too.")
+                raise InvalidConfig("A liver artery and gut component requires a liver component too.")
             
         self._flux_injection = FluxInjection(**self.config)
         self._flux_heartlung = Flux({'T': 'T_hl', 'D': 'D_hl'}, block=self.config['heartlung'])
@@ -286,4 +301,30 @@ class FluxAorta(Module):
 
         Ja = self._flux_heartlung(p | {'J': Jv})['J']
         return result | {'J_ao': Ja, 'J_ve':Jv}
+
+    def dummy_data(self):
+        p = self.init_data()
+
+        E_ki = 0.100
+        E_or = 0.025
+        fCO_ki = 0.25
+        fCO_li = 0.30
+        fCO_or = 0.45
+
+        if self.config['liver'] is None:
+            fCO_or += fCO_li
+        else:
+            p['vr_li'] = fCO_li
+
+        if self.config['kidneys'] is None:
+            fCO_or += fCO_ki
+            p['vr_or'] = (1 - E_or) * fCO_or
+        else:
+            vr_ki = (1 - E_ki) * fCO_ki
+            p['vr_lk'] = vr_ki / 2
+            p['vr_rk'] = vr_ki / 2
+            p['vr_or'] = fCO_or
+
+        return self.input_data(p)
+        
     

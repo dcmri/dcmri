@@ -2,7 +2,7 @@ import numpy as np
 from tqdm import tqdm
 
 from dcmri.core.module import Module
-from dcmri.core.exceptions import InvalidConfiguration
+from dcmri.core.module import InvalidConfig
 from dcmri import Signal
 from dcmri.signal.modules_tissue import signal_rice, RelaxToSignal, ConcToSignal 
 
@@ -27,7 +27,7 @@ def _test_class(cls: Module):
     def _test_config(cnfg):
         try:
             instance = cls(**cnfg)
-        except InvalidConfiguration:
+        except InvalidConfig:
             return
         
         data = instance.dummy_data(nc=3)
@@ -53,7 +53,7 @@ def _test_signal_class(cls: Module):
     def _test_config(cnfg):
         try:
             instance = cls(**cnfg)
-        except InvalidConfiguration:
+        except InvalidConfig:
             return
         data = instance.dummy_data()
         instance(data)

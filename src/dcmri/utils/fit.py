@@ -55,7 +55,7 @@ def train_bat(predict, time, signal, pars, free, x=None, reset=False, sigma=None
             for bat in bat_array:
                 pars['BAT'] = bat
                 result = train(predict, time, signal, pars, free, x=x, reset=True, sigma=sigma, **kwargs)
-                cost += [result['cost']]
+                cost += [result['loss']]
             pars['BAT'] = bat_array[cost.index(min(cost))]
 
     return train(predict, time, signal, pars, free, x=x, reset=reset, sigma=sigma, **kwargs)
@@ -117,7 +117,7 @@ def train(predict, time, signal, pars, free, x=None, reset=False, sigma=None, **
         # Set state to final values
         _update_original_pars(pars, fitted_pars, free, x)
     
-    return {'vals': vals, 'sdev': sdev, 'pcov': pcov, 'cost': cost}
+    return {'popt': vals, 'psdev': sdev, 'pcov': pcov, 'loss': cost}
 
 
 def _compute_normalized_pars(original_pars, free_pars, x=None):

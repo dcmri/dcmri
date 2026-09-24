@@ -3,10 +3,12 @@ import numpy as np
 from scipy.interpolate import interp1d
 
 from dcmri.core.tools import get_sequence
-from dcmri.core.exceptions import InvalidConfiguration
+from dcmri.core.module import InvalidConfig
 from dcmri.core.module import Module
-from dcmri.bloch.functions_dynamic import Mz_wrapper
+from dcmri.bloch.functions_dynamic import Mz_wrapper_k0, Mz_wrapper_k_all
 from dcmri.bloch import functions_sequences
+
+# TODO in dummy_data use submodule methods to avoid repetition
 
 # +--------------------------------------------------------------------------------------------------+
 # |                                   MzPrep - all configs (n = 3)                                   |
@@ -76,13 +78,13 @@ class MzPrep(Module):
         'tof_corr': False,
         'inflow': 'none',
     }
-    _all_inputs = {'inlets', 'Fwi', 'tMi', 'tR', 'TE2', 'SA', 'Nph', 'TD', 'TF', 'me', 'R1i', 'TP', 'B1corr', 'FA', 'tacq', 'vw', 'tstart', 'R1', 'PA', 'TR', 'Nz', 'iz', 'TE', 'Kw', 'TA', 'Mzi'}
-    _all_outputs = {'tMz', 'Mz'}
+    _all_inputs = None
+    _all_outputs = None
 
     def __init__(self, imap: dict=None, omap: dict=None, iomap: dict=None, cmap: dict=None, **config):
         self.set_config(config, cmap)
         if self.config['tof_corr'] and self.config['sequence'] != '3D-SPGR-SS':
-            raise InvalidConfiguration(f"Time-of-flight correction is only available for sequence 3D-SPGR-SS. You are running sequence {self.config['sequence']}. Either choose tof_corr=False or sequence='3D-SPGR-SS'.")
+            raise InvalidConfig(f"Time-of-flight correction is only available for sequence 3D-SPGR-SS. You are running sequence {self.config['sequence']}. Either choose tof_corr=False or sequence='3D-SPGR-SS'.")
         self.map_io(imap, omap, iomap)
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
@@ -129,9 +131,11 @@ class MzPrep(Module):
 
         # Compute magnetization inflow
         if self.config['inflow'] == 'none':
+
             j, tj = None, None
 
         elif self.config['inflow'] == 'inlet':
+
             tj = p['tMi']
             ni = len(p['inlets'])
 
@@ -145,6 +149,8 @@ class MzPrep(Module):
                 if i==0:
                     j = np.zeros((nc, ) + p['Mzi'].shape[1:])
                 inlet = p['inlets'][i] 
+
+                # NOTE: extra dim because not in center (yet)
                 j[inlet, :, :] = Fwi[i] * p['Mzi'][i, :, :]  # (mL/min/cm3) * (magn/mL) = magn/min/cm3
    
         elif self.config['inflow'] == 'pool':
@@ -163,16 +169,17 @@ class MzPrep(Module):
             mz_prep_inflow = get_sequence('mz_prep_inflow', sequence)
 
             for i in range(ni):
-                tj, Mzi = Mz_wrapper(sequence, mz_prep_inflow, tR, R1i[i], p, v=1, Kw=0, tstart=tstart, t_end=t_end)
+                tj, Mzi = Mz_wrapper_k_all(sequence, mz_prep_inflow, tR, R1i[i], p, v=1, Kw=0, tstart=tstart, t_end=t_end)
                 if i==0:
                     j = np.zeros((nc, ) + tj.shape)
                 inlet = p['inlets'][i] 
+
+                # NOTE: extra dim because center=False
                 j[inlet, :, :] = Fwi[i] * Mzi[0, :, :]  # (mL/min/cm3) * (magn/mL) = magn/min/cm3
 
         # Delegate computation to helper functions
         mz_prep_sequence = get_sequence('mz_prep_tissue', sequence)
-
-        o['tMz'], o['Mz'] = Mz_wrapper(sequence, mz_prep_sequence, tR, R1, p, v, Kw, tj, j, tstart=tstart, t_end=t_end)
+        o['tMz'], o['Mz'] = Mz_wrapper_k0(sequence, mz_prep_sequence, tR, R1, p, v, Kw, tj, j, tstart=tstart, t_end=t_end)
 
         # Return dimensions (compartments, times)
         return self.map_results(o)
@@ -209,7 +216,7 @@ class MzPrep(Module):
         t_end = tstart + tacq
         sequence = self.config['sequence']
         mz_prep_inflow = get_sequence('mz_prep_inflow', sequence)
-        tMi, Mzi = Mz_wrapper(sequence, mz_prep_inflow, tR, R1[0], p, 
+        tMi, Mzi = Mz_wrapper_k_all(sequence, mz_prep_inflow, tR, R1[0], p, 
                             v=1, Kw=0, tstart=tstart, t_end=t_end)
         p |= {
             'tacq': ntR-1,
@@ -271,8 +278,8 @@ class MxyReadMz(Module):
     defaults = {
         'sequence': '3D-SPGR-SS'
     }  
-    _all_inputs = {'FA', 'Mz', 'TE1', 'tR', 'TE2', 'tMz', 'R2s', 'Nk0', 'TE', 'R2', 'B1corr'}
-    _all_outputs = {'Mxy'}
+    _all_inputs = None
+    _all_outputs = None
 
     def inputs(self):
         inputs = {'tR', 'tMz', 'Mz'} # shape (nc, n_times) 
@@ -432,8 +439,8 @@ class Magnetization(Module):
     configs = MzPrep.configs | MxyReadMz.configs
     defaults = MzPrep.defaults | MxyReadMz.defaults
 
-    _all_inputs = {'TE2', 'TR', 'SA', 'R1i', 'FA', 'R2s', 'TE', 'iz', 'Nk0', 'tacq', 'Nz', 'TA', 'PA', 'me', 'TF', 'TP', 'TD', 'R2', 'Kw', 'Fwi', 'tstart', 'inlets', 'tMi', 'TE1', 'R1', 'B1corr', 'Nph', 'vw', 'tR', 'Mzi'}
-    _all_outputs = {'Mz', 'tM', 'tMz', 'M'}
+    _all_inputs = None
+    _all_outputs = None
 
     def __init__(self, imap:dict=None, omap:dict=None, iomap:dict=None, cmap:dict=None, **config):
         self.set_config(config, cmap)
@@ -443,32 +450,27 @@ class Magnetization(Module):
         
     def inputs(self):
         inputs = self._mz_prep.mapped_inputs()
-        inputs |= self._mxy_read.mapped_inputs() - {'tM', 'tMz', 'Mz'}
+        inputs |= self._mxy_read.mapped_inputs() 
+        inputs -= self._mz_prep.new_mapped_outputs()
         return inputs 
     
     def outputs(self):
-        return {'tM', 'M', 'tMz', 'Mz'}
+        return {'tM', 'M'}
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)  
 
         # All current sequences use an Mz prep followed by a readout
         # This could be generalized in the future to sequences that have mixed T1/T2 prep
-
-        # Currently not considering spatial encoding so only need the center line
-        k0 = functions_sequences.pulse_readout(self.config['sequence'], p)
-
         p |= self._mz_prep(p)
+        p |= self._mxy_read(p) # (channels, components, compartments, times) 
 
-        Mz_read = p['Mz'][:, :, k0] # (compartments, times)
-        p['tM'] = p['tMz'][:, k0] # (times, )
+        shape = p['Mxy'].shape
+        p['M'] = np.zeros((shape[0], 3, shape[2], shape[3]), dtype=p['Mxy'].dtype)
 
-        Mxy = self._mxy_read(p, Mz=Mz_read, tMz=p['tM'])['Mxy'] # (channels, components, compartments, times) 
-
-        p['M'] = np.zeros((Mxy.shape[0], 3, Mxy.shape[2], Mxy.shape[3]), dtype=Mxy.dtype)
-        p['M'][:, :2, :, :] = Mxy
-        for c in range(p['M'].shape[0]):
-             p['M'][c, 2, :, :] = Mz_read
+        p['M'][:, :2, :, :] = p['Mxy']
+        for c in range(shape[0]):
+            p['M'][c, 2, :, :] = p['Mz']
 
         return self.map_results(p)
 
@@ -482,8 +484,11 @@ class Magnetization(Module):
         t_end = tstart + tacq
         sequence = self.config['sequence']
         mz_prep_inflow = get_sequence('mz_prep_inflow', sequence)
-        tMi, Mzi = Mz_wrapper(sequence, mz_prep_inflow, tR, R1[0], p, 
-                            v=1, Kw=0, tstart=tstart, t_end=t_end)
+        tMi, Mzi = Mz_wrapper_k_all(
+            sequence, mz_prep_inflow, tR, R1[0], p, 
+            v=1, Kw=0, tstart=tstart, t_end=t_end
+        )
+        # tMi, Mzi = tMi[:, 0], Mzi[:, :, 0]
         p |= {
             'tacq': ntR-1,
             'tR': tR,

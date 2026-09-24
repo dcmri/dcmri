@@ -7,7 +7,9 @@ from dcmri.core.module import Module
 from dcmri.relaxivity.modules_tissue import ConcToRelax
 from dcmri.bloch.modules_tissue import Magnetization
 from dcmri.bloch.functions_sequences import channels
-from dcmri.bloch.functions_dynamic import Mz_wrapper
+
+# TODO call dummy data functions from Modules rather than rewriting
+from dcmri.bloch.functions_dynamic import Mz_wrapper_k_all
 
 
 def signal_rice(nu, sigma)-> np.ndarray:
@@ -275,7 +277,7 @@ class RelaxToSignal(Module):
         t_end = tstart + tacq
         sequence = self.config['sequence']
         mz_prep_inflow = get_sequence('mz_prep_inflow', sequence)
-        tMi, Mzi = Mz_wrapper(sequence, mz_prep_inflow, tR, R1[0], data, 
+        tMi, Mzi = Mz_wrapper_k_all(sequence, mz_prep_inflow, tR, R1[0], data, 
                             v=1, Kw=0, tstart=tstart, t_end=t_end)
 
         data |= {
@@ -446,7 +448,7 @@ class ConcToSignal(Module):
         t_end = tstart + tacq
         sequence = self.config['sequence']
         mz_prep_inflow = get_sequence('mz_prep_inflow', sequence)
-        tMi, Mzi = Mz_wrapper(sequence, mz_prep_inflow, tR, R1[0], data, 
+        tMi, Mzi = Mz_wrapper_k_all(sequence, mz_prep_inflow, tR, R1[0], data, 
                             v=1, Kw=0, tstart=tstart, t_end=t_end)
 
         data |= {

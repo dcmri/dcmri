@@ -2,14 +2,14 @@ from tqdm import tqdm
 
 import dcmri as dc
 
-from dcmri.core.exceptions import InvalidConfiguration
+from dcmri.core.module import InvalidConfig
 from dcmri.core.module import Module
 
 def _test_class(cls: Module):
     def _test_config(cnfg):
         try:
             instance = cls(**cnfg)
-        except InvalidConfiguration:
+        except InvalidConfig:
             return
         data = instance.dummy_data(nc=2)
         instance(data)

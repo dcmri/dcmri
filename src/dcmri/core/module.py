@@ -6,10 +6,11 @@ import textwrap
 from tqdm import tqdm
 import numpy as np
 
-from dcmri.core.exceptions import InvalidConfiguration
 from dcmri.core.tools import get_quantity, print_quantities
 
-
+class InvalidConfig(Exception):
+    """Exception raised when module or model is created with an invalid configuration."""
+    pass
 
 class Module:
 
@@ -170,7 +171,8 @@ class Module:
 
     def init_data(self):
         data = {}
-        for i in self.inputs():
+        # for i in self.inputs():
+        for i in self._inputs:
             if i in self._imap:
                 j = self._imap[i]
             else:
@@ -222,7 +224,7 @@ class Module:
         for cnfg in tqdm(list(cls.all_configs()), desc='Collecting configs..'):
             try:
                 model = cls(**cnfg)
-            except InvalidConfiguration:
+            except InvalidConfig:
                 continue
             if input in model.inputs():
                 configs |= {cnfg}
@@ -234,7 +236,7 @@ class Module:
         for cnfg in tqdm(list(cls.all_configs()), desc='Collecting configs..'):
             try:
                 model = cls(**cnfg)
-            except InvalidConfiguration:
+            except InvalidConfig:
                 continue
             if output in model.outputs():
                 configs |= {cnfg}
@@ -316,7 +318,7 @@ class Module:
         def is_valid(cnfg):
             try:
                 cls(**cnfg)
-            except InvalidConfiguration:
+            except InvalidConfig:
                 return False
             return True
 
@@ -376,7 +378,7 @@ class Module:
         for cnfg in iterator:
             try:
                 model = cls(**cnfg)
-            except InvalidConfiguration:
+            except InvalidConfig:
                 continue
             else:
                 inputs |= model.inputs()
@@ -396,7 +398,7 @@ class Module:
         for cnfg in iterator:
             try:
                 model = cls(**cnfg)
-            except InvalidConfiguration:
+            except InvalidConfig:
                 continue
             else:
                 outputs |= model.outputs()
@@ -427,7 +429,7 @@ class Module:
                 cnfg = dict(zip(keys, combination))
                 try:
                     model = cls(**cnfg)
-                except InvalidConfiguration:
+                except InvalidConfig:
                     continue
                 else:
                     cnt += 1
@@ -469,7 +471,7 @@ class Module:
 
             try:
                 model = cls(**cnfg)
-            except InvalidConfiguration:
+            except InvalidConfig:
                 continue
             else:
                 cnt += 1
@@ -509,7 +511,7 @@ class Module:
     #             cnfg = dict(zip(keys, combination))
     #             try:
     #                 model = cls(**cnfg)
-    #             except InvalidConfiguration:
+    #             except InvalidConfig:
     #                 continue
     #             else:
     #                 cnt += 1
@@ -540,7 +542,7 @@ class Module:
 
     #         try:
     #             model = cls(**cnfg)
-    #         except InvalidConfiguration as e:
+    #         except InvalidConfig as e:
     #             continue
     #         else:
     #             cnt += 1

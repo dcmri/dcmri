@@ -6,8 +6,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from dcmri import AortaPortalLiver as Model
-from dcmri import AortaPortalLiverModel as Forward
-from dcmri.core.exceptions import InvalidConfiguration
+from dcmri import ForwardAortaPortalLiver as Forward
+from dcmri.core.module import InvalidConfig
 
 
 DEBUG = False
@@ -24,7 +24,7 @@ else:
 def _run_single_config(cnfg):
     try:
         model = Model(**cnfg)
-    except InvalidConfiguration as e:
+    except InvalidConfig as e:
         # print(e)
         return
     free = model.params('free')

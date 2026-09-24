@@ -101,14 +101,15 @@ QUANTITIES = {
     # Generic indicator quantities
     'agent': {'init': 'gadoterate', 'bounds': None, 'name': 'contrast agent generic name', 'unit': None, 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
     'BAT': {'init': 30, 'bounds': (-30, 30), 'name': 'bolus arrival time', 'unit': 'sec', 'bounds_type': 'add', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
-    'BAT1': {'init': 30, 'bounds': (-60, 60), 'name': 'first bolus arrival time in a dual injection', 'unit': 'sec', 'group': 'indicator', 'bounds_type': 'add'},
-    'BAT2': {'init': 150, 'bounds': (-60, 60), 'name': 'second bolus arrival time in a dual injection', 'unit': 'sec', 'group': 'indicator', 'bounds_type': 'add'},
+    'bdel': {'init': 30, 'bounds': (-30, 30), 'name': 'delay in a double injection', 'unit': 'sec', 'bounds_type': 'add', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
+    # 'BAT1': {'init': 30, 'bounds': (-60, 60), 'name': 'first bolus arrival time in a dual injection', 'unit': 'sec', 'group': 'indicator', 'bounds_type': 'add'},
+    # 'BAT2': {'init': 90, 'bounds': (-60, 60), 'name': 'second bolus arrival time in a dual injection', 'unit': 'sec', 'group': 'indicator', 'bounds_type': 'add'},
     'dose': {'init': 0.1, 'bounds': (0, 0.2), 'name': 'contrast agent dose', 'unit': 'mL/kg', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
-    'dose1': {'init': 0.05, 'bounds': (0, 0.2), 'name': 'first contrast agent dose in a dual injection', 'unit': 'mL/kg', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
-    'dose2': {'init': 0.05, 'bounds': (0, 0.2), 'name': 'second contrast agent dose in a dual injection', 'unit': 'mL/kg', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
+    # 'dose1': {'init': 0.05, 'bounds': (0, 0.2), 'name': 'first contrast agent dose in a dual injection', 'unit': 'mL/kg', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
+    # 'dose2': {'init': 0.05, 'bounds': (0, 0.2), 'name': 'second contrast agent dose in a dual injection', 'unit': 'mL/kg', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
     'rate': {'init': 1, 'bounds': (0, 10), 'name': 'injection rate', 'unit': 'mL/s', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
-    'rate1': {'init': 1, 'bounds': (0, 10), 'name': 'first injection rate in a dual injection', 'unit': 'mL/s', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
-    'rate2': {'init': 1, 'bounds': (0, 10), 'name': 'second injection rate in a dual injection', 'unit': 'mL/s', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
+    # 'rate1': {'init': 1, 'bounds': (0, 10), 'name': 'first injection rate in a dual injection', 'unit': 'mL/s', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
+    # 'rate2': {'init': 1, 'bounds': (0, 10), 'name': 'second injection rate in a dual injection', 'unit': 'mL/s', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
 
     'tC': {'init': 0.0, 'bounds': None, 'name': 'concentration time points', 'unit': 'sec', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
     'J': {'init': 1, 'bounds': (0, 10), 'name': 'indicator flux', 'unit': 'mmol/sec', 'bounds_type': 'abs', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
@@ -162,6 +163,9 @@ QUANTITIES = {
     'P': {'init': 0.3, 'bounds': (0, 1), 'name': 'porosity', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'Ktrans': {'init': 0.015, 'bounds': (0.0, 0.1), 'name': 'plasma clearance', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'PS': {'init': 0.003, 'bounds': (0, 1), 'name': 'permeability-surface area product', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+
+    # LS
+    'irf': {'init': 0.02, 'bounds': (0, 10), 'name': 'Impulse response function', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
 
     # Water exchange
     'RM': {'init': '', 'bounds': None, 'name': 'relaxivity mapping', 'unit': None, 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
@@ -244,6 +248,13 @@ QUANTITIES = {
     'Strig': {'init': 1.0, 'bounds': (0, 5), 'name': 'signal trigger', 'unit': 'a.u.', 'bounds_type': 'mult', 'group': 'signal', 'dicom_key': None, 'osipi_key': 'Q.MS1.002'},
     'NSR': {'init': 0.0, 'bounds': (0, 1e5), 'name': 'noise-to-signal ratio', 'unit': '', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
 
+    # Inverse signal
+    'pfree': {'init': 1, 'bounds': None, 'name': 'set of free parameters', 'unit': 'a.u.', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
+    'popt': {'init': 1, 'bounds': None, 'name': 'dictionary of optimized free parameter values', 'unit': 'a.u.', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
+    'pcov': {'init': 1, 'bounds': None, 'name': 'dictionary with covariances of free parameters', 'unit': 'a.u.', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
+    'psdev': {'init': 1, 'bounds': None, 'name': 'dictionary with parameter standard deviations', 'unit': 'a.u.', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
+    'loss': {'init': 1, 'bounds': None, 'name': 'loss value of optimized model', 'unit': 'a.u.', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
+    
     # 't_scan2': {'init': 120, 'bounds': None, 'name': 'Start of second scan', 'unit': 'sec', 'group': 'seq', 'dicom_key': None, 'osipi_key': None},
     # 'FAR': {'init': 15, 'bounds': (0, 180), 'name': 'Readout flip angle', 'unit': 'deg', 'group': 'seq', 'dicom_key': None, 'osipi_key': None},
     # 'FA2': {'init': 15.0, 'bounds': (0.0, 180), 'name': 'Second flip angle', 'unit': 'deg', 'group': 'seq', 'dicom_key': None, 'osipi_key': None},
@@ -290,10 +301,6 @@ QUANTITIES = {
 
     # # Portal vein
     # 'uv': {'init': 1.0,  'bounds': (0.0, 1.0), 'name': 'Portal vein volume fraction', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-
-    # # LS
-    # 'irf': {'init': 0.02, 'bounds': (0, 10), 'name': 'Impulse response function', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-
 }
 
 QVALUES = {k: v['init'] for k, v in QUANTITIES.items()}

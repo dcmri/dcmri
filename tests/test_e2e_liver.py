@@ -6,9 +6,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from dcmri import Liver as Model
-from dcmri import LiverModel as Forward
-from dcmri import AortaModel
-from dcmri.core.exceptions import InvalidConfiguration
+from dcmri import ForwardLiver as Forward
+from dcmri import ForwardAorta
+from dcmri.core.module import InvalidConfig
 
 
 DEBUG = False
@@ -26,7 +26,7 @@ else:
 def _run_single_config(cnfg):
     try:
         model = Model(**cnfg)
-    except InvalidConfiguration as e:
+    except InvalidConfig as e:
         # print(e)
         return
     # print(cnfg)
@@ -100,7 +100,7 @@ def test_api():
 def test_function():
 
     # Simulation parameters
-    ao = AortaModel()
+    ao = ForwardAorta()
     data = ao.dummy_data()
     aif = ao(data)
 

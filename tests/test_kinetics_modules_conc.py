@@ -2,14 +2,14 @@ from tqdm import tqdm
 import dcmri as dc
 
 from dcmri.core.module import Module
-from dcmri.core.exceptions import InvalidConfiguration
+from dcmri.core.module import InvalidConfig
 
 
 def _test_class(cls:Module):
     def _test_config(cnfg):
         try:
             instance = cls(**cnfg)
-        except InvalidConfiguration:
+        except InvalidConfig:
             return
         data = instance.dummy_data()
         instance(data)
@@ -20,7 +20,6 @@ def _test_class(cls:Module):
     configs = cls.all_configs(sample=None, seed=51)
     for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
         _test_config(cnfg)
-
 
     print(f'Successfully covered {len(configs)} {cls.__name__} configurations!')
 
@@ -35,7 +34,8 @@ def test_conc():
         dc.ConcKidney,
         dc.ConcAortaKidneys,
         dc.ConcCortMed,
-        dc.ConcTissueX
+        dc.ConcTissueX,
+        dc.ConcTissueLS,
     ]:
         _test_class(cls)
 

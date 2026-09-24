@@ -1,138 +1,87 @@
-# Prevent NumPy/SciPy/OpenBLAS from spawning thread pools for tiny array operations
 import os
-
-import cProfile
-import pstats
+from joblib import Parallel, delayed
 import time
-
-import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from dcmri import AortaModel
-from dcmri.core.exceptions import InvalidConfiguration
-from dcmri.bloch.functions_dynamic import Mz_dyn_se
+import numpy as np
+import matplotlib.pyplot as plt
 
-# kernprof automatically injects 'profile' into builtins when run via command line
-# kernprof -l -v tests/test_model_aorta.py
-try:
-    Mz_dyn_se = profile(Mz_dyn_se)
-except NameError:
-    # Fallback so the script doesn't crash if run with standard 'python' instead of 'kernprof'
-    pass
+from dcmri import Aorta as Model
+from dcmri.core.module import InvalidConfig
 
-def test_aorta(cls=AortaModel):
-    def _test_config(cnfg):
-        # if cnfg['sequence'] != '3D-SPGR-SS':
-        #     return
-        try:
-            instance = cls(**cnfg)
-        except InvalidConfiguration:
-            return
-    
-        data = instance.dummy_data()
+DEBUG = True
 
-        # --- DIAGNOSTIC TIMING ---
-        t0 = time.perf_counter()
-        # print(cnfg)
-        instance(data)
-
-        elapsed = time.perf_counter() - t0
-        # print(cnfg)
-        # print(f"  [Total model execution time: {elapsed:.4f}s]")
-
-    cls.print_configs()
-    cls.print_all_io(verbose=1, simple=False, sample=1e5, seed=51)
-
-    configs = cls.all_configs(sample=1e4, seed=51)
-    for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
-        _test_config(cnfg)
-
-    print(f'Successfully covered {len(configs)} {cls.__name__} configurations!')
+if DEBUG:
+    # Debugging mode
+    VERBOSE = 2
+else:
+    VERBOSE = 0
+    # Allow coverage of plot functions without actually plotting
+    import matplotlib
+    matplotlib.use('Agg')
 
 
-
-
-def test_aorta_times():
-
-    # Setup a profiler to aggregate timing across all iterations
-    profiler = cProfile.Profile()
-
-    def _test_config(cnfg):
-        try:
-            model = AortaModel(**cnfg)
-        except InvalidConfiguration:
-            return
-        print(cnfg)
-        data = model.dummy_data()
-        # data |= {'dt': 2.0, 'tmax': 30}
-
-        # --- DIAGNOSTIC TIMING ---
-        t0 = time.perf_counter()
-
-        # Profile the specific execution of model(data)
-        profiler.enable()
-        results = model(data)
-        profiler.disable()
-
-        elapsed = time.perf_counter() - t0
-        print(f"  [Total model execution time: {elapsed:.4f}s]")
-
-        assert results["S_a"].ndim == 3
-
-    cnt = 0
-    for cnfg in AortaModel.all_configs():
-        cnt += 1
-        _test_config(cnfg)
-        if cnt == 100:
-            break
-
-    print(f"\nSuccessfully covered {cnt} aorta configurations!")
-
-    # --- PRINT DETAILED SUBFUNCTION BREAKDOWN ---
-    print("\n" + "=" * 60)
-    print("TOP 15 SUBFUNCTIONS BY TOTAL TIME (cumtime):")
-    print("=" * 60)
-    stats = pstats.Stats(profiler)
-    stats.strip_dirs().sort_stats("cumtime").print_stats(10)
-
-
-
-def test_aorta_instance():
-    cnfg = {
-        'heartlung': 'pfcomp', 
-        'organs': 'comp', 
-        'kidneys': None,
-        'liver': None, 
-        'lagut': None, 
-        'bolus': 'dual', 
-        't1_relaxation': 'lin', 
-        't2_relaxation': None, 
-        't2s_relaxation': None, 
-        'inflow': 'none', 
-        'sequence': 'ZTE-3D-SPGR-SS', 
-        'magnitude': False, 
-        'trigger': True, 
-        'calibrate': False,
-    }
+def _test_config(cnfg):
+    #state = {'tacq': 600}
+    state = None
     try:
-        model = AortaModel(**cnfg)
-    except InvalidConfiguration as e:
-        print(e)
+        model = Model(state, **cnfg)
+    except InvalidConfig:
         return
+    # print(cnfg)
+    state = model.state()
+    data = model.predict()
+    model.train(data, nb=5, n_bat=4, verbose=VERBOSE, xtol=1e-3)
+    model.plot(data, show=DEBUG)
+    cost = model.cost(data)
+    # print(f"{cnfg}: {cost}")
+    print(cost)
+    assert cost < 1, f"Cost {cost} of model {cnfg} exceeded threshold!"
+
+
+def test_model_aorta_instance():
+    cnfg = {'t1_relaxation': 'lin', 't2_relaxation': None, 't2s_relaxation': 'lin', 'inflow': 'none', 'sequence': '3D-PR-SPGR-SS', 'tof_corr': False, 'magnitude': True, 'trigger': False, 'calibrate': True, 'baseline': 'measured', 'heartlung': 'pfcomp', 'organs': '2cxm', 'kidneys': 'pass', 'liver': 'pass', 'lagut': 'comp', 'bolus': 'single'}
+    _test_config(cnfg) 
+
+
+def test_model_aorta():
+    configs = Model.all_configs(sample=1000, seed=51)
+
+    # [_test_config(cnfg) for cnfg in tqdm(configs, desc=f'Testing {Model.__name__}')]
+    Parallel(n_jobs=-1)(delayed(_test_config)(cnfg) for cnfg in tqdm(configs, desc=f'Testing {Model.__name__}'))
+
+    print(f'Successfully covered {len(configs)} {Model.__name__} configurations!')
+
+
+def test_api():
+    model = Model()
+
+    # params()
+    assert 'T_hl' in model.params()
     
-    model.print_inputs()
-    model.print_outputs()
+    # Test Forward API outputs
+    data = model.predict()
 
-    data = model.dummy_data() 
-    results = model(data)
+    test_plot_file = "test_plot_output.png"
+    try:
+        # This hits plt.savefig(fname)
+        model.plot(data, fname=test_plot_file, show=False)
+        assert os.path.exists(test_plot_file)
+        
+        # This hits plt.show()
+        # We wrap this in a check to ensure it doesn't hang the tests
+        plt.ion() # Turn interactive mode on
+        model.plot(data, show=True)
+        plt.ioff() # Turn interactive mode off
+    finally:
+        if os.path.exists(test_plot_file):
+            os.remove(test_plot_file)
+
+
+if __name__ == "__main__":
+    test_model_aorta_instance()
+    # test_model_aorta()
+    # test_api()
     
-    plt.plot(results['tS'], results['S'][0, 0, :], 'ro')
-    plt.show()
+    print('All Aorta tests passed!!')
 
-
-if __name__ == '__main__':
-    test_aorta()
-    # test_aorta_instance()
-    # test_aorta_times()
-
-    print('All model coverage tests passed!!')

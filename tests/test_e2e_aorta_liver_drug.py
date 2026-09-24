@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from dcmri import AortaLiverDrug as Model
-from dcmri.core.exceptions import InvalidConfiguration
+from dcmri.core.module import InvalidConfig
 import dcmri as dc
 
 
@@ -25,7 +25,7 @@ else:
 def _run_single_config(cnfg):
     try:
         model = Model(**cnfg)
-    except InvalidConfiguration as e:
+    except InvalidConfig as e:
         # print(e)
         return
     free = model.params('free')
@@ -47,7 +47,7 @@ def test_all_config():
 
     result = Parallel(n_jobs=-1)(
         delayed(_run_single_config)(cnfg)
-        for cnfg in dc.AortaLiverDrugModel.all_configs(sample=1e3, seed=39)
+        for cnfg in dc.ForwardAortaLiverDrug.all_configs(sample=1e3, seed=39)
     )
     # result = [
     #     _run_single_config(cnfg)
@@ -59,7 +59,7 @@ def test_all_config():
 
     end = time.perf_counter()
     print(f'Configuration coverage completed!')
-    print(f'--> Number of configurations: {np.prod([len(v) for v in dc.AortaLiverDrugModel.configs.values()])}')
+    print(f'--> Number of configurations: {np.prod([len(v) for v in dc.ForwardAortaLiverDrug.configs.values()])}')
     print(f'--> Total computation time: {(end - start) / 60:.1f} mins')
     print(f'--> Maximum cost: {np.max(cost)} %')
     print(f'--> Config with maximum cost: {cnfg}')

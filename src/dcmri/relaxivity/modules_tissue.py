@@ -2,7 +2,7 @@ import numpy as np
 
 from dcmri.core.module import Module
 from dcmri.core.tools import get_sequence
-from dcmri.core.exceptions import InvalidConfiguration
+from dcmri.core.module import InvalidConfig
 from dcmri.relaxivity.functions_relaxivity import relax_t2s
 
 
@@ -333,22 +333,22 @@ class Relax(Module):
             props = get_sequence('tissue_params', sequence)
             if 'R1' in props:
                 if t1 is None:
-                    raise InvalidConfiguration(f"The t1_relaxation option can't be None for T1-weighted sequences.")
+                    raise InvalidConfig(f"The t1_relaxation option can't be None for T1-weighted sequences.")
             if 'R2' in props:
                 if t2 is None:
-                    raise InvalidConfiguration(f"The t2_relaxation option can't be None for T2-weighted sequences.")
+                    raise InvalidConfig(f"The t2_relaxation option can't be None for T2-weighted sequences.")
             if 'R2s' in props:
                 if t2s is None:
-                    raise InvalidConfiguration(f"The t2s_relaxation option can't be None for T2*-weighted sequences.")
+                    raise InvalidConfig(f"The t2s_relaxation option can't be None for T2*-weighted sequences.")
             if 'R1' not in props:
                 if t1 is not None:
-                    raise InvalidConfiguration(f"The t1_relaxation option must be None for a sequence without T1-weighting.")
+                    raise InvalidConfig(f"The t1_relaxation option must be None for a sequence without T1-weighting.")
             if 'R2' not in props:
                 if t2 is not None:
-                    raise InvalidConfiguration(f"The t2_relaxation option must be None for a sequence without T2-weighting.")
+                    raise InvalidConfig(f"The t2_relaxation option must be None for a sequence without T2-weighting.")
             if 'R2s' not in props:
                 if t2s is not None:
-                    raise InvalidConfiguration(f"The t2s_relaxation option must be None for a sequence without T2s-weighting.")
+                    raise InvalidConfig(f"The t2s_relaxation option must be None for a sequence without T2s-weighting.")
 
         # Set configuration
         self.set_config(config)
@@ -477,7 +477,7 @@ class ConcToRelax(Module):
         self._relax_inlets = None
         if inflow == 'pool': 
             if self.config['t1_relaxation'] is None:
-                raise InvalidConfiguration(f"The t1_relaxation option can't be None for T1-weighted sequences.")
+                raise InvalidConfig(f"The t1_relaxation option can't be None for T1-weighted sequences.")
             
             self._relax_inlets = R1( 
                 #imap = {'C':'ci', 'vw':'vwi', 'wx':'wxi', 'R1b':'R1ib', 'r1':'r1i'},

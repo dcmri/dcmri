@@ -58,6 +58,22 @@ def test_Mz_dyn_spgr_ss():
     assert Mz.shape == (2, 31, Nph)
     assert t.shape == (31, Nph)
 
+def test_Mz_dyn_ss():
+    """Test Mz_dyn_se shortcut branch and standard loop shape."""
+    dt = 10.0
+    R1 = np.ones((2, 3))
+    j = np.ones((2, 3))
+    v = np.ones(2) / 2
+    Fw = np.identity(2)
+    me, TE, TR, FA = 1.0, 0.05, 2.0, 90.0
+
+    # Running actual underlying pulse simulation loop
+    tR1 = dt * np.arange(R1.shape[1])
+    pulses_per_period = [[FA, TE / 2], [180, TR - TE/2]]
+    t, Mz = functions_dynamic.Mz_dyn_ss(tR1, R1, v, Fw, j, me, pulses_per_period, tj=tR1)
+    assert Mz.shape == (2, 10, 2)
+    assert t.shape == (10, 2)
+
 def test_Mz_dyn_se():
     """Test Mz_dyn_se shortcut branch and standard loop shape."""
     dt = 10.0
@@ -103,6 +119,7 @@ if __name__=='__main__':
     test_Mz_dyn_pr_spgr_ss()
     test_Mz_dyn_spgr_ss()
     test_Mz_dyn_se()
+    test_Mz_dyn_ss()
     test_Mz_dyn_spgr_ssi()
 
     print('All bloch.seqs tests passed!')

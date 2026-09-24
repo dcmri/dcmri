@@ -48,7 +48,8 @@ from dcmri.kinetics.modules_conc import (
     ConcLiver,
     ConcKidney,
     ConcCortMed,
-    ConcTissueX,   
+    ConcTissueX,  
+    ConcTissueLS, 
 )
 from dcmri.kinetics.modules_flux import (
     Flux,
@@ -244,31 +245,35 @@ from dcmri.inverse.lib import (
 )
 
 # End-to-end forward Models
-from dcmri.models.aorta import AortaModel
-from dcmri.models.liver import LiverModel
-from dcmri.models.kidney import KidneyModel
-from dcmri.models.cort_med import CortMedModel
-from dcmri.models.tissue_x import TissueXModel
-from dcmri.models.aorta_liver import AortaLiverModel
-from dcmri.models.aorta_liver_drug import AortaLiverDrugModel
-from dcmri.models.aorta_liver_dynamic import AortaLiverDynamicModel
-from dcmri.models.aorta_liver_dynamic_drug import AortaLiverDynamicDrugModel
-from dcmri.models.aorta_portal_liver import AortaPortalLiverModel
-from dcmri.models.aorta_kidneys import AortaKidneysModel
+from dcmri.forward.aorta import ForwardAorta
+from dcmri.forward.liver import ForwardLiver
+from dcmri.forward.kidney import ForwardKidney
+from dcmri.forward.cort_med import ForwardCortMed
+from dcmri.forward.tissue_x import ForwardTissueX
+from dcmri.forward.tissue_ls import ForwardTissueLS
+from dcmri.forward.aorta_liver import ForwardAortaLiver
+from dcmri.forward.aorta_liver_drug import ForwardAortaLiverDrug
+from dcmri.forward.aorta_liver_dynamic import ForwardAortaLiverDynamic
+from dcmri.forward.aorta_liver_dynamic_drug import ForwardAortaLiverDynamicDrug
+from dcmri.forward.aorta_portal_liver import ForwardAortaPortalLiver
+from dcmri.forward.aorta_kidneys import ForwardAortaKidneys
+
+# Inverse models
+from dcmri.inverse.aorta import InverseAorta
 
 # End user tools
-from dcmri.e2e.aorta import Aorta
-from dcmri.e2e.aorta_liver import AortaLiver
-from dcmri.e2e.aorta_kidneys import AortaKidneys
-from dcmri.e2e.aorta_portal_liver import AortaPortalLiver
-from dcmri.e2e.aorta_liver_dynamic import AortaLiverDynamic
-from dcmri.e2e.aorta_liver_drug import AortaLiverDrug
-from dcmri.e2e.aorta_liver_dynamic_drug import AortaLiverDynamicDrug
-from dcmri.e2e.kidney import Kidney
-from dcmri.e2e.liver import Liver
-from dcmri.e2e.cort_med import CortMed
-from dcmri.e2e.tissue_x import TissueX
-from dcmri.e2e.tissue_ls import TissueLS
+from dcmri.model.aorta import Aorta
+from dcmri.model.aorta_liver import AortaLiver
+from dcmri.model.aorta_kidneys import AortaKidneys
+from dcmri.model.aorta_portal_liver import AortaPortalLiver
+from dcmri.model.aorta_liver_dynamic import AortaLiverDynamic
+from dcmri.model.aorta_liver_drug import AortaLiverDrug
+from dcmri.model.aorta_liver_dynamic_drug import AortaLiverDynamicDrug
+from dcmri.model.kidney import Kidney
+from dcmri.model.liver import Liver
+from dcmri.model.cort_med import CortMed
+from dcmri.model.tissue_x import TissueX
+from dcmri.model.tissue_ls import TissueLS
 
 from dcmri.dro.aif import (
     parker,

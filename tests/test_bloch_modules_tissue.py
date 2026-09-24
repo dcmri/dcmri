@@ -4,14 +4,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from dcmri.bloch.modules_tissue import MzPrep, MxyReadMz, Magnetization
-from dcmri.core.exceptions import InvalidConfiguration
+from dcmri.core.module import InvalidConfig
 
 
 def _test_class(cls):
     def _test_config(cnfg):
         try:
             instance = cls(**cnfg)
-        except InvalidConfiguration:
+        except InvalidConfig:
             return
         # if cnfg != {'sequence': '3D-PR-SS', 'tof_corr': False, 'inflow': 'none'}:
         #     return
@@ -36,8 +36,6 @@ def test_bloch():
         Magnetization,
     ]:
         _test_class(cls)
-
-
 
 
 def test_mzprep_exceptions():
@@ -110,7 +108,7 @@ def test_mzprep_function():
 
 if __name__ == "__main__":
     test_bloch()
-    test_mzprep_exceptions()
-    test_mzprep_function()
+    #test_mzprep_exceptions()
+    #test_mzprep_function()
 
     print('All magnetization tests passing!')
