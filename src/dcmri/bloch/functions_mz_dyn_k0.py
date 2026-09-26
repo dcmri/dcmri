@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.interpolate import interp1d
 
-from dcmri.bloch import functions_sequences
+from dcmri.bloch import functions_mz_vectorized, functions_sequences
 
 
 def Mz_wrapper_k0(sequence, mz_prep_sequence, tR1, R1, p, v=None, Kw=None, tj=None, j=None, tstart=0, t_end=None):
@@ -195,9 +195,9 @@ def Mz_dyn_k0_spgr(tR1:np.ndarray, R1:np.ndarray, v, Kw, j:np.ndarray, me, FA, T
     Mz = np.zeros((n_comps, n_periods)) 
     Mz[:, 0] = v * me
     if Nk0 > 0:
-        Mz[:, 0] = functions_sequences.Mz_prop_spgr_vectorized(Mz[:, 0], R1_periods[:, 0], v, Kw, j_periods[:, 0], me, FA, TR, Nk0)[:, 0]
+        Mz[:, 0] = functions_mz_vectorized.Mz_prop_spgr_vectorized(Mz[:, 0], R1_periods[:, 0], v, Kw, j_periods[:, 0], me, FA, TR, Nk0)[:, 0]
 
-    Mz[:, 1:] = functions_sequences.Mz_prop_spgr_vectorized(Mz[:, 0], R1_periods[:, 1:], v, Kw, j_periods[:, 1:], me, FA, TR, Nph)
+    Mz[:, 1:] = functions_mz_vectorized.Mz_prop_spgr_vectorized(Mz[:, 0], R1_periods[:, 1:], v, Kw, j_periods[:, 1:], me, FA, TR, Nph)
 
     return t_periods, Mz
 
@@ -286,8 +286,8 @@ def Mz_dyn_k0_pr_spgr(tR1:np.ndarray, R1:np.ndarray, v, Kw, j:np.ndarray, me, FA
     
     Mz = np.zeros((n_comps, n_periods)) 
     Mz0 = v * me
-    Mz[:, 0] = functions_sequences.Mz_prop_vectorized(Mz0, R1_periods[:, 0], v, Kw, j_periods[:, 0], me, pulses_per_period[:Nk0 + 1])[:, 0]
-    Mz[:, 1:] = functions_sequences.Mz_prop_pr_spgr_vectorized(Mz[:, 0], R1_periods[:, 1:], v, Kw, j_periods[:, 1:], me, FA, TR, Nph, TP, TD, PA, Nk0)
+    Mz[:, 0] = functions_mz_vectorized.Mz_prop_vectorized(Mz0, R1_periods[:, 0], v, Kw, j_periods[:, 0], me, pulses_per_period[:Nk0 + 1])[:, 0]
+    Mz[:, 1:] = functions_mz_vectorized.Mz_prop_pr_spgr_vectorized(Mz[:, 0], R1_periods[:, 1:], v, Kw, j_periods[:, 1:], me, FA, TR, Nph, TP, TD, PA, Nk0)
 
     return t_periods, Mz
 
@@ -380,7 +380,7 @@ def Mz_dyn_ss_k0_pr_spgr(tR1:np.ndarray, R1:np.ndarray, v, Kw, j:np.ndarray, me,
     j_periods = j_periods.reshape((n_comps, n_periods))
 
     # Compute Mz before each pulse
-    Mz = functions_sequences.Mz_ss_k0_pr_spgr_vectorized(R1_periods, v, Kw, j_periods, me, FA, TR, Nph, TP, TD, PA, Nk0)
+    Mz = functions_mz_vectorized.Mz_ss_k0_pr_spgr_vectorized(R1_periods, v, Kw, j_periods, me, FA, TR, Nph, TP, TD, PA, Nk0)
 
     return t_periods, Mz
 
@@ -456,7 +456,7 @@ def Mz_dyn_ss_k0_spgr(tR1:np.ndarray, R1:np.ndarray, v, Kw, j:np.ndarray, me, FA
     R1_periods, j_periods = _interpolate_inputs(t_periods, tR1, R1, tj, j)
 
     # Compute
-    Mz = functions_sequences.Mz_ss_spgr_vectorized(R1_periods, v, Kw, j_periods, me, FA, TR)
+    Mz = functions_mz_vectorized.Mz_ss_spgr_vectorized(R1_periods, v, Kw, j_periods, me, FA, TR)
 
     # Reshape (probably not necessary)
     Mz = Mz.reshape((n_comps, n_periods))
@@ -594,7 +594,7 @@ def Mz_dyn_ss_k0_spgri(tR1:np.ndarray, R1:np.ndarray, v, Kw, j:np.ndarray, me, F
     R1_periods, j_periods = _interpolate_inputs(t_periods, tR1, R1, tj, j)
 
     # Compute
-    Mz = functions_sequences.Mz_ss_spgri_vectorized(R1_periods, v, Kw, j_periods, me, FA, TR, TF, SA)
+    Mz = functions_mz_vectorized.Mz_ss_spgri_vectorized(R1_periods, v, Kw, j_periods, me, FA, TR, TF, SA)
 
     return t_periods, Mz
 
@@ -666,10 +666,10 @@ def Mz_dyn_k0(tR1:np.ndarray, R1:np.ndarray, v, Kw, j:np.ndarray, me, pulses_per
     Mz = np.zeros((n_comps, n_periods)) 
     Mz[:, 0] = v * me
     if Nk0 > 0:
-        Mz[:, 0] = functions_sequences.Mz_prop_vectorized(Mz[:, 0], R1_periods[:, 0], v, Kw, j_periods[:, 0], me, pulses_per_period[:Nk0])[:, 0]
+        Mz[:, 0] = functions_mz_vectorized.Mz_prop_vectorized(Mz[:, 0], R1_periods[:, 0], v, Kw, j_periods[:, 0], me, pulses_per_period[:Nk0])[:, 0]
 
     pulses_per_period_from_k0 = pulses_per_period[Nk0:] + pulses_per_period[:Nk0]
-    Mz[:, 1:] = functions_sequences.Mz_prop_vectorized(Mz[:, 0], R1_periods[:, 1:], v, Kw, j_periods[:, 1:], me, pulses_per_period_from_k0)
+    Mz[:, 1:] = functions_mz_vectorized.Mz_prop_vectorized(Mz[:, 0], R1_periods[:, 1:], v, Kw, j_periods[:, 1:], me, pulses_per_period_from_k0)
 
     return t_periods, Mz
 
@@ -736,6 +736,6 @@ def Mz_dyn_ss_k0(tR1:np.ndarray, R1:np.ndarray, v, Kw, j:np.ndarray, me, pulses_
     j_periods = j_periods.reshape((n_comps, n_periods))
 
     pulses_per_period_from_k0 = pulses_per_period[Nk0:] + pulses_per_period[:Nk0]
-    Mz = functions_sequences.Mz_ss_vectorized(R1_periods, v, Kw, j_periods, me, pulses_per_period_from_k0)
+    Mz = functions_mz_vectorized.Mz_ss_vectorized(R1_periods, v, Kw, j_periods, me, pulses_per_period_from_k0)
 
     return t_periods, Mz

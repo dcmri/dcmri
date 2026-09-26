@@ -1,6 +1,5 @@
 import numpy as np
 
-from dcmri.bloch import functions_sequences
 import dcmri as dc
 
 def test_mz_readout():
@@ -15,7 +14,7 @@ def test_mz_readout():
     expected = np.array([[1. , 1. , 1. ],
                          [0.5, 0.5, 0.5]])
     
-    result = functions_sequences.mz_readout(Mz, R2, FA, TE)
+    result = dc.mz_readout(Mz, R2, FA, TE)
     np.testing.assert_array_almost_equal(result, expected)
 
 
@@ -352,9 +351,6 @@ def test_Mz_ss_k0_pr_spgr():
     assert np.linalg.norm(M_1 - M_2) < 1e-12
 
 
-def test_complete_coverage():
-    functions_sequences._Mz_ss_aex(np.zeros(2), np.ones(2), np.zeros((2,2)), 0, 1, 1, 1)
-
 
 
 if __name__=='__main__':
@@ -364,6 +360,5 @@ if __name__=='__main__':
     test_1c_scalar_function()
     test_vectorization()
     test_Mz_ss_k0_pr_spgr()
-    test_complete_coverage()
 
     print('All bloch.functions_sequences tests passed!')

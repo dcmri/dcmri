@@ -211,22 +211,26 @@ from dcmri.bloch.modules_tissue import (
     Magnetization,
 )
 from dcmri.bloch.functions_sequences import (
-    Mz_ss, # OBSOLETE phase out
-    Mz_ss_vectorized,
-    Mz_ss_spgri,
-    Mz_ss_spgri_vectorized,
-    Mz_ss_spgr, # obsolete
-    Mz_ss_spgr_vectorized,
-    Mz_ss_pr_spgr,
-    Mz_ss_pr_spgr_vectorized,
-    Mz_ss_k0_pr_spgr,
-    Mz_ss_k0_pr_spgr_vectorized,
-    Mz_prop,
-    Mz_prop_vectorized,
-    Mz_prop_pr_spgr,
-    Mz_prop_pr_spgr_vectorized,
-    Mz_prop_spgr_vectorized,
     mz_readout,
+)
+from dcmri.bloch.functions_mz import (
+    Mz_ss, 
+    Mz_ss_spgr, 
+    Mz_ss_pr_spgr,
+    Mz_ss_k0_pr_spgr,
+    Mz_ss_spgri,
+    Mz_prop,
+    Mz_prop_pr_spgr,
+)
+from dcmri.bloch.functions_mz_vectorized import (
+    Mz_ss_vectorized,
+    Mz_ss_spgr_vectorized,
+    Mz_ss_pr_spgr_vectorized,
+    Mz_ss_k0_pr_spgr_vectorized,
+    Mz_ss_spgri_vectorized,
+    Mz_prop_vectorized,
+    Mz_prop_spgr_vectorized,
+    Mz_prop_pr_spgr_vectorized,
 )
 from dcmri.bloch.functions_mz_dyn import (
     Mz_dyn,

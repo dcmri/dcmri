@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.interpolate import interp1d
 
-from dcmri.bloch import functions_sequences
+from dcmri.bloch import functions_mz_vectorized, functions_sequences, functions_mz
 
 
 def Mz_wrapper_k_all(sequence, mz_prep_sequence, tR1, R1, p, v=None, Kw=None, tj=None, j=None, tstart=0, t_end=None):
@@ -243,7 +243,7 @@ def Mz_dyn_ss_pr_spgr(tR1:np.ndarray, R1:np.ndarray, v, Kw, j:np.ndarray, me, FA
     Simulates a Preparation-Recovery Spoiled Gradient Recalled Echo (PR-SPGR) sequence 
     operating in steady state across interpolated time steps. At each step $k$, it solves 
     for the steady-state initial magnetization (`Mz[:, k, 0]`) prior to the preparation 
-    pulse using `functions_sequences.Mz_ss_pr_spgr`, then propagates this state through 
+    pulse using `functions_mz.Mz_ss_pr_spgr`, then propagates this state through 
     the prep delay (`TP`) and each of the `Nph` readout pulses (`TR`).
 
     Parameters
@@ -330,13 +330,13 @@ def Mz_dyn_ss_pr_spgr(tR1:np.ndarray, R1:np.ndarray, v, Kw, j:np.ndarray, me, FA
     j_pulses = j_pulses.reshape((n_comps, n_periods, n_pulses_per_period))
         
     # Compute Mz at the start of each period
-    Mz0 = functions_sequences.Mz_ss_pr_spgr_vectorized(R1_pulses[:, :, 0], v, Kw, j_pulses[:, :, 0], me, FA, TR, Nph, TP, TD, PA)
+    Mz0 = functions_mz_vectorized.Mz_ss_pr_spgr_vectorized(R1_pulses[:, :, 0], v, Kw, j_pulses[:, :, 0], me, FA, TR, Nph, TP, TD, PA)
 
     # Compute Mz at all aother pulses
     Mz = np.zeros((n_comps, n_periods, n_pulses_per_period))
     for i in range(n_periods):
         Mz[:, i, 0] = Mz0[:, i]
-        Mz[:, i, 1:] = functions_sequences.Mz_prop(Mz[:, i, 0], R1_pulses[:, i, :-1], v, Kw, j_pulses[:, i, :-1], me, pulses_per_period[:-1])
+        Mz[:, i, 1:] = functions_mz.Mz_prop(Mz[:, i, 0], R1_pulses[:, i, :-1], v, Kw, j_pulses[:, i, :-1], me, pulses_per_period[:-1])
 
     return t_pulses, Mz
 
@@ -389,7 +389,7 @@ def Mz_dyn_ss_spgr(tR1:np.ndarray, R1:np.ndarray, v, Kw, j:np.ndarray, me, FA, T
     Notes
     -----
     - Total duration evaluated per frame is `TR * Nph` starting from `tstart = 0`.
-    - Solves initial steady-state magnetization using `functions_sequences.Mz_ss_spgr`.
+    - Solves initial steady-state magnetization using `functions_mz.Mz_ss_spgr`.
     - Assumes $R_1$ remains constant during the fast readout train (`Nph` pulses).
     """
     if t_end is None:
@@ -414,7 +414,7 @@ def Mz_dyn_ss_spgr(tR1:np.ndarray, R1:np.ndarray, v, Kw, j:np.ndarray, me, FA, T
     R1_pulses, j_pulses = _interpolate_inputs(t_pulses, tR1, R1, tj, j)
 
     # Compute
-    Mz = functions_sequences.Mz_ss_spgr_vectorized(R1_pulses, v, Kw, j_pulses, me, FA, TR)
+    Mz = functions_mz_vectorized.Mz_ss_spgr_vectorized(R1_pulses, v, Kw, j_pulses, me, FA, TR)
 
     # Reshape
     t_pulses = t_pulses.reshape((n_periods, n_pulses_per_period))
@@ -484,7 +484,7 @@ def Mz_dyn_ss_spgri(tR1:np.ndarray, R1:np.ndarray, v, Kw, j:np.ndarray, me, FA, 
     Simulates a steady-state acquisition with steady-state inflow (SSI) over an 
     interpolated time window determined by the number of phase encodings (`Nph`). 
     At each time step $k$, computes the inflow-affected steady-state longitudinal 
-    magnetization using `functions_sequences.Mz_prop_ssi` and replicates it across 
+    magnetization using `functions_mz.Mz_prop_ssi` and replicates it across 
     all `Nph` readout steps in the frame.
 
     Parameters
@@ -555,7 +555,7 @@ def Mz_dyn_ss_spgri(tR1:np.ndarray, R1:np.ndarray, v, Kw, j:np.ndarray, me, FA, 
     R1_pulses, j_pulses = _interpolate_inputs(t_pulses, tR1, R1, tj, j)
 
     # Compute Mz
-    Mz = functions_sequences.Mz_ss_spgri_vectorized(R1_pulses, v, Kw, j_pulses, me, FA, TR, TF, SA)
+    Mz = functions_mz_vectorized.Mz_ss_spgri_vectorized(R1_pulses, v, Kw, j_pulses, me, FA, TR, TF, SA)
     
     # Reshape
     Mz = Mz.reshape((n_comps, n_periods, n_pulses_per_period))
@@ -636,7 +636,7 @@ def Mz_dyn(tR1:np.ndarray, R1:np.ndarray, v, Kw, j:np.ndarray, me, pulses_per_pe
     pulses = n_periods * pulses_per_period
     Mz = np.zeros((n_comps, n_pulses)) # Mz before each pulse
     Mz[:, 0] = v * me
-    Mz[:, 1:] = functions_sequences.Mz_prop(Mz[:, 0], R1_pulses, v, Kw, j_pulses, me, pulses[:-1])
+    Mz[:, 1:] = functions_mz.Mz_prop(Mz[:, 0], R1_pulses, v, Kw, j_pulses, me, pulses[:-1])
 
     # Reshape
     t_pulses = t_pulses.reshape((n_periods, n_pulses_per_period))
@@ -711,13 +711,13 @@ def Mz_dyn_ss(tR1:np.ndarray, R1:np.ndarray, v, Kw, j:np.ndarray, me, pulses_per
     j_pulses = j_pulses.reshape((n_comps, n_periods, n_pulses_per_period))
 
     # Compute Mz at the start of each period
-    Mz0 = functions_sequences.Mz_ss_vectorized(R1_pulses[:, :, 0], v, Kw, j_pulses[:, :, 0], me, pulses_per_period)
+    Mz0 = functions_mz_vectorized.Mz_ss_vectorized(R1_pulses[:, :, 0], v, Kw, j_pulses[:, :, 0], me, pulses_per_period)
         
     # Compute Mz before each pulse
     Mz = np.zeros((n_comps, n_periods, n_pulses_per_period))
     for i in range(n_periods):
         Mz[:, i, 0] = Mz0[:, i]
-        Mz[:, i, 1:] = functions_sequences.Mz_prop(Mz[:, i, 0], R1_pulses[:, i, :-1], v, Kw, j_pulses[:, i, :-1], me, pulses_per_period[:-1])
+        Mz[:, i, 1:] = functions_mz.Mz_prop(Mz[:, i, 0], R1_pulses[:, i, :-1], v, Kw, j_pulses[:, i, :-1], me, pulses_per_period[:-1])
 
     return t_pulses, Mz
 
