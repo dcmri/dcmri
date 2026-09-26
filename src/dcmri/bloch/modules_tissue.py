@@ -2,13 +2,156 @@
 import numpy as np
 from scipy.interpolate import interp1d
 
-from dcmri.core.tools import get_sequence
+from dcmri.core.tools import get_sequence, get_quantity
 from dcmri.core.module import InvalidConfig
 from dcmri.core.module import Module
-from dcmri.bloch.functions_dynamic import Mz_wrapper_k0, Mz_wrapper_k_all
+from dcmri.bloch.functions_mz_dyn_k0 import Mz_wrapper_k0
 from dcmri.bloch import functions_sequences
 
-# TODO in dummy_data use submodule methods to avoid repetition
+
+class MzInflowPrep(Module): 
+    configs = {
+        'sequence': get_sequence('name'),
+        'tof_corr': {False, True},
+        'inflow': {'none', 'pool', 'inlet'}, 
+    }
+    defaults = {
+        'sequence': '3D-SPGR-SS',
+        'tof_corr': False,
+        'inflow': 'none',
+    }
+    _all_inputs = None
+    _all_outputs = None
+
+    def __init__(self, imap: dict=None, omap: dict=None, iomap: dict=None, cmap: dict=None, **config):
+        self.set_config(config, cmap)
+
+        if self.config['tof_corr'] and self.config['sequence'] != '3D-SPGR-SS':
+            raise InvalidConfig(f"Time-of-flight correction is only available for sequence 3D-SPGR-SS. You are running sequence {self.config['sequence']}. Either choose tof_corr=False or sequence='3D-SPGR-SS'.")
+
+        self.map_io(imap, omap, iomap)
+
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data, kwargs)
+
+        if self.config['inflow'] == 'none':
+
+            j, tj = None, None
+
+        elif self.config['inflow'] == 'inlet':
+
+            # --- Reshape v to (nc, nc)
+            v = np.atleast_1d(p['vw'])
+            nc = v.size # -- The number of compartments is decided by the size of v
+
+            tj = p['tMi']
+            ni = len(p['inlets'])
+
+            # Format Fi
+            Fwi = np.array(p['Fwi'])
+            if Fwi.size != ni:
+                raise ValueError(f"Fwi must have the length {ni}")
+            Fwi = Fwi.reshape(ni) 
+
+            for i in range(ni):
+                if i==0:
+                    j = np.zeros((nc, ) + p['Mzi'].shape[1:])
+                inlet = p['inlets'][i] 
+                j[inlet, ...] = Fwi[i] * p['Mzi'][i, ...]  # (mL/min/cm3) * (magn/mL) = magn/min/cm3
+   
+        elif self.config['inflow'] == 'pool':
+
+            # --- Reshape v to (nc, nc)
+            v = np.atleast_1d(p['vw'])
+            nc = v.size # -- The number of compartments is decided by the size of v
+
+            # --- Reshape tR1 and R1 to (nc, nt)   
+            tR = np.atleast_1d(p['tR'])  
+            ntR = len(tR)
+
+            # Start and end of acquisition
+            tstart = p['tstart'] 
+            t_end = tstart + p['tacq']
+
+            # Apply TOF correction if requested
+            if self.config['tof_corr']:
+                sequence = '3D-SPGR-SSI'
+            else:
+                sequence = self.config['sequence']
+
+            # Format R1i
+            ni = len(p['inlets'])
+            R1i = np.reshape(p['R1i'], (ni, ntR)) 
+
+            # Format Fi
+            Fwi = np.array(p['Fwi'])
+            if Fwi.size != ni:
+                raise ValueError(f"Fwi must have the length {ni}")
+            Fwi = Fwi.reshape(ni)
+
+            # Compute j for each compartment
+            mz_prep_inflow = get_sequence('mz_prep_inflow', sequence)
+
+            for i in range(ni):
+                tj, Mzi = Mz_wrapper_k0(sequence, mz_prep_inflow, tR, R1i[i], p, v=1, Kw=0, tstart=tstart, t_end=t_end)
+                if i==0:
+                    j = np.zeros((nc, ) + tj.shape)
+                inlet = p['inlets'][i] 
+                j[inlet, :] = Fwi[i] * Mzi[0, :]  # (mL/min/cm3) * (magn/mL) = magn/min/cm3
+
+        output = {'tJMz': tj, 'JMz': j}
+        return self.map_results(output)
+    
+    def inputs(self):
+        inputs = set()
+        if self.config['inflow'] == 'none':
+            pass
+
+        elif self.config['inflow'] == 'inlet':
+            inputs |= {'vw', 'inlets', 'Fwi', 'tMi', 'Mzi'}
+
+        elif self.config['inflow'] == 'pool':
+            sequence = '3D-SPGR-SSI' if self.config['tof_corr'] else self.config['sequence']
+
+            inputs |= {'vw', 'inlets', 'Fwi', 'me', 'tR', 'R1i', 'tstart', 'tacq'}
+            inputs |= get_sequence('prep_params', sequence)
+
+        return inputs
+    
+    def outputs(self):
+        return {'tJMz', 'JMz'} # (compartments, times)
+
+    def dummy_data(self, nc=2):
+        p = self.init_data()
+
+        ntR = 5
+        tR = np.arange(ntR)
+        R1 = np.ones((nc, ntR))
+        tacq = ntR - 1
+        p |= {
+            'tacq': tacq,
+            'tR': tR,
+            'R1': R1,
+            'vw': np.ones(nc) / nc, 
+            'R1i': np.ones((nc, ntR)),
+            'Fwi': np.ones(nc),
+            'inlets': np.arange(nc),
+        }
+        if self.config['inflow'] == 'inlet':
+            tstart = 0
+            t_end = tstart + tacq
+            sequence = '3D-SPGR-SSI' if self.config['tof_corr'] else self.config['sequence']
+            mz_prep_inflow = get_sequence('mz_prep_inflow', sequence)
+            p |= {k: get_quantity(k)['init'] for k in get_sequence('prep_params', sequence)}
+            p |= {'me': 1}
+            tMi, Mzi = Mz_wrapper_k0(sequence, mz_prep_inflow, tR, R1[0], p, 
+                                v=1, Kw=0, tstart=tstart, t_end=t_end)
+            p |= {
+                'tMi': tMi,
+                'Mzi': np.stack(nc * [Mzi], axis=0),
+            }
+
+        return self.input_data(p)
 
 # +--------------------------------------------------------------------------------------------------+
 # |                                   MzPrep - all configs (n = 3)                                   |
@@ -83,8 +226,12 @@ class MzPrep(Module):
 
     def __init__(self, imap: dict=None, omap: dict=None, iomap: dict=None, cmap: dict=None, **config):
         self.set_config(config, cmap)
+
         if self.config['tof_corr'] and self.config['sequence'] != '3D-SPGR-SS':
             raise InvalidConfig(f"Time-of-flight correction is only available for sequence 3D-SPGR-SS. You are running sequence {self.config['sequence']}. Either choose tof_corr=False or sequence='3D-SPGR-SS'.")
+
+        self._mz_inflow_prep = MzInflowPrep(**self.config)
+
         self.map_io(imap, omap, iomap)
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
@@ -95,11 +242,6 @@ class MzPrep(Module):
 
         # --- Reshape v to (nc, nc)
         v = np.atleast_1d(p['vw'])
-        nc = v.size # -- The number of compartments is decided by the size of v
-
-        # Start and end of acquisition
-        tstart = p['tstart'] 
-        t_end = tstart + p['tacq']
 
         # Apply TOF correction if requested
         if self.config['tof_corr']:
@@ -112,9 +254,15 @@ class MzPrep(Module):
             o['tMz'] = tstart + functions_sequences.acquisition_times(sequence, p, p['tacq'])
             ntM = len(o['tMz'])
             o['Mz'] = np.repeat(v[:, None] * p['me'], ntM, axis=1)
+            o['tJMz'], o['JMz'] = None, None
             return self.map_results(o)
+
+        # Start and end of acquisition
+        tstart = p['tstart'] 
+        t_end = tstart + p['tacq']
     
         # --- Reshape Kw to (nc, nc)
+        nc = v.size # -- The number of compartments is decided by the size of v
         Kw = np.atleast_1d(p['Kw'])
         if nc > 1:
             if Kw.size==1:
@@ -130,62 +278,17 @@ class MzPrep(Module):
         R1 = np.reshape(p['R1'], (nc, ntR))
 
         # Compute magnetization inflow
-        if self.config['inflow'] == 'none':
+        o = self._mz_inflow_prep(p) # {'tJMz', 'JMz'}
 
-            j, tj = None, None
-
-        elif self.config['inflow'] == 'inlet':
-
-            tj = p['tMi']
-            ni = len(p['inlets'])
-
-            # Format Fi
-            Fwi = np.array(p['Fwi'])
-            if Fwi.size != ni:
-                raise ValueError(f"Fwi must have the length {ni}")
-            Fwi = Fwi.reshape(ni) 
-
-            for i in range(ni):
-                if i==0:
-                    j = np.zeros((nc, ) + p['Mzi'].shape[1:])
-                inlet = p['inlets'][i] 
-
-                # NOTE: extra dim because not in center (yet)
-                j[inlet, :, :] = Fwi[i] * p['Mzi'][i, :, :]  # (mL/min/cm3) * (magn/mL) = magn/min/cm3
-   
-        elif self.config['inflow'] == 'pool':
-
-            # Format R1i
-            ni = len(p['inlets'])
-            R1i = np.reshape(p['R1i'], (ni, ntR)) 
-
-            # Format Fi
-            Fwi = np.array(p['Fwi'])
-            if Fwi.size != ni:
-                raise ValueError(f"Fwi must have the length {ni}")
-            Fwi = Fwi.reshape(ni)
-
-            # Compute j for each compartment
-            mz_prep_inflow = get_sequence('mz_prep_inflow', sequence)
-
-            for i in range(ni):
-                tj, Mzi = Mz_wrapper_k_all(sequence, mz_prep_inflow, tR, R1i[i], p, v=1, Kw=0, tstart=tstart, t_end=t_end)
-                if i==0:
-                    j = np.zeros((nc, ) + tj.shape)
-                inlet = p['inlets'][i] 
-
-                # NOTE: extra dim because center=False
-                j[inlet, :, :] = Fwi[i] * Mzi[0, :, :]  # (mL/min/cm3) * (magn/mL) = magn/min/cm3
-
-        # Delegate computation to helper functions
-        mz_prep_sequence = get_sequence('mz_prep_tissue', sequence)
-        o['tMz'], o['Mz'] = Mz_wrapper_k0(sequence, mz_prep_sequence, tR, R1, p, v, Kw, tj, j, tstart=tstart, t_end=t_end)
+        # Compute tissue Mz
+        mz_prep_sequence = get_sequence('mz_prep_tissue', sequence) 
+        o['tMz'], o['Mz'] = Mz_wrapper_k0(sequence, mz_prep_sequence, tR, R1, p, v, Kw, o['tJMz'], o['JMz'], tstart=tstart, t_end=t_end)
 
         # Return dimensions (compartments, times)
         return self.map_results(o)
 
     def inputs(self):
-        inputs = {'me', 'vw', 'tstart', 'tacq'}
+        inputs = {'me', 'vw', 'tacq'}
 
         if self.config['tof_corr']:
             sequence = '3D-SPGR-SSI'
@@ -196,41 +299,41 @@ class MzPrep(Module):
         if 'R1' not in get_sequence('tissue_params', sequence):
             return inputs
         
-        inputs |= {'Kw', 'tR', 'R1'}
-        if self.config['inflow'] == 'inlet':
-            inputs |= {'Fwi', 'tMi', 'Mzi', 'inlets'}
-        elif self.config['inflow'] == 'pool':
-            inputs |= {'Fwi', 'R1i', 'inlets'}
+        inputs |= {'tstart', 'Kw', 'tR', 'R1'}
+        inputs |= self._mz_inflow_prep.mapped_inputs()
+
         return inputs
     
     def outputs(self):
-        return {'tMz', 'Mz'} # (compartments, times)
+        outputs = self._mz_inflow_prep.mapped_outputs()
+        outputs |= {'tMz', 'Mz'} 
+        return outputs
 
-    def dummy_data(self, nc=2):
+    def dummy_data(self, nc=2, nt=5):
         p = self.init_data()
-        ntR = 5
-        tR = np.arange(ntR)
-        R1 = np.ones((nc, ntR))
-        tacq = ntR - 1
+
+        tR = np.arange(nt)
+        R1 = np.ones((nc, nt))
+        tacq = nt - 1
         tstart = p['tstart'] 
         t_end = tstart + tacq
         sequence = self.config['sequence']
         mz_prep_inflow = get_sequence('mz_prep_inflow', sequence)
-        tMi, Mzi = Mz_wrapper_k_all(sequence, mz_prep_inflow, tR, R1[0], p, 
+        tMi, Mzi = Mz_wrapper_k0(sequence, mz_prep_inflow, tR, R1[0], p, 
                             v=1, Kw=0, tstart=tstart, t_end=t_end)
         p |= {
-            'tacq': ntR-1,
+            'tacq': nt-1,
             'tR': tR,
             'R1': R1,
-            'vw': np.ones(nc) / nc, 
-            'Kw': np.ones((nc, nc)),
-            'R1i': np.ones((nc, ntR)),
+            'R1i': np.ones((nc, nt)),
             'tMi': tMi,
             'Mzi': np.stack(nc * [Mzi], axis=0),
+            'vw': np.ones(nc) / nc, 
+            'Kw': np.ones((nc, nc)),
             'Fwi': np.ones(nc),
             'inlets': np.arange(nc),
         }
-        return p
+        return self.input_data(p)
 
 
 # +--------------------------------------------------------------------------------------------------+
@@ -310,38 +413,20 @@ class MxyReadMz(Module):
         # Output Mxy (channels, components, compartments, acq times)
 
         Mz = np.atleast_2d(p['Mz']) # (ncomps, ntimes)
-        nc, nt = Mz.shape
+        nc = Mz.shape[0]
 
         if 'R2s' in self._inputs:
             R2s = np.interp(p['tMz'], np.atleast_1d(p['tR']), np.atleast_1d(p['R2s']))
+        else:
+            R2s = None
             
         if 'R2' in self._inputs:
             R2 = np.reshape(p['R2'], (nc, -1))  
             R2 = _interpolate_2d(p['tMz'], p['tR'], R2)
-
-        FA = p['FA'] * p['B1corr']
-        
-        if seq in ['2D-SE-EPI', '3D-SE-EPI']:
-            Mxy = np.zeros((1, 2, nc, nt), dtype=float) # (channels, components, compartments, times)
-            for c in range(nc):
-                Mxy[0, 0, c, :] = functions_sequences.mz_readout(Mz[c, :], R2[c, :], FA, p['TE'])
-        
-        elif seq in ['2D-DE-EPI', '3D-DE-EPI']:
-            Mxy = np.zeros((2, 2, nc, nt), dtype=float)
-            for c in range(nc):
-                Mxy[0, 0, c, :] = functions_sequences.mz_readout(Mz[c, :], R2s, FA, p['TE1'])
-                Mxy[1, 0, c, :] = functions_sequences.mz_readout(Mz[c, :], R2[c, :], FA, p['TE2'])
-
-        elif seq in ['ZTE-3D-SPGR-SS', 'ZTE-3D-IR-SPGR-SS']:
-            Mxy = np.zeros((1, 2, nc, nt), dtype=float)
-            R2s = np.zeros(nt)
-            for c in range(nc):
-                Mxy[0, 0, c, :] = functions_sequences.mz_readout(Mz[c, :], R2s, FA, 0)
-        
         else:
-            Mxy = np.zeros((1, 2, nc, nt), dtype=float) 
-            for c in range(nc):
-                Mxy[0, 0, c, :] = functions_sequences.mz_readout(Mz[c, :], R2s, FA, p['TE'])
+            R2 = None
+
+        Mxy = functions_sequences.mz_readout_wrapper(Mz, p, seq, R2=R2, R2s=R2s)
 
         # (channels, components, compartments, times)
         # or
@@ -350,18 +435,18 @@ class MxyReadMz(Module):
         results = {'Mxy': Mxy}
         return self.map_results(results)
 
-    def dummy_data(self, nc=2):
+    def dummy_data(self, nc=2, nt=5):
         data = self.init_data()
-        ntR, ntM = 5, 3
+        ntM = 3
         data |= {
-            'tacq': ntR-1,
+            'tacq': nt-1,
             'tMz': np.ones(ntM), 
             'Mz': np.ones((nc, ntM)), 
-            'tR': np.arange(ntR), 
-            'R2':np.ones((nc, ntR)), 
-            'R2s':np.ones(ntR),
+            'tR': np.arange(nt), 
+            'R2':np.ones((nc, nt)), 
+            'R2s':np.ones(nt),
         }
-        return data
+        return self.input_data(data)
 
 
 def _interpolate_2d(t_new, tR, R):
@@ -472,35 +557,14 @@ class Magnetization(Module):
         for c in range(shape[0]):
             p['M'][c, 2, :, :] = p['Mz']
 
+        p['tM'] = p['tMz']
+
         return self.map_results(p)
 
-    def dummy_data(self, nc=2):
+    def dummy_data(self, nc=2, nt=5):
         p = self.init_data()
-        ntR = 5
-        tR = np.arange(ntR)
-        R1 = np.ones((nc, ntR))
-        tacq = ntR - 1
-        tstart = p['tstart'] 
-        t_end = tstart + tacq
-        sequence = self.config['sequence']
-        mz_prep_inflow = get_sequence('mz_prep_inflow', sequence)
-        tMi, Mzi = Mz_wrapper_k_all(
-            sequence, mz_prep_inflow, tR, R1[0], p, 
-            v=1, Kw=0, tstart=tstart, t_end=t_end
-        )
-        # tMi, Mzi = tMi[:, 0], Mzi[:, :, 0]
-        p |= {
-            'tacq': ntR-1,
-            'tR': tR,
-            'R1': R1,
-            'R2': np.ones((nc, ntR)), 
-            'R2s':np.ones(ntR),
-            'vw': np.ones(nc) / nc, 
-            'Kw': np.ones((nc, nc)),
-            'R1i': np.ones((nc, ntR)),
-            'tMi': tMi,
-            'Mzi': np.stack(nc * [Mzi, Mzi], axis=0),
-            'Fwi': np.ones(nc),
-            'inlets': np.arange(nc),
-        }
-        return p
+
+        p |= self._mz_prep.dummy_data(nc, nt)
+        p |= self._mxy_read.dummy_data(nc, nt)
+
+        return self.input_data(p)

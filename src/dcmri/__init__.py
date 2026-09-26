@@ -211,20 +211,42 @@ from dcmri.bloch.modules_tissue import (
     Magnetization,
 )
 from dcmri.bloch.functions_sequences import (
-    Mz_ss,
+    Mz_ss, # OBSOLETE phase out
+    Mz_ss_vectorized,
     Mz_ss_spgri,
-    Mz_ss_spgr,
+    Mz_ss_spgri_vectorized,
+    Mz_ss_spgr, # obsolete
+    Mz_ss_spgr_vectorized,
     Mz_ss_pr_spgr,
+    Mz_ss_pr_spgr_vectorized,
+    Mz_ss_k0_pr_spgr,
+    Mz_ss_k0_pr_spgr_vectorized,
     Mz_prop,
+    Mz_prop_vectorized,
     Mz_prop_pr_spgr,
+    Mz_prop_pr_spgr_vectorized,
+    Mz_prop_spgr_vectorized,
     mz_readout,
 )
-from dcmri.bloch.functions_dynamic import (
-   Mz_dyn_spgr_ss,
-   Mz_dyn_spgr_ssi,
-   Mz_dyn_pr_spgr,
-   Mz_dyn_pr_spgr_ss,
-   Mz_dyn_se,
+from dcmri.bloch.functions_mz_dyn import (
+    Mz_dyn,
+    Mz_dyn_spgr,
+    Mz_dyn_pr_spgr,
+    Mz_dyn_ss,
+    Mz_dyn_ss_pr_spgr,
+    Mz_dyn_ss_spgr,
+    Mz_dyn_ss_spgri, 
+    Mz_dyn_se,
+)
+from dcmri.bloch.functions_mz_dyn_k0 import (
+    Mz_dyn_k0,
+    Mz_dyn_k0_spgr,
+    Mz_dyn_k0_pr_spgr,
+    Mz_dyn_ss_k0,
+    Mz_dyn_ss_k0_pr_spgr,
+    Mz_dyn_ss_k0_spgr,
+    Mz_dyn_ss_k0_spgri,
+    Mz_dyn_k0_se,
 )
 from dcmri.signal.modules_tissue import (
     Signal,

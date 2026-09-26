@@ -208,6 +208,8 @@ QUANTITIES = {
     'tM': {'init': 0.0, 'bounds': None, 'name': 'magnetization time points', 'unit': 'sec', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
     'Mz': {'init': 1, 'bounds': (0, 5), 'name': 'longitudinal magnetization', 'unit': 'A/cm', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
     'tMz': {'init': 0.0, 'bounds': None, 'name': 'longitudinal magnetization time points', 'unit': 'sec', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
+    'JMz': {'init': 1, 'bounds': (0, 5), 'name': 'longitudinal magnetization inflow', 'unit': 'A/cm/sec', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
+    'tJMz': {'init': 0.0, 'bounds': None, 'name': 'longitudinal magnetization inflow time points', 'unit': 'sec', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
     'Mzi': {'init': 1, 'bounds': (0, 5), 'name': 'longitudinal inlet magnetization', 'unit': 'A/cm', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
     'tMi': {'init': 0.0, 'bounds': None, 'name': 'inlet magnetization time points', 'unit': 'sec', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
     'Mxy': {'init': 1, 'bounds': (0, 5), 'name': 'transverse magnetization', 'unit': 'A/cm', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},

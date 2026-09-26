@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from dcmri import ForwardAorta
 from dcmri.core.module import InvalidConfig
-from dcmri.bloch.functions_dynamic import Mz_dyn_se
+from dcmri.bloch.functions_mz_dyn import Mz_dyn_se
 
 # kernprof automatically injects 'profile' into builtins when run via command line
 # kernprof -l -v tests/test_model_aorta.py

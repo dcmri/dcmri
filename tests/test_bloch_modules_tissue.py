@@ -3,7 +3,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-from dcmri.bloch.modules_tissue import MzPrep, MxyReadMz, Magnetization
+from dcmri.bloch.modules_tissue import MzInflowPrep, MzPrep, MxyReadMz, Magnetization
 from dcmri.core.module import InvalidConfig
 
 
@@ -13,7 +13,7 @@ def _test_class(cls):
             instance = cls(**cnfg)
         except InvalidConfig:
             return
-        # if cnfg != {'sequence': '3D-PR-SS', 'tof_corr': False, 'inflow': 'none'}:
+        # if cnfg != {'sequence': '3D-SPGR-SS', 'tof_corr': True, 'inflow': 'pool'}:
         #     return
         # print(cnfg)
         data = instance.dummy_data(nc=2)
@@ -31,6 +31,7 @@ def _test_class(cls):
 
 def test_bloch():
     for cls in [
+        MzInflowPrep, 
         MzPrep,
         MxyReadMz,
         Magnetization,

@@ -531,7 +531,5 @@ class ConcToRelax(Module):
             'r2': np.ones(nc),
             'RM': np.eye(nc),
             'v': np.ones(nc) / nc,
-            #'vw': np.ones(nc) / nc,
-            # 'wx': [[0]],
         } 
         return data
