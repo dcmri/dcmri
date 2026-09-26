@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from dcmri import Aorta as Model
 from dcmri.core.module import InvalidConfig
 
-DEBUG = True
+DEBUG = False
 
 if DEBUG:
     # Debugging mode
@@ -79,8 +79,8 @@ def test_api():
 
 
 if __name__ == "__main__":
-    test_model_aorta_instance()
-    # test_model_aorta()
+    # test_model_aorta_instance()
+    test_model_aorta()
     # test_api()
     
     print('All Aorta tests passed!!')
