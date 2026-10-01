@@ -104,17 +104,17 @@
 # | popt  | a.u. | dictionary of optimized free parameter values  | Signal          | 1    |        |       |       |
 # | psdev | a.u. | dictionary with parameter standard deviations  | Signal          | 1    |        |       |       |
 # +-----------------------------------------------------------------------------------------------------------------+
-
+from copy import deepcopy
 import numpy as np
 
 from dcmri.core.module import Module
-from dcmri.core.tools import get_quantity, get_bounds
+from dcmri.core.tools import get_quantity, update_bounds
 from dcmri.utils.fit import train_bat
 from dcmri.inverse.lib import estimate_bat
 from dcmri.forward.aorta import ForwardAorta
 
-configs = ForwardAorta.configs
-defaults = ForwardAorta.defaults
+configs = deepcopy(ForwardAorta.configs)
+defaults = deepcopy(ForwardAorta.defaults)
 
 configs['bolus'].discard('dual') # Only meaningful for split protocols
 
@@ -150,6 +150,8 @@ class InverseAorta(Module):
         bat = estimate_bat(p['tS'], p['S'], p['nb'])
         p['BAT'] = max(bat - p['T_hl'], 0)
 
+        p['pfree'] = update_bounds(p['pfree'], value=p)
+
         # Compute inverse
         self._pars = p
         p = train_bat(self._predict, None, p['S'], p, p['pfree'], **kwargs)
@@ -177,10 +179,8 @@ class InverseAorta(Module):
             'nb': 5,
             'pfree': {'CO': (10, 300), 'BAT': (-60, 60)},
         }
-        if data is not None:
-            p |= data
             
-        return self.input_data(p)
+        return self.input_data(p, data)
 
     def pfree(self):
         inputs = self.forward.mapped_inputs()

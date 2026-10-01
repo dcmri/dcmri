@@ -16,20 +16,12 @@ def test_liver(cls=ForwardLiver):
             return
     
         data = instance.dummy_data()
-
-        # --- DIAGNOSTIC TIMING ---
-        t0 = time.perf_counter()
-        # print(cnfg)
         instance(data)
 
-        elapsed = time.perf_counter() - t0
-        # print(cnfg)
-        # print(f"  [Total model execution time: {elapsed:.4f}s]")
-
     cls.print_configs()
-    cls.print_all_io(verbose=1, simple=False, sample=1e3, seed=51)
+    cls.print_all_io(verbose=1, simple=False, sample=1e4, seed=51)
 
-    configs = cls.all_configs(sample=1e3, seed=51)
+    configs = cls.all_configs(sample=1e5, seed=51)
     for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
         _test_config(cnfg)
 
@@ -52,13 +44,14 @@ def test_liver_instance():
     data = model.dummy_data()
     results = model(data)
 
-    plt.plot(results['tS'], results['S'][0, 0, :], 'ro')
+    plt.plot(results['tS_li'], results['S_li'][0, 0, :], 'ro')
     # plt.plot(results['tC'], results['C'][0], 'ro')
 
     plt.show()
 
-if __name__ == '__main__':
-    #test_liver()
-    test_liver_instance()
 
+if __name__ == '__main__':
+    # test_liver_instance()
+    test_liver()
+    
     print('All ForwardLiver coverage tests passed!!')

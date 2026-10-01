@@ -38,13 +38,15 @@ def test_flux():
 
 
 def test_flux_aorta():
-    cnfg = {'heartlung': 'pfcomp', 'organs': 'comp', 'kidneys': 'pass', 'liver': None, 'lagut': None, 'bolus': 'single'}
+    cnfg = {'heartlung': 'pfcomp', 'organs': 'comp', 'kidneys': 'pass', 'liver': 'comp', 'lagut': None, 'bolus': 'single'}
     instance = dc.FluxAorta(**cnfg)
     data = instance.dummy_data()
     results = instance(data)
     print(instance.config)
 
-    plt.plot(results['tC'], results['J_ao'], 'ro')
+    plt.plot(results['tC'], results['J_ao'], 'r-')
+    plt.plot(results['tC'], results['J_li'], 'b-')
+    plt.plot(results['tC'], results['J_vc'], 'g-')
     plt.show()   
 
 

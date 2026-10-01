@@ -153,7 +153,7 @@ class RelaxivityGeneric(Module):
         data['v_t'] = [data['v_t']]
         if self.config['baseline']=='measured':
             data['R1_t'] = [data['R1_t']]
-        return data
+        return self.input_data(data)
 
 
 class RelaxivityArtery(Module):

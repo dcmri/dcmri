@@ -1,79 +1,60 @@
+from copy import deepcopy
+
 import matplotlib.pyplot as plt
 import numpy as np
 
 
-from dcmri.core.tools import get_quantity, get_bounds
-from dcmri.utils.fit import train_bat, loss
-from dcmri.inverse.lib import estimate_bat
-from dcmri.forward.aorta_liver import ForwardAortaLiver
+from dcmri.core.tools import get_bounds
+from dcmri.utils.fit import loss
+from dcmri.inverse.aorta_liver import InverseAortaLiver as Inverse
 
 
 class AortaLiver():
-    def __init__(self, data: dict=None, **config):
-        self._version = '1.0'
-        self._model = ForwardAortaLiver(**config)
-
-        # Initialise model parameters
-        pars = self._model.dummy_data()
-        if data is not None:
-            pars |= data
-        self._pars = self._model.input_data(pars)
-
-    def _params(self, group=None):
-        params = self._model.mapped_inputs()
-        if group == 'free':
-            params_free = {p for p in params if get_quantity(p)['group']=='phys'} 
-            params_free |= {p for p in ['BAT', 'BAT_1', 'BAT_2'] if p in params}
-            return params_free
-        return params
-
-    def _predict(self, time: tuple):
-        pred = self._model(self._pars)
-        return (
-            pred['S_ao'][:, :, :len(time[0])].reshape(-1), 
-            pred['S_li'][:, :, :len(time[1])].reshape(-1)
-        )
-
-    # ==========================================
-    # User Interface
-    # ==========================================
-
-    def params(self, group=None) -> list:
-        """Return a list of model parameters"""
-        return self._params(group)
-
-    def predict(self) -> dict:
-        """Predicts the data."""
-        return self._model(self._pars)
+    @classmethod
+    def all_configs(cls, sample: int = None, seed: int = None, valid=False):
+        return Inverse.all_configs(sample, seed, valid)
     
-    def train(self, data: dict, free: dict = None, 
-            bounds: dict = None, n0=1, **kwargs) -> tuple:
+    def __init__(self, state: dict=None, **config):
+        self._inverse = Inverse(**config)
+        self._forward = self._inverse.forward
+        self._state = self._forward.dummy_data(state)
 
-        p = self._pars
-        
-        # Estimate BAT 
-        bat = estimate_bat(data['tS_ao'], data['S_ao'], n0)
-        p['BAT'] = max(bat - p['T_hl'], 0)
+    def state(self):
+        return deepcopy(self._state)
 
-        # Set calibration data
-        if self._model.config['calibrate']:
-            for roi in ['ao', 'li']:
-                p[f"Scal_{roi}"] = data[f"S_{roi}"][..., :n0]
-                p[f'iScal_{roi}'] = np.arange(n0)
+    def predict(self) -> np.ndarray:
+        return self._forward(self._state)
+    
+    def train(self, data: dict, pfree:dict=None, bounds: dict=None, nb=5, **kwargs):
+        # Get free parameters
+        default_pfree = self._inverse.pfree()     
+        pfree = get_bounds(pfree, bounds, free_pars=default_pfree)
 
-        # Perform training
-        free = get_bounds(free, bounds, free_pars=self._params('free'), value=p)
+        # Apply inverse model
+        inputs = self._state | data | {'pfree': pfree, 'nb': nb}
+        result = self._inverse(inputs, **kwargs)
 
-        time = (data['tS_ao'], data['tS_li'])
-        signal = (data['S_ao'], data['S_li'])
-        return train_bat(self._predict, time, signal, p, free, **kwargs)
+        # Update state
+        self._state |= result['popt']
 
+        return result
+
+    def cost(self, data: dict, metric: str='NRMS', nfree=None) -> float:
+        pred = self._forward(self._state)
+
+        signal_data = (data['S_ao'], data['S_li'])
+        signal_pred = (pred['S_ao'], pred['S_li'])
+
+        signal_data = np.concatenate([s.reshape(-1) for s in signal_data])
+        signal_pred = np.concatenate([s.reshape(-1) for s in signal_pred])
+
+        return loss(signal_pred, signal_data, metric, nfree)
 
     def plot(self, data: dict, xlim=None, fname=None, show=True):
-        prediction = self._model(self._pars)
+        pred = self._forward(self._state)
 
         if xlim is None: 
-            xlim = [prediction['tR'][0], prediction['tR'][-1]]
+            xlim = [pred['tR'][0], pred['tR'][-1]]
         xlim = np.array(xlim) / 60
         
         fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(10, 8))
@@ -90,20 +71,20 @@ class AortaLiver():
             ax.set_ylabel('Signal (a.u.)')
             ax.legend()
 
-        plot_data(prediction['tS_ao'], prediction['S_ao'], data['tS_ao'], data['S_ao'], ax1, ['lightcoral', 'darkred'])
-        plot_data(prediction['tS_li'], prediction['S_li'], data['tS_li'], data['S_li'], ax3, ['cornflowerblue', 'darkblue'])
+        plot_data(pred['tS_ao'], pred['S_ao'], data['tS_ao'], data['S_ao'], ax1, ['lightcoral', 'darkred'])
+        plot_data(pred['tS_li'], pred['S_li'], data['tS_li'], data['S_li'], ax3, ['cornflowerblue', 'darkblue'])
         
         # Plot concentrations
         ax2.set(ylabel='Concentration (mM)', xlim=xlim)
-        ax2.plot(prediction['tC'] / 60, 0 * prediction['tC'], color='gray')
-        ax2.plot(prediction['tC'] / 60, 1000 * prediction['C_ao'][0], linestyle='-', color='darkred', linewidth=2.0, label='Aorta')
+        ax2.plot(pred['tC'] / 60, 0 * pred['tC'], color='gray')
+        ax2.plot(pred['tC'] / 60, 1000 * pred['C_ao'][0], linestyle='-', color='darkred', linewidth=2.0, label='Aorta')
         ax2.legend()
 
         ax4.set(xlabel='Time (min)', ylabel='Tissue concentration (mM)', xlim=xlim)
-        ax4.plot(prediction['tC'] / 60, 0 * prediction['tC'], color='gray')
-        ax4.plot(prediction['tC'] / 60, 1000 * prediction['C_li'][0, :], linestyle='-.', color='darkblue', linewidth=2.0, label='Extracellular')
-        ax4.plot(prediction['tC'] / 60, 1000 * prediction['C_li'][1, :], linestyle='--', color='darkblue', linewidth=2.0, label='Hepatocytes')
-        ax4.plot(prediction['tC'] / 60, 1000 * prediction['C_li'].sum(axis=0), linestyle='-', color='darkblue', linewidth=2.0, label='Liver')
+        ax4.plot(pred['tC'] / 60, 0 * pred['tC'], color='gray')
+        ax4.plot(pred['tC'] / 60, 1000 * pred['C_li'][0, :], linestyle='-.', color='darkblue', linewidth=2.0, label='Extracellular')
+        ax4.plot(pred['tC'] / 60, 1000 * pred['C_li'][1, :], linestyle='--', color='darkblue', linewidth=2.0, label='Hepatocytes')
+        ax4.plot(pred['tC'] / 60, 1000 * pred['C_li'].sum(axis=0), linestyle='-', color='darkblue', linewidth=2.0, label='Liver')
         ax4.legend()
 
         if fname: 
@@ -114,14 +95,7 @@ class AortaLiver():
             plt.close()
 
 
-    def cost(self, data: dict, metric: str='NRMS', nfree=None) -> float:
-        time = (data['tS_ao'], data['tS_li'])
-        signal = (data['S_ao'], data['S_li'])
 
-        pred = self._predict(time)
-        signal = np.concatenate([s.reshape(-1) for s in signal])
-        signal_pred = np.concatenate(pred)
-        return loss(signal_pred, signal, metric, nfree)
         
     # def export_params(self, sdev=None, group=None, num_only=False, deriv=False, scalar_only=False):
     #     pars = self._pars

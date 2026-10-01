@@ -6,10 +6,10 @@ from tqdm import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
 
-from dcmri import Aorta as Model
+from dcmri import AortaPortalLiver as Model
 from dcmri.core.module import InvalidConfig
 
-DEBUG = False
+DEBUG = True
 
 if DEBUG:
     # Debugging mode
@@ -36,16 +36,15 @@ def _test_config(cnfg):
     cost = model.cost(data)
     # print(f"{cnfg}: {cost}")
     print(cost)
-    # assert cost < 1, f"Cost {cost} of model {cnfg} exceeded threshold!"
+    #assert cost < 1e-1, f"Cost {cost} of model {cnfg} exceeded threshold!"
 
 
-def test_model_aorta_instance():
-    cnfg = {'t1_relaxation': 'lin', 't2_relaxation': None, 't2s_relaxation': 'lin', 'inflow': 'none', 'sequence': '3D-PR-SPGR-SS', 'tof_corr': False, 'magnitude': True, 'trigger': False, 'calibrate': True, 'baseline': 'measured', 'heartlung': 'pfcomp', 'organs': '2cxm', 'kidneys': 'pass', 'liver': 'pass', 'lagut': 'comp', 'bolus': 'single'}
-    _test_config(cnfg) 
+def test_model_aorta_portal_liver_instance():
+    cnfg = {'inflow': 'none', 'sequence': '3D-SPGR-SS', 'tof_corr': False, 'magnitude': True, 'trigger': False, 'calibrate': False, 'water_exchange': 'F', 'baseline': 'literature', 'bolus': 'single', 'heartlung': 'pfcomp', 'organs': 'comp', 'liver': '1I-EC', 'non_stationary': None, 't1_relaxation_ao': 'lin', 't1_relaxation_pv': 'lin', 't1_relaxation_li': 'lin', 't2_relaxation_ao': None, 't2_relaxation_pv': None, 't2_relaxation_li': None, 't2s_relaxation_ao': 'lin', 't2s_relaxation_pv': 'lin', 't2s_relaxation_li':'lin'}
+    _test_config(cnfg)
 
-
-def test_model_aorta():
-    configs = Model.all_configs(sample=1e3, seed=51)
+def test_model_aorta_portal_liver():
+    configs = Model.all_configs(sample=1e4, seed=51)
 
     # [_test_config(cnfg) for cnfg in tqdm(configs, desc=f'Testing {Model.__name__}')]
     Parallel(n_jobs=-1)(delayed(_test_config)(cnfg) for cnfg in configs)
@@ -79,9 +78,9 @@ def test_api():
 
 
 if __name__ == "__main__":
-    # test_model_aorta_instance()
-    test_model_aorta()
+    test_model_aorta_portal_liver_instance()
+    test_model_aorta_portal_liver()
     # test_api()
     
-    print('All Aorta tests passed!!')
+    print('All AortaPortalLiver tests passed!!')
 

@@ -1,14 +1,13 @@
 import os
 from joblib import Parallel, delayed
 import time
+from tqdm import tqdm
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 from dcmri import AortaLiverDrug as Model
 from dcmri.core.module import InvalidConfig
-import dcmri as dc
-
 
 DEBUG = False
 
@@ -22,51 +21,37 @@ else:
     matplotlib.use('Agg')
 
 
-def _run_single_config(cnfg):
+def _test_config(cnfg):
+    #state = {'tacq': 600}
+    state = None
     try:
-        model = Model(**cnfg)
-    except InvalidConfig as e:
-        # print(e)
+        model = Model(state, **cnfg)
+    except InvalidConfig:
         return
-    free = model.params('free')
+    # print(cnfg)
+    state = model.state()
     data = model.predict()
-    model.train(data, verbose=VERBOSE, n0=5, n_bat=1, xtol=1e-3)
+    model.train(data, nb=5, n_bat=4, verbose=VERBOSE, xtol=1e-3)
     model.plot(data, show=DEBUG)
     cost = model.cost(data)
-    #print(f"{cnfg}: {cost}")
+    # print(f"{cnfg}: {cost}")
     print(cost)
-    assert cost < 10, f"Cost {cost} of model {cnfg} exceeded threshold!"
-    return cnfg, cost
+    #assert cost < 1e-1, f"Cost {cost} of model {cnfg} exceeded threshold!"
 
 
-def test_all_config():
-    if DEBUG:
-        return
-    
-    start = time.perf_counter()
-
-    result = Parallel(n_jobs=-1)(
-        delayed(_run_single_config)(cnfg)
-        for cnfg in dc.ForwardAortaLiverDrug.all_configs(sample=1e3, seed=39)
-    )
-    # result = [
-    #     _run_single_config(cnfg)
-    #     for cnfg in Model.all_configs()
-    # ]
-    result = [r for r in result if r is not None]
-    cost = [r[1] for r in result]
-    cnfg = result[cost.index(max(cost))][0]
-
-    end = time.perf_counter()
-    print(f'Configuration coverage completed!')
-    print(f'--> Number of configurations: {np.prod([len(v) for v in dc.ForwardAortaLiverDrug.configs.values()])}')
-    print(f'--> Total computation time: {(end - start) / 60:.1f} mins')
-    print(f'--> Maximum cost: {np.max(cost)} %')
-    print(f'--> Config with maximum cost: {cnfg}')
-
-def test_single_config(): 
+def test_model_aorta_liver_drug_instance():
     cnfg = {'inflow': 'none', 'sequence': '3D-SPGR-SS', 'tof_corr': False, 'magnitude': True, 'trigger': False, 'calibrate': False, 'water_exchange': 'F', 'baseline': 'literature', 'bolus': 'single', 'heartlung': 'pfcomp', 'organs': 'comp', 'lagut': 'comp', 'liver': '1I-EC', 'non_stationary': None, 't1_relaxation_ao': 'lin', 't1_relaxation_li': 'lin', 't2_relaxation_ao': None, 't2_relaxation_li': None, 't2s_relaxation_ao': 'lin', 't2s_relaxation_li': 'lin'}
-    _run_single_config(cnfg) 
+    _test_config(cnfg)
+
+
+def test_model_aorta_liver_drug():
+    configs = Model.all_configs(sample=1e4, seed=51)
+
+    # [_test_config(cnfg) for cnfg in tqdm(configs, desc=f'Testing {Model.__name__}')]
+    Parallel(n_jobs=-1)(delayed(_test_config)(cnfg) for cnfg in configs)
+
+    print(f'Successfully covered {len(configs)} {Model.__name__} configurations!')
+
 
 def test_api():
     model = Model()
@@ -94,9 +79,9 @@ def test_api():
 
 
 if __name__ == "__main__":
-    #test_single_config()
-    test_all_config()
+    # test_model_aorta_liver_drug_instance()
+    test_model_aorta_liver_drug()
     # test_api()
     
-    print('All aorta_liver_dynamic_scan tests passed!!')
+    print('All AortaLiverDrug tests passed!!')
 

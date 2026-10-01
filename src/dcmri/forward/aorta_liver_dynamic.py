@@ -1,12 +1,4 @@
-import numpy as np
 
-from dcmri.core.module import Module
-from dcmri.core.tools import extend_varname
-from dcmri.kinetics.modules_conc import ConcAortaLiver
-from dcmri.relaxivity.modules_rois import RelaxivityArtery, RelaxivityLiver
-from dcmri.bloch.modules_rois import WaterExchangeArtery, WaterExchangeLiver
-from dcmri.signal.modules_tissue import ConcToRelax, RelaxToSignal
-from dcmri.bloch.functions_sequences import channels
 
 
 # +--------------------------------------------------------------------------------------------------+
@@ -190,7 +182,16 @@ from dcmri.bloch.functions_sequences import channels
 # | tS_2_ao | sec      | 2nd signal time points in the aorta        | Electromagnetic | 0.0   |         |       |           |
 # | tS_2_li | sec      | 2nd signal time points in the liver        | Electromagnetic | 0.0   |         |       |           |
 # +-------------------------------------------------------------------------------------------------------------------------+
+from copy import deepcopy
+import numpy as np
 
+from dcmri.core.module import Module
+from dcmri.core.tools import extend_varname
+from dcmri.kinetics.modules_conc import ConcAortaLiver
+from dcmri.relaxivity.modules_rois import RelaxivityArtery, RelaxivityLiver
+from dcmri.bloch.modules_rois import WaterExchangeArtery, WaterExchangeLiver
+from dcmri.signal.modules_tissue import ConcToRelax, RelaxToSignal
+from dcmri.bloch.functions_sequences import channels
 
 rois, scans = ['ao', 'li'], [1, 2]
 tissue_rel = {'ao': RelaxivityArtery, 'li': RelaxivityLiver}
@@ -199,8 +200,8 @@ tissue_wex = {'ao': WaterExchangeArtery, 'li': WaterExchangeLiver}
 # ROI-specific configurations
 roi_configs = ['t1_relaxation', 't2_relaxation', 't2s_relaxation']
 
-CONFIGS = RelaxToSignal.configs | ConcToRelax.configs | WaterExchangeArtery.configs | WaterExchangeLiver.configs | RelaxivityArtery.configs | RelaxivityLiver.configs | ConcAortaLiver.configs
-DEFAULTS = RelaxToSignal.defaults | ConcToRelax.defaults | WaterExchangeArtery.defaults | WaterExchangeLiver.defaults | RelaxivityArtery.defaults | RelaxivityLiver.defaults | ConcAortaLiver.defaults
+CONFIGS = deepcopy(RelaxToSignal.configs | ConcToRelax.configs | WaterExchangeArtery.configs | WaterExchangeLiver.configs | RelaxivityArtery.configs | RelaxivityLiver.configs | ConcAortaLiver.configs)
+DEFAULTS = deepcopy(RelaxToSignal.defaults | ConcToRelax.defaults | WaterExchangeArtery.defaults | WaterExchangeLiver.defaults | RelaxivityArtery.defaults | RelaxivityLiver.defaults | ConcAortaLiver.defaults)
 CMAP = {roi: {} for roi in rois}
 
 for key in roi_configs:
@@ -299,8 +300,10 @@ class ForwardAortaLiverDynamic(Module):
             outputs -= {f'F_b_{roi}'}
         return outputs
 
-    def dummy_data(self): 
-        data = self.init_data()
+    def dummy_data(self, data: dict=None): 
+        p = self.init_data()
+        p |= self._conc.dummy_data()
+
         n_channels = channels(self.config['sequence'])
         components = 1 if self.config['magnitude'] else 2
         n0 = 1
@@ -309,14 +312,18 @@ class ForwardAortaLiverDynamic(Module):
 
         for roi in rois:
             for scan in [1,2]:
-                data |= {
-                    'tstart_1': 0,
-                    'tacq_1': 60, 
-                    'tstart_2': 120,
-                    'tacq_2': 90,
-                    'BAT_1': 30,
-                    'BAT_2': 150,
+                p |= {
                     f'iScal_{scan}_{roi}': np.arange(n0, dtype=int),
                     f'Scal_{scan}_{roi}': Scal, 
                 }
-        return data
+        p |= {
+            'tstart_1': 0,
+            'tacq_1': 60, 
+            'tstart_2': 120,
+            'tacq_2': 90,
+            'BAT': 30,
+            'bdel': 120,
+            'BAT_1': 30,
+            'BAT_2': 150, 
+        }  
+        return self.input_data(p, data)

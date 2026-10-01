@@ -327,7 +327,7 @@ def test_function_dsc():
             # assert err < 0
         except:
             print(sequence, err)
-            plt.plot(S['tS'], ca_rec, 'ro')
+            plt.plot(S['tS'], ca_rec[0], 'ro')
             plt.plot(time, ca)
             plt.plot(S['tS'], ca_interp, marker='o', fillstyle='none', linestyle='None', color='blue')
             plt.show()

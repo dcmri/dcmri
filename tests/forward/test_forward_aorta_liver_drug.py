@@ -29,7 +29,7 @@ def test_aorta_liver_drug(cls=ForwardAortaLiverDrug):
     cls.print_configs()
     cls.print_all_io(verbose=1, simple=False, sample=1e5, seed=51)
 
-    configs = cls.all_configs(sample=1e3, seed=51)
+    configs = cls.all_configs(sample=1e5, seed=51)
     for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
         _test_config(cnfg)
 
@@ -58,6 +58,6 @@ def test_aorta_liver_drug_instance():
 
 if __name__ == '__main__':
     test_aorta_liver_drug()
-    # test_aorta_liver_drug_instance()
+    test_aorta_liver_drug_instance()
 
     print('All AortaLiverDrug model coverage tests passed!!')

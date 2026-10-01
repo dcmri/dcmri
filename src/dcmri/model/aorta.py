@@ -27,7 +27,7 @@ class Aorta():
     def train(self, data: dict, pfree:dict=None, bounds: dict=None, nb=5, **kwargs):
         # Get free parameters
         default_pfree = self._inverse.pfree()     
-        pfree = get_bounds(pfree, bounds, free_pars=default_pfree, value=self._state)
+        pfree = get_bounds(pfree, bounds, free_pars=default_pfree)
 
         # Apply inverse model
         inputs = self._state | data | {'pfree': pfree, 'nb': nb}

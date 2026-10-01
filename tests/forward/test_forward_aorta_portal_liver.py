@@ -16,20 +16,12 @@ def test_aorta_portal_liver(cls=ForwardAortaPortalLiver):
             return
     
         data = instance.dummy_data()
-
-        # --- DIAGNOSTIC TIMING ---
-        t0 = time.perf_counter()
-        # print(cnfg)
         instance(data)
-
-        elapsed = time.perf_counter() - t0
-        # print(cnfg)
-        # print(f"  [Total model execution time: {elapsed:.4f}s]")
 
     cls.print_configs()
     cls.print_all_io(verbose=1, simple=False, sample=1e4, seed=51)
 
-    configs = cls.all_configs(sample=1e4, seed=51)
+    configs = cls.all_configs(sample=1e5, seed=51)
     for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
         _test_config(cnfg)
 
@@ -76,7 +68,7 @@ def test_aorta_portal_liver_instance():
     plt.show()
 
 if __name__ == '__main__':
-    # test_aorta_portal_liver_instance()
+    test_aorta_portal_liver_instance()
     test_aorta_portal_liver()
     
     print('All AortaPortalLiver model coverage tests passed!!')

@@ -16,15 +16,7 @@ def test_aorta_liver_dynamic(cls=ForwardAortaLiverDynamic):
             return
     
         data = instance.dummy_data()
-
-        # --- DIAGNOSTIC TIMING ---
-        t0 = time.perf_counter()
-        # print(cnfg)
         instance(data)
-
-        elapsed = time.perf_counter() - t0
-        # print(cnfg)
-        # print(f"  [Total model execution time: {elapsed:.4f}s]")
 
     cls.print_configs()
     cls.print_all_io(verbose=1, simple=False, sample=1e4, seed=51)
@@ -40,7 +32,7 @@ def test_aorta_liver_dynamic_instance():
     # model = ForwardAortaLiverDynamic()
     # print(model.config)
     # return
-    cnfg = {'sequence': '3D-SPGR-SS', 'tof_corr': False, 'inflow': 'none', 'magnitude': True, 'trigger': False, 'calibrate': False, 'water_exchange': 'F', 'baseline': 'literature', 'bolus': 'single', 'heartlung': 'pfcomp', 'organs': 'comp', 'lagut': 'comp', 'liver': '1I-EC', 'non_stationary': None, 't1_relaxation_ao': 'lin', 't1_relaxation_li': 'lin', 't2_relaxation_ao': None, 't2_relaxation_li': None, 't2s_relaxation_ao': 'lin', 't2s_relaxation_li': 'lin'}
+    cnfg = {'sequence': '3D-SPGR-SS', 'tof_corr': False, 'inflow': 'none', 'magnitude': True, 'trigger': False, 'calibrate': False, 'water_exchange': 'F', 'baseline': 'literature', 'bolus': 'dual', 'heartlung': 'pfcomp', 'organs': 'comp', 'lagut': 'comp', 'liver': '1I-EC', 'non_stationary': None, 't1_relaxation_ao': 'lin', 't1_relaxation_li': 'lin', 't2_relaxation_ao': None, 't2_relaxation_li': None, 't2s_relaxation_ao': 'lin', 't2s_relaxation_li': 'lin'}
     try:
         model = ForwardAortaLiverDynamic(**cnfg)
     except InvalidConfig as e:
@@ -52,12 +44,15 @@ def test_aorta_liver_dynamic_instance():
     data = model.dummy_data()
     results = model(data)
 
-    plt.plot(results['tS_1_li'], results['S_1_li'][0, 0, :], 'ro')
+    plt.plot(results['tS_1_ao'], results['S_1_ao'][0, 0, :], 'ro')
+    plt.plot(results['tS_2_ao'], results['S_2_ao'][0, 0, :], 'rx')
+    plt.plot(results['tS_1_li'], results['S_1_li'][0, 0, :], 'bo')
     plt.plot(results['tS_2_li'], results['S_2_li'][0, 0, :], 'bx')
     plt.show()
 
 if __name__ == '__main__':
+    test_aorta_liver_dynamic_instance()
     test_aorta_liver_dynamic()
-    # test_aorta_liver_dynamic_instance()
+    
 
     print('All AortaLiverDynamic model coverage tests passed!!')

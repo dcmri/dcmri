@@ -93,7 +93,7 @@ class R1(Module):
             # 'vw': np.ones(nc) / nc, 
             # 'wx': [[0]],
         }
-        return data
+        return self.input_data(data)
 
 
 # +--------------------------------------------------------------------------------------------------+
@@ -175,7 +175,7 @@ class R2(Module):
             # 'wx': [[0]],
             # 'vw': np.ones(nc) / nc, 
         }
-        return data
+        return self.input_data(data)
 
 # +--------------------------------------------------------------------------------------------------+
 # |                                    R2s - all configs (n = 1)                                     |
@@ -264,7 +264,7 @@ class R2s(Module):
             'v': np.ones(nc) / nc, 
             'C': np.ones((nc, nt)), 
         }
-        return data
+        return self.input_data(data)
 
  
 # +--------------------------------------------------------------------------------------------------+
@@ -532,4 +532,4 @@ class ConcToRelax(Module):
             'RM': np.eye(nc),
             'v': np.ones(nc) / nc,
         } 
-        return data
+        return self.input_data(data)

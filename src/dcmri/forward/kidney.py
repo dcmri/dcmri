@@ -1,3 +1,5 @@
+
+from copy import deepcopy
 import numpy as np
 
 from dcmri.core.tools import extend_varname
@@ -8,14 +10,10 @@ from dcmri.bloch.modules_rois import WaterExchangeKidney
 from dcmri.signal.modules_tissue import ConcToSignal
 from dcmri.bloch.functions_sequences import channels
 
-
-
-
-
 roi = 'ki'
 
-configs = ConcToSignal.configs | WaterExchangeKidney.configs | RelaxivityKidney.configs | ConcKidney.configs
-defaults = ConcToSignal.defaults | WaterExchangeKidney.defaults | RelaxivityKidney.defaults | ConcKidney.defaults
+configs = deepcopy(ConcToSignal.configs | WaterExchangeKidney.configs | RelaxivityKidney.configs | ConcKidney.configs)
+defaults = deepcopy(ConcToSignal.defaults | WaterExchangeKidney.defaults | RelaxivityKidney.defaults | ConcKidney.defaults)
 
 configs['inflow'].discard('inlet')
 configs.pop('tof_corr')
@@ -88,4 +86,4 @@ class ForwardKidney(Module):
         nt = 180
         ci = np.ones(nt)
         data['c_ar'] = ci
-        return data
+        return self.input_data(data)

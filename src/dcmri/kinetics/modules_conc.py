@@ -47,7 +47,7 @@ class Conc(Module):
             data['E'] = np.ones((nc, nc))
         if self.config['block'] == 'nscomp':
             data['T'] = np.ones(nt)
-        return data
+        return self.input_data(data)
 
 
 class ConcAorta(Module):
@@ -103,10 +103,11 @@ class ConcAorta(Module):
 # +----------------+-----------------------------------------------------------------------+---------+
 # | Key            | Values                                                                | Default |
 # +----------------+-----------------------------------------------------------------------+---------+
-# | kinetics       | 1I-EC, 1I-EC-HF, 1I-IC, 1I-IC-HF, 2I-EC, 2I-EC-HF, 2I-IC, 2I-IC-HF,   | 2I-EC   |
-# |                | 2I-IC-U                                                               |         |
+# | kinetics       | 1I-EC, 1I-EC-HF, 1I-IC, 1I-IC-HF, 1I-IC-U, 2I-EC, 2I-EC-HF, 2I-IC,    | 2I-EC   |
+# |                | 2I-IC-HF, 2I-IC-U                                                     |         |
 # | non_stationary | E, None, U, UE                                                        | None    |
 # +--------------------------------------------------------------------------------------------------+
+
 
 # +-----------------------------------------------------------------------------------------------------------------------------------------------------+
 # |                                                           ConcLiver - all inputs (n = 14)                                                           |
@@ -140,6 +141,7 @@ class ConcAorta(Module):
 # | ci_li | mmol/mL  | inlet concentration in the liver       | Indicator       | 0.005 |        |       |       |
 # | tC_li | sec      | concentration time points in the liver | Indicator       | 0.0   |        |       |       |
 # +--------------------------------------------------------------------------------------------------------------+
+
 
 class ConcLiver(Module):
     """
@@ -198,7 +200,7 @@ class ConcLiver(Module):
         data = self.init_data()
         ci = np.ones(nt)
         data['ci_li'] = ci if '1I' in self.config['kinetics'] else (ci, ci)
-        return data
+        return self.input_data(data)
 
 
 class ConcAortaLiver(Module):
@@ -287,6 +289,9 @@ class ConcAortaLiver(Module):
             'ci_li': p['J_lag'].reshape(1, -1) / p['CO'],
             'C_li': C_l,
         } 
+
+
+
         return self.map_results(p)
 
     def dummy_data(self):
@@ -398,8 +403,9 @@ class ConcKidney(Module):
 
     def dummy_data(self, nt=5):
         data = self.init_data()
+        data['T_ar'] = 2
         data['c_ar'] *= np.ones(nt)
-        return data
+        return self.input_data(data)
 
 
 class ConcAortaKidneys(Module):
@@ -512,6 +518,8 @@ class ConcAortaKidneys(Module):
     def dummy_data(self):
         p = self.init_data()
         p |= self._flux_aorta.dummy_data()
+        p |= self._conc_lk.dummy_data()
+        p |= self._conc_rk.dummy_data()
         return self.input_data(p)
 
     
@@ -552,7 +560,7 @@ class ConcCortMed(Module):
     def dummy_data(self, nt=5):
         data = self.init_data()
         data['c_ar'] *= np.ones(nt)
-        return data
+        return self.input_data(data)
 
 
 class ConcTissueX(Module):
@@ -596,7 +604,7 @@ class ConcTissueX(Module):
     def dummy_data(self, nt=5):
         data = self.init_data()
         data['c_ar'] *= np.ones(nt)
-        return data
+        return self.input_data(data)
 
 
 class ConcTissueLS(Module):
@@ -621,4 +629,4 @@ class ConcTissueLS(Module):
         data = self.init_data()
         data['ci'] *= np.ones(nt)
         data['irf'] *= np.ones(nt)
-        return data
+        return self.input_data(data)

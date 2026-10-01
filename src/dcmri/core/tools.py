@@ -267,7 +267,7 @@ def print_quantities(title, q):
 
 
 
-def get_bounds(free:dict=None, bounds: dict=None, quantities:dict=None, value:dict=None, free_pars:set=None):
+def get_bounds(free:dict=None, bounds: dict=None, quantities:dict=None, free_pars:set=None):
     if free is None:
         free = {p: get_quantity(p, quantities)['bounds'] for p in free_pars}
 
@@ -279,6 +279,10 @@ def get_bounds(free:dict=None, bounds: dict=None, quantities:dict=None, value:di
             else:
                 free[p] = b
 
+    return free
+
+def update_bounds(free, quantities:dict=None, value:dict=None):
+    
     # --- 2. Boundary Validation ---
     lexicon = QUANTITIES
     if quantities is not None:

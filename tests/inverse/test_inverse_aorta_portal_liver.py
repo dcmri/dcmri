@@ -5,9 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from dcmri.core.module import Module
-from dcmri import InverseAorta
-from dcmri.core.module import InvalidConfig
+from dcmri.core.module import Module, InvalidConfig
+from dcmri import InverseAortaPortalLiver as InverseModel
 
 
 def test_module(cls=Module, simple=False, io_sample=1e5, cnfg_sample=1e4, seed=51):
@@ -45,13 +44,13 @@ def test_module(cls=Module, simple=False, io_sample=1e5, cnfg_sample=1e4, seed=5
     print(f'Successfully covered {len(configs)} {cls.__name__} configurations!')
 
 
-def test_aorta_inverse_instance():
-    # model = InverseAorta()
+def test_aorta_portal_liver_inverse_instance():
+    # model = InverseModel()
     # print(model.config)
     # return
-    cnfg = {'t1_relaxation': 'lin', 't2_relaxation': None, 't2s_relaxation': 'lin', 'inflow': 'none', 'sequence': '3D-SR-SS', 'tof_corr': False, 'magnitude': False, 'trigger': True, 'calibrate': True, 'baseline': 'measured', 'heartlung': 'comp', 'organs': 'comp', 'kidneys': 'plug', 'liver': 'plug', 'lagut': 'pass', 'bolus': 'double'} 
+    cnfg = {'inflow': 'none', 'sequence': '3D-SPGR-SS', 'tof_corr': False, 'magnitude': True, 'trigger': False, 'calibrate': False, 'water_exchange': 'F', 'baseline': 'literature', 'bolus': 'single', 'heartlung': 'pfcomp', 'organs': 'comp', 'liver': '1I-EC', 'non_stationary': None, 't1_relaxation_ao': 'lin', 't1_relaxation_pv': 'lin', 't1_relaxation_li': 'lin', 't2_relaxation_ao': None, 't2_relaxation_pv': None, 't2_relaxation_li': None, 't2s_relaxation_ao': 'lin', 't2s_relaxation_pv': 'lin', 't2s_relaxation_li':'lin'}
     try:
-        invert = InverseAorta(**cnfg)
+        invert = InverseModel(**cnfg)
     except InvalidConfig as e:
         print(e)
         return
@@ -61,20 +60,24 @@ def test_aorta_inverse_instance():
 
     # Direct from dummy data
     data = invert.dummy_data()
-    result = invert(data, n_bat=11, verbose=2)
+    result = invert(data, n_bat=3)
 
     truth = invert.forward.dummy_data()
     recon = invert.forward(truth | result['popt'])
 
-    plt.plot(data['tS'], data['S'][0, 0, :], 'ro')
-    plt.plot(recon['tS'], recon['S'][0, 0, :], 'b-')
+    plt.plot(data['tS_ao'], data['S_ao'][0, 0, :], 'ro')
+    plt.plot(recon['tS_ao'], recon['S_ao'][0, 0, :], 'r-')
+    plt.plot(data['tS_pv'], data['S_pv'][0, 0, :], 'go')
+    plt.plot(recon['tS_pv'], recon['S_pv'][0, 0, :], 'g-')
+    plt.plot(data['tS_li'], data['S_li'][0, 0, :], 'bo')
+    plt.plot(recon['tS_li'], recon['S_li'][0, 0, :], 'b-')
     plt.show()    
 
     print('Loss (%): ', result['loss'])
 
 
 if __name__ == '__main__':
-    # test_aorta_inverse_instance()
-    test_module(InverseAorta, simple=False, io_sample=1e5, cnfg_sample=1e4, seed=51)
+    test_aorta_portal_liver_inverse_instance()
+    test_module(InverseModel, simple=False, io_sample=1e5, cnfg_sample=1e5, seed=51)
     
-    print('All inverse model coverage tests passed!!')
+    print('All aorta liver inverse coverage tests passed!!')

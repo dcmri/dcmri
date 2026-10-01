@@ -47,16 +47,27 @@ def format_batch_training(results, free):
     return vals, sdev, pcov, model
 
 
-def train_bat(predict, time, signal, pars, free, x=None, reset=False, sigma=None, n_bat=1, **kwargs):
-    if 'BAT' in free:
-        if n_bat > 1:
-            bat_array = np.linspace(free['BAT'][0], free['BAT'][1], n_bat)
-            cost = []
-            for bat in bat_array:
-                pars['BAT'] = bat
-                result = train(predict, time, signal, pars, free, x=x, reset=True, sigma=sigma, **kwargs)
-                cost += [result['loss']]
-            pars['BAT'] = bat_array[cost.index(min(cost))]
+def train_bat(predict, time, signal, pars, free, x=None, reset=False, sigma=None, n_bat=1, bats=None, btol=1e-3, **kwargs):
+    if bats is None:
+        bats = ['BAT']
+
+    for bat_i in bats:
+        if bat_i in free:
+            if n_bat > 1:
+                n_bat_i, loss_i = 1, np.inf
+                while (n_bat_i < n_bat) and (loss_i > btol):
+
+                    bat_array = np.linspace(free[bat_i][0], free[bat_i][1], n_bat_i)
+                    cost = []
+                    for bat in bat_array:
+                        pars[bat_i] = bat
+                        result = train(predict, time, signal, pars, free, x=x, reset=True, sigma=sigma, **kwargs)
+                        cost += [result['loss']]
+
+                    n_bat_i += 1
+                    loss_i = min(cost)
+                    
+                pars[bat_i] = bat_array[cost.index(loss_i)]
 
     return train(predict, time, signal, pars, free, x=x, reset=reset, sigma=sigma, **kwargs)
 

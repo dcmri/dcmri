@@ -60,12 +60,6 @@ class Module:
         else:
             self._imap = {k: v for k, v in imap.items() if k in self._inputs}
         return self
-        # self._imap = {i: i for i in self._inputs}
-        # if imap is not None:
-        #     for key, value in imap.items():
-        #         if key in self._inputs:
-        #             self._imap[key] = value
-        # return self
 
     def map_outputs(self, omap: dict=None):
         self._outputs = self.outputs()
@@ -74,13 +68,6 @@ class Module:
         else:
             self._omap = {k: v for k, v in omap.items() if k in self._outputs}
         return self
-        # self._outputs = self.outputs()
-        # self._omap = {o: o for o in self._outputs}
-        # if omap is not None:
-        #     for key, value in omap.items():
-        #         if key in self._outputs:
-        #             self._omap[key] = value
-        # return self
 
     @property
     def config(self):
@@ -119,10 +106,6 @@ class Module:
                 j = i
             if j in override:
                 p[i] = override[j]
-            # elif data is None:
-            #     raise ValueError(f'{self.__class__.__name__} needs a value for input {j}.')
-            # elif not isinstance(data, dict):
-            #     raise ValueError(f"The default data argument must be a dictionary.")
             elif data is not None and j in data:
                 p[i] = data[j]
             else:
@@ -130,10 +113,9 @@ class Module:
                     p[i] = get_quantity(i, quantities=self.quantities)['init']
                 except:
                     raise ValueError(f'Unknown input {i} in call to Module {self.__class__.__name__}.')
-
-            # elif all:
-            #     raise ValueError(f'{self.__class__.__name__} needs a value for input {j}.')
         return p
+
+    
 
     def map_results(self, data: dict) -> dict:
         results = {}
@@ -147,16 +129,33 @@ class Module:
         return results
         # return {self._omap[o]: results[o] for o in self._outputs}
 
-    def input_data(self, data) -> dict:
+    def filter_data(self, data:dict) -> dict:
+        return {k: v for k, v in data.items() if k in self._inputs}
+        
+    
+    def input_data(self, init, data: dict=None) -> dict:
         p = {}
         for i in self._inputs:
             if i in self._imap:
                 j = self._imap[i]
             else:
                 j = i
-            if j in data:
+            if data is not None and j in data:
                 p[j] = data[j]
+            elif i in init:
+                p[j] = init[i]
         return p
+
+    # def input_data(self, data) -> dict:
+    #     p = {}
+    #     for i in self._inputs:
+    #         if i in self._imap:
+    #             j = self._imap[i]
+    #         else:
+    #             j = i
+    #         if j in data:
+    #             p[j] = data[j]
+    #     return p
     
     def update_data(self, p: dict):
         results = {}
@@ -169,16 +168,22 @@ class Module:
                 results[j] = p[i]
         return results
 
+    # def init_data(self):
+    #     data = {}
+    #     # for i in self.inputs():
+    #     for i in self._inputs:
+    #         if i in self._imap:
+    #             j = self._imap[i]
+    #         else:
+    #             j = i
+    #         data[j] = get_quantity(i, quantities=self.quantities)['init']
+    #     return data
+
     def init_data(self):
-        data = {}
-        # for i in self.inputs():
-        for i in self._inputs:
-            if i in self._imap:
-                j = self._imap[i]
-            else:
-                j = i
-            data[j] = get_quantity(i, quantities=self.quantities)['init']
-        return data
+        return {
+            i: get_quantity(i, quantities=self.quantities)['init']
+            for i in self._inputs
+        }
 
     def dummy_data(self): # reimplement if not all inputs are scalar
         return self.init_data()

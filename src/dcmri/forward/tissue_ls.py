@@ -82,7 +82,7 @@
 # | tR  | sec      | relaxation rate time points            | Electromagnetic | 0.0   |        |       |           |
 # +----------------------------------------------------------------------------------------------------------------+
 
-
+from copy import deepcopy
 import numpy as np
 
 from dcmri.core.module import Module
@@ -93,8 +93,8 @@ from dcmri.signal.modules_tissue import ConcToSignal
 from dcmri.bloch.functions_sequences import channels
 
 
-configs = ConcToSignal.configs | WaterExchangeGeneric.configs | RelaxivityGeneric.configs | ConcTissueLS.configs
-defaults = ConcToSignal.defaults | WaterExchangeGeneric.defaults | RelaxivityGeneric.defaults | ConcTissueLS.defaults
+configs = deepcopy(ConcToSignal.configs | WaterExchangeGeneric.configs | RelaxivityGeneric.configs | ConcTissueLS.configs)
+defaults = deepcopy(ConcToSignal.defaults | WaterExchangeGeneric.defaults | RelaxivityGeneric.defaults | ConcTissueLS.defaults)
 
 configs['inflow'].discard('inlet')
 for discard in ['tof_corr', 'water_exchange']:
@@ -169,4 +169,4 @@ class ForwardTissueLS(Module):
             'ci': np.ones(nt),
             'irf': p['irf'] * np.ones(nt)
         }
-        return p
+        return self.input_data(p)

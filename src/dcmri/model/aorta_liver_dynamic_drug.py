@@ -1,221 +1,57 @@
-"""Joint model for aorta and liver signals measured over two scans.
-
-This model uses a whole-body model to simultaneously predict signals in 
-aorta and liver, measured over two separate scans.
-
-For more detail on the whole-body model, see :ref:`whole-body-tissues`. 
-For more detail on the liver model, see :ref:`liver-tissues`. 
-
-Args:
-    kinetics (str, optional): Tracer-kinetic liver model. See table 
-        :ref:`table-liver-models` for options - only single-inlet models 
-        are allowed. Defaults to '1I-IC_HFD'.
-    stationary (str, optional): For intracellular tracers - stationarity 
-        regime of the hepatocytes. The options are 'UE', 'E', 'U' or None. 
-        For more detail see :ref:`liver-tissues`. Defaults to 'UE'.
-    stationary (str, optional): Stationarity regime of the hepatocytes. 
-        The options are 'UE', 'E', 'U' or None. For more detail 
-        see :ref:`liver-tissues`. Defaults to 'UE'.
-    sequence (str, optional): imaging sequence. Possible values are 'SS'
-        and 'SR'. Defaults to 'SS'.
-    params (dict, optional): values for the parameters of the tissue,
-        specified as keyword parameters. Defaults are used for any that are
-        not provided. See tables :ref:`AortaLiver2scan-parameters` and
-        :ref:`AortaLiver2scan-defaults` for a list of parameters and their
-        default values.
-
-See Also:
-    `AortaLiver`
-
-Example:
-
-    Use the model to reconstruct concentrations from experimentally 
-    derived signals.
-
-.. plot::
-    :include-source:
-    :context: close-figs
-
-    >>> import matplotlib.pyplot as plt
-    >>> import dcmri as dc
-
-    Use `fake.tissue` to generate synthetic test data from 
-    experimentally-derived concentrations:
-
-    >>> time, aif, roi, gt = dc.fake.tissue2scan(R1b=1/dc.const.T1(3.0,'liver'))
-
-    Since this model generates four time curves, the x- and y-data are 
-    tuples:
-
-    >>> time = (time[0], time[1], time[0], time[1])
-    >>> signal = (aif[0], aif[1], roi[0], roi[1])
-
-    Build an aorta-liver model and parameters to match the conditions of 
-    the fake tissue data:
-
-    >>> model = dc.AortaLiver2scan(
-    ...     dt = 0.5,
-    ...     tmax = 420,
-    ...     weight = 70,
-    ...     agent = 'gadodiamide',
-    ...     dose = 0.2,
-    ...     dose2 = 0.2,
-    ...     rate = 3,
-    ...     field_strength = 3.0,
-    ...     TR = 0.005,
-    ...     FA = 15,
-    ...     FA2 = 15,
-    ...     TS = 0.5,
-    ...     Th_i = 120,
-    ...     Th_f = 120,
-    ... )
-
-    In this case we have defined different initial values for Th as 
-    the defaults are optimized for the slow passage through hepatocytes. 
-    We also need to reset the parameter bounds:
-
-    >>> model.free['Th_i'] = [0, np.inf]
-    >>> model.free['Th_f'] = [0, np.inf]
-
-    Train the model on the data:
-
-    >>> model.train(time, signal, n0=10, xtol=1e-3)
-
-    Plot the reconstructed signals and concentrations and compare against 
-    the experimentally derived data:
-
-    >>> model.plot(time, signal)
-
-    We can also have a look at the model parameters after training:
-
-    >>> model.print_params(round_to=3)
-    --------------------------------
-    Free parameters with their stdev
-    --------------------------------
-    Aorta second signal scale factor (S02a): 195.824 (2.025) a.u.
-    Liver second signal scale factor (S02l): 297.854 (4.9) a.u.
-    Second bolus arrival time (BAT_2): 254.512 (0.137) sec
-    First bolus arrival time (BAT): 14.288 (0.132) sec
-    Cardiac output (CO): 203.199 (5.406) mL/sec
-    Heart-lung mean transit time (Thl): 15.236 (0.263) sec
-    Heart-lung dispersion (Dhl): 0.381 (0.009)
-    Organs blood mean transit time (To): 23.761 (3.052) sec
-    Organs extraction fraction (Eo): 0.287 (0.053)
-    Organs extravascular mean transit time (Toe): 50.274 (17.44) sec
-    Body extraction fraction (Eb): 0.078 (0.015)
-    Apparent liver extracellular volume fraction (ve_app): 0.053 (0.008) mL/cm3
-    Extracellular mean transit time (Te): 1.298 (0.552) sec
-    Extracellular dispersion (De): 1.0 (0.7)
-    Initial hepatic plasma clearance (Ktrans_i): 0.005 (0.001) mL/sec/cm3
-    Final hepatic plasma clearance (Ktrans_f): 0.005 (0.001) mL/sec/cm3
-    Initial hepatocellular mean transit time (Th_i): 70.022 (12.142) sec
-    Final hepatocellular mean transit time (Th_f): 72.227 (8.407) sec
-    ----------------------------
-    Fixed and derived parameters
-    ----------------------------
-    Aorta first baseline R1 (R1ba): 0.614 Hz
-    Aorta first signal scale factor (S0a): 100.117 a.u.
-    Liver first baseline R1 (R1bl): 1.33 Hz
-    Liver first signal scale factor (S0l): 150.003 a.u.
-    Initial hepatocellular mean transit time (Th_i): 70.022 (12.142) sec
-    Final hepatocellular mean transit time (Th_f): 72.227 (8.407) sec
-"""
-
+from copy import deepcopy
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri.core.tools import get_quantity, get_bounds
-from dcmri.utils.fit import train_bat, loss
-from dcmri.forward.aorta_liver_dynamic_drug import ForwardAortaLiverDynamicDrug
-from dcmri.inverse.lib import estimate_bat
-
-# from dcmri.core.quantities import QUANTITIES
-# from dcmri.core.tools import export_params
-
+from dcmri.core.tools import get_bounds
+from dcmri.utils.fit import loss
+from dcmri.inverse.aorta_liver_dynamic_drug import InverseAortaLiverDynamicDrug as Inverse
 
 
 class AortaLiverDynamicDrug():
-
-    def __init__(self, data: dict=None, **config):
-        self._version = '1.0'
-        self._model = ForwardAortaLiverDynamicDrug(**config)
-
-        # Initialise model parameters
-        pars = self._model.dummy_data()
-        if data is not None:
-            pars |= data
-        self._pars = self._model.input_data(pars)
-
-    def _params(self, group=None):
-        params = self._model.mapped_inputs()
-        if group == 'free':
-            params_free = {p for p in params if get_quantity(p)['group']=='phys'} 
-            params_free |= {p for p in ['BAT_1', 'BAT_2', 'BAT_3', 'BAT_4'] if p in params}
-            return params_free
-        return params
+    @classmethod
+    def all_configs(cls, sample: int = None, seed: int = None, valid=False):
+        return Inverse.all_configs(sample, seed, valid)
     
-    def _predict(self, time: tuple):
-        pred = self._model(self._pars)
-        return (
-            pred['S_1_ao'][:, :, :len(time[0])].reshape(-1), 
-            pred['S_2_ao'][:, :, :len(time[1])].reshape(-1), 
-            pred['S_1_li'][:, :, :len(time[2])].reshape(-1), 
-            pred['S_2_li'][:, :, :len(time[3])].reshape(-1), 
+    def __init__(self, state: dict=None, **config):
+        self._inverse = Inverse(**config)
+        self._forward = self._inverse.forward
+        self._state = self._forward.dummy_data(state)
 
-            pred['S_3_ao'][:, :, :len(time[4])].reshape(-1), 
-            pred['S_4_ao'][:, :, :len(time[5])].reshape(-1), 
-            pred['S_3_li'][:, :, :len(time[6])].reshape(-1), 
-            pred['S_4_li'][:, :, :len(time[7])].reshape(-1), 
-        )
+    def state(self):
+        return deepcopy(self._state)
 
-    # ==========================================
-    # User Interface
-    # ==========================================
+    def predict(self) -> np.ndarray:
+        return self._forward(self._state)
     
-    def params(self, group=None) -> list:
-        """Return a list of model parameters"""
-        return self._params(group)
+    def train(self, data: dict, pfree:dict=None, bounds: dict=None, nb=5, **kwargs):
+        # Get free parameters
+        default_pfree = self._inverse.pfree()     
+        pfree = get_bounds(pfree, bounds, free_pars=default_pfree)
 
-    def predict(self) -> tuple:
-        """Predicts the data."""
-        return self._model(self._pars) 
+        # Apply inverse model
+        inputs = self._state | data | {'pfree': pfree, 'nb': nb}
+        result = self._inverse(inputs, **kwargs)
 
-    def train(self, data: dict, free=None, bounds:dict=None, n0=[1, 1], **kwargs) -> tuple:
-        p = self._pars
+        # Update state
+        self._state |= result['popt']
 
-        # Estimate BAT
-        bat = estimate_bat(data['tS_1_ao'], data['S_1_ao'], n0)
-        p['BAT_1'] = max(bat - p['T_hl'], 0)
+        return result
 
-        if self._model.config['bolus'] == 'single':
-            bat = estimate_bat(data['tS_3_ao'], data['S_3_ao'], n0)
-            p['BAT_2'] = max(bat - p['T_hl'], 0)
-        else:
-            bat = estimate_bat(data['tS_2_ao'], data['S_2_ao'], n0)
-            p['BAT_2'] = max(bat - p['T_hl'], 0)
-            bat = estimate_bat(data['tS_3_ao'], data['S_3_ao'], n0)
-            p['BAT_3'] = max(bat - p['T_hl'], 0)
-            bat = estimate_bat(data['tS_4_ao'], data['S_4_ao'], n0)
-            p['BAT_4'] = max(bat - p['T_hl'], 0)
+    def cost(self, data: dict, metric: str='NRMS', nfree=None) -> float:
+        pred = self._forward(self._state)
 
-        # Set calibration data
-        if self._model.config['calibrate']:
-            for roi in ['ao', 'li']:
-                for scan in [1, 2, 3, 4]:
-                    p[f'Scal_{scan}_{roi}'] = data[f'S_{scan}_{roi}'][..., :n0]
-                    p[f'iScal_{scan}_{roi}'] = np.arange(n0)
+        signal_data = (data['S_1_ao'], data['S_2_ao'], data['S_1_li'], data['S_2_li'])
+        signal_pred = (pred['S_1_ao'], pred['S_2_ao'], pred['S_1_li'], pred['S_2_li'])
 
-        # Perform training
-        free = get_bounds(free, bounds, free_pars=self._params('free'), value=p)
+        signal_data = np.concatenate([s.reshape(-1) for s in signal_data])
+        signal_pred = np.concatenate([s.reshape(-1) for s in signal_pred])
 
-        time = (data['tS_1_ao'], data['tS_2_ao'], data['tS_1_li'], data['tS_2_li'], data['tS_3_ao'], data['tS_4_ao'], data['tS_3_li'], data['tS_4_li'])
-        signal = (data['S_1_ao'], data['S_2_ao'], data['S_1_li'], data['S_2_li'], data['S_3_ao'], data['S_3_ao'], data['S_4_li'], data['S_4_li'])
-        return train_bat(self._predict, time, signal, self._pars, free, **kwargs)
+        return loss(signal_pred, signal_data, metric, nfree)
 
 
     def plot(self, data: dict, xlim=None, clim=None, fname=None, show=True):
-        prediction = self._model(self._pars)
+        pred = self._forward(self._state)
         
         fig, ((ax1, ax2, ax3, ax4), (ax5, ax6, ax7, ax8)) = plt.subplots(2, 4, figsize=(20, 8))
         fig.subplots_adjust(wspace=0.3)
@@ -236,23 +72,23 @@ class AortaLiverDynamicDrug():
             ax.legend()
 
         ylim_a = [
-            0.9 * min(prediction[f'S_1_ao'].min(), prediction[f'S_2_ao'].min(), prediction[f'S_3_ao'].min(), prediction[f'S_4_ao'].min(), data[f'S_1_ao'].min(), data[f'S_2_ao'].min(), data[f'S_3_ao'].min(), data[f'S_4_ao'].min()), 
-            1.1 * max(prediction[f'S_1_ao'].max(), prediction[f'S_2_ao'].max(), prediction[f'S_3_ao'].max(), prediction[f'S_4_ao'].max(), data[f'S_1_ao'].max(), data[f'S_2_ao'].max(), data[f'S_3_ao'].max(), data[f'S_4_ao'].max()),
+            0.9 * min(pred[f'S_1_ao'].min(), pred[f'S_2_ao'].min(), pred[f'S_3_ao'].min(), pred[f'S_4_ao'].min(), data[f'S_1_ao'].min(), data[f'S_2_ao'].min(), data[f'S_3_ao'].min(), data[f'S_4_ao'].min()), 
+            1.1 * max(pred[f'S_1_ao'].max(), pred[f'S_2_ao'].max(), pred[f'S_3_ao'].max(), pred[f'S_4_ao'].max(), data[f'S_1_ao'].max(), data[f'S_2_ao'].max(), data[f'S_3_ao'].max(), data[f'S_4_ao'].max()),
         ]
         ylim_l = [
-            0.9 * min(prediction[f'S_1_li'].min(), prediction[f'S_2_li'].min(), prediction[f'S_3_li'].min(), prediction[f'S_4_li'].min(), data[f'S_1_li'].min(), data[f'S_2_li'].min(), data[f'S_3_li'].min(), data[f'S_4_li'].min()), 
-            1.1 * max(prediction[f'S_1_li'].max(), prediction[f'S_2_li'].max(), prediction[f'S_3_li'].max(), prediction[f'S_4_li'].max(), data[f'S_1_li'].max(), data[f'S_2_li'].max(), data[f'S_3_li'].max(), data[f'S_4_li'].max()),
+            0.9 * min(pred[f'S_1_li'].min(), pred[f'S_2_li'].min(), pred[f'S_3_li'].min(), pred[f'S_4_li'].min(), data[f'S_1_li'].min(), data[f'S_2_li'].min(), data[f'S_3_li'].min(), data[f'S_4_li'].min()), 
+            1.1 * max(pred[f'S_1_li'].max(), pred[f'S_2_li'].max(), pred[f'S_3_li'].max(), pred[f'S_4_li'].max(), data[f'S_1_li'].max(), data[f'S_2_li'].max(), data[f'S_3_li'].max(), data[f'S_4_li'].max()),
         ]
 
-        plot_data2scan(prediction[f'tS_1_ao'], prediction[f'S_1_ao'], data['tS_1_ao'], data['S_1_ao'], ax1, xlim, ylim_a, ['lightcoral', 'darkred'])
-        plot_data2scan(prediction[f'tS_2_ao'], prediction[f'S_2_ao'], data['tS_2_ao'], data['S_2_ao'], ax1, xlim, ylim_a, ['lightcoral', 'darkred'])
-        plot_data2scan(prediction[f'tS_3_ao'], prediction[f'S_3_ao'], data['tS_3_ao'], data['S_3_ao'], ax2, xlim, ylim_a, ['lightcoral', 'darkred'])
-        plot_data2scan(prediction[f'tS_4_ao'], prediction[f'S_4_ao'], data['tS_4_ao'], data['S_4_ao'], ax2, xlim, ylim_a, ['lightcoral', 'darkred'])
+        plot_data2scan(pred[f'tS_1_ao'], pred[f'S_1_ao'], data['tS_1_ao'], data['S_1_ao'], ax1, xlim, ylim_a, ['lightcoral', 'darkred'])
+        plot_data2scan(pred[f'tS_2_ao'], pred[f'S_2_ao'], data['tS_2_ao'], data['S_2_ao'], ax1, xlim, ylim_a, ['lightcoral', 'darkred'])
+        plot_data2scan(pred[f'tS_3_ao'], pred[f'S_3_ao'], data['tS_3_ao'], data['S_3_ao'], ax2, xlim, ylim_a, ['lightcoral', 'darkred'])
+        plot_data2scan(pred[f'tS_4_ao'], pred[f'S_4_ao'], data['tS_4_ao'], data['S_4_ao'], ax2, xlim, ylim_a, ['lightcoral', 'darkred'])
 
-        plot_data2scan(prediction[f'tS_1_li'], prediction[f'S_1_li'], data['tS_1_li'], data['S_1_li'], ax5, xlim, ylim_l, ['cornflowerblue', 'darkblue'])
-        plot_data2scan(prediction[f'tS_2_li'], prediction[f'S_2_li'], data['tS_2_li'], data['S_2_li'], ax5, xlim, ylim_l, ['cornflowerblue', 'darkblue'])
-        plot_data2scan(prediction[f'tS_3_li'], prediction[f'S_3_li'], data['tS_3_li'], data['S_3_li'], ax6, xlim, ylim_l, ['cornflowerblue', 'darkblue'])
-        plot_data2scan(prediction[f'tS_4_li'], prediction[f'S_4_li'], data['tS_4_li'], data['S_4_li'], ax6, xlim, ylim_l, ['cornflowerblue', 'darkblue'])
+        plot_data2scan(pred[f'tS_1_li'], pred[f'S_1_li'], data['tS_1_li'], data['S_1_li'], ax5, xlim, ylim_l, ['cornflowerblue', 'darkblue'])
+        plot_data2scan(pred[f'tS_2_li'], pred[f'S_2_li'], data['tS_2_li'], data['S_2_li'], ax5, xlim, ylim_l, ['cornflowerblue', 'darkblue'])
+        plot_data2scan(pred[f'tS_3_li'], pred[f'S_3_li'], data['tS_3_li'], data['S_3_li'], ax6, xlim, ylim_l, ['cornflowerblue', 'darkblue'])
+        plot_data2scan(pred[f'tS_4_li'], pred[f'S_4_li'], data['tS_4_li'], data['S_4_li'], ax6, xlim, ylim_l, ['cornflowerblue', 'darkblue'])
 
         def plot_conc_aorta(t, c, ax, xl, yl):
             if xl is None: 
@@ -264,12 +100,12 @@ class AortaLiverDynamicDrug():
             ax.legend()
 
         if clim is None:
-            ylim = [0, 1.1 * 1000 * max(prediction['C_1_ao'].max(), prediction['C_2_ao'].max())]   
+            ylim = [0, 1.1 * 1000 * max(pred['C_1_ao'].max(), pred['C_2_ao'].max())]   
         else:
             ylim = [0, clim[0] * 1000]
 
-        plot_conc_aorta(prediction['tC_1'], prediction['C_1_ao'], ax3, xlim, ylim)
-        plot_conc_aorta(prediction['tC_2'], prediction['C_2_ao'], ax4, xlim, ylim)
+        plot_conc_aorta(pred['tC_1'], pred['C_1_ao'], ax3, xlim, ylim)
+        plot_conc_aorta(pred['tC_2'], pred['C_2_ao'], ax4, xlim, ylim)
 
         def plot_conc_liver(t, C, ax, xl, yl):
             if xl is None: 
@@ -282,12 +118,12 @@ class AortaLiverDynamicDrug():
             ax.legend()
 
         if clim is None:
-            ylim = [0, 1.1 * 1000 * max(prediction['C_1_li'].max(), prediction['C_2_li'].max())] 
+            ylim = [0, 1.1 * 1000 * max(pred['C_1_li'].max(), pred['C_2_li'].max())] 
         else:
             ylim = [0, clim[1] * 1000]
 
-        plot_conc_liver(prediction['tC_1'], prediction['C_1_li'], ax7, xlim, ylim)
-        plot_conc_liver(prediction['tC_2'], prediction['C_2_li'], ax8, xlim, ylim)
+        plot_conc_liver(pred['tC_1'], pred['C_1_li'], ax7, xlim, ylim)
+        plot_conc_liver(pred['tC_2'], pred['C_2_li'], ax8, xlim, ylim)
 
         if fname is not None: 
             plt.savefig(fname=fname)
@@ -295,16 +131,6 @@ class AortaLiverDynamicDrug():
             plt.show()
         else: 
             plt.close()
-
-
-    def cost(self, data: dict, metric: str = 'NRMS', nfree=None) -> float:
-        time = (data['tS_1_ao'], data['tS_2_ao'], data['tS_1_li'], data['tS_2_li'], data['tS_3_ao'], data['tS_4_ao'], data['tS_3_li'], data['tS_4_li'])
-        signal = (data['S_1_ao'], data['S_2_ao'], data['S_1_li'], data['S_2_li'], data['S_3_ao'], data['S_3_ao'], data['S_4_li'], data['S_4_li'])
-
-        pred = self._predict(time)
-        signal = np.concatenate([s.reshape(-1) for s in signal])
-        signal_pred = np.concatenate(pred)
-        return loss(signal_pred, signal, metric, nfree)
     
 
 

@@ -1,3 +1,4 @@
+from copy import deepcopy
 import numpy as np
 
 from dcmri.core.module import Module
@@ -8,8 +9,8 @@ from dcmri.signal.modules_tissue import ConcToSignal
 from dcmri.bloch.functions_sequences import channels
 
 
-configs = ConcToSignal.configs | WaterExchangeTissueX.configs | RelaxivityTissueX.configs | ConcTissueX.configs
-defaults = ConcToSignal.defaults | WaterExchangeTissueX.defaults | RelaxivityTissueX.defaults | ConcTissueX.defaults
+configs = deepcopy(ConcToSignal.configs | WaterExchangeTissueX.configs | RelaxivityTissueX.configs | ConcTissueX.configs)
+defaults = deepcopy(ConcToSignal.defaults | WaterExchangeTissueX.defaults | RelaxivityTissueX.defaults | ConcTissueX.defaults)
 
 configs['inflow'].discard('inlet')
 configs.pop('tof_corr')
@@ -79,4 +80,4 @@ class ForwardTissueX(Module):
         nt = 180
         ci = np.ones(nt)
         data['c_ar'] = ci
-        return data
+        return self.input_data(data)

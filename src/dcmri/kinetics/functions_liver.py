@@ -27,6 +27,9 @@ PARAMETERS = {
     ('2I-IC-U', None): ['ffa', 'v_e', 'F_p', 'E'],
     ('2I-IC-U', 'U'): ['ffa', 'v_e', 'F_p', 'Ei', 'Ef'],
 
+    ('1I-IC-U', None): ['v_e', 'F_p', 'E'],
+    ('1I-IC-U', 'U'): ['v_e', 'F_p', 'Ei', 'Ef'],
+
     ('1I-IC', None): ['v_e', 'F_p', 'E', 'T_h'],
     ('1I-IC', 'U'): ['v_e', 'F_p', 'Ei', 'Ef', 'T_h'],
     ('1I-IC', 'E'): ['v_e', 'F_p', 'E', 'Ti_h', 'Tf_h'],
@@ -982,6 +985,121 @@ def conc_liver_2i_ic_u_nsu(ci, t=None, dt=1.0, ffa=None,
     E = _interp_params(ca, t, dt, [Ei, Ef])
     return conc_liver_2i_ic_u(ci, t=t, dt=dt, F_p=F_p, v_e=v_e, 
                               E=E, ffa=ffa)
+
+
+def conc_liver_1i_ic_u(ca, t=None, dt=1.0, 
+                       v_e=None, F_p=None, E=None):
+    """
+    Dual-inlet intracellular agent liver concentration (Uptake-only model).
+
+    This model tracks a hepatocyte-specific tracer under stationary conditions 
+    where the agent is taken up into the hepatocytes but undergoes no biliary 
+    excretion or efflux back into the extracellular space during the scan period.
+
+    Parameters
+    ----------
+    ca : concentration in arterial blood (M)
+    t : array_like, optional
+        The time points of the inlet concentrations (sec). If None, the time 
+        points are assumed to be uniformly spaced with spacing `dt`. 
+        Defaults to None.
+    dt : float, optional
+        Spacing between time points for uniformly spaced data (sec). This 
+        parameter is ignored if `t` is explicitly provided. Defaults to 1.0.
+    v_e : float, optional
+        Extracellular volume fraction. Defaults to None.
+    F_p : float, optional
+        Plasma flow (mL/sec/cm3). Defaults to None.
+    E : float, optional
+        Hepatocyte extraction fraction. Defaults to None.
+
+    Returns
+    -------
+    np.ndarray
+        Tissue concentration as a 2D array (2, nt), where the first row is 
+        the extracellular concentration and the second row is the intracellular 
+        (hepatocyte) concentration under uptake-only conditions.
+
+    See Also
+    --------
+    conc_liver_2i_ic : Dual-inlet intracellular agent liver concentration with both uptake and excretion.
+    conc_liver_2i_ic_nsu : Dual-inlet model with non-stationary uptake.
+
+    Examples
+    --------
+    >>> import dcmri as dc
+    >>> t = [0, 5, 15, 30, 60]
+    >>> ca = [1, 2, 3, 3, 2]
+    >>> cv = [0.5, 1, 2, 2.5, 1.8]
+    >>> dc.conc_liver_2i_ic_u((ca, cv), t=t, ffa=0.3, v_e=0.2, F_p=0.01, E=0.30)
+    array([[0.        , 0.04180636, 0.15331954, 0.28315496, 0.29565219],
+           [0.        , 0.00223963, 0.02314597, 0.09329366, 0.27933882]])
+    """
+    k_e2h = F_p * E / (1 - E)
+    T_e = v_e / (F_p + k_e2h)
+    v_e_app = v_e * (1 - E)
+    Ktrans = F_p * E
+    return _conc_liver(
+        ca, v_e_app=v_e_app, Ktrans=Ktrans, T_e=T_e,
+        t=t, dt=dt, 
+    )
+
+def conc_liver_1i_ic_u_nsu(ca, t=None, dt=1.0,
+                           F_p=None, v_e=None, Ei=None, Ef=None):
+    """
+    Dual-inlet intracellular agent liver concentration (Uptake-only model) with non-stationary uptake.
+
+    This model tracks a hepatocyte-specific tracer under an uptake-only condition 
+    (no biliary excretion or efflux back into blood occurs during the scan period). 
+    The hepatocyte extraction fraction (`E`) varies dynamically over time between an 
+    initial and final value (e.g., due to acute metabolic shifts or competitiv_e transporter 
+    inhibition during the time series).
+
+    Parameters
+    ----------
+    ca : concentration in arterial blood (M)
+    t : array_like, optional
+        The time points of the inlet concentrations (sec). If None, the time 
+        points are assumed to be uniformly spaced with spacing `dt`. 
+        Defaults to None.
+    dt : float, optional
+        Spacing between time points for uniformly spaced data (sec). This 
+        parameter is ignored if `t` is explicitly provided. Defaults to 1.0.
+    F_p : float, optional
+        Plasma flow (mL/sec/cm3). Defaults to None.
+    v_e : float, optional
+        Extracellular volume fraction. Defaults to None.
+    Ei : float, optional
+        Initial hepatocyte extraction fraction at the start of the time series. 
+        Defaults to None.
+    Ef : float, optional
+        Final hepatocyte extraction fraction at the end of the time series. 
+        Defaults to None.
+
+    Returns
+    -------
+    np.ndarray
+        Tissue concentration as a 2D array (2, nt), where the first row is 
+        the extracellular concentration and the second row is the intracellular 
+        (hepatocyte) concentration under non-stationary uptake-only conditions.
+
+    See Also
+    --------
+    conc_liver_2i_ic_u : Dual-inlet uptake-only model with stationary parameters.
+    conc_liver_2i_ic_nsu : Dual-inlet flow-limited model with non-stationary uptake and active efflux.
+
+    Examples
+    --------
+    >>> import dcmri as dc
+    >>> t = [0, 5, 15, 30, 60]
+    >>> ca = [1, 2, 3, 3, 2]
+    >>> cv = [0.5, 1, 2, 2.5, 1.8]
+    >>> dc.conc_liver_2i_ic_u_nsu((ca, cv), t=t, ffa=0.3, v_e=0.2, F_p=0.01, Ei=0.30, Ef=0.05)
+    array([[0.        , 0.04875   , 0.19588483, 0.3820468 , 0.38490133],
+           [0.        , 0.00236001, 0.02233335, 0.07560343, 0.15157707]])
+    """
+    E = _interp_params(ca, t, dt, [Ei, Ef])
+    return conc_liver_1i_ic_u(ca, t=t, dt=dt, F_p=F_p, v_e=v_e, E=E)
 
 
 def conc_liver_1i_ic(ca, t=None, dt=1.0, 

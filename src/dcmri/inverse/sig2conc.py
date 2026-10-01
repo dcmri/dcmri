@@ -226,4 +226,4 @@ class SignalToConc(Module):
         data |= {
             'S': S,
         }
-        return data
+        return self.input_data(data)

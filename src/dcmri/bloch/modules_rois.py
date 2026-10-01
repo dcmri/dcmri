@@ -118,10 +118,10 @@ class WaterExchangeGeneric(Module):
 
         return outputs  
 
-    def dummy_data(self):
-        data = self.init_data()
-        data['v_t'] = [data['v_t']]
-        return data
+    def dummy_data(self, data:dict=None):
+        p = self.init_data()
+        p['v_t'] = [p['v_t']]
+        return self.input_data(p, data)
 
 
 

@@ -1,12 +1,9 @@
-
-
-
 # +--------------------------------------------------------------------------------------------------+
-# |                              ForwardAortaLiver - all configs (n = 20)                              |
+# |                             InverseAortaLiver - all configs (n = 20)                             |
 # +-------------------+-----------------------------------------------------------------+------------+
 # | Key               | Values                                                          | Default    |
 # +-------------------+-----------------------------------------------------------------+------------+
-# | inflow            | False, True                                                     | False      |
+# | inflow            | none, pool                                                      | none       |
 # | sequence          | 2D-DE-EPI, 2D-GE-EPI, 2D-SE-EPI, 2D-SPGR, 2D-SPGR-SS,           | 3D-SPGR-SS |
 # |                   | 2D-SR-SPGR, 3D-DE-EPI, 3D-GE-EPI, 3D-IR-SPGR, 3D-IR-SPGR-SS,    |            |
 # |                   | 3D-IR-SS, 3D-PR-SPGR, 3D-PR-SPGR-SS, 3D-PR-SS, 3D-SE-EPI,       |            |
@@ -18,7 +15,7 @@
 # | calibrate         | False, True                                                     | False      |
 # | water_exchange    | F, N, R                                                         | F          |
 # | baseline          | literature, measured                                            | literature |
-# | bolus             | dual, single                                                    | single     |
+# | bolus             | double, single                                                  | single     |
 # | heartlung         | chain, comp, pfcomp                                             | pfcomp     |
 # | organs            | 2cxm, comp                                                      | comp       |
 # | lagut             | comp, pass, plucom                                              | comp       |
@@ -33,14 +30,12 @@
 # +--------------------------------------------------------------------------------------------------+
 
 # +-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-# |                                                                 ForwardAortaLiver - all inputs (n = 74)                                                                 |
+# |                                                                InverseAortaLiver - all inputs (n = 74)                                                                |
 # +----------------+------------+----------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
 # | Key            | Unit       | Name                                                                 | Group           | Init       | Bounds        | DICOM | OSIPI     |
 # +----------------+------------+----------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
-# | BAT            | sec        | bolus arrival time                                                   | Indicator       | 30         | (-30, 30)     |       |           |
-# | BAT_1          | sec        | 1st bolus arrival time                                               | Indicator       | 30         | (-30, 30)     |       |           |
-# | BAT_2          | sec        | 2nd bolus arrival time                                               | Indicator       | 30         | (-30, 30)     |       |           |
 # | agent          |            | contrast agent generic name                                          | Indicator       | gadoterate |               |       |           |
+# | bdel           | sec        | delay in a double injection                                          | Indicator       | 30         | (-30, 30)     |       |           |
 # | dose           | mL/kg      | contrast agent dose                                                  | Indicator       | 0.1        | (0, 0.2)      |       |           |
 # | dose_1         | mL/kg      | 1st contrast agent dose                                              | Indicator       | 0.1        | (0, 0.2)      |       |           |
 # | dose_2         | mL/kg      | 2nd contrast agent dose                                              | Indicator       | 0.1        | (0, 0.2)      |       |           |
@@ -52,12 +47,14 @@
 # | NSR_li         |            | noise-to-signal ratio in the liver                                   | Signal          | 0.0        | (0, 100000.0) |       |           |
 # | S0_ao          | a.u.       | signal scaling factor in the aorta                                   | Signal          | 1.0        | (0, 5)        |       | Q.MS1.010 |
 # | S0_li          | a.u.       | signal scaling factor in the liver                                   | Signal          | 1.0        | (0, 5)        |       | Q.MS1.010 |
-# | Scal_ao        | a.u.       | calibration signal in the aorta                                      | Signal          | 1.0        | (0, 5)        |       | Q.MS1.002 |
-# | Scal_li        | a.u.       | calibration signal in the liver                                      | Signal          | 1.0        | (0, 5)        |       | Q.MS1.002 |
-# | iScal_ao       |            | indices of calibration signal in the aorta                           | Signal          | 0          |               |       |           |
-# | iScal_li       |            | indices of calibration signal in the liver                           | Signal          | 0          |               |       |           |
+# | S_ao           | a.u.       | signal in the aorta                                                  | Signal          | 1.0        | (0, 5)        |       |           |
+# | S_li           | a.u.       | signal in the liver                                                  | Signal          | 1.0        | (0, 5)        |       |           |
 # | iStrig_ao      |            | indices of the signal trigger in the aorta                           | Signal          | None       |               |       |           |
 # | iStrig_li      |            | indices of the signal trigger in the liver                           | Signal          | None       |               |       |           |
+# | nb             | a.u.       | number of baseline time points                                       | Signal          | 1          |               |       |           |
+# | pfree          | a.u.       | set of free parameters                                               | Signal          | 1          |               |       |           |
+# | tS_ao          | sec        | signal time points in the aorta                                      | Signal          | 0.0        |               |       |           |
+# | tS_li          | sec        | signal time points in the liver                                      | Signal          | 0.0        |               |       |           |
 # +----------------+------------+----------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
 # | FA             | deg        | flip angle                                                           | Sequence        | 15         | (0, 180)      |       |           |
 # | Nk0            |            | number of acquired phase lines to the center of k-space              | Sequence        | 64         | (0, 1000)     |       |           |
@@ -119,162 +116,104 @@
 # | weight         | kg         | body weight                                                          | Whole-body      | 70         | (0, 300)      |       |           |
 # +-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-# +------------------------------------------------------------------------------------------------------------------------+
-# |                                         ForwardAortaLiver - all outputs (n = 31)                                         |
-# +--------+----------+--------------------------------------------+-----------------+-------+---------+-------+-----------+
-# | Key    | Unit     | Name                                       | Group           | Init  | Bounds  | DICOM | OSIPI     |
-# +--------+----------+--------------------------------------------+-----------------+-------+---------+-------+-----------+
-# | C_ao   | mmol/cm3 | tissue concentration in the aorta          | Indicator       | 0.005 | (0, 1)  |       |           |
-# | C_li   | mmol/cm3 | tissue concentration in the liver          | Indicator       | 0.005 | (0, 1)  |       |           |
-# | J_ao   | mmol/sec | indicator flux in the aorta                | Indicator       | 1     | (0, 10) |       |           |
-# | J_la   | mmol/sec | indicator flux in the liver artery         | Indicator       | 1     | (0, 10) |       |           |
-# | J_lag  | mmol/sec | indicator flux in the liver artery and gut | Indicator       | 1     | (0, 10) |       |           |
-# | J_li   | mmol/sec | indicator flux in the liver                | Indicator       | 1     | (0, 10) |       |           |
-# | J_or   | mmol/sec | indicator flux in the organs               | Indicator       | 1     | (0, 10) |       |           |
-# | J_pv   | mmol/sec | indicator flux in the portal vein          | Indicator       | 1     | (0, 10) |       |           |
-# | J_ve   | mmol/sec | indicator flux in the vein                 | Indicator       | 1     | (0, 10) |       |           |
-# | ci_ao  | mmol/mL  | inlet concentration in the aorta           | Indicator       | 0.005 |         |       |           |
-# | ci_li  | mmol/mL  | inlet concentration in the liver           | Indicator       | 0.005 |         |       |           |
-# | tC     | sec      | concentration time points                  | Indicator       | 0.0   |         |       |           |
-# +--------+----------+--------------------------------------------+-----------------+-------+---------+-------+-----------+
-# | S0_ao  | a.u.     | signal scaling factor in the aorta         | Signal          | 1.0   | (0, 5)  |       | Q.MS1.010 |
-# | S0_li  | a.u.     | signal scaling factor in the liver         | Signal          | 1.0   | (0, 5)  |       | Q.MS1.010 |
-# | S_ao   | a.u.     | signal in the aorta                        | Signal          | 1.0   | (0, 5)  |       |           |
-# | S_li   | a.u.     | signal in the liver                        | Signal          | 1.0   | (0, 5)  |       |           |
-# +--------+----------+--------------------------------------------+-----------------+-------+---------+-------+-----------+
-# | M_ao   | A/cm     | magnetization in the aorta                 | Electromagnetic | 1     | (0, 5)  |       |           |
-# | M_li   | A/cm     | magnetization in the liver                 | Electromagnetic | 1     | (0, 5)  |       |           |
-# | R1_ao  | Hz       | tissue R1 in the aorta                     | Electromagnetic | 0.65  | (0, 5)  |       |           |
-# | R1_li  | Hz       | tissue R1 in the liver                     | Electromagnetic | 0.65  | (0, 5)  |       |           |
-# | R1i_ao | Hz       | inlet R1 in the aorta                      | Electromagnetic | 0.65  | (0, 5)  |       |           |
-# | R1i_li | Hz       | inlet R1 in the liver                      | Electromagnetic | 0.65  | (0, 5)  |       |           |
-# | R2_ao  | Hz       | tissue R2 in the aorta                     | Electromagnetic | 2.0   | (0, 5)  |       |           |
-# | R2_li  | Hz       | tissue R2 in the liver                     | Electromagnetic | 2.0   | (0, 5)  |       |           |
-# | R2s_ao | Hz       | tissue R2* in the aorta                    | Electromagnetic | 20    | (0, 5)  |       |           |
-# | R2s_li | Hz       | tissue R2* in the liver                    | Electromagnetic | 20    | (0, 5)  |       |           |
-# | tM_ao  | sec      | magnetization time points in the aorta     | Electromagnetic | 0.0   |         |       |           |
-# | tM_li  | sec      | magnetization time points in the liver     | Electromagnetic | 0.0   |         |       |           |
-# | tR     | sec      | relaxation rate time points                | Electromagnetic | 0.0   |         |       |           |
-# | tS_ao  | sec      | signal time points in the aorta            | Electromagnetic | 0.0   |         |       |           |
-# | tS_li  | sec      | signal time points in the liver            | Electromagnetic | 0.0   |         |       |           |
-# +------------------------------------------------------------------------------------------------------------------------+
+# +-----------------------------------------------------------------------------------------------------------------+
+# |                                     InverseAortaLiver - all outputs (n = 4)                                     |
+# +-------+------+------------------------------------------------+-----------------+------+--------+-------+-------+
+# | Key   | Unit | Name                                           | Group           | Init | Bounds | DICOM | OSIPI |
+# +-------+------+------------------------------------------------+-----------------+------+--------+-------+-------+
+# | loss  | a.u. | loss value of optimized model                  | Signal          | 1    |        |       |       |
+# | pcov  | a.u. | dictionary with covariances of free parameters | Signal          | 1    |        |       |       |
+# | popt  | a.u. | dictionary of optimized free parameter values  | Signal          | 1    |        |       |       |
+# | psdev | a.u. | dictionary with parameter standard deviations  | Signal          | 1    |        |       |       |
+# +-----------------------------------------------------------------------------------------------------------------+
+
 from copy import deepcopy
+
 import numpy as np
 
 from dcmri.core.module import Module
-from dcmri.core.tools import extend_varname
-from dcmri.kinetics.modules_conc import ConcAortaLiver
-from dcmri.relaxivity.modules_rois import RelaxivityArtery, RelaxivityLiver
-from dcmri.bloch.modules_rois import WaterExchangeArtery, WaterExchangeLiver
-from dcmri.signal.modules_tissue import ConcToSignal
-from dcmri.bloch.functions_sequences import channels
+from dcmri.core.tools import get_quantity, update_bounds
+from dcmri.utils.fit import train_bat
+from dcmri.inverse.lib import estimate_bat
+from dcmri.forward.aorta_liver import ForwardAortaLiver
 
-rois = ['ao', 'li']
-tissue_rel = {'ao': RelaxivityArtery, 'li': RelaxivityLiver}
-tissue_wex = {'ao': WaterExchangeArtery, 'li': WaterExchangeLiver}
+configs = deepcopy(ForwardAortaLiver.configs)
+defaults = deepcopy(ForwardAortaLiver.defaults)
 
-# ROI-specific configurations
-roi_configs = ['t1_relaxation', 't2_relaxation', 't2s_relaxation']
+configs['bolus'].discard('dual') # Only meaningful for split protocols
 
-CONFIGS = deepcopy(ConcToSignal.configs | WaterExchangeArtery.configs | WaterExchangeLiver.configs | RelaxivityArtery.configs | RelaxivityLiver.configs | ConcAortaLiver.configs)
-DEFAULTS = deepcopy(ConcToSignal.defaults | WaterExchangeArtery.defaults | WaterExchangeLiver.defaults | RelaxivityArtery.defaults | RelaxivityLiver.defaults | ConcAortaLiver.defaults)
-CMAP = {roi: {} for roi in rois}
+ROIS = ['ao', 'li']
 
-for key in roi_configs:
-    config = CONFIGS.pop(key)
-    default = DEFAULTS.pop(key)
-    for roi in rois:
-        CONFIGS[f'{key}_{roi}'] = config
-        DEFAULTS[f'{key}_{roi}'] = default
-        CMAP[roi] |= {key: f'{key}_{roi}'}
+class InverseAortaLiver(Module):
 
-CONFIGS['inflow'].discard('inlet')
+    configs = configs
+    defaults = defaults
 
+    _all_inputs = {'R1_b', 'H', 'B1corr_li', 'dose_2', 'ffa', 'E_or', 'Ef_li', 'Tf_h', 'v_li', 'CO', 'D_hl', 'TP', 'S_li', 'fCO_li', 'dose', 'B1corr_ao', 'weight', 'tacq', 'kf_e2h', 'Nph', 'v_h', 'iStrig_ao', 'S0_li', 'GFR', 'field_strength', 'rate_1', 'R1_e', 'pfree', 'T_h', 'TF', 'PA', 'vol_ao', 'T_gu', 'R1_h', 'T_la', 'Ti_h', 'nb', 'PSw', 'FA', 'rate', 'NSR_ao', 'SA', 'T_b_or', 'T_hl', 'bdel', 'S0_ao', 'Nz', 'agent', 'NSR_li', 'E_li', 'v_e_li', 'Ei_li', 'tS_ao', 'tS_li', 'vol_li', 'rate_2', 'k_e2h', 'dt', 'TE', 'S_ao', 'ki_e2h', 'iStrig_li', 'TE1', 'TD', 'TA', 'iz', 'dose_1', 'Nk0', 'me', 'TR', 'dose_tolerance', 'TE2', 'tstart', 'T_e_or'}
+    _all_outputs = {'psdev', 'pcov', 'loss', 'popt'}
 
-class ForwardAortaLiver(Module):
-    """Whole-body model for the aorta and liver signal."""
+    def __init__(self, imap:dict=None, omap:dict=None, **config):
+        self.set_config(config)
+        self.forward = ForwardAortaLiver(**self.config)
+        self.map_io(imap, omap)
 
-    configs = CONFIGS
-    defaults = DEFAULTS
-
-    _all_inputs = {'TF', 'Scal_li', 'Ti_h', 'CO', 'TA', 'Scal_ao', 'T_la', 'Nz', 'B1corr_ao', 'E_li', 'GFR', 'Nk0', 'v_li', 'tacq', 'Ef_li', 'iScal_ao', 'dose_tolerance', 'T_h', 'Nph', 'iz', 'R1_b', 'TE1', 'H', 'dt', 'tstart', 'SA', 'BAT_1', 'dose_2', 'TR', 'R1_e', 'S0_li', 'BAT_2', 'TE', 'NSR_li', 'vol_ao', 'T_gu', 'me', 'Ei_li', 'BAT', 'B1corr_li', 'iScal_li', 'rate_1', 'v_h', 'k_e2h', 'kf_e2h', 'S0_ao', 'T_b_or', 'rate', 'ffa', 'weight', 'R1_h', 'FA', 'vol_li', 'field_strength', 'Tf_h', 'agent', 'NSR_ao', 'T_e_or', 'TE2', 'PA', 'rate_2', 'fCO_li', 'TP', 'E_or', 'PSw', 'dose', 'T_hl', 'D_hl', 'iStrig_li', 'dose_1', 'TD', 'v_e_li', 'ki_e2h', 'iStrig_ao'}
-    _all_outputs = {'S0_ao', 'R1_ao', 'J_la', 'ci_ao', 'J_li', 'R1i_ao', 'S_ao', 'tS_li', 'J_ao', 'tC', 'tM_li', 'R2s_li', 'R2_li', 'tR', 'C_ao', 'R1i_li', 'tS_ao', 'J_lag', 'J_or', 'tM_ao', 'R2_ao', 'R2s_ao', 'S0_li', 'J_pv', 'R1_li', 'ci_li', 'M_ao', 'J_ve', 'S_li', 'M_li', 'C_li'}
+    def _predict(self, time):
+        pred = self.forward(self._pars)
+        return tuple([pred[f'S_{roi}'].reshape(-1) for roi in ROIS])
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)  
+        p = self.map_data(data)  
 
-        p['tmax'] = p['tstart'] + p['tacq'] + p['dt']
+        # Set calibration signal
+        if self.config['calibrate']:
+            for roi in ROIS:
+                p[f"Scal_{roi}"] = p[f"S_{roi}"][..., :p['nb']]
+                p[f'iScal_{roi}'] = np.arange(p['nb'])
 
-        p |= self._conc(p)
-        for roi in rois:
-            p |= self._tissue_rel[roi](p) 
-            p |= self._tissue_wex[roi](p) 
-            p |= self._conc_to_signal[roi](p)
+        # Estimate bat from data
+        bat = estimate_bat(p['tS_ao'], p['S_ao'], p['nb'])
+        p['BAT'] = max(bat - p['T_hl'], 0)
+
+        p['pfree'] = update_bounds(p['pfree'], value=p)
+
+        # Compute inverse
+        self._pars = p
+        signal = tuple([data[f'S_{roi}'].reshape(-1) for roi in ROIS])
+        p = train_bat(self._predict, None, signal, p, p['pfree'], **kwargs)
 
         return self.map_results(p)
 
-    def __init__(self, imap:dict=None, omap:dict=None, iomap:dict=None, cmap:dict=None, **config):
-        self.set_config(config, cmap)
-
-        # Liver never has tof_corr
-        config = {
-            'ao': self.config,
-            'li': self.config | {'tof_corr': False}
-        }
-        self._conc = ConcAortaLiver(**self.config)
-        self._tissue_rel = {}
-        self._tissue_wex = {}
-        self._conc_to_signal = {}
-
-        for roi in rois:
-            iomap_roi = {'F_b_ar': 'F_b_ao'}
-            iomap_roi |= {k: extend_varname(k, roi=roi) for k in tissue_rel[roi].all_outputs() | tissue_wex[roi].all_outputs() | {'v_e'}} 
-            self._tissue_rel[roi] = tissue_rel[roi](iomap=iomap_roi, cmap=CMAP[roi], **config[roi])
-            self._tissue_wex[roi] = tissue_wex[roi](iomap=iomap_roi, cmap=CMAP[roi], **config[roi])
-
-            iomap_roi |= {k: extend_varname(k, roi=roi) for k in {'C', 'ci', 'NSR', 'S0', 'Scal', 'iScal', 'iStrig', 'B1corr', 'S', 'M', 'R1', 'R1i', 'R2', 'R2s', 'tM', 'tS'}}
-            self._conc_to_signal[roi] = ConcToSignal(iomap=iomap_roi, cmap=CMAP[roi], **config[roi])
-        
-        self.map_io(imap, omap, iomap)
-
-
     def inputs(self) -> set:
-        inputs = self._conc.mapped_inputs()
-        for roi in rois:
-            inputs |= self._tissue_rel[roi].mapped_inputs() 
-            inputs |= self._tissue_wex[roi].mapped_inputs() 
-            inputs |= self._conc_to_signal[roi].mapped_inputs()
-
-        inputs -= {'tmax'} 
-        inputs -= self._conc.new_mapped_outputs()
-        for roi in rois:
-            inputs -= self._tissue_rel[roi].new_mapped_outputs()
-            inputs -= self._tissue_wex[roi].new_mapped_outputs()
-            inputs -= self._conc_to_signal[roi].new_mapped_outputs()
-        return inputs 
+        inputs = self.forward.mapped_inputs()
+        inputs |= {'nb', 'pfree'}
+        for roi in ROIS:
+            inputs |= {f'tS_{roi}', f'S_{roi}'}
+        inputs -= {'BAT'}
+        for roi in ROIS:
+            inputs -= {f'Scal_{roi}', f'iScal_{roi}'}
+        return inputs  
     
     def outputs(self):
-        outputs = self._conc.mapped_outputs()
-        for roi in rois:
-            outputs |= self._conc_to_signal[roi].mapped_outputs() 
-            outputs -= {f'F_b_{roi}'}
-        return outputs
+        return {'popt', 'psdev', 'pcov', 'loss'}
     
     def dummy_data(self, data: dict=None): 
         p = self.init_data()
-        p |= self._conc.dummy_data()
+        p |= self.forward.dummy_data()
 
-        n_channels = channels(self.config['sequence'])
-        components = 1 if self.config['magnitude'] else 2
-        n0 = 1
-        Scal = np.zeros((n_channels, components, n0))
-        Scal[:, 0, :] = 1
-
-        for roi in rois:
+        pred = self.forward(p)
+        p |= {
+            'nb': 5,
+            'pfree': {'CO': (10, 300), 'BAT': (-60, 60)},
+        }
+        for roi in ROIS:        
             p |= {
-                f'iScal_{roi}': np.arange(n0, dtype=int),
-                f'Scal_{roi}': Scal, 
-                'BAT_2': 90, # default is the same as BAT_1
+                f'tS_{roi}': pred[f'tS_{roi}'],
+                f'S_{roi}': pred[f'S_{roi}'], 
             }
-
         return self.input_data(p, data)
+
+    def pfree(self):
+        inputs = self.forward.mapped_inputs()
+        pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
+        pfree |= {'BAT'}
+        return {p: get_quantity(p)['bounds'] for p in pfree}

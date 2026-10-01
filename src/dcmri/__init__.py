@@ -139,6 +139,8 @@ from dcmri.kinetics.functions_liver import (
     conc_liver_1i_ic_hf_nsu,
     conc_liver_1i_ic_hf_nse,
     conc_liver_1i_ic_hf_nsue,
+    conc_liver_1i_ic_u,
+    conc_liver_1i_ic_u_nsu,
     # conc_liver_1i_ic_hfd,
     # conc_liver_1i_ic_hfd_nsu,
     # conc_liver_1i_ic_hfd_nse,
@@ -286,6 +288,13 @@ from dcmri.forward.aorta_kidneys import ForwardAortaKidneys
 
 # Inverse models
 from dcmri.inverse.aorta import InverseAorta
+from dcmri.inverse.aorta_liver import InverseAortaLiver
+from dcmri.inverse.aorta_portal_liver import InverseAortaPortalLiver
+from dcmri.inverse.aorta_kidneys import InverseAortaKidneys
+from dcmri.inverse.aorta_liver_drug import InverseAortaLiverDrug
+from dcmri.inverse.aorta_liver_dynamic import InverseAortaLiverDynamic
+from dcmri.inverse.aorta_liver_dynamic_drug import InverseAortaLiverDynamicDrug
+from dcmri.inverse.liver import InverseLiver
 
 # End user tools
 from dcmri.model.aorta import Aorta

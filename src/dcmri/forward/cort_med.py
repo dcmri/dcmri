@@ -120,7 +120,7 @@
 # | tMz_km | sec      | longitudinal magnetization time points in the kidney medulla | Electromagnetic | 0.0   |        |       |           |
 # | tR     | sec      | relaxation rate time points                                  | Electromagnetic | 0.0   |        |       |           |
 # +-----------------------------------------------------------------------------------------------------------------------------------------+
-
+from copy import deepcopy
 import numpy as np
 
 from dcmri.core.module import Module
@@ -130,8 +130,8 @@ from dcmri.bloch.modules_rois import WaterExchangeGeneric
 from dcmri.signal.modules_tissue import ConcToSignal
 from dcmri.bloch.functions_sequences import channels
 
-configs = ConcToSignal.configs | WaterExchangeGeneric.configs | RelaxivityGeneric.configs | ConcCortMed.configs
-defaults = ConcToSignal.defaults | WaterExchangeGeneric.defaults | RelaxivityGeneric.defaults | ConcCortMed.defaults
+configs = deepcopy(ConcToSignal.configs | WaterExchangeGeneric.configs | RelaxivityGeneric.configs | ConcCortMed.configs)
+defaults = deepcopy(ConcToSignal.defaults | WaterExchangeGeneric.defaults | RelaxivityGeneric.defaults | ConcCortMed.defaults)
 
 for k in ('tof_corr', 'inflow'):
     configs.pop(k, None)
@@ -258,4 +258,4 @@ class ForwardCortMed(Module):
                 f'Scal_{roi}': Scal, 
             }
         p['c_ar'] = np.ones(nt)
-        return p
+        return self.input_data(p)

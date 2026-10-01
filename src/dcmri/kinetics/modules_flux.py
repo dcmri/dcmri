@@ -28,12 +28,15 @@ class Flux(Module):
     
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)
+
         model_func = getattr(blocks, f"flux_{self.config['block']}") 
         results = {'J': model_func(**p)}
+
         return self.map_results(results)
 
     def dummy_data(self, nt=5, nc=2):
         data = self.init_data()
+
         data['J'] = np.ones(nt)
         data['h'] = [1]
         data['TT'] = [0, 1]
@@ -45,7 +48,8 @@ class Flux(Module):
             data['E'] = np.ones((nc, nc))
         if self.config['block'] == 'nscomp':
             data['T'] = np.ones(nt)
-        return data
+
+        return self.update_data(data)
     
 
 class FluxInjection(Module):
@@ -149,7 +153,7 @@ class FluxTissueX(Module):
     def dummy_data(self, nt=5):
         data = self.init_data()
         data['c_ar'] *= np.ones(nt)
-        return data
+        return self.input_data(data)
     
 
 class FluxAorta(Module):
@@ -222,7 +226,7 @@ class FluxAorta(Module):
         return inputs
     
     def outputs(self):
-        outputs = {'tC', 'J_ao', 'J_ve', 'J_or'}
+        outputs = {'tC', 'J_ao', 'J_vc', 'J_or'}
         if self.config['kidneys'] is not None:
             outputs |= {'J_lk', 'J_rk'}
         if self.config['liver'] is not None:
@@ -249,58 +253,61 @@ class FluxAorta(Module):
 
         max_it = 500
 
-        influx = self._flux_injection(p)
-        J_aorta = self._flux_heartlung(p, J=influx['Jinj'])['J']
-        dose = trapezoid(J_aorta, dx=p['dt'])
+        p |= self._flux_injection(p)
+
+        J_vc = p['Jinj']
+        J_vc_total = J_vc
+
+        dose = trapezoid(J_vc, dx=p['dt'])
         min_dose = p['dose_tolerance'] * dose
 
-        J_aorta_total = J_aorta
         it=0
         while True:
-            J_aorta = self._propagate_J_aorta(p, J_aorta)['J_ao']
-            J_aorta_total += J_aorta
+            J_vc = self._propagate_J_vena(p, J_vc)['J_vc']
+            J_vc_total += J_vc
 
-            dose = trapezoid(J_aorta, dx=p['dt'])
+            dose = trapezoid(J_vc, dx=p['dt'])
             if dose <= min_dose:
                 break
 
             it += 1
             if it > max_it:
                 break
-        results = {'tC': influx['tC']} | self._propagate_J_aorta(p, J_aorta_total)
 
-        return self.map_results(results)
+        p |= self._propagate_J_vena(p, J_vc_total)
+
+        return self.map_results(p)
 
     # Helper function
-    def _propagate_J_aorta(self, p, Ja):
+    def _propagate_J_vena(self, p, Jv):
         # Store all results along the way so they can be returned
         result = {}
-        Jv = np.zeros_like(Ja)
-        result['J_or'] = self._flux_organs(p | {'J': Ja})['J']
-        Jv += p['vr_or'] * result['J_or']
+
+        Ja = self._flux_heartlung(p, J=Jv)['J']
+        result['J_or'] = self._flux_organs(p, J=Ja)['J']
+        Jv = p['vr_or'] * result['J_or']
 
         if self.config['kidneys'] is not None:
-            result['J_lk'] = self._flux_lk(p | {'J': Ja})['J']
-            result['J_rk'] = self._flux_rk(p | {'J': Ja})['J']
+            result['J_lk'] = self._flux_lk(p, J=Ja)['J']
+            result['J_rk'] = self._flux_rk(p, J=Ja)['J']
             Jv += p['vr_lk'] * result['J_lk']
             Jv += p['vr_rk'] * result['J_rk']
 
         if self.config['liver'] is not None:
             if self.config['lagut'] is not None:
-                Jlag = self._flux_lagut(p | {'J': Ja})
-                if Jlag['J'].ndim==2:
-                    result['J_lag'] = Jlag['J'].sum(axis=0)
-                    result['J_la'] = Jlag['J'][0]
-                    result['J_pv'] = Jlag['J'][1]
+                Jlag = self._flux_lagut(p, J=Ja)['J']
+                if Jlag.ndim==2:
+                    result['J_lag'] = Jlag.sum(axis=0)
+                    result['J_la'] = Jlag[0]
+                    result['J_pv'] = Jlag[1]
                 else:
-                    result['J_lag'] = Jlag['J']
+                    result['J_lag'] = Jlag
             else:
                 result['J_lag'] = Ja
-            result['J_li'] = self._flux_liver(p | {'J': result['J_lag']})['J']
+            result['J_li'] = self._flux_liver(p, J=result['J_lag'])['J']
             Jv += p['vr_li'] * result['J_li']
 
-        Ja = self._flux_heartlung(p | {'J': Jv})['J']
-        return result | {'J_ao': Ja, 'J_ve':Jv}
+        return result | {'J_ao': Ja, 'J_vc': Jv}
 
     def dummy_data(self):
         p = self.init_data()
@@ -326,5 +333,3 @@ class FluxAorta(Module):
             p['vr_or'] = fCO_or
 
         return self.input_data(p)
-        
-    

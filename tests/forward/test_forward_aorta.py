@@ -126,7 +126,7 @@ def test_aorta_instance():
     data = model.dummy_data() 
     results = model(data)
     
-    plt.plot(results['tS'], results['S'][0, 0, :], 'ro')
+    plt.plot(results['tS'], results['S'][0, 0, :], 'r-')
     plt.show()
 
 

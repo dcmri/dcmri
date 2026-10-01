@@ -118,7 +118,7 @@
 # | tMz | sec      | longitudinal magnetization time points | Electromagnetic | 0.0   |        |       |           |
 # | tR  | sec      | relaxation rate time points            | Electromagnetic | 0.0   |        |       |           |
 # +----------------------------------------------------------------------------------------------------------------+
-
+from copy import deepcopy
 import numpy as np
 
 from dcmri.core.module import Module
@@ -128,8 +128,8 @@ from dcmri.bloch.modules_rois import WaterExchangeArtery
 from dcmri.signal.modules_tissue import ConcToSignal
 from dcmri.bloch.functions_sequences import channels
 
-configs = ConcToSignal.configs | WaterExchangeArtery.configs | RelaxivityArtery.configs | ConcAorta.configs
-defaults = ConcToSignal.defaults | WaterExchangeArtery.defaults | RelaxivityArtery.defaults | ConcAorta.defaults
+configs = deepcopy(ConcToSignal.configs | WaterExchangeArtery.configs | RelaxivityArtery.configs | ConcAorta.configs)
+defaults = deepcopy(ConcToSignal.defaults | WaterExchangeArtery.defaults | RelaxivityArtery.defaults | ConcAorta.defaults)
 
 configs['inflow'].discard('inlet')
 
@@ -199,7 +199,5 @@ class ForwardAorta(Module):
             'Scal': Scal, 
             'BAT_2': 90, # default is the same as BAT_1
         }
-        if data is not None:
-            p |= data
             
-        return self.input_data(p)
+        return self.input_data(p, data)
