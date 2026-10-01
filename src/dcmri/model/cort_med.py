@@ -1,83 +1,57 @@
+from copy import deepcopy
+
 import matplotlib.pyplot as plt
 import numpy as np
 
-
-from dcmri.core.types import Input
-from dcmri.inverse.sig2conc import SignalToConc
-from dcmri.core.tools import get_quantity, get_bounds
-from dcmri.core.types import Input
-from dcmri.utils.fit import train_bat, loss
-from dcmri.forward.cort_med import ForwardCortMed
+from dcmri.core.tools import get_bounds
+from dcmri.utils.fit import loss
+from dcmri.inverse.cort_med import InverseCortMed as Inverse
 
 
 class CortMed():
+    @classmethod
+    def all_configs(cls, sample: int = None, seed: int = None, valid=False):
+        return Inverse.all_configs(sample, seed, valid)
+    
+    def __init__(self, state: dict=None, **config):
+        self._inverse = Inverse(**config)
+        self._forward = self._inverse.forward
+        self._state = self._forward.dummy_data(state)
 
-    def __init__(self, data: dict=None, **config):
-        self._version = '1.0'
-        self._model = ForwardCortMed(**config)
-
-        # Initialise model parameters
-        pars = self._model.dummy_data()
-        if data is not None:
-            pars |= data
-        self._pars = self._model.input_data(pars)
-
-    def _params(self, group=None):
-        params = self._model.mapped_inputs()
-        if group == 'free':
-            params_free = {p for p in params if get_quantity(p)['group']=='phys'} 
-            return params_free
-        return params
-
-    def _predict(self, time: tuple):
-        pred = self._model(self._pars)
-        return (
-            pred['S_kc'][:, :, :len(time[0])].reshape(-1),
-            pred['S_km'][:, :, :len(time[1])].reshape(-1),  
-        )
-
-    # ==========================================
-    # User interface
-    # ==========================================
-
-    def params(self, group=None) -> list:
-        """Return a list of model parameters"""
-        return self._params(group)
+    def state(self):
+        return deepcopy(self._state)
 
     def predict(self) -> np.ndarray:
-        """Predicts the data."""
-        return self._model(self._pars)
+        return self._forward(self._state)
+    
+    def train(self, data: dict, pfree:dict=None, bounds: dict=None, nb=5, **kwargs):
+        # Get free parameters
+        default_pfree = self._inverse.pfree()     
+        pfree = get_bounds(pfree, bounds, free_pars=default_pfree)
 
-    def train(
-        self, data: dict, aif:dict=None, 
-        free: dict=None, bounds: dict=None, n0=1, **kwargs):
+        # Apply inverse model
+        inputs = self._state | data | {'pfree': pfree, 'nb': nb}
+        result = self._inverse(inputs, **kwargs)
 
-        p = self._pars
-        
-        if aif is not None:
-            input = Input(aif)
-            ca = SignalToConc(**self._model.config)(
-                p, S=input.signal, R1b=input.R1b, nb=n0, 
-                B1corr=input.B1corr, 
-            )
-            t = np.arange(0, np.amax(data['tS_kc']) + p['dt'], p['dt'])
-            p['c_ar'] = np.interp(t, input.time, ca['C'])
+        # Update state
+        self._state |= result['popt']
 
-        if self._model.config['calibrate']:
-            for roi in ['kc', 'km']:
-                p[f'Scal_{roi}'] = data[f'S_{roi}'][..., :n0]
-                p[f'iScal_{roi}'] = np.arange(n0)
+        return result
 
-        # Perform training
-        free = get_bounds(free, bounds, free_pars=self._params('free'), value=p)
+    def cost(self, data: dict, metric: str='NRMS', nfree=None) -> float:
+        pred = self._forward(self._state)
 
-        time = (data['tS_kc'], data['tS_km'])
-        signal = (data['S_kc'], data['S_km'])
-        return train_bat(self._predict, time, signal, p, free, **kwargs)
+        signal_data = (data['S_kc'], data['S_km'])
+        signal_pred = (pred['S_kc'], pred['S_km'])
+
+        signal_data = np.concatenate([s.reshape(-1) for s in signal_data])
+        signal_pred = np.concatenate([s.reshape(-1) for s in signal_pred])
+
+        return loss(signal_pred, signal_data, metric, nfree)
 
 
     def plot(self, data: dict, xlim=None, fname=None, show=True):
-        prediction = self._model(self._pars)
+        prediction = self._forward(self._state)
 
         if xlim is None: 
             xlim = [prediction['tR'][0], prediction['tR'][-1]]
@@ -102,7 +76,7 @@ class CortMed():
         # Plot concentrations
         ax1.set_title('Reconstruction of concentrations.')
         ax1.plot(prediction['tC'] / 60, 0 * prediction['tC'], color='gray')
-        ax1.plot(prediction['tC'] / 60, 1000 * self._pars['c_ar'], '-', linewidth=3, color='darkred', label='Arterial Pred')
+        ax1.plot(prediction['tC'] / 60, 1000 * self._state['c_ar'], '-', linewidth=3, color='darkred', label='Arterial Pred')
         ax1.plot(prediction['tC'] / 60, 1000 * prediction['C_kc'].sum(axis=0), linestyle='-', linewidth=3.0, color='darkred', label='Cortex')
         ax1.plot(prediction['tC'] / 60, 1000 * prediction['C_km'].sum(axis=0), linestyle='-', linewidth=3.0, color='darkcyan', label='Medulla')
         ax1.set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=np.array(xlim)/60)
@@ -114,13 +88,3 @@ class CortMed():
             plt.show()
         else:
             plt.close()
-
-
-    def cost(self, data: dict, metric: str='NRMS', nfree=None) -> float:
-        time = (data['tS_kc'], data['tS_km'])
-        signal = (data['S_kc'], data['S_km'])
-
-        pred = self._predict(time)
-        signal = np.concatenate([s.reshape(-1) for s in signal])
-        signal_pred = np.concatenate(pred)
-        return loss(signal_pred, signal, metric, nfree)

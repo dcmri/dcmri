@@ -73,4 +73,6 @@ class InverseLiver(Module):
     def pfree(self):
         inputs = self.forward.mapped_inputs()
         pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
+        if not self.config['calibrate']:
+            pfree |= {'S0_li'}
         return {p: get_quantity(p)['bounds'] for p in pfree}

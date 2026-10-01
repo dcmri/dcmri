@@ -349,7 +349,9 @@ class Module:
         results = []
         pbar = tqdm(total=sample, desc='Sampling configurations..') if valid else None
 
-        while len(results) < sample:
+        total = math.prod(len(vals) for vals in value_lists)
+
+        while len(results) < sample and len(seen) < total:
             combination = tuple(vals[rng.integers(len(vals))] for vals in value_lists)
             if combination in seen:
                 continue  # avoid duplicate configs, same as original replace=False

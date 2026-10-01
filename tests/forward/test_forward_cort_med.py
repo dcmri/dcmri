@@ -17,20 +17,12 @@ def test_cort_med(cls=ForwardCortMed):
 
         # print(cnfg)
         data = instance.dummy_data()
-
-        # --- DIAGNOSTIC TIMING ---
-        t0 = time.perf_counter()
-        
         instance(data)
 
-        elapsed = time.perf_counter() - t0
-        
-        # print(f"  [Total model execution time: {elapsed:.4f}s]")
-
     cls.print_configs()
-    cls.print_all_io(verbose=1, simple=False, sample=None, seed=51)
+    cls.print_all_io(verbose=1, simple=False, sample=1e5, seed=51)
 
-    configs = cls.all_configs(sample=None, seed=51)
+    configs = cls.all_configs(sample=1e4, seed=51)
     for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
         _test_config(cnfg)
 
@@ -61,7 +53,8 @@ def test_cort_med_instance():
 
 
 if __name__ == '__main__':
-    test_cort_med()
     # test_cort_med_instance()
+    test_cort_med()
+    
 
     print('All ForwardCortMed coverage tests passed!!')

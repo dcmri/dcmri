@@ -219,7 +219,6 @@ class InverseAortaPortalLiver(Module):
                 f'tS_{roi}': pred[f'tS_{roi}'],
                 f'S_{roi}': pred[f'S_{roi}'], 
             }
-            
         return self.input_data(p, data)
 
     def pfree(self):

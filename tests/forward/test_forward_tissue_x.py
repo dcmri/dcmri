@@ -17,20 +17,12 @@ def test_tissue_x(cls=ForwardTissueX):
 
         # print(cnfg)
         data = instance.dummy_data()
-
-        # --- DIAGNOSTIC TIMING ---
-        t0 = time.perf_counter()
-        
         instance(data)
 
-        elapsed = time.perf_counter() - t0
-        
-        # print(f"  [Total model execution time: {elapsed:.4f}s]")
-
     cls.print_configs()
-    cls.print_all_io(verbose=1, simple=False, sample=1000, seed=51)
+    cls.print_all_io(verbose=1, simple=False, sample=1e4, seed=51)
 
-    configs = cls.all_configs(sample=1000, seed=51)
+    configs = cls.all_configs(sample=1e4, seed=51)
     for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
         _test_config(cnfg)
 
@@ -47,6 +39,7 @@ def test_tissue_x_instance():
     except InvalidConfig as e:
         print(e)
         return
+    
     model.print_inputs()
     model.print_outputs()
 
@@ -54,12 +47,12 @@ def test_tissue_x_instance():
     results = model(data)
 
     plt.plot(results['tS'], results['S'][0, 0, :], 'ro')
-    # plt.plot(results['tC'], results['C'][0], 'ro')
-
     plt.show()
 
+
 if __name__ == '__main__':
+    #test_tissue_x_instance()
     test_tissue_x()
-    # test_tissue_x_instance()
+    
 
     print('All ForwardTissueX coverage tests passed!!')

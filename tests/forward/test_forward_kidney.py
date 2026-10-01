@@ -17,20 +17,14 @@ def test_kidney(cls=ForwardKidney):
 
         # print(cnfg)
         data = instance.dummy_data()
-
-        # --- DIAGNOSTIC TIMING ---
-        t0 = time.perf_counter()
-        
         instance(data)
-
-        elapsed = time.perf_counter() - t0
         
         # print(f"  [Total model execution time: {elapsed:.4f}s]")
 
     cls.print_configs()
-    cls.print_all_io(verbose=1, simple=False, sample=None, seed=51)
+    cls.print_all_io(verbose=1, simple=False, sample=1e4, seed=51)
 
-    configs = cls.all_configs(sample=1000, seed=51)
+    configs = cls.all_configs(sample=1e4, seed=51)
     for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
         _test_config(cnfg)
 
@@ -53,13 +47,13 @@ def test_kidney_instance():
     data = model.dummy_data()
     results = model(data)
 
-    plt.plot(results['tS'], results['S'][0, 0, :], 'ro')
+    plt.plot(results['tS_ki'], results['S_ki'][0, 0, :], 'ro')
     # plt.plot(results['tC'], results['C'][0], 'ro')
 
     plt.show()
 
 if __name__ == '__main__':
-    test_kidney()
     # test_kidney_instance()
-
+    test_kidney()
+    
     print('All ForwardKidney coverage tests passed!!')

@@ -188,8 +188,8 @@ class ForwardLiver(Module):
         Scal[:, 0, :] = 1
 
         p |= {
-            f'iScal_li': np.arange(n0, dtype=int),
-            f'Scal_li': Scal, 
+            'iScal_li': np.arange(n0, dtype=int),
+            'Scal_li': Scal, 
         }
         nt = 180
         ci = np.ones(nt)

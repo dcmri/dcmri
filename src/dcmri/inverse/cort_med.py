@@ -1,5 +1,5 @@
 # +--------------------------------------------------------------------------------------------------+
-# |                               ForwardCortMed - all configs (n = 10)                                |
+# |                              InverseCortMed - all configs (n = 10)                               |
 # +----------------+--------------------------------------------------------------------+------------+
 # | Key            | Values                                                             | Default    |
 # +----------------+--------------------------------------------------------------------+------------+
@@ -20,7 +20,7 @@
 # +--------------------------------------------------------------------------------------------------+
 
 # +----------------------------------------------------------------------------------------------------------------------------------------------------------+
-# |                                                            ForwardCortMed - all inputs (n = 55)                                                            |
+# |                                                           InverseCortMed - all inputs (n = 61)                                                           |
 # +----------------+------------+---------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
 # | Key            | Unit       | Name                                                    | Group           | Init       | Bounds        | DICOM | OSIPI     |
 # +----------------+------------+---------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
@@ -31,12 +31,18 @@
 # | NSR_km         |            | noise-to-signal ratio in the kidney medulla             | Signal          | 0.0        | (0, 100000.0) |       |           |
 # | S0_kc          | a.u.       | signal scaling factor in the kidney cortex              | Signal          | 1.0        | (0, 5)        |       | Q.MS1.010 |
 # | S0_km          | a.u.       | signal scaling factor in the kidney medulla             | Signal          | 1.0        | (0, 5)        |       | Q.MS1.010 |
+# | S_kc           | a.u.       | signal in the kidney cortex                             | Signal          | 1.0        | (0, 5)        |       |           |
+# | S_km           | a.u.       | signal in the kidney medulla                            | Signal          | 1.0        | (0, 5)        |       |           |
 # | Scal_kc        | a.u.       | calibration signal in the kidney cortex                 | Signal          | 1.0        | (0, 5)        |       | Q.MS1.002 |
 # | Scal_km        | a.u.       | calibration signal in the kidney medulla                | Signal          | 1.0        | (0, 5)        |       | Q.MS1.002 |
 # | iScal_kc       |            | indices of calibration signal in the kidney cortex      | Signal          | 0          |               |       |           |
 # | iScal_km       |            | indices of calibration signal in the kidney medulla     | Signal          | 0          |               |       |           |
 # | iStrig_kc      |            | indices of the signal trigger in the kidney cortex      | Signal          | None       |               |       |           |
 # | iStrig_km      |            | indices of the signal trigger in the kidney medulla     | Signal          | None       |               |       |           |
+# | nb             | a.u.       | number of baseline time points                          | Signal          | 1          |               |       |           |
+# | pfree          | a.u.       | set of free parameters                                  | Signal          | 1          |               |       |           |
+# | tS_kc          | sec        | signal time points in the kidney cortex                 | Signal          | 0.0        |               |       |           |
+# | tS_km          | sec        | signal time points in the kidney medulla                | Signal          | 0.0        |               |       |           |
 # +----------------+------------+---------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
 # | FA             | deg        | flip angle                                              | Sequence        | 15         | (0, 180)      |       |           |
 # | Nk0            |            | number of acquired phase lines to the center of k-space | Sequence        | 64         | (0, 1000)     |       |           |
@@ -86,175 +92,102 @@
 # | dt             | sec        | pseudo-continuous time step                             | Hyperparameters | 0.5        |               |       |           |
 # +----------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-# +-----------------------------------------------------------------------------------------------------------------------------------------+
-# |                                                   ForwardCortMed - all outputs (n = 26)                                                   |
-# +--------+----------+--------------------------------------------------------------+-----------------+-------+--------+-------+-----------+
-# | Key    | Unit     | Name                                                         | Group           | Init  | Bounds | DICOM | OSIPI     |
-# +--------+----------+--------------------------------------------------------------+-----------------+-------+--------+-------+-----------+
-# | C_kc   | mmol/cm3 | tissue concentration in the kidney cortex                    | Indicator       | 0.005 | (0, 1) |       |           |
-# | C_km   | mmol/cm3 | tissue concentration in the kidney medulla                   | Indicator       | 0.005 | (0, 1) |       |           |
-# | ci_ki  | mmol/mL  | inlet concentration in the kidney                            | Indicator       | 0.005 |        |       |           |
-# | tC     | sec      | concentration time points                                    | Indicator       | 0.0   |        |       |           |
-# +--------+----------+--------------------------------------------------------------+-----------------+-------+--------+-------+-----------+
-# | S0_kc  | a.u.     | signal scaling factor in the kidney cortex                   | Signal          | 1.0   | (0, 5) |       | Q.MS1.010 |
-# | S0_km  | a.u.     | signal scaling factor in the kidney medulla                  | Signal          | 1.0   | (0, 5) |       | Q.MS1.010 |
-# | S_kc   | a.u.     | signal in the kidney cortex                                  | Signal          | 1.0   | (0, 5) |       |           |
-# | S_km   | a.u.     | signal in the kidney medulla                                 | Signal          | 1.0   | (0, 5) |       |           |
-# | tS_kc  | sec      | signal time points in the kidney cortex                      | Signal          | 0.0   |        |       |           |
-# | tS_km  | sec      | signal time points in the kidney medulla                     | Signal          | 0.0   |        |       |           |
-# +--------+----------+--------------------------------------------------------------+-----------------+-------+--------+-------+-----------+
-# | M_kc   | A/cm     | magnetization in the kidney cortex                           | Electromagnetic | 1     | (0, 5) |       |           |
-# | M_km   | A/cm     | magnetization in the kidney medulla                          | Electromagnetic | 1     | (0, 5) |       |           |
-# | Mz_kc  | A/cm     | longitudinal magnetization in the kidney cortex              | Electromagnetic | 1     | (0, 5) |       |           |
-# | Mz_km  | A/cm     | longitudinal magnetization in the kidney medulla             | Electromagnetic | 1     | (0, 5) |       |           |
-# | R1_kc  | Hz       | tissue R1 in the kidney cortex                               | Electromagnetic | 0.65  | (0, 5) |       |           |
-# | R1_km  | Hz       | tissue R1 in the kidney medulla                              | Electromagnetic | 0.65  | (0, 5) |       |           |
-# | R1i_kc | Hz       | inlet R1 in the kidney cortex                                | Electromagnetic | 0.65  | (0, 5) |       |           |
-# | R2_kc  | Hz       | tissue R2 in the kidney cortex                               | Electromagnetic | 2.0   | (0, 5) |       |           |
-# | R2_km  | Hz       | tissue R2 in the kidney medulla                              | Electromagnetic | 2.0   | (0, 5) |       |           |
-# | R2s_kc | Hz       | tissue R2* in the kidney cortex                              | Electromagnetic | 20    | (0, 5) |       |           |
-# | R2s_km | Hz       | tissue R2* in the kidney medulla                             | Electromagnetic | 20    | (0, 5) |       |           |
-# | tM_kc  | sec      | magnetization time points in the kidney cortex               | Electromagnetic | 0.0   |        |       |           |
-# | tM_km  | sec      | magnetization time points in the kidney medulla              | Electromagnetic | 0.0   |        |       |           |
-# | tMz_kc | sec      | longitudinal magnetization time points in the kidney cortex  | Electromagnetic | 0.0   |        |       |           |
-# | tMz_km | sec      | longitudinal magnetization time points in the kidney medulla | Electromagnetic | 0.0   |        |       |           |
-# | tR     | sec      | relaxation rate time points                                  | Electromagnetic | 0.0   |        |       |           |
-# +-----------------------------------------------------------------------------------------------------------------------------------------+
+# +-----------------------------------------------------------------------------------------------------------------+
+# |                                       InverseCortMed - all outputs (n = 4)                                      |
+# +-------+------+------------------------------------------------+-----------------+------+--------+-------+-------+
+# | Key   | Unit | Name                                           | Group           | Init | Bounds | DICOM | OSIPI |
+# +-------+------+------------------------------------------------+-----------------+------+--------+-------+-------+
+# | loss  | a.u. | loss value of optimized model                  | Signal          | 1    |        |       |       |
+# | pcov  | a.u. | dictionary with covariances of free parameters | Signal          | 1    |        |       |       |
+# | popt  | a.u. | dictionary of optimized free parameter values  | Signal          | 1    |        |       |       |
+# | psdev | a.u. | dictionary with parameter standard deviations  | Signal          | 1    |        |       |       |
+# +-----------------------------------------------------------------------------------------------------------------+
+
 from copy import deepcopy
+
 import numpy as np
 
 from dcmri.core.module import Module
-from dcmri.kinetics.modules_conc import ConcCortMed
-from dcmri.relaxivity.modules_rois import RelaxivityGeneric
-from dcmri.bloch.modules_rois import WaterExchangeGeneric
-from dcmri.signal.modules_tissue import ConcToSignal
-from dcmri.bloch.functions_sequences import channels
+from dcmri.core.tools import get_quantity, update_bounds
+from dcmri.utils.fit import train
+from dcmri.forward.cort_med import ForwardCortMed as Forward
 
-configs = deepcopy(ConcToSignal.configs | WaterExchangeGeneric.configs | RelaxivityGeneric.configs | ConcCortMed.configs)
-defaults = deepcopy(ConcToSignal.defaults | WaterExchangeGeneric.defaults | RelaxivityGeneric.defaults | ConcCortMed.defaults)
+configs = deepcopy(Forward.configs) 
+defaults = deepcopy(Forward.defaults)
 
-for k in ('tof_corr', 'inflow'):
-    configs.pop(k, None)
-    defaults.pop(k, None)
+ROIS = ['kc', 'km']
 
-
-class ForwardCortMed(Module):
-    """Whole-body model for the aorta and liver signal."""
+class InverseCortMed(Module):
 
     configs = configs
     defaults = defaults
 
-    _all_inputs = {'field_strength', 'v_gc', 'TE2', 'NSR_kc', 'TE', 'T_lh', 'FA', 'R1_dt', 'H', 'Nk0', 'S0_km', 'R1_lh', 'B1corr_km', 'TA', 'PSw', 'Nz', 'R1_gc', 'PA', 'v_vb', 'TP', 'tstart', 'iStrig_km', 'R1_pt', 'Scal_kc', 'S0_kc', 'agent', 'T_pt', 'T_cd', 'R1_vb', 'E_ki', 'dt', 'ffc', 'iz', 'NSR_km', 'T_dt', 'TE1', 'TR', 'Scal_km', 'TD', 'iStrig_kc', 'me', 'T_ar', 'v_cd', 'T_pcv', 'iScal_km', 'v_lh', 'iScal_kc', 'T_gc', 'c_ar', 'v_dt', 'v_pt', 'R1_cd', 'B1corr_kc', 'F_p_ki', 'Nph'}
-    _all_outputs = {'tS_km', 'tM_km', 'C_kc', 'R2s_kc', 'C_km', 'ci_ki', 'R2_kc', 'R2_km', 'S0_km', 'R2s_km', 'tM_kc', 'M_km', 'R1_km', 'R1i_kc', 'S_kc', 'M_kc', 'tC', 'R1_kc', 'tR', 'S0_kc', 'tS_kc', 'S_km'}
+    _all_inputs = {'TE2', 'TA', 'TE', 'tS_kc', 'TR', 'v_cd', 'T_gc', 'H', 'c_ar', 'R1_gc', 'v_lh', 'B1corr_kc', 'Scal_kc', 'PA', 'iStrig_kc', 'PSw', 'T_pt', 'R1_vb', 'R1_lh', 'v_vb', 'R1_pt', 'T_lh', 'T_pcv', 'T_dt', 'Nz', 'v_dt', 'NSR_km', 'S0_km', 'T_ar', 'iScal_kc', 'S0_kc', 'iStrig_km', 'Nk0', 'Nph', 'R1_dt', 'tstart', 'v_gc', 'T_cd', 'NSR_kc', 'v_pt', 'pfree', 'FA', 'nb', 'dt', 'field_strength', 'Scal_km', 'me', 'TD', 'S_kc', 'S_km', 'TE1', 'TP', 'iScal_km', 'ffc', 'R1_cd', 'B1corr_km', 'tS_km', 'iz', 'agent', 'F_p_ki', 'E_ki'}
+    _all_outputs = {'loss', 'pcov', 'psdev', 'popt'}
+
+    def __init__(self, imap:dict=None, omap:dict=None, **config):
+        self.set_config(config)
+        self.forward = Forward(**self.config)
+        self.map_io(imap, omap)
+
+    def _predict(self, time):
+        pred = self.forward(self._pars)
+        nt = [len(t) for t in time]
+        return tuple([pred[f'S_{roi}'][:, :, :nt[i]].reshape(-1) for i, roi in enumerate(ROIS)])
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)  
+        p = self.map_data(data)  
 
-        # Cortex and medulla concentration
+        if self.config['calibrate']:
+            for roi in ROIS:
+                p[f'Scal_{roi}'] = p[f'S_{roi}'][:, :, :p['nb']]
+                p[f'iScal_{roi}'] = np.arange(p['nb'])
 
-        p |= self._conc(p)
+        p['pfree'] = update_bounds(p['pfree'], value=p)
 
-        p['tacq'] = p['dt'] * (p['ci_ki'].size - 1)
-
-        # Cortex signal
-
-        roi = 'kc'
-
-        p['v_t'] = [p[f'v_{c}'] for c in ['gc', 'vb', 'pt', 'dt']]
-        p['R1_t'] = [p[f'R1_{c}'] for c in ['gc', 'vb', 'pt', 'dt']]
-
-        p |= self._tissue_rel[roi](p) 
-
-        p['F_b'] = p['F_p_ki'] / (1 - p['H'])
-
-        p |= self._tissue_wex[roi](p) 
-        p |= self._conc_to_signal[roi](p)
-
-        # Medulla signal
-
-        roi = 'km'
-
-        p['v_t'] = [p[f'v_{c}'] for c in ['vb', 'lh', 'cd']]
-        p['R1_t'] = [p[f'R1_{c}'] for c in ['vb', 'lh', 'cd']]
-
-        p |= self._tissue_rel[roi](p)
-
-        p['F_b'] = (p['F_p_ki'] / (1 - p['H'])) * (1 - p['ffc']) * (1 - p['E_ki']) 
-
-        p |= self._tissue_wex[roi](p) 
-
-        p['Mzi'] = p['M_kc'][0, 2, 0, :].reshape((1, -1)) # Cortex blood Mz is inlet for Medulla
-        p['tMi'] = p['tM_kc']
-
-        p |= self._conc_to_signal[roi](p)
+        # Compute inverse
+        self._pars = p
+        time = tuple([data[f'tS_{roi}'].reshape(-1) for roi in ROIS])
+        signal = tuple([data[f'S_{roi}'].reshape(-1) for roi in ROIS])
+        p |= train(self._predict, time, signal, p, p['pfree'], **kwargs)
 
         return self.map_results(p)
 
-    def __init__(self, imap:dict=None, omap:dict=None, iomap:dict=None, cmap:dict=None, **config):
-        self.set_config(config, cmap)
-
-        config = {
-            'kc': self.config | {'inflow': 'pool'}, 
-            'km': self.config | {'inflow': 'inlet'} # Medulla recieves inflow from the cortex outlet
-        }
-        self._conc = ConcCortMed(**self.config)
-        self._tissue_rel = {}
-        self._tissue_wex = {}
-        self._conc_to_signal = {}
-
-        for roi in ['kc', 'km']:
-            self._tissue_rel[roi] = RelaxivityGeneric(**config[roi])
-            self._tissue_wex[roi] = WaterExchangeGeneric(**config[roi])
-
-            imap = {k: f'{k}_{roi}' for k in {'C', 'NSR', 'S0', 'Scal', 'iScal', 'iStrig', 'B1corr'}}
-            imap |= {'ci':'ci_ki'}
-            omap = {k: f"{k}_{roi}" for k in ConcToSignal.all_outputs() - {'tR'}}
-            self._conc_to_signal[roi] = ConcToSignal(imap=imap, omap=omap, **config[roi])
-
-        self.map_io(imap, omap, iomap)
-
-
     def inputs(self) -> set:
-        comps = ['gc', 'vb', 'pt', 'dt', 'lh', 'cd']
-
-        inputs = {f'v_{c}' for c in comps}
-        inputs |= {f'R1_{c}' for c in comps}
-        inputs |= {'F_p_ki', 'H', 'ffc', 'E_ki'}
-        inputs |= self._conc.mapped_inputs()
-        for roi in ['kc', 'km']:
-            inputs |= self._tissue_rel[roi].mapped_inputs() 
-            inputs |= self._tissue_wex[roi].mapped_inputs() 
-            inputs |= self._conc_to_signal[roi].mapped_inputs()
-
-        inputs -= {'tacq', 'v_t', 'R1_t', 'F_b', 'Mzi', 'tMi'} # remove derived
-        inputs -= self._conc.new_mapped_outputs()
-        for roi in ['kc', 'km']:
-            inputs -= self._tissue_rel[roi].new_mapped_outputs()
-            inputs -= self._tissue_wex[roi].new_mapped_outputs()
-        return inputs 
-    
+        inputs = self.forward.mapped_inputs()
+        if self.config['calibrate']:
+            inputs |= {'nb'}
+            for roi in ROIS:
+                inputs |= {f'Scal_{roi}', f'iScal_{roi}'}
+                inputs -= {f'S_{roi}', f'tS_{roi}'}
+        for roi in ROIS:
+            inputs |= {f'tS_{roi}', f'S_{roi}'}
+        inputs |= {'pfree'}
+        return inputs  
     
     def outputs(self):
-        outputs = self._conc.mapped_outputs()
-        for roi in ['kc', 'km']:
-            outputs |= self._conc_to_signal[roi].mapped_outputs() 
+        outputs = {'popt', 'psdev', 'pcov', 'loss'}
         return outputs
     
-    
-    def dummy_data(self, data:dict=None): 
-        n0, nt = 1, 180
-
+    def dummy_data(self, data: dict=None): 
         p = self.init_data()
-        n_channels = channels(self.config['sequence'])
-        components = 1 if self.config['magnitude'] else 2
-        
-        Scal = np.zeros((n_channels, components, n0))
-        Scal[:, 0, :] = 1
 
-        for roi in ['kc', 'km']:
+        p |= {
+            'nb': 5,
+            'pfree': self.forward.filter_data({'F_p_ki': (0, 1), 'E_ki': (0, 1)}),
+        }
+        p |= self.forward.dummy_data()
+        pred = self.forward(p)
+        for roi in ROIS:
             p |= {
-                f'iScal_{roi}': np.arange(n0, dtype=int),
-                f'Scal_{roi}': Scal, 
+                f'tS_{roi}': pred[f'tS_{roi}'],
+                f'S_{roi}': pred[f'S_{roi}'],
             }
-        p['c_ar'] = np.ones(nt)
         return self.input_data(p, data)
+
+    def pfree(self):
+        inputs = self.forward.mapped_inputs()
+        pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
+        if not self.config['calibrate']:
+            pfree |= {f'S0_{roi}' for roi in ROIS}
+        return {p: get_quantity(p)['bounds'] for p in pfree}

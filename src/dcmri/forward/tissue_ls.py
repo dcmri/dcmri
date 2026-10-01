@@ -1,5 +1,5 @@
 # +--------------------------------------------------------------------------------------------------+
-# |                               ForwardTissueLS - all configs (n = 9)                                |
+# |                              ForwardTissueLS - all configs (n = 9)                               |
 # +----------------+--------------------------------------------------------------------+------------+
 # | Key            | Values                                                             | Default    |
 # +----------------+--------------------------------------------------------------------+------------+
@@ -19,7 +19,7 @@
 # +--------------------------------------------------------------------------------------------------+
 
 # +----------------------------------------------------------------------------------------------------------------------------------------------------------+
-# |                                                           ForwardTissueLS - all inputs (n = 29)                                                            |
+# |                                                          ForwardTissueLS - all inputs (n = 29)                                                           |
 # +----------------+------------+---------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
 # | Key            | Unit       | Name                                                    | Group           | Init       | Bounds        | DICOM | OSIPI     |
 # +----------------+------------+---------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
@@ -59,28 +59,26 @@
 # | dt             | sec        | pseudo-continuous time step                             | Hyperparameters | 0.5        |               |       |           |
 # +----------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-# +----------------------------------------------------------------------------------------------------------------+
-# |                                      ForwardTissueLS - all outputs (n = 14)                                      |
-# +-----+----------+----------------------------------------+-----------------+-------+--------+-------+-----------+
-# | Key | Unit     | Name                                   | Group           | Init  | Bounds | DICOM | OSIPI     |
-# +-----+----------+----------------------------------------+-----------------+-------+--------+-------+-----------+
-# | C   | mmol/cm3 | tissue concentration                   | Indicator       | 0.005 | (0, 1) |       |           |
-# | tC  | sec      | concentration time points              | Indicator       | 0.0   |        |       |           |
-# +-----+----------+----------------------------------------+-----------------+-------+--------+-------+-----------+
-# | S   | a.u.     | signal                                 | Signal          | 1.0   | (0, 5) |       |           |
-# | S0  | a.u.     | signal scaling factor                  | Signal          | 1.0   | (0, 5) |       | Q.MS1.010 |
-# | tS  | sec      | signal time points                     | Signal          | 0.0   |        |       |           |
-# +-----+----------+----------------------------------------+-----------------+-------+--------+-------+-----------+
-# | M   | A/cm     | magnetization                          | Electromagnetic | 1     | (0, 5) |       |           |
-# | Mz  | A/cm     | longitudinal magnetization             | Electromagnetic | 1     | (0, 5) |       |           |
-# | R1  | Hz       | tissue R1                              | Electromagnetic | 0.65  | (0, 5) |       |           |
-# | R1i | Hz       | inlet R1                               | Electromagnetic | 0.65  | (0, 5) |       |           |
-# | R2  | Hz       | tissue R2                              | Electromagnetic | 2.0   | (0, 5) |       |           |
-# | R2s | Hz       | tissue R2*                             | Electromagnetic | 20    | (0, 5) |       |           |
-# | tM  | sec      | magnetization time points              | Electromagnetic | 0.0   |        |       |           |
-# | tMz | sec      | longitudinal magnetization time points | Electromagnetic | 0.0   |        |       |           |
-# | tR  | sec      | relaxation rate time points            | Electromagnetic | 0.0   |        |       |           |
-# +----------------------------------------------------------------------------------------------------------------+
+# +-----------------------------------------------------------------------------------------------------+
+# |                                ForwardTissueLS - all outputs (n = 12)                               |
+# +-----+----------+-----------------------------+-----------------+-------+--------+-------+-----------+
+# | Key | Unit     | Name                        | Group           | Init  | Bounds | DICOM | OSIPI     |
+# +-----+----------+-----------------------------+-----------------+-------+--------+-------+-----------+
+# | C   | mmol/cm3 | tissue concentration        | Indicator       | 0.005 | (0, 1) |       |           |
+# | tC  | sec      | concentration time points   | Indicator       | 0.0   |        |       |           |
+# +-----+----------+-----------------------------+-----------------+-------+--------+-------+-----------+
+# | S   | a.u.     | signal                      | Signal          | 1.0   | (0, 5) |       |           |
+# | S0  | a.u.     | signal scaling factor       | Signal          | 1.0   | (0, 5) |       | Q.MS1.010 |
+# | tS  | sec      | signal time points          | Signal          | 0.0   |        |       |           |
+# +-----+----------+-----------------------------+-----------------+-------+--------+-------+-----------+
+# | M   | A/cm     | magnetization               | Electromagnetic | 1     | (0, 5) |       |           |
+# | R1  | Hz       | tissue R1                   | Electromagnetic | 0.65  | (0, 5) |       |           |
+# | R1i | Hz       | inlet R1                    | Electromagnetic | 0.65  | (0, 5) |       |           |
+# | R2  | Hz       | tissue R2                   | Electromagnetic | 2.0   | (0, 5) |       |           |
+# | R2s | Hz       | tissue R2*                  | Electromagnetic | 20    | (0, 5) |       |           |
+# | tM  | sec      | magnetization time points   | Electromagnetic | 0.0   |        |       |           |
+# | tR  | sec      | relaxation rate time points | Electromagnetic | 0.0   |        |       |           |
+# +-----------------------------------------------------------------------------------------------------+
 
 from copy import deepcopy
 import numpy as np
@@ -92,9 +90,11 @@ from dcmri.bloch.modules_rois import WaterExchangeGeneric
 from dcmri.signal.modules_tissue import ConcToSignal
 from dcmri.bloch.functions_sequences import channels
 
+tissue_rel = RelaxivityGeneric
+tissue_wex = WaterExchangeGeneric
 
-configs = deepcopy(ConcToSignal.configs | WaterExchangeGeneric.configs | RelaxivityGeneric.configs | ConcTissueLS.configs)
-defaults = deepcopy(ConcToSignal.defaults | WaterExchangeGeneric.defaults | RelaxivityGeneric.defaults | ConcTissueLS.defaults)
+configs = deepcopy(ConcToSignal.configs | tissue_wex.configs | tissue_rel.configs | ConcTissueLS.configs)
+defaults = deepcopy(ConcToSignal.defaults | tissue_wex.defaults | tissue_rel.defaults | ConcTissueLS.defaults)
 
 configs['inflow'].discard('inlet')
 for discard in ['tof_corr', 'water_exchange']:
@@ -108,18 +108,8 @@ class ForwardTissueLS(Module):
     configs = configs
     defaults = defaults
 
-    _all_inputs = {'Nz', 'TR', 'irf', 'F_b', 'TE2', 'TP', 'iStrig', 'B1corr', 'iScal', 'field_strength', 'tstart', 'Scal', 'me', 'ci', 'R1_t', 'S0', 'TE1', 'FA', 'Nk0', 'TD', 'v_t', 'TE', 'dt', 'TA', 'Nph', 'PA', 'NSR', 'iz', 'agent'}
-    _all_outputs = {'Mz', 'S', 'R1i', 'tS', 'tMz', 'R2s', 'tR', 'R1', 'tM', 'R2', 'M', 'C', 'tC', 'S0'}
-
-    def __init__(self, imap:dict=None, omap:dict=None, **config):
-        self.set_config(config)
-
-        self._conc = ConcTissueLS(**self.config)
-        self._tissue_rel = RelaxivityGeneric(**self.config)
-        self._tissue_wex = WaterExchangeGeneric(**self.config)
-        self._conc_to_signal = ConcToSignal(**self.config)
-
-        self.map_io(imap, omap)
+    _all_inputs = {'TD', 'me', 'B1corr', 'iStrig', 'TA', 'TE1', 'dt', 'TR', 'F_b', 'FA', 'TE', 'Scal', 'NSR', 'ci', 'v_t', 'irf', 'Nz', 'iz', 'agent', 'tstart', 'TE2', 'R1_t', 'S0', 'Nph', 'iScal', 'TP', 'Nk0', 'PA', 'field_strength'}
+    _all_outputs = {'C', 'tR', 'R2', 'tC', 'S0', 'tM', 'R2s', 'tS', 'R1i', 'M', 'R1', 'S'}
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)  
@@ -135,6 +125,16 @@ class ForwardTissueLS(Module):
         p |= self._conc_to_signal(p)
 
         return self.map_results(p)
+
+    def __init__(self, imap:dict=None, omap:dict=None, **config):
+        self.set_config(config)
+
+        self._conc = ConcTissueLS(**self.config)
+        self._tissue_rel = RelaxivityGeneric(**self.config)
+        self._tissue_wex = WaterExchangeGeneric(**self.config)
+        self._conc_to_signal = ConcToSignal(**self.config)
+
+        self.map_io(imap, omap)
 
     def inputs(self) -> set:
         inputs = {'v_t', 'R1_t'}
@@ -154,7 +154,7 @@ class ForwardTissueLS(Module):
         outputs |= self._conc_to_signal.mapped_outputs() 
         return outputs
     
-    def dummy_data(self): 
+    def dummy_data(self, data:dict=None): 
         n0, nt = 1, 180
         
         n_channels = channels(self.config['sequence'])
@@ -163,10 +163,14 @@ class ForwardTissueLS(Module):
         Scal[:, 0, :] = 1
 
         p = self.init_data() 
+
+        ci = p['ci'] * np.ones(nt)
+        ci[:30] = 0
+
         p |= {
             'iScal': np.arange(n0, dtype=int),
             'Scal': Scal, 
-            'ci': np.ones(nt),
+            'ci': ci,
             'irf': p['irf'] * np.ones(nt)
         }
-        return self.input_data(p)
+        return self.input_data(p, data)

@@ -295,6 +295,10 @@ from dcmri.inverse.aorta_liver_drug import InverseAortaLiverDrug
 from dcmri.inverse.aorta_liver_dynamic import InverseAortaLiverDynamic
 from dcmri.inverse.aorta_liver_dynamic_drug import InverseAortaLiverDynamicDrug
 from dcmri.inverse.liver import InverseLiver
+from dcmri.inverse.kidney import InverseKidney
+from dcmri.inverse.cort_med import InverseCortMed
+from dcmri.inverse.tissue_x import InverseTissueX
+from dcmri.inverse.tissue_ls import InverseTissueLS
 
 # End user tools
 from dcmri.model.aorta import Aorta

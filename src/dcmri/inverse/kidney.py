@@ -1,5 +1,5 @@
 # +--------------------------------------------------------------------------------------------------+
-# |                               ForwardKidney - all configs (n = 11)                               |
+# |                               InverseKidney - all configs (n = 11)                               |
 # +----------------+--------------------------------------------------------------------+------------+
 # | Key            | Values                                                             | Default    |
 # +----------------+--------------------------------------------------------------------+------------+
@@ -21,7 +21,7 @@
 # +--------------------------------------------------------------------------------------------------+
 
 # +-----------------------------------------------------------------------------------------------------------------------------------------------------------+
-# |                                                            ForwardKidney - all inputs (n = 41)                                                            |
+# |                                                            InverseKidney - all inputs (n = 43)                                                            |
 # +----------------+------------+---------------------------------------------------------+-----------------+------------+----------------+-------+-----------+
 # | Key            | Unit       | Name                                                    | Group           | Init       | Bounds         | DICOM | OSIPI     |
 # +----------------+------------+---------------------------------------------------------+-----------------+------------+----------------+-------+-----------+
@@ -30,9 +30,11 @@
 # +----------------+------------+---------------------------------------------------------+-----------------+------------+----------------+-------+-----------+
 # | NSR_ki         |            | noise-to-signal ratio in the kidney                     | Signal          | 0.0        | (0, 100000.0)  |       |           |
 # | S0_ki          | a.u.       | signal scaling factor in the kidney                     | Signal          | 1.0        | (0, 5)         |       | Q.MS1.010 |
-# | Scal_ki        | a.u.       | calibration signal in the kidney                        | Signal          | 1.0        | (0, 5)         |       | Q.MS1.002 |
-# | iScal_ki       |            | indices of calibration signal in the kidney             | Signal          | 0          |                |       |           |
+# | S_ki           | a.u.       | signal in the kidney                                    | Signal          | 1.0        | (0, 5)         |       |           |
 # | iStrig_ki      |            | indices of the signal trigger in the kidney             | Signal          | None       |                |       |           |
+# | nb             | a.u.       | number of baseline time points                          | Signal          | 1          |                |       |           |
+# | pfree          | a.u.       | set of free parameters                                  | Signal          | 1          |                |       |           |
+# | tS_ki          | sec        | signal time points in the kidney                        | Signal          | 0.0        |                |       |           |
 # +----------------+------------+---------------------------------------------------------+-----------------+------------+----------------+-------+-----------+
 # | FA             | deg        | flip angle                                              | Sequence        | 15         | (0, 180)       |       |           |
 # | Nk0            |            | number of acquired phase lines to the center of k-space | Sequence        | 64         | (0, 1000)      |       |           |
@@ -73,126 +75,92 @@
 # | dt             | sec        | pseudo-continuous time step                             | Hyperparameters | 0.5        |                |       |           |
 # +-----------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-# +---------------------------------------------------------------------------------------------------------------------------+
-# |                                            ForwardKidney - all outputs (n = 13)                                           |
-# +--------+------------+-------------------------------------------+-----------------+-------+-----------+-------+-----------+
-# | Key    | Unit       | Name                                      | Group           | Init  | Bounds    | DICOM | OSIPI     |
-# +--------+------------+-------------------------------------------+-----------------+-------+-----------+-------+-----------+
-# | C_ki   | mmol/cm3   | tissue concentration in the kidney        | Indicator       | 0.005 | (0, 1)    |       |           |
-# | tC_ki  | sec        | concentration time points in the kidney   | Indicator       | 0.0   |           |       |           |
-# +--------+------------+-------------------------------------------+-----------------+-------+-----------+-------+-----------+
-# | S0_ki  | a.u.       | signal scaling factor in the kidney       | Signal          | 1.0   | (0, 5)    |       | Q.MS1.010 |
-# | S_ki   | a.u.       | signal in the kidney                      | Signal          | 1.0   | (0, 5)    |       |           |
-# | tS_ki  | sec        | signal time points in the kidney          | Signal          | 0.0   |           |       |           |
-# +--------+------------+-------------------------------------------+-----------------+-------+-----------+-------+-----------+
-# | M_ki   | A/cm       | magnetization in the kidney               | Electromagnetic | 1     | (0, 5)    |       |           |
-# | R1_ki  | Hz         | tissue R1 in the kidney                   | Electromagnetic | 0.65  | (0, 5)    |       |           |
-# | R1i_ki | Hz         | inlet R1 in the kidney                    | Electromagnetic | 0.65  | (0, 5)    |       |           |
-# | R2_ki  | Hz         | tissue R2 in the kidney                   | Electromagnetic | 2.0   | (0, 5)    |       |           |
-# | R2s_ki | Hz         | tissue R2* in the kidney                  | Electromagnetic | 20    | (0, 5)    |       |           |
-# | tM_ki  | sec        | magnetization time points in the kidney   | Electromagnetic | 0.0   |           |       |           |
-# | tR_ki  | sec        | relaxation rate time points in the kidney | Electromagnetic | 0.0   |           |       |           |
-# +--------+------------+-------------------------------------------+-----------------+-------+-----------+-------+-----------+
-# | F_u    | mL/sec/cm3 | flow per unit tissue in tubuli            | Physiological   | 0.005 | (0, 0.05) |       |           |
-# +---------------------------------------------------------------------------------------------------------------------------+
+# +-----------------------------------------------------------------------------------------------------------------+
+# |                                       InverseKidney - all outputs (n = 4)                                       |
+# +-------+------+------------------------------------------------+-----------------+------+--------+-------+-------+
+# | Key   | Unit | Name                                           | Group           | Init | Bounds | DICOM | OSIPI |
+# +-------+------+------------------------------------------------+-----------------+------+--------+-------+-------+
+# | loss  | a.u. | loss value of optimized model                  | Signal          | 1    |        |       |       |
+# | pcov  | a.u. | dictionary with covariances of free parameters | Signal          | 1    |        |       |       |
+# | popt  | a.u. | dictionary of optimized free parameter values  | Signal          | 1    |        |       |       |
+# | psdev | a.u. | dictionary with parameter standard deviations  | Signal          | 1    |        |       |       |
+# +-----------------------------------------------------------------------------------------------------------------+
 
 from copy import deepcopy
+
 import numpy as np
 
-from dcmri.core.tools import extend_varname
 from dcmri.core.module import Module
-from dcmri.kinetics.modules_conc import ConcKidney
-from dcmri.relaxivity.modules_rois import RelaxivityKidney
-from dcmri.bloch.modules_rois import WaterExchangeKidney
-from dcmri.signal.modules_tissue import ConcToSignal
-from dcmri.bloch.functions_sequences import channels
+from dcmri.core.tools import get_quantity, update_bounds
+from dcmri.utils.fit import train
+from dcmri.forward.kidney import ForwardKidney as Forward
 
-roi = 'ki'
+configs = deepcopy(Forward.configs) 
+defaults = deepcopy(Forward.defaults)
 
-tissue_rel = RelaxivityKidney
-tissue_wex = WaterExchangeKidney
-
-configs = deepcopy(ConcToSignal.configs | tissue_wex.configs | tissue_rel.configs | ConcKidney.configs)
-defaults = deepcopy(ConcToSignal.defaults | tissue_wex.defaults | tissue_rel.defaults | ConcKidney.defaults)
-
-configs['inflow'].discard('inlet')
-configs.pop('tof_corr')
-defaults.pop('tof_corr')
-
-
-class ForwardKidney(Module):
-    """Whole-body model for the aorta and liver signal."""
+class InverseKidney(Module):
 
     configs = configs
     defaults = defaults
 
-    _all_inputs = {'TR', 'TE2', 'c_ar', 'R1_c', 'v_u', 'S0_ki', 'v_ki', 'NSR_ki', 'FF', 'Nk0', 'v_b', 'tstart', 'F_u', 'iz', 'TA', 'iStrig_ki', 'TE', 'v_c', 'v_p_ki', 'T_ar', 'Nz', 'F_p_ki', 'B1corr_ki', 'Scal_ki', 'TE1', 'h_u', 'me', 'TP', 'FA', 'agent', 'dt', 'PSw', 'PA', 'R1_b', 'R1_u', 'T_u', 'F_b_ki', 'field_strength', 'iScal_ki', 'TD', 'Nph'}
-    _all_outputs = {'tR_ki', 'R1i_ki', 'tM_ki', 'S0_ki', 'C_ki', 'F_u', 'tS_ki', 'R1_ki', 'R2_ki', 'M_ki', 'R2s_ki', 'tC_ki', 'S_ki'}
-
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)  
-
-        p |= self._conc(p)
-        p |= self._tissue_rel(p) 
-        p |= self._tissue_wex(p) 
-
-        p['tacq'] = p['dt'] * (p['ci_ki_in'].size - 1)
-        p |= self._conc_to_signal(p)
-
-        return self.map_results(p)
+    _all_inputs = {'v_c', 'nb', 'TD', 'Nz', 'TE2', 'pfree', 'TR', 'S0_ki', 'tstart', 'F_b_ki', 'TP', 'PA', 'R1_c', 'FA', 'Nph', 'iz', 'h_u', 'v_b', 'R1_b', 'tS_ki', 'T_u', 'TA', 'Nk0', 'F_u', 'dt', 'F_p_ki', 'me', 'TE', 'T_ar', 'iStrig_ki', 'FF', 'S_ki', 'NSR_ki', 'TE1', 'v_p_ki','PSw', 'agent', 'v_ki', 'B1corr_ki', 'R1_u', 'c_ar', 'field_strength', 'v_u'}
+    _all_outputs = {'loss', 'popt', 'pcov', 'psdev'}
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
-
-        omap = {'ci_ki': 'ci_ki_in'}
-        self._conc = ConcKidney(omap=omap, **self.config)
-
-        iomap_roi = {k: extend_varname(k, roi=roi) for k in tissue_rel.all_outputs() | tissue_wex.all_outputs()}
-
-        self._tissue_rel = tissue_rel(iomap=iomap_roi, **self.config)
-        self._tissue_wex = tissue_wex(iomap=iomap_roi, **self.config)
-
-        iomap_roi |= {'ci': 'ci_ki_in'}
-        iomap_roi |= {k: extend_varname(k, roi=roi) for k in {'tC', 'C', 'NSR', 'S0', 'Scal', 'iScal', 'iStrig', 'B1corr', 'S', 'M', 'R1', 'R1i', 'R2', 'R2s', 'tR', 'tM', 'tS'}}
-
-        self._conc_to_signal = ConcToSignal(iomap=iomap_roi, **self.config)
-
+        self.forward = Forward(**self.config)
         self.map_io(imap, omap)
 
-    def inputs(self) -> set:
-        inputs = self._conc.mapped_inputs()
-        inputs |= self._tissue_rel.mapped_inputs() 
-        inputs |= self._tissue_wex.mapped_inputs() 
-        inputs |= self._conc_to_signal.mapped_inputs()
+    def _predict(self, time):
+        pred = self.forward(self._pars)
+        nt = len(time)
+        return pred['S_ki'][:, :, :nt].reshape(-1)
 
-        inputs -= {'tacq'}
-        inputs -= self._conc.new_mapped_outputs()
-        inputs -= self._tissue_rel.new_mapped_outputs()
-        inputs -= self._tissue_wex.new_mapped_outputs()
-        inputs -= self._conc_to_signal.new_mapped_outputs()
-        return inputs 
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data)  
+
+        if self.config['calibrate']:
+            p['Scal_ki'] = p['S_ki'][..., :p['nb']]
+            p['iScal_ki'] = np.arange(p['nb'])
+
+        p['pfree'] = update_bounds(p['pfree'], value=p)
+
+        # Compute inverse
+        self._pars = p
+        time = data['tS_ki']
+        signal = data['S_ki']
+        p |= train(self._predict, time, signal, p, p['pfree'], **kwargs)
+
+        return self.map_results(p)
+
+    def inputs(self) -> set:
+        inputs = self.forward.mapped_inputs()
+        if self.config['calibrate']:
+            inputs |= {'S_ki', 'nb'}
+            inputs -= {'Scal_ki', 'iScal_ki'}
+        inputs |= {'tS_ki', 'S_ki', 'pfree'}
+        return inputs  
     
     def outputs(self):
-        outputs = self._conc.mapped_outputs()
-        outputs |= self._conc_to_signal.mapped_outputs()
-        outputs -= {'ci_ki_in'} 
+        outputs = {'popt', 'psdev', 'pcov', 'loss'}
         return outputs
     
-    def dummy_data(self, data:dict=None): 
+    def dummy_data(self, data: dict=None): 
         p = self.init_data()
+        p |= self.forward.dummy_data()
 
-        n_channels = channels(self.config['sequence'])
-        components = 1 if self.config['magnitude'] else 2
-        n0 = 1
-        Scal = np.zeros((n_channels, components, n0))
-        Scal[:, 0, :] = 1
-
+        pred = self.forward(p)
         p |= {
-            'iScal_ki': np.arange(n0, dtype=int),
-            'Scal_ki': Scal,
+            'nb': 5,
+            'pfree': self.forward.filter_data({'FF': (0, 1), 'F_u': (0, 1)}),
+            'tS_ki': pred['tS_ki'],
+            'S_ki': pred['S_ki'],
         }
-        nt = 180
-        ci = np.ones(nt)
-        p['c_ar'] = ci
-
         return self.input_data(p, data)
+
+    def pfree(self):
+        inputs = self.forward.mapped_inputs()
+        pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
+        if not self.config['calibrate']:
+            pfree |= {'S0_ki'}
+        return {p: get_quantity(p)['bounds'] for p in pfree}

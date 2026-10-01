@@ -17,15 +17,7 @@ def test_tissue_ls(cls=ForwardTissueLS):
 
         # print(cnfg)
         data = instance.dummy_data()
-
-        # --- DIAGNOSTIC TIMING ---
-        t0 = time.perf_counter()
-        
         instance(data)
-
-        elapsed = time.perf_counter() - t0
-        
-        # print(f"  [Total model execution time: {elapsed:.4f}s]")
 
     cls.print_configs()
     cls.print_all_io(verbose=1, simple=False)

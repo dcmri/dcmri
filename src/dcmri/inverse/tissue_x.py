@@ -1,5 +1,5 @@
 # +--------------------------------------------------------------------------------------------------+
-# |                              ForwardTissueX - all configs (n = 11)                               |
+# |                              InverseTissueX - all configs (n = 11)                               |
 # +----------------+--------------------------------------------------------------------+------------+
 # | Key            | Values                                                             | Default    |
 # +----------------+--------------------------------------------------------------------+------------+
@@ -21,7 +21,7 @@
 # +--------------------------------------------------------------------------------------------------+
 
 # +------------------------------------------------------------------------------------------------------------------------------------------------------------+
-# |                                                            ForwardTissueX - all inputs (n = 46)                                                            |
+# |                                                            InverseTissueX - all inputs (n = 48)                                                            |
 # +----------------+------------+----------------------------------------------------------+-----------------+------------+----------------+-------+-----------+
 # | Key            | Unit       | Name                                                     | Group           | Init       | Bounds         | DICOM | OSIPI     |
 # +----------------+------------+----------------------------------------------------------+-----------------+------------+----------------+-------+-----------+
@@ -29,10 +29,12 @@
 # | c_ar           | mmol/mL    | concentration in the artery                              | Indicator       | 0.005      | (0, 1)         |       |           |
 # +----------------+------------+----------------------------------------------------------+-----------------+------------+----------------+-------+-----------+
 # | NSR            |            | noise-to-signal ratio                                    | Signal          | 0.0        | (0, 100000.0)  |       |           |
+# | S              | a.u.       | signal                                                   | Signal          | 1.0        | (0, 5)         |       |           |
 # | S0             | a.u.       | signal scaling factor                                    | Signal          | 1.0        | (0, 5)         |       | Q.MS1.010 |
-# | Scal           | a.u.       | calibration signal                                       | Signal          | 1.0        | (0, 5)         |       | Q.MS1.002 |
-# | iScal          |            | indices of calibration signal                            | Signal          | 0          |                |       |           |
 # | iStrig         |            | indices of the signal trigger                            | Signal          | None       |                |       |           |
+# | nb             | a.u.       | number of baseline time points                           | Signal          | 1          |                |       |           |
+# | pfree          | a.u.       | set of free parameters                                   | Signal          | 1          |                |       |           |
+# | tS             | sec        | signal time points                                       | Signal          | 0.0        |                |       |           |
 # +----------------+------------+----------------------------------------------------------+-----------------+------------+----------------+-------+-----------+
 # | FA             | deg        | flip angle                                               | Sequence        | 15         | (0, 180)       |       |           |
 # | Nk0            |            | number of acquired phase lines to the center of k-space  | Sequence        | 64         | (0, 1000)      |       |           |
@@ -78,112 +80,92 @@
 # | dt             | sec        | pseudo-continuous time step                              | Hyperparameters | 0.5        |                |       |           |
 # +------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-# +-----------------------------------------------------------------------------------------------------+
-# |                                ForwardTissueX - all outputs (n = 13)                                |
-# +-----+----------+-----------------------------+-----------------+-------+--------+-------+-----------+
-# | Key | Unit     | Name                        | Group           | Init  | Bounds | DICOM | OSIPI     |
-# +-----+----------+-----------------------------+-----------------+-------+--------+-------+-----------+
-# | C   | mmol/cm3 | tissue concentration        | Indicator       | 0.005 | (0, 1) |       |           |
-# | ci  | mmol/mL  | inlet concentration         | Indicator       | 0.005 |        |       |           |
-# | tC  | sec      | concentration time points   | Indicator       | 0.0   |        |       |           |
-# +-----+----------+-----------------------------+-----------------+-------+--------+-------+-----------+
-# | S   | a.u.     | signal                      | Signal          | 1.0   | (0, 5) |       |           |
-# | S0  | a.u.     | signal scaling factor       | Signal          | 1.0   | (0, 5) |       | Q.MS1.010 |
-# | tS  | sec      | signal time points          | Signal          | 0.0   |        |       |           |
-# +-----+----------+-----------------------------+-----------------+-------+--------+-------+-----------+
-# | M   | A/cm     | magnetization               | Electromagnetic | 1     | (0, 5) |       |           |
-# | R1  | Hz       | tissue R1                   | Electromagnetic | 0.65  | (0, 5) |       |           |
-# | R1i | Hz       | inlet R1                    | Electromagnetic | 0.65  | (0, 5) |       |           |
-# | R2  | Hz       | tissue R2                   | Electromagnetic | 2.0   | (0, 5) |       |           |
-# | R2s | Hz       | tissue R2*                  | Electromagnetic | 20    | (0, 5) |       |           |
-# | tM  | sec      | magnetization time points   | Electromagnetic | 0.0   |        |       |           |
-# | tR  | sec      | relaxation rate time points | Electromagnetic | 0.0   |        |       |           |
-# +-----------------------------------------------------------------------------------------------------+
+# +-----------------------------------------------------------------------------------------------------------------+
+# |                                       InverseTissueX - all outputs (n = 4)                                      |
+# +-------+------+------------------------------------------------+-----------------+------+--------+-------+-------+
+# | Key   | Unit | Name                                           | Group           | Init | Bounds | DICOM | OSIPI |
+# +-------+------+------------------------------------------------+-----------------+------+--------+-------+-------+
+# | loss  | a.u. | loss value of optimized model                  | Signal          | 1    |        |       |       |
+# | pcov  | a.u. | dictionary with covariances of free parameters | Signal          | 1    |        |       |       |
+# | popt  | a.u. | dictionary of optimized free parameter values  | Signal          | 1    |        |       |       |
+# | psdev | a.u. | dictionary with parameter standard deviations  | Signal          | 1    |        |       |       |
+# +-----------------------------------------------------------------------------------------------------------------+
 
 from copy import deepcopy
+
 import numpy as np
 
 from dcmri.core.module import Module
-from dcmri.kinetics.modules_conc import ConcTissueX
-from dcmri.relaxivity.modules_rois import RelaxivityTissueX
-from dcmri.bloch.modules_rois import WaterExchangeTissueX
-from dcmri.signal.modules_tissue import ConcToSignal
-from dcmri.bloch.functions_sequences import channels
+from dcmri.core.tools import get_quantity, update_bounds
+from dcmri.utils.fit import train
+from dcmri.forward.tissue_x import ForwardTissueX as Forward
 
-tissue_rel = RelaxivityTissueX
-tissue_wex = WaterExchangeTissueX
+configs = deepcopy(Forward.configs) 
+defaults = deepcopy(Forward.defaults)
 
-configs = deepcopy(ConcToSignal.configs | tissue_wex.configs | tissue_rel.configs | ConcTissueX.configs)
-defaults = deepcopy(ConcToSignal.defaults | tissue_wex.defaults | tissue_rel.defaults | ConcTissueX.defaults)
-
-configs['inflow'].discard('inlet')
-configs.pop('tof_corr')
-defaults.pop('tof_corr')
-
-class ForwardTissueX(Module):
-    """Whole-body model for the aorta and liver signal."""
+class InverseTissueX(Module):
 
     configs = configs
     defaults = defaults
 
-    _all_inputs = {'dt', 'v_bi', 'PSc', 'TA', 'iStrig', 'R1_b', 'B1corr', 'v_b', 'TE2', 'T_ar', 'TP', 'v_c', 'PA', 'TD', 'agent', 'me', 'Nph', 'FA', 'F_b', 'v_e', 'R1_ic', 'c_ar', 'TE', 'Nk0', 'R1_i', 'field_strength', 'Nz', 'R1_bi', 'tstart', 'iScal', 'TE1', 'P', 'v_ic', 'TR', 'v_ti', 'PS', 'NSR', 'R1_ti', 'Ktrans', 'Scal', 'iz', 'PSe', 'v_i', 'H', 'R1_c', 'S0'}
-    _all_outputs = {'tR', 'tC', 'M', 'ci', 'R1i', 'tM', 'R2', 'C', 'S', 'R2s', 'tS', 'R1', 'S0'}
-
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)  
-
-        p |= self._conc(p)
-        p |= self._tissue_rel(p) 
-        p |= self._tissue_wex(p) 
-
-        p['tacq'] = p['dt'] * (p['ci'].size - 1)
-        p |= self._conc_to_signal(p)
-
-        return self.map_results(p)
+    _all_inputs = {'R1_b', 'T_ar', 'v_e', 'Nph', 'pfree', 'tS', 'PSe', 'TE', 'Nz', 'TP', 'agent', 'TE1', 'TD', 'Nk0', 'R1_bi', 'TR', 'B1corr', 'field_strength', 'H', 'v_bi', 'v_b', 'NSR', 'R1_ti', 'R1_ic', 'PA', 'S', 'tstart', 'R1_c', 'PS', 'Ktrans', 'P', 'v_ti', 'TA', 'v_c', 'FA', 'iStrig', 'iz', 'R1_i', 'v_i', 'S0', 'nb', 'v_ic', 'PSc', 'TE2', 'dt', 'F_b', 'c_ar', 'me'}
+    _all_outputs = {'pcov', 'psdev', 'popt', 'loss'}
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
-
-        self._conc = ConcTissueX(**self.config)
-        self._tissue_rel = RelaxivityTissueX(**self.config)
-        self._tissue_wex = WaterExchangeTissueX(**self.config)
-        self._conc_to_signal = ConcToSignal(**self.config)
-
+        self.forward = Forward(**self.config)
         self.map_io(imap, omap)
 
-    def inputs(self) -> set:
-        inputs = self._conc.mapped_inputs()
-        inputs |= self._tissue_rel.mapped_inputs() 
-        inputs |= self._tissue_wex.mapped_inputs() 
-        inputs |= self._conc_to_signal.mapped_inputs()
+    def _predict(self, time):
+        pred = self.forward(self._pars)
+        nt = len(time)
+        return pred['S'][:, :, :nt].reshape(-1)
 
-        inputs -= {'tacq'}
-        inputs -= self._conc.new_mapped_outputs()
-        inputs -= self._tissue_rel.new_mapped_outputs()
-        inputs -= self._tissue_wex.new_mapped_outputs()
-        inputs -= self._conc_to_signal.new_mapped_outputs()
-        return inputs 
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data)  
+
+        if self.config['calibrate']:
+            p['Scal'] = p['S'][..., :p['nb']]
+            p['iScal'] = np.arange(p['nb'])
+
+        p['pfree'] = update_bounds(p['pfree'], value=p)
+
+        # Compute inverse
+        self._pars = p
+        time = data['tS']
+        signal = data['S']
+        p |= train(self._predict, time, signal, p, p['pfree'], **kwargs)
+
+        return self.map_results(p)
+
+    def inputs(self) -> set:
+        inputs = self.forward.mapped_inputs()
+        if self.config['calibrate']:
+            inputs |= {'S', 'nb'}
+            inputs -= {'Scal', 'iScal'}
+        inputs |= {'tS', 'S', 'pfree'}
+        return inputs  
     
     def outputs(self):
-        outputs = self._conc.mapped_outputs()
-        outputs |= self._conc_to_signal.mapped_outputs() 
+        outputs = {'popt', 'psdev', 'pcov', 'loss'}
         return outputs
     
-    def dummy_data(self, data:dict=None): 
+    def dummy_data(self, data: dict=None): 
         p = self.init_data()
+        p |= self.forward.dummy_data()
 
-        n_channels = channels(self.config['sequence'])
-        components = 1 if self.config['magnitude'] else 2
-        n0 = 1
-        Scal = np.zeros((n_channels, components, n0))
-        Scal[:, 0, :] = 1
-
+        pred = self.forward(p)
         p |= {
-            'iScal': np.arange(n0, dtype=int),
-            'Scal': Scal, 
+            'nb': 5,
+            'pfree': self.forward.filter_data({'v_b': (0, 1), 'v_i': (0, 1), 'v_e': (0, 1), 'F_b': (0, 1)}),
+            'tS': pred['tS'],
+            'S': pred['S'],
         }
-        nt = 180
-        ci = np.ones(nt)
-        p['c_ar'] = ci
-
         return self.input_data(p, data)
+
+    def pfree(self):
+        inputs = self.forward.mapped_inputs()
+        pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
+        if not self.config['calibrate']:
+            pfree |= {'S0'}
+        return {p: get_quantity(p)['bounds'] for p in pfree}
