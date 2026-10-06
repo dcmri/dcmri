@@ -71,8 +71,8 @@ def dpars_liver(p, kinetics=None) -> dict:
     if {'Ti_h', 'Tf_h'}.issubset(p):
         p['T_h'] = np.mean([p['Ti_h'], p['Tf_h']])
     
-    if {'Ti_h', 'Tf_h', 'v_e'}.issubset(p):
-        v_h = 1 - p['v_e'] / (1 - H)
+    if {'Ti_h', 'Tf_h', 'v_e_li'}.issubset(p):
+        v_h = 1 - p['v_e_li'] / (1 - H)
         p['ki_h2b'] = _div(v_h, p['Ti_h'])
         p['kf_h2b'] = _div(v_h, p['Tf_h'])
 
@@ -84,38 +84,38 @@ def dpars_liver(p, kinetics=None) -> dict:
     # Kinetic models
     
     if kinetics in ['1I-EC', '2I-EC']:
-        p['T_e'] = _div(p['v_e'], p['F_p'])
+        p['T_e'] = _div(p['v_e_li'], p['F_p'])
 
     if kinetics in ['1I-IC', '2I-IC']:
         p['Ktrans'] = p['E'] * p['F_p']
         p['k_e2h'] = _div(p['F_p'] * p['E'], 1 - p['E'])
-        p['T_e'] = _div(p['v_e'], p['F_p'] + p['k_e2h'])
-        p['K_e2h'] = _div(p['k_e2h'], p['v_e'])
-        p['v_h'] = 1 - p['v_e'] / (1 - H)
+        p['T_e'] = _div(p['v_e_li'], p['F_p'] + p['k_e2h'])
+        p['K_e2h'] = _div(p['k_e2h'], p['v_e_li'])
+        p['v_h'] = 1 - p['v_e_li'] / (1 - H)
         p['k_h2b'] = _div(p['v_h'], p['T_h']) 
         p['K_h2b'] = _div(1, p['T_h'])
         
     if kinetics in ['1I-IC-HF', '1I-IC-D', '2I-IC-HF']:
-        p['v_h'] = 1 - p['v_e'] / (1 - H)
+        p['v_h'] = 1 - p['v_e_li'] / (1 - H)
         p['k_h2b'] = _div(p['v_h'], p['T_h']) 
         p['K_h2b'] = _div(1, p['T_h'])
 
     if kinetics in ['1I-IC-HF', '2I-IC-HF']: #, '1I-IC-HFD']:
-        p['K_e2h'] = _div(p['k_e2h'], p['v_e'])
-        p['v_h'] = 1 - p['v_e'] / (1 - H)
+        p['K_e2h'] = _div(p['k_e2h'], p['v_e_li'])
+        p['v_h'] = 1 - p['v_e_li'] / (1 - H)
         p['k_h2b'] = _div(p['v_h'], p['T_h'])
         p['K_h2b'] = _div(1, p['T_h'])
 
     # if kinetics in ['1I-IC-HFDU']:
-    #     p['K_e2h'] = _div(p['k_e2h'], p['v_e'])
-    #     p['v_h'] = 1 - p['v_e'] / (1 - H)
+    #     p['K_e2h'] = _div(p['k_e2h'], p['v_e_li'])
+    #     p['v_h'] = 1 - p['v_e_li'] / (1 - H)
         
     if kinetics == '2I-IC-U':
-        p['v_h'] = 1 - p['v_e'] / (1 - H)
+        p['v_h'] = 1 - p['v_e_li'] / (1 - H)
         p['Ktrans'] = p['E'] * p['F_p']
         p['k_e2h'] = _div(p['F_p'] * p['E'], 1 - p['E'])
-        p['K_e2h'] = _div(p['k_e2h'], p['v_e'])
-        p['T_e'] = _div(p['v_e'], p['F_p'] + p['k_e2h'])
+        p['K_e2h'] = _div(p['k_e2h'], p['v_e_li'])
+        p['T_e'] = _div(p['v_e_li'], p['F_p'] + p['k_e2h'])
 
     if kinetics in ['2I-EC', '2I-IC', '2I-IC-U']:
         p['F_la'] = p['ffa'] * p['F_p']

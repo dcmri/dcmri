@@ -119,7 +119,7 @@ def test_aorta_instance():
     except InvalidConfig as e:
         print(e)
         return
-    
+
     model.print_inputs()
     model.print_outputs()
 
@@ -131,8 +131,8 @@ def test_aorta_instance():
 
 
 if __name__ == '__main__':
-    test_aorta()
-    # test_aorta_instance()
+    # test_aorta()
+    test_aorta_instance()
     # test_aorta_times()
 
     print('All model coverage tests passed!!')

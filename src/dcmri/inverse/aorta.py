@@ -105,7 +105,9 @@
 # | psdev | a.u. | dictionary with parameter standard deviations  | Signal          | 1    |        |       |       |
 # +-----------------------------------------------------------------------------------------------------------------+
 from copy import deepcopy
+
 import numpy as np
+import matplotlib.pyplot as plt
 
 from dcmri.core.module import Module
 from dcmri.core.tools import get_quantity, update_bounds
@@ -133,35 +135,40 @@ class InverseAorta(Module):
         self.map_io(imap, omap)
 
     def _predict(self, time):
+        nt = np.size(time)
         pred = self.forward(self._pars)
-        return pred['S']
+        return pred['S'][:, :, :nt].reshape(-1)
         #S_interp = interp1d(pred['tS'], pred['S'], axis=-1, kind='linear', bounds_error=False, fill_value='extrapolate')
         #return S_interp(time)
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data)  
+        p = self.map_data(data) 
+
+        # Reshape signal if needed
+        if p['S'].ndim == 1:
+            p['S'] = p['S'].reshape(1, 1, -1)
 
         # Set calibration signal
         if self.config['calibrate']:
             p['Scal'] = p['S'][..., :p['nb']]
             p['iScal'] = np.arange(p['nb'])
 
-        # Estimate bat from data
-        bat = estimate_bat(p['tS'], p['S'], p['nb'])
-        p['BAT'] = max(bat - p['T_hl'], 0)
+        # Initialize pfree if needed
+        if p['pfree'] is None:
+            p['pfree'] = self.pfree() 
 
         p['pfree'] = update_bounds(p['pfree'], value=p)
 
         # Compute inverse
         self._pars = p
-        p = train_bat(self._predict, None, p['S'], p, p['pfree'], **kwargs)
+        p = train_bat(self._predict, p['tS'], p['S'], p, p['pfree'], bats=['BAT'], **kwargs)
 
         return self.map_results(p)
 
     def inputs(self) -> set:
         inputs = self.forward.mapped_inputs()
         inputs |= {'tS', 'S', 'nb', 'pfree'}
-        inputs -= {'Scal', 'iScal', 'BAT'}
+        inputs -= {'Scal', 'iScal'}
         return inputs  
     
     def outputs(self):
@@ -187,3 +194,53 @@ class InverseAorta(Module):
         pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
         pfree |= {'BAT'}
         return {p: get_quantity(p)['bounds'] for p in pfree}
+
+    def plot(self, data: dict, xlim=None, fname:str=None, show=True):
+        p = self.map_data(data)
+
+        # Reshape signal if needed
+        if p['S'].ndim == 1:
+            p['S'] = p['S'].reshape(1, 1, -1)
+
+        # Set calibration signal
+        if self.config['calibrate']:
+            p['Scal'] = p['S'][..., :p['nb']]
+            p['iScal'] = np.arange(p['nb'])
+
+        pred = self.forward(p)
+
+        if xlim is None: 
+            xlim = [pred['tR'][0], pred['tR'][-1]]
+        
+        fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 5))
+        
+        # Signal Plot
+        def plot_data(t, s, ti, si, ax, clr):
+            ax.set_title('MRI Signal Prediction')
+            for i in range(si.shape[0]):
+                for j in range(si.shape[1]):
+                    ax.plot(ti / 60, si[i, j, :], marker='o', color=clr[0], alpha=0.5, label='Data')
+                    ax.plot(t / 60, s[i, j, :], linestyle='-', color=clr[1], linewidth=3, label='Prediction')                
+            ax.set_xlabel('Time (min)')
+            ax.set_ylabel('Signal (a.u.)')
+            ax.legend()
+
+        plot_data(pred['tS'], pred['S'], data['tS'], data['S'], ax0, ['lightcoral', 'darkred'])
+
+        # Concentration Plot
+        ax1.set_title('Concentration Reconstruction')
+        ax1.plot(pred['tC'] / 60, 0 * pred['tC'], color='gray')
+        if 'C' in data:
+            t, c = data['tC'], data['C'].reshape(1, -1)
+            ax1.plot(t / 60, 1000 * c[0], linestyle='-', color='lightcoral', linewidth=5, label='Reference')
+        ax1.plot(pred['tC'] / 60, 1000 * pred['C'][0], linestyle='-', color='darkred', linewidth=3, label='Reconstruction')
+        ax1.set_xlabel('Time (min)')
+        ax1.set_ylabel('Concentration (mM)')
+        ax1.legend()
+
+        if fname: 
+            plt.savefig(fname)
+        if show: 
+            plt.show()
+        else: 
+            plt.close()   

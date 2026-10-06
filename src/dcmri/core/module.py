@@ -69,6 +69,12 @@ class Module:
             self._omap = {k: v for k, v in omap.items() if k in self._outputs}
         return self
 
+    def init_data(self):
+        return {
+            i: get_quantity(i, quantities=self.quantities)['init']
+            for i in self._inputs
+        }
+
     @property
     def config(self):
         return dict(self._config) # prevent accidental overwrite
@@ -96,7 +102,7 @@ class Module:
     def new_mapped_outputs(self):
         return self.mapped_outputs() - self.mapped_inputs()
 
-    def map_data(self, data: dict | None, override={}) -> dict:
+    def map_data(self, data: dict | None, override={}, all=True) -> dict:
         p = {}
         imap = self._imap
         for i in self._inputs:
@@ -108,7 +114,7 @@ class Module:
                 p[i] = override[j]
             elif data is not None and j in data:
                 p[i] = data[j]
-            else:
+            elif all:
                 try:
                     p[i] = get_quantity(i, quantities=self.quantities)['init']
                 except:
@@ -145,17 +151,6 @@ class Module:
             elif i in init:
                 p[j] = init[i]
         return p
-
-    # def input_data(self, data) -> dict:
-    #     p = {}
-    #     for i in self._inputs:
-    #         if i in self._imap:
-    #             j = self._imap[i]
-    #         else:
-    #             j = i
-    #         if j in data:
-    #             p[j] = data[j]
-    #     return p
     
     def update_data(self, p: dict):
         results = {}
@@ -168,55 +163,33 @@ class Module:
                 results[j] = p[i]
         return results
 
-    # def init_data(self):
-    #     data = {}
-    #     # for i in self.inputs():
-    #     for i in self._inputs:
-    #         if i in self._imap:
-    #             j = self._imap[i]
-    #         else:
-    #             j = i
-    #         data[j] = get_quantity(i, quantities=self.quantities)['init']
-    #     return data
 
-    def init_data(self):
-        return {
-            i: get_quantity(i, quantities=self.quantities)['init']
-            for i in self._inputs
-        }
-
-    def dummy_data(self): # reimplement if not all inputs are scalar
-        return self.init_data()
+    def dummy_data(self, data: dict=None): 
+        p = self.init_data()
+        return self.input_data(p, data)
 
     def print_inputs(self):
         q = self.input_quantities()
         title = f"{self.__class__.__name__} instance - inputs (n = {len(q)})"
-        print_quantities(title, q)
+        print_quantities(q, title)
 
     def print_outputs(self):
         q = self.output_quantities()
         title = f"{self.__class__.__name__} instance - outputs (n = {len(q)})"
-        print_quantities(title, q)
+        print_quantities(q, title)
 
     def input_quantities(self):
-        iq = {}
-        for k in self.inputs():
-            iq[k] = get_quantity(k, quantities=self.quantities)
-            # if k in self.quantities:
-            #     iq[k] = self.quantities[k] # uneccessary now
-            # else:
-            #     iq[k] = get_quantity(k, quantities=self.quantities)
-        return iq
-
+        return {k: get_quantity(k, quantities=self.quantities) for k in self.inputs()}
+        # iq = {}
+        # for k in self.inputs():
+        #     iq[k] = get_quantity(k, quantities=self.quantities)
+        
     def output_quantities(self):
-        oq = {}
-        for k in self.outputs():
-            oq[k] = get_quantity(k, quantities=self.quantities)
-            # if k in self.quantities:
-            #     oq[k] = self.quantities[k] # uneccessary now
-            # else:
-            #     oq[k] = get_quantity(k, quantities=self.quantities)
-        return oq
+        return {k: get_quantity(k, quantities=self.quantities) for k in self.outputs()}
+        # oq = {}
+        # for k in self.outputs():
+        #     oq[k] = get_quantity(k, quantities=self.quantities)
+        # return oq
 
     @classmethod
     def map_configs(cls, cmap: dict):
@@ -261,7 +234,7 @@ class Module:
         else:
             q = cls.all_input_quantities(verbose)
             title = f"{cls.__name__} - all inputs (n = {len(q)})"
-            print_quantities(title, q)
+            print_quantities(q, title)
 
     @classmethod
     def print_all_outputs(cls, verbose=0, simple=False):
@@ -272,7 +245,7 @@ class Module:
         else:
             q = cls.all_output_quantities(verbose)
             title = f"{cls.__name__} - all outputs (n = {len(q)})"
-            print_quantities(title, q)
+            print_quantities(q, title)
 
     @classmethod
     def print_all_io(cls, verbose=0, simple=False, sample: int = None, seed: int = None):

@@ -55,21 +55,43 @@ class R1(Module):
         p = self.map_data(data, kwargs)
 
         # Input dimensions
-        # conc (nc, nt), R1b (nc), r1 (nc, )
+        # conc (nc, nt), R1b (nc), RM (nc, nc),r1 (nc, )
+        # or
+        # conc (nt, ), R1b (scalar), RM (scalar), r1 (scalar)
+        # or
+        # conc (scalar, ), R1b (scalar), RM (scalar), r1 (scalar)
 
-        # First compute R1 of each compartment
+        # Output dimensions
+        # R1 (nc, nt)
+
         if self.config['t1_relaxation'] == 'lin':
-            R1b = np.array(p['R1b'])
-            RM = np.array(p['RM'])
-            r1 = np.array(p['r1'])
+            # Note if C is 1D it is interpreted as a time array. 
+            # A concentration of nc compartments at 1 time point needs to be passed as a 2D array with shape (nc, 1)
+            C = np.atleast_1d(np.asarray(p['C'], dtype=float))
+            if C.ndim == 1:
+                C = C[None, :]                      # (nt,) or (1,) -> (1, nt)
+        
+            RM = np.atleast_2d(p['RM'])                              # scalar -> (1, 1)
 
-            R1 = R1b[:, None] + RM @ (r1[:, None] * p['C'])
+            nc = C.shape[0]
+            nw = RM.shape[0]
 
-            # shape = (len(p['wx']), p['C'].shape[-1])
-            # R1 = np.zeros(shape)
-            # for i, fx in enumerate(p['wx']):
-            #     # Note division by vw[i] is intentional here
-            #     R1[i] = p['R1b'][i] + np.sum([p['r1'][j] * div(p['C'][j], p['vw'][i]) for j in fx], axis=0)
+            r1 = np.broadcast_to(np.atleast_1d(p['r1']), (nc,))     # scalar or (nc,)
+            R1b = np.broadcast_to(np.atleast_1d(p['R1b']), (nw,))   # scalar or (nw,)
+
+            R1 = R1b[:, None] + RM @ (r1[:, None] * C)               # (nc, nt)
+
+        # if self.config['t1_relaxation'] == 'lin':
+        #     R1b = np.array(p['R1b'])
+        #     RM = np.array(p['RM'])
+        #     r1 = np.array(p['r1'])
+        #     C = np.array(p['C'])
+
+        #     if C.ndim == 2:
+        #         R1 = R1b[:, None] + RM @ (r1[:, None] * C)
+        #     else:
+        #         R1 = R1b + r1 * C # RM=1 in this case
+        #         R1 = R1.reshape(1, -1)
 
         return self.map_results({'R1': R1})
     
@@ -138,20 +160,52 @@ class R2(Module):
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)
-        # Possible input dimensions
-        # conc (nc, nt), R1b (nc), r1 (nc, )
+
+        # Input dimensions
+        # conc (nc, nt), R2b (nc), RM (nc, nc),r2 (nc, )
+        # or
+        # conc (nt, ), R2b (scalar), RM (scalar), r2 (scalar)
+
+        # Output dimensions
+        # R2 (nc, nt)
 
         if self.config['t2_relaxation'] == 'lin':
-            R2b = np.array(p['R2b'])
-            RM = np.array(p['RM'])
-            r2 = np.array(p['r2'])
+            # Note if C is 1D it is interpreted as a time array. 
+            # A concentration of nc compartments at 1 time point needs to be passed as a 2D array with shape (nc, 1)
+            C = np.atleast_1d(np.asarray(p['C'], dtype=float))
+            if C.ndim == 1:
+                C = C[None, :]                      # (nt,) or (1,) -> (1, nt)
+            nc = C.shape[0]
 
-            R2 = R2b[:, None] + RM @ (r2[:, None] * p['C'])
+            RM = np.atleast_2d(p['RM'])                              # scalar -> (1, 1)
 
-            # shape = (len(p['wx']), p['C'].shape[-1])
-            # R2 = np.zeros(shape)
-            # for i, fx in enumerate(p['wx']):
-            #     R2[i] = p['R2b'][i] + np.sum([p['r2'][j] * div(p['C'][j], p['vw'][i]) for j in fx], axis=0)
+            nc = C.shape[0]
+            nw = RM.shape[0]
+
+            r2 = np.broadcast_to(np.atleast_1d(p['r2']), (nc,))     # scalar or (nc,)
+            R2b = np.broadcast_to(np.atleast_1d(p['R2b']), (nw,))   # scalar or (nw,)
+
+            R2 = R2b[:, None] + RM @ (r2[:, None] * C)               # (nc, nt)
+
+            # R2b = np.broadcast_to(np.atleast_1d(p['R2b']), (nc,))   # scalar or (nc,)
+            # r2 = np.broadcast_to(np.atleast_1d(p['r2']), (nc,))     # scalar or (nc,)
+            # RM = np.atleast_2d(p['RM'])                              # scalar -> (1, 1)
+            # if RM.shape != (nc, nc):
+            #     raise ValueError(f"RM must have shape ({nc}, {nc}), got {RM.shape}")
+
+            # R2 = R2b[:, None] + RM @ (r2[:, None] * C)               # (nc, nt)
+
+        # if self.config['t2_relaxation'] == 'lin':
+        #     R2b = np.array(p['R2b'])
+        #     RM = np.array(p['RM'])
+        #     r2 = np.array(p['r2'])
+        #     C = np.array(p['C'])
+
+        #     if C.ndim == 2:
+        #         R2 = R2b[:, None] + RM @ (r2[:, None] * C)
+        #     else:
+        #         R2 = R2b + r2 * C # RM=1 in this case
+        #         R2 = R2.reshape(1, -1)
 
         return self.map_results({'R2': R2})
 
@@ -225,26 +279,61 @@ class R2s(Module):
         p = self.map_data(data, kwargs)
         t2r = self.config['t2s_relaxation']
         # Input dimensions
-        # conc (nc, nt), R1b (nc), r1 (nc, )
+        # conc (nc, nt), R2sb (nc), r2s (nc, )
+        # or
+        # conc (nt, ), R2sb (scalar), r2s (scalar)
+        # or
+        # conc (scalar, ), R2sb (scalar), r2s (scalar)
 
         # Output dim always (nt,)
 
-        if t2r == 'lin':
-            C = p['C'].sum(axis=0)
-            R2s = relax_t2s(C, p['R2sb'], p['r2s'], model='lin')
+        def _conc_2d(C):
+            """Return concentrations as (nc, nt): (nt,) or scalar becomes (1, nt)."""
+            C = np.atleast_1d(np.asarray(C, dtype=float))
+            return C[None, :] if C.ndim == 1 else C
 
-        elif t2r == 'quad':
-            C = p['C'].sum(axis=0)
-            R2s = relax_t2s(C, p['R2sb'], p['r2s'], p['r2sq'] , model='quad')
-        
+        # Input dimensions
+        # C (nc, nt)  or  C (nt,)  or  C scalar   (the last two are treated as nc=1)
+        # Output dim always (nt,)
+
+        C = _conc_2d(p['C'])    # (nc, nt)
+
+        if t2r in ('lin', 'quad'):
+            Csum = C.sum(axis=0)    # (nt,)
+            if t2r == 'lin':
+                R2s = relax_t2s(Csum, p['R2sb'], p['r2s'], model='lin')
+            else:
+                R2s = relax_t2s(Csum, p['R2sb'], p['r2s'], p['r2sq'], model='quad')
+
         elif t2r == 'leakage':
+            if C.shape[0] != 2:
+                raise ValueError(
+                    f"t2_relaxation='leakage' needs 2 compartments, got C with shape {C.shape}"
+                )
             c = np.array([
-                div(p['C'][0], p['v'][0]), 
-                div(p['C'][1], p['v'][1]),
-            ])
-            R2s = relax_t2s(c, p['R2sb'], r2s_vasc=p['r2sv'], r2s_ees=p['r2se'] , model='leakage')
+                div(C[0], p['v'][0]),
+                div(C[1], p['v'][1]),
+            ])    # (2, nt)
+            R2s = relax_t2s(c, p['R2sb'], r2s_vasc=p['r2sv'], r2s_ees=p['r2se'], model='leakage')
 
         return self.map_results({'R2s': R2s})
+
+        # if t2r == 'lin':
+        #     C = p['C'].sum(axis=0)
+        #     R2s = relax_t2s(C, p['R2sb'], p['r2s'], model='lin')
+
+        # elif t2r == 'quad':
+        #     C = p['C'].sum(axis=0)
+        #     R2s = relax_t2s(C, p['R2sb'], p['r2s'], p['r2sq'] , model='quad')
+        
+        # elif t2r == 'leakage':
+        #     c = np.array([
+        #         div(p['C'][0], p['v'][0]), 
+        #         div(p['C'][1], p['v'][1]),
+        #     ])
+        #     R2s = relax_t2s(c, p['R2sb'], r2s_vasc=p['r2sv'], r2s_ees=p['r2se'] , model='leakage')
+
+        # return self.map_results({'R2s': R2s})
 
     def inputs(self) -> set:
         if self.config['t2s_relaxation'] == 'lin':

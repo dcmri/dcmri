@@ -156,10 +156,6 @@ def tristan(
     return Jb/CO
 
 
-
-
-
-
 def tristan_rat(t, BAT=4.6 * 60, duration=30) -> np.ndarray:
     """Population AIF model for rats measured with a standard dose of 
     gadoxetate.

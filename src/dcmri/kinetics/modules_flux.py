@@ -208,7 +208,7 @@ class FluxAorta(Module):
             inputs |= {'T_b_or'}
         if self.config['lagut'] == 'plucom':
             inputs |= {'T_la', 'T_gu'}
-        else:
+        elif self.config['lagut'] is not None:
             inputs |= {'T_gu'}
         inputs |= self._flux_injection.mapped_inputs()
         inputs |= self._flux_heartlung.mapped_inputs()
@@ -248,7 +248,7 @@ class FluxAorta(Module):
 
         if self.config['lagut'] == 'plucom':
             p['T_lag'] = [p['T_la'], p['T_gu']]
-        else:
+        elif self.config['lagut'] is not None:
             p['T_lag'] = p['T_gu']
 
         max_it = 500

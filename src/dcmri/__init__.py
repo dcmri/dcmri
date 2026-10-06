@@ -37,6 +37,7 @@ from dcmri.core.tools import (
     init,
     bounds,
     select_params,
+    print_quantities,
 )
 
 from dcmri.kinetics.modules_conc import (
@@ -312,24 +313,16 @@ from dcmri.model.kidney import Kidney
 from dcmri.model.liver import Liver
 from dcmri.model.cort_med import CortMed
 from dcmri.model.tissue_x import TissueX
-from dcmri.model.tissue_ls import TissueLS
 
-from dcmri.dro.aif import (
+from dcmri.dro.functions_aif import (
     parker,
     tristan,
     tristan_rat,
+)
+from dcmri.dro.modules import (
+    Parker,
 )
 from dcmri.dro.phantoms import (
     shepp_logan,
 )
 
-# Utilities with internal dependencies
-
-from dcmri.dro.fake import (
-   aif,
-   brain,
-   tissue,
-   liver,
-   kidney,
-   tissue2scan,    
-)

@@ -102,14 +102,8 @@ QUANTITIES = {
     'agent': {'init': 'gadoterate', 'bounds': None, 'name': 'contrast agent generic name', 'unit': None, 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
     'BAT': {'init': 30, 'bounds': (-30, 30), 'name': 'bolus arrival time', 'unit': 'sec', 'bounds_type': 'add', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
     'bdel': {'init': 30, 'bounds': (-30, 30), 'name': 'delay in a double injection', 'unit': 'sec', 'bounds_type': 'add', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
-    # 'BAT1': {'init': 30, 'bounds': (-60, 60), 'name': 'first bolus arrival time in a dual injection', 'unit': 'sec', 'group': 'indicator', 'bounds_type': 'add'},
-    # 'BAT2': {'init': 90, 'bounds': (-60, 60), 'name': 'second bolus arrival time in a dual injection', 'unit': 'sec', 'group': 'indicator', 'bounds_type': 'add'},
     'dose': {'init': 0.1, 'bounds': (0, 0.2), 'name': 'contrast agent dose', 'unit': 'mL/kg', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
-    # 'dose1': {'init': 0.05, 'bounds': (0, 0.2), 'name': 'first contrast agent dose in a dual injection', 'unit': 'mL/kg', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
-    # 'dose2': {'init': 0.05, 'bounds': (0, 0.2), 'name': 'second contrast agent dose in a dual injection', 'unit': 'mL/kg', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
     'rate': {'init': 1, 'bounds': (0, 10), 'name': 'injection rate', 'unit': 'mL/s', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
-    # 'rate1': {'init': 1, 'bounds': (0, 10), 'name': 'first injection rate in a dual injection', 'unit': 'mL/s', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
-    # 'rate2': {'init': 1, 'bounds': (0, 10), 'name': 'second injection rate in a dual injection', 'unit': 'mL/s', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
 
     'tC': {'init': 0.0, 'bounds': None, 'name': 'concentration time points', 'unit': 'sec', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
     'J': {'init': 1, 'bounds': (0, 10), 'name': 'indicator flux', 'unit': 'mmol/sec', 'bounds_type': 'abs', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
@@ -144,6 +138,7 @@ QUANTITIES = {
     'k': {'init': 0.003, 'bounds': (0.0, 0.1), 'name': 'tissue transfer rate', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'ki': {'init': 0.003, 'bounds': (0.0, 0.1), 'name': 'initial tissue transfer rate', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'kf': {'init': 0.003, 'bounds': (0.0, 0.1), 'name': 'final tissue transfer rate', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    'K': {'init': 0.003, 'bounds': (0.0, 0.1), 'name': 'transfer rate', 'unit': '1/sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
 
     # --- Liver Kinetics ---
     'ffa': {'init': 0.2, 'bounds': (0, 1), 'name': 'arterial flow fraction', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
@@ -168,7 +163,7 @@ QUANTITIES = {
     'irf': {'init': 0.02, 'bounds': (0, 10), 'name': 'Impulse response function', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
 
     # Water exchange
-    'RM': {'init': '', 'bounds': None, 'name': 'relaxivity mapping', 'unit': None, 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    'RM': {'init': 1, 'bounds': None, 'name': 'relaxivity mapping', 'unit': None, 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'inlets': {'init': (0,), 'bounds': None, 'name': 'water inlet compartments', 'unit': None, 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'Fwi': {'init': 0.02, 'bounds': (0, 1), 'name': 'inflow in all water compartments', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
 
@@ -251,11 +246,12 @@ QUANTITIES = {
     'NSR': {'init': 0.0, 'bounds': (0, 1e5), 'name': 'noise-to-signal ratio', 'unit': '', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
 
     # Inverse signal
-    'pfree': {'init': 1, 'bounds': None, 'name': 'set of free parameters', 'unit': 'a.u.', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
-    'popt': {'init': 1, 'bounds': None, 'name': 'dictionary of optimized free parameter values', 'unit': 'a.u.', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
-    'pcov': {'init': 1, 'bounds': None, 'name': 'dictionary with covariances of free parameters', 'unit': 'a.u.', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
-    'psdev': {'init': 1, 'bounds': None, 'name': 'dictionary with parameter standard deviations', 'unit': 'a.u.', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
-    'loss': {'init': 1, 'bounds': None, 'name': 'loss value of optimized model', 'unit': 'a.u.', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
+    'pfree': {'init': None, 'bounds': None, 'name': 'set of free parameters', 'unit': 'a.u.', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
+    'popt': {'init': None, 'bounds': None, 'name': 'dictionary of optimized free parameter values', 'unit': 'a.u.', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
+    'pcov': {'init': None, 'bounds': None, 'name': 'dictionary with covariances of free parameters', 'unit': 'a.u.', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
+    'psdev': {'init': None, 'bounds': None, 'name': 'dictionary with parameter standard deviations', 'unit': 'a.u.', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
+    'pder': {'init': None, 'bounds': None, 'name': 'dictionary with source- and derived parameters', 'unit': 'a.u.', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
+    'loss': {'init': None, 'bounds': None, 'name': 'loss value of optimized model', 'unit': 'a.u.', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
     
     # 't_scan2': {'init': 120, 'bounds': None, 'name': 'Start of second scan', 'unit': 'sec', 'group': 'seq', 'dicom_key': None, 'osipi_key': None},
     # 'FAR': {'init': 15, 'bounds': (0, 180), 'name': 'Readout flip angle', 'unit': 'deg', 'group': 'seq', 'dicom_key': None, 'osipi_key': None},

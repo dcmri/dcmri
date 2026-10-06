@@ -1,4 +1,5 @@
 from copy import deepcopy
+from numbers import Real
 
 import numpy as np
 
@@ -173,7 +174,29 @@ def increment_varindex(var, increment=1):
     return extend_varname(var, index=new_index)
 
 
-def print_quantities(title, q):
+def print_quantities(q: set | dict, title=None, decimals:int=None, digits:int=None):
+
+    # Possible input formats:
+    # q = set of keys
+    # q = dict with key: value
+    # q = dict with key: dict of quantity
+    
+    if isinstance(q, set):
+        q = {k: get_quantity(k) for k in q}
+    else:
+        template = {}
+        for k, v in q.items():
+            if isinstance(v, dict):
+                if 'name' in v: # v is full quantity description
+                    template[k] = v
+                    continue
+            # v is value alone - read rest of description from dictionary
+            template[k] = get_quantity(k)
+            template[k]['init'] = v
+        q = template
+
+    if title is None:
+        title = 'Quantities'
 
     def format_bounds(b):
         if b is None:
@@ -183,6 +206,22 @@ def print_quantities(title, q):
 
     def format_optional(v):
         return "" if v is None else str(v)
+
+    def round_sig(value, significant_digits):
+        """Round a float to the given number of significant digits."""
+        if significant_digits < 1:
+            raise ValueError("significant_digits must be >= 1")
+        return float(f"{value:.{significant_digits - 1}e}")
+
+    def format_value(v, decimals=None, digits=None):
+        init = v["init"]
+        if isinstance(init, bool) or not isinstance(init, Real):
+            return str(init)
+        if decimals is not None:
+            return str(round(init, decimals))
+        if digits is not None:
+            return str(round_sig(init, digits))
+        return str(init)
 
     # Check values
     for k, v in q.items():
@@ -238,7 +277,7 @@ def print_quantities(title, q):
     lines = [outer_border]
     lines.append(spanning_row(title))
     lines.append(divider)
-    lines.append(row("Key", "Unit", "Name", "Group", "Init", "Bounds", "DICOM", "OSIPI"))
+    lines.append(row("Key", "Unit", "Name", "Group", "Value", "Bounds", "DICOM", "OSIPI"))
     lines.append(divider)
 
     first_group = True
@@ -255,7 +294,7 @@ def print_quantities(title, q):
 
         for k, v in group.items():
             lines.append(row(
-                k, format_optional(v["unit"]), v["name"], label, str(v["init"]), format_bounds(v["bounds"]),
+                k, format_optional(v["unit"]), v["name"], label, format_value(v, decimals, digits), format_bounds(v["bounds"]),
                 format_optional(v.get("dicom_key")), format_optional(v.get("osipi_key")),
             ))
 

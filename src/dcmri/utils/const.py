@@ -426,6 +426,8 @@ def T2s(field_strength=3.0, tissue='gray matter', force=False) -> float:
 
     if field_strength in VAL['blood']:
         return VAL['blood'][field_strength]
+    
+    return VAL['blood'][1.5] # Best guess in the absense of data
 
     raise ValueError(f"No blood T2* values for field strength {field_strength}")
 

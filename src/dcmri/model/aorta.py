@@ -2,24 +2,38 @@ from copy import deepcopy
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dcmri.core.tools import get_bounds
+from dcmri.core.tools import get_bounds, get_quantity, print_quantities
 from dcmri.utils.fit import loss
 from dcmri.inverse.aorta import InverseAorta
 
 class Aorta():
     """Whole-body model for the aorta.
     """
+    def print_state(self, decimals=None):
+        q = {k: get_quantity(k) for k in self._state.keys()}
+        for k, v in self._state.items():
+            q[k]['init'] = v
+        title = f"{self.__class__.__name__} instance - state (n = {len(q)})"
+        print_quantities(q, title, decimals=decimals)
+
+    def set_state(self, state: dict):
+        self._state |= self._forward.map_data(state)
+
+    def state(self):
+        return deepcopy(self._state)
+
     @classmethod
     def all_configs(cls, sample: int = None, seed: int = None, valid=False):
         return InverseAorta.all_configs(sample, seed, valid)
+
+    @classmethod
+    def print_configs(cls):
+        InverseAorta.print_configs()
 
     def __init__(self, state: dict=None, **config):
         self._inverse = InverseAorta(**config)
         self._forward = self._inverse.forward
         self._state = self._forward.dummy_data(state)
-
-    def state(self):
-        return deepcopy(self._state)
 
     def predict(self) -> np.ndarray:
         return self._forward(self._state)
@@ -46,7 +60,7 @@ class Aorta():
 
         return loss(signal_pred, signal_data, metric, nfree)
     
-    def plot(self, data: dict, xlim=None, fname:str=None, show=True):
+    def plot(self, data: dict, xlim=None, fname:str=None, show=True, c_ref=None):
         pred = self._forward(self._state)
 
         if xlim is None: 
@@ -70,6 +84,9 @@ class Aorta():
         # Concentration Plot
         ax1.set_title('Concentration Reconstruction')
         ax1.plot(pred['tC'] / 60, 0 * pred['tC'], color='gray')
+        if c_ref is not None:
+            t, c = c_ref[0], c_ref[1].reshape(1, -1)
+            ax1.plot(t / 60, 1000 * c[0], linestyle='-', color='lightcoral', linewidth=5, label='Reference')
         ax1.plot(pred['tC'] / 60, 1000 * pred['C'][0], linestyle='-', color='darkred', linewidth=3, label='Reconstruction')
         ax1.set_xlabel('Time (min)')
         ax1.set_ylabel('Concentration (mM)')
