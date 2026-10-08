@@ -1,2 +1,0 @@
-include src/dcmri/datafiles/*.pkl
-include src/dcmri/datafiles/*.csv

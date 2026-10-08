@@ -1,20 +1,12 @@
-import os
-import sys
-
 import requests
-import importlib.resources as importlib_resources
+import shutil
+from pathlib import Path
+import requests
+import platformdirs
 
-# filepaths need to be identified with importlib_resources
-# rather than __file__ as the latter does not work at runtime
-# when the package is installed via pip install
+# Define standard user cache directory for dcmri
+CACHE_DIR = Path(platformdirs.user_cache_dir(appname="dcmri"))
 
-# if sys.version_info < (3, 9):
-#     # importlib.resources either doesn't exist or lacks the files()
-#     # function, so use the PyPI version:
-#     import importlib_resources
-# else:
-#     # importlib.resources has files(), so use that:
-#     import importlib.resources as importlib_resources
 
 
 # Zenodo DOI of the repository
@@ -38,6 +30,73 @@ DATASETS = {
     'tristan_rats_healthy_reproducibility': {'doi': DOI['TRISTAN'], 'ext': '.dmr.zip'},
     'tristan_rats_healthy_six_drugs': {'doi': DOI['TRISTAN'], 'ext': '.dmr.zip'},
 }
+
+def _get_cache_dir() -> Path:
+    """Ensure cache directory exists and return its Path."""
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    return CACHE_DIR
+
+def _clear_cache():
+    """
+    Clear the folder where the data downloaded via fetch are saved.
+    """
+    cache_path = _get_cache_dir()
+    for item in cache_path.iterdir():
+        if item.is_file():
+            item.unlink()
+        elif item.is_dir():
+            shutil.rmtree(item)
+
+
+def _download(dataset):
+    cache_path = _get_cache_dir()
+    datafile = cache_path / (dataset + DATASETS[dataset]["ext"])
+
+    if datafile.exists():
+        return
+
+    # Dataset repository
+    version_doi = DATASETS[dataset]["doi"]
+
+    # Dataset download link
+    file_url = (
+        "https://zenodo.org/records/"
+        + version_doi
+        + "/files/"
+        + dataset
+        + DATASETS[dataset]["ext"]
+    )
+
+    # Make the request and check for connection error
+    try:
+        file_response = requests.get(file_url, stream=True)
+        file_response.raise_for_status()
+    except requests.exceptions.ConnectionError as err:
+        raise requests.exceptions.ConnectionError(
+            "\n\n"
+            "A connection error occurred trying to download the test data \n"
+            "from Zenodo. This usually happens if you are offline. The \n"
+            "first time a dataset is fetched via dcmri.fetch you need to \n"
+            "be online so the data can be downloaded. After the first \n"
+            "time they are saved locally so afterwards you can fetch \n"
+            "them even if you are offline. \n\n"
+            "The detailed error message is here: " + str(err)
+        )
+
+    # Save the file locally chunk by chunk
+    with open(datafile, "wb") as f:
+        for chunk in file_response.iter_content(chunk_size=8192):
+            f.write(chunk)
+
+def _fetch_dataset(dataset):
+    cache_path = _get_cache_dir()
+    datafile = cache_path / (dataset + DATASETS[dataset]["ext"])
+
+    # If this is the first time the data are accessed, download them.
+    if not datafile.exists():
+        _download(dataset)
+
+    return str(datafile)
 
 
 def fetch(dataset=None, clear_cache=False, download_all=False) -> dict:
@@ -112,16 +171,6 @@ def fetch(dataset=None, clear_cache=False, download_all=False) -> dict:
         >>> data = pydmr.read(file)
 
     """
-    if dataset is None:
-        v = None 
-    elif dataset not in DATASETS:
-        raise ValueError(
-            f'Dataset {dataset} is unknown. Please choose one of '
-            f'{DATASETS}'
-        )  
-    else:
-        v = _fetch_dataset(dataset)
-
     if clear_cache:
         _clear_cache()
 
@@ -129,71 +178,18 @@ def fetch(dataset=None, clear_cache=False, download_all=False) -> dict:
         for d in DATASETS.keys():
             _download(d)
 
-    return v
-
-
-def _clear_cache():
-    """
-    Clear the folder where the data downloaded via fetch are saved.
-
-    Note if you clear the cache the data will need to be downloaded again 
-    if you need them.
-    """
-
-    f = importlib_resources.files('dcmri.datafiles')
-    for item in f.iterdir(): 
-        if item.is_file(): 
-            item.unlink() # Delete the file
-
-
-def _fetch_dataset(dataset):
-
-    f = importlib_resources.files('dcmri.datafiles')
-    datafile = str(f.joinpath(dataset + DATASETS[dataset]['ext']))
-
-    # If this is the first time the data are accessed, download them.
-    if not os.path.exists(datafile):
-        _download(dataset)
-
-    return datafile
+    if dataset is None:
+        return None
+    elif dataset not in DATASETS:
+        raise ValueError(
+            f"Dataset {dataset} is unknown. Please choose one of {list(DATASETS.keys())}"
+        )
+    else:
+        return _fetch_dataset(dataset)
 
 
 
-def _download(dataset): # add version keyword
-        
-    f = importlib_resources.files('dcmri.datafiles')
-    datafile = str(f.joinpath(dataset + DATASETS[dataset]['ext']))
 
-    if os.path.exists(datafile):
-        return
 
-    # Dataset repository
-    version_doi = DATASETS[dataset]['doi']
-    # if version_doi is None:
-    #     raise ValueError(
-    #         f'Dataset {dataset} is not online and not stored in dcmri/datafiles.'
-    #     )
 
-    # Dataset download link
-    file_url = "https://zenodo.org/records/" + version_doi + "/files/" + dataset + DATASETS[dataset]['ext']
 
-    # Make the request and check for connection error
-    try:
-        file_response = requests.get(file_url) 
-    except requests.exceptions.ConnectionError as err:
-        raise requests.exceptions.ConnectionError(
-            "\n\n"
-            "A connection error occurred trying to download the test data \n"
-            "from Zenodo. This usually happens if you are offline. The \n"
-            "first time a dataset is fetched via dcmri.fetch you need to \n"
-            "be online so the data can be downloaded. After the first \n"
-            "time they are saved locally so afterwards you can fetch \n"
-            "them even if you are offline. \n\n"
-            "The detailed error message is here: " + str(err)) 
-    
-    # Check for other errors
-    file_response.raise_for_status()
-
-    # Save the file locally 
-    with open(datafile, 'wb') as f:
-        f.write(file_response.content)
