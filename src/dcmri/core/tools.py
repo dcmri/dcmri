@@ -285,12 +285,13 @@ def print_quantities(q: set | dict, title=None, decimals:int=None, digits:int=No
     lines.append(divider)
 
     first_group = True
-    for gr, label in GROUPS.items():
+    # Groups in alphabetical order of their long name, ignoring case
+    for gr, label in sorted(GROUPS.items(), key=lambda item: item[1].lower()):
         group = {k: v for k, v in q.items() if v["group"] == gr}
         if not group:
             continue
-        group = dict(sorted(group.items(), key=lambda item: item[0]))
-        # group = dict(sorted(group.items(), key=lambda item: item[0].lower()))
+        # Keys within the group in alphabetical order, ignoring case
+        group = dict(sorted(group.items(), key=lambda item: item[0].lower()))
 
         if not first_group:
             lines.append(divider)
@@ -319,9 +320,12 @@ def _plain(v):
     return v
 
 def _print_quantities_as_dict(q, name="p"):
-    """Print q as copy-paste code, grouped by the long group name (sorted alphabetically).
+    """Print q as copy-paste code, grouped by the long group name.
 
-    q : dict mapping parameter name -> {'unit': ..., 'value': ..., 'group': <short key>}
+    Groups are sorted alphabetically by long name, and parameters within each
+    group are sorted alphabetically by key.
+
+    q : dict mapping parameter name -> {'unit': ..., 'init': ..., 'group': <short key>}
     name : variable name used on the printed assignment line
 
     Uses the module-level GROUPS dict to translate short group keys into long names.
@@ -333,8 +337,11 @@ def _print_quantities_as_dict(q, name="p"):
         label = GROUPS.get(short, short)    # fall back to the short key if not in GROUPS
         groups.setdefault(label, []).append((key, v))
 
-    # Alphabetical order of the long names, ignoring case
-    groups = {g: groups[g] for g in sorted(groups, key=str.lower)}
+    # Alphabetical order of the long names, and of the keys within each group (ignoring case)
+    groups = {
+        g: sorted(groups[g], key=lambda item: item[0].lower())
+        for g in sorted(groups, key=str.lower)
+    }
 
     # Build the text of each entry, so one width can be used for every comment
     entries = {

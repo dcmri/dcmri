@@ -38,7 +38,7 @@ QDATA_ROIS = {
     'T_gu': {'init': 30, 'bounds': (0.1, 60)},
     'D_gu': {'init': 0.85, 'bounds': (0, 1)},
     # ao
-    'vol_ao': {'init': 10, 'bounds': (0.0, 1000)},
+    'vol_ao': {'init': 1, 'bounds': (0.0, 1000)},
     'vol_li': {'init': 1000, 'bounds': (0, 10000)},
     'vol_ki': {'init': 300, 'bounds': (0.0, 1000)},
     'vol_lk': {'init': 150, 'bounds': (0.0, 1000)},

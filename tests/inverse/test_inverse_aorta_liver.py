@@ -78,6 +78,6 @@ def test_aorta_liver_inverse_instance():
 
 if __name__ == '__main__':
     # test_aorta_liver_inverse_instance()
-    test_module(InverseModel, simple=False, io_sample=1e5, cnfg_sample=1e5, seed=51)
+    test_module(InverseModel, simple=True, io_sample=1e5, cnfg_sample=1e5, seed=51)
     
     print('All aorta liver inverse coverage tests passed!!')

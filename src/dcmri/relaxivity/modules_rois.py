@@ -403,7 +403,7 @@ class RelaxivityLiver(Module):
             ]
         elif wcomps == ('e', 'h'): 
             o['RM'] = [ 
-                [1 / i['v_e'],  0              ], 
+                [1 / i['v_e_li'],  0           ], 
                 [0,             1 / i['v_h']   ] 
             ] 
 
@@ -437,7 +437,10 @@ class RelaxivityLiver(Module):
         wcomps = self._wcomps()
 
         inputs = {'field_strength', 'agent'}
-        inputs |= {f'v_{w}' for w in wcomps}
+        if wcomps == ('e', 'h'):
+            inputs |= {'v_e_li', 'v_h'}
+        else:
+            inputs |= {'v_li'}
         
         if self.config['baseline']=='measured':
             inputs |= {f"R1_{c}" for c in wcomps}

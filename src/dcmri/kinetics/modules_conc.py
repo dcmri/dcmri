@@ -164,9 +164,8 @@ class ConcLiver(Module):
         self.map_io(imap, omap, iomap)
             
     def inputs(self):
-        imap = {'F_p':'F_p_li', 'v_e': 'v_e_li', 'E':'E_li', 'Ei':'Ei_li', 'Ef':'Ef_li'}
         model = (self.config['kinetics'], self.config['non_stationary'])
-        inputs = {imap.get(i, i) for i in pk_liver.PARAMETERS[model]}
+        inputs = set(pk_liver.PARAMETERS[model])
         inputs |= {'dt', 'ci_li'}
         return inputs 
 
@@ -183,8 +182,7 @@ class ConcLiver(Module):
             func += '_ns' + ns.lower()    
         liver_conc = getattr(pk_liver, func)
 
-        imap = {'F_p_li':'F_p', 'v_e_li':'v_e', 'E_li':'E', 'Ei_li':'Ei', 'Ef_li':'Ef'}
-        phys = {imap.get(k, k): v for k, v in p.items() if k not in ['ci_li']}
+        phys = {k: v for k, v in p.items() if k not in ['ci_li']}
 
         C_li = liver_conc(p['ci_li'], **phys)
         tC_li = p['dt'] * np.arange(C_li.shape[1])

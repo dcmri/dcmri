@@ -251,9 +251,9 @@ class Module:
         else:
             iq, oq = cls.all_io_quantities(verbose, sample=sample, seed=seed)
             title = f"{cls.__name__} - all inputs (n = {len(iq)})"
-            print_quantities(title, iq)
+            print_quantities(iq, title)
             title = f"{cls.__name__} - all outputs (n = {len(oq)})"
-            print_quantities(title, oq)
+            print_quantities(oq, title)
 
     @classmethod
     def all_input_quantities(cls, verbose=0):

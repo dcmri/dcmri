@@ -258,7 +258,7 @@ class ForwardAortaLiverSplit(Module):
         for roi in rois:
             iomap_roi = {'F_b_ar': 'F_b_ao'}
             iomap_roi |= {k: extend_varname(k, roi=roi) for k in tissue_rel[roi].all_outputs() | tissue_wex[roi].all_outputs()}
-            iomap_roi |= {k: extend_varname(k, roi=roi) for k in {'C', 'ci', 'v_e'} | ConcToRelax.all_outputs() - {'tR'}}
+            iomap_roi |= {k: extend_varname(k, roi=roi) for k in {'C', 'ci'} | ConcToRelax.all_outputs() - {'tR'}}
 
             self._tissue_rel[roi] = tissue_rel[roi](iomap=iomap_roi, cmap=CMAP[roi], **config[roi])
             self._conc_to_relax[roi] = ConcToRelax(iomap=iomap_roi, cmap=CMAP[roi], **config[roi])

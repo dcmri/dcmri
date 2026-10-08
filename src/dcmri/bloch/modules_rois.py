@@ -247,7 +247,7 @@ class WaterExchangeLiver(Module):
         'inflow': 'none',
     }
     _all_inputs = None
-    _all_outouts = None
+    _all_outputs = None
 
     def __call__(self, data: dict=None, **kwargs) -> dict: 
         i = self.map_data(data, kwargs)

@@ -16,15 +16,7 @@ def test_aorta_liver(cls=ForwardAortaLiver):
             return
     
         data = instance.dummy_data()
-
-        # --- DIAGNOSTIC TIMING ---
-        t0 = time.perf_counter()
-        # print(cnfg)
         instance(data)
-
-        elapsed = time.perf_counter() - t0
-        # print(cnfg)
-        # print(f"  [Total model execution time: {elapsed:.4f}s]")
 
     cls.print_configs()
     cls.print_all_io(verbose=1, simple=True, sample=1e5, seed=51)
@@ -58,7 +50,7 @@ def test_aorta_liver_instance():
     plt.show()
 
 if __name__ == '__main__':
-    # test_aorta_liver()
-    test_aorta_liver_instance()
+    test_aorta_liver()
+    # test_aorta_liver_instance()
 
     print('All AortaLiver model coverage tests passed!!')

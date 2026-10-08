@@ -254,7 +254,7 @@ class ForwardAortaPortalLiver(Module):
 
         for roi in rois:
             iomap_roi = {'F_b_ar': f'F_b_{roi}'}
-            iomap_roi |= {k: extend_varname(k, roi=roi) for k in tissue_rel[roi].all_outputs() | tissue_wex[roi].all_outputs() | {'v_e'}} 
+            iomap_roi |= {k: extend_varname(k, roi=roi) for k in tissue_rel[roi].all_outputs() | tissue_wex[roi].all_outputs()} 
 
             self._tissue_rel[roi] = tissue_rel[roi](iomap=iomap_roi, cmap=CMAP[roi], **config[roi])
             self._tissue_wex[roi] = tissue_wex[roi](iomap=iomap_roi, cmap=CMAP[roi], **config[roi])
