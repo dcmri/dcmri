@@ -282,8 +282,8 @@ from dcmri.forward.tissue_x import ForwardTissueX
 from dcmri.forward.tissue_ls import ForwardTissueLS
 from dcmri.forward.aorta_liver import ForwardAortaLiver
 from dcmri.forward.aorta_liver_drug import ForwardAortaLiverDrug
-from dcmri.forward.aorta_liver_dynamic import ForwardAortaLiverDynamic
-from dcmri.forward.aorta_liver_dynamic_drug import ForwardAortaLiverDynamicDrug
+from dcmri.forward.aorta_liver_split import ForwardAortaLiverSplit
+from dcmri.forward.aorta_liver_split_drug import ForwardAortaLiverSplitDrug
 from dcmri.forward.aorta_portal_liver import ForwardAortaPortalLiver
 from dcmri.forward.aorta_kidneys import ForwardAortaKidneys
 
@@ -293,8 +293,8 @@ from dcmri.inverse.aorta_liver import InverseAortaLiver
 from dcmri.inverse.aorta_portal_liver import InverseAortaPortalLiver
 from dcmri.inverse.aorta_kidneys import InverseAortaKidneys
 from dcmri.inverse.aorta_liver_drug import InverseAortaLiverDrug
-from dcmri.inverse.aorta_liver_dynamic import InverseAortaLiverDynamic
-from dcmri.inverse.aorta_liver_dynamic_drug import InverseAortaLiverDynamicDrug
+from dcmri.inverse.aorta_liver_split import InverseAortaLiverSplit
+from dcmri.inverse.aorta_liver_split_drug import InverseAortaLiverSplitDrug
 from dcmri.inverse.liver import InverseLiver
 from dcmri.inverse.kidney import InverseKidney
 from dcmri.inverse.cort_med import InverseCortMed
@@ -306,9 +306,9 @@ from dcmri.model.aorta import Aorta
 from dcmri.model.aorta_liver import AortaLiver
 from dcmri.model.aorta_kidneys import AortaKidneys
 from dcmri.model.aorta_portal_liver import AortaPortalLiver
-from dcmri.model.aorta_liver_dynamic import AortaLiverDynamic
+from dcmri.model.aorta_liver_split import AortaLiverSplit
 from dcmri.model.aorta_liver_drug import AortaLiverDrug
-from dcmri.model.aorta_liver_dynamic_drug import AortaLiverDynamicDrug
+from dcmri.model.aorta_liver_split_drug import AortaLiverSplitDrug
 from dcmri.model.kidney import Kidney
 from dcmri.model.liver import Liver
 from dcmri.model.cort_med import CortMed

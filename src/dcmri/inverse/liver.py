@@ -30,9 +30,7 @@ class InverseLiver(Module):
         nt = len(time)
         return pred['S_li'][:, :, :nt].reshape(-1)
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data)  
-
+    def _preproc(self, p):
         # Reshape signal if needed
         if p['S_li'].ndim == 1:
             p['S_li'] = p['S_li'].reshape(1, 1, -1)
@@ -42,9 +40,25 @@ class InverseLiver(Module):
             p['Scal_li'] = p['S_li'][..., :p['nb']]
             p['iScal_li'] = np.arange(p['nb'])
 
+    def _pfree(self):
+        inputs = self.forward.mapped_inputs()
+        pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
+        if not self.config['calibrate']:
+            pfree |= {'S0_li'}
+        return {p: get_quantity(p)['bounds'] for p in pfree}
+
+    def _pder(self, data:dict):
+        p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['phys', 'body']}
+        p = dpars_liver(p, kinetics=self.config['kinetics'])
+        return p
+
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data)  
+        self._preproc(p)
+
         # Initialize pfree if needed
         if p['pfree'] is None:
-            p['pfree'] = self.pfree() 
+            p['pfree'] = self._pfree() 
 
         p['pfree'] = update_bounds(p['pfree'], value=p)
 
@@ -54,21 +68,20 @@ class InverseLiver(Module):
         signal = p['S_li']
         p |= train(self._predict, time, signal, p, p['pfree'], **kwargs)
 
-        p['pder'] = self.pder(p | p['popt'])
+        p['pder'] = self._pder(p | p['popt'])
 
         return self.map_results(p)
 
     def inputs(self) -> set:
         inputs = self.forward.mapped_inputs()
         if self.config['calibrate']:
-            inputs |= {'S_li', 'nb'}
+            inputs |= {'nb'}
             inputs -= {'Scal_li', 'iScal_li'}
         inputs |= {'tS_li', 'S_li', 'pfree'}
         return inputs  
     
     def outputs(self):
-        outputs = {'popt', 'psdev', 'pcov', 'pder', 'loss'}
-        return outputs
+        return {'popt', 'psdev', 'pcov', 'pder', 'loss'}
     
     def dummy_data(self, data: dict=None): 
         p = self.init_data()
@@ -83,29 +96,9 @@ class InverseLiver(Module):
         }
         return self.input_data(p, data)
 
-    def pfree(self):
-        inputs = self.forward.mapped_inputs()
-        pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
-        if not self.config['calibrate']:
-            pfree |= {'S0_li'}
-        return {p: get_quantity(p)['bounds'] for p in pfree}
-
-    def pder(self, data:dict):
-        p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['phys', 'body']}
-        p = dpars_liver(p, kinetics=self.config['kinetics'])
-        return p
-
     def plot(self, data: dict, xlim:list=None, fname:str=None, show=True):
         p = self.map_data(data)
-
-        # Reshape signal if needed
-        if p['S_li'].ndim == 1:
-            p['S_li'] = p['S_li'].reshape(1, 1, -1)
-
-        # Set calibration signal
-        if self.config['calibrate']:
-            p['Scal_li'] = p['S_li'][..., :p['nb']]
-            p['iScal_li'] = np.arange(p['nb'])
+        self._preproc(p)
 
         pred = self.forward(p)
 

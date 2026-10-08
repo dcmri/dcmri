@@ -5,10 +5,10 @@ import numpy as np
 
 from dcmri.core.tools import get_bounds
 from dcmri.utils.fit import loss
-from dcmri.inverse.aorta_liver_dynamic_drug import InverseAortaLiverDynamicDrug as Inverse
+from dcmri.inverse.aorta_liver_split_drug import InverseAortaLiverSplitDrug as Inverse
 
 
-class AortaLiverDynamicDrug():
+class AortaLiverSplitDrug():
     @classmethod
     def all_configs(cls, sample: int = None, seed: int = None, valid=False):
         return Inverse.all_configs(sample, seed, valid)

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 from dcmri.core.module import Module
-from dcmri import InverseAortaLiverDynamicDrug as InverseModel
+from dcmri import InverseAortaLiverSplitDrug as InverseModel
 from dcmri.core.module import InvalidConfig
 
 

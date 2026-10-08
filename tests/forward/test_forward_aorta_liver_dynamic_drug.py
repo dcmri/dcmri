@@ -2,11 +2,11 @@ import time
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from dcmri import ForwardAortaLiverDynamicDrug
+from dcmri import ForwardAortaLiverSplitDrug
 from dcmri.core.module import InvalidConfig
 
 
-def test_aorta_liver_dynamic_drug(cls=ForwardAortaLiverDynamicDrug):
+def test_aorta_liver_dynamic_drug(cls=ForwardAortaLiverSplitDrug):
     def _test_config(cnfg):
         # if cnfg['sequence'] != '3D-SPGR-SS':
         #     return
@@ -29,12 +29,12 @@ def test_aorta_liver_dynamic_drug(cls=ForwardAortaLiverDynamicDrug):
 
 
 def test_aorta_liver_dynamic_drug_instance():
-    # model = ForwardAortaLiverDynamicDrug()
+    # model = ForwardAortaLiverSplitDrug()
     # print(model.config)
     # return
     cnfg = {'sequence': '3D-SPGR-SS', 'tof_corr': False, 'inflow': 'none', 'magnitude': True, 'trigger': False, 'calibrate': False, 'water_exchange': 'F', 'baseline': 'literature', 'bolus': 'single', 'heartlung': 'pfcomp', 'organs': 'comp', 'lagut': 'comp', 'liver': '1I-EC', 'non_stationary': None, 't1_relaxation_ao': 'lin', 't1_relaxation_li': 'lin', 't2_relaxation_ao': None, 't2_relaxation_li': None, 't2s_relaxation_ao': 'lin', 't2s_relaxation_li': 'lin'}
     try:
-        model = ForwardAortaLiverDynamicDrug(**cnfg)
+        model = ForwardAortaLiverSplitDrug(**cnfg)
     except InvalidConfig as e:
         print(e)
         return
@@ -60,4 +60,4 @@ if __name__ == '__main__':
     test_aorta_liver_dynamic_drug_instance()
     # test_aorta_liver_dynamic_drug()
     
-    print('All ForwardAortaLiverDynamicDrug coverage tests passed!!')
+    print('All ForwardAortaLiverSplitDrug coverage tests passed!!')

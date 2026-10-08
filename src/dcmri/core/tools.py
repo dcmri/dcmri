@@ -174,7 +174,11 @@ def increment_varindex(var, increment=1):
     return extend_varname(var, index=new_index)
 
 
-def print_quantities(q: set | dict, title=None, decimals:int=None, digits:int=None):
+def print_quantities(q: set | dict, title=None, decimals:int=None, digits:int=None, as_dict=False):
+
+    if as_dict:
+        _print_quantities_as_dict(q)
+        return
 
     # Possible input formats:
     # q = set of keys
@@ -302,7 +306,53 @@ def print_quantities(q: set | dict, title=None, decimals:int=None, digits:int=No
     lines.append("")
 
     for line in lines:
-        print(line)    
+        print(line)   
+
+
+
+def _plain(v):
+    """Convert NumPy scalars and arrays to plain Python so repr() prints cleanly."""
+    if isinstance(v, np.generic):
+        return v.item()
+    if isinstance(v, np.ndarray):
+        return v.tolist()
+    return v
+
+def _print_quantities_as_dict(q, name="p"):
+    """Print q as copy-paste code, grouped by the long group name (sorted alphabetically).
+
+    q : dict mapping parameter name -> {'unit': ..., 'value': ..., 'group': <short key>}
+    name : variable name used on the printed assignment line
+
+    Uses the module-level GROUPS dict to translate short group keys into long names.
+    """
+    # Collect entries per long group name (a missing group goes under 'other')
+    groups = {}
+    for key, v in q.items():
+        short = v.get('group') or 'other'
+        label = GROUPS.get(short, short)    # fall back to the short key if not in GROUPS
+        groups.setdefault(label, []).append((key, v))
+
+    # Alphabetical order of the long names, ignoring case
+    groups = {g: groups[g] for g in sorted(groups, key=str.lower)}
+
+    # Build the text of each entry, so one width can be used for every comment
+    entries = {
+        g: [f"    {key!r}: {_plain(v['init'])!r}," for key, v in items]
+        for g, items in groups.items()
+    }
+    width = max((len(line) for lines in entries.values() for line in lines), default=0)
+
+    print(f"{name} = {{")
+    for i, (g, items) in enumerate(groups.items()):
+        if i > 0:
+            print()
+        print(f"    # {g}")
+        for line, (_, v) in zip(entries[g], items):
+            unit = v.get('unit')
+            comment = f"  # {unit}" if unit else ""
+            print(f"{line:<{width}}{comment}")
+    print("}")
 
 
 

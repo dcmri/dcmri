@@ -1,5 +1,5 @@
 # +--------------------------------------------------------------------------------------------------+
-# |                        ForwardAortaLiverDynamicDrug - all configs (n = 20)                         |
+# |                        ForwardAortaLiverSplitDrug - all configs (n = 20)                         |
 # +-------------------+-----------------------------------------------------------------+------------+
 # | Key               | Values                                                          | Default    |
 # +-------------------+-----------------------------------------------------------------+------------+
@@ -30,7 +30,7 @@
 # +--------------------------------------------------------------------------------------------------+
 
 # +---------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-# |                                                             ForwardAortaLiverDynamicDrug - all inputs (n = 130)                                                             |
+# |                                                             ForwardAortaLiverSplitDrug - all inputs (n = 130)                                                             |
 # +----------------+------------+--------------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
 # | Key            | Unit       | Name                                                                     | Group           | Init       | Bounds        | DICOM | OSIPI     |
 # +----------------+------------+--------------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
@@ -173,7 +173,7 @@
 # +---------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 # +------------------------------------------------------------------------------------------------------------------------------+
-# |                                      ForwardAortaLiverDynamicDrug - all outputs (n = 82)                                       |
+# |                                      ForwardAortaLiverSplitDrug - all outputs (n = 82)                                       |
 # +----------+----------+------------------------------------------------+-----------------+-------+---------+-------+-----------+
 # | Key      | Unit     | Name                                           | Group           | Init  | Bounds  | DICOM | OSIPI     |
 # +----------+----------+------------------------------------------------+-----------------+-------+---------+-------+-----------+
@@ -269,17 +269,17 @@ import numpy as np
 
 from dcmri.core.tools import extend_varname, increment_varindex, parse_varname
 from dcmri.core.module import Module
-from dcmri.forward.aorta_liver_dynamic import ForwardAortaLiverDynamic
+from dcmri.forward.aorta_liver_split import ForwardAortaLiverSplit
 from dcmri.bloch.functions_sequences import channels
 
 visits, scans, rois = [1, 2], [1, 2], ['ao', 'li']
 
-configs = deepcopy(ForwardAortaLiverDynamic.configs)
-defaults = deepcopy(ForwardAortaLiverDynamic.defaults)
+configs = deepcopy(ForwardAortaLiverSplit.configs)
+defaults = deepcopy(ForwardAortaLiverSplit.defaults)
 
 configs['inflow'].discard('inlet')
 
-class ForwardAortaLiverDynamicDrug(Module):
+class ForwardAortaLiverSplitDrug(Module):
     """Whole-body model for the aorta and liver signal acquired over 2 separate acquisitions."""
 
     configs = configs
@@ -309,7 +309,7 @@ class ForwardAortaLiverDynamicDrug(Module):
         vars = {'NSR', 'S0', 'Scal', 'iScal', 'iStrig', 'B1corr'}
         visit_scan_inputs |= {extend_varname(k, roi=roi, index=i) for k, roi, i in product(vars, rois, scans)} 
 
-        vars = ForwardAortaLiverDynamic.all_outputs()
+        vars = ForwardAortaLiverSplit.all_outputs()
         visit_outputs = {o for o in vars if parse_varname(o)['index'] is None}
         visit_scan_outputs = {o for o in vars if parse_varname(o)['index'] is not None}
 
@@ -322,7 +322,7 @@ class ForwardAortaLiverDynamicDrug(Module):
                 imap_visit |= {k: increment_varindex(k, 2) for k in visit_scan_inputs} 
                 omap_visit |= {k: increment_varindex(k, 2) for k in visit_scan_outputs}
             
-            self._aol[visit] = ForwardAortaLiverDynamic(imap=imap_visit, omap=omap_visit, **self.config)
+            self._aol[visit] = ForwardAortaLiverSplit(imap=imap_visit, omap=omap_visit, **self.config)
 
         self.map_io(imap, omap)
 

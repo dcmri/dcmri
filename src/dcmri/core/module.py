@@ -168,28 +168,21 @@ class Module:
         p = self.init_data()
         return self.input_data(p, data)
 
-    def print_inputs(self):
+    def print_inputs(self, as_dict=False):
         q = self.input_quantities()
         title = f"{self.__class__.__name__} instance - inputs (n = {len(q)})"
-        print_quantities(q, title)
+        print_quantities(q, title, as_dict=as_dict)
 
-    def print_outputs(self):
+    def print_outputs(self, as_dict=False):
         q = self.output_quantities()
         title = f"{self.__class__.__name__} instance - outputs (n = {len(q)})"
-        print_quantities(q, title)
+        print_quantities(q, title, as_dict=as_dict)
 
     def input_quantities(self):
         return {k: get_quantity(k, quantities=self.quantities) for k in self.inputs()}
-        # iq = {}
-        # for k in self.inputs():
-        #     iq[k] = get_quantity(k, quantities=self.quantities)
         
     def output_quantities(self):
         return {k: get_quantity(k, quantities=self.quantities) for k in self.outputs()}
-        # oq = {}
-        # for k in self.outputs():
-        #     oq[k] = get_quantity(k, quantities=self.quantities)
-        # return oq
 
     @classmethod
     def map_configs(cls, cmap: dict):

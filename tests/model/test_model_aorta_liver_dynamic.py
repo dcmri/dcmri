@@ -6,7 +6,7 @@ from tqdm import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
 
-from dcmri import AortaLiverDynamic as Model
+from dcmri import AortaLiverSplit as Model
 from dcmri.core.module import InvalidConfig
 
 DEBUG = True
@@ -83,5 +83,5 @@ if __name__ == "__main__":
     test_model_aorta_liver_dynamic()
     # test_api()
     
-    print('All AortaLiverDynamic tests passed!!')
+    print('All AortaLiverSplit tests passed!!')
 

@@ -29,6 +29,7 @@ GROUPS = {
     'phys': 'Physiological',
     'hyper': 'Hyperparameters',
     'body': 'Whole-body',
+    'inverse': 'Inverse problem',
 }
 
 ROIS = {
@@ -246,12 +247,12 @@ QUANTITIES = {
     'NSR': {'init': 0.0, 'bounds': (0, 1e5), 'name': 'noise-to-signal ratio', 'unit': '', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
 
     # Inverse signal
-    'pfree': {'init': None, 'bounds': None, 'name': 'set of free parameters', 'unit': 'a.u.', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
-    'popt': {'init': None, 'bounds': None, 'name': 'dictionary of optimized free parameter values', 'unit': 'a.u.', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
-    'pcov': {'init': None, 'bounds': None, 'name': 'dictionary with covariances of free parameters', 'unit': 'a.u.', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
-    'psdev': {'init': None, 'bounds': None, 'name': 'dictionary with parameter standard deviations', 'unit': 'a.u.', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
-    'pder': {'init': None, 'bounds': None, 'name': 'dictionary with source- and derived parameters', 'unit': 'a.u.', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
-    'loss': {'init': None, 'bounds': None, 'name': 'loss value of optimized model', 'unit': 'a.u.', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
+    'pfree': {'init': None, 'bounds': None, 'name': 'set of free parameters', 'unit': 'a.u.', 'group': 'inverse', 'dicom_key': None, 'osipi_key': None},
+    'popt': {'init': None, 'bounds': None, 'name': 'dictionary of optimized free parameter values', 'unit': 'a.u.', 'group': 'inverse', 'dicom_key': None, 'osipi_key': None},
+    'pcov': {'init': None, 'bounds': None, 'name': 'dictionary with covariances of free parameters', 'unit': 'a.u.', 'group': 'inverse', 'dicom_key': None, 'osipi_key': None},
+    'psdev': {'init': None, 'bounds': None, 'name': 'dictionary with parameter standard deviations', 'unit': 'a.u.', 'group': 'inverse', 'dicom_key': None, 'osipi_key': None},
+    'pder': {'init': None, 'bounds': None, 'name': 'dictionary with source- and derived parameters', 'unit': 'a.u.', 'group': 'inverse', 'dicom_key': None, 'osipi_key': None},
+    'loss': {'init': None, 'bounds': None, 'name': 'loss value of optimized model', 'unit': 'a.u.', 'group': 'inverse', 'dicom_key': None, 'osipi_key': None},
     
     # 't_scan2': {'init': 120, 'bounds': None, 'name': 'Start of second scan', 'unit': 'sec', 'group': 'seq', 'dicom_key': None, 'osipi_key': None},
     # 'FAR': {'init': 15, 'bounds': (0, 180), 'name': 'Readout flip angle', 'unit': 'deg', 'group': 'seq', 'dicom_key': None, 'osipi_key': None},

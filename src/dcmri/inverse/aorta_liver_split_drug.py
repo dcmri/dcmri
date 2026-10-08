@@ -1,5 +1,5 @@
 # +--------------------------------------------------------------------------------------------------+
-# |                       InverseAortaLiverDynamicDrug - all configs (n = 20)                        |
+# |                       InverseAortaLiverSplitDrug - all configs (n = 20)                        |
 # +-------------------+-----------------------------------------------------------------+------------+
 # | Key               | Values                                                          | Default    |
 # +-------------------+-----------------------------------------------------------------+------------+
@@ -30,7 +30,7 @@
 # +--------------------------------------------------------------------------------------------------+
 
 # +---------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-# |                                                            InverseAortaLiverDynamicDrug - all inputs (n = 133)                                                            |
+# |                                                            InverseAortaLiverSplitDrug - all inputs (n = 133)                                                            |
 # +----------------+------------+--------------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
 # | Key            | Unit       | Name                                                                     | Group           | Init       | Bounds        | DICOM | OSIPI     |
 # +----------------+------------+--------------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
@@ -176,7 +176,7 @@
 # +---------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 # +-----------------------------------------------------------------------------------------------------------------+
-# |                                InverseAortaLiverDynamicDrug - all outputs (n = 4)                               |
+# |                                InverseAortaLiverSplitDrug - all outputs (n = 4)                               |
 # +-------+------+------------------------------------------------+-----------------+------+--------+-------+-------+
 # | Key   | Unit | Name                                           | Group           | Init | Bounds | DICOM | OSIPI |
 # +-------+------+------------------------------------------------+-----------------+------+--------+-------+-------+
@@ -193,7 +193,7 @@ from dcmri.core.module import Module
 from dcmri.core.tools import get_quantity, update_bounds
 from dcmri.utils.fit import train_bat
 from dcmri.inverse.lib import estimate_bat
-from dcmri.forward.aorta_liver_dynamic_drug import ForwardAortaLiverDynamicDrug as Forward
+from dcmri.forward.aorta_liver_split_drug import ForwardAortaLiverSplitDrug as Forward
 
 configs = deepcopy(Forward.configs)
 defaults = deepcopy(Forward.defaults)
@@ -201,7 +201,7 @@ defaults = deepcopy(Forward.defaults)
 ROIS = ['ao', 'li']
 SCANS = [1, 2, 3, 4]
 
-class InverseAortaLiverDynamicDrug(Module):
+class InverseAortaLiverSplitDrug(Module):
 
     configs = configs
     defaults = defaults

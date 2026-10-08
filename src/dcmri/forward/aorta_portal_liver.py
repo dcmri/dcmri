@@ -278,7 +278,7 @@ class ForwardAortaPortalLiver(Module):
         for roi in rois:
             inputs -= self._tissue_rel[roi].new_mapped_outputs()
             inputs -= self._tissue_wex[roi].new_mapped_outputs()
-            inputs -= self._conc_to_signal[roi].new_mapped_outputs()
+            # inputs -= self._conc_to_signal[roi].new_mapped_outputs()
         return inputs 
     
     def outputs(self):

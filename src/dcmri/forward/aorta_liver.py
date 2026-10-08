@@ -197,8 +197,8 @@ class ForwardAortaLiver(Module):
     configs = CONFIGS
     defaults = DEFAULTS
 
-    _all_inputs = {'TF', 'Scal_li', 'Ti_h', 'CO', 'TA', 'Scal_ao', 'T_la', 'Nz', 'B1corr_ao', 'E_li', 'GFR', 'Nk0', 'v_li', 'tacq', 'Ef_li', 'iScal_ao', 'dose_tolerance', 'T_h', 'Nph', 'iz', 'R1_b', 'TE1', 'H', 'dt', 'tstart', 'SA', 'BAT_1', 'dose_2', 'TR', 'R1_e', 'S0_li', 'BAT_2', 'TE', 'NSR_li', 'vol_ao', 'T_gu', 'me', 'Ei_li', 'BAT', 'B1corr_li', 'iScal_li', 'rate_1', 'v_h', 'k_e2h', 'kf_e2h', 'S0_ao', 'T_b_or', 'rate', 'ffa', 'weight', 'R1_h', 'FA', 'vol_li', 'field_strength', 'Tf_h', 'agent', 'NSR_ao', 'T_e_or', 'TE2', 'PA', 'rate_2', 'fCO_li', 'TP', 'E_or', 'PSw', 'dose', 'T_hl', 'D_hl', 'iStrig_li', 'dose_1', 'TD', 'v_e_li', 'ki_e2h', 'iStrig_ao'}
-    _all_outputs = {'S0_ao', 'R1_ao', 'J_la', 'ci_ao', 'J_li', 'R1i_ao', 'S_ao', 'tS_li', 'J_ao', 'tC', 'tM_li', 'R2s_li', 'R2_li', 'tR', 'C_ao', 'R1i_li', 'tS_ao', 'J_lag', 'J_or', 'tM_ao', 'R2_ao', 'R2s_ao', 'S0_li', 'J_pv', 'R1_li', 'ci_li', 'M_ao', 'J_ve', 'S_li', 'M_li', 'C_li'}
+    _all_inputs = None
+    _all_outputs = None
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)  
@@ -250,7 +250,7 @@ class ForwardAortaLiver(Module):
         for roi in rois:
             inputs -= self._tissue_rel[roi].new_mapped_outputs()
             inputs -= self._tissue_wex[roi].new_mapped_outputs()
-            inputs -= self._conc_to_signal[roi].new_mapped_outputs()
+            # inputs -= self._conc_to_signal[roi].new_mapped_outputs()
         return inputs 
     
     def outputs(self):

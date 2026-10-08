@@ -41,6 +41,7 @@ def test_aorta_liver_instance():
     # print(model.config)
     # return
     cnfg = {'inflow': 'none', 'sequence': '3D-SPGR-SS', 'tof_corr': False, 'magnitude': True, 'trigger': False, 'calibrate': False, 'water_exchange': 'F', 'baseline': 'literature', 'bolus': 'single', 'heartlung': 'pfcomp', 'organs': 'comp', 'lagut': 'comp', 'liver': '1I-EC', 'non_stationary': None, 't1_relaxation_ao': 'lin', 't1_relaxation_li': 'lin', 't2_relaxation_ao': None, 't2_relaxation_li': None, 't2s_relaxation_ao': 'lin', 't2s_relaxation_li': 'lin'}
+    # cnfg = {'heartlung': 'chain', 'organs':'2cxm', 'liver':'1I-IC', 'baseline': 'measured', 'calibrate': True}
     try:
         model = ForwardAortaLiver(**cnfg)
     except InvalidConfig as e:

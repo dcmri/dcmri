@@ -15,7 +15,8 @@ dependencies = [
   'matplotlib',
   "requests",
   'joblib',
-  'zarr',
+  'zarr', # can we avoid?
+  'platformdirs', # can be rewritten if needed
 ]
 # optional information
 description = "A python toolbox for dynamic contrast MRI"

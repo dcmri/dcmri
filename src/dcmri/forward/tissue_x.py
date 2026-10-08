@@ -161,7 +161,7 @@ class ForwardTissueX(Module):
         inputs -= self._conc.new_mapped_outputs()
         inputs -= self._tissue_rel.new_mapped_outputs()
         inputs -= self._tissue_wex.new_mapped_outputs()
-        inputs -= self._conc_to_signal.new_mapped_outputs()
+        # inputs -= self._conc_to_signal.new_mapped_outputs()
         return inputs 
     
     def outputs(self):
