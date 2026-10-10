@@ -158,13 +158,15 @@
 
 
 from copy import deepcopy
+
 import numpy as np
+import matplotlib.pyplot as plt
 
 from dcmri.core.module import Module
-from dcmri.core.tools import get_quantity, update_bounds
-from dcmri.utils.fit import train_bat
-from dcmri.inverse.lib import estimate_bat
+from dcmri.core.tools import get_quantity, update_bounds, parse_varname, extend_varname, remove_varindex
+from dcmri.utils.fit import train_bat, train
 from dcmri.forward.aorta_liver_drug import ForwardAortaLiverDrug as Forward
+from dcmri.kinetics.functions_liver import dpars_liver
 
 configs = deepcopy(Forward.configs)
 defaults = deepcopy(Forward.defaults)
@@ -179,76 +181,110 @@ class InverseAortaLiverDrug(Module):
     configs = configs
     defaults = defaults
 
-    _all_inputs = {'T_e_or', 'S0_2_li', 'tS_2_li', 'k_2_e2h', 'S0_1_li', 'T_b_or', 'FA', 'iz', 'vol_1_li', 'CO', 'TE2', 'PSw', 'S0_2_ao', 'T_gu', 'dose_4', 'GFR', 'NSR_1_li', 'H', 'dose_1', 'T_hl', 'S0_1_ao', 'BAT_1', 'tstart_2', 'Nph', 'Nz', 'rate_3', 'dose_tolerance', 'tacq_1', 'field_strength', 'E_1_li', 'TF', 'v_li', 'TA', 'tS_2_ao', 'Ti_2_h', 'D_hl', 'dt', 'T_1_h', 'NSR_2_li', 'Ei_1_li', 'Tf_1_h', 'T_2_h', 'TE', 'R1_h', 'bdel', 'iStrig_1_ao', 'Nk0', 'ffa', 'agent', 'tacq_2', 'weight', 'S_2_li', 'vol_1_ao', 'rate_1', 'vol_2_ao', 'tS_1_li', 'TE1', 'S_1_ao', 'B1corr_2_ao', 'fCO_li', 'tstart_1', 'ki_2_e2h', 'Ef_1_li', 'TP', 'E_or', 'S_2_ao', 'B1corr_1_li', 'iStrig_2_ao', 'TR', 'tS_1_ao', 'vol_2_li', 'iStrig_1_li', 'nb', 'NSR_1_ao', 'me', 'v_h', 'rate_4', 'v_e_li', 'ki_1_e2h', 'TD', 'T_la', 'B1corr_2_li', 'kf_2_e2h', 'k_1_e2h', 'E_2_li', 'NSR_2_ao', 'rate_2', 'Ti_1_h', 'iStrig_2_li', 'R1_e', 'Ei_2_li', 'kf_1_e2h', 'SA', 'B1corr_1_ao', 'BAT_2', 'Ef_2_li', 'Tf_2_h', 'dose_2', 'S_1_li', 'PA', 'R1_b', 'pfree', 'dose_3'}
-    _all_outputs = {'loss', 'pcov', 'popt', 'psdev'}
+    _all_inputs = {'TA', 'T_e_or', 'rate_1', 'ki_1_e2h', 'E_1_li', 'agent', 'S0_1_li', 'R1_li', 'BAT_2', 'dt', 'H', 'R1_e', 'TE2', 'S_2_ao', 'T_la', 'PA', 'NSR_1_li', 'Ei_1_li', 'Tf_2_h', 'weight', 'S0_2_li', 'tS_1_ao', 'GFR', 'R1_b', 'dose_tolerance', 'rate_2', 'S0_1_ao', 'ffa', 'S0_2_ao', 'kf_1_e2h', 'E_or', 'T_2_h', 'B1corr_1_ao', 'NSR_1_ao', 'tS_2_ao', 'TR', 'FA', 'tacq_2', 'E_2_li', 'T_1_h', 'v_li', 'Nz', 'S_1_li', 'T_gu', 'iStrig_2_li', 'pfree', 'PSw', 'tstart_1', 'rate_3', 'tstart_2', 'B1corr_2_ao', 'Tf_1_h', 'Ei_2_li', 'Ef_1_li', 'vol_2_li', 'tS_1_li', 'T_b_or', 'v_e_li', 'iStrig_1_ao', 'ki_2_e2h', 'iStrig_1_li', 'vol_1_li', 'S_2_li', 'tacq_1', 'field_strength', 'R1_h', 'iStrig_2_ao', 'TF', 'Nk0', 'TE', 'NSR_2_li', 'v_h', 'D_hl', 'fCO_li', 'dose_2', 'v_e', 'k_1_e2h', 'iz', 'dose_3', 'rate_4', 'T_hl', 'Ti_2_h', 'TE1', 'BAT_1', 'B1corr_2_li', 'TD', 'k_2_e2h', 'TP', 'me', 'vol_2_ao', 'kf_2_e2h', 'NSR_2_ao', 'Nph', 'CO', 'tS_2_li', 'bdel', 'vol_1_ao', 'SA', 'Ef_2_li', 'S_1_ao', 'dose_4', 'Ti_1_h', 'dose_1', 'B1corr_1_li', 'nb'}
+    _all_outputs = {'popt', 'psdev', 'loss', 'pder', 'pcov'}
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
-        self.forward = Forward(**self.config)
+        self._forward = Forward(**self.config)
         self.map_io(imap, omap)
 
     def _predict(self, time):
-        pred = self.forward(self._pars)
-        return (
-            pred['S_1_ao'].reshape(-1), 
-            pred['S_2_ao'].reshape(-1), 
-            pred['S_1_li'].reshape(-1), 
-            pred['S_2_li'].reshape(-1), 
+        pred = self._forward(self._pars)
+        return ( 
+            pred['S_1_ao'][:, :, :len(time[0])].reshape(-1), 
+            pred['S_2_ao'][:, :, :len(time[1])].reshape(-1), 
+            pred['S_1_li'][:, :, :len(time[2])].reshape(-1), 
+            pred['S_2_li'][:, :, :len(time[3])].reshape(-1), 
         )
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data)  
+    def _preproc(self, p):
+        # Reshape signal if needed
+        for roi in ROIS:
+            for scan in SCANS:
+                if p[f'S_{scan}_{roi}'].ndim == 1:
+                    p[f'S_{scan}_{roi}'] = p[f'S_{scan}_{roi}'].reshape(1, 1, -1)
 
         # Set calibration signal
         if self.config['calibrate']:
             for roi in ROIS:
                 for scan in SCANS:
-                    p[f"Scal_{scan}_{roi}"] = p[f"S_{scan}_{roi}"][..., :p['nb']]
-                    p[f'iScal_{scan}_{roi}'] = np.arange(p['nb'])
+                    p[f'Scal_{scan}_{roi}'] = p[f'S_{scan}_{roi}'][..., :p[f'nb_{scan}']]
+                    p[f'iScal_{scan}_{roi}'] = np.arange(p[f'nb_{scan}'])
 
-        # # Estimate BAT
-        # bat1 = estimate_bat(data['tS_1_ao'], data['S_1_ao'], p['nb'])
-        # bat2 = estimate_bat(data['tS_2_ao'], data['S_2_ao'], p['nb'])
+    def _pfree(self):
+        inputs = self._forward.mapped_inputs()
+        pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
+        pfree |= {'BAT_1', 'BAT_2'}
+        if not self.config['calibrate']:
+            pfree |= {'S0_1_ao', 'S0_1_li', 'S0_2_ao', 'S0_2_li'}
+        pfree -= {'GFR', 'H', 'v_li'}
+        return {p: get_quantity(p)['bounds'] for p in pfree}
 
-        # p['BAT_1'] = max(bat1 - p['T_hl'], 0)
-        # p['BAT_2'] = max(bat2 - p['T_hl'], 0)
+    def _pder(self, data:dict):
+        p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['phys', 'body']}
+
+        p_common = {k: v for k, v in p.items() if parse_varname(k)['index'] is None}
+
+        p_1 = {remove_varindex(k): v for k, v in p.items() if parse_varname(k)['index'] == 1} 
+        p_2 = {remove_varindex(k): v for k, v in p.items() if parse_varname(k)['index'] == 2}
+
+        p_1 = dpars_liver(p_1 | p_common, kinetics=self.config['liver'])
+        p_2 = dpars_liver(p_2 | p_common, kinetics=self.config['liver'])
+
+        p_1 = {extend_varname(k, index=1): v for k, v in p_1.items() if k not in p_common and k not in {'v_h'}}
+        p_2 = {extend_varname(k, index=2): v for k, v in p_2.items() if k not in p_common and k not in {'v_h'}}
+
+        return p_common | p_1 | p_2
+
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data)  
+        self._preproc(p)
+
+        # Initialize pfree if needed
+        if p['pfree'] is None:
+            p['pfree'] = self._pfree() 
 
         p['pfree'] = update_bounds(p['pfree'], value=p)
 
         # Compute inverse
         self._pars = p
-        signal = (data['S_1_ao'], data['S_2_ao'], data['S_1_li'], data['S_2_li'])
-        p = train_bat(self._predict, None, signal, p, p['pfree'], bats=['BAT_1', 'BAT_2'], **kwargs)
+        time = (p['tS_1_ao'], p['tS_2_ao'], p['tS_1_li'], p['tS_2_li'])
+        signal = (p['S_1_ao'], p['S_2_ao'], p['S_1_li'], p['S_2_li'])
 
-        return self.map_results(p)
+        #output = train_bat(self._predict, time, signal, p, p['pfree'], bats=['BAT_1', 'BAT_2'], **kwargs)
+        output = train(self._predict, time, signal, p, p['pfree'], **kwargs)
+        output['pder'] = self._pder(p | output['popt'])
+
+        return self.map_results(output)
 
     def inputs(self) -> set:
-        inputs = self.forward.mapped_inputs()
-        inputs |= {'nb', 'pfree'}
+        inputs = self._forward.mapped_inputs()
+        inputs |= {'pfree'}
         for roi in ROIS:
             for scan in SCANS:
                 inputs |= {f'tS_{scan}_{roi}', f'S_{scan}_{roi}'}
-        # inputs -= {'BAT_1', 'BAT_2'}
-        # for roi in ROIS:
-        #     for scan in SCANS:
-                inputs -= {f'Scal_{scan}_{roi}', f'iScal_{scan}_{roi}'}
+        if self.config['calibrate']:
+            inputs |= {'nb_1', 'nb_2'}
+            for roi in ROIS:
+                for scan in SCANS:
+                    inputs -= {f'Scal_{scan}_{roi}', f'iScal_{scan}_{roi}'}
         return inputs  
     
     def outputs(self):
-        return {'popt', 'psdev', 'pcov', 'loss'}
+        return {'popt', 'psdev', 'pcov', 'pder', 'loss'}
     
-    def dummy_data(self, data: dict=None): 
+    def test_data(self, data: dict=None): 
         p = self.init_data()
-        p |= self.forward.dummy_data()
+        p |= self._forward.test_data()
 
         pfree = {'CO': (10, 300), 'BAT_1': (-60, 60), 'BAT_2': (-60, 60)}
 
-        pred = self.forward(p)
+        pred = self._forward(p)
         p |= {
             'nb': 5,
-            'pfree': self.forward.filter_data(pfree),
+            'pfree': self._forward.filter_data(pfree),
         }
-
         for roi in ROIS:  
             for scan in SCANS:      
                 p |= {
@@ -258,10 +294,81 @@ class InverseAortaLiverDrug(Module):
             
         return self.input_data(p, data)
 
-    def pfree(self):
-        inputs = self.forward.mapped_inputs()
-        pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
-        pfree |= {'BAT_1', 'BAT_2'}
-        if not self.config['calibrate']:
-            pfree |= {'S0_1_ao', 'S0_1_li', 'S0_2_ao', 'S0_2_li'}
-        return {p: get_quantity(p)['bounds'] for p in pfree}
+
+    def plot(self, data: dict, xlim=None, clim=None, fname=None, show=True):
+        p = self.map_data(data)
+        self._preproc(p)
+        pred = self._forward(p)
+        
+        fig, ((ax1, ax2, ax3, ax4), (ax5, ax6, ax7, ax8)) = plt.subplots(2, 4, figsize=(20, 8))
+        fig.subplots_adjust(wspace=0.3)
+
+        ax1.set_title('Control visit')
+        ax2.set_title('Treatment visit')
+        ax3.set_title('Control visit')
+        ax4.set_title('Treatment visit')
+
+        def plot_data2scan(t, s, ti, si, ax, xl, yl, color):
+            if xl is None: 
+                xl = [0, t[-1]]
+            ax.set(xlabel='Time (min)', ylabel='MR Signal (a.u.)', xlim=np.array(xl)/60, ylim=yl)
+            for i in range(s.shape[0]):
+                for j in range(s.shape[1]):
+                    ax.plot(ti / 60, si[i, j, :], marker='o', color=color[0], label='fitted data', linestyle='None')
+                    ax.plot(t / 60, s[i, j, :], linestyle='-', color=color[1], linewidth=3.0, label='fit')
+            ax.legend()
+
+        ylim_a = [
+            0.9 * min(pred[f'S_1_ao'].min(), pred[f'S_2_ao'].min(), p[f'S_1_ao'].min(), p[f'S_2_ao'].min()), 
+            1.1 * max(pred[f'S_1_ao'].max(), pred[f'S_2_ao'].max(), p[f'S_1_ao'].max(), p[f'S_2_ao'].max()),
+        ]
+        ylim_l = [
+            0.9 * min(pred[f'S_1_li'].min(), pred[f'S_2_li'].min(), p[f'S_1_li'].min(), p[f'S_2_li'].min()), 
+            1.1 * max(pred[f'S_1_li'].max(), pred[f'S_2_li'].max(), p[f'S_1_li'].max(), p[f'S_2_li'].max()),
+        ]
+
+        plot_data2scan(pred[f'tS_1_ao'], pred[f'S_1_ao'], p['tS_1_ao'], p['S_1_ao'], ax1, xlim, ylim_a, ['lightcoral', 'darkred'])
+        plot_data2scan(pred[f'tS_1_li'], pred[f'S_1_li'], p['tS_1_li'], p['S_1_li'], ax5, xlim, ylim_l, ['cornflowerblue', 'darkblue'])
+        plot_data2scan(pred[f'tS_2_ao'], pred[f'S_2_ao'], p['tS_2_ao'], p['S_2_ao'], ax2, xlim, ylim_a, ['lightcoral', 'darkred'])
+        plot_data2scan(pred[f'tS_2_li'], pred[f'S_2_li'], p['tS_2_li'], p['S_2_li'], ax6, xlim, ylim_l, ['cornflowerblue', 'darkblue'])
+
+        def plot_conc_aorta(t, c, ax, xl, yl):
+            if xl is None: 
+                xl = [t[0], t[-1]]
+            ax.set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=np.array(xl)/60, ylim=yl)
+            ax.plot(t / 60, 0 * t, color='gray')
+            ax.plot(t / 60, 1000 * c[0,:], linestyle='-', color='darkred', linewidth=2.0, label='Aorta')
+            ax.legend()
+
+        if clim is None:
+            ylim = [0, 1.1 * 1000 * max(pred['C_1_ao'].max(), pred['C_2_ao'].max())]
+        else:
+            ylim = [0, clim[0] * 1000]
+
+        plot_conc_aorta(pred['tC_1'], pred['C_1_ao'], ax3, xlim, ylim)
+        plot_conc_aorta(pred['tC_2'], pred['C_2_ao'], ax4, xlim, ylim)
+
+        def plot_conc_liver(t, C, ax, xl, yl):
+            if xl is None: 
+                xl = [t[0], t[-1]]
+            ax.set(xlabel='Time (min)', ylabel='Tissue concentration (mM)', xlim=np.array(xl)/60, ylim=yl)
+            ax.plot(t / 60, 0 * t, color='gray')
+            ax.plot(t / 60, 1000 * C[0, :], linestyle='-.', color='darkblue', linewidth=2.0, label='Extracellular')
+            ax.plot(t / 60, 1000 * C[1, :], linestyle='--', color='darkblue', linewidth=2.0, label='Hepatocytes')
+            ax.plot(t / 60, 1000 * C.sum(axis=0), linestyle='-', color='darkblue', linewidth=2.0, label='Tissue')       
+            ax.legend()
+
+        if clim is None:
+            ylim = [0, 1.1 * 1000 * max(pred['C_1_li'].max(), pred['C_2_li'].max())]
+        else:
+            ylim = [0, clim[1] * 1000]
+
+        plot_conc_liver(pred['tC_1'], pred['C_1_li'], ax7, xlim, ylim)
+        plot_conc_liver(pred['tC_2'], pred['C_2_li'], ax8, xlim, ylim)
+
+        if fname is not None: 
+            plt.savefig(fname=fname)
+        if show: 
+            plt.show()
+        else: 
+            plt.close()

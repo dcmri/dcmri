@@ -121,7 +121,7 @@ class MzInflowPrep(Module):
     def outputs(self):
         return {'tJMz', 'JMz'} # (compartments, times)
 
-    def dummy_data(self, nc=2):
+    def test_data(self, nc=2):
         p = self.init_data()
 
         ntR = 5
@@ -309,7 +309,7 @@ class MzPrep(Module):
         outputs |= {'tMz', 'Mz'} 
         return outputs
 
-    def dummy_data(self, nc=2, nt=5):
+    def test_data(self, nc=2, nt=5):
         p = self.init_data()
 
         tR = np.arange(nt)
@@ -435,7 +435,7 @@ class MxyReadMz(Module):
         results = {'Mxy': Mxy}
         return self.map_results(results)
 
-    def dummy_data(self, nc=2, nt=5):
+    def test_data(self, nc=2, nt=5):
         data = self.init_data()
         ntM = 3
         data |= {
@@ -561,10 +561,10 @@ class Magnetization(Module):
 
         return self.map_results(p)
 
-    def dummy_data(self, nc=2, nt=5):
+    def test_data(self, nc=2, nt=5):
         p = self.init_data()
 
-        p |= self._mz_prep.dummy_data(nc, nt)
-        p |= self._mxy_read.dummy_data(nc, nt)
+        p |= self._mz_prep.test_data(nc, nt)
+        p |= self._mxy_read.test_data(nc, nt)
 
         return self.input_data(p)

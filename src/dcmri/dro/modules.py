@@ -82,6 +82,6 @@ class Parker(Module):
         outputs |= self._conc2sig.mapped_outputs()   
         return outputs   
 
-    def dummy_data(self, data: dict=None): 
+    def test_data(self, data: dict=None): 
         p = self.init_data()
         return self.input_data(p, data)

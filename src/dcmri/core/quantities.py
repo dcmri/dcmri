@@ -140,6 +140,7 @@ QUANTITIES = {
     'ki': {'init': 0.003, 'bounds': (0.0, 0.1), 'name': 'initial tissue transfer rate', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'kf': {'init': 0.003, 'bounds': (0.0, 0.1), 'name': 'final tissue transfer rate', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'K': {'init': 0.003, 'bounds': (0.0, 0.1), 'name': 'transfer rate', 'unit': '1/sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    'CL': {'init': 10, 'bounds': (0.0, 100), 'name': 'Contrast agent clearance', 'unit': 'mL/sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
 
     # --- Liver Kinetics ---
     'ffa': {'init': 0.2, 'bounds': (0, 1), 'name': 'arterial flow fraction', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
@@ -296,7 +297,6 @@ QUANTITIES = {
     # 'Kf_h2bi': {'init': 0.0001, 'bounds': (0.0, 0.001), 'name': 'Final biliary tissue excretion rate', 'unit': '/sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     # 'F_ar': {'init': 0.002, 'bounds': (0, 0.05), 'name': 'Arterial plasma flow', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     # 'F_ve': {'init': 0.008, 'bounds': (0, 0.05), 'name': 'Venous plasma flow', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    # 'CL': {'init': 10, 'bounds': (0.0, 100), 'name': 'Liver plasma clearance', 'unit': 'mL/sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
 
     # # Portal vein
     # 'uv': {'init': 1.0,  'bounds': (0.0, 1.0), 'name': 'Portal vein volume fraction', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},

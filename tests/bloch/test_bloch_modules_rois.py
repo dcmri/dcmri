@@ -12,7 +12,7 @@ def _test_class(cls: Module):
             instance = cls(**cnfg)
         except InvalidConfig:
             return
-        data = instance.dummy_data()
+        data = instance.test_data()
         instance(data)
 
     cls.print_configs()

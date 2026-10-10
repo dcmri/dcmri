@@ -186,8 +186,9 @@ class Signal(Module):
         if self.config['trigger']:
             if p['iStrig'] is not None:
                 accept = p['iStrig']
-                tS = tS[accept]
-                S = S[:, :, accept]
+                n = np.size(accept)
+                tS = tS[:n][accept]
+                S = S[:, :, :n][:, :, accept]
                 # (channels, components, times)
 
         if self.config['calibrate']:
@@ -200,7 +201,7 @@ class Signal(Module):
         results |= {'tS': tS, 'S': S}  # (channels, components, times)
         return self.map_results(results)
     
-    def dummy_data(self, nt=5, nch=1):
+    def test_data(self, nt=5, nch=1):
         data = self.init_data()
         n_channels = nch
         components = 1 if self.config['magnitude'] else 2
@@ -481,13 +482,13 @@ class RelaxToSignal(Module):
         p |= self._signal(p)
         return self.map_results(p)
 
-    def dummy_data(self, nc=2, nt=5):
+    def test_data(self, nc=2, nt=5):
         n_channels = channels(self.config['sequence'])
 
         p = self.init_data()
 
-        p |= self._magn.dummy_data(nc, nt)
-        p |= self._signal.dummy_data(nt, n_channels)
+        p |= self._magn.test_data(nc, nt)
+        p |= self._signal.test_data(nt, n_channels)
 
         return self.input_data(p)
 
@@ -623,10 +624,10 @@ class ConcToSignal(Module):
         p |= self._relax_to_signal(p)
         return self.map_results(p)
 
-    def dummy_data(self, nc=2, nt=5):
+    def test_data(self, nc=2, nt=5):
         p = self.init_data()
 
-        p |= self._conc_to_relax.dummy_data(nc, nt)
-        p |= self._relax_to_signal.dummy_data(nc, nt)
+        p |= self._conc_to_relax.test_data(nc, nt)
+        p |= self._relax_to_signal.test_data(nc, nt)
 
         return self.input_data(p)

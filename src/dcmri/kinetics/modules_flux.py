@@ -34,7 +34,7 @@ class Flux(Module):
 
         return self.map_results(results)
 
-    def dummy_data(self, nt=5, nc=2):
+    def test_data(self, nt=5, nc=2):
         data = self.init_data()
 
         data['J'] = np.ones(nt)
@@ -150,7 +150,7 @@ class FluxTissueX(Module):
 
         return self.map_results(results)
 
-    def dummy_data(self, nt=5):
+    def test_data(self, nt=5):
         data = self.init_data()
         data['c_ar'] *= np.ones(nt)
         return self.input_data(data)
@@ -309,7 +309,7 @@ class FluxAorta(Module):
 
         return result | {'J_ao': Ja, 'J_vc': Jv}
 
-    def dummy_data(self):
+    def test_data(self):
         p = self.init_data()
 
         E_ki = 0.100

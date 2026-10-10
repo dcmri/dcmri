@@ -54,6 +54,7 @@ def _div(a, b):
         return np.divide(a, b)
 
 
+# TODO: This needs to be a module configured by kinetic model
 def dpars_liver(p, kinetics=None) -> dict:
 
     H = p['H'] if 'H' in p else 0.45
@@ -61,6 +62,10 @@ def dpars_liver(p, kinetics=None) -> dict:
     p = copy.deepcopy(p)
         
     # Non-stationary options
+
+    if {'fCO_li', 'CO', 'vol_li'}.issubset(p):
+        p['F_b_li'] = p['fCO_li'] * p['CO'] / p['vol_li']
+        p['F_p_li'] = p['F_b_li'] * (1 - H)
 
     if {'Ei_li', 'Ef_li'}.issubset(p):
         p['E_li'] = np.mean([p['Ei_li'], p['Ef_li']])
@@ -78,18 +83,18 @@ def dpars_liver(p, kinetics=None) -> dict:
 
     # Dual-inlet models
     if {'F_p_li', 'ffa'}.issubset(p):
-        p['F_ar'] = p['F_p_li'] * p['ffa']
-        p['F_pv'] = p['F_p_li'] * (1 - p['ffa'])
+        p['F_p_ar'] = p['F_p_li'] * p['ffa']
+        p['F_p_pv'] = p['F_p_li'] * (1 - p['ffa'])
 
     # Kinetic models
     
     if kinetics in ['1I-EC', '2I-EC']:
-        p['T_e'] = _div(p['v_e_li'], p['F_p_li'])
+        p['T_e_li'] = _div(p['v_e_li'], p['F_p_li'])
 
     if kinetics in ['1I-IC', '2I-IC']:
-        p['Ktrans'] = p['E_li'] * p['F_p_li']
+        p['Ktrans_li'] = p['E_li'] * p['F_p_li']
         p['k_e2h'] = _div(p['F_p_li'] * p['E_li'], 1 - p['E_li'])
-        p['T_e'] = _div(p['v_e_li'], p['F_p_li'] + p['k_e2h'])
+        p['T_e_li'] = _div(p['v_e_li'], p['F_p_li'] + p['k_e2h'])
         p['K_e2h'] = _div(p['k_e2h'], p['v_e_li'])
         p['v_h'] = 1 - p['v_e_li'] / (1 - H)
         p['k_h2b'] = _div(p['v_h'], p['T_h']) 
@@ -112,17 +117,17 @@ def dpars_liver(p, kinetics=None) -> dict:
         
     if kinetics == '2I-IC-U':
         p['v_h'] = 1 - p['v_e_li'] / (1 - H)
-        p['Ktrans'] = p['E_li'] * p['F_p_li']
+        p['Ktrans_li'] = p['E_li'] * p['F_p_li']
         p['k_e2h'] = _div(p['F_p_li'] * p['E_li'], 1 - p['E_li'])
         p['K_e2h'] = _div(p['k_e2h'], p['v_e_li'])
-        p['T_e'] = _div(p['v_e_li'], p['F_p_li'] + p['k_e2h'])
+        p['T_e_li'] = _div(p['v_e_li'], p['F_p_li'] + p['k_e2h'])
 
     if kinetics in ['2I-EC', '2I-IC', '2I-IC-U']:
-        p['F_la'] = p['ffa'] * p['F_p_li']
-        p['F_pv'] = (1 - p['ffa']) * p['F_p_li']
+        p['F_p_la'] = p['ffa'] * p['F_p_li']
+        p['F_p_pv'] = (1 - p['ffa']) * p['F_p_li']
 
-    if {'k_e2h', 'vol_l'}.issubset(p):
-        p['CL'] = p['k_e2h'] * p['vol_l']
+    if {'k_e2h', 'vol_li'}.issubset(p):
+        p['CL_p'] = p['k_e2h'] * p['vol_li']
 
     return p
     

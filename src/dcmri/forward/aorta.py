@@ -184,9 +184,9 @@ class ForwardAorta(Module):
         outputs -= {'F_b_ar'}
         return outputs
     
-    def dummy_data(self, data: dict=None): 
+    def test_data(self, data: dict=None): 
         p = self.init_data()
-        p |= self._conc.dummy_data()
+        p |= self._conc.test_data()
 
         n_channels = channels(self.config['sequence'])
         components = 1 if self.config['magnitude'] else 2

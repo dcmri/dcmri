@@ -16,7 +16,7 @@ def _test_class(cls):
         # if cnfg != {'sequence': '3D-SPGR-SS', 'tof_corr': True, 'inflow': 'pool'}:
         #     return
         # print(cnfg)
-        data = instance.dummy_data(nc=2)
+        data = instance.test_data(nc=2)
         instance(data)
 
     cls.print_configs()
@@ -42,7 +42,7 @@ def test_bloch():
 def test_mzprep_exceptions():
     try:
         mz = MzPrep(sequence='3D-SPGR-SS')
-        data = mz.dummy_data(nc=2)
+        data = mz.test_data(nc=2)
         mz(data, Kw=np.ones((3,3)))
     except:
         pass
@@ -51,7 +51,7 @@ def test_mzprep_exceptions():
 
     try:
         mz = MzPrep(sequence='3D-SPGR-SS')
-        data = mz.dummy_data(nc=2)
+        data = mz.test_data(nc=2)
         mz(data, R1=np.ones(3))
     except:
         pass
@@ -60,7 +60,7 @@ def test_mzprep_exceptions():
 
     try:
         mz = MzPrep(sequence='3D-SPGR-SS', inflow='pool')
-        data = mz.dummy_data(nc=2)
+        data = mz.test_data(nc=2)
         mz(data, R1i=np.ones(3))
     except:
         pass
@@ -69,7 +69,7 @@ def test_mzprep_exceptions():
 
     try:
         mz = MzPrep(sequence='3D-SPGR-SS', inflow='pool')
-        data = mz.dummy_data(nc=2)
+        data = mz.test_data(nc=2)
         mz(data, Fwi=np.ones(3))
     except:
         pass
@@ -80,10 +80,10 @@ def test_mzprep_exceptions():
 
 def test_mzprep_function():
     config = {'sequence': '3D-IR-SPGR', 'inflow': 'none'}
-    mz = MzPrep(**config) # data = mz.dummy_data()
+    mz = MzPrep(**config) # data = mz.test_data()
     nR = 50
     dt = 0.1
-    data = mz.dummy_data() | {
+    data = mz.test_data() | {
         # Relaxation rates
         'tR': dt * np.arange(nR),
         'R1i': 0.65 * np.ones(nR),

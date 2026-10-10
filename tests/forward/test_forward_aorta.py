@@ -29,7 +29,7 @@ def test_aorta(cls=ForwardAorta):
         except InvalidConfig:
             return
     
-        data = instance.dummy_data()
+        data = instance.test_data()
 
         # --- DIAGNOSTIC TIMING ---
         t0 = time.perf_counter()
@@ -63,7 +63,7 @@ def test_aorta_times():
         except InvalidConfig:
             return
         print(cnfg)
-        data = model.dummy_data()
+        data = model.test_data()
         # data |= {'dt': 2.0, 'tmax': 30}
 
         # --- DIAGNOSTIC TIMING ---
@@ -123,7 +123,7 @@ def test_aorta_instance():
     model.print_inputs()
     model.print_outputs()
 
-    data = model.dummy_data() 
+    data = model.test_data() 
     results = model(data)
     
     plt.plot(results['tS'], results['S'][0, 0, :], 'r-')

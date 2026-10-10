@@ -89,6 +89,7 @@
 from copy import deepcopy
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 from dcmri.core.module import Module
 from dcmri.core.tools import get_quantity, update_bounds
@@ -113,30 +114,47 @@ class InverseKidney(Module):
 
     def _predict(self, time):
         pred = self.forward(self._pars)
-        nt = len(time)
-        return pred['S_ki'][:, :, :nt].reshape(-1)
+        return pred['S_ki'][:, :, :len(time)].reshape(-1)
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data)  
+    def _preproc(self, p):
+        # Reshape signal if needed
+        if p['S_ki'].ndim == 1:
+            p['S_ki'] = p['S_ki'].reshape(1, 1, -1)
 
+        # Set calibration signal
         if self.config['calibrate']:
             p['Scal_ki'] = p['S_ki'][..., :p['nb']]
             p['iScal_ki'] = np.arange(p['nb'])
+
+    def _pfree(self):
+        inputs = self.forward.mapped_inputs()
+        pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
+        if not self.config['calibrate']:
+            pfree |= {'S0_ki'}
+        return {p: get_quantity(p)['bounds'] for p in pfree}
+
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data)  
+        self._preproc(p)
+
+        # Initialize pfree if needed
+        if p['pfree'] is None:
+            p['pfree'] = self._pfree() 
 
         p['pfree'] = update_bounds(p['pfree'], value=p)
 
         # Compute inverse
         self._pars = p
-        time = data['tS_ki']
-        signal = data['S_ki']
-        p |= train(self._predict, time, signal, p, p['pfree'], **kwargs)
+        time = p['tS_ki']
+        signal = p['S_ki']
+        output = train(self._predict, time, signal, p, p['pfree'], **kwargs)
 
-        return self.map_results(p)
+        return self.map_results(output)
 
     def inputs(self) -> set:
         inputs = self.forward.mapped_inputs()
         if self.config['calibrate']:
-            inputs |= {'S_ki', 'nb'}
+            inputs |= {'nb'}
             inputs -= {'Scal_ki', 'iScal_ki'}
         inputs |= {'tS_ki', 'S_ki', 'pfree'}
         return inputs  
@@ -145,9 +163,9 @@ class InverseKidney(Module):
         outputs = {'popt', 'psdev', 'pcov', 'loss'}
         return outputs
     
-    def dummy_data(self, data: dict=None): 
+    def test_data(self, data: dict=None): 
         p = self.init_data()
-        p |= self.forward.dummy_data()
+        p |= self.forward.test_data()
 
         pred = self.forward(p)
         p |= {
@@ -158,9 +176,37 @@ class InverseKidney(Module):
         }
         return self.input_data(p, data)
 
-    def pfree(self):
-        inputs = self.forward.mapped_inputs()
-        pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
-        if not self.config['calibrate']:
-            pfree |= {'S0_ki'}
-        return {p: get_quantity(p)['bounds'] for p in pfree}
+    def plot(self, data: dict, xlim:list=None, fname:str=None, show=True):
+        p = self.map_data(data)
+        self._preproc(p)
+        prediction = self.forward(p)
+
+        if xlim is None:
+            xlim = [prediction['tR_ki'][0], prediction['tR_ki'][-1]]
+
+        fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 5))
+
+        # Signals Plot
+        ax0.set_title('Prediction of the MRI signals.')
+        for i in range(p['S_ki'].shape[0]):
+            for j in range(p['S_ki'].shape[1]):
+                ax0.plot(p['tS_ki'] / 60, p['S_ki'][i, j, :], marker='o', linestyle='None', color='cornflowerblue', label='Data')
+                ax0.plot(prediction['tS_ki'] / 60, prediction['S_ki'][i, j, :], linestyle='-', linewidth=3.0, color='darkblue', label='Prediction')
+        ax0.set(xlabel='Time (min)', ylabel='MRI signal (a.u.)', xlim=np.array(xlim)/60)
+        ax0.legend()
+
+        ax1.set_title('Reconstruction of concentrations')
+
+        ax1.plot(prediction['tC_ki'] / 60, 1000 * p['c_ar'], '-', linewidth=3, color='darkred', label='Arterial Pred')
+        ax1.plot(prediction['tC_ki'] / 60, 1000 * prediction['C_ki'][0,:], linestyle='-', linewidth=3.0, color='darkred', label='Blood')
+        ax1.plot(prediction['tC_ki'] / 60, 1000 * prediction['C_ki'][1,:], linestyle='-', linewidth=3.0, color='darkcyan', label='Tubuli')
+           
+        ax1.set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=np.array(xlim)/60)
+        ax1.legend()
+
+        if fname is not None:
+            plt.savefig(fname=fname)
+        if show:
+            plt.show()
+        else:
+            plt.close()

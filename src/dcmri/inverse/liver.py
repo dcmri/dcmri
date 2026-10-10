@@ -17,8 +17,8 @@ class InverseLiver(Module):
     configs = configs
     defaults = defaults
 
-    _all_inputs = None
-    _all_outputs = None
+    _all_inputs = {'tS_li', 'PA', 'iz', 'v_li', 'T_h', 'kf_e2h', 'Tf_h', 'TA', 'field_strength', 'S0_li', 'v_e_li', 'TE1', 'nb', 'B1corr_li', 'Nph', 'TD', 'R1_li', 'v_h', 'TE2', 'k_e2h', 'Nz', 'pfree', 'Ti_h', 'tstart', 'TE', 'TP', 'E_li', 'R1_e', 'TR', 'FA', 'ffa', 'Ef_li', 'S_li', 'Nk0', 'F_b_li', 'ki_e2h', 'iStrig_li', 'PSw', 'dt', 'R1_h', 'ci_li', 'Ei_li', 'agent', 'F_p_li', 'me', 'NSR_li'}
+    _all_outputs = {'pder', 'popt', 'loss', 'psdev', 'pcov'}
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
@@ -27,8 +27,7 @@ class InverseLiver(Module):
 
     def _predict(self, time):
         pred = self.forward(self._pars)
-        nt = len(time)
-        return pred['S_li'][:, :, :nt].reshape(-1)
+        return pred['S_li'][:, :, :len(time)].reshape(-1)
 
     def _preproc(self, p):
         # Reshape signal if needed
@@ -66,11 +65,11 @@ class InverseLiver(Module):
         self._pars = p
         time = p['tS_li']
         signal = p['S_li']
-        p |= train(self._predict, time, signal, p, p['pfree'], **kwargs)
 
-        p['pder'] = self._pder(p | p['popt'])
+        output = train(self._predict, time, signal, p, p['pfree'], **kwargs)
+        output['pder'] = self._pder(p | output['popt'])
 
-        return self.map_results(p)
+        return self.map_results(output)
 
     def inputs(self) -> set:
         inputs = self.forward.mapped_inputs()
@@ -83,9 +82,9 @@ class InverseLiver(Module):
     def outputs(self):
         return {'popt', 'psdev', 'pcov', 'pder', 'loss'}
     
-    def dummy_data(self, data: dict=None): 
+    def test_data(self, data: dict=None): 
         p = self.init_data()
-        p |= self.forward.dummy_data()
+        p |= self.forward.test_data()
 
         pred = self.forward(p)
         p |= {
@@ -99,7 +98,6 @@ class InverseLiver(Module):
     def plot(self, data: dict, xlim:list=None, fname:str=None, show=True):
         p = self.map_data(data)
         self._preproc(p)
-
         pred = self.forward(p)
 
         xlim = xlim or [np.amin(pred['tR_li']), np.amax(pred['tR_li'])]

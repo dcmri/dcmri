@@ -31,13 +31,13 @@ def _test_class(cls: Module):
             return
         # if cnfg != {'sequence': '3D-PR-SPGR-SS', 'tof_corr': False, 'inflow': 'pool', 'magnitude': False, 'trigger': True, 'calibrate': False}:
         #     return
-        data = instance.dummy_data(nc=3)
+        data = instance.test_data(nc=3)
         instance(data)
         if 't2s_relaxation' in cnfg and cnfg['t2s_relaxation'] == 'leakage':
             return
-        data = instance.dummy_data()
+        data = instance.test_data()
         instance(data)
-        data = instance.dummy_data(nc=1)
+        data = instance.test_data(nc=1)
         instance(data)
 
     cls.print_configs()
@@ -56,7 +56,7 @@ def _test_signal_class(cls: Module):
             instance = cls(**cnfg)
         except InvalidConfig:
             return
-        data = instance.dummy_data()
+        data = instance.test_data()
         instance(data)
 
     cls.print_configs()

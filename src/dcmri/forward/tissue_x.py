@@ -169,7 +169,7 @@ class ForwardTissueX(Module):
         outputs |= self._conc_to_signal.mapped_outputs() 
         return outputs
     
-    def dummy_data(self, data:dict=None): 
+    def test_data(self, data:dict=None): 
         p = self.init_data()
 
         n_channels = channels(self.config['sequence'])

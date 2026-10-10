@@ -338,7 +338,7 @@ class ForwardAortaLiverSplitDrug(Module):
             outputs |= self._aol[visit].mapped_outputs()
         return outputs
 
-    def dummy_data(self, data: dict=None): 
+    def test_data(self, data: dict=None): 
         p = self.init_data()
 
         n_channels = channels(self.config['sequence'])

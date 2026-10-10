@@ -99,7 +99,8 @@ def _Mz_KinvJ_vec(R1_periods, v, Fw, j_periods, me):
     K, J = _Mz_KJ_vec(R1_periods, v, Fw, j_periods, me)
 
     if nc == 1:
-        KinvJ = np.where(K != 0, J / K, 0.0)          # (n_periods,)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            KinvJ = np.where(K != 0, J / K, 0.0)          # (n_periods,)
         # KinvJ = np.divide(J, K, out=np.zeros_like(J, dtype=float), where=K != 0)
     else:
         # J: (n_periods, nc) -> (n_periods, nc, 1) to force correct batch broadcasting

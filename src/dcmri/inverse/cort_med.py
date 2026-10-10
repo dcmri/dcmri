@@ -105,6 +105,7 @@
 
 from copy import deepcopy
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 from dcmri.core.module import Module
@@ -132,51 +133,68 @@ class InverseCortMed(Module):
 
     def _predict(self, time):
         pred = self.forward(self._pars)
-        nt = [len(t) for t in time]
-        return tuple([pred[f'S_{roi}'][:, :, :nt[i]].reshape(-1) for i, roi in enumerate(ROIS)])
+        return tuple([pred[f'S_{roi}'][:, :, :len(time[i])].reshape(-1) for i, roi in enumerate(ROIS)])
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data)  
+    def _preproc(self, p):
+        # Reshape signal if needed
+        for roi in ROIS:
+            if p[f'S_{roi}'].ndim == 1:
+                p[f'S_{roi}'] = p[f'S_{roi}'].reshape(1, 1, -1)
 
+        # Set calibration signal
         if self.config['calibrate']:
             for roi in ROIS:
                 p[f'Scal_{roi}'] = p[f'S_{roi}'][:, :, :p['nb']]
                 p[f'iScal_{roi}'] = np.arange(p['nb'])
 
+    def _pfree(self):
+        inputs = self.forward.mapped_inputs()
+        pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
+        if not self.config['calibrate']:
+            pfree |= {f'S0_{roi}' for roi in ROIS}
+        return {p: get_quantity(p)['bounds'] for p in pfree}
+    
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data)  
+        self._preproc(p) 
+
+        # Initialize pfree if needed
+        if p['pfree'] is None:
+            p['pfree'] = self._pfree() 
+
         p['pfree'] = update_bounds(p['pfree'], value=p)
 
         # Compute inverse
         self._pars = p
-        time = tuple([data[f'tS_{roi}'].reshape(-1) for roi in ROIS])
-        signal = tuple([data[f'S_{roi}'].reshape(-1) for roi in ROIS])
-        p |= train(self._predict, time, signal, p, p['pfree'], **kwargs)
+        time = tuple([p[f'tS_{roi}'].reshape(-1) for roi in ROIS])
+        signal = tuple([p[f'S_{roi}'].reshape(-1) for roi in ROIS])
+        output = train(self._predict, time, signal, p, p['pfree'], **kwargs)
 
-        return self.map_results(p)
+        return self.map_results(output)
 
     def inputs(self) -> set:
         inputs = self.forward.mapped_inputs()
+        inputs |= {'pfree'}
+        for roi in ROIS:
+            inputs |= {f'tS_{roi}', f'S_{roi}'}
         if self.config['calibrate']:
             inputs |= {'nb'}
             for roi in ROIS:
                 inputs |= {f'Scal_{roi}', f'iScal_{roi}'}
-                inputs -= {f'S_{roi}', f'tS_{roi}'}
-        for roi in ROIS:
-            inputs |= {f'tS_{roi}', f'S_{roi}'}
-        inputs |= {'pfree'}
         return inputs  
     
     def outputs(self):
         outputs = {'popt', 'psdev', 'pcov', 'loss'}
         return outputs
     
-    def dummy_data(self, data: dict=None): 
+    def test_data(self, data: dict=None): 
         p = self.init_data()
 
         p |= {
             'nb': 5,
             'pfree': self.forward.filter_data({'F_p_ki': (0, 1), 'E_ki': (0, 1)}),
         }
-        p |= self.forward.dummy_data()
+        p |= self.forward.test_data()
         pred = self.forward(p)
         for roi in ROIS:
             p |= {
@@ -185,9 +203,43 @@ class InverseCortMed(Module):
             }
         return self.input_data(p, data)
 
-    def pfree(self):
-        inputs = self.forward.mapped_inputs()
-        pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
-        if not self.config['calibrate']:
-            pfree |= {f'S0_{roi}' for roi in ROIS}
-        return {p: get_quantity(p)['bounds'] for p in pfree}
+    def plot(self, data: dict, xlim=None, fname=None, show=True):
+        p = self.map_data(data)  
+        self._preproc(p)
+        prediction = self.forward(p)
+
+        if xlim is None: 
+            xlim = [prediction['tR'][0], prediction['tR'][-1]]
+        xlim = np.array(xlim) / 60
+
+        fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 5))
+
+        # Plot signals
+        def plot_data(t, s, ti, si, ax, clr):
+            ax.set_title('MRI Signal Prediction')
+            for i in range(si.shape[0]):
+                for j in range(si.shape[1]):
+                    ax.plot(ti / 60, si[i, j, :], marker='o', color=clr[0], alpha=0.5, label='Data')
+                    ax.plot(t / 60, s[i, j, :], linestyle='-', color=clr[1], linewidth=3, label='Prediction')                
+            ax.set_xlabel('Time (min)')
+            ax.set_ylabel('Signal (a.u.)')
+            ax.legend()
+
+        plot_data(prediction['tS_kc'], prediction['S_kc'], p['tS_kc'], p['S_kc'], ax0, ['lightcoral', 'darkred'])
+        plot_data(prediction['tS_km'], prediction['S_km'], p['tS_km'], p['S_km'], ax0, ['cornflowerblue', 'darkblue'])
+
+        # Plot concentrations
+        ax1.set_title('Reconstruction of concentrations.')
+        ax1.plot(prediction['tC'] / 60, 0 * prediction['tC'], color='gray')
+        ax1.plot(prediction['tC'] / 60, 1000 * p['c_ar'], '-', linewidth=3, color='darkred', label='Arterial Pred')
+        ax1.plot(prediction['tC'] / 60, 1000 * prediction['C_kc'].sum(axis=0), linestyle='-', linewidth=3.0, color='darkred', label='Cortex')
+        ax1.plot(prediction['tC'] / 60, 1000 * prediction['C_km'].sum(axis=0), linestyle='-', linewidth=3.0, color='darkcyan', label='Medulla')
+        ax1.set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=np.array(xlim)/60)
+        ax1.legend()
+
+        if fname is not None:
+            plt.savefig(fname=fname)
+        if show:
+            plt.show()
+        else:
+            plt.close()

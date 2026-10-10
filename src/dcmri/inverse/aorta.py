@@ -111,12 +111,11 @@ import matplotlib.pyplot as plt
 
 from dcmri.core.module import Module
 from dcmri.core.tools import get_quantity, update_bounds
-from dcmri.utils.fit import train_bat
-from dcmri.inverse.lib import estimate_bat
-from dcmri.forward.aorta import ForwardAorta
+from dcmri.utils.fit import train_bat, train
+from dcmri.forward.aorta import ForwardAorta as Forward
 
-configs = deepcopy(ForwardAorta.configs)
-defaults = deepcopy(ForwardAorta.defaults)
+configs = deepcopy(Forward.configs)
+defaults = deepcopy(Forward.defaults)
 
 configs['bolus'].discard('dual') # Only meaningful for split protocols
 
@@ -131,19 +130,15 @@ class InverseAorta(Module):
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
-        self.forward = ForwardAorta(**self.config)
+        self.forward = Forward(**self.config)
         self.map_io(imap, omap)
 
     def _predict(self, time):
         nt = np.size(time)
         pred = self.forward(self._pars)
         return pred['S'][:, :, :nt].reshape(-1)
-        #S_interp = interp1d(pred['tS'], pred['S'], axis=-1, kind='linear', bounds_error=False, fill_value='extrapolate')
-        #return S_interp(time)
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data) 
-
+    def _preproc(self, p):
         # Reshape signal if needed
         if p['S'].ndim == 1:
             p['S'] = p['S'].reshape(1, 1, -1)
@@ -152,6 +147,18 @@ class InverseAorta(Module):
         if self.config['calibrate']:
             p['Scal'] = p['S'][..., :p['nb']]
             p['iScal'] = np.arange(p['nb'])
+
+    def _pfree(self):
+        inputs = self.forward.mapped_inputs()
+        pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
+        pfree |= {'BAT'}
+        if not self.config['calibrate']:
+            pfree |= {'S0'}
+        return {p: get_quantity(p)['bounds'] for p in pfree}
+
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data) 
+        self._preproc(p)
 
         # Initialize pfree if needed
         if p['pfree'] is None:
@@ -161,52 +168,41 @@ class InverseAorta(Module):
 
         # Compute inverse
         self._pars = p
-        p = train_bat(self._predict, p['tS'], p['S'], p, p['pfree'], bats=['BAT'], **kwargs)
+        #output = train_bat(self._predict, p['tS'], p['S'], p, p['pfree'], bats=['BAT'], **kwargs)
+        output = train(self._predict, p['tS'], p['S'], p, p['pfree'], **kwargs)
 
-        return self.map_results(p)
+        return self.map_results(output)
 
     def inputs(self) -> set:
         inputs = self.forward.mapped_inputs()
-        inputs |= {'tS', 'S', 'nb', 'pfree'}
-        inputs -= {'Scal', 'iScal'}
+        inputs |= {'tS', 'S', 'pfree'}
+        if self.config['calibrate']:
+            inputs |= {'nb'}
+            inputs -= {'Scal', 'iScal'}
         return inputs  
     
     def outputs(self):
         return {'popt', 'psdev', 'pcov', 'loss'}
     
-    def dummy_data(self, data: dict=None): 
+    def test_data(self, data: dict=None): 
         p = self.init_data()
-        p |= self.forward.dummy_data()
+        p |= self.forward.test_data()
 
         pred = self.forward(p)
+        pfree = {'CO': (10, 300), 'BAT': (-60, 60)}
         
         p |= {
             'tS': pred['tS'],
             'S': pred['S'], 
             'nb': 5,
-            'pfree': {'CO': (10, 300), 'BAT': (-60, 60)},
+            'pfree': self.forward.filter_data(pfree),
         }
-            
         return self.input_data(p, data)
 
-    def pfree(self):
-        inputs = self.forward.mapped_inputs()
-        pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
-        pfree |= {'BAT'}
-        return {p: get_quantity(p)['bounds'] for p in pfree}
 
     def plot(self, data: dict, xlim=None, fname:str=None, show=True):
         p = self.map_data(data)
-
-        # Reshape signal if needed
-        if p['S'].ndim == 1:
-            p['S'] = p['S'].reshape(1, 1, -1)
-
-        # Set calibration signal
-        if self.config['calibrate']:
-            p['Scal'] = p['S'][..., :p['nb']]
-            p['iScal'] = np.arange(p['nb'])
-
+        self._preproc(p)
         pred = self.forward(p)
 
         if xlim is None: 
@@ -225,13 +221,13 @@ class InverseAorta(Module):
             ax.set_ylabel('Signal (a.u.)')
             ax.legend()
 
-        plot_data(pred['tS'], pred['S'], data['tS'], data['S'], ax0, ['lightcoral', 'darkred'])
+        plot_data(pred['tS'], pred['S'],p['tS'], p['S'], ax0, ['lightcoral', 'darkred'])
 
         # Concentration Plot
         ax1.set_title('Concentration Reconstruction')
         ax1.plot(pred['tC'] / 60, 0 * pred['tC'], color='gray')
-        if 'C' in data:
-            t, c = data['tC'], data['C'].reshape(1, -1)
+        if 'C' in p:
+            t, c = p['tC'], p['C'].reshape(1, -1)
             ax1.plot(t / 60, 1000 * c[0], linestyle='-', color='lightcoral', linewidth=5, label='Reference')
         ax1.plot(pred['tC'] / 60, 1000 * pred['C'][0], linestyle='-', color='darkred', linewidth=3, label='Reconstruction')
         ax1.set_xlabel('Time (min)')

@@ -178,7 +178,7 @@ class ForwardKidney(Module):
         outputs -= {'ci_ki_in'} 
         return outputs
     
-    def dummy_data(self, data:dict=None): 
+    def test_data(self, data:dict=None): 
         p = self.init_data()
 
         n_channels = channels(self.config['sequence'])

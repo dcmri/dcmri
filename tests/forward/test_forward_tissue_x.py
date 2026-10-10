@@ -16,7 +16,7 @@ def test_tissue_x(cls=ForwardTissueX):
             return
 
         # print(cnfg)
-        data = instance.dummy_data()
+        data = instance.test_data()
         instance(data)
 
     cls.print_configs()
@@ -43,7 +43,7 @@ def test_tissue_x_instance():
     model.print_inputs()
     model.print_outputs()
 
-    data = model.dummy_data()
+    data = model.test_data()
     results = model(data)
 
     plt.plot(results['tS'], results['S'][0, 0, :], 'ro')

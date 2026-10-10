@@ -15,7 +15,7 @@ def test_liver(cls=ForwardLiver):
         except InvalidConfig:
             return
     
-        data = instance.dummy_data()
+        data = instance.test_data()
         instance(data)
 
     cls.print_configs()
@@ -41,7 +41,7 @@ def test_liver_instance():
     model.print_inputs()
     model.print_outputs()
 
-    data = model.dummy_data()
+    data = model.test_data()
     results = model(data)
 
     plt.plot(results['tS_li'], results['S_li'][0, 0, :], 'ro')

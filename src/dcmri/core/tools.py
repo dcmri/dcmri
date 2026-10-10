@@ -58,7 +58,7 @@ def get_quantity(k: str, quantities=None):
         lexicon |= quantities
 
     if k in lexicon:
-        return lexicon[k]
+        return deepcopy(lexicon[k])
 
     parsed = parse_varname(k)
     name, index, compartment, roi = (
@@ -174,6 +174,16 @@ def increment_varindex(var, increment=1):
     return extend_varname(var, index=new_index)
 
 
+def remove_varindex(var):
+    parsed = parse_varname(var)
+    return build_varname(
+        parsed['name'],
+        compartment=parsed['compartment'],
+        roi=parsed['roi'],
+    )
+
+
+
 def print_quantities(q: set | dict, title=None, decimals:int=None, digits:int=None, as_dict=False):
 
     if as_dict:
@@ -219,6 +229,10 @@ def print_quantities(q: set | dict, title=None, decimals:int=None, digits:int=No
 
     def format_value(v, decimals=None, digits=None):
         init = v["init"]
+        if isinstance(init, np.ndarray):
+            return f"array {init.shape}"
+        if isinstance(init, dict):
+            return f"dict ({len(init)})"
         if isinstance(init, bool) or not isinstance(init, Real):
             return str(init)
         if decimals is not None:
@@ -233,11 +247,13 @@ def print_quantities(q: set | dict, title=None, decimals:int=None, digits:int=No
             raise ValueError(f"Unknown quantity {k}.")
 
     # compute column widths from content
+    values = {k: format_value(v, decimals, digits) for k, v in q.items()}
+
     key_w = max((len(k) for k in q), default=3)
     unit_w = max((len(format_optional(v["unit"])) for v in q.values()), default=4)
     name_w = max((len(v["name"]) for v in q.values()), default=4)
     group_w = max((len(label) for label in GROUPS.values()), default=5)
-    init_w = max((len(str(v["init"])) for v in q.values()), default=4)
+    init_w = max((len(s) for s in values.values()), default=5)
     bounds_w = max((len(format_bounds(v["bounds"])) for v in q.values()), default=6)
     dicom_w = max((len(format_optional(v.get("dicom_key"))) for v in q.values()), default=5)
     osipi_w = max((len(format_optional(v.get("osipi_key"))) for v in q.values()), default=5)
@@ -246,7 +262,7 @@ def print_quantities(q: set | dict, title=None, decimals:int=None, digits:int=No
     unit_w = max(unit_w, len("Unit"))
     name_w = max(name_w, len("Name"))
     group_w = max(group_w, len("Group"))
-    init_w = max(init_w, len("Init"))
+    init_w = max(init_w, len("Value"))
     bounds_w = max(bounds_w, len("Bounds"))
     dicom_w = max(dicom_w, len("DICOM"))
     osipi_w = max(osipi_w, len("OSIPI"))
@@ -254,10 +270,10 @@ def print_quantities(q: set | dict, title=None, decimals:int=None, digits:int=No
     # 8 columns, each " x " padded (width+2), plus 9 "+" separators (before each col + trailing)
     table_width = key_w + unit_w + name_w + group_w + init_w + bounds_w + dicom_w + osipi_w + 25
 
-    def row(key, unit, name, group, init, bounds, dicom, osipi):
+    def row(key, init, unit, name, group, bounds, dicom, osipi):
         return (
-            f"| {key:<{key_w}} | {unit:<{unit_w}} | {name:<{name_w}} "
-            f"| {group:<{group_w}} | {init:<{init_w}} | {bounds:<{bounds_w}} "
+            f"| {key:<{key_w}} | {init:<{init_w}} | {unit:<{unit_w}} "
+            f"| {name:<{name_w}} | {group:<{group_w}} | {bounds:<{bounds_w}} "
             f"| {dicom:<{dicom_w}} | {osipi:<{osipi_w}} |"
         )
 
@@ -267,10 +283,10 @@ def print_quantities(q: set | dict, title=None, decimals:int=None, digits:int=No
 
     divider = (
         "+" + "-" * (key_w + 2)
+        + "+" + "-" * (init_w + 2)
         + "+" + "-" * (unit_w + 2)
         + "+" + "-" * (name_w + 2)
         + "+" + "-" * (group_w + 2)
-        + "+" + "-" * (init_w + 2)
         + "+" + "-" * (bounds_w + 2)
         + "+" + "-" * (dicom_w + 2)
         + "+" + "-" * (osipi_w + 2)
@@ -281,7 +297,7 @@ def print_quantities(q: set | dict, title=None, decimals:int=None, digits:int=No
     lines = [outer_border]
     lines.append(spanning_row(title))
     lines.append(divider)
-    lines.append(row("Key", "Unit", "Name", "Group", "Value", "Bounds", "DICOM", "OSIPI"))
+    lines.append(row("Key", "Value", "Unit", "Name", "Group", "Bounds", "DICOM", "OSIPI"))
     lines.append(divider)
 
     first_group = True
@@ -299,8 +315,8 @@ def print_quantities(q: set | dict, title=None, decimals:int=None, digits:int=No
 
         for k, v in group.items():
             lines.append(row(
-                k, format_optional(v["unit"]), v["name"], label, format_value(v, decimals, digits), format_bounds(v["bounds"]),
-                format_optional(v.get("dicom_key")), format_optional(v.get("osipi_key")),
+                k, values[k], format_optional(v["unit"]), v["name"], label,
+                format_bounds(v["bounds"]), format_optional(v.get("dicom_key")), format_optional(v.get("osipi_key")),
             ))
 
     lines.append(outer_border)
@@ -418,60 +434,6 @@ def update_bounds(free, quantities:dict=None, value:dict=None):
     return free
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Obsolete below here
-
-
-
-def init(pars:list=None, lexicon:dict=None, **kwargs) -> dict:
-    """Return a dictionary with parameter initial values"""
-    if lexicon is None:
-        lexicon = QUANTITIES
-    if pars is None:
-        pars = lexicon.keys()
-    
-    p = {}
-    for k in pars:
-        p[k] = deepcopy(lexicon[k]['init']) 
-        # p[k] = lexicon[k]['init'] 
-    # Override with user-defined values
-    for key, value in kwargs.items():
-        if key in p:
-            p[key] = value
-    return p
-
-def bounds(pars:list=None, lexicon:dict=None):
-    """Return a dictionary with parameter bounds"""
-    if lexicon is None:
-        lexicon = QUANTITIES
-    if pars is None:
-        pars = lexicon.keys()
-    p = {}
-    for k in pars:
-        # p[k] = lexicon[k]['bounds']
-        p[k] = deepcopy(lexicon[k]['bounds']) 
-    return p
-
-# TODO: select is a better name
 def select_params(lexicon=None, **kwargs):
     """Return lexicon parameters with specific properties"""
     if lexicon is None:
@@ -489,98 +451,134 @@ def select_params(lexicon=None, **kwargs):
     
     return result
 
-# Consider renaming. export_vals, string_vals
-def export_params(val: dict, sdev=None, lexicon=None, num_only=False, scalar_only=False, group=None) -> dict:
-    """Parameters with header information added."""
-    if lexicon is None:
-        lexicon = QUANTITIES
-    if sdev is None:
-        sdev = {}
-    if group is not None:
-        val = {k: v for k, v in val.items() if lexicon[k]['group']==group}
-    if scalar_only:
-        val = {k: v for k, v in val.items() if np.isscalar(v)}
-    if num_only:
-        val = {k: v for k, v in val.items() if not isinstance(v, str)}
-    result = {}
-    for p in val:
-        result[p] = {
-            'name': lexicon[p]['name'],
-            'unit': lexicon[p]['unit'],
-            'value': val[p],
-            'sdev': sdev[p] if p in sdev else None,
-        }
-    return result
 
-def string_params(val: dict, sdev=None, round_to=None, lexicon=None):
-    """Print parameters and uncertainties to console."""
-    if lexicon is None:
-        lexicon = QUANTITIES
-    if sdev is None:
-        sdev = {}
-    left_sides = {}
-    pars = export_params(val, sdev, lexicon)
-    for p, v in pars.items():
+# # Obsolete below here
 
-        # Format value
-        val = v['value']
 
-        if isinstance(val, list):
-            val = f"list ({len(val)})"
 
-        elif isinstance(val, np.ndarray):
-            val = f"array {val.shape}"
+# def init(pars:list=None, lexicon:dict=None, **kwargs) -> dict:
+#     """Return a dictionary with parameter initial values"""
+#     if lexicon is None:
+#         lexicon = QUANTITIES
+#     if pars is None:
+#         pars = lexicon.keys()
+    
+#     p = {}
+#     for k in pars:
+#         p[k] = deepcopy(lexicon[k]['init']) 
+#         # p[k] = lexicon[k]['init'] 
+#     # Override with user-defined values
+#     for key, value in kwargs.items():
+#         if key in p:
+#             p[key] = value
+#     return p
 
-        elif round_to is not None:
-            if isinstance(val, (float, np.float64, np.float32)):
-                val = round(val, round_to)
+# def bounds(pars:list=None, lexicon:dict=None):
+#     """Return a dictionary with parameter bounds"""
+#     if lexicon is None:
+#         lexicon = QUANTITIES
+#     if pars is None:
+#         pars = lexicon.keys()
+#     p = {}
+#     for k in pars:
+#         # p[k] = lexicon[k]['bounds']
+#         p[k] = deepcopy(lexicon[k]['bounds']) 
+#     return p
 
-        # Format unit       
-        unit = v['unit'] if v['unit'] is not None else ''
 
-        # Format left side string
-        if p in sdev:
-            sd = v['sdev']
-            if round_to is not None:
-                sd = round(sd, round_to)
-            left_sides[p] = f"{p} = {val} +/- {sd} {unit}"
-        else:
-            left_sides[p] = f"{p} = {val} {unit}"
 
-    # Finding max string length for padding
-    max_len = 4 + max(len(s) for s in left_sides.values()) 
+# # Consider renaming. export_vals, string_vals
+# def export_params(val: dict, sdev=None, lexicon=None, num_only=False, scalar_only=False, group=None) -> dict:
+#     """Parameters with header information added."""
+#     if lexicon is None:
+#         lexicon = QUANTITIES
+#     if sdev is None:
+#         sdev = {}
+#     if group is not None:
+#         val = {k: v for k, v in val.items() if lexicon[k]['group']==group}
+#     if scalar_only:
+#         val = {k: v for k, v in val.items() if np.isscalar(v)}
+#     if num_only:
+#         val = {k: v for k, v in val.items() if not isinstance(v, str)}
+#     result = {}
+#     for p in val:
+#         result[p] = {
+#             'name': lexicon[p]['name'],
+#             'unit': lexicon[p]['unit'],
+#             'value': val[p],
+#             'sdev': sdev[p] if p in sdev else None,
+#         }
+#     return result
 
-    # Combine them, padding the left side to 'max_len' so brackets align
-    strings = {}
-    for p, v in pars.items():
-        # '<' aligns left, and 'max_len' dynamically sets the width
-        strings[p] = f"{left_sides[p]:<{max_len}} ({v['name']})"
+# def string_params(val: dict, sdev=None, round_to=None, lexicon=None):
+#     """Print parameters and uncertainties to console."""
+#     if lexicon is None:
+#         lexicon = QUANTITIES
+#     if sdev is None:
+#         sdev = {}
+#     left_sides = {}
+#     pars = export_params(val, sdev, lexicon)
+#     for p, v in pars.items():
 
-    # Sort
-    sorted_strings = {key: strings[key] for key in sorted(strings, key=str.lower)}
+#         # Format value
+#         val = v['value']
 
-    return sorted_strings
+#         if isinstance(val, list):
+#             val = f"list ({len(val)})"
 
-def print_params(val: dict, sdev=None, round_to=None, group=None, lexicon=None):
-    """Print parameters and uncertainties to console."""
-    if lexicon is None:
-        lexicon = QUANTITIES
-    if group is not None:
-        val = {k: v for k, v in val.items() if lexicon[k]['group']==group}
+#         elif isinstance(val, np.ndarray):
+#             val = f"array {val.shape}"
 
-    groups = {
-        'indicator': 'Indicator quantities',
-        'signal': 'Signal quantities',
-        'EM': 'Electromagnetic quantities',
-        'phys': 'Physiological quantities',
-        'hyper': 'Hyperparameter quantities',
-    }
-    for gr, label in groups.items():
-        val_group = {k: v for k, v in val.items() if lexicon[k]['group']==gr}
-        if len(val_group) > 0:
-            msg = string_params(val_group, sdev, round_to, lexicon)
-            print(f"\n{label}\n")
-            for v in msg.values():
-                print(v)
+#         elif round_to is not None:
+#             if isinstance(val, (float, np.float64, np.float32)):
+#                 val = round(val, round_to)
+
+#         # Format unit       
+#         unit = v['unit'] if v['unit'] is not None else ''
+
+#         # Format left side string
+#         if p in sdev:
+#             sd = v['sdev']
+#             if round_to is not None:
+#                 sd = round(sd, round_to)
+#             left_sides[p] = f"{p} = {val} +/- {sd} {unit}"
+#         else:
+#             left_sides[p] = f"{p} = {val} {unit}"
+
+#     # Finding max string length for padding
+#     max_len = 4 + max(len(s) for s in left_sides.values()) 
+
+#     # Combine them, padding the left side to 'max_len' so brackets align
+#     strings = {}
+#     for p, v in pars.items():
+#         # '<' aligns left, and 'max_len' dynamically sets the width
+#         strings[p] = f"{left_sides[p]:<{max_len}} ({v['name']})"
+
+#     # Sort
+#     sorted_strings = {key: strings[key] for key in sorted(strings, key=str.lower)}
+
+#     return sorted_strings
+
+# def print_params(val: dict, sdev=None, round_to=None, group=None, lexicon=None):
+#     """Print parameters and uncertainties to console."""
+#     if lexicon is None:
+#         lexicon = QUANTITIES
+#     if group is not None:
+#         val = {k: v for k, v in val.items() if lexicon[k]['group']==group}
+
+#     groups = {
+#         'indicator': 'Indicator quantities',
+#         'signal': 'Signal quantities',
+#         'EM': 'Electromagnetic quantities',
+#         'phys': 'Physiological quantities',
+#         'hyper': 'Hyperparameter quantities',
+#     }
+#     for gr, label in groups.items():
+#         val_group = {k: v for k, v in val.items() if lexicon[k]['group']==gr}
+#         if len(val_group) > 0:
+#             msg = string_params(val_group, sdev, round_to, lexicon)
+#             print(f"\n{label}\n")
+#             for v in msg.values():
+#                 print(v)
 
 

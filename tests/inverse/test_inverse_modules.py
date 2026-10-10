@@ -6,7 +6,7 @@ from tqdm import tqdm
 import dcmri as dc
 from dcmri.core.tools import get_sequence
 from dcmri.core.module import InvalidConfig
-from dcmri.inverse.sig2conc import RelaxToSignal
+from dcmri.inverse.modules import RelaxToSignal
 
 
 def _test_class(cls):
@@ -20,7 +20,7 @@ def _test_class(cls):
         # if cnfg != {'sequence': '3D-DE-EPI', 'calibrate': False}:
         #     return
         # print(cnfg)
-        data = instance.dummy_data()
+        data = instance.test_data()
         instance(data)
 
     cls.print_configs()

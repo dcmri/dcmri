@@ -1,13 +1,4 @@
-import numpy as np
 
-from dcmri.core.tools import get_sequence
-import dcmri.inverse.lib as solve
-from dcmri.core.module import Module
-from dcmri.signal.modules_tissue import RelaxToSignal
-from dcmri.bloch.functions_sequences import channels
-
-invertible_seqs = get_sequence('steady-state')
-analytical_inversion = ['3D-SPGR-SS', 'ZTE-3D-SPGR-SS', 'lin', '2D-GE-EPI', '2D-SE-EPI', '2D-DE-EPI']
 
 
 # +--------------------------------------------------------------------------------------------------+
@@ -61,6 +52,18 @@ analytical_inversion = ['3D-SPGR-SS', 'ZTE-3D-SPGR-SS', 'lin', '2D-GE-EPI', '2D-
 # +-----+----------+----------------------+-----------------+-------+--------+-------+-------+
 # | C   | mmol/cm3 | tissue concentration | Indicator       | 0.005 | (0, 1) |       |       |
 # +------------------------------------------------------------------------------------------+
+
+
+import numpy as np
+
+from dcmri.core.tools import get_sequence
+import dcmri.inverse.functions as solve
+from dcmri.core.module import Module
+from dcmri.signal.modules_tissue import RelaxToSignal
+from dcmri.bloch.functions_sequences import channels
+
+invertible_seqs = get_sequence('steady-state')
+analytical_inversion = ['3D-SPGR-SS', 'ZTE-3D-SPGR-SS', 'lin', '2D-GE-EPI', '2D-SE-EPI', '2D-DE-EPI']
 
 class SignalToConc(Module):
     configs = {
@@ -218,7 +221,7 @@ class SignalToConc(Module):
         results = {'C': conc}
         return self.map_results(results)
 
-    def dummy_data(self, nt=5):
+    def test_data(self, nt=5):
         data = self.init_data()
         n_channels = channels(self.config['sequence'])
         components = 1

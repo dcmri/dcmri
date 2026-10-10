@@ -197,12 +197,12 @@ rois, scans = ['ao', 'li'], [1, 2]
 tissue_rel = {'ao': RelaxivityArtery, 'li': RelaxivityLiver}
 tissue_wex = {'ao': WaterExchangeArtery, 'li': WaterExchangeLiver}
 
-# ROI-specific configurations
-roi_configs = ['t1_relaxation', 't2_relaxation', 't2s_relaxation']
-
 CONFIGS = deepcopy(RelaxToSignal.configs | ConcToRelax.configs | WaterExchangeArtery.configs | WaterExchangeLiver.configs | RelaxivityArtery.configs | RelaxivityLiver.configs | ConcAortaLiver.configs)
 DEFAULTS = deepcopy(RelaxToSignal.defaults | ConcToRelax.defaults | WaterExchangeArtery.defaults | WaterExchangeLiver.defaults | RelaxivityArtery.defaults | RelaxivityLiver.defaults | ConcAortaLiver.defaults)
 CMAP = {roi: {} for roi in rois}
+
+# ROI-specific configurations
+roi_configs = ['t1_relaxation', 't2_relaxation', 't2s_relaxation']
 
 for key in roi_configs:
     config = CONFIGS.pop(key)
@@ -224,20 +224,7 @@ class ForwardAortaLiverSplit(Module):
     _all_inputs = {'Nz', 'BAT_2', 'BAT_1', 'ffa', 'Nph', 'vol_ao', 'v_e_li', 'Scal_2_ao', 'S0_2_li', 'Ti_h', 'rate_2', 'agent', 'fCO_li', 'BAT', 'GFR', 'Ef_li', 'iScal_1_ao', 'dt', 'S0_2_ao', 'v_h', 'T_e_or', 'dose', 'S0_1_ao', 'weight', 'B1corr_1_li', 'iScal_1_li', 'NSR_2_ao', 'kf_e2h', 'B1corr_1_ao', 'k_e2h', 'rate', 'TE', 'iz', 'B1corr_2_ao', 'R1_e', 'tacq_2', 'TR', 'iStrig_2_ao', 'PA', 'field_strength', 'Ei_li', 'Tf_h', 'TE1', 'S0_1_li', 'tacq_1', 'NSR_1_li', 'me', 'D_hl', 'E_or', 'T_h', 'TF', 'PSw', 'NSR_1_ao', 'TD', 'tstart_2', 'T_b_or', 'Scal_2_li', 'TE2', 'iStrig_1_li', 'rate_1', 'vol_li', 'iStrig_1_ao', 'dose_1', 'iScal_2_li', 'iScal_2_ao', 'CO', 'ki_e2h', 'Scal_1_ao', 'dose_tolerance', 'T_gu', 'iStrig_2_li', 'T_hl', 'T_la', 'v_li', 'Scal_1_li', 'tstart_1', 'B1corr_2_li', 'Nk0', 'H', 'FA', 'dose_2', 'SA', 'NSR_2_li', 'R1_b', 'R1_h', 'TP', 'TA', 'E_li'} 
     _all_outputs = {'R2s_li', 'tM_2_li', 'C_ao', 'S0_2_li', 'ci_li', 'R1i_ao', 'tC', 'tS_1_ao', 'M_1_li', 'R1_ao', 'J_or', 'S0_2_ao', 'R2_ao', 'M_2_li', 'S_1_li', 'M_2_ao', 'tS_1_li', 'J_lag', 'tM_2_ao', 'S0_1_ao', 'J_ve', 'tS_2_li', 'S_2_li', 'R2s_ao', 'R1_li', 'R1i_li', 'tM_1_ao', 'ci_ao', 'S_2_ao', 'tM_1_li', 'M_1_ao', 'J_la', 'R2_li', 'S_1_ao', 'tR', 'C_li', 'J_pv', 'tS_2_ao', 'J_li', 'J_ao', 'S0_1_li'}
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)  
 
-        p['tmax'] = p['tstart_2'] + p['tacq_2'] + p['dt']
-
-        p |= self._conc(p)
-        for roi in rois:
-            p |= self._tissue_rel[roi](p) 
-            p |= self._conc_to_relax[roi](p)
-            p |= self._tissue_wex[roi](p) 
-            for scan in scans:
-                p |= self._relax_to_signal[roi, scan](p)
-
-        return self.map_results(p)
 
     def __init__(self, imap:dict=None, omap:dict=None, iomap:dict=None, cmap:dict=None, **config):
         self.set_config(config, cmap)
@@ -271,6 +258,21 @@ class ForwardAortaLiverSplit(Module):
 
         self.map_io(imap, omap, iomap)
 
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data, kwargs)  
+
+        p['tmax'] = p['tstart_2'] + p['tacq_2'] + p['dt']
+
+        p |= self._conc(p)
+        for roi in rois:
+            p |= self._tissue_rel[roi](p) 
+            p |= self._conc_to_relax[roi](p)
+            p |= self._tissue_wex[roi](p) 
+            for scan in scans:
+                p |= self._relax_to_signal[roi, scan](p)
+
+        return self.map_results(p)
+    
     def inputs(self) -> set:
         inputs = self._conc.mapped_inputs()
         for roi in rois:
@@ -284,7 +286,7 @@ class ForwardAortaLiverSplit(Module):
         inputs -= self._conc.new_mapped_outputs()
         for roi in rois:
             inputs -= self._tissue_rel[roi].new_mapped_outputs()
-            inputs -= self._conc_to_relax[roi].new_mapped_outputs()
+            inputs -= (self._conc_to_relax[roi].new_mapped_outputs() - {'R1_li'})
             inputs -= self._tissue_wex[roi].new_mapped_outputs()
             # for scan in scans:
             #     inputs -= self._relax_to_signal[roi, scan].new_mapped_outputs()
@@ -300,9 +302,9 @@ class ForwardAortaLiverSplit(Module):
             outputs -= {f'F_b_{roi}'}
         return outputs
 
-    def dummy_data(self, data: dict=None): 
+    def test_data(self, data: dict=None): 
         p = self.init_data()
-        p |= self._conc.dummy_data()
+        p |= self._conc.test_data()
 
         n_channels = channels(self.config['sequence'])
         components = 1 if self.config['magnitude'] else 2

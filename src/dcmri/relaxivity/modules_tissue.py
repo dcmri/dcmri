@@ -104,7 +104,7 @@ class R1(Module):
     def outputs(self) -> set:
         return {'R1'}
 
-    def dummy_data(self, nc=2, nt=5):
+    def test_data(self, nc=2, nt=5):
         data = self.init_data()
         data |= {
             'C': np.ones((nc, nt)), 
@@ -218,7 +218,7 @@ class R2(Module):
     def outputs(self) -> set:
         return {'R2'}
 
-    def dummy_data(self, nc=2, nt=5):
+    def test_data(self, nc=2, nt=5):
         data = self.init_data()
         data |= {
             'C': np.ones((nc, nt)), 
@@ -347,7 +347,7 @@ class R2s(Module):
     def outputs(self) -> set:
         return {'R2s'}
     
-    def dummy_data(self, nc=2, nt=5):
+    def test_data(self, nc=2, nt=5):
         data = self.init_data()
         data |= {
             'v': np.ones(nc) / nc, 
@@ -484,14 +484,14 @@ class Relax(Module):
 
         return self.map_results(R_arr)
 
-    def dummy_data(self, nc=2, nt=5):
+    def test_data(self, nc=2, nt=5):
         data = {}
         if self.config['t1_relaxation']:
-            data |= self._R1.dummy_data(nc, nt)
+            data |= self._R1.test_data(nc, nt)
         if self.config['t2_relaxation']:
-            data |= self._R2.dummy_data(nc, nt)
+            data |= self._R2.test_data(nc, nt)
         if self.config['t2s_relaxation']:
-            data |= self._R2s.dummy_data(nc, nt)
+            data |= self._R2s.test_data(nc, nt)
         return data
 
 
@@ -606,7 +606,7 @@ class ConcToRelax(Module):
         outputs |= {'tR'}
         return outputs
 
-    def dummy_data(self, nc=2, nt=5): 
+    def test_data(self, nc=2, nt=5): 
         data = self.init_data()
         data |= {
             'C': np.ones((nc, nt)),

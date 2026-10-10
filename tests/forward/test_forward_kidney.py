@@ -16,7 +16,7 @@ def test_kidney(cls=ForwardKidney):
             return
 
         # print(cnfg)
-        data = instance.dummy_data()
+        data = instance.test_data()
         instance(data)
         
         # print(f"  [Total model execution time: {elapsed:.4f}s]")
@@ -44,7 +44,7 @@ def test_kidney_instance():
     model.print_inputs()
     model.print_outputs()
 
-    data = model.dummy_data()
+    data = model.test_data()
     results = model(data)
 
     plt.plot(results['tS_ki'], results['S_ki'][0, 0, :], 'ro')

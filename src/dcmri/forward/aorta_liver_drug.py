@@ -239,9 +239,9 @@ class ForwardAortaLiverDrug(Module):
     configs = ForwardAortaLiver.configs
     defaults = ForwardAortaLiver.defaults
 
-    _all_inputs = {'me', 'Scal_1_li', 'PA', 'TE1', 'CO', 'vol_1_ao', 'weight', 'Nph', 'iz', 'BAT_3', 'T_la', 'TE', 'TE2', 'tacq_1', 'T_1_h', 'kf_1_e2h', 'T_gu', 'TF', 'R1_b', 'S0_1_li', 'vol_2_li', 'Ef_1_li', 'Ti_1_h', 'S0_1_ao', 'v_h', 'B1corr_1_ao', 'iStrig_2_li', 'TR', 'vol_1_li', 'iStrig_2_ao', 'E_1_li', 'iScal_2_ao', 'field_strength', 'GFR', 'PSw', 'T_hl', 'SA', 'T_b_or', 'NSR_1_ao', 'B1corr_2_ao', 'BAT_1', 'TP', 'rate_2', 'Tf_2_h', 'H', 'rate_1', 'rate_4', 'iStrig_1_li', 'B1corr_2_li', 'Ef_2_li', 'dose_4', 'BAT_2', 'NSR_1_li', 'T_e_or', 'Ei_2_li', 'tstart_1', 'E_2_li', 'k_2_e2h', 'iScal_2_li', 'Tf_1_h', 'Scal_2_li', 'TA', 'Ei_1_li', 'B1corr_1_li', 'tacq_2', 'R1_h', 'TD', 'NSR_2_li', 'BAT_4', 'v_li', 'ki_1_e2h', 'agent', 'dose_1', 'vol_2_ao', 'rate_3', 'Nk0', 'ki_2_e2h', 'v_e_li', 'Scal_1_ao', 'tstart_2', 'Nz', 'E_or', 'iStrig_1_ao', 'fCO_li', 'dose_3', 'k_1_e2h', 'T_2_h', 'dose_tolerance', 'NSR_2_ao', 'FA', 'kf_2_e2h', 'Scal_2_ao', 'S0_2_li', 'S0_2_ao', 'iScal_1_ao', 'D_hl', 'dt', 'R1_e', 'iScal_1_li', 'ffa', 'Ti_2_h', 'dose_2'}
-    _all_outputs = {'tM_2_li', 'R2_2_li', 'R1i_1_ao', 'J_1_pv', 'tC_1', 'R2_2_ao', 'ci_2_ao', 'J_1_lag', 'R1_1_li', 'J_2_ve', 'ci_2_li', 'ci_1_ao', 'M_1_ao', 'tM_1_li', 'S0_1_li', 'J_1_or', 'tR_1', 'J_2_lag', 'R1i_2_ao', 'R1i_1_li', 'R2s_1_li', 'S0_1_ao', 'tS_2_li', 'S_2_ao', 'J_2_pv', 'tR_2', 'J_1_ao', 'tS_1_ao', 'M_2_ao', 'tS_2_ao', 'J_1_ve', 'R2s_2_li', 'J_1_la', 'C_1_li', 'tM_2_ao', 'J_2_ao', 'R2s_1_ao', 'J_2_or', 'C_2_li', 'tC_2', 'R1_2_ao', 'R2_1_li', 'C_2_ao', 'J_2_la', 'R2_1_ao', 'tS_1_li', 'S_1_ao', 'tM_1_ao', 'S0_2_li', 'R2s_2_ao', 'S_1_li', 'S0_2_ao', 'ci_1_li', 'R1_2_li', 'R1i_2_li', 'J_1_li', 'C_1_ao', 'M_1_li', 'S_2_li', 'M_2_li', 'J_2_li', 'R1_1_ao'}
-    
+    _all_inputs = {'field_strength', 'Scal_1_li', 'weight', 'iScal_2_ao', 'NSR_2_ao', 'Tf_1_h', 'tstart_2', 'Ti_1_h', 'S0_2_li', 'dose_1', 'T_e_or', 'R1_li', 'SA', 'PA', 'Scal_1_ao', 'BAT_4', 'CO', 'iScal_1_ao', 'rate_4', 'T_1_h', 'R1_e', 'GFR', 'ffa', 'agent', 'tacq_1', 'Nz', 'ki_1_e2h', 'TD', 'Nph', 'R1_b', 'Tf_2_h', 'iStrig_2_li', 'BAT_1', 'v_e', 'FA', 'Scal_2_ao', 'S0_1_li', 'vol_2_ao', 'E_1_li', 'rate_2', 'B1corr_2_ao', 'Nk0', 'tacq_2', 'rate_1', 'T_la', 'TR', 'v_h', 'T_b_or', 'kf_1_e2h', 'E_or', 'iStrig_1_li', 'tstart_1', 'vol_1_ao', 'TE1', 'T_gu', 'iScal_1_li', 'H', 'iz', 'rate_3', 'S0_2_ao', 'Ei_1_li', 'BAT_3', 'Ti_2_h', 'vol_1_li', 'NSR_2_li', 'dose_4', 'bdel', 'TA', 'NSR_1_ao', 'B1corr_1_li', 'Ei_2_li', 'TE', 'B1corr_2_li', 'v_li', 'BAT_2', 'Ef_2_li', 'S0_1_ao', 'TF', 'kf_2_e2h', 'iScal_2_li', 'ki_2_e2h', 'k_1_e2h', 'iStrig_1_ao', 'Ef_1_li', 'T_2_h', 'R1_h', 'dose_tolerance', 'D_hl', 'T_hl', 'fCO_li', 'TE2', 'TP', 'B1corr_1_ao', 'me', 'PSw', 'k_2_e2h', 'dose_3', 'iStrig_2_ao', 'Scal_2_li', 'v_e_li', 'E_2_li', 'dose_2', 'NSR_1_li', 'dt', 'vol_2_li'}
+    _all_outputs = {'S0_2_ao', 'R2_1_li', 'R1_1_li', 'J_2_vc', 'J_1_vc', 'S_2_ao', 'tS_2_li', 'R1_2_ao', 'J_2_pv', 'M_1_ao', 'J_1_ao', 'R1i_1_ao', 'R2_2_li', 'ci_1_ao', 'tS_1_ao', 'R2s_2_ao', 'S0_2_li', 'C_2_li', 'tR_1', 'J_2_li', 'tS_2_ao', 'R2s_1_li', 'J_1_la', 'C_2_ao', 'J_1_li', 'R2s_1_ao', 'tM_2_ao', 'tS_1_li', 'C_1_ao', 'R1i_2_ao', 'R2s_2_li', 'S_2_li', 'ci_2_ao', 'M_2_ao', 'R2_2_ao', 'S0_1_ao', 'R1i_1_li', 'J_1_pv', 'S_1_li', 'J_2_ao', 'tC_1', 'J_2_or', 'ci_1_li', 'tM_1_ao', 'tR_2', 'M_1_li', 'S0_1_li', 'C_1_li', 'tM_1_li', 'R1_2_li', 'R1i_2_li', 'R1_1_ao', 'J_1_or', 'J_2_lag', 'ci_2_li', 'tM_2_li', 'J_1_lag', 'S_1_ao', 'M_2_li', 'R2_1_ao', 'J_2_la', 'tC_2'}
+
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data, kwargs)  
 
@@ -285,7 +285,7 @@ class ForwardAortaLiverDrug(Module):
             outputs |= self._aol[visit].mapped_outputs()
         return outputs
 
-    def dummy_data(self, data: dict=None): 
+    def test_data(self, data: dict=None): 
         p = self.init_data()
 
         n_channels = channels(self.config['sequence'])

@@ -241,7 +241,7 @@ class ForwardCortMed(Module):
         return outputs
     
     
-    def dummy_data(self, data:dict=None): 
+    def test_data(self, data:dict=None): 
         n0, nt = 1, 180
 
         p = self.init_data()

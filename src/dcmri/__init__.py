@@ -22,7 +22,8 @@ from dcmri.utils.convolution import (
    invconvmat,
 )
 from dcmri.utils.data import (
-    fetch
+    fetch,
+    clear_cache,
 )
 from dcmri.utils.misc import (
     sample,
@@ -34,8 +35,6 @@ from dcmri.core.quantities import (
     QVALUES,
 )
 from dcmri.core.tools import (
-    init,
-    bounds,
     select_params,
     print_quantities,
 )
@@ -260,10 +259,10 @@ from dcmri.signal.modules_tissue import (
     RelaxToSignal,
     ConcToSignal,
 )
-from dcmri.inverse.sig2conc import (
+from dcmri.inverse.modules import (
     SignalToConc
 )
-from dcmri.inverse.lib import (
+from dcmri.inverse.functions import (
     estimate_bat,
     conc_dce,
     conc_dsc,
@@ -301,18 +300,6 @@ from dcmri.inverse.cort_med import InverseCortMed
 from dcmri.inverse.tissue_x import InverseTissueX
 from dcmri.inverse.tissue_ls import InverseTissueLS
 
-# End user tools
-from dcmri.model.aorta import Aorta
-from dcmri.model.aorta_liver import AortaLiver
-from dcmri.model.aorta_kidneys import AortaKidneys
-from dcmri.model.aorta_portal_liver import AortaPortalLiver
-from dcmri.model.aorta_liver_split import AortaLiverSplit
-from dcmri.model.aorta_liver_drug import AortaLiverDrug
-from dcmri.model.aorta_liver_split_drug import AortaLiverSplitDrug
-from dcmri.model.kidney import Kidney
-from dcmri.model.liver import Liver
-from dcmri.model.cort_med import CortMed
-from dcmri.model.tissue_x import TissueX
 
 from dcmri.dro.functions_aif import (
     parker,

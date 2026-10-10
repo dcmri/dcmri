@@ -17,7 +17,7 @@ def _test_class(cls):
             instance = cls(**cnfg)
         except InvalidConfig:
             return
-        data = instance.dummy_data()
+        data = instance.test_data()
         instance(data)
 
     configs = cls.all_configs()
@@ -40,7 +40,7 @@ def test_flux():
 def test_flux_aorta():
     cnfg = {'heartlung': 'pfcomp', 'organs': 'comp', 'kidneys': 'pass', 'liver': 'comp', 'lagut': None, 'bolus': 'single'}
     instance = dc.FluxAorta(**cnfg)
-    data = instance.dummy_data()
+    data = instance.test_data()
     results = instance(data)
     print(instance.config)
 

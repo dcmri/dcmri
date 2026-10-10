@@ -29,6 +29,9 @@ def estimate_bat(t, signal, nb=10, threshold_multiplier=1.1, persistence=3):
     """
     t = np.asarray(t)
     signal = np.asarray(signal)
+
+    if signal.ndim==1:
+        signal = signal.reshape (1, 1, -1)
     # (channels, components, times)
 
     # Convert to magnitude signal

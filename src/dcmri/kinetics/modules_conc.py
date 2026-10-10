@@ -34,7 +34,7 @@ class Conc(Module):
         results = {'C': model_func(**p)}
         return self.map_results(results)
 
-    def dummy_data(self, nt=5, nc=2):
+    def test_data(self, nt=5, nc=2):
         data = self.init_data()
         data['J'] = np.ones(nt)
         data['h'] = [1]
@@ -93,9 +93,9 @@ class ConcAorta(Module):
         }
         return self.map_results(results)
 
-    def dummy_data(self):
+    def test_data(self):
         p = self.init_data()
-        p |= self._flux.dummy_data()
+        p |= self._flux.test_data()
         return self.input_data(p)
     
 # +--------------------------------------------------------------------------------------------------+
@@ -194,7 +194,7 @@ class ConcLiver(Module):
         results = {'tC_li': tC_li, 'C_li': C_li, 'ci_li': ci}
         return self.map_results(results)
 
-    def dummy_data(self, nt=5):
+    def test_data(self, nt=5):
         data = self.init_data()
         ci = np.ones(nt)
         data['ci_li'] = ci if '1I' in self.config['kinetics'] else (ci, ci)
@@ -292,9 +292,9 @@ class ConcAortaLiver(Module):
 
         return self.map_results(p)
 
-    def dummy_data(self):
+    def test_data(self):
         p = self.init_data()
-        p |= self._flux_aorta.dummy_data()
+        p |= self._flux_aorta.test_data()
         return self.input_data(p)
 
     def deriv(self, parameter, p): # Helper
@@ -356,9 +356,9 @@ class ConcAortaPortalLiver(Module):
         }              
         return self.map_results(p)
 
-    def dummy_data(self):
+    def test_data(self):
         p = self.init_data()
-        p |= self._conc_aol.dummy_data()
+        p |= self._conc_aol.test_data()
         return self.input_data(p)
 
 
@@ -399,7 +399,7 @@ class ConcKidney(Module):
 
         return self.map_results(results)
 
-    def dummy_data(self, nt=5):
+    def test_data(self, nt=5):
         data = self.init_data()
         data['T_ar'] = 2
         data['c_ar'] *= np.ones(nt)
@@ -513,11 +513,11 @@ class ConcAortaKidneys(Module):
         }
         return self.map_results(p)
 
-    def dummy_data(self):
+    def test_data(self):
         p = self.init_data()
-        p |= self._flux_aorta.dummy_data()
-        p |= self._conc_lk.dummy_data()
-        p |= self._conc_rk.dummy_data()
+        p |= self._flux_aorta.test_data()
+        p |= self._conc_lk.test_data()
+        p |= self._conc_rk.test_data()
         return self.input_data(p)
 
     
@@ -555,7 +555,7 @@ class ConcCortMed(Module):
         
         return self.map_results(results)
 
-    def dummy_data(self, nt=5):
+    def test_data(self, nt=5):
         data = self.init_data()
         data['c_ar'] *= np.ones(nt)
         return self.input_data(data)
@@ -599,7 +599,7 @@ class ConcTissueX(Module):
     def outputs(self):
         return {'tC', 'ci', 'C'}
 
-    def dummy_data(self, nt=5):
+    def test_data(self, nt=5):
         data = self.init_data()
         data['c_ar'] *= np.ones(nt)
         return self.input_data(data)
@@ -623,7 +623,7 @@ class ConcTissueLS(Module):
     def outputs(self):
         return {'tC', 'C'}
 
-    def dummy_data(self, nt=5):
+    def test_data(self, nt=5):
         data = self.init_data()
         data['ci'] *= np.ones(nt)
         data['irf'] *= np.ones(nt)

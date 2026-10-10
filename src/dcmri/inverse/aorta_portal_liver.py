@@ -138,12 +138,13 @@
 # +-----------------------------------------------------------------------------------------------------------------+
 
 from copy import deepcopy
+
 import numpy as np
+import matplotlib.pyplot as plt
 
 from dcmri.core.module import Module
 from dcmri.core.tools import get_quantity, update_bounds
-from dcmri.utils.fit import train_bat
-from dcmri.inverse.lib import estimate_bat
+from dcmri.utils.fit import train_bat, train
 from dcmri.forward.aorta_portal_liver import ForwardAortaPortalLiver as Forward
 
 configs = deepcopy(Forward.configs)
@@ -168,10 +169,13 @@ class InverseAortaPortalLiver(Module):
 
     def _predict(self, time):
         pred = self.forward(self._pars)
-        return tuple([pred[f'S_{roi}'].reshape(-1) for roi in ROIS])
+        return tuple([pred[f'S_{roi}'][:, :, :len(time[i])].reshape(-1) for i, roi in enumerate(ROIS)])
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data)  
+    def _preproc(self, p):
+        # Reshape signal if needed
+        for roi in ROIS:
+            if p[f'S_{roi}'].ndim == 1:
+                p[f'S_{roi}'] = p[f'S_{roi}'].reshape(1, 1, -1)
 
         # Set calibration signal
         if self.config['calibrate']:
@@ -179,40 +183,53 @@ class InverseAortaPortalLiver(Module):
                 p[f"Scal_{roi}"] = p[f"S_{roi}"][..., :p['nb']]
                 p[f'iScal_{roi}'] = np.arange(p['nb'])
 
-        # Estimate bat from data
-        bat = estimate_bat(p['tS_ao'], p['S_ao'], p['nb'])
-        p['BAT'] = max(bat - p['T_hl'], 0)
+    def _pfree(self):
+        inputs = self.forward.mapped_inputs()
+        pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
+        pfree |= {'BAT'}
+        return {p: get_quantity(p)['bounds'] for p in pfree}
+
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data)  
+        self._preproc(p) 
+
+        # Initialize pfree if needed
+        if p['pfree'] is None:
+            p['pfree'] = self._pfree() 
 
         p['pfree'] = update_bounds(p['pfree'], value=p)
 
         # Compute inverse
         self._pars = p
-        signal = tuple([data[f'S_{roi}'].reshape(-1) for roi in ROIS])
-        p = train_bat(self._predict, None, signal, p, p['pfree'], **kwargs)
+        time = tuple([p[f'tS_{roi}'].reshape(-1) for roi in ROIS])
+        signal = tuple([p[f'S_{roi}'].reshape(-1) for roi in ROIS])
+        # output = train_bat(self._predict, time, signal, p, p['pfree'], **kwargs)
+        output = train(self._predict, time, signal, p, p['pfree'], **kwargs)
 
-        return self.map_results(p)
+        return self.map_results(output)
 
     def inputs(self) -> set:
         inputs = self.forward.mapped_inputs()
-        inputs |= {'nb', 'pfree'}
+        inputs |= {'pfree'}
         for roi in ROIS:
             inputs |= {f'tS_{roi}', f'S_{roi}'}
-        inputs -= {'BAT'}
-        for roi in ROIS:
-            inputs -= {f'Scal_{roi}', f'iScal_{roi}'}
+        if self.config['calibrate']:
+            inputs |= {'nb'}
+            for roi in ROIS:
+                inputs -= {f'Scal_{roi}', f'iScal_{roi}'}
         return inputs  
     
     def outputs(self):
         return {'popt', 'psdev', 'pcov', 'loss'}
     
-    def dummy_data(self, data: dict=None): 
+    def test_data(self, data: dict=None): 
         p = self.init_data()
-        p |= self.forward.dummy_data()
+        p |= self.forward.test_data()
 
         pred = self.forward(p)
         p |= {
             'nb': 5,
-            'pfree': {'CO': (10, 300), 'BAT': (-60, 60)},
+            'pfree': self.forward.filter_data({'CO': (10, 300), 'BAT': (-60, 60)}),
         }
         for roi in ROIS:        
             p |= {
@@ -221,8 +238,56 @@ class InverseAortaPortalLiver(Module):
             }
         return self.input_data(p, data)
 
-    def pfree(self):
-        inputs = self.forward.mapped_inputs()
-        pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
-        pfree |= {'BAT'}
-        return {p: get_quantity(p)['bounds'] for p in pfree}
+
+    def plot(self, data: dict, xlim=None, fname=None, show=True):
+        p = self.map_data(data) 
+        self._preproc(p) 
+        pred = self.forward(p)
+
+        if xlim is None: 
+            xlim = [pred['tR'][0], pred['tR'][-1]]
+        xlim = np.array(xlim) / 60
+        
+        fig, axes = plt.subplots(3, 2, figsize=(10, 8))
+        fig.subplots_adjust(wspace=0.3)
+        ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = axes
+        
+        # Plot signals
+        def plot_data(t, s, ti, si, ax, clr):
+            ax.set_title('MRI Signal Prediction')
+            for i in range(si.shape[0]):
+                for j in range(si.shape[1]):
+                    ax.plot(ti / 60, si[i, j, :], marker='o', color=clr[0], alpha=0.5, label='Data')
+                    ax.plot(t / 60, s[i, j, :], linestyle='-', color=clr[1], linewidth=3, label='Prediction')                
+            ax.set_xlabel('Time (min)')
+            ax.set_ylabel('Signal (a.u.)')
+            ax.legend()
+
+        plot_data(pred['tS_ao'], pred['S_ao'], p['tS_ao'], p['S_ao'], ax1, ['lightcoral', 'darkred'])
+        plot_data(pred['tS_li'], pred['S_li'], p['tS_li'], p['S_li'], ax5, ['cornflowerblue', 'darkblue'])
+        plot_data(pred['tS_pv'], pred['S_pv'], p['tS_pv'], p['S_pv'], ax3, ['orchid', 'purple'])
+        
+        # Plot concentrations
+        ax2.set(ylabel='Concentration (mM)', xlim=xlim)
+        ax2.plot(pred['tC'] / 60, 0 * pred['tC'], color='gray')
+        ax2.plot(pred['tC'] / 60, 1000 * pred['C_ao'][0], linestyle='-', color='darkred', linewidth=2.0, label='Aorta')
+        ax2.legend()
+
+        ax4.set(ylabel='Concentration (mM)', xlim=xlim)
+        ax4.plot(pred['tC'] / 60, 0 * pred['tC'], color='gray')
+        ax4.plot(pred['tC'] / 60, 1000 * pred['C_pv'][0], linestyle='-', color='purple', linewidth=2.0, label='Portal vein')
+        ax4.legend()
+
+        ax6.set(xlabel='Time (min)', ylabel='Tissue concentration (mM)', xlim=xlim)
+        ax6.plot(pred['tC'] / 60, 0 * pred['tC'], color='gray')
+        ax6.plot(pred['tC'] / 60, 1000 * pred['C_li'][0, :], linestyle='-.', color='darkblue', linewidth=2.0, label='Extracellular')
+        ax6.plot(pred['tC'] / 60, 1000 * pred['C_li'][1, :], linestyle='--', color='darkblue', linewidth=2.0, label='Hepatocytes')
+        ax6.plot(pred['tC'] / 60, 1000 * pred['C_li'].sum(axis=0), linestyle='-', color='darkblue', linewidth=2.0, label='Liver')
+        ax6.legend()
+
+        if fname: 
+            plt.savefig(fname=fname)
+        if show: 
+            plt.show()
+        else: 
+            plt.close()

@@ -148,7 +148,7 @@ class RelaxivityGeneric(Module):
 
         return outputs
 
-    def dummy_data(self):
+    def test_data(self):
         data = self.init_data()
         data['v_t'] = [data['v_t']]
         if self.config['baseline']=='measured':

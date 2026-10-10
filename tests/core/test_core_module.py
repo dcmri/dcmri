@@ -3,7 +3,7 @@ import numpy as np
 from dcmri.core.module import Module
 
 
-def dummy_data():
+def test_data():
     return {
         'XX': 1,
         'S0': 100 * np.arange(50),
@@ -237,31 +237,31 @@ def test_module():
     t = np.arange(3)
 
     # Intialize without arguments
-    data = dummy_data()
+    data = test_data()
     model = MockModule()
     result = model(t, 9, data) 
     assert result['YY'][0] == 901
 
     # Overwrite defaults
-    data = dummy_data()
+    data = test_data()
     model = MockModule(order='linear')
     result = model(t, 9, data) 
     assert result['YY'][0] == 901
 
     # Non-default config
-    data = dummy_data()
+    data = test_data()
     model = MockModule(order='nonlinear')
     result = model(t, 9, data) 
     assert result['YY'][0] == 2701
 
     # Use input map
-    data = dummy_data()
+    data = test_data()
     model = MockModule({'XX': 'ZZ'})
     result = model(t, 9, data) 
     assert result['YY'][0] == 910
 
     # Missing data
-    data = dummy_data()
+    data = test_data()
     model = MockModule()
     data.pop('XX')
     try:

@@ -36,7 +36,7 @@ import matplotlib.pyplot as plt
 
 from dcmri.core.module import Module
 from dcmri.core.tools import get_quantity, update_bounds
-from dcmri.utils.fit import train_bat
+from dcmri.utils.fit import train_bat, train
 from dcmri.forward.aorta_liver import ForwardAortaLiver
 from dcmri.kinetics.functions_liver import dpars_liver
 
@@ -81,6 +81,9 @@ class InverseAortaLiver(Module):
         inputs = self.forward.mapped_inputs()
         pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
         pfree |= {'BAT'}
+        if not self.config['calibrate']:
+            pfree |= {'S0_ao', 'S0_li'}
+        pfree -= {'v_li', 'H', 'GFR'}
         return {p: get_quantity(p)['bounds'] for p in pfree}
 
     def _pder(self, data:dict):
@@ -100,13 +103,14 @@ class InverseAortaLiver(Module):
 
         # Compute inverse
         self._pars = p
-        time = tuple([data[f'tS_{roi}'] for roi in ROIS])
-        signal = tuple([data[f'S_{roi}'].reshape(-1) for roi in ROIS])
-        p = train_bat(self._predict, time, signal, p, p['pfree'], **kwargs)
+        time = tuple([p[f'tS_{roi}'] for roi in ROIS])
+        signal = tuple([p[f'S_{roi}'].reshape(-1) for roi in ROIS])
 
-        p['pder'] = self._pder(p | p['popt'])
+        #output = train_bat(self._predict, time, signal, p, p['pfree'], **kwargs)
+        output = train(self._predict, time, signal, p, p['pfree'], **kwargs)
+        output['pder'] = self._pder(p | output['popt'])
 
-        return self.map_results(p)
+        return self.map_results(output)
 
     def inputs(self) -> set:
         inputs = self.forward.mapped_inputs()
@@ -122,14 +126,16 @@ class InverseAortaLiver(Module):
     def outputs(self):
         return {'popt', 'psdev', 'pcov', 'pder', 'loss'}
     
-    def dummy_data(self, data: dict=None): 
+    def test_data(self, data: dict=None): 
         p = self.init_data()
-        p |= self.forward.dummy_data()
+        p |= self.forward.test_data()
+
+        pfree = {'CO': (10, 300), 'BAT': (-60, 60)}
 
         pred = self.forward(p)
         p |= {
             'nb': 5,
-            'pfree': {'CO': (10, 300), 'BAT': (-60, 60)},
+            'pfree': self.forward.filter_data(pfree),
         }
         for roi in ROIS:        
             p |= {
@@ -162,8 +168,8 @@ class InverseAortaLiver(Module):
             ax.set_ylabel('Signal (a.u.)')
             ax.legend()
 
-        plot_data(pred['tS_ao'], pred['S_ao'], data['tS_ao'], data['S_ao'], ax1, ['lightcoral', 'darkred'])
-        plot_data(pred['tS_li'], pred['S_li'], data['tS_li'], data['S_li'], ax3, ['cornflowerblue', 'darkblue'])
+        plot_data(pred['tS_ao'], pred['S_ao'], p['tS_ao'], p['S_ao'], ax1, ['lightcoral', 'darkred'])
+        plot_data(pred['tS_li'], pred['S_li'], p['tS_li'], p['S_li'], ax3, ['cornflowerblue', 'darkblue'])
         
         # Plot concentrations
         ax2.set(ylabel='Concentration (mM)', xlim=xlim)
