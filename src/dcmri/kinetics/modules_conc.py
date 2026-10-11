@@ -287,9 +287,6 @@ class ConcAortaLiver(Module):
             'ci_li': p['J_lag'].reshape(1, -1) / p['CO'],
             'C_li': C_l,
         } 
-
-
-
         return self.map_results(p)
 
     def test_data(self):

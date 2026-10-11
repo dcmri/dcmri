@@ -169,7 +169,7 @@ class FluxAorta(Module):
         'organs': {'comp', '2cxm'},
         'kidneys': {None, 'pass', 'comp', 'plug'},
         'liver': {None, 'pass', 'comp', 'plug'},
-        'lagut':{None, 'pass', 'comp', 'plucom'},
+        'lagut': {None, 'pass', 'comp', 'plucom'},
         'bolus': FluxInjection.configs['bolus'],
     }
     defaults = {

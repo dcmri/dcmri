@@ -2,8 +2,8 @@
 
 
 QDATA_ROIS = {
-    'Fb': {'init': 0.02, 'bounds': (0, 1)},
-    'Fp': {'init': 0.02, 'bounds': (0, 0.05)},
+    # 'Fb': {'init': 0.02, 'bounds': (0, 1)},
+    # 'Fp': {'init': 0.02, 'bounds': (0, 0.05)},
     'T_b': {'init': 5, 'bounds': (0.1, 60)},
     'T_p': {'init': 5, 'bounds': (0, 30)},
     'T_e': {'init': 30.0, 'bounds': (0.1, 60)},

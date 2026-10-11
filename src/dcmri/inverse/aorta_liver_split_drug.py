@@ -208,7 +208,7 @@ class InverseAortaLiverSplitDrug(Module):
     configs = configs
     defaults = defaults
 
-    _all_inputs = {'S_4_li', 'B1corr_2_ao', 'Ei_2_li', 'S_3_li', 'dt', 'tstart_4', 'iStrig_4_li', 'kf_1_e2h', 'tacq_1', 'Ti_2_h', 'nb', 'iStrig_3_li', 'B1corr_3_li', 'k_1_e2h', 'T_b_or', 'iStrig_4_ao', 'GFR', 'T_1_h', 'TE1', 'T_hl', 'BAT_1', 'kf_2_e2h', 'T_e_or', 'weight', 'vol_2_li', 'v_li', 'iStrig_2_li', 'vol_2_ao', 'k_2_e2h', 'NSR_1_ao', 'Tf_2_h', 'B1corr_1_ao', 'S0_3_ao', 'ki_2_e2h', 'agent', 'S0_2_li', 'SA', 'rate_4', 'TE2', 'tS_1_ao', 'dose_4', 'NSR_3_ao', 'E_or', 'tS_4_li', 'TD', 'iStrig_3_ao', 'bdel', 'vol_1_li', 'CO', 'H', 'BAT_4', 'rate_2', 'dose_2', 'B1corr_1_li', 'S_3_ao', 'S_2_li', 'v_e_li', 'B1corr_4_li', 'S_4_ao', 'tS_4_ao', 'fCO_li', 'R1_b', 'S_2_ao', 'tacq_4', 'E_2_li', 'field_strength', 'PSw', 'T_2_h', 'B1corr_2_li', 'me', 'Nz', 'TA', 'iStrig_1_li', 'tS_1_li', 'v_h', 'BAT_2', 'tstart_1', 'B1corr_3_ao', 'tstart_2', 'NSR_2_ao', 'Nph', 'tacq_2', 'BAT_3', 'NSR_3_li', 'Nk0', 'S0_1_ao', 'TF', 'vol_1_ao', 'tstart_3', 'Ti_1_h', 'PA', 'tS_2_li', 'iStrig_2_ao', 'S_1_li', 'Ei_1_li', 'tS_2_ao', 'ki_1_e2h', 'S0_1_li', 'tS_3_li', 'ffa', 'dose_1', 'pfree', 'Ef_2_li', 'TP', 'dose_tolerance', 'dose_3', 'Ef_1_li', 'T_gu', 'R1_e', 'NSR_2_li', 'TE', 'E_1_li', 'rate_1', 'iStrig_1_ao', 'S_1_ao', 'T_la', 'B1corr_4_ao', 'tacq_3', 'S0_4_ao', 'NSR_1_li', 'S0_4_li', 'tS_3_ao', 'NSR_4_ao', 'Tf_1_h', 'iz', 'NSR_4_li', 'R1_h', 'TR', 'S0_2_ao', 'rate_3', 'FA', 'S0_3_li', 'D_hl'}
+    _all_inputs = {'S_4_li', 'B1corr_2_ao', 'Ei_2_li', 'S_3_li', 'dt', 'iStrig_4_li', 'kf_1_e2h', 'Ti_2_h', 'nb', 'iStrig_3_li', 'B1corr_3_li', 'k_1_e2h', 'T_b_or', 'iStrig_4_ao', 'GFR', 'T_1_h', 'TE1', 'T_hl', 'BAT_1', 'kf_2_e2h', 'T_e_or', 'weight', 'vol_2_li', 'v_li', 'iStrig_2_li', 'vol_2_ao', 'k_2_e2h', 'NSR_1_ao', 'Tf_2_h', 'B1corr_1_ao', 'S0_3_ao', 'ki_2_e2h', 'agent', 'S0_2_li', 'SA', 'rate_4', 'TE2', 'tS_1_ao', 'dose_4', 'NSR_3_ao', 'E_or', 'tS_4_li', 'TD', 'iStrig_3_ao', 'bdel', 'vol_1_li', 'CO', 'H', 'BAT_4', 'rate_2', 'dose_2', 'B1corr_1_li', 'S_3_ao', 'S_2_li', 'v_e_li', 'B1corr_4_li', 'S_4_ao', 'tS_4_ao', 'fCO_li', 'R1_b', 'S_2_ao', 'E_2_li', 'field_strength', 'PSw', 'T_2_h', 'B1corr_2_li', 'me', 'Nz', 'TA', 'iStrig_1_li', 'tS_1_li', 'v_h', 'BAT_2', 'B1corr_3_ao', 'NSR_2_ao', 'Nph', 'BAT_3', 'NSR_3_li', 'Nk0', 'S0_1_ao', 'TF', 'vol_1_ao', 'Ti_1_h', 'PA', 'tS_2_li', 'iStrig_2_ao', 'S_1_li', 'Ei_1_li', 'tS_2_ao', 'ki_1_e2h', 'S0_1_li', 'tS_3_li', 'ffa', 'dose_1', 'pfree', 'Ef_2_li', 'TP', 'dose_tolerance', 'dose_3', 'Ef_1_li', 'T_gu', 'R1_e', 'NSR_2_li', 'TE', 'E_1_li', 'rate_1', 'iStrig_1_ao', 'S_1_ao', 'T_la', 'B1corr_4_ao', 'S0_4_ao', 'NSR_1_li', 'S0_4_li', 'tS_3_ao', 'NSR_4_ao', 'Tf_1_h', 'iz', 'NSR_4_li', 'R1_h', 'TR', 'S0_2_ao', 'rate_3', 'FA', 'S0_3_li', 'D_hl'}
     _all_outputs = {'pcov', 'popt', 'psdev', 'pder', 'loss'}
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):
@@ -231,6 +231,14 @@ class InverseAortaLiverSplitDrug(Module):
         )
 
     def _preproc(self, p):
+
+        # Derive simulation timings
+        for scan in SCANS:
+            p[f'tstart_{scan}'] = min([p[f'tS_{scan}_{roi}'][0] for roi in ROIS])
+            tmax = max([p[f'tS_{scan}_{roi}'][-1] for roi in ROIS])
+            ts = p[f'tS_{scan}_ao'][1] - p[f'tS_{scan}_ao'][0]
+            p[f'tacq_{scan}'] = tmax - p[f'tstart_{scan}'] + ts
+
         # Reshape signal if needed
         for roi in ROIS:
             for scan in SCANS:
@@ -243,6 +251,14 @@ class InverseAortaLiverSplitDrug(Module):
                 for scan in SCANS:
                     p[f'Scal_{scan}_{roi}'] = p[f'S_{scan}_{roi}'][..., :p[f'nb_{scan}']]
                     p[f'iScal_{scan}_{roi}'] = np.arange(p[f'nb_{scan}'])
+
+        # Trigger signals
+        if self.config['trigger']:
+            for roi in ROIS:
+                for scan in SCANS:
+                    p[f'tS_{scan}_{roi}'] = p[f'tS_{scan}_{roi}'][p[f'iStrig_{scan}_{roi}']]  
+                    p[f'S_{scan}_{roi}'] = p[f'S_{scan}_{roi}'][:, :, p[f'iStrig_{scan}_{roi}']]     
+
 
     def _pfree(self):
         inputs = self.forward.mapped_inputs()
@@ -325,10 +341,12 @@ class InverseAortaLiverSplitDrug(Module):
             for scan in SCANS:
                 inputs |= {f'tS_{scan}_{roi}', f'S_{scan}_{roi}'}
         if self.config['calibrate']:
-            inputs |= {'nb_1', 'nb_2', 'nb_3', 'nb_4'}
-            for roi in ROIS:
-                for scan in SCANS:
+            for scan in SCANS:
+                inputs |= {f'nb_{scan}'}
+                for roi in ROIS:
                     inputs -= {f'Scal_{scan}_{roi}', f'iScal_{scan}_{roi}'}
+        for scan in SCANS:
+            inputs -= {f'tstart_{scan}', f'tacq_{scan}'}
         return inputs  
     
     def outputs(self):

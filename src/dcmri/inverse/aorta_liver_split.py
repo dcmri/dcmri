@@ -166,7 +166,7 @@ class InverseAortaLiverSplit(Module):
     configs = configs
     defaults = defaults
 
-    _all_inputs = {'BAT_2', 'Ei_li', 'tS_2_li', 'T_e_or', 'T_b_or', 'iStrig_1_ao', 'S_2_li', 'Tf_h', 'GFR', 'tacq_2', 'dose', 'NSR_2_ao', 'agent', 'tacq_1', 'tS_1_li', 'T_h', 'S0_2_ao', 'B1corr_2_ao', 'fCO_li', 'H', 'E_li', 'B1corr_1_li', 'rate_1', 'TF', 'BAT_1', 'T_hl', 'S0_2_li', 'TE1', 'vol_li', 'dose_2', 'Nk0', 'rate_2', 'vol_ao', 'dose_tolerance', 'iStrig_2_ao', 'rate', 'nb', 'PSw', 'R1_h', 'tstart_1', 'Ti_h', 'R1_e', 'TE', 'tstart_2', 'tS_1_ao', 'CO', 'Nz', 'me', 'S0_1_li', 'bdel', 'Ef_li', 'Nph', 'iStrig_1_li', 'ki_e2h', 'B1corr_2_li', 'TD', 'B1corr_1_ao', 'S_2_ao', 'PA', 'NSR_2_li', 'kf_e2h', 'field_strength', 'SA', 'pfree', 'TR', 'k_e2h', 'TE2', 'weight', 'iz', 'T_la', 'R1_b', 'NSR_1_ao', 'FA', 'S_1_li', 'v_li', 'E_or', 'TP', 'dt', 'NSR_1_li', 'D_hl', 'ffa', 'BAT', 'T_gu', 'S_1_ao', 'v_h', 'tS_2_ao', 'dose_1', 'TA', 'iStrig_2_li', 'S0_1_ao', 'v_e_li'}
+    _all_inputs = {'BAT_2', 'Ei_li', 'tS_2_li', 'T_e_or', 'T_b_or', 'iStrig_1_ao', 'S_2_li', 'Tf_h', 'GFR', 'dose', 'NSR_2_ao', 'agent', 'tS_1_li', 'T_h', 'S0_2_ao', 'B1corr_2_ao', 'fCO_li', 'H', 'E_li', 'B1corr_1_li', 'rate_1', 'TF', 'BAT_1', 'T_hl', 'S0_2_li', 'TE1', 'vol_li', 'dose_2', 'Nk0', 'rate_2', 'vol_ao', 'dose_tolerance', 'iStrig_2_ao', 'rate', 'nb', 'PSw', 'R1_h', 'Ti_h', 'R1_e', 'TE', 'tS_1_ao', 'CO', 'Nz', 'me', 'S0_1_li', 'bdel', 'Ef_li', 'Nph', 'iStrig_1_li', 'ki_e2h', 'B1corr_2_li', 'TD', 'B1corr_1_ao', 'S_2_ao', 'PA', 'NSR_2_li', 'kf_e2h', 'field_strength', 'SA', 'pfree', 'TR', 'k_e2h', 'TE2', 'weight', 'iz', 'T_la', 'R1_b', 'NSR_1_ao', 'FA', 'S_1_li', 'v_li', 'E_or', 'TP', 'dt', 'NSR_1_li', 'D_hl', 'ffa', 'BAT', 'T_gu', 'S_1_ao', 'v_h', 'tS_2_ao', 'dose_1', 'TA', 'iStrig_2_li', 'S0_1_ao', 'v_e_li'}
     _all_outputs = {'pcov', 'popt', 'psdev', 'pder', 'loss'}
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):
@@ -184,6 +184,14 @@ class InverseAortaLiverSplit(Module):
         )
 
     def _preproc(self, p):
+
+        # Derive simulation timings
+        for scan in SCANS:
+            p[f'tstart_{scan}'] = min([p[f'tS_{scan}_{roi}'][0] for roi in ROIS])
+            tmax = max([p[f'tS_{scan}_{roi}'][-1] for roi in ROIS])
+            ts = p[f'tS_{scan}_ao'][1] - p[f'tS_{scan}_ao'][0]
+            p[f'tacq_{scan}'] = tmax - p[f'tstart_{scan}'] + ts
+
         # Reshape signal if needed
         for roi in ROIS:
             for scan in SCANS:
@@ -196,6 +204,13 @@ class InverseAortaLiverSplit(Module):
                 for scan in SCANS:
                     p[f'Scal_{scan}_{roi}'] = p[f'S_{scan}_{roi}'][..., :p[f'nb_{scan}']]
                     p[f'iScal_{scan}_{roi}'] = np.arange(p[f'nb_{scan}'])
+
+        # trigger signals
+        if self.config['trigger']:
+            for roi in ROIS:
+                for scan in SCANS:
+                    p[f'tS_{scan}_{roi}'] = p[f'tS_{scan}_{roi}'][p[f'iStrig_{scan}_{roi}']]  
+                    p[f'S_{scan}_{roi}'] = p[f'S_{scan}_{roi}'][:, :, p[f'iStrig_{scan}_{roi}']]     
 
     def _pfree(self):
         inputs = self._forward.mapped_inputs()
@@ -247,6 +262,7 @@ class InverseAortaLiverSplit(Module):
             for roi in ROIS:
                 for scan in SCANS:
                     inputs -= {f'Scal_{scan}_{roi}', f'iScal_{scan}_{roi}'}
+        inputs -= {'tstart_1', 'tstart_2', 'tacq_1', 'tacq_2'}
         return inputs  
     
     def outputs(self):
