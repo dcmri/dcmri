@@ -52,34 +52,44 @@ def load_tristan_rats(study_name, subject, visit):
     }
 
 
-def load_tristan_humans(study, participant, visits=['control', 'drug'], scans=[1,2], rois=['ao', 'li']):
+def load_tristan_humans(study, subjects=None, visits=['control', 'drug'], scans=[1,2], rois=['ao', 'li']):
+
+    file = fetch(study)
+    data = pydmr.read(file, 'nest')
+
+    if subjects is None:
+        load_subjects = set(data['rois'].keys())
+    elif isinstance(subjects, str):
+        load_subjects = [subjects]
+    else:
+        load_subjects = subjects
 
     if len(visits) == 2 and len(scans) == 2 and len(rois) == 2:
-        return _load_tristan_humans_all(study, participant)
+        data = {subj: _load_tristan_humans_all(data, subj) for subj in load_subjects}
 
     if len(visits) == 1 and len(scans) == 2 and len(rois) == 2:
-        return _load_tristan_humans_visit(study, participant, visits[0])
+        data = {subj: _load_tristan_humans_visit(data, subj, visits[0]) for subj in load_subjects}
 
     if len(visits) == 2 and len(scans) == 1 and len(rois) == 2:
-        return _load_tristan_humans_scan(study, participant, scans[0])
+        data = {subj: _load_tristan_humans_scan(data, subj, scans[0]) for subj in load_subjects}
 
     if len(visits) == 1 and len(scans) == 1 and len(rois) == 2:
-        return _load_tristan_humans_visit_scan(study, participant, visits[0], scans[0])
+        data = {subj: _load_tristan_humans_visit_scan(data, subj, visits[0], scans[0]) for subj in load_subjects}
 
     if len(visits) == 1 and len(scans) == 1 and len(rois) == 1:
-        return _load_tristan_humans_visit_scan_roi(study, participant, visits[0], scans[0], rois[0])
+        data = {subj: _load_tristan_humans_visit_scan_roi(data, subj, visits[0], scans[0], rois[0]) for subj in load_subjects}
+
+    if isinstance(subjects, str):
+        return data[subjects]
+    else:
+        return data
 
 
 def _load_tristan_humans_visit_scan_roi(study_name, subject, visit, roi):
     pass
 
 
-
-def _load_tristan_humans_visit_scan(study, participant, visit, scan): 
-
-    # --- Load the data
-    file = fetch(study)
-    data = pydmr.read(file, 'nest')
+def _load_tristan_humans_visit_scan(data, participant, visit, scan): 
 
     # --- Get the subject-level data
     roi = data['rois'][participant][visit]
@@ -137,11 +147,7 @@ def _load_tristan_humans_visit_scan(study, participant, visit, scan):
     return data
 
 
-def _load_tristan_humans_scan(study, participant, scan): 
-
-    # --- Load the data
-    file = fetch(study)
-    data = pydmr.read(file, 'nest')
+def _load_tristan_humans_scan(data, participant, scan): 
 
     # --- Get the subject-level data
     roi = data['rois'][participant]
@@ -204,11 +210,7 @@ def _load_tristan_humans_scan(study, participant, scan):
     return data
     
     
-def _load_tristan_humans_visit(study, participant, visit): 
-
-    # --- Load the data
-    file = fetch(study)
-    data = pydmr.read(file, 'nest')
+def _load_tristan_humans_visit(data, participant, visit): 
 
     # --- Get the subject-level data
     roi = data['rois'][participant][visit]
@@ -273,11 +275,7 @@ def _load_tristan_humans_visit(study, participant, visit):
     }
 
 
-def _load_tristan_humans_all(study, participant): 
-
-    # --- Load the data
-    file = fetch(study)
-    data = pydmr.read(file, 'nest')
+def _load_tristan_humans_all(data, participant): 
 
     # --- Get the subject-level data
     roi = data['rois'][participant]

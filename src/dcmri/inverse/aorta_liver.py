@@ -39,9 +39,10 @@ from dcmri.core.tools import get_quantity, update_bounds
 from dcmri.utils.fit import train_bat, train
 from dcmri.forward.aorta_liver import ForwardAortaLiver
 from dcmri.kinetics.functions_liver import dpars_liver
+from dcmri.inverse.functions import estimate_bat
 
-configs = deepcopy(ForwardAortaLiver.configs)
-defaults = deepcopy(ForwardAortaLiver.defaults)
+configs = deepcopy(ForwardAortaLiver.configs) | {'estimate_bat': {'none', 'ttp', 'custom'}}
+defaults = deepcopy(ForwardAortaLiver.defaults) | {'estimate_bat': 'custom'}
 
 configs['bolus'].discard('dual') # Only meaningful for split protocols
 
@@ -89,7 +90,6 @@ class InverseAortaLiver(Module):
                 p[f'tS_{roi}'] = p[f'tS_{roi}'][p[f'iStrig_{roi}']]  
                 p[f'S_{roi}'] = p[f'S_{roi}'][:, :, p[f'iStrig_{roi}']] 
 
-
     def _pfree(self):
         inputs = self.forward.mapped_inputs()
         pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
@@ -99,7 +99,6 @@ class InverseAortaLiver(Module):
         pfree -= {'v_li', 'H', 'GFR'}
         return {p: get_quantity(p)['bounds'] for p in pfree}
     
-
     def _pder(self, data:dict):
         p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['phys', 'body']}
         p = dpars_liver(p, kinetics=self.config['liver'])
@@ -109,10 +108,15 @@ class InverseAortaLiver(Module):
         p = self.map_data(data)  
         self._preproc(p)
 
+        # Estimate BAT if needed
+        if self.config['estimate_bat'] == 'custom':
+            p['BAT'] = estimate_bat(p['tS_ao'], p['S_ao'])
+        elif self.config['estimate_bat'] == 'ttp':
+            p['BAT'] = p['tS_ao'][np.argmax(p['S_ao'])]
+
         # Initialize pfree if needed
         if p['pfree'] is None:
             p['pfree'] = self._pfree() 
-
         p['pfree'] = update_bounds(p['pfree'], value=p)
 
         # Compute inverse
@@ -135,6 +139,8 @@ class InverseAortaLiver(Module):
             inputs |= {'nb'}
             for roi in ROIS:
                 inputs -= {f'Scal_{roi}', f'iScal_{roi}'}
+        if self.config['estimate_bat'] != 'none':
+            inputs -= {'BAT'}
         inputs -= {f'tstart', f'tacq'}
         return inputs  
     
@@ -161,8 +167,13 @@ class InverseAortaLiver(Module):
 
     def plot(self, data: dict, xlim=None, fname=None, show=True):
         p = self.map_data(data)
-        self._preproc(p)
 
+        # Not an input parameter but required by forward model
+        if self.config['estimate_bat'] != 'none':
+            if 'BAT' in data:
+                p['BAT'] = data['BAT']
+
+        self._preproc(p)
         pred = self.forward(p)
 
         if xlim is None: 

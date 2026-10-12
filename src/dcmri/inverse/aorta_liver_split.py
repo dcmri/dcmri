@@ -154,9 +154,10 @@ from dcmri.core.tools import get_quantity, update_bounds
 from dcmri.utils.fit import train_bat, train
 from dcmri.forward.aorta_liver_split import ForwardAortaLiverSplit as Forward
 from dcmri.kinetics.functions_liver import dpars_liver
+from dcmri.inverse.functions import estimate_bat
 
-configs = deepcopy(Forward.configs)
-defaults = deepcopy(Forward.defaults)
+configs = deepcopy(Forward.configs) | {'estimate_bat': {'none', 'ttp', 'custom'}}
+defaults = deepcopy(Forward.defaults) | {'estimate_bat': 'custom'}
 
 ROIS = ['ao', 'li']
 SCANS = [1, 2]
@@ -230,6 +231,20 @@ class InverseAortaLiverSplit(Module):
         p = self.map_data(data)  
         self._preproc(p)
 
+        # Estimate BAT if needed
+        if self.config['estimate_bat'] == 'custom':
+            if self.config['bolus'] == 'dual':
+                p['BAT_1'] = estimate_bat(data['tS_1_ao'], data['S_1_ao'])
+                p['BAT_2'] = data['tS_2_ao'][np.argmax(data['S_2_ao'])]
+            else:
+                p['BAT'] = estimate_bat(data['tS_1_ao'], data['S_1_ao'])
+        elif self.config['estimate_bat'] == 'ttp':
+            if self.config['bolus'] == 'dual':
+                p['BAT_1'] = data['tS_1_ao'][np.argmax(data['S_1_ao'])]
+                p['BAT_2'] = data['tS_2_ao'][np.argmax(data['S_2_ao'])]
+            else:
+                p['BAT'] = data['tS_1_ao'][np.argmax(data['S_1_ao'])]
+
         # Initialize pfree if needed
         if p['pfree'] is None:
             p['pfree'] = self._pfree() 
@@ -245,6 +260,7 @@ class InverseAortaLiverSplit(Module):
         self._pars = p
         time = (p['tS_1_ao'], p['tS_2_ao'], p['tS_1_li'], p['tS_2_li'])
         signal = (p['S_1_ao'], p['S_2_ao'], p['S_1_li'], p['S_2_li'])
+
         # output = train_bat(self._predict, time, signal, p, p['pfree'], bats=bats, **kwargs)
         output = train(self._predict, time, signal, p, p['pfree'], **kwargs)
         output['pder'] = self._pder(p | output['popt'])
@@ -258,11 +274,14 @@ class InverseAortaLiverSplit(Module):
             for scan in SCANS:
                 inputs |= {f'tS_{scan}_{roi}', f'S_{scan}_{roi}'}
         if self.config['calibrate']:
-            inputs |= {'nb_1', 'nb_2'}
-            for roi in ROIS:
-                for scan in SCANS:
+            for scan in SCANS:
+                inputs |= {f'nb_{scan}'}
+                for roi in ROIS:
                     inputs -= {f'Scal_{scan}_{roi}', f'iScal_{scan}_{roi}'}
-        inputs -= {'tstart_1', 'tstart_2', 'tacq_1', 'tacq_2'}
+        if self.config['estimate_bat'] != 'none':
+            inputs -= {'BAT', 'BAT_1', 'BAT_2'}
+        for scan in SCANS:
+            inputs -= {f'tstart_{scan}', f'tacq_{scan}'}
         return inputs  
     
     def outputs(self):
@@ -297,6 +316,13 @@ class InverseAortaLiverSplit(Module):
 
     def plot(self, data: dict, xlim: list = None, fname: str = None, show=True):
         p = self.map_data(data)
+
+        # Not an input parameter but required by forward model
+        if self.config['estimate_bat'] != 'none':
+            for bat in ['BAT', 'BAT_1', 'BAT_2']:
+                if bat in data:
+                    p[bat] = data[bat]
+
         self._preproc(p)
         pred = self._forward(p)
 

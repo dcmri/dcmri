@@ -162,7 +162,7 @@ class InverseAorta(Module):
 
         # Initialize pfree if needed
         if p['pfree'] is None:
-            p['pfree'] = self.pfree() 
+            p['pfree'] = self._pfree() 
 
         p['pfree'] = update_bounds(p['pfree'], value=p)
 
