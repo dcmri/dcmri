@@ -231,7 +231,6 @@ class InverseAortaLiverSplitDrug(Module):
         )
 
     def _preproc(self, p):
-
         # Derive simulation timings
         for scan in SCANS:
             p[f'tstart_{scan}'] = min([p[f'tS_{scan}_{roi}'][0] for roi in ROIS])
@@ -272,6 +271,7 @@ class InverseAortaLiverSplitDrug(Module):
             pfree |= {'S0_3_ao', 'S0_3_li', 'S0_4_ao', 'S0_4_li'}
         pfree -= {'v_li', 'H', 'GFR'}
         return {p: get_quantity(p)['bounds'] for p in pfree}
+    
 
     def _pder(self, data:dict):
         p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['phys', 'body']}

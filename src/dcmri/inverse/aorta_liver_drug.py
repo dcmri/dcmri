@@ -181,7 +181,7 @@ class InverseAortaLiverDrug(Module):
     configs = configs
     defaults = defaults
 
-    _all_inputs = {'TA', 'T_e_or', 'rate_1', 'ki_1_e2h', 'E_1_li', 'agent', 'S0_1_li', 'R1_li', 'BAT_2', 'dt', 'H', 'R1_e', 'TE2', 'S_2_ao', 'T_la', 'PA', 'NSR_1_li', 'Ei_1_li', 'Tf_2_h', 'weight', 'S0_2_li', 'tS_1_ao', 'GFR', 'R1_b', 'dose_tolerance', 'rate_2', 'S0_1_ao', 'ffa', 'S0_2_ao', 'kf_1_e2h', 'E_or', 'T_2_h', 'B1corr_1_ao', 'NSR_1_ao', 'tS_2_ao', 'TR', 'FA', 'tacq_2', 'E_2_li', 'T_1_h', 'v_li', 'Nz', 'S_1_li', 'T_gu', 'iStrig_2_li', 'pfree', 'PSw', 'tstart_1', 'rate_3', 'tstart_2', 'B1corr_2_ao', 'Tf_1_h', 'Ei_2_li', 'Ef_1_li', 'vol_2_li', 'tS_1_li', 'T_b_or', 'v_e_li', 'iStrig_1_ao', 'ki_2_e2h', 'iStrig_1_li', 'vol_1_li', 'S_2_li', 'tacq_1', 'field_strength', 'R1_h', 'iStrig_2_ao', 'TF', 'Nk0', 'TE', 'NSR_2_li', 'v_h', 'D_hl', 'fCO_li', 'dose_2', 'v_e', 'k_1_e2h', 'iz', 'dose_3', 'rate_4', 'T_hl', 'Ti_2_h', 'TE1', 'BAT_1', 'B1corr_2_li', 'TD', 'k_2_e2h', 'TP', 'me', 'vol_2_ao', 'kf_2_e2h', 'NSR_2_ao', 'Nph', 'CO', 'tS_2_li', 'bdel', 'vol_1_ao', 'SA', 'Ef_2_li', 'S_1_ao', 'dose_4', 'Ti_1_h', 'dose_1', 'B1corr_1_li', 'nb'}
+    _all_inputs = {'TA', 'T_e_or', 'rate_1', 'ki_1_e2h', 'E_1_li', 'agent', 'S0_1_li', 'R1_li', 'BAT_2', 'dt', 'H', 'R1_e', 'TE2', 'S_2_ao', 'T_la', 'PA', 'NSR_1_li', 'Ei_1_li', 'Tf_2_h', 'weight', 'S0_2_li', 'tS_1_ao', 'GFR', 'R1_b', 'dose_tolerance', 'rate_2', 'S0_1_ao', 'ffa', 'S0_2_ao', 'kf_1_e2h', 'E_or', 'T_2_h', 'B1corr_1_ao', 'NSR_1_ao', 'tS_2_ao', 'TR', 'FA', 'E_2_li', 'T_1_h', 'v_li', 'Nz', 'S_1_li', 'T_gu', 'iStrig_2_li', 'pfree', 'PSw', 'rate_3', 'B1corr_2_ao', 'Tf_1_h', 'Ei_2_li', 'Ef_1_li', 'vol_2_li', 'tS_1_li', 'T_b_or', 'v_e_li', 'iStrig_1_ao', 'ki_2_e2h', 'iStrig_1_li', 'vol_1_li', 'S_2_li', 'field_strength', 'R1_h', 'iStrig_2_ao', 'TF', 'Nk0', 'TE', 'NSR_2_li', 'v_h', 'D_hl', 'fCO_li', 'dose_2', 'v_e', 'k_1_e2h', 'iz', 'dose_3', 'rate_4', 'T_hl', 'Ti_2_h', 'TE1', 'BAT_1', 'B1corr_2_li', 'TD', 'k_2_e2h', 'TP', 'me', 'vol_2_ao', 'kf_2_e2h', 'NSR_2_ao', 'Nph', 'CO', 'tS_2_li', 'bdel', 'vol_1_ao', 'SA', 'Ef_2_li', 'S_1_ao', 'dose_4', 'Ti_1_h', 'dose_1', 'B1corr_1_li', 'nb'}
     _all_outputs = {'popt', 'psdev', 'loss', 'pder', 'pcov'}
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):
@@ -199,6 +199,13 @@ class InverseAortaLiverDrug(Module):
         )
 
     def _preproc(self, p):
+        # Derive simulation timings
+        for scan in SCANS:
+            p[f'tstart_{scan}'] = min([p[f'tS_{scan}_{roi}'][0] for roi in ROIS])
+            tmax = max([p[f'tS_{scan}_{roi}'][-1] for roi in ROIS])
+            ts = p[f'tS_{scan}_ao'][1] - p[f'tS_{scan}_ao'][0]
+            p[f'tacq_{scan}'] = tmax - p[f'tstart_{scan}'] + ts
+
         # Reshape signal if needed
         for roi in ROIS:
             for scan in SCANS:
@@ -212,6 +219,13 @@ class InverseAortaLiverDrug(Module):
                     p[f'Scal_{scan}_{roi}'] = p[f'S_{scan}_{roi}'][..., :p[f'nb_{scan}']]
                     p[f'iScal_{scan}_{roi}'] = np.arange(p[f'nb_{scan}'])
 
+        # Trigger signals
+        if self.config['trigger']:
+            for roi in ROIS:
+                for scan in SCANS:
+                    p[f'tS_{scan}_{roi}'] = p[f'tS_{scan}_{roi}'][p[f'iStrig_{scan}_{roi}']]  
+                    p[f'S_{scan}_{roi}'] = p[f'S_{scan}_{roi}'][:, :, p[f'iStrig_{scan}_{roi}']] 
+
     def _pfree(self):
         inputs = self._forward.mapped_inputs()
         pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
@@ -220,6 +234,7 @@ class InverseAortaLiverDrug(Module):
             pfree |= {'S0_1_ao', 'S0_1_li', 'S0_2_ao', 'S0_2_li'}
         pfree -= {'GFR', 'H', 'v_li'}
         return {p: get_quantity(p)['bounds'] for p in pfree}
+    
 
     def _pder(self, data:dict):
         p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['phys', 'body']}
@@ -265,10 +280,12 @@ class InverseAortaLiverDrug(Module):
             for scan in SCANS:
                 inputs |= {f'tS_{scan}_{roi}', f'S_{scan}_{roi}'}
         if self.config['calibrate']:
-            inputs |= {'nb_1', 'nb_2'}
-            for roi in ROIS:
-                for scan in SCANS:
+            for scan in SCANS:
+                inputs |= {f'nb_{scan}'}
+                for roi in ROIS:
                     inputs -= {f'Scal_{scan}_{roi}', f'iScal_{scan}_{roi}'}
+        for scan in SCANS:
+            inputs -= {f'tstart_{scan}', f'tacq_{scan}'}
         return inputs  
     
     def outputs(self):

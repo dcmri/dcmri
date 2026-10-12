@@ -21,9 +21,13 @@ from dcmri.utils.convolution import (
    convmat,
    invconvmat,
 )
-from dcmri.utils.data import (
+from dcmri.utils.function_fetch import (
     fetch,
     clear_cache,
+)
+from dcmri.utils.function_load import (
+    load_tristan_humans,
+    load_tristan_rats,
 )
 from dcmri.utils.misc import (
     sample,

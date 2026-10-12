@@ -52,7 +52,7 @@ class InverseAortaLiver(Module):
     configs = configs
     defaults = defaults
 
-    _all_inputs = {'E_li', 'dose_1', 'TP', 'Ei_li', 'field_strength', 'me', 'B1corr_ao', 'ffa', 'tS_li', 'T_gu', 'dt', 'TR', 'tS_ao', 'vol_ao', 'kf_e2h', 'rate', 'TD', 'TA', 'dose', 'CO', 'R1_b', 'tacq', 'ki_e2h', 'PA', 'Tf_h', 'T_h', 'S_ao', 'S0_ao', 'S_li', 'v_e_li', 'Ti_h', 'TE2', 'D_hl', 'GFR', 'R1_li', 'bdel', 'S0_li', 'iStrig_ao', 'Nk0', 'pfree', 'R1_h', 'NSR_li', 'E_or', 'tstart', 'SA', 'v_h', 'R1_e', 'T_b_or', 'rate_1', 'iz', 'T_hl', 'T_la', 'Ef_li', 'agent', 'T_e_or', 'Nph', 'vol_li', 'fCO_li', 'FA', 'Nz', 'iStrig_li', 'weight', 'PSw', 'dose_tolerance', 'B1corr_li', 'nb', 'BAT', 'NSR_ao', 'v_li', 'rate_2', 'H', 'dose_2', 'k_e2h', 'TE', 'TE1', 'TF'}
+    _all_inputs = {'E_li', 'dose_1', 'TP', 'Ei_li', 'field_strength', 'me', 'B1corr_ao', 'ffa', 'tS_li', 'T_gu', 'dt', 'TR', 'tS_ao', 'vol_ao', 'kf_e2h', 'rate', 'TD', 'TA', 'dose', 'CO', 'R1_b', 'ki_e2h', 'PA', 'Tf_h', 'T_h', 'S_ao', 'S0_ao', 'S_li', 'v_e_li', 'Ti_h', 'TE2', 'D_hl', 'GFR', 'R1_li', 'bdel', 'S0_li', 'iStrig_ao', 'Nk0', 'pfree', 'R1_h', 'NSR_li', 'E_or', 'SA', 'v_h', 'R1_e', 'T_b_or', 'rate_1', 'iz', 'T_hl', 'T_la', 'Ef_li', 'agent', 'T_e_or', 'Nph', 'vol_li', 'fCO_li', 'FA', 'Nz', 'iStrig_li', 'weight', 'PSw', 'dose_tolerance', 'B1corr_li', 'nb', 'BAT', 'NSR_ao', 'v_li', 'rate_2', 'H', 'dose_2', 'k_e2h', 'TE', 'TE1', 'TF'}
     _all_outputs = {'pder', 'loss', 'pcov', 'psdev', 'popt'}
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):
@@ -66,6 +66,12 @@ class InverseAortaLiver(Module):
         return tuple([pred[f'S_{roi}'][:, :, :nt[roi]].reshape(-1) for roi in ROIS])
 
     def _preproc(self, p):
+        # Derive simulation timings
+        p[f'tstart'] = min([p[f'tS_{roi}'][0] for roi in ROIS])
+        tmax = max([p[f'tS_{roi}'][-1] for roi in ROIS])
+        ts = p[f'tS_ao'][1] - p[f'tS_ao'][0]
+        p[f'tacq'] = tmax - p[f'tstart'] + ts
+
         # Reshape signal if needed
         for roi in ROIS:
             if p[f'S_{roi}'].ndim == 1:
@@ -77,6 +83,13 @@ class InverseAortaLiver(Module):
                 p[f"Scal_{roi}"] = p[f"S_{roi}"][..., :p['nb']]
                 p[f'iScal_{roi}'] = np.arange(p['nb'])
 
+        # Trigger signals
+        if self.config['trigger']:
+            for roi in ROIS:
+                p[f'tS_{roi}'] = p[f'tS_{roi}'][p[f'iStrig_{roi}']]  
+                p[f'S_{roi}'] = p[f'S_{roi}'][:, :, p[f'iStrig_{roi}']] 
+
+
     def _pfree(self):
         inputs = self.forward.mapped_inputs()
         pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
@@ -85,6 +98,7 @@ class InverseAortaLiver(Module):
             pfree |= {'S0_ao', 'S0_li'}
         pfree -= {'v_li', 'H', 'GFR'}
         return {p: get_quantity(p)['bounds'] for p in pfree}
+    
 
     def _pder(self, data:dict):
         p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['phys', 'body']}
@@ -121,6 +135,7 @@ class InverseAortaLiver(Module):
             inputs |= {'nb'}
             for roi in ROIS:
                 inputs -= {f'Scal_{roi}', f'iScal_{roi}'}
+        inputs -= {f'tstart', f'tacq'}
         return inputs  
     
     def outputs(self):

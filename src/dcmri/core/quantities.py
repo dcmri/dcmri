@@ -104,7 +104,8 @@ QUANTITIES = {
     'BAT': {'init': 30, 'bounds': (-30, 30), 'name': 'bolus arrival time', 'unit': 'sec', 'bounds_type': 'add', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
     'bdel': {'init': 30, 'bounds': (-30, 30), 'name': 'delay in a double injection', 'unit': 'sec', 'bounds_type': 'add', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
     'dose': {'init': 0.1, 'bounds': (0, 0.2), 'name': 'contrast agent dose', 'unit': 'mL/kg', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
-    'rate': {'init': 1, 'bounds': (0, 10), 'name': 'injection rate', 'unit': 'mL/s', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
+    'rate': {'init': 1, 'bounds': (0, 10), 'name': 'injection rate', 'unit': 'mL/sec', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
+    'duration': {'init': 5, 'bounds': (0, 120), 'name': 'injection duration', 'unit': 'sec', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
 
     'tC': {'init': 0.0, 'bounds': None, 'name': 'concentration time points', 'unit': 'sec', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
     'J': {'init': 1, 'bounds': (0, 10), 'name': 'indicator flux', 'unit': 'mmol/sec', 'bounds_type': 'abs', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
