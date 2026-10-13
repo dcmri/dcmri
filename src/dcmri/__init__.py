@@ -28,6 +28,7 @@ from dcmri.utils.function_fetch import (
 from dcmri.utils.function_load import (
     load_tristan_humans,
     load_tristan_rats,
+    load_kruk,
 )
 from dcmri.utils.misc import (
     sample,
@@ -41,6 +42,7 @@ from dcmri.core.quantities import (
 from dcmri.core.tools import (
     select_params,
     print_quantities,
+    parse_varname,
 )
 
 from dcmri.kinetics.modules_conc import (

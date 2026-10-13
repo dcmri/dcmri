@@ -52,7 +52,7 @@ QDATA_ROIS = {
     'GFR_rk': {'init': 1, 'bounds': (0, 20)},
     # ki
     'F_u': {'init': 0.005, 'bounds': (0, 0.05)},
-    'T_u': {'init': 120, 'bounds': (0, 10 * 60)},
+    'T_u': {'init': 120, 'bounds': (30, 10 * 60)},
     'E_ki': {'init': 0.15, 'bounds': (0, 1)},
     'E_lk': {'init': 0.15, 'bounds': (0, 1)},
     'E_rk': {'init': 0.15, 'bounds': (0, 1)},

@@ -63,8 +63,7 @@ class InverseAortaLiver(Module):
 
     def _predict(self, time):
         pred = self.forward(self._pars)
-        nt = {roi: len(time[i]) for i, roi in enumerate(ROIS)}
-        return tuple([pred[f'S_{roi}'][:, :, :nt[roi]].reshape(-1) for roi in ROIS])
+        return tuple([pred[f'S_{roi}'][:, :, :len(time[i])].reshape(-1) for i, roi in enumerate(ROIS)])
 
     def _preproc(self, p):
         # Derive simulation timings

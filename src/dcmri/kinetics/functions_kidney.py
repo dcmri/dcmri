@@ -41,7 +41,7 @@ def dpars_kidney(p, kinetics='2CF', H=0.45) -> dict:
     p = copy.deepcopy(p)
 
     if {'F_p'}.issubset(p):
-        p['Fb'] = _div(p['F_p'], 1 - H)
+        p['F_b'] = _div(p['F_p'], 1 - H)
 
     if {'v_p', 'F_p', 'T_u'}.issubset(p):
         p['T_p'] = _div(p['v_p'], p['F_p']+p['F_u'])
@@ -51,20 +51,23 @@ def dpars_kidney(p, kinetics='2CF', H=0.45) -> dict:
 
     if {'FF', 'F_p'}.issubset(p):
         p['F_u'] = p['FF'] * p['F_p']
-        p['E'] = _div(p['F_u'], p['F_u'] + p['F_p'])
+        p['E_ki'] = _div(p['F_u'], p['F_u'] + p['F_p'])
         
-    if {'F_u', 'vol'}.issubset(p):
-        p['GFR'] = p['F_u'] * p['vol']  
+    if {'F_u', 'vol_ki'}.issubset(p):
+        p['GFR'] = p['F_u'] * p['vol_ki']  
 
-    if {'F_p', 'vol'}.issubset(p):
-        p['RBF'] = _div(p['F_p'] * p['vol'], 1-H)
-        p['RPF'] = p['F_p']*p['vol']
+    if {'F_p', 'vol_ki'}.issubset(p):
+        p['RBF'] = _div(p['F_p'] * p['vol_ki'], 1-H)
+        p['RPF'] = p['F_p']*p['vol_ki']
 
     if {'ffc', 'E', 'F_p'}.issubset(p):
-        p['Fb_med'] = (1 - p['ffc']) * (1 - p['E']) * p['F_p'] / (1 - H)
+        p['F_b_km'] = (1 - p['ffc']) * (1 - p['E_ki']) * p['F_p'] / (1 - H)
 
-    if {'Fb_med', 'vol'}.issubset(p):
-        p['SKMBF'] = p['Fb_med'] * p['vol']
+    if {'F_b_km', 'vol_km'}.issubset(p):
+        p['BF_km'] = p['F_b_km'] * p['vol_km']
+
+    if {'FF', 'F_p_ki', 'vol_ki'}.issubset(p):
+        p['GFR'] = p['FF'] * p['F_p_ki'] * p['vol_ki']
 
     return p
 

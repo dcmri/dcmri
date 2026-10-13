@@ -95,21 +95,25 @@ from dcmri.core.module import Module
 from dcmri.core.tools import get_quantity, update_bounds
 from dcmri.utils.fit import train
 from dcmri.forward.kidney import ForwardKidney as Forward
+from dcmri.kinetics.functions_kidney import dpars_kidney
+from dcmri.inverse.modules import SignalToConc
 
-configs = deepcopy(Forward.configs) 
-defaults = deepcopy(Forward.defaults)
+configs = deepcopy(Forward.configs) | {'aif': {'fixed', 'measured'}}
+defaults = deepcopy(Forward.defaults) | {'aif': 'fixed'}
 
 class InverseKidney(Module):
 
     configs = configs
     defaults = defaults
 
-    _all_inputs = {'v_c', 'nb', 'TD', 'Nz', 'TE2', 'pfree', 'TR', 'S0_ki', 'tstart', 'F_b_ki', 'TP', 'PA', 'R1_c', 'FA', 'Nph', 'iz', 'h_u', 'v_b', 'R1_b', 'tS_ki', 'T_u', 'TA', 'Nk0', 'F_u', 'dt', 'F_p_ki', 'me', 'TE', 'T_ar', 'iStrig_ki', 'FF', 'S_ki', 'NSR_ki', 'TE1', 'v_p_ki','PSw', 'agent', 'v_ki', 'B1corr_ki', 'R1_u', 'c_ar', 'field_strength', 'v_u'}
-    _all_outputs = {'loss', 'popt', 'pcov', 'psdev'}
+    _all_inputs = None
+    _all_outputs = None
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
         self.forward = Forward(**self.config)
+        if self.config['aif'] == 'measured':
+            self._sig2conc = SignalToConc(**self.config)
         self.map_io(imap, omap)
 
     def _predict(self, time):
@@ -126,12 +130,24 @@ class InverseKidney(Module):
             p['Scal_ki'] = p['S_ki'][..., :p['nb']]
             p['iScal_ki'] = np.arange(p['nb'])
 
-    def _pfree(self):
+        if self.config['aif'] == 'measured':
+            tmax = max(p['tS_ar']) + 2 * (p['tS_ar'][-1] - p['tS_ar'][-2])
+            t = np.arange(0, tmax, p['dt'])
+            c_ar = self._sig2conc(p, S=p['S_ar'], R1b=p['R1_b'])['C']
+            p['c_ar'] = np.interp(t, p['tS_ar'], c_ar)            
+
+    def pfree(self):
         inputs = self.forward.mapped_inputs()
         pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
         if not self.config['calibrate']:
             pfree |= {'S0_ki'}
+        pfree -= {'v_ki'}
         return {p: get_quantity(p)['bounds'] for p in pfree}
+
+    def _pder(self, data:dict):
+        p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['phys', 'body']}
+        p = dpars_kidney(p, kinetics=self.config['kinetics'])
+        return p
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data)  
@@ -139,7 +155,7 @@ class InverseKidney(Module):
 
         # Initialize pfree if needed
         if p['pfree'] is None:
-            p['pfree'] = self._pfree() 
+            p['pfree'] = self.pfree() 
 
         p['pfree'] = update_bounds(p['pfree'], value=p)
 
@@ -148,6 +164,7 @@ class InverseKidney(Module):
         time = p['tS_ki']
         signal = p['S_ki']
         output = train(self._predict, time, signal, p, p['pfree'], **kwargs)
+        output['pder'] = self._pder(data | p | output['popt'])
 
         return self.map_results(output)
 
@@ -157,10 +174,15 @@ class InverseKidney(Module):
             inputs |= {'nb'}
             inputs -= {'Scal_ki', 'iScal_ki'}
         inputs |= {'tS_ki', 'S_ki', 'pfree'}
+        if self.config['aif'] == 'measured':
+            inputs |= {'tS_ar', 'S_ar', 'R1_b'}
+            inputs -= {'c_ar'}
         return inputs  
     
     def outputs(self):
-        outputs = {'popt', 'psdev', 'pcov', 'loss'}
+        outputs = {'popt', 'psdev', 'pcov', 'pder', 'loss'}
+        if self.config['aif'] == 'measured':
+            outputs |= {'c_ar'}
         return outputs
     
     def test_data(self, data: dict=None): 
@@ -176,8 +198,10 @@ class InverseKidney(Module):
         }
         return self.input_data(p, data)
 
-    def plot(self, data: dict, xlim:list=None, fname:str=None, show=True):
-        p = self.map_data(data)
+    def plot(self, data:dict, result:dict, xlim:list=None, fname:str=None, show=True):
+        p = self.map_data(data | result['popt'])
+        # TODO This needs mapping too
+        p |= result # add c_ar and any other directly computed quantities
         self._preproc(p)
         prediction = self.forward(p)
 

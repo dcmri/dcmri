@@ -2,6 +2,143 @@ import numpy as np
 import pydmr
 
 from dcmri.utils.function_fetch import fetch
+from dcmri.utils.const import T1 as T1_lit
+from dcmri.utils.const import r1 as r1_lit
+
+
+def load_kruk(subjects=None, visit=None, kidney=None):
+
+    datafile = fetch('KRUK')
+    data = pydmr.read(datafile, 'nest')
+
+    if subjects is None:
+        load_subjects = set(data['rois'].keys())
+    elif isinstance(subjects, str):
+        load_subjects = [subjects]
+    else:
+        load_subjects = subjects
+
+    if kidney is None:
+        data = {subj: _load_kruk_both_kidneys(data, subj, visit) for subj in load_subjects}
+
+    if kidney in ['LK', 'RK']:
+        data = {subj: _load_kruk_kidney(data, subj, visit, kidney) for subj in load_subjects}
+
+    if isinstance(subjects, str):
+        return data[subjects]
+    else:
+        return data
+
+
+def _load_kruk_both_kidneys(data, subject, visit):
+
+    if visit not in data['rois'][subject]:
+        return None
+
+    # --- Fetch the data
+    roi = data['rois'][subject][visit] 
+    par = data['pars'][subject][visit] 
+
+    # --- B0 and precontrast T1
+    B0 = par['field_strength']
+    T1 = {
+        kidney: par[f'{kidney} T1'] if f'{kidney} T1' in par else T1_lit(B0, 'kidney') 
+        for kidney in ['LK', 'RK']
+    }
+
+    # --- Phase lines
+    ts = roi['time'][1] - roi['time'][0]
+    Nph = int(np.round(ts / par['TR'])) 
+    Nk0 = int(np.round(Nph / 2))
+
+    # --- Define kidney model
+    return {
+
+        # Electromagnetic quantities
+        'R1_b': 1 / T1_lit(B0, 'blood'),
+        'R1_lk': 1 / T1['LK'],
+        'R1_rk': 1 / T1['RK'],
+        
+        # Indicator quantities
+        'agent': par['agent'],
+        'r1': r1_lit(B0, 'blood', par['agent']),
+        'dose': 2 * par['dose'], # convert gadoterate dose from mmmol/kg to mL/kg
+        'rate': par['rate'],
+
+        # Physiological
+        'nmGFR_lk': par[f'LK iso-SK-GFR'],
+        'nmGFR_rk': par[f'RK iso-SK-GFR'],
+        'H': 0.45,
+
+        # Sequence
+        'FA': par['FA'],
+        'field_strength': B0,
+        'Nph': Nph,
+        'Nk0': Nk0,        
+        'TR': par['TR'],
+
+        # Signal
+        'nb': par['n0'],
+        'S_ao': roi['aorta'], 
+        'S_lk': roi['LK'],
+        'S_rk': roi['RK'],
+        'tS_ao': roi['time'],
+        'tS_lk': roi['time'],
+        'tS_rk': roi['time'],
+        
+        # Whole-body
+        'vol_lk': par[f'LK vol'],
+        'vol_rk': par[f'RK vol'],
+        'weight': par['weight']
+    }
+
+def _load_kruk_kidney(data, subject, visit, kidney):
+
+    if visit not in data['rois'][subject]:
+        return None
+
+    # --- Fetch the data
+    roi = data['rois'][subject][visit] 
+    par = data['pars'][subject][visit] 
+
+    # --- B0 and precontrast T1
+    B0 = par['field_strength']
+    T1 = par[f'{kidney} T1'] if f'{kidney} T1' in par else T1_lit(B0, 'kidney')
+
+    # --- Phase lines
+    ts = roi['time'][1] - roi['time'][0]
+    Nph = int(np.round(ts / par['TR'])) 
+    Nk0 = int(np.round(Nph / 2))
+
+    # --- Define kidney model
+    return {
+
+        # Indicator quantities
+        'agent': par['agent'],
+        'r1': r1_lit(B0, 'blood', par['agent']),
+
+        # Signal quantities
+        'field_strength': B0,
+        'FA': par['FA'],
+        'TR': par['TR'],
+        'Nph': Nph,
+        'Nk0': Nk0,
+
+        # Electromagnetic quantities
+        'R1_ki': 1 / T1,
+        'R1_b': 1 / T1_lit(B0, 'blood'),
+
+        'tS_ki': roi['time'],
+        'S_ki': roi[kidney],
+
+        'tS_ar': roi['time'],
+        'S_ar': roi['aorta'],        
+
+        'nb': par['n0'],
+
+        'nmGFR': par[f'{kidney} iso-SK-GFR'],
+        'vol_ki': par[f'{kidney} vol'],
+    }
 
 
 def load_tristan_rats(study_name, subject, visit):

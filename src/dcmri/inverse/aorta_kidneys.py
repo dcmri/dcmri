@@ -147,9 +147,11 @@ from dcmri.core.module import Module
 from dcmri.core.tools import get_quantity, update_bounds
 from dcmri.utils.fit import train_bat, train
 from dcmri.forward.aorta_kidneys import ForwardAortaKidneys as Forward
+from dcmri.kinetics.functions_kidney import dpars_kidney
+from dcmri.inverse.functions import estimate_bat
 
-configs = deepcopy(Forward.configs)
-defaults = deepcopy(Forward.defaults)
+configs = deepcopy(Forward.configs) | {'estimate_bat': {'none', 'ttp', 'custom'}}
+defaults = deepcopy(Forward.defaults) | {'estimate_bat': 'custom'}
 
 configs['bolus'].discard('dual') # Only meaningful for split protocols
 
@@ -160,7 +162,7 @@ class InverseAortaKidneys(Module):
     configs = configs
     defaults = defaults
 
-    _all_inputs = {'nb', 'pfree', 'Nz', 'S0_lk', 'dose_1', 'F_u_lk', 'PA', 'F_u_rk', 'H', 'h_u_rk', 'NSR_rk', 'iStrig_ao', 'S_rk', 'TD', 'B1corr_lk', 'TA', 'T_hl', 'v_b', 'iStrig_rk', 'S0_rk', 'bdel', 'NSR_lk', 'T_b_or', 'S0_ao', 'S_ao', 'agent', 'rate', 'TF', 'iStrig_lk', 'tS_lk', 'R1_ki', 'T_gu', 'rate_1', 'vol_lk', 'T_u_lk', 'D_hl', 'TP', 'tstart', 'tS_ao', 'TR', 'B1corr_ao', 'T_ar', 'dose_2', 'DRPF', 'S_lk', 'tS_rk', 'T_e_or', 'dose_tolerance', 'NSR_ao', 'v_ki', 'dose', 'dt', 'v_p_lk', 'rate_2', 'Nph', 'TE', 'F_u', 'vol_rk', 'TE1', 'TE2', 'E_or', 'FF_lk', 'R1_c', 'iz', 'FA', 'E_li', 'PSw', 'v_p_rk', 'R1_b', 'Nk0', 'tacq', 'FF_rk', 'weight', 'vol_ao', 'B1corr_rk', 'T_u_rk', 'h_u_lk', 'CO', 'fCO_ki', 'R1_u', 'v_u', 'SA', 'me', 'field_strength', 'v_c'}
+    _all_inputs = {'nb', 'pfree', 'Nz', 'S0_lk', 'dose_1', 'F_u_lk', 'PA', 'F_u_rk', 'H', 'h_u_rk', 'NSR_rk', 'iStrig_ao', 'S_rk', 'TD', 'B1corr_lk', 'TA', 'T_hl', 'v_b', 'iStrig_rk', 'S0_rk', 'bdel', 'NSR_lk', 'T_b_or', 'S0_ao', 'S_ao', 'agent', 'rate', 'TF', 'iStrig_lk', 'tS_lk', 'R1_ki', 'T_gu', 'rate_1', 'vol_lk', 'T_u_lk', 'D_hl', 'TP', 'tS_ao', 'TR', 'B1corr_ao', 'T_ar', 'dose_2', 'DRPF', 'S_lk', 'tS_rk', 'T_e_or', 'dose_tolerance', 'NSR_ao', 'v_ki', 'dose', 'dt', 'v_p_lk', 'rate_2', 'Nph', 'TE', 'F_u', 'vol_rk', 'TE1', 'TE2', 'E_or', 'FF_lk', 'R1_c', 'iz', 'FA', 'E_li', 'PSw', 'v_p_rk', 'R1_b', 'Nk0', 'FF_rk', 'weight', 'vol_ao', 'B1corr_rk', 'T_u_rk', 'h_u_lk', 'CO', 'fCO_ki', 'R1_u', 'v_u', 'SA', 'me', 'field_strength', 'v_c'}
     _all_outputs = {'psdev', 'pcov', 'popt', 'loss'}
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):
@@ -173,6 +175,12 @@ class InverseAortaKidneys(Module):
         return tuple([pred[f'S_{roi}'][:, :, :len(time[i])].reshape(-1) for i, roi in enumerate(ROIS)])
 
     def _preproc(self, p):
+        # Derive simulation timings
+        p[f'tstart'] = min([p[f'tS_{roi}'][0] for roi in ROIS])
+        tmax = max([p[f'tS_{roi}'][-1] for roi in ROIS])
+        ts = p[f'tS_ao'][1] - p[f'tS_ao'][0]
+        p[f'tacq'] = tmax - p[f'tstart'] + ts
+
         # Reshape signal if needed
         for roi in ROIS:
             if p[f'S_{roi}'].ndim == 1:
@@ -184,19 +192,39 @@ class InverseAortaKidneys(Module):
                 p[f"Scal_{roi}"] = p[f"S_{roi}"][..., :p['nb']]
                 p[f'iScal_{roi}'] = np.arange(p['nb'])
 
-    def _pfree(self):
+        # Trigger signals
+        if self.config['trigger']:
+            for roi in ROIS:
+                p[f'tS_{roi}'] = p[f'tS_{roi}'][p[f'iStrig_{roi}']]  
+                p[f'S_{roi}'] = p[f'S_{roi}'][:, :, p[f'iStrig_{roi}']] 
+
+    def pfree(self):
         inputs = self.forward.mapped_inputs()
         pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
         pfree |= {'BAT'}
+        if not self.config['calibrate']:
+            pfree |= {'S0_ao', 'S0_lk', 'S0_rk'}
+        pfree -= {'H', 'E_li', 'v_ki'}
         return {p: get_quantity(p)['bounds'] for p in pfree}
+
+    def _pder(self, data:dict):
+        p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['phys', 'body']}
+        p = dpars_kidney(p, kinetics=self.config['kidneys'])
+        return p
 
     def __call__(self, data: dict=None, **kwargs) -> dict:
         p = self.map_data(data)  
         self._preproc(p) 
 
+        # Estimate BAT if needed
+        if self.config['estimate_bat'] == 'custom':
+            p['BAT'] = estimate_bat(p['tS_ao'], p['S_ao'])
+        elif self.config['estimate_bat'] == 'ttp':
+            p['BAT'] = p['tS_ao'][np.argmax(p['S_ao'])]
+
         # Initialize pfree if needed
         if p['pfree'] is None:
-            p['pfree'] = self._pfree() 
+            p['pfree'] = self.pfree() 
 
         p['pfree'] = update_bounds(p['pfree'], value=p)
 
@@ -204,7 +232,9 @@ class InverseAortaKidneys(Module):
         self._pars = p
         time = tuple([p[f'tS_{roi}'].reshape(-1) for roi in ROIS])
         signal = tuple([p[f'S_{roi}'].reshape(-1) for roi in ROIS])
+
         output = train(self._predict, time, signal, p, p['pfree'], **kwargs)
+        output['pder'] = self._pder(p | output['popt'])
 
         return self.map_results(output)
 
@@ -217,10 +247,18 @@ class InverseAortaKidneys(Module):
             inputs |= {'nb'}
             for roi in ROIS:
                 inputs -= {f'Scal_{roi}', f'iScal_{roi}'}
+        if self.config['estimate_bat'] != 'none':
+            inputs -= {'BAT'}
+        inputs -= {f'tstart', f'tacq'}
         return inputs  
     
     def outputs(self):
         return {'popt', 'psdev', 'pcov', 'pder', 'loss'}
+
+    def init_data(self):
+        p = super().init_data()
+        p['E_li'] = 0
+        return p
     
     def test_data(self, data: dict=None): 
         p = self.init_data()
@@ -240,8 +278,17 @@ class InverseAortaKidneys(Module):
         return self.input_data(p, data)
 
 
-    def plot(self, data: dict, xlim=None, fname=None, show=True):
-        p = self.map_data(data)  
+    def plot(self, data: dict, results:dict=None, xlim=None, fname=None, show=True):
+        if results is None:
+            p = self.map_data(data)
+        else:
+            p = self.map_data(data | results['popt'])  
+
+        # Not an input parameter but required by forward model
+        if self.config['estimate_bat'] != 'none':
+            if 'BAT' in data:
+                p['BAT'] = data['BAT']
+
         self._preproc(p)
         pred = self.forward(p)
 
@@ -250,12 +297,13 @@ class InverseAortaKidneys(Module):
         xlim = np.array(xlim) / 60
         
         fig, axes = plt.subplots(3, 2, figsize=(10, 8))
-        fig.subplots_adjust(wspace=0.3)
+        fig.subplots_adjust(wspace=0.3, hspace=0.4)
         ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = axes
         
         # Plot signals
+        ax1.set_title('MRI Signal Prediction')
         def plot_data(t, s, ti, si, ax, clr):
-            ax.set_title('MRI Signal Prediction')
+            
             for i in range(si.shape[0]):
                 for j in range(si.shape[1]):
                     ax.plot(ti / 60, si[i, j, :], marker='o', color=clr[0], alpha=0.5, label='Data')
@@ -265,11 +313,12 @@ class InverseAortaKidneys(Module):
             ax.legend()
 
         plot_data(pred['tS_ao'], pred['S_ao'], p['tS_ao'], p['S_ao'], ax1, ['lightcoral', 'darkred'])
-        plot_data(pred['tS_lk'], pred['S_lk'], p['tS_lk'], p['S_lk'], ax5, ['cornflowerblue', 'darkblue'])
-        plot_data(pred['tS_rk'], pred['S_rk'], p['tS_rk'], p['S_rk'], ax3, ['cornflowerblue', 'darkblue'])
+        plot_data(pred['tS_lk'], pred['S_lk'], p['tS_lk'], p['S_lk'], ax3, ['cornflowerblue', 'darkblue'])
+        plot_data(pred['tS_rk'], pred['S_rk'], p['tS_rk'], p['S_rk'], ax5, ['cornflowerblue', 'darkblue'])
 
         # Plot concentrations
-        ax2.set(ylabel='Concentration (mM)', xlim=xlim)
+        ax2.set_title('Concentration')
+        ax2.set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=xlim)
         ax2.plot(pred['tC'] / 60, 0 * pred['tC'], color='gray')
         ax2.plot(pred['tC'] / 60, 1000 * pred['C_ao'][0], linestyle='-', color='darkred', linewidth=2.0, label='Aorta')
         ax2.plot(pred['tC'] / 60, 1000 * pred['C_lk'][0], linestyle='--', color='lightcoral', linewidth=2.0, label='Left Kidney')
