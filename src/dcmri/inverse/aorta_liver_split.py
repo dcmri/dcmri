@@ -157,7 +157,7 @@ from dcmri.kinetics.functions_liver import dpars_liver
 from dcmri.inverse.functions import estimate_bat
 
 configs = deepcopy(Forward.configs) | {'estimate_bat': {'none', 'ttp', 'custom'}}
-defaults = deepcopy(Forward.defaults) | {'estimate_bat': 'custom'}
+defaults = deepcopy(Forward.defaults) | {'estimate_bat': 'custom', 'calibrate': True}
 
 ROIS = ['ao', 'li']
 SCANS = [1, 2]

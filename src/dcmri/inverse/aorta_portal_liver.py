@@ -148,7 +148,7 @@ from dcmri.utils.fit import train_bat, train
 from dcmri.forward.aorta_portal_liver import ForwardAortaPortalLiver as Forward
 
 configs = deepcopy(Forward.configs)
-defaults = deepcopy(Forward.defaults)
+defaults = deepcopy(Forward.defaults) | {'calibrate': True}
 
 configs['bolus'].discard('dual') # Only meaningful for split protocols
 

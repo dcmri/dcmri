@@ -370,7 +370,7 @@ class ConcKidney(Module):
         'kinetics': '2CF',
     }
     def inputs(self):
-        imap = {'F_p':'F_p_ki', 'v_p': 'v_p_ki'}
+        imap = {'F_p':'F_p_ki', 'v_p': 'v_p_ki', 'D_p': 'D_p_ki'}
         inputs = {imap.get(i, i) for i in pk_kidney.PARAMETERS[self.config['kinetics']]}
         inputs |= {'c_ar', 'T_ar', 'dt'}
         return inputs
@@ -384,7 +384,7 @@ class ConcKidney(Module):
         func = 'conc_kidney_' + self.config['kinetics'].lower()   
         kidney_conc = getattr(pk_kidney, func)
 
-        imap = {'F_p_ki':'F_p', 'v_p_ki': 'v_p'}
+        imap = {'F_p_ki':'F_p', 'v_p_ki': 'v_p', 'D_p_ki': 'D_p'}
         pk = {imap.get(k, k): v for k, v in p.items() if k not in ['c_ar', 'T_ar']} 
 
         ci_k = flux_plug(p['c_ar'], T=p['T_ar'], dt=p['dt'])
@@ -411,12 +411,14 @@ class ConcAortaKidneys(Module):
         'heartlung': FluxAorta.configs['heartlung'],
         'organs': FluxAorta.configs['organs'],
         'kidneys': ConcKidney.configs['kinetics'],
+        'veins': FluxAorta.configs['veins'],
     }
     defaults = {
+        'bolus': 'single',
         'heartlung': 'pfcomp', 
         'organs': 'comp', 
         'kidneys': '2CF',
-        'bolus': 'single',
+        'veins': None,
     }
     def __init__(self, imap:dict=None, omap:dict=None, iomap: dict=None, cmap: dict=None, **config):
         self.set_config(config, cmap)
@@ -427,10 +429,10 @@ class ConcAortaKidneys(Module):
         self._flux_aorta = FluxAorta(**config_aorta)
 
         # Setup Kidney modules
-        imap = {'F_p_ki':'F_p_lk', 'v_p_ki':'v_p_lk', 'F_u':'F_u_lk', 'FF':'FF_lk', 'T_u':'T_u_lk', 'h_u':'h_u_lk'}
+        imap = {'T_ar':'T_lka', 'F_p_ki':'F_p_lk', 'v_p_ki':'v_p_lk', 'D_p_ki':'D_p_lk', 'F_u':'F_u_lk', 'FF':'FF_lk', 'T_u':'T_u_lk', 'h_u':'h_u_lk'}
         self._conc_lk = ConcKidney(imap=imap, kinetics=self.config['kidneys'])
 
-        imap = {'F_p_ki':'F_p_rk', 'v_p_ki':'v_p_rk', 'F_u':'F_u_rk', 'FF':'FF_rk', 'T_u':'T_u_rk', 'h_u':'h_u_rk'}
+        imap = {'T_ar':'T_rka', 'F_p_ki':'F_p_rk', 'v_p_ki':'v_p_rk', 'D_p_ki':'D_p_rk', 'F_u':'F_u_rk', 'FF':'FF_rk', 'T_u':'T_u_rk', 'h_u':'h_u_rk'}
         self._conc_rk = ConcKidney(imap=imap, kinetics=self.config['kidneys'])
 
         self.map_io(imap, omap, iomap)
@@ -470,14 +472,17 @@ class ConcAortaKidneys(Module):
         Fu_lk = p['F_u_lk'] if 'HF' in self.config['kidneys'] else FF_lk * Fp_lk
         Fu_rk = p['F_u_rk'] if 'HF' in self.config['kidneys'] else FF_rk * Fp_rk
 
+        T_p_lk = p['v_p_lk'] / Fp_lk
+        T_p_rk = p['v_p_rk'] / Fp_rk
+
         # Extend data dictionary
         p |= {
             'F_u_lk': Fu_lk,
             'F_u_rk': Fu_rk,
             'F_p_lk': Fp_lk,
             'F_p_rk': Fp_rk,
-            'T_p_lk': p['v_p_lk'] / Fp_lk,
-            'T_p_rk': p['v_p_rk'] / Fp_rk,
+            'T_p_lk': T_p_lk,
+            'T_p_rk': T_p_rk,
             'vr_lk': fco_lk * (1 - E_lk),
             'vr_rk': fco_rk * (1 - E_rk),
             'vr_or': (1 - p['fCO_ki']) * (1 - p['E_li']),
@@ -584,6 +589,8 @@ class ConcTissueX(Module):
         tC = p['dt'] * np.arange(p['c_ar'].size)
 
         results = {'tC':tC, 'ci':ci, 'C': C}
+
+        # Add derived parameters
 
         return self.map_results(results)
 

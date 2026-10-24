@@ -29,6 +29,7 @@ PARKER_INPUTS = {
     'TE': 0.00082,
     'TR': 0.004,
     'tacq': 375,
+    'tstart': 0,
 
     # Electromagnetic group
     'R1_b': 1 / 1.441, # T1 blood at 1.5T

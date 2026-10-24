@@ -10,7 +10,7 @@ from dcmri.forward.liver import ForwardLiver as Forward
 from dcmri.kinetics.functions_liver import dpars_liver
 
 configs = deepcopy(Forward.configs) 
-defaults = deepcopy(Forward.defaults)
+defaults = deepcopy(Forward.defaults) | {'calibrate': True}
 
 class InverseLiver(Module):
 

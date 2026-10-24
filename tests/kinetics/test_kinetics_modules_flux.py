@@ -51,6 +51,6 @@ def test_flux_aorta():
 
 
 if __name__ == '__main__':
-    # test_flux()
-    test_flux_aorta()
+    test_flux()
+    # test_flux_aorta()
     print('All flux tests passed!!')

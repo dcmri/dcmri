@@ -167,22 +167,31 @@ class FluxAorta(Module):
     configs = {
         'heartlung': {'comp', 'pfcomp', 'chain'},
         'organs': {'comp', '2cxm'},
-        'kidneys': {None, 'pass', 'comp', 'plug'},
+        'renal_arteries': {None, 'pass', 'comp', 'plug'},
+        'kidneys': {None, 'pass', 'comp', 'plug', 'pfcomp', 'chain'},
         'liver': {None, 'pass', 'comp', 'plug'},
         'lagut': {None, 'pass', 'comp', 'plucom'},
+        'veins': {None, 'pass', 'comp', 'plug', 'pfcomp', 'chain'},
         'bolus': FluxInjection.configs['bolus'],
     }
     defaults = {
         'heartlung': 'pfcomp', 
         'organs': 'comp', 
+        'renal_arteries': None,
         'kidneys': None,
         'liver': None,
         'lagut': None,
+        'veins': None,
         'bolus': 'single',
     }
 
     def __init__(self, imap:dict=None, omap:dict=None, iomap: dict=None, cmap: dict=None, **config):
         self.set_config(config, cmap)
+
+        # Check config
+        if self.config['renal_arteries'] is not None:
+            if self.config['kidneys'] is None:
+                raise InvalidConfig("A renal artery component requires a renal component too.")
         if self.config['lagut'] is not None:
             if self.config['liver'] is None:
                 raise InvalidConfig("A liver artery and gut component requires a liver component too.")
@@ -190,13 +199,19 @@ class FluxAorta(Module):
         self._flux_injection = FluxInjection(**self.config)
         self._flux_heartlung = Flux({'T': 'T_hl', 'D': 'D_hl'}, block=self.config['heartlung'])
         self._flux_organs = Flux({'T':'T_or', 'E':'E_or'}, block=self.config['organs'])
+        if self.config['renal_arteries'] is not None:
+            self._flux_ra_lk = Flux({'T':'T_lka'}, block=self.config['renal_arteries'])
+            self._flux_ra_rk = Flux({'T':'T_rka'}, block=self.config['renal_arteries'])
         if self.config['kidneys'] is not None:
-            self._flux_lk = Flux({'T':'T_p_lk'}, block=self.config['kidneys'])
-            self._flux_rk = Flux({'T':'T_p_rk'}, block=self.config['kidneys'])
-        if self.config['liver'] is not None:
-            self._flux_liver = Flux({'T':'T_e_li'}, block=self.config['liver'])
+            self._flux_lk = Flux({'T':'T_p_lk', 'D':'D_lk'}, block=self.config['kidneys'])
+            self._flux_rk = Flux({'T':'T_p_rk', 'D':'D_rk'}, block=self.config['kidneys'])
         if self.config['lagut'] is not None:
             self._flux_lagut = Flux({'T':'T_lag', 'ffp':'ffa'}, block=self.config['lagut'])
+        if self.config['liver'] is not None:
+            self._flux_liver = Flux({'T':'T_e_li'}, block=self.config['liver'])
+        if self.config['veins'] is not None:
+            self._flux_veins = Flux({'T':'T_vc', 'D':'D_vc'}, block=self.config['veins'])
+
 
         self.map_io(imap, omap, iomap)
         
@@ -213,6 +228,9 @@ class FluxAorta(Module):
         inputs |= self._flux_injection.mapped_inputs()
         inputs |= self._flux_heartlung.mapped_inputs()
         inputs |= {'vr_or'} | self._flux_organs.mapped_inputs()
+        if self.config['renal_arteries'] is not None:
+            inputs |= self._flux_ra_lk.mapped_inputs()
+            inputs |= self._flux_ra_rk.mapped_inputs()
         if self.config['kidneys'] is not None:
             inputs |= {'vr_lk'} | self._flux_lk.mapped_inputs()
             inputs |= {'vr_rk'} | self._flux_rk.mapped_inputs()
@@ -220,6 +238,8 @@ class FluxAorta(Module):
             inputs |= {'vr_li'} | self._flux_liver.mapped_inputs()
         if self.config['lagut'] is not None:
             inputs |= self._flux_lagut.mapped_inputs()
+        if self.config['veins'] is not None:
+            inputs |= self._flux_veins.mapped_inputs()
 
         inputs |= {'dt', 'dose_tolerance'}
         inputs -= {'Jinj', 'J', 'T_or', 'T_lag'} # derived
@@ -227,14 +247,16 @@ class FluxAorta(Module):
     
     def outputs(self):
         outputs = {'tC', 'J_ao', 'J_vc', 'J_or'}
+        if self.config['renal_arteries'] is not None:
+            outputs |= {'J_lka', 'J_rka'}
         if self.config['kidneys'] is not None:
             outputs |= {'J_lk', 'J_rk'}
+        if self.config['lagut'] is not None:
+            outputs |= {'J_lag'}
+            if self._flux_lagut.config['block']=='plucom':
+                outputs |= {'J_la', 'J_pv'}
         if self.config['liver'] is not None:
             outputs |= {'J_li'}
-            if self.config['lagut'] is not None:
-                outputs |= {'J_lag'}
-                if self._flux_lagut.config['block']=='plucom':
-                    outputs |= {'J_la', 'J_pv'}
         return outputs 
     
     def __call__(self, data: dict=None, **kwargs) -> dict:
@@ -284,28 +306,40 @@ class FluxAorta(Module):
         result = {}
 
         Ja = self._flux_heartlung(p, J=Jv)['J']
+
         result['J_or'] = self._flux_organs(p, J=Ja)['J']
         Jv = p['vr_or'] * result['J_or']
 
+        if self.config['renal_arteries'] is not None:
+            result['J_lka'] = self._flux_ra_lk(p, J=Ja)['J']
+            result['J_rka'] = self._flux_ra_rk(p, J=Ja)['J']
+        else:
+            result['J_lka'] = Ja
+            result['J_rka'] = Ja
+
         if self.config['kidneys'] is not None:
-            result['J_lk'] = self._flux_lk(p, J=Ja)['J']
-            result['J_rk'] = self._flux_rk(p, J=Ja)['J']
+            result['J_lk'] = self._flux_lk(p, J=result['J_lka'])['J']
+            result['J_rk'] = self._flux_rk(p, J=result['J_rka'])['J']
             Jv += p['vr_lk'] * result['J_lk']
             Jv += p['vr_rk'] * result['J_rk']
 
-        if self.config['liver'] is not None:
-            if self.config['lagut'] is not None:
-                Jlag = self._flux_lagut(p, J=Ja)['J']
-                if Jlag.ndim==2:
-                    result['J_lag'] = Jlag.sum(axis=0)
-                    result['J_la'] = Jlag[0]
-                    result['J_pv'] = Jlag[1]
-                else:
-                    result['J_lag'] = Jlag
+        if self.config['lagut'] is not None:
+            Jlag = self._flux_lagut(p, J=Ja)['J']
+            if Jlag.ndim==2:
+                result['J_lag'] = Jlag.sum(axis=0)
+                result['J_la'] = Jlag[0]
+                result['J_pv'] = Jlag[1]
             else:
-                result['J_lag'] = Ja
+                result['J_lag'] = Jlag
+        else:
+            result['J_lag'] = Ja
+
+        if self.config['liver'] is not None:
             result['J_li'] = self._flux_liver(p, J=result['J_lag'])['J']
             Jv += p['vr_li'] * result['J_li']
+
+        if self.config['veins'] is not None:
+            Jv = self._flux_veins(p, J=Jv)['J']
 
         return result | {'J_ao': Ja, 'J_vc': Jv}
 

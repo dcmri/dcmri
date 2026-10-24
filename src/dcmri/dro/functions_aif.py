@@ -146,7 +146,7 @@ def tristan(
         plt.show()    
     """
     conc = const.ca_conc(agent)
-    Ji = ca_injection(t, weight,conc, dose, rate, BAT)
+    Ji = ca_injection(t, weight, conc, dose, rate, BAT)
     Jb = flux_aorta(
         Ji, t, tol=dtol,
         heartlung={'model': 'pfcomp', 'params': {'T':Thl, 'D':Dhl}},

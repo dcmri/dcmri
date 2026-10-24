@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.interpolate import interp1d
 
-from dcmri.bloch import functions_mz_vectorized, functions_sequences
+from dcmri.bloch import functions_mz_vectorized, functions_sequences, functions_mz
 
 
 def Mz_wrapper_k0(sequence, mz_prep_sequence, tR1, R1, p, v=None, Kw=None, tj=None, j=None, tstart=0, t_end=None):
@@ -595,6 +595,7 @@ def Mz_dyn_ss_k0_spgri(tR1:np.ndarray, R1:np.ndarray, v, Kw, j:np.ndarray, me, F
 
     # Compute
     Mz = functions_mz_vectorized.Mz_ss_spgri_vectorized(R1_periods, v, Kw, j_periods, me, FA, TR, TF, SA)
+    #Mz = functions_mz.Mz_ss_spgri(R1_periods, v, Kw, j_periods, me, FA, TR, TF, SA)
 
     return t_periods, Mz
 

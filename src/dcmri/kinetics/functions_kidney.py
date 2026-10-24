@@ -7,6 +7,9 @@ import dcmri.kinetics.functions_blocks as pk
 PARAMETERS = {
     '2CF': ['F_p', 'v_p', 'FF', 'T_u'],
     '2PF': ['F_p', 'v_p', 'FF', 'T_u'],
+    'CCF': ['F_p', 'v_p', 'D_p', 'FF', 'T_u'],
+    'PCCF': ['F_p', 'v_p', 'D_p', 'FF', 'T_u'],
+    'PCF': ['F_p', 'v_p', 'FF', 'T_u'],
     'CPF': ['F_p', 'v_p', 'FF', 'T_u'],
     '2CFU': ['F_p', 'v_p', 'FF'],
     '2PFU': ['F_p', 'v_p', 'FF'],
@@ -18,6 +21,9 @@ PARAMETERS = {
 VASCULAR_MODEL = {
     '2CF': 'comp', 
     '2PF': 'plug', 
+    'CCF': 'chain',
+    'PCCF': 'pfcomp',
+    'PCF': 'plug', 
     'CPF': 'comp', 
     '2CFU': 'comp', 
     '2PFU': 'plug', 
@@ -57,8 +63,8 @@ def dpars_kidney(p, kinetics='2CF', H=0.45) -> dict:
         p['GFR'] = p['F_u'] * p['vol_ki']  
 
     if {'F_p', 'vol_ki'}.issubset(p):
-        p['RBF'] = _div(p['F_p'] * p['vol_ki'], 1-H)
-        p['RPF'] = p['F_p']*p['vol_ki']
+        p['BF_ki'] = _div(p['F_p'] * p['vol_ki'], 1-H)
+        p['PF_ki'] = p['F_p']*p['vol_ki']
 
     if {'ffc', 'E', 'F_p'}.issubset(p):
         p['F_b_km'] = (1 - p['ffc']) * (1 - p['E_ki']) * p['F_p'] / (1 - H)
@@ -68,6 +74,42 @@ def dpars_kidney(p, kinetics='2CF', H=0.45) -> dict:
 
     if {'FF', 'F_p_ki', 'vol_ki'}.issubset(p):
         p['GFR'] = p['FF'] * p['F_p_ki'] * p['vol_ki']
+
+    if {'fCO_ki', 'CO'}.issubset(p):
+        p['PF_ki'] = (1 - p['H']) * p['fCO_ki'] * p['CO']
+
+    # Left and right
+
+    if {'DRPF', 'PF_ki'}.issubset(p):
+        p['PF_lk'] = p['DRPF'] * p['PF_ki']
+        p['PF_rk'] = (1 - p['DRPF']) * p['PF_ki']
+
+    if {'FF_lk', 'PF_lk'}.issubset(p):
+        p['GFR_lk'] = p['FF_lk'] * p['PF_lk']
+
+    if {'FF_rk', 'PF_rk'}.issubset(p):
+        p['GFR_rk'] = p['FF_rk'] * p['PF_rk']
+
+    if {'PF_lk', 'vol_lk'}.issubset(p):
+        p['F_p_lk'] = p['PF_lk'] / p['vol_lk']
+
+    if {'PF_rk', 'vol_rk'}.issubset(p):
+        p['F_p_rk'] = p['PF_rk'] / p['vol_rk']
+
+    if {'v_p_lk', 'F_p_lk'}.issubset(p):
+        p['T_p_lk'] = p['v_p_lk'] / p['F_p_lk']
+
+    if {'v_p_rk', 'F_p_rk'}.issubset(p):
+        p['T_p_rk'] = p['v_p_rk'] / p['F_p_rk']
+
+    if {'FF_lk'}.issubset(p):
+        p['E_lk'] = p['FF_lk'] / (1 + p['FF_lk'])
+
+    if {'FF_rk'}.issubset(p):
+        p['E_rk'] = p['FF_rk'] / (1 + p['FF_rk'])
+
+    if {'PF_rk', 'PF_lk'}.issubset(p):
+        p['PF_ki'] = p['PF_rk'] + p['PF_lk']
 
     return p
 
@@ -86,7 +128,7 @@ def conc_kidney_2cf(ca, t=None, dt=1.0, F_p=None, v_p=None, FF=None, T_u=None):
     Parameters
     ----------
     ca : array_like
-        Inlet concentration in arterial blood (M).
+        Inlet concentration in arterial plasma (M).
     t : array_like, optional
         The time points of the inlet concentration (sec). If None, the time 
         points are assumed to be uniformly spaced with spacing `dt`. 
@@ -225,6 +267,134 @@ def conc_kidney_2pf(ca, t=None, dt=1.0, F_p=None, v_p=None, FF=None, T_u=None):
     Ct = pk.conc_plug(F_u * cp, t=t, dt=dt, T=T_u)
     return np.stack((Cp, Ct))
 
+def conc_kidney_ccf(ca, t=None, dt=1.0, F_p=None, v_p=None, D_p=None, FF=None, T_u=None):
+    """
+    Chain-compartment filtration model for kidney tissue concentration.
+
+    This model tracks a filterable tracer through the renal parenchyma using a 
+    two-compartment arrangement: a vascular (plasma) compartment and a tubular 
+    compartment. The tracer enters the plasma space via the arterial input, 
+    where a fraction is filtered into the tubules (determined by the filtration fraction) 
+    and the remainder exits via the venous outflow.
+
+    Parameters
+    ----------
+    ca : array_like
+        Inlet concentration in arterial blood (M).
+    t : array_like, optional
+        The time points of the inlet concentration (sec). If None, the time 
+        points are assumed to be uniformly spaced with spacing `dt`. 
+        Defaults to None.
+    dt : float, optional
+        Spacing between time points for uniformly spaced data (sec). This 
+        parameter is ignored if `t` is explicitly provided. Defaults to 1.0.
+    F_p : float, optional
+        Plasma flow (mL/sec/cm3). Defaults to None.
+    v_p : float, optional
+        Plasma volume fraction. Defaults to None.
+    D_p : float, optional
+        Plasma dispersion. Defaults to None.
+    FF : float, optional
+        Filtration fraction (dimensionless fraction between 0.0 and 1.0), representing 
+        the ratio of glomerular filtration rate (GFR) to plasma flow (F_p). 
+        Defaults to None.
+    T_u : float, optional
+        Tubular transit time (sec). Defaults to None.
+
+    Returns
+    -------
+    np.ndarray
+        Tissue concentration as a 2D array (2, nt), where the first row is 
+        the vascular plasma concentration (`Cp`) and the second row is the 
+        tubular concentration (`Ct`).
+
+    See Also
+    --------
+    conc_kidney_2pf : Two-compartment parallel filtration model.
+    conc_kidney_cpf : Compact parallel filtration model.
+    conc_kidney_2cfu : Two-compartment filtration model with uptake.
+
+    Examples
+    --------
+    >>> import dcmri as dc
+    >>> t = [0, 5, 15, 30, 60]
+    >>> ca = [1, 2, 3, 3, 2]
+    >>> dc.conc_kidney_2cf(ca, t=t, F_p=0.05, v_p=0.15, FF=0.2, T_u=25.0)
+    array([[0.        , 0.17904154, 0.34302271, 0.37492074, 0.2604166 ],
+           [0.        , 0.02794652, 0.16515698, 0.36177205, 0.46591827]])
+    """
+    ca = np.array(ca)
+    F_u = FF * F_p
+    T_p = v_p / (F_p + F_u)
+    Cp = pk.conc_chain(F_p * ca, t=t, dt=dt, T=T_p, D=D_p)
+    cp = Cp / v_p
+    Ct = pk.conc_comp(F_u * cp, t=t, dt=dt, T=T_u)
+    return np.stack((Cp, Ct))
+
+def conc_kidney_pccf(ca, t=None, dt=1.0, F_p=None, v_p=None, D_p=None, FF=None, T_u=None):
+    """
+    Chain-compartment filtration model for kidney tissue concentration.
+
+    This model tracks a filterable tracer through the renal parenchyma using a 
+    two-compartment arrangement: a vascular (plasma) compartment and a tubular 
+    compartment. The tracer enters the plasma space via the arterial input, 
+    where a fraction is filtered into the tubules (determined by the filtration fraction) 
+    and the remainder exits via the venous outflow.
+
+    Parameters
+    ----------
+    ca : array_like
+        Inlet concentration in arterial blood (M).
+    t : array_like, optional
+        The time points of the inlet concentration (sec). If None, the time 
+        points are assumed to be uniformly spaced with spacing `dt`. 
+        Defaults to None.
+    dt : float, optional
+        Spacing between time points for uniformly spaced data (sec). This 
+        parameter is ignored if `t` is explicitly provided. Defaults to 1.0.
+    F_p : float, optional
+        Plasma flow (mL/sec/cm3). Defaults to None.
+    v_p : float, optional
+        Plasma volume fraction. Defaults to None.
+    D_p : float, optional
+        Plasma dispersion. Defaults to None.
+    FF : float, optional
+        Filtration fraction (dimensionless fraction between 0.0 and 1.0), representing 
+        the ratio of glomerular filtration rate (GFR) to plasma flow (F_p). 
+        Defaults to None.
+    T_u : float, optional
+        Tubular transit time (sec). Defaults to None.
+
+    Returns
+    -------
+    np.ndarray
+        Tissue concentration as a 2D array (2, nt), where the first row is 
+        the vascular plasma concentration (`Cp`) and the second row is the 
+        tubular concentration (`Ct`).
+
+    See Also
+    --------
+    conc_kidney_2pf : Two-compartment parallel filtration model.
+    conc_kidney_cpf : Compact parallel filtration model.
+    conc_kidney_2cfu : Two-compartment filtration model with uptake.
+
+    Examples
+    --------
+    >>> import dcmri as dc
+    >>> t = [0, 5, 15, 30, 60]
+    >>> ca = [1, 2, 3, 3, 2]
+    >>> dc.conc_kidney_2cf(ca, t=t, F_p=0.05, v_p=0.15, FF=0.2, T_u=25.0)
+    array([[0.        , 0.17904154, 0.34302271, 0.37492074, 0.2604166 ],
+           [0.        , 0.02794652, 0.16515698, 0.36177205, 0.46591827]])
+    """
+    ca = np.array(ca)
+    F_u = FF * F_p
+    T_p = v_p / (F_p + F_u)
+    Cp = pk.conc_pfcomp(F_p * ca, t=t, dt=dt, T=T_p, D=D_p)
+    cp = Cp / v_p
+    Ct = pk.conc_comp(F_u * cp, t=t, dt=dt, T=T_u)
+    return np.stack((Cp, Ct))
+
 def conc_kidney_cpf(ca, t=None, dt=1.0, F_p=None, v_p=None, FF=None, T_u=None):
     """
     Compact parallel filtration model for kidney tissue concentration.
@@ -286,6 +456,69 @@ def conc_kidney_cpf(ca, t=None, dt=1.0, F_p=None, v_p=None, FF=None, T_u=None):
     Cp = pk.conc_comp(F_p * ca, t=t, dt=dt, T=T_p)
     cp = Cp/v_p
     Ct = pk.conc_plug(F_u * cp, t=t, dt=dt, T=T_u)
+    return np.stack((Cp, Ct))
+
+def conc_kidney_pcf(ca, t=None, dt=1.0, F_p=None, v_p=None, FF=None, T_u=None):
+    """
+    Compact parallel filtration model for kidney tissue concentration.
+
+    This model tracks a filterable tracer through the renal parenchyma using a hybrid 
+    two-compartment configuration: a well-mixed vascular (plasma) compartment and an 
+    ideal plug-flow (pure delay) tubular compartment. The tracer enters the plasma 
+    space via the arterial input. A fraction of this tracer is filtered into the renal 
+    tubules (determined by the filtration fraction), while the remaining unfiltered fraction 
+    exits via the venous system.
+
+    Parameters
+    ----------
+    ca : array_like
+        Inlet concentration in arterial blood (M).
+    t : array_like, optional
+        The time points of the inlet concentration (sec). If None, the time 
+        points are assumed to be uniformly spaced with spacing `dt`. 
+        Defaults to None.
+    dt : float, optional
+        Spacing between time points for uniformly spaced data (sec). This 
+        parameter is ignored if `t` is explicitly provided. Defaults to 1.0.
+    F_p : float, optional
+        Plasma flow (mL/sec/cm3). Defaults to None.
+    v_p : float, optional
+        Plasma volume fraction. Defaults to None.
+    FF : float, optional
+        Filtration fraction (dimensionless fraction between 0.0 and 1.0), representing 
+        the ratio of glomerular filtration rate (GFR) to plasma flow (F_p). 
+        Defaults to None.
+    T_u : float, optional
+        Tubular transit time (sec). Defaults to None.
+
+    Returns
+    -------
+    np.ndarray
+        Tissue concentration as a 2D array (2, nt), where the first row is 
+        the vascular plasma concentration (`Cp`) and the second row is the 
+        tubular concentration (`Ct`) under mixed compartment and plug-flow conditions.
+
+    See Also
+    --------
+    conc_kidney_2cf : Two-compartment filtration model (both well-mixed compartments).
+    conc_kidney_2pf : Two-plug flow filtration model (both plug-flow systems).
+    conc_kidney_hfu : High-flow uptake model for the kidney.
+
+    Examples
+    --------
+    >>> import dcmri as dc
+    >>> t = [0, 5, 15, 30, 60]
+    >>> ca = [1, 2, 3, 3, 2]
+    >>> dc.conc_kidney_cpf(ca, t=t, F_p=0.05, v_p=0.15, FF=0.2, T_u=25.0)
+    array([[0.        , 0.17904154, 0.34302271, 0.37492074, 0.2604166 ],
+           [0.        , 0.02984026, 0.20386168, 0.47331263, 0.57377171]])
+    """
+    ca = np.array(ca)
+    F_u = FF * F_p
+    T_p = v_p / (F_p + F_u)
+    Cp = pk.conc_plug(F_p * ca, t=t, dt=dt, T=T_p)
+    cp = Cp/v_p
+    Ct = pk.conc_comp(F_u * cp, t=t, dt=dt, T=T_u)
     return np.stack((Cp, Ct))
 
 def conc_kidney_2pfu(ca, t=None, dt=1.0, F_p=None, v_p=None, FF=None):

@@ -1,52 +1,150 @@
 import warnings
 import logging
+import itertools
+
 from joblib import Parallel, delayed
 
 import numpy as np
 from scipy.optimize import curve_fit
 
 
-def train_batch(predict, time, signal, pars, free, **kwargs):
-    def train_pixel(x):
-        return train(predict, time, signal[x,...], pars, free, x, **kwargs)
+def train_brute(predict, signal, pars, free, n_steps=3, 
+                brute=None, n_jobs=-1, **kwargs):
     
-    if signal.shape[0]==1:
-        results = [train_pixel(0)]
+    if free == {}:
+        raise ValueError("The dictionary of free parameters can't be empty")
+    
+    if brute is None:
+        return _train(predict, signal, pars, free, **kwargs)
+
+    free_brute = {b for b in brute if b in free}
+    if not free_brute:
+        return _train(predict, signal, pars, free, **kwargs)
+
+    if n_steps < 1:
+        raise ValueError("n_steps must be at least 1")
+
+    names = sorted(free_brute)  # fixed ordering for the grid
+    grids = [np.linspace(*free[name], n_steps) for name in names]
+
+    starts = []
+    for values in itertools.product(*grids):
+        start = dict(pars)  # copy: non-brute params keep their initial values
+        start.update(zip(names, values))
+        starts.append(start)
+
+    if n_jobs==1:
+        results = [
+            _train(predict, signal, start, free, **kwargs)
+            for start in starts
+        ]       
     else:
-        #results = [train_pixel(x) for x in range(signal.shape[0])] 
-        results = Parallel(n_jobs=-1)(delayed(train_pixel)(x) for x in range(signal.shape[0]))  
+        results = Parallel(n_jobs=n_jobs)(
+            delayed(_train)(predict, signal, start, free, **kwargs)
+            for start in starts
+        )
 
-    return results 
-
-def format_batch_training(results, free):
-    # Format outputs
-    vals = {p: [] for p in free}
-    sdev = {p: [] for p in free}
-    for p in free:
-        for r in results:
-            if p in r[0]:
-                vals[p].append(r[0][p])
-            else:
-                vals[p].append(np.nan)
-            if p in r[1]:
-                sdev[p].append(r[1][p])
-            else:
-                sdev[p].append(np.nan)
-        vals[p] = np.array(vals[p])
-        sdev[p] = np.array(sdev[p])
-
-    pcov = np.empty(len(results), dtype=object)
-    pcov[:] = [r[2] for r in results]
-
-    model = np.empty(len(results), dtype=object)
-    if len(results[0]) == 4:
-        model[:] = [r[3] for r in results]
-    else:
-        model[:] = None
-
-    return vals, sdev, pcov, model
+    return min(results, key=lambda r: r['loss'])
 
 
+def _train(predict, signal, pars, free, sigma=None, **kwargs):
+    """Optimization logic using normalized parameter values."""
+
+    # Flatten the signal
+    if isinstance(signal, tuple):
+        signal = np.concatenate([s.reshape(-1) for s in signal])
+        # signal = np.concatenate(signal)
+    signal = signal.reshape(-1)
+
+    # Flatten sigma
+    if isinstance(sigma, tuple):
+        sigma = np.concatenate(sigma)
+
+    # Compute initial values
+    p0 = _normalized_pars(pars, free)
+
+    # Define prediction function
+    def predict_normalized(_, *normalized_pars):
+        _update_pars(pars, normalized_pars, free)
+        ypred = predict(pars)
+
+        # Flatten the signal prediction
+        if isinstance(ypred, tuple):
+            ypred = np.concatenate(ypred) 
+        return ypred.reshape(-1)
+
+    # Perform the optimization
+    try:
+        fitted_pars, pcov = curve_fit(
+            predict_normalized, None, signal, p0, bounds=(0, 1), 
+            sigma=sigma, **kwargs
+        )
+        sdev = _sdev(pcov, free)
+    except RuntimeError as e:
+        warnings.warn(f"Curve fit failed: {e}. Returning initial values.")
+        fitted_pars, pcov, sdev = p0, None, None
+
+    # Rewind state to initial values
+    _update_pars(pars, p0, free)
+
+    # Create return values
+    vals = _original_pars(fitted_pars, free) 
+    cost = 100 * np.linalg.norm(predict_normalized(None, *fitted_pars) - signal) / np.linalg.norm(signal)
+
+    return {'popt': vals, 'psdev': sdev, 'pcov': pcov, 'loss': cost}
+
+
+def _normalized_pars(pars, free_pars):
+    return [normalize(pars[p], free_pars[p]) for p in free_pars]
+
+def _original_pars(normalized_pars, free):
+    return {p: renormalize(normalized_pars[i], free[p]) for i, p in enumerate(free)}
+
+def _update_pars(pars, normalized_pars, free):
+    for i, p in enumerate(free):
+        pars[p] = renormalize(normalized_pars[i], free[p])
+
+
+
+
+# Obsolete
+def _orig_train_brute(predict, signal, pars, free, n_steps=3, brute=None, sigma=None, **kwargs):
+    if free == {}:
+        raise ValueError("The dictionary of free parameters can't be empty")
+    
+    if brute is None:
+        return _train(predict, signal, pars, free, sigma=sigma, **kwargs)
+
+    free_brute = {b for b in brute if b in free}
+    if not free_brute:
+        return _train(predict, signal, pars, free, sigma=sigma, **kwargs)
+
+    if n_steps < 1:
+        raise ValueError("n_steps must be at least 1")
+
+    names = sorted(free_brute)  # fixed ordering for the grid
+    grids = [np.linspace(*free[name], n_steps) for name in names]
+
+    best = None
+    for values in itertools.product(*grids):
+        start = dict(pars)
+        start.update(zip(names, values))
+
+        try:
+            result = _train(predict, signal, start, free, sigma=sigma, **kwargs)
+        except Exception:
+            continue  # skip starting points where the fit fails
+
+        loss = result['loss']
+        if np.isfinite(loss) and (best is None or loss < best['loss']):
+            best = result
+
+    if best is None:
+        raise RuntimeError("curvefit failed for every starting point")
+    
+    return best
+
+# Obsolete
 def train_bat(predict, time, signal, pars, free, x=None, reset=False, sigma=None, n_bat=1, bats=None, btol=1e-3, **kwargs):
     if bats is None:
         bats = ['BAT']
@@ -71,7 +169,7 @@ def train_bat(predict, time, signal, pars, free, x=None, reset=False, sigma=None
 
     return train(predict, time, signal, pars, free, x=x, reset=reset, sigma=sigma, **kwargs)
 
-
+# OBSOLETE PHASE OUT
 def train(predict, time, signal, pars, free, x=None, reset=False, sigma=None, **kwargs):
     """Optimization logic using normalized parameter values."""
 
@@ -215,3 +313,45 @@ def loss(ypred, ydata, metric='NRMS', nfree=None) -> float:
         raise ValueError(f"Unknown metric {metric}")
     
     return loss
+
+
+
+def train_batch(predict, time, signal, pars, free, **kwargs):
+    def train_pixel(x):
+        return train(predict, time, signal[x,...], pars, free, x, **kwargs)
+    
+    if signal.shape[0]==1:
+        results = [train_pixel(0)]
+    else:
+        #results = [train_pixel(x) for x in range(signal.shape[0])] 
+        results = Parallel(n_jobs=-1)(delayed(train_pixel)(x) for x in range(signal.shape[0]))  
+
+    return results 
+
+def format_batch_training(results, free):
+    # Format outputs
+    vals = {p: [] for p in free}
+    sdev = {p: [] for p in free}
+    for p in free:
+        for r in results:
+            if p in r[0]:
+                vals[p].append(r[0][p])
+            else:
+                vals[p].append(np.nan)
+            if p in r[1]:
+                sdev[p].append(r[1][p])
+            else:
+                sdev[p].append(np.nan)
+        vals[p] = np.array(vals[p])
+        sdev[p] = np.array(sdev[p])
+
+    pcov = np.empty(len(results), dtype=object)
+    pcov[:] = [r[2] for r in results]
+
+    model = np.empty(len(results), dtype=object)
+    if len(results[0]) == 4:
+        model[:] = [r[3] for r in results]
+    else:
+        model[:] = None
+
+    return vals, sdev, pcov, model

@@ -102,9 +102,11 @@
 
 from copy import deepcopy
 import numpy as np
+import matplotlib.pyplot as plt
 
 from dcmri.core.module import Module
 from dcmri.kinetics.modules_conc import ConcTissueX
+from dcmri.kinetics.modules_pars import ParsTissueX
 from dcmri.relaxivity.modules_rois import RelaxivityTissueX
 from dcmri.bloch.modules_rois import WaterExchangeTissueX
 from dcmri.signal.modules_tissue import ConcToSignal
@@ -129,39 +131,40 @@ class ForwardTissueX(Module):
     _all_inputs = {'dt', 'v_bi', 'PSc', 'TA', 'iStrig', 'R1_b', 'B1corr', 'v_b', 'TE2', 'T_ar', 'TP', 'v_c', 'PA', 'TD', 'agent', 'me', 'Nph', 'FA', 'F_b', 'v_e', 'R1_ic', 'c_ar', 'TE', 'Nk0', 'R1_i', 'field_strength', 'Nz', 'R1_bi', 'tstart', 'iScal', 'TE1', 'P', 'v_ic', 'TR', 'v_ti', 'PS', 'NSR', 'R1_ti', 'Ktrans', 'Scal', 'iz', 'PSe', 'v_i', 'H', 'R1_c', 'S0'}
     _all_outputs = {'tR', 'tC', 'M', 'ci', 'R1i', 'tM', 'R2', 'C', 'S', 'R2s', 'tS', 'R1', 'S0'}
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)  
-
+    def _call(self, p):
+        p |= self._pars(p)
         p |= self._conc(p)
         p |= self._tissue_rel(p) 
         p |= self._tissue_wex(p) 
 
         p['tacq'] = p['dt'] * (p['ci'].size - 1)
         p |= self._conc_to_signal(p)
+        return p
 
-        return self.map_results(p)
+    def __init__(self, imap:dict=None, omap:dict=None, iomap: dict=None, cmap: dict=None, **config):
+        self.set_config(config, cmap)
 
-    def __init__(self, imap:dict=None, omap:dict=None, **config):
-        self.set_config(config)
-
+        self._pars = ParsTissueX(**self.config)
         self._conc = ConcTissueX(**self.config)
         self._tissue_rel = RelaxivityTissueX(**self.config)
         self._tissue_wex = WaterExchangeTissueX(**self.config)
         self._conc_to_signal = ConcToSignal(**self.config)
 
-        self.map_io(imap, omap)
+        self.map_io(imap, omap, iomap)
 
     def inputs(self) -> set:
-        inputs = self._conc.mapped_inputs()
+        inputs = self._pars.mapped_inputs()
+        inputs |= self._conc.mapped_inputs()
         inputs |= self._tissue_rel.mapped_inputs() 
         inputs |= self._tissue_wex.mapped_inputs() 
         inputs |= self._conc_to_signal.mapped_inputs()
 
         inputs -= {'tacq'}
+        inputs -= self._pars.mapped_outputs()
         inputs -= self._conc.new_mapped_outputs()
         inputs -= self._tissue_rel.new_mapped_outputs()
         inputs -= self._tissue_wex.new_mapped_outputs()
-        # inputs -= self._conc_to_signal.new_mapped_outputs()
+
         return inputs 
     
     def outputs(self):
@@ -187,3 +190,85 @@ class ForwardTissueX(Module):
         p['c_ar'] = ci
 
         return self.input_data(p, data)
+
+    def plot(self, data: dict, xlim:list=None, fname:str=None, show=True):
+        p = self.map_data(data)
+        pred = self._call(p)
+        
+        if xlim is None:
+            xlim = [pred['tR'][0], pred['tR'][-1]]
+        xlim = np.array(xlim) / 60
+
+        fig, ax = plt.subplots(1, 3, figsize=(12, 4))
+        fig.subplots_adjust(hspace=0.3, wspace=0.3)
+
+        ax[0].set_title('MRI signal')
+        for i in range(pred['S'].shape[0]):
+            for j in range(pred['S'].shape[1]):
+                ax[0].plot(pred['tS'] / 60, pred['S'][i, j, :], linestyle='-', linewidth=3.0, color='darkblue', label='Prediction')
+        ax[0].set(xlabel='Time (min)', ylabel='Signal (a.u.)', xlim=xlim)
+        ax[0].legend()
+
+        relax_comp = plot_labels(self.config['kinetics'], self.config['water_exchange'])
+    
+        ax[1].set_title('Tissue concentration')
+        ax[1].plot(pred['tC'] / 60, 1000 * p['c_ar'], '-', linewidth=3, color='darkred', label='Arterial blood')
+        if pred['C'].shape[0] == 2:
+            ax[1].plot(pred['tC'] / 60, 1000 * pred['C'][0,:], linestyle='-', linewidth=3.0, color='darkred', label='Tissue blood')
+            ax[1].plot(pred['tC'] / 60, 1000 * pred['C'][1,:], linestyle='-', linewidth=3.0, color='darkcyan', label='Interstitium')
+        else:
+            ax[1].plot(pred['tC'] / 60, 1000 * pred['C'][0,:], linestyle='-', linewidth=3.0, color='darkblue', label='Tissue') 
+        ax[1].set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=xlim)
+        ax[1].legend()
+
+
+        ax[2].set_title('Magnetization')
+        M = np.linalg.norm(pred['M'], axis=1)
+        for ch in range(M.shape[0]):
+            for i in range(M.shape[1]):
+                ax[2].plot(pred['tM'] / 60, M[ch, i, :], linestyle='-', linewidth=3.0, color=COLOR[relax_comp[i]], label=relax_comp[i])
+        ax[2].set(xlabel='Time (min)', ylabel='Magnetization (A/cm)', xlim=xlim)
+        ax[2].legend()
+
+        if fname is not None: 
+            plt.savefig(fname=fname)
+        if show: 
+            plt.show()
+        else: 
+            plt.close()
+
+
+
+COLOR = {
+    'Plasma': 'darkred',
+    'Interstitium': 'steelblue',
+    'Extracellular': 'dimgrey',
+    'Tissue': 'darkgrey',
+    'Tissue blood': 'darkred',
+    'Extravascular': 'blue',
+    'Tissue cells': 'lightblue',
+    'Tissue blood + Interstitium': 'purple',
+}
+
+def plot_labels(kin, wex) -> list:
+    if wex == 'FF':
+        return ['Tissue']
+
+    if wex in ['RR', 'NN', 'NR', 'RN']:
+        if kin == 'WV':
+            return ['Interstitium', 'Tissue cells']
+        else:
+            return ['Tissue blood', 'Interstitium', 'Tissue cells']
+
+    if wex in ['RF', 'NF']:
+        if kin == 'WV':
+            return ['Extravascular']
+        else:
+            return ['Tissue blood', 'Extravascular']
+
+    if wex in ['FR', 'FN']:
+        if kin == 'WV':
+            return ['Interstitium', 'Tissue cells']
+        else:
+            return ['Tissue blood + Interstitium', 'Tissue cells']
+

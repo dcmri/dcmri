@@ -111,11 +111,12 @@ import matplotlib.pyplot as plt
 
 from dcmri.core.module import Module
 from dcmri.core.tools import get_quantity, update_bounds
-from dcmri.utils.fit import train_bat, train
+from dcmri.utils.fit import train_brute
 from dcmri.forward.aorta import ForwardAorta as Forward
+from dcmri.inverse.functions import estimate_bat
 
-configs = deepcopy(Forward.configs)
-defaults = deepcopy(Forward.defaults)
+configs = deepcopy(Forward.configs) | {'estimate_bat': {'none', 'ttp', 'custom'}}
+defaults = deepcopy(Forward.defaults) | {'estimate_bat': 'custom', 'calibrate': True}
 
 configs['bolus'].discard('dual') # Only meaningful for split protocols
 
@@ -125,7 +126,7 @@ class InverseAorta(Module):
     configs = configs
     defaults = defaults
 
-    _all_inputs = {'B1corr', 'dt', 'tS', 'dose_tolerance', 'TE2', 'TF', 'NSR', 'S0', 'T_e_li', 'E_or', 'T_b_or', 'T_p_lk', 'rate_1', 'D_hl', 'T_e_or', 'R1_b', 'vr_rk', 'S', 'field_strength', 'T_p_rk', 'Nph', 'tstart', 'vol_ao', 'T_la', 'TP', 'dose_1', 'CO', 'Nk0', 'tacq', 'dose_2', 'TD', 'weight', 'nb', 'rate', 'TE1', 'PA', 'TE', 'bdel', 'iz', 'iStrig', 'vr_li', 'TA', 'T_hl', 'dose', 'agent', 'pfree', 'rate_2', 'Nz', 'FA', 'vr_or', 'ffa', 'vr_lk', 'TR', 'SA', 'T_gu', 'me'}
+    _all_inputs = {'B1corr', 'dt', 'tS', 'dose_tolerance', 'TE2', 'TF', 'NSR', 'S0', 'T_e_li', 'E_or', 'T_b_or', 'T_p_lk', 'rate_1', 'D_hl', 'T_e_or', 'R1_b', 'vr_rk', 'S', 'field_strength', 'T_p_rk', 'Nph', 'vol_ao', 'T_la', 'TP', 'dose_1', 'CO', 'Nk0', 'dose_2', 'TD', 'weight', 'nb', 'rate', 'TE1', 'PA', 'TE', 'bdel', 'iz', 'iStrig', 'vr_li', 'TA', 'T_hl', 'dose', 'agent', 'pfree', 'rate_2', 'Nz', 'FA', 'vr_or', 'ffa', 'vr_lk', 'TR', 'SA', 'T_gu', 'me'}
     _all_outputs = {'psdev', 'popt', 'loss', 'pcov'}
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):
@@ -133,12 +134,18 @@ class InverseAorta(Module):
         self.forward = Forward(**self.config)
         self.map_io(imap, omap)
 
-    def _predict(self, time):
-        nt = np.size(time)
-        pred = self.forward(self._pars)
+    def _predict(self, p):
+        nt = np.size(p['tS'])
+        pred = self.forward(p)
         return pred['S'][:, :, :nt].reshape(-1)
 
     def _preproc(self, p):
+        # Derive simulation timings
+        p[f'tstart'] = p['tS'][0]
+        tmax = p['tS'][-1]
+        ts = p[f'tS'][1] - p[f'tS'][0]
+        p[f'tacq'] = tmax - p[f'tstart'] + 2 * ts
+
         # Reshape signal if needed
         if p['S'].ndim == 1:
             p['S'] = p['S'].reshape(1, 1, -1)
@@ -148,7 +155,7 @@ class InverseAorta(Module):
             p['Scal'] = p['S'][..., :p['nb']]
             p['iScal'] = np.arange(p['nb'])
 
-    def _pfree(self):
+    def pfree(self):
         inputs = self.forward.mapped_inputs()
         pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
         pfree |= {'BAT'}
@@ -160,16 +167,20 @@ class InverseAorta(Module):
         p = self.map_data(data) 
         self._preproc(p)
 
+        # Estimate BAT if needed
+        if self.config['estimate_bat'] == 'custom':
+            p['BAT'] = estimate_bat(p['tS'], p['S'])
+        elif self.config['estimate_bat'] == 'ttp':
+            p['BAT'] = p['tS'][np.argmax(p['S'])]
+
         # Initialize pfree if needed
         if p['pfree'] is None:
-            p['pfree'] = self._pfree() 
+            p['pfree'] = self.pfree() 
 
         p['pfree'] = update_bounds(p['pfree'], value=p)
 
         # Compute inverse
-        self._pars = p
-        #output = train_bat(self._predict, p['tS'], p['S'], p, p['pfree'], bats=['BAT'], **kwargs)
-        output = train(self._predict, p['tS'], p['S'], p, p['pfree'], **kwargs)
+        output = train_brute(self._predict, p['S'], p, p['pfree'], **kwargs)
 
         return self.map_results(output)
 
@@ -179,6 +190,9 @@ class InverseAorta(Module):
         if self.config['calibrate']:
             inputs |= {'nb'}
             inputs -= {'Scal', 'iScal'}
+        if self.config['estimate_bat'] != 'none':
+            inputs -= {'BAT'}
+        inputs -= {'tstart', 'tacq'}
         return inputs  
     
     def outputs(self):
@@ -199,9 +213,15 @@ class InverseAorta(Module):
         }
         return self.input_data(p, data)
 
+    def predict(self, data: dict, results:dict=None):
+        p = data if results is None else data | results['popt']
+        p = self.forward.map_data(p) | self.map_data(p)
+        self._preproc(p)
+        return self.forward(p)
 
-    def plot(self, data: dict, xlim=None, fname:str=None, show=True):
-        p = self.map_data(data)
+    def plot(self, data: dict, results:dict=None, xlim=None, fname:str=None, show=True):
+        p = data if results is None else data | results['popt']
+        p = self.forward.map_data(p) | self.map_data(p)
         self._preproc(p)
         pred = self.forward(p)
 
@@ -221,7 +241,7 @@ class InverseAorta(Module):
             ax.set_ylabel('Signal (a.u.)')
             ax.legend()
 
-        plot_data(pred['tS'], pred['S'],p['tS'], p['S'], ax0, ['lightcoral', 'darkred'])
+        plot_data(pred['tS'], pred['S'], p['tS'] + pred['tS'][0], p['S'], ax0, ['lightcoral', 'darkred'])
 
         # Concentration Plot
         ax1.set_title('Concentration Reconstruction')

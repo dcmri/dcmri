@@ -97,29 +97,34 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from dcmri.core.module import Module
-from dcmri.core.tools import get_quantity, update_bounds
-from dcmri.utils.fit import train
+from dcmri.core.tools import get_quantity, update_bounds, unit
+from dcmri.utils.fit import train_brute
 from dcmri.forward.tissue_x import ForwardTissueX as Forward
+from dcmri.kinetics.functions_tissue import dpars_tissue
+from dcmri.inverse.modules import SignalToConc
 
-configs = deepcopy(Forward.configs) 
-defaults = deepcopy(Forward.defaults)
+configs = deepcopy(Forward.configs) | {'aif': {'fixed', 'measured'}}
+defaults = deepcopy(Forward.defaults) | {'aif': 'fixed', 'calibrate': True}
 
 class InverseTissueX(Module):
 
     configs = configs
     defaults = defaults
 
-    _all_inputs = {'R1_b', 'T_ar', 'v_e', 'Nph', 'pfree', 'tS', 'PSe', 'TE', 'Nz', 'TP', 'agent', 'TE1', 'TD', 'Nk0', 'R1_bi', 'TR', 'B1corr', 'field_strength', 'H', 'v_bi', 'v_b', 'NSR', 'R1_ti', 'R1_ic', 'PA', 'S', 'tstart', 'R1_c', 'PS', 'Ktrans', 'P', 'v_ti', 'TA', 'v_c', 'FA', 'iStrig', 'iz', 'R1_i', 'v_i', 'S0', 'nb', 'v_ic', 'PSc', 'TE2', 'dt', 'F_b', 'c_ar', 'me'}
-    _all_outputs = {'pcov', 'psdev', 'popt', 'loss'}
+    _all_inputs = None
+    _all_outputs = None
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
         self.forward = Forward(**self.config)
+        if self.config['aif'] == 'measured':
+            self._sig2conc = SignalToConc(**self.config)
         self.map_io(imap, omap)
 
-    def _predict(self, time):
-        pred = self.forward(self._pars)
-        return pred['S'][:, :, :len(time)].reshape(-1)
+    def _predict(self, p):
+        nt = np.size(p['tS'])
+        pred = self.forward(p)
+        return pred['S'][:, :, :nt].reshape(-1)
 
     def _preproc(self, p):
         # Reshape signal if needed
@@ -131,30 +136,39 @@ class InverseTissueX(Module):
             p['Scal'] = p['S'][..., :p['nb']]
             p['iScal'] = np.arange(p['nb'])
 
-    def _pfree(self):
+        if self.config['aif'] == 'measured':
+            tmax = max(p['tS_ar']) + 2 * (p['tS_ar'][-1] - p['tS_ar'][-2])
+            t = np.arange(0, tmax, p['dt'])
+            c_ar = self._sig2conc(p, S=p['S_ar'], R1b=p['R1_b'])['C']
+            p['c_ar'] = np.interp(t, p['tS_ar'], c_ar) 
+
+    def pfree(self):
         inputs = self.forward.mapped_inputs()
         pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
         if not self.config['calibrate']:
             pfree |= {'S0'}
+        pfree -= {'v_ti', 'H'}
         return {p: get_quantity(p)['bounds'] for p in pfree}
+
+    def _pder(self, data:dict):
+        p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['phys', 'body']}
+        p = dpars_tissue(p)
+        return p
     
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data)  
+    def _call(self, p: dict, **kwargs) -> dict: 
         self._preproc(p)
 
         # Initialize pfree if needed
         if p['pfree'] is None:
-            p['pfree'] = self._pfree() 
+            p['pfree'] = self.pfree() 
 
         p['pfree'] = update_bounds(p['pfree'], value=p)
 
         # Compute inverse
-        self._pars = p
-        time = p['tS']
-        signal = p['S']
-        output = train(self._predict, time, signal, p, p['pfree'], **kwargs)
+        output = train_brute(self._predict, p['S'], p, p['pfree'], **kwargs) 
+        output['pars'] = self._pder(p | output['popt'])
 
-        return self.map_results(output)
+        return output
 
     def inputs(self) -> set:
         inputs = self.forward.mapped_inputs()
@@ -162,10 +176,15 @@ class InverseTissueX(Module):
             inputs |= {'nb'}
             inputs -= {'Scal', 'iScal'}
         inputs |= {'tS', 'S', 'pfree'}
+        if self.config['aif'] == 'measured':
+            inputs |= {'tS_ar', 'S_ar', 'R1_b'}
+            inputs -= {'c_ar'}
         return inputs  
     
     def outputs(self):
-        outputs = {'popt', 'psdev', 'pcov', 'loss'}
+        outputs = {'popt', 'psdev', 'pcov', 'pars', 'loss'}
+        if self.config['aif'] == 'measured':
+            outputs |= {'c_ar'}
         return outputs
     
     def test_data(self, data: dict=None): 
@@ -181,171 +200,126 @@ class InverseTissueX(Module):
         }
         return self.input_data(p, data)
 
-    def plot(self, data: dict, xlim:list=None, fname:str=None, show=True):
-        p = self.map_data(data)
+
+    def print(self, result: dict = None, data: dict = None):
+        if result is None:
+            result = self.__call__(data)
+
+        header = ['Parameter', 'Unit', 'Reconstructed']
+        if data is not None:
+            header += ['Truth', 'Error']
+
+        rows = []
+        for par, rec in result['popt'].items():
+            row = [par, unit(par), f'{rec:.4g}']
+            if data is not None:
+                if np.isinf(data[par]):
+                    err = 'nan'
+                elif data[par]==0:
+                    err = 'inf'
+                else:
+                    err = 100 * (rec - data[par]) / data[par]
+                    err = f'{err:.1f} %'
+                row += [f'{data[par]:.4g}', err]
+            rows.append(row)
+
+        # Column widths adapt to the longest entry in each column
+        widths = [max(len(h), *(len(r[i]) for r in rows)) for i, h in enumerate(header)]
+
+        def fmt(cells):
+            return '| ' + ' | '.join(f'{c:<{w}}' for c, w in zip(cells, widths)) + ' |'
+
+        divider = '+-' + '-+-'.join('-' * w for w in widths) + '-+'
+
+        print(divider)
+        print(fmt(header))
+        print(divider)
+        for r in rows:
+            print(fmt(r))
+        print(divider)
+
+
+    def plot(self, data: dict, result:dict=None, xlim:list=None, fname:str=None, show=True):
+        if result is None:
+            p = self.map_data(data)
+            result = self._call(p)
+
+        p = self.map_data(data | result['popt'])
         self._preproc(p)
-        prediction = self.forward(p)
-
+        pred = self.forward(p)
+        
         if xlim is None:
-            xlim = [prediction['tR'][0], prediction['tR'][-1]]
+            xlim = [pred['tR'][0], pred['tR'][-1]]
+        xlim = np.array(xlim) / 60
 
-        fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 5))
+        fig, ax = plt.subplots(1, 3, figsize=(12, 4))
+        fig.subplots_adjust(hspace=0.3, wspace=0.3)
 
-        # Signals Plot
-        ax0.set_title('Prediction of the MRI signals.')
-        for i in range(p['S'].shape[0]):
-            for j in range(p['S'].shape[1]):
-                ax0.plot(p['tS'] / 60, p['S'][i, j, :], marker='o', linestyle='None', color='cornflowerblue', label='Data')
-                ax0.plot(prediction['tS'] / 60, prediction['S'][i, j, :], linestyle='-', linewidth=3.0, color='darkblue', label='Prediction')
-        ax0.set(xlabel='Time (min)', ylabel='MRI signal (a.u.)', xlim=np.array(xlim)/60)
-        ax0.legend()
+        ax[0].set_title('MRI signal')
+        for i in range(pred['S'].shape[0]):
+            for j in range(pred['S'].shape[1]):
+                ax[0].plot(p['tS'] / 60, p['S'][i, j, :], marker='o', linestyle='None', color='cornflowerblue', label='Data')
+                ax[0].plot(pred['tS'] / 60, pred['S'][i, j, :], linestyle='-', linewidth=3.0, color='darkblue', label='Prediction')
+        ax[0].set(xlabel='Time (min)', ylabel='Signal (a.u.)', xlim=xlim)
+        ax[0].legend()
 
-        ax1.set_title('Reconstruction of concentrations')
-
-        ax1.plot(prediction['tC'] / 60, 1000 * p['c_ar'], '-', linewidth=3, color='darkred', label='Arterial Pred')
-        if prediction['C'].shape[0] == 2:
-            ax1.plot(prediction['tC'] / 60, 1000 * prediction['C'][0,:], linestyle='-', linewidth=3.0, color='darkred', label='Blood')
-            ax1.plot(prediction['tC'] / 60, 1000 * prediction['C'][1,:], linestyle='-', linewidth=3.0, color='darkcyan', label='Interstitium')
+        relax_comp = plot_labels(self.config['kinetics'], self.config['water_exchange'])
+    
+        ax[1].set_title('Tissue concentration')
+        ax[1].plot(pred['tC'] / 60, 1000 * p['c_ar'], '-', linewidth=3, color='darkred', label='Arterial blood')
+        if pred['C'].shape[0] == 2:
+            ax[1].plot(pred['tC'] / 60, 1000 * pred['C'][0,:], linestyle='-', linewidth=3.0, color='darkred', label='Tissue blood')
+            ax[1].plot(pred['tC'] / 60, 1000 * pred['C'][1,:], linestyle='-', linewidth=3.0, color='darkcyan', label='Interstitium')
         else:
-            ax1.plot(prediction['tC'] / 60, 1000 * prediction['C'][0,:], linestyle='-', linewidth=3.0, color='darkblue', label='Tissue')
-           
-        ax1.set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=np.array(xlim)/60)
-        ax1.legend()
+            ax[1].plot(pred['tC'] / 60, 1000 * pred['C'][0,:], linestyle='-', linewidth=3.0, color='darkblue', label='Tissue') 
+        ax[1].set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=xlim)
+        ax[1].legend()
 
-        if fname is not None:
+
+        ax[2].set_title('Magnetization')
+        M = np.linalg.norm(pred['M'], axis=1)
+        for ch in range(M.shape[0]):
+            for i in range(M.shape[1]):
+                ax[2].plot(pred['tM'] / 60, M[ch, i, :], linestyle='-', linewidth=3.0, color=COLOR[relax_comp[i]], label=relax_comp[i])
+        ax[2].set(xlabel='Time (min)', ylabel='Magnetization (A/cm)', xlim=xlim)
+        ax[2].legend()
+
+        if fname is not None: 
             plt.savefig(fname=fname)
-        if show:
+        if show: 
             plt.show()
-        else:
+        else: 
             plt.close()
 
-    # Original plot function showing magnetization etc
-    # Needs some adaptation
+COLOR = {
+    'Plasma': 'darkred',
+    'Interstitium': 'steelblue',
+    'Extracellular': 'dimgrey',
+    'Tissue': 'darkgrey',
+    'Tissue blood': 'darkred',
+    'Extravascular': 'blue',
+    'Tissue cells': 'lightblue',
+    'Tissue blood + Interstitium': 'purple',
+}
 
-    # def plot(self, data: dict, xlim:list=None, fname:str=None, show=True, 
-    #          sdev=None, round_to=None):
-    #     clr = {
-    #         'Plasma': 'darkred',
-    #         'Interstitium': 'steelblue',
-    #         'Extracellular': 'dimgrey',
-    #         'Tissue': 'darkgrey',
-    #         'Blood': 'darkred',
-    #         'Extravascular': 'blue',
-    #         'Tissue cells': 'lightblue',
-    #         'Blood + Interstitium': 'purple',
-    #     }
-    #     plot_labels_kin = {
-    #         '2CX': (['vb', 'vi'], ['Blood', 'Interstitium']),
-    #         '2CU': (['vb', 'vi'], ['Blood', 'Interstitium']),
-    #         'HF': (['vb', 'vi'], ['Blood', 'Interstitium']),
-    #         'HFU': (['vb', 'vi'], ['Blood', 'Interstitium']),
-    #         'FX': (['ve'], ['Extracellular']),
-    #         'NX': (['vb'], ['Blood']), 
-    #         'NXP': (['vb'], ['Blood']),
-    #         'U': (['vb'], ['Blood']),
-    #         'WV': (['vi'], ['Interstitium']),
-    #     }
-    #     def plot_labels_relax(kin, wex) -> list:
+def plot_labels(kin, wex) -> list:
+    if wex == 'FF':
+        return ['Tissue']
 
-    #         if wex == 'FF':
-    #             return ['Tissue']
+    if wex in ['RR', 'NN', 'NR', 'RN']:
+        if kin == 'WV':
+            return ['Interstitium', 'Tissue cells']
+        else:
+            return ['Tissue blood', 'Interstitium', 'Tissue cells']
 
-    #         if wex in ['RR', 'NN', 'NR', 'RN']:
-    #             if kin == 'WV':
-    #                 return ['Interstitium', 'Tissue cells']
-    #             else:
-    #                 return ['Blood', 'Interstitium', 'Tissue cells']
+    if wex in ['RF', 'NF']:
+        if kin == 'WV':
+            return ['Extravascular']
+        else:
+            return ['Tissue blood', 'Extravascular']
 
-    #         if wex in ['RF', 'NF']:
-    #             if kin == 'WV':
-    #                 return ['Extravascular']
-    #             else:
-    #                 return ['Blood', 'Extravascular']
-
-    #         if wex in ['FR', 'FN']:
-    #             if kin == 'WV':
-    #                 return ['Interstitium', 'Tissue cells']
-    #             else:
-    #                 return ['Blood + Interstitium', 'Tissue cells']
-                
-    #     prediction = self._model(self._pars)
-    #     if xlim is None:
-    #         xlim = [np.amin(t), np.amax(t)]
-    #     xlim = np.array(xlim) / 60
-
-    #     if self._model.config['water_exchange'] != 'FF':
-    #         fig, ax = plt.subplots(2, 2, figsize=(10, 12))
-    #         fig.subplots_adjust(hspace=0.3, wspace=0.3)
-    #         ax00 = ax[0, 0]
-    #         ax01 = ax[0, 1]
-    #         ax10 = ax[1, 0]
-    #         ax11 = ax[1, 1]
-    #         ax_text = None
-    #     else:
-    #         fig, ax = plt.subplots(1, 3, figsize=(15, 5))
-    #         fig.subplots_adjust(hspace=0.3, wspace=0.3)
-    #         ax00 = ax[0]
-    #         ax01 = ax[1]
-    #         ax_text = ax[2]
-
-    #     ax00.set_title('MRI signals')
-    #     for ci in range(self._shape[1]):
-    #         if time is not None:
-    #             ax00.plot(time / 60, self._predict_all(time)[0, ci, :], marker='o', linestyle='None', color='cornflowerblue', label='Predicted data')
-    #             ax00.plot(time / 60, signal[0, ci, :], marker='x', linestyle='None', color='darkblue', label='Data')
-    #         ax00.plot(t / 60, S[0, ci, :], linestyle='-', linewidth=3.0, color='darkblue', label='Model')
-    #     ax00.set(ylabel='MRI signal (a.u.)', xlabel='Time (min)', xlim=xlim)
-    #     ax00.legend()
-
-    #     conc_comp, conc_label = plot_labels_kin[self._cnfg['kinetics']]
-    #     relax_comp = plot_labels_relax(self._cnfg['kinetics'], self._cnfg['water_exchange'])
-    
-    #     ax01.set_title('Tissue concentration in indicator compartments')
-    #     ax01.plot(t / 60, 1000 * self._pars['c_a'], linestyle='-', linewidth=5.0, color='lightcoral', label='Arterial blood')
-    #     for k, vk in enumerate(conc_comp):
-    #         # ck = C[k, ...] / p[vk] if p[vk] > 0 else 0 * C[k, ...]
-    #         ax01.plot(t / 60, 1000 * C[0, k, :], linestyle='-', linewidth=3.0, label=conc_label[k], color=clr[conc_label[k]])
-    #     ax01.set(ylabel='Concentration (mM)', xlabel='Time (min)', xlim=xlim)
-    #     ax01.legend()
-
-    #     if self._cnfg['water_exchange'] != 'FF':
-    #         ax11.set_title('Concentration in water compartments')
-    #         for i in range(c.shape[1]):
-    #             ax11.plot(t / 60, 1000 * c[0, i, :], linestyle='-', linewidth=3.0, color=clr[relax_comp[i]], label=relax_comp[i])
-    #         ax11.set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=xlim)
-    #         ax11.legend()
-
-    #         ax10.set_title('Magnetization in water compartments')
-    #         for i in range(Mz.shape[1]):
-    #             mi = Mz[0, i, :] / v[i] if v[i] > 0 else 0 * Mz[0, i, :]
-    #             ax10.plot(t / 60, mi, linestyle='-', linewidth=3.0, color=clr[relax_comp[i]], label=relax_comp[i])
-    #         ax10.set(xlabel='Time (min)', ylabel='Magnetization (a.u.)', xlim=xlim)
-    #         ax10.legend()
-
-    #     if ax_text is not None:
-
-    #         if sdev is None:
-    #             pars = self._params('free')
-    #         else:
-    #             pars = list(sdev.keys())
-    #             sdev = {k: float(v) for k, v in sdev.items()}
-
-    #         vals = {k: p[k][0] for k in pars}
-    #         msg = string_params(vals, sdev, round_to)
-    #         msg = "\n".join(list(msg.values()))
-    #         ax_text.set_title('Free parameters')
-    #         ax_text.axis("off")  # hide axes
-    #         ax_text.text(0, 0.9, f"Kinetics: {self._cnfg['kinetics']}", fontsize=10, transform=ax_text.transAxes, ha="left", va="top")
-    #         ax_text.text(0, 0.85, f"Water exchange: {self._cnfg['water_exchange']}", fontsize=10, transform=ax_text.transAxes, ha="left", va="top")
-    #         ax_text.text(0, 0.8, f"Sequence: {self._cnfg['sequence']}", fontsize=10, transform=ax_text.transAxes, ha="left", va="top")
-    #         ax_text.text(0, 0.75, f"R2* model: {self._cnfg['t2s_relaxation']}", fontsize=10, transform=ax_text.transAxes, ha="left", va="top")
-    #         ax_text.text(0, 0.6, msg, fontsize=10, transform=ax_text.transAxes, ha="left", va="top")
-
-    #     if fname is not None: 
-    #         plt.savefig(fname=fname)
-    #     if show: 
-    #         plt.show()
-    #     else: 
-    #         plt.close()
-
-
+    if wex in ['FR', 'FN']:
+        if kin == 'WV':
+            return ['Interstitium', 'Tissue cells']
+        else:
+            return ['Tissue blood + Interstitium', 'Tissue cells']

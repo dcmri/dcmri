@@ -1463,7 +1463,55 @@ def flux_pfcomp(J=None, t=None, dt=1.0, T=None, D=None, solver='interp'):
     J = flux_plug(J, t=t, dt=dt, T=Tp, solver=solver)
     return J
 
+def conc_pfcomp(J=None, t=None, dt=1.0, T=None, D=None, solver='step'):
+    """
+    Tissue concentration in a plug-flow compartment.
 
+    See section :ref:`define-chain` for more detail.
+
+    Parameters
+    ----------
+    J : array_like
+        The indicator flux entering the system.
+    t : array_like, optional
+        The time points of the indicator flux `J`, in the same units as `T`. 
+        If None, the time points are assumed to be uniformly spaced with 
+        spacing `dt`. Defaults to None.
+    dt : float, optional
+        Spacing between time points for uniformly spaced data, in the same 
+        units as `T`. This parameter is ignored if `t` is explicitly 
+        provided. Defaults to 1.0.
+    T : float
+        Mean transit time of the system. Any non-negative value is allowed, 
+        including T = 0 and T = inf (in which case the compartment acts as 
+        a trap).
+    D : float
+        Dispersion of the system. Values must be between 0 (no dispersion) 
+        and 1 (maximal dispersion).
+    solver : str, optional
+        Solver used for the chain system calculation. Defaults to 'step'.
+
+    Returns
+    -------
+    np.ndarray
+        Concentration as a 1D array.
+
+    See Also
+    --------
+    res_chain : Residue function of a chain.
+    prop_chain : Propagator function of a chain.
+    flux_chain : Outflux from a chain.
+
+    Examples
+    --------
+    >>> import dcmri as dc
+    >>> t = [0, 5, 15, 30, 60]
+    >>> J = [1, 2, 3, 3, 2]
+    >>> dc.conc_chain(J, t, T=5, D=0.5)
+    array([ 0.        ,  6.82332358, 21.45008965, 30.86598366, 33.12222937])
+    """
+    Jo = flux_pfcomp(J, t, dt, T, D)
+    return misc.trapz(J - Jo, t, dt)
 
 # N parameters
 

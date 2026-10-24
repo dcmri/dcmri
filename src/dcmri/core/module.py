@@ -53,6 +53,11 @@ class Module:
             self.map_outputs(omap)
         return self
 
+    def __call__(self, data: dict=None, **kwargs) -> dict:
+        p = self.map_data(data)  
+        p = self._call(p, **kwargs)
+        return self.map_results(p)
+
     def map_inputs(self, imap: dict=None):
         self._inputs = self.inputs()
         if imap is None:
@@ -69,11 +74,15 @@ class Module:
             self._omap = {k: v for k, v in omap.items() if k in self._outputs}
         return self
 
-    def init_data(self):
+    def init(self):
         return {
             i: get_quantity(i, quantities=self.quantities)['init']
             for i in self._inputs
-        }
+        }        
+
+    # TODO: Obsolete - replace by init()
+    def init_data(self):
+        return self.init()
 
     @property
     def config(self):
@@ -121,8 +130,6 @@ class Module:
                     raise ValueError(f'Unknown input {i} in call to Module {self.__class__.__name__}.')
         return p
 
-    
-
     def map_results(self, data: dict) -> dict:
         results = {}
         for o in self._outputs:
@@ -137,6 +144,17 @@ class Module:
 
     def filter_data(self, data:dict) -> dict:
         return {k: v for k, v in data.items() if k in self._inputs}
+
+    # def map_all_data(self, data: dict):
+    #     p = {}
+    #     imap = self._imap
+    #     for i, value in data.items():
+    #         if i in imap:
+    #             j = imap[i]
+    #         else:
+    #             j = i
+    #         p[j] = value
+    #     return p        
         
     
     def input_data(self, init, data: dict=None) -> dict:
@@ -460,81 +478,13 @@ class Module:
         if not split:
             return inputs | outputs
         return inputs, outputs
-
-    # @classmethod
-    # def all_io(cls, verbose=0, sample: int = None, seed: int = None):
-    #     if cls._all_inputs and cls._all_outputs:
-    #         return cls._all_inputs, cls._all_outputs
-
-    #     keys = list(cls.configs.keys())
-    #     value_lists = [list(cls.configs[key]) for key in keys]
-
-    #     inputs = set()
-    #     outputs = set()
-
-    #     if sample is None:
-    #         total = math.prod(len(v) for v in value_lists)
-
-    #         combos = itertools.product(*value_lists)
-    #         if verbose:
-    #             combos = tqdm(combos, total=total, desc='Collecting in- and outputs..')
-
-    #         cnt = 0
-    #         for combination in combos:
-    #             cnfg = dict(zip(keys, combination))
-    #             try:
-    #                 model = cls(**cnfg)
-    #             except InvalidConfig:
-    #                 continue
-    #             else:
-    #                 cnt += 1
-    #                 inputs |= model.inputs()
-    #                 outputs |= model.outputs()
-
-    #         if verbose:
-    #             print(f'{cnt} configurations found!')
-
-    #         return inputs, outputs
-
-    #     # Sample requested: draw random combinations directly, never touching the full product.
-    #     rng = np.random.default_rng(seed=seed)
-
-    #     seen = set()
-    #     results = []
-    #     pbar = tqdm(total=sample, desc='Sampling configurations..')
-
-    #     cnt = 0
-    #     while len(results) < sample:
-    #         combination = tuple(vals[rng.integers(len(vals))] for vals in value_lists)
-    #         if combination in seen:
-    #             continue  # avoid duplicate configs, same as original replace=False
-    #         seen.add(combination)
-
-    #         cnfg = dict(zip(keys, combination))
-    #         results.append(cnfg)
-
-    #         try:
-    #             model = cls(**cnfg)
-    #         except InvalidConfig as e:
-    #             continue
-    #         else:
-    #             cnt += 1
-    #             inputs |= model.inputs()
-    #             outputs |= model.outputs()
-
-    #         if pbar:
-    #                 pbar.update(1)
-    #     if verbose:
-    #         print(f'{cnt} valid configurations found!')
-
-    #     if pbar:
-    #         pbar.close()
-
-    #     return inputs, outputs
         
     #
     # The following functions need to be reimplemented
     #
+
+    def _call(self, *args) -> set: 
+        raise NotImplementedError('No _call method defined')
 
     def inputs(self) -> set: # depends on self._cnfg
         raise NotImplementedError('No inputs method defined')
@@ -542,11 +492,7 @@ class Module:
     def outputs(self) -> set: # depends on self._cnfg
         raise NotImplementedError('No outputs method defined')
     
-    def __call__(self, *args, data: dict=None, **kwargs) -> dict:
-        # Any reimplementation needs to start with mapping the data:
-        # p = self.map_data(data, kwargs)
-        # return_value = {}
-        raise NotImplementedError('No __call__ method defined')
+
 
 
 # Helper function

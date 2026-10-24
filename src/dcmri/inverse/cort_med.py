@@ -114,7 +114,7 @@ from dcmri.utils.fit import train
 from dcmri.forward.cort_med import ForwardCortMed as Forward
 
 configs = deepcopy(Forward.configs) 
-defaults = deepcopy(Forward.defaults)
+defaults = deepcopy(Forward.defaults) | {'calibrate': True}
 
 ROIS = ['kc', 'km']
 

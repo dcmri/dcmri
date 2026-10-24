@@ -6,6 +6,48 @@ from dcmri.utils.const import T1 as T1_lit
 from dcmri.utils.const import r1 as r1_lit
 
 
+
+def load_minipig():
+    data_file = fetch('minipig_renal_fibrosis')
+    data = pydmr.read(data_file, 'nest')
+    rois, pars = data['rois']['Pig']['Test'], data['pars']['Pig']['Test']
+
+    time = pars['TS'] * np.arange(len(rois['Aorta']))
+
+    # --- Phase lines
+    Nph = int(np.round(pars['TS'] / pars['TR'])) 
+    Nk0 = int(np.round(Nph / 2))
+
+    return {
+        'agent': "gadoterate",
+        'dose': pars['dose'],
+        'rate': pars['rate'],
+        'field_strength': pars['B0'],
+        'weight': pars['weight'],
+
+
+        'FA': pars['FA'],
+        'TR': pars['TR'],
+        'R1_ki': 1 / T1_lit(pars['B0'], 'kidney'),
+        'R1_b':  1 / T1_lit(pars['B0'], 'blood'),
+        'nb': pars['n0'],
+        'Nph': Nph,
+        'Nk0': Nk0,
+
+        'tS_lk': time,
+        'S_lk': rois['LeftKidney'],
+
+        'tS_rk': time,
+        'S_rk': rois['RightKidney'],
+
+        'tS_ao': time,
+        'S_ao': rois['Aorta'],
+
+        'tS_ar': time,
+        'S_ar': rois['Aorta'],
+    }
+
+
 def load_kruk(subjects=None, visit=None, kidney=None):
 
     datafile = fetch('KRUK')

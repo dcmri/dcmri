@@ -46,10 +46,12 @@ QDATA_ROIS = {
     # pv
     'R1b_pv': {'init': 1.25, 'bounds': (0, 5)},
     # lk / rk
-    'RPF_lk': {'init': 10, 'bounds': (0, 100)},
-    'RPF_rk': {'init': 10, 'bounds': (0, 100)},
+    'PF_lk': {'init': 10, 'bounds': (0, 100)},
+    'PF_rk': {'init': 10, 'bounds': (0, 100)},
     'GFR_lk': {'init': 1, 'bounds': (0, 20)},
     'GFR_rk': {'init': 1, 'bounds': (0, 20)},
+    'T_lka': {'init': 0, 'bounds': (0, 5)},
+    'T_rka': {'init': 0, 'bounds': (0, 5)},
     # ki
     'F_u': {'init': 0.005, 'bounds': (0, 0.05)},
     'T_u': {'init': 120, 'bounds': (30, 10 * 60)},

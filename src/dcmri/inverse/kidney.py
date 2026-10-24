@@ -99,12 +99,15 @@ from dcmri.kinetics.functions_kidney import dpars_kidney
 from dcmri.inverse.modules import SignalToConc
 
 configs = deepcopy(Forward.configs) | {'aif': {'fixed', 'measured'}}
-defaults = deepcopy(Forward.defaults) | {'aif': 'fixed'}
+defaults = deepcopy(Forward.defaults) | {'aif': 'fixed', 'calibrate': True}
 
 class InverseKidney(Module):
 
     configs = configs
     defaults = defaults
+    quantities = {
+        'T_ar': {'init': 0, 'bounds': (0.0, 10), 'name': 'arterial mean transit time', 'unit': 'sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    }
 
     _all_inputs = None
     _all_outputs = None
@@ -200,13 +203,11 @@ class InverseKidney(Module):
 
     def plot(self, data:dict, result:dict, xlim:list=None, fname:str=None, show=True):
         p = self.map_data(data | result['popt'])
-        # TODO This needs mapping too
-        p |= result # add c_ar and any other directly computed quantities
         self._preproc(p)
-        prediction = self.forward(p)
+        pred = self.forward(p)
 
         if xlim is None:
-            xlim = [prediction['tR_ki'][0], prediction['tR_ki'][-1]]
+            xlim = [pred['tR_ki'][0], pred['tR_ki'][-1]]
 
         fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 5))
 
@@ -214,18 +215,18 @@ class InverseKidney(Module):
         ax0.set_title('Prediction of the MRI signals.')
         for i in range(p['S_ki'].shape[0]):
             for j in range(p['S_ki'].shape[1]):
-                ax0.plot(p['tS_ki'] / 60, p['S_ki'][i, j, :], marker='o', linestyle='None', color='cornflowerblue', label='Data')
-                ax0.plot(prediction['tS_ki'] / 60, prediction['S_ki'][i, j, :], linestyle='-', linewidth=3.0, color='darkblue', label='Prediction')
+                ax0.plot((p['tS_ki'] + pred['tS_ki'][0])/ 60, p['S_ki'][i, j, :], marker='o', linestyle='None', color='cornflowerblue', label='Data')
+                ax0.plot(pred['tS_ki'] / 60, pred['S_ki'][i, j, :], marker='o', linestyle='-', linewidth=3.0, color='darkblue', label='Prediction')
         ax0.set(xlabel='Time (min)', ylabel='MRI signal (a.u.)', xlim=np.array(xlim)/60)
         ax0.legend()
 
         ax1.set_title('Reconstruction of concentrations')
 
-        ax1.plot(prediction['tC_ki'] / 60, 1000 * p['c_ar'], '-', linewidth=3, color='darkred', label='Arterial Pred')
-        ax1.plot(prediction['tC_ki'] / 60, 1000 * prediction['C_ki'][0,:], linestyle='-', linewidth=3.0, color='darkred', label='Blood')
-        ax1.plot(prediction['tC_ki'] / 60, 1000 * prediction['C_ki'][1,:], linestyle='-', linewidth=3.0, color='darkcyan', label='Tubuli')
+        ax1.plot(pred['tC_ki'] / 60, 1000 * p['c_ar'], '-', linewidth=3, color='darkred', label='Arterial Pred')
+        ax1.plot(pred['tC_ki'] / 60, 1000 * pred['C_ki'][0,:], linestyle='-', linewidth=3.0, color='darkred', label='Blood')
+        ax1.plot(pred['tC_ki'] / 60, 1000 * pred['C_ki'][1,:], linestyle='-', linewidth=3.0, color='darkcyan', label='Tubuli')
            
-        ax1.set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=np.array(xlim)/60)
+        ax1.set(xlabel='Time (min)', ylabel='Tissue concentration (mM)', xlim=np.array(xlim)/60)
         ax1.legend()
 
         if fname is not None:

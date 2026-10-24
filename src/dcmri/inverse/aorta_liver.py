@@ -42,7 +42,7 @@ from dcmri.kinetics.functions_liver import dpars_liver
 from dcmri.inverse.functions import estimate_bat
 
 configs = deepcopy(ForwardAortaLiver.configs) | {'estimate_bat': {'none', 'ttp', 'custom'}}
-defaults = deepcopy(ForwardAortaLiver.defaults) | {'estimate_bat': 'custom'}
+defaults = deepcopy(ForwardAortaLiver.defaults) | {'estimate_bat': 'custom', 'calibrate': True}
 
 configs['bolus'].discard('dual') # Only meaningful for split protocols
 
@@ -185,12 +185,11 @@ class InverseAortaLiver(Module):
         # Plot signals
         def plot_data(t, s, ti, si, ax, clr):
             ax.set_title('MRI Signal Prediction')
+            ax.set(xlabel='Time (min)', ylabel='Signal (a.u.)', xlim=xlim)
             for i in range(s.shape[0]):
                 for j in range(s.shape[1]):
                     ax.plot(ti / 60, si[i, j, :], marker='o', color=clr[0], alpha=0.5, label='Data')
                     ax.plot(t / 60, s[i, j, :], linestyle='-', color=clr[1], linewidth=3, label='Prediction')                
-            ax.set_xlabel('Time (min)')
-            ax.set_ylabel('Signal (a.u.)')
             ax.legend()
 
         plot_data(pred['tS_ao'], pred['S_ao'], p['tS_ao'], p['S_ao'], ax1, ['lightcoral', 'darkred'])

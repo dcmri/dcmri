@@ -128,7 +128,7 @@ def mz_readout_wrapper(Mz, p, seq, R2=None, R2s=None):
             Mxy[0, 0, c, :] = mz_readout(Mz[c, :], R2s, FA, p['TE1'])
             Mxy[1, 0, c, :] = mz_readout(Mz[c, :], R2[c, :], FA, p['TE2'])
 
-    elif seq in ['ZTE-3D-SPGR-SS', 'ZTE-3D-IR-SPGR-SS']:
+    elif seq in ['ZTE-3D-SPGR-SS', 'ZTE-3D-SPGR-SSI', 'ZTE-3D-IR-SPGR-SS']:
         Mxy = np.zeros((1, 2, nc, nt), dtype=float)
         R2s = np.zeros(nt)
         for c in range(nc):

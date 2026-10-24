@@ -39,7 +39,7 @@ ROIS = {
     'b': 'blood', # can be both ROI and compartment
     'bm': 'bone marrow',
     'ca': 'cartilage',
-    'csf': 'cerebro-spinal fluid',
+    'csf': 'cerebrospinal fluid',
     'gm': 'grey matter',
     'gu': 'gut',
     'he': 'heart',
@@ -51,11 +51,13 @@ ROIS = {
     'lag': 'liver artery and gut',
     'li': 'liver',
     'lk': 'left kidney',
+    'lka': 'left kidney artery',
     'mu': 'muscle',
     'on': 'optic nerve',
     'or': 'organs',
     'pv': 'portal vein',
     'rk': 'right kidney',
+    'rka': 'right kidney artery',
     'sc': 'spinal cord',
     'sk': 'skin',
     'ti': 'tissue',
@@ -122,10 +124,10 @@ QUANTITIES = {
     'dose_tolerance': {'init': 0.1, 'bounds': None, 'name': 'dose tolerance', 'unit': '', 'group': 'hyper', 'dicom_key': None, 'osipi_key': None},
 
     # Generic kinetics
-    'F': {'init': 0.02, 'bounds': (0, 1), 'name': 'flow per unit tissue', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    'T': {'init': 30, 'bounds': (0.1, 60), 'name': 'mean transit time', 'unit': 'sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    'Ti': {'init': 30, 'bounds': (0.1, 60), 'name': 'initial mean transit time', 'unit': 'sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
-    'Tf': {'init': 30, 'bounds': (0.1, 60), 'name': 'final mean transit time', 'unit': 'sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    'F': {'init': 0.02, 'bounds': (0, 0.1), 'name': 'flow per unit tissue', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    'T': {'init': 30, 'bounds': (0.0, 60), 'name': 'mean transit time', 'unit': 'sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    'Ti': {'init': 30, 'bounds': (0.0, 60), 'name': 'initial mean transit time', 'unit': 'sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    'Tf': {'init': 30, 'bounds': (0.0, 60), 'name': 'final mean transit time', 'unit': 'sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'D': {'init': 0.85, 'bounds': (0, 1), 'name': 'transit time dispersion', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'h': {'init': 1.0, 'bounds': (0.1, 60), 'name': 'transit time distribution', 'unit': 'Hz', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'TT': {'init': 1.0, 'bounds': (0.1, 60), 'name': 'boundaries of transit time histogram bins', 'unit': 'sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
@@ -164,6 +166,7 @@ QUANTITIES = {
     'H': {'init': 0.45, 'bounds': (0, 1), 'name': 'hematocrit', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'P': {'init': 0.3, 'bounds': (0, 1), 'name': 'porosity', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'Ktrans': {'init': 0.015, 'bounds': (0.0, 0.1), 'name': 'plasma clearance', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    'kep': {'init': 0.015, 'bounds': (0.0, 0.1), 'name': 'interstitial excretion rate', 'unit': '1/sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
     'PS': {'init': 0.003, 'bounds': (0, 1), 'name': 'permeability-surface area product', 'unit': 'mL/sec/cm3', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
 
     # LS
@@ -216,7 +219,7 @@ QUANTITIES = {
     'tMi': {'init': 0.0, 'bounds': None, 'name': 'inlet magnetization time points', 'unit': 'sec', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
     'Mxy': {'init': 1, 'bounds': (0, 5), 'name': 'transverse magnetization', 'unit': 'A/cm', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
     'M': {'init': 1, 'bounds': (0, 5), 'name': 'magnetization', 'unit': 'A/cm', 'group': 'EM', 'dicom_key': None, 'osipi_key': None},
-    'TF': {'init': 0.5, 'bounds': (0, 10), 'name': 'inflow time', 'unit': 'sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+    'TF': {'init': 0.25, 'bounds': (0, 1), 'name': 'inflow time', 'unit': 'sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
 
     # --- MRI Sequence Parameters ---
     'field_strength': {'init': 3, 'bounds': (0, 20), 'name': 'magnetic field strength', 'unit': 'T', 'group': 'seq', 'dicom_key': None, 'osipi_key': None},

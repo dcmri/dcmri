@@ -26,7 +26,7 @@ class MzInflowPrep(Module):
     def __init__(self, imap: dict=None, omap: dict=None, iomap: dict=None, cmap: dict=None, **config):
         self.set_config(config, cmap)
 
-        if self.config['tof_corr'] and self.config['sequence'] != '3D-SPGR-SS':
+        if self.config['tof_corr'] and self.config['sequence'] not in ['3D-SPGR-SS', 'ZTE-3D-SPGR-SS']:
             raise InvalidConfig(f"Time-of-flight correction is only available for sequence 3D-SPGR-SS. You are running sequence {self.config['sequence']}. Either choose tof_corr=False or sequence='3D-SPGR-SS'.")
 
         self.map_io(imap, omap, iomap)
@@ -74,10 +74,9 @@ class MzInflowPrep(Module):
             t_end = tstart + p['tacq']
 
             # Apply TOF correction if requested
+            sequence = self.config['sequence']
             if self.config['tof_corr']:
-                sequence = '3D-SPGR-SSI'
-            else:
-                sequence = self.config['sequence']
+                sequence = f"{sequence}I"
 
             # Format R1i
             ni = len(p['inlets'])
@@ -111,7 +110,9 @@ class MzInflowPrep(Module):
             inputs |= {'vw', 'inlets', 'Fwi', 'tMi', 'Mzi'}
 
         elif self.config['inflow'] == 'pool':
-            sequence = '3D-SPGR-SSI' if self.config['tof_corr'] else self.config['sequence']
+            sequence = self.config['sequence']
+            if self.config['tof_corr']:
+                sequence = f"{sequence}I"
 
             inputs |= {'vw', 'inlets', 'Fwi', 'me', 'tR', 'R1i', 'tstart', 'tacq'}
             inputs |= get_sequence('prep_params', sequence)
@@ -140,7 +141,9 @@ class MzInflowPrep(Module):
         if self.config['inflow'] == 'inlet':
             tstart = 0
             t_end = tstart + tacq
-            sequence = '3D-SPGR-SSI' if self.config['tof_corr'] else self.config['sequence']
+            sequence = self.config['sequence']
+            if self.config['tof_corr']:
+                sequence = f"{sequence}I"
             mz_prep_inflow = get_sequence('mz_prep_inflow', sequence)
             p |= {k: get_quantity(k)['init'] for k in get_sequence('prep_params', sequence)}
             p |= {'me': 1}
@@ -227,7 +230,7 @@ class MzPrep(Module):
     def __init__(self, imap: dict=None, omap: dict=None, iomap: dict=None, cmap: dict=None, **config):
         self.set_config(config, cmap)
 
-        if self.config['tof_corr'] and self.config['sequence'] != '3D-SPGR-SS':
+        if self.config['tof_corr'] and self.config['sequence'] not in ['3D-SPGR-SS', 'ZTE-3D-SPGR-SS']:
             raise InvalidConfig(f"Time-of-flight correction is only available for sequence 3D-SPGR-SS. You are running sequence {self.config['sequence']}. Either choose tof_corr=False or sequence='3D-SPGR-SS'.")
 
         self._mz_inflow_prep = MzInflowPrep(**self.config)
@@ -244,10 +247,9 @@ class MzPrep(Module):
         v = np.atleast_1d(p['vw'])
 
         # Apply TOF correction if requested
+        sequence = self.config['sequence']
         if self.config['tof_corr']:
-            sequence = '3D-SPGR-SSI'
-        else:
-            sequence = self.config['sequence']
+            sequence = f"{sequence}I"
 
         # --- Result without T1 weighting
         if 'R1' not in get_sequence('tissue_params', sequence):
@@ -290,10 +292,9 @@ class MzPrep(Module):
     def inputs(self):
         inputs = {'me', 'vw', 'tacq'}
 
+        sequence = self.config['sequence']
         if self.config['tof_corr']:
-            sequence = '3D-SPGR-SSI'
-        else:
-            sequence = self.config['sequence']
+            sequence = f"{sequence}I"
 
         inputs |= get_sequence('prep_params', sequence)
         if 'R1' not in get_sequence('tissue_params', sequence):
@@ -318,6 +319,8 @@ class MzPrep(Module):
         tstart = p['tstart'] 
         t_end = tstart + tacq
         sequence = self.config['sequence']
+        if self.config['tof_corr']:
+            sequence = f"{sequence}I"
         mz_prep_inflow = get_sequence('mz_prep_inflow', sequence)
         tMi, Mzi = Mz_wrapper_k0(sequence, mz_prep_inflow, tR, R1[0], p, 
                             v=1, Kw=0, tstart=tstart, t_end=t_end)

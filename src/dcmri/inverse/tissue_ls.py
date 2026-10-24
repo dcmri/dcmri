@@ -9,7 +9,7 @@ from dcmri.inverse.modules import SignalToConc
 from dcmri.bloch.functions_sequences import channels
 
 configs = deepcopy(SignalToConc.configs) 
-defaults = deepcopy(SignalToConc.defaults)
+defaults = deepcopy(SignalToConc.defaults) | {'calibrate': True}
 
 class InverseTissueLS(Module):
 

@@ -170,6 +170,16 @@ SEQUENCES = {
             'prep': {'TR', 'FA', 'B1corr', 'Nph', 'Nk0', 'TF', 'SA'},
         },
     },
+    'ZTE-3D-SPGR-SSI': {
+        'mz_prep_tissue': 'SSI',
+        'mz_prep_inflow': 'SSI',
+        'steady-state': True,
+        'parameters': {
+            'tissue': {'R1', 'R2s'},
+            'read': {'FA', 'B1corr'},
+            'prep': {'TR', 'FA', 'B1corr', 'Nph', 'Nk0', 'TF', 'SA'},
+        },
+    },
     '2D-GE-EPI': {
         'mz_prep_tissue': 'GE-SS',
         'mz_prep_inflow': 'Eq',

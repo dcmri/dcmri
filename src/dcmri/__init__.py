@@ -29,6 +29,7 @@ from dcmri.utils.function_load import (
     load_tristan_humans,
     load_tristan_rats,
     load_kruk,
+    load_minipig,
 )
 from dcmri.utils.misc import (
     sample,
@@ -43,6 +44,8 @@ from dcmri.core.tools import (
     select_params,
     print_quantities,
     parse_varname,
+    get_quantity,
+    unit,
 )
 
 from dcmri.kinetics.modules_conc import (
@@ -89,6 +92,7 @@ from dcmri.kinetics.functions_blocks import (
     conc_bicomp,
     conc_plug,
     conc_chain,
+    conc_pfcomp,
     conc_step,
     conc_free,
     conc_ncomp,

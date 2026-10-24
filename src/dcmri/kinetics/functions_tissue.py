@@ -28,6 +28,7 @@ CONC_PARAMETERS = {
     'U': ['F_b'],
 }
 
+
 def dpars_tissue(p, H=0.45):
 
     p = copy.deepcopy(p)
@@ -43,6 +44,9 @@ def dpars_tissue(p, H=0.45):
 
     if {'v_b', 'v_i'}.issubset(p):
         p['vc'] = 1 - p['v_b'] - p['v_i']
+
+    if {'v_i', 'v_c'}.issubset(p):
+        p['v_ic'] = p['v_i'] + p['v_c']
 
     return p
 

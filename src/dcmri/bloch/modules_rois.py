@@ -312,8 +312,8 @@ class WaterExchangeLiver(Module):
 
 class WaterExchangeTissueX(Module):
     configs = { 
-        'water_exchange': {'FF', 'RF', 'NF', 'FR', 'RR', 'NR', 'FN', 'RN', 'NN'}, 
         'kinetics': {'2CX', 'HF', '2CU', 'HFU', 'WV', 'FX', 'NX', 'NXP', 'U'},
+        'water_exchange': {'FF', 'RF', 'NF', 'FR', 'RR', 'NR', 'FN', 'RN', 'NN'}, 
         'inflow': {'none', 'pool', 'inlet'}
     }
     defaults = {

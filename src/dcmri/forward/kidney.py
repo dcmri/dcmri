@@ -117,6 +117,7 @@ defaults = deepcopy(ConcToSignal.defaults | tissue_wex.defaults | tissue_rel.def
 
 configs['inflow'].discard('inlet')
 configs.pop('tof_corr')
+
 defaults.pop('tof_corr')
 
 

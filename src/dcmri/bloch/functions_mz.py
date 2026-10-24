@@ -153,8 +153,10 @@ def _Mz_KinvJ(R1, v, Fw, j, me):
     K, J = _Mz_KJ(R1, v, Fw, j, me)
 
     if nc==1:
-        KinvJ = J / K if K !=0 else 0
-        KinvJ = np.array(KinvJ)    
+        # KinvJ = J / K if K !=0 else 0
+        # KinvJ = np.array(KinvJ)   
+        with np.errstate(divide='ignore', invalid='ignore'):
+            KinvJ = np.where(K != 0, J / K, 0.0)   
     else:
         KinvJ = np.linalg.solve(K, J)
     return K, KinvJ # magn / cm3
