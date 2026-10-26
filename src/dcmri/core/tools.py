@@ -406,6 +406,8 @@ def update_bounds(free, quantities:dict=None, value:dict=None):
     bounds_add = select_params(lexicon, bounds_type='add')
     bounds_mult = select_params(lexicon, bounds_type='mult')
 
+    new_free = deepcopy(free)
+
     for p, bnds in free.items():
         var = parse_varname(p)['name']
         if p not in value:
@@ -417,7 +419,7 @@ def update_bounds(free, quantities:dict=None, value:dict=None):
         elif var in bounds_add:
             if (bnds[0] > 0) or (bnds[1] < 0):
                 raise ValueError(f"Bounds on {p} must be (negative, positive).")
-            free[p] = [  
+            new_free[p] = [  
                 np.min(value[p]) + bnds[0],
                 np.max(value[p]) + bnds[1],
             ]
@@ -425,7 +427,7 @@ def update_bounds(free, quantities:dict=None, value:dict=None):
         elif var in bounds_mult: 
             if not (0 <= bnds[0] < bnds[1]):
                 raise ValueError(f"Invalid bounds on {p}: Bounds are relative and must be positive.")
-            free[p] = [
+            new_free[p] = [
                 np.min(value[p]) * bnds[0],
                 np.max(value[p]) * bnds[1],
             ]
@@ -434,7 +436,7 @@ def update_bounds(free, quantities:dict=None, value:dict=None):
             raise ValueError(f"Initial {p} is out of bounds {bnds}.")
 
 
-    return free
+    return new_free
 
 
 def select_params(lexicon=None, **kwargs):

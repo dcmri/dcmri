@@ -31,8 +31,8 @@ class MzInflowPrep(Module):
 
         self.map_io(imap, omap, iomap)
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None) -> dict:
+        p = self.map_data(data)
 
         if self.config['inflow'] == 'none':
 
@@ -237,8 +237,8 @@ class MzPrep(Module):
 
         self.map_io(imap, omap, iomap)
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None) -> dict:
+        p = self.map_data(data)
 
         # Output
         o = {}
@@ -404,8 +404,8 @@ class MxyReadMz(Module):
         # (channels, components, compartments, times)
         return {'Mxy'}
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None) -> dict:
+        p = self.map_data(data)
         seq = self.config['sequence']
 
         # Inputs:
@@ -545,8 +545,8 @@ class Magnetization(Module):
     def outputs(self):
         return {'tM', 'M'}
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)  
+    def __call__(self, data: dict=None) -> dict:
+        p = self.map_data(data)  
 
         # All current sequences use an Mz prep followed by a readout
         # This could be generalized in the future to sequences that have mixed T1/T2 prep

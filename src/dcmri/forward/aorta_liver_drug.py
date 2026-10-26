@@ -1,5 +1,5 @@
 # +--------------------------------------------------------------------------------------------------+
-# |                            ForwardAortaLiverDrug - all configs (n = 20)                            |
+# |                            AortaLiverDrug - all configs (n = 20)                            |
 # +-------------------+-----------------------------------------------------------------+------------+
 # | Key               | Values                                                          | Default    |
 # +-------------------+-----------------------------------------------------------------+------------+
@@ -30,7 +30,7 @@
 # +--------------------------------------------------------------------------------------------------+
 
 # +---------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-# |                                                                 ForwardAortaLiverDrug - all inputs (n = 102)                                                                |
+# |                                                                 AortaLiverDrug - all inputs (n = 102)                                                                |
 # +----------------+------------+--------------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
 # | Key            | Unit       | Name                                                                     | Group           | Init       | Bounds        | DICOM | OSIPI     |
 # +----------------+------------+--------------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
@@ -145,7 +145,7 @@
 # +---------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 # +------------------------------------------------------------------------------------------------------------------------------+
-# |                                          ForwardAortaLiverDrug - all outputs (n = 62)                                          |
+# |                                          AortaLiverDrug - all outputs (n = 62)                                          |
 # +----------+----------+------------------------------------------------+-----------------+-------+---------+-------+-----------+
 # | Key      | Unit     | Name                                           | Group           | Init  | Bounds  | DICOM | OSIPI     |
 # +----------+----------+------------------------------------------------+-----------------+-------+---------+-------+-----------+
@@ -221,29 +221,29 @@ import numpy as np
 
 from dcmri.core.tools import extend_varname, increment_varindex
 from dcmri.core.module import Module
-from dcmri.forward.aorta_liver import ForwardAortaLiver
+from dcmri.forward.aorta_liver import AortaLiver
 from dcmri.bloch.functions_sequences import channels
 
 
 visits, rois = [1, 2], ['ao', 'li']
 
-configs = deepcopy(ForwardAortaLiver.configs)
-defaults = deepcopy(ForwardAortaLiver.defaults)
+configs = deepcopy(AortaLiver.configs)
+defaults = deepcopy(AortaLiver.defaults)
 
 configs['inflow'].discard('inlet')
 
 
-class ForwardAortaLiverDrug(Module):
+class AortaLiverDrug(Module):
     """Whole-body model for the aorta and liver signal acquired over 2 separate acquisitions."""
 
-    configs = ForwardAortaLiver.configs
-    defaults = ForwardAortaLiver.defaults
+    configs = AortaLiver.configs
+    defaults = AortaLiver.defaults
 
     _all_inputs = {'field_strength', 'Scal_1_li', 'weight', 'iScal_2_ao', 'NSR_2_ao', 'Tf_1_h', 'tstart_2', 'Ti_1_h', 'S0_2_li', 'dose_1', 'T_e_or', 'R1_li', 'SA', 'PA', 'Scal_1_ao', 'BAT_4', 'CO', 'iScal_1_ao', 'rate_4', 'T_1_h', 'R1_e', 'GFR', 'ffa', 'agent', 'tacq_1', 'Nz', 'ki_1_e2h', 'TD', 'Nph', 'R1_b', 'Tf_2_h', 'iStrig_2_li', 'BAT_1', 'v_e', 'FA', 'Scal_2_ao', 'S0_1_li', 'vol_2_ao', 'E_1_li', 'rate_2', 'B1corr_2_ao', 'Nk0', 'tacq_2', 'rate_1', 'T_la', 'TR', 'v_h', 'T_b_or', 'kf_1_e2h', 'E_or', 'iStrig_1_li', 'tstart_1', 'vol_1_ao', 'TE1', 'T_gu', 'iScal_1_li', 'H', 'iz', 'rate_3', 'S0_2_ao', 'Ei_1_li', 'BAT_3', 'Ti_2_h', 'vol_1_li', 'NSR_2_li', 'dose_4', 'bdel', 'TA', 'NSR_1_ao', 'B1corr_1_li', 'Ei_2_li', 'TE', 'B1corr_2_li', 'v_li', 'BAT_2', 'Ef_2_li', 'S0_1_ao', 'TF', 'kf_2_e2h', 'iScal_2_li', 'ki_2_e2h', 'k_1_e2h', 'iStrig_1_ao', 'Ef_1_li', 'T_2_h', 'R1_h', 'dose_tolerance', 'D_hl', 'T_hl', 'fCO_li', 'TE2', 'TP', 'B1corr_1_ao', 'me', 'PSw', 'k_2_e2h', 'dose_3', 'iStrig_2_ao', 'Scal_2_li', 'v_e_li', 'E_2_li', 'dose_2', 'NSR_1_li', 'dt', 'vol_2_li'}
     _all_outputs = {'S0_2_ao', 'R2_1_li', 'R1_1_li', 'J_2_vc', 'J_1_vc', 'S_2_ao', 'tS_2_li', 'R1_2_ao', 'J_2_pv', 'M_1_ao', 'J_1_ao', 'R1i_1_ao', 'R2_2_li', 'ci_1_ao', 'tS_1_ao', 'R2s_2_ao', 'S0_2_li', 'C_2_li', 'tR_1', 'J_2_li', 'tS_2_ao', 'R2s_1_li', 'J_1_la', 'C_2_ao', 'J_1_li', 'R2s_1_ao', 'tM_2_ao', 'tS_1_li', 'C_1_ao', 'R1i_2_ao', 'R2s_2_li', 'S_2_li', 'ci_2_ao', 'M_2_ao', 'R2_2_ao', 'S0_1_ao', 'R1i_1_li', 'J_1_pv', 'S_1_li', 'J_2_ao', 'tC_1', 'J_2_or', 'ci_1_li', 'tM_1_ao', 'tR_2', 'M_1_li', 'S0_1_li', 'C_1_li', 'tM_1_li', 'R1_2_li', 'R1i_2_li', 'R1_1_ao', 'J_1_or', 'J_2_lag', 'ci_2_li', 'tM_2_li', 'J_1_lag', 'S_1_ao', 'M_2_li', 'R2_1_ao', 'J_2_la', 'tC_2'}
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)  
+    def __call__(self, data: dict=None) -> dict:
+        p = self.map_data(data)  
 
         for visit in visits:
             p |= self._aol[visit](p)
@@ -260,7 +260,7 @@ class ForwardAortaLiverDrug(Module):
         visit_inputs |= {extend_varname(k, roi=roi) for k, roi in product(vars, rois)}
 
         visit_inputs_indexed = {'BAT_1', 'BAT_2', 'dose_1', 'dose_2', 'rate_1', 'rate_2'}
-        visit_outputs = ForwardAortaLiver.all_outputs()
+        visit_outputs = AortaLiver.all_outputs()
 
         self._aol = {}
         for visit in visits:
@@ -269,7 +269,7 @@ class ForwardAortaLiverDrug(Module):
             if visit==2: 
                 imap_visit |= {k: increment_varindex(k, 2) for k in visit_inputs_indexed} # indexed variables are incremented with 2 at the second visit
             
-            self._aol[visit] = ForwardAortaLiver(imap=imap_visit, omap=omap_visit, **self.config)
+            self._aol[visit] = AortaLiver(imap=imap_visit, omap=omap_visit, **self.config)
 
         self.map_io(imap, omap)
 

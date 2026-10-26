@@ -28,8 +28,8 @@ class Conc(Module):
     def outputs(self):
         return {'C'}
     
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None) -> dict:
+        p = self.map_data(data)
         model_func = getattr(blocks, f"conc_{self.config['block']}")
         results = {'C': model_func(**p)}
         return self.map_results(results)
@@ -76,13 +76,13 @@ class ConcAorta(Module):
     def outputs(self):
         return {'tC', 'F_b_ao', 'ci_ao', 'C_ao'}
     
-    def __call__(self, data: dict=None, **kwargs):
-        p = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None):
+        p = self.map_data(data)
 
         v_a = 1 # assume no partial volume effect: v_a = 1mL/cm3
         flux = self._flux(p)
         Ta = v_a * p['vol_ao'] / p['CO']
-        conc = self._conc(p, T=Ta, J=flux['J_ao']) 
+        conc = self._conc(p | {'T':Ta, 'J': flux['J_ao']}) 
         C = conc['C'].reshape(1, -1) / p['vol_ao']
         results = {
             'tC': flux['tC'], 
@@ -172,8 +172,8 @@ class ConcLiver(Module):
     def outputs(self):
         return {'tC_li', 'C_li', 'ci_li'}
     
-    def __call__(self, data: dict=None, **kwargs):
-        p = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None):
+        p = self.map_data(data)
         
         # Model function
         kin, ns = self.config['kinetics'], self.config['non_stationary']
@@ -248,8 +248,8 @@ class ConcAortaLiver(Module):
         inputs -= {'vr_li', 'vr_or', 'T_e_li', 'F_p_li', 'ci_li'}
         return inputs
 
-    def __call__(self, data: dict=None, **kwargs):
-        p = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None):
+        p = self.map_data(data)
 
         # Kidney extraction fraction       
         PF = (1 - p['fCO_li']) * p[f'CO'] * (1 - p['H'])
@@ -331,8 +331,8 @@ class ConcAortaPortalLiver(Module):
         inputs |= {'vol_pv', 'vol_la'}
         return inputs
         
-    def __call__(self, data: dict=None, **kwargs):
-        p = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None):
+        p = self.map_data(data)
     
         p |= self._conc_aol(p)
 
@@ -378,8 +378,8 @@ class ConcKidney(Module):
     def outputs(self):
         return {'tC_ki', 'C_ki', 'ci_ki', 'F_u'}
     
-    def __call__(self, data: dict=None, **kwargs):
-        p = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None):
+        p = self.map_data(data)
 
         func = 'conc_kidney_' + self.config['kinetics'].lower()   
         kidney_conc = getattr(pk_kidney, func)
@@ -453,8 +453,8 @@ class ConcAortaKidneys(Module):
             outputs |= {f'F_b_{roi}', f'ci_{roi}', f'C_{roi}'}
         return outputs
     
-    def __call__(self, data: dict=None, **kwargs):
-        p = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None):
+        p = self.map_data(data)
 
         # Derived parameters
         fco_lk = p['fCO_ki'] * p['DRPF']
@@ -542,8 +542,8 @@ class ConcCortMed(Module):
     def outputs(self):
         return {'tC', 'ci_ki', 'C_kc', 'C_km'}
     
-    def __call__(self, data: dict=None, **kwargs):
-        p = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None):
+        p = self.map_data(data)
 
         imap = {'F_p_ki':'F_p', 'E_ki':'E'}
         pk = {imap.get(k, k): v for k, v in p.items() if k not in ['c_ar', 'T_ar']} 
@@ -576,8 +576,8 @@ class ConcTissueX(Module):
     defaults = {
         'kinetics': '2CX', 
     }
-    def __call__(self, data: dict=None, **kwargs):
-        p = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None):
+        p = self.map_data(data)
 
         func = 'conc_tissue_' + self.config['kinetics'].lower()   
         conc = getattr(pk_tissue, func)  

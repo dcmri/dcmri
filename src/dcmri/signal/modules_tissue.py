@@ -156,8 +156,8 @@ class Signal(Module):
             outputs |= {'S0'}
         return outputs
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None) -> dict:
+        p = self.map_data(data)
 
         if p['M'].ndim not in [4]:
             raise ValueError("Magnetization M must be a 4D array with shape (channels, components, compartments, times)")
@@ -476,8 +476,8 @@ class RelaxToSignal(Module):
         outputs |= self._signal.mapped_outputs()
         return outputs
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)  
+    def __call__(self, data: dict=None) -> dict:
+        p = self.map_data(data)  
         p |= self._magn(p)
         p |= self._signal(p)
         return self.map_results(p)
@@ -617,8 +617,8 @@ class ConcToSignal(Module):
         outputs |= self._relax_to_signal.mapped_outputs()
         return outputs
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs) 
+    def __call__(self, data: dict=None) -> dict:
+        p = self.map_data(data) 
         p['tR'] = p['tC']
         p |= self._conc_to_relax(p)
         p |= self._relax_to_signal(p)

@@ -110,11 +110,11 @@ import numpy as np
 
 from dcmri.core.module import Module
 from dcmri.core.tools import get_quantity, update_bounds
-from dcmri.utils.fit import train
-from dcmri.forward.cort_med import ForwardCortMed as Forward
+from dcmri.utils.fit import train_brute
+from dcmri.forward.cort_med import CortMed as ForwardModel
 
-configs = deepcopy(Forward.configs) 
-defaults = deepcopy(Forward.defaults) | {'calibrate': True}
+configs = deepcopy(ForwardModel.configs) 
+defaults = deepcopy(ForwardModel.defaults) | {'calibrate': True}
 
 ROIS = ['kc', 'km']
 
@@ -128,12 +128,12 @@ class InverseCortMed(Module):
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
-        self.forward = Forward(**self.config)
+        self.forward = ForwardModel(**self.config)
         self.map_io(imap, omap)
 
-    def _predict(self, time):
-        pred = self.forward(self._pars)
-        return tuple([pred[f'S_{roi}'][:, :, :len(time[i])].reshape(-1) for i, roi in enumerate(ROIS)])
+    def _predict(self, p):
+        pred = self.forward(p)
+        return tuple([pred[f'S_{roi}'][:, :, :len(p[f'tS_{roi}'])].reshape(-1) for i, roi in enumerate(ROIS)])
 
     def _preproc(self, p):
         # Reshape signal if needed
@@ -154,8 +154,7 @@ class InverseCortMed(Module):
             pfree |= {f'S0_{roi}' for roi in ROIS}
         return {p: get_quantity(p)['bounds'] for p in pfree}
     
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data)  
+    def _call(self, p: dict=None, **kwargs) -> dict:
         self._preproc(p) 
 
         # Initialize pfree if needed
@@ -165,12 +164,10 @@ class InverseCortMed(Module):
         p['pfree'] = update_bounds(p['pfree'], value=p)
 
         # Compute inverse
-        self._pars = p
-        time = tuple([p[f'tS_{roi}'].reshape(-1) for roi in ROIS])
         signal = tuple([p[f'S_{roi}'].reshape(-1) for roi in ROIS])
-        output = train(self._predict, time, signal, p, p['pfree'], **kwargs)
+        output = train_brute(self._predict, signal, p, p['pfree'], **kwargs)
 
-        return self.map_results(output)
+        return output
 
     def inputs(self) -> set:
         inputs = self.forward.mapped_inputs()
@@ -203,13 +200,15 @@ class InverseCortMed(Module):
             }
         return self.input_data(p, data)
 
-    def plot(self, data: dict, xlim=None, fname=None, show=True):
-        p = self.map_data(data)  
+    def plot(self, data: dict, result:dict=None, xlim:list=None, fname:str=None, show=True):
+        if result is None:
+            result = self.__call__(data)
+        p = self.map_data(data | result['popt'])
         self._preproc(p)
-        prediction = self.forward(p)
+        pred = self.forward(p)
 
         if xlim is None: 
-            xlim = [prediction['tR'][0], prediction['tR'][-1]]
+            xlim = [pred['tR'][0], pred['tR'][-1]]
         xlim = np.array(xlim) / 60
 
         fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 5))
@@ -225,15 +224,15 @@ class InverseCortMed(Module):
             ax.set_ylabel('Signal (a.u.)')
             ax.legend()
 
-        plot_data(prediction['tS_kc'], prediction['S_kc'], p['tS_kc'], p['S_kc'], ax0, ['lightcoral', 'darkred'])
-        plot_data(prediction['tS_km'], prediction['S_km'], p['tS_km'], p['S_km'], ax0, ['cornflowerblue', 'darkblue'])
+        plot_data(pred['tS_kc'], pred['S_kc'], p['tS_kc'], p['S_kc'], ax0, ['lightcoral', 'darkred'])
+        plot_data(pred['tS_km'], pred['S_km'], p['tS_km'], p['S_km'], ax0, ['cornflowerblue', 'darkblue'])
 
         # Plot concentrations
         ax1.set_title('Reconstruction of concentrations.')
-        ax1.plot(prediction['tC'] / 60, 0 * prediction['tC'], color='gray')
-        ax1.plot(prediction['tC'] / 60, 1000 * p['c_ar'], '-', linewidth=3, color='darkred', label='Arterial Pred')
-        ax1.plot(prediction['tC'] / 60, 1000 * prediction['C_kc'].sum(axis=0), linestyle='-', linewidth=3.0, color='darkred', label='Cortex')
-        ax1.plot(prediction['tC'] / 60, 1000 * prediction['C_km'].sum(axis=0), linestyle='-', linewidth=3.0, color='darkcyan', label='Medulla')
+        ax1.plot(pred['tC'] / 60, 0 * pred['tC'], color='gray')
+        ax1.plot(pred['tC'] / 60, 1000 * p['c_ar'], '-', linewidth=3, color='darkred', label='Arterial Pred')
+        ax1.plot(pred['tC'] / 60, 1000 * pred['C_kc'].sum(axis=0), linestyle='-', linewidth=3.0, color='darkred', label='Cortex')
+        ax1.plot(pred['tC'] / 60, 1000 * pred['C_km'].sum(axis=0), linestyle='-', linewidth=3.0, color='darkcyan', label='Medulla')
         ax1.set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=np.array(xlim)/60)
         ax1.legend()
 

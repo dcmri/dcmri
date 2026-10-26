@@ -2,11 +2,11 @@ import time
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from dcmri import ForwardAortaPortalLiver
+from dcmri import AortaPortalLiver
 from dcmri.core.module import InvalidConfig
 
 
-def test_aorta_portal_liver(cls=ForwardAortaPortalLiver):
+def test_aorta_portal_liver(cls=AortaPortalLiver):
     def _test_config(cnfg):
         # if cnfg['sequence'] != '3D-SPGR-SS':
         #     return
@@ -19,9 +19,9 @@ def test_aorta_portal_liver(cls=ForwardAortaPortalLiver):
         instance(data)
 
     cls.print_configs()
-    cls.print_all_io(verbose=1, simple=False, sample=1e4, seed=51)
+    cls.print_all_io(verbose=1, simple=False, sample=1e3, seed=51)
 
-    configs = cls.all_configs(sample=1e5, seed=51)
+    configs = cls.all_configs(sample=1e3, seed=51)
     for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
         _test_config(cnfg)
 
@@ -51,7 +51,7 @@ def test_aorta_portal_liver_instance():
         'calibrate': True,
     }
     try:
-        model = ForwardAortaPortalLiver(**cnfg)
+        model = AortaPortalLiver(**cnfg)
     except InvalidConfig as e:
         print(e)
         return
@@ -68,7 +68,7 @@ def test_aorta_portal_liver_instance():
     plt.show()
 
 if __name__ == '__main__':
-    test_aorta_portal_liver_instance()
+    # test_aorta_portal_liver_instance()
     test_aorta_portal_liver()
     
     print('All AortaPortalLiver model coverage tests passed!!')

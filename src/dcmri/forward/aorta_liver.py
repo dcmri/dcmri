@@ -1,5 +1,5 @@
 # +--------------------------------------------------------------------------------------------------+
-# |                             ForwardAortaLiver - all configs (n = 20)                             |
+# |                             AortaLiver - all configs (n = 20)                             |
 # +-------------------+-----------------------------------------------------------------+------------+
 # | Key               | Values                                                          | Default    |
 # +-------------------+-----------------------------------------------------------------+------------+
@@ -62,7 +62,7 @@ for key in roi_configs:
 CONFIGS['inflow'].discard('inlet')
 
 
-class ForwardAortaLiver(Module):
+class AortaLiver(Module):
     """Whole-body model for the aorta and liver signal."""
 
     configs = CONFIGS
@@ -71,8 +71,8 @@ class ForwardAortaLiver(Module):
     _all_inputs = {'dt', 'PSw', 'GFR', 'H', 'T_e_or', 'TF', 'tacq', 'iStrig_ao', 'NSR_ao', 'TA', 'Nph', 'Nz', 'PA', 'agent', 'rate', 'B1corr_li', 'TR', 'v_li', 'E_or', 'Scal_ao', 'T_gu', 'T_h', 'BAT_1', 'field_strength', 'TE1', 'iScal_li', 'ki_e2h', 'TP', 'bdel', 'S0_li', 'R1_li', 'Tf_h', 'Ei_li', 'iz', 'ffa', 'TE', 'R1_h', 'FA', 'T_hl', 'R1_e', 'TD', 'T_b_or', 'k_e2h', 'rate_2', 'R1_b', 'dose_tolerance', 'v_e_li', 'Scal_li', 'dose_1', 'iStrig_li', 'iScal_ao', 'E_li', 'CO', 'Ef_li', 'BAT', 'NSR_li', 'TE2', 'dose', 'kf_e2h', 'vol_ao', 'me', 'Ti_h', 'vol_li', 'fCO_li', 'tstart', 'dose_2', 'SA', 'v_h', 'weight', 'S0_ao', 'BAT_2', 'Nk0', 'D_hl', 'T_la', 'rate_1', 'B1corr_ao'}
     _all_outputs = {'R1_ao', 'R2s_ao', 'C_li', 'tS_ao', 'J_or', 'R1i_ao', 'J_li', 'M_ao', 'tC', 'R2_li', 'S_ao', 'M_li', 'R1i_li', 'tR', 'J_ao', 'ci_li', 'C_ao', 'ci_ao', 'R2_ao', 'J_pv', 'J_vc', 'J_lag', 'S_li', 'R2s_li', 'tM_li', 'S0_li', 'R1_li', 'J_la', 'tM_ao', 'S0_ao', 'tS_li'}
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)  
+    def __call__(self, data: dict=None) -> dict:
+        p = self.map_data(data)  
 
         p['tmax'] = p['tstart'] + p['tacq'] + p['dt']
 

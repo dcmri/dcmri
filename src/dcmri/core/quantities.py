@@ -260,7 +260,8 @@ QUANTITIES = {
     'popt': {'init': None, 'bounds': None, 'name': 'dictionary of optimized free parameter values', 'unit': 'a.u.', 'group': 'inverse', 'dicom_key': None, 'osipi_key': None},
     'pcov': {'init': None, 'bounds': None, 'name': 'dictionary with covariances of free parameters', 'unit': 'a.u.', 'group': 'inverse', 'dicom_key': None, 'osipi_key': None},
     'psdev': {'init': None, 'bounds': None, 'name': 'dictionary with parameter standard deviations', 'unit': 'a.u.', 'group': 'inverse', 'dicom_key': None, 'osipi_key': None},
-    'pder': {'init': None, 'bounds': None, 'name': 'dictionary with source- and derived parameters', 'unit': 'a.u.', 'group': 'inverse', 'dicom_key': None, 'osipi_key': None},
+    'pars': {'init': None, 'bounds': None, 'name': 'dictionary with source- and derived parameters', 'unit': 'a.u.', 'group': 'inverse', 'dicom_key': None, 'osipi_key': None},
+    #'pars': {'init': None, 'bounds': None, 'name': 'dictionary with source- and derived parameters', 'unit': 'a.u.', 'group': 'inverse', 'dicom_key': None, 'osipi_key': None},
     'loss': {'init': None, 'bounds': None, 'name': 'loss value of optimized model', 'unit': 'a.u.', 'group': 'inverse', 'dicom_key': None, 'osipi_key': None},
     
     # # Water kinetics

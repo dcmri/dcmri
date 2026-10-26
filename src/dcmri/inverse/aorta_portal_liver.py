@@ -144,11 +144,11 @@ import matplotlib.pyplot as plt
 
 from dcmri.core.module import Module
 from dcmri.core.tools import get_quantity, update_bounds
-from dcmri.utils.fit import train_bat, train
-from dcmri.forward.aorta_portal_liver import ForwardAortaPortalLiver as Forward
+from dcmri.utils.fit import train_brute
+from dcmri.forward.aorta_portal_liver import AortaPortalLiver as ForwardModel
 
-configs = deepcopy(Forward.configs)
-defaults = deepcopy(Forward.defaults) | {'calibrate': True}
+configs = deepcopy(ForwardModel.configs)
+defaults = deepcopy(ForwardModel.defaults) | {'calibrate': True}
 
 configs['bolus'].discard('dual') # Only meaningful for split protocols
 
@@ -164,12 +164,12 @@ class InverseAortaPortalLiver(Module):
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
-        self.forward = Forward(**self.config)
+        self.forward = ForwardModel(**self.config)
         self.map_io(imap, omap)
 
-    def _predict(self, time):
-        pred = self.forward(self._pars)
-        return tuple([pred[f'S_{roi}'][:, :, :len(time[i])].reshape(-1) for i, roi in enumerate(ROIS)])
+    def _predict(self, p):
+        pred = self.forward(p)
+        return tuple([pred[f'S_{roi}'][:, :, :len(pred[f'tS_{roi}'])].reshape(-1) for i, roi in enumerate(ROIS)])
 
     def _preproc(self, p):
         # Reshape signal if needed
@@ -189,8 +189,7 @@ class InverseAortaPortalLiver(Module):
         pfree |= {'BAT'}
         return {p: get_quantity(p)['bounds'] for p in pfree}
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data)  
+    def _call(self, p: dict=None, **kwargs) -> dict: 
         self._preproc(p) 
 
         # Initialize pfree if needed
@@ -200,13 +199,10 @@ class InverseAortaPortalLiver(Module):
         p['pfree'] = update_bounds(p['pfree'], value=p)
 
         # Compute inverse
-        self._pars = p
-        time = tuple([p[f'tS_{roi}'].reshape(-1) for roi in ROIS])
         signal = tuple([p[f'S_{roi}'].reshape(-1) for roi in ROIS])
-        # output = train_bat(self._predict, time, signal, p, p['pfree'], **kwargs)
-        output = train(self._predict, time, signal, p, p['pfree'], **kwargs)
+        output = train_brute(self._predict, signal, p, p['pfree'], **kwargs)
 
-        return self.map_results(output)
+        return output
 
     def inputs(self) -> set:
         inputs = self.forward.mapped_inputs()
@@ -239,9 +235,16 @@ class InverseAortaPortalLiver(Module):
         return self.input_data(p, data)
 
 
-    def plot(self, data: dict, xlim=None, fname=None, show=True):
-        p = self.map_data(data) 
-        self._preproc(p) 
+    def plot(self, data: dict, result:dict=None, xlim:list=None, fname:str=None, show=True):
+        if result is None:
+            result = self.__call__(data)
+        p = self.map_data(data | result['popt'])
+
+        # Not an input parameter but required by forward model
+        if 'BAT' in result['popt']:
+            p['BAT'] = result['popt']['BAT']
+
+        self._preproc(p)
         pred = self.forward(p)
 
         if xlim is None: 

@@ -112,11 +112,11 @@ import matplotlib.pyplot as plt
 from dcmri.core.module import Module
 from dcmri.core.tools import get_quantity, update_bounds
 from dcmri.utils.fit import train_brute
-from dcmri.forward.aorta import ForwardAorta as Forward
+from dcmri.forward.aorta import Aorta as ForwardModel
 from dcmri.inverse.functions import estimate_bat
 
-configs = deepcopy(Forward.configs) | {'estimate_bat': {'none', 'ttp', 'custom'}}
-defaults = deepcopy(Forward.defaults) | {'estimate_bat': 'custom', 'calibrate': True}
+configs = deepcopy(ForwardModel.configs) | {'estimate_bat': {'none', 'ttp', 'custom'}}
+defaults = deepcopy(ForwardModel.defaults) | {'estimate_bat': 'custom', 'calibrate': True}
 
 configs['bolus'].discard('dual') # Only meaningful for split protocols
 
@@ -131,7 +131,7 @@ class InverseAorta(Module):
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
-        self.forward = Forward(**self.config)
+        self.forward = ForwardModel(**self.config)
         self.map_io(imap, omap)
 
     def _predict(self, p):
@@ -163,8 +163,7 @@ class InverseAorta(Module):
             pfree |= {'S0'}
         return {p: get_quantity(p)['bounds'] for p in pfree}
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data) 
+    def _call(self, p: dict=None, **kwargs) -> dict:
         self._preproc(p)
 
         # Estimate BAT if needed
@@ -182,7 +181,7 @@ class InverseAorta(Module):
         # Compute inverse
         output = train_brute(self._predict, p['S'], p, p['pfree'], **kwargs)
 
-        return self.map_results(output)
+        return output
 
     def inputs(self) -> set:
         inputs = self.forward.mapped_inputs()
@@ -219,9 +218,11 @@ class InverseAorta(Module):
         self._preproc(p)
         return self.forward(p)
 
-    def plot(self, data: dict, results:dict=None, xlim=None, fname:str=None, show=True):
-        p = data if results is None else data | results['popt']
-        p = self.forward.map_data(p) | self.map_data(p)
+    def plot(self, data: dict, result:dict=None, xlim:list=None, clim:list=None, fname:str=None, show=True):
+        if result is None:
+            result = self.__call__(data)
+        p = self.map_data(data | result['popt'])
+
         self._preproc(p)
         pred = self.forward(p)
 

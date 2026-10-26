@@ -158,19 +158,20 @@
 
 
 from copy import deepcopy
+from itertools import product
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 from dcmri.core.module import Module
 from dcmri.core.tools import get_quantity, update_bounds, parse_varname, extend_varname, remove_varindex
-from dcmri.utils.fit import train_bat, train
-from dcmri.forward.aorta_liver_drug import ForwardAortaLiverDrug as Forward
+from dcmri.utils.fit import train_brute
+from dcmri.forward.aorta_liver_drug import AortaLiverDrug as ForwardModel
 from dcmri.kinetics.functions_liver import dpars_liver
 from dcmri.inverse.functions import estimate_bat
 
-configs = deepcopy(Forward.configs) | {'estimate_bat': {'none', 'ttp', 'custom'}}
-defaults = deepcopy(Forward.defaults) | {'estimate_bat': 'custom', 'calibrate': True}
+configs = deepcopy(ForwardModel.configs) | {'estimate_bat': {'none', 'ttp', 'custom'}}
+defaults = deepcopy(ForwardModel.defaults) | {'estimate_bat': 'custom', 'calibrate': True}
 
 configs['bolus'].discard('dual') # Only meaningful for split protocols
 
@@ -183,20 +184,20 @@ class InverseAortaLiverDrug(Module):
     defaults = defaults
 
     _all_inputs = {'TA', 'T_e_or', 'rate_1', 'ki_1_e2h', 'E_1_li', 'agent', 'S0_1_li', 'R1_li', 'BAT_2', 'dt', 'H', 'R1_e', 'TE2', 'S_2_ao', 'T_la', 'PA', 'NSR_1_li', 'Ei_1_li', 'Tf_2_h', 'weight', 'S0_2_li', 'tS_1_ao', 'GFR', 'R1_b', 'dose_tolerance', 'rate_2', 'S0_1_ao', 'ffa', 'S0_2_ao', 'kf_1_e2h', 'E_or', 'T_2_h', 'B1corr_1_ao', 'NSR_1_ao', 'tS_2_ao', 'TR', 'FA', 'E_2_li', 'T_1_h', 'v_li', 'Nz', 'S_1_li', 'T_gu', 'iStrig_2_li', 'pfree', 'PSw', 'rate_3', 'B1corr_2_ao', 'Tf_1_h', 'Ei_2_li', 'Ef_1_li', 'vol_2_li', 'tS_1_li', 'T_b_or', 'v_e_li', 'iStrig_1_ao', 'ki_2_e2h', 'iStrig_1_li', 'vol_1_li', 'S_2_li', 'field_strength', 'R1_h', 'iStrig_2_ao', 'TF', 'Nk0', 'TE', 'NSR_2_li', 'v_h', 'D_hl', 'fCO_li', 'dose_2', 'v_e', 'k_1_e2h', 'iz', 'dose_3', 'rate_4', 'T_hl', 'Ti_2_h', 'TE1', 'BAT_1', 'B1corr_2_li', 'TD', 'k_2_e2h', 'TP', 'me', 'vol_2_ao', 'kf_2_e2h', 'NSR_2_ao', 'Nph', 'CO', 'tS_2_li', 'bdel', 'vol_1_ao', 'SA', 'Ef_2_li', 'S_1_ao', 'dose_4', 'Ti_1_h', 'dose_1', 'B1corr_1_li', 'nb'}
-    _all_outputs = {'popt', 'psdev', 'loss', 'pder', 'pcov'}
+    _all_outputs = {'popt', 'psdev', 'loss', 'pars', 'pcov'}
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
-        self._forward = Forward(**self.config)
+        self._forward = ForwardModel(**self.config)
         self.map_io(imap, omap)
 
-    def _predict(self, time):
-        pred = self._forward(self._pars)
+    def _predict(self, p):
+        pred = self._forward(p)
         return ( 
-            pred['S_1_ao'][:, :, :len(time[0])].reshape(-1), 
-            pred['S_2_ao'][:, :, :len(time[1])].reshape(-1), 
-            pred['S_1_li'][:, :, :len(time[2])].reshape(-1), 
-            pred['S_2_li'][:, :, :len(time[3])].reshape(-1), 
+            pred['S_1_ao'][:, :, :len(p['tS_1_ao'])].reshape(-1), 
+            pred['S_2_ao'][:, :, :len(p['tS_2_ao'])].reshape(-1), 
+            pred['S_1_li'][:, :, :len(p['tS_1_li'])].reshape(-1), 
+            pred['S_2_li'][:, :, :len(p['tS_2_li'])].reshape(-1), 
         )
 
     def _preproc(self, p):
@@ -205,7 +206,7 @@ class InverseAortaLiverDrug(Module):
             p[f'tstart_{scan}'] = min([p[f'tS_{scan}_{roi}'][0] for roi in ROIS])
             tmax = max([p[f'tS_{scan}_{roi}'][-1] for roi in ROIS])
             ts = p[f'tS_{scan}_ao'][1] - p[f'tS_{scan}_ao'][0]
-            p[f'tacq_{scan}'] = tmax - p[f'tstart_{scan}'] + ts
+            p[f'tacq_{scan}'] = tmax - p[f'tstart_{scan}'] + 2 * ts
 
         # Reshape signal if needed
         for roi in ROIS:
@@ -224,8 +225,9 @@ class InverseAortaLiverDrug(Module):
         if self.config['trigger']:
             for roi in ROIS:
                 for scan in SCANS:
-                    p[f'tS_{scan}_{roi}'] = p[f'tS_{scan}_{roi}'][p[f'iStrig_{scan}_{roi}']]  
-                    p[f'S_{scan}_{roi}'] = p[f'S_{scan}_{roi}'][:, :, p[f'iStrig_{scan}_{roi}']] 
+                    if p[f'iStrig_{scan}_{roi}'] is not None:
+                        p[f'tS_{scan}_{roi}'] = p[f'tS_{scan}_{roi}'][p[f'iStrig_{scan}_{roi}']]  
+                        p[f'S_{scan}_{roi}'] = p[f'S_{scan}_{roi}'][:, :, p[f'iStrig_{scan}_{roi}']] 
 
     def _pfree(self):
         inputs = self._forward.mapped_inputs()
@@ -253,17 +255,16 @@ class InverseAortaLiverDrug(Module):
 
         return p_common | p_1 | p_2
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data)  
+    def _call(self, p: dict=None, **kwargs) -> dict:
         self._preproc(p)
 
         # Estimate BAT if needed
         if self.config['estimate_bat'] == 'custom':
-            p['BAT_1'] = estimate_bat(data['tS_1_ao'], data['S_1_ao'])
-            p['BAT_2'] = estimate_bat(data['tS_2_ao'], data['S_2_ao'])
+            p['BAT_1'] = estimate_bat(p['tS_1_ao'], p['S_1_ao'])
+            p['BAT_2'] = estimate_bat(p['tS_2_ao'], p['S_2_ao'])
         elif self.config['estimate_bat'] == 'ttp':
-            p['BAT_1'] = data['tS_1_ao'][np.argmax(data['S_1_ao'])]
-            p['BAT_2'] = data['tS_2_ao'][np.argmax(data['S_2_ao'])]
+            p['BAT_1'] = p['tS_1_ao'][np.argmax(p['S_1_ao'])]
+            p['BAT_2'] = p['tS_2_ao'][np.argmax(p['S_2_ao'])]
 
         # Initialize pfree if needed
         if p['pfree'] is None:
@@ -272,15 +273,12 @@ class InverseAortaLiverDrug(Module):
         p['pfree'] = update_bounds(p['pfree'], value=p)
 
         # Compute inverse
-        self._pars = p
-        time = (p['tS_1_ao'], p['tS_2_ao'], p['tS_1_li'], p['tS_2_li'])
         signal = (p['S_1_ao'], p['S_2_ao'], p['S_1_li'], p['S_2_li'])
-
         #output = train_bat(self._predict, time, signal, p, p['pfree'], bats=['BAT_1', 'BAT_2'], **kwargs)
-        output = train(self._predict, time, signal, p, p['pfree'], **kwargs)
-        output['pder'] = self._pder(p | output['popt'])
+        output = train_brute(self._predict, signal, p, p['pfree'], **kwargs)
+        output['pars'] = self._pder(p | output['popt'])
 
-        return self.map_results(output)
+        return output
 
     def inputs(self) -> set:
         inputs = self._forward.mapped_inputs()
@@ -300,7 +298,7 @@ class InverseAortaLiverDrug(Module):
         return inputs  
     
     def outputs(self):
-        return {'popt', 'psdev', 'pcov', 'pder', 'loss'}
+        return {'popt', 'psdev', 'pcov', 'pars', 'loss'}
     
     def test_data(self, data: dict=None): 
         p = self.init_data()
@@ -322,15 +320,16 @@ class InverseAortaLiverDrug(Module):
             
         return self.input_data(p, data)
 
-
-    def plot(self, data: dict, xlim=None, clim=None, fname=None, show=True):
-        p = self.map_data(data)
+    def plot(self, data: dict, result:dict=None, xlim:list=None, clim:list=None, fname:str=None, show=True):
+        if result is None:
+            result = self.__call__(data)
+        p = self.map_data(data | result['popt'])
 
         # Not an input parameter but required by forward model
         if self.config['estimate_bat'] != 'none':
             for bat in ['BAT_1', 'BAT_2']:
-                if bat in data:
-                    p[bat] = data[bat]
+                if bat in result['popt']:
+                    p[bat] = result['popt'][bat]
 
         self._preproc(p)
         pred = self._forward(p)

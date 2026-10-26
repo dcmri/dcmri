@@ -135,8 +135,8 @@ class SignalToConc(Module):
     def outputs(self):
         return {'C'}  # (n_samples, n_channels, n_times) or (n_channels, n_times) or (n_times)
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)  
+    def __call__(self, data: dict=None) -> dict:
+        p = self.map_data(data)  
 
         # Input shape is either (n_samples, n_channels, n_times) or (n_channels, n_times) or (n_times)
         # Output shapes are the same        

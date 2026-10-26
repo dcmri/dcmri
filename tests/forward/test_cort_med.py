@@ -2,11 +2,11 @@ import time
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from dcmri import ForwardTissueLS
+from dcmri import CortMed
 from dcmri.core.module import InvalidConfig
 
 
-def test_tissue_ls(cls=ForwardTissueLS):
+def test_cort_med(cls=CortMed):
     def _test_config(cnfg):
         # if cnfg['sequence'] != '3D-SPGR-SS':
         #     return
@@ -20,22 +20,22 @@ def test_tissue_ls(cls=ForwardTissueLS):
         instance(data)
 
     cls.print_configs()
-    cls.print_all_io(verbose=1, simple=False)
+    cls.print_all_io(verbose=1, simple=False, sample=1e3, seed=51)
 
-    configs = cls.all_configs()
+    configs = cls.all_configs(sample=1e3, seed=51)
     for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
         _test_config(cnfg)
 
     print(f'Successfully covered {len(configs)} {cls.__name__} configurations!')
 
 
-def test_tissue_ls_instance():
-    # model = ForwardTissueLS()
+def test_cort_med_instance():
+    # model = CortMed()
     # print(model.config)
     # return
-    cnfg = {'t1_relaxation': 'lin', 't2_relaxation': None, 't2s_relaxation': 'lin', 'inflow': 'none', 'sequence': '3D-SPGR-SS', 'magnitude': True, 'trigger': False, 'calibrate': False, 'baseline': 'literature'}
+    cnfg = {'t1_relaxation': 'lin', 't2_relaxation': None, 't2s_relaxation': 'lin', 'sequence': '3D-SPGR-SS', 'magnitude': True, 'trigger': False, 'calibrate': False, 'water_exchange': 'F', 'baseline': 'literature', 'kinetics': '7C'}
     try:
-        model = ForwardTissueLS(**cnfg)
+        model = CortMed(**cnfg)
     except InvalidConfig as e:
         print(e)
         return
@@ -45,13 +45,16 @@ def test_tissue_ls_instance():
     data = model.test_data()
     results = model(data)
 
-    plt.plot(results['tS'], results['S'][0, 0, :], 'ro')
+    plt.plot(results['tS_kc'], results['S_kc'][0, 0, :], 'ro')
+    plt.plot(results['tS_km'], results['S_km'][0, 0, :], 'bo')
     # plt.plot(results['tC'], results['C'][0], 'ro')
 
     plt.show()
 
+
 if __name__ == '__main__':
-    # test_tissue_ls_instance()
-    test_tissue_ls()
+    # test_cort_med_instance()
+    test_cort_med()
     
-    print('All ForwardTissueLS coverage tests passed!!')
+
+    print('All CortMed coverage tests passed!!')

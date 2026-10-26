@@ -1,5 +1,5 @@
 # +--------------------------------------------------------------------------------------------------+
-# |                             ForwardAortaKidneys - all configs (n = 21)                             |
+# |                             AortaKidneys - all configs (n = 21)                             |
 # +-------------------+-----------------------------------------------------------------+------------+
 # | Key               | Values                                                          | Default    |
 # +-------------------+-----------------------------------------------------------------+------------+
@@ -31,7 +31,7 @@
 # +--------------------------------------------------------------------------------------------------+
 
 # +-----------------------------------------------------------------------------------------------------------------------------------------------------------+
-# |                                                          ForwardAortaKidneys - all inputs (n = 85)                                                          |
+# |                                                          AortaKidneys - all inputs (n = 85)                                                          |
 # +----------------+------------+---------------------------------------------------------+-----------------+------------+----------------+-------+-----------+
 # | Key            | Unit       | Name                                                    | Group           | Init       | Bounds         | DICOM | OSIPI     |
 # +----------------+------------+---------------------------------------------------------+-----------------+------------+----------------+-------+-----------+
@@ -129,7 +129,7 @@
 # +-----------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 # +------------------------------------------------------------------------------------------------------------------------------------+
-# |                                              ForwardAortaKidneys - all outputs (n = 42)                                              |
+# |                                              AortaKidneys - all outputs (n = 42)                                              |
 # +--------+------------+----------------------------------------------------+-----------------+-------+-----------+-------+-----------+
 # | Key    | Unit       | Name                                               | Group           | Init  | Bounds    | DICOM | OSIPI     |
 # +--------+------------+----------------------------------------------------+-----------------+-------+-----------+-------+-----------+
@@ -215,7 +215,7 @@ for key in roi_configs:
 CONFIGS['inflow'].discard('inlet')
 
 
-class ForwardAortaKidneys(Module):
+class AortaKidneys(Module):
     """Whole-body model for the aorta and kidneys signal."""
 
     configs = CONFIGS
@@ -224,8 +224,8 @@ class ForwardAortaKidneys(Module):
     _all_inputs = {'D_p_lk', 'D_p_rk', 'T_vc', 'D_vc', 'R1_ki', 'fCO_ki', 'TA', 'iStrig_ao', 'FF_rk', 'h_u_rk', 'tacq', 'DRPF', 'T_hl', 'dose', 'D_hl', 'NSR_rk', 'R1_b', 'F_u_rk', 'TF', 'tstart', 'Nk0', 'rate_2', 'B1corr_rk', 'vol_lk', 'T_lka', 'T_rka', 'Scal_ao', 'F_u', 'h_u_lk', 'R1_u', 'E_or', 'iScal_lk', 'BAT', 'TE1', 'R1_c', 'SA', 'T_gu', 'S0_rk', 'B1corr_ao', 'vol_ao', 'BAT_1', 'T_e_or', 'weight', 'me', 'Scal_lk', 'NSR_lk', 'iScal_ao', 'Nz', 'FA', 'F_u_lk', 'dose_1', 'T_u_lk', 'Nph', 'CO', 'TE', 'B1corr_lk', 'NSR_ao', 'v_c', 'E_li', 'rate_1', 'vol_rk', 'TE2', 'dose_2', 'iz', 'v_p_rk', 'agent', 'v_u', 'T_u_rk', 'S0_lk', 'Scal_rk', 'T_b_or', 'PSw', 'TD', 'PA', 'v_ki', 'TR', 'rate', 'v_b', 'iStrig_rk', 'v_p_lk', 'BAT_2', 'iScal_rk', 'dose_tolerance', 'dt', 'H', 'field_strength', 'TP', 'iStrig_lk', 'S0_ao', 'FF_lk'}
     _all_outputs = {'ci_rk', 'M_lk', 'S_rk', 'J_lk', 'F_u_rk', 'tC', 'J_rk', 'R2_ao', 'M_ao', 'R1_ao', 'tM_ao', 'S_ao', 'S0_rk', 'R2s_lk', 'R1_lk', 'R2_rk', 'C_lk', 'J_ao', 'J_ve', 'F_u_lk', 'M_rk', 'R2_lk', 'tS_ao', 'S_lk', 'R1i_lk', 'R1i_ao', 'tM_rk', 'ci_ao', 'tM_lk', 'R1i_rk', 'R2s_rk', 'S0_lk', 'tS_lk', 'R1_rk', 'ci_lk', 'R2s_ao', 'J_or', 'C_rk', 'tS_rk', 'C_ao', 'tR', 'S0_ao'}
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)  
+    def __call__(self, data: dict=None) -> dict:
+        p = self.map_data(data)  
 
         p['tmax'] = p['tstart'] + p['tacq'] + p['dt']
 

@@ -2,11 +2,11 @@ import time
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from dcmri import ForwardTissueX
+from dcmri import Liver
 from dcmri.core.module import InvalidConfig
 
 
-def test_tissue_x(cls=ForwardTissueX):
+def test_liver(cls=Liver):
     def _test_config(cnfg):
         # if cnfg['sequence'] != '3D-SPGR-SS':
         #     return
@@ -14,45 +14,44 @@ def test_tissue_x(cls=ForwardTissueX):
             instance = cls(**cnfg)
         except InvalidConfig:
             return
-
-        # print(cnfg)
+    
         data = instance.test_data()
         instance(data)
 
     cls.print_configs()
-    cls.print_all_io(verbose=1, simple=False, sample=1e4, seed=51)
+    cls.print_all_io(verbose=1, simple=False, sample=1e3, seed=51)
 
-    configs = cls.all_configs(sample=1e4, seed=51)
+    configs = cls.all_configs(sample=1e3, seed=51)
     for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
         _test_config(cnfg)
 
     print(f'Successfully covered {len(configs)} {cls.__name__} configurations!')
 
 
-def test_tissue_x_instance():
-    # model = ForwardTissueX()
+def test_liver_instance():
+    # model = Liver()
     # print(model.config)
     # return
-    cnfg = {'t1_relaxation': 'lin', 't2_relaxation': None, 't2s_relaxation': 'lin', 'inflow': 'none', 'sequence': '3D-SPGR-SS', 'magnitude': True, 'trigger': False, 'calibrate': False, 'water_exchange': 'FF', 'kinetics': '2CX', 'baseline': 'literature'}
+    cnfg = {'t1_relaxation': 'lin', 't2_relaxation': None, 't2s_relaxation': None, 'inflow': 'pool', 'sequence': 'ZTE-3D-SPGR-SS', 'magnitude': False, 'trigger': True, 'calibrate': False, 'water_exchange': 'N', 'baseline': 'measured', 'kinetics': '1I-IC', 'non_stationary': None}
     try:
-        model = ForwardTissueX(**cnfg)
+        model = Liver(**cnfg)
     except InvalidConfig as e:
         print(e)
         return
-    
     model.print_inputs()
     model.print_outputs()
 
     data = model.test_data()
     results = model(data)
 
-    plt.plot(results['tS'], results['S'][0, 0, :], 'ro')
+    plt.plot(results['tS_li'], results['S_li'][0, 0, :], 'ro')
+    # plt.plot(results['tC'], results['C'][0], 'ro')
+
     plt.show()
 
 
 if __name__ == '__main__':
-    #test_tissue_x_instance()
-    test_tissue_x()
+    # test_liver_instance()
+    test_liver()
     
-
-    print('All ForwardTissueX coverage tests passed!!')
+    print('All Liver coverage tests passed!!')

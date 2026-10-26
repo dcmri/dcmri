@@ -66,8 +66,8 @@ class RelaxivityGeneric(Module):
         't2s_relaxation': 'lin',
         'inflow': 'none',
     }
-    def __call__(self, data: dict=None, **kwargs) -> dict: 
-        i = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None) -> dict: 
+        i = self.map_data(data)
 
         b0, cm = i['field_strength'], i['agent']
         nc = len(i['v_t'])
@@ -174,8 +174,8 @@ class RelaxivityArtery(Module):
     _all_inputs = None
     _all_outputs = None
 
-    def __call__(self, data: dict=None, **kwargs) -> dict: 
-        i = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None) -> dict: 
+        i = self.map_data(data)
 
         # Get some notations
         wcomps = ('b', ) # water compartments
@@ -262,8 +262,8 @@ class RelaxivityKidney(Module):
         't2s_relaxation': 'lin',
         'inflow': 'none',
     }
-    def __call__(self, data: dict=None, **kwargs) -> dict: 
-        i = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None) -> dict: 
+        i = self.map_data(data)
 
         wcomps = self._wcomps()
         icomps = ('b', 'u') # indicator compartments
@@ -388,8 +388,8 @@ class RelaxivityLiver(Module):
     _all_outouts = None
 
 
-    def __call__(self, data: dict=None, **kwargs) -> dict: 
-        i = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None) -> dict: 
+        i = self.map_data(data)
 
         wcomps = self._wcomps()
         icomps = ('e', 'h') # indicator compartments
@@ -496,8 +496,8 @@ class RelaxivityTissueX(Module):
         't2s_relaxation': 'lin',
         'inflow': 'none',
     }
-    def __call__(self, data: dict=None, **kwargs) -> dict: 
-        i = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None) -> dict: 
+        i = self.map_data(data)
         b0, cm = i['field_strength'], i['agent']
 
         wcomps = self._wcomps()

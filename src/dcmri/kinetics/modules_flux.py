@@ -26,8 +26,8 @@ class Flux(Module):
     def outputs(self):
         return {'J'}
     
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None) -> dict:
+        p = self.map_data(data)
 
         model_func = getattr(blocks, f"flux_{self.config['block']}") 
         results = {'J': model_func(**p)}
@@ -83,8 +83,8 @@ class FluxInjection(Module):
     def outputs(self):
         return {'tC', 'Jinj'}
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None) -> dict:
+        p = self.map_data(data)
 
         t = np.arange(0, p['tmax'], p['dt'])
         conc = const.ca_conc(p['agent'])
@@ -138,8 +138,8 @@ class FluxTissueX(Module):
     def outputs(self):
         return {'J'}
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None) -> dict:
+        p = self.map_data(data)
 
         ca = flux_plug(p['c_ar'], dt=p['dt'], T=p['T_ar'])
         p = {k: v for k, v in p.items() if k not in ['c_ar', 'T_ar']}
@@ -259,8 +259,8 @@ class FluxAorta(Module):
             outputs |= {'J_li'}
         return outputs 
     
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None) -> dict:
+        p = self.map_data(data)
 
         # Format MTTs
         if self.config['organs'] == '2cxm':
@@ -305,26 +305,26 @@ class FluxAorta(Module):
         # Store all results along the way so they can be returned
         result = {}
 
-        Ja = self._flux_heartlung(p, J=Jv)['J']
+        Ja = self._flux_heartlung(p | {'J': Jv})['J']
 
-        result['J_or'] = self._flux_organs(p, J=Ja)['J']
+        result['J_or'] = self._flux_organs(p | {'J': Ja})['J']
         Jv = p['vr_or'] * result['J_or']
 
         if self.config['renal_arteries'] is not None:
-            result['J_lka'] = self._flux_ra_lk(p, J=Ja)['J']
-            result['J_rka'] = self._flux_ra_rk(p, J=Ja)['J']
+            result['J_lka'] = self._flux_ra_lk(p | {'J': Ja})['J']
+            result['J_rka'] = self._flux_ra_rk(p | {'J': Ja})['J']
         else:
             result['J_lka'] = Ja
             result['J_rka'] = Ja
 
         if self.config['kidneys'] is not None:
-            result['J_lk'] = self._flux_lk(p, J=result['J_lka'])['J']
-            result['J_rk'] = self._flux_rk(p, J=result['J_rka'])['J']
+            result['J_lk'] = self._flux_lk(p | {'J': result['J_lka']})['J']
+            result['J_rk'] = self._flux_rk(p | {'J': result['J_rka']})['J']
             Jv += p['vr_lk'] * result['J_lk']
             Jv += p['vr_rk'] * result['J_rk']
 
         if self.config['lagut'] is not None:
-            Jlag = self._flux_lagut(p, J=Ja)['J']
+            Jlag = self._flux_lagut(p | {'J': Ja})['J']
             if Jlag.ndim==2:
                 result['J_lag'] = Jlag.sum(axis=0)
                 result['J_la'] = Jlag[0]
@@ -335,11 +335,11 @@ class FluxAorta(Module):
             result['J_lag'] = Ja
 
         if self.config['liver'] is not None:
-            result['J_li'] = self._flux_liver(p, J=result['J_lag'])['J']
+            result['J_li'] = self._flux_liver(p | {'J': result['J_lag']})['J']
             Jv += p['vr_li'] * result['J_li']
 
         if self.config['veins'] is not None:
-            Jv = self._flux_veins(p, J=Jv)['J']
+            Jv = self._flux_veins(p | {'J': Jv})['J']
 
         return result | {'J_ao': Ja, 'J_vc': Jv}
 

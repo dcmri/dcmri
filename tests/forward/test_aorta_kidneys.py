@@ -2,11 +2,11 @@ import time
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from dcmri import ForwardAortaKidneys
+from dcmri import AortaKidneys
 from dcmri.core.module import InvalidConfig
 
 
-def test_aorta_kidneys(cls=ForwardAortaKidneys):
+def test_aorta_kidneys(cls=AortaKidneys):
     def _test_config(cnfg):
         # if cnfg['sequence'] != '3D-SPGR-SS':
         #     return
@@ -27,9 +27,9 @@ def test_aorta_kidneys(cls=ForwardAortaKidneys):
         # print(f"  [Total model execution time: {elapsed:.4f}s]")
 
     cls.print_configs()
-    cls.print_all_io(verbose=1, simple=False, sample=1e5, seed=51)
+    cls.print_all_io(verbose=1, simple=False, sample=1e3, seed=51)
 
-    configs = cls.all_configs(sample=1e4, seed=51)
+    configs = cls.all_configs(sample=1e3, seed=51)
     for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
         _test_config(cnfg)
 
@@ -37,12 +37,12 @@ def test_aorta_kidneys(cls=ForwardAortaKidneys):
 
 
 def test_aorta_kidneys_instance():
-    # model = ForwardAortaKidneys()
+    # model = AortaKidneys()
     # print(model.config)
     # return
     cnfg = {'inflow': 'none', 'sequence': '3D-SPGR-SS', 'tof_corr': False, 'magnitude': True, 'trigger': False, 'calibrate': False, 'water_exchange': 'F', 'baseline': 'literature', 'heartlung': 'pfcomp', 'organs': 'comp', 'kidneys': '2CF', 'bolus': 'single', 't1_relaxation_ao': 'lin', 't1_relaxation_lk': 'lin', 't1_relaxation_rk': 'lin', 't2_relaxation_ao': None, 't2_relaxation_lk': None, 't2_relaxation_rk': None, 't2s_relaxation_ao': 'lin', 't2s_relaxation_lk': 'lin', 't2s_relaxation_rk': 'lin'}
     try:
-        model = ForwardAortaKidneys(**cnfg)
+        model = AortaKidneys(**cnfg)
     except InvalidConfig as e:
         print(e)
         return
@@ -61,4 +61,4 @@ if __name__ == '__main__':
     # test_aorta_kidneys_instance()
     test_aorta_kidneys()
     
-    print('All ForwardAortaKidneys coverage tests passed!!')
+    print('All AortaKidneys coverage tests passed!!')

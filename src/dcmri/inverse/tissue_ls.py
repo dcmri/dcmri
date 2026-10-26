@@ -32,7 +32,7 @@ class InverseTissueLS(Module):
     def __call__(self, data: dict=None, tol=1e-2, verbose=None) -> dict:
         p = self.map_data(data)  
 
-        C = self._signal_to_conc(p, S=p['S'][0,0,:])
+        C = self._signal_to_conc(p | {'S': p['S'][0,0,:]})
 
         t = p['dt'] * np.arange(p['ci'].size)
         C = np.interp(t, p['tS'], C['C'])
@@ -78,6 +78,6 @@ class InverseTissueLS(Module):
         }
         return self.input_data(p, data)
 
-    def plot(self, data: dict, xlim:list=None, fname:str=None, show=True):
+    def plot(self, data: dict, results: dict=None, xlim:list=None, fname:str=None, show=True):
         # Placeholder
         return

@@ -99,12 +99,13 @@ import matplotlib.pyplot as plt
 from dcmri.core.module import Module
 from dcmri.core.tools import get_quantity, update_bounds, unit
 from dcmri.utils.fit import train_brute
-from dcmri.forward.tissue_x import ForwardTissueX as Forward
+from dcmri.forward.tissue_x import TissueX as ForwardModel
 from dcmri.kinetics.functions_tissue import dpars_tissue
 from dcmri.inverse.modules import SignalToConc
+from dcmri.bloch.functions_sequences import repetition_time
 
-configs = deepcopy(Forward.configs) | {'aif': {'fixed', 'measured'}}
-defaults = deepcopy(Forward.defaults) | {'aif': 'fixed', 'calibrate': True}
+configs = deepcopy(ForwardModel.configs) | {'aif': {'fixed', 'measured'}}
+defaults = deepcopy(ForwardModel.defaults) | {'aif': 'fixed', 'calibrate': True}
 
 class InverseTissueX(Module):
 
@@ -116,7 +117,7 @@ class InverseTissueX(Module):
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
-        self.forward = Forward(**self.config)
+        self.forward = ForwardModel(**self.config)
         if self.config['aif'] == 'measured':
             self._sig2conc = SignalToConc(**self.config)
         self.map_io(imap, omap)
@@ -137,9 +138,10 @@ class InverseTissueX(Module):
             p['iScal'] = np.arange(p['nb'])
 
         if self.config['aif'] == 'measured':
-            tmax = max(p['tS_ar']) + 2 * (p['tS_ar'][-1] - p['tS_ar'][-2])
+            tr = repetition_time(self.config['sequence'], p)
+            tmax = max(p['tS_ar']) + 2 * (tr + p['dt'])
             t = np.arange(0, tmax, p['dt'])
-            c_ar = self._sig2conc(p, S=p['S_ar'], R1b=p['R1_b'])['C']
+            c_ar = self._sig2conc(p | {'S': p['S_ar'], 'R1b': p['R1_b']})['C']
             p['c_ar'] = np.interp(t, p['tS_ar'], c_ar) 
 
     def pfree(self):
@@ -197,6 +199,8 @@ class InverseTissueX(Module):
             'pfree': self.forward.filter_data({'v_b': (0, 1), 'v_i': (0, 1), 'v_e': (0, 1), 'F_b': (0, 1)}),
             'tS': pred['tS'],
             'S': pred['S'],
+            'tS_ar': pred['tS'],
+            'S_ar': np.ones(len(pred['tS'])) ** 2,
         }
         return self.input_data(p, data)
 
@@ -241,9 +245,7 @@ class InverseTissueX(Module):
 
     def plot(self, data: dict, result:dict=None, xlim:list=None, fname:str=None, show=True):
         if result is None:
-            p = self.map_data(data)
-            result = self._call(p)
-
+            result = self.__call__(data)
         p = self.map_data(data | result['popt'])
         self._preproc(p)
         pred = self.forward(p)

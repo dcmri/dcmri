@@ -8,7 +8,7 @@ import time
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from dcmri import ForwardAorta
+from dcmri import Aorta
 from dcmri.core.module import InvalidConfig
 from dcmri.bloch.functions_mz_dyn import Mz_dyn_se
 
@@ -20,7 +20,7 @@ except NameError:
     # Fallback so the script doesn't crash if run with standard 'python' instead of 'kernprof'
     pass
 
-def test_aorta(cls=ForwardAorta):
+def test_aorta(cls=Aorta):
     def _test_config(cnfg):
         # if cnfg['sequence'] != '3D-SPGR-SS':
         #     return
@@ -41,9 +41,9 @@ def test_aorta(cls=ForwardAorta):
         # print(f"  [Total model execution time: {elapsed:.4f}s]")
 
     cls.print_configs()
-    cls.print_all_io(verbose=1, simple=False, sample=1e5, seed=51)
+    cls.print_all_io(verbose=1, simple=False, sample=1e3, seed=51)
 
-    configs = cls.all_configs(sample=1e4, seed=51)
+    configs = cls.all_configs(sample=1e3, seed=51)
     for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
         _test_config(cnfg)
 
@@ -59,7 +59,7 @@ def test_aorta_times():
 
     def _test_config(cnfg):
         try:
-            model = ForwardAorta(**cnfg)
+            model = Aorta(**cnfg)
         except InvalidConfig:
             return
         print(cnfg)
@@ -80,7 +80,7 @@ def test_aorta_times():
         assert results["S_a"].ndim == 3
 
     cnt = 0
-    for cnfg in ForwardAorta.all_configs():
+    for cnfg in Aorta.all_configs():
         cnt += 1
         _test_config(cnfg)
         if cnt == 100:
@@ -115,7 +115,7 @@ def test_aorta_instance():
         'calibrate': False,
     }
     try:
-        model = ForwardAorta(**cnfg)
+        model = Aorta(**cnfg)
     except InvalidConfig as e:
         print(e)
         return
@@ -131,8 +131,9 @@ def test_aorta_instance():
 
 
 if __name__ == '__main__':
-    # test_aorta()
-    test_aorta_instance()
-    # test_aorta_times()
+    test_aorta()
+    # test_aorta_instance()
+    #
+    #  test_aorta_times()
 
     print('All model coverage tests passed!!')

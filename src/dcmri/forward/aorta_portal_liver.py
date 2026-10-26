@@ -1,5 +1,5 @@
 # +--------------------------------------------------------------------------------------------------+
-# |                          ForwardAortaPortalLiver - all configs (n = 22)                          |
+# |                          AortaPortalLiver - all configs (n = 22)                          |
 # +-------------------+-----------------------------------------------------------------+------------+
 # | Key               | Values                                                          | Default    |
 # +-------------------+-----------------------------------------------------------------+------------+
@@ -32,7 +32,7 @@
 # +--------------------------------------------------------------------------------------------------+
 
 # +----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-# |                                                                  ForwardAortaPortalLiver - all inputs (n = 83)                                                                   |
+# |                                                                  AortaPortalLiver - all inputs (n = 83)                                                                   |
 # +----------------+------------+---------------------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
 # | Key            | Unit       | Name                                                                            | Group           | Init       | Bounds        | DICOM | OSIPI     |
 # +----------------+------------+---------------------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
@@ -128,7 +128,7 @@
 # +----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 # +----------------------------------------------------------------------------------------------------------------------------+
-# |                                       ForwardAortaPortalLiver - all outputs (n = 46)                                       |
+# |                                       AortaPortalLiver - all outputs (n = 46)                                       |
 # +--------+----------+------------------------------------------------+-----------------+-------+---------+-------+-----------+
 # | Key    | Unit     | Name                                           | Group           | Init  | Bounds  | DICOM | OSIPI     |
 # +--------+----------+------------------------------------------------+-----------------+-------+---------+-------+-----------+
@@ -216,7 +216,7 @@ for key in roi_configs:
 CONFIGS['inflow'].discard('inlet')
         
 
-class ForwardAortaPortalLiver(Module):
+class AortaPortalLiver(Module):
     """Whole-body model for the aorta, portal vein and liver signal."""
 
     configs = CONFIGS
@@ -225,8 +225,8 @@ class ForwardAortaPortalLiver(Module):
     _all_inputs = {'v_li', 'R1_b', 'NSR_ao', 'iz', 'CO', 'dose', 'k_e2h', 'E_or', 'PSw_h2e', 'Ei_li', 'B1corr_li', 'T_h', 'TR', 'Scal_pv', 'Nph', 'T_hl', 'Ti_h', 'fCO_li', 'dose_tolerance', 'H', 'T_b_or', 'BAT_2', 'v_e_li', 'tacq', 'E_li', 'tstart', 'TA', 'T_gu', 'iScal_li', 'dose_1', 'Scal_ao', 'TE2', 'iScal_pv', 'BAT_1', 'TD', 'BAT', 'ffa', 'NSR_pv', 'T_la', 'me', 'PSw_e2h', 'ki_e2h', 'Ef_li', 'rate_1', 'TF', 'GFR', 'vol_ao', 'v_h', 'Nk0', 'agent', 'rate_2', 'vol_li', 'iStrig_pv', 'kf_e2h', 'dt', 'TP', 'S0_ao', 'B1corr_pv', 'NSR_li', 'TE', 'S0_pv', 'D_hl', 'field_strength', 'dose_2', 'TE1', 'R1_h', 'B1corr_ao', 'PA', 'rate', 'vol_la', 'FA', 'iStrig_li', 'R1_e', 'vol_pv', 'iStrig_ao', 'iScal_ao', 'T_e_or', 'S0_li', 'Nz', 'Scal_li', 'weight', 'Tf_h', 'SA'}
     _all_outputs = {'R2s_ao', 'tS_li', 'ci_la', 'R2_pv', 'J_li', 'tM_li', 'M_li', 'ci_pv', 'R1i_li', 'tR_li', 'R1_ao', 'C_li', 'tM_pv', 'J_ao', 'S_li', 'J_lag', 'R1_pv', 'R2_ao', 'tR_pv', 'S_ao', 'C_ao', 'R2s_pv', 'J_ve', 'ci_ao', 'C_la', 'tR_ao', 'S0_ao', 'tS_pv', 'M_ao','tM_ao', 'C_pv', 'tS_ao', 'J_la', 'R1_li', 'S0_pv', 'S_pv', 'J_pv', 'ci_li', 'R2s_li', 'J_or', 'tC', 'R1i_pv', 'S0_li', 'R1i_ao', 'R2_li', 'M_pv'}
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)  
+    def __call__(self, data: dict=None) -> dict:
+        p = self.map_data(data)  
 
         p['tmax'] = p['tstart'] + p['tacq'] + p['dt']
 

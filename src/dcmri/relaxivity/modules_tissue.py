@@ -51,8 +51,8 @@ class R1(Module):
     _all_inputs = {'C', 'r1', 'RM', 'R1b'}
     _all_outputs = {'R1'}
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None) -> dict:
+        p = self.map_data(data)
 
         # Input dimensions
         # conc (nc, nt), R1b (nc), RM (nc, nc),r1 (nc, )
@@ -158,8 +158,8 @@ class R2(Module):
     _all_inputs = {'r2', 'C', 'R2b', 'RM'}
     _all_outputs = {'R2'}
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None) -> dict:
+        p = self.map_data(data)
 
         # Input dimensions
         # conc (nc, nt), R2b (nc), RM (nc, nc),r2 (nc, )
@@ -275,8 +275,8 @@ class R2s(Module):
     _all_inputs = {'r2se', 'C', 'v', 'r2sv', 'R2sb', 'r2sq', 'r2s'}
     _all_outputs = {'R2s'}
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None) -> dict:
+        p = self.map_data(data)
         t2r = self.config['t2s_relaxation']
         # Input dimensions
         # conc (nc, nt), R2sb (nc), r2s (nc, )
@@ -471,8 +471,8 @@ class Relax(Module):
             outputs |= self._R2s.outputs()
         return outputs
     
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None) -> dict:
+        p = self.map_data(data)
 
         R_arr = {}
         if self.config['t1_relaxation']:
@@ -577,8 +577,8 @@ class ConcToRelax(Module):
 
         self.map_io(imap, omap, iomap)  
         
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data, kwargs)  
+    def __call__(self, data: dict=None) -> dict:
+        p = self.map_data(data)  
 
         p |= self._relax_tissue(p)
         if self._relax_inlets is not None:

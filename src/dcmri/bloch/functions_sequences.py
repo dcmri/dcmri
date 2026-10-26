@@ -7,6 +7,7 @@ def channels(sequence):
 def pulse_readout(sequence, p):
     if sequence in [
             'ZTE-3D-SPGR-SS',
+            'ZTE-3D-SPGR-SSI',
             '3D-SPGR-SS',
             '2D-SPGR-SS',
             '3D-SPGR',
@@ -33,6 +34,7 @@ def pulse_readout(sequence, p):
 def readout_time(sequence, p):
     if sequence in [
             'ZTE-3D-SPGR-SS',
+            'ZTE-3D-SPGR-SSI',
             '3D-SPGR-SS',
             '2D-SPGR-SS',
             '3D-SPGR',
@@ -63,6 +65,7 @@ def repetition_time(sequence, p):
         '2D-SPGR-SS',
         '3D-SPGR',
         '2D-SPGR',
+        'ZTE-3D-SPGR-SSI',
         '3D-SPGR-SSI',
     ]:
         return p['Nph'] * p['TR']

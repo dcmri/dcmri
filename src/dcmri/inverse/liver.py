@@ -5,12 +5,12 @@ import matplotlib.pyplot as plt
 
 from dcmri.core.module import Module
 from dcmri.core.tools import get_quantity, update_bounds
-from dcmri.utils.fit import train
-from dcmri.forward.liver import ForwardLiver as Forward
+from dcmri.utils.fit import train_brute
+from dcmri.forward.liver import Liver as ForwardModel
 from dcmri.kinetics.functions_liver import dpars_liver
 
-configs = deepcopy(Forward.configs) 
-defaults = deepcopy(Forward.defaults) | {'calibrate': True}
+configs = deepcopy(ForwardModel.configs) 
+defaults = deepcopy(ForwardModel.defaults) | {'calibrate': True}
 
 class InverseLiver(Module):
 
@@ -18,16 +18,16 @@ class InverseLiver(Module):
     defaults = defaults
 
     _all_inputs = {'tS_li', 'PA', 'iz', 'v_li', 'T_h', 'kf_e2h', 'Tf_h', 'TA', 'field_strength', 'S0_li', 'v_e_li', 'TE1', 'nb', 'B1corr_li', 'Nph', 'TD', 'R1_li', 'v_h', 'TE2', 'k_e2h', 'Nz', 'pfree', 'Ti_h', 'tstart', 'TE', 'TP', 'E_li', 'R1_e', 'TR', 'FA', 'ffa', 'Ef_li', 'S_li', 'Nk0', 'F_b_li', 'ki_e2h', 'iStrig_li', 'PSw', 'dt', 'R1_h', 'ci_li', 'Ei_li', 'agent', 'F_p_li', 'me', 'NSR_li'}
-    _all_outputs = {'pder', 'popt', 'loss', 'psdev', 'pcov'}
+    _all_outputs = {'pars', 'popt', 'loss', 'psdev', 'pcov'}
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
-        self.forward = Forward(**self.config)
+        self.forward = ForwardModel(**self.config)
         self.map_io(imap, omap)
 
-    def _predict(self, time):
-        pred = self.forward(self._pars)
-        return pred['S_li'][:, :, :len(time)].reshape(-1)
+    def _predict(self, p):
+        pred = self.forward(p)
+        return pred['S_li'][:, :, :len(p['tS_li'])].reshape(-1)
 
     def _preproc(self, p):
         # Reshape signal if needed
@@ -51,8 +51,7 @@ class InverseLiver(Module):
         p = dpars_liver(p, kinetics=self.config['kinetics'])
         return p
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data)  
+    def _call(self, p: dict=None, **kwargs) -> dict:
         self._preproc(p)
 
         # Initialize pfree if needed
@@ -62,14 +61,11 @@ class InverseLiver(Module):
         p['pfree'] = update_bounds(p['pfree'], value=p)
 
         # Compute inverse
-        self._pars = p
-        time = p['tS_li']
         signal = p['S_li']
+        output = train_brute(self._predict, signal, p, p['pfree'], **kwargs)
+        output['pars'] = self._pder(p | output['popt'])
 
-        output = train(self._predict, time, signal, p, p['pfree'], **kwargs)
-        output['pder'] = self._pder(p | output['popt'])
-
-        return self.map_results(output)
+        return output
 
     def inputs(self) -> set:
         inputs = self.forward.mapped_inputs()
@@ -80,7 +76,7 @@ class InverseLiver(Module):
         return inputs  
     
     def outputs(self):
-        return {'popt', 'psdev', 'pcov', 'pder', 'loss'}
+        return {'popt', 'psdev', 'pcov', 'pars', 'loss'}
     
     def test_data(self, data: dict=None): 
         p = self.init_data()
@@ -95,8 +91,11 @@ class InverseLiver(Module):
         }
         return self.input_data(p, data)
 
-    def plot(self, data: dict, xlim:list=None, fname:str=None, show=True):
-        p = self.map_data(data)
+    def plot(self, data: dict, result:dict=None, xlim:list=None, fname:str=None, show=True):
+        if result is None:
+            result = self.__call__(data)
+        p = self.map_data(data | result['popt'])
+        
         self._preproc(p)
         pred = self.forward(p)
 

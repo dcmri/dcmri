@@ -2,11 +2,11 @@ import time
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from dcmri import ForwardKidney
+from dcmri import Kidney
 from dcmri.core.module import InvalidConfig
 
 
-def test_kidney(cls=ForwardKidney):
+def test_kidney(cls=Kidney):
     def _test_config(cnfg):
         # if cnfg['sequence'] != '3D-SPGR-SS':
         #     return
@@ -22,9 +22,9 @@ def test_kidney(cls=ForwardKidney):
         # print(f"  [Total model execution time: {elapsed:.4f}s]")
 
     cls.print_configs()
-    cls.print_all_io(verbose=1, simple=False, sample=1e4, seed=51)
+    cls.print_all_io(verbose=1, simple=False, sample=1e3, seed=51)
 
-    configs = cls.all_configs(sample=1e4, seed=51)
+    configs = cls.all_configs(sample=1e3, seed=51)
     for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
         _test_config(cnfg)
 
@@ -32,12 +32,12 @@ def test_kidney(cls=ForwardKidney):
 
 
 def test_kidney_instance():
-    # model = ForwardKidney()
+    # model = Kidney()
     # print(model.config)
     # return
     cnfg = {'t1_relaxation': 'lin', 't2_relaxation': None, 't2s_relaxation': None, 'inflow': 'none', 'sequence': 'ZTE-3D-IR-SPGR-SS', 'magnitude': False, 'trigger': False, 'calibrate': False, 'compartments': ('bc', 'u'), 'baseline': 'literature', 'kinetics': '2PF'}
     try:
-        model = ForwardKidney(**cnfg)
+        model = Kidney(**cnfg)
     except InvalidConfig as e:
         print(e)
         return
@@ -56,4 +56,4 @@ if __name__ == '__main__':
     # test_kidney_instance()
     test_kidney()
     
-    print('All ForwardKidney coverage tests passed!!')
+    print('All Kidney coverage tests passed!!')

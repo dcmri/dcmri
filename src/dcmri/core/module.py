@@ -40,7 +40,7 @@ class Module:
                         key = cmap[key]
                 if key in self.configs:
                     if value not in self.configs[key]:
-                        raise ValueError(f'{value} is not a valid value for {key} in {self.__class__.__name__}. Possible values are {self.configs[key]}.')  
+                        raise InvalidConfig(f'{value} is not a valid value for {key} in {self.__class__.__name__}. Possible values are {self.configs[key]}.')  
                     self._config[key] = value
         return self
 
@@ -111,7 +111,7 @@ class Module:
     def new_mapped_outputs(self):
         return self.mapped_outputs() - self.mapped_inputs()
 
-    def map_data(self, data: dict | None, override={}, all=True) -> dict:
+    def map_data(self, data: dict | None, all=True) -> dict:
         p = {}
         imap = self._imap
         for i in self._inputs:
@@ -119,9 +119,7 @@ class Module:
                 j = imap[i]
             else:
                 j = i
-            if j in override:
-                p[i] = override[j]
-            elif data is not None and j in data:
+            if data is not None and j in data:
                 p[i] = data[j]
             elif all:
                 try:

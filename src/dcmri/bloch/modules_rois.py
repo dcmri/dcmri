@@ -76,8 +76,8 @@ class WaterExchangeGeneric(Module):
         'water_exchange': 'F',
         'inflow': 'none',
     }
-    def __call__(self, data: dict=None, **kwargs) -> dict: 
-        i = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None) -> dict: 
+        i = self.map_data(data)
 
         wex = self.config['water_exchange']
         nc = len(i['v_t'])
@@ -135,8 +135,8 @@ class WaterExchangeArtery(Module):
     _all_inputs = None
     _all_outputs = None
 
-    def __call__(self, data: dict=None, **kwargs) -> dict: 
-        i = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None) -> dict: 
+        i = self.map_data(data)
 
         o = {}
         o['vw'] = [1] # assume no pv effect
@@ -170,8 +170,8 @@ class WaterExchangeKidney(Module):
         'water_exchange': 'F',
         'inflow': 'none',
     }
-    def __call__(self, data: dict=None, **kwargs) -> dict: 
-        i = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None) -> dict: 
+        i = self.map_data(data)
 
         wcomps = self._wcomps()
 
@@ -249,8 +249,8 @@ class WaterExchangeLiver(Module):
     _all_inputs = None
     _all_outputs = None
 
-    def __call__(self, data: dict=None, **kwargs) -> dict: 
-        i = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None) -> dict: 
+        i = self.map_data(data)
 
         wcomps = self._wcomps()
 
@@ -321,8 +321,8 @@ class WaterExchangeTissueX(Module):
         'kinetics': '2CX',
         'inflow': 'none',
     }
-    def __call__(self, data: dict=None, **kwargs) -> dict: 
-        i = self.map_data(data, kwargs)
+    def __call__(self, data: dict=None) -> dict: 
+        i = self.map_data(data)
 
         wcomps = self._wcomps()
         

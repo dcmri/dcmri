@@ -72,6 +72,9 @@ def dpars_kidney(p, kinetics='2CF', H=0.45) -> dict:
     if {'F_b_km', 'vol_km'}.issubset(p):
         p['BF_km'] = p['F_b_km'] * p['vol_km']
 
+    if {'FF', 'F_p_ki'}.issubset(p):
+        p['F_u_ki'] = p['FF'] * p['F_p_ki']
+
     if {'FF', 'F_p_ki', 'vol_ki'}.issubset(p):
         p['GFR'] = p['FF'] * p['F_p_ki'] * p['vol_ki']
 

@@ -55,7 +55,7 @@ def test_coverage():
         sig2conc.inputs()
         if seq in ['ZTE-3D-IR-SPGR-SS', '3D-IR-SPGR-SS']: # Non-monotonous
             continue 
-        sig2conc(dc.QVALUES, S=signal)
+        sig2conc(dc.QVALUES | {'S': signal})
 
     # 3D signals (n_samples, n_channels, n_times)
     n_samples = 3
@@ -73,19 +73,19 @@ def test_coverage():
         sig2conc.inputs()
         if seq in ['ZTE-3D-IR-SPGR-SS', '3D-IR-SPGR-SS']: # Non-monotonous
             continue 
-        sig2conc(dc.QVALUES, S=signal)
+        sig2conc(dc.QVALUES| {'S': signal})
 
         # Tst Options
         if seq == 'lin':
-            dc.SignalToConc(sequence=seq, calibrate=False)(dc.QVALUES, S=signal, S0=np.full(n_samples, 1))
-            dc.SignalToConc(sequence=seq, calibrate=True)(dc.QVALUES, S=signal)
+            dc.SignalToConc(sequence=seq, calibrate=False)(dc.QVALUES | {'S': signal, 'S0':np.full(n_samples, 1)})
+            dc.SignalToConc(sequence=seq, calibrate=True)(dc.QVALUES | {'S': signal})
 
         if seq in ['ZTE-3D-IR-SPGR-SS', '3D-IR-SPGR-SS']:
-            dc.SignalToConc(sequence=seq, calibrate=False)(dc.QVALUES, S=signal, S0=np.full(n_samples, 1))
+            dc.SignalToConc(sequence=seq, calibrate=False)(dc.QVALUES| {'S': signal, 'S0':np.full(n_samples, 1)})
 
         if seq in ['2D-GE-EPI', '2D-SE-EPI', '2D-DE-EPI', '3D-GE-EPI', '3D-SE-EPI', '3D-DE-EPI']:
-            dc.SignalToConc(sequence=seq, calibrate=True)(dc.QVALUES, S=signal, R1b=np.full(n_samples, 1))
-            dc.SignalToConc(sequence=seq, calibrate=False)(dc.QVALUES, S=signal, S0=np.full(n_samples, 1))
+            dc.SignalToConc(sequence=seq, calibrate=True)(dc.QVALUES | {'S': signal, 'R1b': np.full(n_samples, 1)})
+            dc.SignalToConc(sequence=seq, calibrate=False)(dc.QVALUES | {'S': signal, 'S0': np.full(n_samples, 1)})
 
 
 def test_exceptions():
@@ -97,13 +97,13 @@ def test_exceptions():
     else:
         assert False
     try:
-        dc.SignalToConc()(S=[1])
+        dc.SignalToConc()({'S': [1]})
     except:
         pass
     else:
         assert False
     try:
-        dc.SignalToConc()(S=[1,2], R1b=[1,2])
+        dc.SignalToConc()({'S':[1,2], 'R1b':[1,2]})
     except:
         pass
     else:
@@ -138,14 +138,14 @@ def test_aif_analytical():
     # aif_R2s = R2sba + r2s * aif_conc
     aif_R2s = np.full_like(aif_conc, R2sba)
     aif_signal = RelaxToSignal(sequence=seq)(
-        tR=aif_time, R1=aif_R1, R2s=aif_R2s, S0=S0a, 
-        Kw=0, me=1, vw=1, **seq_params
+        {'tR':aif_time, 'R1':aif_R1, 'R2s':aif_R2s, 'S0':S0a, 
+        'Kw':0, 'me':1, 'vw':1} | seq_params
     )
 
     # Invert
     ca = dc.SignalToConc(sequence=seq)(
-        S=aif_signal['S'][0, 0, :], R1b=R1ba, R2sb=R2sba, nb=1,
-        r1=rp, **seq_params
+        {'S': aif_signal['S'][0, 0, :], 'R1b':R1ba, 'R2sb':R2sba, 'nb': 1,
+        'r1': rp} | seq_params
     )['C']
     ca_interp = np.interp(aif_signal['tS'], aif_time, aif_conc)
     assert np.linalg.norm(ca - ca_interp) < 1e-12 * np.linalg.norm(ca_interp)
@@ -182,14 +182,13 @@ def test_aif_numerical():
     # aif_R2s = R2sba + r2s * aif_conc
     aif_R2s = np.full_like(aif_conc, R2sba)
     aif_signal = RelaxToSignal(sequence=seq)(
-        tR=aif_time, R1=aif_R1, R2s=aif_R2s, S0=S0a, 
-        Kw=0, me=1, v=1, **seq_params
+        {'tR':aif_time, 'R1':aif_R1, 'R2s':aif_R2s, 'S0':S0a, 
+        'Kw':0, 'me':1, 'v':1} | seq_params
     )
 
     # Invert
     ca = dc.SignalToConc(sequence=seq)(
-        S=aif_signal['S'][0, 0, :], R1b=R1ba, R2sb=R2sba, nb=1, r1=rp, 
-        **seq_params
+        {'S': aif_signal['S'][0, 0, :], 'R1b': R1ba, 'R2sb': R2sba, 'nb':1, 'r1':rp} | seq_params
     )['C']
     ca_interp = np.interp(aif_signal['tS'], aif_time, aif_conc)
     #print(np.linalg.norm(ca - ca_interp) / np.linalg.norm(ca_interp))
@@ -241,11 +240,11 @@ def test_function_dce():
         R1a = R1ba + rp * ca
         R2s = R2sb + r2s * ca
         S = RelaxToSignal(sequence=sequence, calibrate=False)(
-            params_dce, tR=time, R1=R1a, R2s=R2s, S0=S0a, B1corr=B1a
+            params_dce | {'tR':time, 'R1':R1a, 'R2s':R2s, 'S0':S0a, 'B1corr':B1a}
         )
         ca_rec = dc.SignalToConc(sequence=sequence, calibrate=True)(
-            params_dce, S=S['S'][0, 0, :], iScal=[0], Scal=S['S'][:1,:1,:1], 
-            R1b=R1ba, r1=rp, B1corr=B1a)['C']
+            params_dce | {'S':S['S'][0, 0, :], 'iScal':[0], 'Scal':S['S'][:1,:1,:1], 
+            'R1b':R1ba, 'r1':rp, 'B1corr':B1a})['C']
         
         # Determine reconstruction error
         ca_interp = np.interp(S['tS'], time, ca)
@@ -264,7 +263,7 @@ def test_function_dce():
     # Generate signal and reconstruct concentrations
     S = R1ba + rp * ca
 
-    ca_rec = dc.SignalToConc(sequence='lin')(dc.QVALUES, S=S, R1b=R1ba, r1=rp)['C']
+    ca_rec = dc.SignalToConc(sequence='lin')(dc.QVALUES | {'S':S, 'R1b':R1ba, 'r1':rp})['C']
     
     # Determine reconstruction error
     err = np.linalg.norm(ca-ca_rec) / np.linalg.norm(ca)
@@ -310,11 +309,11 @@ def test_function_dsc():
         R2s = R2sb + r2s * ca
         R2 = R2b + r2 * ca
         S = RelaxToSignal(sequence=sequence, calibrate=False)(
-            params_dsc, tR=time, R1=R1a, R2=R2, R2s=R2s, S0=S0a, B1corr=B1a,
+            params_dsc | {'tR':time, 'R1':R1a, 'R2':R2, 'R2s':R2s, 'S0':S0a, 'B1corr':B1a},
         )
         ca_rec = dc.SignalToConc(sequence=sequence, calibrate=True)(
-            params_dsc, S=S['S'][:, :1, :], iScal=[0], Scal=S['S'][:1,:1,:1], 
-            B1corr=B1a, r2s=r2s, r2=r2
+            params_dsc | {'S':S['S'][:, :1, :], 'iScal':[0], 'Scal':S['S'][:1,:1,:1], 
+            'B1corr':B1a, 'r2s':r2s, 'r2':r2}
         )['C']
         ca_rec = np.mean(ca_rec, axis=0)
         
@@ -365,14 +364,14 @@ def test_brain():
     # Sampled arterial signal
     aif_R1 = R1ba + rp * aif_conc
     aif_signal = RelaxToSignal(sequence=seq)(
-        tR=aif_time, R1=aif_R1, S0=S0a,
-        Kw=0, me=1, v=1, **seq_params
+        {'tR':aif_time, 'R1':aif_R1, 'S0':S0a,
+        'Kw':0, 'me':1, 'v':1} | seq_params
     )
 
     # Invert
     ca_rec = dc.SignalToConc(sequence=seq)(
-        S=aif_signal['S'][0, 0, :], R1b=R1ba, nb=1, 
-        r1=rp, **seq_params
+        {'S':aif_signal['S'][0, 0, :], 'R1b':R1ba, 'nb':1, 
+        'r1':rp} | seq_params
     )['C']
     ca_interp = np.interp(aif_signal['tS'], aif_time, aif_conc)
     err = np.linalg.norm(ca_rec - ca_interp) / np.linalg.norm(ca_interp)

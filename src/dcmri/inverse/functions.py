@@ -160,7 +160,7 @@ def _estimate_bat_channel(t, signal, nb=10, threshold_multiplier=1.1, persistenc
 
 def _conc_dce_S0(Relax_to_Signal, S, nb, R1b, defaults):
     #Snb = Relax_to_Signal(defaults, tR=0, R1=R1b, S0=1, R2s=1, TE=0, v=1, Fw=0, me=1) 
-    Snb = Relax_to_Signal(defaults, tacq=0, tR=0, R1=R1b, S0=1, R2s=1, TE=0, v=1, Fw=0, me=1) 
+    Snb = Relax_to_Signal(defaults | {'tacq':0, 'tR':0, 'R1':R1b, 'S0':1, 'R2s':1, 'TE':0, 'v':1, 'Fw':0, 'me':1}) 
     Snb = Snb['S'][0, 0, 0]
     Sb = np.sum(S[:nb]) / nb
     S0 = Sb / Snb if Snb > 0 else 0
@@ -195,7 +195,7 @@ def conc_dce(Relax_to_Signal, S, r1=None, nb=1, S0=None, R1b=None, defaults=None
     R1_min = 0
     R1_lookup = R1_min + r1 * c_range
     Sn_lookup = [
-        Relax_to_Signal(defaults, tacq=0, tR=0, R1=r, S0=1, R2s=1, TE=0, v=1, Fw=0, me=1)
+        Relax_to_Signal(defaults | {'tacq':0, 'tR':0, 'R1':r, 'S0':1, 'R2s':1, 'TE':0, 'v':1, 'Fw':0, 'me':1})
         for r in R1_lookup
     ]
     Sn_lookup = np.array([s['S'][0, 0, 0] for s in Sn_lookup])

@@ -93,13 +93,14 @@ import matplotlib.pyplot as plt
 
 from dcmri.core.module import Module
 from dcmri.core.tools import get_quantity, update_bounds
-from dcmri.utils.fit import train
-from dcmri.forward.kidney import ForwardKidney as Forward
+from dcmri.utils.fit import train_brute
+from dcmri.forward.kidney import Kidney as ForwardModel
 from dcmri.kinetics.functions_kidney import dpars_kidney
 from dcmri.inverse.modules import SignalToConc
+from dcmri.bloch.functions_sequences import repetition_time
 
-configs = deepcopy(Forward.configs) | {'aif': {'fixed', 'measured'}}
-defaults = deepcopy(Forward.defaults) | {'aif': 'fixed', 'calibrate': True}
+configs = deepcopy(ForwardModel.configs) | {'aif': {'fixed', 'measured'}}
+defaults = deepcopy(ForwardModel.defaults) | {'aif': 'fixed', 'calibrate': True}
 
 class InverseKidney(Module):
 
@@ -114,14 +115,14 @@ class InverseKidney(Module):
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
-        self.forward = Forward(**self.config)
+        self.forward = ForwardModel(**self.config)
         if self.config['aif'] == 'measured':
             self._sig2conc = SignalToConc(**self.config)
         self.map_io(imap, omap)
 
-    def _predict(self, time):
-        pred = self.forward(self._pars)
-        return pred['S_ki'][:, :, :len(time)].reshape(-1)
+    def _predict(self, p):
+        pred = self.forward(p)
+        return pred['S_ki'][:, :, :len(p['tS_ki'])].reshape(-1)
 
     def _preproc(self, p):
         # Reshape signal if needed
@@ -134,9 +135,10 @@ class InverseKidney(Module):
             p['iScal_ki'] = np.arange(p['nb'])
 
         if self.config['aif'] == 'measured':
-            tmax = max(p['tS_ar']) + 2 * (p['tS_ar'][-1] - p['tS_ar'][-2])
+            tr = repetition_time(self.config['sequence'], p)
+            tmax = max(p['tS_ar']) + 2 * (tr + p['dt'])
             t = np.arange(0, tmax, p['dt'])
-            c_ar = self._sig2conc(p, S=p['S_ar'], R1b=p['R1_b'])['C']
+            c_ar = self._sig2conc(p | {'S': p['S_ar'], 'R1b': p['R1_b']})['C']
             p['c_ar'] = np.interp(t, p['tS_ar'], c_ar)            
 
     def pfree(self):
@@ -152,8 +154,7 @@ class InverseKidney(Module):
         p = dpars_kidney(p, kinetics=self.config['kinetics'])
         return p
 
-    def __call__(self, data: dict=None, **kwargs) -> dict:
-        p = self.map_data(data)  
+    def _call(self, p: dict=None, **kwargs) -> dict:
         self._preproc(p)
 
         # Initialize pfree if needed
@@ -163,13 +164,11 @@ class InverseKidney(Module):
         p['pfree'] = update_bounds(p['pfree'], value=p)
 
         # Compute inverse
-        self._pars = p
-        time = p['tS_ki']
         signal = p['S_ki']
-        output = train(self._predict, time, signal, p, p['pfree'], **kwargs)
-        output['pder'] = self._pder(data | p | output['popt'])
+        output = train_brute(self._predict, signal, p, p['pfree'], **kwargs)
+        output['pars'] = self._pder(p | output['popt'])
 
-        return self.map_results(output)
+        return output
 
     def inputs(self) -> set:
         inputs = self.forward.mapped_inputs()
@@ -183,7 +182,7 @@ class InverseKidney(Module):
         return inputs  
     
     def outputs(self):
-        outputs = {'popt', 'psdev', 'pcov', 'pder', 'loss'}
+        outputs = {'popt', 'psdev', 'pcov', 'pars', 'loss'}
         if self.config['aif'] == 'measured':
             outputs |= {'c_ar'}
         return outputs
@@ -198,11 +197,22 @@ class InverseKidney(Module):
             'pfree': self.forward.filter_data({'FF': (0, 1), 'F_u': (0, 1)}),
             'tS_ki': pred['tS_ki'],
             'S_ki': pred['S_ki'],
+            'tS_ar': pred['tS_ki'],
+            'S_ar': np.ones(len(pred['tS_ki'])) ** 2,
         }
         return self.input_data(p, data)
 
-    def plot(self, data:dict, result:dict, xlim:list=None, fname:str=None, show=True):
+    # def plot(self, data:dict, results:dict=None, xlim:list=None, fname:str=None, show=True):
+    #     p = data if results is None else data | results['popt']
+    #     p = self.forward.map_data(p) | self.map_data(p)
+    #     self._preproc(p)
+    #     pred = self.forward(p)
+
+    def plot(self, data: dict, result:dict=None, xlim:list=None, fname:str=None, show=True):
+        if result is None:
+            result = self.__call__(data)
         p = self.map_data(data | result['popt'])
+
         self._preproc(p)
         pred = self.forward(p)
 

@@ -283,18 +283,18 @@ from dcmri.inverse.functions import (
 )
 
 # End-to-end forward Models
-from dcmri.forward.aorta import ForwardAorta
-from dcmri.forward.liver import ForwardLiver
-from dcmri.forward.kidney import ForwardKidney
-from dcmri.forward.cort_med import ForwardCortMed
-from dcmri.forward.tissue_x import ForwardTissueX
-from dcmri.forward.tissue_ls import ForwardTissueLS
-from dcmri.forward.aorta_liver import ForwardAortaLiver
-from dcmri.forward.aorta_liver_drug import ForwardAortaLiverDrug
-from dcmri.forward.aorta_liver_split import ForwardAortaLiverSplit
-from dcmri.forward.aorta_liver_split_drug import ForwardAortaLiverSplitDrug
-from dcmri.forward.aorta_portal_liver import ForwardAortaPortalLiver
-from dcmri.forward.aorta_kidneys import ForwardAortaKidneys
+from dcmri.forward.aorta import Aorta
+from dcmri.forward.liver import Liver
+from dcmri.forward.kidney import Kidney
+from dcmri.forward.cort_med import CortMed
+from dcmri.forward.tissue_x import TissueX
+from dcmri.forward.tissue_ls import TissueLS
+from dcmri.forward.aorta_liver import AortaLiver
+from dcmri.forward.aorta_liver_drug import AortaLiverDrug
+from dcmri.forward.aorta_liver_split import AortaLiverSplit
+from dcmri.forward.aorta_liver_split_drug import AortaLiverSplitDrug
+from dcmri.forward.aorta_portal_liver import AortaPortalLiver
+from dcmri.forward.aorta_kidneys import AortaKidneys
 
 # Inverse models
 from dcmri.inverse.aorta import InverseAorta

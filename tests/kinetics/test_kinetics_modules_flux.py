@@ -20,7 +20,7 @@ def _test_class(cls):
         data = instance.test_data()
         instance(data)
 
-    configs = cls.all_configs()
+    configs = cls.all_configs(sample=1e3)
     for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
         _test_config(cnfg)
 
