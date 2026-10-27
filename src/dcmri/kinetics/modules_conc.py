@@ -242,18 +242,20 @@ class ConcAortaLiver(Module):
         return outputs
 
     def inputs(self):
-        inputs = {'fCO_li', 'CO', 'H', 'GFR', 'vol_li', 'vol_ao'}
+        #inputs = {'fCO_li', 'CO', 'H', 'GFR', 'vol_li', 'vol_ao'}
+        inputs = {'fCO_li', 'CO', 'H', 'vol_li', 'vol_ao'}
         inputs |= self._flux_aorta.mapped_inputs()
         inputs |= self._conc_liver.mapped_inputs()
-        inputs -= {'vr_li', 'vr_or', 'T_e_li', 'F_p_li', 'ci_li'}
+        #inputs -= {'vr_li', 'vr_or', 'T_e_li', 'F_p_li', 'ci_li'}
+        inputs -= {'vr_li', 'T_e_li', 'F_p_li', 'ci_li'}
         return inputs
 
     def __call__(self, data: dict=None):
         p = self.map_data(data)
 
         # Kidney extraction fraction       
-        PF = (1 - p['fCO_li']) * p[f'CO'] * (1 - p['H'])
-        Ek = p['GFR'] / (p['GFR'] + PF)
+        #PF = (1 - p['fCO_li']) * p[f'CO'] * (1 - p['H']) 
+        #Ek = p['GFR'] / (p['GFR'] + PF)
 
         # Liver extraction fraction
         Fp = p['fCO_li'] * p['CO'] * (1 - p['H']) / p['vol_li']
@@ -262,7 +264,7 @@ class ConcAortaLiver(Module):
         # Compute aorta flux
         p |= {
             'vr_li': p['fCO_li'] * (1 - El),
-            'vr_or': (1 - p['fCO_li']) * (1 - Ek),
+            #'vr_or': (1 - p['fCO_li']) * (1 - Ek),
             'T_e_li': p['v_e_li'] / Fp,
         }
         p |= self._flux_aorta(p)

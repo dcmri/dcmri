@@ -6,7 +6,7 @@ from dcmri import AortaLiverSplit
 from dcmri.core.module import InvalidConfig
 
 
-def test_aorta_liver_dynamic(cls=AortaLiverSplit):
+def test_aorta_liver_split(cls=AortaLiverSplit):
     def _test_config(cnfg):
         # if cnfg['sequence'] != '3D-SPGR-SS':
         #     return
@@ -19,16 +19,16 @@ def test_aorta_liver_dynamic(cls=AortaLiverSplit):
         instance(data)
 
     cls.print_configs()
-    cls.print_all_io(verbose=1, simple=False, sample=1e3, seed=51)
+    cls.print_all_io(verbose=1, simple=False, sample=1e4, seed=51)
 
-    configs = cls.all_configs(sample=1e3, seed=51)
+    configs = cls.all_configs(sample=1e4, seed=51)
     for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
         _test_config(cnfg)
 
     print(f'Successfully covered {len(configs)} {cls.__name__} configurations!')
 
 
-def test_aorta_liver_dynamic_instance():
+def test_aorta_liver_split_instance():
     # model = AortaLiverSplit()
     # print(model.config)
     # return
@@ -51,8 +51,7 @@ def test_aorta_liver_dynamic_instance():
     plt.show()
 
 if __name__ == '__main__':
-    # test_aorta_liver_dynamic_instance()
-    test_aorta_liver_dynamic()
+    # test_aorta_liver_split_instance()
+    test_aorta_liver_split()
     
-
     print('All AortaLiverSplit model coverage tests passed!!')

@@ -149,7 +149,7 @@ class InverseCortMed(Module):
 
     def _pfree(self):
         inputs = self.forward.mapped_inputs()
-        pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
+        pfree = {p for p in inputs if get_quantity(p)['group']=='physiological'}
         if not self.config['calibrate']:
             pfree |= {f'S0_{roi}' for roi in ROIS}
         return {p: get_quantity(p)['bounds'] for p in pfree}

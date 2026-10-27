@@ -92,7 +92,7 @@ class InverseAortaLiver(Module):
 
     def _pfree(self):
         inputs = self.forward.mapped_inputs()
-        pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
+        pfree = {p for p in inputs if get_quantity(p)['group']=='physiological'}
         pfree |= {'BAT'}
         if not self.config['calibrate']:
             pfree |= {'S0_ao', 'S0_li'}
@@ -100,7 +100,7 @@ class InverseAortaLiver(Module):
         return {p: get_quantity(p)['bounds'] for p in pfree}
     
     def _pder(self, data:dict):
-        p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['phys', 'body']}
+        p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['physiological', 'whole-body']}
         p = dpars_liver(p, kinetics=self.config['liver'])
         return p
 
@@ -120,8 +120,6 @@ class InverseAortaLiver(Module):
 
         # Compute inverse
         signal = tuple([p[f'S_{roi}'].reshape(-1) for roi in ROIS])
-
-        #output = train_bat(self._predict, time, signal, p, p['pfree'], **kwargs)
         output = train_brute(self._predict, signal, p, p['pfree'], **kwargs)
         output['pars'] = self._pder(p | output['popt'])
 

@@ -16,7 +16,7 @@ MOCK_QUANTITIES = {
         'init': 1.2,
         'bounds': [0.0, 10.0],
         'type': 'relaxation',
-        'group': 'EM',
+        'group': 'electromagnetic',
     },
     'S0': {
         'name': 'Baseline signal intensity',
@@ -24,7 +24,7 @@ MOCK_QUANTITIES = {
         'init': 500.0,
         'bounds': [0.0, np.inf],
         'type': 'signal',
-        'group': 'EM',
+        'group': 'electromagnetic',
     },
     'TR': {
         'name': 'Repetition time',
@@ -32,7 +32,7 @@ MOCK_QUANTITIES = {
         'init': 0.005,
         'bounds': [0.0, 1.0],
         'type': 'sequence',
-        'group': 'EM',
+        'group': 'electromagnetic',
     }
 }
 
@@ -85,7 +85,7 @@ def test_export_params():
 
     # Case 1: Standard export containing values and uncertainties
     exported = tools.export_params(values)
-    exported = tools.export_params(values, group='EM')
+    exported = tools.export_params(values, group='electromagnetic')
     exported = tools.export_params(values, sdev=sdevs, lexicon=MOCK_QUANTITIES)
     exported = tools.export_params(values, sdev=sdevs)
     exported = tools.export_params(values, num_only=True)
@@ -143,7 +143,7 @@ def test_print_params():
     # Execute printing function
     tools.print_params(values, sdev=sdevs, lexicon=MOCK_QUANTITIES)
     tools.print_params(values, sdev=sdevs)
-    tools.print_params(values, sdev=sdevs, group='EM')
+    tools.print_params(values, sdev=sdevs, group='electromagnetic')
 
 
 def test_select_params():

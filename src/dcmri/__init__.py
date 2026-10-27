@@ -44,8 +44,10 @@ from dcmri.core.tools import (
     select_params,
     print_quantities,
     parse_varname,
+    build_varname,
     get_quantity,
     unit,
+    group,
 )
 
 from dcmri.kinetics.modules_conc import (

@@ -1,190 +1,200 @@
-# +--------------------------------------------------------------------------------------------------+
-# |                       InverseAortaLiverSplitDrug - all configs (n = 20)                        |
-# +-------------------+-----------------------------------------------------------------+------------+
-# | Key               | Values                                                          | Default    |
-# +-------------------+-----------------------------------------------------------------+------------+
-# | sequence          | 2D-DE-EPI, 2D-GE-EPI, 2D-SE-EPI, 2D-SPGR, 2D-SPGR-SS,           | 3D-SPGR-SS |
-# |                   | 2D-SR-SPGR, 3D-DE-EPI, 3D-GE-EPI, 3D-IR-SPGR, 3D-IR-SPGR-SS,    |            |
-# |                   | 3D-IR-SS, 3D-PR-SPGR, 3D-PR-SPGR-SS, 3D-PR-SS, 3D-SE-EPI,       |            |
-# |                   | 3D-SPGR, 3D-SPGR-SS, 3D-SR-SPGR, 3D-SR-SPGR-SS, 3D-SR-SS,       |            |
-# |                   | ZTE-3D-IR-SPGR-SS, ZTE-3D-SPGR-SS                               |            |
-# | tof_corr          | False, True                                                     | False      |
-# | inflow            | none, pool                                                      | none       |
-# | magnitude         | False, True                                                     | True       |
-# | trigger           | False, True                                                     | False      |
-# | calibrate         | False, True                                                     | False      |
-# | water_exchange    | F, N, R                                                         | F          |
-# | baseline          | literature, measured                                            | literature |
-# | bolus             | double, dual, single                                            | single     |
-# | heartlung         | chain, comp, pfcomp                                             | pfcomp     |
-# | organs            | 2cxm, comp                                                      | comp       |
-# | lagut             | comp, pass, plucom                                              | comp       |
-# | liver             | 1I-EC, 1I-EC-HF, 1I-IC, 1I-IC-HF                                | 1I-EC      |
-# | non_stationary    | E, None, U, UE                                                  | None       |
-# | t1_relaxation_ao  | None, lin                                                       | lin        |
-# | t1_relaxation_li  | None, lin                                                       | lin        |
-# | t2_relaxation_ao  | None, lin                                                       | None       |
-# | t2_relaxation_li  | None, lin                                                       | None       |
-# | t2s_relaxation_ao | None, lin, quad                                                 | lin        |
-# | t2s_relaxation_li | None, lin, quad                                                 | lin        |
-# +--------------------------------------------------------------------------------------------------+
-
 # +---------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-# |                                                            InverseAortaLiverSplitDrug - all inputs (n = 133)                                                            |
-# +----------------+------------+--------------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
-# | Key            | Unit       | Name                                                                     | Group           | Init       | Bounds        | DICOM | OSIPI     |
-# +----------------+------------+--------------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
-# | BAT_1          | sec        | 1st bolus arrival time                                                   | Indicator       | 30         | (-30, 30)     |       |           |
-# | BAT_2          | sec        | 2nd bolus arrival time                                                   | Indicator       | 30         | (-30, 30)     |       |           |
-# | BAT_3          | sec        | 3rd bolus arrival time                                                   | Indicator       | 30         | (-30, 30)     |       |           |
-# | BAT_4          | sec        | 4th bolus arrival time                                                   | Indicator       | 30         | (-30, 30)     |       |           |
-# | agent          |            | contrast agent generic name                                              | Indicator       | gadoterate |               |       |           |
-# | bdel           | sec        | delay in a double injection                                              | Indicator       | 30         | (-30, 30)     |       |           |
-# | dose_1         | mL/kg      | 1st contrast agent dose                                                  | Indicator       | 0.1        | (0, 0.2)      |       |           |
-# | dose_2         | mL/kg      | 2nd contrast agent dose                                                  | Indicator       | 0.1        | (0, 0.2)      |       |           |
-# | dose_3         | mL/kg      | 3rd contrast agent dose                                                  | Indicator       | 0.1        | (0, 0.2)      |       |           |
-# | dose_4         | mL/kg      | 4th contrast agent dose                                                  | Indicator       | 0.1        | (0, 0.2)      |       |           |
-# | rate_1         | mL/s       | 1st injection rate                                                       | Indicator       | 1          | (0, 10)       |       |           |
-# | rate_2         | mL/s       | 2nd injection rate                                                       | Indicator       | 1          | (0, 10)       |       |           |
-# | rate_3         | mL/s       | 3rd injection rate                                                       | Indicator       | 1          | (0, 10)       |       |           |
-# | rate_4         | mL/s       | 4th injection rate                                                       | Indicator       | 1          | (0, 10)       |       |           |
-# +----------------+------------+--------------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
-# | NSR_1_ao       |            | 1st noise-to-signal ratio in the aorta                                   | Signal          | 0.0        | (0, 100000.0) |       |           |
-# | NSR_1_li       |            | 1st noise-to-signal ratio in the liver                                   | Signal          | 0.0        | (0, 100000.0) |       |           |
-# | NSR_2_ao       |            | 2nd noise-to-signal ratio in the aorta                                   | Signal          | 0.0        | (0, 100000.0) |       |           |
-# | NSR_2_li       |            | 2nd noise-to-signal ratio in the liver                                   | Signal          | 0.0        | (0, 100000.0) |       |           |
-# | NSR_3_ao       |            | 3rd noise-to-signal ratio in the aorta                                   | Signal          | 0.0        | (0, 100000.0) |       |           |
-# | NSR_3_li       |            | 3rd noise-to-signal ratio in the liver                                   | Signal          | 0.0        | (0, 100000.0) |       |           |
-# | NSR_4_ao       |            | 4th noise-to-signal ratio in the aorta                                   | Signal          | 0.0        | (0, 100000.0) |       |           |
-# | NSR_4_li       |            | 4th noise-to-signal ratio in the liver                                   | Signal          | 0.0        | (0, 100000.0) |       |           |
-# | S0_1_ao        | a.u.       | 1st signal scaling factor in the aorta                                   | Signal          | 1.0        | (0, 5)        |       | Q.MS1.010 |
-# | S0_1_li        | a.u.       | 1st signal scaling factor in the liver                                   | Signal          | 1.0        | (0, 5)        |       | Q.MS1.010 |
-# | S0_2_ao        | a.u.       | 2nd signal scaling factor in the aorta                                   | Signal          | 1.0        | (0, 5)        |       | Q.MS1.010 |
-# | S0_2_li        | a.u.       | 2nd signal scaling factor in the liver                                   | Signal          | 1.0        | (0, 5)        |       | Q.MS1.010 |
-# | S0_3_ao        | a.u.       | 3rd signal scaling factor in the aorta                                   | Signal          | 1.0        | (0, 5)        |       | Q.MS1.010 |
-# | S0_3_li        | a.u.       | 3rd signal scaling factor in the liver                                   | Signal          | 1.0        | (0, 5)        |       | Q.MS1.010 |
-# | S0_4_ao        | a.u.       | 4th signal scaling factor in the aorta                                   | Signal          | 1.0        | (0, 5)        |       | Q.MS1.010 |
-# | S0_4_li        | a.u.       | 4th signal scaling factor in the liver                                   | Signal          | 1.0        | (0, 5)        |       | Q.MS1.010 |
-# | S_1_ao         | a.u.       | 1st signal in the aorta                                                  | Signal          | 1.0        | (0, 5)        |       |           |
-# | S_1_li         | a.u.       | 1st signal in the liver                                                  | Signal          | 1.0        | (0, 5)        |       |           |
-# | S_2_ao         | a.u.       | 2nd signal in the aorta                                                  | Signal          | 1.0        | (0, 5)        |       |           |
-# | S_2_li         | a.u.       | 2nd signal in the liver                                                  | Signal          | 1.0        | (0, 5)        |       |           |
-# | S_3_ao         | a.u.       | 3rd signal in the aorta                                                  | Signal          | 1.0        | (0, 5)        |       |           |
-# | S_3_li         | a.u.       | 3rd signal in the liver                                                  | Signal          | 1.0        | (0, 5)        |       |           |
-# | S_4_ao         | a.u.       | 4th signal in the aorta                                                  | Signal          | 1.0        | (0, 5)        |       |           |
-# | S_4_li         | a.u.       | 4th signal in the liver                                                  | Signal          | 1.0        | (0, 5)        |       |           |
-# | iStrig_1_ao    |            | 1st indices of the signal trigger in the aorta                           | Signal          | None       |               |       |           |
-# | iStrig_1_li    |            | 1st indices of the signal trigger in the liver                           | Signal          | None       |               |       |           |
-# | iStrig_2_ao    |            | 2nd indices of the signal trigger in the aorta                           | Signal          | None       |               |       |           |
-# | iStrig_2_li    |            | 2nd indices of the signal trigger in the liver                           | Signal          | None       |               |       |           |
-# | iStrig_3_ao    |            | 3rd indices of the signal trigger in the aorta                           | Signal          | None       |               |       |           |
-# | iStrig_3_li    |            | 3rd indices of the signal trigger in the liver                           | Signal          | None       |               |       |           |
-# | iStrig_4_ao    |            | 4th indices of the signal trigger in the aorta                           | Signal          | None       |               |       |           |
-# | iStrig_4_li    |            | 4th indices of the signal trigger in the liver                           | Signal          | None       |               |       |           |
-# | nb             | a.u.       | number of baseline time points                                           | Signal          | 1          |               |       |           |
-# | pfree          | a.u.       | set of free parameters                                                   | Signal          | 1          |               |       |           |
-# | tS_1_ao        | sec        | 1st signal time points in the aorta                                      | Signal          | 0.0        |               |       |           |
-# | tS_1_li        | sec        | 1st signal time points in the liver                                      | Signal          | 0.0        |               |       |           |
-# | tS_2_ao        | sec        | 2nd signal time points in the aorta                                      | Signal          | 0.0        |               |       |           |
-# | tS_2_li        | sec        | 2nd signal time points in the liver                                      | Signal          | 0.0        |               |       |           |
-# | tS_3_ao        | sec        | 3rd signal time points in the aorta                                      | Signal          | 0.0        |               |       |           |
-# | tS_3_li        | sec        | 3rd signal time points in the liver                                      | Signal          | 0.0        |               |       |           |
-# | tS_4_ao        | sec        | 4th signal time points in the aorta                                      | Signal          | 0.0        |               |       |           |
-# | tS_4_li        | sec        | 4th signal time points in the liver                                      | Signal          | 0.0        |               |       |           |
-# +----------------+------------+--------------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
-# | FA             | deg        | flip angle                                                               | Sequence        | 15         | (0, 180)      |       |           |
-# | Nk0            |            | number of acquired phase lines to the center of k-space                  | Sequence        | 64         | (0, 1000)     |       |           |
-# | Nph            |            | number of acquired phase lines in k-space                                | Sequence        | 128        | (0, 1000)     |       |           |
-# | Nz             |            | number of slices in a multi-slice acquisition                            | Sequence        | 64         | (0, 1000)     |       |           |
-# | PA             | deg        | preparation Pulse Flip Angle                                             | Sequence        | 90         | (0, 180)      |       |           |
-# | SA             | deg        | saturation Slab Flip Angle                                               | Sequence        | 0          | (0, 180)      |       |           |
-# | TA             | sec        | acquisition time                                                         | Sequence        | 2.0        | (0, 30)       |       |           |
-# | TD             | sec        | prepulse delay                                                           | Sequence        | 0.05       | (0, 1)        |       |           |
-# | TE             | sec        | echo time                                                                | Sequence        | 0.001      | (0, 10)       |       |           |
-# | TE1            | sec        | first echo time in a multi-echo sequence                                 | Sequence        | 0.001      | (0, 1)        |       |           |
-# | TE2            | sec        | second echo time in a multi-echo sequence                                | Sequence        | 0.005      | (0, 1)        |       |           |
-# | TP             | sec        | preparation delay                                                        | Sequence        | 0.05       | (0, 1)        |       |           |
-# | TR             | sec        | repetition time                                                          | Sequence        | 0.005      | (0, 1)        |       |           |
-# | field_strength | T          | magnetic field strength                                                  | Sequence        | 3          | (0, 20)       |       |           |
-# | iz             |            | slice number in a multi-slice acquisition                                | Sequence        | 0          | (0, 1000)     |       |           |
-# | tacq_1         | sec        | 1st acquisition duration                                                 | Sequence        | 240        | (0, 10000.0)  |       |           |
-# | tacq_2         | sec        | 2nd acquisition duration                                                 | Sequence        | 240        | (0, 10000.0)  |       |           |
-# | tacq_3         | sec        | 3rd acquisition duration                                                 | Sequence        | 240        | (0, 10000.0)  |       |           |
-# | tacq_4         | sec        | 4th acquisition duration                                                 | Sequence        | 240        | (0, 10000.0)  |       |           |
-# | tstart_1       | sec        | 1st start of the acquisition                                             | Sequence        | 0          | (0, 10000.0)  |       |           |
-# | tstart_2       | sec        | 2nd start of the acquisition                                             | Sequence        | 0          | (0, 10000.0)  |       |           |
-# | tstart_3       | sec        | 3rd start of the acquisition                                             | Sequence        | 0          | (0, 10000.0)  |       |           |
-# | tstart_4       | sec        | 4th start of the acquisition                                             | Sequence        | 0          | (0, 10000.0)  |       |           |
-# +----------------+------------+--------------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
-# | B1corr_1_ao    |            | 1st B1-correction factor in the aorta                                    | Electromagnetic | 1          | (0, 5)        |       |           |
-# | B1corr_1_li    |            | 1st B1-correction factor in the liver                                    | Electromagnetic | 1          | (0, 5)        |       |           |
-# | B1corr_2_ao    |            | 2nd B1-correction factor in the aorta                                    | Electromagnetic | 1          | (0, 5)        |       |           |
-# | B1corr_2_li    |            | 2nd B1-correction factor in the liver                                    | Electromagnetic | 1          | (0, 5)        |       |           |
-# | B1corr_3_ao    |            | 3rd B1-correction factor in the aorta                                    | Electromagnetic | 1          | (0, 5)        |       |           |
-# | B1corr_3_li    |            | 3rd B1-correction factor in the liver                                    | Electromagnetic | 1          | (0, 5)        |       |           |
-# | B1corr_4_ao    |            | 4th B1-correction factor in the aorta                                    | Electromagnetic | 1          | (0, 5)        |       |           |
-# | B1corr_4_li    |            | 4th B1-correction factor in the liver                                    | Electromagnetic | 1          | (0, 5)        |       |           |
-# | R1_b           | Hz         | tissue R1 in the blood                                                   | Electromagnetic | 0.65       | (0, 5)        |       |           |
-# | R1_e           | Hz         | tissue R1 in extracellular space                                         | Electromagnetic | 0.65       | (0, 5)        |       |           |
-# | R1_h           | Hz         | tissue R1 in hepatocytes                                                 | Electromagnetic | 0.65       | (0, 5)        |       |           |
-# | me             | A cm2/mL   | equilibrium magnetization                                                | Electromagnetic | 1          | (0, 5)        |       |           |
-# +----------------+------------+--------------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
-# | CO             | mL/sec     | cardiac output                                                           | Physiological   | 100        | (0, 500)      |       |           |
-# | D_hl           |            | transit time dispersion in the heart and Lungs                           | Physiological   | 0.2        | (0.01, 0.99)  |       |           |
-# | E_1_li         |            | 1st extraction fraction in the liver                                     | Physiological   | 0.1        | (0.0, 1.0)    |       |           |
-# | E_2_li         |            | 2nd extraction fraction in the liver                                     | Physiological   | 0.1        | (0.0, 1.0)    |       |           |
-# | E_or           |            | extraction fraction in the organs                                        | Physiological   | 0.15       | (0, 0.5)      |       |           |
-# | Ef_1_li        |            | 1st final extraction fraction in the liver                               | Physiological   | 0.1        | (0.0, 1.0)    |       |           |
-# | Ef_2_li        |            | 2nd final extraction fraction in the liver                               | Physiological   | 0.1        | (0.0, 1.0)    |       |           |
-# | Ei_1_li        |            | 1st initial extraction fraction in the liver                             | Physiological   | 0.1        | (0.0, 1.0)    |       |           |
-# | Ei_2_li        |            | 2nd initial extraction fraction in the liver                             | Physiological   | 0.1        | (0.0, 1.0)    |       |           |
-# | GFR            | mL/sec     | glomerular filtration rate                                               | Physiological   | 2          | (0, 10)       |       |           |
-# | H              |            | hematocrit                                                               | Physiological   | 0.45       | (0, 1)        |       |           |
-# | PSw            | mL/sec/cm3 | water permeability-surface area product                                  | Physiological   | 0.03       | (0, 100)      |       |           |
-# | TF             | sec        | inflow time                                                              | Physiological   | 0.5        | (0, 10)       |       |           |
-# | T_1_h          | sec        | 1st mean transit time in hepatocytes                                     | Physiological   | 1800       | (600, 36000)  |       |           |
-# | T_2_h          | sec        | 2nd mean transit time in hepatocytes                                     | Physiological   | 1800       | (600, 36000)  |       |           |
-# | T_b_or         | sec        | mean transit time in blood of the organs                                 | Physiological   | 20         | (0, 60)       |       |           |
-# | T_e_or         | sec        | mean transit time in extracellular space of the organs                   | Physiological   | 120        | (0, 800)      |       |           |
-# | T_gu           | sec        | mean transit time in the gut                                             | Physiological   | 30         | (0.1, 60)     |       |           |
-# | T_hl           | sec        | mean transit time in the heart and Lungs                                 | Physiological   | 10         | (0, 30)       |       |           |
-# | T_la           | sec        | mean transit time in the liver artery                                    | Physiological   | 30         | (0.1, 60)     |       |           |
-# | Tf_1_h         | sec        | 1st final mean transit time in hepatocytes                               | Physiological   | 1800       | (600, 36000)  |       |           |
-# | Tf_2_h         | sec        | 2nd final mean transit time in hepatocytes                               | Physiological   | 1800       | (600, 36000)  |       |           |
-# | Ti_1_h         | sec        | 1st initial mean transit time in hepatocytes                             | Physiological   | 1800       | (600, 36000)  |       |           |
-# | Ti_2_h         | sec        | 2nd initial mean transit time in hepatocytes                             | Physiological   | 1800       | (600, 36000)  |       |           |
-# | fCO_li         |            | fraction of the cardiac output in the liver                              | Physiological   | 0.1        | (0, 0.5)      |       |           |
-# | ffa            |            | arterial flow fraction                                                   | Physiological   | 0.2        | (0, 1)        |       |           |
-# | k_1_e2h        | mL/sec/cm3 | 1st tissue transfer rate from extracellular space to hepatocytes         | Physiological   | 0.003      | (0.0, 0.1)    |       |           |
-# | k_2_e2h        | mL/sec/cm3 | 2nd tissue transfer rate from extracellular space to hepatocytes         | Physiological   | 0.003      | (0.0, 0.1)    |       |           |
-# | kf_1_e2h       | mL/sec/cm3 | 1st final tissue transfer rate from extracellular space to hepatocytes   | Physiological   | 0.003      | (0.0, 0.1)    |       |           |
-# | kf_2_e2h       | mL/sec/cm3 | 2nd final tissue transfer rate from extracellular space to hepatocytes   | Physiological   | 0.003      | (0.0, 0.1)    |       |           |
-# | ki_1_e2h       | mL/sec/cm3 | 1st initial tissue transfer rate from extracellular space to hepatocytes | Physiological   | 0.003      | (0.0, 0.1)    |       |           |
-# | ki_2_e2h       | mL/sec/cm3 | 2nd initial tissue transfer rate from extracellular space to hepatocytes | Physiological   | 0.003      | (0.0, 0.1)    |       |           |
-# | v_e_li         | mL/cm3     | volume fraction in extracellular space of the liver                      | Physiological   | 0.3        | (0.01, 0.6)   |       |           |
-# | v_h            | mL/cm3     | volume fraction in hepatocytes                                           | Physiological   | 1          | (0, 1)        |       |           |
-# | v_li           | mL/cm3     | volume fraction in the liver                                             | Physiological   | 1          | (0, 1)        |       |           |
-# +----------------+------------+--------------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
-# | dose_tolerance |            | dose tolerance                                                           | Hyperparameters | 0.1        |               |       |           |
-# | dt             | sec        | pseudo-continuous time step                                              | Hyperparameters | 0.5        |               |       |           |
-# +----------------+------------+--------------------------------------------------------------------------+-----------------+------------+---------------+-------+-----------+
-# | vol_1_ao       | cm3        | 1st ROI volume in the aorta                                              | Whole-body      | 10         | (0.0, 1000)   |       |           |
-# | vol_1_li       | cm3        | 1st ROI volume in the liver                                              | Whole-body      | 1000       | (0, 10000)    |       |           |
-# | vol_2_ao       | cm3        | 2nd ROI volume in the aorta                                              | Whole-body      | 10         | (0.0, 1000)   |       |           |
-# | vol_2_li       | cm3        | 2nd ROI volume in the liver                                              | Whole-body      | 1000       | (0, 10000)    |       |           |
-# | weight         | kg         | body weight                                                              | Whole-body      | 70         | (0, 300)      |       |           |
+# |                                                             InverseAortaLiverSplitDrug - all inputs (n = 172)                                                             |
+# +----------------+------------+------------+--------------------------------------------------------------------------+-----------------+---------------+-------+-----------+
+# | Key            | Value      | Unit       | Name                                                                     | Group           | Bounds        | DICOM | OSIPI     |
+# +----------------+------------+------------+--------------------------------------------------------------------------+-----------------+---------------+-------+-----------+
+# | B1corr_1_ao    | 1          |            | 1st B1-correction factor in the aorta                                    | electromagnetic | (0, 5)        |       |           |
+# | B1corr_1_li    | 1          |            | 1st B1-correction factor in the liver                                    | electromagnetic | (0, 5)        |       |           |
+# | B1corr_2_ao    | 1          |            | 2nd B1-correction factor in the aorta                                    | electromagnetic | (0, 5)        |       |           |
+# | B1corr_2_li    | 1          |            | 2nd B1-correction factor in the liver                                    | electromagnetic | (0, 5)        |       |           |
+# | B1corr_3_ao    | 1          |            | 3rd B1-correction factor in the aorta                                    | electromagnetic | (0, 5)        |       |           |
+# | B1corr_3_li    | 1          |            | 3rd B1-correction factor in the liver                                    | electromagnetic | (0, 5)        |       |           |
+# | B1corr_4_ao    | 1          |            | 4th B1-correction factor in the aorta                                    | electromagnetic | (0, 5)        |       |           |
+# | B1corr_4_li    | 1          |            | 4th B1-correction factor in the liver                                    | electromagnetic | (0, 5)        |       |           |
+# | me             | 1          | A cm2/mL   | equilibrium magnetization                                                | electromagnetic | (0, 5)        |       |           |
+# | R1_b           | 0.65       | Hz         | tissue R1 in the blood                                                   | electromagnetic | (0, 5)        |       |           |
+# | R1_e           | 0.65       | Hz         | tissue R1 in extracellular space                                         | electromagnetic | (0, 5)        |       |           |
+# | R1_h           | 0.65       | Hz         | tissue R1 in hepatocytes                                                 | electromagnetic | (0, 5)        |       |           |
+# | R1_li          | 0.65       | Hz         | tissue R1 in the liver                                                   | electromagnetic | (0, 5)        |       |           |
+# +----------------+------------+------------+--------------------------------------------------------------------------+-----------------+---------------+-------+-----------+
+# | dose_tolerance | 0.1        |            | dose tolerance                                                           | hyperparameters |               |       |           |
+# | dt             | 0.5        | sec        | pseudo-continuous time step                                              | hyperparameters |               |       |           |
+# +----------------+------------+------------+--------------------------------------------------------------------------+-----------------+---------------+-------+-----------+
+# | agent          | gadoterate |            | contrast agent generic name                                              | indicator       |               |       |           |
+# | BAT_1          | 30         | sec        | 1st bolus arrival time                                                   | indicator       | (-30, 30)     |       |           |
+# | BAT_2          | 30         | sec        | 2nd bolus arrival time                                                   | indicator       | (-30, 30)     |       |           |
+# | BAT_3          | 30         | sec        | 3rd bolus arrival time                                                   | indicator       | (-30, 30)     |       |           |
+# | BAT_4          | 30         | sec        | 4th bolus arrival time                                                   | indicator       | (-30, 30)     |       |           |
+# | bdel           | 30         | sec        | delay in a double injection                                              | indicator       | (-30, 30)     |       |           |
+# | dose_1         | 0.1        | mL/kg      | 1st contrast agent dose                                                  | indicator       | (0, 0.2)      |       |           |
+# | dose_2         | 0.1        | mL/kg      | 2nd contrast agent dose                                                  | indicator       | (0, 0.2)      |       |           |
+# | dose_3         | 0.1        | mL/kg      | 3rd contrast agent dose                                                  | indicator       | (0, 0.2)      |       |           |
+# | dose_4         | 0.1        | mL/kg      | 4th contrast agent dose                                                  | indicator       | (0, 0.2)      |       |           |
+# | rate_1         | 1          | mL/sec     | 1st injection rate                                                       | indicator       | (0, 10)       |       |           |
+# | rate_2         | 1          | mL/sec     | 2nd injection rate                                                       | indicator       | (0, 10)       |       |           |
+# | rate_3         | 1          | mL/sec     | 3rd injection rate                                                       | indicator       | (0, 10)       |       |           |
+# | rate_4         | 1          | mL/sec     | 4th injection rate                                                       | indicator       | (0, 10)       |       |           |
+# +----------------+------------+------------+--------------------------------------------------------------------------+-----------------+---------------+-------+-----------+
+# | pfree          | None       | a.u.       | set of free parameters                                                   | inverse problem |               |       |           |
+# +----------------+------------+------------+--------------------------------------------------------------------------+-----------------+---------------+-------+-----------+
+# | CO             | 100        | mL/sec     | cardiac output                                                           | physiological   | (0, 500)      |       |           |
+# | D_hl           | 0.2        |            | transit time dispersion in the heart and Lungs                           | physiological   | (0.01, 0.99)  |       |           |
+# | E_1_li         | 0.1        |            | 1st extraction fraction in the liver                                     | physiological   | (0.0, 1.0)    |       |           |
+# | E_2_li         | 0.1        |            | 2nd extraction fraction in the liver                                     | physiological   | (0.0, 1.0)    |       |           |
+# | E_or           | 0.15       |            | extraction fraction in the organs                                        | physiological   | (0, 0.5)      |       |           |
+# | Ef_1_li        | 0.1        |            | 1st final extraction fraction in the liver                               | physiological   | (0.0, 1.0)    |       |           |
+# | Ef_2_li        | 0.1        |            | 2nd final extraction fraction in the liver                               | physiological   | (0.0, 1.0)    |       |           |
+# | Ei_1_li        | 0.1        |            | 1st initial extraction fraction in the liver                             | physiological   | (0.0, 1.0)    |       |           |
+# | Ei_2_li        | 0.1        |            | 2nd initial extraction fraction in the liver                             | physiological   | (0.0, 1.0)    |       |           |
+# | fCO_li         | 0.1        |            | fraction of the cardiac output in the liver                              | physiological   | (0, 0.5)      |       |           |
+# | ffa            | 0.2        |            | arterial flow fraction                                                   | physiological   | (0, 1)        |       |           |
+# | H              | 0.45       |            | hematocrit                                                               | physiological   | (0, 1)        |       |           |
+# | k_1_e2h        | 0.0025     | mL/sec/cm3 | 1st tissue transfer rate from extracellular space to hepatocytes         | physiological   | (0, 0.006)    |       |           |
+# | k_2_e2h        | 0.0025     | mL/sec/cm3 | 2nd tissue transfer rate from extracellular space to hepatocytes         | physiological   | (0, 0.006)    |       |           |
+# | kf_1_e2h       | 0.0025     | mL/sec/cm3 | 1st final tissue transfer rate from extracellular space to hepatocytes   | physiological   | (0, 0.006)    |       |           |
+# | kf_2_e2h       | 0.0025     | mL/sec/cm3 | 2nd final tissue transfer rate from extracellular space to hepatocytes   | physiological   | (0, 0.006)    |       |           |
+# | ki_1_e2h       | 0.0025     | mL/sec/cm3 | 1st initial tissue transfer rate from extracellular space to hepatocytes | physiological   | (0, 0.006)    |       |           |
+# | ki_2_e2h       | 0.0025     | mL/sec/cm3 | 2nd initial tissue transfer rate from extracellular space to hepatocytes | physiological   | (0, 0.006)    |       |           |
+# | PSw            | 0.03       | mL/sec/cm3 | water permeability-surface area product                                  | physiological   | (0, 100)      |       |           |
+# | T_1_h          | 14400      | sec        | 1st mean transit time in hepatocytes                                     | physiological   | (600, 21600)  |       |           |
+# | T_2_h          | 14400      | sec        | 2nd mean transit time in hepatocytes                                     | physiological   | (600, 21600)  |       |           |
+# | T_b_or         | 20         | sec        | mean transit time in blood of the organs                                 | physiological   | (0, 60)       |       |           |
+# | T_e_or         | 120        | sec        | mean transit time in extracellular space of the organs                   | physiological   | (0, 800)      |       |           |
+# | T_gu           | 30         | sec        | mean transit time in the gut                                             | physiological   | (0.1, 60)     |       |           |
+# | T_hl           | 10         | sec        | mean transit time in the heart and Lungs                                 | physiological   | (0, 30)       |       |           |
+# | T_la           | 30         | sec        | mean transit time in the liver artery                                    | physiological   | (0.0, 60)     |       |           |
+# | TF             | 0.25       | sec        | inflow time                                                              | physiological   | (0, 1)        |       |           |
+# | Tf_1_h         | 14400      | sec        | 1st final mean transit time in hepatocytes                               | physiological   | (600, 21600)  |       |           |
+# | Tf_2_h         | 14400      | sec        | 2nd final mean transit time in hepatocytes                               | physiological   | (600, 21600)  |       |           |
+# | Ti_1_h         | 14400      | sec        | 1st initial mean transit time in hepatocytes                             | physiological   | (600, 21600)  |       |           |
+# | Ti_2_h         | 14400      | sec        | 2nd initial mean transit time in hepatocytes                             | physiological   | (600, 21600)  |       |           |
+# | v_e            | 0.3        | mL/cm3     | volume fraction in extracellular space                                   | physiological   | (0.01, 0.6)   |       |           |
+# | v_e_li         | 0.25       | mL/cm3     | volume fraction in extracellular space of the liver                      | physiological   | (0.01, 0.5)   |       |           |
+# | v_h            | 1          | mL/cm3     | volume fraction in hepatocytes                                           | physiological   | (0, 1)        |       |           |
+# | v_li           | 1          | mL/cm3     | volume fraction in the liver                                             | physiological   | (0, 1)        |       |           |
+# | vr_or          | 0.9        |            | Venous return in the organs                                              | physiological   | (0, 1)        |       |           |
+# +----------------+------------+------------+--------------------------------------------------------------------------+-----------------+---------------+-------+-----------+
+# | FA_1           | 15         | deg        | 1st flip angle                                                           | sequence        | (0, 180)      |       |           |
+# | FA_2           | 15         | deg        | 2nd flip angle                                                           | sequence        | (0, 180)      |       |           |
+# | FA_3           | 15         | deg        | 3rd flip angle                                                           | sequence        | (0, 180)      |       |           |
+# | FA_4           | 15         | deg        | 4th flip angle                                                           | sequence        | (0, 180)      |       |           |
+# | field_strength | 3          | T          | magnetic field strength                                                  | sequence        | (0, 20)       |       |           |
+# | iz_1           | 0          |            | 1st slice number in a multi-slice acquisition                            | sequence        | (0, 1000)     |       |           |
+# | iz_2           | 0          |            | 2nd slice number in a multi-slice acquisition                            | sequence        | (0, 1000)     |       |           |
+# | iz_3           | 0          |            | 3rd slice number in a multi-slice acquisition                            | sequence        | (0, 1000)     |       |           |
+# | iz_4           | 0          |            | 4th slice number in a multi-slice acquisition                            | sequence        | (0, 1000)     |       |           |
+# | Nk0_1          | 64         |            | 1st number of acquired phase lines to the center of k-space              | sequence        | (0, 1000)     |       |           |
+# | Nk0_2          | 64         |            | 2nd number of acquired phase lines to the center of k-space              | sequence        | (0, 1000)     |       |           |
+# | Nk0_3          | 64         |            | 3rd number of acquired phase lines to the center of k-space              | sequence        | (0, 1000)     |       |           |
+# | Nk0_4          | 64         |            | 4th number of acquired phase lines to the center of k-space              | sequence        | (0, 1000)     |       |           |
+# | Nph_1          | 128        |            | 1st number of acquired phase lines in k-space                            | sequence        | (0, 1000)     |       |           |
+# | Nph_2          | 128        |            | 2nd number of acquired phase lines in k-space                            | sequence        | (0, 1000)     |       |           |
+# | Nph_3          | 128        |            | 3rd number of acquired phase lines in k-space                            | sequence        | (0, 1000)     |       |           |
+# | Nph_4          | 128        |            | 4th number of acquired phase lines in k-space                            | sequence        | (0, 1000)     |       |           |
+# | Nz_1           | 64         |            | 1st number of slices in a multi-slice acquisition                        | sequence        | (0, 1000)     |       |           |
+# | Nz_2           | 64         |            | 2nd number of slices in a multi-slice acquisition                        | sequence        | (0, 1000)     |       |           |
+# | Nz_3           | 64         |            | 3rd number of slices in a multi-slice acquisition                        | sequence        | (0, 1000)     |       |           |
+# | Nz_4           | 64         |            | 4th number of slices in a multi-slice acquisition                        | sequence        | (0, 1000)     |       |           |
+# | PA_1           | 90         | deg        | 1st preparation Pulse Flip Angle                                         | sequence        | (0, 180)      |       |           |
+# | PA_2           | 90         | deg        | 2nd preparation Pulse Flip Angle                                         | sequence        | (0, 180)      |       |           |
+# | PA_3           | 90         | deg        | 3rd preparation Pulse Flip Angle                                         | sequence        | (0, 180)      |       |           |
+# | PA_4           | 90         | deg        | 4th preparation Pulse Flip Angle                                         | sequence        | (0, 180)      |       |           |
+# | SA_1           | 0          | deg        | 1st saturation Slab Flip Angle                                           | sequence        | (0, 180)      |       |           |
+# | SA_2           | 0          | deg        | 2nd saturation Slab Flip Angle                                           | sequence        | (0, 180)      |       |           |
+# | SA_3           | 0          | deg        | 3rd saturation Slab Flip Angle                                           | sequence        | (0, 180)      |       |           |
+# | SA_4           | 0          | deg        | 4th saturation Slab Flip Angle                                           | sequence        | (0, 180)      |       |           |
+# | TA_1           | 2.0        | sec        | 1st acquisition time                                                     | sequence        | (0, 30)       |       |           |
+# | TA_2           | 2.0        | sec        | 2nd acquisition time                                                     | sequence        | (0, 30)       |       |           |
+# | TA_3           | 2.0        | sec        | 3rd acquisition time                                                     | sequence        | (0, 30)       |       |           |
+# | TA_4           | 2.0        | sec        | 4th acquisition time                                                     | sequence        | (0, 30)       |       |           |
+# | TD_1           | 0.05       | sec        | 1st prepulse delay                                                       | sequence        | (0, 1)        |       |           |
+# | TD_2           | 0.05       | sec        | 2nd prepulse delay                                                       | sequence        | (0, 1)        |       |           |
+# | TD_3           | 0.05       | sec        | 3rd prepulse delay                                                       | sequence        | (0, 1)        |       |           |
+# | TD_4           | 0.05       | sec        | 4th prepulse delay                                                       | sequence        | (0, 1)        |       |           |
+# | TE1_1          | 0.001      | sec        | 1st first echo time in a multi-echo sequence                             | sequence        | (0, 1)        |       |           |
+# | TE1_2          | 0.001      | sec        | 2nd first echo time in a multi-echo sequence                             | sequence        | (0, 1)        |       |           |
+# | TE1_3          | 0.001      | sec        | 3rd first echo time in a multi-echo sequence                             | sequence        | (0, 1)        |       |           |
+# | TE1_4          | 0.001      | sec        | 4th first echo time in a multi-echo sequence                             | sequence        | (0, 1)        |       |           |
+# | TE2_1          | 0.005      | sec        | 1st second echo time in a multi-echo sequence                            | sequence        | (0, 1)        |       |           |
+# | TE2_2          | 0.005      | sec        | 2nd second echo time in a multi-echo sequence                            | sequence        | (0, 1)        |       |           |
+# | TE2_3          | 0.005      | sec        | 3rd second echo time in a multi-echo sequence                            | sequence        | (0, 1)        |       |           |
+# | TE2_4          | 0.005      | sec        | 4th second echo time in a multi-echo sequence                            | sequence        | (0, 1)        |       |           |
+# | TE_1           | 0.001      | sec        | 1st echo time                                                            | sequence        | (0, 10)       |       |           |
+# | TE_2           | 0.001      | sec        | 2nd echo time                                                            | sequence        | (0, 10)       |       |           |
+# | TE_3           | 0.001      | sec        | 3rd echo time                                                            | sequence        | (0, 10)       |       |           |
+# | TE_4           | 0.001      | sec        | 4th echo time                                                            | sequence        | (0, 10)       |       |           |
+# | TP_1           | 0.05       | sec        | 1st preparation delay                                                    | sequence        | (0, 1)        |       |           |
+# | TP_2           | 0.05       | sec        | 2nd preparation delay                                                    | sequence        | (0, 1)        |       |           |
+# | TP_3           | 0.05       | sec        | 3rd preparation delay                                                    | sequence        | (0, 1)        |       |           |
+# | TP_4           | 0.05       | sec        | 4th preparation delay                                                    | sequence        | (0, 1)        |       |           |
+# | TR_1           | 0.005      | sec        | 1st repetition time                                                      | sequence        | (0, 1)        |       |           |
+# | TR_2           | 0.005      | sec        | 2nd repetition time                                                      | sequence        | (0, 1)        |       |           |
+# | TR_3           | 0.005      | sec        | 3rd repetition time                                                      | sequence        | (0, 1)        |       |           |
+# | TR_4           | 0.005      | sec        | 4th repetition time                                                      | sequence        | (0, 1)        |       |           |
+# +----------------+------------+------------+--------------------------------------------------------------------------+-----------------+---------------+-------+-----------+
+# | iStrig_1_ao    | None       |            | 1st indices of the signal trigger in the aorta                           | signal          |               |       |           |
+# | iStrig_1_li    | None       |            | 1st indices of the signal trigger in the liver                           | signal          |               |       |           |
+# | iStrig_2_ao    | None       |            | 2nd indices of the signal trigger in the aorta                           | signal          |               |       |           |
+# | iStrig_2_li    | None       |            | 2nd indices of the signal trigger in the liver                           | signal          |               |       |           |
+# | iStrig_3_ao    | None       |            | 3rd indices of the signal trigger in the aorta                           | signal          |               |       |           |
+# | iStrig_3_li    | None       |            | 3rd indices of the signal trigger in the liver                           | signal          |               |       |           |
+# | iStrig_4_ao    | None       |            | 4th indices of the signal trigger in the aorta                           | signal          |               |       |           |
+# | iStrig_4_li    | None       |            | 4th indices of the signal trigger in the liver                           | signal          |               |       |           |
+# | nb_1           | 1          | a.u.       | 1st number of baseline time points                                       | signal          |               |       |           |
+# | nb_2           | 1          | a.u.       | 2nd number of baseline time points                                       | signal          |               |       |           |
+# | nb_3           | 1          | a.u.       | 3rd number of baseline time points                                       | signal          |               |       |           |
+# | nb_4           | 1          | a.u.       | 4th number of baseline time points                                       | signal          |               |       |           |
+# | NSR_1_ao       | 0.0        |            | 1st noise-to-signal ratio in the aorta                                   | signal          | (0, 100000.0) |       |           |
+# | NSR_1_li       | 0.0        |            | 1st noise-to-signal ratio in the liver                                   | signal          | (0, 100000.0) |       |           |
+# | NSR_2_ao       | 0.0        |            | 2nd noise-to-signal ratio in the aorta                                   | signal          | (0, 100000.0) |       |           |
+# | NSR_2_li       | 0.0        |            | 2nd noise-to-signal ratio in the liver                                   | signal          | (0, 100000.0) |       |           |
+# | NSR_3_ao       | 0.0        |            | 3rd noise-to-signal ratio in the aorta                                   | signal          | (0, 100000.0) |       |           |
+# | NSR_3_li       | 0.0        |            | 3rd noise-to-signal ratio in the liver                                   | signal          | (0, 100000.0) |       |           |
+# | NSR_4_ao       | 0.0        |            | 4th noise-to-signal ratio in the aorta                                   | signal          | (0, 100000.0) |       |           |
+# | NSR_4_li       | 0.0        |            | 4th noise-to-signal ratio in the liver                                   | signal          | (0, 100000.0) |       |           |
+# | S0_1_ao        | 1.0        | a.u.       | 1st signal scaling factor in the aorta                                   | signal          | (0, 5)        |       | Q.MS1.010 |
+# | S0_1_li        | 1.0        | a.u.       | 1st signal scaling factor in the liver                                   | signal          | (0, 5)        |       | Q.MS1.010 |
+# | S0_2_ao        | 1.0        | a.u.       | 2nd signal scaling factor in the aorta                                   | signal          | (0, 5)        |       | Q.MS1.010 |
+# | S0_2_li        | 1.0        | a.u.       | 2nd signal scaling factor in the liver                                   | signal          | (0, 5)        |       | Q.MS1.010 |
+# | S0_3_ao        | 1.0        | a.u.       | 3rd signal scaling factor in the aorta                                   | signal          | (0, 5)        |       | Q.MS1.010 |
+# | S0_3_li        | 1.0        | a.u.       | 3rd signal scaling factor in the liver                                   | signal          | (0, 5)        |       | Q.MS1.010 |
+# | S0_4_ao        | 1.0        | a.u.       | 4th signal scaling factor in the aorta                                   | signal          | (0, 5)        |       | Q.MS1.010 |
+# | S0_4_li        | 1.0        | a.u.       | 4th signal scaling factor in the liver                                   | signal          | (0, 5)        |       | Q.MS1.010 |
+# | S_1_ao         | 1.0        | a.u.       | 1st signal in the aorta                                                  | signal          | (0, 5)        |       |           |
+# | S_1_li         | 1.0        | a.u.       | 1st signal in the liver                                                  | signal          | (0, 5)        |       |           |
+# | S_2_ao         | 1.0        | a.u.       | 2nd signal in the aorta                                                  | signal          | (0, 5)        |       |           |
+# | S_2_li         | 1.0        | a.u.       | 2nd signal in the liver                                                  | signal          | (0, 5)        |       |           |
+# | S_3_ao         | 1.0        | a.u.       | 3rd signal in the aorta                                                  | signal          | (0, 5)        |       |           |
+# | S_3_li         | 1.0        | a.u.       | 3rd signal in the liver                                                  | signal          | (0, 5)        |       |           |
+# | S_4_ao         | 1.0        | a.u.       | 4th signal in the aorta                                                  | signal          | (0, 5)        |       |           |
+# | S_4_li         | 1.0        | a.u.       | 4th signal in the liver                                                  | signal          | (0, 5)        |       |           |
+# | tS_1_ao        | 0.0        | sec        | 1st signal time points in the aorta                                      | signal          |               |       |           |
+# | tS_1_li        | 0.0        | sec        | 1st signal time points in the liver                                      | signal          |               |       |           |
+# | tS_2_ao        | 0.0        | sec        | 2nd signal time points in the aorta                                      | signal          |               |       |           |
+# | tS_2_li        | 0.0        | sec        | 2nd signal time points in the liver                                      | signal          |               |       |           |
+# | tS_3_ao        | 0.0        | sec        | 3rd signal time points in the aorta                                      | signal          |               |       |           |
+# | tS_3_li        | 0.0        | sec        | 3rd signal time points in the liver                                      | signal          |               |       |           |
+# | tS_4_ao        | 0.0        | sec        | 4th signal time points in the aorta                                      | signal          |               |       |           |
+# | tS_4_li        | 0.0        | sec        | 4th signal time points in the liver                                      | signal          |               |       |           |
+# +----------------+------------+------------+--------------------------------------------------------------------------+-----------------+---------------+-------+-----------+
+# | vol_1_ao       | 1          | cm3        | 1st ROI volume in the aorta                                              | whole-body      | (0.0, 1000)   |       |           |
+# | vol_1_li       | 1000       | cm3        | 1st ROI volume in the liver                                              | whole-body      | (0, 10000)    |       |           |
+# | vol_2_ao       | 1          | cm3        | 2nd ROI volume in the aorta                                              | whole-body      | (0.0, 1000)   |       |           |
+# | vol_2_li       | 1000       | cm3        | 2nd ROI volume in the liver                                              | whole-body      | (0, 10000)    |       |           |
+# | weight         | 70         | kg         | body weight                                                              | whole-body      | (0, 300)      |       |           |
 # +---------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-# +-----------------------------------------------------------------------------------------------------------------+
-# |                                InverseAortaLiverSplitDrug - all outputs (n = 4)                               |
-# +-------+------+------------------------------------------------+-----------------+------+--------+-------+-------+
-# | Key   | Unit | Name                                           | Group           | Init | Bounds | DICOM | OSIPI |
-# +-------+------+------------------------------------------------+-----------------+------+--------+-------+-------+
-# | loss  | a.u. | loss value of optimized model                  | Signal          | 1    |        |       |       |
-# | pcov  | a.u. | dictionary with covariances of free parameters | Signal          | 1    |        |       |       |
-# | popt  | a.u. | dictionary of optimized free parameter values  | Signal          | 1    |        |       |       |
-# | psdev | a.u. | dictionary with parameter standard deviations  | Signal          | 1    |        |       |       |
-# +-----------------------------------------------------------------------------------------------------------------+
+# +------------------------------------------------------------------------------------------------------------------+
+# |                                 InverseAortaLiverSplitDrug - all outputs (n = 5)                                 |
+# +-------+-------+------+------------------------------------------------+-----------------+--------+-------+-------+
+# | Key   | Value | Unit | Name                                           | Group           | Bounds | DICOM | OSIPI |
+# +-------+-------+------+------------------------------------------------+-----------------+--------+-------+-------+
+# | loss  | None  | a.u. | loss value of optimized model                  | inverse problem |        |       |       |
+# | pars  | None  | a.u. | dictionary with source- and derived parameters | inverse problem |        |       |       |
+# | pcov  | None  | a.u. | dictionary with covariances of free parameters | inverse problem |        |       |       |
+# | popt  | None  | a.u. | dictionary of optimized free parameter values  | inverse problem |        |       |       |
+# | psdev | None  | a.u. | dictionary with parameter standard deviations  | inverse problem |        |       |       |
+# +------------------------------------------------------------------------------------------------------------------+
 
 from copy import deepcopy
 
@@ -209,8 +219,8 @@ class InverseAortaLiverSplitDrug(Module):
     configs = configs
     defaults = defaults
 
-    _all_inputs = {'S_4_li', 'B1corr_2_ao', 'Ei_2_li', 'S_3_li', 'dt', 'iStrig_4_li', 'kf_1_e2h', 'Ti_2_h', 'nb', 'iStrig_3_li', 'B1corr_3_li', 'k_1_e2h', 'T_b_or', 'iStrig_4_ao', 'GFR', 'T_1_h', 'TE1', 'T_hl', 'BAT_1', 'kf_2_e2h', 'T_e_or', 'weight', 'vol_2_li', 'v_li', 'iStrig_2_li', 'vol_2_ao', 'k_2_e2h', 'NSR_1_ao', 'Tf_2_h', 'B1corr_1_ao', 'S0_3_ao', 'ki_2_e2h', 'agent', 'S0_2_li', 'SA', 'rate_4', 'TE2', 'tS_1_ao', 'dose_4', 'NSR_3_ao', 'E_or', 'tS_4_li', 'TD', 'iStrig_3_ao', 'bdel', 'vol_1_li', 'CO', 'H', 'BAT_4', 'rate_2', 'dose_2', 'B1corr_1_li', 'S_3_ao', 'S_2_li', 'v_e_li', 'B1corr_4_li', 'S_4_ao', 'tS_4_ao', 'fCO_li', 'R1_b', 'S_2_ao', 'E_2_li', 'field_strength', 'PSw', 'T_2_h', 'B1corr_2_li', 'me', 'Nz', 'TA', 'iStrig_1_li', 'tS_1_li', 'v_h', 'BAT_2', 'B1corr_3_ao', 'NSR_2_ao', 'Nph', 'BAT_3', 'NSR_3_li', 'Nk0', 'S0_1_ao', 'TF', 'vol_1_ao', 'Ti_1_h', 'PA', 'tS_2_li', 'iStrig_2_ao', 'S_1_li', 'Ei_1_li', 'tS_2_ao', 'ki_1_e2h', 'S0_1_li', 'tS_3_li', 'ffa', 'dose_1', 'pfree', 'Ef_2_li', 'TP', 'dose_tolerance', 'dose_3', 'Ef_1_li', 'T_gu', 'R1_e', 'NSR_2_li', 'TE', 'E_1_li', 'rate_1', 'iStrig_1_ao', 'S_1_ao', 'T_la', 'B1corr_4_ao', 'S0_4_ao', 'NSR_1_li', 'S0_4_li', 'tS_3_ao', 'NSR_4_ao', 'Tf_1_h', 'iz', 'NSR_4_li', 'R1_h', 'TR', 'S0_2_ao', 'rate_3', 'FA', 'S0_3_li', 'D_hl'}
-    _all_outputs = {'pcov', 'popt', 'psdev', 'pars', 'loss'}
+    _all_inputs = {'ki_2_e2h', 'FA_3', 'SA_4', 'Nk0_4', 'TP_1', 'NSR_1_ao', 'TA_2', 'NSR_2_ao', 'Ef_2_li', 'nb_1', 'PA_1', 'iz_4', 'BAT_2', 'Nk0_1', 'Ei_2_li', 'iStrig_1_li', 'TE2_1', 'iStrig_3_li', 'S_4_li', 'Ti_2_h', 'TE2_2', 'TE1_1', 'TE_2', 'D_hl', 'Nz_2', 'S0_3_li', 'SA_2', 'vol_1_li', 'S0_4_ao', 'NSR_4_ao', 'NSR_3_li', 'tS_1_li', 'iz_2', 'v_e', 'S_4_ao', 'dose_1', 'Tf_2_h', 'k_2_e2h', 'E_2_li', 'tS_3_li', 'TF', 'T_e_or', 'S0_4_li', 'Nk0_2', 'rate_2', 'TP_4', 'TD_2', 'TA_3', 'TR_1', 'Nph_3', 'iStrig_3_ao', 'T_hl', 'dose_3', 'R1_h', 'CO', 'NSR_1_li', 'weight', 'FA_2', 'TE1_2', 'vol_2_li', 'Nz_3', 'v_e_li', 'NSR_2_li', 'k_1_e2h', 'tS_4_li', 'Nk0_3', 'rate_4', 'B1corr_2_ao', 'tS_4_ao', 'S_3_li', 'FA_4', 'TR_4', 'Nz_1', 'tS_3_ao', 'Ef_1_li', 'TE2_3', 'R1_li', 'field_strength', 'vol_1_ao', 'B1corr_3_ao', 'ffa', 'S0_3_ao', 'B1corr_4_li', 'PA_3', 'T_gu', 'iStrig_2_ao', 'TE2_4', 'E_or', 'BAT_4', 'nb_2', 'TE_4', 'iz_1', 'TE1_3', 'B1corr_3_li', 'dose_2', 'dose_tolerance', 'TE_3', 'v_h', 'B1corr_4_ao', 'TD_3', 'iStrig_4_li', 'S_3_ao', 'B1corr_1_ao', 'PA_2', 'NSR_4_li', 'rate_3', 'iStrig_4_ao', 'kf_2_e2h', 'iStrig_2_li', 'S0_2_ao', 'B1corr_2_li', 'tS_2_li', 'bdel', 'Ei_1_li', 'tS_2_ao', 'vr_or', 'TA_1', 'Nph_4', 'T_2_h', 'S0_1_ao', 'S0_2_li', 'Tf_1_h', 'T_b_or', 'agent', 'TR_3', 'Nph_2', 'Ti_1_h', 'PA_4', 'S0_1_li', 'dt', 'v_li', 'S_2_ao', 'kf_1_e2h', 'TP_2', 'TD_4', 'rate_1', 'S_1_ao', 'SA_3', 'TP_3', 'NSR_3_ao', 'PSw', 'SA_1', 'TE_1', 'fCO_li', 'E_1_li', 'Nph_1', 'TD_1', 'ki_1_e2h', 'nb_3', 'T_1_h', 'BAT_3', 'TA_4', 'TE1_4', 'TR_2', 'Nz_4', 'R1_e', 'B1corr_1_li', 'BAT_1', 'H', 'FA_1', 'pfree', 'tS_1_ao', 'R1_b', 'iStrig_1_ao', 'me', 'iz_3', 'vol_2_ao', 'S_2_li', 'S_1_li', 'nb_4', 'T_la', 'dose_4'}
+    _all_outputs = {'pcov', 'pars', 'popt', 'loss', 'psdev'}
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):
         self.set_config(config)
@@ -262,7 +272,7 @@ class InverseAortaLiverSplitDrug(Module):
 
     def _pfree(self):
         inputs = self.forward.mapped_inputs()
-        pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
+        pfree = {p for p in inputs if get_quantity(p)['group']=='physiological'}
         if self.config['bolus'] in ['single', 'double']:
             pfree |= {'BAT_1', 'BAT_2'}
         else:
@@ -270,12 +280,12 @@ class InverseAortaLiverSplitDrug(Module):
         if not self.config['calibrate']:
             pfree |= {'S0_1_ao', 'S0_1_li', 'S0_2_ao', 'S0_2_li'}
             pfree |= {'S0_3_ao', 'S0_3_li', 'S0_4_ao', 'S0_4_li'}
-        pfree -= {'v_li', 'H', 'GFR'}
+        pfree -= {'v_li', 'H'}
         return {p: get_quantity(p)['bounds'] for p in pfree}
     
 
     def _pder(self, data:dict):
-        p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['phys', 'body']}
+        p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['physiological', 'whole-body']}
 
         p_common = {k: v for k, v in p.items() if parse_varname(k)['index'] is None}
 

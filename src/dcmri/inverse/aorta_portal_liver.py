@@ -185,7 +185,7 @@ class InverseAortaPortalLiver(Module):
 
     def _pfree(self):
         inputs = self.forward.mapped_inputs()
-        pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
+        pfree = {p for p in inputs if get_quantity(p)['group']=='physiological'}
         pfree |= {'BAT'}
         return {p: get_quantity(p)['bounds'] for p in pfree}
 

@@ -157,7 +157,7 @@ class InverseAorta(Module):
 
     def pfree(self):
         inputs = self.forward.mapped_inputs()
-        pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
+        pfree = {p for p in inputs if get_quantity(p)['group']=='physiological'}
         pfree |= {'BAT'}
         if not self.config['calibrate']:
             pfree |= {'S0'}

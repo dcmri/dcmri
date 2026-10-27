@@ -107,7 +107,7 @@ class InverseKidney(Module):
     configs = configs
     defaults = defaults
     quantities = {
-        'T_ar': {'init': 0, 'bounds': (0.0, 10), 'name': 'arterial mean transit time', 'unit': 'sec', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+        'T_ar': {'init': 0, 'bounds': (0.0, 10), 'name': 'arterial mean transit time', 'unit': 'sec', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
     }
 
     _all_inputs = None
@@ -143,14 +143,14 @@ class InverseKidney(Module):
 
     def pfree(self):
         inputs = self.forward.mapped_inputs()
-        pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
+        pfree = {p for p in inputs if get_quantity(p)['group']=='physiological'}
         if not self.config['calibrate']:
             pfree |= {'S0_ki'}
         pfree -= {'v_ki'}
         return {p: get_quantity(p)['bounds'] for p in pfree}
 
     def _pder(self, data:dict):
-        p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['phys', 'body']}
+        p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['physiological', 'whole-body']}
         p = dpars_kidney(p, kinetics=self.config['kinetics'])
         return p
 

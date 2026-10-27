@@ -162,7 +162,7 @@ class InverseAortaKidneys(Module):
     configs = configs
     defaults = defaults
     quantities = {
-        'E_li': {'init': 0.0, 'bounds': (0.0, 1.0), 'name': 'extraction fraction in liver', 'unit': '', 'group': 'phys', 'dicom_key': None, 'osipi_key': None},
+        'E_li': {'init': 0.0, 'bounds': (0.0, 1.0), 'name': 'extraction fraction in liver', 'unit': '', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
     }
 
     _all_inputs = {'D_p_lk', 'D_p_rk', 'T_vc', 'D_vc', 'nb', 'pfree', 'Nz', 'S0_lk', 'dose_1', 'F_u_lk', 'PA', 'F_u_rk', 'H', 'h_u_rk', 'NSR_rk', 'iStrig_ao', 'S_rk', 'TD', 'B1corr_lk', 'TA', 'T_hl', 'v_b', 'iStrig_rk', 'S0_rk', 'bdel', 'NSR_lk', 'T_b_or', 'S0_ao', 'S_ao', 'agent', 'rate', 'TF', 'iStrig_lk', 'tS_lk', 'R1_ki', 'T_gu', 'rate_1', 'vol_lk', 'T_u_lk', 'D_hl', 'TP', 'tS_ao', 'TR', 'B1corr_ao', 'T_lka', 'T_rka', 'dose_2', 'DRPF', 'S_lk', 'tS_rk', 'T_e_or', 'dose_tolerance', 'NSR_ao', 'v_ki', 'dose', 'dt', 'v_p_lk', 'rate_2', 'Nph', 'TE', 'F_u', 'vol_rk', 'TE1', 'TE2', 'E_or', 'FF_lk', 'R1_c', 'iz', 'FA', 'E_li', 'PSw', 'v_p_rk', 'R1_b', 'Nk0', 'FF_rk', 'weight', 'vol_ao', 'B1corr_rk', 'T_u_rk', 'h_u_lk', 'CO', 'fCO_ki', 'R1_u', 'v_u', 'SA', 'me', 'field_strength', 'v_c'}
@@ -205,7 +205,7 @@ class InverseAortaKidneys(Module):
 
     def pfree(self):
         inputs = self.forward.mapped_inputs()
-        pfree = {p for p in inputs if get_quantity(p)['group']=='phys'}
+        pfree = {p for p in inputs if get_quantity(p)['group']=='physiological'}
         pfree |= {'BAT'}
         if not self.config['calibrate']:
             pfree |= {'S0_ao', 'S0_lk', 'S0_rk'}
@@ -213,7 +213,7 @@ class InverseAortaKidneys(Module):
         return {p: get_quantity(p)['bounds'] for p in pfree}
 
     def _pder(self, data:dict):
-        p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['phys', 'body']}
+        p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['physiological', 'whole-body']}
         p = dpars_kidney(p, kinetics=self.config['kidneys'])
         return p
 

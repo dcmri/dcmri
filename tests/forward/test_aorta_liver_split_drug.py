@@ -19,9 +19,9 @@ def test_aorta_liver_dynamic_drug(cls=AortaLiverSplitDrug):
         instance(data)
 
     cls.print_configs()
-    cls.print_all_io(verbose=1, simple=False, sample=1e3, seed=51)
+    cls.print_all_io(verbose=1, simple=False, sample=1e4, seed=51)
 
-    configs = cls.all_configs(sample=1e3, seed=51)
+    configs = cls.all_configs(sample=1e4, seed=51)
     for cnfg in tqdm(configs, desc=f'Testing {cls.__name__}'):
         _test_config(cnfg)
 

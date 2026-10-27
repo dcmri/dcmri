@@ -321,7 +321,7 @@ def _load_tristan_humans_visit_scan(data, participant, visit, scan):
     for r in ['aorta', 'liver']:
         data[f'tS_{r[:2]}'] = time[0]
         data[f'S_{r[:2]}'] = roi[f'{r}_{scan}']
-        data[f'iStrig_{r[:2]}'] = roi[f'{r}_{scan}']
+        data[f'iStrig_{r[:2]}'] = roi[f'{r}_{scan}_accept']
 
     return data
 
@@ -343,6 +343,8 @@ def _load_tristan_humans_scan(data, participant, scan):
         roi['control']['time_1'] - roi['control']['time_1'][0],
         roi['drug']['time_1'] - roi['drug']['time_1'][0],
     ]
+    ts_1 = time[0][1] - time[0][0]
+    ts_2 = time[1][1] - time[1][0]
 
     data = {     
         # Electromagnetic
@@ -359,11 +361,15 @@ def _load_tristan_humans_scan(data, participant, scan):
         'GFR': eGFR / 60,
 
         # Sequence
-        'FA': par['control']['FA_1'],
+        'FA_1': par['control']['FA_1'],
+        'FA_2': par['drug']['FA_1'],
         'field_strength': 3,
-        'Nk0': int(np.round(time[0][1] / par['control']['TR'] / 2)),
-        'Nph': int(np.round(time[0][1] / par['control']['TR'])),
-        'TR': par['control']['TR'],
+        'Nk0_1': int(np.round(ts_1 / par['control']['TR'] / 2)),
+        'Nph_1': int(np.round(ts_1 / par['control']['TR'])),
+        'Nk0_2': int(np.round(ts_2 / par['drug']['TR'] / 2)),
+        'Nph_2': int(np.round(ts_2 / par['drug']['TR'])),
+        'TR_1': par['control']['TR'],
+        'TR_2': par['drug']['TR'],
 
         # Whole body
         'vol_1_li': par['control']['liver_volume'],
@@ -403,6 +409,9 @@ def _load_tristan_humans_visit(data, participant, visit):
     time_1 = roi['time_1'] - roi['time_1'][0]
     time_2 = roi['time_2'] - roi['time_1'][0]
 
+    ts_1 = time_1[1] - time_1[0]
+    ts_2 = time_2[1] - time_2[0]
+
     return {     
 
         # Electromagnetic
@@ -423,11 +432,15 @@ def _load_tristan_humans_visit(data, participant, visit):
         'GFR': eGFR / 60,
 
         # Sequence
-        'FA': par['FA_1'],
+        'FA_1': par['FA_1'],
+        'FA_2': par['FA_2'],
         'field_strength': 3,
-        'Nk0': int(np.round(time_1[1] / par['TR'] / 2)),
-        'Nph': int(np.round(time_1[1] / par['TR'])),
-        'TR': par['TR'],
+        'Nk0_1': int(np.round(ts_1 / par['TR'] / 2)),
+        'Nph_1': int(np.round(ts_1 / par['TR'])),
+        'Nk0_2': int(np.round(ts_2 / par['TR'] / 2)),
+        'Nph_2': int(np.round(ts_2 / par['TR'])),
+        'TR_1': par['TR'],
+        'TR_2': par['TR'],
 
         # Signal
         'iStrig_1_ao': roi['aorta_1_accept'],
@@ -435,8 +448,8 @@ def _load_tristan_humans_visit(data, participant, visit):
         'iStrig_2_ao': roi['aorta_2_accept'],
         'iStrig_2_li': roi['liver_2_accept'],
 
-        'nb_1': int(par['t0'] / (time_1[1] - time_1[0])),
-        'nb_2': int(par['t0'] / (time_2[1] - time_2[0])),
+        'nb_1': int(par['t0'] / ts_1),
+        'nb_2': int(par['t0'] / ts_2),
 
         'S_1_ao': roi['aorta_1'] , 
         'S_2_ao': roi['aorta_2'],
@@ -491,11 +504,7 @@ def _load_tristan_humans_all(data, participant):
         'GFR': eGFR / 60,
 
         # Sequence
-        'FA': par['control']['FA_1'],
         'field_strength': 3,
-        'Nk0': int(np.round(time[0][1] / par['control']['TR'] / 2)),
-        'Nph': int(np.round(time[0][1] / par['control']['TR'])),
-        'TR': par['control']['TR'],
 
         # Whole body
         'vol_1_li': par['control']['liver_volume'],
@@ -503,17 +512,27 @@ def _load_tristan_humans_all(data, participant):
         'weight': par['control']['weight'], 
     }
 
+    data['FA_1'] = par['control']['FA_1']
+    data['FA_2'] = par['control']['FA_2']
+    data['FA_3'] = par['drug']['FA_1']
+    data['FA_4'] = par['drug']['FA_2']
+
     idx = 0
     for visit in ['control', 'drug']:
         for scan in [1, 2]:
             idx += 1
 
+            ts = time[idx - 1][1] - time[idx - 1][0]
+
             # Indicator group
             data[f'rate_{idx}'] = 1
             data[f'dose_{idx}'] = par[visit][f'dose_{scan}']
+            data[f'TR_{idx}'] = par[visit]['TR']
+            data[f'Nk0_{idx}'] = int(np.round(ts / par[visit]['TR'] / 2))
+            data[f'Nph_{idx}'] = int(np.round(ts / par[visit]['TR']))
 
             # Signal group
-            data[f'nb_{idx}'] = int(par[visit]['t0'] / (time[idx - 1][1] - time[idx - 1][0]))
+            data[f'nb_{idx}'] = int(par[visit]['t0'] / ts)
             for r in ['aorta', 'liver']:
                 data[f'tS_{idx}_{r[:2]}'] = time[idx - 1]
                 data[f'S_{idx}_{r[:2]}'] = roi[visit][f'{r}_{scan}']

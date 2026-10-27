@@ -55,6 +55,10 @@ def unit(k: str, **kwargs):
     q = get_quantity(k, **kwargs)
     return q['unit']
 
+def group(k: str, **kwargs):
+    q = get_quantity(k, **kwargs)
+    return q['group']
+
 def get_quantity(k: str, quantities=None):
     lexicon = QUANTITIES
     if quantities is not None:
@@ -255,7 +259,7 @@ def print_quantities(q: set | dict, title=None, decimals:int=None, digits:int=No
     key_w = max((len(k) for k in q), default=3)
     unit_w = max((len(format_optional(v["unit"])) for v in q.values()), default=4)
     name_w = max((len(v["name"]) for v in q.values()), default=4)
-    group_w = max((len(label) for label in GROUPS.values()), default=5)
+    group_w = max((len(label) for label in GROUPS), default=5)
     init_w = max((len(s) for s in values.values()), default=5)
     bounds_w = max((len(format_bounds(v["bounds"])) for v in q.values()), default=6)
     dicom_w = max((len(format_optional(v.get("dicom_key"))) for v in q.values()), default=5)
@@ -305,7 +309,7 @@ def print_quantities(q: set | dict, title=None, decimals:int=None, digits:int=No
 
     first_group = True
     # Groups in alphabetical order of their long name, ignoring case
-    for gr, label in sorted(GROUPS.items(), key=lambda item: item[1].lower()):
+    for gr in sorted(GROUPS):
         group = {k: v for k, v in q.items() if v["group"] == gr}
         if not group:
             continue
@@ -318,7 +322,7 @@ def print_quantities(q: set | dict, title=None, decimals:int=None, digits:int=No
 
         for k, v in group.items():
             lines.append(row(
-                k, values[k], format_optional(v["unit"]), v["name"], label,
+                k, values[k], format_optional(v["unit"]), v["name"], gr,
                 format_bounds(v["bounds"]), format_optional(v.get("dicom_key")), format_optional(v.get("osipi_key")),
             ))
 
@@ -352,8 +356,7 @@ def _print_quantities_as_dict(q, name="p"):
     # Collect entries per long group name (a missing group goes under 'other')
     groups = {}
     for key, v in q.items():
-        short = v.get('group') or 'other'
-        label = GROUPS.get(short, short)    # fall back to the short key if not in GROUPS
+        label = v.get('group') or 'other'    # fall back to the short key if not in GROUPS
         groups.setdefault(label, []).append((key, v))
 
     # Alphabetical order of the long names, and of the keys within each group (ignoring case)

@@ -71,19 +71,19 @@ def test_inverse_aorta_liver_drug():
     model = dc.InverseAortaLiverDrug
     cnfg = {'inflow': 'pool', 'sequence': 'ZTE-3D-SPGR-SSI', 'tof_corr': False, 'magnitude': True, 'trigger': True, 'calibrate': False, 'water_exchange': 'F', 'baseline': 'literature', 'bolus': 'double', 'heartlung': 'pfcomp', 'organs': '2cxm', 'lagut': 'plucom', 'liver': '1I-IC', 'non_stationary': None, 't1_relaxation_ao': 'lin', 't1_relaxation_li': 'lin', 't2_relaxation_ao': None, 't2_relaxation_li': None, 't2s_relaxation_ao': 'lin', 't2s_relaxation_li': 'lin', 'estimate_bat': 'none'}
     test_inverse_model_instance(model, cnfg)
-    test_inverse_model(model, simple=True, io_sample=1e4, cnfg_sample=1e4, seed=51)
+    test_inverse_model(model, simple=False, io_sample=1e4, cnfg_sample=1e4, seed=51)
 
 def test_inverse_aorta_liver_split():
     model = dc.InverseAortaLiverSplit
     cnfg = {'sequence': '2D-SR-SPGR', 'tof_corr': False, 'inflow': 'none', 'magnitude': True, 'trigger': False, 'calibrate': False, 'water_exchange': 'N', 'baseline': 'measured', 'bolus': 'dual', 'heartlung': 'pfcomp', 'organs': '2cxm', 'lagut': 'comp', 'liver': '1I-IC', 'non_stationary': None, 't1_relaxation_ao': 'lin', 't1_relaxation_li': 'lin', 't2_relaxation_ao': None, 't2_relaxation_li': None, 't2s_relaxation_ao': 'lin', 't2s_relaxation_li': 'quad'}
     test_inverse_model_instance(model, cnfg)
-    test_inverse_model(model, simple=True, io_sample=1e4, cnfg_sample=1e4, seed=51)
+    test_inverse_model(model, simple=False, io_sample=1e4, cnfg_sample=1e4, seed=51)
 
 def test_inverse_aorta_liver_split_drug():
     model = dc.InverseAortaLiverSplitDrug
     cnfg = {'sequence': '3D-SPGR-SS', 'tof_corr': False, 'inflow': 'none', 'magnitude': True, 'trigger': False, 'calibrate': False, 'water_exchange': 'F', 'baseline': 'literature', 'bolus': 'single', 'heartlung': 'pfcomp', 'organs': 'comp', 'lagut': 'comp', 'liver': '1I-EC', 'non_stationary': None, 't1_relaxation_ao': 'lin', 't1_relaxation_li': 'lin', 't2_relaxation_ao': None, 't2_relaxation_li': None, 't2s_relaxation_ao': 'lin', 't2s_relaxation_li': 'lin'}
     test_inverse_model_instance(model, cnfg)
-    test_inverse_model(model, simple=True, io_sample=1e4, cnfg_sample=1e4, seed=51)
+    test_inverse_model(model, simple=False, io_sample=1e4, cnfg_sample=1e4, seed=51)
 
 def test_inverse_aorta_liver():
     model = dc.InverseAortaLiver
@@ -143,17 +143,17 @@ def test_inverse_tissue_ls():
 
 if __name__ == '__main__':
 
-    test_inverse_aorta_liver_drug()
-    test_inverse_aorta_liver_split()
+    # test_inverse_aorta_liver_drug()
+    # test_inverse_aorta_liver_split()
     test_inverse_aorta_liver_split_drug()
-    test_inverse_aorta_liver()
-    test_inverse_aorta()
-    test_inverse_liver()
-    test_inverse_aorta_kidneys()
-    test_inverse_aorta_portal_liver()
-    test_inverse_cort_med()
-    test_inverse_kidney()
-    test_inverse_tissue_x()
-    test_inverse_tissue_ls()
+    # test_inverse_aorta_liver()
+    # test_inverse_aorta()
+    # test_inverse_liver()
+    # test_inverse_aorta_kidneys()
+    # test_inverse_aorta_portal_liver()
+    # test_inverse_cort_med()
+    # test_inverse_kidney()
+    # test_inverse_tissue_x()
+    # test_inverse_tissue_ls()
 
     print('All inverse model tests passed!!')
