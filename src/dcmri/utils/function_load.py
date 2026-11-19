@@ -231,10 +231,51 @@ def load_tristan_rats(study_name, subject, visit):
     }
 
 
-def load_tristan_humans(study, subjects=None, visits=['control', 'drug'], scans=[1,2], rois=['ao', 'li']):
+def load_tristan_human_subjects(study=None):
 
-    file = fetch(study)
-    data = pydmr.read(file, 'nest')
+    if study is None:
+        studies = [
+            'tristan_humans_healthy_controls',
+            'tristan_humans_healthy_ciclosporin',
+            'tristan_humans_healthy_metformin',
+            'tristan_humans_healthy_rifampicin',
+            'tristan_humans_patients_rifampicin',
+        ]
+    else:
+        studies = [study]
+
+    subjects = {}
+
+    for study in studies:
+        file = fetch(study)
+        study_data = pydmr.read(file, 'nest')
+        for subj in study_data['rois'].keys():
+            subjects[subj] = study
+            
+    return subjects
+
+
+def load_tristan_humans(study='drug effect', subjects=None, visits=['control', 'drug'], scans=[1,2], rois=['ao', 'li']):
+
+    DRUG_STUDIES = [
+        'tristan_humans_healthy_controls',
+        'tristan_humans_healthy_ciclosporin',
+        'tristan_humans_healthy_metformin',
+        'tristan_humans_healthy_rifampicin',
+        'tristan_humans_patients_rifampicin',
+    ]
+
+    if study == 'drug effect':
+        data = {'data':{}, 'pars':{}, 'rois':{}}
+        for study in DRUG_STUDIES:
+            file = fetch(study)
+            study_data = pydmr.read(file, 'nest')
+            data['data'] |= study_data['data']
+            data['pars'] |= study_data['pars']
+            data['rois'] |= study_data['rois']
+    else:
+        file = fetch(study)
+        data = pydmr.read(file, 'nest')
 
     if subjects is None:
         load_subjects = set(data['rois'].keys())
@@ -258,21 +299,31 @@ def load_tristan_humans(study, subjects=None, visits=['control', 'drug'], scans=
     if len(visits) == 1 and len(scans) == 1 and len(rois) == 1:
         data = {subj: _load_tristan_humans_visit_scan_roi(data, subj, visits[0], scans[0], rois[0]) for subj in load_subjects}
 
+    # Remove empty
+    data = {k: v for k, v in data.items() if v is not None}
+
     if isinstance(subjects, str):
         return data[subjects]
     else:
         return data
 
 
+# placeholder
 def _load_tristan_humans_visit_scan_roi(study_name, subject, visit, roi):
-    pass
-
+    raise NotImplementedError
+    
 
 def _load_tristan_humans_visit_scan(data, participant, visit, scan): 
 
     # --- Get the subject-level data
-    roi = data['rois'][participant][visit]
-    par = data['pars'][participant][visit]
+    roi = data['rois'][participant]
+    par = data['pars'][participant]
+
+    if visit not in roi:
+        return
+
+    roi = roi[visit]
+    par = par[visit]
 
     # --- Get GFR from screening visit if available
     if 'eGFR_abs' in data['pars'][participant]['screening']:
@@ -285,11 +336,15 @@ def _load_tristan_humans_visit_scan(data, participant, visit, scan):
         roi[f'time_{scan}'] - roi['time_1'][0],
     ]
 
+    ts = (time[0][-1] - time[0][0]) / (len(time[0]) - 1)
+
     data = {     
 
         # Electromagnetic
         'R1_b': 1 / par['T1_aorta_1'], 
         'R1_li': 1 / par['T1_liver_1'],
+        'R1_1_li': 1 / par['T1_liver_1'],
+        'R1_2_li': 1 / par['T1_liver_2'],
 
         # Hyperparameter
         'dt': 0.5,
@@ -303,8 +358,8 @@ def _load_tristan_humans_visit_scan(data, participant, visit, scan):
         # Sequence
         'FA': par['FA_1'],
         'field_strength': 3,
-        'Nk0': int(np.round(time[0][1] / par['TR'] / 2)),
-        'Nph': int(np.round(time[0][1] / par['TR'])),
+        'Nk0': int(np.round(ts / par['TR'] / 2)),
+        'Nph': int(np.round(ts / par['TR'])),
         'TR': par['TR'],
 
         # Whole body
@@ -332,6 +387,9 @@ def _load_tristan_humans_scan(data, participant, scan):
     roi = data['rois'][participant]
     par = data['pars'][participant]
 
+    if 'control' not in roi or 'drug' not in roi:
+        return
+
     # --- Get GFR from screening visit if available
     if 'eGFR_abs' in par['screening']:
         eGFR = par['screening']['eGFR_abs']
@@ -343,13 +401,18 @@ def _load_tristan_humans_scan(data, participant, scan):
         roi['control']['time_1'] - roi['control']['time_1'][0],
         roi['drug']['time_1'] - roi['drug']['time_1'][0],
     ]
-    ts_1 = time[0][1] - time[0][0]
-    ts_2 = time[1][1] - time[1][0]
+    ts_1 = (time[0][-1] - time[0][0]) / (len(time[0]) - 1)
+    ts_2 = (time[1][-1] - time[1][0]) / (len(time[1]) - 1)
 
     data = {     
         # Electromagnetic
         'R1_b': (1 / par['control']['T1_aorta_1'] + 1 / par['drug']['T1_aorta_1']) / 2, 
         'R1_li':(1 / par['control']['T1_liver_1'] + 1 / par['drug']['T1_liver_1']) / 2,
+
+        'R1_1_li': 1 / par['control']['T1_liver_1'],
+        'R1_2_li': 1 / par['control']['T1_liver_2'],
+        'R1_3_li': 1 / par['drug']['T1_liver_1'],
+        'R1_4_li': 1 / par['drug']['T1_liver_2'],
 
         # Hyperparameter
         'dt': 0.5,
@@ -398,8 +461,14 @@ def _load_tristan_humans_scan(data, participant, scan):
 def _load_tristan_humans_visit(data, participant, visit): 
 
     # --- Get the subject-level data
-    roi = data['rois'][participant][visit]
-    par = data['pars'][participant][visit]
+    roi = data['rois'][participant]
+    par = data['pars'][participant]
+
+    if visit not in roi:
+        return
+
+    roi = roi[visit]
+    par = par[visit]
     
     # --- Get GFR from screening visit if available
     par_screen = data['pars'][participant]['screening']
@@ -409,14 +478,18 @@ def _load_tristan_humans_visit(data, participant, visit):
     time_1 = roi['time_1'] - roi['time_1'][0]
     time_2 = roi['time_2'] - roi['time_1'][0]
 
-    ts_1 = time_1[1] - time_1[0]
-    ts_2 = time_2[1] - time_2[0]
+    ts_1 = (time_1[-1] - time_1[0]) / (len(time_1) - 1)
+    ts_2 = (time_2[-1] - time_2[0]) / (len(time_2) - 1)
 
     return {     
 
         # Electromagnetic
         'R1_b': 1 / par['T1_aorta_1'], 
         'R1_li': 1 / par['T1_liver_1'], 
+
+        'R1_1_li': 1 / par['T1_liver_1'],
+        'R1_2_li': 1 / par['T1_liver_2'],
+        'R1_3_li': 1 / par['T1_liver_3'],
 
         # Hyperparameter
         'dt': 0.5,
@@ -467,11 +540,15 @@ def _load_tristan_humans_visit(data, participant, visit):
     }
 
 
+
 def _load_tristan_humans_all(data, participant): 
 
     # --- Get the subject-level data
     roi = data['rois'][participant]
     par = data['pars'][participant]
+
+    if 'control' not in roi or 'drug' not in roi:
+        return
     
     # --- Get GFR from screening visit if available
     par_screen = par['screening']
@@ -494,6 +571,13 @@ def _load_tristan_humans_all(data, participant):
         'R1_b': (1 / par['control']['T1_aorta_1'] + 1 / par['drug']['T1_aorta_1']) / 2, 
         'R1_li':(1 / par['control']['T1_liver_1'] + 1 / par['drug']['T1_liver_1']) / 2,
 
+        'R1_1_li': 1 / par['control']['T1_liver_1'],
+        'R1_2_li': 1 / par['control']['T1_liver_2'],
+        'R1_3_li': 1 / par['control']['T1_liver_3'],
+        'R1_4_li': 1 / par['drug']['T1_liver_1'],
+        'R1_5_li': 1 / par['drug']['T1_liver_2'],
+        'R1_6_li': 1 / par['drug']['T1_liver_3'],
+
         # Hyperparameter
         'dt': 0.5,
 
@@ -505,24 +589,24 @@ def _load_tristan_humans_all(data, participant):
 
         # Sequence
         'field_strength': 3,
+        'FA_1': par['control']['FA_1'],
+        'FA_2': par['control']['FA_2'],
+        'FA_3': par['drug']['FA_1'],
+        'FA_4': par['drug']['FA_2'],
 
         # Whole body
         'vol_1_li': par['control']['liver_volume'],
         'vol_2_li': par['drug']['liver_volume'],
-        'weight': par['control']['weight'], 
+        'weight': (par['control']['weight'] + par['drug']['weight']) / 2, 
     }
 
-    data['FA_1'] = par['control']['FA_1']
-    data['FA_2'] = par['control']['FA_2']
-    data['FA_3'] = par['drug']['FA_1']
-    data['FA_4'] = par['drug']['FA_2']
 
     idx = 0
     for visit in ['control', 'drug']:
         for scan in [1, 2]:
             idx += 1
 
-            ts = time[idx - 1][1] - time[idx - 1][0]
+            ts = (time[idx - 1][-1] - time[idx - 1][0]) / (len(time[idx - 1]) - 1)
 
             # Indicator group
             data[f'rate_{idx}'] = 1

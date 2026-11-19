@@ -111,10 +111,13 @@ class Module:
     def new_mapped_outputs(self):
         return self.mapped_outputs() - self.mapped_inputs()
 
-    def map_data(self, data: dict | None, all=True) -> dict:
+    def map_data(self, data: dict | None, all=True, include:set=None) -> dict:
         p = {}
         imap = self._imap
-        for i in self._inputs:
+        inputs = self._inputs
+        if include is not None:
+            inputs |= include
+        for i in inputs:
             if i in imap:
                 j = imap[i]
             else:

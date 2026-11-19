@@ -3,160 +3,62 @@ from tqdm import tqdm
 from scipy.optimize import curve_fit
 from scipy import stats
 
-def estimate_bat(t, signal, nb=10, threshold_multiplier=1.1, persistence=3):
-    """
-    Estimates the time point where a noisy 1D signal departs from its initial baseline
-    using the maximum deviation from the mean as the noise metric.
-    
-    Parameters:
-    -----------
+import numpy as np
+
+
+def estimate_bat(t, signal, nb=10, **kwargs):
+    """Estimate the bolus arrival time (BAT) as the half-maximum crossing.
+
+    The baseline is the mean of the first nb points. The function returns the
+    time at which the signal first reaches the level halfway between that
+    baseline and the maximum of the signal, using linear interpolation between
+    the two samples that straddle the level.
+
+    Parameters
+    ----------
     t : array_like
-        1D array of time points corresponding to the signal data.
+        Time points, increasing.
     signal : array_like
-        1D discrete data vector representing the signal over time.
+        Signal values at the time points.
     nb : int
-        The number of initial data points used to calculate the baseline properties.
-    threshold_multiplier : float
-        Multiplier applied to the maximum baseline difference to set the threshold.
-        Must be > 1.0 (e.g., 1.1 means 10% higher than the maximum baseline noise).
-    persistence : int
-        Number of consecutive points that must exceed the threshold to trigger detection.
-        
-    Returns:
-    --------
-    float or None
-        The estimated time point where the change starts, or None if no change is detected.
+        Number of initial points averaged to estimate the baseline.
+
+    Returns
+    -------
+    float
+        Time at which the signal first reaches the half-way level, or
+        numpy.nan if it cannot be determined (empty or all-NaN signal, or no
+        rise above baseline).
     """
-    t = np.asarray(t)
-    signal = np.asarray(signal)
+    t = np.asarray(t, dtype=float)
+    s = np.asarray(signal, dtype=float).flatten()
+    if t.shape != s.shape:
+        raise ValueError('t and signal must have the same shape.')
 
-    if signal.ndim==1:
-        signal = signal.reshape (1, 1, -1)
-    # (channels, components, times)
+    # Ignore samples with missing values
+    ok = ~(np.isnan(t) | np.isnan(s))
+    t, s = t[ok], s[ok]
+    if len(s) == 0:
+        return np.nan
 
-    # Convert to magnitude signal
-    signal = np.linalg.norm(signal, axis=1)
-    # (channels, times)
+    nb = max(1, min(int(nb), len(s)))
+    baseline = s[:nb].mean()
+    peak = s.max()
+    if peak <= baseline:
+        return np.nan  # no rise above baseline
 
-    # Return an average over channels
-    bat = []
-    for channel in range(signal.shape[0]):
-        bat += [_estimate_bat_channel(t, signal[channel,:], nb=nb, threshold_multiplier=threshold_multiplier, persistence=persistence)]
+    half = baseline + 0.5 * (peak - baseline)
 
-    return np.mean(bat)
+    # First sample at or above the half-way level
+    idx = int(np.argmax(s >= half))
+    if idx == 0:
+        return float(t[0])
 
-    # if nb==1:
-    #     return t[1]
-    
-    # if len(signal) != len(t):
-    #     raise ValueError("The time array 't' and 'signal' must have the same length.")
-    # if len(signal) <= nb:
-    #     raise ValueError("Signal length must be greater than the baseline length.")
-    
-    # # 1. Estimate baseline properties
-    # baseline = signal[:nb]
-    # baseline_mean = np.mean(baseline)
-    
-    # # Calculate noise level as the maximum absolute difference from the mean
-    # max_baseline_diff = np.max(np.abs(baseline - baseline_mean))
-    
-    # # 2. Define upper and lower thresholds
-    # # We scale the maximum observed noise slightly to create a safety boundary
-    # threshold_deviation = max_baseline_diff * threshold_multiplier
-    # upper_thresh = baseline_mean + threshold_deviation
-    # lower_thresh = baseline_mean - threshold_deviation
-    
-    # # 3. Find where the signal exceeds the threshold bounds
-    # out_of_bounds = (signal > upper_thresh) | (signal < lower_thresh)
-    
-    # # 4. Enforce persistence to avoid false triggers
-    # for i in range(nb, len(signal) - persistence + 1):
-    #     if np.all(out_of_bounds[i : i + persistence]):
-    #         # Return the exact time from the time array 't'
-    #         return t[i]
-            
-    # return t[0]
+    # Linear interpolation between the previous sample (below) and this one
+    t0, t1 = t[idx - 1], t[idx]
+    s0, s1 = s[idx - 1], s[idx]
+    return float(t0 + (half - s0) / (s1 - s0) * (t1 - t0))
 
-
-def _estimate_bat_channel(t, signal, nb=10, threshold_multiplier=1.1, persistence=3):
-    # (times)
-
-    if nb==1:
-        return t[1]
-    
-    if len(signal) != len(t):
-        raise ValueError("The time array 't' and 'signal' must have the same length.")
-    if len(signal) <= nb:
-        raise ValueError("Signal length must be greater than the baseline length.")
-    
-    # 1. Estimate baseline properties
-    baseline = signal[:nb]
-    baseline_mean = np.mean(baseline)
-    
-    # Calculate noise level as the maximum absolute difference from the mean
-    max_baseline_diff = np.max(np.abs(baseline - baseline_mean))
-    
-    # 2. Define upper and lower thresholds
-    # We scale the maximum observed noise slightly to create a safety boundary
-    threshold_deviation = max_baseline_diff * threshold_multiplier
-    upper_thresh = baseline_mean + threshold_deviation
-    lower_thresh = baseline_mean - threshold_deviation
-    
-    # 3. Find where the signal exceeds the threshold bounds
-    out_of_bounds = (signal > upper_thresh) | (signal < lower_thresh)
-    
-    # 4. Enforce persistence to avoid false triggers
-    for i in range(nb, len(signal) - persistence + 1):
-        if np.all(out_of_bounds[i : i + persistence]):
-            # Return the exact time from the time array 't'
-            return t[i]
-            
-    return t[0]
-
-
-# def _estimate_bat(t, y):
-#     """
-#     Finds the smallest time point corresponding to the half maximum of y 
-#     using linear interpolation.
-#     """
-#     # Convert inputs to numpy arrays just in case
-#     t = np.asarray(t)
-#     y = np.asarray(y)
-
-#     # For a multi-channel signal, return an average over channels
-#     if y.ndim > 1:
-#         est = [estimate_bat(t, y[i,:]) for i in range(y.shape[0])]
-#         return np.mean(est)
-
-#     # Calculate the half-maximum value
-#     y_min = np.min(y)
-#     y_max = np.max(y)
-#     half_max = y_min + (y_max - y_min) / 2.0
-    
-#     # Find the first index where y is greater than or equal to the half-maximum
-#     # (Excluding the very first point because we need a previous point to interpolate from)
-#     idx_above = np.where(y[1:] >= half_max)[0]
-    
-#     if len(idx_above) == 0:
-#         raise ValueError("The signal never reaches the calculated half-maximum.")
-        
-#     # Correct index shift because we sliced from y[1:]
-#     idx = idx_above[0] + 1
-    
-#     # Points for interpolation
-#     t0, t1 = t[idx - 1], t[idx]
-#     # y0, y1 = y[idx - 1], y[idx]
-    
-#     # # Edge case: If the two y-values are identical, avoid division by zero
-#     # if y1 == y0:
-#     #     return t0
-        
-#     # Linear interpolation formula solved for t:
-#     # t = t0 + (half_max - y0) * (t1 - t0) / (y1 - y0)
-#     # t_half = t0 + (half_max - y0) * (t1 - t0) / (y1 - y0)
-#     t_half = (t0 + t1) / 2
-    
-#     return t_half
 
 def _conc_dce_S0(Relax_to_Signal, S, nb, R1b, defaults):
     #Snb = Relax_to_Signal(defaults, tR=0, R1=R1b, S0=1, R2s=1, TE=0, v=1, Fw=0, me=1) 

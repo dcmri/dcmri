@@ -156,7 +156,7 @@ def tristan(
     return Jb/CO
 
 
-def tristan_rat(t, BAT=4.6 * 60, duration=30) -> np.ndarray:
+def tristan_rat(t, BAT=4.6 * 60, duration=30, k_e2h=0.0147) -> np.ndarray:
     """Population AIF model for rats measured with a standard dose of 
     gadoxetate.
 
@@ -210,6 +210,8 @@ def tristan_rat(t, BAT=4.6 * 60, duration=30) -> np.ndarray:
 
     dose = 0.0075   # mmol
 
+    CO = 110.4 / 60 # mL/sec
+    fCO_li = 0.174
     Fb = 2.27 / 60    # mL/sec
     # https://doi.org/10.1021/acs.molpharmaceut.1c00206
     # (Changed from 3.61/60 on 07/03/2022)
@@ -225,7 +227,7 @@ def tristan_rat(t, BAT=4.6 * 60, duration=30) -> np.ndarray:
     # Calculation done with values in Table S2 of our article
     # lead to the same results
     Hct = 0.418     # Cremer et al, J Cereb Blood Flow Metab 3, 254-256 (1983)
-    VL = 8.47       # mL
+    vol_li = 8.47       # mL
     # Scotcher et al 2021, DOI: 10.1021/acs.molpharmaceut.1c00206
     # Supplementary material, Table S2
     GFR = 1.38 / 60   # mL/sec (=1.38mL/min)
@@ -239,18 +241,20 @@ def tristan_rat(t, BAT=4.6 * 60, duration=30) -> np.ndarray:
     # 0.06 X BW + 0.77, Assuming body weight (BW) = 250 g
     # Lee and Blaufox. Blood volume in the rat.
     # J Nucl Med. 1985 Jan;26(1):72-6.
+    v_e_li = 0.23
     VE = 30         # mL
     # All tissues, including liver.
     # Derived from Supplementary material, Table S2
     # Scotcher et al 2021
     # DOI: 10.1021/acs.molpharmaceut.1c00206
-    E = 0.4         # Liver extraction fraction, estimated from TRISTAN data
-    # Using a model with free E, then median over population of controls
+
+    BW = 0.50 #kg
 
     # Derived constants
     VP = (1 - Hct) * VB
     Fp = (1 - Hct) * Fb
-    K = GFR + E * Fp * VL  # mL/sec
+    E = k_e2h / (k_e2h + Fp)
+    K = GFR + E * Fp * vol_li  # mL/sec
 
     # Influx in mmol/sec
     J = np.zeros(np.size(t))

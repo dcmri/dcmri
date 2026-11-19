@@ -56,11 +56,19 @@ class FluxInjection(Module):
     """Indicator flux injected"""
 
     configs = {
-        'bolus': {'single', 'double', 'dual'}
+        'bolus': {'single', 'double', 'dual'},
+        'bolus_dispersion': {'None', 'comp', 'chain'},
     }
     defaults = {
         'bolus': 'single',
+        'bolus_dispersion': 'None',
     }
+
+    def __init__(self, imap:dict=None, omap:dict=None, iomap: dict=None, cmap: dict=None, **config):
+        self.set_config(config, cmap)
+        if self.config['bolus_dispersion'] != 'None':
+            self._bolus_dispersion = Flux({'T': 'Tb', 'D': 'Db'}, block=self.config['bolus_dispersion'])
+        self.map_io(imap, omap, iomap)
 
     def inputs(self):
         inputs = {'tmax', 'dt', 'agent', 'weight'}
@@ -78,6 +86,11 @@ class FluxInjection(Module):
                 'dose_1', 'rate_1', 'BAT_1',
                 'dose_2', 'rate_2', 'BAT_2'
             }
+        if self.config['bolus_dispersion'] == 'comp':
+            inputs |= {'Tb'}
+        elif self.config['bolus_dispersion'] == 'chain':
+            inputs |= {'Tb', 'Db'}
+
         return inputs
     
     def outputs(self):
@@ -111,6 +124,9 @@ class FluxInjection(Module):
                 t, p['weight'], conc, p['dose_2'], p['rate_2'], p['BAT_2']
             )
             J = J1 + J2
+
+        if self.config['bolus_dispersion'] != 'None':
+            J = self._bolus_dispersion(p | {'J': J})['J']
 
         results = {'tC': t, 'Jinj': J}
         return self.map_results(results)
@@ -165,53 +181,63 @@ class FluxAorta(Module):
         **params: override parameter defaults.
     """
     configs = {
-        'heartlung': {'comp', 'pfcomp', 'chain'},
         'organs': {'comp', '2cxm'},
+        'heartlung': {None, 'plug', 'comp', 'pfcomp', 'chain'},
         'renal_arteries': {None, 'pass', 'comp', 'plug'},
         'kidneys': {None, 'pass', 'comp', 'plug', 'pfcomp', 'chain'},
         'liver': {None, 'pass', 'comp', 'plug'},
-        'lagut': {None, 'pass', 'comp', 'plucom'},
+        'lagut': {None, 'pass', 'comp', 'plucom', 'pfcomp', 'chain'},
         'veins': {None, 'pass', 'comp', 'plug', 'pfcomp', 'chain'},
         'bolus': FluxInjection.configs['bolus'],
+        'bolus_dispersion': FluxInjection.configs['bolus_dispersion'],
     }
     defaults = {
-        'heartlung': 'pfcomp', 
         'organs': 'comp', 
+        'heartlung': 'pfcomp', 
         'renal_arteries': None,
         'kidneys': None,
         'liver': None,
         'lagut': None,
         'veins': None,
-        'bolus': 'single',
+        'bolus': FluxInjection.defaults['bolus'],
+        'bolus_dispersion': FluxInjection.defaults['bolus_dispersion'],
     }
 
     def __init__(self, imap:dict=None, omap:dict=None, iomap: dict=None, cmap: dict=None, **config):
         self.set_config(config, cmap)
+        
+        self._flux_injection = FluxInjection(**self.config)
+        self._flux_organs = Flux({'T':'T_or', 'E':'E_or'}, block=self.config['organs'])
 
-        # Check config
+        if self.config['heartlung'] is not None:
+            self._flux_heartlung = Flux({'T': 'T_hl', 'D': 'D_hl'}, block=self.config['heartlung'])
+
+        if self.config['kidneys'] is not None:
+            if self.config['heartlung'] is None:
+                raise InvalidConfig("A kidney component requires a heartlung component too.")
+            self._flux_lk = Flux({'T':'T_p_lk', 'D':'D_lk'}, block=self.config['kidneys'])
+            self._flux_rk = Flux({'T':'T_p_rk', 'D':'D_rk'}, block=self.config['kidneys'])
+
         if self.config['renal_arteries'] is not None:
             if self.config['kidneys'] is None:
                 raise InvalidConfig("A renal artery component requires a renal component too.")
+            self._flux_ra_lk = Flux({'T':'T_lka'}, block=self.config['renal_arteries'])
+            self._flux_ra_rk = Flux({'T':'T_rka'}, block=self.config['renal_arteries'])
+
+        if self.config['liver'] is not None:
+            if self.config['heartlung'] is None:
+                raise InvalidConfig("A liver component requires a heartlung component too.")
+            self._flux_liver = Flux({'T':'T_e_li'}, block=self.config['liver'])
+
         if self.config['lagut'] is not None:
             if self.config['liver'] is None:
                 raise InvalidConfig("A liver artery and gut component requires a liver component too.")
-            
-        self._flux_injection = FluxInjection(**self.config)
-        self._flux_heartlung = Flux({'T': 'T_hl', 'D': 'D_hl'}, block=self.config['heartlung'])
-        self._flux_organs = Flux({'T':'T_or', 'E':'E_or'}, block=self.config['organs'])
-        if self.config['renal_arteries'] is not None:
-            self._flux_ra_lk = Flux({'T':'T_lka'}, block=self.config['renal_arteries'])
-            self._flux_ra_rk = Flux({'T':'T_rka'}, block=self.config['renal_arteries'])
-        if self.config['kidneys'] is not None:
-            self._flux_lk = Flux({'T':'T_p_lk', 'D':'D_lk'}, block=self.config['kidneys'])
-            self._flux_rk = Flux({'T':'T_p_rk', 'D':'D_rk'}, block=self.config['kidneys'])
-        if self.config['lagut'] is not None:
-            self._flux_lagut = Flux({'T':'T_lag', 'ffp':'ffa'}, block=self.config['lagut'])
-        if self.config['liver'] is not None:
-            self._flux_liver = Flux({'T':'T_e_li'}, block=self.config['liver'])
-        if self.config['veins'] is not None:
-            self._flux_veins = Flux({'T':'T_vc', 'D':'D_vc'}, block=self.config['veins'])
+            self._flux_lagut = Flux({'T':'T_lag', 'D':'D_lag', 'ffp':'ffa'}, block=self.config['lagut'])
 
+        if self.config['veins'] is not None:
+            if self.config['heartlung'] is None:
+                raise InvalidConfig("A veins component requires a heartlung component too.")
+            self._flux_veins = Flux({'T':'T_vc', 'D':'D_vc'}, block=self.config['veins'])
 
         self.map_io(imap, omap, iomap)
         
@@ -222,12 +248,14 @@ class FluxAorta(Module):
         else:
             inputs |= {'T_b_or'}
         if self.config['lagut'] == 'plucom':
-            inputs |= {'T_la', 'T_gu'}
+            inputs |= {'T_la', 'T_gu', 'ffa'}
         elif self.config['lagut'] is not None:
-            inputs |= {'T_gu'}
+            inputs |= self._flux_lagut.mapped_inputs()
         inputs |= self._flux_injection.mapped_inputs()
-        inputs |= self._flux_heartlung.mapped_inputs()
-        inputs |= {'vr_or'} | self._flux_organs.mapped_inputs()
+        inputs |= self._flux_organs.mapped_inputs()
+        if self.config['heartlung'] is not None:
+            inputs |= {'vr_or'} 
+            inputs |= self._flux_heartlung.mapped_inputs()
         if self.config['renal_arteries'] is not None:
             inputs |= self._flux_ra_lk.mapped_inputs()
             inputs |= self._flux_ra_rk.mapped_inputs()
@@ -242,11 +270,11 @@ class FluxAorta(Module):
             inputs |= self._flux_veins.mapped_inputs()
 
         inputs |= {'dt', 'dose_tolerance'}
-        inputs -= {'Jinj', 'J', 'T_or', 'T_lag'} # derived
+        inputs -= {'Jinj', 'J', 'T_or'} # derived
         return inputs
     
     def outputs(self):
-        outputs = {'tC', 'J_ao', 'J_vc', 'J_or'}
+        outputs = {'tC', 'J_or', 'J_ao', 'J_vc'}
         if self.config['renal_arteries'] is not None:
             outputs |= {'J_lka', 'J_rka'}
         if self.config['kidneys'] is not None:
@@ -270,33 +298,39 @@ class FluxAorta(Module):
 
         if self.config['lagut'] == 'plucom':
             p['T_lag'] = [p['T_la'], p['T_gu']]
-        elif self.config['lagut'] is not None:
-            p['T_lag'] = p['T_gu']
 
         max_it = 500
 
         p |= self._flux_injection(p)
 
         J_vc = p['Jinj']
-        J_vc_total = J_vc
 
-        dose = trapezoid(J_vc, dx=p['dt'])
-        min_dose = p['dose_tolerance'] * dose
+        if self.config['heartlung'] is None:
 
-        it=0
-        while True:
-            J_vc = self._propagate_J_vena(p, J_vc)['J_vc']
-            J_vc_total += J_vc
+            p['J_or'] = self._flux_organs(p | {'J': J_vc})['J']
+            p['J_ao'] = p['J_or']
+            p['J_vc'] = p['J_or']
+
+        else:
 
             dose = trapezoid(J_vc, dx=p['dt'])
-            if dose <= min_dose:
-                break
+            min_dose = p['dose_tolerance'] * dose
 
-            it += 1
-            if it > max_it:
-                break
+            J_vc_total = J_vc
+            it = 0
+            while True:
+                J_vc = self._propagate_J_vena(p, J_vc)['J_vc']
+                J_vc_total += J_vc
 
-        p |= self._propagate_J_vena(p, J_vc_total)
+                dose = trapezoid(J_vc, dx=p['dt'])
+                if dose <= min_dose:
+                    break
+
+                it += 1
+                if it > max_it:
+                    break
+
+            p |= self._propagate_J_vena(p, J_vc_total)
 
         return self.map_results(p)
 

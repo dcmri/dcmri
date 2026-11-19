@@ -17,7 +17,7 @@ class InverseLiver(Module):
     configs = configs
     defaults = defaults
 
-    _all_inputs = {'tS_li', 'PA', 'iz', 'v_li', 'T_h', 'kf_e2h', 'Tf_h', 'TA', 'field_strength', 'S0_li', 'v_e_li', 'TE1', 'nb', 'B1corr_li', 'Nph', 'TD', 'R1_li', 'v_h', 'TE2', 'k_e2h', 'Nz', 'pfree', 'Ti_h', 'tstart', 'TE', 'TP', 'E_li', 'R1_e', 'TR', 'FA', 'ffa', 'Ef_li', 'S_li', 'Nk0', 'F_b_li', 'ki_e2h', 'iStrig_li', 'PSw', 'dt', 'R1_h', 'ci_li', 'Ei_li', 'agent', 'F_p_li', 'me', 'NSR_li'}
+    _all_inputs = {'tmax', 'BAT', 'duration', 'tS_li', 'PA', 'iz', 'v_li', 'T_h', 'kf_e2h', 'Tf_h', 'TA', 'field_strength', 'S0_li', 'v_e_li', 'TE1', 'nb', 'B1corr_li', 'Nph', 'TD', 'R1_li', 'v_h', 'TE2', 'k_e2h', 'Nz', 'pfree', 'Ti_h', 'tstart', 'TE', 'TP', 'E_li', 'R1_e', 'TR', 'FA', 'ffa', 'Ef_li', 'S_li', 'Nk0', 'F_b_li', 'ki_e2h', 'iStrig_li', 'PSw', 'dt', 'R1_h', 'ci_li', 'Ei_li', 'agent', 'F_p_li', 'me', 'NSR_li'}
     _all_outputs = {'pars', 'popt', 'loss', 'psdev', 'pcov'}
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):
@@ -46,10 +46,11 @@ class InverseLiver(Module):
             pfree |= {'S0_li'}
         return {p: get_quantity(p)['bounds'] for p in pfree}
 
-    def _pder(self, data:dict):
+    def _pder(self, p, popt):
+        data = p | popt
         p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['physiological', 'whole-body']}
         p = dpars_liver(p, kinetics=self.config['kinetics'])
-        return p
+        return p | popt
 
     def _call(self, p: dict=None, **kwargs) -> dict:
         self._preproc(p)
@@ -57,13 +58,14 @@ class InverseLiver(Module):
         # Initialize pfree if needed
         if p['pfree'] is None:
             p['pfree'] = self._pfree() 
-
-        p['pfree'] = update_bounds(p['pfree'], value=p)
+        else:
+            p['pfree'] = self.map_data(p['pfree'], all=False)
+        p['pfree'] = update_bounds(p['pfree'], value=p, all=False)
 
         # Compute inverse
         signal = p['S_li']
         output = train_brute(self._predict, signal, p, p['pfree'], **kwargs)
-        output['pars'] = self._pder(p | output['popt'])
+        output['pars'] = self._pder(p, output['popt'])
 
         return output
 
@@ -94,7 +96,7 @@ class InverseLiver(Module):
     def plot(self, data: dict, result:dict=None, xlim:list=None, fname:str=None, show=True):
         if result is None:
             result = self.__call__(data)
-        p = self.map_data(data | result['popt'])
+        p = self.map_data(data | result['pars'])
         
         self._preproc(p)
         pred = self.forward(p)
@@ -116,7 +118,7 @@ class InverseLiver(Module):
         # Concentration Plot
         ax1.set_title('Concentration Reconstruction')
         if '1I' in self.config['kinetics']:
-            ax1.plot(pred['tC_li'] / 60, 1000 * p['ci_li'], '-', linewidth=3, color='darkred', label='Input')
+            ax1.plot(pred['tC_li'] / 60, 1000 * pred['ci_li_1i'], '-', linewidth=3, color='darkred', label='Input')
         if '2I' in self.config['kinetics']:
             ax1.plot(pred['tC_li'] / 60, 1000 * p['ci_li'][0], '-', linewidth=3, color='darkred', label='Arterial')
             ax1.plot(pred['tC_li'] / 60, 1000 * p['ci_li'][1], '-', linewidth=3, color='purple', label='Portal')

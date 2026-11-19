@@ -27,6 +27,7 @@ from dcmri.utils.function_fetch import (
 )
 from dcmri.utils.function_load import (
     load_tristan_humans,
+    load_tristan_human_subjects,
     load_tristan_rats,
     load_kruk,
     load_minipig,
@@ -48,6 +49,9 @@ from dcmri.core.tools import (
     get_quantity,
     unit,
     group,
+    to_json,
+    from_json,
+    to_csv,
 )
 
 from dcmri.kinetics.modules_conc import (

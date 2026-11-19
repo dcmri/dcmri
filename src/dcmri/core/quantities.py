@@ -93,7 +93,7 @@ COMPS = { # subvoxel compartments
     'vb': 'venous blood',
 }
 
-
+# TODO: rename init -> value
 
 QUANTITIES = {
 
@@ -108,6 +108,8 @@ QUANTITIES = {
     'dose': {'init': 0.1, 'bounds': (0, 0.2), 'name': 'contrast agent dose', 'unit': 'mL/kg', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
     'rate': {'init': 1, 'bounds': (0, 10), 'name': 'injection rate', 'unit': 'mL/sec', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
     'duration': {'init': 5, 'bounds': (0, 120), 'name': 'injection duration', 'unit': 'sec', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
+    'Tb': {'init': 30, 'bounds': (0.0, 60), 'name': 'bolus mean transit time', 'unit': 'sec', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
+    'Db': {'init': 0.2, 'bounds': (0, 1), 'name': 'bolus transit time dispersion', 'unit': '', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
 
     'tC': {'init': 0.0, 'bounds': None, 'name': 'concentration time points', 'unit': 'sec', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
     'J': {'init': 1, 'bounds': (0, 10), 'name': 'indicator flux', 'unit': 'mmol/sec', 'bounds_type': 'abs', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
@@ -115,6 +117,7 @@ QUANTITIES = {
     'c': {'init': 0.005, 'bounds': (0, 1), 'name': 'concentration', 'unit': 'mmol/mL', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
     'ci': {'init': 0.005, 'bounds': None, 'name': 'inlet concentration', 'unit': 'mmol/mL', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
     'C': {'init': 0.005, 'bounds':(0, 1), 'name': 'tissue concentration', 'unit': 'mmol/cm3', 'group': 'indicator', 'dicom_key': None, 'osipi_key': None},
+    'AUCC': {'init': 1, 'bounds': (0, 1e12), 'name': 'area under the concentration time curve', 'unit': 'M*sec', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
 
     # Whole body properties
     'weight': {'init': 70, 'bounds': (0, 300), 'name': 'body weight', 'unit': 'kg', 'group': 'whole-body', 'dicom_key': None, 'osipi_key': None},
@@ -146,6 +149,9 @@ QUANTITIES = {
     'CL': {'init': 10, 'bounds': (0.0, 100), 'name': 'Contrast agent clearance', 'unit': 'mL/sec', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
     'BF': {'init': 2, 'bounds': (0, 100), 'name': 'blood flow', 'unit': 'mL/sec', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
     'PF': {'init': 1, 'bounds': (0, 100), 'name': 'plasma flow', 'unit': 'mL/sec', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
+    'PV': {'init': 1e4, 'bounds': (0, 100), 'name': 'plasma volume', 'unit': 'mL', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
+    'EV': {'init': 1e4, 'bounds': (0, 100), 'name': 'plasma volume', 'unit': 'mL', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
+
 
     # --- Liver Kinetics ---
     'ffa': {'init': 0.2, 'bounds': (0, 1), 'name': 'arterial flow fraction', 'unit': '', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
@@ -157,6 +163,7 @@ QUANTITIES = {
     # This can be ff_kc
     'ffc': {'init': 0.8, 'bounds': (0, 1), 'name': 'cortical flow fraction', 'unit': '', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
     'DRPF': {'init': 0.5, 'bounds': (0, 1), 'name': 'Differential renal plasma flow', 'unit': '', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
+    'DRF': {'init': 0.5, 'bounds': (0, 1), 'name': 'Differential renal function', 'unit': '', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
 
     # --- Whole Body Kinetics ---
     'CO': {'init': 100, 'bounds': (0, 500), 'name': 'cardiac output', 'unit': 'mL/sec', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
@@ -168,6 +175,7 @@ QUANTITIES = {
     'Ktrans': {'init': 0.015, 'bounds': (0.0, 0.1), 'name': 'plasma clearance', 'unit': 'mL/sec/cm3', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
     'kep': {'init': 0.015, 'bounds': (0.0, 0.1), 'name': 'interstitial excretion rate', 'unit': '1/sec', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
     'PS': {'init': 0.003, 'bounds': (0, 1), 'name': 'permeability-surface area product', 'unit': 'mL/sec/cm3', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
+    'PSB': {'init': 0.003, 'bounds': (0, 1), 'name': 'whole-body permeability-surface area product', 'unit': 'mL/sec', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
 
     # LS
     'irf': {'init': 0.02, 'bounds': (0, 10), 'name': 'Impulse response function', 'unit': 'mL/sec/cm3', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
@@ -254,6 +262,7 @@ QUANTITIES = {
     'iStrig': {'init': None, 'bounds': None, 'name': 'indices of the signal trigger', 'unit': '', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
     'Strig': {'init': 1.0, 'bounds': (0, 5), 'name': 'signal trigger', 'unit': 'a.u.', 'bounds_type': 'mult', 'group': 'signal', 'dicom_key': None, 'osipi_key': 'Q.MS1.002'},
     'NSR': {'init': 0.0, 'bounds': (0, 1e5), 'name': 'noise-to-signal ratio', 'unit': '', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
+    'RE': {'init': 1, 'bounds': (0, 1000), 'name': 'relative signal enhancement', 'unit': '', 'group': 'signal', 'dicom_key': None, 'osipi_key': None},
 
     # Inverse signal
     'pfree': {'init': None, 'bounds': None, 'name': 'set of free parameters', 'unit': 'a.u.', 'group': 'inverse problem', 'dicom_key': None, 'osipi_key': None},
@@ -263,21 +272,7 @@ QUANTITIES = {
     'pars': {'init': None, 'bounds': None, 'name': 'dictionary with source- and derived parameters', 'unit': 'a.u.', 'group': 'inverse problem', 'dicom_key': None, 'osipi_key': None},
     #'pars': {'init': None, 'bounds': None, 'name': 'dictionary with source- and derived parameters', 'unit': 'a.u.', 'group': 'inverse problem', 'dicom_key': None, 'osipi_key': None},
     'loss': {'init': None, 'bounds': None, 'name': 'loss value of optimized model', 'unit': 'a.u.', 'group': 'inverse problem', 'dicom_key': None, 'osipi_key': None},
-    
-    # # Water kinetics
-    # 'Twc': {'init': 0.1, 'bounds': (0, 1), 'name': 'Intracellular water mean transit time', 'unit': 'sec', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
-    # 'Twi': {'init': 0.1, 'bounds': (0, 1), 'name': 'Interstitial water mean transit time', 'unit': 'sec', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
-    # 'Twb': {'init': 0.1, 'bounds': (0, 1), 'name': 'Intravascular water mean transit time', 'unit': 'sec', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
 
-    # # 'fvr_l': {'init': 0.1, 'bounds': (0, 1), 'name': 'Liver fraction of the venous return', 'unit': '', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
-    # 'Eb': {'init': 0.05, 'bounds': (0.01, 0.15), 'name': 'Body extraction', 'unit': '', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
-
-    # # --- Blood Kinetics ---
-    # 'Tvc': {'init': 10, 'bounds': (0, 30), 'name': 'Vena cava MTT', 'unit': 'sec', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
-    # 'Dvc': {'init': 0.2, 'bounds': (0.01, 0.99), 'name': 'Vena cava dispersion', 'unit': '', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
-
-    # # Portal vein
-    # 'uv': {'init': 1.0,  'bounds': (0.0, 1.0), 'name': 'Portal vein volume fraction', 'unit': '', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
 }
 
 QVALUES = {k: v['init'] for k, v in QUANTITIES.items()}

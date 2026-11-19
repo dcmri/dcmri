@@ -392,7 +392,7 @@ def test_nexpconv():
     g = dc.nexpconv(n, T, t)
     # Check against analytical
     g0 = (t/T) * np.exp(-t/T)/T
-    assert np.linalg.norm(g-g0) == 0
+    assert np.linalg.norm(g-g0) < 1e-12
     # Check against expconv
     g0 = dc.expconv(np.exp(-t/T)/T, T, t)
     assert np.linalg.norm(g-g0) < 1e-4

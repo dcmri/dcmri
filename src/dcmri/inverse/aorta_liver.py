@@ -36,7 +36,7 @@ import matplotlib.pyplot as plt
 
 from dcmri.core.module import Module
 from dcmri.core.tools import get_quantity, update_bounds
-from dcmri.utils.fit import train_brute
+from dcmri.utils.fit import train_brute, save_results, read_results, plot_pcov, plot_pvar
 from dcmri.forward.aorta_liver import AortaLiver
 from dcmri.kinetics.functions_liver import dpars_liver
 from dcmri.inverse.functions import estimate_bat
@@ -53,7 +53,7 @@ class InverseAortaLiver(Module):
     configs = configs
     defaults = defaults
 
-    _all_inputs = {'E_li', 'dose_1', 'TP', 'Ei_li', 'field_strength', 'me', 'B1corr_ao', 'ffa', 'tS_li', 'T_gu', 'dt', 'TR', 'tS_ao', 'vol_ao', 'kf_e2h', 'rate', 'TD', 'TA', 'dose', 'CO', 'R1_b', 'ki_e2h', 'PA', 'Tf_h', 'T_h', 'S_ao', 'S0_ao', 'S_li', 'v_e_li', 'Ti_h', 'TE2', 'D_hl', 'GFR', 'R1_li', 'bdel', 'S0_li', 'iStrig_ao', 'Nk0', 'pfree', 'R1_h', 'NSR_li', 'E_or', 'SA', 'v_h', 'R1_e', 'T_b_or', 'rate_1', 'iz', 'T_hl', 'T_la', 'Ef_li', 'agent', 'T_e_or', 'Nph', 'vol_li', 'fCO_li', 'FA', 'Nz', 'iStrig_li', 'weight', 'PSw', 'dose_tolerance', 'B1corr_li', 'nb', 'BAT', 'NSR_ao', 'v_li', 'rate_2', 'H', 'dose_2', 'k_e2h', 'TE', 'TE1', 'TF'}
+    _all_inputs = {'E_li', 'dose_1', 'TP', 'Ei_li', 'field_strength', 'me', 'B1corr_ao', 'ffa', 'tS_li', 'T_lag', 'D_lag', 'T_gu', 'dt', 'TR', 'tS_ao', 'vol_ao', 'kf_e2h', 'rate', 'TD', 'TA', 'dose', 'CO', 'R1_b', 'ki_e2h', 'PA', 'Tf_h', 'T_h', 'S_ao', 'S0_ao', 'S_li', 'v_e_li', 'Ti_h', 'TE2', 'D_hl', 'GFR', 'R1_li', 'bdel', 'S0_li', 'iStrig_ao', 'Nk0', 'pfree', 'R1_h', 'NSR_li', 'E_or', 'SA', 'v_h', 'R1_e', 'T_b_or', 'rate_1', 'iz', 'T_hl', 'T_la', 'Ef_li', 'agent', 'T_e_or', 'Nph', 'vol_li', 'fCO_li', 'FA', 'Nz', 'iStrig_li', 'weight', 'PSw', 'dose_tolerance', 'B1corr_li', 'nb', 'BAT', 'NSR_ao', 'v_li', 'rate_2', 'H', 'dose_2', 'k_e2h', 'TE', 'TE1', 'TF'}
     _all_outputs = {'pars', 'loss', 'pcov', 'psdev', 'popt'}
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):
@@ -70,7 +70,7 @@ class InverseAortaLiver(Module):
         p[f'tstart'] = min([p[f'tS_{roi}'][0] for roi in ROIS])
         tmax = max([p[f'tS_{roi}'][-1] for roi in ROIS])
         ts = p[f'tS_ao'][1] - p[f'tS_ao'][0]
-        p[f'tacq'] = tmax - p[f'tstart'] + 2 * ts
+        p[f'tacq'] = tmax - p[f'tstart'] + 5 * ts
 
         # Reshape signal if needed
         for roi in ROIS:
@@ -96,13 +96,17 @@ class InverseAortaLiver(Module):
         pfree |= {'BAT'}
         if not self.config['calibrate']:
             pfree |= {'S0_ao', 'S0_li'}
-        pfree -= {'v_li', 'H', 'GFR'}
+        pfree -= {'v_li', 'H'}
         return {p: get_quantity(p)['bounds'] for p in pfree}
     
     def _pder(self, data:dict):
         p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['physiological', 'whole-body']}
         p = dpars_liver(p, kinetics=self.config['liver'])
-        return p
+
+        # Add BAT
+        p_bat = {k: v for k, v in data.items() if k == 'BAT'}
+
+        return p | p_bat
 
     def _call(self, p: dict=None, **kwargs) -> dict:  
         self._preproc(p)
@@ -116,7 +120,9 @@ class InverseAortaLiver(Module):
         # Initialize pfree if needed
         if p['pfree'] is None:
             p['pfree'] = self._pfree() 
-        p['pfree'] = update_bounds(p['pfree'], value=p)
+        else:
+            p['pfree'] = self.map_data(p['pfree'], all=False, include={'BAT'})
+        p['pfree'] = update_bounds(p['pfree'], value=p, all=False)
 
         # Compute inverse
         signal = tuple([p[f'S_{roi}'].reshape(-1) for roi in ROIS])
@@ -163,7 +169,7 @@ class InverseAortaLiver(Module):
     def plot(self, data: dict, result:dict=None, xlim:list=None, clim:list=None, fname:str=None, show=True):
         if result is None:
             result = self.__call__(data)
-        p = self.map_data(data | result['popt'])
+        p = self.map_data(data | result['pars'])
         
         # Not an input parameter but required by forward model
         if 'BAT' in result['popt']:
@@ -189,8 +195,8 @@ class InverseAortaLiver(Module):
                     ax.plot(t / 60, s[i, j, :], linestyle='-', color=clr[1], linewidth=3, label='Prediction')                
             ax.legend()
 
-        plot_data(pred['tS_ao'], pred['S_ao'], p['tS_ao'], p['S_ao'], ax1, ['lightcoral', 'darkred'])
-        plot_data(pred['tS_li'], pred['S_li'], p['tS_li'], p['S_li'], ax3, ['cornflowerblue', 'darkblue'])
+        plot_data(pred['tS_ao'], pred['S_ao'], pred['tS_ao'][0] + p['tS_ao'], p['S_ao'], ax1, ['lightcoral', 'darkred'])
+        plot_data(pred['tS_li'], pred['S_li'], pred['tS_li'][0] + p['tS_li'], p['S_li'], ax3, ['cornflowerblue', 'darkblue'])
         
         # Plot concentrations
         ax2.set(ylabel='Concentration (mM)', xlim=xlim)
@@ -211,3 +217,15 @@ class InverseAortaLiver(Module):
             plt.show()
         else: 
             plt.close()
+
+    def save(self, result:dict, filepath:str, subj='subject_id', study='study_id'):
+        save_results(result, filepath, subj, study)
+
+    def load(self, filepath:str):
+        return read_results(filepath)
+
+    def plot_pcov(self, result: dict, fname: str = None, show=True, vmin=-0.025, vmax=0.025):
+        plot_pcov(result, fname, show, vmin, vmax)
+
+    def plot_pvar(self, result: dict, fname: str = None, xlim: list = None, show=True):
+        plot_pvar(result, fname, xlim, show)

@@ -200,6 +200,23 @@ def fetch(dataset, download_all=False) -> dict:
         for d in DATASETS.keys():
             _download(d)
 
+    if dataset == 'tristan_humans_healthy':
+        all_datasets = [
+            'tristan_humans_healthy_controls',
+            'tristan_humans_healthy_ciclosporin',
+            'tristan_humans_healthy_metformin',
+            'tristan_humans_healthy_rifampicin',
+        ]
+        return [_fetch_dataset(d) for d in all_datasets]
+
+    if dataset == 'tristan_humans_healthy_drug':
+        all_datasets = [
+            'tristan_humans_healthy_ciclosporin',
+            'tristan_humans_healthy_metformin',
+            'tristan_humans_healthy_rifampicin',
+        ]
+        return [_fetch_dataset(d) for d in all_datasets]
+
     if dataset == 'tristan_rats_healthy_six_drugs':
         all_datasets = [
             'tristan_rats_study_05_single_asunaprevir',

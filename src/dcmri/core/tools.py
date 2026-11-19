@@ -1,5 +1,9 @@
 from copy import deepcopy
 from numbers import Real
+import json
+import csv
+import numbers
+
 
 import numpy as np
 
@@ -399,7 +403,7 @@ def get_bounds(free:dict=None, bounds: dict=None, quantities:dict=None, free_par
 
     return free
 
-def update_bounds(free, quantities:dict=None, value:dict=None):
+def update_bounds(free, quantities:dict=None, value:dict=None, all=True):
     
     # --- 2. Boundary Validation ---
     lexicon = QUANTITIES
@@ -414,10 +418,12 @@ def update_bounds(free, quantities:dict=None, value:dict=None):
     for p, bnds in free.items():
         var = parse_varname(p)['name']
         if p not in value:
-            raise ValueError(
-                f"'{p}' is not a valid parameter for this configuration.\n"
-                f"Use print_params() to print a list of all valid parameters."
-            )
+            if all:
+                raise ValueError(
+                    f"'{p}' is not a valid parameter for this configuration.\n"
+                    f"Use print_params() to print a list of all valid parameters."
+                )
+            new_free.pop(p)
 
         elif var in bounds_add:
             if (bnds[0] > 0) or (bnds[1] < 0):
@@ -458,4 +464,58 @@ def select_params(lexicon=None, **kwargs):
             result[p] = deepcopy(lexicon[p])
     
     return result
+
+
+
+
+
+
+def _encode(obj):
+    """Fallback for objects json can't serialise natively."""
+    if isinstance(obj, np.ndarray):
+        if np.iscomplexobj(obj):
+            data = {'real': obj.real.tolist(), 'imag': obj.imag.tolist()}
+        else:
+            data = obj.tolist()
+        return {'__ndarray__': data, 'dtype': str(obj.dtype), 'shape': list(obj.shape)}
+    if isinstance(obj, np.generic):  # numpy scalars such as np.float64
+        return obj.item()
+    raise TypeError(f'Object of type {type(obj).__name__} is not JSON serialisable')
+
+def _decode(d):
+    """Rebuild arrays from the dicts produced by _encode."""
+    if '__ndarray__' in d:
+        data = d['__ndarray__']
+        if isinstance(data, dict):  # complex array
+            data = np.array(data['real']) + 1j * np.array(data['imag'])
+        return np.array(data, dtype=d['dtype']).reshape(d['shape'])
+    return d
+
+def to_json(path, dct, indent=2):
+    """Save a (nested) dict, which may contain numpy arrays, as a JSON file."""
+    with open(path, 'w') as f:
+        json.dump(dct, f, default=_encode, indent=indent)
+
+def from_json(path):
+    """Read a JSON file written by save_dict, restoring numpy arrays."""
+    with open(path) as f:
+        return json.load(f, object_hook=_decode)
+
+
+
+def to_csv(path, dct):
+    """Save a flat dict of scalar values as a two-column CSV (key, value)."""
+    for key, val in dct.items():
+        is_scalar = isinstance(val, (numbers.Number, str, bool, np.generic)) or val is None
+        if not is_scalar:
+            raise TypeError(
+                f"Value for key '{key}' is of type {type(val).__name__}; "
+                "only scalar values can be saved to CSV."
+            )
+
+    with open(path, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['key', 'value'])
+        for key, val in dct.items():
+            writer.writerow([key, val])
 

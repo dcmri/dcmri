@@ -129,7 +129,7 @@ class Liver(Module):
     configs = configs
     defaults = defaults
 
-    _all_inputs = {'FA', 'PSw', 'Tf_h', 'NSR_li', 'ci_li', 'F_b_li', 'B1corr_li', 'field_strength', 'iStrig_li', 'iz', 'F_p_li', 'TE', 'TP', 'TE2', 'TE1', 'E_li', 'iScal_li', 'dt', 'me', 'v_li', 'TD', 'TA', 'Nph', 'kf_e2h', 'ki_e2h', 'k_e2h', 'T_h', 'Ei_li', 'Ef_li', 'R1_e', 'ffa', 'Nk0', 'v_e_li', 'tstart', 'S0_li', 'Nz', 'Scal_li', 'PA', 'agent', 'Ti_h', 'R1_h', 'TR', 'v_h'}
+    _all_inputs = {'tmax', 'BAT', 'duration', 'FA', 'PSw', 'Tf_h', 'NSR_li', 'ci_li', 'F_b_li', 'B1corr_li', 'field_strength', 'iStrig_li', 'iz', 'F_p_li', 'TE', 'TP', 'TE2', 'TE1', 'E_li', 'iScal_li', 'dt', 'me', 'v_li', 'TD', 'TA', 'Nph', 'kf_e2h', 'ki_e2h', 'k_e2h', 'T_h', 'Ei_li', 'Ef_li', 'R1_e', 'ffa', 'Nk0', 'v_e_li', 'tstart', 'S0_li', 'Nz', 'Scal_li', 'PA', 'agent', 'Ti_h', 'R1_h', 'TR', 'v_h'}
     _all_outputs = {'R1i_li', 'tM_li', 'R2_li', 'ci_li', 'M_li', 'tR_li', 'C_li', 'S0_li', 'tS_li', 'R1_li', 'R2s_li', 'S_li', 'tC_li'}
 
     def __call__(self, data: dict=None) -> dict:

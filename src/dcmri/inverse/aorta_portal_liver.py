@@ -159,7 +159,7 @@ class InverseAortaPortalLiver(Module):
     configs = configs
     defaults = defaults
 
-    _all_inputs = {'bdel', 'S0_ao', 'vol_ao', 'ki_e2h', 'nb', 'NSR_pv', 'TD', 'agent', 'kf_e2h', 'dose_2', 'NSR_li', 'TR', 'k_e2h', 'pfree', 'Tf_h', 'T_hl', 'B1corr_li', 'dose_tolerance', 'S0_pv', 'Nk0', 'T_la', 'E_li', 'v_h', 'fCO_li', 'TF', 'FA', 'H', 'R1_b', 'rate_2', 'iStrig_pv', 'tS_ao', 'dose', 'PA', 'T_b_or', 'iz', 'B1corr_pv', 'TP', 'Ei_li', 'dose_1', 'TA', 'R1_h', 'v_e_li', 'vol_li', 'TE', 'R1_e', 'dt', 'S_li', 'TE2', 'vol_la', 'Ti_h', 'tS_li', 'TE1', 'rate_1', 'tstart', 'CO', 'B1corr_ao', 'Nph', 'tacq', 'GFR', 'field_strength', 'S_pv', 'v_li', 'T_gu', 'Ef_li', 'rate', 'ffa', 'S_ao', 'vol_pv', 'iStrig_ao', 'weight', 'me', 'T_h', 'tS_pv', 'NSR_ao', 'SA', 'iStrig_li', 'D_hl', 'S0_li', 'PSw', 'Nz', 'E_or', 'T_e_or'}
+    _all_inputs = {'bdel', 'S0_ao', 'vol_ao', 'ki_e2h', 'nb', 'NSR_pv', 'TD', 'agent', 'kf_e2h', 'dose_2', 'NSR_li', 'TR', 'k_e2h', 'pfree', 'Tf_h', 'T_hl', 'B1corr_li', 'dose_tolerance', 'S0_pv', 'Nk0', 'T_la', 'E_li', 'v_h', 'fCO_li', 'TF', 'FA', 'H', 'R1_b', 'rate_2', 'iStrig_pv', 'tS_ao', 'dose', 'PA', 'T_b_or', 'iz', 'B1corr_pv', 'TP', 'Ei_li', 'dose_1', 'TA', 'R1_h', 'v_e_li', 'vol_li', 'TE', 'R1_e', 'dt', 'S_li', 'TE2', 'vol_la', 'Ti_h', 'tS_li', 'TE1', 'rate_1', 'tstart', 'CO', 'B1corr_ao', 'Nph', 'tacq', 'GFR', 'field_strength', 'S_pv', 'v_li', 'T_lag', 'D_lag', 'T_gu', 'Ef_li', 'rate', 'ffa', 'S_ao', 'vol_pv', 'iStrig_ao', 'weight', 'me', 'T_h', 'tS_pv', 'NSR_ao', 'SA', 'iStrig_li', 'D_hl', 'S0_li', 'PSw', 'Nz', 'E_or', 'T_e_or'}
     _all_outputs = {'popt', 'psdev', 'loss', 'pcov'}
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):

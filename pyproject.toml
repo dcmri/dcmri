@@ -16,6 +16,7 @@ dependencies = [
   "requests",
   'joblib',
   'zarr', # can we avoid?
+  'pydmr', # save format
   'platformdirs', # can be rewritten if needed
 ]
 # optional information

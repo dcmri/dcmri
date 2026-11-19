@@ -203,12 +203,12 @@ import matplotlib.pyplot as plt
 
 from dcmri.core.module import Module
 from dcmri.core.tools import get_quantity, update_bounds, parse_varname, extend_varname, remove_varindex
-from dcmri.utils.fit import train_brute
+from dcmri.utils.fit import train_brute, save_results, read_results, plot_pcov, plot_pvar
 from dcmri.forward.aorta_liver_split_drug import AortaLiverSplitDrug as ForwardModel
 from dcmri.kinetics.functions_liver import dpars_liver
 from dcmri.inverse.functions import estimate_bat
 
-configs = deepcopy(ForwardModel.configs) | {'estimate_bat': {'none', 'ttp', 'custom'}}
+configs = deepcopy(ForwardModel.configs) | {'estimate_bat': {'none', 'ttp', 'custom', 'dual'}}
 defaults = deepcopy(ForwardModel.defaults) | {'estimate_bat': 'custom', 'calibrate': True}
 
 ROIS = ['ao', 'li']
@@ -219,7 +219,13 @@ class InverseAortaLiverSplitDrug(Module):
     configs = configs
     defaults = defaults
 
-    _all_inputs = {'ki_2_e2h', 'FA_3', 'SA_4', 'Nk0_4', 'TP_1', 'NSR_1_ao', 'TA_2', 'NSR_2_ao', 'Ef_2_li', 'nb_1', 'PA_1', 'iz_4', 'BAT_2', 'Nk0_1', 'Ei_2_li', 'iStrig_1_li', 'TE2_1', 'iStrig_3_li', 'S_4_li', 'Ti_2_h', 'TE2_2', 'TE1_1', 'TE_2', 'D_hl', 'Nz_2', 'S0_3_li', 'SA_2', 'vol_1_li', 'S0_4_ao', 'NSR_4_ao', 'NSR_3_li', 'tS_1_li', 'iz_2', 'v_e', 'S_4_ao', 'dose_1', 'Tf_2_h', 'k_2_e2h', 'E_2_li', 'tS_3_li', 'TF', 'T_e_or', 'S0_4_li', 'Nk0_2', 'rate_2', 'TP_4', 'TD_2', 'TA_3', 'TR_1', 'Nph_3', 'iStrig_3_ao', 'T_hl', 'dose_3', 'R1_h', 'CO', 'NSR_1_li', 'weight', 'FA_2', 'TE1_2', 'vol_2_li', 'Nz_3', 'v_e_li', 'NSR_2_li', 'k_1_e2h', 'tS_4_li', 'Nk0_3', 'rate_4', 'B1corr_2_ao', 'tS_4_ao', 'S_3_li', 'FA_4', 'TR_4', 'Nz_1', 'tS_3_ao', 'Ef_1_li', 'TE2_3', 'R1_li', 'field_strength', 'vol_1_ao', 'B1corr_3_ao', 'ffa', 'S0_3_ao', 'B1corr_4_li', 'PA_3', 'T_gu', 'iStrig_2_ao', 'TE2_4', 'E_or', 'BAT_4', 'nb_2', 'TE_4', 'iz_1', 'TE1_3', 'B1corr_3_li', 'dose_2', 'dose_tolerance', 'TE_3', 'v_h', 'B1corr_4_ao', 'TD_3', 'iStrig_4_li', 'S_3_ao', 'B1corr_1_ao', 'PA_2', 'NSR_4_li', 'rate_3', 'iStrig_4_ao', 'kf_2_e2h', 'iStrig_2_li', 'S0_2_ao', 'B1corr_2_li', 'tS_2_li', 'bdel', 'Ei_1_li', 'tS_2_ao', 'vr_or', 'TA_1', 'Nph_4', 'T_2_h', 'S0_1_ao', 'S0_2_li', 'Tf_1_h', 'T_b_or', 'agent', 'TR_3', 'Nph_2', 'Ti_1_h', 'PA_4', 'S0_1_li', 'dt', 'v_li', 'S_2_ao', 'kf_1_e2h', 'TP_2', 'TD_4', 'rate_1', 'S_1_ao', 'SA_3', 'TP_3', 'NSR_3_ao', 'PSw', 'SA_1', 'TE_1', 'fCO_li', 'E_1_li', 'Nph_1', 'TD_1', 'ki_1_e2h', 'nb_3', 'T_1_h', 'BAT_3', 'TA_4', 'TE1_4', 'TR_2', 'Nz_4', 'R1_e', 'B1corr_1_li', 'BAT_1', 'H', 'FA_1', 'pfree', 'tS_1_ao', 'R1_b', 'iStrig_1_ao', 'me', 'iz_3', 'vol_2_ao', 'S_2_li', 'S_1_li', 'nb_4', 'T_la', 'dose_4'}
+    quantities = {
+        'kd': {'init': 0.003, 'bounds': (0.0, 0.1), 'name': 'drug effect on tissue transfer rate', 'unit': 'mL/sec/cm3', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
+        'ke': {'init': 0.5, 'bounds': (-100, 100), 'name': 'drug effect size on tissue transfer rate', 'unit': '', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
+        'kc': {'init': 0.003, 'bounds': (0.0, 0.1), 'name': 'diurnal change of tissue transfer rate', 'unit': '', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
+    }
+
+    _all_inputs = {'ki_2_e2h', 'FA_3', 'SA_4', 'Nk0_4', 'TP_1', 'NSR_1_ao', 'TA_2', 'NSR_2_ao', 'Ef_2_li', 'nb_1', 'PA_1', 'iz_4', 'BAT_2', 'Nk0_1', 'Ei_2_li', 'iStrig_1_li', 'TE2_1', 'iStrig_3_li', 'S_4_li', 'Ti_2_h', 'TE2_2', 'TE1_1', 'TE_2', 'D_hl', 'Nz_2', 'S0_3_li', 'SA_2', 'vol_1_li', 'S0_4_ao', 'NSR_4_ao', 'NSR_3_li', 'tS_1_li', 'iz_2', 'v_e', 'S_4_ao', 'dose_1', 'Tf_2_h', 'k_2_e2h', 'E_2_li', 'tS_3_li', 'TF', 'T_e_or', 'S0_4_li', 'Nk0_2', 'rate_2', 'TP_4', 'TD_2', 'TA_3', 'TR_1', 'Nph_3', 'iStrig_3_ao', 'T_hl', 'dose_3', 'R1_h', 'CO', 'NSR_1_li', 'weight', 'FA_2', 'TE1_2', 'vol_2_li', 'Nz_3', 'v_e_li', 'NSR_2_li', 'k_1_e2h', 'tS_4_li', 'Nk0_3', 'rate_4', 'B1corr_2_ao', 'tS_4_ao', 'S_3_li', 'FA_4', 'TR_4', 'Nz_1', 'tS_3_ao', 'Ef_1_li', 'TE2_3', 'R1_li', 'field_strength', 'vol_1_ao', 'B1corr_3_ao', 'ffa', 'S0_3_ao', 'B1corr_4_li', 'PA_3', 'T_lag', 'D_lag', 'T_gu', 'iStrig_2_ao', 'TE2_4', 'E_or', 'BAT_4', 'nb_2', 'TE_4', 'iz_1', 'TE1_3', 'B1corr_3_li', 'dose_2', 'dose_tolerance', 'TE_3', 'v_h', 'B1corr_4_ao', 'TD_3', 'iStrig_4_li', 'S_3_ao', 'B1corr_1_ao', 'PA_2', 'NSR_4_li', 'rate_3', 'iStrig_4_ao', 'kf_2_e2h', 'iStrig_2_li', 'S0_2_ao', 'B1corr_2_li', 'tS_2_li', 'bdel', 'Ei_1_li', 'tS_2_ao', 'E_ki', 'TA_1', 'Nph_4', 'T_2_h', 'S0_1_ao', 'S0_2_li', 'Tf_1_h', 'T_b_or', 'agent', 'TR_3', 'Nph_2', 'Ti_1_h', 'PA_4', 'S0_1_li', 'dt', 'v_li', 'S_2_ao', 'kf_1_e2h', 'TP_2', 'TD_4', 'rate_1', 'S_1_ao', 'SA_3', 'TP_3', 'NSR_3_ao', 'PSw', 'SA_1', 'TE_1', 'fCO_li', 'E_1_li', 'Nph_1', 'TD_1', 'ki_1_e2h', 'nb_3', 'T_1_h', 'BAT_3', 'TA_4', 'TE1_4', 'TR_2', 'Nz_4', 'R1_e', 'B1corr_1_li', 'BAT_1', 'H', 'FA_1', 'pfree', 'tS_1_ao', 'R1_b', 'iStrig_1_ao', 'me', 'iz_3', 'vol_2_ao', 'S_2_li', 'S_1_li', 'nb_4', 'T_la', 'dose_4'}
     _all_outputs = {'pcov', 'pars', 'popt', 'loss', 'psdev'}
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):
@@ -247,7 +253,7 @@ class InverseAortaLiverSplitDrug(Module):
             p[f'tstart_{scan}'] = min([p[f'tS_{scan}_{roi}'][0] for roi in ROIS])
             tmax = max([p[f'tS_{scan}_{roi}'][-1] for roi in ROIS])
             ts = p[f'tS_{scan}_ao'][1] - p[f'tS_{scan}_ao'][0]
-            p[f'tacq_{scan}'] = tmax - p[f'tstart_{scan}'] + 2 * ts
+            p[f'tacq_{scan}'] = tmax - p[f'tstart_{scan}'] + 5 * ts
 
         # Reshape signal if needed
         for roi in ROIS:
@@ -275,7 +281,8 @@ class InverseAortaLiverSplitDrug(Module):
         pfree = {p for p in inputs if get_quantity(p)['group']=='physiological'}
         if self.config['bolus'] in ['single', 'double']:
             pfree |= {'BAT_1', 'BAT_2'}
-        else:
+        # bolus='dual'
+        else: 
             pfree |= {'BAT_1', 'BAT_2', 'BAT_3', 'BAT_4'}
         if not self.config['calibrate']:
             pfree |= {'S0_1_ao', 'S0_1_li', 'S0_2_ao', 'S0_2_li'}
@@ -284,11 +291,13 @@ class InverseAortaLiverSplitDrug(Module):
         return {p: get_quantity(p)['bounds'] for p in pfree}
     
 
-    def _pder(self, data:dict):
+    def _pder(self, p, popt):
+        data = p | popt
         p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['physiological', 'whole-body']}
-
+    
         p_common = {k: v for k, v in p.items() if parse_varname(k)['index'] is None}
 
+        # Add derived per visit
         p_1 = {remove_varindex(k): v for k, v in p.items() if parse_varname(k)['index'] == 1} 
         p_2 = {remove_varindex(k): v for k, v in p.items() if parse_varname(k)['index'] == 2}
 
@@ -298,7 +307,39 @@ class InverseAortaLiverSplitDrug(Module):
         p_1 = {extend_varname(k, index=1): v for k, v in p_1.items() if k not in p_common and k not in {'v_h'}}
         p_2 = {extend_varname(k, index=2): v for k, v in p_2.items() if k not in p_common and k not in {'v_h'}}
 
-        return p_common | p_1 | p_2
+        # Add effect sizes
+        p_eff = {}
+        if {'ki_1_e2h'}.issubset(p_1):
+            # Assumes drug administration is timed for peak inhibition at the start
+            p_eff['kd_e2h'] = p_2['ki_2_e2h'] - p_1['k_1_e2h']
+            p_eff['ke_e2h'] = (p_2['ki_2_e2h'] - p_1['k_1_e2h']) / p_1['k_1_e2h']
+        elif {'k_1_e2h'}.issubset(p_1):
+            p_eff['kd_e2h'] = p_2['k_2_e2h'] - p_1['k_1_e2h']
+            p_eff['ke_e2h'] = (p_2['k_2_e2h'] - p_1['k_1_e2h']) / p_1['k_1_e2h']
+        if {'k_1_h2b'}.issubset(p_1):
+            p_eff['kd_h2b'] = p_2['k_2_h2b'] - p_1['k_1_h2b']
+            p_eff['ke_h2b'] = (p_2['k_2_h2b'] - p_1['k_1_h2b']) / p_1['k_1_h2b']
+
+        # Add BAT
+        p_bat = {k: v for k, v in data.items() if parse_varname(k)['name'] == 'BAT'}
+
+        # Add descriptives
+        p_desc = {}
+        pred = self.forward(data)
+        
+        t_1 = pred['tS_1_li'] < data['BAT_1'] + 20 * 60
+        t_3 = pred['tS_3_li'] < data['BAT_3'] + 20 * 60
+
+        p_desc['RE_1'] = (pred[f'S_1_li'].reshape(-1)[t_1][-1] - pred[f'S_1_li'].min()) / pred[f'S_1_li'].min()
+        p_desc['RE_2'] = (pred[f'S_3_li'].reshape(-1)[t_3][-1] - pred[f'S_3_li'].min()) / pred[f'S_3_li'].min()
+
+        t_1 = (data['BAT_1'] < pred['tC_1']) & (pred['tC_1'] < data['BAT_1'] + 35 * 60)
+        t_2 = (data['BAT_3'] < pred['tC_2']) & (pred['tC_2'] < data['BAT_3'] + 35 * 60)
+
+        p_desc['AUCC_1'] = np.trapezoid(pred['C_1_li'].sum(axis=0)[t_1], pred['tC_1'][t_1])
+        p_desc['AUCC_2'] = np.trapezoid(pred['C_2_li'].sum(axis=0)[t_2], pred['tC_2'][t_2])
+
+        return p_common | p_1 | p_2 | p_bat | p_eff | popt | p_desc
 
     def _call(self, p: dict=None, **kwargs) -> dict:
         self._preproc(p) 
@@ -313,21 +354,36 @@ class InverseAortaLiverSplitDrug(Module):
             else:
                 p['BAT_1'] = estimate_bat(p['tS_1_ao'], p['S_1_ao'])
                 p['BAT_2'] = estimate_bat(p['tS_3_ao'], p['S_3_ao'])
+
         elif self.config['estimate_bat'] == 'ttp':
+            bat_offset = 15
             if self.config['bolus'] == 'dual':
-                p['BAT_1'] = p['tS_1_ao'][np.argmax(p['S_1_ao'])]
-                p['BAT_2'] = p['tS_2_ao'][np.argmax(p['S_2_ao'])]
-                p['BAT_3'] = p['tS_3_ao'][np.argmax(p['S_3_ao'])]
-                p['BAT_4'] = p['tS_4_ao'][np.argmax(p['S_4_ao'])]
+                p['BAT_1'] = p['tS_1_ao'][np.argmax(p['S_1_ao'])] - bat_offset
+                p['BAT_2'] = p['tS_2_ao'][np.argmax(p['S_2_ao'])] - bat_offset
+                p['BAT_3'] = p['tS_3_ao'][np.argmax(p['S_3_ao'])] - bat_offset
+                p['BAT_4'] = p['tS_4_ao'][np.argmax(p['S_4_ao'])] - bat_offset
             else:
-                p['BAT_1'] = p['tS_1_ao'][np.argmax(p['S_1_ao'])]
-                p['BAT_2'] = p['tS_3_ao'][np.argmax(p['S_3_ao'])]
+                p['BAT_1'] = p['tS_1_ao'][np.argmax(p['S_1_ao'])] - bat_offset
+                p['BAT_2'] = p['tS_3_ao'][np.argmax(p['S_3_ao'])] - bat_offset
+
+        elif self.config['estimate_bat'] == 'dual':
+            bat_offset = 15
+            if self.config['bolus'] == 'dual':
+                p['BAT_2'] = p['tS_2_ao'][np.argmax(p['S_2_ao'])] - bat_offset
+                p['BAT_4'] = p['tS_4_ao'][np.argmax(p['S_4_ao'])] - bat_offset
 
         # Initialize pfree if needed
         if p['pfree'] is None:
             p['pfree'] = self._pfree() 
+        else:
+            p['pfree'] = self.map_data(p['pfree'], all=False, include={'BAT_1', 'BAT_2', 'BAT_3', 'BAT_4'})
+        p['pfree'] = update_bounds(p['pfree'], value=p, all=False)
 
-        p['pfree'] = update_bounds(p['pfree'], value=p)
+        # Remove BAT if dose is zero (TODO: remove)
+        if self.config['bolus'] == 'dual':
+            for idx in [2, 4]:
+                if p[f'dose_{idx}'] == 0:
+                    p['pfree'].pop(f'BAT_{idx}', None)
 
         # if self.config['bolus'] in ['single', 'double']:
         #     bats = ['BAT_1', 'BAT_2']
@@ -346,9 +402,9 @@ class InverseAortaLiverSplitDrug(Module):
             p['S_3_li'], 
             p['S_4_li'],
         )
-        #p = train_bat(self._predict, None, signal, p, p['pfree'], bats=bats, **kwargs)
+
         output = train_brute(self._predict, signal, p, p['pfree'], **kwargs)
-        output['pars'] = self._pder(p | output['popt'])
+        output['pars'] = self._pder(p, output['popt'])
 
         return output
 
@@ -363,8 +419,10 @@ class InverseAortaLiverSplitDrug(Module):
                 inputs |= {f'nb_{scan}'}
                 for roi in ROIS:
                     inputs -= {f'Scal_{scan}_{roi}', f'iScal_{scan}_{roi}'}
-        if self.config['estimate_bat'] != 'none':
+        if self.config['estimate_bat'] in {'ttp', 'custom'}:
             inputs -= {'BAT_1', 'BAT_2', 'BAT_3', 'BAT_4'}
+        elif self.config['estimate_bat'] in {'dual'}:
+            inputs -= {'BAT_2', 'BAT_4'}
         for scan in SCANS:
             inputs -= {f'tstart_{scan}', f'tacq_{scan}'}
         return inputs  
@@ -399,10 +457,17 @@ class InverseAortaLiverSplitDrug(Module):
             
         return self.input_data(p, data)
 
-    def plot(self, data: dict, result:dict=None, xlim:list=None, clim:list=None, fname:str=None, show=True):
+
+    def plot(self, data: dict, result:dict=None, xlim:dict=None, clim:list=None, fname:str=None, show=True):
         if result is None:
             result = self.__call__(data)
-        p = self.map_data(data | result['popt'])
+        # p = self.map_data(data | result['popt'])
+        p = self.map_data(data | result['pars'])
+
+        if isinstance(xlim, (list, tuple)):
+            xlim = {1: xlim, 2: xlim}
+        elif xlim is None:
+            xlim = {1: None, 2: None}
 
         # Not an input parameter but required by forward model
         if self.config['estimate_bat'] != 'none':
@@ -440,15 +505,15 @@ class InverseAortaLiverSplitDrug(Module):
             1.1 * max(pred[f'S_1_li'].max(), pred[f'S_2_li'].max(), pred[f'S_3_li'].max(), pred[f'S_4_li'].max(), p[f'S_1_li'].max(), p[f'S_2_li'].max(), p[f'S_3_li'].max(), p[f'S_4_li'].max()),
         ]
 
-        plot_data2scan(pred[f'tS_1_ao'], pred[f'S_1_ao'], p['tS_1_ao'], p['S_1_ao'], ax1, xlim, ylim_a, ['lightcoral', 'darkred'])
-        plot_data2scan(pred[f'tS_2_ao'], pred[f'S_2_ao'], p['tS_2_ao'], p['S_2_ao'], ax1, xlim, ylim_a, ['lightcoral', 'darkred'])
-        plot_data2scan(pred[f'tS_3_ao'], pred[f'S_3_ao'], p['tS_3_ao'], p['S_3_ao'], ax2, xlim, ylim_a, ['lightcoral', 'darkred'])
-        plot_data2scan(pred[f'tS_4_ao'], pred[f'S_4_ao'], p['tS_4_ao'], p['S_4_ao'], ax2, xlim, ylim_a, ['lightcoral', 'darkred'])
+        plot_data2scan(pred[f'tS_1_ao'], pred[f'S_1_ao'], pred[f'tS_1_ao'][0] + p['tS_1_ao'], p['S_1_ao'], ax1, xlim[1], ylim_a, ['lightcoral', 'darkred'])
+        plot_data2scan(pred[f'tS_2_ao'], pred[f'S_2_ao'], pred[f'tS_1_ao'][0] + p['tS_2_ao'], p['S_2_ao'], ax1, xlim[1], ylim_a, ['lightcoral', 'darkred'])
+        plot_data2scan(pred[f'tS_3_ao'], pred[f'S_3_ao'], pred[f'tS_3_ao'][0] + p['tS_3_ao'], p['S_3_ao'], ax2, xlim[2], ylim_a, ['lightcoral', 'darkred'])
+        plot_data2scan(pred[f'tS_4_ao'], pred[f'S_4_ao'], pred[f'tS_3_ao'][0] + p['tS_4_ao'], p['S_4_ao'], ax2, xlim[2], ylim_a, ['lightcoral', 'darkred'])
 
-        plot_data2scan(pred[f'tS_1_li'], pred[f'S_1_li'], p['tS_1_li'], p['S_1_li'], ax5, xlim, ylim_l, ['cornflowerblue', 'darkblue'])
-        plot_data2scan(pred[f'tS_2_li'], pred[f'S_2_li'], p['tS_2_li'], p['S_2_li'], ax5, xlim, ylim_l, ['cornflowerblue', 'darkblue'])
-        plot_data2scan(pred[f'tS_3_li'], pred[f'S_3_li'], p['tS_3_li'], p['S_3_li'], ax6, xlim, ylim_l, ['cornflowerblue', 'darkblue'])
-        plot_data2scan(pred[f'tS_4_li'], pred[f'S_4_li'], p['tS_4_li'], p['S_4_li'], ax6, xlim, ylim_l, ['cornflowerblue', 'darkblue'])
+        plot_data2scan(pred[f'tS_1_li'], pred[f'S_1_li'], pred[f'tS_1_li'][0] + p['tS_1_li'], p['S_1_li'], ax5, xlim[1], ylim_l, ['cornflowerblue', 'darkblue'])
+        plot_data2scan(pred[f'tS_2_li'], pred[f'S_2_li'], pred[f'tS_1_li'][0] + p['tS_2_li'], p['S_2_li'], ax5, xlim[1], ylim_l, ['cornflowerblue', 'darkblue'])
+        plot_data2scan(pred[f'tS_3_li'], pred[f'S_3_li'], pred[f'tS_3_li'][0] + p['tS_3_li'], p['S_3_li'], ax6, xlim[2], ylim_l, ['cornflowerblue', 'darkblue'])
+        plot_data2scan(pred[f'tS_4_li'], pred[f'S_4_li'], pred[f'tS_3_li'][0] + p['tS_4_li'], p['S_4_li'], ax6, xlim[2], ylim_l, ['cornflowerblue', 'darkblue'])
 
         def plot_conc_aorta(t, c, ax, xl, yl):
             if xl is None: 
@@ -464,8 +529,8 @@ class InverseAortaLiverSplitDrug(Module):
         else:
             ylim = [0, clim[0] * 1000]
 
-        plot_conc_aorta(pred['tC_1'], pred['C_1_ao'], ax3, xlim, ylim)
-        plot_conc_aorta(pred['tC_2'], pred['C_2_ao'], ax4, xlim, ylim)
+        plot_conc_aorta(pred['tC_1'], pred['C_1_ao'], ax3, xlim[1], ylim)
+        plot_conc_aorta(pred['tC_2'], pred['C_2_ao'], ax4, xlim[2], ylim)
 
         def plot_conc_liver(t, C, ax, xl, yl):
             if xl is None: 
@@ -482,8 +547,8 @@ class InverseAortaLiverSplitDrug(Module):
         else:
             ylim = [0, clim[1] * 1000]
 
-        plot_conc_liver(pred['tC_1'], pred['C_1_li'], ax7, xlim, ylim)
-        plot_conc_liver(pred['tC_2'], pred['C_2_li'], ax8, xlim, ylim)
+        plot_conc_liver(pred['tC_1'], pred['C_1_li'], ax7, xlim[1], ylim)
+        plot_conc_liver(pred['tC_2'], pred['C_2_li'], ax8, xlim[2], ylim)
 
         if fname is not None: 
             plt.savefig(fname=fname)
@@ -491,3 +556,15 @@ class InverseAortaLiverSplitDrug(Module):
             plt.show()
         else: 
             plt.close()
+
+    def save(self, result:dict, filepath:str, subj='subject_id', study='study_id'):
+        save_results(result, filepath, subj, study)
+
+    def load(self, filepath:str):
+        return read_results(filepath)
+
+    def plot_pcov(self, result: dict, fname: str = None, show=True, vmin=-0.025, vmax=0.025):
+        plot_pcov(result, fname, show, vmin, vmax)
+
+    def plot_pvar(self, result: dict, fname: str = None, xlim: list = None, show=True):
+        plot_pvar(result, fname, xlim, show)

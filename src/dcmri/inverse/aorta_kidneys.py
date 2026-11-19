@@ -144,8 +144,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from dcmri.core.module import Module
-from dcmri.core.tools import get_quantity, update_bounds
-from dcmri.utils.fit import train_brute
+from dcmri.core.tools import get_quantity, update_bounds, print_quantities, parse_varname
+from dcmri.utils.fit import train_brute, save_results, read_results, plot_pcov, plot_pvar
 from dcmri.forward.aorta_kidneys import AortaKidneys as ForwardModel
 from dcmri.kinetics.functions_kidney import dpars_kidney
 from dcmri.inverse.functions import estimate_bat
@@ -165,7 +165,7 @@ class InverseAortaKidneys(Module):
         'E_li': {'init': 0.0, 'bounds': (0.0, 1.0), 'name': 'extraction fraction in liver', 'unit': '', 'group': 'physiological', 'dicom_key': None, 'osipi_key': None},
     }
 
-    _all_inputs = {'D_p_lk', 'D_p_rk', 'T_vc', 'D_vc', 'nb', 'pfree', 'Nz', 'S0_lk', 'dose_1', 'F_u_lk', 'PA', 'F_u_rk', 'H', 'h_u_rk', 'NSR_rk', 'iStrig_ao', 'S_rk', 'TD', 'B1corr_lk', 'TA', 'T_hl', 'v_b', 'iStrig_rk', 'S0_rk', 'bdel', 'NSR_lk', 'T_b_or', 'S0_ao', 'S_ao', 'agent', 'rate', 'TF', 'iStrig_lk', 'tS_lk', 'R1_ki', 'T_gu', 'rate_1', 'vol_lk', 'T_u_lk', 'D_hl', 'TP', 'tS_ao', 'TR', 'B1corr_ao', 'T_lka', 'T_rka', 'dose_2', 'DRPF', 'S_lk', 'tS_rk', 'T_e_or', 'dose_tolerance', 'NSR_ao', 'v_ki', 'dose', 'dt', 'v_p_lk', 'rate_2', 'Nph', 'TE', 'F_u', 'vol_rk', 'TE1', 'TE2', 'E_or', 'FF_lk', 'R1_c', 'iz', 'FA', 'E_li', 'PSw', 'v_p_rk', 'R1_b', 'Nk0', 'FF_rk', 'weight', 'vol_ao', 'B1corr_rk', 'T_u_rk', 'h_u_lk', 'CO', 'fCO_ki', 'R1_u', 'v_u', 'SA', 'me', 'field_strength', 'v_c'}
+    _all_inputs = {'Tb', 'Db', 'D_p_lk', 'D_p_rk', 'T_vc', 'D_vc', 'nb', 'pfree', 'Nz', 'S0_lk', 'dose_1', 'F_u_lk', 'PA', 'F_u_rk', 'H', 'h_u_rk', 'NSR_rk', 'iStrig_ao', 'S_rk', 'TD', 'B1corr_lk', 'TA', 'T_hl', 'v_b', 'iStrig_rk', 'S0_rk', 'bdel', 'NSR_lk', 'T_b_or', 'S0_ao', 'S_ao', 'agent', 'rate', 'TF', 'iStrig_lk', 'tS_lk', 'R1_ki', 'T_gu', 'rate_1', 'vol_lk', 'T_u_lk', 'D_hl', 'TP', 'tS_ao', 'TR', 'B1corr_ao', 'T_lka', 'T_rka', 'dose_2', 'DRPF', 'S_lk', 'tS_rk', 'T_e_or', 'dose_tolerance', 'NSR_ao', 'v_ki', 'dose', 'dt', 'v_p_lk', 'rate_2', 'Nph', 'TE', 'F_u', 'vol_rk', 'TE1', 'TE2', 'E_or', 'FF_lk', 'R1_c', 'iz', 'FA', 'E_li', 'PSw', 'v_p_rk', 'R1_b', 'Nk0', 'FF_rk', 'weight', 'vol_ao', 'B1corr_rk', 'T_u_rk', 'h_u_lk', 'CO', 'fCO_ki', 'R1_u', 'v_u', 'SA', 'me', 'field_strength', 'v_c'}
     _all_outputs = {'psdev', 'pcov', 'popt', 'pars', 'loss'}
 
     def __init__(self, imap:dict=None, omap:dict=None, **config):
@@ -212,10 +212,12 @@ class InverseAortaKidneys(Module):
         pfree -= {'H', 'E_li', 'v_ki'}
         return {p: get_quantity(p)['bounds'] for p in pfree}
 
-    def _pder(self, data:dict):
+    def _pder(self, p: dict, popt:dict):
+        data = p | popt
         p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['physiological', 'whole-body']}
         p = dpars_kidney(p, kinetics=self.config['kidneys'])
-        return p
+        p |= {k: v for k, v in data.items() if parse_varname(k)['name'] == 'BAT'}
+        return p | popt
 
     def _call(self, p: dict=None, **kwargs) -> dict:
         self._preproc(p) 
@@ -226,17 +228,16 @@ class InverseAortaKidneys(Module):
         elif self.config['estimate_bat'] == 'ttp':
             p['BAT'] = p['tS_ao'][np.argmax(p['S_ao'])]
 
-        # Initialize pfree if needed
         if p['pfree'] is None:
             p['pfree'] = self.pfree() 
-
-        # p['pfree']['BAT'] = (-60, 60)
-        p['pfree'] = update_bounds(p['pfree'], value=p)
+        else:
+            p['pfree'] = self.map_data(p['pfree'], all=False, include={'BAT'})
+        p['pfree'] = update_bounds(p['pfree'], value=p, all=False)
 
         # Compute inverse
         signal = tuple([p[f'S_{roi}'].reshape(-1) for roi in ROIS])
         output = train_brute(self._predict, signal, p, p['pfree'], **kwargs)
-        output['pars'] = self._pder(p | output['popt'])
+        output['pars'] = self._pder(p, output['popt'])
 
         return output
 
@@ -315,12 +316,15 @@ class InverseAortaKidneys(Module):
         plot_data(pred['tS_rk'], pred['S_rk'], pred['tS_rk'][0] + p['tS_rk'], p['S_rk'], ax5, ['cornflowerblue', 'darkblue'])
 
         # Plot concentrations
-        ax2.set_title('Concentration')
+        v_b_lk = result['pars']['v_p_lk'] / (1 - result['pars']['H'])
+        v_b_rk = result['pars']['v_p_rk'] / (1 - result['pars']['H'])
+
+        ax2.set_title('Concentration') 
         ax2.set(xlabel='Time (min)', ylabel='Concentration (mM)', xlim=xlim)
         ax2.plot(pred['tC'] / 60, 0 * pred['tC'], color='gray')
         ax2.plot(pred['tC'] / 60, 1000 * pred['C_ao'][0], linestyle='-', color='darkred', linewidth=2.0, label='Aorta')
-        ax2.plot(pred['tC'] / 60, 1000 * pred['C_lk'][0], linestyle='--', color='lightcoral', linewidth=2.0, label='Left Kidney')
-        ax2.plot(pred['tC'] / 60, 1000 * pred['C_rk'][0], linestyle='-.', color='lightcoral', linewidth=2.0, label='Right Kidney')
+        ax2.plot(pred['tC'] / 60, 1000 * pred['C_lk'][0] / v_b_lk, linestyle='--', color='lightcoral', linewidth=2.0, label='Left Kidney')
+        ax2.plot(pred['tC'] / 60, 1000 * pred['C_rk'][0] / v_b_rk, linestyle='-.', color='lightcoral', linewidth=2.0, label='Right Kidney')
         ax2.legend()
 
         def plot_conc_kidney(C, kid, ax):
@@ -331,6 +335,7 @@ class InverseAortaKidneys(Module):
             ax.plot(pred['tC'] / 60, 1000 * C.sum(axis=0), linestyle='-', color='darkblue', linewidth=2.0, label='Tissue')
             ax.legend()
 
+
         plot_conc_kidney(pred['C_lk'], 'Left kidney', ax4)
         plot_conc_kidney(pred['C_rk'], 'Right kidney', ax6)
 
@@ -339,4 +344,19 @@ class InverseAortaKidneys(Module):
         if show: 
             plt.show()
         else: 
-            plt.close()
+            plt.close(fig)
+
+    def print(self, result, digits=None):
+        print_quantities(result['pars'], digits=digits)
+
+    def save(self, result:dict, filepath:str, subj='subject_id', study='study_id'):
+        save_results(result, filepath, subj, study)
+
+    def load(self, filepath:str):
+        return read_results(filepath)
+
+    def plot_pcov(self, result: dict, fname: str = None, show=True, vmin=-0.025, vmax=0.025):
+        plot_pcov(result, fname, show, vmin=vmin, vmax=vmax)
+
+    def plot_pvar(self, result: dict, fname: str = None, xlim: list = None, show=True):
+        plot_pvar(result, fname, xlim, show)

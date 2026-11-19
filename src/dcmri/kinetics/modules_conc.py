@@ -3,6 +3,7 @@ import numpy as np
 from dcmri.core.module import Module
 from dcmri.core.module import InvalidConfig
 from dcmri.kinetics.functions_blocks import flux_plug
+from dcmri.dro.functions_aif import tristan_rat
 from dcmri.kinetics.modules_flux import FluxAorta
 import dcmri.kinetics.functions_kidney as pk_kidney
 import dcmri.kinetics.functions_tissue as pk_tissue
@@ -151,22 +152,35 @@ class ConcLiver(Module):
     configs = {
         'kinetics': {k[0] for k in pk_liver.PARAMETERS.keys()},
         'non_stationary': {k[1] for k in pk_liver.PARAMETERS.keys()},
+        'input': {'measured', 'tristan_rat'}
     }
     defaults = {
         'kinetics': '2I-EC', 
         'non_stationary': None,
+        'input': 'measured',
     }
 
     def __init__(self, imap:dict=None, omap:dict=None, iomap: dict=None, cmap: dict=None, **config):
         self.set_config(config, cmap)
-        if (self.config['kinetics'], self.config['non_stationary']) not in pk_liver.PARAMETERS.keys():
+
+        model = (self.config['kinetics'], self.config['non_stationary'])
+        if model not in pk_liver.PARAMETERS.keys():
             raise InvalidConfig('For extracellular tracers the non-stationary configuration is invalid.')
+        
+        if self.config['input'] == 'tristan_rat':
+            if '2I' in self.config['kinetics']:
+                raise InvalidConfig('The tristan_rat input is single-inlet.')
+        
         self.map_io(imap, omap, iomap)
             
     def inputs(self):
         model = (self.config['kinetics'], self.config['non_stationary'])
         inputs = set(pk_liver.PARAMETERS[model])
-        inputs |= {'dt', 'ci_li'}
+        inputs |= {'dt'}
+        if self.config['input'] == 'measured':
+            inputs |= {'ci_li'}
+        else:
+            inputs |= {'tmax', 'BAT', 'duration', 'k_e2h'}
         return inputs 
 
     def outputs(self):
@@ -174,18 +188,29 @@ class ConcLiver(Module):
     
     def __call__(self, data: dict=None):
         p = self.map_data(data)
-        
-        # Model function
+
+        # Model parameters and function
         kin, ns = self.config['kinetics'], self.config['non_stationary']
+        params = {k: v for k, v in p.items() if k in pk_liver.PARAMETERS[kin, ns]}
+
         func = 'conc_liver_' + kin.lower().replace('-', '_')
         if ns != None:
             func += '_ns' + ns.lower()    
         liver_conc = getattr(pk_liver, func)
+        
+        # Input function
+        if self.config['input'] == 'tristan_rat':
+            tC_li = np.arange(0, p['tmax'], p['dt'])
+            # This replicates the old behaviour
+            # p['ci_li'] = tristan_rat(tC_li, BAT=p['BAT'], duration=p['duration'])
+            # Update:
+            p['ci_li'] = tristan_rat(tC_li, BAT=p['BAT'], duration=p['duration'], k_e2h=p['k_e2h'])
+            C_li = liver_conc(p['ci_li'], **params)
+        else:
+            C_li = liver_conc(p['ci_li'], **params)
+            tC_li = p['dt'] * np.arange(C_li.shape[1])
 
-        phys = {k: v for k, v in p.items() if k not in ['ci_li']}
-
-        C_li = liver_conc(p['ci_li'], **phys)
-        tC_li = p['dt'] * np.arange(C_li.shape[1])
+        # Return dual or single inlet input
         if '2I' in kin:
             ci = p['ffa'] * p['ci_li'][0] + (1 - p['ffa']) * p['ci_li'][1]
         else:
@@ -206,7 +231,7 @@ class ConcAortaLiver(Module):
     """
     configs = {
         'bolus': FluxAorta.configs['bolus'],
-        'heartlung': FluxAorta.configs['heartlung'],
+        'heartlung': FluxAorta.configs['heartlung'] ,
         'organs': FluxAorta.configs['organs'],
         'lagut': {'pass', 'comp', 'plucom'},
         'liver': {k for k in ConcLiver.configs['kinetics'] if '1I' in k}, # {'1I-EC', '1I-IC'}, 
@@ -214,7 +239,7 @@ class ConcAortaLiver(Module):
     }
     defaults = {
         'bolus': 'single',
-        'heartlung': 'pfcomp', 
+        'heartlung': 'pfcomp',
         'organs': 'comp', 
         'lagut': 'comp',
         'liver': '1I-EC',
@@ -242,52 +267,53 @@ class ConcAortaLiver(Module):
         return outputs
 
     def inputs(self):
-        #inputs = {'fCO_li', 'CO', 'H', 'GFR', 'vol_li', 'vol_ao'}
-        inputs = {'fCO_li', 'CO', 'H', 'vol_li', 'vol_ao'}
+        inputs = {'CO', 'H', 'vol_ao'}
         inputs |= self._flux_aorta.mapped_inputs()
         inputs |= self._conc_liver.mapped_inputs()
-        #inputs -= {'vr_li', 'vr_or', 'T_e_li', 'F_p_li', 'ci_li'}
-        inputs -= {'vr_li', 'T_e_li', 'F_p_li', 'ci_li'}
+        if self.config['heartlung'] is not None:
+            inputs |= {'fCO_li', 'E_ki', 'vol_li'}
+            inputs -= {'vr_li', 'vr_or', 'T_e_li', 'F_p_li', 'ci_li'}
         return inputs
 
     def __call__(self, data: dict=None):
         p = self.map_data(data)
 
-        # Kidney extraction fraction       
-        #PF = (1 - p['fCO_li']) * p[f'CO'] * (1 - p['H']) 
-        #Ek = p['GFR'] / (p['GFR'] + PF)
+        if self.config['heartlung'] is not None:
+            
+            # Liver extraction fraction
+            Fp = p['fCO_li'] * p['CO'] * (1 - p['H']) / p['vol_li']
+            El = self.deriv('E_li', p | {'F_p_li': Fp})    
+            
+            # Compute aorta flux
+            p |= {
+                'vr_li': p['fCO_li'] * (1 - El),
+                'vr_or': (1 - p['fCO_li']) * (1 - p['E_ki']),
 
-        # Liver extraction fraction
-        Fp = p['fCO_li'] * p['CO'] * (1 - p['H']) / p['vol_li']
-        El = self.deriv('E_li', p | {'F_p_li': Fp})    
-        
-        # Compute aorta flux
-        p |= {
-            'vr_li': p['fCO_li'] * (1 - El),
-            #'vr_or': (1 - p['fCO_li']) * (1 - Ek),
-            'T_e_li': p['v_e_li'] / Fp,
-        }
+                # We need the MTT of the particles that pass, so divide 
+                # by Fp instead of (k_e2h + Fp)
+                'T_e_li': p['v_e_li'] / Fp,
+
+                # Extra outputs - not required by flux_aorta
+                'F_p_li': Fp,
+                'F_b_li': Fp / (1 - p['H']),
+            }
+
         p |= self._flux_aorta(p)
    
         # Compute liver concentrations
-        p |= {
-            'F_p_li': Fp,
-            'ci_li': p['J_lag'] / p['CO'] / (1 - p['H'])
-        }
+        Ji_li = p['J_lag']
+        p['ci_li'] = Ji_li / p['CO'] / (1 - p['H'])
+
         p |= self._conc_liver(p)
 
         # Build output
         C_a = p['J_ao'].reshape(1, -1) / p['CO']
-        C_l = p['C_li']
 
         p |= {
             'F_b_ao': p['CO'] / p['vol_ao'],
             'ci_ao': C_a,
             'C_ao': C_a, 
-            
-            'F_b_li': p['fCO_li'] * p['CO'] / p['vol_li'],
-            'ci_li': p['J_lag'].reshape(1, -1) / p['CO'],
-            'C_li': C_l,
+            'ci_li': Ji_li.reshape(1, -1) / p['CO'],
         } 
         return self.map_results(p)
 
@@ -296,19 +322,33 @@ class ConcAortaLiver(Module):
         p |= self._flux_aorta.test_data()
         return self.input_data(p)
 
-    def deriv(self, parameter, p): # Helper
+    def deriv(self, parameter, p): # Helper - not very elegant but works ok
         if parameter=='E_li':
             if 'EC' in self.config['liver']:
                 return 0
+            
             if 'HF' in self.config['liver']:
                 if self.config['non_stationary'] in ['U', 'UE']:
-                    khe = np.mean([p['ki_e2h'], p['kf_e2h']])
+                    t = np.arange(0, p['tmax'], p['dt'])
+                    k_e2h = p['ki_e2h'] + (p['kf_e2h'] - p['ki_e2h']) * t / t.max()
                 else:
-                    khe = p['k_e2h']
-                return p['F_p_li'] / (p['F_p_li'] + khe)
+                    k_e2h = p['k_e2h']
+                return k_e2h / (k_e2h + p['F_p_li'])
+            
             if self.config['non_stationary'] in [None, 'E']:
-                return p['E_li']
-            return np.mean([p['Ei_li'], p['Ef_li']])
+                if 'E_li' in p:
+                    return p['E_li']
+            
+            if 'ICK' in self.config['liver']:
+                if self.config['non_stationary'] in ['U', 'UE']:
+                    t = np.arange(0, p['tmax'], p['dt'])
+                    k_e2h = p['ki_e2h'] + (p['kf_e2h'] - p['ki_e2h']) * t / t.max()
+                else:
+                    k_e2h = p['k_e2h']
+                return k_e2h / (k_e2h + p['F_p_li'])
+
+            t = np.arange(0, p['tmax'], p['dt'])
+            return p['Ei_li'] + (p['Ef_li'] - p['Ei_li']) * t / t.max()
 
 
 class ConcAortaPortalLiver(Module):
@@ -410,13 +450,15 @@ class ConcAortaKidneys(Module):
     """
     configs = {
         'bolus': FluxAorta.configs['bolus'],
+        'bolus_dispersion': FluxAorta.configs['bolus_dispersion'],
         'heartlung': FluxAorta.configs['heartlung'],
         'organs': FluxAorta.configs['organs'],
         'kidneys': ConcKidney.configs['kinetics'],
         'veins': FluxAorta.configs['veins'],
     }
     defaults = {
-        'bolus': 'single',
+        'bolus': FluxAorta.defaults['bolus'],
+        'bolus_dispersion': FluxAorta.defaults['bolus_dispersion'],
         'heartlung': 'pfcomp', 
         'organs': 'comp', 
         'kidneys': '2CF',
@@ -468,7 +510,7 @@ class ConcAortaKidneys(Module):
         FF_lk = p['F_u_lk'] / Fp_lk if 'HF' in self.config['kidneys'] else p['FF_lk']
         FF_rk = p['F_u_rk'] / Fp_rk if 'HF' in self.config['kidneys'] else p['FF_rk']
 
-        E_lk = FF_lk / (1 + FF_lk)
+        E_lk = FF_lk / (1 + FF_lk) 
         E_rk = FF_rk / (1 + FF_rk)
 
         Fu_lk = p['F_u_lk'] if 'HF' in self.config['kidneys'] else FF_lk * Fp_lk

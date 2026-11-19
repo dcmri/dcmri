@@ -187,7 +187,6 @@ class Signal(Module):
             if p['iStrig'] is not None:
                 accept = p['iStrig']
                 n = np.size(accept)
-                # tS = tS[:n] # REPLACED!!
                 tS = tS[:n][accept]
                 S = S[:, :, :n][:, :, accept]
                 # (channels, components, times)

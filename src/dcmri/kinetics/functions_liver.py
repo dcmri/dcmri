@@ -30,6 +30,9 @@ PARAMETERS = {
     ('1I-IC-U', None): ['v_e_li', 'F_p_li', 'E_li'],
     ('1I-IC-U', 'U'): ['v_e_li', 'F_p_li', 'Ei_li', 'Ef_li'],
 
+    ('1I-ICK', None): ['v_e_li', 'F_p_li', 'k_e2h', 'k_h2b'],
+    ('1I-ICK', 'U'): ['v_e_li', 'F_p_li', 'ki_e2h', 'kf_e2h', 'k_h2b'],
+
     ('1I-IC', None): ['v_e_li', 'F_p_li', 'E_li', 'T_h'],
     ('1I-IC', 'U'): ['v_e_li', 'F_p_li', 'Ei_li', 'Ef_li', 'T_h'],
     ('1I-IC', 'E'): ['v_e_li', 'F_p_li', 'E_li', 'Ti_h', 'Tf_h'],
@@ -67,11 +70,16 @@ def dpars_liver(p, kinetics=None) -> dict:
         p['F_b_li'] = p['fCO_li'] * p['CO'] / p['vol_li']
         p['F_p_li'] = p['F_b_li'] * (1 - H)
 
+    if {'F_p_li', 'Ei_li', 'Ef_li'}.issubset(p):
+        p['ki_e2h'] = _div(p['F_p_li'] * p['Ei_li'], 1 - p['Ei_li'])
+        p['kf_e2h'] = _div(p['F_p_li'] * p['Ef_li'], 1 - p['Ef_li'])
+
     if {'Ei_li', 'Ef_li'}.issubset(p):
         p['E_li'] = np.mean([p['Ei_li'], p['Ef_li']])
 
     if {'ki_e2h', 'kf_e2h'}.issubset(p):
         p['k_e2h'] = np.mean([p['ki_e2h'], p['kf_e2h']])
+        p['kc_e2h'] = p['kf_e2h'] - p['ki_e2h']
 
     if {'Ti_h', 'Tf_h'}.issubset(p):
         p['T_h'] = np.mean([p['Ti_h'], p['Tf_h']])
@@ -90,6 +98,20 @@ def dpars_liver(p, kinetics=None) -> dict:
     
     if kinetics in ['1I-EC', '2I-EC']:
         p['T_e_li'] = _div(p['v_e_li'], p['F_p_li'])
+
+    if kinetics in ['1I-ICK', '1I-ICK-U']:
+        p['E_li'] = _div(p['k_e2h'], p['k_e2h'] + p['F_p_li'])
+        p['v_h'] = 1 - p['v_e_li']
+        p['T_h'] = _div(p['v_h'], p['k_h2b'])
+        v_e_app = p['v_e_li'] * (1 - p['E_li'])
+        p['Ktrans_li'] = p['F_p_li'] * p['E_li']
+        p['T_e_li'] = _div(v_e_app, p['F_p_li'])
+        p['K_e2h'] = _div(p['k_e2h'], p['v_e_li'])
+        p['K_h2b'] = _div(1, p['T_h'])
+
+    if kinetics in ['1I-ICK', '1I-ICK-U']:
+        p['Ei_li'] = _div(p['ki_e2h'], p['ki_e2h'] + p['F_p_li'])
+        p['Ef_li'] = _div(p['kf_e2h'], p['kf_e2h'] + p['F_p_li'])
 
     if kinetics in ['1I-IC', '2I-IC']:
         p['Ktrans_li'] = p['E_li'] * p['F_p_li']
@@ -1106,6 +1128,39 @@ def conc_liver_1i_ic_u_nsu(ca, t=None, dt=1.0,
     E_li = _interp_params(ca, t, dt, [Ei_li, Ef_li])
     return conc_liver_1i_ic_u(ca, t=t, dt=dt, F_p_li=F_p_li, v_e_li=v_e_li, E_li=E_li)
 
+
+def conc_liver_1i_ick(ca, t=None, dt=1.0, 
+                     v_e_li=None, F_p_li=None, k_e2h=None, k_h2b=None):
+    """
+    Single-inlet intracellular agent liver concentration with k-parametrization.
+    """
+    E_li = _div(k_e2h, k_e2h + F_p_li)
+    v_h_li = 1 - v_e_li
+    T_h = _div(v_h_li, k_h2b)
+
+    v_e_app = v_e_li * (1 - E_li)
+    Ktrans = F_p_li * E_li
+    T_e = _div(v_e_app, F_p_li)
+    return _conc_liver(
+        ca, v_e_app=v_e_app, Ktrans=Ktrans, T_h=T_h, T_e=T_e, 
+        t=t, dt=dt
+    )
+
+def conc_liver_1i_ick_nsu(ca, t=None, dt=1.0, 
+                         v_e_li=None, F_p_li=None, 
+                         ki_e2h=None, kf_e2h=None, k_h2b=None):
+    """
+    Single-inlet intracellular agent liver concentration with 
+    non-stationary uptake and k-parametrization.
+    """
+    # This is where the parametrization matters - linearly
+    # interpolating E or K is a different result. Could be 
+    # done differently, compute Ei, Ef first then interpolate. 
+    # But it is not in the logic of the approach
+    k_e2h = _interp_params(ca, t, dt, [ki_e2h, kf_e2h])
+
+    return conc_liver_1i_ick(ca, t=t, dt=dt, F_p_li=F_p_li, 
+                            v_e_li=v_e_li, k_e2h=k_e2h, k_h2b=k_h2b)
 
 def conc_liver_1i_ic(ca, t=None, dt=1.0, 
                      v_e_li=None, F_p_li=None, E_li=None, T_h=None):

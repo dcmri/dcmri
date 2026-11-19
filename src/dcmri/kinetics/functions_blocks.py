@@ -2,6 +2,10 @@ import math
 import numpy as np
 from scipy.integrate import trapezoid
 from scipy.special import lambertw
+from scipy.signal import oaconvolve
+from scipy.special import gammaincc
+from scipy.stats import gamma
+
 
 from dcmri.utils import convolution, misc
 from dcmri.kinetics import functions_utils
@@ -995,12 +999,11 @@ def prop_chain(t, T=None, D=None):
         raise ValueError('D cannot be larger than 1')
     if D == 0:
         return prop_plug(t, T)
-    if D == 1:
+    if D == 1 or T == 0 or T == np.inf:
         return prop_comp(t, T)
-    n = 1/D
-    g = convolution.nexpconv(n, T/n, t)
+    n = 1 / D
+    g = convolution.nexpconv(n, T / n, t)
     return g
-
 
 def res_chain(t, T=None, D=None):
     """
@@ -1037,14 +1040,241 @@ def res_chain(t, T=None, D=None):
     >>> import dcmri as dc
     >>> t = [0, 3, 4, 6]
     >>> dc.res_chain(t, 5, 0.5)
-    array([1.        , 0.78314017, 0.64624667, 0.42994366])
+    array([1.        , 0.66263, 0.52493, 0.30844])
     """
+    if T < 0:
+        raise ValueError('T must be non-negative')
+    if D < 0:
+        raise ValueError('D cannot be negative')
+    if D > 1:
+        raise ValueError('D cannot be larger than 1')
     if D == 0:
         return res_plug(t, T)
+    if D == 1 or T == 0 or T == np.inf:
+        return res_comp(t, T)   # same limits as for a single compartment
+
+    n = 1 / D
+    Tc = T / n
+    return gammaincc(n, np.asarray(t, dtype=float) / Tc)
+
+# def res_chain(t, T=None, D=None):
+#     """
+#     Residue function of a chain.
+
+#     See section :ref:`define-chain` for more detail.
+
+#     Parameters
+#     ----------
+#     t : array_like
+#         Time points where the residue function is calculated, in the same 
+#         units as `T`.
+#     T : float
+#         Mean transit time of the system. Any non-negative value is allowed, 
+#         including T = 0 and T = inf (in which case the system acts as a trap).
+#     D : float
+#         Dispersion of the system. Values must be between 0 (no dispersion) 
+#         and 1 (maximal dispersion).
+
+
+#     Returns
+#     -------
+#     np.ndarray
+#         Residue function as a 1D array.
+
+#     See Also
+#     --------
+#     prop_chain : Propagator function of a chain.
+#     conc_chain : Concentration in a chain.
+#     flux_chain : Outflux from a chain.
+
+#     Examples
+#     --------
+#     >>> import dcmri as dc
+#     >>> t = [0, 3, 4, 6]
+#     >>> dc.res_chain(t, 5, 0.5)
+#     array([1.        , 0.78314017, 0.64624667, 0.42994366])
+#     """
+#     if D == 0:
+#         return res_plug(t, T)
+#     if D == 1:
+#         return res_comp(t, T)
+    
+#     h = prop_chain(t, T, D)
+#     return 1 - misc.trapz(h, t)
+
+
+# def conc_chain(J=None, t=None, dt=1.0, T=None, D=None, solver='step'):
+#     """
+#     Tissue concentration in a chain.
+
+#     See section :ref:`define-chain` for more detail.
+
+#     Parameters
+#     ----------
+#     J : array_like
+#         The indicator flux entering the system.
+#     t : array_like, optional
+#         The time points of the indicator flux `J`, in the same units as `T`. 
+#         If None, the time points are assumed to be uniformly spaced with 
+#         spacing `dt`. Defaults to None.
+#     dt : float, optional
+#         Spacing between time points for uniformly spaced data, in the same 
+#         units as `T`. This parameter is ignored if `t` is explicitly 
+#         provided. Defaults to 1.0.
+#     T : float
+#         Mean transit time of the system. Any non-negative value is allowed, 
+#         including T = 0 and T = inf (in which case the compartment acts as 
+#         a trap).
+#     D : float
+#         Dispersion of the system. Values must be between 0 (no dispersion) 
+#         and 1 (maximal dispersion).
+#     solver : str, optional
+#         Solver used for the chain system calculation. Defaults to 'step'.
+
+#     Returns
+#     -------
+#     np.ndarray
+#         Concentration as a 1D array.
+
+#     See Also
+#     --------
+#     res_chain : Residue function of a chain.
+#     prop_chain : Propagator function of a chain.
+#     flux_chain : Outflux from a chain.
+
+#     Examples
+#     --------
+#     >>> import dcmri as dc
+#     >>> t = [0, 5, 15, 30, 60]
+#     >>> J = [1, 2, 3, 3, 2]
+#     >>> dc.conc_chain(J, t, T=5, D=0.5)
+#     array([ 0.        ,  6.82332358, 21.45008965, 30.86598366, 33.12222937])
+#     """
+#     if D == 0:
+#         return conc_plug(J, t=t, dt=dt, T=T)
+#     if D == 1:
+#         return conc_comp(J, t=t, dt=dt, T=T)
+
+#     # return conc_chain_total_last(J, T, D, dt, tail=1e-12)
+#     tr = misc.tarray(len(J), t=t, dt=dt)
+#     r = res_chain(tr, T, D)
+#     return convolution.conv(r, J, t=t, dt=dt, solver=solver)
+
+
+# def flux_chain(J=None, t=None, dt=1.0, T=None, D=None, solver='step'):
+#     """
+#     Flux out of a chain.
+
+#     See section :ref:`define-chain` for more detail.
+
+#     Parameters
+#     ----------
+#     J : array_like
+#         The indicator flux entering the system.
+#     t : array_like, optional
+#         The time points of the indicator flux `J`, in the same units as `T`. 
+#         If None, the time points are assumed to be uniformly spaced with 
+#         spacing `dt`. Defaults to None.
+#     dt : float, optional
+#         Spacing between time points for uniformly spaced data, in the same 
+#         units as `T`. This parameter is ignored if `t` is explicitly 
+#         provided. Defaults to 1.0.
+#     T : float
+#         Mean transit time of the system. Any non-negative value is allowed, 
+#         including T = 0 and T = inf (in which case the compartment acts as 
+#         a trap).
+#     D : float
+#         Dispersion of the system. Values must be between 0 (no dispersion) 
+#         and 1 (maximal dispersion).
+#     solver : str, optional
+#         Solver used for the chain system calculation. Defaults to 'step'.
+
+#     Returns
+#     -------
+#     np.ndarray
+#         Outflux as a 1D array.
+
+#     See Also
+#     --------
+#     res_chain : Residue function of a chain.
+#     prop_chain : Propagator function of a chain.
+#     conc_chain : Concentration in a chain.
+
+#     Examples
+#     --------
+#     >>> import dcmri as dc
+#     >>> t = [0, 5, 15, 30, 60]
+#     >>> J = [1, 2, 3, 3, 2]
+#     >>> dc.flux_chain(J, t, T=5, D=0.5)
+#     array([0.        , 0.27067057, 1.9393115 , 2.64461893, 1.94721897])
+#     """
+#     if D == 0:
+#         return flux_plug(J, t=t, dt=dt, T=T)
+#     if D == 1:
+#         return flux_comp(J, t=t, dt=dt, T=T)
+
+#     th = misc.tarray(len(J), t=t, dt=dt)
+#     h = prop_chain(th, T, D)
+#     return convolution.conv(h, J, t=t, dt=dt, solver=solver)
+
+
+
+
+# These are functional but need to understand and simplify
+def flux_chain(J=None, t=None, dt=1.0, T=None, D=None, solver='step'):
+    """
+    Flux out of a chain.
+
+    See section :ref:`define-chain` for more detail.
+
+    Parameters
+    ----------
+    J : array_like
+        The indicator flux entering the system.
+    t : array_like, optional
+        The time points of the indicator flux `J`, in the same units as `T`. 
+        If None, the time points are assumed to be uniformly spaced with 
+        spacing `dt`. Defaults to None.
+    dt : float, optional
+        Spacing between time points for uniformly spaced data, in the same 
+        units as `T`. This parameter is ignored if `t` is explicitly 
+        provided. Defaults to 1.0.
+    T : float
+        Mean transit time of the system. Any non-negative value is allowed, 
+        including T = 0 and T = inf (in which case the compartment acts as 
+        a trap).
+    D : float
+        Dispersion of the system. Values must be between 0 (no dispersion) 
+        and 1 (maximal dispersion).
+    solver : str, optional
+        Solver used for the chain system calculation. Defaults to 'step'.
+
+    Returns
+    -------
+    np.ndarray
+        Outflux as a 1D array.
+
+    See Also
+    --------
+    res_chain : Residue function of a chain.
+    prop_chain : Propagator function of a chain.
+    conc_chain : Concentration in a chain.
+
+    Examples
+    --------
+    >>> import dcmri as dc
+    >>> t = [0, 5, 15, 30, 60]
+    >>> J = [1, 2, 3, 3, 2]
+    >>> dc.flux_chain(J, t, T=5, D=0.5)
+    array([0.        , 0.27067057, 1.9393115 , 2.64461893, 1.94721897])
+    """
+    if D == 0:
+        return flux_plug(J, t=t, dt=dt, T=T)
     if D == 1:
-        return res_comp(t, T)
-    h = prop_chain(t, T, D)
-    return 1-misc.trapz(h, t)
+        return flux_comp(J, t=t, dt=dt, T=T)
+
+    kernel = lambda tk: prop_chain(tk, T, D)
+    return _chain_conv(kernel, J, t, dt, T, D, solver)
 
 
 def conc_chain(J=None, t=None, dt=1.0, T=None, D=None, solver='step'):
@@ -1098,103 +1328,30 @@ def conc_chain(J=None, t=None, dt=1.0, T=None, D=None, solver='step'):
         return conc_plug(J, t=t, dt=dt, T=T)
     if D == 1:
         return conc_comp(J, t=t, dt=dt, T=T)
+    
+    kernel = lambda tk: res_chain(tk, T, D)
+    return _chain_conv(kernel, J, t, dt, T, D, solver)
 
-    # TODO: THIS NEEDS DEBUGGING
-    # if solver=='diag':
-    #     n0 = np.floor(1/D)
-    #     Tc, Ec = _chain_ncomp(n0, T)
-    #     Ji = np.zeros((n0,len(J)))
-    #     Ji[0,:] = J
-    #     C = conc_ncomp(Ji, Tc, Ec, t=t, dt=dt).sum(axis=0)
-    #     if n0==1/D:
-    #         return C
-    #     Tc, Ec = _chain_ncomp(n0+1, T)
-    #     C += conc_ncomp(Ji, Tc, Ec, t=t, dt=dt).sum(axis=0)
-    #     return C/2
 
+def _chain_conv(kernel, J, t, dt, T, D, solver, tail=1e-10):
+    # Convolve J with the chain kernel, using the same discretisation as
+    # convolution.conv(kernel(tr), J, ...), but with a truncated kernel on
+    # uniform grids.
+    J = np.asarray(J, dtype=float)
     tr = misc.tarray(len(J), t=t, dt=dt)
-    r = res_chain(tr, T, D)
-    return convolution.conv(r, J, t=t, dt=dt, solver=solver)
+    r = kernel(tr)
 
+    d = np.diff(tr)
+    uniform = len(tr) > 2 and tr[0] == 0 and np.allclose(d, d[0], rtol=1e-9, atol=0)
+    if not uniform:
+        return convolution.conv(J, r, t=tr, solver=solver)
 
-def flux_chain(J=None, t=None, dt=1.0, T=None, D=None, solver='step'):
-    """
-    Flux out of a chain.
+    n = 1 / D
+    L = int(gamma.isf(tail, n, scale=T / n) / d[0]) + 3   # +3: room for the k+1 term
+    if L >= len(J):
+        return convolution.uconv(J, r, d[0], solver=solver)   # no saving from truncation
+    return convolution.uconv(J, r, d[0], solver=solver, support=L)
 
-    See section :ref:`define-chain` for more detail.
-
-    Parameters
-    ----------
-    J : array_like
-        The indicator flux entering the system.
-    t : array_like, optional
-        The time points of the indicator flux `J`, in the same units as `T`. 
-        If None, the time points are assumed to be uniformly spaced with 
-        spacing `dt`. Defaults to None.
-    dt : float, optional
-        Spacing between time points for uniformly spaced data, in the same 
-        units as `T`. This parameter is ignored if `t` is explicitly 
-        provided. Defaults to 1.0.
-    T : float
-        Mean transit time of the system. Any non-negative value is allowed, 
-        including T = 0 and T = inf (in which case the compartment acts as 
-        a trap).
-    D : float
-        Dispersion of the system. Values must be between 0 (no dispersion) 
-        and 1 (maximal dispersion).
-    solver : str, optional
-        Solver used for the chain system calculation. Defaults to 'step'.
-
-    Returns
-    -------
-    np.ndarray
-        Outflux as a 1D array.
-
-    See Also
-    --------
-    res_chain : Residue function of a chain.
-    prop_chain : Propagator function of a chain.
-    conc_chain : Concentration in a chain.
-
-    Examples
-    --------
-    >>> import dcmri as dc
-    >>> t = [0, 5, 15, 30, 60]
-    >>> J = [1, 2, 3, 3, 2]
-    >>> dc.flux_chain(J, t, T=5, D=0.5)
-    array([0.        , 0.27067057, 1.9393115 , 2.64461893, 1.94721897])
-    """
-    if D == 0:
-        return flux_plug(J, t=t, dt=dt, T=T)
-    if D == 1:
-        return flux_comp(J, t=t, dt=dt, T=T)
-
-    # TODO: This needs debugging
-    # if solver=='diag':
-    #     n0 = int(np.floor(1/D))
-    #     Tc, Ec = _chain_ncomp(n0, T)
-    #     Ji = np.zeros((n0,len(J)))
-    #     Ji[0,:] = J
-    #     Jo = flux_ncomp(Ji, Tc, Ec, t=t, dt=dt)[n0-1,n0-1,:]
-    #     if n0==1/D:
-    #         return Jo
-    #     Tc, Ec = _chain_ncomp(n0+1, T)
-    #     Jo += flux_ncomp(Ji, Tc, Ec, t=t, dt=dt)[n0,n0,:]
-    #     return Jo/2
-
-    th = misc.tarray(len(J), t=t, dt=dt)
-    h = prop_chain(th, T, D)
-    return convolution.conv(h, J, t=t, dt=dt, solver=solver)
-
-# Helper function in diag solver for chain model
-# def _chain_ncomp(n, T):
-#     # Helper function
-#     Tarr = np.full(n, T/n)
-#     E = np.zeros((n,n))
-#     for i in range(n-1):
-#         E[i+1,i] = 1
-#     E[n-1,n-1] = 1
-#     return Tarr, E
 
 
 # Step
@@ -1862,37 +2019,46 @@ def flux_free(J=None, t=None, dt=1.0, h=None, TT=None, TTmin=0, TTmax=None):
 
 
 # N compartments
+# def _K_ncomp(T, E):
+#     # dC/dt = J - KC
+#     if not isinstance(T, np.ndarray):
+#         T = np.array(T)
+#     if not isinstance(E, np.ndarray):
+#         E = np.array(E)
+#     # Helper function
+#     if np.amin(E) < 0:
+#         raise ValueError('Extraction fractions cannot be negative.')
+#     n = T.size
+#     K = np.zeros((n, n))
+#     for i in range(n):
+#         for j in range(n):
+#             if j == i:
+#                 # Diagonal elements
+#                 # sum of column i
+#                 Ei = np.sum(E[:, i])
+#                 if Ei == 0:
+#                     K[i, i] = 0
+#                 else:
+#                     K[i, i] = Ei/T[i]
+#             else:
+#                 # Off-diagonal elements
+#                 if E[j, i] == 0:
+#                     K[j, i] = 0
+#                 else:
+#                     K[j, i] = -E[j, i]/T[i]
+#     return K
 
-# TODO: check that the sum of E's for a compartment = 1. Is it true that it can be something else? No sure..
-# Maybe trapping and creation needs to be modelled with extra constants?
-# The amounts trapped or created are not proportional to the amount inside.
 def _K_ncomp(T, E):
     # dC/dt = J - KC
-    if not isinstance(T, np.ndarray):
-        T = np.array(T)
-    if not isinstance(E, np.ndarray):
-        E = np.array(E)
-    # Helper function
+    T = np.asarray(T, dtype=float)
+    E = np.asarray(E, dtype=float)
+    n = T.size
+    if E.shape != (n, n):
+        raise ValueError('E must be an n x n matrix matching T.')
     if np.amin(E) < 0:
         raise ValueError('Extraction fractions cannot be negative.')
-    n = T.size
-    K = np.zeros((n, n))
-    for i in range(n):
-        for j in range(n):
-            if j == i:
-                # Diagonal elements
-                # sum of column i
-                Ei = np.sum(E[:, i])
-                if Ei == 0:
-                    K[i, i] = 0
-                else:
-                    K[i, i] = Ei/T[i]
-            else:
-                # Off-diagonal elements
-                if E[j, i] == 0:
-                    K[j, i] = 0
-                else:
-                    K[j, i] = -E[j, i]/T[i]
+    K = -E / T[np.newaxis, :]               # off-diagonals: -E[j,i]/T[i]
+    np.fill_diagonal(K, E.sum(axis=0) / T)  # diagonal: (column sum)/T[i]
     return K
 
 
@@ -1942,29 +2108,45 @@ def _conc_ncomp_prop(J, T, E, t=None, dt=1.0, dt_prop=None):
 # Helper function
 
 
+# def _conc_ncomp_diag(J, T, E, t=None, dt=1.0):
+#     t = misc.tarray(J.shape[1], t=t, dt=dt)
+#     # Calculate system matrix, eigenvalues and eigenvectors
+#     K = _K_ncomp(T, E)
+#     # From here, create generic function that solves n-comp system
+#     K, Q = np.linalg.eig(K)
+#     Qi = np.linalg.inv(Q)
+#     # Initialize concentration-time array
+#     nc, nt = len(T), len(t)
+#     C = np.zeros((nc, nt), dtype=K.dtype)
+#     Ei = np.zeros((nc, nt), dtype=K.dtype)
+#     # Loop over the inlets
+#     for i in range(nc):
+#         # Loop over the eigenvalues
+#         for d in range(nc):
+#             # Calculate elements of diagonal matrix
+#             Ei[d, :] = conc_comp(J[i, :], t, T=1/K[d])
+#             # Right-multiply with inverse eigenvector matrix
+#             Ei[d, :] *= Qi[d, i]
+#         # Left-multiply with eigenvector matrix
+#         C += np.matmul(Q, Ei)
+#     # Absolute value because K can be complex
+#     return np.absolute(C)
+
 def _conc_ncomp_diag(J, T, E, t=None, dt=1.0):
     t = misc.tarray(J.shape[1], t=t, dt=dt)
-    # Calculate system matrix, eigenvalues and eigenvectors
-    K = _K_ncomp(T, E)
-    # From here, create generic function that solves n-comp system
-    K, Q = np.linalg.eig(K)
+    lam, Q = np.linalg.eig(_K_ncomp(T, E))
     Qi = np.linalg.inv(Q)
-    # Initialize concentration-time array
     nc, nt = len(T), len(t)
-    C = np.zeros((nc, nt), dtype=K.dtype)
-    Ei = np.zeros((nc, nt), dtype=K.dtype)
-    # Loop over the inlets
-    for i in range(nc):
-        # Loop over the eigenvalues
-        for d in range(nc):
-            # Calculate elements of diagonal matrix
-            Ei[d, :] = conc_comp(J[i, :], t, T=1/K[d])
-            # Right-multiply with inverse eigenvector matrix
-            Ei[d, :] *= Qi[d, i]
-        # Left-multiply with eigenvector matrix
-        C += np.matmul(Q, Ei)
-    # Absolute value because K can be complex
+    C = np.zeros((nc, nt), dtype=lam.dtype)
+    Ei = np.zeros((nc, nt), dtype=lam.dtype)
+    for i in range(nc):                  # loop over inlets
+        for d in range(nc):              # loop over eigenvalues
+            # conc_comp only ever sees the non-negative inlet flux J[i, :]
+            Ei[d, :] = conc_comp(J[i, :], t, T=1/lam[d]) * Qi[d, i]
+        C += Q @ Ei
     return np.absolute(C)
+
+
 
 
 def conc_ncomp(J=None, t=None, dt=1.0, T=None, E=None, solver='diag', dt_prop=None):
