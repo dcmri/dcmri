@@ -43,18 +43,16 @@ from dcmri.utils.misc import (
     mle_rice,
     describe,
 )
-from dcmri.core.quantities import (
+from dcmri.core.dictionaries import ( #OBSOLETE
     QUANTITIES,
     GROUPS,
     ROIS,
     COMPS,
     QVALUES,
     AGENTS,
-)
-from dcmri.core.sequences import (
     SEQUENCES,
 )
-from dcmri.core.tools import (
+from dcmri.core.tools import ( # OBSOLETE
     select_params,
     print_quantities,
     parse_varname,
@@ -70,9 +68,36 @@ from dcmri.core.tools import (
     to_csv,
 )
 
-# from dcmri.core.qtools import (
+from .core.quantity_tools import (
+    all_quantities,
+    all_groups,
+    all_tissues,
+    all_compartments,
+    quantity_unit,
+    quantity_group,
+    quantity_key,
+    quantity_osipi,
+    quantity_dicom,
+    quantity_desc,
+    parse_quantity,
+    modify_quantity,
+    increment_quantity,
+    popindex_quantity,
+    print_quantities,
+    quantity_to_json,
+    quantity_from_json,
+    quantity_to_csv,
+)
 
-# )
+from .core.pseq_tools import (
+    all_sequences,
+    all_contrast_agents,
+    sequence_channels,
+    sequence_readout_pulses,
+    sequence_readout_time,
+    sequence_repetition_time,
+    sequence_acquisition_times,
+)
 
 from dcmri.kinetics.modules_pars import (
     ParsTissueX,
@@ -367,4 +392,5 @@ from dcmri.dro.modules import (
 from dcmri.dro.phantoms import (
     shepp_logan,
 )
+
 

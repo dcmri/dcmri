@@ -1,5 +1,5 @@
 import dcmri.core.values as values
-import dcmri.core.quantities as quantities
+import dcmri.core.dictionaries as dictionaries
 
 
 def ca_conc(agent: str) -> float:
@@ -153,7 +153,7 @@ def r1(field_strength=3.0, tissue='plasma', agent='gadoxetate', force=False) -> 
     """
 
     val = values.R1_RELAXIVITY
-    map = quantities.COMPS | quantities.ROIS
+    map = dictionaries.COMPS | dictionaries.ROIS
 
     tissue_key = tissue if tissue in val else map.get(tissue)
 
@@ -225,7 +225,7 @@ def r2(field_strength=3.0, tissue='plasma', agent='gadoxetate', force=False) -> 
         The plasma relaxivity of gadobutrol at 3T is 5.0 Hz/mM
     """
     val = values.R2_RELAXIVITY
-    map = quantities.COMPS | quantities.ROIS
+    map = dictionaries.COMPS | dictionaries.ROIS
 
     tissue_key = tissue if tissue in val else map.get(tissue)
 
@@ -244,7 +244,7 @@ def r2(field_strength=3.0, tissue='plasma', agent='gadoxetate', force=False) -> 
 def r2s(field_strength=3.0, tissue='blood', agent='gadoxetate', force=False) -> float:
     """R2*-relaxivity"""
     val = values.R2_STAR_RELAXIVITY
-    map = quantities.COMPS | quantities.ROIS
+    map = dictionaries.COMPS | dictionaries.ROIS
 
     tissue_key = tissue if tissue in val else map.get(tissue)
 
@@ -260,7 +260,7 @@ def r2s(field_strength=3.0, tissue='blood', agent='gadoxetate', force=False) -> 
 def r2sq(field_strength=3.0, tissue='blood', agent='gadoxetate', force=False) -> float:
     """R2*-relaxivity"""
     val = values.R2_STAR_RELAXIVITY_SQ
-    map = quantities.COMPS | quantities.ROIS
+    map = dictionaries.COMPS | dictionaries.ROIS
 
     tissue_key = tissue if tissue in val else map.get(tissue)
 
@@ -333,7 +333,7 @@ def T1(field_strength=3.0, tissue='blood', Hct=0.45, force=False) -> float:
         return 1 / (0.52 * Hct + 0.38)  # Lu MRM 2004
 
     T1VAL = values.T1_RELAXATION_TIMES
-    map = quantities.COMPS | quantities.ROIS
+    map = dictionaries.COMPS | dictionaries.ROIS
 
     tissue_key = tissue if tissue in T1VAL else map.get(tissue)
 
@@ -391,7 +391,7 @@ def T2(field_strength=3.0, tissue='gray matter', force=False) -> float:
     # 10.1109/ICSEng.2008.15.
 
     VAL = values.T2_RELAXATION_TIMES
-    map = quantities.COMPS | quantities.ROIS
+    map = dictionaries.COMPS | dictionaries.ROIS
 
     tissue_key = tissue if tissue in VAL else map.get(tissue)
 
@@ -414,7 +414,7 @@ def T2s(field_strength=3.0, tissue='gray matter', force=False) -> float:
     """
 
     VAL = values.T2_STAR_RELAXATION_TIMES
-    map = quantities.COMPS | quantities.ROIS
+    map = dictionaries.COMPS | dictionaries.ROIS
 
     tissue_key = tissue if tissue in VAL else map.get(tissue)
 
@@ -464,7 +464,7 @@ def PD(tissue='gray matter', force=False) -> float:
         The PD of skin is 0.8
     """
     VAL = values.PROTON_DENSITY
-    map = quantities.COMPS | quantities.ROIS
+    map = dictionaries.COMPS | dictionaries.ROIS
 
     tissue_key = tissue if tissue in VAL else map.get(tissue)
 

@@ -1,104 +1,26 @@
 import numpy as np
 
-def channels(sequence):
-    return 2 if sequence in ['Eq-DE-EPI', '2D-DE-EPI', '3D-DE-EPI'] else 1
+from dcmri.core import pseq_tools
 
-def pulse_readout(sequence, p):
-    if sequence in [
-            'ZTE-3D-SPGR-SS',
-            'ZTE-3D-SPGR-SSI',
-            '3D-SPGR-SS',
-            '2D-SPGR-SS',
-            '3D-SPGR',
-            '2D-SPGR',
-            '3D-SPGR-SSI',
-        ]:
-        return p['Nk0']
-    
-    elif sequence in [
-            'ZTE-3D-IR-SPGR-SS',
-            '3D-IR-SPGR-SS',
-            '3D-SR-SPGR-SS',
-            '3D-PR-SPGR-SS',
-            '3D-IR-SPGR',
-            '3D-SR-SPGR',
-            '3D-PR-SPGR',
-            '2D-SR-SPGR',
-        ]:
-        return 1 + p['Nk0']
+# OBSELETE FUNCTIONS
+def get_sequence(*args, **kwargs):
+    return pseq_tools.get_sequence(*args, **kwargs)
 
-    else:
-        return 0
+def channels(*args, **kwargs):
+    return pseq_tools.sequence_channels(*args, **kwargs)
 
-def readout_time(sequence, p):
-    if sequence in [
-            'ZTE-3D-SPGR-SS',
-            'ZTE-3D-SPGR-SSI',
-            '3D-SPGR-SS',
-            '2D-SPGR-SS',
-            '3D-SPGR',
-            '2D-SPGR',
-            '3D-SPGR-SSI',
-        ]:
-        return p['Nk0'] * p['TR']
-    
-    elif sequence in [
-            'ZTE-3D-IR-SPGR-SS',
-            '3D-IR-SPGR-SS',
-            '3D-SR-SPGR-SS',
-            '3D-PR-SPGR-SS',
-            '3D-IR-SPGR',
-            '3D-SR-SPGR',
-            '3D-PR-SPGR',
-            '2D-SR-SPGR',
-        ]:
-        return p['TP'] + p['Nk0'] * p['TR']
+def pulse_readout(*args, **kwargs):
+    return pseq_tools.sequence_readout_pulses(*args, **kwargs)
 
-    else:
-        return 0
+def readout_time(*args, **kwargs):
+    return pseq_tools.sequence_readout_time(*args, **kwargs)
 
-def repetition_time(sequence, p):
-    if sequence in [
-        'ZTE-3D-SPGR-SS',
-        '3D-SPGR-SS',
-        '2D-SPGR-SS',
-        '3D-SPGR',
-        '2D-SPGR',
-        'ZTE-3D-SPGR-SSI',
-        '3D-SPGR-SSI',
-    ]:
-        return p['Nph'] * p['TR']
+def repetition_time(*args, **kwargs):
+    return pseq_tools.sequence_repetition_time(*args, **kwargs)
 
-    elif sequence in [
-        'ZTE-3D-IR-SPGR-SS',
-        '3D-IR-SPGR-SS',
-        '3D-SR-SPGR-SS',
-        '3D-PR-SPGR-SS',
-        '3D-IR-SPGR',
-        '3D-SR-SPGR',
-        '3D-PR-SPGR',
-        '2D-SR-SPGR',
-    ]:
-        return p['TP'] + p['Nph'] * p['TR'] + p['TD']
+def acquisition_times(*args, **kwargs):
+    return pseq_tools.sequence_acquisition_times(*args, **kwargs)
 
-    elif sequence in [
-        '2D-GE-EPI',
-        '2D-SE-EPI',
-        '2D-DE-EPI',
-        '3D-GE-EPI',
-        '3D-SE-EPI',
-        '3D-DE-EPI',
-    ]:
-        return p['TR']
-    
-    return p['TA']
-
-
-def acquisition_times(sequence, p, tacq):
-    TR = repetition_time(sequence, p)
-    t0 = readout_time(sequence, p)
-    nt = np.floor(tacq / TR)
-    return t0 + TR * np.arange(nt)
 
 
 def mz_readout(Mz: np.ndarray, R2: np.ndarray, FA, TE):
