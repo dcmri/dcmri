@@ -133,7 +133,7 @@ def test_aif_analytical():
     rp = dc.r1(B0, 'blood', agent)
     r2s = dc.r2s(B0, 'blood', agent)
     aif_time = np.arange(0, tmax, dt)
-    aif_conc = dc.tristan(aif_time, BAT=10)
+    aif_conc = dc.aif_tristan(aif_time, BAT=10)
     aif_R1 = R1ba + rp * aif_conc
     # aif_R2s = R2sba + r2s * aif_conc
     aif_R2s = np.full_like(aif_conc, R2sba)
@@ -177,7 +177,7 @@ def test_aif_numerical():
     rp = dc.r1(B0, 'blood', agent)
     r2s = dc.r2s(B0, 'blood', agent)
     aif_time = np.arange(0, tmax, dt)
-    aif_conc = dc.tristan(aif_time, BAT=10)
+    aif_conc = dc.aif_tristan(aif_time, BAT=10)
     aif_R1 = R1ba + rp * aif_conc
     # aif_R2s = R2sba + r2s * aif_conc
     aif_R2s = np.full_like(aif_conc, R2sba)
@@ -204,7 +204,7 @@ def test_function_dce():
     # Generate concentrations
     dt, tmax = 0.5, 180
     time = np.arange(0, tmax, dt)
-    ca = dc.tristan(time, BAT=10)
+    ca = dc.aif_tristan(time, BAT=10)
 
     params_dce = dc.QVALUES | {
         'FA': 45,
@@ -281,7 +281,7 @@ def test_function_dsc():
     # Generate concentrations
     dt, tmax = 0.5, 180
     time = np.arange(0, tmax, dt)
-    ca = dc.tristan(time, BAT=10)
+    ca = dc.aif_tristan(time, BAT=10)
 
     params_dsc = dc.QVALUES | {
         'TE': 0.050, 
@@ -358,7 +358,7 @@ def test_brain():
 
     # Simulated arterial concentration
     aif_time = np.arange(0, tacq+dt, dt_sim)
-    aif_conc = dc.parker(aif_time, BAT)
+    aif_conc = dc.aif_parker(aif_time, BAT)
     aif_conc = aif_conc * (1-H)
 
     # Sampled arterial signal

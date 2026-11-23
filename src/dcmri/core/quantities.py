@@ -2,7 +2,7 @@
 # Contrast agent generic names
 # -----------------------------------------------------------------------------
 
-
+#: List of approved contrast agents
 AGENTS = [
     'gadoxetate',
     'gadobutrol',
@@ -20,7 +20,7 @@ AGENTS = [
     'gadoxetate',
 ]
 
-
+#: List of quantity groups
 GROUPS = {
     'indicator',
     'signal',
@@ -32,6 +32,7 @@ GROUPS = {
     'inverse problem',
 }
 
+#: Notations for tissue ROIs
 ROIS = {
     'ab': 'arterial blood',
     'ar': 'artery',
@@ -69,7 +70,8 @@ ROIS = {
 
 #Note: No shared keys between ROIs and comps except when the same value (eg. blood)
 
-COMPS = { # subvoxel compartments
+#: Notations for subvoxel compartments
+COMPS = { 
     'b': 'blood',
     'bc': 'blood and cells',
     'bi': 'blood and interstitium',
@@ -93,8 +95,7 @@ COMPS = { # subvoxel compartments
     'vb': 'venous blood',
 }
 
-# TODO: rename init -> value
-
+#: Dictionary of quantities
 QUANTITIES = {
 
     # Generic hyperparameters

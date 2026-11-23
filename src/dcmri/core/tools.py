@@ -11,6 +11,8 @@ from dcmri.core.quantities import QUANTITIES, ROIS, COMPS, GROUPS
 from dcmri.core.values import QDATA_ROIS
 from dcmri.core.sequences import SEQUENCES
 
+import dcmri.core.qtools as qtools
+
 
 def get_sequence(prop, sequence=None):
     if prop=='name':
@@ -40,20 +42,7 @@ def get_sequence(prop, sequence=None):
 
 
 
-
-def _ordinal(n):
-    if 10 <= n % 100 <= 20:
-        suffix = 'th'
-    else:
-        suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')
-    return f"{n}{suffix}"
-
-
-def _describe_compartment(compartment):
-    if '2' in compartment:
-        comp1, comp2 = compartment.split('2')
-        return f"from {COMPS[comp1]} to {COMPS[comp2]}"
-    return f"in {COMPS[compartment]}"
+# OBSOLETE FUNCTIONS - Phase out
 
 def unit(k: str, **kwargs):
     q = get_quantity(k, **kwargs)
@@ -63,135 +52,23 @@ def group(k: str, **kwargs):
     q = get_quantity(k, **kwargs)
     return q['group']
 
-def get_quantity(k: str, quantities=None):
-    lexicon = QUANTITIES
-    if quantities is not None:
-        lexicon |= quantities
+def get_quantity(*args, **kwargs):
+    return qtools.qget(*args, **kwargs)
 
-    if k in lexicon:
-        return deepcopy(lexicon[k])
+def build_varname(*args, **kwargs):
+    return qtools.qkey(*args, **kwargs)
 
-    parsed = parse_varname(k)
-    name, index, compartment, roi = (
-        parsed['name'], parsed['index'], parsed['compartment'], parsed['roi']
-    )
+def parse_varname(*args, **kwargs):
+    return qtools.qparse(*args, **kwargs)
 
-    if name not in lexicon:
-        raise ValueError(f"Unknown quantity {k}")
+def extend_varname(*args, **kwargs):
+    return qtools.qmod(*args, **kwargs)
 
-    quant = deepcopy(lexicon[name])
+def increment_varindex(*args, **kwargs):
+    return qtools.qincrement(*args, **kwargs)
 
-    # Build the human-readable description
-    desc = quant['name']
-    if compartment:
-        desc = f"{desc} {_describe_compartment(compartment)}"
-    if roi:
-        desc = f"{desc} {'of' if compartment else 'in'} the {ROIS[roi]}"
-    if index is not None:
-        desc = f"{_ordinal(index)} {desc}"
-    quant['name'] = desc
-
-    # Override init/bounds with any roi/compartment-specific data (index doesn't affect data)
-    data_key = build_varname(name, compartment=compartment, roi=roi)
-    if data_key in QDATA_ROIS:
-        quant['init'] = QDATA_ROIS[data_key]['init']
-        quant['bounds'] = QDATA_ROIS[data_key]['bounds']
-    elif compartment is not None and roi is not None:
-        fallback_key = build_varname(name, compartment=compartment)
-        if fallback_key in QDATA_ROIS:
-            quant['init'] = QDATA_ROIS[fallback_key]['init']
-            quant['bounds'] = QDATA_ROIS[fallback_key]['bounds']
-
-    return quant
-
-
-def _is_valid_compartment(token):
-    if token in COMPS:
-        return True
-    if "2" in token:
-        comp1, _, comp2 = token.partition("2")
-        return comp1 in COMPS and comp2 in COMPS
-    return False
-
-
-def build_varname(name, index=None, compartment=None, roi=None):
-    if compartment is not None and not _is_valid_compartment(compartment):
-        raise ValueError(
-            f"'{compartment}' is not a valid compartment. "
-            f"Must be one of {list(COMPS)}, or 'comp1_2_comp2' with both in {list(COMPS)}."
-        )
-    if roi is not None and roi not in ROIS:
-        raise ValueError(f"'{roi}' is not a valid roi. Options are {list(ROIS)}.")
-
-    parts = [name]
-    if index is not None:
-        parts.append(str(index))
-    if compartment is not None:
-        parts.append(compartment)
-    if roi is not None:
-        parts.append(roi)
-
-    return "_".join(parts)
-
-
-def parse_varname(varname):
-    tokens = varname.split("_")
-
-    roi = None
-    if len(tokens) > 1 and tokens[-1] in ROIS:
-        roi = tokens.pop()
-
-    compartment = None
-    if len(tokens) > 1 and _is_valid_compartment(tokens[-1]):
-        compartment = tokens.pop()
-
-    index = None
-    if len(tokens) > 1 and tokens[-1].isdigit():
-        index = int(tokens.pop())
-
-    name = "_".join(tokens)
-
-    return {
-        "name": name,  # TODO: rename to key. name is used to refer to full description
-        "index": index,
-        "compartment": compartment,
-        "roi": roi,
-    }
-
-
-def extend_varname(var, index=None, compartment=None, roi=None):
-    parsed = parse_varname(var)
-
-    if index is not None:
-        parsed['index'] = index
-    if compartment is not None:
-        parsed['compartment'] = compartment
-    if roi is not None:
-        parsed['roi'] = roi
-
-    return build_varname(
-        parsed['name'],
-        index=parsed['index'],
-        compartment=parsed['compartment'],
-        roi=parsed['roi'],
-    )
-
-def increment_varindex(var, increment=1):
-    parsed = parse_varname(var)
-    if parsed['index'] is None:
-        new_index = 1
-    else:
-        new_index = parsed['index'] + increment
-    return extend_varname(var, index=new_index)
-
-
-def remove_varindex(var):
-    parsed = parse_varname(var)
-    return build_varname(
-        parsed['name'],
-        compartment=parsed['compartment'],
-        roi=parsed['roi'],
-    )
+def remove_varindex(*args, **kwargs):
+    return qtools.qpopindex(*args, **kwargs)
 
 
 

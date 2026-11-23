@@ -148,7 +148,7 @@ def r1(field_strength=3.0, tissue='plasma', agent='gadoxetate', force=False) -> 
     Example:
 
         >>> import dcmri as dc
-        >>> print('The plasma relaxivity of gadobutrol at 3T is', 1e-3*dc.relaxivity(3.0, 'plasma', 'gadobutrol'), 'Hz/mM')
+        >>> print('The plasma relaxivity of gadobutrol at 3T is', 1e-3*dc.r1(3.0, 'plasma', 'gadobutrol'), 'Hz/mM')
         The plasma relaxivity of gadobutrol at 3T is 5.0 Hz/mM
     """
 
@@ -221,7 +221,7 @@ def r2(field_strength=3.0, tissue='plasma', agent='gadoxetate', force=False) -> 
     Example:
 
         >>> import dcmri as dc
-        >>> print('The plasma relaxivity of gadobutrol at 3T is', 1e-3*dc.relaxivity(3.0, 'plasma', 'gadobutrol'), 'Hz/mM')
+        >>> print('The plasma relaxivity of gadobutrol at 3T is', 1e-3*dc.r2(3.0, 'plasma', 'gadobutrol'), 'Hz/mM')
         The plasma relaxivity of gadobutrol at 3T is 5.0 Hz/mM
     """
     val = values.R2_RELAXIVITY

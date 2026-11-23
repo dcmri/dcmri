@@ -2,6 +2,7 @@ import numpy as np
 from scipy.integrate import trapezoid
 from scipy.signal import lfilter
 from scipy.signal import oaconvolve
+from scipy.special import gammaln, xlogy
 
 
 def _tarray(n, t=None, dt=1.0):
@@ -680,7 +681,7 @@ def biexpconv(T1, T2, t):
         return (np.exp(-t/T1)-np.exp(-t/T2))/(T1-T2)
 
 
-from scipy.special import gammaln, xlogy
+
 
 
 def nexpconv(n, T, t):

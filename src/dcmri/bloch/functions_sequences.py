@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.linalg import expm
 
 def channels(sequence):
     return 2 if sequence in ['Eq-DE-EPI', '2D-DE-EPI', '3D-DE-EPI'] else 1

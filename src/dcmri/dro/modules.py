@@ -3,7 +3,7 @@ from copy import deepcopy
 import numpy as np
 
 from dcmri.core.module import Module
-from dcmri.dro.functions_aif import parker
+from dcmri.dro.functions_aif import aif_parker
 from dcmri.signal.modules_tissue import ConcToSignal
 
 PARKER_INPUTS = {
@@ -58,18 +58,18 @@ class Parker(Module):
         p = deepcopy(PARKER_INPUTS | PARKER_OUTPUTS)
 
         # --- Override any user-defined inputs
-        p |= self.map_data(data, kwargs, all=False)
+        p |= self.map_data(data, all=False)
 
         # --- Compute plasma concentration
         t = np.arange(0, p['tacq'] + p['dt'], p['dt'])
-        cp = parker(t, BAT=p['BAT'])
+        cp = aif_parker(t, BAT=p['BAT'])
 
         # --- Convert to blood concentration
         cb = (1 - p['H']) * cp 
 
         # --- Compute signals
-        p |= {'tC': t, 'C': cb}
-        p |= self._conc2sig(p, R1b=p['R1_b'], R2sb=p['R2s_b'])
+        p |= {'tC': t, 'C': cb, 'R1b': p['R1_b'], 'R2sb':p['R2s_b']}
+        p |= self._conc2sig(p)
         
         return self.map_results(p) 
 

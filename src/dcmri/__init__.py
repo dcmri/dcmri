@@ -1,10 +1,15 @@
+from dcmri.core.module import (
+    Module,
+    InvalidConfig,
+)
+
 from dcmri.utils.const import (
     ca_conc,
     ca_std_dose,
-    relaxivity,
     r2s,
     r1,
     r2,
+    r2sq,
     T1,
     T2,
     T2s,
@@ -36,16 +41,27 @@ from dcmri.utils.misc import (
     sample,
     add_noise,
     mle_rice,
+    describe,
 )
 from dcmri.core.quantities import (
     QUANTITIES,
+    GROUPS,
+    ROIS,
+    COMPS,
     QVALUES,
+    AGENTS,
+)
+from dcmri.core.sequences import (
+    SEQUENCES,
 )
 from dcmri.core.tools import (
     select_params,
     print_quantities,
     parse_varname,
     build_varname,
+    extend_varname,
+    increment_varindex,
+    remove_varindex,
     get_quantity,
     unit,
     group,
@@ -54,6 +70,13 @@ from dcmri.core.tools import (
     to_csv,
 )
 
+# from dcmri.core.qtools import (
+
+# )
+
+from dcmri.kinetics.modules_pars import (
+    ParsTissueX,
+)
 from dcmri.kinetics.modules_conc import (
     Conc,
     ConcAorta,
@@ -157,6 +180,8 @@ from dcmri.kinetics.functions_liver import (
     conc_liver_1i_ic_hf_nsue,
     conc_liver_1i_ic_u,
     conc_liver_1i_ic_u_nsu,
+    conc_liver_1i_ick,
+    conc_liver_1i_ick_nsu,
     # conc_liver_1i_ic_hfd,
     # conc_liver_1i_ic_hfd_nsu,
     # conc_liver_1i_ic_hfd_nse,
@@ -180,6 +205,9 @@ from dcmri.kinetics.functions_kidney import (
     conc_kidney_2cf,
     conc_kidney_2pf,
     conc_kidney_cpf,
+    conc_kidney_ccf,
+    conc_kidney_pcf,
+    conc_kidney_pccf,
     conc_kidney_hf,
     conc_kidney_fn,
     conc_kidney_2cfu,
@@ -226,10 +254,18 @@ from dcmri.relaxivity.functions_relaxivity import (
    conc_t1,
 )
 from dcmri.bloch.modules_tissue import (
+    MzInflowPrep,
+    MzPrep,
+    MxyReadMz,
     Magnetization,
 )
 from dcmri.bloch.functions_sequences import (
     mz_readout,
+    channels,
+    pulse_readout,
+    readout_time,
+    repetition_time,
+    acquisition_times,
 )
 from dcmri.bloch.functions_mz import (
     Mz_ss, 
@@ -251,6 +287,7 @@ from dcmri.bloch.functions_mz_vectorized import (
     Mz_prop_pr_spgr_vectorized,
 )
 from dcmri.bloch.functions_mz_dyn import (
+    Mz_wrapper_k_all,
     Mz_dyn,
     Mz_dyn_spgr,
     Mz_dyn_pr_spgr,
@@ -261,6 +298,7 @@ from dcmri.bloch.functions_mz_dyn import (
     Mz_dyn_se,
 )
 from dcmri.bloch.functions_mz_dyn_k0 import (
+    Mz_wrapper_k0,
     Mz_dyn_k0,
     Mz_dyn_k0_spgr,
     Mz_dyn_k0_pr_spgr,
@@ -274,6 +312,7 @@ from dcmri.signal.modules_tissue import (
     Signal,
     RelaxToSignal,
     ConcToSignal,
+    signal_rice,
 )
 from dcmri.inverse.modules import (
     SignalToConc
@@ -318,9 +357,9 @@ from dcmri.inverse.tissue_ls import InverseTissueLS
 
 
 from dcmri.dro.functions_aif import (
-    parker,
-    tristan,
-    tristan_rat,
+    aif_parker,
+    aif_tristan,
+    aif_tristan_rat,
 )
 from dcmri.dro.modules import (
     Parker,

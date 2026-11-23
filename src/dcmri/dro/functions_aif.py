@@ -5,7 +5,7 @@ from dcmri.kinetics.functions_input import ca_injection
 from dcmri.kinetics.functions_aorta import flux_aorta
 from dcmri.kinetics.functions_blocks import flux_2cxm
 
-def parker(t, BAT: float = 0.0) -> np.ndarray:
+def aif_parker(t, BAT: float = 0.0) -> np.ndarray:
     """Population AIF model as defined by `Parker et al (2006) <https://onlinelibrary.wiley.com/doi/full/10.1002/mrm.21066>`_
 
     Args:
@@ -29,7 +29,7 @@ def parker(t, BAT: float = 0.0) -> np.ndarray:
 
         Calculate the Parker AIF at these time points, and output the result in units of mM:
 
-        >>> 1000*dc.parker(t)
+        >>> 1000*dc.aif_parker(t)
         array([0.08038467, 0.23977987, 0.63896354, 1.45093969,
         2.75255937, 4.32881325, 5.6309778 , 6.06793854, 5.45203828,
         4.1540079 , 2.79568217, 1.81335784, 1.29063036, 1.08751679])
@@ -61,7 +61,7 @@ def parker(t, BAT: float = 0.0) -> np.ndarray:
     return pop_aif / 1000  # convert to M
 
 
-def tristan(
+def aif_tristan(
     t: np.ndarray,
     agent='gadoterate',
     dose=0.2,
@@ -135,10 +135,10 @@ def tristan(
 
         # Plot aifs with different levels of cardiac output, including the 
         # default of 100mL/sec.
-        plt.plot(t/60, 1000*dc.tristan(t, BAT=30), 'r-', label='AIF (default)')
-        plt.plot(t/60, 1000*dc.tristan(t, BAT=30, CO=150), 'g-', 
+        plt.plot(t/60, 1000*dc.aif_tristan(t, BAT=30), 'r-', label='AIF (default)')
+        plt.plot(t/60, 1000*dc.aif_tristan(t, BAT=30, CO=150), 'g-', 
                  label='AIF (increased cardiac output)')
-        plt.plot(t/60, 1000*dc.tristan(t, BAT=30, CO=75), 'b-', 
+        plt.plot(t/60, 1000*dc.aif_tristan(t, BAT=30, CO=75), 'b-', 
                  label='AIF (reduced cardiac output)')
         plt.xlabel('Time (min)')
         plt.ylabel('Concentration (mmol/mL)')
@@ -156,7 +156,7 @@ def tristan(
     return Jb/CO
 
 
-def tristan_rat(t, BAT=4.6 * 60, duration=30, k_e2h=0.0147) -> np.ndarray:
+def aif_tristan_rat(t, BAT=4.6 * 60, duration=30, k_e2h=0.0147) -> np.ndarray:
     """Population AIF model for rats measured with a standard dose of 
     gadoxetate.
 
@@ -196,7 +196,7 @@ def tristan_rat(t, BAT=4.6 * 60, duration=30, k_e2h=0.0147) -> np.ndarray:
 
         Generate the rat input function for these time points:
 
-        >>> cb = dc.tristan_rat(t)
+        >>> cb = dc.aif_tristan_rat(t)
 
         Plot the result:
 

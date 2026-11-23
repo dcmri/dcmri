@@ -3,7 +3,7 @@ import numpy as np
 from dcmri.core.module import Module
 from dcmri.core.module import InvalidConfig
 from dcmri.kinetics.functions_blocks import flux_plug
-from dcmri.dro.functions_aif import tristan_rat
+from dcmri.dro.functions_aif import aif_tristan_rat
 from dcmri.kinetics.modules_flux import FluxAorta
 import dcmri.kinetics.functions_kidney as pk_kidney
 import dcmri.kinetics.functions_tissue as pk_tissue
@@ -202,9 +202,9 @@ class ConcLiver(Module):
         if self.config['input'] == 'tristan_rat':
             tC_li = np.arange(0, p['tmax'], p['dt'])
             # This replicates the old behaviour
-            # p['ci_li'] = tristan_rat(tC_li, BAT=p['BAT'], duration=p['duration'])
+            # p['ci_li'] = aif_tristan_rat(tC_li, BAT=p['BAT'], duration=p['duration'])
             # Update:
-            p['ci_li'] = tristan_rat(tC_li, BAT=p['BAT'], duration=p['duration'], k_e2h=p['k_e2h'])
+            p['ci_li'] = aif_tristan_rat(tC_li, BAT=p['BAT'], duration=p['duration'], k_e2h=p['k_e2h'])
             C_li = liver_conc(p['ci_li'], **params)
         else:
             C_li = liver_conc(p['ci_li'], **params)
