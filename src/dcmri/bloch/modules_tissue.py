@@ -2,11 +2,12 @@
 import numpy as np
 from scipy.interpolate import interp1d
 
-from dcmri.core.tools import get_sequence, get_quantity
+from dcmri.core.pseq_tools import get_sequence, sequence_acquisition_times
+from dcmri.core.quantity import Qty
 from dcmri.core.module import InvalidConfig
 from dcmri.core.module import Module
 from dcmri.bloch.functions_mz_dyn_k0 import Mz_wrapper_k0
-from dcmri.bloch import functions_sequences
+from dcmri.bloch import functions_mxy
 
 
 class MzInflowPrep(Module): 
@@ -145,7 +146,7 @@ class MzInflowPrep(Module):
             if self.config['tof_corr']:
                 sequence = f"{sequence}I"
             mz_prep_inflow = get_sequence('mz_prep_inflow', sequence)
-            p |= {k: get_quantity(k)['init'] for k in get_sequence('prep_params', sequence)}
+            p |= {k: Qty(k).value for k in get_sequence('prep_params', sequence)}
             p |= {'me': 1}
             tMi, Mzi = Mz_wrapper_k0(sequence, mz_prep_inflow, tR, R1[0], p, 
                                 v=1, Kw=0, tstart=tstart, t_end=t_end)
@@ -253,7 +254,7 @@ class MzPrep(Module):
 
         # --- Result without T1 weighting
         if 'R1' not in get_sequence('tissue_params', sequence):
-            o['tMz'] = tstart + functions_sequences.acquisition_times(sequence, p, p['tacq'])
+            o['tMz'] = tstart + sequence_acquisition_times(sequence, p, p['tacq'])
             ntM = len(o['tMz'])
             o['Mz'] = np.repeat(v[:, None] * p['me'], ntM, axis=1)
             o['tJMz'], o['JMz'] = None, None
@@ -429,7 +430,7 @@ class MxyReadMz(Module):
         else:
             R2 = None
 
-        Mxy = functions_sequences.mz_readout_wrapper(Mz, p, seq, R2=R2, R2s=R2s)
+        Mxy = functions_mxy.mz_readout_wrapper(Mz, p, seq, R2=R2, R2s=R2s)
 
         # (channels, components, compartments, times)
         # or

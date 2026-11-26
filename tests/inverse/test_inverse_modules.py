@@ -4,9 +4,12 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 import dcmri as dc
-from dcmri.core.tools import get_sequence
+from dcmri.core.pseq_tools import get_sequence
 from dcmri.core.module import InvalidConfig
 from dcmri.inverse.modules import RelaxToSignal
+
+
+QVALUES = {k: v['init'] for k, v in dc.all_quantities().items()}
 
 
 def _test_class(cls):
@@ -55,7 +58,7 @@ def test_coverage():
         sig2conc.inputs()
         if seq in ['ZTE-3D-IR-SPGR-SS', '3D-IR-SPGR-SS']: # Non-monotonous
             continue 
-        sig2conc(dc.QVALUES | {'S': signal})
+        sig2conc(QVALUES | {'S': signal})
 
     # 3D signals (n_samples, n_channels, n_times)
     n_samples = 3
@@ -73,19 +76,19 @@ def test_coverage():
         sig2conc.inputs()
         if seq in ['ZTE-3D-IR-SPGR-SS', '3D-IR-SPGR-SS']: # Non-monotonous
             continue 
-        sig2conc(dc.QVALUES| {'S': signal})
+        sig2conc(QVALUES| {'S': signal})
 
         # Tst Options
         if seq == 'lin':
-            dc.SignalToConc(sequence=seq, calibrate=False)(dc.QVALUES | {'S': signal, 'S0':np.full(n_samples, 1)})
-            dc.SignalToConc(sequence=seq, calibrate=True)(dc.QVALUES | {'S': signal})
+            dc.SignalToConc(sequence=seq, calibrate=False)(QVALUES | {'S': signal, 'S0':np.full(n_samples, 1)})
+            dc.SignalToConc(sequence=seq, calibrate=True)(QVALUES | {'S': signal})
 
         if seq in ['ZTE-3D-IR-SPGR-SS', '3D-IR-SPGR-SS']:
-            dc.SignalToConc(sequence=seq, calibrate=False)(dc.QVALUES| {'S': signal, 'S0':np.full(n_samples, 1)})
+            dc.SignalToConc(sequence=seq, calibrate=False)(QVALUES| {'S': signal, 'S0':np.full(n_samples, 1)})
 
         if seq in ['2D-GE-EPI', '2D-SE-EPI', '2D-DE-EPI', '3D-GE-EPI', '3D-SE-EPI', '3D-DE-EPI']:
-            dc.SignalToConc(sequence=seq, calibrate=True)(dc.QVALUES | {'S': signal, 'R1b': np.full(n_samples, 1)})
-            dc.SignalToConc(sequence=seq, calibrate=False)(dc.QVALUES | {'S': signal, 'S0': np.full(n_samples, 1)})
+            dc.SignalToConc(sequence=seq, calibrate=True)(QVALUES | {'S': signal, 'R1b': np.full(n_samples, 1)})
+            dc.SignalToConc(sequence=seq, calibrate=False)(QVALUES | {'S': signal, 'S0': np.full(n_samples, 1)})
 
 
 def test_exceptions():
@@ -206,7 +209,7 @@ def test_function_dce():
     time = np.arange(0, tmax, dt)
     ca = dc.aif_tristan(time, BAT=10)
 
-    params_dce = dc.QVALUES | {
+    params_dce = QVALUES | {
         'FA': 45,
         'PA': 120,
         'TR': 0.005,
@@ -263,7 +266,7 @@ def test_function_dce():
     # Generate signal and reconstruct concentrations
     S = R1ba + rp * ca
 
-    ca_rec = dc.SignalToConc(sequence='lin')(dc.QVALUES | {'S':S, 'R1b':R1ba, 'r1':rp})['C']
+    ca_rec = dc.SignalToConc(sequence='lin')(QVALUES | {'S':S, 'R1b':R1ba, 'r1':rp})['C']
     
     # Determine reconstruction error
     err = np.linalg.norm(ca-ca_rec) / np.linalg.norm(ca)
@@ -283,7 +286,7 @@ def test_function_dsc():
     time = np.arange(0, tmax, dt)
     ca = dc.aif_tristan(time, BAT=10)
 
-    params_dsc = dc.QVALUES | {
+    params_dsc = QVALUES | {
         'TE': 0.050, 
         'TE1': 0.005,
         'TE2': 0.050, 

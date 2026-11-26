@@ -141,14 +141,12 @@
 # +------------------------------------------------------------------------------------------------------------------+
 
 from copy import deepcopy
-from itertools import product
 
 import numpy as np
 import matplotlib.pyplot as plt
-import pydmr
 
 from dcmri.core.module import Module
-from dcmri.core.tools import get_quantity, update_bounds, parse_varname, extend_varname, remove_varindex
+from dcmri.core.quantity import Qty, update_bounds
 from dcmri.utils.fit import train_brute, save_results, read_results, plot_pcov, plot_pvar
 from dcmri.forward.aorta_liver_drug import AortaLiverDrug as ForwardModel
 from dcmri.kinetics.functions_liver import dpars_liver
@@ -195,7 +193,7 @@ class InverseAortaLiverDrug(Module):
             p[f'tstart_{scan}'] = min([p[f'tS_{scan}_{roi}'][0] for roi in ROIS])
             tmax = max([p[f'tS_{scan}_{roi}'][-1] for roi in ROIS])
             ts = p[f'tS_{scan}_ao'][1] - p[f'tS_{scan}_ao'][0]
-            #ts = repetition_time(self.config['sequence'], p)
+            #ts = sequence_repetition_time(self.config['sequence'], p)
             p[f'tacq_{scan}'] = tmax - p[f'tstart_{scan}'] + 5 * ts
 
         # Reshape signal if needed
@@ -221,28 +219,28 @@ class InverseAortaLiverDrug(Module):
 
     def _pfree(self):
         inputs = self._forward.mapped_inputs()
-        pfree = {p for p in inputs if get_quantity(p)['group']=='physiological'}
+        pfree = {p for p in inputs if Qty(p).group=='physiological'}
         pfree |= {'BAT_1', 'BAT_2'}
         if not self.config['calibrate']:
             pfree |= {'S0_1_ao', 'S0_1_li', 'S0_2_ao', 'S0_2_li'}
         pfree -= {'H', 'v_li'}
-        return {p: get_quantity(p)['bounds'] for p in pfree}
+        return {p: Qty(p).bounds for p in pfree}
     
 
     def _pder(self, data:dict):
-        p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['physiological', 'whole-body']}
+        p = {k: v for k, v in data.items() if Qty(k).group in ['physiological', 'whole-body']}
 
-        p_common = {k: v for k, v in p.items() if parse_varname(k)['index'] is None}
+        p_common = {k: v for k, v in p.items() if Qty(k).index is None}
 
         # Add derived per visit
-        p_1 = {remove_varindex(k): v for k, v in p.items() if parse_varname(k)['index'] == 1} 
-        p_2 = {remove_varindex(k): v for k, v in p.items() if parse_varname(k)['index'] == 2}
+        p_1 = {Qty(k).popindex().key: v for k, v in p.items() if Qty(k).index == 1} 
+        p_2 = {Qty(k).popindex().key: v for k, v in p.items() if Qty(k).index == 2}
 
         p_1 = dpars_liver(p_1 | p_common, kinetics=self.config['liver'])
         p_2 = dpars_liver(p_2 | p_common, kinetics=self.config['liver'])
 
-        p_1 = {extend_varname(k, index=1): v for k, v in p_1.items() if k not in p_common and k not in {'v_h'}}
-        p_2 = {extend_varname(k, index=2): v for k, v in p_2.items() if k not in p_common and k not in {'v_h'}}
+        p_1 = {Qty(k, index=1).key: v for k, v in p_1.items() if k not in p_common and k not in {'v_h'}}
+        p_2 = {Qty(k, index=2).key: v for k, v in p_2.items() if k not in p_common and k not in {'v_h'}}
 
         # Add effect sizes
         p_eff = {}
@@ -258,7 +256,7 @@ class InverseAortaLiverDrug(Module):
             p_eff['ke_h2b'] = (p_2['k_2_h2b'] - p_1['k_1_h2b']) / p_1['k_1_h2b']
 
         # Add BAT
-        p_bat = {k: v for k, v in data.items() if parse_varname(k)['name'] == 'BAT'}
+        p_bat = {k: v for k, v in data.items() if Qty(k).name == 'BAT'}
         
         return p_common | p_1 | p_2 | p_bat | p_eff
 

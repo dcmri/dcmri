@@ -313,11 +313,11 @@ from itertools import product
 
 import numpy as np
 
-from dcmri.core.tools import extend_varname, increment_varindex, parse_varname, group
+from dcmri.core.quantity import Qty
 from dcmri.core.module import Module
 from dcmri.forward.aorta_liver_split import AortaLiverSplit
 from dcmri.forward.aorta_liver import AortaLiver
-from dcmri.bloch.functions_sequences import channels
+from dcmri.core.pseq_tools import sequence_channels
 
 visits, scans, rois = [1, 2], [1, 2], ['ao', 'li']
 
@@ -351,24 +351,24 @@ class AortaLiverSplitDrug(Module):
         visit_inputs |= {'E_li', 'Ef_li', 'Ei_li', 'T_h', 'Tf_h', 'Ti_h', 'k_e2h', 'kf_e2h', 'ki_e2h', 'vol_ao', 'vol_li'} 
 
         vars = {'BAT', 'dose', 'rate'}
-        vars |= {k for k in AortaLiver.all_inputs() if group(k)=='sequence' and k != 'field_strength'}
-        visit_scan_inputs = {extend_varname(k, index=i) for k, i in product(vars, scans)}
+        vars |= {k for k in AortaLiver.all_inputs() if Qty(k).group=='sequence' and k != 'field_strength'}
+        visit_scan_inputs = {Qty(k, index=i).key for k, i in product(vars, scans)}
 
         vars = {'NSR', 'S0', 'Scal', 'iScal', 'iStrig', 'B1corr'}
-        visit_scan_inputs |= {extend_varname(k, roi=roi, index=i) for k, roi, i in product(vars, rois, scans)} 
+        visit_scan_inputs |= {Qty(k, roi=roi, index=i).key for k, roi, i in product(vars, rois, scans)} 
 
         vars = AortaLiverSplit.all_outputs()
-        visit_outputs = {o for o in vars if parse_varname(o)['index'] is None}
-        visit_scan_outputs = {o for o in vars if parse_varname(o)['index'] is not None}
+        visit_outputs = {o for o in vars if Qty(o).index is None}
+        visit_scan_outputs = {o for o in vars if Qty(o).index is not None}
 
         self._aol = {}
 
         for visit in visits:
-            imap_visit = {k: extend_varname(k, index=visit) for k in visit_inputs}
-            omap_visit = {k: extend_varname(k, index=visit) for k in visit_outputs}
+            imap_visit = {k: Qty(k, index=visit).key for k in visit_inputs}
+            omap_visit = {k: Qty(k, index=visit).key for k in visit_outputs}
             if visit==2: 
-                imap_visit |= {k: increment_varindex(k, 2) for k in visit_scan_inputs} 
-                omap_visit |= {k: increment_varindex(k, 2) for k in visit_scan_outputs}
+                imap_visit |= {k: Qty(k).increment(2).key for k in visit_scan_inputs} 
+                omap_visit |= {k: Qty(k).increment(2).key for k in visit_scan_outputs}
             
             self._aol[visit] = AortaLiverSplit(imap=imap_visit, omap=omap_visit, **self.config)
 
@@ -389,7 +389,7 @@ class AortaLiverSplitDrug(Module):
     def test_data(self, data: dict=None): 
         p = self.init_data()
 
-        n_channels = channels(self.config['sequence'])
+        n_channels = sequence_channels(self.config['sequence'])
         components = 1 if self.config['magnitude'] else 2
         n0 = 1
         Scal = np.zeros((n_channels, components, n0))

@@ -126,7 +126,7 @@ from dcmri.kinetics.modules_conc import ConcAorta
 from dcmri.relaxivity.modules_rois import RelaxivityArtery
 from dcmri.bloch.modules_rois import WaterExchangeArtery
 from dcmri.signal.modules_tissue import ConcToSignal
-from dcmri.bloch.functions_sequences import channels
+from dcmri.core.pseq_tools import sequence_channels
 
 configs = deepcopy(ConcToSignal.configs | WaterExchangeArtery.configs | RelaxivityArtery.configs | ConcAorta.configs)
 defaults = deepcopy(ConcToSignal.defaults | WaterExchangeArtery.defaults | RelaxivityArtery.defaults | ConcAorta.defaults)
@@ -188,7 +188,7 @@ class Aorta(Module):
         p = self.init_data()
         p |= self._conc.test_data()
 
-        n_channels = channels(self.config['sequence'])
+        n_channels = sequence_channels(self.config['sequence'])
         components = 1 if self.config['magnitude'] else 2
         n0 = 1
         Scal = np.zeros((n_channels, components, n0))

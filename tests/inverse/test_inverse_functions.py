@@ -3,6 +3,8 @@ import dcmri as dc
 
 from dcmri.signal.modules_tissue import RelaxToSignal
 
+QVALUES = {k: v['init'] for k, v in dc.all_quantities().items()}
+
 
 def test_conc_dce():
     """Test conc_dce interpolation shapes, baseline norms, and TE overrides."""
@@ -17,14 +19,14 @@ def test_conc_dce():
     
     # Case 1: Run with automatic baseline normalization (S0=None, R2sb=None)
     signal = RelaxToSignal()
-    res_normalized = dc.conc_dce(signal, S, R1b=R1b, S0=None, r1=r1, defaults=dc.QVALUES)
+    res_normalized = dc.conc_dce(signal, S, R1b=R1b, S0=None, r1=r1, defaults=QVALUES)
     assert res_normalized.shape == (3, )
 
     # Case 2: Run with pre-defined S0 and explicit R2sb / TE params dictionary
-    res_explicit = dc.conc_dce(signal, S, R1b=R1b, S0=10.0, r1=r1, defaults=dc.QVALUES)
+    res_explicit = dc.conc_dce(signal, S, R1b=R1b, S0=10.0, r1=r1, defaults=QVALUES)
     assert res_explicit.shape == (3, )
 
-    res_explicit = dc.conc_dce(signal, S, R1b=None, S0=10, r1=r1, defaults=dc.QVALUES)
+    res_explicit = dc.conc_dce(signal, S, R1b=None, S0=10, r1=r1, defaults=QVALUES)
 
     # Multiple samples
 
@@ -34,7 +36,7 @@ def test_conc_dce():
     
     # Case 1: Run with automatic baseline normalization (S0=None, R2sb=None)
     signal = RelaxToSignal()
-    res_normalized = dc.conc_dce(signal, S, R1b=R1b, S0=None, r1=r1, defaults=dc.QVALUES)
+    res_normalized = dc.conc_dce(signal, S, R1b=R1b, S0=None, r1=r1, defaults=QVALUES)
     assert res_normalized.shape == (100, 3)
 
 

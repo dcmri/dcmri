@@ -144,7 +144,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from dcmri.core.module import Module
-from dcmri.core.tools import get_quantity, update_bounds, print_quantities, parse_varname
+from dcmri.core.quantity import Qty, print_quantities, update_bounds
 from dcmri.utils.fit import train_brute, save_results, read_results, plot_pcov, plot_pvar
 from dcmri.forward.aorta_kidneys import AortaKidneys as ForwardModel
 from dcmri.kinetics.functions_kidney import dpars_kidney
@@ -205,18 +205,18 @@ class InverseAortaKidneys(Module):
 
     def pfree(self):
         inputs = self.forward.mapped_inputs()
-        pfree = {p for p in inputs if get_quantity(p)['group']=='physiological'}
+        pfree = {p for p in inputs if Qty(p).group=='physiological'}
         pfree |= {'BAT'}
         if not self.config['calibrate']:
             pfree |= {'S0_ao', 'S0_lk', 'S0_rk'}
         pfree -= {'H', 'E_li', 'v_ki'}
-        return {p: get_quantity(p)['bounds'] for p in pfree}
+        return {p: Qty(p).bounds for p in pfree}
 
     def _pder(self, p: dict, popt:dict):
         data = p | popt
-        p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['physiological', 'whole-body']}
+        p = {k: v for k, v in data.items() if Qty(k).group in ['physiological', 'whole-body']}
         p = dpars_kidney(p, kinetics=self.config['kidneys'])
-        p |= {k: v for k, v in data.items() if parse_varname(k)['name'] == 'BAT'}
+        p |= {k: v for k, v in data.items() if Qty(k).name == 'BAT'}
         return p | popt
 
     def _call(self, p: dict=None, **kwargs) -> dict:

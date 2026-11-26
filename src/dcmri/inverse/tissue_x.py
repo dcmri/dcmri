@@ -97,12 +97,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from dcmri.core.module import Module
-from dcmri.core.tools import get_quantity, update_bounds, unit
+from dcmri.core.quantity import Qty, update_bounds
 from dcmri.utils.fit import train_brute
 from dcmri.forward.tissue_x import TissueX as ForwardModel
 from dcmri.kinetics.functions_tissue import dpars_tissue
 from dcmri.inverse.modules import SignalToConc
-from dcmri.bloch.functions_sequences import repetition_time
+from dcmri.core.pseq_tools import sequence_repetition_time
 
 configs = deepcopy(ForwardModel.configs) | {'aif': {'fixed', 'measured'}}
 defaults = deepcopy(ForwardModel.defaults) | {'aif': 'fixed', 'calibrate': True}
@@ -138,7 +138,7 @@ class InverseTissueX(Module):
             p['iScal'] = np.arange(p['nb'])
 
         if self.config['aif'] == 'measured':
-            tr = repetition_time(self.config['sequence'], p)
+            tr = sequence_repetition_time(self.config['sequence'], p)
             tmax = max(p['tS_ar']) + 2 * (tr + p['dt'])
             t = np.arange(0, tmax, p['dt'])
             c_ar = self._sig2conc(p | {'S': p['S_ar'], 'R1b': p['R1_b']})['C']
@@ -146,14 +146,14 @@ class InverseTissueX(Module):
 
     def pfree(self):
         inputs = self.forward.mapped_inputs()
-        pfree = {p for p in inputs if get_quantity(p)['group']=='physiological'}
+        pfree = {p for p in inputs if Qty(p).group=='physiological'}
         if not self.config['calibrate']:
             pfree |= {'S0'}
         pfree -= {'v_ti', 'H'}
-        return {p: get_quantity(p)['bounds'] for p in pfree}
+        return {p: Qty(p).bounds for p in pfree}
 
     def _pder(self, data:dict):
-        p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['physiological', 'whole-body']}
+        p = {k: v for k, v in data.items() if Qty(k).group in ['physiological', 'whole-body']}
         p = dpars_tissue(p)
         return p
     
@@ -215,7 +215,7 @@ class InverseTissueX(Module):
 
         rows = []
         for par, rec in result['popt'].items():
-            row = [par, unit(par), f'{rec:.4g}']
+            row = [par, Qty(par).unit, f'{rec:.4g}']
             if data is not None:
                 if np.isinf(data[par]):
                     err = 'nan'

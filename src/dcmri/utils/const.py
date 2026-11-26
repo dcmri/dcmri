@@ -1,4 +1,3 @@
-import dcmri.core.values as values
 import dcmri.core.dictionaries as dictionaries
 
 
@@ -31,11 +30,11 @@ def ca_conc(agent: str) -> float:
         print('gadoterate is available in a solution of', dc.ca_conc('gadoterate'), 'mmol/mL')
     """
     try:
-        return values.CA_CONC[agent]
+        return dictionaries.CA_CONC[agent]
     except KeyError:
         raise ValueError(
             f"No concentration data for contrast agent {agent}. "
-            f"Currently values are only available for {values.CA_CONC.keys()}. "
+            f"Currently values are only available for {dictionaries.CA_CONC.keys()}. "
             f"Please extend the dictionary with literature values."
         ) from None # No traceback to KeyError shown
 
@@ -77,11 +76,11 @@ def ca_std_dose(agent: str) -> float:
     """
     # """Standard dose in mL/kg""" # better in mmol/kg, or offer it as an option
     try:
-        return values.CA_DOSE[agent]
+        return dictionaries.CA_DOSE[agent]
     except KeyError:
         raise ValueError(
             f"No data available for contrast agent {agent}."
-            f"Currently values are only available for {values.CA_DOSE.keys()}. "
+            f"Currently values are only available for {dictionaries.CA_DOSE.keys()}. "
             f"Please extend the dictionary with literature values."
         ) from None
 
@@ -152,7 +151,7 @@ def r1(field_strength=3.0, tissue='plasma', agent='gadoxetate', force=False) -> 
         The plasma relaxivity of gadobutrol at 3T is 5.0 Hz/mM
     """
 
-    val = values.R1_RELAXIVITY
+    val = dictionaries.R1_RELAXIVITY
     map = dictionaries.COMPS | dictionaries.ROIS
 
     tissue_key = tissue if tissue in val else map.get(tissue)
@@ -224,7 +223,7 @@ def r2(field_strength=3.0, tissue='plasma', agent='gadoxetate', force=False) -> 
         >>> print('The plasma relaxivity of gadobutrol at 3T is', 1e-3*dc.r2(3.0, 'plasma', 'gadobutrol'), 'Hz/mM')
         The plasma relaxivity of gadobutrol at 3T is 5.0 Hz/mM
     """
-    val = values.R2_RELAXIVITY
+    val = dictionaries.R2_RELAXIVITY
     map = dictionaries.COMPS | dictionaries.ROIS
 
     tissue_key = tissue if tissue in val else map.get(tissue)
@@ -243,7 +242,7 @@ def r2(field_strength=3.0, tissue='plasma', agent='gadoxetate', force=False) -> 
 
 def r2s(field_strength=3.0, tissue='blood', agent='gadoxetate', force=False) -> float:
     """R2*-relaxivity"""
-    val = values.R2_STAR_RELAXIVITY
+    val = dictionaries.R2_STAR_RELAXIVITY
     map = dictionaries.COMPS | dictionaries.ROIS
 
     tissue_key = tissue if tissue in val else map.get(tissue)
@@ -259,7 +258,7 @@ def r2s(field_strength=3.0, tissue='blood', agent='gadoxetate', force=False) -> 
 
 def r2sq(field_strength=3.0, tissue='blood', agent='gadoxetate', force=False) -> float:
     """R2*-relaxivity"""
-    val = values.R2_STAR_RELAXIVITY_SQ
+    val = dictionaries.R2_STAR_RELAXIVITY_SQ
     map = dictionaries.COMPS | dictionaries.ROIS
 
     tissue_key = tissue if tissue in val else map.get(tissue)
@@ -332,7 +331,7 @@ def T1(field_strength=3.0, tissue='blood', Hct=0.45, force=False) -> float:
     if field_strength==3 and tissue=='blood':
         return 1 / (0.52 * Hct + 0.38)  # Lu MRM 2004
 
-    T1VAL = values.T1_RELAXATION_TIMES
+    T1VAL = dictionaries.T1_RELAXATION_TIMES
     map = dictionaries.COMPS | dictionaries.ROIS
 
     tissue_key = tissue if tissue in T1VAL else map.get(tissue)
@@ -390,7 +389,7 @@ def T2(field_strength=3.0, tissue='gray matter', force=False) -> float:
     # Engineering, Las Vegas, NV, USA, 2008, pp. 521-526, doi:
     # 10.1109/ICSEng.2008.15.
 
-    VAL = values.T2_RELAXATION_TIMES
+    VAL = dictionaries.T2_RELAXATION_TIMES
     map = dictionaries.COMPS | dictionaries.ROIS
 
     tissue_key = tissue if tissue in VAL else map.get(tissue)
@@ -413,7 +412,7 @@ def T2s(field_strength=3.0, tissue='gray matter', force=False) -> float:
     Note these qre quick estimates - need more in-depth research.
     """
 
-    VAL = values.T2_STAR_RELAXATION_TIMES
+    VAL = dictionaries.T2_STAR_RELAXATION_TIMES
     map = dictionaries.COMPS | dictionaries.ROIS
 
     tissue_key = tissue if tissue in VAL else map.get(tissue)
@@ -463,7 +462,7 @@ def PD(tissue='gray matter', force=False) -> float:
         >>> print('The PD of skin is', dc.PD('skin'))
         The PD of skin is 0.8
     """
-    VAL = values.PROTON_DENSITY
+    VAL = dictionaries.PROTON_DENSITY
     map = dictionaries.COMPS | dictionaries.ROIS
 
     tissue_key = tissue if tissue in VAL else map.get(tissue)
@@ -508,7 +507,7 @@ def perfusion(parameter='Fb', tissue='gray matter') -> float:
         The BF of gray matter is 0.01 mL/sec/mL
     """
     try:
-        return values.PERFUSION[parameter][tissue]
+        return dictionaries.PERFUSION[parameter][tissue]
     except KeyError:
         raise ValueError(
             f"No {parameter} values for {tissue}"

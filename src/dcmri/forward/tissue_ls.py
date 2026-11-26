@@ -88,7 +88,7 @@ from dcmri.kinetics.modules_conc import ConcTissueLS
 from dcmri.relaxivity.modules_rois import RelaxivityGeneric
 from dcmri.bloch.modules_rois import WaterExchangeGeneric
 from dcmri.signal.modules_tissue import ConcToSignal
-from dcmri.bloch.functions_sequences import channels
+from dcmri.core.pseq_tools import sequence_channels
 
 tissue_rel = RelaxivityGeneric
 tissue_wex = WaterExchangeGeneric
@@ -157,7 +157,7 @@ class TissueLS(Module):
     def test_data(self, data:dict=None): 
         n0, nt = 1, 180
         
-        n_channels = channels(self.config['sequence'])
+        n_channels = sequence_channels(self.config['sequence'])
         components = 1 if self.config['magnitude'] else 2
         Scal = np.zeros((n_channels, components, n0))
         Scal[:, 0, :] = 1

@@ -1,4 +1,5 @@
-from dcmri.core.tools import get_quantity, get_sequence, build_varname, parse_varname, extend_varname
+from dcmri.core.pseq_tools import get_sequence
+from dcmri.core.quantity import Qty
 
 def test_get_sequence():
     print(get_sequence('name'))
@@ -8,41 +9,41 @@ def test_get_sequence():
     print(get_sequence('mz_prep_tissue', '3D-SPGR-SS'))
     print(get_sequence('prep_params', '3D-SPGR-SS'))
 
-def test_get_quantity():
-    print('ki_1_e2h: ', get_quantity('ki_1_e2h'))
-    print('T_ao: ', get_quantity('T_ao'))
-    print('T_b: ', get_quantity('T_b'))
-    print('T_b_ao: ', get_quantity('T_b_ao'))
-    print('T_b2i_ao: ', get_quantity('T_b2i_ao'))
-    print('PSw_c2u: ', get_quantity('PSw_c2u'))
-    print('PSw_5_c2u: ', get_quantity('PSw_5_c2u'))
-    print('PSw_5: ', get_quantity('PSw_5'))
-    print('PSw_5_b: ', get_quantity('PSw_5_b'))
-    print('PSw_5_c2u_ki: ', get_quantity('PSw_5_c2u_ki'))
+def test_qty():
+    print('ki_1_e2h: ', Qty('ki_1_e2h')._dct)
+    print('T_ao: ', Qty('T_ao')._dct)
+    print('T_b: ', Qty('T_b')._dct)
+    print('T_b_ao: ', Qty('T_b_ao')._dct)
+    print('T_b2i_ao: ', Qty('T_b2i_ao')._dct)
+    print('PSw_c2u: ', Qty('PSw_c2u')._dct)
+    print('PSw_5_c2u: ', Qty('PSw_5_c2u')._dct)
+    print('PSw_5: ', Qty('PSw_5')._dct)
+    print('PSw_5_b: ', Qty('PSw_5_b')._dct)
+    print('PSw_5_c2u_ki: ', Qty('PSw_5_c2u_ki')._dct)
 
 def test_parser():
-    assert 'PS_e2h' == build_varname("PS", compartment="e2h")
-    assert 'PS_1_e2h_li' == build_varname("PS", index=1, compartment="e2h", roi="li")
-    assert parse_varname("PS_e2h") == {'name': 'PS', 'index': None, 'compartment': 'e2h', 'roi': None}
-    assert parse_varname("PS_1_e2h_li") == {'name': 'PS', 'index': 1, 'compartment': 'e2h', 'roi': 'li'}
-    assert parse_varname("PS_1_li") == {'name': 'PS', 'index': 1, 'compartment': None, 'roi': 'li'}
-    assert parse_varname("PS_1") == {'name': 'PS', 'index': 1, 'compartment': None, 'roi': None}
-    assert parse_varname("PS_e2h_li") == {'name': 'PS', 'index': None, 'compartment': 'e2h', 'roi': 'li'}
-    assert parse_varname('c_ar') == {'name': 'c', 'index': None, 'compartment': None, 'roi': 'ar'}
+    assert 'PS_e2h' == Qty(name="PS", compartment="e2h").key
+    assert 'PS_1_e2h_li' == Qty(name="PS", index=1, compartment="e2h", roi="li").key
+    assert "PS_e2h" == Qty(**{'name': 'PS', 'index': None, 'compartment': 'e2h', 'roi': None}).key
+    assert "PS_1_e2h_li" == Qty(**{'name': 'PS', 'index': 1, 'compartment': 'e2h', 'roi': 'li'}).key
+    assert "PS_1_li" == Qty(**{'name': 'PS', 'index': 1, 'compartment': None, 'roi': 'li'}).key
+    assert "PS_1" == Qty(**{'name': 'PS', 'index': 1, 'compartment': None, 'roi': None}).key
+    assert "PS_e2h_li" == Qty(**{'name': 'PS', 'index': None, 'compartment': 'e2h', 'roi': 'li'}).key
+    assert 'c_ar' == Qty(**{'name': 'c', 'index': None, 'compartment': None, 'roi': 'ar'}).key
     
     try: 
-        build_varname("PS", compartment="e2x")   # x not in COMPS
+        Qty(name="PS", compartment="e2x")   # x not in COMPS
     except:
         pass
     else:
         assert False
 
-    assert extend_varname('E_ki', index=1) == 'E_1_ki'
-    assert extend_varname('E_2_ki', index=1) == 'E_1_ki'
+    assert Qty('E_ki', index=1).key == 'E_1_ki'
+    assert Qty('E_2_ki', index=1).key == 'E_1_ki'
 
 
 if __name__ == '__main__':
     test_get_sequence()
-    test_get_quantity()
+    test_qty()
     test_parser()
     print('All tools tests passed!!')

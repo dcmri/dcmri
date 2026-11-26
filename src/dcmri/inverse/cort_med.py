@@ -109,7 +109,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from dcmri.core.module import Module
-from dcmri.core.tools import get_quantity, update_bounds
+from dcmri.core.quantity import Qty, update_bounds
 from dcmri.utils.fit import train_brute
 from dcmri.forward.cort_med import CortMed as ForwardModel
 
@@ -149,10 +149,10 @@ class InverseCortMed(Module):
 
     def _pfree(self):
         inputs = self.forward.mapped_inputs()
-        pfree = {p for p in inputs if get_quantity(p)['group']=='physiological'}
+        pfree = {p for p in inputs if Qty(p).group=='physiological'}
         if not self.config['calibrate']:
             pfree |= {f'S0_{roi}' for roi in ROIS}
-        return {p: get_quantity(p)['bounds'] for p in pfree}
+        return {p: Qty(p).bounds for p in pfree}
     
     def _call(self, p: dict=None, **kwargs) -> dict:
         self._preproc(p) 

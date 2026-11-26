@@ -35,7 +35,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from dcmri.core.module import Module
-from dcmri.core.tools import get_quantity, update_bounds
+from dcmri.core.quantity import Qty, update_bounds
 from dcmri.utils.fit import train_brute, save_results, read_results, plot_pcov, plot_pvar
 from dcmri.forward.aorta_liver import AortaLiver
 from dcmri.kinetics.functions_liver import dpars_liver
@@ -92,15 +92,15 @@ class InverseAortaLiver(Module):
 
     def _pfree(self):
         inputs = self.forward.mapped_inputs()
-        pfree = {p for p in inputs if get_quantity(p)['group']=='physiological'}
+        pfree = {p for p in inputs if Qty(p).group=='physiological'}
         pfree |= {'BAT'}
         if not self.config['calibrate']:
             pfree |= {'S0_ao', 'S0_li'}
         pfree -= {'v_li', 'H'}
-        return {p: get_quantity(p)['bounds'] for p in pfree}
+        return {p: Qty(p).bounds for p in pfree}
     
     def _pder(self, data:dict):
-        p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['physiological', 'whole-body']}
+        p = {k: v for k, v in data.items() if Qty(k).group in ['physiological', 'whole-body']}
         p = dpars_liver(p, kinetics=self.config['liver'])
 
         # Add BAT

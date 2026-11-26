@@ -1,27 +1,5 @@
 import numpy as np
 
-from dcmri.core import pseq_tools
-
-# OBSELETE FUNCTIONS
-def get_sequence(*args, **kwargs):
-    return pseq_tools.get_sequence(*args, **kwargs)
-
-def channels(*args, **kwargs):
-    return pseq_tools.sequence_channels(*args, **kwargs)
-
-def pulse_readout(*args, **kwargs):
-    return pseq_tools.sequence_readout_pulses(*args, **kwargs)
-
-def readout_time(*args, **kwargs):
-    return pseq_tools.sequence_readout_time(*args, **kwargs)
-
-def repetition_time(*args, **kwargs):
-    return pseq_tools.sequence_repetition_time(*args, **kwargs)
-
-def acquisition_times(*args, **kwargs):
-    return pseq_tools.sequence_acquisition_times(*args, **kwargs)
-
-
 
 def mz_readout(Mz: np.ndarray, R2: np.ndarray, FA, TE):
     # Shapes for Mz, R2: (nc, nt)

@@ -202,7 +202,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from dcmri.core.module import Module
-from dcmri.core.tools import get_quantity, update_bounds, parse_varname, extend_varname, remove_varindex
+from dcmri.core.quantity import Qty, update_bounds
 from dcmri.utils.fit import train_brute, save_results, read_results, plot_pcov, plot_pvar
 from dcmri.forward.aorta_liver_split_drug import AortaLiverSplitDrug as ForwardModel
 from dcmri.kinetics.functions_liver import dpars_liver
@@ -278,7 +278,7 @@ class InverseAortaLiverSplitDrug(Module):
 
     def _pfree(self):
         inputs = self.forward.mapped_inputs()
-        pfree = {p for p in inputs if get_quantity(p)['group']=='physiological'}
+        pfree = {p for p in inputs if Qty(p).group=='physiological'}
         if self.config['bolus'] in ['single', 'double']:
             pfree |= {'BAT_1', 'BAT_2'}
         # bolus='dual'
@@ -288,24 +288,24 @@ class InverseAortaLiverSplitDrug(Module):
             pfree |= {'S0_1_ao', 'S0_1_li', 'S0_2_ao', 'S0_2_li'}
             pfree |= {'S0_3_ao', 'S0_3_li', 'S0_4_ao', 'S0_4_li'}
         pfree -= {'v_li', 'H'}
-        return {p: get_quantity(p)['bounds'] for p in pfree}
+        return {p: Qty(p).bounds for p in pfree}
     
 
     def _pder(self, p, popt):
         data = p | popt
-        p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['physiological', 'whole-body']}
+        p = {k: v for k, v in data.items() if Qty(k).group in ['physiological', 'whole-body']}
     
-        p_common = {k: v for k, v in p.items() if parse_varname(k)['index'] is None}
+        p_common = {k: v for k, v in p.items() if Qty(k).index is None}
 
         # Add derived per visit
-        p_1 = {remove_varindex(k): v for k, v in p.items() if parse_varname(k)['index'] == 1} 
-        p_2 = {remove_varindex(k): v for k, v in p.items() if parse_varname(k)['index'] == 2}
+        p_1 = {Qty(k).popindex().key: v for k, v in p.items() if Qty(k).index == 1} 
+        p_2 = {Qty(k).popindex().key: v for k, v in p.items() if Qty(k).index == 2}
 
         p_1 = dpars_liver(p_1 | p_common, kinetics=self.config['liver'])
         p_2 = dpars_liver(p_2 | p_common, kinetics=self.config['liver'])
 
-        p_1 = {extend_varname(k, index=1): v for k, v in p_1.items() if k not in p_common and k not in {'v_h'}}
-        p_2 = {extend_varname(k, index=2): v for k, v in p_2.items() if k not in p_common and k not in {'v_h'}}
+        p_1 = {Qty(k, index=1).key: v for k, v in p_1.items() if k not in p_common and k not in {'v_h'}}
+        p_2 = {Qty(k, index=2).key: v for k, v in p_2.items() if k not in p_common and k not in {'v_h'}}
 
         # Add effect sizes
         p_eff = {}
@@ -321,7 +321,7 @@ class InverseAortaLiverSplitDrug(Module):
             p_eff['ke_h2b'] = (p_2['k_2_h2b'] - p_1['k_1_h2b']) / p_1['k_1_h2b']
 
         # Add BAT
-        p_bat = {k: v for k, v in data.items() if parse_varname(k)['name'] == 'BAT'}
+        p_bat = {k: v for k, v in data.items() if Qty(k).name == 'BAT'}
 
         # Add descriptives
         p_desc = {}

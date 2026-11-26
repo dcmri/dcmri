@@ -1,8 +1,3 @@
-from dcmri.core.module import (
-    Module,
-    InvalidConfig,
-)
-
 from dcmri.utils.const import (
     ca_conc,
     ca_std_dose,
@@ -43,53 +38,16 @@ from dcmri.utils.misc import (
     mle_rice,
     describe,
 )
-from dcmri.core.dictionaries import ( #OBSOLETE
-    QUANTITIES,
-    GROUPS,
-    ROIS,
-    COMPS,
-    QVALUES,
-    AGENTS,
-    SEQUENCES,
-)
-from dcmri.core.tools import ( # OBSOLETE
-    select_params,
-    print_quantities,
-    parse_varname,
-    build_varname,
-    extend_varname,
-    increment_varindex,
-    remove_varindex,
-    get_quantity,
-    unit,
-    group,
-    to_json,
-    from_json,
-    to_csv,
-)
-
-from .core.quantity_tools import (
+from .core.quantity import (
     all_quantities,
     all_groups,
     all_tissues,
     all_compartments,
-    quantity_unit,
-    quantity_group,
-    quantity_key,
-    quantity_osipi,
-    quantity_dicom,
-    quantity_desc,
-    parse_quantity,
-    modify_quantity,
-    increment_quantity,
-    popindex_quantity,
     print_quantities,
-    quantity_to_json,
-    quantity_from_json,
-    quantity_to_csv,
+    Qty,
 )
-
 from .core.pseq_tools import (
+    get_sequence,
     all_sequences,
     all_contrast_agents,
     sequence_channels,
@@ -97,28 +55,6 @@ from .core.pseq_tools import (
     sequence_readout_time,
     sequence_repetition_time,
     sequence_acquisition_times,
-)
-
-from dcmri.kinetics.modules_pars import (
-    ParsTissueX,
-)
-from dcmri.kinetics.modules_conc import (
-    Conc,
-    ConcAorta,
-    ConcAortaKidneys,
-    ConcAortaLiver,
-    ConcAortaPortalLiver,
-    ConcLiver,
-    ConcKidney,
-    ConcCortMed,
-    ConcTissueX,  
-    ConcTissueLS, 
-)
-from dcmri.kinetics.modules_flux import (
-    Flux,
-    FluxInjection,
-    FluxAorta,
-    FluxTissueX
 )
 from dcmri.kinetics.functions_blocks import (
     res_trap,
@@ -250,47 +186,11 @@ from dcmri.kinetics.functions_input import (
     ca_injection
 )
 
-
-from dcmri.bloch.modules_rois import (
-    WaterExchangeGeneric,
-    WaterExchangeArtery,
-    WaterExchangeTissueX,
-    WaterExchangeLiver,
-    WaterExchangeKidney,
-)
-from dcmri.relaxivity.modules_rois import (
-    RelaxivityGeneric,
-    RelaxivityArtery,
-    RelaxivityTissueX,
-    RelaxivityLiver,
-    RelaxivityKidney,
-)
-from dcmri.relaxivity.modules_tissue import (
-    R1,
-    R2,
-    R2s,
-    Relax,
-    ConcToRelax,
-)
 from dcmri.relaxivity.functions_relaxivity import (
    relax_t2s,
    relax_t2,
    relax_t1,
    conc_t1,
-)
-from dcmri.bloch.modules_tissue import (
-    MzInflowPrep,
-    MzPrep,
-    MxyReadMz,
-    Magnetization,
-)
-from dcmri.bloch.functions_sequences import (
-    mz_readout,
-    channels,
-    pulse_readout,
-    readout_time,
-    repetition_time,
-    acquisition_times,
 )
 from dcmri.bloch.functions_mz import (
     Mz_ss, 
@@ -333,14 +233,9 @@ from dcmri.bloch.functions_mz_dyn_k0 import (
     Mz_dyn_ss_k0_spgri,
     Mz_dyn_k0_se,
 )
-from dcmri.signal.modules_tissue import (
-    Signal,
-    RelaxToSignal,
-    ConcToSignal,
-    signal_rice,
-)
-from dcmri.inverse.modules import (
-    SignalToConc
+from dcmri.bloch.functions_mxy import (
+    mz_readout,
+    mz_readout_wrapper,
 )
 from dcmri.inverse.functions import (
     estimate_bat,
@@ -351,8 +246,78 @@ from dcmri.inverse.functions import (
     vfa_nonlinear,
     vfa_linear,
 )
+from dcmri.dro.functions_aif import (
+    aif_parker,
+    aif_tristan,
+    aif_tristan_rat,
+)
+from dcmri.dro.phantoms import (
+    shepp_logan,
+)
 
-# End-to-end forward Models
+from dcmri.core.module import (
+    Module,
+    InvalidConfig,
+)
+from dcmri.kinetics.modules_pars import (
+    ParsTissueX,
+)
+from dcmri.kinetics.modules_conc import (
+    Conc,
+    ConcAorta,
+    ConcAortaKidneys,
+    ConcAortaLiver,
+    ConcAortaPortalLiver,
+    ConcLiver,
+    ConcKidney,
+    ConcCortMed,
+    ConcTissueX,  
+    ConcTissueLS, 
+)
+from dcmri.kinetics.modules_flux import (
+    Flux,
+    FluxInjection,
+    FluxAorta,
+    FluxTissueX
+)
+from dcmri.relaxivity.modules_rois import (
+    RelaxivityGeneric,
+    RelaxivityArtery,
+    RelaxivityTissueX,
+    RelaxivityLiver,
+    RelaxivityKidney,
+)
+from dcmri.relaxivity.modules_tissue import (
+    R1,
+    R2,
+    R2s,
+    Relax,
+    ConcToRelax,
+)
+from dcmri.bloch.modules_rois import (
+    WaterExchangeGeneric,
+    WaterExchangeArtery,
+    WaterExchangeTissueX,
+    WaterExchangeLiver,
+    WaterExchangeKidney,
+)
+from dcmri.bloch.modules_tissue import (
+    MzInflowPrep,
+    MzPrep,
+    MxyReadMz,
+    Magnetization,
+)
+from dcmri.signal.modules_tissue import (
+    Signal,
+    RelaxToSignal,
+    ConcToSignal,
+    signal_rice, # TODO: different module
+)
+from dcmri.inverse.modules import (
+    SignalToConc
+)
+
+# Forward Models
 from dcmri.forward.aorta import Aorta
 from dcmri.forward.liver import Liver
 from dcmri.forward.kidney import Kidney
@@ -381,16 +346,6 @@ from dcmri.inverse.tissue_x import InverseTissueX
 from dcmri.inverse.tissue_ls import InverseTissueLS
 
 
-from dcmri.dro.functions_aif import (
-    aif_parker,
-    aif_tristan,
-    aif_tristan_rat,
-)
 from dcmri.dro.modules import (
     Parker,
 )
-from dcmri.dro.phantoms import (
-    shepp_logan,
-)
-
-

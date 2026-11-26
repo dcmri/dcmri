@@ -6,7 +6,7 @@ import numpy as np
 from dcmri.core.module import Module
 from dcmri.kinetics.functions_tissue_ls import irf_ls
 from dcmri.inverse.modules import SignalToConc
-from dcmri.bloch.functions_sequences import channels
+from dcmri.core.pseq_tools import sequence_channels
 
 configs = deepcopy(SignalToConc.configs) 
 defaults = deepcopy(SignalToConc.defaults) | {'calibrate': True}
@@ -60,7 +60,7 @@ class InverseTissueLS(Module):
         nt = 180
         p = self.init_data()
 
-        n_channels = channels(self.config['sequence'])
+        n_channels = sequence_channels(self.config['sequence'])
         components = 1
         S = np.ones((n_channels, components, nt))
         S[:, :, :30] = 0

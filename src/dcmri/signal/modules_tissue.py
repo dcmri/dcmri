@@ -5,7 +5,7 @@ from scipy.special import i0, i1
 from dcmri.core.module import Module
 from dcmri.relaxivity.modules_tissue import ConcToRelax
 from dcmri.bloch.modules_tissue import Magnetization
-from dcmri.bloch.functions_sequences import channels
+from dcmri.core.pseq_tools import sequence_channels
 
 
 def signal_rice(nu, sigma)-> np.ndarray:
@@ -483,7 +483,7 @@ class RelaxToSignal(Module):
         return self.map_results(p)
 
     def test_data(self, nc=2, nt=5):
-        n_channels = channels(self.config['sequence'])
+        n_channels = sequence_channels(self.config['sequence'])
 
         p = self.init_data()
 

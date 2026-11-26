@@ -134,7 +134,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from dcmri.core.module import Module
-from dcmri.core.tools import get_quantity, update_bounds, parse_varname
+from dcmri.core.quantity import Qty, update_bounds
 from dcmri.utils.fit import train_brute, save_results, read_results, plot_pcov, plot_pvar
 from dcmri.forward.aorta_liver_split import AortaLiverSplit as ForwardModel
 from dcmri.kinetics.functions_liver import dpars_liver
@@ -204,18 +204,18 @@ class InverseAortaLiverSplit(Module):
 
     def _pfree(self):
         inputs = self._forward.mapped_inputs()
-        pfree = {p for p in inputs if get_quantity(p)['group']=='physiological'}
+        pfree = {p for p in inputs if Qty(p).group=='physiological'}
         pfree |= {p for p in ['BAT', 'BAT_1', 'BAT_2'] if p in inputs}
         if not self.config['calibrate']:
             pfree |= {'S0_1_ao', 'S0_1_li', 'S0_2_ao', 'S0_2_li'}
         pfree -= {'v_li', 'H'}
-        return {p: get_quantity(p)['bounds'] for p in pfree}
+        return {p: Qty(p).bounds for p in pfree}
 
     def _pder(self, data:dict):
-        p = {k: v for k, v in data.items() if get_quantity(k)['group'] in ['physiological', 'whole-body']}
+        p = {k: v for k, v in data.items() if Qty(k).group in ['physiological', 'whole-body']}
         p = dpars_liver(p, kinetics=self.config['liver'])
         # Add BAT
-        p_bat = {k: v for k, v in data.items() if parse_varname(k)['name'] == 'BAT'}
+        p_bat = {k: v for k, v in data.items() if Qty(k).name == 'BAT'}
         return p | p_bat
     
     def _call(self, p: dict=None, **kwargs) -> dict:

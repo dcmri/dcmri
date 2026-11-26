@@ -1,7 +1,7 @@
 import numpy as np
 
 from dcmri.core.module import Module
-from dcmri.core.tools import get_sequence
+from dcmri.core.pseq_tools import get_sequence
 from dcmri.core.module import InvalidConfig
 from dcmri.relaxivity.functions_relaxivity import relax_t2s
 

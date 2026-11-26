@@ -6,7 +6,7 @@ import textwrap
 from tqdm import tqdm
 import numpy as np
 
-from dcmri.core.tools import get_quantity, print_quantities
+from dcmri.core.quantity import print_quantities, Qty
 
 class InvalidConfig(Exception):
     """Exception raised when module or model is created with an invalid configuration."""
@@ -76,7 +76,7 @@ class Module:
 
     def init(self):
         return {
-            i: get_quantity(i, quantities=self.quantities)['init']
+            i: Qty(i, quantities=self.quantities).value
             for i in self._inputs
         }        
 
@@ -126,7 +126,7 @@ class Module:
                 p[i] = data[j]
             elif all:
                 try:
-                    p[i] = get_quantity(i, quantities=self.quantities)['init']
+                    p[i] = Qty(i, quantities=self.quantities).value
                 except:
                     raise ValueError(f'Unknown input {i} in call to Module {self.__class__.__name__}.')
         return p
@@ -198,10 +198,10 @@ class Module:
         print_quantities(q, title, as_dict=as_dict)
 
     def input_quantities(self):
-        return {k: get_quantity(k, quantities=self.quantities) for k in self.inputs()}
+        return {k: Qty(k, quantities=self.quantities)._dct for k in self.inputs()}
         
     def output_quantities(self):
-        return {k: get_quantity(k, quantities=self.quantities) for k in self.outputs()}
+        return {k: Qty(k, quantities=self.quantities)._dct for k in self.outputs()}
 
     @classmethod
     def map_configs(cls, cmap: dict):
@@ -278,14 +278,14 @@ class Module:
     def all_input_quantities(cls, verbose=0):
         iq = {}
         for k in cls.all_inputs(verbose):
-            iq[k] = get_quantity(k, quantities=cls.quantities)
+            iq[k] = Qty(k, quantities=cls.quantities)._dct
         return iq
 
     @classmethod
     def all_output_quantities(cls, verbose=0):
         oq = {}
         for k in cls.all_outputs(verbose):
-            oq[k] = get_quantity(k, quantities=cls.quantities)
+            oq[k] = Qty(k, quantities=cls.quantities)._dct
         return oq
 
     @classmethod
@@ -293,10 +293,10 @@ class Module:
         inputs, outputs = cls.all_io(verbose, sample=sample, seed=seed)
         iq = {}
         for k in inputs:
-            iq[k] = get_quantity(k, quantities=cls.quantities)
+            iq[k] = Qty(k, quantities=cls.quantities)._dct
         oq = {}
         for k in outputs:
-            oq[k] = get_quantity(k, quantities=cls.quantities)
+            oq[k] = Qty(k, quantities=cls.quantities)._dct
         return iq, oq
 
 

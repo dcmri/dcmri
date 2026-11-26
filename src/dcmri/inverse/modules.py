@@ -56,11 +56,11 @@
 
 import numpy as np
 
-from dcmri.core.tools import get_sequence
+from dcmri.core.pseq_tools import get_sequence
 import dcmri.inverse.functions as solve
 from dcmri.core.module import Module
 from dcmri.signal.modules_tissue import RelaxToSignal
-from dcmri.bloch.functions_sequences import channels
+from dcmri.core.pseq_tools import sequence_channels
 
 invertible_seqs = get_sequence('steady-state')
 analytical_inversion = ['3D-SPGR-SS', 'ZTE-3D-SPGR-SS', 'lin', '2D-GE-EPI', '2D-SE-EPI', '2D-DE-EPI']
@@ -223,7 +223,7 @@ class SignalToConc(Module):
 
     def test_data(self, nt=5):
         data = self.init_data()
-        n_channels = channels(self.config['sequence'])
+        n_channels = sequence_channels(self.config['sequence'])
         components = 1
         S = np.ones((n_channels, components, nt))
         data |= {

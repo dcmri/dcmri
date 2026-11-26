@@ -103,13 +103,13 @@
 from copy import deepcopy
 import numpy as np
 
-from dcmri.core.tools import extend_varname
+from dcmri.core.quantity import Qty
 from dcmri.core.module import Module
 from dcmri.kinetics.modules_conc import ConcLiver
 from dcmri.relaxivity.modules_rois import RelaxivityLiver
 from dcmri.bloch.modules_rois import WaterExchangeLiver
 from dcmri.signal.modules_tissue import ConcToSignal
-from dcmri.bloch.functions_sequences import channels
+from dcmri.core.pseq_tools import sequence_channels
 
 roi = 'li'
 tissue_rel = RelaxivityLiver
@@ -150,12 +150,12 @@ class Liver(Module):
         omap = {'ci_li': 'ci_li_1i'}
         self._conc = ConcLiver(omap=omap, **self.config)
 
-        iomap_roi = {k: extend_varname(k, roi=roi) for k in tissue_rel.all_outputs() | tissue_wex.all_outputs() | {'v_e'}}
+        iomap_roi = {k: Qty(k, roi=roi).key for k in tissue_rel.all_outputs() | tissue_wex.all_outputs() | {'v_e'}}
         self._tissue_rel = RelaxivityLiver(iomap=iomap_roi, **self.config)
         self._tissue_wex = WaterExchangeLiver(iomap=iomap_roi, **self.config)
 
         iomap_roi |= {'ci': 'ci_li_1i'}
-        iomap_roi |= {k: extend_varname(k, roi=roi) for k in {'tC', 'C', 'NSR', 'S0', 'Scal', 'iScal', 'iStrig', 'B1corr', 'S', 'M', 'R1', 'R1i', 'R2', 'R2s', 'tR', 'tM', 'tS'}}
+        iomap_roi |= {k: Qty(k, roi=roi).key for k in {'tC', 'C', 'NSR', 'S0', 'Scal', 'iScal', 'iStrig', 'B1corr', 'S', 'M', 'R1', 'R1i', 'R2', 'R2s', 'tR', 'tM', 'tS'}}
         self._conc_to_signal = ConcToSignal(iomap=iomap_roi, **self.config)
 
         self.map_io(imap, omap)
@@ -181,7 +181,7 @@ class Liver(Module):
     def test_data(self, data:dict=None): 
         p = self.init_data()
         
-        n_channels = channels(self.config['sequence'])
+        n_channels = sequence_channels(self.config['sequence'])
         components = 1 if self.config['magnitude'] else 2
         n0 = 1
         Scal = np.zeros((n_channels, components, n0))

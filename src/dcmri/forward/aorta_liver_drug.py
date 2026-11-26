@@ -236,10 +236,10 @@ from copy import deepcopy
 from itertools import product
 import numpy as np
 
-from dcmri.core.tools import extend_varname, increment_varindex, group
+from dcmri.core.quantity import Qty
 from dcmri.core.module import Module
 from dcmri.forward.aorta_liver import AortaLiver
-from dcmri.bloch.functions_sequences import channels
+from dcmri.core.pseq_tools import sequence_channels
 
 
 visits, rois = [1, 2], ['ao', 'li']
@@ -271,21 +271,21 @@ class AortaLiverDrug(Module):
         self.set_config(config)
 
         visit_inputs = {'BAT', 'dose', 'rate'} 
-        visit_inputs |= {k for k in AortaLiver.all_inputs() if group(k)=='sequence' and k != 'field_strength'}
+        visit_inputs |= {k for k in AortaLiver.all_inputs() if Qty(k).group=='sequence' and k != 'field_strength'}
         visit_inputs |= {'E_li', 'Ef_li', 'Ei_li', 'T_h', 'Tf_h', 'Ti_h', 'k_e2h', 'kf_e2h', 'ki_e2h'}
 
         vars = {'NSR', 'S0', 'Scal', 'iScal', 'iStrig', 'B1corr', 'vol'}
-        visit_inputs |= {extend_varname(k, roi=roi) for k, roi in product(vars, rois)}
+        visit_inputs |= {Qty(k, roi=roi).key for k, roi in product(vars, rois)}
 
         visit_inputs_indexed = {'BAT_1', 'BAT_2', 'dose_1', 'dose_2', 'rate_1', 'rate_2'}
         visit_outputs = AortaLiver.all_outputs()
 
         self._aol = {}
         for visit in visits:
-            imap_visit = {k: extend_varname(k, index=visit) for k in visit_inputs}
-            omap_visit = {k: extend_varname(k, index=visit) for k in visit_outputs}
+            imap_visit = {k: Qty(k, index=visit).key for k in visit_inputs}
+            omap_visit = {k: Qty(k, index=visit).key for k in visit_outputs}
             if visit==2: 
-                imap_visit |= {k: increment_varindex(k, 2) for k in visit_inputs_indexed} # indexed variables are incremented with 2 at the second visit
+                imap_visit |= {k: Qty(k).increment(2).key for k in visit_inputs_indexed} # indexed variables are incremented with 2 at the second visit
             
             self._aol[visit] = AortaLiver(imap=imap_visit, omap=omap_visit, **self.config)
 
@@ -306,7 +306,7 @@ class AortaLiverDrug(Module):
     def test_data(self, data: dict=None): 
         p = self.init_data()
 
-        n_channels = channels(self.config['sequence'])
+        n_channels = sequence_channels(self.config['sequence'])
         components = 1 if self.config['magnitude'] else 2
         n0 = 1
         Scal = np.zeros((n_channels, components, n0))

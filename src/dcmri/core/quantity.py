@@ -6,8 +6,248 @@ import numbers
 
 import numpy as np
 
-from dcmri.core.dictionaries import QUANTITIES, ROIS, COMPS, GROUPS
-from dcmri.core.values import QDATA_ROIS
+from dcmri.core.dictionaries import QUANTITIES, ROIS, COMPS, GROUPS, QDATA_ROIS
+
+
+class Qty:
+    """A quantity identified by a key, with its definition and qualifiers.
+
+    A key has the form ``name[_index][_compartment][_roi]``, where the
+    name is a registered quantity (see :func:`all_quantities`) and every
+    other part is optional. For example ``'BAT'``, ``'T1_gm'``, ``'F_1_e'``
+    or ``'PS_b2e'``. A ``Qty`` builds a key from its parts, splits a key into
+    its parts, and looks up the definition of the quantity. See
+    :ref:`user-guide-quantities` for details.
+
+    Parameters
+    ----------
+    key : str, optional
+        Full quantity key, which is split into name, index, compartment and
+        ROI.
+    name : str, optional
+        Base name of the quantity. Overrides the name read from ``key``.
+    index : int, optional
+        Index of a repeated quantity, such as the second of two injections.
+        Overrides the index read from ``key``.
+    compartment : str, optional
+        Compartment, as listed by :func:`all_compartments`, or a pair joined
+        by ``'2'`` for an exchange between compartments (for example
+        ``'b2e'``). Overrides the compartment read from ``key``.
+    roi : str, optional
+        Region of interest, as listed by :func:`all_tissues`. Overrides the
+        ROI read from ``key``.
+    quantities : dict, optional
+        Definitions of additional quantities that are not in the registry, in
+        the same format, keyed by base name.
+
+    Raises
+    ------
+    ValueError
+        If the compartment or ROI is not valid.
+
+    See Also
+    --------
+    print_quantities : Print quantities as a table or as copy-paste code.
+
+    Examples
+    --------
+    >>> Qty(name='T1', compartment='e', roi='gm').key
+    'T1_e_gm'
+    >>> q = Qty('F_1_e')
+    >>> q.name, q.index, q.compartment, q.roi
+    ('F', 1, 'e', None)
+    >>> q.increment().key
+    'F_2_e'
+    >>> Qty('BAT').unit
+    'sec'
+    """
+    def __init__(
+        self, 
+        key=None, 
+        name=None, 
+        index=None, 
+        compartment=None,
+        roi=None, 
+        quantities=None,
+    ):
+        self.name = None
+        self.index = None
+        self.compartment = None
+        self.roi = None
+
+        # Initialise from key
+        if key is not None:
+            dct = parse_quantity(key)
+            self.name = dct['name']
+            self.index = dct['index']
+            self.compartment = dct['compartment']
+            self.roi = dct['roi']
+
+        # Set user-defined values
+        if name is not None:
+            self.name = name
+        if index is not None:
+            self.index = index
+        if compartment is not None:
+            self.compartment = compartment
+        if roi is not None:
+            self.roi = roi
+
+        # Raise if invalid
+        if self.compartment is not None and not _is_valid_compartment(self.compartment):
+            raise ValueError(
+                f"'{self.compartment}' is not a valid compartment. "
+                f"Must be one of {list(COMPS)}, or a pair 'comp1' + '2' + 'comp2' (e.g. 'b2e') with both in {list(COMPS)}."
+            )
+        if self.roi is not None and self.roi not in ROIS:
+            raise ValueError(f"'{self.roi}' is not a valid roi. Options are {list(ROIS)}.")
+        
+        self.quantities = quantities # any additional not in QUANTITIES
+
+    @property
+    def key(self):
+        """str: Full key, ``name[_index][_compartment][_roi]``."""
+        return quantity_key(self.name, self.index, self.compartment, self.roi)
+
+    @property
+    def _dct(self): # Making this private as should be obsolete - can be replaced with Qty itself
+        return quantity_desc(self.key, self.quantities)
+
+    @property
+    def value(self):
+        """Default (initial) value."""
+        dct = quantity_desc(self.key, self.quantities)
+        return dct['init']
+
+    @property
+    def bounds(self):
+        """tuple or None: Lower and upper bounds for fitting."""
+        dct = quantity_desc(self.key, self.quantities)
+        return dct['bounds']
+
+    @property
+    def group(self):
+        """str: Group the quantity belongs to."""
+        dct = quantity_desc(self.key, self.quantities)
+        return dct['group']
+
+    @property
+    def unit(self):
+        """str or None: Unit of measurement."""
+        dct = quantity_desc(self.key, self.quantities)
+        return dct['unit']
+
+    @property
+    def desc(self):
+        """str: Descriptive name, adapted to the qualifiers."""
+        dct = quantity_desc(self.key, self.quantities)
+        # TODO: language confusion here as this is called name in QUANTITIES, should be renamed to desc
+        return dct['name'] 
+
+    @property
+    def dicom(self):
+        """str or None: Corresponding DICOM keyword."""
+        dct = quantity_desc(self.key, self.quantities)
+        return dct['dicom_key']
+
+    @property
+    def osipi(self):
+        """str or None: Corresponding OSIPI CAPLEX code."""
+        dct = quantity_desc(self.key, self.quantities)
+        return dct['osipi_key']
+
+    def set(self, index=None, compartment=None, roi=None):
+        """Replace the index, compartment and/or ROI.
+
+        Arguments that are not provided are kept. Returns the modified object,
+        so calls can be chained.
+        """
+        if index is not None:
+            self.index = index
+        if compartment is not None:
+            self.compartment = compartment
+        if roi is not None:
+            self.roi = roi
+        return self
+
+    def increment(self, increment=1):
+        """Increase the index by ``increment`` (the index becomes 1 if there is
+        none). Returns the modified object."""
+        if self.index is None:
+            self.index = 1
+        else:
+            self.index += increment
+        return self
+
+    def popindex(self):
+        """Remove the index. Returns the modified object."""
+        self.index = None
+        return self
+
+
+
+
+
+def update_bounds(free, quantities:dict=None, value:dict=None, all=True):
+    
+    # --- 2. Boundary Validation ---
+    lexicon = QUANTITIES
+    if quantities is not None:
+        lexicon |= quantities
+
+    bounds_add = select_quantities(lexicon, bounds_type='add')
+    bounds_mult = select_quantities(lexicon, bounds_type='mult')
+
+    new_free = deepcopy(free)
+
+    for p, bnds in free.items():
+        var = parse_quantity(p)['name']
+        if p not in value:
+            if all:
+                raise ValueError(
+                    f"'{p}' is not a valid parameter for this configuration.\n"
+                    f"Use print_params() to print a list of all valid parameters."
+                )
+            new_free.pop(p)
+
+        elif var in bounds_add:
+            if (bnds[0] > 0) or (bnds[1] < 0):
+                raise ValueError(f"Bounds on {p} must be (negative, positive).")
+            new_free[p] = [  
+                np.min(value[p]) + bnds[0],
+                np.max(value[p]) + bnds[1],
+            ]
+            
+        elif var in bounds_mult: 
+            if not (0 <= bnds[0] < bnds[1]):
+                raise ValueError(f"Invalid bounds on {p}: Bounds are relative and must be positive.")
+            new_free[p] = [
+                np.min(value[p]) * bnds[0],
+                np.max(value[p]) * bnds[1],
+            ]
+
+        elif not (bnds[0] <= np.min(value[p]) <= np.max(value[p]) <= bnds[1]):
+            raise ValueError(f"Initial {p} is out of bounds {bnds}.")
+
+    return new_free
+
+
+def select_quantities(lexicon=None, **kwargs):
+    """Return lexicon parameters with specific properties"""
+    if lexicon is None:
+        lexicon = QUANTITIES
+    result = {}
+    for p in lexicon:
+        select_p = True
+        for key, val in kwargs.items():
+            if key not in lexicon[p]:
+                select_p = False
+            elif lexicon[p][key] != val:
+                select_p = False
+        if select_p:
+            result[p] = deepcopy(lexicon[p])
+    
+    return result
 
 def all_quantities():
     """Return the registry of all quantities known to the package.
@@ -91,44 +331,7 @@ def all_compartments():
     """
     return dict(COMPS)
 
-def quantity_unit(k, **kwargs):
-    """Return the unit of a quantity.
 
-    Args:
-        k (str): Symbol of the quantity, e.g. 'dt' or 'BAT'.
-        **kwargs: Additional keyword arguments, passed on to
-            :func:`quantity_desc`.
-
-    Returns:
-        str or None: The unit of the quantity, e.g. 'sec' or 'mL/kg',
-        or None if the quantity has no unit.
-
-    Example:
-        >>> quantity_unit('dt')
-        'sec'
-    """
-    q = quantity_desc(k, **kwargs)
-    return q['unit']
-
-def quantity_group(k, **kwargs):
-    """Return the group a quantity belongs to.
-
-    Args:
-        k (str): Symbol of the quantity, e.g. 'dt' or 'BAT'.
-        **kwargs: Additional keyword arguments, passed on to
-            :func:`quantity_desc`.
-
-    Returns:
-        str: The name of the group, e.g. 'hyperparameters' or
-        'indicator'. See :func:`all_groups` for the possible
-        values.
-
-    Example:
-        >>> quantity_group('dt')
-        'hyperparameters'
-    """
-    q = quantity_desc(k, **kwargs)
-    return q['group']
 
 def quantity_osipi(k, **kwargs):
     """Return the OSIPI code of a quantity.
@@ -208,13 +411,7 @@ def quantity_key(name, index=None, compartment=None, roi=None):
         >>> quantity_key('F', index=1, compartment='b')
         'F_1_b'
     """
-    if compartment is not None and not _is_valid_compartment(compartment):
-        raise ValueError(
-            f"'{compartment}' is not a valid compartment. "
-            f"Must be one of {list(COMPS)}, or a pair 'comp1' + '2' + 'comp2' (e.g. 'b2e') with both in {list(COMPS)}."
-        )
-    if roi is not None and roi not in ROIS:
-        raise ValueError(f"'{roi}' is not a valid roi. Options are {list(ROIS)}.")
+
 
     parts = [name]
     if index is not None:
@@ -225,6 +422,7 @@ def quantity_key(name, index=None, compartment=None, roi=None):
         parts.append(roi)
 
     return "_".join(parts)
+
 
 
 def parse_quantity(k):
@@ -722,6 +920,7 @@ def _decode(d):
         return np.array(data, dtype=d['dtype']).reshape(d['shape'])
     return d
 
+# make these functions that operate on sets of quantities
 def quantity_to_json(path, dct, indent=2):
     """Save a (nested) dictionary as a JSON file.
 
@@ -747,6 +946,7 @@ def quantity_to_json(path, dct, indent=2):
     with open(path, 'w') as f:
         json.dump(dct, f, default=_encode, indent=indent)
 
+# make these functions that operate on sets of quantities
 def quantity_from_json(path):
     """Read a JSON file written by :func:`quantity_to_json`.
 
@@ -767,6 +967,7 @@ def quantity_from_json(path):
     with open(path) as f:
         return json.load(f, object_hook=_decode)
 
+# make these functions that operate on sets of quantities
 def quantity_to_csv(path, dct):
     """Save a flat dictionary of scalar values as a two-column CSV file.
 

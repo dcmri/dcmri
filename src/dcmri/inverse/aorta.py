@@ -110,7 +110,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from dcmri.core.module import Module
-from dcmri.core.tools import get_quantity, update_bounds
+from dcmri.core.quantity import Qty, update_bounds
 from dcmri.utils.fit import train_brute
 from dcmri.forward.aorta import Aorta as ForwardModel
 from dcmri.inverse.functions import estimate_bat
@@ -157,11 +157,11 @@ class InverseAorta(Module):
 
     def pfree(self):
         inputs = self.forward.mapped_inputs()
-        pfree = {p for p in inputs if get_quantity(p)['group']=='physiological'}
+        pfree = {p for p in inputs if Qty(p).group=='physiological'}
         pfree |= {'BAT'}
         if not self.config['calibrate']:
             pfree |= {'S0'}
-        return {p: get_quantity(p)['bounds'] for p in pfree}
+        return {p: Qty(p).bounds for p in pfree}
 
     def _call(self, p: dict=None, **kwargs) -> dict:
         self._preproc(p)

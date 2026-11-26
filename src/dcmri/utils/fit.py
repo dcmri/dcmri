@@ -12,7 +12,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.cluster.hierarchy import linkage, dendrogram
 from scipy.spatial.distance import squareform
 
-from dcmri.core.tools import get_quantity
+from dcmri.core.quantity import Qty
 
 
 def train_brute(predict, signal, pars, free, n_steps=3, 
@@ -217,19 +217,19 @@ def save_results(result:dict, filepath:str, subj='subject_id', study='study_id')
         dmr['sdev'] = {}
 
     for key, val in result['pars'].items():
-        q = get_quantity(key)
+        q = Qty(key)
         if isinstance(val, str):
-            dmr['data'][key] = [q['name'], q['unit'], 'str', q['group'], q['dicom_key'], q['osipi_key']]
+            dmr['data'][key] = [q.desc, q.unit, 'str', q.group, q.dicom, q.osipi]
         else:
-            dmr['data'][key] = [q['name'], q['unit'], 'float', q['group'], q['dicom_key'], q['osipi_key']]
+            dmr['data'][key] = [q.desc, q.unit, 'float', q.group, q.dicom, q.osipi]
         dmr['pars'][subj, study, key] = val
 
     for i, key in enumerate(result['popt']):
-        q = get_quantity(key)
+        q = Qty(key)
         if isinstance(val, str):
-            dmr['data'][key] = [q['name'], q['unit'], 'str', q['group'], q['dicom_key'], q['osipi_key']]
+            dmr['data'][key] = [q.desc, q.unit, 'str', q.group, q.dicom, q.osipi]
         else:
-            dmr['data'][key] = [q['name'], q['unit'], 'float', q['group'], q['dicom_key'], q['osipi_key']]
+            dmr['data'][key] = [q.desc, q.unit, 'float', q.group, q.dicom, q.osipi]
         if result['pcov'] is not None:
             dmr['rois'][subj, study, key] = result['pcov'][:,i]
             dmr['sdev'][subj, study, key] = result['psdev'][key]

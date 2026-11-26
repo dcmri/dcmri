@@ -1,7 +1,8 @@
 import numpy as np
 from scipy.interpolate import interp1d
 
-from dcmri.bloch import functions_mz_vectorized, functions_sequences, functions_mz
+from dcmri.bloch import functions_mz_vectorized, functions_mz
+from dcmri.core import pseq_tools
 
 
 def Mz_wrapper_k_all(sequence, mz_prep_sequence, tR1, R1, p, v=None, Kw=None, tj=None, j=None, tstart=0, t_end=None):
@@ -19,15 +20,15 @@ def Mz_wrapper_k_all(sequence, mz_prep_sequence, tR1, R1, p, v=None, Kw=None, tj
         return tR1.reshape((tR1.size, 1)), Mz
 
     if mz_prep_sequence == 'IR-SS':
-        TA = functions_sequences.repetition_time(sequence, p)
+        TA = pseq_tools.sequence_repetition_time(sequence, p)
         return Mz_dyn_ss_spgr(tR1, R1, v, Kw, j, p['me'], 180, TA, 1, tj=tj, tstart=tstart, t_end=t_end)
 
     if mz_prep_sequence == 'SR-SS':
-        TA = functions_sequences.repetition_time(sequence, p)
+        TA = pseq_tools.sequence_repetition_time(sequence, p)
         return Mz_dyn_ss_spgr(tR1, R1, v, Kw, j, p['me'], 90, TA, 1, tj=tj, tstart=tstart, t_end=t_end)
 
     if mz_prep_sequence == 'PR-SS':
-        TA = functions_sequences.repetition_time(sequence, p)
+        TA = pseq_tools.sequence_repetition_time(sequence, p)
         return Mz_dyn_ss_spgr(tR1, R1, v, Kw, j, p['me'], p['PA'], TA, 1, tj=tj, tstart=tstart, t_end=t_end)
 
     if mz_prep_sequence == 'SPGR':
